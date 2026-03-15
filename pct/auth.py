@@ -1,11 +1,13 @@
 """
-Sistema di autenticazione e gestione utenti per lo studio legale.
+Sistema di autenticazione, profili e gestione permessi per lo studio legale.
 
 Funzionalità:
-  - Ruoli: AMMINISTRATORE, AVVOCATO, SEGRETERIA
-  - Hash password bcrypt (werkzeug)
-  - Audit log completo di ogni azione (chi, cosa, quando, IP)
-  - Gestione sessioni via Flask-Login
+  - Ruoli: AMMINISTRATORE, AVVOCATO, COLLABORATORE, PRATICANTE,
+           SEGRETERIA, CONTABILE
+  - Permessi granulari per categoria (fascicoli, clienti, agenda, …)
+  - Override per-utente: permessi_extra e permessi_negati
+  - Hash password PBKDF2 (werkzeug)
+  - Audit log completo (chi, cosa, quando, IP, esito)
   - Token password reset (HMAC-SHA256)
 """
 
@@ -16,46 +18,128 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import wraps
 
 
-# ------------------------------------------------------------------ Enums
+# ------------------------------------------------------------------ Ruoli
 
 class RuoloUtente(str, Enum):
     AMMINISTRATORE = "AMMINISTRATORE"
     AVVOCATO       = "AVVOCATO"
+    COLLABORATORE  = "COLLABORATORE"
+    PRATICANTE     = "PRATICANTE"
     SEGRETERIA     = "SEGRETERIA"
+    CONTABILE      = "CONTABILE"
 
 
-# Permessi per ruolo
+# ------------------------------------------------------------------ Descrizioni ruoli
+
+DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
+    RuoloUtente.AMMINISTRATORE: {
+        "descrizione": "Accesso completo a tutti i moduli e alla gestione utenti.",
+        "colore": "danger",
+        "icona": "bi-shield-fill",
+    },
+    RuoloUtente.AVVOCATO: {
+        "descrizione": "Gestione completa di fascicoli, clienti, agenda e scadenziario.",
+        "colore": "primary",
+        "icona": "bi-briefcase-fill",
+    },
+    RuoloUtente.COLLABORATORE: {
+        "descrizione": "Avvocato collaboratore — operatività completa senza poter eliminare fascicoli/clienti.",
+        "colore": "info",
+        "icona": "bi-person-workspace",
+    },
+    RuoloUtente.PRATICANTE: {
+        "descrizione": "Accesso in sola lettura con possibilità di gestire l'agenda.",
+        "colore": "success",
+        "icona": "bi-mortarboard-fill",
+    },
+    RuoloUtente.SEGRETERIA: {
+        "descrizione": "Gestione agenda, anagrafica clienti e messaggistica. Fascicoli in sola lettura.",
+        "colore": "warning",
+        "icona": "bi-telephone-fill",
+    },
+    RuoloUtente.CONTABILE: {
+        "descrizione": "Visualizzazione fascicoli e scadenziario per attività contabili/fatturazione.",
+        "colore": "secondary",
+        "icona": "bi-calculator-fill",
+    },
+}
+
+
+# ------------------------------------------------------------------ Permessi
+
+# Tutti i permessi disponibili nel sistema, raggruppati per categoria.
+# Ogni voce: (categoria, chiave_permesso, etichetta_breve)
+TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
+    ("Fascicoli",    "fascicoli.leggi",      "Visualizza"),
+    ("Fascicoli",    "fascicoli.scrivi",     "Crea / Modifica"),
+    ("Fascicoli",    "fascicoli.archivia",   "Archivia"),
+    ("Fascicoli",    "fascicoli.elimina",    "Elimina"),
+    ("Clienti",      "clienti.leggi",        "Visualizza"),
+    ("Clienti",      "clienti.scrivi",       "Crea / Modifica"),
+    ("Clienti",      "clienti.elimina",      "Elimina"),
+    ("Agenda",       "agenda.leggi",         "Visualizza"),
+    ("Agenda",       "agenda.scrivi",        "Crea / Modifica"),
+    ("Agenda",       "agenda.elimina",       "Elimina"),
+    ("Messaggi",     "messaggi.leggi",       "Visualizza"),
+    ("Messaggi",     "messaggi.scrivi",      "Invia"),
+    ("Scadenziario", "scadenziario.leggi",   "Visualizza"),
+    ("Scadenziario", "scadenziario.scrivi",  "Crea / Modifica"),
+    ("Backup",       "backup.leggi",         "Visualizza"),
+    ("Backup",       "backup.esegui",        "Esegui"),
+    ("Utenti",       "utenti.leggi",         "Visualizza"),
+    ("Utenti",       "utenti.scrivi",        "Crea / Modifica"),
+    ("Utenti",       "utenti.elimina",       "Elimina"),
+    ("Audit",        "audit.leggi",          "Visualizza log"),
+]
+
+# Set di permessi di default per ogni ruolo
 PERMESSI: Dict[RuoloUtente, List[str]] = {
-    RuoloUtente.AMMINISTRATORE: [
-        "utenti.leggi", "utenti.scrivi", "utenti.elimina",
-        "fascicoli.leggi", "fascicoli.scrivi", "fascicoli.elimina", "fascicoli.archivia",
-        "clienti.leggi", "clienti.scrivi", "clienti.elimina",
-        "agenda.leggi", "agenda.scrivi", "agenda.elimina",
-        "messaggi.leggi", "messaggi.scrivi",
-        "backup.leggi", "backup.esegui",
-        "scadenziario.leggi", "scadenziario.scrivi",
-        "audit.leggi",
-    ],
+    RuoloUtente.AMMINISTRATORE: [p for _, p, _ in TUTTI_PERMESSI],  # tutti
+
     RuoloUtente.AVVOCATO: [
         "fascicoli.leggi", "fascicoli.scrivi", "fascicoli.archivia",
         "clienti.leggi", "clienti.scrivi",
-        "agenda.leggi", "agenda.scrivi",
+        "agenda.leggi", "agenda.scrivi", "agenda.elimina",
         "messaggi.leggi", "messaggi.scrivi",
         "scadenziario.leggi", "scadenziario.scrivi",
         "backup.leggi",
     ],
+
+    RuoloUtente.COLLABORATORE: [
+        "fascicoli.leggi", "fascicoli.scrivi",
+        "clienti.leggi", "clienti.scrivi",
+        "agenda.leggi", "agenda.scrivi",
+        "messaggi.leggi", "messaggi.scrivi",
+        "scadenziario.leggi", "scadenziario.scrivi",
+    ],
+
+    RuoloUtente.PRATICANTE: [
+        "fascicoli.leggi",
+        "clienti.leggi",
+        "agenda.leggi", "agenda.scrivi",
+        "messaggi.leggi",
+        "scadenziario.leggi",
+    ],
+
     RuoloUtente.SEGRETERIA: [
         "fascicoli.leggi",
         "clienti.leggi", "clienti.scrivi",
         "agenda.leggi", "agenda.scrivi",
-        "messaggi.leggi",
+        "messaggi.leggi", "messaggi.scrivi",
         "scadenziario.leggi",
+    ],
+
+    RuoloUtente.CONTABILE: [
+        "fascicoli.leggi",
+        "clienti.leggi",
+        "scadenziario.leggi",
+        "backup.leggi",
     ],
 }
 
@@ -75,8 +159,11 @@ class Utente:
     ultimo_accesso: str = ""
     reset_token: str = ""
     reset_token_scade: str = ""
+    # Override per-utente
+    permessi_extra: List[str] = field(default_factory=list)   # aggiuntivi rispetto al ruolo
+    permessi_negati: List[str] = field(default_factory=list)  # rimossi rispetto al ruolo
 
-    # Flask-Login interface
+    # ---- Flask-Login interface
     @property
     def is_authenticated(self) -> bool:
         return True
@@ -92,11 +179,45 @@ class Utente:
     def get_id(self) -> str:
         return self.id
 
+    # ---- permessi
+
     def ha_permesso(self, permesso: str) -> bool:
+        """Verifica un permesso applicando gli override per-utente."""
+        if permesso in self.permessi_negati:
+            return False
+        if permesso in self.permessi_extra:
+            return True
         return permesso in PERMESSI.get(self.ruolo, [])
 
     def ha_ruolo(self, *ruoli: RuoloUtente) -> bool:
         return self.ruolo in ruoli
+
+    @property
+    def permessi_effettivi(self) -> List[str]:
+        """Restituisce la lista completa di permessi effettivi dell'utente."""
+        base = set(PERMESSI.get(self.ruolo, []))
+        base.update(self.permessi_extra)
+        base.difference_update(self.permessi_negati)
+        return sorted(base)
+
+    @property
+    def ha_override(self) -> bool:
+        """True se l'utente ha permessi personalizzati rispetto al suo ruolo."""
+        return bool(self.permessi_extra or self.permessi_negati)
+
+    @property
+    def descrizione_ruolo(self) -> str:
+        return DESCRIZIONI_RUOLI.get(self.ruolo, {}).get("descrizione", "")
+
+    @property
+    def colore_ruolo(self) -> str:
+        return DESCRIZIONI_RUOLI.get(self.ruolo, {}).get("colore", "secondary")
+
+    @property
+    def icona_ruolo(self) -> str:
+        return DESCRIZIONI_RUOLI.get(self.ruolo, {}).get("icona", "bi-person")
+
+    # ---- serializzazione
 
     def to_dict(self) -> Dict:
         d = asdict(self)
@@ -107,6 +228,9 @@ class Utente:
     def from_dict(d: Dict) -> "Utente":
         d = dict(d)
         d["ruolo"] = RuoloUtente(d.get("ruolo", "SEGRETERIA"))
+        # Compatibilità backward: campi aggiunti dopo la versione iniziale
+        d.setdefault("permessi_extra", [])
+        d.setdefault("permessi_negati", [])
         return Utente(**d)
 
 
@@ -138,11 +262,11 @@ class EventoAudit:
 
 class GestioneUtenti:
     """
-    Gestisce utenti, autenticazione e audit log.
+    Gestisce utenti, profili, permessi e audit log.
 
     Struttura file:
-        <db_path>           ← JSON utenti
-        <audit_path>        ← JSON audit log
+        <db_path>    ← JSON utenti
+        <audit_path> ← JSON audit log
     """
 
     def __init__(
@@ -158,7 +282,6 @@ class GestioneUtenti:
         self._utenti: Dict[str, Utente] = {}
         self._audit: List[EventoAudit] = []
         self._carica()
-        # Crea admin di default se DB vuoto
         if not self._utenti:
             self._crea_admin_default()
 
@@ -193,7 +316,6 @@ class GestioneUtenti:
         )
 
     def _crea_admin_default(self):
-        """Crea l'utente amministratore di default al primo avvio."""
         admin = Utente(
             username="admin",
             email="admin@studio.local",
@@ -208,7 +330,6 @@ class GestioneUtenti:
 
     @staticmethod
     def _hash_password(password: str) -> str:
-        """Hash password con werkzeug (bcrypt-like PBKDF2)."""
         from werkzeug.security import generate_password_hash
         return generate_password_hash(password)
 
@@ -226,6 +347,8 @@ class GestioneUtenti:
         ruolo: RuoloUtente,
         email: str = "",
         nome_completo: str = "",
+        permessi_extra: Optional[List[str]] = None,
+        permessi_negati: Optional[List[str]] = None,
     ) -> Utente:
         username = username.strip().lower()
         if not username:
@@ -240,6 +363,8 @@ class GestioneUtenti:
             nome_completo=nome_completo.strip(),
             ruolo=ruolo,
             password_hash=self._hash_password(password),
+            permessi_extra=permessi_extra or [],
+            permessi_negati=permessi_negati or [],
         )
         self._utenti[utente.id] = utente
         self._salva_utenti()
@@ -254,6 +379,28 @@ class GestioneUtenti:
             if k == "ruolo":
                 v = RuoloUtente(v)
             setattr(u, k, v)
+        self._salva_utenti()
+        return u
+
+    def aggiorna_permessi(
+        self,
+        id_utente: str,
+        permessi_extra: List[str],
+        permessi_negati: List[str],
+    ) -> Utente:
+        """Aggiorna gli override di permesso per un utente specifico."""
+        u = self._get_or_raise(id_utente)
+        # Validazione: solo permessi esistenti nel sistema
+        chiavi_valide = {p for _, p, _ in TUTTI_PERMESSI}
+        for p in permessi_extra + permessi_negati:
+            if p not in chiavi_valide:
+                raise ValueError(f"Permesso non riconosciuto: {p!r}")
+        # Un permesso non può essere sia extra che negato
+        conflitti = set(permessi_extra) & set(permessi_negati)
+        if conflitti:
+            raise ValueError(f"Permessi in conflitto: {conflitti}")
+        u.permessi_extra = list(set(permessi_extra))
+        u.permessi_negati = list(set(permessi_negati))
         self._salva_utenti()
         return u
 
@@ -280,7 +427,6 @@ class GestioneUtenti:
     # ---- autenticazione
 
     def autentica(self, username: str, password: str) -> Optional[Utente]:
-        """Verifica credenziali. Restituisce l'utente o None."""
         username = username.strip().lower()
         for u in self._utenti.values():
             if u.username == username and u.attivo:
@@ -303,10 +449,12 @@ class GestioneUtenti:
             result = [u for u in result if u.attivo]
         return sorted(result, key=lambda u: u.username)
 
+    def per_ruolo(self, ruolo: RuoloUtente) -> List[Utente]:
+        return [u for u in self._utenti.values() if u.ruolo == ruolo]
+
     # ---- reset password
 
     def genera_reset_token(self, email: str) -> Optional[str]:
-        """Genera un token di reset password valido 24h."""
         u = next((u for u in self._utenti.values() if u.email == email and u.attivo), None)
         if not u:
             return None
@@ -319,7 +467,6 @@ class GestioneUtenti:
         return token
 
     def reset_password_con_token(self, token: str, nuova_password: str) -> bool:
-        """Reimposta la password usando il token. Restituisce True se ok."""
         if len(nuova_password) < 8:
             raise ValueError("La password deve avere almeno 8 caratteri")
         token_hash = hmac.new(
@@ -381,6 +528,8 @@ class GestioneUtenti:
             result = [e for e in result if e.timestamp <= a]
         return list(reversed(result))[:limit]
 
+    # ---- statistiche
+
     def statistiche(self) -> Dict[str, Any]:
         return {
             "totale_utenti": len(self._utenti),
@@ -389,6 +538,7 @@ class GestioneUtenti:
                 r.value: sum(1 for u in self._utenti.values() if u.ruolo == r)
                 for r in RuoloUtente
             },
+            "con_override": sum(1 for u in self._utenti.values() if u.ha_override),
             "totale_eventi_audit": len(self._audit),
         }
 
@@ -404,7 +554,6 @@ class GestioneUtenti:
 # ------------------------------------------------------------------ Decoratori Flask
 
 def login_required_custom(f):
-    """Decorator che richiede autenticazione (usato fuori Flask-Login)."""
     @wraps(f)
     def decorated(*args, **kwargs):
         from flask import session, redirect, url_for, request
@@ -415,11 +564,10 @@ def login_required_custom(f):
 
 
 def permesso_richiesto(permesso: str):
-    """Decorator che verifica un permesso specifico."""
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
-            from flask import session, abort, g
+            from flask import g, abort
             utente = getattr(g, "utente_corrente", None)
             if not utente or not utente.ha_permesso(permesso):
                 abort(403)
@@ -429,7 +577,6 @@ def permesso_richiesto(permesso: str):
 
 
 def ruolo_richiesto(*ruoli: RuoloUtente):
-    """Decorator che verifica un ruolo specifico."""
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):

@@ -244,6 +244,10 @@
        class="nav-link {% if request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente') %}active{% endif %}">
       <i class="bi bi-people-fill me-2"></i>Utenti
     </a>
+    <a href="{{ url_for('profili') }}"
+       class="nav-link {% if request.endpoint == 'profili' %}active{% endif %}">
+      <i class="bi bi-grid-3x3 me-2"></i>Profili e Permessi
+    </a>
     <a href="{{ url_for('audit_log') }}"
        class="nav-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
       <i class="bi bi-journal-text me-2"></i>Audit Log

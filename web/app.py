@@ -74,6 +74,8 @@ from pct.auth import (
     Utente,
     RuoloUtente,
     PERMESSI,
+    TUTTI_PERMESSI,
+    DESCRIZIONI_RUOLI,
 )
 from pct.scadenziario import (
     GestioneScadenziario,
@@ -255,6 +257,7 @@ def create_app(config: dict | None = None) -> Flask:
             "EsitoAttivita": EsitoAttivita,
             "utente_corrente": g.get("utente_corrente"),
             "RuoloUtente": RuoloUtente,
+            "DESCRIZIONI_RUOLI": DESCRIZIONI_RUOLI,
         }
 
     @app.errorhandler(403)
@@ -442,6 +445,56 @@ def create_app(config: dict | None = None) -> Flask:
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
         return jsonify(get_utenti().statistiche())
+
+    # ---- Gestione profili / matrice permessi
+
+    @app.route("/profili")
+    def profili():
+        """Pagina matrice ruoli × permessi."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            abort(403)
+        gu = get_utenti()
+        utenti_per_ruolo = {r: gu.per_ruolo(r) for r in RuoloUtente}
+        return render_template(
+            "auth/profili.html",
+            ruoli=list(RuoloUtente),
+            tutti_permessi=TUTTI_PERMESSI,
+            permessi=PERMESSI,
+            descrizioni=DESCRIZIONI_RUOLI,
+            utenti_per_ruolo=utenti_per_ruolo,
+        )
+
+    @app.route("/utenti/<id_utente>/permessi", methods=["GET", "POST"])
+    def permessi_utente(id_utente):
+        """Gestione override permessi per un singolo utente."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.scrivi"):
+            abort(403)
+        gu = get_utenti()
+        target = gu.get(id_utente)
+        if not target:
+            flash("Utente non trovato.", "warning")
+            return redirect(url_for("lista_utenti"))
+        if request.method == "POST":
+            extra = request.form.getlist("permessi_extra")
+            negati = request.form.getlist("permessi_negati")
+            try:
+                gu.aggiorna_permessi(id_utente, extra, negati)
+                audit("utenti.aggiorna_permessi",
+                      risorsa_tipo="utente", risorsa_id=id_utente,
+                      dettagli=f"extra={extra} negati={negati}")
+                flash(f"Permessi di {target.username} aggiornati.", "success")
+            except ValueError as e:
+                flash(str(e), "danger")
+            return redirect(url_for("permessi_utente", id_utente=id_utente))
+        return render_template(
+            "auth/permessi_utente.html",
+            target=target,
+            tutti_permessi=TUTTI_PERMESSI,
+            permessi_ruolo=PERMESSI.get(target.ruolo, []),
+            descrizioni=DESCRIZIONI_RUOLI,
+        )
 
     # ================================================================ SCADENZIARIO
 

@@ -21,13 +21,19 @@
       </div>
       <div class="col-md-6">
         <label class="form-label fw-semibold">Ruolo <span class="text-danger">*</span></label>
-        <select name="ruolo" class="form-select" required>
+        <select name="ruolo" class="form-select" required id="ruolo-select">
           {% for r in ruoli %}
-          <option value="{{ r.value }}" {{ 'selected' if utente and utente.ruolo == r }}>
+          {% set desc = DESCRIZIONI_RUOLI[r] %}
+          <option value="{{ r.value }}"
+                  data-desc="{{ desc.descrizione }}"
+                  data-colore="{{ desc.colore }}"
+                  data-icona="{{ desc.icona }}"
+                  {{ 'selected' if utente and utente.ruolo == r }}>
             {{ r.value.replace('_',' ') }}
           </option>
           {% endfor %}
         </select>
+        <div id="ruolo-desc" class="form-text mt-1 small text-muted"></div>
       </div>
       <div class="col-md-6">
         <label class="form-label fw-semibold">Nome completo</label>
@@ -66,8 +72,30 @@
     <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if utente else 'Crea utente' }}
   </button>
   <a href="{{ url_for('lista_utenti') }}" class="btn btn-outline-secondary">Annulla</a>
+{% if utente %}
+<a href="{{ url_for('permessi_utente', id_utente=utente.id) }}"
+   class="btn btn-outline-primary ms-auto">
+  <i class="bi bi-sliders me-1"></i>Permessi personalizzati
+</a>
+{% endif %}
 </div>
 </form>
 </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const sel = document.getElementById('ruolo-select');
+  const desc = document.getElementById('ruolo-desc');
+  if (!sel || !desc) return;
+  function update() {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt) desc.textContent = opt.dataset.desc || '';
+  }
+  sel.addEventListener('change', update);
+  update();
+})();
+</script>
 {% endblock %}

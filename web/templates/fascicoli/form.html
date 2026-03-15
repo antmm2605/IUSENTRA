@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
+{% block page_title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-9">
+<form method="post">
+
+{# Dati principali #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-folder2-open me-2 text-primary"></i>Dati principali
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-8">
+        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+        <input type="text" name="titolo" class="form-control" required
+               value="{{ fascicolo.titolo if fascicolo else '' }}"
+               placeholder="es. Rossi c/ Bianchi — Inadempimento contrattuale">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+        <select name="tipo" class="form-select" required>
+          {% for t in tipi %}
+          <option value="{{ t.value }}" {{ 'selected' if fascicolo and fascicolo.tipo == t }}>
+            {{ t.value.replace('_',' ') }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
+        <textarea name="oggetto" class="form-control" rows="2"
+                  placeholder="Breve descrizione della causa…">{{ fascicolo.oggetto if fascicolo else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Cliente e controparte #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-people me-2 text-primary"></i>Parti
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Cliente</label>
+        <select name="id_cliente" class="form-select">
+          <option value="">— Seleziona cliente —</option>
+          {% for c in clienti %}
+          <option value="{{ c.id }}"
+            {% if (fascicolo and fascicolo.id_cliente == c.id) or id_cliente_pre == c.id %}
+              selected
+            {% endif %}>
+            {{ c.nome_completo }}
+            {% if c.codice_fiscale %} ({{ c.codice_fiscale }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Controparte</label>
+        <input type="text" name="controparte" class="form-control"
+               value="{{ fascicolo.controparte if fascicolo else '' }}"
+               placeholder="Nome controparte">
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Dati processuali #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-bank me-2 text-primary"></i>Dati processuali
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Tribunale</label>
+        <select name="tribunale" class="form-select">
+          <option value="">— Seleziona —</option>
+          {% for u in tribunali %}
+          <option value="{{ u.nome }}"
+            {{ 'selected' if fascicolo and fascicolo.tribunale == u.nome }}>
+            {{ u.nome }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Numero RG</label>
+        <input type="text" name="numero_rg" class="form-control font-monospace"
+               value="{{ fascicolo.numero_rg if fascicolo else '' }}"
+               placeholder="1234">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Anno RG</label>
+        <input type="number" name="anno_rg" class="form-control"
+               value="{{ fascicolo.anno_rg if fascicolo and fascicolo.anno_rg else oggi.year }}"
+               min="2000" max="2099">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Sezione</label>
+        <input type="text" name="sezione" class="form-control"
+               value="{{ fascicolo.sezione if fascicolo else '' }}"
+               placeholder="I, II…">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Giudice</label>
+        <input type="text" name="giudice" class="form-control"
+               value="{{ fascicolo.giudice if fascicolo else '' }}"
+               placeholder="Dott. …">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Valore causa (€)</label>
+        <input type="number" name="valore_causa" class="form-control" step="0.01" min="0"
+               value="{{ fascicolo.valore_causa if fascicolo else '' }}"
+               placeholder="0.00">
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Studio #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-briefcase me-2 text-primary"></i>Avvocati responsabili
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Avvocato referente</label>
+        <input type="text" name="avvocato_referente" class="form-control"
+               value="{{ fascicolo.avvocato_referente if fascicolo else '' }}"
+               placeholder="Avv. Mario Rossi">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Avvocato dominus</label>
+        <input type="text" name="avvocato_dominus" class="form-control"
+               value="{{ fascicolo.avvocato_dominus if fascicolo else '' }}"
+               placeholder="Avv. …">
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold">Note</label>
+        <textarea name="note" class="form-control" rows="3">{{ fascicolo.note if fascicolo else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if fascicolo else 'Crea fascicolo' }}
+  </button>
+  {% if fascicolo %}
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+     class="btn btn-outline-secondary">Annulla</a>
+  {% else %}
+  <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary">Annulla</a>
+  {% endif %}
+</div>
+
+</form>
+</div>
+</div>
+{% endblock %}

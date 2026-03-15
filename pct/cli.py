@@ -23,6 +23,13 @@ from .clienti import (
     StatoCliente,
     RiferimentoProcedimento,
 )
+from .fascicoli import (
+    GestioneFascicoli,
+    TipoFascicolo,
+    StatoFascicolo,
+    TipoAttivita,
+    EsitoAttivita,
+)
 
 
 def carica_config() -> dict:
@@ -634,6 +641,252 @@ def cmd_clienti_statistiche():
     for s, n in stats["per_stato"].items():
         if n:
             click.echo(f"  {s:<22} {n}")
+
+
+# ================================================================ FASCICOLI
+
+def _fascicoli() -> GestioneFascicoli:
+    return GestioneFascicoli(
+        db_path=os.getenv("PCT_FASCICOLI_DB", "./fascicoli/fascicoli.json"),
+        documents_dir=os.getenv("PCT_FASCICOLI_DOCS", "./fascicoli/documenti"),
+        archive_dir=os.getenv("PCT_FASCICOLI_ARCH", "./fascicoli/archivio"),
+    )
+
+
+def _fmt_fasc(f, verbose: bool = False) -> str:
+    sc = f.prossima_scadenza
+    sc_txt = f" | pross.scad: {sc.data}" if sc else ""
+    riga = (f"[{f.id}] {f.numero}  {f.stato.value:<12} {f.tipo.value:<15}"
+            f" {f.titolo[:35]}{sc_txt}")
+    if verbose:
+        if f.nome_cliente:
+            riga += f"\n         Cliente:    {f.nome_cliente}"
+        if f.rg_completo:
+            riga += f"\n         RG:         {f.rg_completo}"
+        if f.tribunale:
+            riga += f"\n         Tribunale:  {f.tribunale}"
+        if f.avvocato_referente:
+            riga += f"\n         Avv.:       {f.avvocato_referente}"
+        riga += f"\n         Docs: {f.documenti_count}  Attività: {f.attivita_count}"
+    return riga
+
+
+@cli.group("fascicoli")
+def grp_fascicoli():
+    """Gestione fascicoli (cartelle legali) dello studio."""
+    pass
+
+
+@grp_fascicoli.command("nuovo")
+@click.option("--titolo", required=True, help="Titolo del fascicolo")
+@click.option("--tipo", required=True,
+              type=click.Choice([t.value for t in TipoFascicolo], case_sensitive=False),
+              help="Tipo procedimento")
+@click.option("--cliente", default="", help="ID cliente")
+@click.option("--controparte", default="", help="Nome della controparte")
+@click.option("--tribunale", default="", help="Tribunale competente")
+@click.option("--rg", default="", help="Numero RG")
+@click.option("--anno-rg", default=0, type=int, help="Anno RG")
+@click.option("--avvocato", default="", help="Avvocato referente")
+@click.option("--oggetto", default="", help="Oggetto della causa")
+@click.option("--valore", default=0.0, type=float, help="Valore causa in euro")
+@click.option("--note", default="", help="Note")
+def cmd_fasc_nuovo(titolo, tipo, cliente, controparte, tribunale, rg,
+                   anno_rg, avvocato, oggetto, valore, note):
+    """Crea un nuovo fascicolo."""
+    gf = _fascicoli()
+    nome_cliente = ""
+    if cliente:
+        gc = _clienti()
+        c = gc.get(cliente.upper())
+        nome_cliente = c.nome_completo if c else ""
+    try:
+        f = gf.nuovo(
+            titolo=titolo,
+            tipo=TipoFascicolo(tipo.upper()),
+            id_cliente=cliente.upper() if cliente else "",
+            nome_cliente=nome_cliente,
+            controparte=controparte,
+            tribunale=tribunale,
+            numero_rg=rg,
+            anno_rg=anno_rg,
+            avvocato_referente=avvocato,
+            oggetto=oggetto,
+            valore_causa=valore,
+            note=note,
+        )
+        click.echo(f"Fascicolo creato: {f.numero} [{f.id}]")
+        click.echo(_fmt_fasc(f, verbose=True))
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+        sys.exit(1)
+
+
+@grp_fascicoli.command("lista")
+@click.option("--stato", type=click.Choice([s.value for s in StatoFascicolo],
+              case_sensitive=False), default=None)
+@click.option("--tipo", type=click.Choice([t.value for t in TipoFascicolo],
+              case_sensitive=False), default=None)
+@click.option("--archiviati", is_flag=True, default=False,
+              help="Mostra solo archiviati")
+@click.option("-v", "--verbose", is_flag=True, default=False)
+def cmd_fasc_lista(stato, tipo, archiviati, verbose):
+    """Elenca i fascicoli."""
+    gf = _fascicoli()
+    stato_e = StatoFascicolo(stato) if stato else None
+    tipo_e = TipoFascicolo(tipo) if tipo else None
+    fascicoli = gf.tutti(stato=stato_e, tipo=tipo_e, archiviati=archiviati)
+    if not fascicoli:
+        click.echo("Nessun fascicolo trovato.")
+        return
+    for f in fascicoli:
+        click.echo(_fmt_fasc(f, verbose=verbose))
+
+
+@grp_fascicoli.command("cerca")
+@click.argument("testo")
+@click.option("--archiviati", is_flag=True, default=False)
+@click.option("-v", "--verbose", is_flag=True, default=False)
+def cmd_fasc_cerca(testo, archiviati, verbose):
+    """Cerca fascicoli per testo libero."""
+    gf = _fascicoli()
+    risultati = gf.cerca(testo=testo, archiviati=archiviati)
+    if not risultati:
+        click.echo("Nessun risultato.")
+        return
+    for f in risultati:
+        click.echo(_fmt_fasc(f, verbose=verbose))
+
+
+@grp_fascicoli.command("dettaglio")
+@click.argument("id_fasc")
+def cmd_fasc_dettaglio(id_fasc):
+    """Mostra il dettaglio completo di un fascicolo."""
+    gf = _fascicoli()
+    f = gf.get(id_fasc.upper())
+    if not f:
+        click.echo(f"Fascicolo '{id_fasc}' non trovato.", err=True)
+        sys.exit(1)
+    click.echo(json.dumps(f.to_dict(), ensure_ascii=False, indent=2))
+
+
+@grp_fascicoli.command("stato")
+@click.argument("id_fasc")
+@click.argument("nuovo_stato",
+                type=click.Choice([s.value for s in StatoFascicolo], case_sensitive=False))
+@click.option("--note", default="", help="Note sul cambio di stato")
+@click.option("--avvocato", default="", help="Avvocato che esegue l'operazione")
+def cmd_fasc_stato(id_fasc, nuovo_stato, note, avvocato):
+    """Cambia lo stato di un fascicolo."""
+    gf = _fascicoli()
+    try:
+        f = gf.cambia_stato(id_fasc.upper(), StatoFascicolo(nuovo_stato.upper()),
+                            note=note, avvocato=avvocato)
+        click.echo(f"Stato aggiornato: {f.stato.value}")
+    except (KeyError, ValueError) as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_fascicoli.command("attivita")
+@click.argument("id_fasc")
+@click.option("--tipo", required=True,
+              type=click.Choice([t.value for t in TipoAttivita], case_sensitive=False))
+@click.option("--data", required=True, help="Data YYYY-MM-DD")
+@click.option("--titolo", required=True, help="Titolo attività")
+@click.option("--luogo", default="", help="Luogo")
+@click.option("--avvocato", default="", help="Avvocato")
+@click.option("--note", default="", help="Note")
+def cmd_fasc_attivita(id_fasc, tipo, data, titolo, luogo, avvocato, note):
+    """Aggiunge un'attività processuale a un fascicolo."""
+    gf = _fascicoli()
+    try:
+        att = gf.aggiungi_attivita(
+            id_fasc.upper(),
+            tipo=TipoAttivita(tipo.upper()),
+            data=data,
+            titolo=titolo,
+            luogo=luogo,
+            avvocato=avvocato,
+            note=note,
+        )
+        click.echo(f"Attività aggiunta: [{att.id}] {att.titolo} — {att.data}")
+    except (KeyError, ValueError) as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_fascicoli.command("definisci")
+@click.argument("id_fasc")
+@click.option("--esito", default="", help="Esito finale della causa")
+@click.option("--motivo", default="", help="Motivo della chiusura")
+@click.option("--note", default="", help="Note")
+@click.option("--avvocato", default="", help="Avvocato")
+def cmd_fasc_definisci(id_fasc, esito, motivo, note, avvocato):
+    """Marca un fascicolo come DEFINITO (pronto per archiviazione)."""
+    gf = _fascicoli()
+    try:
+        f = gf.definisci(id_fasc.upper(), esito_finale=esito, motivo=motivo,
+                         note=note, avvocato=avvocato)
+        click.echo(f"Fascicolo {f.numero} definito. Esito: {esito or 'N/D'}")
+    except (KeyError, ValueError) as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_fascicoli.command("archivia")
+@click.argument("id_fasc")
+@click.option("--avvocato", default="", help="Avvocato che archivia")
+@click.option("--no-zip", is_flag=True, default=False, help="Non creare archivio ZIP")
+def cmd_fasc_archivia(id_fasc, avvocato, no_zip):
+    """Archivia definitivamente un fascicolo (crea ZIP dei documenti)."""
+    gf = _fascicoli()
+    try:
+        f = gf.archivia(id_fasc.upper(), crea_zip=not no_zip, avvocato=avvocato)
+        click.echo(f"Fascicolo {f.numero} archiviato.")
+        if f.archivio and f.archivio.percorso_zip:
+            click.echo(f"Archivio ZIP: {f.archivio.percorso_zip}")
+    except (KeyError, ValueError) as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_fascicoli.command("scadenze")
+@click.option("--giorni", default=7, show_default=True,
+              help="Mostra scadenze entro N giorni")
+def cmd_fasc_scadenze(giorni):
+    """Mostra fascicoli con scadenze imminenti."""
+    gf = _fascicoli()
+    scadenze = gf.fascicoli_con_scadenze_imminenti(entro_giorni=giorni)
+    if not scadenze:
+        click.echo(f"Nessuna scadenza nei prossimi {giorni} giorni.")
+        return
+    for item in scadenze:
+        f = item["fascicolo"]
+        sc = item["scadenza"]
+        click.echo(f"[{f.numero}] {f.titolo}")
+        click.echo(f"         Scadenza: {sc.data} — {sc.titolo}")
+
+
+@grp_fascicoli.command("statistiche")
+def cmd_fasc_statistiche():
+    """Mostra statistiche dei fascicoli."""
+    gf = _fascicoli()
+    stats = gf.statistiche()
+    click.echo(f"Totale fascicoli:    {stats['totale']}")
+    click.echo(f"Attivi:              {stats['attivi']}")
+    click.echo(f"Definiti:            {stats['definiti']}")
+    click.echo(f"Archiviati:          {stats['archiviati']}")
+    click.echo(f"Totale documenti:    {stats['totale_documenti']}")
+    click.echo(f"Totale attività:     {stats['totale_attivita']}")
+    click.echo("\nPer tipo:")
+    for t, n in stats["per_tipo"].items():
+        if n:
+            click.echo(f"  {t:<20} {n}")
+    click.echo("\nPer stato:")
+    for s, n in stats["per_stato"].items():
+        if n:
+            click.echo(f"  {s:<20} {n}")
 
 
 def main():

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Archivio Fascicoli{% endblock %}
+{% block page_title %}Archivio Fascicoli{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-archive me-2 text-secondary"></i>Fascicoli archiviati — {{ fascicoli|length }}</span>
+    <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-folder2-open me-1"></i>Fascicoli attivi
+    </a>
+  </div>
+
+  {# Ricerca #}
+  <div class="card-body border-bottom py-2">
+    <form method="get" class="d-flex gap-2">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Cerca per numero, titolo, cliente…" value="{{ q }}">
+      </div>
+      <button class="btn btn-primary btn-sm">Cerca</button>
+      <a href="{{ url_for('lista_archivio') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </form>
+  </div>
+
+  {% if fascicoli %}
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>N°</th><th>Titolo</th><th>Tipo</th><th>Cliente</th>
+            <th>Esito</th><th>Archiviato il</th><th>ZIP</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli %}
+          <tr class="text-muted">
+            <td class="font-monospace fw-semibold">{{ f.numero }}</td>
+            <td>
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                 class="text-decoration-none text-dark fw-semibold">{{ f.titolo }}</a>
+              {% if f.rg_completo %}
+              <div class="small text-muted font-monospace">{{ f.rg_completo }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border small">
+                {{ f.tipo.value.replace('_',' ') }}
+              </span>
+            </td>
+            <td class="small">{{ f.nome_cliente or '—' }}</td>
+            <td class="small">
+              {% if f.archivio and f.archivio.esito_finale %}
+                <span class="badge bg-secondary">{{ f.archivio.esito_finale }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td class="small">
+              {% if f.archivio and f.archivio.data_archiviazione %}
+                {{ f.archivio.data_archiviazione|fmt_data }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if f.archivio and f.archivio.percorso_zip %}
+              <a href="{{ url_for('scarica_archivio', id_fasc=f.id) }}"
+                 class="btn btn-sm btn-outline-secondary" title="Scarica ZIP">
+                <i class="bi bi-file-zip"></i>
+              </a>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                <form method="post"
+                      action="{{ url_for('ripristina_fascicolo', id_fasc=f.id) }}"
+                      onsubmit="return confirm('Ripristinare il fascicolo?')">
+                  <button class="btn btn-outline-success" title="Ripristina">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-archive fs-1 d-block mb-2"></i>
+    Nessun fascicolo archiviato{% if q %} per "{{ q }}"{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

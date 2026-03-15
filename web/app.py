@@ -32,11 +32,22 @@ from pct.clienti import (
     Cliente,
     TipoCliente,
     StatoCliente,
-    TipoDocumento,
+    TipoDocumento as TipoDocumentoCliente,
     Indirizzo,
     Recapiti,
     DocumentoIdentita,
     RiferimentoProcedimento,
+)
+from pct.fascicoli import (
+    GestioneFascicoli,
+    Fascicolo,
+    TipoFascicolo,
+    StatoFascicolo,
+    TipoDocumento,
+    TipoAttivita,
+    EsitoAttivita,
+    AttivitaProcessuale,
+    Documento,
 )
 
 # ------------------------------------------------------------------ factory
@@ -52,12 +63,28 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["CLIENTI_DB"] = cfg.get(
         "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
     )
+    app.config["FASCICOLI_DB"] = cfg.get(
+        "FASCICOLI_DB", os.getenv("PCT_FASCICOLI_DB", "./fascicoli/fascicoli.json")
+    )
+    app.config["FASCICOLI_DOCS"] = cfg.get(
+        "FASCICOLI_DOCS", os.getenv("PCT_FASCICOLI_DOCS", "./fascicoli/documenti")
+    )
+    app.config["FASCICOLI_ARCH"] = cfg.get(
+        "FASCICOLI_ARCH", os.getenv("PCT_FASCICOLI_ARCH", "./fascicoli/archivio")
+    )
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
 
     def get_clienti() -> GestioneClienti:
         return GestioneClienti(db_path=app.config["CLIENTI_DB"])
+
+    def get_fascicoli() -> GestioneFascicoli:
+        return GestioneFascicoli(
+            db_path=app.config["FASCICOLI_DB"],
+            documents_dir=app.config["FASCICOLI_DOCS"],
+            archive_dir=app.config["FASCICOLI_ARCH"],
+        )
 
     # ---------------------------------------------------------------- context
 
@@ -81,6 +108,10 @@ def create_app(config: dict | None = None) -> Flask:
             "StatoAppuntamento": StatoAppuntamento,
             "TipoCliente": TipoCliente,
             "StatoCliente": StatoCliente,
+            "TipoFascicolo": TipoFascicolo,
+            "StatoFascicolo": StatoFascicolo,
+            "TipoAttivita": TipoAttivita,
+            "EsitoAttivita": EsitoAttivita,
         }
 
     # ---------------------------------------------------------------- dashboard
@@ -393,7 +424,7 @@ def create_app(config: dict | None = None) -> Flask:
             cliente=None,
             tipi=list(TipoCliente),
             stati=list(StatoCliente),
-            tipi_doc=list(TipoDocumento),
+            tipi_doc=list(TipoDocumentoCliente),
             tribunali=reginde.elenca_uffici(),
         )
 
@@ -450,7 +481,7 @@ def create_app(config: dict | None = None) -> Flask:
                     sito_web=f.get("sito_web", ""),
                 )
                 gc.aggiorna_documento(id_cliente,
-                    tipo=TipoDocumento(f.get("doc_tipo", c.documento.tipo.value)),
+                    tipo=TipoDocumentoCliente(f.get("doc_tipo", c.documento.tipo.value)),
                     numero=f.get("doc_numero", ""),
                     rilasciato_da=f.get("doc_rilasciato_da", ""),
                     data_rilascio=f.get("doc_data_rilascio", ""),
@@ -467,7 +498,7 @@ def create_app(config: dict | None = None) -> Flask:
             cliente=c,
             tipi=list(TipoCliente),
             stati=list(StatoCliente),
-            tipi_doc=list(TipoDocumento),
+            tipi_doc=list(TipoDocumentoCliente),
             tribunali=reginde.elenca_uffici(),
         )
 
@@ -531,5 +562,366 @@ def create_app(config: dict | None = None) -> Flask:
             provincia=f.get(f"{prefix}provincia", ""),
             nazione=f.get(f"{prefix}nazione", "Italia"),
         )
+
+    # ================================================================ FASCICOLI
+
+    from flask import send_file
+    import io
+
+    def _fascicoli_kwargs(tmp=None):
+        return dict(
+            db_path=app.config["FASCICOLI_DB"],
+            documents_dir=tmp or app.config["FASCICOLI_DOCS"],
+            archive_dir=app.config["FASCICOLI_ARCH"],
+        )
+
+    @app.route("/fascicoli")
+    def lista_fascicoli():
+        gf = get_fascicoli()
+        gc = get_clienti()
+        testo = request.args.get("q", "").strip()
+        stato_f = request.args.get("stato", "")
+        tipo_f = request.args.get("tipo", "")
+        stato = StatoFascicolo(stato_f) if stato_f else None
+        tipo = TipoFascicolo(tipo_f) if tipo_f else None
+        fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+        stats = gf.statistiche()
+        scadenze = gf.fascicoli_con_scadenze_imminenti(entro_giorni=7)
+        return render_template(
+            "fascicoli/lista.html",
+            fascicoli=fascicoli,
+            stats=stats,
+            scadenze=scadenze,
+            q=testo,
+            stato_filtro=stato_f,
+            tipo_filtro=tipo_f,
+            tipi=list(TipoFascicolo),
+            stati=list(StatoFascicolo),
+        )
+
+    @app.route("/fascicoli/archivio")
+    def lista_archivio():
+        gf = get_fascicoli()
+        testo = request.args.get("q", "").strip()
+        fascicoli = gf.cerca(testo=testo, stato=StatoFascicolo.ARCHIVIATO, archiviati=True)
+        return render_template("fascicoli/archivio.html", fascicoli=fascicoli, q=testo)
+
+    @app.route("/fascicoli/nuovo", methods=["GET", "POST"])
+    def nuovo_fascicolo():
+        gc = get_clienti()
+        gf = get_fascicoli()
+        reginde = ClientReGINde()
+        if request.method == "POST":
+            f = request.form
+            id_cliente = f.get("id_cliente", "")
+            nome_cliente = ""
+            if id_cliente:
+                c = gc.get(id_cliente)
+                nome_cliente = c.nome_completo if c else ""
+            try:
+                fasc = gf.nuovo(
+                    titolo=f["titolo"],
+                    tipo=TipoFascicolo(f["tipo"]),
+                    id_cliente=id_cliente,
+                    nome_cliente=nome_cliente,
+                    controparte=f.get("controparte", ""),
+                    tribunale=f.get("tribunale", ""),
+                    numero_rg=f.get("numero_rg", ""),
+                    anno_rg=int(f.get("anno_rg") or 0),
+                    giudice=f.get("giudice", ""),
+                    sezione=f.get("sezione", ""),
+                    avvocato_referente=f.get("avvocato_referente", ""),
+                    avvocato_dominus=f.get("avvocato_dominus", ""),
+                    oggetto=f.get("oggetto", ""),
+                    valore_causa=float(f.get("valore_causa") or 0),
+                    note=f.get("note", ""),
+                )
+                flash(f"Fascicolo {fasc.numero} creato.", "success")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=fasc.id))
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+
+        clienti = gc.tutti(stato=None)
+        return render_template(
+            "fascicoli/form.html",
+            fascicolo=None,
+            clienti=clienti,
+            tipi=list(TipoFascicolo),
+            stati=list(StatoFascicolo),
+            tribunali=reginde.elenca_uffici(),
+            id_cliente_pre=request.args.get("id_cliente", ""),
+        )
+
+    @app.route("/fascicoli/<id_fasc>")
+    def dettaglio_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        gc = get_clienti()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "warning")
+            return redirect(url_for("lista_fascicoli"))
+        cliente = gc.get(fasc.id_cliente) if fasc.id_cliente else None
+        agenda = get_agenda()
+        # appuntamenti collegati al procedimento
+        apps = []
+        if fasc.numero_rg:
+            apps = agenda.cerca(testo=fasc.numero_rg)
+        return render_template(
+            "fascicoli/dettaglio.html",
+            fascicolo=fasc,
+            cliente=cliente,
+            apps=apps,
+            tipi_doc=list(TipoDocumento),
+            tipi_att=list(TipoAttivita),
+            esiti=list(EsitoAttivita),
+        )
+
+    @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
+    def modifica_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        gc = get_clienti()
+        reginde = ClientReGINde()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "warning")
+            return redirect(url_for("lista_fascicoli"))
+        if request.method == "POST":
+            f = request.form
+            id_cliente = f.get("id_cliente", fasc.id_cliente)
+            nome_cliente = fasc.nome_cliente
+            if id_cliente:
+                c = gc.get(id_cliente)
+                nome_cliente = c.nome_completo if c else nome_cliente
+            try:
+                gf.aggiorna(id_fasc,
+                    titolo=f.get("titolo", fasc.titolo),
+                    tipo=TipoFascicolo(f.get("tipo", fasc.tipo.value)),
+                    id_cliente=id_cliente,
+                    nome_cliente=nome_cliente,
+                    controparte=f.get("controparte", ""),
+                    tribunale=f.get("tribunale", ""),
+                    numero_rg=f.get("numero_rg", ""),
+                    anno_rg=int(f.get("anno_rg") or 0),
+                    giudice=f.get("giudice", ""),
+                    sezione=f.get("sezione", ""),
+                    avvocato_referente=f.get("avvocato_referente", ""),
+                    avvocato_dominus=f.get("avvocato_dominus", ""),
+                    oggetto=f.get("oggetto", ""),
+                    valore_causa=float(f.get("valore_causa") or 0),
+                    note=f.get("note", ""),
+                )
+                flash("Fascicolo aggiornato.", "success")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+
+        clienti = gc.tutti(stato=None)
+        return render_template(
+            "fascicoli/form.html",
+            fascicolo=fasc,
+            clienti=clienti,
+            tipi=list(TipoFascicolo),
+            stati=list(StatoFascicolo),
+            tribunali=reginde.elenca_uffici(),
+            id_cliente_pre="",
+        )
+
+    @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
+    def cambia_stato_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        f = request.form
+        nuovo = f.get("stato")
+        try:
+            gf.cambia_stato(
+                id_fasc,
+                StatoFascicolo(nuovo),
+                note=f.get("note", ""),
+                avvocato=f.get("avvocato", ""),
+            )
+            flash("Stato aggiornato.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/definisci", methods=["POST"])
+    def definisci_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        f = request.form
+        try:
+            gf.definisci(
+                id_fasc,
+                esito_finale=f.get("esito_finale", ""),
+                motivo=f.get("motivo", ""),
+                note=f.get("note", ""),
+                avvocato=f.get("avvocato", ""),
+            )
+            flash("Fascicolo definito. Pronto per l'archiviazione.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/archivia", methods=["POST"])
+    def archivia_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        f = request.form
+        try:
+            gf.archivia(
+                id_fasc,
+                crea_zip=f.get("crea_zip", "1") == "1",
+                avvocato=f.get("avvocato", ""),
+            )
+            flash("Fascicolo archiviato con successo.", "success")
+            return redirect(url_for("lista_archivio"))
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/ripristina", methods=["POST"])
+    def ripristina_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        try:
+            gf.ripristina_da_archivio(id_fasc, avvocato=request.form.get("avvocato", ""))
+            flash("Fascicolo ripristinato dall'archivio.", "success")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+            return redirect(url_for("lista_archivio"))
+
+    @app.route("/fascicoli/<id_fasc>/elimina", methods=["POST"])
+    def elimina_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        try:
+            gf.elimina(id_fasc)
+            flash("Fascicolo eliminato.", "success")
+        except KeyError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_fascicoli"))
+
+    # ---- Documenti
+
+    @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
+    def carica_documento(id_fasc):
+        gf = get_fascicoli()
+        if "file" not in request.files:
+            flash("Nessun file selezionato.", "warning")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        file = request.files["file"]
+        if not file.filename:
+            flash("Nome file non valido.", "warning")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        f = request.form
+        try:
+            gf.aggiungi_documento(
+                id_fasc,
+                nome_file=file.filename,
+                tipo=TipoDocumento(f.get("tipo_doc", "ALTRO")),
+                contenuto=file.read(),
+                note=f.get("note", ""),
+                data_documento=f.get("data_documento", ""),
+                firmato=f.get("firmato") == "1",
+                caricato_da=f.get("caricato_da", ""),
+            )
+            flash(f"Documento '{file.filename}' caricato.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/scarica")
+    def scarica_documento(id_fasc, id_doc):
+        gf = get_fascicoli()
+        try:
+            percorso = gf.percorso_documento(id_fasc, id_doc)
+            fasc = gf.get(id_fasc)
+            doc = next(d for d in fasc.documenti if d.id == id_doc)
+            return send_file(percorso, as_attachment=True, download_name=doc.nome)
+        except (KeyError, StopIteration) as e:
+            flash(str(e), "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/elimina", methods=["POST"])
+    def elimina_documento(id_fasc, id_doc):
+        gf = get_fascicoli()
+        try:
+            gf.rimuovi_documento(id_fasc, id_doc)
+            flash("Documento eliminato.", "success")
+        except KeyError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    # ---- Attività processuali
+
+    @app.route("/fascicoli/<id_fasc>/attivita/aggiungi", methods=["POST"])
+    def aggiungi_attivita(id_fasc):
+        gf = get_fascicoli()
+        f = request.form
+        try:
+            gf.aggiungi_attivita(
+                id_fasc,
+                tipo=TipoAttivita(f["tipo"]),
+                data=f["data"],
+                titolo=f["titolo"],
+                descrizione=f.get("descrizione", ""),
+                luogo=f.get("luogo", ""),
+                esito=EsitoAttivita(f.get("esito", "IN_ATTESA")),
+                note=f.get("note", ""),
+                avvocato=f.get("avvocato", ""),
+                id_appuntamento=f.get("id_appuntamento", ""),
+            )
+            flash("Attività aggiunta.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/attivita/<id_att>/esito", methods=["POST"])
+    def aggiorna_esito_attivita(id_fasc, id_att):
+        gf = get_fascicoli()
+        try:
+            gf.aggiorna_attivita(
+                id_fasc, id_att,
+                esito=EsitoAttivita(request.form["esito"]),
+                note=request.form.get("note", ""),
+            )
+            flash("Esito aggiornato.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    # ---- Download archivio ZIP
+
+    @app.route("/fascicoli/<id_fasc>/archivio/scarica")
+    def scarica_archivio(id_fasc):
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc or not fasc.archivio or not fasc.archivio.percorso_zip:
+            flash("Archivio ZIP non disponibile.", "warning")
+            return redirect(url_for("lista_archivio"))
+        p = Path(fasc.archivio.percorso_zip)
+        if not p.exists():
+            flash("File archivio non trovato su disco.", "danger")
+            return redirect(url_for("lista_archivio"))
+        return send_file(p, as_attachment=True,
+                         download_name=f"fascicolo_{fasc.numero.replace('/','_')}.zip")
+
+    # ---- API fascicoli
+
+    @app.route("/api/fascicoli")
+    def api_fascicoli():
+        gf = get_fascicoli()
+        q = request.args.get("q", "")
+        archiviati = request.args.get("archiviati", "0") == "1"
+        fascicoli = gf.cerca(testo=q, archiviati=archiviati)
+        return jsonify([f.to_dict() for f in fascicoli])
+
+    @app.route("/api/fascicoli/<id_fasc>")
+    def api_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        f = gf.get(id_fasc)
+        if not f:
+            return jsonify({"errore": "Non trovato"}), 404
+        return jsonify(f.to_dict())
+
+    @app.route("/api/fascicoli/statistiche")
+    def api_fascicoli_statistiche():
+        return jsonify(get_fascicoli().statistiche())
 
     return app

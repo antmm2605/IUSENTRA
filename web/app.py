@@ -6,6 +6,8 @@ Avvio:
     oppure: flask --app web.app run --debug
 """
 
+import csv
+import io
 import os
 import json
 from datetime import date, datetime, timedelta
@@ -20,6 +22,7 @@ from flask import (
     flash,
     jsonify,
     send_file,
+    Response,
 )
 
 from pct.agenda import (
@@ -622,6 +625,8 @@ def create_app(config: dict | None = None) -> Flask:
         scadenze_critiche = gs.imminenti(entro_giorni=3)
         scadenze_imminenti = gs.imminenti(entro_giorni=7)
         stats_sc = gs.statistiche()
+        stats_fascicoli = get_fascicoli().statistiche()
+        stats_clienti = get_clienti().statistiche()
         return render_template(
             "dashboard.html",
             apps_oggi=apps_oggi,
@@ -631,6 +636,8 @@ def create_app(config: dict | None = None) -> Flask:
             scadenze_critiche=scadenze_critiche,
             scadenze_imminenti=scadenze_imminenti,
             stats_sc=stats_sc,
+            stats_fascicoli=stats_fascicoli,
+            stats_clienti=stats_clienti,
         )
 
     # ---------------------------------------------------------------- agenda
@@ -1626,6 +1633,151 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/api/backup/statistiche")
     def api_backup_statistiche():
         return jsonify(get_backup().statistiche())
+
+    # ================================================================ HEALTH CHECK
+
+    @app.route("/api/health")
+    def api_health():
+        """Endpoint di salute per monitoring — non richiede autenticazione."""
+        stato = {"ok": True, "timestamp": datetime.now().isoformat(), "moduli": {}}
+        try:
+            gc = get_clienti()
+            stato["moduli"]["clienti"] = {"ok": True, "totale": gc.statistiche()["totale"]}
+        except Exception as e:
+            stato["moduli"]["clienti"] = {"ok": False, "errore": str(e)}
+            stato["ok"] = False
+        try:
+            gf = get_fascicoli()
+            stato["moduli"]["fascicoli"] = {"ok": True, "attivi": gf.statistiche()["attivi"]}
+        except Exception as e:
+            stato["moduli"]["fascicoli"] = {"ok": False, "errore": str(e)}
+            stato["ok"] = False
+        try:
+            ga = get_agenda()
+            stato["moduli"]["agenda"] = {"ok": True, "totale": ga.statistiche()["totale"]}
+        except Exception as e:
+            stato["moduli"]["agenda"] = {"ok": False, "errore": str(e)}
+            stato["ok"] = False
+        try:
+            gs = get_scadenziario()
+            stato["moduli"]["scadenziario"] = {"ok": True, "aperte": gs.statistiche()["aperte"]}
+        except Exception as e:
+            stato["moduli"]["scadenziario"] = {"ok": False, "errore": str(e)}
+            stato["ok"] = False
+        codice = 200 if stato["ok"] else 503
+        return jsonify(stato), codice
+
+    # ================================================================ CSV EXPORT
+
+    def _csv_response(righe: list[dict], nome_file: str) -> Response:
+        """Genera una risposta CSV da una lista di dizionari."""
+        if not righe:
+            output = io.StringIO()
+            output.write("# Nessun dato da esportare\n")
+            csv_data = output.getvalue()
+        else:
+            output = io.StringIO()
+            writer = csv.DictWriter(
+                output, fieldnames=righe[0].keys(),
+                extrasaction="ignore", lineterminator="\n"
+            )
+            writer.writeheader()
+            writer.writerows(righe)
+            csv_data = output.getvalue()
+        return Response(
+            csv_data,
+            mimetype="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{nome_file}"'},
+        )
+
+    @app.route("/clienti/export.csv")
+    def export_clienti_csv():
+        gc = get_clienti()
+        testo = request.args.get("q", "").strip()
+        tipo_f = request.args.get("tipo")
+        stato_f = request.args.get("stato", "")
+        tipo = TipoCliente(tipo_f) if tipo_f else None
+        stato = StatoCliente(stato_f) if stato_f else None
+        clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
+        righe = []
+        for c in clienti:
+            d = c.to_dict()
+            ind = d.get("indirizzo") or {}
+            righe.append({
+                "id": d["id"],
+                "cognome": d.get("cognome", ""),
+                "nome": d.get("nome", ""),
+                "ragione_sociale": d.get("ragione_sociale", ""),
+                "tipo": d.get("tipo", ""),
+                "stato": d.get("stato", ""),
+                "codice_fiscale": d.get("codice_fiscale", ""),
+                "partita_iva": d.get("partita_iva", ""),
+                "email": d.get("email", ""),
+                "telefono": d.get("telefono", ""),
+                "citta": ind.get("citta", "") if isinstance(ind, dict) else "",
+            })
+        audit("clienti.export_csv")
+        return _csv_response(righe, f"clienti_{date.today().isoformat()}.csv")
+
+    @app.route("/fascicoli/export.csv")
+    def export_fascicoli_csv():
+        gf = get_fascicoli()
+        testo = request.args.get("q", "").strip()
+        stato_f = request.args.get("stato", "")
+        tipo_f = request.args.get("tipo", "")
+        stato = StatoFascicolo(stato_f) if stato_f else None
+        tipo = TipoFascicolo(tipo_f) if tipo_f else None
+        fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+        righe = []
+        for f in fascicoli:
+            d = f.to_dict()
+            righe.append({
+                "numero": d.get("numero", ""),
+                "titolo": d.get("titolo", ""),
+                "tipo": d.get("tipo", ""),
+                "stato": d.get("stato", ""),
+                "tribunale": d.get("tribunale", ""),
+                "numero_rg": d.get("numero_rg", ""),
+                "anno_rg": d.get("anno_rg", ""),
+                "nome_cliente": d.get("nome_cliente", ""),
+                "controparte": d.get("controparte", ""),
+                "avvocato_referente": d.get("avvocato_referente", ""),
+                "data_apertura": d.get("data_apertura", ""),
+                "data_chiusura": d.get("data_chiusura", ""),
+            })
+        audit("fascicoli.export_csv")
+        return _csv_response(righe, f"fascicoli_{date.today().isoformat()}.csv")
+
+    @app.route("/scadenziario/export.csv")
+    def export_scadenziario_csv():
+        gs = get_scadenziario()
+        filtro_tipo = request.args.get("tipo", "")
+        filtro_priorita = request.args.get("priorita", "")
+        id_fascicolo = request.args.get("id_fascicolo", "")
+        solo_aperte = request.args.get("stato", "aperte") != "tutte"
+        scadenze = gs.tutte(
+            tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
+            priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
+            id_fascicolo=id_fascicolo,
+            solo_aperte=solo_aperte,
+        )
+        righe = []
+        for s in scadenze:
+            d = s.to_dict() if hasattr(s, "to_dict") else vars(s)
+            righe.append({
+                "titolo": d.get("titolo", ""),
+                "tipo": d.get("tipo", ""),
+                "data_scadenza": d.get("data_scadenza", ""),
+                "priorita": d.get("priorita", ""),
+                "stato": d.get("stato", ""),
+                "perentorio": d.get("perentorio", ""),
+                "id_fascicolo": d.get("id_fascicolo", ""),
+                "giorni_preavviso": str(d.get("giorni_preavviso", "")),
+                "completata_il": d.get("completata_il", ""),
+                "note": d.get("note", ""),
+            })
+        audit("scadenziario.export_csv")
+        return _csv_response(righe, f"scadenziario_{date.today().isoformat()}.csv")
 
     # ================================================================ SEARCH
 

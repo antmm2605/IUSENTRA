@@ -76,9 +76,23 @@
 <div class="card shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
     <span><i class="bi bi-calendar-event me-2 text-primary"></i>Scadenze — {{ scadenze|length }}</span>
-    <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-sm btn-primary">
-      <i class="bi bi-plus-lg me-1"></i>Nuova scadenza
-    </a>
+    <div class="d-flex gap-1 align-items-center">
+      <select id="page-size-scadenze" class="form-select form-select-sm" style="width:auto">
+        <option value="25">25 per pagina</option>
+        <option value="50">50 per pagina</option>
+        <option value="0">Tutti</option>
+      </select>
+      <a href="{{ url_for('export_scadenziario_csv') }}?tipo={{ filtro_tipo }}&priorita={{ filtro_priorita }}&id_fascicolo={{ id_fascicolo }}"
+         class="btn btn-sm btn-outline-success" title="Esporta CSV">
+        <i class="bi bi-filetype-csv me-1"></i>CSV
+      </a>
+      <a href="{{ url_for('scadenziario_pdf_export') }}?stato=tutte" class="btn btn-sm btn-outline-danger" title="Esporta PDF">
+        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+      </a>
+      <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nuova
+      </a>
+    </div>
   </div>
 
   {# Filtri #}
@@ -116,7 +130,7 @@
   {% if scadenze %}
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0" id="tbl-scadenze" data-paginate="page-size-scadenze">
         <thead class="table-light">
           <tr>
             <th>Scadenza</th><th>Titolo</th><th>Tipo</th>
@@ -196,4 +210,8 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>initPagination('tbl-scadenze', 'page-size-scadenze');</script>
 {% endblock %}

@@ -600,6 +600,9 @@ class GestioneScadenziario:
             "per_tipo": {
                 t.value: sum(1 for s in aperte if s.tipo == t) for t in TipoTermine
             },
+            "per_priorita": {
+                p.value: sum(1 for s in aperte if s.priorita == p) for p in PrioritaTermine
+            },
         }
 
     # ---- helper

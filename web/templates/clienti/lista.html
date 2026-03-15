@@ -80,15 +80,27 @@
       <i class="bi bi-people me-2 text-primary"></i>
       {{ clienti|length }} client{% if clienti|length != 1 %}i{% else %}e{% endif %}
     </span>
-    <a href="{{ url_for('nuovo_cliente') }}" class="btn btn-sm btn-warning">
-      <i class="bi bi-person-plus me-1"></i>Nuovo cliente
-    </a>
+    <div class="d-flex gap-1 align-items-center">
+      <select id="page-size-clienti" class="form-select form-select-sm" style="width:auto">
+        <option value="25">25 per pagina</option>
+        <option value="50">50 per pagina</option>
+        <option value="100">100 per pagina</option>
+        <option value="0">Tutti</option>
+      </select>
+      <a href="{{ url_for('export_clienti_csv') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}"
+         class="btn btn-sm btn-outline-success" title="Esporta CSV">
+        <i class="bi bi-filetype-csv me-1"></i>CSV
+      </a>
+      <a href="{{ url_for('nuovo_cliente') }}" class="btn btn-sm btn-warning">
+        <i class="bi bi-person-plus me-1"></i>Nuovo
+      </a>
+    </div>
   </div>
 
   {% if clienti %}
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0" id="tbl-clienti" data-paginate="page-size-clienti">
         <thead class="table-light">
           <tr>
             <th>Cliente</th>
@@ -188,4 +200,8 @@
   {% endif %}
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>initPagination('tbl-clienti', 'page-size-clienti');</script>
 {% endblock %}

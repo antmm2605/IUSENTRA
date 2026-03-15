@@ -144,30 +144,125 @@
 
 </div>
 
-{# ---- Distribuzione per tipo ---- #}
+{# ---- Grafici statistiche ---- #}
 <div class="row g-3 mt-1">
-  <div class="col-12">
-    <div class="card shadow-sm">
+
+  {# Appuntamenti per tipo (barre) #}
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
       <div class="card-header fw-semibold">
-        <i class="bi bi-bar-chart me-2 text-primary"></i>Distribuzione appuntamenti per tipo
+        <i class="bi bi-bar-chart me-2 text-primary"></i>Appuntamenti per tipo
       </div>
-      <div class="card-body">
-        {% for tipo, n in stats.per_tipo.items() %}
-        {% if n %}
-        <div class="mb-2">
-          <div class="d-flex justify-content-between small mb-1">
-            <span class="fw-semibold">{{ tipo }}</span><span>{{ n }}</span>
-          </div>
-          <div class="progress" style="height:8px">
-            <div class="progress-bar badge-{{ tipo }}"
-                 style="width:{{ (n / stats.totale * 100)|int if stats.totale else 0 }}%"></div>
-          </div>
-        </div>
-        {% endif %}
-        {% endfor %}
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="chart-agenda" height="220"></canvas>
       </div>
     </div>
   </div>
+
+  {# Fascicoli per stato (donut) #}
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-pie-chart me-2 text-success"></i>Fascicoli per stato
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="chart-fascicoli" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {# Scadenze per priorità (donut) #}
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-alarm me-2 text-danger"></i>Scadenze per priorità
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="chart-scadenze" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+Chart.defaults.font.family = "'Helvetica Neue', Arial, sans-serif";
+Chart.defaults.font.size = 12;
+
+// --- Appuntamenti per tipo (bar)
+(function() {
+  const data = {{ stats.per_tipo | tojson }};
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  if (!labels.length) return;
+  new Chart(document.getElementById('chart-agenda'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: ['#1a3a5c','#2e7d32','#6a1b9a','#b71c1c','#e65100','#546e7a'],
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      responsive: true,
+    }
+  });
+})();
+
+// --- Fascicoli per stato (doughnut)
+(function() {
+  const data = {{ stats_fascicoli.per_stato | tojson }};
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  if (!labels.length || values.every(v => v === 0)) return;
+  new Chart(document.getElementById('chart-fascicoli'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: ['#1565c0','#2e7d32','#f57f17','#0097a7','#546e7a'],
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+      responsive: true,
+      cutout: '60%',
+    }
+  });
+})();
+
+// --- Scadenze per priorità (doughnut)
+(function() {
+  const data = {{ stats_sc.per_priorita | default({}) | tojson }};
+  const labels = Object.keys(data);
+  const values = Object.values(data);
+  if (!labels.length || values.every(v => v === 0)) return;
+  const colori = { CRITICA:'#c62828', ALTA:'#ef6c00', MEDIA:'#f9a825', BASSA:'#2e7d32' };
+  new Chart(document.getElementById('chart-scadenze'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: labels.map(l => colori[l] || '#90a4ae'),
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+      responsive: true,
+      cutout: '60%',
+    }
+  });
+})();
+</script>
 {% endblock %}

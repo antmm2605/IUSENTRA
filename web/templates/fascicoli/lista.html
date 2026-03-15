@@ -113,19 +113,29 @@
       <i class="bi bi-folder2-open me-2 text-primary"></i>
       {{ fascicoli|length }} fascicol{% if fascicoli|length != 1 %}i{% else %}o{% endif %}
     </span>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-1 align-items-center">
+      <select id="page-size-fascicoli" class="form-select form-select-sm" style="width:auto">
+        <option value="25">25 per pagina</option>
+        <option value="50">50 per pagina</option>
+        <option value="100">100 per pagina</option>
+        <option value="0">Tutti</option>
+      </select>
+      <a href="{{ url_for('export_fascicoli_csv') }}?q={{ q }}&stato={{ stato_filtro }}&tipo={{ tipo_filtro }}"
+         class="btn btn-sm btn-outline-success" title="Esporta CSV">
+        <i class="bi bi-filetype-csv me-1"></i>CSV
+      </a>
       <a href="{{ url_for('lista_archivio') }}" class="btn btn-sm btn-outline-secondary">
         <i class="bi bi-archive me-1"></i>Archivio
       </a>
       <a href="{{ url_for('nuovo_fascicolo') }}" class="btn btn-sm btn-warning">
-        <i class="bi bi-folder-plus me-1"></i>Nuovo fascicolo
+        <i class="bi bi-folder-plus me-1"></i>Nuovo
       </a>
     </div>
   </div>
   {% if fascicoli %}
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0" id="tbl-fascicoli" data-paginate="page-size-fascicoli">
         <thead class="table-light">
           <tr>
             <th>N°</th><th>Titolo / Oggetto</th><th>Tipo</th>
@@ -196,4 +206,8 @@
   </div>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>initPagination('tbl-fascicoli', 'page-size-fascicoli');</script>
 {% endblock %}

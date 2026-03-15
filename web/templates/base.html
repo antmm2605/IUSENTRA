@@ -328,6 +328,38 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+/* ---- Paginazione tabelle ---- */
+function initPagination(tableId, selectId) {
+  const tbl = document.getElementById(tableId);
+  const sel = document.getElementById(selectId);
+  if (!tbl || !sel) return;
+
+  function applyPage() {
+    const size = parseInt(sel.value);
+    const rows = tbl.querySelectorAll('tbody tr');
+    rows.forEach((r, i) => {
+      r.style.display = (size === 0 || i < size) ? '' : 'none';
+    });
+    // Update or create pagination info
+    let info = document.getElementById(tableId + '-info');
+    if (!info) {
+      info = document.createElement('div');
+      info.id = tableId + '-info';
+      info.className = 'text-muted small px-3 py-2 border-top';
+      tbl.closest('.card').appendChild(info);
+    }
+    const visible = size === 0 ? rows.length : Math.min(size, rows.length);
+    info.textContent = visible === rows.length
+      ? `${rows.length} righe`
+      : `Mostrando ${visible} di ${rows.length} righe`;
+  }
+
+  sel.addEventListener('change', applyPage);
+  applyPage();
+}
+</script>
 <script>
 (function () {
   const input = document.getElementById('search-input');

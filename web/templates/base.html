@@ -67,6 +67,44 @@
     }
     .topbar h1 { font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--primary); }
 
+    /* ---- search autocomplete ---- */
+    #search-wrap { position: relative; }
+    #search-input { width: 240px; font-size: .85rem; }
+    #search-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      width: 400px;
+      max-height: 420px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      z-index: 9999;
+      display: none;
+    }
+    #search-dropdown.show { display: block; }
+    .search-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: .55rem .9rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+      text-decoration: none;
+      color: inherit;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover { background: #f8f9fa; }
+    .search-item-icon { font-size: 1rem; margin-top: 2px; color: var(--primary); flex-shrink: 0; }
+    .search-item-body { flex: 1; min-width: 0; }
+    .search-item-title { font-size: .85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-item-sub { font-size: .75rem; color: #64748b; }
+    .search-item-snip { font-size: .72rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .search-item-snip mark { background: #fef08a; padding: 0 1px; border-radius: 2px; }
+    .search-group-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .8px; color: #94a3b8; padding: .3rem .9rem .1rem; background: #f8fafc; }
+
     /* ---- cards ---- */
     .stat-card { border: none; border-radius: 12px; }
     .stat-card .icon-wrap {
@@ -129,6 +167,10 @@
     <a href="{{ url_for('dashboard') }}"
        class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
       <i class="bi bi-speedometer2 me-2"></i>Dashboard
+    </a>
+    <a href="{{ url_for('cerca') }}"
+       class="nav-link {% if request.endpoint == 'cerca' %}active{% endif %}">
+      <i class="bi bi-search me-2"></i>Ricerca
     </a>
     <div class="section-label">Agenda</div>
     <a href="{{ url_for('agenda_view') }}?vista=giorno"
@@ -247,6 +289,19 @@
   <div class="topbar">
     <h1>{% block page_title %}{% endblock %}</h1>
     <div class="d-flex align-items-center gap-2">
+      {# ---- Ricerca globale ---- #}
+      <div id="search-wrap">
+        <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="search-input" name="q"
+                   class="form-control border-start-0 ps-0"
+                   placeholder="Cerca fascicoli, clienti…"
+                   value="{{ request.args.get('q','') }}">
+          </div>
+        </form>
+        <div id="search-dropdown"></div>
+      </div>
       <span class="text-muted small d-none d-md-inline">
         <i class="bi bi-clock me-1"></i>{{ oggi.strftime('%d/%m/%Y') }}
       </span>
@@ -273,6 +328,73 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+  const input = document.getElementById('search-input');
+  const dropdown = document.getElementById('search-dropdown');
+  if (!input || !dropdown) return;
+
+  const TIPO_LABELS = {
+    fascicolo: 'Fascicoli',
+    cliente: 'Clienti',
+    appuntamento: 'Appuntamenti',
+    scadenza: 'Scadenze',
+  };
+
+  let timer = null;
+
+  function renderResults(data) {
+    if (!data.length) {
+      dropdown.innerHTML = '<div class="search-group-label py-2 text-center">Nessun risultato</div>';
+      dropdown.classList.add('show');
+      return;
+    }
+    // Raggruppa per tipo
+    const groups = {};
+    data.forEach(r => { (groups[r.tipo] = groups[r.tipo] || []).push(r); });
+
+    let html = '';
+    Object.entries(groups).forEach(([tipo, items]) => {
+      html += `<div class="search-group-label">${TIPO_LABELS[tipo] || tipo}</div>`;
+      items.forEach(r => {
+        const snip = r.snippet ? `<div class="search-item-snip">${r.snippet}</div>` : '';
+        html += `<a href="${r.url}" class="search-item">
+          <i class="bi ${r.icona} search-item-icon"></i>
+          <div class="search-item-body">
+            <div class="search-item-title">${r.titolo}</div>
+            <div class="search-item-sub">${r.sottotitolo}</div>
+            ${snip}
+          </div>
+        </a>`;
+      });
+    });
+    dropdown.innerHTML = html;
+    dropdown.classList.add('show');
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { dropdown.classList.remove('show'); return; }
+    timer = setTimeout(() => {
+      fetch(`/api/cerca?q=${encodeURIComponent(q)}&limit=15`)
+        .then(r => r.json())
+        .then(renderResults)
+        .catch(() => dropdown.classList.remove('show'));
+    }, 220);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!document.getElementById('search-wrap').contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') dropdown.classList.remove('show');
+  });
+})();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

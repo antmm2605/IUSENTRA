@@ -83,6 +83,8 @@ from pct.scadenziario import (
     festività_italiane,
     è_giorno_lavorativo,
 )
+from pct.search_index import IndiceRicerca
+from pct.reports import fascicolo_pdf, scadenze_pdf
 
 # ------------------------------------------------------------------ factory
 
@@ -120,6 +122,9 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["SCADENZIARIO_DB"] = cfg.get(
         "SCADENZIARIO_DB", os.getenv("PCT_SCADENZIARIO_DB", "./scadenziario/scadenze.json")
+    )
+    app.config["SEARCH_INDEX"] = cfg.get(
+        "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
     )
 
     def get_agenda() -> Agenda:
@@ -177,6 +182,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_scadenziario() -> GestioneScadenziario:
         return GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+
+    def get_indice() -> IndiceRicerca:
+        return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
 
     # ---------------------------------------------------------------- auth middleware
 
@@ -1618,5 +1626,102 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/api/backup/statistiche")
     def api_backup_statistiche():
         return jsonify(get_backup().statistiche())
+
+    # ================================================================ SEARCH
+
+    @app.route("/api/cerca")
+    def api_cerca():
+        """Ricerca globale full-text — usata dall'autocomplete topbar."""
+        q = request.args.get("q", "").strip()
+        tipi_raw = request.args.getlist("tipo")
+        limit = min(int(request.args.get("limit", 20)), 50)
+        if not q:
+            return jsonify([])
+        indice = get_indice()
+        risultati = indice.cerca(q, tipi=tipi_raw or None, limit=limit)
+        return jsonify([
+            {
+                "tipo": r.tipo,
+                "id": r.id,
+                "titolo": r.titolo,
+                "sottotitolo": r.sottotitolo,
+                "url": r.url,
+                "icona": r.icona,
+                "snippet": r.snippet,
+            }
+            for r in risultati
+        ])
+
+    @app.route("/cerca")
+    def cerca():
+        """Pagina di ricerca completa."""
+        q = request.args.get("q", "").strip()
+        risultati = {}
+        if q:
+            indice = get_indice()
+            risultati = indice.cerca_globale(q, limit=30)
+        return render_template("cerca.html", q=q, risultati=risultati)
+
+    @app.route("/api/ricerca/ricostruisci", methods=["POST"])
+    def api_ricerca_ricostruisci():
+        """Ricostruisce l'indice di ricerca (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        indice = get_indice()
+        indice.ricostruisci(
+            clienti=get_clienti().tutti(),
+            fascicoli=get_fascicoli().tutti(),
+            appuntamenti=get_agenda().tutti(),
+            scadenze=get_scadenziario().tutte(solo_aperte=False),
+        )
+        audit("ricerca.ricostruisci_indice")
+        return jsonify({"ok": True, "statistiche": indice.statistiche()})
+
+    # ================================================================ PDF EXPORT
+
+    @app.route("/fascicoli/<id_fasc>/pdf")
+    def fascicolo_pdf_export(id_fasc):
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "warning")
+            return redirect(url_for("lista_fascicoli"))
+        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            out = tmp.name
+        fascicolo_pdf(fasc.to_dict(), out, studio_nome=studio_nome)
+        nome_file = f"fascicolo_{fasc.numero or id_fasc}.pdf".replace("/", "-").replace(" ", "_")
+        audit("fascicoli.esporta_pdf", risorsa_tipo="fascicolo", risorsa_id=id_fasc)
+        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+
+    @app.route("/scadenziario/pdf")
+    def scadenziario_pdf_export():
+        gs = get_scadenziario()
+        stato_raw = request.args.get("stato", "")
+        solo_aperte = stato_raw != "tutte"
+        lista = gs.tutte(solo_aperte=solo_aperte)
+        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+        mese_label = date.today().strftime("%B %Y").capitalize()
+        titolo_pdf = f"Scadenziario — {mese_label}"
+        dati = [
+            {
+                "scadenza": s.data_scadenza,
+                "titolo": s.titolo,
+                "tipo": s.tipo.value if hasattr(s.tipo, "value") else str(s.tipo),
+                "fascicolo": s.id_fascicolo or "",
+                "priorita": s.priorita.value if hasattr(s.priorita, "value") else str(s.priorita),
+                "perentorio": s.perentorio,
+            }
+            for s in lista
+        ]
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            out = tmp.name
+        scadenze_pdf(dati, out, titolo=titolo_pdf, studio_nome=studio_nome)
+        nome_file = f"scadenziario_{date.today().isoformat()}.pdf"
+        audit("scadenziario.esporta_pdf")
+        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
 
     return app

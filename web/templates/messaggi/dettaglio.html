@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Messaggio{% endblock %}
+{% block page_title %}Dettaglio Messaggio{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-8">
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+    <span>
+      <i class="bi bi-envelope me-2 text-primary"></i>
+      {{ msg.canale.value }}
+      —
+      {% set colore = {
+        'IN_CODA': 'secondary', 'INVIATO': 'primary',
+        'CONSEGNATO': 'success', 'LETTO': 'info',
+        'FALLITO': 'danger', 'ANNULLATO': 'warning'
+      } %}
+      <span class="badge bg-{{ colore.get(msg.stato.value, 'secondary') }}">
+        {{ msg.stato.value.replace('_',' ') }}
+      </span>
+    </span>
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Lista
+      </a>
+      <form method="post"
+            action="{{ url_for('elimina_messaggio', id_msg=msg.id) }}"
+            onsubmit="return confirm('Eliminare il messaggio?')">
+        <button class="btn btn-outline-danger">
+          <i class="bi bi-trash me-1"></i>Elimina
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Data invio</dt>
+      <dd class="col-sm-9 font-monospace">{{ msg.timestamp[:19].replace('T',' ') }}</dd>
+
+      {% if msg.nome_destinatario %}
+      <dt class="col-sm-3">Destinatario</dt>
+      <dd class="col-sm-9">{{ msg.nome_destinatario }}</dd>
+      {% endif %}
+      {% if msg.email_destinatario %}
+      <dt class="col-sm-3">Email</dt>
+      <dd class="col-sm-9">{{ msg.email_destinatario }}</dd>
+      {% endif %}
+      {% if msg.telefono_destinatario %}
+      <dt class="col-sm-3">Telefono</dt>
+      <dd class="col-sm-9">{{ msg.telefono_destinatario }}</dd>
+      {% endif %}
+
+      {% if msg.oggetto %}
+      <dt class="col-sm-3">Oggetto</dt>
+      <dd class="col-sm-9">{{ msg.oggetto }}</dd>
+      {% endif %}
+
+      {% if msg.id_cliente %}
+      <dt class="col-sm-3">ID Cliente</dt>
+      <dd class="col-sm-9 font-monospace small">{{ msg.id_cliente }}</dd>
+      {% endif %}
+
+      {% if msg.id_fascicolo %}
+      <dt class="col-sm-3">ID Fascicolo</dt>
+      <dd class="col-sm-9 font-monospace small">{{ msg.id_fascicolo }}</dd>
+      {% endif %}
+
+      {% if msg.errore %}
+      <dt class="col-sm-3 text-danger">Errore</dt>
+      <dd class="col-sm-9 text-danger">{{ msg.errore }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold"><i class="bi bi-file-text me-2"></i>Testo</div>
+  <div class="card-body">
+    {% if msg.corpo_html %}
+      <div class="border rounded p-3 bg-light">
+        {{ msg.corpo_html | safe }}
+      </div>
+    {% else %}
+      <pre class="mb-0" style="white-space:pre-wrap">{{ msg.corpo }}</pre>
+    {% endif %}
+  </div>
+</div>
+
+</div>
+</div>
+{% endblock %}

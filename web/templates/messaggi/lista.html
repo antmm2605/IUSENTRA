@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Messaggi{% endblock %}
+{% block page_title %}Messaggi{% endblock %}
+
+{% block content %}
+{# Stat cards #}
+<div class="row g-3 mb-3">
+  {% set s = stats %}
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-3 fw-bold text-primary">{{ s.totale }}</div>
+      <div class="small text-muted">Totale</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-3 fw-bold text-success">{{ s.inviati }}</div>
+      <div class="small text-muted">Inviati</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-3 fw-bold text-warning">{{ s.in_coda }}</div>
+      <div class="small text-muted">In coda</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-3 fw-bold text-danger">{{ s.falliti }}</div>
+      <div class="small text-muted">Falliti</div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+    <span><i class="bi bi-chat-dots me-2 text-primary"></i>Messaggi — {{ messaggi|length }}</span>
+    <a href="{{ url_for('nuovo_messaggio') }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Nuovo messaggio
+    </a>
+  </div>
+
+  {# Filtri #}
+  <div class="card-body border-bottom py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="Destinatario, oggetto…" value="{{ q }}">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <select name="canale" class="form-select form-select-sm">
+          <option value="">Tutti i canali</option>
+          {% for c in canali %}
+          <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ c.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="stato" class="form-select form-select-sm">
+          <option value="">Tutti gli stati</option>
+          {% for st in stati %}
+          <option value="{{ st.value }}" {{ 'selected' if st.value == stato }}>{{ st.value.replace('_',' ') }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm">Filtra</button>
+        <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary btn-sm ms-1">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+
+  {% if messaggi %}
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Data</th><th>Canale</th><th>Destinatario</th>
+            <th>Oggetto / Testo</th><th>Stato</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in messaggi %}
+          <tr>
+            <td class="small text-nowrap">{{ m.timestamp[:16].replace('T',' ') }}</td>
+            <td>
+              {% if m.canale.value == 'EMAIL' %}
+                <span class="badge bg-primary">EMAIL</span>
+              {% elif m.canale.value == 'SMS' %}
+                <span class="badge bg-success">SMS</span>
+              {% else %}
+                <span class="badge bg-success" style="background-color:#25D366 !important">
+                  <i class="bi bi-whatsapp"></i> WA
+                </span>
+              {% endif %}
+            </td>
+            <td class="small">
+              {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or '—' }}
+            </td>
+            <td class="small">
+              {% if m.oggetto %}<div class="fw-semibold">{{ m.oggetto }}</div>{% endif %}
+              <div class="text-muted text-truncate" style="max-width:280px">{{ m.corpo }}</div>
+            </td>
+            <td>
+              {% set colore = {
+                'IN_CODA': 'secondary', 'INVIATO': 'primary',
+                'CONSEGNATO': 'success', 'LETTO': 'info',
+                'FALLITO': 'danger', 'ANNULLATO': 'warning'
+              } %}
+              <span class="badge bg-{{ colore.get(m.stato.value, 'secondary') }}">
+                {{ m.stato.value.replace('_',' ') }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}"
+                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                <form method="post"
+                      action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
+                      onsubmit="return confirm('Eliminare il messaggio?')">
+                  <button class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-chat-dots fs-1 d-block mb-2"></i>
+    Nessun messaggio{% if q %} per "{{ q }}"{% endif %}.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Ripristina Backup{% endblock %}
+{% block page_title %}Ripristina Backup{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-7">
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-archive me-2 text-primary"></i>Backup del
+    {{ record.timestamp[:16].replace('T',' ') }}
+    <span class="badge {{ 'bg-primary' if record.tipo.value == 'COMPLETO' else 'bg-secondary' }} ms-2">
+      {{ record.tipo.value }}
+    </span>
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-4">File</dt>
+      <dd class="col-sm-8 font-monospace small">{{ record.percorso_file }}</dd>
+      <dt class="col-sm-4">Dimensione</dt>
+      <dd class="col-sm-8">{{ (record.dimensione_bytes / 1024 / 1024) | round(2) }} MB</dd>
+      <dt class="col-sm-4">N° file</dt>
+      <dd class="col-sm-8">{{ record.num_file }}</dd>
+      <dt class="col-sm-4">Componenti</dt>
+      <dd class="col-sm-8">{{ record.componenti | join(', ') or '—' }}</dd>
+      <dt class="col-sm-4">Cifrato</dt>
+      <dd class="col-sm-8">{{ 'Sì' if record.cifrato else 'No' }}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-arrow-counterclockwise me-2 text-success"></i>Parametri ripristino
+  </div>
+  <div class="card-body">
+    <form method="post">
+      <div class="row g-3">
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Cartella di destinazione <span class="text-danger">*</span></label>
+          <input type="text" name="destinazione" class="form-control font-monospace"
+                 value="./ripristino" required
+                 placeholder="./ripristino">
+          <div class="form-text">
+            I file saranno estratti in questa cartella. Se vuoi sovrascrivere i dati originali,
+            inserisci il percorso dei dati di produzione.
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Componenti da ripristinare</label>
+          <div class="d-flex flex-wrap gap-3">
+            {% for comp in record.componenti %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="componenti"
+                     value="{{ comp }}" id="rcomp_{{ comp }}" checked>
+              <label class="form-check-label" for="rcomp_{{ comp }}">{{ comp }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if record.cifrato %}
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+          <input type="password" name="password" class="form-control" required>
+        </div>
+        {% endif %}
+
+        <div class="col-12">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="sovrascrivi" value="1" id="sovrascrivi">
+            <label class="form-check-label" for="sovrascrivi">
+              Sovrascrivi file esistenti nella destinazione
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Attenzione:</strong> il ripristino sovrascrive i dati nella destinazione indicata.
+            Assicurarsi di avere un backup aggiornato prima di procedere.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-success"
+                onclick="return confirm('Avviare il ripristino?')">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
+        </button>
+        <a href="{{ url_for('lista_backup') }}" class="btn btn-outline-secondary">Annulla</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+</div>
+{% endblock %}

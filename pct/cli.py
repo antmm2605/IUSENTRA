@@ -30,6 +30,19 @@ from .fascicoli import (
     TipoAttivita,
     EsitoAttivita,
 )
+from .messaggi import (
+    GestioneMessaggi,
+    CanaleMsggio,
+    ConfigMessaggistica,
+    ConfigEmail,
+    ConfigTwilio,
+)
+from .backup import (
+    GestioneBackup,
+    TipoBackup,
+    StatoBackup,
+    FrequenzaBackup,
+)
 
 
 def carica_config() -> dict:
@@ -887,6 +900,239 @@ def cmd_fasc_statistiche():
     for s, n in stats["per_stato"].items():
         if n:
             click.echo(f"  {s:<20} {n}")
+
+
+# ============================================================ MESSAGGI
+
+def _messaggi_config() -> ConfigMessaggistica:
+    return ConfigMessaggistica(
+        email=ConfigEmail(
+            smtp_host=os.getenv("PCT_SMTP_HOST", ""),
+            smtp_port=int(os.getenv("PCT_SMTP_PORT", "587")),
+            username=os.getenv("PCT_SMTP_USER", ""),
+            password=os.getenv("PCT_SMTP_PASS", ""),
+            mittente_email=os.getenv("PCT_SMTP_FROM", ""),
+            mittente_nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale"),
+        ),
+        twilio=ConfigTwilio(
+            account_sid=os.getenv("TWILIO_ACCOUNT_SID", ""),
+            auth_token=os.getenv("TWILIO_AUTH_TOKEN", ""),
+            numero_sms=os.getenv("TWILIO_SMS_NUMBER", ""),
+            numero_whatsapp=os.getenv("TWILIO_WA_NUMBER", ""),
+        ),
+        studio_nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale"),
+    )
+
+
+def _messaggi(db="./messaggi/storico.json") -> GestioneMessaggi:
+    return GestioneMessaggi(config=_messaggi_config(), db_path=db)
+
+
+@cli.group("messaggi")
+def grp_messaggi():
+    """Gestione messaggi (email/SMS/WhatsApp)."""
+    pass
+
+
+@grp_messaggi.command("lista")
+@click.option("--canale", default="", help="EMAIL | SMS | WHATSAPP")
+@click.option("--stato", default="", help="IN_CODA | INVIATO | CONSEGNATO | FALLITO …")
+@click.option("--db", default="./messaggi/storico.json", help="DB messaggi")
+def cmd_msg_lista(canale, stato, db):
+    """Elenca messaggi nello storico."""
+    gm = _messaggi(db)
+    messaggi = gm.tutti(
+        canale=CanaleMsggio(canale) if canale else None,
+    )
+    if stato:
+        from .messaggi import StatoMessaggio
+        messaggi = [m for m in messaggi if m.stato.value == stato]
+    click.echo(f"{'ID':<12} {'CANALE':<10} {'STATO':<12} {'DATA':<20} DESTINATARIO")
+    click.echo("-" * 72)
+    for m in messaggi:
+        dest = m.email_destinatario or m.telefono_destinatario or m.nome_destinatario
+        click.echo(
+            f"{m.id:<12} {m.canale.value:<10} {m.stato.value:<12} "
+            f"{m.creato_il[:19]:<20} {dest}"
+        )
+
+
+@grp_messaggi.command("invia-email")
+@click.option("--a", "dest", required=True, help="Indirizzo email destinatario")
+@click.option("--oggetto", required=True, help="Oggetto email")
+@click.option("--testo", required=True, help="Corpo testo")
+@click.option("--id-cliente", default="", help="ID cliente (opzionale)")
+@click.option("--db", default="./messaggi/storico.json", help="DB messaggi")
+def cmd_msg_email(dest, oggetto, testo, id_cliente, db):
+    """Invia un'email al destinatario."""
+    gm = _messaggi(db)
+    try:
+        msg = gm.invia_email(
+            destinatario=dest,
+            oggetto=oggetto,
+            corpo_testo=testo,
+            id_cliente=id_cliente,
+        )
+        click.echo(f"Email {msg.stato.value}: {msg.id}")
+    except Exception as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_messaggi.command("invia-sms")
+@click.option("--a", "telefono", required=True, help="Numero E.164 (+39XXXXXXXXXX)")
+@click.option("--testo", required=True, help="Testo SMS")
+@click.option("--id-cliente", default="", help="ID cliente (opzionale)")
+@click.option("--db", default="./messaggi/storico.json", help="DB messaggi")
+def cmd_msg_sms(telefono, testo, id_cliente, db):
+    """Invia un SMS tramite Twilio."""
+    gm = _messaggi(db)
+    try:
+        msg = gm.invia_sms(telefono=telefono, testo=testo, id_cliente=id_cliente)
+        click.echo(f"SMS {msg.stato.value}: {msg.id}")
+    except Exception as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_messaggi.command("statistiche")
+@click.option("--db", default="./messaggi/storico.json", help="DB messaggi")
+def cmd_msg_statistiche(db):
+    """Mostra statistiche messaggi."""
+    stats = _messaggi(db).statistiche()
+    click.echo(f"Totale:       {stats['totale']}")
+    click.echo(f"Inviati:      {stats['inviati']}")
+    click.echo(f"Consegnati:   {stats['consegnati']}")
+    click.echo(f"Falliti:      {stats['falliti']}")
+    click.echo(f"In coda:      {stats['in_coda']}")
+    click.echo("\nPer canale:")
+    for c, n in stats["per_canale"].items():
+        click.echo(f"  {c:<12} {n}")
+
+
+# ============================================================ BACKUP
+
+def _backup(backup_dir="./backup") -> GestioneBackup:
+    data_paths = {
+        "agenda":    os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json"),
+        "clienti":   os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json"),
+        "fascicoli": os.getenv("PCT_FASCICOLI_DB", "./fascicoli/fascicoli.json"),
+        "messaggi":  os.getenv("PCT_MESSAGGI_DB", "./messaggi/storico.json"),
+        "documenti": os.getenv("PCT_FASCICOLI_DOCS", "./fascicoli/documenti"),
+    }
+    return GestioneBackup(directory_backup=backup_dir, percorsi_dati=data_paths)
+
+
+@cli.group("backup")
+def grp_backup():
+    """Gestione backup e ripristino."""
+    pass
+
+
+@grp_backup.command("esegui")
+@click.option("--tipo", default="COMPLETO", type=click.Choice(["COMPLETO", "INCREMENTALE"]),
+              help="Tipo backup")
+@click.option("--componenti", default="", help="Componenti separati da virgola (vuoto=tutti)")
+@click.option("--nota", default="", help="Nota descrittiva")
+@click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
+def cmd_bk_esegui(tipo, componenti, nota, backup_dir):
+    """Esegue un backup."""
+    gb = _backup(backup_dir)
+    comps = [c.strip() for c in componenti.split(",") if c.strip()] or None
+    record = gb.esegui_backup(tipo=TipoBackup(tipo), componenti=comps, nota=nota)
+    if record.stato == StatoBackup.OK:
+        size_mb = round(record.dimensione_bytes / 1024 / 1024, 2)
+        click.echo(f"Backup OK: {record.id}")
+        click.echo(f"  File:    {record.percorso_file}")
+        click.echo(f"  N°file:  {record.num_file}")
+        click.echo(f"  Dim:     {size_mb} MB")
+    else:
+        click.echo(f"Backup FALLITO: {record.errore}", err=True)
+
+
+@grp_backup.command("lista")
+@click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
+def cmd_bk_lista(backup_dir):
+    """Elenca i backup disponibili."""
+    gb = _backup(backup_dir)
+    records = gb.tutti()
+    if not records:
+        click.echo("Nessun backup trovato.")
+        return
+    click.echo(f"{'ID':<38} {'TIPO':<12} {'STATO':<10} {'FILE':<6} {'DIM MB':<8} DATA")
+    click.echo("-" * 90)
+    for r in records:
+        size_mb = round(r.dimensione_bytes / 1024 / 1024, 2)
+        click.echo(
+            f"{r.id:<38} {r.tipo.value:<12} {r.stato.value:<10} "
+            f"{r.num_file:<6} {size_mb:<8} {r.timestamp[:19]}"
+        )
+
+
+@grp_backup.command("verifica")
+@click.argument("id_backup")
+@click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
+def cmd_bk_verifica(id_backup, backup_dir):
+    """Verifica l'integrità di un backup."""
+    gb = _backup(backup_dir)
+    ris = gb.verifica_integrita(id_backup)
+    if ris["ok"]:
+        click.echo(f"OK — backup integro: {id_backup}")
+    else:
+        click.echo(f"ATTENZIONE: backup corrotto! {id_backup}", err=True)
+        click.echo(f"  Hash atteso:  {ris['hash_atteso']}")
+        click.echo(f"  Hash attuale: {ris['hash_attuale']}")
+
+
+@grp_backup.command("ripristina")
+@click.argument("id_backup")
+@click.option("--dest", required=True, help="Cartella di destinazione")
+@click.option("--componenti", default="", help="Componenti separati da virgola (vuoto=tutti)")
+@click.option("--sovrascrivi", is_flag=True, default=False, help="Sovrascrivi file esistenti")
+@click.option("--password", default="", help="Password se backup cifrato")
+@click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
+def cmd_bk_ripristina(id_backup, dest, componenti, sovrascrivi, password, backup_dir):
+    """Ripristina un backup nella destinazione specificata."""
+    gb = _backup(backup_dir)
+    comps = [c.strip() for c in componenti.split(",") if c.strip()] or None
+    try:
+        ris = gb.ripristina(
+            id_backup, dest,
+            componenti=comps,
+            password=password,
+            sovrascrivi=sovrascrivi,
+        )
+        click.echo(f"Ripristino completato:")
+        click.echo(f"  Ripristinati: {ris['file_ripristinati']}")
+        click.echo(f"  Saltati:      {ris['file_saltati']}")
+        click.echo(f"  Errori:       {len(ris['errori'])}")
+        click.echo(f"  Destinazione: {ris['destinazione']}")
+    except Exception as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_backup.command("elimina")
+@click.argument("id_backup")
+@click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
+def cmd_bk_elimina(id_backup, backup_dir):
+    """Elimina un backup."""
+    gb = _backup(backup_dir)
+    try:
+        gb.elimina(id_backup)
+        click.echo(f"Backup {id_backup} eliminato.")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_backup.command("statistiche")
+@click.option("--dir", "backup_dir", default="./backup", help="Cartella backup")
+def cmd_bk_statistiche(backup_dir):
+    """Mostra statistiche backup."""
+    stats = _backup(backup_dir).statistiche()
+    click.echo(f"Totale backup:   {stats['totale']}")
+    click.echo(f"Completati:      {stats['ok']}")
+    click.echo(f"Falliti:         {stats['falliti']}")
+    click.echo(f"Corrotti:        {stats['corrotti']}")
+    click.echo(f"Spazio totale:   {stats['dimensione_totale_mb']} MB")
+    click.echo(f"Ultimo backup:   {stats['ultimo'] or 'mai'}")
 
 
 def main():

@@ -169,10 +169,23 @@
        class="nav-link {% if request.endpoint == 'nuovo_cliente' %}active{% endif %}">
       <i class="bi bi-person-plus me-2"></i>Nuovo Cliente
     </a>
+    <div class="section-label">Comunicazioni</div>
+    <a href="{{ url_for('lista_messaggi') }}"
+       class="nav-link {% if request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio') %}active{% endif %}">
+      <i class="bi bi-chat-dots me-2"></i>Messaggi
+    </a>
+    <a href="{{ url_for('nuovo_messaggio') }}"
+       class="nav-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
+      <i class="bi bi-send me-2"></i>Nuovo Messaggio
+    </a>
     <div class="section-label">Strumenti</div>
     <a href="{{ url_for('tribunali') }}"
        class="nav-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
       <i class="bi bi-bank me-2"></i>Tribunali / PEC
+    </a>
+    <a href="{{ url_for('lista_backup') }}"
+       class="nav-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
+      <i class="bi bi-cloud-arrow-up me-2"></i>Backup
     </a>
   </div>
   <div class="p-3" style="border-top:1px solid rgba(255,255,255,.1); font-size:.72rem; opacity:.5;">

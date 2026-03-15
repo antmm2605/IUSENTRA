@@ -19,6 +19,7 @@ from flask import (
     url_for,
     flash,
     jsonify,
+    send_file,
 )
 
 from pct.agenda import (
@@ -49,6 +50,22 @@ from pct.fascicoli import (
     AttivitaProcessuale,
     Documento,
 )
+from pct.messaggi import (
+    GestioneMessaggi,
+    CanaleMsggio,
+    StatoMessaggio,
+    TipoAutomazione,
+    ConfigEmail,
+    ConfigTwilio,
+    ConfigMessaggistica,
+)
+from pct.backup import (
+    GestioneBackup,
+    TipoBackup,
+    StatoBackup,
+    FrequenzaBackup,
+    ConfigBackup,
+)
 
 # ------------------------------------------------------------------ factory
 
@@ -72,6 +89,12 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["FASCICOLI_ARCH"] = cfg.get(
         "FASCICOLI_ARCH", os.getenv("PCT_FASCICOLI_ARCH", "./fascicoli/archivio")
     )
+    app.config["MESSAGGI_DB"] = cfg.get(
+        "MESSAGGI_DB", os.getenv("PCT_MESSAGGI_DB", "./messaggi/storico.json")
+    )
+    app.config["BACKUP_DIR"] = cfg.get(
+        "BACKUP_DIR", os.getenv("PCT_BACKUP_DIR", "./backup")
+    )
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -84,6 +107,39 @@ def create_app(config: dict | None = None) -> Flask:
             db_path=app.config["FASCICOLI_DB"],
             documents_dir=app.config["FASCICOLI_DOCS"],
             archive_dir=app.config["FASCICOLI_ARCH"],
+        )
+
+    def get_messaggi() -> GestioneMessaggi:
+        cfg = ConfigMessaggistica(
+            email=ConfigEmail(
+                smtp_host=os.getenv("PCT_SMTP_HOST", ""),
+                smtp_port=int(os.getenv("PCT_SMTP_PORT", "587")),
+                username=os.getenv("PCT_SMTP_USER", ""),
+                password=os.getenv("PCT_SMTP_PASS", ""),
+                mittente_email=os.getenv("PCT_SMTP_FROM", ""),
+                mittente_nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale"),
+            ),
+            twilio=ConfigTwilio(
+                account_sid=os.getenv("TWILIO_ACCOUNT_SID", ""),
+                auth_token=os.getenv("TWILIO_AUTH_TOKEN", ""),
+                numero_sms=os.getenv("TWILIO_SMS_NUMBER", ""),
+                numero_whatsapp=os.getenv("TWILIO_WA_NUMBER", ""),
+            ),
+            studio_nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale"),
+        )
+        return GestioneMessaggi(config=cfg, db_path=app.config["MESSAGGI_DB"])
+
+    def get_backup() -> GestioneBackup:
+        data_paths = {
+            "agenda": app.config["AGENDA_DB"],
+            "clienti": app.config["CLIENTI_DB"],
+            "fascicoli": app.config["FASCICOLI_DB"],
+            "messaggi": app.config["MESSAGGI_DB"],
+            "documenti": app.config["FASCICOLI_DOCS"],
+        }
+        return GestioneBackup(
+            directory_backup=app.config["BACKUP_DIR"],
+            percorsi_dati=data_paths,
         )
 
     # ---------------------------------------------------------------- context
@@ -565,7 +621,6 @@ def create_app(config: dict | None = None) -> Flask:
 
     # ================================================================ FASCICOLI
 
-    from flask import send_file
     import io
 
     def _fascicoli_kwargs(tmp=None):
@@ -923,5 +978,208 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/api/fascicoli/statistiche")
     def api_fascicoli_statistiche():
         return jsonify(get_fascicoli().statistiche())
+
+    # ================================================================ MESSAGGI
+
+    @app.route("/messaggi")
+    def lista_messaggi():
+        gm = get_messaggi()
+        canale = request.args.get("canale", "")
+        stato = request.args.get("stato", "")
+        q = request.args.get("q", "")
+        messaggi = gm.tutti(
+            canale=CanaleMsggio(canale) if canale else None,
+            stato=StatoMessaggio(stato) if stato else None,
+        )
+        if q:
+            ql = q.lower()
+            messaggi = [
+                m for m in messaggi
+                if ql in (m.email_destinatario or m.telefono_destinatario or "").lower()
+                or ql in m.nome_destinatario.lower()
+                or ql in m.oggetto.lower()
+                or ql in m.corpo.lower()
+            ]
+        return render_template(
+            "messaggi/lista.html",
+            messaggi=messaggi,
+            canali=list(CanaleMsggio),
+            stati=list(StatoMessaggio),
+            canale=canale,
+            stato=stato,
+            q=q,
+            stats=gm.statistiche(),
+        )
+
+    @app.route("/messaggi/nuovo", methods=["GET", "POST"])
+    def nuovo_messaggio():
+        gm = get_messaggi()
+        gc = get_clienti()
+        clienti = gc.tutti()
+        if request.method == "POST":
+            f = request.form
+            canale_str = f["canale"]
+            canale = CanaleMsggio(canale_str)
+            destinatario = f["destinatario"].strip()
+            testo = f.get("testo", "").strip()
+            oggetto = f.get("oggetto", "").strip()
+            id_cliente = f.get("id_cliente", "") or ""
+            try:
+                if canale == CanaleMsggio.EMAIL:
+                    gm.invia_email(
+                        destinatario=destinatario,
+                        oggetto=oggetto,
+                        corpo_testo=testo,
+                        id_cliente=id_cliente,
+                    )
+                elif canale == CanaleMsggio.SMS:
+                    gm.invia_sms(
+                        telefono=destinatario,
+                        testo=testo,
+                        id_cliente=id_cliente,
+                    )
+                else:
+                    gm.invia_whatsapp(
+                        telefono=destinatario,
+                        testo=testo,
+                        id_cliente=id_cliente,
+                    )
+                flash("Messaggio inviato.", "success")
+                return redirect(url_for("lista_messaggi"))
+            except Exception as e:
+                flash(str(e), "danger")
+        return render_template(
+            "messaggi/form.html",
+            clienti=clienti,
+            canali=list(CanaleMsggio),
+            tipi_automazione=list(TipoAutomazione),
+        )
+
+    @app.route("/messaggi/<id_msg>")
+    def dettaglio_messaggio(id_msg):
+        gm = get_messaggi()
+        msg = gm.get(id_msg)
+        if not msg:
+            flash("Messaggio non trovato.", "warning")
+            return redirect(url_for("lista_messaggi"))
+        return render_template("messaggi/dettaglio.html", msg=msg)
+
+    @app.route("/messaggi/<id_msg>/elimina", methods=["POST"])
+    def elimina_messaggio(id_msg):
+        gm = get_messaggi()
+        try:
+            gm.elimina(id_msg)
+            flash("Messaggio eliminato.", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_messaggi"))
+
+    @app.route("/api/messaggi/statistiche")
+    def api_messaggi_statistiche():
+        return jsonify(get_messaggi().statistiche())
+
+    # ================================================================ BACKUP
+
+    @app.route("/backup")
+    def lista_backup():
+        gb = get_backup()
+        backup_list = gb.tutti()
+        stats = gb.statistiche()
+        return render_template(
+            "backup/lista.html",
+            backup_list=backup_list,
+            stats=stats,
+            config=gb.config,
+            tipi=list(TipoBackup),
+            stati=list(StatoBackup),
+        )
+
+    @app.route("/backup/esegui", methods=["POST"])
+    def esegui_backup():
+        gb = get_backup()
+        tipo = TipoBackup(request.form.get("tipo", "COMPLETO"))
+        nota = request.form.get("nota", "")
+        componenti_raw = request.form.getlist("componenti")
+        componenti = componenti_raw if componenti_raw else None
+        try:
+            record = gb.esegui_backup(tipo=tipo, componenti=componenti, nota=nota)
+            if record.stato == StatoBackup.OK:
+                flash(f"Backup completato: {record.num_file} file, "
+                      f"{round(record.dimensione_bytes/1024/1024, 2)} MB.", "success")
+            else:
+                flash(f"Backup fallito: {record.errore}", "danger")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_backup"))
+
+    @app.route("/backup/<id_bk>/verifica", methods=["POST"])
+    def verifica_backup(id_bk):
+        gb = get_backup()
+        try:
+            ris = gb.verifica_integrita(id_bk)
+            if ris["ok"]:
+                flash("Integrità verificata: backup integro.", "success")
+            else:
+                flash("ATTENZIONE: integrità compressa! Il file potrebbe essere corrotto.", "danger")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_backup"))
+
+    @app.route("/backup/<id_bk>/elimina", methods=["POST"])
+    def elimina_backup(id_bk):
+        gb = get_backup()
+        try:
+            gb.elimina(id_bk)
+            flash("Backup eliminato.", "success")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_backup"))
+
+    @app.route("/backup/<id_bk>/scarica")
+    def scarica_backup(id_bk):
+        gb = get_backup()
+        record = gb.get(id_bk)
+        if not record:
+            flash("Backup non trovato.", "warning")
+            return redirect(url_for("lista_backup"))
+        p = Path(record.percorso_file)
+        if not p.exists():
+            flash("File backup non trovato su disco.", "danger")
+            return redirect(url_for("lista_backup"))
+        return send_file(p, as_attachment=True, download_name=p.name)
+
+    @app.route("/backup/<id_bk>/ripristina", methods=["GET", "POST"])
+    def ripristina_backup(id_bk):
+        gb = get_backup()
+        record = gb.get(id_bk)
+        if not record:
+            flash("Backup non trovato.", "warning")
+            return redirect(url_for("lista_backup"))
+        if request.method == "POST":
+            dest = request.form.get("destinazione", "./ripristino").strip()
+            componenti_raw = request.form.getlist("componenti")
+            componenti = componenti_raw if componenti_raw else None
+            sovrascrivi = request.form.get("sovrascrivi") == "1"
+            password = request.form.get("password", "")
+            try:
+                ris = gb.ripristina(
+                    id_bk, dest,
+                    componenti=componenti,
+                    password=password,
+                    sovrascrivi=sovrascrivi,
+                )
+                flash(
+                    f"Ripristino completato: {ris['file_ripristinati']} file ripristinati, "
+                    f"{ris['file_saltati']} saltati.",
+                    "success",
+                )
+                return redirect(url_for("lista_backup"))
+            except Exception as e:
+                flash(str(e), "danger")
+        return render_template("backup/ripristina.html", record=record)
+
+    @app.route("/api/backup/statistiche")
+    def api_backup_statistiche():
+        return jsonify(get_backup().statistiche())
 
     return app

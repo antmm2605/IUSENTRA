@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Nuovo Messaggio{% endblock %}
+{% block page_title %}Nuovo Messaggio{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-8">
+<form method="post">
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-chat-dots me-2 text-primary"></i>Composizione messaggio
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Canale <span class="text-danger">*</span></label>
+        <select name="canale" id="canale" class="form-select" required onchange="aggiornaForm()">
+          {% for c in canali %}
+          <option value="{{ c.value }}">{{ c.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label fw-semibold" id="lbl-destinatario">
+          Destinatario <span class="text-danger">*</span>
+        </label>
+        <input type="text" name="destinatario" id="destinatario" class="form-control" required
+               placeholder="email@esempio.it | +39 333 1234567">
+        <div class="form-text" id="hint-destinatario">Email per EMAIL, telefono E.164 per SMS/WhatsApp</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Cliente (opzionale)</label>
+        <select name="id_cliente" class="form-select">
+          <option value="">— Nessun cliente —</option>
+          {% for c in clienti %}
+          <option value="{{ c.id }}">{{ c.nome_completo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="riga-oggetto" class="col-12">
+        <label class="form-label fw-semibold">Oggetto</label>
+        <input type="text" name="oggetto" class="form-control"
+               placeholder="Oggetto del messaggio">
+      </div>
+
+      <div class="col-12">
+        <label class="form-label fw-semibold">Testo <span class="text-danger">*</span></label>
+        <textarea name="testo" class="form-control" rows="6" required
+                  placeholder="Testo del messaggio…"></textarea>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-send me-1"></i>Invia
+  </button>
+  <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary">Annulla</a>
+</div>
+
+</form>
+</div>
+</div>
+
+<script>
+function aggiornaForm() {
+  const canale = document.getElementById('canale').value;
+  const rigaOggetto = document.getElementById('riga-oggetto');
+  rigaOggetto.style.display = canale === 'EMAIL' ? '' : 'none';
+}
+aggiornaForm();
+</script>
+{% endblock %}

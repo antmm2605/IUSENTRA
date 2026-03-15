@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
+{% block page_title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="card shadow-sm">
+<div class="card-header fw-semibold">
+  <i class="bi bi-calendar-plus me-2 text-primary"></i>
+  {{ 'Modifica appuntamento' if app else 'Aggiungi appuntamento' }}
+</div>
+<div class="card-body">
+
+<form method="post">
+
+  <div class="row g-3">
+
+    {# Titolo #}
+    <div class="col-12">
+      <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+      <input type="text" name="titolo" class="form-control"
+             value="{{ app.titolo if app else '' }}" required
+             placeholder="es. Udienza RG 1234/2024 – Rossi c/ Bianchi">
+    </div>
+
+    {# Tipo + Stato (solo modifica) #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+      <select name="tipo" class="form-select" required>
+        {% for t in tipi %}
+        <option value="{{ t.value }}" {{ 'selected' if app and app.tipo == t }}>{{ t.value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# Data e Ora #}
+    <div class="col-md-3">
+      <label class="form-label fw-semibold">Data <span class="text-danger">*</span></label>
+      <input type="date" name="data" class="form-control"
+             value="{{ app.data_ora_dt.strftime('%Y-%m-%d') if app else '' }}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label fw-semibold">Ora <span class="text-danger">*</span></label>
+      <input type="time" name="ora" class="form-control"
+             value="{{ app.data_ora_dt.strftime('%H:%M') if app else '09:00' }}" required>
+    </div>
+
+    {# Durata + Reminder #}
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Durata (minuti)</label>
+      <input type="number" name="durata" class="form-control" min="5" step="5"
+             value="{{ app.durata_minuti if app else 60 }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Reminder (min prima)</label>
+      <input type="number" name="reminder" class="form-control" min="0"
+             value="{{ app.reminder_minuti if app else 60 }}">
+    </div>
+
+    {# Luogo #}
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Luogo / Aula</label>
+      <input type="text" name="luogo" class="form-control"
+             value="{{ app.luogo if app else '' }}" placeholder="es. Aula 3 - Piano 2">
+    </div>
+
+    <hr class="col-12 my-1">
+
+    {# Cliente #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Cliente</label>
+      <input type="text" name="cliente" class="form-control"
+             value="{{ app.cliente if app else '' }}" placeholder="Nome e cognome">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Codice fiscale cliente</label>
+      <input type="text" name="cf_cliente" class="form-control"
+             value="{{ app.cf_cliente if app else '' }}"
+             placeholder="RSSMRA80A01H501Z" maxlength="16"
+             style="text-transform:uppercase">
+    </div>
+
+    {# Procedimento + Tribunale #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Numero procedimento</label>
+      <input type="text" name="procedimento" class="form-control"
+             value="{{ app.procedimento if app else '' }}" placeholder="RG 1234/2024">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Tribunale</label>
+      <select name="tribunale" class="form-select">
+        <option value="">— Seleziona —</option>
+        {% for u in tribunali %}
+        <option value="{{ u.nome }}"
+          {{ 'selected' if app and app.tribunale == u.nome }}>
+          {{ u.nome }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# Avvocato #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Avvocato responsabile</label>
+      <input type="text" name="avvocato" class="form-control"
+             value="{{ app.avvocato if app else '' }}" placeholder="Avv. Mario Rossi">
+    </div>
+
+    {# Note #}
+    <div class="col-12">
+      <label class="form-label fw-semibold">Note</label>
+      <textarea name="note" class="form-control" rows="3"
+                placeholder="Note libere...">{{ app.note if app else '' }}</textarea>
+    </div>
+
+  </div>{# /row #}
+
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if app else 'Aggiungi' }}
+    </button>
+    {% if app %}
+    <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}"
+       class="btn btn-outline-secondary">Annulla</a>
+    {% else %}
+    <a href="{{ url_for('agenda_view') }}" class="btn btn-outline-secondary">Annulla</a>
+    {% endif %}
+  </div>
+
+</form>
+</div>
+</div>
+</div>
+</div>
+{% endblock %}

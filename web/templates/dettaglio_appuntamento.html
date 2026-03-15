@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}{{ app.titolo }} — Agenda{% endblock %}
+{% block page_title %}Dettaglio Appuntamento{% endblock %}
+
+{% block content %}
+{% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
+
+<div class="row g-3">
+
+  {# ---- Scheda principale ---- #}
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <span class="badge badge-{{ app.tipo.value }} me-2">{{ app.tipo.value }}</span>
+          <span class="badge bg-{{ sc[app.stato.value] }}">{{ app.stato.value }}</span>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('modifica_appuntamento', id_app=app.id) }}"
+             class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i>Modifica
+          </a>
+          <form method="post"
+                action="{{ url_for('elimina_appuntamento', id_app=app.id) }}"
+                onsubmit="return confirm('Eliminare questo appuntamento?')">
+            <button class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash me-1"></i>Elimina
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <h4 class="fw-bold mb-3">{{ app.titolo }}</h4>
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-calendar me-1"></i>Data e ora</div>
+            <div class="fw-semibold">
+              {{ app.data_ora_dt.strftime('%A %d %B %Y') }}<br>
+              <span class="fs-5">{{ app.data_ora_dt.strftime('%H:%M') }}</span>
+              <span class="text-muted">–{{ app.fine_dt.strftime('%H:%M') }}</span>
+              <span class="small text-muted">({{ app.durata_minuti }} min)</span>
+            </div>
+          </div>
+          {% if app.luogo %}
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-geo-alt me-1"></i>Luogo</div>
+            <div class="fw-semibold">{{ app.luogo }}</div>
+          </div>
+          {% endif %}
+          {% if app.cliente %}
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-person me-1"></i>Cliente</div>
+            <div class="fw-semibold">{{ app.cliente }}</div>
+            {% if app.cf_cliente %}<div class="small text-muted font-monospace">{{ app.cf_cliente }}</div>{% endif %}
+          </div>
+          {% endif %}
+          {% if app.procedimento %}
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-file-earmark-text me-1"></i>Procedimento</div>
+            <div class="fw-semibold">{{ app.procedimento }}</div>
+          </div>
+          {% endif %}
+          {% if app.tribunale %}
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-bank me-1"></i>Tribunale</div>
+            <div class="fw-semibold">{{ app.tribunale }}</div>
+          </div>
+          {% endif %}
+          {% if app.avvocato %}
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-person-badge me-1"></i>Avvocato</div>
+            <div class="fw-semibold">{{ app.avvocato }}</div>
+          </div>
+          {% endif %}
+          <div class="col-sm-6">
+            <div class="small text-muted mb-1"><i class="bi bi-bell me-1"></i>Reminder</div>
+            <div class="fw-semibold">{{ app.reminder_minuti }} minuti prima</div>
+          </div>
+        </div>
+
+        {% if app.note %}
+        <hr>
+        <div class="small text-muted mb-1"><i class="bi bi-sticky me-1"></i>Note</div>
+        <p class="mb-0">{{ app.note }}</p>
+        {% endif %}
+      </div>
+
+      <div class="card-footer text-muted small">
+        ID: <code>{{ app.id }}</code> &nbsp;·&nbsp;
+        Creato: {{ app.creato_il[:16].replace('T',' ') }} &nbsp;·&nbsp;
+        Modificato: {{ app.modificato_il[:16].replace('T',' ') }}
+      </div>
+    </div>
+  </div>
+
+  {# ---- Cambia stato ---- #}
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-arrow-repeat me-2"></i>Cambia stato
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('cambia_stato', id_app=app.id) }}">
+          <select name="stato" class="form-select mb-2">
+            {% for s in StatoAppuntamento %}
+            <option value="{{ s.value }}" {{ 'selected' if app.stato == s }}>{{ s.value }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-primary w-100 btn-sm">
+            <i class="bi bi-check-lg me-1"></i>Aggiorna stato
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-link-45deg me-2"></i>Azioni rapide
+      </div>
+      <div class="list-group list-group-flush">
+        <a href="{{ url_for('modifica_appuntamento', id_app=app.id) }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-pencil me-2 text-primary"></i>Modifica appuntamento
+        </a>
+        <a href="{{ url_for('agenda_view') }}?vista=giorno&offset=0"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-calendar-day me-2 text-success"></i>Torna all'agenda
+        </a>
+        <a href="{{ url_for('nuovo_appuntamento') }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-plus-circle me-2 text-warning"></i>Nuovo appuntamento
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

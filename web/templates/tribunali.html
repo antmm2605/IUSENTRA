@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Tribunali & PEC — Studio Legale PCT{% endblock %}
+{% block page_title %}Tribunali & Indirizzi PEC{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-bank me-2 text-primary"></i>
+    Registro Uffici Giudiziari — indirizzi PEC (ReGINde)
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Tribunale</th>
+            <th>Distretto</th>
+            <th>Tipo</th>
+            <th>Codice</th>
+            <th>PEC</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in uffici %}
+          <tr>
+            <td class="fw-semibold">{{ u.nome }}</td>
+            <td>{{ u.distretto }}</td>
+            <td><span class="badge bg-secondary">{{ u.tipo }}</span></td>
+            <td><code>{{ u.codice }}</code></td>
+            <td>
+              <a href="mailto:{{ u.pec }}" class="text-decoration-none">
+                <i class="bi bi-envelope me-1"></i>{{ u.pec }}
+              </a>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary copy-btn"
+                      data-val="{{ u.pec }}" title="Copia PEC">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(btn.dataset.val);
+    btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+    setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+  });
+});
+</script>
+{% endblock %}

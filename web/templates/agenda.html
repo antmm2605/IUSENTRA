@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Agenda — Studio Legale PCT{% endblock %}
+{% block page_title %}Agenda{% endblock %}
+
+{% macro badge_tipo(a) %}
+  <span class="badge badge-{{ a.tipo.value }} rounded-pill" style="font-size:.68rem">{{ a.tipo.value }}</span>
+{% endmacro %}
+
+{% block content %}
+
+{# ---- Switcher vista + navigazione ---- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
+
+    <div class="btn-group btn-group-sm me-2">
+      <a href="{{ url_for('agenda_view') }}?vista=giorno&offset={{ offset if vista=='giorno' else 0 }}"
+         class="btn btn-outline-primary {% if vista=='giorno' %}active{% endif %}">
+        <i class="bi bi-calendar-day me-1"></i>Giorno
+      </a>
+      <a href="{{ url_for('agenda_view') }}?vista=settimana&offset={{ offset if vista=='settimana' else 0 }}"
+         class="btn btn-outline-primary {% if vista=='settimana' %}active{% endif %}">
+        <i class="bi bi-calendar-week me-1"></i>Settimana
+      </a>
+      <a href="{{ url_for('agenda_view') }}?vista=mese&offset={{ offset if vista=='mese' else 0 }}"
+         class="btn btn-outline-primary {% if vista=='mese' %}active{% endif %}">
+        <i class="bi bi-calendar-month me-1"></i>Mese
+      </a>
+    </div>
+
+    <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset - 1 }}"
+       class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
+    <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset=0"
+       class="btn btn-sm btn-outline-secondary">Oggi</a>
+    <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset + 1 }}"
+       class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
+
+    <span class="ms-2 fw-semibold text-primary">
+      {% if vista == 'giorno' %}
+        {{ giorno.strftime('%A %d %B %Y') }}
+      {% elif vista == 'settimana' %}
+        {{ inizio.strftime('%d %b') }} – {{ fine.strftime('%d %b %Y') }}
+      {% else %}
+        {{ nomi_mesi[mese] }} {{ anno }}
+      {% endif %}
+    </span>
+
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning ms-auto">
+      <i class="bi bi-plus-lg me-1"></i>Nuovo appuntamento
+    </a>
+  </div>
+</div>
+
+{# ================================================================ GIORNO #}
+{% if vista == 'giorno' %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% if apps %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr><th>Ora</th><th>Titolo</th><th>Tipo</th><th>Cliente</th><th>Luogo</th><th>Stato</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for a in apps %}
+            <tr>
+              <td class="fw-semibold text-nowrap">
+                {{ a.data_ora_dt.strftime('%H:%M') }}–{{ a.fine_dt.strftime('%H:%M') }}
+              </td>
+              <td>
+                <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+                   class="fw-semibold text-decoration-none text-dark">{{ a.titolo }}</a>
+                {% if a.procedimento %}<div class="small text-muted">{{ a.procedimento }}</div>{% endif %}
+              </td>
+              <td>{{ badge_tipo(a) }}</td>
+              <td class="small">{{ a.cliente or '—' }}</td>
+              <td class="small">{{ a.luogo or '—' }}</td>
+              <td>
+                {% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
+                <span class="badge bg-{{ sc[a.stato.value] }}">{{ a.stato.value }}</span>
+              </td>
+              <td>
+                <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>Nessun appuntamento
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ================================================================ SETTIMANA #}
+{% elif vista == 'settimana' %}
+{% set nomi_g = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'] %}
+<div class="card shadow-sm">
+  <div class="card-body p-2">
+    <div class="row g-1">
+      {% for g in giorni %}
+      <div class="col">
+        <div class="p-2 week-col rounded {% if g == oggi %}border border-warning{% endif %}">
+          <div class="small fw-bold mb-1
+               {% if g == oggi %}text-warning{% else %}text-muted{% endif %}">
+            {{ nomi_g[loop.index0] }}<br>
+            <span class="fs-5 {% if g == oggi %}text-warning{% else %}text-dark{% endif %}">
+              {{ g.day }}
+            </span>
+          </div>
+          {% for a in apps_per_giorno[g] %}
+          <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+             class="app-pill badge-{{ a.tipo.value }}">
+            {{ a.data_ora_dt.strftime('%H:%M') }} {{ a.titolo|truncate(20, killwords=True) }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{# ================================================================ MESE #}
+{% elif vista == 'mese' %}
+{% set nomi_g = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'] %}
+<div class="card shadow-sm">
+  <div class="card-body p-2">
+    {# intestazione giorni #}
+    <div class="row g-1 mb-1">
+      {% for ng in nomi_g %}
+      <div class="col text-center small fw-semibold text-muted">{{ ng }}</div>
+      {% endfor %}
+    </div>
+    {# griglia #}
+    {% set apps_dict = namespace(d={}) %}
+    {% for a in apps %}
+      {% set key = a.data_ora_dt.strftime('%Y-%m-%d') %}
+      {% if key not in apps_dict.d %}{% set _ = apps_dict.d.update({key: []}) %}{% endif %}
+      {% set _ = apps_dict.d[key].append(a) %}
+    {% endfor %}
+
+    <div class="row g-1">
+      {# padding iniziale #}
+      {% for _ in range(pad) %}
+      <div class="col"><div class="cal-day altro-mese"></div></div>
+      {% endfor %}
+
+      {% for day in range(1, giorni_mese + 1) %}
+      {% set d = "%04d-%02d-%02d"|format(anno, mese, day) %}
+      {% set is_oggi = (anno == oggi.year and mese == oggi.month and day == oggi.day) %}
+      <div class="col">
+        <div class="cal-day {% if is_oggi %}oggi{% endif %}">
+          <div class="cal-day-num {% if is_oggi %}text-warning{% endif %}">{{ day }}</div>
+          {% for a in apps_dict.d.get(d, []) %}
+          <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+             class="app-pill badge-{{ a.tipo.value }}">
+            {{ a.data_ora_dt.strftime('%H:%M') }} {{ a.titolo|truncate(14, killwords=True) }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {# a-capo ogni 7 celle #}
+      {% if (pad + day) % 7 == 0 and day < giorni_mese %}
+      </div><div class="row g-1 mt-1">
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

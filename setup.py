@@ -12,6 +12,7 @@ setup(
         "python-dotenv>=1.0.0",
         "requests>=2.31.0",
         "click>=8.1.0",
+        "flask>=3.0.0",
     ],
     extras_require={
         "pades": ["pyhanko>=0.20.0", "pyhanko-certvalidator>=0.26.0"],
@@ -20,6 +21,7 @@ setup(
     entry_points={
         "console_scripts": [
             "pct=pct.cli:main",
+            "pct-web=web.__main__:app.run",
         ],
     },
 )

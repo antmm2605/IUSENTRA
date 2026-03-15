@@ -27,6 +27,17 @@ from pct.agenda import (
     StatoAppuntamento,
 )
 from pct.reginde import ClientReGINde
+from pct.clienti import (
+    GestioneClienti,
+    Cliente,
+    TipoCliente,
+    StatoCliente,
+    TipoDocumento,
+    Indirizzo,
+    Recapiti,
+    DocumentoIdentita,
+    RiferimentoProcedimento,
+)
 
 # ------------------------------------------------------------------ factory
 
@@ -38,11 +49,28 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
     )
+    app.config["CLIENTI_DB"] = cfg.get(
+        "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
+    )
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
 
+    def get_clienti() -> GestioneClienti:
+        return GestioneClienti(db_path=app.config["CLIENTI_DB"])
+
     # ---------------------------------------------------------------- context
+
+    @app.template_filter("fmt_data")
+    def fmt_data(val: str) -> str:
+        if not val:
+            return "—"
+        try:
+            from datetime import date
+            d = date.fromisoformat(val[:10])
+            return d.strftime("%d/%m/%Y")
+        except ValueError:
+            return val
 
     @app.context_processor
     def inject_globals():
@@ -51,6 +79,8 @@ def create_app(config: dict | None = None) -> Flask:
             "ora_adesso": datetime.now().strftime("%H:%M"),
             "TipoAppuntamento": TipoAppuntamento,
             "StatoAppuntamento": StatoAppuntamento,
+            "TipoCliente": TipoCliente,
+            "StatoCliente": StatoCliente,
         }
 
     # ---------------------------------------------------------------- dashboard
@@ -288,5 +318,218 @@ def create_app(config: dict | None = None) -> Flask:
         reginde = ClientReGINde()
         uffici = reginde.elenca_uffici()
         return render_template("tribunali.html", uffici=uffici)
+
+    # ================================================================ CLIENTI
+
+    @app.route("/clienti")
+    def lista_clienti():
+        gc = get_clienti()
+        testo = request.args.get("q", "").strip()
+        tipo_f = request.args.get("tipo")
+        stato_f = request.args.get("stato", "ATTIVO")
+
+        tipo = TipoCliente(tipo_f) if tipo_f else None
+        stato = StatoCliente(stato_f) if stato_f else None
+
+        clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
+        stats = gc.statistiche()
+        return render_template(
+            "clienti/lista.html",
+            clienti=clienti,
+            stats=stats,
+            q=testo,
+            tipo_filtro=tipo_f or "",
+            stato_filtro=stato_f or "",
+            tipi=list(TipoCliente),
+            stati=list(StatoCliente),
+        )
+
+    @app.route("/clienti/nuovo", methods=["GET", "POST"])
+    def nuovo_cliente():
+        gc = get_clienti()
+        if request.method == "POST":
+            f = request.form
+            tipo = TipoCliente(f["tipo"])
+            try:
+                c = gc.nuovo(
+                    tipo=tipo,
+                    nome=f.get("nome", ""),
+                    cognome=f.get("cognome", ""),
+                    ragione_sociale=f.get("ragione_sociale", ""),
+                    codice_fiscale=f.get("codice_fiscale", "").upper(),
+                    partita_iva=f.get("partita_iva", ""),
+                    forma_giuridica=f.get("forma_giuridica", ""),
+                    data_nascita=f.get("data_nascita", ""),
+                    luogo_nascita=f.get("luogo_nascita", ""),
+                    provincia_nascita=f.get("provincia_nascita", ""),
+                    sesso=f.get("sesso", ""),
+                    nazionalita=f.get("nazionalita", "Italiana"),
+                    rappresentante_legale=f.get("rappresentante_legale", ""),
+                    cf_rappresentante=f.get("cf_rappresentante", "").upper(),
+                    avvocato_referente=f.get("avvocato_referente", ""),
+                    provenienza=f.get("provenienza", ""),
+                    note=f.get("note", ""),
+                )
+                # indirizzi e recapiti
+                _salva_indirizzo(gc, c.id, "residenza", f)
+                _salva_indirizzo(gc, c.id, "domicilio", f, prefix="dom_")
+                _salva_indirizzo(gc, c.id, "sede_legale", f, prefix="sl_")
+                gc.aggiorna_recapiti(c.id,
+                    telefono=f.get("telefono", ""),
+                    cellulare=f.get("cellulare", ""),
+                    email=f.get("email", ""),
+                    pec=f.get("pec", ""),
+                    fax=f.get("fax", ""),
+                    sito_web=f.get("sito_web", ""),
+                )
+                flash(f"Cliente '{c.nome_completo}' aggiunto.", "success")
+                return redirect(url_for("dettaglio_cliente", id_cliente=c.id))
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+
+        reginde = ClientReGINde()
+        return render_template(
+            "clienti/form.html",
+            cliente=None,
+            tipi=list(TipoCliente),
+            stati=list(StatoCliente),
+            tipi_doc=list(TipoDocumento),
+            tribunali=reginde.elenca_uffici(),
+        )
+
+    @app.route("/clienti/<id_cliente>")
+    def dettaglio_cliente(id_cliente):
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+        agenda = get_agenda()
+        apps_cliente = agenda.cerca(cliente=c.nome_completo)
+        return render_template("clienti/dettaglio.html", cliente=c, apps_cliente=apps_cliente)
+
+    @app.route("/clienti/<id_cliente>/modifica", methods=["GET", "POST"])
+    def modifica_cliente(id_cliente):
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+
+        if request.method == "POST":
+            f = request.form
+            try:
+                gc.aggiorna(id_cliente,
+                    nome=f.get("nome", c.nome),
+                    cognome=f.get("cognome", c.cognome),
+                    ragione_sociale=f.get("ragione_sociale", c.ragione_sociale),
+                    codice_fiscale=f.get("codice_fiscale", c.codice_fiscale).upper(),
+                    partita_iva=f.get("partita_iva", c.partita_iva),
+                    forma_giuridica=f.get("forma_giuridica", c.forma_giuridica),
+                    data_nascita=f.get("data_nascita", c.data_nascita),
+                    luogo_nascita=f.get("luogo_nascita", c.luogo_nascita),
+                    provincia_nascita=f.get("provincia_nascita", c.provincia_nascita),
+                    sesso=f.get("sesso", c.sesso),
+                    nazionalita=f.get("nazionalita", c.nazionalita),
+                    rappresentante_legale=f.get("rappresentante_legale", c.rappresentante_legale),
+                    cf_rappresentante=f.get("cf_rappresentante", c.cf_rappresentante).upper(),
+                    avvocato_referente=f.get("avvocato_referente", c.avvocato_referente),
+                    provenienza=f.get("provenienza", c.provenienza),
+                    note=f.get("note", c.note),
+                    stato=StatoCliente(f.get("stato", c.stato.value)),
+                )
+                _salva_indirizzo(gc, id_cliente, "residenza", f)
+                _salva_indirizzo(gc, id_cliente, "domicilio", f, prefix="dom_")
+                _salva_indirizzo(gc, id_cliente, "sede_legale", f, prefix="sl_")
+                gc.aggiorna_recapiti(id_cliente,
+                    telefono=f.get("telefono", ""),
+                    cellulare=f.get("cellulare", ""),
+                    email=f.get("email", ""),
+                    pec=f.get("pec", ""),
+                    fax=f.get("fax", ""),
+                    sito_web=f.get("sito_web", ""),
+                )
+                gc.aggiorna_documento(id_cliente,
+                    tipo=TipoDocumento(f.get("doc_tipo", c.documento.tipo.value)),
+                    numero=f.get("doc_numero", ""),
+                    rilasciato_da=f.get("doc_rilasciato_da", ""),
+                    data_rilascio=f.get("doc_data_rilascio", ""),
+                    data_scadenza=f.get("doc_data_scadenza", ""),
+                )
+                flash("Cliente aggiornato.", "success")
+                return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+
+        reginde = ClientReGINde()
+        return render_template(
+            "clienti/form.html",
+            cliente=c,
+            tipi=list(TipoCliente),
+            stati=list(StatoCliente),
+            tipi_doc=list(TipoDocumento),
+            tribunali=reginde.elenca_uffici(),
+        )
+
+    @app.route("/clienti/<id_cliente>/elimina", methods=["POST"])
+    def elimina_cliente(id_cliente):
+        gc = get_clienti()
+        try:
+            gc.elimina(id_cliente)
+            flash("Cliente eliminato.", "success")
+        except KeyError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_clienti"))
+
+    @app.route("/clienti/<id_cliente>/procedimento", methods=["POST"])
+    def aggiungi_procedimento(id_cliente):
+        gc = get_clienti()
+        f = request.form
+        try:
+            proc = RiferimentoProcedimento(
+                numero_rg=f["numero_rg"],
+                anno=int(f.get("anno", datetime.now().year)),
+                tribunale=f.get("tribunale", ""),
+                descrizione=f.get("descrizione", ""),
+                data_apertura=f.get("data_apertura", date.today().isoformat()),
+            )
+            gc.aggiungi_procedimento(id_cliente, proc)
+            flash("Procedimento aggiunto.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+
+    # ---- API clienti
+
+    @app.route("/api/clienti")
+    def api_clienti():
+        gc = get_clienti()
+        q = request.args.get("q", "")
+        clienti = gc.cerca(testo=q) if q else gc.tutti()
+        return jsonify([c.to_dict() for c in clienti])
+
+    @app.route("/api/clienti/<id_cliente>")
+    def api_cliente(id_cliente):
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            return jsonify({"errore": "Non trovato"}), 404
+        return jsonify(c.to_dict())
+
+    @app.route("/api/clienti/statistiche")
+    def api_clienti_statistiche():
+        return jsonify(get_clienti().statistiche())
+
+    # ---------------------------------------------------------------- helpers
+
+    def _salva_indirizzo(gc, id_c, tipo, f, prefix=""):
+        gc.aggiorna_indirizzo(id_c, tipo,
+            via=f.get(f"{prefix}via", ""),
+            civico=f.get(f"{prefix}civico", ""),
+            cap=f.get(f"{prefix}cap", ""),
+            comune=f.get(f"{prefix}comune", ""),
+            provincia=f.get(f"{prefix}provincia", ""),
+            nazione=f.get(f"{prefix}nazione", "Italia"),
+        )
 
     return app

@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if cliente else 'Nuovo' }} Cliente{% endblock %}
+{% block page_title %}{{ 'Modifica' if cliente else 'Nuovo' }} Cliente{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-9">
+
+<form method="post" id="formCliente">
+
+{# ---- Tipo (solo nuovo) ---- #}
+{% if not cliente %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-toggles me-2 text-primary"></i>Tipo cliente
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="form-check form-check-card h-100">
+          <input class="form-check-input" type="radio" name="tipo"
+                 id="tipo_pf" value="PERSONA_FISICA" checked>
+          <label class="form-check-label d-block p-3 border rounded cursor-pointer" for="tipo_pf">
+            <i class="bi bi-person-fill fs-3 text-primary d-block mb-1"></i>
+            <strong>Persona fisica</strong>
+            <div class="small text-muted">Privato, professionista</div>
+          </label>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="form-check form-check-card h-100">
+          <input class="form-check-input" type="radio" name="tipo"
+                 id="tipo_pg" value="PERSONA_GIURIDICA">
+          <label class="form-check-label d-block p-3 border rounded cursor-pointer" for="tipo_pg">
+            <i class="bi bi-building-fill fs-3 text-purple d-block mb-1"
+               style="color:#6a1b9a"></i>
+            <strong>Persona giuridica</strong>
+            <div class="small text-muted">Società, ente, associazione</div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<input type="hidden" name="tipo" value="{{ cliente.tipo.value }}">
+{% endif %}
+
+{# ---- Sezione persona fisica ---- #}
+<div id="sec_pf" class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-person me-2 text-primary"></i>Dati anagrafici
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      {# Persona fisica #}
+      <div class="pf-only col-md-4">
+        <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
+        <input type="text" name="nome" class="form-control"
+               value="{{ cliente.nome if cliente else '' }}"
+               placeholder="Mario">
+      </div>
+      <div class="pf-only col-md-4">
+        <label class="form-label fw-semibold">Cognome <span class="text-danger">*</span></label>
+        <input type="text" name="cognome" class="form-control"
+               value="{{ cliente.cognome if cliente else '' }}"
+               placeholder="Rossi">
+      </div>
+      <div class="pf-only col-md-2">
+        <label class="form-label fw-semibold">Sesso</label>
+        <select name="sesso" class="form-select">
+          <option value="">—</option>
+          <option value="M" {{ 'selected' if cliente and cliente.sesso=='M' }}>M</option>
+          <option value="F" {{ 'selected' if cliente and cliente.sesso=='F' }}>F</option>
+        </select>
+      </div>
+
+      {# Persona giuridica #}
+      <div class="pg-only col-md-6" style="display:none">
+        <label class="form-label fw-semibold">Ragione sociale <span class="text-danger">*</span></label>
+        <input type="text" name="ragione_sociale" class="form-control"
+               value="{{ cliente.ragione_sociale if cliente else '' }}"
+               placeholder="Acme S.r.l.">
+      </div>
+      <div class="pg-only col-md-3" style="display:none">
+        <label class="form-label fw-semibold">Forma giuridica</label>
+        <input type="text" name="forma_giuridica" class="form-control"
+               value="{{ cliente.forma_giuridica if cliente else '' }}"
+               placeholder="Srl, SpA, SAS…">
+      </div>
+      <div class="pg-only col-md-3" style="display:none">
+        <label class="form-label fw-semibold">Codice ATECO</label>
+        <input type="text" name="codice_ateco" class="form-control"
+               value="{{ cliente.codice_ateco if cliente else '' }}">
+      </div>
+
+      {# Campi comuni #}
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Codice fiscale</label>
+        <input type="text" name="codice_fiscale" class="form-control font-monospace"
+               value="{{ cliente.codice_fiscale if cliente else '' }}"
+               placeholder="RSSMRA80A01H501Z" maxlength="16"
+               style="text-transform:uppercase">
+      </div>
+      <div class="pg-only col-md-4" style="display:none">
+        <label class="form-label fw-semibold">Partita IVA</label>
+        <input type="text" name="partita_iva" class="form-control font-monospace"
+               value="{{ cliente.partita_iva if cliente else '' }}"
+               placeholder="12345678901" maxlength="11">
+      </div>
+
+      {# Nascita (solo PF) #}
+      <div class="pf-only col-md-3">
+        <label class="form-label fw-semibold">Data di nascita</label>
+        <input type="date" name="data_nascita" class="form-control"
+               value="{{ cliente.data_nascita if cliente else '' }}">
+      </div>
+      <div class="pf-only col-md-4">
+        <label class="form-label fw-semibold">Luogo di nascita</label>
+        <input type="text" name="luogo_nascita" class="form-control"
+               value="{{ cliente.luogo_nascita if cliente else '' }}"
+               placeholder="Roma">
+      </div>
+      <div class="pf-only col-md-2">
+        <label class="form-label fw-semibold">Prov.</label>
+        <input type="text" name="provincia_nascita" class="form-control"
+               value="{{ cliente.provincia_nascita if cliente else '' }}"
+               maxlength="2" placeholder="RM" style="text-transform:uppercase">
+      </div>
+      <div class="pf-only col-md-3">
+        <label class="form-label fw-semibold">Nazionalità</label>
+        <input type="text" name="nazionalita" class="form-control"
+               value="{{ cliente.nazionalita if cliente else 'Italiana' }}">
+      </div>
+
+      {# Rappresentante legale (solo PG) #}
+      <div class="pg-only col-md-5" style="display:none">
+        <label class="form-label fw-semibold">Rappresentante legale</label>
+        <input type="text" name="rappresentante_legale" class="form-control"
+               value="{{ cliente.rappresentante_legale if cliente else '' }}">
+      </div>
+      <div class="pg-only col-md-4" style="display:none">
+        <label class="form-label fw-semibold">CF rappresentante</label>
+        <input type="text" name="cf_rappresentante" class="form-control font-monospace"
+               value="{{ cliente.cf_rappresentante if cliente else '' }}"
+               maxlength="16" style="text-transform:uppercase">
+      </div>
+      <div class="pg-only col-md-3" style="display:none">
+        <label class="form-label fw-semibold">Data costituzione</label>
+        <input type="date" name="data_costituzione" class="form-control"
+               value="{{ cliente.data_costituzione if cliente else '' }}">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ---- Recapiti ---- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-telephone me-2 text-primary"></i>Recapiti
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% macro inp(label, name, ph='', tipo='text') %}
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">{{ label }}</label>
+        <input type="{{ tipo }}" name="{{ name }}" class="form-control"
+               value="{{ cliente.recapiti[name] if cliente else '' }}"
+               placeholder="{{ ph }}">
+      </div>
+      {% endmacro %}
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Telefono</label>
+        <input type="tel" name="telefono" class="form-control"
+               value="{{ cliente.recapiti.telefono if cliente else '' }}"
+               placeholder="+39 02 1234567">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Cellulare</label>
+        <input type="tel" name="cellulare" class="form-control"
+               value="{{ cliente.recapiti.cellulare if cliente else '' }}"
+               placeholder="+39 333 1234567">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Fax</label>
+        <input type="tel" name="fax" class="form-control"
+               value="{{ cliente.recapiti.fax if cliente else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Email</label>
+        <input type="email" name="email" class="form-control"
+               value="{{ cliente.recapiti.email if cliente else '' }}"
+               placeholder="mario.rossi@email.it">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">PEC</label>
+        <input type="email" name="pec" class="form-control"
+               value="{{ cliente.recapiti.pec if cliente else '' }}"
+               placeholder="mario.rossi@pec.it">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Sito web</label>
+        <input type="url" name="sito_web" class="form-control"
+               value="{{ cliente.recapiti.sito_web if cliente else '' }}"
+               placeholder="https://…">
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Indirizzo residenza / sede legale ---- #}
+{% macro indirizzo_fields(titolo, prefix, ind=None) %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-house me-2 text-primary"></i>{{ titolo }}
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-7">
+        <label class="form-label fw-semibold">Via / Piazza</label>
+        <input type="text" name="{{ prefix }}via" class="form-control"
+               value="{{ ind.via if ind else '' }}" placeholder="Via Roma">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">N°</label>
+        <input type="text" name="{{ prefix }}civico" class="form-control"
+               value="{{ ind.civico if ind else '' }}" placeholder="10">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">CAP</label>
+        <input type="text" name="{{ prefix }}cap" class="form-control"
+               value="{{ ind.cap if ind else '' }}" placeholder="20100" maxlength="5">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Comune</label>
+        <input type="text" name="{{ prefix }}comune" class="form-control"
+               value="{{ ind.comune if ind else '' }}" placeholder="Milano">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-semibold">Prov.</label>
+        <input type="text" name="{{ prefix }}provincia" class="form-control"
+               value="{{ ind.provincia if ind else '' }}" maxlength="2"
+               placeholder="MI" style="text-transform:uppercase">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Nazione</label>
+        <input type="text" name="{{ prefix }}nazione" class="form-control"
+               value="{{ ind.nazione if ind else 'Italia' }}">
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+<div class="pf-only">
+  {{ indirizzo_fields("Residenza", "", cliente.indirizzo_residenza if cliente else None) }}
+  {{ indirizzo_fields("Domicilio (se diverso da residenza)", "dom_", cliente.indirizzo_domicilio if cliente else None) }}
+</div>
+<div class="pg-only" style="display:none">
+  {{ indirizzo_fields("Sede legale", "sl_", cliente.indirizzo_sede_legale if cliente else None) }}
+</div>
+
+{# ---- Documento identità (solo PF) ---- #}
+<div class="pf-only card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-credit-card me-2 text-primary"></i>Documento d'identità
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Tipo documento</label>
+        <select name="doc_tipo" class="form-select">
+          {% for td in tipi_doc %}
+          <option value="{{ td.value }}"
+            {{ 'selected' if cliente and cliente.documento.tipo == td }}>
+            {{ td.value.replace('_',' ') }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Numero</label>
+        <input type="text" name="doc_numero" class="form-control font-monospace"
+               value="{{ cliente.documento.numero if cliente else '' }}"
+               placeholder="CA12345AB" style="text-transform:uppercase">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Rilasciato da</label>
+        <input type="text" name="doc_rilasciato_da" class="form-control"
+               value="{{ cliente.documento.rilasciato_da if cliente else '' }}"
+               placeholder="Comune di…">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Data rilascio</label>
+        <input type="date" name="doc_data_rilascio" class="form-control"
+               value="{{ cliente.documento.data_rilascio if cliente else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Data scadenza</label>
+        <input type="date" name="doc_data_scadenza" class="form-control"
+               value="{{ cliente.documento.data_scadenza if cliente else '' }}">
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Info studio ---- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-briefcase me-2 text-primary"></i>Dati studio
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Avvocato referente</label>
+        <input type="text" name="avvocato_referente" class="form-control"
+               value="{{ cliente.avvocato_referente if cliente else '' }}"
+               placeholder="Avv. Mario Rossi">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Provenienza</label>
+        <input type="text" name="provenienza" class="form-control"
+               value="{{ cliente.provenienza if cliente else '' }}"
+               placeholder="Passaparola, web…">
+      </div>
+      {% if cliente %}
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Stato</label>
+        <select name="stato" class="form-select">
+          {% for s in stati %}
+          <option value="{{ s.value }}" {{ 'selected' if cliente.stato == s }}>{{ s.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="col-12">
+        <label class="form-label fw-semibold">Note</label>
+        <textarea name="note" class="form-control" rows="3"
+                  placeholder="Note generali sul cliente…">{{ cliente.note if cliente else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Bottoni ---- #}
+<div class="d-flex gap-2 mb-4">
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if cliente else 'Crea cliente' }}
+  </button>
+  {% if cliente %}
+  <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"
+     class="btn btn-outline-secondary">Annulla</a>
+  {% else %}
+  <a href="{{ url_for('lista_clienti') }}" class="btn btn-outline-secondary">Annulla</a>
+  {% endif %}
+</div>
+
+</form>
+</div>{# /col #}
+</div>{# /row #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Switcher Persona Fisica / Giuridica
+function aggiornaVista() {
+  const isPF = document.querySelector('input[name="tipo"]:checked')?.value === 'PERSONA_FISICA'
+              || '{{ cliente.tipo.value if cliente else "PERSONA_FISICA" }}' === 'PERSONA_FISICA';
+  document.querySelectorAll('.pf-only').forEach(el => el.style.display = isPF ? '' : 'none');
+  document.querySelectorAll('.pg-only').forEach(el => el.style.display = isPF ? 'none' : '');
+}
+document.querySelectorAll('input[name="tipo"]').forEach(r =>
+  r.addEventListener('change', aggiornaVista)
+);
+aggiornaVista();
+</script>
+{% endblock %}

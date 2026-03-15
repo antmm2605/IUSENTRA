@@ -17,6 +17,12 @@ from .notifica import NotificaTelematica, RelataDiNotifica
 from .reginde import ClientReGINde
 from .firma import FirmaDigitale
 from .agenda import Agenda, TipoAppuntamento, StatoAppuntamento
+from .clienti import (
+    GestioneClienti,
+    TipoCliente,
+    StatoCliente,
+    RiferimentoProcedimento,
+)
 
 
 def carica_config() -> dict:
@@ -416,6 +422,218 @@ def cmd_statistiche():
     for stato, n in stats["per_stato"].items():
         if n:
             click.echo(f"  {stato:<16} {n}")
+
+
+# ================================================================ CLIENTI
+
+def _clienti() -> GestioneClienti:
+    db = os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
+    return GestioneClienti(db_path=db)
+
+
+def _fmt_cliente(c, verbose: bool = False) -> str:
+    tipo = "PF" if c.tipo == TipoCliente.PERSONA_FISICA else "PG"
+    cf = c.codice_fiscale or c.partita_iva or ""
+    riga = f"[{c.id}] {c.nome_completo:<30} {tipo}  {c.stato.value:<12} {cf}"
+    if verbose:
+        if c.recapiti.cellulare or c.recapiti.telefono:
+            riga += f"\n         Tel: {c.recapiti.cellulare or c.recapiti.telefono}"
+        if c.recapiti.email:
+            riga += f"\n         Email: {c.recapiti.email}"
+        if str(c.indirizzo_residenza):
+            riga += f"\n         Indirizzo: {c.indirizzo_residenza}"
+        if c.avvocato_referente:
+            riga += f"\n         Avv.: {c.avvocato_referente}"
+        if c.procedimenti_attivi:
+            proc = ", ".join(f"RG {p.numero_rg}/{p.anno}" for p in c.procedimenti_attivi)
+            riga += f"\n         Procedimenti: {proc}"
+    return riga
+
+
+@cli.group("clienti")
+def grp_clienti():
+    """Gestione anagrafica clienti dello studio."""
+    pass
+
+
+@grp_clienti.command("nuovo")
+@click.option("--tipo", type=click.Choice(["PF", "PG"], case_sensitive=False),
+              required=True, help="PF=Persona fisica, PG=Persona giuridica")
+@click.option("--nome", default="", help="Nome (persona fisica)")
+@click.option("--cognome", default="", help="Cognome (persona fisica)")
+@click.option("--ragione-sociale", default="", help="Ragione sociale (persona giuridica)")
+@click.option("--cf", default="", help="Codice fiscale")
+@click.option("--piva", default="", help="Partita IVA")
+@click.option("--email", default="", help="Email")
+@click.option("--cellulare", default="", help="Cellulare")
+@click.option("--telefono", default="", help="Telefono fisso")
+@click.option("--pec", default="", help="PEC")
+@click.option("--avvocato", default="", help="Avvocato referente")
+@click.option("--note", default="", help="Note")
+def cmd_clienti_nuovo(tipo, nome, cognome, ragione_sociale, cf, piva,
+                      email, cellulare, telefono, pec, avvocato, note):
+    """Aggiunge un nuovo cliente all'anagrafica."""
+    gc = _clienti()
+    tipo_enum = TipoCliente.PERSONA_FISICA if tipo.upper() == "PF" else TipoCliente.PERSONA_GIURIDICA
+    try:
+        c = gc.nuovo(
+            tipo=tipo_enum,
+            nome=nome, cognome=cognome,
+            ragione_sociale=ragione_sociale,
+            codice_fiscale=cf, partita_iva=piva,
+            avvocato_referente=avvocato, note=note,
+        )
+        if email or cellulare or telefono or pec:
+            gc.aggiorna_recapiti(c.id, email=email, cellulare=cellulare,
+                                 telefono=telefono, pec=pec)
+        click.echo(f"Cliente aggiunto: {c.id}")
+        click.echo(_fmt_cliente(c, verbose=True))
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+        sys.exit(1)
+
+
+@grp_clienti.command("lista")
+@click.option("--stato", type=click.Choice([s.value for s in StatoCliente],
+              case_sensitive=False), default="ATTIVO", show_default=True)
+@click.option("--tipo", type=click.Choice(["PF", "PG"], case_sensitive=False),
+              default=None)
+@click.option("-v", "--verbose", is_flag=True, default=False)
+def cmd_clienti_lista(stato, tipo, verbose):
+    """Elenca i clienti in anagrafica."""
+    gc = _clienti()
+    stato_e = StatoCliente(stato) if stato else None
+    tipo_e = (TipoCliente.PERSONA_FISICA if tipo and tipo.upper() == "PF"
+              else TipoCliente.PERSONA_GIURIDICA if tipo else None)
+    clienti = gc.tutti(stato=stato_e, tipo=tipo_e)
+    if not clienti:
+        click.echo("Nessun cliente trovato.")
+        return
+    click.echo(f"{'ID':<10} {'Nome':<30} {'Tipo'} {'Stato':<12} CF/P.IVA")
+    click.echo("-" * 75)
+    for c in clienti:
+        click.echo(_fmt_cliente(c, verbose=verbose))
+
+
+@grp_clienti.command("cerca")
+@click.argument("testo")
+@click.option("-v", "--verbose", is_flag=True, default=False)
+def cmd_clienti_cerca(testo, verbose):
+    """Cerca clienti per nome, CF, P.IVA, email o procedimento."""
+    gc = _clienti()
+    risultati = gc.cerca(testo=testo)
+    if not risultati:
+        click.echo("Nessun risultato.")
+        return
+    for c in risultati:
+        click.echo(_fmt_cliente(c, verbose=verbose))
+
+
+@grp_clienti.command("dettaglio")
+@click.argument("id_cliente")
+def cmd_clienti_dettaglio(id_cliente):
+    """Mostra la scheda completa di un cliente."""
+    gc = _clienti()
+    c = gc.get(id_cliente.upper())
+    if not c:
+        click.echo(f"Cliente '{id_cliente}' non trovato.", err=True)
+        sys.exit(1)
+    click.echo(json.dumps(c.to_dict(), ensure_ascii=False, indent=2))
+
+
+@grp_clienti.command("modifica")
+@click.argument("id_cliente")
+@click.option("--nome", default=None)
+@click.option("--cognome", default=None)
+@click.option("--cf", default=None)
+@click.option("--email", default=None)
+@click.option("--cellulare", default=None)
+@click.option("--telefono", default=None)
+@click.option("--avvocato", default=None)
+@click.option("--note", default=None)
+@click.option("--stato", type=click.Choice([s.value for s in StatoCliente],
+              case_sensitive=False), default=None)
+def cmd_clienti_modifica(id_cliente, nome, cognome, cf, email, cellulare,
+                          telefono, avvocato, note, stato):
+    """Modifica i dati di un cliente."""
+    gc = _clienti()
+    try:
+        campi = {k: v for k, v in {
+            "nome": nome, "cognome": cognome,
+            "codice_fiscale": cf.upper() if cf else None,
+            "avvocato_referente": avvocato, "note": note,
+            "stato": StatoCliente(stato) if stato else None,
+        }.items() if v is not None}
+        if campi:
+            gc.aggiorna(id_cliente.upper(), **campi)
+        recapiti = {k: v for k, v in {
+            "email": email, "cellulare": cellulare, "telefono": telefono
+        }.items() if v is not None}
+        if recapiti:
+            gc.aggiorna_recapiti(id_cliente.upper(), **recapiti)
+        c = gc.get(id_cliente.upper())
+        click.echo(f"Cliente {c.id} aggiornato.")
+        click.echo(_fmt_cliente(c, verbose=True))
+    except KeyError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_clienti.command("elimina")
+@click.argument("id_cliente")
+@click.confirmation_option(prompt="Sei sicuro di voler eliminare questo cliente?")
+def cmd_clienti_elimina(id_cliente):
+    """Elimina un cliente dall'anagrafica."""
+    gc = _clienti()
+    try:
+        gc.elimina(id_cliente.upper())
+        click.echo(f"Cliente {id_cliente.upper()} eliminato.")
+    except KeyError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_clienti.command("procedimento")
+@click.argument("id_cliente")
+@click.option("--rg", required=True, help="Numero RG (es. 1234)")
+@click.option("--anno", type=int, default=None, help="Anno procedimento")
+@click.option("--tribunale", default="", help="Tribunale competente")
+@click.option("--descrizione", default="", help="Breve descrizione")
+def cmd_clienti_procedimento(id_cliente, rg, anno, tribunale, descrizione):
+    """Aggiunge un procedimento a un cliente."""
+    import datetime
+    gc = _clienti()
+    try:
+        proc = RiferimentoProcedimento(
+            numero_rg=rg,
+            anno=anno or datetime.date.today().year,
+            tribunale=tribunale,
+            descrizione=descrizione,
+            data_apertura=datetime.date.today().isoformat(),
+        )
+        gc.aggiungi_procedimento(id_cliente.upper(), proc)
+        click.echo(f"Procedimento RG {rg}/{anno or ''} aggiunto.")
+    except KeyError as e:
+        click.echo(str(e), err=True)
+        sys.exit(1)
+
+
+@grp_clienti.command("statistiche")
+def cmd_clienti_statistiche():
+    """Mostra statistiche dell'anagrafica clienti."""
+    gc = _clienti()
+    stats = gc.statistiche()
+    click.echo(f"Totale clienti:           {stats['totale']}")
+    click.echo(f"Con procedimenti attivi:  {stats['con_procedimenti_attivi']}")
+    click.echo(f"Documenti scaduti:        {stats['documenti_scaduti']}")
+    click.echo("\nPer tipo:")
+    for t, n in stats["per_tipo"].items():
+        if n:
+            click.echo(f"  {t:<22} {n}")
+    click.echo("\nPer stato:")
+    for s, n in stats["per_stato"].items():
+        if n:
+            click.echo(f"  {s:<22} {n}")
 
 
 def main():

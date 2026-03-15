@@ -29,6 +29,30 @@
   {% endfor %}
 </div>
 
+{# ---- Scadenze critiche alert ---- #}
+{% if scadenze_critiche %}
+<div class="alert alert-danger d-flex align-items-start gap-3 mb-3">
+  <i class="bi bi-alarm-fill fs-4 flex-shrink-0 mt-1"></i>
+  <div class="flex-grow-1">
+    <div class="fw-semibold mb-1">
+      {{ scadenze_critiche|length }} scadenza/e CRITICA/HE entro 3 giorni
+    </div>
+    {% for s in scadenze_critiche %}
+    {% set g = s.giorni_alla_scadenza %}
+    <div class="small">
+      <a href="{{ url_for('dettaglio_scadenza', id_sc=s.id) }}"
+         class="text-danger fw-semibold text-decoration-none">{{ s.titolo }}</a>
+      — {% if g == 0 %}OGGI{% elif g == 1 %}domani{% else %}tra {{ g }} gg{% endif %}
+      {% if s.perentorio %}<span class="badge bg-danger ms-1">PERENTORIO</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-danger flex-shrink-0">
+    Scadenziario
+  </a>
+</div>
+{% endif %}
+
 <div class="row g-3">
 
   {# ---- Reminder imminenti ---- #}

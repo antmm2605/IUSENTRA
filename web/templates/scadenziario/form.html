@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if scadenza else 'Nuova' }} Scadenza{% endblock %}
+{% block page_title %}{{ 'Modifica' if scadenza else 'Nuova' }} Scadenza{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-9">
+<form method="post" id="form-scadenza">
+
+{# Preset termini processuali #}
+{% if not scadenza %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-lightning me-2 text-warning"></i>Calcolo automatico termine processuale
+    <span class="badge bg-secondary ms-2">opzionale</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Tipo termine</label>
+        <select name="preset" id="preset" class="form-select" onchange="aggiornaPreset()">
+          <option value="">— Nessun preset, inserimento manuale —</option>
+          {% for key, p in preset_list.items() %}
+          <option value="{{ key }}">{{ p.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3" id="riga-decorrenza-preset" style="display:none">
+        <label class="form-label fw-semibold">Data decorrenza</label>
+        <input type="date" id="data-decorrenza-preset" class="form-control"
+               onchange="calcolaTermine()">
+      </div>
+      <div class="col-md-3" id="riga-scadenza-calcolata" style="display:none">
+        <label class="form-label fw-semibold">Scadenza calcolata</label>
+        <input type="text" id="scadenza-calcolata" class="form-control font-monospace"
+               readonly style="background:#e8f5e9">
+      </div>
+    </div>
+    <div id="preset-descrizione" class="small text-muted mt-2"></div>
+  </div>
+</div>
+{% endif %}
+
+{# Dati scadenza #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-calendar-event me-2 text-primary"></i>Dati scadenza
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-8">
+        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+        <input type="text" name="titolo" class="form-control" required
+               value="{{ scadenza.titolo if scadenza else '' }}"
+               placeholder="es. Deposito memoria art. 183 co. 6 n. 1">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+        <select name="tipo" class="form-select" required>
+          {% for t in tipi %}
+          <option value="{{ t.value }}"
+            {{ 'selected' if scadenza and scadenza.tipo == t }}>
+            {{ t.value.replace('_',' ') }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Data scadenza <span class="text-danger">*</span></label>
+        <input type="date" name="data_scadenza" id="data_scadenza" class="form-control" required
+               value="{{ scadenza.data_scadenza if scadenza else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Data decorrenza</label>
+        <input type="date" name="data_decorrenza" class="form-control"
+               value="{{ scadenza.data_decorrenza if scadenza else '' }}">
+        <div class="form-text">Giorno da cui decorre il termine (es. notifica)</div>
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <div class="form-check form-switch pb-1">
+          <input class="form-check-input" type="checkbox" name="perentorio"
+                 value="1" id="perentorio"
+                 {{ 'checked' if scadenza and scadenza.perentorio }}>
+          <label class="form-check-label fw-semibold" for="perentorio">
+            Termine perentorio
+            <i class="bi bi-info-circle text-muted" title="La decadenza non è sanabile"></i>
+          </label>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Fascicolo</label>
+        <select name="id_fascicolo" class="form-select">
+          <option value="">— Nessun fascicolo —</option>
+          {% for f in fascicoli %}
+          <option value="{{ f.id }}"
+            {{ 'selected' if scadenza and scadenza.id_fascicolo == f.id }}>
+            {{ f.numero }} — {{ f.titolo }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Responsabile</label>
+        <select name="id_utente" class="form-select">
+          <option value="">— Nessun responsabile —</option>
+          {% for u in utenti %}
+          <option value="{{ u.id }}"
+            {{ 'selected' if scadenza and scadenza.id_utente_responsabile == u.id }}>
+            {{ u.nome_completo or u.username }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold">Descrizione</label>
+        <textarea name="descrizione" class="form-control" rows="2"
+          placeholder="Norma di riferimento, contesto…">{{ scadenza.descrizione if scadenza else '' }}</textarea>
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold">Note</label>
+        <textarea name="note" class="form-control" rows="2">{{ scadenza.note if scadenza else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if scadenza else 'Crea scadenza' }}
+  </button>
+  <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary">Annulla</a>
+</div>
+</form>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PRESETS = {{ preset_list | tojson }};
+
+function aggiornaPreset() {
+  const key = document.getElementById('preset').value;
+  const rigaDec = document.getElementById('riga-decorrenza-preset');
+  const rigaCalc = document.getElementById('riga-scadenza-calcolata');
+  const desc = document.getElementById('preset-descrizione');
+  if (key && PRESETS[key]) {
+    rigaDec.style.display = '';
+    rigaCalc.style.display = '';
+    desc.textContent = PRESETS[key].descrizione || '';
+  } else {
+    rigaDec.style.display = 'none';
+    rigaCalc.style.display = 'none';
+    desc.textContent = '';
+    document.getElementById('scadenza-calcolata').value = '';
+  }
+}
+
+async function calcolaTermine() {
+  const key = document.getElementById('preset').value;
+  const dataInizio = document.getElementById('data-decorrenza-preset').value;
+  if (!key || !dataInizio) return;
+  const p = PRESETS[key];
+  try {
+    const resp = await fetch('/scadenziario/calcola-termine', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        data_inizio: dataInizio,
+        giorni: p.giorni,
+        tipo: p.tipo,
+        sospensione_feriale: p.sospensione_feriale !== false,
+      })
+    });
+    const data = await resp.json();
+    if (data.data_scadenza) {
+      document.getElementById('scadenza-calcolata').value = data.data_scadenza;
+      // Copia nel campo principale
+      document.getElementById('data_scadenza').value = data.data_scadenza;
+    }
+  } catch(e) { console.error(e); }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Utenti{% endblock %}
+{% block page_title %}Gestione Utenti{% endblock %}
+
+{% block content %}
+{# Stat cards #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-3 fw-bold text-primary">{{ stats.totale_utenti }}</div>
+      <div class="small text-muted">Utenti totali</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-3 fw-bold text-success">{{ stats.attivi }}</div>
+      <div class="small text-muted">Attivi</div>
+    </div>
+  </div>
+  {% for ruolo, n in stats.per_ruolo.items() %}
+  <div class="col-6 col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fs-4 fw-bold">{{ n }}</div>
+      <div class="small text-muted">{{ ruolo.replace('_',' ') }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+    <span><i class="bi bi-people me-2 text-primary"></i>Utenti — {{ utenti|length }}</span>
+    <a href="{{ url_for('nuovo_utente') }}" class="btn btn-sm btn-primary">
+      <i class="bi bi-person-plus me-1"></i>Nuovo utente
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Username</th><th>Nome</th><th>Email</th>
+            <th>Ruolo</th><th>Stato</th><th>Ultimo accesso</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in utenti %}
+          <tr class="{{ '' if u.attivo else 'text-muted' }}">
+            <td class="fw-semibold font-monospace">{{ u.username }}</td>
+            <td>{{ u.nome_completo or '—' }}</td>
+            <td class="small">{{ u.email or '—' }}</td>
+            <td>
+              {% set colori = {'AMMINISTRATORE': 'danger', 'AVVOCATO': 'primary', 'SEGRETERIA': 'secondary'} %}
+              <span class="badge bg-{{ colori.get(u.ruolo.value, 'secondary') }}">
+                {{ u.ruolo.value }}
+              </span>
+            </td>
+            <td>
+              {% if u.attivo %}
+                <span class="badge bg-success">Attivo</span>
+              {% else %}
+                <span class="badge bg-secondary">Disabilitato</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {{ u.ultimo_accesso[:16].replace('T',' ') if u.ultimo_accesso else 'Mai' }}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('modifica_utente', id_utente=u.id) }}"
+                   class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                {% if u.id != utente_corrente.id %}
+                <form method="post"
+                      action="{{ url_for('elimina_utente', id_utente=u.id) }}"
+                      onsubmit="return confirm('Eliminare l\'utente {{ u.username }}?')">
+                  <button class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

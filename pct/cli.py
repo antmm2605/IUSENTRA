@@ -43,6 +43,17 @@ from .backup import (
     StatoBackup,
     FrequenzaBackup,
 )
+from .auth import (
+    GestioneUtenti,
+    RuoloUtente,
+)
+from .scadenziario import (
+    GestioneScadenziario,
+    TipoTermine,
+    StatoTermine,
+    PRESET_TERMINI,
+    calcola_termine,
+)
 
 
 def carica_config() -> dict:
@@ -1133,6 +1144,232 @@ def cmd_bk_statistiche(backup_dir):
     click.echo(f"Corrotti:        {stats['corrotti']}")
     click.echo(f"Spazio totale:   {stats['dimensione_totale_mb']} MB")
     click.echo(f"Ultimo backup:   {stats['ultimo'] or 'mai'}")
+
+
+# ============================================================ AUTH
+
+def _utenti(db="./auth/utenti.json", audit="./auth/audit.json") -> GestioneUtenti:
+    import secrets
+    sk = os.getenv("PCT_SECRET_KEY", secrets.token_hex(32))
+    return GestioneUtenti(db_path=db, audit_path=audit, secret_key=sk)
+
+
+@cli.group("utenti")
+def grp_utenti():
+    """Gestione utenti e permessi."""
+    pass
+
+
+@grp_utenti.command("lista")
+@click.option("--db", default="./auth/utenti.json")
+def cmd_utenti_lista(db):
+    """Elenca tutti gli utenti."""
+    gu = _utenti(db)
+    click.echo(f"{'USERNAME':<20} {'RUOLO':<16} {'STATO':<10} NOME")
+    click.echo("-" * 70)
+    for u in gu.tutti():
+        stato = "Attivo" if u.attivo else "Disabilitato"
+        click.echo(f"{u.username:<20} {u.ruolo.value:<16} {stato:<10} {u.nome_completo or '—'}")
+
+
+@grp_utenti.command("crea")
+@click.option("--username", required=True)
+@click.option("--password", required=True)
+@click.option("--ruolo", required=True,
+              type=click.Choice([r.value for r in RuoloUtente]))
+@click.option("--email", default="")
+@click.option("--nome", default="")
+@click.option("--db", default="./auth/utenti.json")
+def cmd_utenti_crea(username, password, ruolo, email, nome, db):
+    """Crea un nuovo utente."""
+    gu = _utenti(db)
+    try:
+        u = gu.crea(username=username, password=password,
+                    ruolo=RuoloUtente(ruolo), email=email, nome_completo=nome)
+        click.echo(f"Utente creato: {u.username} ({u.ruolo.value})")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_utenti.command("cambia-password")
+@click.argument("username")
+@click.option("--password", required=True, prompt=True, hide_input=True,
+              confirmation_prompt=True)
+@click.option("--db", default="./auth/utenti.json")
+def cmd_utenti_password(username, password, db):
+    """Cambia la password di un utente."""
+    gu = _utenti(db)
+    u = gu.get_by_username(username)
+    if not u:
+        click.echo(f"Utente '{username}' non trovato.", err=True)
+        return
+    try:
+        gu.cambia_password(u.id, password)
+        click.echo(f"Password di '{username}' aggiornata.")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_utenti.command("audit")
+@click.option("--username", default="", help="Filtra per username")
+@click.option("--azione", default="", help="Filtra per azione")
+@click.option("--db", default="./auth/utenti.json")
+@click.option("--limit", default=30, show_default=True)
+def cmd_utenti_audit(username, azione, db, limit):
+    """Mostra il log di audit."""
+    gu = _utenti(db)
+    id_utente = ""
+    if username:
+        u = gu.get_by_username(username)
+        if u:
+            id_utente = u.id
+    eventi = gu.audit_log(id_utente=id_utente, azione=azione, limit=limit)
+    click.echo(f"{'DATA':<20} {'UTENTE':<15} {'AZIONE':<30} ESITO")
+    click.echo("-" * 80)
+    for e in eventi:
+        click.echo(
+            f"{e.timestamp[:19]:<20} {e.username:<15} {e.azione:<30} {e.esito}"
+        )
+
+
+# ============================================================ SCADENZIARIO
+
+def _scadenziario(db="./scadenziario/scadenze.json") -> GestioneScadenziario:
+    return GestioneScadenziario(db_path=db)
+
+
+@cli.group("scadenze")
+def grp_scadenze():
+    """Gestione scadenziario legale."""
+    pass
+
+
+@grp_scadenze.command("lista")
+@click.option("--tipo", default="", help="Tipo termine")
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_sc_lista(tipo, db):
+    """Elenca le scadenze aperte."""
+    gs = _scadenziario(db)
+    scadenze = gs.tutte(tipo=TipoTermine(tipo) if tipo else None)
+    click.echo(f"{'DATA':<12} {'PRIO':<9} {'GG':<5} {'TIPO':<22} TITOLO")
+    click.echo("-" * 80)
+    for s in scadenze:
+        g = s.giorni_alla_scadenza
+        g_str = f"{g}gg" if g is not None else "—"
+        click.echo(
+            f"{s.data_scadenza:<12} {s.priorita.value:<9} {g_str:<5} "
+            f"{s.tipo.value[:21]:<22} {s.titolo}"
+        )
+
+
+@grp_scadenze.command("nuova")
+@click.option("--titolo", required=True)
+@click.option("--data", required=True, help="Data scadenza YYYY-MM-DD")
+@click.option("--tipo", default="ALTRO",
+              type=click.Choice([t.value for t in TipoTermine]))
+@click.option("--perentorio", is_flag=True, default=False)
+@click.option("--id-fascicolo", default="")
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_sc_nuova(titolo, data, tipo, perentorio, id_fascicolo, db):
+    """Crea una nuova scadenza."""
+    gs = _scadenziario(db)
+    try:
+        sc = gs.nuova(
+            titolo=titolo,
+            tipo=TipoTermine(tipo),
+            data_scadenza=data,
+            id_fascicolo=id_fascicolo,
+            perentorio=perentorio,
+        )
+        click.echo(f"Scadenza creata: {sc.id}")
+        click.echo(f"  Scadenza: {sc.data_scadenza} — {sc.titolo}")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_scadenze.command("preset")
+@click.option("--titolo", required=True)
+@click.option("--preset", required=True,
+              type=click.Choice(list(PRESET_TERMINI.keys())))
+@click.option("--decorrenza", required=True, help="Data decorrenza YYYY-MM-DD")
+@click.option("--id-fascicolo", default="")
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_sc_preset(titolo, preset, decorrenza, id_fascicolo, db):
+    """Crea una scadenza da preset processuale."""
+    gs = _scadenziario(db)
+    try:
+        sc = gs.nuova_da_preset(
+            preset_key=preset,
+            titolo=titolo,
+            data_decorrenza=decorrenza,
+            id_fascicolo=id_fascicolo,
+        )
+        p = PRESET_TERMINI[preset]
+        click.echo(f"Scadenza calcolata: {sc.data_scadenza} ({p['label']})")
+        click.echo(f"  ID: {sc.id}")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_scadenze.command("completa")
+@click.argument("id_sc")
+@click.option("--note", default="")
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_sc_completa(id_sc, note, db):
+    """Segna una scadenza come completata."""
+    gs = _scadenziario(db)
+    try:
+        gs.completa(id_sc, note=note)
+        click.echo(f"Scadenza {id_sc} completata.")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_scadenze.command("calcola")
+@click.option("--da", "data_inizio", required=True, help="Data inizio YYYY-MM-DD")
+@click.option("--giorni", required=True, type=int)
+@click.option("--tipo", default="liberi", type=click.Choice(["liberi", "continui"]))
+@click.option("--no-feriale", is_flag=True, default=False,
+              help="Ignora sospensione feriale agostana")
+def cmd_sc_calcola(data_inizio, giorni, tipo, no_feriale):
+    """Calcola un termine processuale."""
+    from datetime import date
+    d = date.fromisoformat(data_inizio)
+    scad = calcola_termine(d, giorni, tipo, sospensione_feriale=not no_feriale)
+    g_rimasti = (scad - date.today()).days
+    click.echo(f"Termine calcolato: {scad.isoformat()}")
+    click.echo(f"  Da oggi: {g_rimasti} giorni")
+
+
+@grp_scadenze.command("imminenti")
+@click.option("--giorni", default=7, show_default=True)
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_sc_imminenti(giorni, db):
+    """Mostra scadenze imminenti entro N giorni."""
+    gs = _scadenziario(db)
+    sc = gs.imminenti(entro_giorni=giorni)
+    if not sc:
+        click.echo(f"Nessuna scadenza entro {giorni} giorni.")
+        return
+    click.echo(f"Scadenze entro {giorni} giorni:")
+    for s in sc:
+        g = s.giorni_alla_scadenza
+        pren = " [PERENTORIO]" if s.perentorio else ""
+        click.echo(f"  {s.data_scadenza} ({g}gg) — {s.titolo}{pren}")
+
+
+@grp_scadenze.command("statistiche")
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_sc_statistiche(db):
+    """Mostra statistiche scadenziario."""
+    stats = _scadenziario(db).statistiche()
+    click.echo(f"Totale:          {stats['totale']}")
+    click.echo(f"Aperte:          {stats['aperte']}")
+    click.echo(f"Completate:      {stats['completate']}")
+    click.echo(f"Scadute:         {stats['scadute']}")
+    click.echo(f"Critiche:        {stats['critiche']}")
+    click.echo(f"Alta priorità:   {stats['alte']}")
+    click.echo(f"Entro 7 giorni:  {stats['imminenti_7gg']}")
 
 
 def main():

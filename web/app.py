@@ -66,6 +66,23 @@ from pct.backup import (
     FrequenzaBackup,
     ConfigBackup,
 )
+from pct.auth import (
+    GestioneUtenti,
+    Utente,
+    RuoloUtente,
+    PERMESSI,
+)
+from pct.scadenziario import (
+    GestioneScadenziario,
+    Scadenza,
+    TipoTermine,
+    PrioritaTermine,
+    StatoTermine,
+    PRESET_TERMINI,
+    calcola_termine,
+    festività_italiane,
+    è_giorno_lavorativo,
+)
 
 # ------------------------------------------------------------------ factory
 
@@ -94,6 +111,15 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["BACKUP_DIR"] = cfg.get(
         "BACKUP_DIR", os.getenv("PCT_BACKUP_DIR", "./backup")
+    )
+    app.config["AUTH_DB"] = cfg.get(
+        "AUTH_DB", os.getenv("PCT_AUTH_DB", "./auth/utenti.json")
+    )
+    app.config["AUDIT_DB"] = cfg.get(
+        "AUDIT_DB", os.getenv("PCT_AUDIT_DB", "./auth/audit.json")
+    )
+    app.config["SCADENZIARIO_DB"] = cfg.get(
+        "SCADENZIARIO_DB", os.getenv("PCT_SCADENZIARIO_DB", "./scadenziario/scadenze.json")
     )
 
     def get_agenda() -> Agenda:
@@ -142,6 +168,54 @@ def create_app(config: dict | None = None) -> Flask:
             percorsi_dati=data_paths,
         )
 
+    def get_utenti() -> GestioneUtenti:
+        return GestioneUtenti(
+            db_path=app.config["AUTH_DB"],
+            audit_path=app.config["AUDIT_DB"],
+            secret_key=app.secret_key,
+        )
+
+    def get_scadenziario() -> GestioneScadenziario:
+        return GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+
+    # ---------------------------------------------------------------- auth middleware
+
+    from flask import session, g, abort
+
+    @app.before_request
+    def carica_utente_corrente():
+        """Inietta g.utente_corrente ad ogni request."""
+        g.utente_corrente = None
+        uid = session.get("user_id")
+        if uid:
+            gu = get_utenti()
+            g.utente_corrente = gu.get(uid)
+
+    # Route pubbliche che non richiedono login
+    _ROUTE_PUBBLICHE = {"login", "static", "logout"}
+
+    @app.before_request
+    def richiedi_login():
+        if request.endpoint in _ROUTE_PUBBLICHE:
+            return
+        if request.endpoint and request.endpoint.startswith("api_"):
+            return  # API gestiscono autonomamente
+        if g.utente_corrente is None:
+            return redirect(url_for("login", next=request.path))
+
+    def audit(azione: str, risorsa_tipo: str = "", risorsa_id: str = "", dettagli: str = ""):
+        """Helper per registrare un evento audit."""
+        u = g.utente_corrente
+        get_utenti().registra_evento(
+            azione=azione,
+            id_utente=u.id if u else "",
+            username=u.username if u else "anonimo",
+            risorsa_tipo=risorsa_tipo,
+            risorsa_id=risorsa_id,
+            dettagli=dettagli,
+            ip=request.remote_addr or "",
+        )
+
     # ---------------------------------------------------------------- context
 
     @app.template_filter("fmt_data")
@@ -168,7 +242,362 @@ def create_app(config: dict | None = None) -> Flask:
             "StatoFascicolo": StatoFascicolo,
             "TipoAttivita": TipoAttivita,
             "EsitoAttivita": EsitoAttivita,
+            "utente_corrente": g.get("utente_corrente"),
+            "RuoloUtente": RuoloUtente,
         }
+
+    @app.errorhandler(403)
+    def errore_403(e):
+        return render_template("errori/403.html"), 403
+
+    @app.errorhandler(404)
+    def errore_404(e):
+        return render_template("errori/404.html"), 404
+
+    @app.errorhandler(500)
+    def errore_500(e):
+        return render_template("errori/500.html"), 500
+
+    # ================================================================ AUTH
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if g.utente_corrente:
+            return redirect(url_for("dashboard"))
+        errore = None
+        if request.method == "POST":
+            gu = get_utenti()
+            utente = gu.autentica(
+                request.form.get("username", ""),
+                request.form.get("password", ""),
+            )
+            if utente:
+                session.clear()
+                session["user_id"] = utente.id
+                session.permanent = True
+                gu.registra_evento(
+                    "auth.login",
+                    id_utente=utente.id,
+                    username=utente.username,
+                    ip=request.remote_addr or "",
+                )
+                next_url = request.args.get("next") or url_for("dashboard")
+                return redirect(next_url)
+            else:
+                errore = "Credenziali non valide o utente disabilitato."
+                gu.registra_evento(
+                    "auth.login_fallito",
+                    username=request.form.get("username", ""),
+                    ip=request.remote_addr or "",
+                    esito="ERRORE",
+                )
+        return render_template("auth/login.html", errore=errore)
+
+    @app.route("/logout", methods=["POST"])
+    def logout():
+        u = g.utente_corrente
+        if u:
+            get_utenti().registra_evento(
+                "auth.logout",
+                id_utente=u.id,
+                username=u.username,
+                ip=request.remote_addr or "",
+            )
+        session.clear()
+        flash("Disconnessione effettuata.", "info")
+        return redirect(url_for("login"))
+
+    @app.route("/profilo", methods=["GET", "POST"])
+    def profilo():
+        u = g.utente_corrente
+        if request.method == "POST":
+            azione = request.form.get("azione")
+            gu = get_utenti()
+            if azione == "aggiorna":
+                try:
+                    gu.aggiorna(u.id,
+                                nome_completo=request.form.get("nome_completo", ""),
+                                email=request.form.get("email", ""))
+                    flash("Profilo aggiornato.", "success")
+                except ValueError as e:
+                    flash(str(e), "danger")
+            elif azione == "password":
+                pwd_old = request.form.get("password_old", "")
+                pwd_new = request.form.get("password_new", "")
+                if not gu.autentica(u.username, pwd_old):
+                    flash("Password attuale non corretta.", "danger")
+                elif len(pwd_new) < 8:
+                    flash("La nuova password deve avere almeno 8 caratteri.", "danger")
+                else:
+                    gu.cambia_password(u.id, pwd_new)
+                    audit("auth.cambia_password")
+                    flash("Password aggiornata.", "success")
+            return redirect(url_for("profilo"))
+        return render_template("auth/profilo.html", utente=u)
+
+    # ---- Gestione utenti (solo AMMINISTRATORE)
+
+    @app.route("/utenti")
+    def lista_utenti():
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            abort(403)
+        gu = get_utenti()
+        utenti = gu.tutti()
+        stats = gu.statistiche()
+        return render_template("auth/utenti.html",
+                               utenti=utenti, stats=stats, ruoli=list(RuoloUtente))
+
+    @app.route("/utenti/nuovo", methods=["GET", "POST"])
+    def nuovo_utente():
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.scrivi"):
+            abort(403)
+        if request.method == "POST":
+            gu = get_utenti()
+            try:
+                nuovo = gu.crea(
+                    username=request.form["username"],
+                    password=request.form["password"],
+                    ruolo=RuoloUtente(request.form["ruolo"]),
+                    email=request.form.get("email", ""),
+                    nome_completo=request.form.get("nome_completo", ""),
+                )
+                audit("utenti.crea", "utente", nuovo.id, f"username={nuovo.username}")
+                flash(f"Utente '{nuovo.username}' creato.", "success")
+                return redirect(url_for("lista_utenti"))
+            except ValueError as e:
+                flash(str(e), "danger")
+        return render_template("auth/form_utente.html", ruoli=list(RuoloUtente), utente=None)
+
+    @app.route("/utenti/<id_utente>/modifica", methods=["GET", "POST"])
+    def modifica_utente(id_utente):
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.scrivi"):
+            abort(403)
+        gu = get_utenti()
+        target = gu.get(id_utente)
+        if not target:
+            flash("Utente non trovato.", "warning")
+            return redirect(url_for("lista_utenti"))
+        if request.method == "POST":
+            try:
+                gu.aggiorna(id_utente,
+                            nome_completo=request.form.get("nome_completo", ""),
+                            email=request.form.get("email", ""),
+                            ruolo=request.form.get("ruolo", target.ruolo.value),
+                            attivo=request.form.get("attivo") == "1")
+                if request.form.get("nuova_password"):
+                    gu.cambia_password(id_utente, request.form["nuova_password"])
+                audit("utenti.modifica", "utente", id_utente)
+                flash("Utente aggiornato.", "success")
+                return redirect(url_for("lista_utenti"))
+            except ValueError as e:
+                flash(str(e), "danger")
+        return render_template("auth/form_utente.html",
+                               ruoli=list(RuoloUtente), utente=target)
+
+    @app.route("/utenti/<id_utente>/elimina", methods=["POST"])
+    def elimina_utente(id_utente):
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.elimina"):
+            abort(403)
+        gu = get_utenti()
+        try:
+            gu.elimina(id_utente)
+            audit("utenti.elimina", "utente", id_utente)
+            flash("Utente eliminato.", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("lista_utenti"))
+
+    @app.route("/audit")
+    def audit_log():
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("audit.leggi"):
+            abort(403)
+        gu = get_utenti()
+        id_utente = request.args.get("id_utente", "")
+        azione = request.args.get("azione", "")
+        eventi = gu.audit_log(id_utente=id_utente, azione=azione, limit=200)
+        utenti = gu.tutti()
+        return render_template("auth/audit.html",
+                               eventi=eventi, utenti=utenti,
+                               filtro_utente=id_utente, filtro_azione=azione)
+
+    @app.route("/api/utenti/statistiche")
+    def api_utenti_statistiche():
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            abort(403)
+        return jsonify(get_utenti().statistiche())
+
+    # ================================================================ SCADENZIARIO
+
+    @app.route("/scadenziario")
+    def scadenziario():
+        gs = get_scadenziario()
+        filtro_tipo = request.args.get("tipo", "")
+        filtro_priorita = request.args.get("priorita", "")
+        id_fascicolo = request.args.get("id_fascicolo", "")
+        scadenze = gs.tutte(
+            tipo=TipoTermine(filtro_tipo) if filtro_tipo else None,
+            priorita=PrioritaTermine(filtro_priorita) if filtro_priorita else None,
+            id_fascicolo=id_fascicolo,
+        )
+        scadute = gs.scadute()
+        imminenti = gs.imminenti(entro_giorni=7)
+        stats = gs.statistiche()
+        return render_template(
+            "scadenziario/lista.html",
+            scadenze=scadenze,
+            scadute=scadute,
+            imminenti=imminenti,
+            stats=stats,
+            tipi=list(TipoTermine),
+            priorita_list=list(PrioritaTermine),
+            filtro_tipo=filtro_tipo,
+            filtro_priorita=filtro_priorita,
+            id_fascicolo=id_fascicolo,
+        )
+
+    @app.route("/scadenziario/nuova", methods=["GET", "POST"])
+    def nuova_scadenza():
+        if request.method == "POST":
+            gs = get_scadenziario()
+            f = request.form
+            try:
+                preset = f.get("preset", "")
+                if preset:
+                    sc = gs.nuova_da_preset(
+                        preset_key=preset,
+                        titolo=f["titolo"].strip(),
+                        data_decorrenza=f["data_decorrenza"],
+                        id_fascicolo=f.get("id_fascicolo", ""),
+                        perentorio=f.get("perentorio") == "1",
+                        id_utente_responsabile=f.get("id_utente", ""),
+                    )
+                else:
+                    sc = gs.nuova(
+                        titolo=f["titolo"].strip(),
+                        tipo=TipoTermine(f["tipo"]),
+                        data_scadenza=f["data_scadenza"],
+                        id_fascicolo=f.get("id_fascicolo", ""),
+                        descrizione=f.get("descrizione", ""),
+                        data_decorrenza=f.get("data_decorrenza", ""),
+                        perentorio=f.get("perentorio") == "1",
+                        id_utente_responsabile=f.get("id_utente", ""),
+                    )
+                audit("scadenziario.crea", "scadenza", sc.id, sc.titolo)
+                flash(f"Scadenza '{sc.titolo}' creata.", "success")
+                return redirect(url_for("scadenziario"))
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+        gf = get_fascicoli()
+        gu = get_utenti()
+        return render_template(
+            "scadenziario/form.html",
+            tipi=list(TipoTermine),
+            preset_list=PRESET_TERMINI,
+            fascicoli=gf.tutti(),
+            utenti=gu.tutti(solo_attivi=True),
+            scadenza=None,
+        )
+
+    @app.route("/scadenziario/<id_sc>")
+    def dettaglio_scadenza(id_sc):
+        gs = get_scadenziario()
+        sc = gs.get(id_sc)
+        if not sc:
+            flash("Scadenza non trovata.", "warning")
+            return redirect(url_for("scadenziario"))
+        return render_template("scadenziario/dettaglio.html", sc=sc)
+
+    @app.route("/scadenziario/<id_sc>/modifica", methods=["GET", "POST"])
+    def modifica_scadenza(id_sc):
+        gs = get_scadenziario()
+        sc = gs.get(id_sc)
+        if not sc:
+            flash("Scadenza non trovata.", "warning")
+            return redirect(url_for("scadenziario"))
+        if request.method == "POST":
+            f = request.form
+            try:
+                gs.aggiorna(
+                    id_sc,
+                    titolo=f.get("titolo", sc.titolo),
+                    tipo=f.get("tipo", sc.tipo.value),
+                    data_scadenza=f.get("data_scadenza", sc.data_scadenza),
+                    descrizione=f.get("descrizione", sc.descrizione),
+                    perentorio=f.get("perentorio") == "1",
+                    note=f.get("note", sc.note),
+                )
+                audit("scadenziario.modifica", "scadenza", id_sc)
+                flash("Scadenza aggiornata.", "success")
+                return redirect(url_for("scadenziario"))
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+        gf = get_fascicoli()
+        gu = get_utenti()
+        return render_template(
+            "scadenziario/form.html",
+            tipi=list(TipoTermine),
+            preset_list=PRESET_TERMINI,
+            fascicoli=gf.tutti(),
+            utenti=gu.tutti(solo_attivi=True),
+            scadenza=sc,
+        )
+
+    @app.route("/scadenziario/<id_sc>/completa", methods=["POST"])
+    def completa_scadenza(id_sc):
+        gs = get_scadenziario()
+        note = request.form.get("note", "")
+        try:
+            gs.completa(id_sc, note=note)
+            audit("scadenziario.completa", "scadenza", id_sc)
+            flash("Scadenza segnata come completata.", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("scadenziario"))
+
+    @app.route("/scadenziario/<id_sc>/elimina", methods=["POST"])
+    def elimina_scadenza(id_sc):
+        gs = get_scadenziario()
+        try:
+            gs.elimina(id_sc)
+            audit("scadenziario.elimina", "scadenza", id_sc)
+            flash("Scadenza eliminata.", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("scadenziario"))
+
+    @app.route("/scadenziario/calcola-termine", methods=["POST"])
+    def calcola_termine_route():
+        """API AJAX per il calcolo dinamico del termine."""
+        data = request.get_json() or {}
+        try:
+            d_inizio = date.fromisoformat(data["data_inizio"])
+            giorni = int(data["giorni"])
+            tipo = data.get("tipo", "liberi")
+            sospensione = data.get("sospensione_feriale", True)
+            d_scadenza = calcola_termine(d_inizio, giorni, tipo, sospensione)
+            return jsonify({
+                "data_scadenza": d_scadenza.isoformat(),
+                "lavorativo": è_giorno_lavorativo(d_scadenza),
+            })
+        except (KeyError, ValueError) as e:
+            return jsonify({"errore": str(e)}), 400
+
+    @app.route("/api/scadenziario/imminenti")
+    def api_scadenze_imminenti():
+        giorni = int(request.args.get("giorni", 7))
+        gs = get_scadenziario()
+        sc = gs.imminenti(entro_giorni=giorni)
+        return jsonify([s.to_dict() for s in sc])
+
+    @app.route("/api/scadenziario/statistiche")
+    def api_scadenziario_statistiche():
+        return jsonify(get_scadenziario().statistiche())
 
     # ---------------------------------------------------------------- dashboard
 
@@ -180,12 +609,20 @@ def create_app(config: dict | None = None) -> Flask:
         apps_settimana = agenda.per_settimana(oggi)
         reminder = agenda.prossimi_reminder(entro_minuti=120)
         stats = agenda.statistiche()
+        # Scadenze imminenti per dashboard
+        gs = get_scadenziario()
+        scadenze_critiche = gs.imminenti(entro_giorni=3)
+        scadenze_imminenti = gs.imminenti(entro_giorni=7)
+        stats_sc = gs.statistiche()
         return render_template(
             "dashboard.html",
             apps_oggi=apps_oggi,
             apps_settimana=apps_settimana,
             reminder=reminder,
             stats=stats,
+            scadenze_critiche=scadenze_critiche,
+            scadenze_imminenti=scadenze_imminenti,
+            stats_sc=stats_sc,
         )
 
     # ---------------------------------------------------------------- agenda

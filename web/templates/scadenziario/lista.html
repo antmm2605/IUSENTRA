@@ -141,7 +141,8 @@
         <tbody>
           {% for s in scadenze %}
           {% set g = s.giorni_alla_scadenza %}
-          <tr class="{{ 'table-danger' if s.priorita.value == 'CRITICA' else ('table-warning' if s.priorita.value == 'ALTA' else '') }}">
+          <tr id="sc-{{ s.id }}"
+              class="{{ 'table-danger' if s.priorita.value == 'CRITICA' else ('table-warning' if s.priorita.value == 'ALTA' else '') }}">
             <td class="font-monospace fw-semibold text-nowrap">
               {{ s.data_scadenza|fmt_data }}
               {% if s.perentorio %}
@@ -189,13 +190,18 @@
                    class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
                 <a href="{{ url_for('modifica_scadenza', id_sc=s.id) }}"
                    class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                <form method="post"
-                      action="{{ url_for('completa_scadenza', id_sc=s.id) }}"
-                      onsubmit="return confirm('Segnare come completata?')">
-                  <button class="btn btn-outline-success" title="Completa">
-                    <i class="bi bi-check-lg"></i>
-                  </button>
-                </form>
+                <button
+                  hx-post="{{ url_for('completa_scadenza', id_sc=s.id) }}"
+                  hx-target="#sc-{{ s.id }}"
+                  hx-swap="outerHTML"
+                  hx-confirm="Segnare '{{ s.titolo }}' come completata?"
+                  hx-indicator="#sc-{{ s.id }}"
+                  class="btn btn-outline-success"
+                  title="Completa (senza ricaricare la pagina)">
+                  <i class="bi bi-check-lg"></i>
+                  <span class="htmx-indicator spinner-border spinner-border-sm ms-1"
+                        role="status" aria-hidden="true"></span>
+                </button>
               </div>
             </td>
           </tr>

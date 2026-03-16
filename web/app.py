@@ -826,11 +826,51 @@ def create_app(config: dict | None = None) -> Flask:
         try:
             gs.completa(id_sc, note=note)
             audit("scadenziario.completa", "scadenza", id_sc)
-            flash("Scadenza segnata come completata.", "success")
             sync_pubblica("modifica", "scadenze", id_sc)
         except ValueError as e:
+            if request.headers.get("HX-Request"):
+                return f'<tr id="sc-{id_sc}"><td colspan="7" class="text-danger small p-2">{e}</td></tr>', 422
             flash(str(e), "danger")
+            return redirect(url_for("scadenziario"))
+        # htmx: rimuove la riga dalla tabella con animazione
+        if request.headers.get("HX-Request"):
+            return f'<tr id="sc-{id_sc}" class="sc-completed"><td colspan="7"></td></tr>', 200
+        flash("Scadenza segnata come completata.", "success")
         return redirect(url_for("scadenziario"))
+
+    @app.route("/api/notifiche/pending")
+    def notifiche_pending():
+        """Restituisce notifiche urgenti da mostrare via Browser Notification API."""
+        if not g.utente_corrente:
+            return jsonify([])
+        gs = get_scadenziario()
+        alerts = []
+        oggi = date.today()
+        scadute = [s for s in gs.imminenti(entro_giorni=0) if s.giorni_alla_scadenza is not None and s.giorni_alla_scadenza < 0]
+        critiche_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
+        imminenti = [s for s in gs.imminenti(entro_giorni=3) if s.perentorio and (s.giorni_alla_scadenza or 0) > 0]
+        if scadute:
+            alerts.append({
+                "titolo": f"⚠️ {len(scadute)} scadenza/e SCADUTA/E",
+                "corpo": " • ".join(s.titolo for s in scadute[:3]),
+                "url": "/scadenziario",
+                "delay": 2000,
+            })
+        if critiche_oggi:
+            alerts.append({
+                "titolo": f"🔴 {len(critiche_oggi)} scadenza/e OGGI",
+                "corpo": " • ".join(s.titolo for s in critiche_oggi[:3]),
+                "url": "/scadenziario",
+                "delay": 4000,
+            })
+        if imminenti:
+            alerts.append({
+                "titolo": f"🔔 {len(imminenti)} termine/i perentorio/i imminente/i",
+                "corpo": " • ".join(s.titolo for s in imminenti[:3]),
+                "url": "/scadenziario",
+                "delay": 6000,
+            })
+        return jsonify(alerts)
 
     @app.route("/scadenziario/<id_sc>/elimina", methods=["POST"])
     def elimina_scadenza(id_sc):

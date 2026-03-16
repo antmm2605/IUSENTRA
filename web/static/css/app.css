@@ -359,3 +359,42 @@ body {
 /* Icona toggle tema */
 #btn-tema { transition: transform .2s; }
 #btn-tema:hover { transform: rotate(20deg); }
+
+/* ================================================================
+   HTMX — indicatori di caricamento e animazioni
+   ================================================================ */
+
+/* Nasconde lo spinner htmx di default, lo mostra durante la richiesta */
+.htmx-indicator { display: none !important; }
+.htmx-request .htmx-indicator { display: inline-block !important; }
+.htmx-request.htmx-indicator { display: inline-block !important; }
+
+/* Animazione fade-out per righe completate/rimosse */
+@keyframes sc-fadeout {
+  from { opacity: 1; transform: scaleY(1); }
+  to   { opacity: 0; transform: scaleY(0); max-height: 0; }
+}
+tr.sc-completed {
+  animation: sc-fadeout .35s ease-out forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Overlay leggero su riga durante la richiesta htmx */
+tr.htmx-request {
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* Indicatore globale di caricamento htmx nella topbar */
+#htmx-loader {
+  display: none;
+  width: 18px; height: 18px;
+  border: 2px solid #dee2e6;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+.htmx-request #htmx-loader,
+.htmx-settling #htmx-loader { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }

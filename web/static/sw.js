@@ -7,13 +7,15 @@
  *   - API (/api/, /sync/): network-only (dati real-time)
  */
 
-const CACHE = 'pct-v2';
+const CACHE = 'pct-v3';
 
 const PRECACHE = [
   '/offline',
   '/static/manifest.json',
   '/static/icons/icon.svg',
   '/static/css/app.css',
+  '/static/js/push.js',
+  'https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',

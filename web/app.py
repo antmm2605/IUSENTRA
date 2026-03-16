@@ -192,6 +192,12 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["API_KEY"] = os.getenv("PCT_API_KEY", "")
     app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "Studio Legale PCT")
+    app.config["PORTALE_DB"] = cfg.get(
+        "PORTALE_DB", os.getenv("PCT_PORTALE_DB", "./portale/portali.json")
+    )
+    app.config["PORTALE_UPLOADS"] = cfg.get(
+        "PORTALE_UPLOADS", os.getenv("PCT_PORTALE_UPLOADS", "./portale/uploads")
+    )
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -1323,6 +1329,106 @@ def create_app(config: dict | None = None) -> Flask:
             ruolo_condivisione=ruolo_cond,
             link_attivi=link_attivi,
         )
+
+    # ================================================================ PORTALE CLIENTE
+    # Pannello avvocato per gestire il portale self-service del cliente
+
+    def _get_portale_mgr():
+        from pct.portale import GestionePortale
+        return GestionePortale(
+            db_path=app.config["PORTALE_DB"],
+            uploads_dir=app.config["PORTALE_UPLOADS"],
+        )
+
+    @app.route("/clienti/<id_cliente>/portale", methods=["GET"])
+    @richiedi_login
+    def portale_config(id_cliente):
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+        gp = _get_portale_mgr()
+        portale_obj = gp.get_by_cliente(id_cliente)
+        # Se esiste un portale, costruisci il link da mostrare
+        link_portale = None
+        if portale_obj and portale_obj.is_attivo:
+            # Il link grezzo non è salvato; mostriamo solo il link se appena creato
+            # (viene passato via flash/session) — qui mostriamo link generico
+            base = request.host_url.rstrip("/")
+            # Il token grezzo non viene mai salvato. Se c'è un token in sessione, lo usiamo.
+            raw_token = session.pop("portale_token_grezzo", None)
+            if raw_token:
+                link_portale = f"{base}/portale/{raw_token}"
+                session["portale_link_cache"] = link_portale
+            else:
+                link_portale = session.get("portale_link_cache")
+        return render_template(
+            "clienti/portale_config.html",
+            cliente=c,
+            portale_obj=portale_obj,
+            link_portale=link_portale,
+            oggi=date.today().isoformat(),
+            studio_nome=app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+        )
+
+    @app.route("/clienti/<id_cliente>/portale/attiva", methods=["POST"])
+    @richiedi_login
+    def portale_attiva(id_cliente):
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+        from pct.portale import GestionePortale, PermessiPortale
+        gp = GestionePortale(
+            db_path=app.config["PORTALE_DB"],
+            uploads_dir=app.config["PORTALE_UPLOADS"],
+        )
+        f = request.form
+        permessi = PermessiPortale(
+            vedi_anagrafica=bool(f.get("vedi_anagrafica")),
+            modifica_anagrafica=bool(f.get("modifica_anagrafica")),
+            vedi_fascicoli=bool(f.get("vedi_fascicoli")),
+            vedi_attivita=bool(f.get("vedi_attivita")),
+            vedi_appuntamenti=bool(f.get("vedi_appuntamenti")),
+            vedi_scadenze=bool(f.get("vedi_scadenze")),
+            carica_documenti=bool(f.get("carica_documenti")),
+            firma_privacy=bool(f.get("firma_privacy")),
+            max_upload_mb=int(f.get("max_upload_mb", 10)),
+        )
+        scade_il = f.get("scade_il", "").strip() or None
+        if scade_il:
+            # Converti da date a datetime ISO
+            scade_il = scade_il + "T23:59:59"
+        u = g.utente_corrente
+        creato_da = u.username if u else "avvocato"
+        token_grezzo, _ = gp.crea(
+            id_cliente=id_cliente,
+            creato_da=creato_da,
+            permessi=permessi,
+            scade_il=scade_il,
+        )
+        session["portale_token_grezzo"] = token_grezzo
+        session.pop("portale_link_cache", None)
+        flash("Portale attivato. Il link è pronto per essere inviato al cliente.", "success")
+        return redirect(url_for("portale_config", id_cliente=id_cliente))
+
+    @app.route("/clienti/<id_cliente>/portale/revoca", methods=["POST"])
+    @richiedi_login
+    def portale_revoca(id_cliente):
+        from pct.portale import GestionePortale
+        gp = GestionePortale(
+            db_path=app.config["PORTALE_DB"],
+            uploads_dir=app.config["PORTALE_UPLOADS"],
+        )
+        portale_obj = gp.get_by_cliente(id_cliente)
+        if portale_obj:
+            gp.revoca(portale_obj.id)
+            session.pop("portale_token_grezzo", None)
+            session.pop("portale_link_cache", None)
+            flash("Accesso al portale revocato.", "success")
+        return redirect(url_for("portale_config", id_cliente=id_cliente))
 
     @app.route("/clienti/<id_cliente>/modifica", methods=["GET", "POST"])
     def modifica_cliente(id_cliente):
@@ -3192,5 +3298,8 @@ def create_app(config: dict | None = None) -> Flask:
     # i blueprint usano web.helpers che usa current_app, valido solo dentro create_app().
     from web.blueprints.api_v1 import api_v1        # REST API /api/v1/*
     app.register_blueprint(api_v1)
+
+    from web.blueprints.portale import portale as portale_bp  # Portale cliente /portale/*
+    app.register_blueprint(portale_bp)
 
     return app

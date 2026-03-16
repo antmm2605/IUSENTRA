@@ -1,0 +1,58 @@
+{% extends "portale/base.html" %}
+{% block title %}Consenso Privacy{% endblock %}
+{% set active_tab = "privacy" %}
+
+{% block content %}
+<div class="mb-4 text-center">
+  <i class="bi bi-shield-lock fs-1 text-warning d-block mb-2"></i>
+  <h5 class="fw-bold">Consenso al trattamento dei dati</h5>
+  <p class="text-muted" style="font-size:.85rem;">
+    Ai sensi del Reg. UE 2016/679 (GDPR) — Art. 7
+  </p>
+</div>
+
+{% if errore %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  {{ errore }}
+</div>
+{% endif %}
+
+<div class="portale-card card mb-4">
+  <div class="card-body">
+    <h6 class="fw-semibold mb-3">Informativa sul trattamento dei dati personali</h6>
+    <div class="text-muted" style="font-size:.82rem; line-height:1.7; max-height:260px; overflow-y:auto;">
+      <p><strong>Titolare del trattamento:</strong> {{ studio_nome }}</p>
+      <p><strong>Finalità:</strong> I suoi dati personali (nome, cognome, indirizzo, recapiti, dati processuali) sono trattati esclusivamente per finalità connesse alla prestazione dell'assistenza legale richiesta, inclusa la gestione del mandato professionale, la comunicazione con le autorità giudiziarie e amministrative e il rispetto degli obblighi di legge.</p>
+      <p><strong>Base giuridica:</strong> Il trattamento si fonda sull'esecuzione del contratto di prestazione professionale (art. 6, par. 1, lett. b) GDPR) e sull'adempimento di obblighi legali (lett. c).</p>
+      <p><strong>Conservazione:</strong> I dati sono conservati per il periodo necessario all'esecuzione dell'incarico e per i successivi obblighi di conservazione previsti dalla legge (ordinariamente 10 anni).</p>
+      <p><strong>Comunicazione:</strong> I dati potranno essere comunicati a soggetti terzi (consulenti, periti, autorità giudiziarie) nei limiti strettamente necessari alla tutela dei suoi interessi.</p>
+      <p><strong>Diritti:</strong> Ha il diritto di accesso, rettifica, cancellazione, portabilità e opposizione al trattamento, da esercitare contattando direttamente lo studio.</p>
+      <p><strong>Reclamo:</strong> Ha il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).</p>
+    </div>
+  </div>
+</div>
+
+<form method="post" action="{{ url_for('portale.privacy', token=token) }}">
+  <div class="portale-card card mb-4">
+    <div class="card-body">
+      <div class="form-check d-flex align-items-start gap-2">
+        <input class="form-check-input mt-1" type="checkbox" name="consenso" value="1" id="chk-consenso" required>
+        <label class="form-check-label" for="chk-consenso" style="font-size:.88rem; line-height:1.5;">
+          Dichiaro di aver letto l'informativa e <strong>acconsento</strong> al trattamento dei miei dati personali
+          da parte di <strong>{{ studio_nome }}</strong> per le finalità indicate.
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-grid">
+    <button type="submit" class="btn btn-portale btn-lg">
+      <i class="bi bi-pen-fill me-2"></i>Firma il consenso
+    </button>
+  </div>
+  <p class="text-center text-muted mt-3" style="font-size:.75rem;">
+    La firma digitale verrà registrata con data, ora e indirizzo IP per documentazione legale.
+  </p>
+</form>
+{% endblock %}

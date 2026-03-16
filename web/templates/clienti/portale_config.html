@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Portale Cliente — {{ cliente.nome_completo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('dettaglio_cliente', id=cliente.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h4 class="mb-0 fw-bold">Portale Cliente</h4>
+    <div class="text-muted" style="font-size:.82rem;">{{ cliente.nome_completo }}</div>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+<!-- Stato portale -->
+{% if portale_obj %}
+<div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+  <div class="card-body">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <i class="bi bi-link-45deg fs-3 text-primary"></i>
+      <div class="flex-grow-1">
+        <div class="fw-semibold">Portale attivo</div>
+        <div class="text-muted" style="font-size:.78rem;">
+          Creato il {{ portale_obj.creato_il[:10] }}
+          {% if portale_obj.scade_il %} · Scade il {{ portale_obj.scade_il[:10] }}{% else %} · Nessuna scadenza{% endif %}
+          · {{ portale_obj.n_accessi }} accessi
+        </div>
+      </div>
+      <span class="badge {% if portale_obj.is_attivo %}bg-success{% else %}bg-secondary{% endif %}">
+        {{ 'Attivo' if portale_obj.is_attivo else 'Scaduto/Revocato' }}
+      </span>
+    </div>
+
+    {% if link_portale %}
+    <!-- Link da inviare al cliente -->
+    <div class="mb-3">
+      <label class="form-label fw-semibold" style="font-size:.82rem;">
+        <i class="bi bi-link me-1"></i>Link per il cliente
+      </label>
+      <div class="input-group input-group-sm">
+        <input type="text" class="form-control font-monospace" id="portale-link"
+               value="{{ link_portale }}" readonly style="font-size:.78rem;">
+        <button class="btn btn-outline-secondary" type="button" onclick="copiaLink()" title="Copia">
+          <i class="bi bi-clipboard" id="icon-copia"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Pulsanti di condivisione -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a href="https://wa.me/?text={{ ('Ciao ' ~ cliente.nome_completo ~ ',%0aPuoi seguire la tua pratica e caricare documenti dal portale del nostro studio:%0a' ~ link_portale)|urlencode }}"
+         target="_blank" class="btn btn-sm btn-success">
+        <i class="bi bi-whatsapp me-1"></i>WhatsApp
+      </a>
+      <a href="mailto:{{ cliente.recapiti.email if cliente.recapiti and cliente.recapiti.email else '' }}?subject=Portale cliente {{ studio_nome }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0APuò accedere al suo portale personale tramite il seguente link:%0D%0A{{ link_portale }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-envelope me-1"></i>Email
+      </a>
+      <a href="sms:{{ cliente.recapiti.cellulare if cliente.recapiti and cliente.recapiti.cellulare else '' }}?body=Portale {{ studio_nome }}: {{ link_portale }}"
+         class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-chat-sms me-1"></i>SMS
+      </a>
+    </div>
+
+    <!-- QR Code -->
+    <div class="mb-2">
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+              data-bs-target="#qr-container">
+        <i class="bi bi-qr-code me-1"></i>Mostra QR Code
+      </button>
+      <div class="collapse mt-2" id="qr-container">
+        <div class="d-flex flex-column align-items-center p-3 border rounded" style="border-radius:12px!important;">
+          <div id="qrcode" class="mb-2"></div>
+          <div class="text-muted" style="font-size:.72rem;">Scansiona con la fotocamera del telefono</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Revoca / rinnova -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+  <div class="card-body">
+    <h6 class="fw-semibold mb-3">Gestione accesso</h6>
+    <div class="d-flex gap-2 flex-wrap">
+      <!-- Rinnova (crea nuovo token, revoca vecchio) -->
+      <form method="post" action="{{ url_for('portale_attiva', id_cliente=cliente.id) }}">
+        <input type="hidden" name="azione" value="rinnova">
+        <button type="submit" class="btn btn-sm btn-outline-primary"
+                onclick="return confirm('Generare un nuovo link? Il link precedente non funzionerà più.')">
+          <i class="bi bi-arrow-repeat me-1"></i>Rinnova link
+        </button>
+      </form>
+      <!-- Revoca -->
+      <form method="post" action="{{ url_for('portale_revoca', id_cliente=cliente.id) }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('Revocare il portale? Il cliente non potrà più accedere.')">
+          <i class="bi bi-x-circle me-1"></i>Revoca accesso
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- Portale non ancora attivato -->
+<div class="card border-0 shadow-sm mb-4 text-center" style="border-radius:16px;">
+  <div class="card-body py-5">
+    <i class="bi bi-person-lock fs-1 text-muted opacity-50 d-block mb-3"></i>
+    <h6 class="fw-bold">Portale non attivato</h6>
+    <p class="text-muted mb-0" style="font-size:.85rem;">
+      Attiva il portale per inviare un link sicuro al cliente.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Attiva / Configura portale -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+  <div class="card-body">
+    <h6 class="fw-semibold mb-3">
+      <i class="bi bi-sliders me-2"></i>
+      {{ 'Aggiorna permessi' if portale_obj else 'Attiva portale' }}
+    </h6>
+
+    <form method="post" action="{{ url_for('portale_attiva', id_cliente=cliente.id) }}">
+      <input type="hidden" name="azione" value="attiva">
+
+      <!-- Permessi -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold text-uppercase" style="font-size:.7rem; letter-spacing:.08em; color:#6b7280;">
+          Cosa può vedere/fare il cliente
+        </label>
+        <div class="d-flex flex-column gap-2">
+          {% set permessi_labels = [
+            ('vedi_fascicoli',      'bi-folder2-open',       'Visualizzare le pratiche'),
+            ('vedi_appuntamenti',   'bi-calendar-event',     'Vedere i prossimi appuntamenti'),
+            ('vedi_scadenze',       'bi-clock-history',      'Vedere le scadenze'),
+            ('vedi_anagrafica',     'bi-person-vcard',       'Accedere alla propria anagrafica'),
+            ('modifica_anagrafica', 'bi-pencil-square',      'Aggiornare i recapiti'),
+            ('carica_documenti',    'bi-cloud-upload',       'Caricare documenti'),
+            ('firma_privacy',       'bi-shield-check',       'Firmare il consenso privacy GDPR'),
+          ] %}
+          {% for campo, icon, label in permessi_labels %}
+          {% set checked = portale_obj.permessi[campo] if portale_obj else (campo in ['vedi_fascicoli','carica_documenti','firma_privacy','vedi_anagrafica']) %}
+          <div class="form-check form-switch d-flex align-items-center gap-2">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="{{ campo }}" id="p-{{ campo }}" value="1"
+                   {{ 'checked' if checked }}>
+            <label class="form-check-label d-flex align-items-center gap-2" for="p-{{ campo }}" style="font-size:.85rem;">
+              <i class="bi {{ icon }} text-muted"></i>{{ label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Max upload -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold" style="font-size:.82rem;">
+          Limite per file (MB)
+        </label>
+        <select name="max_upload_mb" class="form-select form-select-sm" style="max-width:120px;">
+          {% for mb in [5, 10, 20, 50] %}
+          <option value="{{ mb }}" {{ 'selected' if portale_obj and portale_obj.permessi.max_upload_mb == mb else ('selected' if not portale_obj and mb == 10) }}>
+            {{ mb }} MB
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Scadenza link -->
+      <div class="mb-4">
+        <label class="form-label fw-semibold" style="font-size:.82rem;">
+          Scadenza del link (opzionale)
+        </label>
+        <input type="date" name="scade_il" class="form-control form-control-sm"
+               style="max-width:200px;"
+               value="{{ portale_obj.scade_il[:10] if portale_obj and portale_obj.scade_il else '' }}"
+               min="{{ oggi }}">
+        <div class="form-text">Lascia vuoto per link senza scadenza.</div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-{{ 'arrow-repeat' if portale_obj else 'link-45deg' }} me-1"></i>
+        {{ 'Aggiorna e rinnova link' if portale_obj else 'Attiva portale e genera link' }}
+      </button>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+  {% if link_portale %}
+  // Genera QR al click del collapse
+  document.getElementById('qr-container').addEventListener('shown.bs.collapse', function () {
+    var qrDiv = document.getElementById('qrcode');
+    if (qrDiv.querySelector('canvas')) return; // già generato
+    QRCode.toCanvas(document.createElement('canvas'), '{{ link_portale }}', { width: 200 }, function(err, canvas) {
+      if (!err) { qrDiv.innerHTML = ''; qrDiv.appendChild(canvas); }
+    });
+  });
+
+  function copiaLink() {
+    var link = document.getElementById('portale-link').value;
+    navigator.clipboard.writeText(link).then(function() {
+      var icon = document.getElementById('icon-copia');
+      icon.className = 'bi bi-clipboard-check text-success';
+      setTimeout(() => icon.className = 'bi bi-clipboard', 2000);
+    });
+  }
+  {% endif %}
+</script>
+{% endblock %}

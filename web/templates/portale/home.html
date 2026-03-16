@@ -1,0 +1,156 @@
+{% extends "portale/base.html" %}
+{% block title %}Benvenuto{% endblock %}
+{% set active_tab = "home" %}
+
+{% block content %}
+<!-- Saluto -->
+<div class="mb-4">
+  <h5 class="fw-bold mb-1">Ciao, {{ cliente.nome_completo }} 👋</h5>
+  <p class="text-muted mb-0" style="font-size:.85rem;">
+    Benvenuto nel tuo spazio riservato — {{ oggi.strftime('%d %B %Y') }}
+  </p>
+</div>
+
+<!-- Banner privacy non firmata -->
+{% if p.permessi.firma_privacy and not p.privacy_firmata %}
+<a href="{{ url_for('portale.privacy', token=token) }}" class="text-decoration-none">
+  <div class="alert alert-warning d-flex align-items-center gap-2 mb-4 portale-card" role="alert" style="border-left:4px solid #c8972b; border-radius:12px;">
+    <i class="bi bi-shield-exclamation fs-4"></i>
+    <div>
+      <div class="fw-semibold">Privacy da firmare</div>
+      <div style="font-size:.82rem;">Firma il consenso al trattamento dei dati personali.</div>
+    </div>
+    <i class="bi bi-chevron-right ms-auto"></i>
+  </div>
+</a>
+{% endif %}
+
+<!-- Fascicoli -->
+{% if p.permessi.vedi_fascicoli and fascicoli %}
+<p class="section-header" id="fascicoli">Le tue pratiche</p>
+<div class="d-flex flex-column gap-3 mb-4">
+  {% for f in fascicoli %}
+  <div class="portale-card card">
+    <div class="card-body">
+      <div class="d-flex align-items-start gap-2">
+        <span class="badge rounded-pill
+          {% if f.stato.value == 'APERTO' %}bg-primary
+          {% elif f.stato.value == 'CHIUSO' %}bg-secondary
+          {% else %}bg-dark{% endif %}
+          mt-1" style="font-size:.65rem;">{{ f.stato.value }}</span>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ f.titolo }}</div>
+          <div class="text-muted" style="font-size:.8rem;">
+            {{ f.tipo.value }}
+            {% if f.numero_rg %} · RG {{ f.numero_rg }}{% endif %}
+          </div>
+          {% if f.tribunale %}
+          <div class="text-muted" style="font-size:.78rem;">
+            <i class="bi bi-building me-1"></i>{{ f.tribunale }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% elif p.permessi.vedi_fascicoli %}
+<div class="portale-card card mb-4">
+  <div class="card-body text-center py-4 text-muted">
+    <i class="bi bi-folder2 fs-1 d-block mb-2 opacity-50"></i>
+    Nessuna pratica disponibile.
+  </div>
+</div>
+{% endif %}
+
+<!-- Appuntamenti -->
+{% if p.permessi.vedi_appuntamenti and appuntamenti %}
+<p class="section-header">Prossimi appuntamenti</p>
+<div class="d-flex flex-column gap-2 mb-4">
+  {% for a in appuntamenti %}
+  <div class="portale-card card">
+    <div class="card-body d-flex align-items-center gap-3 py-2">
+      <div class="text-center" style="min-width:42px;">
+        <div class="fw-bold text-primary" style="font-size:1.1rem;">{{ a.data_ora.strftime('%d') }}</div>
+        <div class="text-muted" style="font-size:.65rem;text-transform:uppercase;">{{ a.data_ora.strftime('%b') }}</div>
+      </div>
+      <div>
+        <div class="fw-semibold" style="font-size:.9rem;">{{ a.titolo }}</div>
+        <div class="text-muted" style="font-size:.78rem;">
+          <i class="bi bi-clock me-1"></i>{{ a.data_ora.strftime('%H:%M') }}
+          {% if a.luogo %} · {{ a.luogo }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Scadenze imminenti -->
+{% if p.permessi.vedi_scadenze and scadenze %}
+<p class="section-header">Scadenze nei prossimi 30 giorni</p>
+<div class="d-flex flex-column gap-2 mb-4">
+  {% for s in scadenze %}
+  <div class="portale-card card">
+    <div class="card-body d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-calendar-event
+        {% if s.priorita.value == 'CRITICA' %}text-danger
+        {% elif s.priorita.value == 'ALTA' %}text-warning
+        {% else %}text-secondary{% endif %}
+        fs-5"></i>
+      <div>
+        <div class="fw-semibold" style="font-size:.88rem;">{{ s.titolo }}</div>
+        <div class="text-muted" style="font-size:.78rem;">{{ s.scadenza.strftime('%d/%m/%Y') }}</div>
+      </div>
+      {% if s.perentorio %}
+      <span class="badge bg-danger ms-auto" style="font-size:.6rem;">PERENTORIO</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Quick actions -->
+<p class="section-header">Azioni rapide</p>
+<div class="row g-3 mb-2">
+  {% if p.permessi.carica_documenti %}
+  <div class="col-6">
+    <a href="{{ url_for('portale.documenti', token=token) }}" class="text-decoration-none">
+      <div class="portale-card card h-100 text-center py-3">
+        <i class="bi bi-cloud-upload fs-2 text-primary mb-1"></i>
+        <div style="font-size:.8rem;font-weight:600;">Carica documenti</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if p.permessi.vedi_anagrafica %}
+  <div class="col-6">
+    <a href="{{ url_for('portale.anagrafica', token=token) }}" class="text-decoration-none">
+      <div class="portale-card card h-100 text-center py-3">
+        <i class="bi bi-person-vcard fs-2 text-primary mb-1"></i>
+        <div style="font-size:.8rem;font-weight:600;">I miei dati</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if p.permessi.firma_privacy and not p.privacy_firmata %}
+  <div class="col-6">
+    <a href="{{ url_for('portale.privacy', token=token) }}" class="text-decoration-none">
+      <div class="portale-card card h-100 text-center py-3">
+        <i class="bi bi-shield-check fs-2" style="color:var(--accent)" mb-1"></i>
+        <div style="font-size:.8rem;font-weight:600;">Firma Privacy</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Footer -->
+<div class="text-center text-muted mt-4 pb-2" style="font-size:.72rem;">
+  Portale riservato — accesso protetto tramite link sicuro.<br>
+  {{ studio_nome }}
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "portale/base.html" %}
+{% block title %}I miei dati{% endblock %}
+{% set active_tab = "anagrafica" %}
+
+{% block content %}
+<div class="mb-4">
+  <h5 class="fw-bold mb-1">I miei dati</h5>
+  <p class="text-muted mb-0" style="font-size:.85rem;">Visualizza e aggiorna i tuoi recapiti.</p>
+</div>
+
+{% if successo %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
+  <i class="bi bi-check-circle-fill"></i>Dati aggiornati con successo.
+</div>
+{% endif %}
+{% if errore %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+  <i class="bi bi-exclamation-triangle-fill"></i>{{ errore }}
+</div>
+{% endif %}
+
+<!-- Dati anagrafici (sola lettura) -->
+<p class="section-header">Dati anagrafici</p>
+<div class="portale-card card mb-4">
+  <div class="card-body d-flex flex-column gap-3" style="font-size:.88rem;">
+    <div class="d-flex gap-2 align-items-start">
+      <i class="bi bi-person-fill text-muted mt-1" style="min-width:20px;"></i>
+      <div>
+        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Nome completo</div>
+        <div class="fw-semibold">{{ cliente.nome_completo }}</div>
+      </div>
+    </div>
+
+    {% if cliente.tipo.value == 'PF' %}
+    {% if cliente.data_nascita %}
+    <div class="d-flex gap-2 align-items-start">
+      <i class="bi bi-calendar-event text-muted mt-1" style="min-width:20px;"></i>
+      <div>
+        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Data di nascita</div>
+        <div>{{ cliente.data_nascita }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if cliente.codice_fiscale %}
+    <div class="d-flex gap-2 align-items-start">
+      <i class="bi bi-credit-card-2-front text-muted mt-1" style="min-width:20px;"></i>
+      <div>
+        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Codice fiscale</div>
+        <div>{{ cliente.codice_fiscale }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    {% if cliente.partita_iva %}
+    <div class="d-flex gap-2 align-items-start">
+      <i class="bi bi-building text-muted mt-1" style="min-width:20px;"></i>
+      <div>
+        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Partita IVA</div>
+        <div>{{ cliente.partita_iva }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if cliente.indirizzo %}
+    <div class="d-flex gap-2 align-items-start">
+      <i class="bi bi-geo-alt-fill text-muted mt-1" style="min-width:20px;"></i>
+      <div>
+        <div class="text-muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;">Indirizzo</div>
+        <div>{{ cliente.indirizzo }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recapiti (modificabili se permesso) -->
+<p class="section-header">Recapiti</p>
+{% if p.permessi.modifica_anagrafica %}
+<form method="post" action="{{ url_for('portale.anagrafica', token=token) }}">
+  <div class="portale-card card mb-4">
+    <div class="card-body d-flex flex-column gap-3">
+      <div>
+        <label class="form-label fw-semibold" style="font-size:.82rem;">
+          <i class="bi bi-phone me-1"></i>Cellulare
+        </label>
+        <input type="tel" name="cellulare" class="form-control form-control-sm"
+               value="{{ cliente.recapiti.cellulare if cliente.recapiti else '' }}"
+               placeholder="+39 000 000 0000">
+      </div>
+      <div>
+        <label class="form-label fw-semibold" style="font-size:.82rem;">
+          <i class="bi bi-telephone me-1"></i>Telefono fisso
+        </label>
+        <input type="tel" name="telefono" class="form-control form-control-sm"
+               value="{{ cliente.recapiti.telefono if cliente.recapiti else '' }}"
+               placeholder="02 000000">
+      </div>
+      <div>
+        <label class="form-label fw-semibold" style="font-size:.82rem;">
+          <i class="bi bi-envelope me-1"></i>Email
+        </label>
+        <input type="email" name="email" class="form-control form-control-sm"
+               value="{{ cliente.recapiti.email if cliente.recapiti else '' }}"
+               placeholder="nome@esempio.it">
+      </div>
+    </div>
+  </div>
+  <div class="d-grid mb-4">
+    <button type="submit" class="btn btn-portale">
+      <i class="bi bi-floppy-fill me-2"></i>Salva modifiche
+    </button>
+  </div>
+</form>
+
+{% else %}
+<!-- Sola lettura -->
+<div class="portale-card card mb-4">
+  <div class="card-body d-flex flex-column gap-3" style="font-size:.88rem;">
+    {% set r = cliente.recapiti %}
+    {% if r and r.cellulare %}
+    <div class="d-flex gap-2 align-items-center">
+      <i class="bi bi-phone text-muted" style="min-width:20px;"></i>
+      <a href="tel:{{ r.cellulare }}" class="text-decoration-none">{{ r.cellulare }}</a>
+    </div>
+    {% endif %}
+    {% if r and r.telefono %}
+    <div class="d-flex gap-2 align-items-center">
+      <i class="bi bi-telephone text-muted" style="min-width:20px;"></i>
+      <a href="tel:{{ r.telefono }}" class="text-decoration-none">{{ r.telefono }}</a>
+    </div>
+    {% endif %}
+    {% if r and r.email %}
+    <div class="d-flex gap-2 align-items-center">
+      <i class="bi bi-envelope text-muted" style="min-width:20px;"></i>
+      <a href="mailto:{{ r.email }}" class="text-decoration-none">{{ r.email }}</a>
+    </div>
+    {% endif %}
+    {% if not r or (not r.cellulare and not r.telefono and not r.email) %}
+    <div class="text-muted text-center py-2" style="font-size:.82rem;">Nessun recapito registrato.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Privacy status -->
+<p class="section-header">Privacy GDPR</p>
+<div class="portale-card card mb-2">
+  <div class="card-body d-flex align-items-center gap-3">
+    {% if p.privacy_firmata %}
+    <i class="bi bi-shield-fill-check fs-4 text-success"></i>
+    <div>
+      <div class="fw-semibold" style="font-size:.88rem;">Consenso firmato</div>
+      <div class="text-muted" style="font-size:.75rem;">
+        Il {{ p.data_firma_privacy[:10] if p.data_firma_privacy else '—' }}
+      </div>
+    </div>
+    {% elif p.permessi.firma_privacy %}
+    <i class="bi bi-shield-exclamation fs-4 text-warning"></i>
+    <div class="flex-grow-1">
+      <div class="fw-semibold" style="font-size:.88rem;">Consenso non ancora firmato</div>
+    </div>
+    <a href="{{ url_for('portale.privacy', token=token) }}" class="btn btn-sm btn-warning">Firma</a>
+    {% else %}
+    <i class="bi bi-shield fs-4 text-muted"></i>
+    <div class="text-muted" style="font-size:.85rem;">Non richiesto.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

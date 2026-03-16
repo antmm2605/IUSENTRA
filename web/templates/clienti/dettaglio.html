@@ -40,6 +40,10 @@
       </div>
     </div>
     <div class="d-flex gap-2 flex-shrink-0">
+      <a href="{{ url_for('portale_config', id_cliente=cliente.id) }}"
+         class="btn btn-outline-info btn-sm" title="Portale self-service cliente">
+        <i class="bi bi-person-badge me-1"></i>Portale
+      </a>
       <a href="{{ url_for('gestione_collaboratori', id_cliente=cliente.id) }}"
          class="btn btn-outline-success btn-sm position-relative" title="Gestisci collaboratori">
         <i class="bi bi-people me-1"></i>Collaboratori

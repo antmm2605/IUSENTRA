@@ -38,6 +38,8 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_SCADENZIARIO_DB=/data/scadenziario/scadenze.json \
     PCT_SEARCH_INDEX=/data/search/index.db \
     PCT_PRIVACY_DB=/data/privacy/registro.json \
+    PCT_PORTALE_DB=/data/portale/portali.json \
+    PCT_PORTALE_UPLOADS=/data/portale/uploads \
     PCT_HTTPS=true \
     PCT_STUDIO_NOME="Studio Legale PCT"
 

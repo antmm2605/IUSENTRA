@@ -146,6 +146,32 @@
       background: #fff;
     }
     .cal-day.oggi { border-color: var(--accent); background: #fffbf0; }
+
+    /* ---- drag and drop agenda ---- */
+    .dnd-pill[draggable="true"] { cursor: grab; }
+    .dnd-pill[draggable="true"]:active { cursor: grabbing; }
+    .dnd-dragging { opacity: .45; outline: 2px dashed #6c757d; border-radius: 6px; }
+
+    /* drop zone highlight */
+    .dnd-over {
+      background: rgba(200,151,43,.15) !important;
+      outline: 2px dashed var(--accent) !important;
+      outline-offset: -2px;
+      border-radius: 6px;
+    }
+
+    /* riga della vista giorno */
+    .dnd-row-dragging { opacity: .5; }
+    .dnd-row-over td { background: rgba(200,151,43,.12); }
+    .dnd-row-over td:first-child { border-left: 3px solid var(--accent); }
+
+    /* spinner overlay durante il salvataggio */
+    .dnd-spinner {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,.5);
+      z-index: 9999;
+    }
     .cal-day.altro-mese { background: #f8f9fa; opacity: .6; }
     .cal-day-num { font-size: .75rem; font-weight: 600; color: #64748b; }
 

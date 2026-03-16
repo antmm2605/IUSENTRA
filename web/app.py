@@ -1085,6 +1085,31 @@ def create_app(config: dict | None = None) -> Flask:
 
     # ---------------------------------------------------------------- API JSON
 
+    @app.route("/api/agenda/<id_app>/sposta", methods=["POST"])
+    def api_sposta_appuntamento(id_app):
+        """Sposta un appuntamento in una nuova data/ora (drag-and-drop)."""
+        if not g.utente_corrente or not g.utente_corrente.ha_permesso("agenda.scrivi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        ag = get_agenda()
+        appt = ag.get(id_app)
+        if not appt:
+            return jsonify({"errore": "Appuntamento non trovato"}), 404
+        payload = request.get_json(silent=True) or {}
+        nuova_data = payload.get("data")          # "YYYY-MM-DD"
+        nuova_data_ora = payload.get("data_ora")  # "YYYY-MM-DDTHH:MM:SS"
+        if nuova_data and not nuova_data_ora:
+            ora_orig = appt.data_ora_dt.strftime("%H:%M:%S")
+            nuova_data_ora = f"{nuova_data}T{ora_orig}"
+        if not nuova_data_ora:
+            return jsonify({"errore": "Parametro 'data' o 'data_ora' richiesto"}), 400
+        try:
+            appt = ag.modifica(id_app, data_ora=nuova_data_ora)
+            audit("agenda.sposta", "appuntamento", id_app,
+                  dettagli=f"→ {nuova_data_ora}")
+            return jsonify({"ok": True, "data_ora": appt.data_ora})
+        except (ValueError, KeyError) as e:
+            return jsonify({"errore": str(e)}), 409
+
     @app.route("/api/agenda")
     def api_agenda():
         agenda = get_agenda()

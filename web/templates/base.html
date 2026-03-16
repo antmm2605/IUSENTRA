@@ -297,6 +297,10 @@
        class="nav-link {% if request.endpoint == 'nuovo_cliente' %}active{% endif %}">
       <i class="bi bi-person-plus me-2"></i>Nuovo Cliente
     </a>
+    <a href="{{ url_for('cartelle_condivise') }}"
+       class="nav-link {% if request.endpoint in ('cartelle_condivise','gestione_collaboratori') %}active{% endif %}">
+      <i class="bi bi-folder-symlink me-2"></i>Cartelle Condivise
+    </a>
     <div class="section-label">Comunicazioni</div>
     <a href="{{ url_for('lista_messaggi') }}"
        class="nav-link {% if request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio') %}active{% endif %}">

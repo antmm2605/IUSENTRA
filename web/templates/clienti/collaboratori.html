@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block pct_modulo %}clienti{% endblock %}
+{% block title %}Collaboratori — {{ cliente.nome_completo }}{% endblock %}
+{% block page_title %}Collaboratori cartella{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{{ url_for('lista_clienti') }}">Clienti</a></li>
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}">{{ cliente.nome_completo }}</a>
+    </li>
+    <li class="breadcrumb-item active">Collaboratori</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+
+  {# ── Collaboratori attuali ──────────────────────────────────────── #}
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-people-fill me-2"></i>
+          Collaboratori — <em>{{ cliente.nome_completo }}</em>
+        </h5>
+        <span class="badge bg-primary rounded-pill">{{ collaboratori | length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if collaboratori %}
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Utente</th>
+              <th>Ruolo accesso</th>
+              <th>Condiviso da</th>
+              <th>Dal</th>
+              <th>Note</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ac in collaboratori %}
+            <tr>
+              <td>
+                <i class="bi bi-person-circle me-1 text-muted"></i>
+                <strong>{{ ac.username }}</strong>
+                {% if ac.nome_completo and ac.nome_completo != ac.username %}
+                  <br><span class="text-muted small">{{ ac.nome_completo }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if ac.ruolo.value == 'LETTURA' %}
+                  <span class="badge bg-info text-dark">
+                    <i class="bi bi-eye me-1"></i>Lettura
+                  </span>
+                {% elif ac.ruolo.value == 'SCRITTURA' %}
+                  <span class="badge bg-primary">
+                    <i class="bi bi-pencil me-1"></i>Scrittura
+                  </span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">
+                    <i class="bi bi-shield-check me-1"></i>Gestore
+                  </span>
+                {% endif %}
+              </td>
+              <td class="small text-muted">{{ ac.condiviso_da }}</td>
+              <td class="small text-muted">{{ ac.data_condivisione[:10] }}</td>
+              <td class="small text-muted">{{ ac.note or '—' }}</td>
+              <td>
+                <div class="d-flex gap-1">
+                  {# Aggiorna ruolo #}
+                  <button type="button"
+                          class="btn btn-xs btn-outline-secondary"
+                          title="Modifica ruolo"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modal-modifica-{{ loop.index }}">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  {# Revoca #}
+                  <form method="post" onsubmit="return confirm('Revocare accesso a {{ ac.username }}?')">
+                    <input type="hidden" name="azione" value="revoca">
+                    <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
+                    <button type="submit" class="btn btn-xs btn-outline-danger" title="Revoca accesso">
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+
+            {# Modal modifica ruolo #}
+            <div class="modal fade" id="modal-modifica-{{ loop.index }}" tabindex="-1">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                  <form method="post">
+                    <input type="hidden" name="azione" value="condividi">
+                    <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
+                    <div class="modal-header">
+                      <h6 class="modal-title">Modifica ruolo — {{ ac.username }}</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <label class="form-label small fw-bold">Nuovo ruolo</label>
+                      <select name="ruolo" class="form-select form-select-sm">
+                        {% for r in ruoli_condivisione %}
+                        <option value="{{ r.value }}" {% if r == ac.ruolo %}selected{% endif %}>
+                          {{ r.value | capitalize }}
+                        </option>
+                        {% endfor %}
+                      </select>
+                      <label class="form-label small fw-bold mt-2">Note</label>
+                      <input type="text" name="note" class="form-control form-control-sm"
+                             value="{{ ac.note }}" placeholder="Opzionale">
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                      <button type="submit" class="btn btn-sm btn-primary">Salva</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-people display-6 d-block mb-2"></i>
+          Nessun collaboratore associato a questa cartella.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Aggiungi collaboratore ─────────────────────────────────────── #}
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Aggiungi collaboratore</h5>
+      </div>
+      <div class="card-body">
+        {% if utenti_disponibili %}
+        <form method="post">
+          <input type="hidden" name="azione" value="condividi">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small">Utente</label>
+            <select name="id_utente" class="form-select" required>
+              <option value="" disabled selected>— seleziona —</option>
+              {% for ut in utenti_disponibili %}
+              <option value="{{ ut.id }}">
+                {{ ut.username }}{% if ut.nome_completo %} — {{ ut.nome_completo }}{% endif %}
+                ({{ ut.ruolo.value | lower | replace('_', ' ') | title }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small">Livello di accesso</label>
+            <div class="d-flex flex-column gap-2">
+              {% for r in ruoli_condivisione %}
+              <label class="d-flex align-items-start gap-2 border rounded p-2 cursor-pointer"
+                     style="cursor:pointer">
+                <input type="radio" name="ruolo" value="{{ r.value }}"
+                       {% if loop.first %}checked{% endif %} class="mt-1">
+                <div>
+                  {% if r.value == 'LETTURA' %}
+                    <span class="badge bg-info text-dark me-1">
+                      <i class="bi bi-eye"></i> Lettura
+                    </span>
+                    <span class="text-muted small d-block">
+                      Visualizza cliente, fascicoli e documenti (sola lettura)
+                    </span>
+                  {% elif r.value == 'SCRITTURA' %}
+                    <span class="badge bg-primary me-1">
+                      <i class="bi bi-pencil"></i> Scrittura
+                    </span>
+                    <span class="text-muted small d-block">
+                      Lettura + modifica cliente, fascicoli e upload documenti
+                    </span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark me-1">
+                      <i class="bi bi-shield-check"></i> Gestore
+                    </span>
+                    <span class="text-muted small d-block">
+                      Scrittura + gestisce chi ha accesso a questa cartella
+                    </span>
+                  {% endif %}
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small">Note <span class="text-muted fw-normal">(opzionale)</span></label>
+            <input type="text" name="note" class="form-control form-control-sm"
+                   placeholder="Es. gestisce il contenzioso bancario">
+          </div>
+
+          <button type="submit" class="btn btn-success w-100">
+            <i class="bi bi-share me-1"></i>Condividi cartella
+          </button>
+        </form>
+        {% else %}
+        <p class="text-muted small mb-0">
+          Tutti gli utenti attivi hanno già accesso a questa cartella.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Legenda livelli #}
+    <div class="card shadow-sm mt-3 border-info border-opacity-50">
+      <div class="card-body py-2 px-3">
+        <p class="small fw-bold mb-1 text-info"><i class="bi bi-info-circle me-1"></i>Livelli di accesso</p>
+        <table class="table table-sm table-borderless mb-0 small">
+          <tr>
+            <td><span class="badge bg-info text-dark">Lettura</span></td>
+            <td class="text-muted">Visualizza solo</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-primary">Scrittura</span></td>
+            <td class="text-muted">Lettura + modifica</td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-warning text-dark">Gestore</span></td>
+            <td class="text-muted">Scrittura + gestione accessi</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

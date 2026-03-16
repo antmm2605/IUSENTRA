@@ -92,6 +92,7 @@ from pct.search_index import IndiceRicerca
 from pct.reports import fascicolo_pdf, scadenze_pdf
 from pct.database import GestioneDatabase
 from pct.sync import GestoreSincronizzazione, get_gestore
+from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
 
 # ------------------------------------------------------------------ factory
 
@@ -105,6 +106,9 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["CLIENTI_DB"] = cfg.get(
         "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
+    )
+    app.config["CONDIVISIONI_DB"] = cfg.get(
+        "CONDIVISIONI_DB", os.getenv("PCT_CONDIVISIONI_DB", "./clienti/condivisioni.json")
     )
     app.config["FASCICOLI_DB"] = cfg.get(
         "FASCICOLI_DB", os.getenv("PCT_FASCICOLI_DB", "./fascicoli/fascicoli.json")
@@ -192,6 +196,22 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_indice() -> IndiceRicerca:
         return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
+
+    def get_condivisioni() -> GestioneCondivisioni:
+        return GestioneCondivisioni(db_path=app.config["CONDIVISIONI_DB"])
+
+    def cliente_accessibile(id_cliente: str, richiesto: RuoloCondivisione = RuoloCondivisione.LETTURA) -> bool:
+        """
+        Verifica se l'utente corrente può accedere alla cartella di un cliente.
+        - Utenti con permesso globale 'clienti.leggi' → sempre True
+        - Altri → solo se la cartella è stata condivisa con loro al livello richiesto
+        """
+        u = g.utente_corrente
+        if not u:
+            return False
+        if u.ha_permesso("clienti.leggi"):
+            return True
+        return get_condivisioni().ha_accesso(u.id, id_cliente, richiesto)
 
     def get_database() -> GestioneDatabase:
         return GestioneDatabase({
@@ -286,6 +306,7 @@ def create_app(config: dict | None = None) -> Flask:
             "RuoloUtente": RuoloUtente,
             "DESCRIZIONI_RUOLI": DESCRIZIONI_RUOLI,
             "n_operatori_connessi": _sync.n_connessi,
+            "RuoloCondivisione": RuoloCondivisione,
         }
 
     @app.errorhandler(403)
@@ -950,6 +971,7 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/clienti")
     def lista_clienti():
         gc = get_clienti()
+        u = g.utente_corrente
         testo = request.args.get("q", "").strip()
         tipo_f = request.args.get("tipo")
         stato_f = request.args.get("stato", "ATTIVO")
@@ -958,6 +980,12 @@ def create_app(config: dict | None = None) -> Flask:
         stato = StatoCliente(stato_f) if stato_f else None
 
         clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
+
+        # Utenti senza accesso globale vedono solo i clienti condivisi con loro
+        if u and not u.ha_permesso("clienti.leggi"):
+            ids_accessibili = get_condivisioni().ids_clienti_accessibili(u.id)
+            clienti = [c for c in clienti if c.id in ids_accessibili]
+
         stats = gc.statistiche()
         return render_template(
             "clienti/lista.html",
@@ -1031,9 +1059,21 @@ def create_app(config: dict | None = None) -> Flask:
         if not c:
             flash("Cliente non trovato.", "warning")
             return redirect(url_for("lista_clienti"))
+        if not cliente_accessibile(id_cliente):
+            flash("Non hai accesso a questa cartella cliente.", "danger")
+            return redirect(url_for("lista_clienti"))
         agenda = get_agenda()
         apps_cliente = agenda.cerca(cliente=c.nome_completo)
-        return render_template("clienti/dettaglio.html", cliente=c, apps_cliente=apps_cliente)
+        gcd = get_condivisioni()
+        n_collaboratori = gcd.n_collaboratori(id_cliente)
+        ruolo_cond = gcd.ruolo_accesso(g.utente_corrente.id, id_cliente) if g.utente_corrente else None
+        return render_template(
+            "clienti/dettaglio.html",
+            cliente=c,
+            apps_cliente=apps_cliente,
+            n_collaboratori=n_collaboratori,
+            ruolo_condivisione=ruolo_cond,
+        )
 
     @app.route("/clienti/<id_cliente>/modifica", methods=["GET", "POST"])
     def modifica_cliente(id_cliente):
@@ -1042,6 +1082,9 @@ def create_app(config: dict | None = None) -> Flask:
         if not c:
             flash("Cliente non trovato.", "warning")
             return redirect(url_for("lista_clienti"))
+        if not cliente_accessibile(id_cliente, RuoloCondivisione.SCRITTURA):
+            flash("Non hai permesso di modificare questa cartella cliente.", "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
 
         if request.method == "POST":
             f = request.form
@@ -1159,6 +1202,139 @@ def create_app(config: dict | None = None) -> Flask:
             comune=f.get(f"{prefix}comune", ""),
             provincia=f.get(f"{prefix}provincia", ""),
             nazione=f.get(f"{prefix}nazione", "Italia"),
+        )
+
+    # ================================================================ CONDIVISIONE CARTELLE
+
+    @app.route("/cartelle-condivise")
+    def cartelle_condivise():
+        """Elenco delle cartelle clienti condivise con l'utente corrente."""
+        u = g.utente_corrente
+        gcd = get_condivisioni()
+        gc = get_clienti()
+
+        # Utenti con accesso globale vedono le cartelle che LORO hanno condiviso
+        if u.ha_permesso("clienti.leggi"):
+            # Mostra statistiche e chi gestisco
+            accessi_da_me = [
+                (gc.get(id_c), ac)
+                for id_c, ac in gcd.cartelle_condivise_con(u.id)
+                if gc.get(id_c)
+            ]
+            cartelle_gestite = [
+                (gc.get(id_c), gcd.collaboratori_di(id_c))
+                for id_c in gc.tutti(stato=None)
+                if gc.get(id_c) and gcd.n_collaboratori(id_c) > 0
+            ]
+            return render_template(
+                "clienti/cartelle_condivise.html",
+                modalita="gestore",
+                cartelle_gestite=cartelle_gestite,
+                accessi_da_me=accessi_da_me,
+                stats=gcd.statistiche(),
+            )
+
+        # Utenti con accesso limitato vedono le cartelle condivise con loro
+        condivisioni = gcd.cartelle_condivise_con(u.id)
+        cartelle = [
+            (gc.get(id_c), accesso)
+            for id_c, accesso in condivisioni
+            if gc.get(id_c)
+        ]
+        return render_template(
+            "clienti/cartelle_condivise.html",
+            modalita="collaboratore",
+            cartelle=cartelle,
+            stats=gcd.statistiche(),
+        )
+
+    @app.route("/clienti/<id_cliente>/collaboratori", methods=["GET", "POST"])
+    def gestione_collaboratori(id_cliente):
+        """
+        Gestione collaboratori di una cartella cliente.
+        Accessibile a chi ha il permesso globale clienti.scrivi
+        oppure è GESTORE della specifica cartella.
+        """
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+
+        u = g.utente_corrente
+        puo_gestire = (
+            u.ha_permesso("clienti.scrivi")
+            or get_condivisioni().ha_accesso(u.id, id_cliente, RuoloCondivisione.GESTORE)
+        )
+        if not puo_gestire:
+            flash("Non hai il permesso di gestire i collaboratori di questa cartella.", "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+
+        gcd = get_condivisioni()
+        gu = get_utenti()
+
+        if request.method == "POST":
+            azione = request.form.get("azione", "condividi")
+
+            if azione == "condividi":
+                id_dest = request.form.get("id_utente", "").strip()
+                ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
+                note = request.form.get("note", "").strip()
+                utente_dest = gu.get(id_dest)
+                if not utente_dest:
+                    flash("Utente non trovato.", "danger")
+                else:
+                    try:
+                        gcd.condividi(
+                            id_cliente=id_cliente,
+                            id_utente=utente_dest.id,
+                            username=utente_dest.username,
+                            nome_completo=utente_dest.nome_completo or utente_dest.username,
+                            ruolo=RuoloCondivisione(ruolo_str),
+                            condiviso_da=u.username,
+                            note=note,
+                        )
+                        flash(
+                            f"Cartella condivisa con {utente_dest.username} "
+                            f"({RuoloCondivisione(ruolo_str).value}).",
+                            "success",
+                        )
+                        audit("condivisione.condividi", "cliente", id_cliente,
+                              dettagli=f"→ {utente_dest.username} [{ruolo_str}]")
+                        _sync.pubblica("info", "clienti", id_cliente, u.username,
+                                       messaggio=f"Cartella condivisa con {utente_dest.username}")
+                    except ValueError as e:
+                        flash(str(e), "danger")
+
+            elif azione == "revoca":
+                id_dest = request.form.get("id_utente", "").strip()
+                utente_dest = gu.get(id_dest)
+                username_dest = utente_dest.username if utente_dest else id_dest
+                if gcd.revoca(id_cliente, id_dest):
+                    flash(f"Accesso revocato per {username_dest}.", "success")
+                    audit("condivisione.revoca", "cliente", id_cliente,
+                          dettagli=f"→ {username_dest}")
+                    _sync.pubblica("info", "clienti", id_cliente, u.username,
+                                   messaggio=f"Accesso revocato per {username_dest}")
+                else:
+                    flash("Accesso non trovato.", "warning")
+
+            return redirect(url_for("gestione_collaboratori", id_cliente=id_cliente))
+
+        # GET — mostra pagina di gestione
+        collaboratori = gcd.collaboratori_di(id_cliente)
+        ids_collaboratori = {a.id_utente for a in collaboratori}
+        # Utenti disponibili (tutti gli utenti attivi non ancora collaboratori e diversi da me)
+        tutti_utenti = [
+            ut for ut in gu.tutti(solo_attivi=True)
+            if ut.id != u.id and ut.id not in ids_collaboratori
+        ]
+        return render_template(
+            "clienti/collaboratori.html",
+            cliente=c,
+            collaboratori=collaboratori,
+            utenti_disponibili=tutti_utenti,
+            ruoli_condivisione=list(RuoloCondivisione),
         )
 
     # ================================================================ FASCICOLI

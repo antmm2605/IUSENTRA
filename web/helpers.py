@@ -3,6 +3,11 @@ web/helpers.py — Factory functions condivise tra app.py e blueprint.
 
 Ogni funzione usa `current_app` e `g` di Flask, quindi deve essere chiamata
 dentro un application context (durante una request o with app.app_context()).
+
+Multi-tenant: se g.data_paths è popolato (dal middleware carica_tenant),
+i percorsi dei dati vengono sovrascritti con quelli del tenant corrente.
+In assenza di tenant (SUPERADMIN o modalità single-tenant), si usano
+i percorsi di default da current_app.config.
 """
 from __future__ import annotations
 import os
@@ -16,38 +21,67 @@ from pct.auth import GestioneUtenti
 from pct.search_index import IndiceRicerca
 
 
+# ---------------------------------------------------------------- helper percorsi tenant-aware
+
+def _cfg(key: str) -> str:
+    """
+    Restituisce il percorso dati per `key`.
+    Se il tenant corrente ha sovrascritta la chiave (g.data_paths), usa quella;
+    altrimenti cade su current_app.config.
+    """
+    paths = getattr(g, "data_paths", {})
+    if paths and key in paths:
+        return paths[key]
+    return current_app.config[key]
+
+
 # ---------------------------------------------------------------- gestori dati
 
 def get_agenda() -> Agenda:
-    return Agenda(db_path=current_app.config["AGENDA_DB"])
+    return Agenda(db_path=_cfg("AGENDA_DB"))
 
 
 def get_clienti() -> GestioneClienti:
-    return GestioneClienti(db_path=current_app.config["CLIENTI_DB"])
+    return GestioneClienti(db_path=_cfg("CLIENTI_DB"))
 
 
 def get_fascicoli() -> GestioneFascicoli:
     return GestioneFascicoli(
-        db_path=current_app.config["FASCICOLI_DB"],
-        documents_dir=current_app.config["FASCICOLI_DOCS"],
-        archive_dir=current_app.config["FASCICOLI_ARCH"],
+        db_path=_cfg("FASCICOLI_DB"),
+        documents_dir=_cfg("FASCICOLI_DOCS"),
+        archive_dir=_cfg("FASCICOLI_ARCH"),
     )
 
 
 def get_scadenziario() -> GestioneScadenziario:
-    return GestioneScadenziario(db_path=current_app.config["SCADENZIARIO_DB"])
+    return GestioneScadenziario(db_path=_cfg("SCADENZIARIO_DB"))
 
 
 def get_utenti() -> GestioneUtenti:
     return GestioneUtenti(
-        db_path=current_app.config["AUTH_DB"],
-        audit_path=current_app.config["AUDIT_DB"],
+        db_path=_cfg("AUTH_DB"),
+        audit_path=_cfg("AUDIT_DB"),
         secret_key=current_app.secret_key,
     )
 
 
 def get_indice() -> IndiceRicerca:
-    return IndiceRicerca(index_path=current_app.config["SEARCH_INDEX"])
+    return IndiceRicerca(index_path=_cfg("SEARCH_INDEX"))
+
+
+# ---------------------------------------------------------------- tenant corrente
+
+def tenant_corrente():
+    """Restituisce lo StudioLegale del tenant corrente, o None."""
+    return g.get("tenant")
+
+
+def studio_nome() -> str:
+    """Nome studio: dal tenant corrente oppure dalla config globale."""
+    t = tenant_corrente()
+    if t:
+        return t.nome
+    return current_app.config.get("STUDIO_NOME", "Studio Legale PCT")
 
 
 # ---------------------------------------------------------------- auth API

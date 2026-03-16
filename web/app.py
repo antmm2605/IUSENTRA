@@ -225,6 +225,11 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["PAGAMENTI_DIR"] = cfg.get(
         "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
     )
+    # Multi-tenant
+    app.config["TENANTS_REGISTRY"] = cfg.get(
+        "TENANTS_REGISTRY", os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
+    )
+    app.config["MULTI_TENANT"] = os.getenv("PCT_MULTI_TENANT", "1").lower() not in ("0", "false", "no")
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -342,18 +347,52 @@ def create_app(config: dict | None = None) -> Flask:
                 except ValueError:
                     pass
             session["last_activity"] = datetime.now().isoformat()
-            gu = get_utenti()
+            # Multi-tenant: carica utente dal corretto auth db in base al tenant in sessione
+            tenant_slug = session.get("tenant_slug", "")
+            if tenant_slug and app.config.get("MULTI_TENANT"):
+                from pct.tenant import GestioneTenant
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                percorsi = tm.percorsi_dati(tenant_slug)
+                gu = GestioneUtenti(
+                    db_path=percorsi["AUTH_DB"],
+                    audit_path=percorsi["AUDIT_DB"],
+                    secret_key=app.secret_key,
+                    crea_admin_se_vuoto=False,
+                )
+            else:
+                gu = get_utenti()
             g.utente_corrente = gu.get(uid)
 
+    @app.before_request
+    def carica_tenant():
+        """
+        Inietta g.tenant (StudioLegale) in base al tenant_slug nella sessione.
+        Se multi-tenant attivo, sovrascrive i percorsi dati in g.data_paths.
+        """
+        g.tenant = None
+        g.data_paths = {}  # paths per-request; vuoto = usa config globale
+        if not app.config.get("MULTI_TENANT"):
+            return
+        u = getattr(g, "utente_corrente", None)
+        tenant_slug = session.get("tenant_slug") or (u.tenant_slug if u else "")
+        if not tenant_slug:
+            return
+        from pct.tenant import GestioneTenant
+        tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+        studio = tm.get(tenant_slug)
+        if studio:
+            g.tenant = studio
+            g.data_paths = tm.percorsi_dati(tenant_slug)
+
     # Route pubbliche che non richiedono login
-    _ROUTE_PUBBLICHE = {"login", "login_2fa", "static", "logout"}
+    _ROUTE_PUBBLICHE = {"login", "login_2fa", "static", "logout", "admin.esci_impersonazione"}
 
     @app.before_request
     def richiedi_login():
         if request.endpoint in _ROUTE_PUBBLICHE:
             return
-        if request.endpoint and request.endpoint.startswith("api_"):
-            return  # API gestiscono autonomamente
+        if request.endpoint and request.endpoint.startswith(("api_", "portale")):
+            return  # API e portale gestiscono autonomamente
         if g.utente_corrente is None:
             return redirect(url_for("login", next=request.path))
 
@@ -458,7 +497,23 @@ def create_app(config: dict | None = None) -> Flask:
             return redirect(url_for("dashboard"))
         errore = None
         if request.method == "POST":
-            gu = get_utenti()
+            studio_slug = request.form.get("studio_slug", "").strip().lower()
+            # Multi-tenant: se è specificato uno studio, carica auth da quel tenant
+            if studio_slug and app.config.get("MULTI_TENANT"):
+                from pct.tenant import GestioneTenant
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                studio = tm.get(studio_slug)
+                if not studio:
+                    return render_template("auth/login.html", errore="Studio non trovato.", multi_tenant=True)
+                percorsi = tm.percorsi_dati(studio_slug)
+                gu = GestioneUtenti(
+                    db_path=percorsi["AUTH_DB"],
+                    audit_path=percorsi["AUDIT_DB"],
+                    secret_key=app.secret_key,
+                    crea_admin_se_vuoto=False,
+                )
+            else:
+                gu = get_utenti()
             utente = gu.autentica(
                 request.form.get("username", ""),
                 request.form.get("password", ""),
@@ -472,6 +527,7 @@ def create_app(config: dict | None = None) -> Flask:
                     return redirect(url_for("login_2fa"))
                 session.clear()
                 session["user_id"] = utente.id
+                session["tenant_slug"] = utente.tenant_slug or ""
                 session["last_activity"] = datetime.now().isoformat()
                 session.permanent = True
                 gu.registra_evento(
@@ -490,7 +546,11 @@ def create_app(config: dict | None = None) -> Flask:
                     ip=request.remote_addr or "",
                     esito="ERRORE",
                 )
-        return render_template("auth/login.html", errore=errore)
+        return render_template(
+            "auth/login.html",
+            errore=errore,
+            multi_tenant=app.config.get("MULTI_TENANT", False),
+        )
 
     @app.route("/logout", methods=["POST"])
     def logout():
@@ -524,6 +584,7 @@ def create_app(config: dict | None = None) -> Flask:
                 next_url = session.pop("totp_pending_next", url_for("dashboard"))
                 session.clear()
                 session["user_id"] = utente.id
+                session["tenant_slug"] = utente.tenant_slug or ""
                 session["last_activity"] = datetime.now().isoformat()
                 session.permanent = True
                 gu.registra_evento("auth.login", id_utente=utente.id,
@@ -1368,7 +1429,6 @@ def create_app(config: dict | None = None) -> Flask:
         )
 
     @app.route("/clienti/<id_cliente>/portale", methods=["GET"])
-    @richiedi_login
     def portale_config(id_cliente):
         gc = get_clienti()
         c = gc.get(id_cliente)
@@ -1400,7 +1460,6 @@ def create_app(config: dict | None = None) -> Flask:
         )
 
     @app.route("/clienti/<id_cliente>/portale/attiva", methods=["POST"])
-    @richiedi_login
     def portale_attiva(id_cliente):
         gc = get_clienti()
         c = gc.get(id_cliente)
@@ -1442,7 +1501,6 @@ def create_app(config: dict | None = None) -> Flask:
         return redirect(url_for("portale_config", id_cliente=id_cliente))
 
     @app.route("/clienti/<id_cliente>/portale/revoca", methods=["POST"])
-    @richiedi_login
     def portale_revoca(id_cliente):
         from pct.portale import GestionePortale
         gp = GestionePortale(
@@ -3347,9 +3405,11 @@ def create_app(config: dict | None = None) -> Flask:
     from web.blueprints.pagamenti import pagamenti as pagamenti_bp  # Pagamenti digitali
     app.register_blueprint(pagamenti_bp)
 
+    from web.blueprints.admin import admin_bp  # Pannello Admin multi-tenant /admin/*
+    app.register_blueprint(admin_bp)
+
     # ---- iCal export per agenda e scadenziario
     @app.route("/agenda/export.ics")
-    @richiedi_login
     def agenda_ical():
         from pct.ical import agenda_to_ical
         ag = get_agenda()
@@ -3360,7 +3420,6 @@ def create_app(config: dict | None = None) -> Flask:
                         headers={"Content-Disposition": "attachment; filename=agenda.ics"})
 
     @app.route("/scadenziario/export.ics")
-    @richiedi_login
     def scadenziario_ical():
         from pct.ical import scadenze_to_ical
         gs = get_scadenziario()
@@ -3371,7 +3430,6 @@ def create_app(config: dict | None = None) -> Flask:
 
     # ---- OCR route (su documento di un fascicolo)
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/ocr", methods=["POST"])
-    @richiedi_login
     def ocr_documento(id_fasc, id_doc):
         gf = get_fascicoli()
         f = gf.get(id_fasc)

@@ -1,0 +1,363 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ studio.nome }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
+<li class="breadcrumb-item active">{{ studio.nome }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mt-3 mb-4 flex-wrap">
+  <div class="flex-grow-1">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <h4 class="mb-0 fw-bold">{{ studio.nome }}</h4>
+      <span class="badge badge-stato-{{ studio.stato }} rounded-pill">{{ studio.stato }}</span>
+      <span class="badge bg-{{ piani[studio.piano].colore if studio.piano in piani else 'secondary' }}">
+        {{ piani[studio.piano].nome if studio.piano in piani else studio.piano }}
+      </span>
+    </div>
+    <p class="text-muted small mb-0"><code>/{{ studio.slug }}</code></p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <!-- Impersona -->
+    <form method="post" action="{{ url_for('admin.impersona_studio', slug=studio.slug) }}">
+      <button class="btn btn-warning btn-sm">
+        <i class="bi bi-person-badge me-1"></i>Impersona
+      </button>
+    </form>
+    <!-- Sospendi / Riattiva -->
+    {% if studio.stato == 'SOSPESO' %}
+    <form method="post" action="{{ url_for('admin.riattiva_studio', slug=studio.slug) }}">
+      <button class="btn btn-success btn-sm"><i class="bi bi-play-fill me-1"></i>Riattiva</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('admin.sospendi_studio', slug=studio.slug) }}"
+          onsubmit="return confirm('Sospendere lo studio {{ studio.nome }}?')">
+      <button class="btn btn-outline-danger btn-sm"><i class="bi bi-pause-fill me-1"></i>Sospendi</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Colonna sinistra -->
+  <div class="col-12 col-lg-8">
+
+    <!-- Dati studio -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-building text-primary"></i> Dati Studio
+        <button class="btn btn-sm btn-outline-secondary ms-auto py-0 px-2"
+                data-bs-toggle="collapse" data-bs-target="#formModificaStudio">
+          <i class="bi bi-pencil me-1"></i>Modifica
+        </button>
+      </div>
+      <div class="card-body">
+        <!-- Vista -->
+        <div id="infoStudio">
+          <div class="row g-2 small">
+            <div class="col-6"><span class="text-muted">P.IVA</span><br><strong>{{ studio.piva or '—' }}</strong></div>
+            <div class="col-6"><span class="text-muted">C.F.</span><br><strong>{{ studio.cf or '—' }}</strong></div>
+            <div class="col-12"><span class="text-muted">Indirizzo</span><br><strong>{{ studio.indirizzo or '—' }}</strong></div>
+            <div class="col-4"><span class="text-muted">Telefono</span><br><strong>{{ studio.telefono or '—' }}</strong></div>
+            <div class="col-4"><span class="text-muted">Email</span><br><strong>{{ studio.email or '—' }}</strong></div>
+            <div class="col-4"><span class="text-muted">PEC</span><br><strong>{{ studio.pec or '—' }}</strong></div>
+            <div class="col-6"><span class="text-muted">Referente</span><br><strong>{{ studio.avvocato_ref or '—' }}</strong></div>
+            {% if studio.note_admin %}
+            <div class="col-12"><span class="text-muted">Note admin</span><br>
+              <span class="text-warning">{{ studio.note_admin }}</span></div>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Form modifica (collassato) -->
+        <div class="collapse" id="formModificaStudio">
+          <hr>
+          <form method="post" action="{{ url_for('admin.modifica_studio', slug=studio.slug) }}">
+            <div class="row g-2">
+              <div class="col-12 col-sm-8">
+                <label class="form-label small fw-semibold">Nome</label>
+                <input type="text" name="nome" class="form-control form-control-sm" value="{{ studio.nome }}" required>
+              </div>
+              <div class="col-6 col-sm-2">
+                <label class="form-label small fw-semibold">P.IVA</label>
+                <input type="text" name="piva" class="form-control form-control-sm" value="{{ studio.piva }}">
+              </div>
+              <div class="col-6 col-sm-2">
+                <label class="form-label small fw-semibold">C.F.</label>
+                <input type="text" name="cf" class="form-control form-control-sm" value="{{ studio.cf }}">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Indirizzo</label>
+                <input type="text" name="indirizzo" class="form-control form-control-sm" value="{{ studio.indirizzo }}">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold">Telefono</label>
+                <input type="text" name="telefono" class="form-control form-control-sm" value="{{ studio.telefono }}">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold">Email</label>
+                <input type="email" name="email" class="form-control form-control-sm" value="{{ studio.email }}">
+              </div>
+              <div class="col-4">
+                <label class="form-label small fw-semibold">PEC</label>
+                <input type="email" name="pec" class="form-control form-control-sm" value="{{ studio.pec }}">
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Referente</label>
+                <input type="text" name="avvocato_ref" class="form-control form-control-sm" value="{{ studio.avvocato_ref }}">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-semibold">Note admin</label>
+                <textarea name="note_admin" class="form-control form-control-sm" rows="2">{{ studio.note_admin }}</textarea>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-sm btn-primary">Salva</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Moduli autorizzati -->
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-grid-3x3-gap-fill text-info"></i> Moduli Autorizzati
+        <span class="badge bg-info ms-auto">{{ studio.moduli_attivi|length }} attivi</span>
+      </div>
+      <div class="card-body">
+        {% if studio.moduli_override %}
+        <div class="alert alert-info py-2 small mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          Configurazione manuale — i moduli del piano <strong>{{ studio.piano }}</strong> sono stati sovrascritti.
+        </div>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin.aggiorna_moduli', slug=studio.slug) }}">
+          <div class="row g-2 mb-3">
+            {% for mk, mv in moduli_disponibili.items() %}
+            <div class="col-6 col-sm-4 col-lg-3">
+              <label class="module-card {{ 'enabled' if mk in studio.moduli_attivi else '' }}"
+                     for="mod_{{ mk }}">
+                <div class="d-flex align-items-start gap-2">
+                  <input type="checkbox" class="form-check-input mt-0 flex-shrink-0"
+                         id="mod_{{ mk }}" name="moduli" value="{{ mk }}"
+                         {% if mk in studio.moduli_attivi %}checked{% endif %}>
+                  <div>
+                    <div class="module-icon">{{ mv.icona | replace('bi bi-', '') | truncate(1, true, '') }}</div>
+                    <div class="fw-semibold small mt-1">{{ mv.nome }}</div>
+                    <div class="text-muted" style="font-size:.7rem">{{ mv.desc }}</div>
+                  </div>
+                </div>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button type="submit" class="btn btn-sm btn-primary">
+              <i class="bi bi-save me-1"></i>Salva moduli
+            </button>
+            <!-- Ripristina da piano -->
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRipristinaPiano">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina dal piano
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Utenti -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-people-fill text-success"></i> Utenti Studio
+        <span class="badge bg-success ms-1">{{ utenti|length }}</span>
+        {% if studio.limite_utenti > 0 %}
+        <span class="text-muted small">/ {{ studio.limite_utenti }}</span>
+        {% endif %}
+        <a href="{{ url_for('admin.utenti_studio', slug=studio.slug) }}" class="btn btn-sm btn-outline-success ms-auto py-0 px-2">
+          Gestisci
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% for u in utenti[:5] %}
+        <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom small">
+          <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
+               style="width:30px;height:30px;flex-shrink:0;font-size:.85rem">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div class="flex-grow-1">
+            <span class="fw-semibold">{{ u.username }}</span>
+            {% if u.nome_completo %}<span class="text-muted ms-1">{{ u.nome_completo }}</span>{% endif %}
+          </div>
+          <span class="badge bg-{{ u.colore_ruolo }}">{{ u.ruolo.value }}</span>
+          {% if not u.attivo %}<span class="badge bg-secondary">inattivo</span>{% endif %}
+        </div>
+        {% else %}
+        <div class="p-3 text-muted small text-center">Nessun utente.</div>
+        {% endfor %}
+        {% if utenti|length > 5 %}
+        <div class="px-3 py-2 small text-center text-muted">
+          e altri {{ utenti|length - 5 }}...
+          <a href="{{ url_for('admin.utenti_studio', slug=studio.slug) }}" class="ms-1">Vedi tutti</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonna destra -->
+  <div class="col-12 col-lg-4">
+
+    <!-- Piano e scadenza -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-star-fill text-warning"></i> Piano e Scadenza
+      </div>
+      <div class="card-body">
+        <div class="mb-3 text-center">
+          <span class="badge bg-{{ piani[studio.piano].colore if studio.piano in piani else 'secondary' }} fs-6 px-3 py-2">
+            {{ piani[studio.piano].nome if studio.piano in piani else studio.piano }}
+          </span>
+        </div>
+        <div class="small mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">Creato</span>
+            <strong>{{ studio.data_creazione[:10] if studio.data_creazione else '—' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted">Attivato</span>
+            <strong>{{ studio.data_attivazione[:10] if studio.data_attivazione else '—' }}</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Scadenza</span>
+            <strong class="{{ 'text-danger' if studio.is_scaduto else 'text-success' if studio.giorni_alla_scadenza and studio.giorni_alla_scadenza > 14 else 'text-warning' }}">
+              {{ studio.data_scadenza[:10] if studio.data_scadenza else '—' }}
+              {% if studio.giorni_alla_scadenza is not none %}
+              <small>({{ studio.giorni_alla_scadenza }} gg)</small>
+              {% endif %}
+            </strong>
+          </div>
+        </div>
+        <!-- Cambio piano -->
+        <form method="post" action="{{ url_for('admin.aggiorna_piano', slug=studio.slug) }}">
+          <label class="form-label small fw-semibold">Cambia piano</label>
+          <div class="input-group input-group-sm">
+            <select name="piano" class="form-select form-select-sm">
+              {% for pk, pv in piani.items() %}
+              <option value="{{ pk }}" {% if studio.piano == pk %}selected{% endif %}>{{ pv.nome }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-warning btn-sm" type="submit">
+              <i class="bi bi-arrow-repeat"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Storage -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-hdd-fill text-secondary"></i> Storage
+      </div>
+      <div class="card-body">
+        {% set pct_storage = (storage_mb / studio.limite_storage_mb * 100)|int if studio.limite_storage_mb > 0 else 0 %}
+        <div class="d-flex justify-content-between small mb-1">
+          <span>{{ storage_mb }} MB usati</span>
+          <span>{{ studio.limite_storage_mb if studio.limite_storage_mb > 0 else '∞' }} MB</span>
+        </div>
+        {% if studio.limite_storage_mb > 0 %}
+        <div class="progress" style="height:8px">
+          <div class="progress-bar {{ 'bg-danger' if pct_storage > 90 else 'bg-warning' if pct_storage > 70 else 'bg-success' }}"
+               style="width:{{ [pct_storage, 100]|min }}%"></div>
+        </div>
+        <div class="text-muted" style="font-size:.72rem;margin-top:.25rem">{{ pct_storage }}% utilizzato</div>
+        {% else %}
+        <div class="text-success small">Storage illimitato</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- API Key -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-key-fill text-muted"></i> API Key Studio
+      </div>
+      <div class="card-body">
+        <div class="input-group input-group-sm mb-2">
+          <input type="password" id="apiKeyField" class="form-control font-monospace small"
+                 value="{{ studio.api_key }}" readonly>
+          <button class="btn btn-outline-secondary" type="button" id="toggleApiKey" title="Mostra/nascondi">
+            <i class="bi bi-eye"></i>
+          </button>
+          <button class="btn btn-outline-secondary" type="button" id="copyApiKey" title="Copia">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        <form method="post" action="{{ url_for('admin.rigenera_api_key', slug=studio.slug) }}"
+              onsubmit="return confirm('Rigenerare la API key? La vecchia chiave sarà invalidata.')">
+          <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+            <i class="bi bi-arrow-repeat me-1"></i>Rigenera API Key
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Info tecnica -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-info-circle text-muted"></i> Informazioni tecniche
+      </div>
+      <div class="card-body small">
+        <div class="text-muted mb-1">ID</div>
+        <code style="font-size:.7rem;word-break:break-all">{{ studio.id }}</code>
+        <div class="text-muted mt-2 mb-1">Directory dati</div>
+        <code style="font-size:.7rem">./data/tenants/{{ studio.slug }}/</code>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Toggle API key visibility
+document.getElementById('toggleApiKey').addEventListener('click', function() {
+  const f = document.getElementById('apiKeyField');
+  f.type = f.type === 'password' ? 'text' : 'password';
+  this.querySelector('i').className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+});
+
+// Copy API key
+document.getElementById('copyApiKey').addEventListener('click', function() {
+  navigator.clipboard.writeText(document.getElementById('apiKeyField').value);
+  this.innerHTML = '<i class="bi bi-check text-success"></i>';
+  setTimeout(() => this.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+});
+
+// Module card toggle
+document.querySelectorAll('.module-card').forEach(card => {
+  card.addEventListener('click', function(e) {
+    if (e.target.type === 'checkbox') return;
+    const cb = this.querySelector('input[type="checkbox"]');
+    cb.checked = !cb.checked;
+    this.classList.toggle('enabled', cb.checked);
+  });
+  const cb = card.querySelector('input[type="checkbox"]');
+  cb.addEventListener('change', function() {
+    card.classList.toggle('enabled', this.checked);
+  });
+});
+
+// Ripristina moduli dal piano
+document.getElementById('btnRipristinaPiano')?.addEventListener('click', function() {
+  // Deseleziona tutto
+  document.querySelectorAll('.module-card input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    cb.closest('.module-card').classList.remove('enabled');
+  });
+  // Nessun piano da JS qui — manda form vuoto (nessun override → usa piano)
+  document.querySelector('form[action*="moduli"]').submit();
+});
+</script>
+{% endblock %}

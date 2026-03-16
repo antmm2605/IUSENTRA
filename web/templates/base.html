@@ -148,6 +148,14 @@
        class="nav-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
       <i class="bi bi-credit-card me-2"></i>Pagamenti
     </a>
+    {% if utente_corrente and utente_corrente.is_superadmin %}
+    <div class="section-label">Piattaforma</div>
+    <a href="{{ url_for('admin.dashboard') }}"
+       class="nav-link {% if request.blueprint == 'admin' %}active{% endif %}"
+       style="color:#f97316">
+      <i class="bi bi-building-gear me-2"></i>Pannello Admin
+    </a>
+    {% endif %}
     {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
     <div class="section-label">Admin</div>
     <a href="{{ url_for('lista_utenti') }}"

@@ -69,6 +69,7 @@ def totp_uri(secret_b32: str, username: str, issuer: str = "Studio Legale PCT") 
 # ------------------------------------------------------------------ Ruoli
 
 class RuoloUtente(str, Enum):
+    SUPERADMIN     = "SUPERADMIN"       # Amministratore della piattaforma (multi-tenant)
     AMMINISTRATORE = "AMMINISTRATORE"
     AVVOCATO       = "AVVOCATO"
     COLLABORATORE  = "COLLABORATORE"
@@ -80,6 +81,11 @@ class RuoloUtente(str, Enum):
 # ------------------------------------------------------------------ Descrizioni ruoli
 
 DESCRIZIONI_RUOLI: Dict[RuoloUtente, Dict[str, str]] = {
+    RuoloUtente.SUPERADMIN: {
+        "descrizione": "Amministratore piattaforma HACS — gestione studi e tenant.",
+        "colore": "dark",
+        "icona": "bi-building-gear",
+    },
     RuoloUtente.AMMINISTRATORE: {
         "descrizione": "Accesso completo a tutti i moduli e alla gestione utenti.",
         "colore": "danger",
@@ -142,6 +148,7 @@ TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
 
 # Set di permessi di default per ogni ruolo
 PERMESSI: Dict[RuoloUtente, List[str]] = {
+    RuoloUtente.SUPERADMIN:     [p for _, p, _ in TUTTI_PERMESSI],  # tutti + accesso admin
     RuoloUtente.AMMINISTRATORE: [p for _, p, _ in TUTTI_PERMESSI],  # tutti
 
     RuoloUtente.AVVOCATO: [
@@ -204,6 +211,8 @@ class Utente:
     # Override per-utente
     permessi_extra: List[str] = field(default_factory=list)   # aggiuntivi rispetto al ruolo
     permessi_negati: List[str] = field(default_factory=list)  # rimossi rispetto al ruolo
+    # Multi-tenant: slug dello studio di appartenenza (vuoto = SUPERADMIN)
+    tenant_slug: str = ""
     # 2FA (TOTP - RFC 6238)
     totp_secret: str = ""
     totp_attivato: bool = False
@@ -226,8 +235,14 @@ class Utente:
 
     # ---- permessi
 
+    @property
+    def is_superadmin(self) -> bool:
+        return self.ruolo == RuoloUtente.SUPERADMIN
+
     def ha_permesso(self, permesso: str) -> bool:
         """Verifica un permesso applicando gli override per-utente."""
+        if self.ruolo == RuoloUtente.SUPERADMIN:
+            return True
         if permesso in self.permessi_negati:
             return False
         if permesso in self.permessi_extra:
@@ -278,6 +293,7 @@ class Utente:
         d.setdefault("permessi_negati", [])
         d.setdefault("totp_secret", "")
         d.setdefault("totp_attivato", False)
+        d.setdefault("tenant_slug", "")
         return Utente(**d)
 
 
@@ -322,16 +338,18 @@ class GestioneUtenti:
         audit_path: str = "./auth/audit.json",
         secret_key: str = "",
         retention_days: int = 730,
+        crea_admin_se_vuoto: bool = True,
     ):
         self.db_path = Path(db_path)
         self.audit_path = Path(audit_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._crea_admin_se_vuoto = crea_admin_se_vuoto
         self._secret = secret_key or secrets.token_hex(32)
         self._retention_days = retention_days
         self._utenti: Dict[str, Utente] = {}
         self._audit: List[EventoAudit] = []
         self._carica()
-        if not self._utenti:
+        if not self._utenti and self._crea_admin_se_vuoto:
             self._crea_admin_default()
 
     # ---- persistenza
@@ -433,6 +451,7 @@ class GestioneUtenti:
         nome_completo: str = "",
         permessi_extra: Optional[List[str]] = None,
         permessi_negati: Optional[List[str]] = None,
+        tenant_slug: str = "",
     ) -> Utente:
         username = username.strip().lower()
         if not username:
@@ -449,6 +468,7 @@ class GestioneUtenti:
             password_hash=self._hash_password(password),
             permessi_extra=permessi_extra or [],
             permessi_negati=permessi_negati or [],
+            tenant_slug=tenant_slug,
         )
         self._utenti[utente.id] = utente
         self._salva_utenti()

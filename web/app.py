@@ -190,6 +190,8 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["PRIVACY_DB"] = cfg.get(
         "PRIVACY_DB", os.getenv("PCT_PRIVACY_DB", "./privacy/registro.json")
     )
+    app.config["API_KEY"] = os.getenv("PCT_API_KEY", "")
+    app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "Studio Legale PCT")
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -3184,5 +3186,11 @@ def create_app(config: dict | None = None) -> Flask:
         nome_file = f"export_{date.today().isoformat()}.zip"
         audit("database.esporta_zip")
         return send_file(zip_path, as_attachment=True, download_name=nome_file, mimetype="application/zip")
+
+    # ================================================================ BLUEPRINTS
+    # Importati qui (non in cima) per evitare import circolari:
+    # i blueprint usano web.helpers che usa current_app, valido solo dentro create_app().
+    from web.blueprints.api_v1 import api_v1        # REST API /api/v1/*
+    app.register_blueprint(api_v1)
 
     return app

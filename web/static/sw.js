@@ -7,7 +7,7 @@
  *   - API (/api/, /sync/): network-only (dati real-time)
  */
 
-const CACHE = 'pct-v3';
+const CACHE = 'pct-v4';
 
 const PRECACHE = [
   '/offline',

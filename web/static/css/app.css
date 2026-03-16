@@ -1,0 +1,361 @@
+/* ================================================================
+   Studio Legale PCT — Foglio di stile principale
+   Font: Inter (Google Fonts)
+   Temi: light (default) / dark (data-bs-theme="dark")
+   ================================================================ */
+
+/* ---- Variabili & Font ---- */
+:root {
+  --sidebar-w: 240px;
+  --primary: #1a3a5c;
+  --accent:  #c8972b;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+  background: #f4f6f9;
+  font-size: .92rem;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Sidebar ---- */
+#sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--primary);
+  color: #fff;
+  position: fixed;
+  top: 0; left: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+#sidebar .logo {
+  padding: 1.4rem 1.2rem .8rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+#sidebar .logo small { display: block; font-weight: 400; font-size: .72rem; opacity: .7; }
+#sidebar .nav-link {
+  color: rgba(255,255,255,.8);
+  padding: .55rem 1.2rem;
+  border-radius: 6px;
+  margin: 2px 8px;
+  transition: background .15s;
+}
+#sidebar .nav-link:hover,
+#sidebar .nav-link.active { background: rgba(255,255,255,.12); color: #fff; }
+#sidebar .nav-link i { width: 20px; }
+#sidebar .section-label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: .5;
+  padding: .9rem 1.2rem .2rem;
+}
+
+/* ---- Main ---- */
+#main { margin-left: var(--sidebar-w); padding: 1.5rem 2rem; }
+
+/* ---- Topbar ---- */
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: .6rem 1.5rem;
+  margin: -1.5rem -2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar h1 { font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--primary); }
+
+/* ---- Search autocomplete ---- */
+#search-wrap { position: relative; }
+#search-input { width: 240px; font-size: .85rem; }
+#search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 400px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  z-index: 9999;
+  display: none;
+}
+#search-dropdown.show { display: block; }
+.search-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: .55rem .9rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  text-decoration: none;
+  color: inherit;
+}
+.search-item:last-child { border-bottom: none; }
+.search-item:hover { background: #f8f9fa; }
+.search-item-icon { font-size: 1rem; margin-top: 2px; color: var(--primary); flex-shrink: 0; }
+.search-item-body { flex: 1; min-width: 0; }
+.search-item-title { font-size: .85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-item-sub { font-size: .75rem; color: #64748b; }
+.search-item-snip { font-size: .72rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-item-snip mark { background: #fef08a; padding: 0 1px; border-radius: 2px; }
+.search-group-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .8px; color: #94a3b8; padding: .3rem .9rem .1rem; background: #f8fafc; }
+
+/* ---- Cards ---- */
+.stat-card { border: none; border-radius: 12px; }
+.stat-card .icon-wrap {
+  width: 48px; height: 48px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+
+/* ---- Badge tipo appuntamento ---- */
+.badge-UDIENZA      { background: #1a3a5c; }
+.badge-CONSULTAZIONE{ background: #2e7d32; }
+.badge-DEPOSITO     { background: #6a1b9a; }
+.badge-SCADENZA     { background: #b71c1c; }
+.badge-RIUNIONE     { background: #e65100; }
+.badge-ALTRO        { background: #546e7a; }
+
+/* ---- Agenda settimana ---- */
+.week-col { min-height: 80px; }
+.app-pill {
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: .78rem;
+  margin-bottom: 3px;
+  cursor: pointer;
+  color: #fff;
+  text-decoration: none;
+  display: block;
+}
+.app-pill:hover { opacity: .85; color: #fff; }
+
+/* ---- Calendario mese ---- */
+.cal-day {
+  min-height: 90px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px;
+  background: #fff;
+}
+.cal-day.oggi { border-color: var(--accent); background: #fffbf0; }
+.cal-day.altro-mese { background: #f8f9fa; opacity: .6; }
+.cal-day-num { font-size: .75rem; font-weight: 600; color: #64748b; }
+
+/* ---- Drag & Drop agenda ---- */
+.dnd-pill[draggable="true"] { cursor: grab; }
+.dnd-pill[draggable="true"]:active { cursor: grabbing; }
+.dnd-dragging { opacity: .45; outline: 2px dashed #6c757d; border-radius: 6px; }
+.dnd-over {
+  background: rgba(200,151,43,.15) !important;
+  outline: 2px dashed var(--accent) !important;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+.dnd-row-dragging { opacity: .5; }
+.dnd-row-over td { background: rgba(200,151,43,.12); }
+.dnd-row-over td:first-child { border-left: 3px solid var(--accent); }
+.dnd-spinner {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.5);
+  z-index: 9999;
+}
+
+/* ---- Sync multi-operatore ---- */
+#sync-operatori {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .78rem;
+  color: #64748b;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  cursor: default;
+  transition: background .3s;
+}
+#sync-operatori.attivo { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
+#sync-operatori .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+  display: inline-block;
+}
+#sync-operatori.attivo .dot { background: #10b981; animation: pulse-dot 1.8s infinite; }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+/* ---- Banner dati non aggiornati ---- */
+#sync-stale-banner {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  background: #fef3c7;
+  border-bottom: 2px solid #f59e0b;
+  padding: .5rem 1.5rem;
+  font-size: .85rem;
+  color: #92400e;
+  align-items: center;
+  gap: .75rem;
+}
+#sync-stale-banner.show { display: flex; }
+
+/* ---- Toast notifiche sync ---- */
+#sync-toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9500;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  pointer-events: none;
+}
+.sync-toast {
+  background: #1e293b;
+  color: #f8fafc;
+  padding: .55rem 1rem;
+  border-radius: 8px;
+  font-size: .82rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .25s, transform .25s;
+  pointer-events: auto;
+  max-width: 340px;
+}
+.sync-toast.visible { opacity: 1; transform: translateY(0); }
+.sync-toast .sync-tipo {
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.15);
+}
+.sync-toast.crea    .sync-tipo { background: #065f46; }
+.sync-toast.modifica .sync-tipo { background: #1e40af; }
+.sync-toast.elimina .sync-tipo { background: #7f1d1d; }
+.sync-toast.info    .sync-tipo { background: #78350f; }
+
+/* ---- Bottom Navigation mobile ---- */
+#bottom-nav { display: none; }
+
+@media (max-width: 768px) {
+  #sidebar { display: none; }
+  #main { margin-left: 0; padding: 1rem; padding-bottom: 76px; }
+  #sync-toast-container { bottom: 72px; }
+
+  #bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 62px;
+    background: var(--primary);
+    border-top: 1px solid rgba(255,255,255,.1);
+    box-shadow: 0 -2px 12px rgba(0,0,0,.25);
+    z-index: 1000;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .bn-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,.55);
+    text-decoration: none;
+    font-size: .62rem;
+    font-weight: 500;
+    gap: 2px;
+    padding: 8px 4px 6px;
+    transition: color .15s, background .15s;
+    border-radius: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bn-item i { font-size: 1.35rem; line-height: 1; }
+  .bn-item.active { color: var(--accent); }
+  .bn-item:active { background: rgba(255,255,255,.06); }
+}
+
+/* ================================================================
+   DARK MODE — Bootstrap 5.3 gestisce automaticamente:
+   card, table, modal, badge, form, dropdown nativi.
+   Qui sovrascriviamo solo gli elementi con colori custom.
+   ================================================================ */
+
+[data-bs-theme="dark"] body {
+  background: #0f172a;
+}
+
+[data-bs-theme="dark"] .topbar {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+[data-bs-theme="dark"] .topbar h1 { color: #e2e8f0; }
+
+[data-bs-theme="dark"] #search-dropdown {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+[data-bs-theme="dark"] .search-item {
+  border-bottom-color: #1e293b;
+  color: #e2e8f0;
+}
+[data-bs-theme="dark"] .search-item:hover { background: #273549; }
+[data-bs-theme="dark"] .search-group-label { background: #162032; color: #64748b; }
+[data-bs-theme="dark"] .search-item-sub  { color: #94a3b8; }
+[data-bs-theme="dark"] .search-item-snip { color: #64748b; }
+
+[data-bs-theme="dark"] .cal-day {
+  background: #1e293b;
+  border-color: #334155;
+}
+[data-bs-theme="dark"] .cal-day.oggi    { background: #261e00; border-color: var(--accent); }
+[data-bs-theme="dark"] .cal-day.altro-mese { background: #111827; }
+[data-bs-theme="dark"] .cal-day-num     { color: #94a3b8; }
+
+[data-bs-theme="dark"] .dnd-spinner     { background: rgba(15,23,42,.65); }
+
+[data-bs-theme="dark"] #sync-operatori {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+[data-bs-theme="dark"] #sync-operatori.attivo {
+  background: #022c22;
+  border-color: #065f46;
+  color: #6ee7b7;
+}
+
+[data-bs-theme="dark"] #sync-stale-banner {
+  background: #451a03;
+  border-bottom-color: #d97706;
+  color: #fef3c7;
+}
+
+/* Icona toggle tema */
+#btn-tema { transition: transform .2s; }
+#btn-tema:hover { transform: rotate(20deg); }

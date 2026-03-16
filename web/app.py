@@ -198,6 +198,22 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["PORTALE_UPLOADS"] = cfg.get(
         "PORTALE_UPLOADS", os.getenv("PCT_PORTALE_UPLOADS", "./portale/uploads")
     )
+    app.config["FATTURAZIONE_DB"] = cfg.get(
+        "FATTURAZIONE_DB", os.getenv("PCT_FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+    )
+    app.config["NOTIFICHE_LOG"] = cfg.get(
+        "NOTIFICHE_LOG", os.getenv("PCT_NOTIFICHE_LOG", "./notifiche/log.json")
+    )
+    # WhatsApp / notifiche
+    app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
+    app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")
+    app.config["TWILIO_NUMERO"]  = os.getenv("PCT_TWILIO_NUMERO", "")
+    app.config["CALLMEBOT_KEY"]  = os.getenv("PCT_CALLMEBOT_KEY", "")
+    # Dati studio per PDF parcelle
+    app.config["STUDIO_PIVA"]      = os.getenv("PCT_STUDIO_PIVA", "")
+    app.config["STUDIO_CF"]        = os.getenv("PCT_STUDIO_CF", "")
+    app.config["STUDIO_INDIRIZZO"] = os.getenv("PCT_STUDIO_INDIRIZZO", "")
+    app.config["STUDIO_IBAN"]      = os.getenv("PCT_STUDIO_IBAN", "")
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -3301,5 +3317,11 @@ def create_app(config: dict | None = None) -> Flask:
 
     from web.blueprints.portale import portale as portale_bp  # Portale cliente /portale/*
     app.register_blueprint(portale_bp)
+
+    from web.blueprints.fatturazione import fatturazione as fatturazione_bp  # Parcelle /fatturazione/*
+    app.register_blueprint(fatturazione_bp)
+
+    from web.blueprints.notifiche import notifiche as notifiche_bp  # WhatsApp /notifiche/*
+    app.register_blueprint(notifiche_bp)
 
     return app

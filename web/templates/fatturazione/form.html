@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}Nuova parcella{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('fatturazione.lista') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0 fw-bold">Nuova parcella</h4>
+</div>
+
+<form method="post" id="form-parcella">
+
+  <div class="row g-4">
+    <!-- Colonna sinistra -->
+    <div class="col-lg-8">
+
+      <!-- Cliente e fascicolo -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-person me-2"></i>Cliente</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Cliente *</label>
+              <select name="id_cliente" id="sel-cliente" class="form-select form-select-sm" required>
+                <option value="">— Seleziona cliente —</option>
+                {% for c in clienti %}
+                <option value="{{ c.id }}" {{ 'selected' if cliente_sel and cliente_sel.id == c.id }}>
+                  {{ c.nome_completo }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Pratica (opzionale)</label>
+              <select name="id_fascicolo" id="sel-fascicolo" class="form-select form-select-sm">
+                <option value="">— Nessuna pratica —</option>
+                {% for f in fascicoli %}
+                <option value="{{ f.id }}">{{ f.titolo }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voci prestazioni -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-semibold mb-0"><i class="bi bi-list-ul me-2"></i>Voci prestazioni</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btn-aggiungi-voce">
+              <i class="bi bi-plus-lg me-1"></i>Aggiungi voce
+            </button>
+          </div>
+
+          <div id="voci-container">
+            <!-- Voce 1 (default) -->
+            <div class="voce-row row g-2 mb-2 align-items-center">
+              <div class="col-md-6">
+                <input type="text" name="voce_descr[]" class="form-control form-control-sm"
+                       placeholder="Descrizione prestazione..." required>
+              </div>
+              <div class="col-md-2">
+                <input type="number" name="voce_qty[]" class="form-control form-control-sm voce-qty"
+                       placeholder="Q.tà" value="1" min="0.01" step="0.01">
+              </div>
+              <div class="col-md-3">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">€</span>
+                  <input type="number" name="voce_prezzo[]" class="form-control voce-prezzo"
+                         placeholder="Importo" step="0.01" min="0">
+                </div>
+              </div>
+              <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-sm btn-outline-danger btn-rimuovi-voce">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Voci rapide -->
+          <div class="mt-3">
+            <span class="text-muted me-2" style="font-size:.75rem;">Aggiungi rapido:</span>
+            {% for label, prezzo in [
+              ('Consulenza', 150),
+              ('Udienza', 300),
+              ('Atto giudiziario', 200),
+              ('Accesso atti', 80),
+              ('Corrispondenza', 50),
+            ] %}
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1 btn-voce-rapida"
+                    data-descr="{{ label }}" data-prezzo="{{ prezzo }}" style="font-size:.75rem;">
+              {{ label }} (€{{ prezzo }})
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-2"><i class="bi bi-chat-left-text me-2"></i>Note / Causale</h6>
+          <textarea name="note" class="form-control form-control-sm" rows="3"
+                    placeholder="Es. Compenso per assistenza stragiudiziale nella pratica..."></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Colonna destra -->
+    <div class="col-lg-4">
+
+      <!-- Date -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-calendar me-2"></i>Date</h6>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Data emissione</label>
+            <input type="date" name="data_emissione" class="form-control form-control-sm"
+                   value="{{ oggi }}">
+          </div>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Scadenza pagamento</label>
+            <input type="date" name="data_scadenza" class="form-control form-control-sm"
+                   value="{{ scadenza_default }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Opzioni fiscali -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-percent me-2"></i>Opzioni fiscali</h6>
+          <div class="d-flex flex-column gap-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="applica_cassa" id="chk-cassa" value="1" checked>
+              <label class="form-check-label" for="chk-cassa" style="font-size:.85rem;">
+                Cassa Forense 4 %
+              </label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="applica_iva" id="chk-iva" value="1" checked>
+              <label class="form-check-label" for="chk-iva" style="font-size:.85rem;">
+                IVA 22 %
+              </label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="applica_ritenuta" id="chk-ritenuta" value="1">
+              <label class="form-check-label" for="chk-ritenuta" style="font-size:.85rem;">
+                Ritenuta d'acconto 20 %
+              </label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="applica_bollo" id="chk-bollo" value="1">
+              <label class="form-check-label" for="chk-bollo" style="font-size:.85rem;">
+                Marca da bollo € 2,00
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anteprima totale -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px; border-left: 4px solid #1a3a5c !important;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3">Anteprima importi</h6>
+          <div class="d-flex flex-column gap-1" style="font-size:.85rem;" id="preview-importi">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Imponibile</span>
+              <span id="prev-imponibile">€ 0,00</span>
+            </div>
+            <div class="d-flex justify-content-between" id="row-cassa">
+              <span class="text-muted">Cassa Forense (4 %)</span>
+              <span id="prev-cassa">€ 0,00</span>
+            </div>
+            <div class="d-flex justify-content-between" id="row-iva">
+              <span class="text-muted">IVA (22 %)</span>
+              <span id="prev-iva">€ 0,00</span>
+            </div>
+            <div class="d-flex justify-content-between" id="row-ritenuta" style="display:none!important;">
+              <span class="text-muted">Ritenuta (20 %)</span>
+              <span id="prev-ritenuta" class="text-danger">- € 0,00</span>
+            </div>
+            <div class="d-flex justify-content-between" id="row-bollo" style="display:none!important;">
+              <span class="text-muted">Bollo</span>
+              <span id="prev-bollo">€ 2,00</span>
+            </div>
+            <hr class="my-1">
+            <div class="d-flex justify-content-between fw-bold fs-6">
+              <span>TOTALE</span>
+              <span id="prev-totale" class="text-primary">€ 0,00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="bi bi-floppy me-2"></i>Crea parcella
+        </button>
+        <a href="{{ url_for('fatturazione.lista') }}" class="btn btn-outline-secondary">
+          Annulla
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Template voce
+const vociContainer = document.getElementById('voci-container');
+
+function aggiungiVoce(descr='', prezzo='') {
+  const div = document.createElement('div');
+  div.className = 'voce-row row g-2 mb-2 align-items-center';
+  div.innerHTML = `
+    <div class="col-md-6">
+      <input type="text" name="voce_descr[]" class="form-control form-control-sm"
+             placeholder="Descrizione..." value="${descr}" required>
+    </div>
+    <div class="col-md-2">
+      <input type="number" name="voce_qty[]" class="form-control form-control-sm voce-qty"
+             placeholder="Q.tà" value="1" min="0.01" step="0.01">
+    </div>
+    <div class="col-md-3">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">€</span>
+        <input type="number" name="voce_prezzo[]" class="form-control voce-prezzo"
+               placeholder="Importo" step="0.01" min="0" value="${prezzo}">
+      </div>
+    </div>
+    <div class="col-md-1 text-end">
+      <button type="button" class="btn btn-sm btn-outline-danger btn-rimuovi-voce">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>`;
+  div.querySelectorAll('input').forEach(el => el.addEventListener('input', ricalcola));
+  vociContainer.appendChild(div);
+  ricalcola();
+}
+
+document.getElementById('btn-aggiungi-voce').addEventListener('click', () => aggiungiVoce());
+
+document.querySelectorAll('.btn-voce-rapida').forEach(btn => {
+  btn.addEventListener('click', () => aggiungiVoce(btn.dataset.descr, btn.dataset.prezzo));
+});
+
+vociContainer.addEventListener('click', e => {
+  if (e.target.closest('.btn-rimuovi-voce')) {
+    const row = e.target.closest('.voce-row');
+    if (vociContainer.querySelectorAll('.voce-row').length > 1) {
+      row.remove(); ricalcola();
+    }
+  }
+});
+
+vociContainer.addEventListener('input', ricalcola);
+['chk-cassa','chk-iva','chk-ritenuta','chk-bollo'].forEach(id => {
+  document.getElementById(id).addEventListener('change', ricalcola);
+});
+
+function fmt(n) { return '€ ' + n.toFixed(2).replace('.', ','); }
+
+function ricalcola() {
+  let imponibile = 0;
+  vociContainer.querySelectorAll('.voce-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.voce-qty').value) || 0;
+    const pz  = parseFloat(row.querySelector('.voce-prezzo').value) || 0;
+    imponibile += qty * pz;
+  });
+  const usaCassa   = document.getElementById('chk-cassa').checked;
+  const usaIva     = document.getElementById('chk-iva').checked;
+  const usaRitenuta = document.getElementById('chk-ritenuta').checked;
+  const usaBollo   = document.getElementById('chk-bollo').checked;
+
+  const cassa    = usaCassa    ? imponibile * 0.04 : 0;
+  const baseIva  = imponibile + cassa;
+  const iva      = usaIva      ? baseIva * 0.22 : 0;
+  const ritenuta = usaRitenuta ? imponibile * 0.20 : 0;
+  const bollo    = usaBollo    ? 2.0 : 0;
+  const totale   = baseIva + iva + bollo - ritenuta;
+
+  document.getElementById('prev-imponibile').textContent = fmt(imponibile);
+  document.getElementById('prev-cassa').textContent = fmt(cassa);
+  document.getElementById('prev-iva').textContent = fmt(iva);
+  document.getElementById('prev-ritenuta').textContent = '- ' + fmt(ritenuta);
+  document.getElementById('prev-totale').textContent = fmt(totale);
+
+  document.getElementById('row-cassa').style.display    = usaCassa    ? '' : 'none';
+  document.getElementById('row-iva').style.display      = usaIva      ? '' : 'none';
+  document.getElementById('row-ritenuta').style.display = usaRitenuta ? '' : 'none';
+  document.getElementById('row-bollo').style.display    = usaBollo    ? '' : 'none';
+}
+
+// Carica fascicoli del cliente selezionato via AJAX
+document.getElementById('sel-cliente').addEventListener('change', function() {
+  const id = this.value;
+  const sel = document.getElementById('sel-fascicolo');
+  sel.innerHTML = '<option value="">— Nessuna pratica —</option>';
+  if (!id) return;
+  fetch(`/fatturazione/ajax/fascicoli/${id}`)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.titolo + (f.numero_rg ? ` · RG ${f.numero_rg}` : '');
+        sel.appendChild(opt);
+      });
+    });
+});
+
+ricalcola();
+
+// Init esistente
+vociContainer.querySelectorAll('input').forEach(el => el.addEventListener('input', ricalcola));
+</script>
+{% endblock %}

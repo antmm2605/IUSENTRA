@@ -1,0 +1,48 @@
+# ============================================================
+#  Render — Configurazione deploy
+#  Docs: https://render.com/docs/blueprint-spec
+#
+#  NOTA: il disco persistente (/data) richiede piano a pagamento.
+#  Sul piano free i dati si resettano ad ogni deploy.
+#  Consigliato Railway (gratuito + volume incluso).
+# ============================================================
+
+services:
+  - type: web
+    name: studio-legale-pct
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free          # cambia in "starter" per avere il disco persistente
+    healthCheckPath: /login
+
+    envVars:
+      # OBBLIGATORIA — genera una stringa sicura: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: PCT_SECRET_KEY
+        generateValue: true
+
+      - key: PCT_STUDIO_NOME
+        value: Studio Legale PCT
+
+      - key: PCT_HTTPS
+        value: "true"
+
+      # SMTP — opzionale, per invio email/PEC
+      # - key: PCT_SMTP_HOST
+      #   value: smtp.gmail.com
+      # - key: PCT_SMTP_PORT
+      #   value: "587"
+      # - key: PCT_SMTP_USER
+      #   value: tuo@email.com
+      # - key: PCT_SMTP_PASS
+      #   sync: false   # inserisci manualmente nel pannello Render
+
+      # Cifratura documenti — opzionale
+      # - key: PCT_DOC_KEY
+      #   sync: false   # inserisci manualmente nel pannello Render
+
+    # Disco persistente — richiede piano "starter" o superiore
+    # Sul piano free, rimuovi o commenta questa sezione
+    disk:
+      name: pct-data
+      mountPath: /data
+      sizeGB: 1

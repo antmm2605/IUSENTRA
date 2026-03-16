@@ -1,0 +1,58 @@
+# ============================================================
+#  Studio Legale PCT — Dockerfile produzione
+#  Build:  docker build -t studio-legale-pct .
+#  Run:    docker run -p 8080:8080 -v pct-data:/data studio-legale-pct
+# ============================================================
+
+FROM python:3.12-slim
+
+# Dipendenze di sistema minime (reportlab + cryptography le richiedono)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc \
+        libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copia prima solo i file di dipendenze per sfruttare la cache Docker
+COPY setup.py .
+COPY pct/__init__.py pct/__init__.py
+RUN pip install --no-cache-dir -e ".[pdf]" gunicorn
+
+# Copia il resto del codice
+COPY . .
+
+# ---- Dati persistenti: tutti i file runtime puntano a /data ----
+# Su Railway/Render monta un volume su /data
+# In locale:  docker run -v $(pwd)/data:/data ...
+ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
+    PCT_CLIENTI_DB=/data/clienti/anagrafica.json \
+    PCT_CONDIVISIONI_DB=/data/clienti/condivisioni.json \
+    PCT_FASCICOLI_DB=/data/fascicoli/fascicoli.json \
+    PCT_FASCICOLI_DOCS=/data/fascicoli/documenti \
+    PCT_FASCICOLI_ARCH=/data/fascicoli/archivio \
+    PCT_MESSAGGI_DB=/data/messaggi/storico.json \
+    PCT_BACKUP_DIR=/data/backup \
+    PCT_AUTH_DB=/data/auth/utenti.json \
+    PCT_AUDIT_DB=/data/auth/audit.json \
+    PCT_SCADENZIARIO_DB=/data/scadenziario/scadenze.json \
+    PCT_SEARCH_INDEX=/data/search/index.db \
+    PCT_PRIVACY_DB=/data/privacy/registro.json \
+    PCT_HTTPS=true \
+    PCT_STUDIO_NOME="Studio Legale PCT"
+
+# PCT_SECRET_KEY e PCT_DOC_KEY vanno impostati come variabili d'ambiente
+# nel pannello Railway/Render — NON metterle nel Dockerfile!
+
+RUN mkdir -p /data
+
+EXPOSE 8080
+
+# Gunicorn: 2 worker sincroni, timeout 120s per PDF/ZIP grandi
+CMD gunicorn \
+    --bind "0.0.0.0:${PORT:-8080}" \
+    --workers 2 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    wsgi:app

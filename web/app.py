@@ -271,6 +271,13 @@ def create_app(config: dict | None = None) -> Flask:
             ip=request.remote_addr or "",
         )
 
+    def track_recente(tipo: str, id_: str, titolo: str, url_: str, icona: str = "bi-file"):
+        """Aggiorna la cronologia Recenti nella sessione utente (ultimi 5 elementi)."""
+        recenti = session.get("recenti", [])
+        recenti = [r for r in recenti if not (r["tipo"] == tipo and r["id"] == id_)]
+        recenti.insert(0, {"tipo": tipo, "id": id_, "titolo": titolo[:48], "url": url_, "icona": icona})
+        session["recenti"] = recenti[:5]
+
     def sync_pubblica(tipo: str, modulo: str, id_risorsa: str = ""):
         """Pubblica un evento di sincronizzazione a tutti gli operatori connessi."""
         u = g.utente_corrente
@@ -312,6 +319,7 @@ def create_app(config: dict | None = None) -> Flask:
             "DESCRIZIONI_RUOLI": DESCRIZIONI_RUOLI,
             "n_operatori_connessi": _sync.n_connessi,
             "RuoloCondivisione": RuoloCondivisione,
+            "recenti": session.get("recenti", []),
         }
 
     @app.errorhandler(403)
@@ -881,6 +889,8 @@ def create_app(config: dict | None = None) -> Flask:
         if not app:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
+        track_recente("appuntamento", id_app, app.titolo,
+                      url_for("dettaglio_appuntamento", id_app=id_app), "bi-calendar-event")
         return render_template("dettaglio_appuntamento.html", app=app)
 
     @app.route("/agenda/<id_app>/modifica", methods=["GET", "POST"])
@@ -1093,6 +1103,8 @@ def create_app(config: dict | None = None) -> Flask:
             audit("condivisione.accesso", "cliente", id_cliente,
                   dettagli=f"accesso lettura [{ruolo_cond.value}]")
         link_attivi = gcd.link_attivi_per_cliente(id_cliente)
+        track_recente("cliente", id_cliente, c.nome_completo,
+                      url_for("dettaglio_cliente", id_cliente=id_cliente), "bi-person")
         return render_template(
             "clienti/dettaglio.html",
             cliente=c,
@@ -1833,6 +1845,8 @@ def create_app(config: dict | None = None) -> Flask:
         apps = []
         if fasc.numero_rg:
             apps = agenda.cerca(testo=fasc.numero_rg)
+        track_recente("fascicolo", id_fasc, f"{fasc.numero} — {fasc.titolo}",
+                      url_for("dettaglio_fascicolo", id_fasc=id_fasc), "bi-folder2-open")
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -2684,6 +2698,116 @@ def create_app(config: dict | None = None) -> Flask:
             "errori": risultato.errori,
             "durata_secondi": round(risultato.ms / 1000, 3),
         })
+
+    # ================================================================ GDPR & PRIVACY
+
+    @app.route("/clienti/<id_cliente>/porta-via")
+    def gdpr_portabilita(id_cliente):
+        """Esporta dati personali del cliente in JSON strutturato (GDPR Art. 20)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("clienti.leggi"):
+            abort(403)
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            abort(404)
+        gf = get_fascicoli()
+        fascicoli_cliente = [f for f in gf.tutti() if f.id_cliente == id_cliente]
+        export = {
+            "metadati": {
+                "standard": "GDPR Art. 20 — Portabilità dei dati personali",
+                "regolamento": "Reg. UE 2016/679",
+                "data_estrazione": datetime.now().isoformat(),
+                "estratto_da": u.username,
+                "versione": "1.0",
+            },
+            "anagrafica": {
+                "tipo": c.tipo.value,
+                "nome": c.nome,
+                "cognome": c.cognome,
+                "ragione_sociale": c.ragione_sociale,
+                "codice_fiscale": c.codice_fiscale,
+                "partita_iva": c.partita_iva,
+                "data_nascita": c.data_nascita,
+                "luogo_nascita": c.luogo_nascita,
+                "provincia_nascita": c.provincia_nascita,
+                "nazionalita": c.nazionalita,
+                "sesso": c.sesso,
+                "forma_giuridica": c.forma_giuridica,
+                "rappresentante_legale": c.rappresentante_legale,
+            },
+            "recapiti": {
+                "telefono": c.recapiti.telefono,
+                "cellulare": c.recapiti.cellulare,
+                "email": c.recapiti.email,
+                "pec": c.recapiti.pec,
+                "fax": c.recapiti.fax,
+            },
+            "indirizzi": {
+                "residenza": str(c.indirizzo_residenza) or None,
+                "domicilio": str(c.indirizzo_domicilio) or None,
+                "sede_legale": str(c.indirizzo_sede_legale) or None,
+            },
+            "dati_studio": {
+                "avvocato_referente": c.avvocato_referente,
+                "data_prima_acquisizione": c.data_prima_acquisizione,
+                "stato": c.stato.value,
+                "provenienza": c.provenienza,
+                "note": c.note,
+            },
+            "procedimenti": [
+                {
+                    "numero_rg": p.numero_rg,
+                    "anno": p.anno,
+                    "tribunale": p.tribunale,
+                    "descrizione": p.descrizione,
+                    "data_apertura": p.data_apertura,
+                    "data_chiusura": p.data_chiusura,
+                    "attivo": p.attivo,
+                }
+                for p in c.procedimenti
+            ],
+            "fascicoli": [
+                {
+                    "numero": f.numero,
+                    "titolo": f.titolo,
+                    "tipo": f.tipo.value,
+                    "stato": f.stato.value,
+                    "data_apertura": f.data_apertura,
+                    "n_documenti": len(f.documenti),
+                }
+                for f in fascicoli_cliente
+            ],
+        }
+        audit("gdpr.portabilita", "cliente", id_cliente,
+              dettagli=f"Export Art.20 — {c.nome_completo}")
+        nome = f"dati_{c.nome_completo.replace(' ', '_').lower()}_{date.today().isoformat()}.json"
+        resp = Response(
+            json.dumps(export, ensure_ascii=False, indent=2),
+            mimetype="application/json",
+        )
+        resp.headers["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return resp
+
+    @app.route("/audit/esporta.csv")
+    def esporta_audit_csv():
+        """Esporta l'audit log come file CSV (richiede permesso audit.leggi)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("audit.leggi"):
+            abort(403)
+        gu = get_utenti()
+        csv_data = gu.esporta_audit_csv(
+            id_utente=request.args.get("id_utente", ""),
+            azione=request.args.get("azione", ""),
+            da=request.args.get("da") or None,
+            a=request.args.get("a") or None,
+        )
+        audit("audit.esporta_csv")
+        resp = Response(csv_data, mimetype="text/csv; charset=utf-8")
+        resp.headers["Content-Disposition"] = (
+            f'attachment; filename="audit_{date.today().isoformat()}.csv"'
+        )
+        return resp
 
     @app.route("/admin/database/export")
     def admin_database_export():

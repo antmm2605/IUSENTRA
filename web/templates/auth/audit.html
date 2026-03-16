@@ -6,6 +6,10 @@
 <div class="card shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
     <span><i class="bi bi-journal-text me-2 text-warning"></i>Audit Log — {{ eventi|length }} eventi</span>
+    <a href="{{ url_for('esporta_audit_csv', id_utente=filtro_utente, azione=filtro_azione) }}"
+       class="btn btn-sm btn-outline-secondary" title="Scarica CSV (tutti i filtri attivi)">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Esporta CSV
+    </a>
   </div>
 
   {# Filtri #}

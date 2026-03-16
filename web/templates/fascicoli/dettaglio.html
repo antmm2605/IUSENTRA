@@ -469,7 +469,17 @@
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label fw-semibold">File <span class="text-danger">*</span></label>
-              <input type="file" name="file" class="form-control" required>
+              <div id="drop-zone"
+                   style="border:2px dashed #cbd5e1;border-radius:8px;padding:1.5rem;
+                          text-align:center;cursor:pointer;transition:background .2s,border-color .2s"
+                   onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-1"></i>
+                <span id="drop-label" class="small text-muted">
+                  Trascina qui il file oppure <strong>clicca per sceglierlo</strong>
+                </span>
+              </div>
+              <input type="file" name="file" id="fileInput"
+                     class="form-control d-none" required>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Tipo documento</label>
@@ -627,4 +637,44 @@
 </div>
 {% endfor %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const zone = document.getElementById('drop-zone');
+  const input = document.getElementById('fileInput');
+  const label = document.getElementById('drop-label');
+  if (!zone || !input) return;
+
+  function highlight(on) {
+    zone.style.background = on ? '#eff6ff' : '';
+    zone.style.borderColor = on ? '#3b82f6' : '#cbd5e1';
+  }
+
+  ['dragenter', 'dragover'].forEach(function(ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); highlight(true); });
+  });
+  ['dragleave', 'drop'].forEach(function(ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); highlight(false); });
+  });
+
+  zone.addEventListener('drop', function (e) {
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    label.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><strong>' +
+      file.name + '</strong> (' + (file.size / 1024).toFixed(0) + '\u00a0KB)';
+  });
+
+  input.addEventListener('change', function () {
+    if (input.files[0]) {
+      label.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><strong>' +
+        input.files[0].name + '</strong> (' + (input.files[0].size / 1024).toFixed(0) + '\u00a0KB)';
+    }
+  });
+})();
+</script>
 {% endblock %}

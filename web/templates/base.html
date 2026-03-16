@@ -249,6 +249,20 @@
     <small>Portale PCT</small>
   </div>
   <div class="py-2 flex-grow-1">
+
+    {# ---- Recenti ---- #}
+    {% if recenti %}
+    <div class="section-label">Recenti</div>
+    {% for r in recenti %}
+    <a href="{{ r.url }}" class="nav-link" title="{{ r.titolo }}"
+       style="font-size:.79rem;padding:.38rem 1.2rem">
+      <i class="bi {{ r.icona }} me-2" style="color:var(--accent);opacity:.9;width:16px"></i>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                   max-width:158px;display:inline-block;vertical-align:middle">{{ r.titolo }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
+
     <div class="section-label">Principale</div>
     <a href="{{ url_for('dashboard') }}"
        class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
@@ -410,6 +424,10 @@
       <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning">
         <i class="bi bi-plus-lg me-1"></i>Nuovo
       </a>
+      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+              data-bs-target="#modalScorciatoie" title="Scorciatoie da tastiera (?)">
+        <i class="bi bi-keyboard"></i>
+      </button>
       {% if utente_corrente %}
       <span id="sync-operatori" title="Operatori connessi in questo momento">
         <span class="dot"></span>
@@ -548,6 +566,95 @@ function initPagination(tableId, selectId) {
 })();
 </script>
 {% block scripts %}{% endblock %}
+
+{# ================================================================ SCORCIATOIE TASTIERA #}
+<div class="modal fade" id="modalScorciatoie" tabindex="-1" aria-label="Scorciatoie da tastiera">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-keyboard me-2"></i>Scorciatoie da tastiera</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><td><kbd>/</kbd></td><td>Cerca</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Questa guida</td></tr>
+            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Naviga — <kbd>g</kbd> poi:</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>d</kbd></td><td>Dashboard</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>c</kbd></td><td>Clienti</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>f</kbd></td><td>Fascicoli</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Agenda</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>Scadenze</td></tr>
+            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Crea — <kbd>n</kbd> poi:</td></tr>
+            <tr><td><kbd>n</kbd> <kbd>c</kbd></td><td>Nuovo cliente</td></tr>
+            <tr><td><kbd>n</kbd> <kbd>f</kbd></td><td>Nuovo fascicolo</td></tr>
+            <tr><td><kbd>n</kbd> <kbd>a</kbd></td><td>Nuovo appuntamento</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer py-2">
+        <small class="text-muted">Le scorciatoie sono disattivate nei campi di testo.</small>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+  function inInput() {
+    const t = (document.activeElement || {}).tagName;
+    return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT'
+        || (document.activeElement || {}).isContentEditable;
+  }
+  const NAV = {
+    d: '{{ url_for("dashboard") }}',
+    c: '{{ url_for("lista_clienti") }}',
+    f: '{{ url_for("lista_fascicoli") }}',
+    a: '{{ url_for("agenda_view") }}',
+    s: '{{ url_for("scadenziario") }}',
+  };
+  const NEW = {
+    c: '{{ url_for("nuovo_cliente") }}',
+    f: '{{ url_for("nuovo_fascicolo") }}',
+    a: '{{ url_for("nuovo_appuntamento") }}',
+  };
+  let chord = null;
+  let chordTimer = null;
+
+  document.addEventListener('keydown', function (e) {
+    if (inInput() || e.ctrlKey || e.altKey || e.metaKey) return;
+    const k = e.key.toLowerCase();
+
+    if (k === '/') {
+      e.preventDefault();
+      const si = document.getElementById('search-input');
+      if (si) { si.focus(); si.select(); }
+      return;
+    }
+    if (k === '?') {
+      const el = document.getElementById('modalScorciatoie');
+      if (el) bootstrap.Modal.getOrCreate(el).show();
+      return;
+    }
+    if (chord === 'g' && NAV[k]) {
+      clearTimeout(chordTimer); chord = null;
+      location.href = NAV[k]; return;
+    }
+    if (chord === 'n' && NEW[k]) {
+      clearTimeout(chordTimer); chord = null;
+      location.href = NEW[k]; return;
+    }
+    if (k === 'g' || k === 'n') {
+      clearTimeout(chordTimer);
+      chord = k;
+      chordTimer = setTimeout(function () { chord = null; }, 1500);
+      return;
+    }
+    chord = null;
+  });
+})();
+</script>
 
 {# ================================================================ SINCRONIZZAZIONE REAL-TIME #}
 {% if utente_corrente %}

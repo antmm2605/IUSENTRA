@@ -274,11 +274,13 @@ class GestioneUtenti:
         db_path: str = "./auth/utenti.json",
         audit_path: str = "./auth/audit.json",
         secret_key: str = "",
+        retention_days: int = 730,
     ):
         self.db_path = Path(db_path)
         self.audit_path = Path(audit_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._secret = secret_key or secrets.token_hex(32)
+        self._retention_days = retention_days
         self._utenti: Dict[str, Utente] = {}
         self._audit: List[EventoAudit] = []
         self._carica()
@@ -309,11 +311,46 @@ class GestioneUtenti:
         )
 
     def _salva_audit(self):
+        cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
+        recenti = [e for e in self._audit if e.timestamp >= cutoff]
+        recenti = recenti[-10000:]  # hard cap di sicurezza
+        self._audit = recenti
         self.audit_path.write_text(
-            json.dumps([e.to_dict() for e in self._audit[-5000:]],
-                       indent=2, ensure_ascii=False),
+            json.dumps([e.to_dict() for e in recenti], indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
+
+    def esporta_audit_csv(
+        self,
+        id_utente: str = "",
+        azione: str = "",
+        da: Optional[str] = None,
+        a: Optional[str] = None,
+    ) -> str:
+        """Esporta l'audit log come stringa CSV (UTF-8 con BOM per Excel)."""
+        import csv as _csv
+        import io as _io
+        eventi = self.audit_log(id_utente=id_utente, azione=azione, da=da, a=a, limit=10000)
+        out = _io.StringIO()
+        out.write("\ufeff")  # BOM per compatibilità Excel
+        w = _csv.DictWriter(
+            out,
+            fieldnames=["timestamp", "username", "azione", "risorsa_tipo",
+                        "risorsa_id", "dettagli", "ip", "esito"],
+        )
+        w.writeheader()
+        for e in eventi:
+            w.writerow({
+                "timestamp": e.timestamp,
+                "username": e.username,
+                "azione": e.azione,
+                "risorsa_tipo": e.risorsa_tipo,
+                "risorsa_id": e.risorsa_id,
+                "dettagli": e.dettagli,
+                "ip": e.ip,
+                "esito": e.esito,
+            })
+        return out.getvalue()
 
     def _crea_admin_default(self):
         admin = Utente(

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Genera — {{ t.titolo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0 fw-bold">Genera: {{ t.titolo }}</h4>
+</div>
+
+<form method="post" action="{{ url_for('template_atti.usa', id_template=t.id) }}">
+  <div class="row g-4">
+    <div class="col-lg-7">
+
+      <!-- Cliente e fascicolo -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-person me-2"></i>Cliente e pratica</h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Cliente</label>
+              <select name="id_cliente" id="sel-cliente" class="form-select form-select-sm">
+                <option value="">— Nessun cliente —</option>
+                {% for c in clienti %}
+                <option value="{{ c.id }}">{{ c.nome_completo }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Pratica (opz.)</label>
+              <select name="id_fascicolo" id="sel-fascicolo" class="form-select form-select-sm">
+                <option value="">— Nessuna pratica —</option>
+                {% for f in fascicoli %}
+                <option value="{{ f.id }}">{{ f.titolo }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Variabili extra -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-3"><i class="bi bi-pencil-square me-2"></i>Campi aggiuntivi</h6>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Destinatario (se diverso dal cliente)</label>
+              <input type="text" name="destinatario_nome" class="form-control form-control-sm"
+                     placeholder="Nome e cognome / Ragione sociale">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Indirizzo destinatario</label>
+              <input type="text" name="destinatario_indirizzo" class="form-control form-control-sm"
+                     placeholder="Via, n. — CAP Città (Prov.)">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Oggetto / Descrizione controversia</label>
+              <textarea name="oggetto_diffida" class="form-control form-control-sm" rows="3"
+                        placeholder="Descrivi l'oggetto della diffida / messa in mora..."></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Importo dovuto (€)</label>
+              <input type="text" name="importo_dovuto" class="form-control form-control-sm" placeholder="0,00">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Titolo credito</label>
+              <input type="text" name="titolo_credito" class="form-control form-control-sm"
+                     placeholder="es. compenso, affitto...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Termine (giorni)</label>
+              <input type="number" name="termine_giorni" class="form-control form-control-sm"
+                     value="15" min="1" max="365">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Tribunale competente</label>
+              <input type="text" name="tribunale_competente" class="form-control form-control-sm"
+                     placeholder="es. Milano, Roma...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-100">
+        <i class="bi bi-magic me-2"></i>Genera documento
+      </button>
+    </div>
+
+    <!-- Anteprima template -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm" style="border-radius:16px;">
+        <div class="card-header fw-semibold" style="background:transparent;font-size:.85rem;">
+          <i class="bi bi-eye me-2"></i>Struttura template
+        </div>
+        <div class="card-body">
+          <pre style="font-size:.72rem; max-height:400px; overflow-y:auto; white-space:pre-wrap; color:#374151;">{{ t.corpo[:1200] }}{% if t.corpo|length > 1200 %}...{% endif %}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('sel-cliente').addEventListener('change', function() {
+  const id = this.value;
+  const sel = document.getElementById('sel-fascicolo');
+  sel.innerHTML = '<option value="">— Nessuna pratica —</option>';
+  if (!id) return;
+  fetch(`/fatturazione/ajax/fascicoli/${id}`)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.titolo + (f.numero_rg ? ` · RG ${f.numero_rg}` : '');
+        sel.appendChild(opt);
+      });
+    });
+});
+</script>
+{% endblock %}

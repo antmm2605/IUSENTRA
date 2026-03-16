@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if t else 'Nuovo' }} Template{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0 fw-bold">{{ 'Modifica template' if t else 'Nuovo template' }}</h4>
+</div>
+
+<form method="post">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Titolo *</label>
+              <input type="text" name="titolo" class="form-control"
+                     value="{{ form.get('titolo', '') }}" required
+                     placeholder="es. Diffida per mancato pagamento">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Categoria</label>
+              <select name="categoria" class="form-select">
+                {% for cat in categorie %}
+                <option value="{{ cat }}" {{ 'selected' if form.get('categoria') == cat }}>{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size:.82rem;">
+              Corpo del documento
+              <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Jinja2</span>
+            </label>
+            <textarea name="corpo" class="form-control font-monospace" rows="22"
+                      required placeholder="Testo del documento con variabili {{ }}...">{{ form.get('corpo', '') }}</textarea>
+          </div>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.82rem;">Note interne</label>
+            <input type="text" name="note" class="form-control form-control-sm"
+                   value="{{ form.get('note', '') }}" placeholder="Uso consigliato, istruzioni...">
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>{{ 'Salva modifiche' if t else 'Crea template' }}
+        </button>
+        <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary">Annulla</a>
+      </div>
+    </div>
+
+    <!-- Variabili disponibili -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm" style="border-radius:16px;">
+        <div class="card-header fw-semibold" style="background:transparent;font-size:.85rem;">
+          <i class="bi bi-braces me-2"></i>Variabili disponibili
+        </div>
+        <div class="card-body" style="font-size:.78rem;">
+          <p class="section-label">Studio</p>
+          {% for v in ['studio_nome','studio_indirizzo','studio_iban','avvocato_nome','data_oggi'] %}
+          <code class="d-block mb-1 cursor-pointer var-chip" data-var="{{ '{{' }} {{ v }} {{ '}}' }}">{{ '{{' }} {{ v }} {{ '}}' }}</code>
+          {% endfor %}
+          <p class="section-label mt-3">Cliente</p>
+          {% for v in ['cliente.nome_completo','cliente.codice_fiscale','cliente.data_nascita',
+                       'cliente.luogo_nascita','cliente.indirizzo','cliente.tipo.value'] %}
+          <code class="d-block mb-1 cursor-pointer var-chip" data-var="{{ '{{' }} {{ v }} {{ '}}' }}">{{ '{{' }} {{ v }} {{ '}}' }}</code>
+          {% endfor %}
+          <p class="section-label mt-3">Fascicolo</p>
+          {% for v in ['fascicolo.titolo','fascicolo.numero_rg','fascicolo.tribunale','fascicolo.tipo.value'] %}
+          <code class="d-block mb-1 cursor-pointer var-chip" data-var="{{ '{{' }} {{ v }} {{ '}}' }}">{{ '{{' }} {{ v }} {{ '}}' }}</code>
+          {% endfor %}
+          <p class="section-label mt-3">Variabili extra (diffida/mora)</p>
+          {% for v in ['destinatario_nome','destinatario_indirizzo','oggetto_diffida',
+                       'importo_dovuto','titolo_credito','termine_giorni'] %}
+          <code class="d-block mb-1 cursor-pointer var-chip" data-var="{{ '{{' }} {{ v }} {{ '}}' }}">{{ '{{' }} {{ v }} {{ '}}' }}</code>
+          {% endfor %}
+          <p class="text-muted mt-3" style="font-size:.72rem;">
+            Clicca su una variabile per inserirla nel cursore del corpo.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.querySelectorAll('.var-chip').forEach(chip => {
+  chip.style.cursor = 'pointer';
+  chip.addEventListener('click', () => {
+    const ta = document.querySelector('[name="corpo"]');
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = chip.dataset.var;
+    ta.value = ta.value.slice(0, start) + val + ta.value.slice(end);
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = start + val.length;
+  });
+});
+</script>
+{% endblock %}

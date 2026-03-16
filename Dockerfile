@@ -10,6 +10,8 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         libffi-dev \
+        tesseract-ocr \
+        tesseract-ocr-ita \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -42,6 +44,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_PORTALE_UPLOADS=/data/portale/uploads \
     PCT_FATTURAZIONE_DB=/data/fatturazione/parcelle.json \
     PCT_NOTIFICHE_LOG=/data/notifiche/log.json \
+    PCT_TEMPLATE_ATTI_DB=/data/template_atti/templates.json \
     PCT_HTTPS=true \
     PCT_STUDIO_NOME="Studio Legale PCT"
 

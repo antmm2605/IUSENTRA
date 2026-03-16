@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Template Atti{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Template Atti</h4>
+  <a href="{{ url_for('template_atti.nuovo') }}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>Nuovo template
+  </a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'danger') }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+{% set per_categoria = {} %}
+{% for t in templates %}
+  {% if t.categoria not in per_categoria %}{% set _ = per_categoria.update({t.categoria: []}) %}{% endif %}
+  {% set _ = per_categoria[t.categoria].append(t) %}
+{% endfor %}
+
+{% for cat, tmpl_list in per_categoria.items() %}
+<div class="mb-4">
+  <p class="section-label">{{ cat }}</p>
+  <div class="row g-3">
+    {% for t in tmpl_list %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex align-items-start gap-2 mb-2">
+            <i class="bi {% if t.builtin %}bi-file-earmark-lock2 text-warning{% else %}bi-file-earmark-text text-primary{% endif %} fs-4 flex-shrink-0"></i>
+            <div>
+              <div class="fw-semibold" style="font-size:.9rem;">{{ t.titolo }}</div>
+              {% if t.builtin %}
+              <span class="badge bg-warning text-dark" style="font-size:.62rem;">BUILT-IN</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if t.note %}
+          <div class="text-muted mb-3" style="font-size:.78rem; flex-grow:1;">{{ t.note }}</div>
+          {% else %}
+          <div class="flex-grow-1"></div>
+          {% endif %}
+          <div class="d-flex gap-2 mt-2">
+            <a href="{{ url_for('template_atti.usa', id_template=t.id) }}"
+               class="btn btn-sm btn-primary flex-grow-1">
+              <i class="bi bi-magic me-1"></i>Genera atto
+            </a>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <form method="post" action="{{ url_for('template_atti.clona', id_template=t.id) }}">
+                    <button type="submit" class="dropdown-item">
+                      <i class="bi bi-copy me-2"></i>Clona
+                    </button>
+                  </form>
+                </li>
+                {% if not t.builtin %}
+                <li>
+                  <a href="{{ url_for('template_atti.modifica', id_template=t.id) }}"
+                     class="dropdown-item">
+                    <i class="bi bi-pencil me-2"></i>Modifica
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form method="post"
+                        action="{{ url_for('template_atti.elimina', id_template=t.id) }}"
+                        onsubmit="return confirm('Eliminare questo template?')">
+                    <button type="submit" class="dropdown-item text-danger">
+                      <i class="bi bi-trash me-2"></i>Elimina
+                    </button>
+                  </form>
+                </li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Statistiche Studio{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Statistiche Studio</h4>
+  <div class="text-muted" style="font-size:.82rem;" id="anno-label">Caricamento...</div>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4" id="kpi-cards">
+  {% for _ in range(6) %}
+  <div class="col-6 col-md-4 col-lg-2">
+    <div class="card border-0 shadow-sm h-100 text-center py-3" style="border-radius:14px;">
+      <div class="placeholder-glow"><span class="placeholder col-6"></span></div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Grafici riga 1 -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-graph-up me-2 text-primary"></i>Fatturato mensile (anno corrente)
+        </div>
+        <canvas id="chart-fatturato" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-folder2 me-2 text-primary"></i>Fascicoli per tipo
+        </div>
+        <canvas id="chart-fascicoli-tipo" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grafici riga 2 -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-people me-2 text-primary"></i>Nuovi clienti per mese
+        </div>
+        <canvas id="chart-clienti" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-clock-history me-2 text-primary"></i>Scadenze per priorità
+        </div>
+        <canvas id="chart-scadenze" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-calendar-event me-2 text-primary"></i>Appuntamenti per tipo
+        </div>
+        <canvas id="chart-appuntamenti" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fascicoli per stato -->
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-pie-chart me-2 text-primary"></i>Fascicoli per stato
+        </div>
+        <canvas id="chart-fascicoli-stato" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm" style="border-radius:16px;" id="card-export">
+      <div class="card-body">
+        <div class="fw-semibold mb-3" style="font-size:.88rem;">
+          <i class="bi bi-download me-2 text-primary"></i>Export dati
+        </div>
+        <div class="d-flex flex-column gap-2">
+          <a href="/export/clienti.csv" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-people me-2"></i>Clienti CSV
+          </a>
+          <a href="/export/fascicoli.csv" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-folder2 me-2"></i>Fascicoli CSV
+          </a>
+          <a href="/export/agenda.csv" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-calendar-event me-2"></i>Agenda CSV
+          </a>
+          <a href="/export/scadenze.csv" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-clock-history me-2"></i>Scadenze CSV
+          </a>
+          <a href="/export/fatturazione.csv" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-receipt me-2"></i>Parcelle CSV
+          </a>
+          <a href="/agenda/export.ics" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-calendar-check me-2"></i>Agenda iCal (.ics)
+          </a>
+          <a href="/scadenziario/export.ics" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-calendar-x me-2"></i>Scadenze iCal (.ics)
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const PRIMARY  = '#1a3a5c';
+const ACCENT   = '#c8972b';
+const PALETTE  = ['#1a3a5c','#c8972b','#2563eb','#16a34a','#dc2626','#7c3aed','#0891b2','#ea580c'];
+const PALETTE_LIGHT = PALETTE.map(c => c + '99');
+
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
+
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+// KPI cards
+async function caricaKPI() {
+  const data = await fetchJSON('/statistiche/api/riepilogo');
+  const anno = new Date().getFullYear();
+  document.getElementById('anno-label').textContent = `Anno ${anno}`;
+  const kpi = [
+    { label: 'Clienti totali',     valore: data.clienti?.totale || 0,         icon: 'bi-people-fill',      color: PRIMARY },
+    { label: 'Fascicoli aperti',   valore: data.fascicoli?.aperti || 0,        icon: 'bi-folder2-open',     color: '#2563eb' },
+    { label: 'Fatturato lordo',    valore: '€ ' + (data.fatturato?.fatturato_lordo||0).toLocaleString('it'), icon: 'bi-receipt', color: '#16a34a' },
+    { label: 'Da incassare',       valore: '€ ' + (data.fatturato?.da_incassare||0).toLocaleString('it'),    icon: 'bi-clock',   color: ACCENT },
+    { label: 'App. oggi',          valore: data.oggi?.appuntamenti || 0,        icon: 'bi-calendar-check',  color: '#7c3aed' },
+    { label: 'Scadenze urgenti',   valore: data.scadenze?.critiche || data.scadenze?.scadute || 0, icon: 'bi-exclamation-triangle', color: '#dc2626' },
+  ];
+  document.getElementById('kpi-cards').innerHTML = kpi.map(k => `
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="card border-0 shadow-sm h-100 text-center py-3" style="border-radius:14px; border-top:3px solid ${k.color}!important;">
+        <i class="bi ${k.icon} fs-4 mb-1" style="color:${k.color}"></i>
+        <div class="fw-bold" style="font-size:1.05rem;">${k.valore}</div>
+        <div class="text-muted" style="font-size:.7rem;">${k.label}</div>
+      </div>
+    </div>`).join('');
+}
+
+// Chart: fatturato mensile (bar + line)
+async function chartFatturato() {
+  const data = await fetchJSON('/statistiche/api/fatturato-mensile');
+  new Chart(document.getElementById('chart-fatturato'), {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [
+        { label: 'Fatturato', data: data.fatturato, backgroundColor: PRIMARY + 'cc', borderRadius: 4 },
+        { label: 'Incassato', data: data.incassato,  type: 'line', borderColor: ACCENT,
+          backgroundColor: ACCENT + '22', fill: true, tension: 0.4, pointRadius: 4,
+          borderWidth: 2, pointBackgroundColor: ACCENT },
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } },
+               scales: { y: { ticks: { callback: v => '€' + v.toLocaleString('it') } } } }
+  });
+}
+
+// Chart: fascicoli per tipo (doughnut)
+async function chartFascicoliTipo() {
+  const data = await fetchJSON('/statistiche/api/fascicoli-per-tipo');
+  new Chart(document.getElementById('chart-fascicoli-tipo'), {
+    type: 'doughnut',
+    data: { labels: data.labels, datasets: [{ data: data.data,
+            backgroundColor: PALETTE, borderWidth: 2 }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+// Chart: clienti per mese (bar)
+async function chartClienti() {
+  const data = await fetchJSON('/statistiche/api/clienti-per-mese');
+  new Chart(document.getElementById('chart-clienti'), {
+    type: 'bar',
+    data: { labels: data.labels, datasets: [{ label: 'Nuovi clienti',
+            data: data.data, backgroundColor: '#2563eb99', borderRadius: 4 }] },
+    options: { responsive: true, plugins: { legend: { display: false } },
+               scales: { y: { ticks: { precision: 0 } } } }
+  });
+}
+
+// Chart: scadenze per priorità (pie)
+async function chartScadenze() {
+  const data = await fetchJSON('/statistiche/api/scadenze-per-priorita');
+  const colori = { CRITICA: '#dc2626', ALTA: '#ea580c', MEDIA: ACCENT, BASSA: '#6b7280' };
+  const bg = data.labels.map(l => colori[l] || PALETTE[0]);
+  new Chart(document.getElementById('chart-scadenze'), {
+    type: 'pie',
+    data: { labels: data.labels, datasets: [{ data: data.data,
+            backgroundColor: bg, borderWidth: 2 }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+// Chart: appuntamenti per tipo (horizontal bar)
+async function chartAppuntamenti() {
+  const data = await fetchJSON('/statistiche/api/appuntamenti-per-tipo');
+  new Chart(document.getElementById('chart-appuntamenti'), {
+    type: 'bar',
+    data: { labels: data.labels, datasets: [{ label: 'N°',
+            data: data.data, backgroundColor: '#7c3aed99', borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true,
+               plugins: { legend: { display: false } },
+               scales: { x: { ticks: { precision: 0 } } } }
+  });
+}
+
+// Chart: fascicoli per stato (doughnut)
+async function chartFascicoliStato() {
+  const data = await fetchJSON('/statistiche/api/fascicoli-per-stato');
+  const colori = { APERTO: '#2563eb', CHIUSO: '#6b7280', ARCHIVIATO: '#94a3b8',
+                   SOSPESO: ACCENT, URGENTE: '#dc2626' };
+  const bg = data.labels.map(l => colori[l] || PALETTE[2]);
+  new Chart(document.getElementById('chart-fascicoli-stato'), {
+    type: 'doughnut',
+    data: { labels: data.labels, datasets: [{ data: data.data,
+            backgroundColor: bg, borderWidth: 2 }] },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+// Carica tutto
+Promise.all([
+  caricaKPI(),
+  chartFatturato(),
+  chartFascicoliTipo(),
+  chartClienti(),
+  chartScadenze(),
+  chartAppuntamenti(),
+  chartFascicoliStato(),
+]).catch(console.error);
+</script>
+{% endblock %}

@@ -209,11 +209,18 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")
     app.config["TWILIO_NUMERO"]  = os.getenv("PCT_TWILIO_NUMERO", "")
     app.config["CALLMEBOT_KEY"]  = os.getenv("PCT_CALLMEBOT_KEY", "")
-    # Dati studio per PDF parcelle
+    # Dati studio per PDF parcelle e template atti
     app.config["STUDIO_PIVA"]      = os.getenv("PCT_STUDIO_PIVA", "")
     app.config["STUDIO_CF"]        = os.getenv("PCT_STUDIO_CF", "")
     app.config["STUDIO_INDIRIZZO"] = os.getenv("PCT_STUDIO_INDIRIZZO", "")
     app.config["STUDIO_IBAN"]      = os.getenv("PCT_STUDIO_IBAN", "")
+    app.config["STUDIO_AVVOCATO"]  = os.getenv("PCT_STUDIO_AVVOCATO", "")
+    app.config["TEMPLATE_ATTI_DB"] = cfg.get(
+        "TEMPLATE_ATTI_DB", os.getenv("PCT_TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+    )
+    # Scheduler
+    app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
+    app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -3323,5 +3330,72 @@ def create_app(config: dict | None = None) -> Flask:
 
     from web.blueprints.notifiche import notifiche as notifiche_bp  # WhatsApp /notifiche/*
     app.register_blueprint(notifiche_bp)
+
+    from web.blueprints.template_atti import template_atti as template_atti_bp  # Template atti /template-atti/*
+    app.register_blueprint(template_atti_bp)
+
+    from web.blueprints.statistiche import statistiche as statistiche_bp  # Statistiche /statistiche/*
+    app.register_blueprint(statistiche_bp)
+
+    from web.blueprints.export_csv import export_csv as export_csv_bp  # Export CSV /export/*
+    app.register_blueprint(export_csv_bp)
+
+    # ---- iCal export per agenda e scadenziario
+    @app.route("/agenda/export.ics")
+    @richiedi_login
+    def agenda_ical():
+        from pct.ical import agenda_to_ical
+        ag = get_agenda()
+        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        base_url = request.host_url.rstrip("/")
+        ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
+        return Response(ical_str, mimetype="text/calendar; charset=utf-8",
+                        headers={"Content-Disposition": "attachment; filename=agenda.ics"})
+
+    @app.route("/scadenziario/export.ics")
+    @richiedi_login
+    def scadenziario_ical():
+        from pct.ical import scadenze_to_ical
+        gs = get_scadenziario()
+        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        ical_str = scadenze_to_ical(gs.tutte(), studio_nome=studio_nome)
+        return Response(ical_str, mimetype="text/calendar; charset=utf-8",
+                        headers={"Content-Disposition": "attachment; filename=scadenze.ics"})
+
+    # ---- OCR route (su documento di un fascicolo)
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/ocr", methods=["POST"])
+    @richiedi_login
+    def ocr_documento(id_fasc, id_doc):
+        gf = get_fascicoli()
+        f = gf.get(id_fasc)
+        if not f:
+            abort(404)
+        doc = next((d for d in getattr(f, "documenti", []) if d.id == id_doc), None)
+        if not doc:
+            abort(404)
+        from pct.ocr import estrai_testo
+        percorso = gf.percorso_documento(id_fasc, id_doc)
+        testo = estrai_testo(percorso) if percorso else ""
+        if testo:
+            try:
+                from web.helpers import get_indice
+                indice = get_indice()
+                indice.indicizza(
+                    tipo="documento",
+                    id=f"{id_fasc}_{id_doc}",
+                    titolo=doc.nome_file,
+                    testo=testo,
+                    meta={"id_fascicolo": id_fasc},
+                )
+            except Exception:
+                pass
+            flash(f"Testo estratto ({len(testo)} caratteri) e indicizzato.", "success")
+        else:
+            flash("Nessun testo estraibile da questo documento.", "warning")
+        return redirect(url_for("dettaglio_fascicolo", id_fascicolo=id_fasc))
+
+    # ---- Avvio scheduler background
+    from pct.scheduler import start_scheduler
+    start_scheduler(app)
 
     return app

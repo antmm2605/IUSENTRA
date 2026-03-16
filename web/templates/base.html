@@ -132,6 +132,14 @@
        class="nav-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
       <i class="bi bi-receipt me-2"></i>Fatturazione
     </a>
+    <a href="{{ url_for('template_atti.lista') }}"
+       class="nav-link {% if request.blueprint == 'template_atti' %}active{% endif %}">
+      <i class="bi bi-file-earmark-text me-2"></i>Template Atti
+    </a>
+    <a href="{{ url_for('statistiche.index') }}"
+       class="nav-link {% if request.blueprint == 'statistiche' %}active{% endif %}">
+      <i class="bi bi-bar-chart-line me-2"></i>Statistiche
+    </a>
     <a href="{{ url_for('notifiche.pannello') }}"
        class="nav-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
       <i class="bi bi-whatsapp me-2"></i>Notifiche WA

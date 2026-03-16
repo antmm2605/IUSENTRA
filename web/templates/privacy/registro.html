@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Registro Trattamenti — GDPR Art. 30{% endblock %}
+{% block page_title %}Registro dei Trattamenti{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="text-muted small">
+    <i class="bi bi-info-circle me-1"></i>
+    Art. 30 Reg. UE 2016/679 — obbligatorio per org. ≥250 persone,
+    <strong>raccomandato</strong> per tutti i titolari del trattamento.
+  </div>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuovo">
+    <i class="bi bi-plus-lg me-1"></i>Nuovo trattamento
+  </button>
+</div>
+
+{% if trattamenti %}
+<div class="row g-3">
+  {% for t in trattamenti %}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 {% if not t.attivo %}opacity-50{% endif %}">
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-3">
+          <div style="width:44px;height:44px;border-radius:10px;background:#e3f2fd;
+                      color:#1565c0;font-size:1.3rem;display:flex;align-items:center;
+                      justify-content:center;flex-shrink:0">
+            <i class="bi bi-file-earmark-text"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <strong>{{ t.nome }}</strong>
+              {% if not t.attivo %}
+                <span class="badge bg-secondary">Inattivo</span>
+              {% endif %}
+              {% if t.trasferimento_extra_ue %}
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-globe me-1"></i>Trasferimento extra-UE
+                </span>
+              {% endif %}
+            </div>
+
+            <div class="row g-2 mt-1" style="font-size:.83rem">
+              <div class="col-md-6">
+                <span class="text-muted">Finalità:</span>
+                {{ t.finalita or '—' }}
+              </div>
+              <div class="col-md-6">
+                <span class="text-muted">Base giuridica:</span>
+                {{ t.base_giuridica or '—' }}
+              </div>
+              <div class="col-md-6">
+                <span class="text-muted">Categorie dati:</span>
+                {{ t.categoria_dati or '—' }}
+              </div>
+              <div class="col-md-6">
+                <span class="text-muted">Interessati:</span>
+                {{ t.soggetti_interessati or '—' }}
+              </div>
+              <div class="col-md-6">
+                <span class="text-muted">Destinatari:</span>
+                {{ t.destinatari or '—' }}
+              </div>
+              <div class="col-md-6">
+                <span class="text-muted">Conservazione:</span>
+                {{ t.termine_conservazione or '—' }}
+              </div>
+              {% if t.misure_sicurezza %}
+              <div class="col-12">
+                <span class="text-muted">Misure sicurezza:</span>
+                {{ t.misure_sicurezza }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <form method="post" action="{{ url_for('elimina_trattamento', id_t=t.id) }}"
+                onsubmit="return confirm('Eliminare questo trattamento dal registro?')"
+                class="flex-shrink-0">
+            <button class="btn btn-sm btn-outline-danger" title="Elimina">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card shadow-sm border-0 text-center py-5">
+  <div class="text-muted">
+    <i class="bi bi-file-earmark-text fs-1 d-block mb-3 opacity-25"></i>
+    Nessun trattamento nel registro.
+    <div class="mt-2">
+      <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuovo">
+        Aggiungi il primo trattamento
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# Modal: nuovo trattamento #}
+<div class="modal fade" id="modalNuovo" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('nuovo_trattamento') }}">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-file-earmark-plus me-2"></i>Nuovo trattamento
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Nome / Descrizione <span class="text-danger">*</span></label>
+              <input type="text" name="nome" class="form-control" required
+                     placeholder="es. Gestione clienti e pratiche legali">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Finalità del trattamento</label>
+              <textarea name="finalita" class="form-control" rows="2"
+                        placeholder="Scopo per cui vengono trattati i dati…"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Categorie di dati</label>
+              <input type="text" name="categoria_dati" class="form-control"
+                     placeholder="anagrafici, contatto, legali, sanitari…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Base giuridica</label>
+              <select name="base_giuridica" class="form-select">
+                <option value="">—</option>
+                <option>Contratto (art. 6.1.b GDPR)</option>
+                <option>Obbligo legale (art. 6.1.c GDPR)</option>
+                <option>Interesse legittimo (art. 6.1.f GDPR)</option>
+                <option>Consenso (art. 6.1.a GDPR)</option>
+                <option>Interesse vitale (art. 6.1.d GDPR)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Soggetti interessati</label>
+              <input type="text" name="soggetti_interessati" class="form-control"
+                     placeholder="clienti, collaboratori, fornitori…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Destinatari</label>
+              <input type="text" name="destinatari" class="form-control"
+                     placeholder="interni, autorità giudiziarie…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Termine di conservazione</label>
+              <input type="text" name="termine_conservazione" class="form-control"
+                     placeholder="es. 10 anni ex art. 2220 c.c.">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Misure di sicurezza</label>
+              <input type="text" name="misure_sicurezza" class="form-control"
+                     placeholder="cifratura, backup, accesso con credenziali…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Responsabile esterno (se presente)</label>
+              <input type="text" name="responsabile" class="form-control"
+                     placeholder="Ragione sociale del responsabile…">
+            </div>
+            <div class="col-md-6">
+              <div class="form-check mt-4">
+                <input type="checkbox" name="trasferimento_extra_ue" value="1"
+                       class="form-check-input" id="chkExtraUE">
+                <label class="form-check-label" for="chkExtraUE">
+                  Trasferimento dati extra-UE
+                </label>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Aggiungi al registro
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

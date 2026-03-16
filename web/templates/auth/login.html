@@ -36,6 +36,12 @@
     <p>Portale di gestione professionale</p>
   </div>
   <div class="card-body p-4">
+    {% if request.args.get('timeout') %}
+    <div class="alert alert-warning d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-clock-history"></i>
+      <span>Sessione scaduta per inattività. Accedi di nuovo.</span>
+    </div>
+    {% endif %}
     {% if errore %}
     <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
       <i class="bi bi-exclamation-triangle-fill"></i>

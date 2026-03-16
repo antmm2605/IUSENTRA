@@ -257,6 +257,67 @@
       </div>
     </div>
 
+    {# Consenso Privacy #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-shield-check me-2 text-{% if cliente.consenso_trattamento %}success{% else %}warning{% endif %}"></i>Consenso Privacy</span>
+        {% if cliente.consenso_trattamento %}
+          <span class="badge bg-success">Acquisito</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">Non acquisito</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if cliente.consenso_trattamento %}
+        <div class="small text-muted mb-2">
+          <i class="bi bi-calendar3 me-1"></i>{{ cliente.data_consenso|fmt_data }}
+          {% if cliente.modalita_consenso %}
+            · {{ cliente.modalita_consenso }}
+          {% endif %}
+        </div>
+        {% endif %}
+        <form method="post" action="{{ url_for('aggiorna_consenso', id_cliente=cliente.id) }}"
+              class="row g-2">
+          <div class="col-12">
+            <div class="form-check">
+              <input type="checkbox" name="consenso_trattamento" value="1"
+                     class="form-check-input" id="chkConsenso"
+                     {{ 'checked' if cliente.consenso_trattamento }}>
+              <label class="form-check-label small" for="chkConsenso">
+                Consenso al trattamento dati acquisito
+              </label>
+            </div>
+          </div>
+          <div class="col-7">
+            <input type="date" name="data_consenso" class="form-control form-control-sm"
+                   value="{{ cliente.data_consenso or oggi.isoformat() }}">
+          </div>
+          <div class="col-5">
+            <select name="modalita_consenso" class="form-select form-select-sm">
+              <option value="">Modalità…</option>
+              {% for m in ['cartaceo','email','digitale','orale'] %}
+              <option value="{{ m }}" {{ 'selected' if cliente.modalita_consenso == m }}>
+                {{ m|capitalize }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+              <i class="bi bi-check2 me-1"></i>Aggiorna consenso
+            </button>
+          </div>
+        </form>
+        <div class="mt-2 d-flex gap-1">
+          <a href="{{ url_for('informativa_privacy_pdf', id_cliente=cliente.id) }}"
+             class="btn btn-sm btn-outline-secondary flex-grow-1"
+             title="Scarica PDF informativa privacy">
+            <i class="bi bi-file-pdf me-1"></i>Informativa PDF
+          </a>
+        </div>
+      </div>
+    </div>
+
     {# Azioni rapide #}
     <div class="card shadow-sm">
       <div class="card-header fw-semibold">

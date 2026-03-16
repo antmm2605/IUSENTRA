@@ -16,12 +16,54 @@ import uuid
 import hmac
 import hashlib
 import secrets
+import struct
+import time as _time
+import base64 as _base64
+from urllib.parse import quote as _quote
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from functools import wraps
+
+
+# ------------------------------------------------------------------ TOTP (RFC 6238) — implementazione nativa
+
+def _hotp(key_bytes: bytes, counter: int) -> int:
+    """HMAC-based OTP (RFC 4226)."""
+    msg = struct.pack(">Q", counter)
+    h = hmac.new(key_bytes, msg, hashlib.sha1).digest()
+    offset = h[-1] & 0x0F
+    code = struct.unpack(">I", h[offset:offset + 4])[0] & 0x7FFFFFFF
+    return code % 1_000_000
+
+
+def genera_totp_secret() -> str:
+    """Genera un segreto TOTP casuale (160 bit, codifica base32)."""
+    return _base64.b32encode(secrets.token_bytes(20)).decode()
+
+
+def verifica_totp(secret_b32: str, codice: str, finestra: int = 1) -> bool:
+    """Verifica un codice TOTP con tolleranza ±finestra periodi (30s)."""
+    try:
+        key = _base64.b32decode(secret_b32.upper().replace(" ", ""))
+    except Exception:
+        return False
+    t_now = int(_time.time()) // 30
+    codice = codice.strip().replace(" ", "")
+    for delta in range(-finestra, finestra + 1):
+        if str(_hotp(key, t_now + delta)).zfill(6) == codice:
+            return True
+    return False
+
+
+def totp_uri(secret_b32: str, username: str, issuer: str = "Studio Legale PCT") -> str:
+    """Genera l'URI otpauth:// per Google Authenticator / Aegis."""
+    return (
+        f"otpauth://totp/{_quote(issuer)}:{_quote(username)}"
+        f"?secret={secret_b32}&issuer={_quote(issuer)}&algorithm=SHA1&digits=6&period=30"
+    )
 
 
 # ------------------------------------------------------------------ Ruoli
@@ -162,6 +204,9 @@ class Utente:
     # Override per-utente
     permessi_extra: List[str] = field(default_factory=list)   # aggiuntivi rispetto al ruolo
     permessi_negati: List[str] = field(default_factory=list)  # rimossi rispetto al ruolo
+    # 2FA (TOTP - RFC 6238)
+    totp_secret: str = ""
+    totp_attivato: bool = False
 
     # ---- Flask-Login interface
     @property
@@ -231,6 +276,8 @@ class Utente:
         # Compatibilità backward: campi aggiunti dopo la versione iniziale
         d.setdefault("permessi_extra", [])
         d.setdefault("permessi_negati", [])
+        d.setdefault("totp_secret", "")
+        d.setdefault("totp_attivato", False)
         return Utente(**d)
 
 

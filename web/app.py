@@ -78,7 +78,11 @@ from pct.auth import (
     PERMESSI,
     TUTTI_PERMESSI,
     DESCRIZIONI_RUOLI,
+    genera_totp_secret,
+    verifica_totp,
+    totp_uri,
 )
+from pct.privacy import GestioneTrattamenti, TrattamentoDati
 from pct.scadenziario import (
     GestioneScadenziario,
     Scadenza,
@@ -96,11 +100,55 @@ from pct.database import GestioneDatabase
 from pct.sync import GestoreSincronizzazione, get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
 
+# ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
+
+_ENC_MAGIC = b"PCTENC\x01"
+
+
+def _doc_key() -> bytes | None:
+    """Restituisce la chiave AES-256 da env var PCT_DOC_KEY, o None se non configurata."""
+    raw = os.getenv("PCT_DOC_KEY", "")
+    if not raw:
+        return None
+    import hashlib as _hl
+    return _hl.sha256(raw.encode()).digest()
+
+
+def _encrypt_doc(data: bytes) -> bytes:
+    """Cifra i byte del documento con AES-256-GCM. No-op se PCT_DOC_KEY non impostata."""
+    key = _doc_key()
+    if not key:
+        return data
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    nonce = os.urandom(12)
+    ct = AESGCM(key).encrypt(nonce, data, None)
+    return _ENC_MAGIC + nonce + ct
+
+
+def _decrypt_doc(data: bytes) -> bytes:
+    """Decifra i byte del documento. No-op se il file non è cifrato (magic header assente)."""
+    if not data.startswith(_ENC_MAGIC):
+        return data
+    key = _doc_key()
+    if not key:
+        raise ValueError("Documento cifrato ma PCT_DOC_KEY non configurata nel server.")
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    payload = data[len(_ENC_MAGIC):]
+    nonce, ct = payload[:12], payload[12:]
+    return AESGCM(key).decrypt(nonce, ct, None)
+
+
 # ------------------------------------------------------------------ factory
 
 def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.secret_key = os.getenv("PCT_SECRET_KEY", "dev-secret-pct-2024")
+
+    # Sicurezza sessioni
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("PCT_HTTPS", "").lower() in ("1", "true", "yes")
 
     cfg = config or {}
     app.config["AGENDA_DB"] = cfg.get(
@@ -138,6 +186,9 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
+    )
+    app.config["PRIVACY_DB"] = cfg.get(
+        "PRIVACY_DB", os.getenv("PCT_PRIVACY_DB", "./privacy/registro.json")
     )
 
     def get_agenda() -> Agenda:
@@ -199,6 +250,9 @@ def create_app(config: dict | None = None) -> Flask:
     def get_indice() -> IndiceRicerca:
         return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
 
+    def get_trattamenti() -> GestioneTrattamenti:
+        return GestioneTrattamenti(db_path=app.config["PRIVACY_DB"])
+
     def get_condivisioni() -> GestioneCondivisioni:
         return GestioneCondivisioni(
             db_path=app.config["CONDIVISIONI_DB"],
@@ -239,15 +293,25 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.before_request
     def carica_utente_corrente():
-        """Inietta g.utente_corrente ad ogni request."""
+        """Inietta g.utente_corrente ad ogni request; verifica inattività (8h)."""
         g.utente_corrente = None
         uid = session.get("user_id")
         if uid:
+            last = session.get("last_activity")
+            if last:
+                try:
+                    delta = datetime.now() - datetime.fromisoformat(last)
+                    if delta.total_seconds() > 8 * 3600:
+                        session.clear()
+                        return redirect(url_for("login", next=request.path, timeout=1))
+                except ValueError:
+                    pass
+            session["last_activity"] = datetime.now().isoformat()
             gu = get_utenti()
             g.utente_corrente = gu.get(uid)
 
     # Route pubbliche che non richiedono login
-    _ROUTE_PUBBLICHE = {"login", "static", "logout"}
+    _ROUTE_PUBBLICHE = {"login", "login_2fa", "static", "logout"}
 
     @app.before_request
     def richiedi_login():
@@ -348,8 +412,15 @@ def create_app(config: dict | None = None) -> Flask:
                 request.form.get("password", ""),
             )
             if utente:
+                if utente.totp_attivato:
+                    # Credenziali OK ma serve verifica 2FA
+                    session.clear()
+                    session["totp_pending_uid"] = utente.id
+                    session["totp_pending_next"] = request.args.get("next") or url_for("dashboard")
+                    return redirect(url_for("login_2fa"))
                 session.clear()
                 session["user_id"] = utente.id
+                session["last_activity"] = datetime.now().isoformat()
                 session.permanent = True
                 gu.registra_evento(
                     "auth.login",
@@ -383,6 +454,35 @@ def create_app(config: dict | None = None) -> Flask:
         flash("Disconnessione effettuata.", "info")
         return redirect(url_for("login"))
 
+    @app.route("/login/2fa", methods=["GET", "POST"])
+    def login_2fa():
+        """Secondo step di login: verifica codice TOTP."""
+        uid = session.get("totp_pending_uid")
+        if not uid:
+            return redirect(url_for("login"))
+        gu = get_utenti()
+        utente = gu.get(uid)
+        if not utente or not utente.totp_attivato:
+            session.pop("totp_pending_uid", None)
+            return redirect(url_for("login"))
+        errore = None
+        if request.method == "POST":
+            codice = request.form.get("codice", "").strip()
+            if verifica_totp(utente.totp_secret, codice):
+                next_url = session.pop("totp_pending_next", url_for("dashboard"))
+                session.clear()
+                session["user_id"] = utente.id
+                session["last_activity"] = datetime.now().isoformat()
+                session.permanent = True
+                gu.registra_evento("auth.login", id_utente=utente.id,
+                                   username=utente.username, ip=request.remote_addr or "")
+                return redirect(next_url)
+            errore = "Codice non valido. Riprova."
+            gu.registra_evento("auth.2fa_fallito", id_utente=utente.id,
+                               username=utente.username, ip=request.remote_addr or "",
+                               esito="ERRORE")
+        return render_template("auth/login_2fa.html", errore=errore, username=utente.username)
+
     @app.route("/profilo", methods=["GET", "POST"])
     def profilo():
         u = g.utente_corrente
@@ -408,8 +508,34 @@ def create_app(config: dict | None = None) -> Flask:
                     gu.cambia_password(u.id, pwd_new)
                     audit("auth.cambia_password")
                     flash("Password aggiornata.", "success")
+            elif azione == "2fa_genera":
+                segreto = genera_totp_secret()
+                session["totp_temp_secret"] = segreto
+                flash("Segreto 2FA generato. Scansiona il QR code e conferma con un codice.", "info")
+            elif azione == "2fa_conferma":
+                segreto = session.get("totp_temp_secret", "")
+                codice = request.form.get("codice_2fa", "").strip()
+                if segreto and verifica_totp(segreto, codice):
+                    gu.aggiorna(u.id, totp_secret=segreto, totp_attivato=True)
+                    session.pop("totp_temp_secret", None)
+                    audit("auth.2fa_attivato")
+                    flash("Autenticazione a due fattori attivata.", "success")
+                else:
+                    flash("Codice non valido. Riprova a scansionare il QR code.", "danger")
+            elif azione == "2fa_disattiva":
+                pwd = request.form.get("pwd_disattiva", "")
+                if gu.autentica(u.username, pwd):
+                    gu.aggiorna(u.id, totp_secret="", totp_attivato=False)
+                    session.pop("totp_temp_secret", None)
+                    audit("auth.2fa_disattivato")
+                    flash("2FA disattivato.", "success")
+                else:
+                    flash("Password non corretta.", "danger")
             return redirect(url_for("profilo"))
-        return render_template("auth/profilo.html", utente=u)
+        totp_temp = session.get("totp_temp_secret", "")
+        uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""
+        return render_template("auth/profilo.html", utente=u,
+                               totp_temp_secret=totp_temp, totp_uri_qr=uri_qr)
 
     # ---- Gestione utenti (solo AMMINISTRATORE)
 
@@ -1642,7 +1768,7 @@ def create_app(config: dict | None = None) -> Flask:
                 id_fasc=id_fasc,
                 id_doc=id_doc,
                 nome_file=file.filename,
-                contenuto=file.read(),
+                contenuto=_encrypt_doc(file.read()),
                 caricato_da=u.username if u else "",
                 note=note,
             )
@@ -1993,18 +2119,22 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Nome file non valido.", "warning")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         f = request.form
+        u = g.utente_corrente
         try:
+            contenuto = _encrypt_doc(file.read())
             gf.aggiungi_documento(
                 id_fasc,
                 nome_file=file.filename,
                 tipo=TipoDocumento(f.get("tipo_doc", "ALTRO")),
-                contenuto=file.read(),
+                contenuto=contenuto,
                 note=f.get("note", ""),
                 data_documento=f.get("data_documento", ""),
                 firmato=f.get("firmato") == "1",
-                caricato_da=f.get("caricato_da", ""),
+                caricato_da=u.username if u else "",
             )
             flash(f"Documento '{file.filename}' caricato.", "success")
+            audit("fascicoli.documento.carica", "fascicolo", id_fasc,
+                  dettagli=f"file: {file.filename}")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
@@ -2016,8 +2146,11 @@ def create_app(config: dict | None = None) -> Flask:
             percorso = gf.percorso_documento(id_fasc, id_doc)
             fasc = gf.get(id_fasc)
             doc = next(d for d in fasc.documenti if d.id == id_doc)
-            return send_file(percorso, as_attachment=True, download_name=doc.nome)
-        except (KeyError, StopIteration) as e:
+            data = _decrypt_doc(percorso.read_bytes())
+            audit("fascicoli.documento.scarica", "fascicolo", id_fasc,
+                  dettagli=f"doc {id_doc} — {doc.nome}")
+            return send_file(io.BytesIO(data), as_attachment=True, download_name=doc.nome)
+        except (KeyError, StopIteration, ValueError) as e:
             flash(str(e), "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
@@ -2699,7 +2832,153 @@ def create_app(config: dict | None = None) -> Flask:
             "durata_secondi": round(risultato.ms / 1000, 3),
         })
 
+    # ================================================================ REGISTRO TRATTAMENTI (GDPR Art. 30)
+
+    @app.route("/privacy/registro")
+    def registro_trattamenti():
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            abort(403)
+        gt = get_trattamenti()
+        return render_template("privacy/registro.html", trattamenti=gt.tutti())
+
+    @app.route("/privacy/registro/nuovo", methods=["GET", "POST"])
+    def nuovo_trattamento():
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            abort(403)
+        if request.method == "POST":
+            f = request.form
+            gt = get_trattamenti()
+            gt.nuovo(
+                nome=f.get("nome", ""),
+                finalita=f.get("finalita", ""),
+                categoria_dati=f.get("categoria_dati", ""),
+                base_giuridica=f.get("base_giuridica", ""),
+                soggetti_interessati=f.get("soggetti_interessati", ""),
+                destinatari=f.get("destinatari", ""),
+                trasferimento_extra_ue=f.get("trasferimento_extra_ue") == "1",
+                paese_destinazione=f.get("paese_destinazione", ""),
+                termine_conservazione=f.get("termine_conservazione", ""),
+                misure_sicurezza=f.get("misure_sicurezza", ""),
+                responsabile=f.get("responsabile", ""),
+                note=f.get("note", ""),
+            )
+            audit("privacy.registro.nuovo")
+            flash("Trattamento aggiunto al registro.", "success")
+            return redirect(url_for("registro_trattamenti"))
+        return render_template("privacy/registro.html",
+                               trattamenti=get_trattamenti().tutti(), form_nuovo=True)
+
+    @app.route("/privacy/registro/<id_t>/elimina", methods=["POST"])
+    def elimina_trattamento(id_t):
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            abort(403)
+        try:
+            get_trattamenti().elimina(id_t)
+            audit("privacy.registro.elimina", risorsa_id=id_t)
+            flash("Trattamento eliminato.", "success")
+        except KeyError as e:
+            flash(str(e), "danger")
+        return redirect(url_for("registro_trattamenti"))
+
     # ================================================================ GDPR & PRIVACY
+
+    @app.route("/clienti/<id_cliente>/consenso", methods=["POST"])
+    def aggiorna_consenso(id_cliente):
+        """Registra/aggiorna il consenso al trattamento dati del cliente."""
+        if not g.utente_corrente or not g.utente_corrente.ha_permesso("clienti.scrivi"):
+            abort(403)
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            abort(404)
+        f = request.form
+        consenso = f.get("consenso_trattamento") == "1"
+        gc.aggiorna(id_cliente,
+                    consenso_trattamento=consenso,
+                    data_consenso=f.get("data_consenso", date.today().isoformat()),
+                    modalita_consenso=f.get("modalita_consenso", ""))
+        audit("clienti.consenso", "cliente", id_cliente,
+              dettagli=f"{'concesso' if consenso else 'revocato'} via {f.get('modalita_consenso','')}")
+        flash("Consenso aggiornato.", "success")
+        return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+
+    @app.route("/clienti/<id_cliente>/informativa.pdf")
+    def informativa_privacy_pdf(id_cliente):
+        """Genera PDF dell'informativa privacy per il cliente (GDPR Art. 13)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("clienti.leggi"):
+            abort(403)
+        gc = get_clienti()
+        c = gc.get(id_cliente)
+        if not c:
+            abort(404)
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+        from reportlab.lib import colors
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4,
+                                leftMargin=2.5*cm, rightMargin=2.5*cm,
+                                topMargin=2.5*cm, bottomMargin=2.5*cm)
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle("title", parent=styles["Title"],
+                                     fontSize=14, spaceAfter=6)
+        h2 = ParagraphStyle("h2", parent=styles["Heading2"], fontSize=11, spaceAfter=4)
+        body = ParagraphStyle("body", parent=styles["Normal"], fontSize=9,
+                              spaceAfter=6, leading=14)
+        studio = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+        elementi = [
+            Paragraph("INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI", title_style),
+            Paragraph("ai sensi degli artt. 13-14 del Regolamento UE 2016/679 (GDPR)", body),
+            HRFlowable(width="100%", thickness=1, color=colors.HexColor("#1a3a5c")),
+            Spacer(1, 0.4*cm),
+            Paragraph("1. Titolare del trattamento", h2),
+            Paragraph(f"{studio} — i recapiti sono disponibili presso lo studio.", body),
+            Paragraph("2. Finalità e base giuridica del trattamento", h2),
+            Paragraph("I Suoi dati personali sono trattati per l'erogazione di servizi legali, "
+                      "la gestione dei fascicoli e procedimenti giudiziari e stragiudiziali, "
+                      "nonché per adempiere ad obblighi legali e contabili. "
+                      "La base giuridica è l'esecuzione di un contratto (art. 6.1.b GDPR) "
+                      "e l'adempimento di obblighi legali (art. 6.1.c GDPR).", body),
+            Paragraph("3. Categorie di dati trattati", h2),
+            Paragraph("Dati anagrafici e di contatto, codice fiscale, dati relativi a procedimenti "
+                      "giudiziari, dati economici e patrimoniali strettamente necessari "
+                      "all'esercizio dell'attività professionale.", body),
+            Paragraph("4. Destinatari dei dati", h2),
+            Paragraph("I Suoi dati possono essere comunicati ad autorità giudiziarie e "
+                      "amministrative, alla controparte e ai suoi difensori, nonché "
+                      "a consulenti tecnici e periti nell'ambito dei procedimenti. "
+                      "Non vengono trasferiti a Paesi terzi.", body),
+            Paragraph("5. Periodo di conservazione", h2),
+            Paragraph("I dati saranno conservati per l'intera durata del rapporto professionale "
+                      "e per i successivi 10 anni, ai sensi dell'art. 2220 c.c. e delle norme "
+                      "deontologiche forensi.", body),
+            Paragraph("6. Diritti dell'interessato", h2),
+            Paragraph("Ha diritto di accedere ai Suoi dati (art. 15), rettificarli (art. 16), "
+                      "cancellarli (art. 17), limitarne il trattamento (art. 18), "
+                      "riceverne copia portabile (art. 20) e opporsi al trattamento (art. 21). "
+                      "Può esercitare tali diritti contattando direttamente lo studio.", body),
+            Paragraph("7. Diritto di reclamo", h2),
+            Paragraph("Ha il diritto di proporre reclamo al Garante per la protezione dei "
+                      "dati personali (www.garanteprivacy.it).", body),
+            Spacer(1, 1*cm),
+            HRFlowable(width="100%", thickness=0.5, color=colors.grey),
+            Spacer(1, 0.3*cm),
+            Paragraph(f"Informativa generata il {date.today().strftime('%d/%m/%Y')} "
+                      f"per: <b>{c.nome_completo}</b>", body),
+        ]
+        doc.build(elementi)
+        buf.seek(0)
+        audit("clienti.informativa_pdf", "cliente", id_cliente,
+              dettagli=f"PDF Art.13 — {c.nome_completo}")
+        nome = f"informativa_{c.nome_completo.replace(' ', '_').lower()}.pdf"
+        resp = send_file(buf, as_attachment=True, download_name=nome,
+                         mimetype="application/pdf")
+        return resp
 
     @app.route("/clienti/<id_cliente>/porta-via")
     def gdpr_portabilita(id_cliente):

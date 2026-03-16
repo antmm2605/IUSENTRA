@@ -360,6 +360,10 @@
        class="nav-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
       <i class="bi bi-database-gear me-2"></i>Database
     </a>
+    <a href="{{ url_for('registro_trattamenti') }}"
+       class="nav-link {% if request.endpoint in ('registro_trattamenti','nuovo_trattamento') %}active{% endif %}">
+      <i class="bi bi-file-earmark-medical me-2"></i>Registro GDPR
+    </a>
     {% endif %}
   </div>
 

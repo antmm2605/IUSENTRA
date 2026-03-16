@@ -148,6 +148,11 @@ class Cliente:
     procedimenti: List[RiferimentoProcedimento] = field(default_factory=list)
     tag: List[str] = field(default_factory=list)
 
+    # --- Consenso trattamento dati (GDPR)
+    consenso_trattamento: bool = False
+    data_consenso: str = ""           # YYYY-MM-DD
+    modalita_consenso: str = ""       # cartaceo | email | digitale | orale
+
     # --- Metadati
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
     modificato_il: str = field(default_factory=lambda: datetime.now().isoformat())

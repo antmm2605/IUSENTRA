@@ -178,6 +178,55 @@
       </div>
     </div>
 
+    <!-- Link pagamento digitale -->
+    {% if p.stato.value not in ['PAGATA', 'ANNULLATA'] %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+      <div class="card-body">
+        <h6 class="fw-semibold mb-1"><i class="bi bi-credit-card me-2 text-primary"></i>Pagamento digitale</h6>
+        <p class="text-muted mb-3" style="font-size:.82rem;">
+          Genera un link sicuro da inviare al cliente per il pagamento online.
+        </p>
+
+        {# Mostra link appena creato dalla sessione #}
+        {% if session.get('pagamento_link_pending') and session['pagamento_link_pending'].get('numero') == p.numero %}
+        {% set pl = session['pagamento_link_pending'] %}
+        <div class="alert alert-success py-2 mb-2">
+          <div class="fw-semibold mb-1"><i class="bi bi-check-circle me-1"></i>Link creato!</div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace" id="link-pag-val"
+                   value="{{ pl.link }}" readonly style="font-size:.75rem;">
+            <button class="btn btn-outline-success" onclick="navigator.clipboard.writeText(document.getElementById('link-pag-val').value);this.innerHTML='<i class=\'bi bi-check\'></i>'">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+          {% if cliente and cliente.recapiti and cliente.recapiti.email %}
+          <a href="mailto:{{ cliente.recapiti.email }}?subject=Link pagamento parcella {{ p.numero }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0APuò effettuare il pagamento della parcella n. {{ p.numero }} di € {{ '%.2f'|format(p.totale) }} al seguente link:%0D%0A%0D%0A{{ pl.link }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
+             class="btn btn-sm btn-outline-primary mt-2 w-100">
+            <i class="bi bi-envelope me-1"></i>Invia per email
+          </a>
+          {% endif %}
+          {% if cliente and cliente.recapiti and cliente.recapiti.cellulare %}
+          <a href="https://wa.me/{{ cliente.recapiti.cellulare|replace('+','')|replace(' ','') }}?text={{ ('Gentile ' ~ cliente.nome_completo ~ ', ecco il link per pagare la parcella n. ' ~ p.numero ~ ' di \u20ac ' ~ '%.2f'|format(p.totale) ~ ': ' ~ pl.link)|urlencode }}"
+             target="_blank" class="btn btn-sm btn-outline-success mt-1 w-100">
+            <i class="bi bi-whatsapp me-1"></i>Invia via WhatsApp
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('pagamenti.crea_link_pagamento', id_parcella=p.id) }}">
+          <div class="input-group input-group-sm mb-2">
+            <span class="input-group-text">Validità (gg)</span>
+            <input type="number" name="giorni_validita" class="form-control" value="30" min="1" max="365">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-link-45deg me-1"></i>Genera link pagamento
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Aggiorna stato -->
     {% if p.stato.value not in ['ANNULLATA'] %}
     <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">

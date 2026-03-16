@@ -144,6 +144,10 @@
        class="nav-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
       <i class="bi bi-whatsapp me-2"></i>Notifiche WA
     </a>
+    <a href="{{ url_for('pagamenti.impostazioni_pagamenti') }}"
+       class="nav-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
+      <i class="bi bi-credit-card me-2"></i>Pagamenti
+    </a>
     {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
     <div class="section-label">Admin</div>
     <a href="{{ url_for('lista_utenti') }}"

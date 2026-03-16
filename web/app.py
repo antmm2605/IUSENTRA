@@ -221,6 +221,10 @@ def create_app(config: dict | None = None) -> Flask:
     # Scheduler
     app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
     app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
+    # Pagamenti digitali
+    app.config["PAGAMENTI_DIR"] = cfg.get(
+        "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
+    )
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -3339,6 +3343,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     from web.blueprints.export_csv import export_csv as export_csv_bp  # Export CSV /export/*
     app.register_blueprint(export_csv_bp)
+
+    from web.blueprints.pagamenti import pagamenti as pagamenti_bp  # Pagamenti digitali
+    app.register_blueprint(pagamenti_bp)
 
     # ---- iCal export per agenda e scadenziario
     @app.route("/agenda/export.ics")

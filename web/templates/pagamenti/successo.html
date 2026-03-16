@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pagamento — {{ studio_nome }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body { background: #f0f4f8; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .pay-card { max-width: 480px; width: 100%; border-radius: 1.25rem; box-shadow: 0 8px 32px rgba(0,0,0,.12); }
+    .result-header { border-radius: 1.25rem 1.25rem 0 0; padding: 2rem; text-align: center; color: #fff; }
+    .result-header.pagato    { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+    .result-header.bonifico  { background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%); }
+    .result-header.atteso    { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
+    .icon-circle { width: 5rem; height: 5rem; border-radius: 50%; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2.5rem; }
+    .iban-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: .75rem; padding: 1rem 1.25rem; font-family: monospace; letter-spacing: .03em; }
+    .copy-btn { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="pay-card card border-0">
+
+    {% if lp.stato == 'PAGATO' and provider != 'bonifico' %}
+    <!-- ✅ Pagamento completato -->
+    <div class="result-header pagato">
+      <div class="icon-circle"><i class="bi bi-check-lg"></i></div>
+      <h2 class="h4 mb-1">Pagamento ricevuto!</h2>
+      <div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>
+    </div>
+    <div class="card-body p-4">
+      <p class="text-muted mb-3">Il tuo pagamento è stato elaborato con successo. Lo studio riceverà automaticamente la conferma.</p>
+      <div class="d-flex flex-column gap-2 mb-3">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Metodo</span>
+          <span class="fw-600">{{ lp.provider_usato or provider }}</span>
+        </div>
+        {% if lp.provider_tx_id %}
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">ID transazione</span>
+          <span class="fw-500 text-break small">{{ lp.provider_tx_id }}</span>
+        </div>
+        {% endif %}
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Data</span>
+          <span>{{ lp.data_pagamento[:10] if lp.data_pagamento else '' }}</span>
+        </div>
+      </div>
+      <div class="alert alert-success py-2">
+        <i class="bi bi-envelope me-2"></i>Conserva questa pagina come ricevuta.
+      </div>
+    </div>
+
+    {% elif provider == 'bonifico' %}
+    <!-- 🏦 Bonifico bancario: mostra coordinate -->
+    <div class="result-header bonifico">
+      <div class="icon-circle"><i class="bi bi-bank"></i></div>
+      <h2 class="h4 mb-1">Effettua il bonifico</h2>
+      <div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>
+    </div>
+    <div class="card-body p-4">
+      <p class="text-muted mb-3">
+        Per completare il pagamento esegui un bonifico SEPA con i seguenti dati.
+        Il pagamento sarà confermato dallo studio alla ricezione.
+      </p>
+
+      {% if cfg_bonifico %}
+      <div class="iban-box mb-3">
+        {% if cfg_bonifico.intestazione %}
+        <div class="mb-2">
+          <small class="text-muted d-block">Intestatario</small>
+          <strong>{{ cfg_bonifico.intestazione }}</strong>
+        </div>
+        {% endif %}
+        <div class="mb-2">
+          <small class="text-muted d-block">IBAN</small>
+          <strong id="iban-val">{{ cfg_bonifico.iban }}</strong>
+          <button class="btn btn-sm btn-outline-secondary ms-2 copy-btn" onclick="navigator.clipboard.writeText('{{ cfg_bonifico.iban }}');this.innerHTML='<i class=\'bi bi-check\'></i>'">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+        {% if cfg_bonifico.banca %}
+        <div class="mb-2">
+          <small class="text-muted d-block">Banca</small>
+          {{ cfg_bonifico.banca }}
+        </div>
+        {% endif %}
+        <div class="mb-2">
+          <small class="text-muted d-block">Importo esatto</small>
+          <strong>€ {{ "%.2f"|format(lp.importo) }}</strong>
+        </div>
+        <div>
+          <small class="text-muted d-block">Causale</small>
+          <strong>{{ lp.descrizione or 'Pagamento parcella' }}</strong>
+        </div>
+        {% if cfg_bonifico.note_aggiuntive %}
+        <div class="mt-2 pt-2 border-top text-muted small">{{ cfg_bonifico.note_aggiuntive }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="alert alert-info py-2">
+        <i class="bi bi-info-circle me-2"></i>Lo studio verificherà l'accredito e aggiornerà lo stato della parcella.
+      </div>
+    </div>
+
+    {% else %}
+    <!-- ⏳ Pagamento in elaborazione -->
+    <div class="result-header atteso">
+      <div class="icon-circle"><i class="bi bi-hourglass-split"></i></div>
+      <h2 class="h4 mb-1">Pagamento in attesa</h2>
+      <div style="opacity:.9;">€ {{ "%.2f"|format(lp.importo) }}</div>
+    </div>
+    <div class="card-body p-4">
+      <p class="text-muted mb-3">Il tuo pagamento è in fase di elaborazione. Lo studio riceverà conferma a breve.</p>
+      <div class="alert alert-warning py-2">
+        <i class="bi bi-clock me-2"></i>Torna a controllare tra qualche minuto o contatta lo studio.
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer comune -->
+    <div class="px-4 pb-4 text-center">
+      <small class="text-muted">
+        <i class="bi bi-building me-1"></i>{{ studio_nome }}
+      </small>
+    </div>
+  </div>
+</body>
+</html>

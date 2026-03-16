@@ -45,6 +45,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_FATTURAZIONE_DB=/data/fatturazione/parcelle.json \
     PCT_NOTIFICHE_LOG=/data/notifiche/log.json \
     PCT_TEMPLATE_ATTI_DB=/data/template_atti/templates.json \
+    PCT_PAGAMENTI_DIR=/data/pagamenti \
     PCT_HTTPS=true \
     PCT_STUDIO_NOME="Studio Legale PCT"
 

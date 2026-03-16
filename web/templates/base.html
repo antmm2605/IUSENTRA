@@ -252,6 +252,10 @@
        class="nav-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
       <i class="bi bi-journal-text me-2"></i>Audit Log
     </a>
+    <a href="{{ url_for('admin_database') }}"
+       class="nav-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
+      <i class="bi bi-database-gear me-2"></i>Database
+    </a>
     {% endif %}
   </div>
 

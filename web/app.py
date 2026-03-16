@@ -90,6 +90,7 @@ from pct.scadenziario import (
 )
 from pct.search_index import IndiceRicerca
 from pct.reports import fascicolo_pdf, scadenze_pdf
+from pct.database import GestioneDatabase
 
 # ------------------------------------------------------------------ factory
 
@@ -190,6 +191,18 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_indice() -> IndiceRicerca:
         return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
+
+    def get_database() -> GestioneDatabase:
+        return GestioneDatabase({
+            "clienti": app.config["CLIENTI_DB"],
+            "fascicoli": app.config["FASCICOLI_DB"],
+            "appuntamenti": app.config["AGENDA_DB"],
+            "scadenze": app.config["SCADENZIARIO_DB"],
+            "messaggi": app.config["MESSAGGI_DB"],
+            "utenti": app.config["AUTH_DB"],
+            "audit": app.config["AUDIT_DB"],
+            "search_index": app.config["SEARCH_INDEX"],
+        })
 
     # ---------------------------------------------------------------- auth middleware
 
@@ -1928,5 +1941,114 @@ def create_app(config: dict | None = None) -> Flask:
         nome_file = f"scadenziario_{date.today().isoformat()}.pdf"
         audit("scadenziario.esporta_pdf")
         return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+
+    # ================================================================ ADMIN DATABASE
+
+    @app.route("/admin/database")
+    def admin_database():
+        """Dashboard gestione database — solo amministratori."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            flash("Accesso riservato agli amministratori.", "danger")
+            return redirect(url_for("dashboard"))
+        db = get_database()
+        statistiche = db.statistiche()
+        uso = db.analisi_uso()
+        sqlite_info = db.statistiche_sqlite(
+            os.path.join(app.config.get("BACKUP_DIR", "./backup"), "studio_legale.db")
+        )
+        return render_template(
+            "admin/database.html",
+            statistiche=statistiche,
+            uso=uso,
+            sqlite_info=sqlite_info,
+        )
+
+    @app.route("/admin/database/verifica")
+    def admin_database_verifica():
+        """Verifica integrità referenziale di tutti i moduli."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        db = get_database()
+        problemi = db.verifica_integrita()
+        audit("database.verifica_integrita")
+        return jsonify({
+            "ok": True,
+            "n_problemi": len(problemi),
+            "problemi": [
+                {
+                    "livello": p.severita,
+                    "modulo": p.modulo,
+                    "tipo": p.tipo,
+                    "descrizione": p.messaggio,
+                    "id_risorsa": p.id_record,
+                    "campo": p.campo,
+                    "suggerimento": p.suggerimento,
+                }
+                for p in problemi
+            ],
+        })
+
+    @app.route("/admin/database/ottimizza", methods=["POST"])
+    def admin_database_ottimizza():
+        """Esegue ottimizzazione su tutti i moduli (JSON compaction + SQLite VACUUM)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        db = get_database()
+        risultati = db.ottimizza()
+        audit("database.ottimizza")
+        return jsonify({
+            "ok": True,
+            "risultati": [
+                {
+                    "modulo": r.modulo,
+                    "operazione": r.operazione,
+                    "riuscita": r.riuscita,
+                    "dettagli": r.dettagli,
+                    "ms": r.ms,
+                }
+                for r in risultati
+            ],
+        })
+
+    @app.route("/admin/database/migra", methods=["POST"])
+    def admin_database_migra():
+        """Migra tutti i dati JSON verso un singolo database SQLite."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        percorso_db = os.path.join(
+            app.config.get("BACKUP_DIR", "./backup"),
+            f"studio_legale_{date.today().isoformat()}.db",
+        )
+        db = get_database()
+        risultato = db.migra_verso_sqlite(percorso_db)
+        audit("database.migra_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
+        totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
+        return jsonify({
+            "ok": risultato.riuscita,
+            "percorso_db": risultato.percorso_db,
+            "record_migrati": totale,
+            "per_modulo": risultato.record_migrati,
+            "errori": risultato.errori,
+            "durata_secondi": round(risultato.ms / 1000, 3),
+        })
+
+    @app.route("/admin/database/export")
+    def admin_database_export():
+        """Esporta ZIP completo di tutti i dati."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            flash("Accesso riservato agli amministratori.", "danger")
+            return redirect(url_for("dashboard"))
+        import tempfile
+        output_dir = tempfile.mkdtemp(prefix="hacs_export_")
+        db = get_database()
+        zip_path = db.esporta_tutto(output_dir)
+        nome_file = f"export_{date.today().isoformat()}.zip"
+        audit("database.esporta_zip")
+        return send_file(zip_path, as_attachment=True, download_name=nome_file, mimetype="application/zip")
 
     return app

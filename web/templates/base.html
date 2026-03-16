@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="pct-modulo" content="{% block pct_modulo %}{% endblock %}">
   <title>{% block title %}Studio Legale PCT{% endblock %}</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#1a3a5c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PCT Studio">
+  <link rel="apple-touch-icon" href="/static/icons/icon.svg">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
@@ -177,7 +185,47 @@
 
     @media (max-width: 768px) {
       #sidebar { display: none; }
-      #main { margin-left: 0; padding: 1rem; }
+      #main { margin-left: 0; padding: 1rem; padding-bottom: 76px; }
+      /* toast sopra la bottom nav */
+      #sync-toast-container { bottom: 72px; }
+    }
+
+    /* ---- Bottom Navigation mobile ---- */
+    #bottom-nav {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      #bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 62px;
+        background: var(--primary);
+        border-top: 1px solid rgba(255,255,255,.1);
+        box-shadow: 0 -2px 12px rgba(0,0,0,.25);
+        z-index: 1000;
+        /* iOS safe area */
+        padding-bottom: env(safe-area-inset-bottom, 0);
+      }
+      .bn-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255,255,255,.55);
+        text-decoration: none;
+        font-size: .62rem;
+        font-weight: 500;
+        gap: 2px;
+        padding: 8px 4px 6px;
+        transition: color .15s, background .15s;
+        border-radius: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .bn-item i { font-size: 1.35rem; line-height: 1; }
+      .bn-item.active { color: var(--accent); }
+      .bn-item:active { background: rgba(255,255,255,.06); }
     }
 
     /* ---- Sincronizzazione multi-operatore ---- */
@@ -495,6 +543,35 @@
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
 
+{# ---- Bottom Navigation (mobile/tablet) ---- #}
+<nav id="bottom-nav" aria-label="Navigazione principale">
+  <a href="{{ url_for('dashboard') }}"
+     class="bn-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i>
+    <span>Dashboard</span>
+  </a>
+  <a href="{{ url_for('lista_clienti') }}"
+     class="bn-item {% if request.endpoint in ('lista_clienti','dettaglio_cliente','nuovo_cliente','modifica_cliente') %}active{% endif %}">
+    <i class="bi bi-people"></i>
+    <span>Clienti</span>
+  </a>
+  <a href="{{ url_for('lista_fascicoli') }}"
+     class="bn-item {% if request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo') %}active{% endif %}">
+    <i class="bi bi-folder2-open"></i>
+    <span>Fascicoli</span>
+  </a>
+  <a href="{{ url_for('agenda_view') }}"
+     class="bn-item {% if request.endpoint == 'agenda_view' %}active{% endif %}">
+    <i class="bi bi-calendar-week"></i>
+    <span>Agenda</span>
+  </a>
+  <a href="{{ url_for('scadenziario') }}"
+     class="bn-item {% if request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') %}active{% endif %}">
+    <i class="bi bi-calendar-event"></i>
+    <span>Scadenze</span>
+  </a>
+</nav>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
@@ -801,5 +878,15 @@ function initPagination(tableId, selectId) {
 })();
 </script>
 {% endif %}
+
+{# ---- Service Worker — PWA ---- #}
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .catch(() => {}); // silenzioso: non blocca l'app
+  });
+}
+</script>
 </body>
 </html>

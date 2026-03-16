@@ -386,6 +386,23 @@ def create_app(config: dict | None = None) -> Flask:
             "recenti": session.get("recenti", []),
         }
 
+    # ================================================================ PWA
+
+    @app.route("/sw.js")
+    def service_worker():
+        """Service Worker servito dalla root per scope '/'."""
+        return send_file(
+            app.root_path + "/static/sw.js",
+            mimetype="application/javascript",
+        )
+
+    @app.route("/offline")
+    def offline():
+        """Pagina fallback mostrata dal service worker quando si è offline."""
+        return render_template("offline.html")
+
+    # ================================================================ ERRORI
+
     @app.errorhandler(403)
     def errore_403(e):
         return render_template("errori/403.html"), 403

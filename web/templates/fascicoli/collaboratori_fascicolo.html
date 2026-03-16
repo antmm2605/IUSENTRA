@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block pct_modulo %}fascicoli{% endblock %}
+{% block title %}Collaboratori — {{ fascicolo.titolo }}{% endblock %}
+{% block page_title %}Collaboratori fascicolo{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a></li>
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }} — {{ fascicolo.titolo }}</a>
+    </li>
+    <li class="breadcrumb-item active">Collaboratori</li>
+  </ol>
+</nav>
+
+<div class="row g-4">
+
+  {# Collaboratori attuali #}
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-people-fill me-2"></i>Collaboratori sul fascicolo
+          <span class="badge bg-primary ms-1">{{ collaboratori | length }}</span>
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if collaboratori %}
+        <table class="table table-hover mb-0 small">
+          <thead class="table-light">
+            <tr><th>Utente</th><th>Accesso</th><th>Scadenza</th><th>Tag</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for ac in collaboratori %}
+            <tr class="{% if ac.is_scaduto %}table-danger{% endif %}">
+              <td>
+                <strong>{{ ac.username }}</strong>
+                {% if ac.nome_completo and ac.nome_completo != ac.username %}
+                  <br><span class="text-muted">{{ ac.nome_completo }}</span>
+                {% endif %}
+                {% if ac.is_scaduto %}<span class="badge bg-danger ms-1">Scaduto</span>{% endif %}
+              </td>
+              <td>
+                {% if ac.ruolo.value == 'LETTURA' %}
+                  <span class="badge bg-info text-dark">Lettura</span>
+                {% elif ac.ruolo.value == 'SCRITTURA' %}
+                  <span class="badge bg-primary">Scrittura</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Gestore</span>
+                {% endif %}
+              </td>
+              <td class="text-muted">{{ ac.data_scadenza or '—' }}</td>
+              <td>
+                {% for tag in ac.tags %}
+                  <span class="badge rounded-pill bg-light text-dark border">{{ tag }}</span>
+                {% endfor %}
+              </td>
+              <td>
+                <form method="post" onsubmit="return confirm('Revocare accesso a {{ ac.username }}?')">
+                  <input type="hidden" name="azione" value="revoca">
+                  <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
+                  <button type="submit" class="btn btn-xs btn-outline-danger">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-people display-6 d-block mb-2"></i>
+          Nessun collaboratore su questo fascicolo.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Aggiungi #}
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header"><h5 class="mb-0"><i class="bi bi-person-plus me-2"></i>Aggiungi</h5></div>
+      <div class="card-body">
+        {% if utenti_disponibili %}
+        <form method="post">
+          <input type="hidden" name="azione" value="condividi">
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Utente</label>
+            <select name="id_utente" class="form-select form-select-sm" required>
+              <option value="" disabled selected>— seleziona —</option>
+              {% for ut in utenti_disponibili %}
+              <option value="{{ ut.id }}">{{ ut.username }}{% if ut.nome_completo %} — {{ ut.nome_completo }}{% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-bold">Livello</label>
+            <select name="ruolo" class="form-select form-select-sm">
+              {% for r in ruoli_condivisione %}
+              <option value="{{ r.value }}">{{ r.value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label class="form-label small fw-bold">Scadenza</label>
+              <input type="date" name="data_scadenza" class="form-control form-control-sm">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-bold">Tag</label>
+              <input type="text" name="tags" class="form-control form-control-sm" placeholder="udienza, CTU">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Note</label>
+            <input type="text" name="note" class="form-control form-control-sm" placeholder="Opzionale">
+          </div>
+          <button type="submit" class="btn btn-success w-100">
+            <i class="bi bi-share me-1"></i>Condividi fascicolo
+          </button>
+        </form>
+        {% else %}
+        <p class="text-muted small mb-0">Tutti gli utenti attivi hanno già accesso.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>.btn-xs { padding:.15rem .45rem; font-size:.75rem; }</style>
+{% endblock %}

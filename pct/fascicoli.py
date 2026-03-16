@@ -92,6 +92,26 @@ class EsitoAttivita(str, Enum):
 # ------------------------------------------------------------------ Sub-modelli
 
 @dataclass
+class DocumentoVersione:
+    """Versione precedente di un documento (storico modifiche)."""
+    hash_sha256: str
+    percorso: str
+    dimensione_bytes: int
+    sostituito_il: str   # ISO datetime
+    sostituito_da: str   # username
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "DocumentoVersione":
+        return cls(
+            hash_sha256=d.get("hash_sha256", ""),
+            percorso=d.get("percorso", ""),
+            dimensione_bytes=d.get("dimensione_bytes", 0),
+            sostituito_il=d.get("sostituito_il", ""),
+            sostituito_da=d.get("sostituito_da", ""),
+        )
+
+
+@dataclass
 class Documento:
     """Documento allegato al fascicolo."""
     id: str
@@ -106,6 +126,8 @@ class Documento:
     note: str = ""
     id_deposito_pct: str = ""      # collegamento a deposito PCT
     caricato_da: str = ""
+    # #7 — Storico versioni (versioni precedenti del documento)
+    versioni: List["DocumentoVersione"] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -116,6 +138,7 @@ class Documento:
     def from_dict(cls, d: dict) -> "Documento":
         d = dict(d)
         d["tipo"] = TipoDocumento(d["tipo"])
+        d["versioni"] = [DocumentoVersione.from_dict(v) for v in d.get("versioni", [])]
         return cls(**d)
 
 
@@ -473,6 +496,57 @@ class GestioneFascicoli:
             id_deposito_pct=id_deposito_pct,
         )
         f.documenti.append(doc)
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return doc
+
+    def sostituisci_documento(
+        self,
+        id_fasc: str,
+        id_doc: str,
+        nome_file: str,
+        contenuto: bytes,
+        caricato_da: str = "",
+        note: str = "",
+    ) -> "Documento":
+        """
+        Sostituisce il file di un documento esistente mantenendo lo storico
+        della versione precedente in doc.versioni.
+        """
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+
+        # Archivia versione precedente
+        doc.versioni.append(DocumentoVersione(
+            hash_sha256=doc.hash_sha256,
+            percorso=doc.percorso,
+            dimensione_bytes=doc.dimensione_bytes,
+            sostituito_il=datetime.now().isoformat(),
+            sostituito_da=caricato_da,
+        ))
+
+        # Salva nuovo file (path basato sul nuovo nome per evitare collisioni)
+        fasc_dir = self.documents_dir / id_fasc
+        fasc_dir.mkdir(parents=True, exist_ok=True)
+        nome_safe = Path(nome_file).name
+        dest = fasc_dir / nome_safe
+        if dest.exists() and str(dest.relative_to(self.documents_dir)) != doc.percorso:
+            stem, suffix = Path(nome_safe).stem, Path(nome_safe).suffix
+            nome_safe = f"{stem}_{uuid.uuid4().hex[:4]}{suffix}"
+            dest = fasc_dir / nome_safe
+        dest.write_bytes(contenuto)
+
+        doc.percorso = str(dest.relative_to(self.documents_dir))
+        doc.nome = nome_file
+        doc.dimensione_bytes = len(contenuto)
+        doc.hash_sha256 = hashlib.sha256(contenuto).hexdigest()
+        doc.caricato_da = caricato_da or doc.caricato_da
+        if note:
+            doc.note = note
+        doc.data_caricamento = datetime.now().isoformat()
+
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return doc

@@ -10,6 +10,7 @@ import csv
 import io
 import os
 import json
+import zipfile as _zipfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -52,6 +53,7 @@ from pct.fascicoli import (
     EsitoAttivita,
     AttivitaProcessuale,
     Documento,
+    DocumentoVersione,
 )
 from pct.messaggi import (
     GestioneMessaggi,
@@ -198,7 +200,10 @@ def create_app(config: dict | None = None) -> Flask:
         return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
 
     def get_condivisioni() -> GestioneCondivisioni:
-        return GestioneCondivisioni(db_path=app.config["CONDIVISIONI_DB"])
+        return GestioneCondivisioni(
+            db_path=app.config["CONDIVISIONI_DB"],
+            secret_key=app.config["SECRET_KEY"],
+        )
 
     def cliente_accessibile(id_cliente: str, richiesto: RuoloCondivisione = RuoloCondivisione.LETTURA) -> bool:
         """
@@ -733,6 +738,19 @@ def create_app(config: dict | None = None) -> Flask:
         stats_sc = gs.statistiche()
         stats_fascicoli = get_fascicoli().statistiche()
         stats_clienti = get_clienti().statistiche()
+        # #4 — Cartelle condivise per collaboratori
+        u_dash = g.utente_corrente
+        cartelle_mie = []
+        accessi_in_scadenza = []
+        if u_dash and not u_dash.ha_permesso("clienti.leggi"):
+            gcd = get_condivisioni()
+            gc = get_clienti()
+            cartelle_mie = [
+                (gc.get(id_c), ac)
+                for id_c, ac in gcd.cartelle_condivise_con(u_dash.id)
+                if gc.get(id_c) and not ac.is_scaduto
+            ][:5]
+            accessi_in_scadenza = gcd.accessi_in_scadenza(entro_giorni=7)
         return render_template(
             "dashboard.html",
             apps_oggi=apps_oggi,
@@ -744,6 +762,8 @@ def create_app(config: dict | None = None) -> Flask:
             stats_sc=stats_sc,
             stats_fascicoli=stats_fascicoli,
             stats_clienti=stats_clienti,
+            cartelle_mie=cartelle_mie,
+            accessi_in_scadenza=accessi_in_scadenza,
         )
 
     # ---------------------------------------------------------------- agenda
@@ -1066,13 +1086,20 @@ def create_app(config: dict | None = None) -> Flask:
         apps_cliente = agenda.cerca(cliente=c.nome_completo)
         gcd = get_condivisioni()
         n_collaboratori = gcd.n_collaboratori(id_cliente)
-        ruolo_cond = gcd.ruolo_accesso(g.utente_corrente.id, id_cliente) if g.utente_corrente else None
+        u = g.utente_corrente
+        ruolo_cond = gcd.ruolo_accesso(u.id, id_cliente) if u else None
+        # #3 — Audit: registra accesso a cartella condivisa
+        if u and not u.ha_permesso("clienti.leggi") and ruolo_cond:
+            audit("condivisione.accesso", "cliente", id_cliente,
+                  dettagli=f"accesso lettura [{ruolo_cond.value}]")
+        link_attivi = gcd.link_attivi_per_cliente(id_cliente)
         return render_template(
             "clienti/dettaglio.html",
             cliente=c,
             apps_cliente=apps_cliente,
             n_collaboratori=n_collaboratori,
             ruolo_condivisione=ruolo_cond,
+            link_attivi=link_attivi,
         )
 
     @app.route("/clienti/<id_cliente>/modifica", methods=["GET", "POST"])
@@ -1280,6 +1307,11 @@ def create_app(config: dict | None = None) -> Flask:
                 id_dest = request.form.get("id_utente", "").strip()
                 ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
                 note = request.form.get("note", "").strip()
+                # #2 — Scadenza accesso
+                data_scadenza = request.form.get("data_scadenza", "").strip()
+                # #9 — Tag
+                tags_raw = request.form.get("tags", "").strip()
+                tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
                 utente_dest = gu.get(id_dest)
                 if not utente_dest:
                     flash("Utente non trovato.", "danger")
@@ -1293,6 +1325,8 @@ def create_app(config: dict | None = None) -> Flask:
                             ruolo=RuoloCondivisione(ruolo_str),
                             condiviso_da=u.username,
                             note=note,
+                            data_scadenza=data_scadenza,
+                            tags=tags,
                         )
                         flash(
                             f"Cartella condivisa con {utente_dest.username} "
@@ -1300,9 +1334,29 @@ def create_app(config: dict | None = None) -> Flask:
                             "success",
                         )
                         audit("condivisione.condividi", "cliente", id_cliente,
-                              dettagli=f"→ {utente_dest.username} [{ruolo_str}]")
+                              dettagli=f"→ {utente_dest.username} [{ruolo_str}]"
+                                       + (f" scade {data_scadenza}" if data_scadenza else ""))
                         _sync.pubblica("info", "clienti", id_cliente, u.username,
                                        messaggio=f"Cartella condivisa con {utente_dest.username}")
+                        # #1 — Notifica email all'utente destinatario
+                        if utente_dest.email:
+                            try:
+                                get_messaggi().invia_email(
+                                    destinatario=utente_dest.email,
+                                    oggetto=f"Cartella condivisa: {c.nome_completo}",
+                                    corpo_testo=(
+                                        f"Ciao {utente_dest.nome_completo or utente_dest.username},\n\n"
+                                        f"{u.nome_completo or u.username} ha condiviso con te "
+                                        f"la cartella cliente di {c.nome_completo} "
+                                        f"con accesso {RuoloCondivisione(ruolo_str).value}.\n"
+                                        + (f"L'accesso scade il {data_scadenza}.\n" if data_scadenza else "")
+                                        + (f"Note: {note}\n" if note else "")
+                                        + "\nAccedi allo studio per visualizzare la cartella."
+                                    ),
+                                    nome_destinatario=utente_dest.nome_completo or utente_dest.username,
+                                )
+                            except Exception:
+                                pass  # Notifica email non bloccante
                     except ValueError as e:
                         flash(str(e), "danger")
 
@@ -1316,15 +1370,76 @@ def create_app(config: dict | None = None) -> Flask:
                           dettagli=f"→ {username_dest}")
                     _sync.pubblica("info", "clienti", id_cliente, u.username,
                                    messaggio=f"Accesso revocato per {username_dest}")
+                    # #1 — Notifica revoca
+                    if utente_dest and utente_dest.email:
+                        try:
+                            get_messaggi().invia_email(
+                                destinatario=utente_dest.email,
+                                oggetto=f"Accesso revocato: {c.nome_completo}",
+                                corpo_testo=(
+                                    f"Ciao {utente_dest.nome_completo or utente_dest.username},\n\n"
+                                    f"Il tuo accesso alla cartella cliente di {c.nome_completo} "
+                                    f"è stato revocato da {u.nome_completo or u.username}."
+                                ),
+                                nome_destinatario=utente_dest.nome_completo or utente_dest.username,
+                            )
+                        except Exception:
+                            pass
                 else:
                     flash("Accesso non trovato.", "warning")
+
+            elif azione == "crea_link":
+                # #6 — Crea link temporaneo
+                ore = int(request.form.get("ore_validita", 72))
+                ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
+                monouso = request.form.get("monouso") == "1"
+                descrizione = request.form.get("descrizione", "").strip()
+                token, link = gcd.crea_link_temporaneo(
+                    id_cliente=id_cliente,
+                    creato_da=u.username,
+                    ruolo=RuoloCondivisione(ruolo_str),
+                    ore_validita=ore,
+                    monouso=monouso,
+                    descrizione=descrizione,
+                )
+                audit("condivisione.link_creato", "cliente", id_cliente,
+                      dettagli=f"link {link.id} [{ruolo_str}] {ore}h")
+                link_url = url_for("accesso_link_temporaneo", token=token, _external=True)
+                flash(
+                    f"Link creato (valido {ore}h). Copialo e invialo al destinatario.",
+                    "success",
+                )
+                # Mostra il link nella pagina (non nel redirect)
+                collaboratori = gcd.collaboratori_di(id_cliente)
+                ids_collaboratori = {a.id_utente for a in collaboratori}
+                tutti_utenti = [
+                    ut for ut in gu.tutti(solo_attivi=True)
+                    if ut.id != u.id and ut.id not in ids_collaboratori
+                ]
+                return render_template(
+                    "clienti/collaboratori.html",
+                    cliente=c,
+                    collaboratori=collaboratori,
+                    utenti_disponibili=tutti_utenti,
+                    ruoli_condivisione=list(RuoloCondivisione),
+                    link_temporanei=gcd.link_attivi_per_cliente(id_cliente),
+                    nuovo_link_url=link_url,
+                )
+
+            elif azione == "revoca_link":
+                id_link = request.form.get("id_link", "").strip()
+                if gcd.revoca_link_temporaneo(id_link):
+                    flash("Link revocato.", "success")
+                    audit("condivisione.link_revocato", "cliente", id_cliente,
+                          dettagli=f"link {id_link}")
+                else:
+                    flash("Link non trovato.", "warning")
 
             return redirect(url_for("gestione_collaboratori", id_cliente=id_cliente))
 
         # GET — mostra pagina di gestione
         collaboratori = gcd.collaboratori_di(id_cliente)
         ids_collaboratori = {a.id_utente for a in collaboratori}
-        # Utenti disponibili (tutti gli utenti attivi non ancora collaboratori e diversi da me)
         tutti_utenti = [
             ut for ut in gu.tutti(solo_attivi=True)
             if ut.id != u.id and ut.id not in ids_collaboratori
@@ -1335,7 +1450,285 @@ def create_app(config: dict | None = None) -> Flask:
             collaboratori=collaboratori,
             utenti_disponibili=tutti_utenti,
             ruoli_condivisione=list(RuoloCondivisione),
+            link_temporanei=gcd.link_attivi_per_cliente(id_cliente),
+            nuovo_link_url=None,
         )
+
+    # ================================================================ #6 LINK TEMPORANEI
+
+    @app.route("/accesso/<token>")
+    def accesso_link_temporaneo(token):
+        """Accesso a una cartella via link temporaneo (senza login obbligatorio)."""
+        gcd = get_condivisioni()
+        link = gcd.verifica_link_temporaneo(token)
+        if not link:
+            return render_template("clienti/link_scaduto.html"), 410
+
+        gc = get_clienti()
+        cliente = gc.get(link.id_cliente)
+        if not cliente:
+            return render_template("clienti/link_scaduto.html"), 404
+
+        fascicolo = None
+        if link.id_fascicolo:
+            gf = get_fascicoli()
+            fascicolo = gf.get(link.id_fascicolo)
+
+        audit("condivisione.link_accesso", "cliente", link.id_cliente,
+              dettagli=f"link {link.id} desc={link.descrizione}")
+
+        return render_template(
+            "clienti/link_temporaneo.html",
+            cliente=cliente,
+            fascicolo=fascicolo,
+            link=link,
+            ruolo=link.ruolo,
+        )
+
+    # ================================================================ #8 EXPORT CARTELLA ZIP
+
+    @app.route("/clienti/<id_cliente>/esporta")
+    def esporta_cartella(id_cliente):
+        """Esporta l'intera cartella cliente come ZIP (anagrafica + fascicoli + documenti)."""
+        if not cliente_accessibile(id_cliente):
+            flash("Non hai accesso a questa cartella cliente.", "danger")
+            return redirect(url_for("lista_clienti"))
+
+        gc = get_clienti()
+        cliente = gc.get(id_cliente)
+        if not cliente:
+            flash("Cliente non trovato.", "warning")
+            return redirect(url_for("lista_clienti"))
+
+        gf = get_fascicoli()
+        fascicoli_cliente = [f for f in gf.tutti() if f.id_cliente == id_cliente]
+
+        buf = io.BytesIO()
+        with _zipfile.ZipFile(buf, "w", _zipfile.ZIP_DEFLATED) as zf:
+            # Anagrafica cliente
+            zf.writestr(
+                "anagrafica.json",
+                json.dumps(cliente.__dict__ if hasattr(cliente, "__dict__") else vars(cliente),
+                           default=str, ensure_ascii=False, indent=2),
+            )
+            # Fascicoli e documenti
+            for fasc in fascicoli_cliente:
+                prefix = f"fascicoli/{fasc.numero or fasc.id}/"
+                fasc_dict = fasc.to_dict() if hasattr(fasc, "to_dict") else vars(fasc)
+                zf.writestr(prefix + "fascicolo.json",
+                            json.dumps(fasc_dict, default=str, ensure_ascii=False, indent=2))
+                for doc in fasc.documenti:
+                    try:
+                        percorso = gf.percorso_documento(fasc.id, doc.id)
+                        if percorso.exists():
+                            zf.write(percorso, prefix + "documenti/" + doc.nome)
+                    except (KeyError, OSError):
+                        pass
+            # Indice
+            indice = {
+                "cliente": cliente.nome_completo,
+                "fascicoli": [{"id": f.id, "numero": f.numero, "titolo": f.titolo}
+                               for f in fascicoli_cliente],
+                "esportato_il": datetime.now().isoformat(),
+                "esportato_da": g.utente_corrente.username if g.utente_corrente else "—",
+            }
+            zf.writestr("indice.json", json.dumps(indice, ensure_ascii=False, indent=2))
+
+        buf.seek(0)
+        audit("condivisione.esporta", "cliente", id_cliente,
+              dettagli=f"ZIP cartella {cliente.nome_completo}")
+        nome_zip = f"cartella_{cliente.nome_completo.replace(' ', '_')}.zip"
+        return send_file(buf, as_attachment=True, download_name=nome_zip,
+                         mimetype="application/zip")
+
+    # ================================================================ #5 FASCICOLI CONDIVISI
+
+    @app.route("/fascicoli/<id_fasc>/collaboratori", methods=["GET", "POST"])
+    def gestione_collaboratori_fascicolo(id_fasc):
+        """Gestione collaboratori di un singolo fascicolo."""
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "warning")
+            return redirect(url_for("lista_fascicoli"))
+
+        u = g.utente_corrente
+        puo_gestire = (
+            u.ha_permesso("fascicoli.scrivi")
+            or get_condivisioni().ha_accesso_fascicolo(u.id, id_fasc, RuoloCondivisione.GESTORE)
+        )
+        if not puo_gestire:
+            flash("Non hai il permesso di gestire i collaboratori di questo fascicolo.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        gcd = get_condivisioni()
+        gu = get_utenti()
+
+        if request.method == "POST":
+            azione = request.form.get("azione", "condividi")
+            id_dest = request.form.get("id_utente", "").strip()
+            utente_dest = gu.get(id_dest)
+
+            if azione == "condividi" and utente_dest:
+                ruolo_str = request.form.get("ruolo", RuoloCondivisione.LETTURA.value)
+                note = request.form.get("note", "").strip()
+                data_scadenza = request.form.get("data_scadenza", "").strip()
+                tags = [t.strip() for t in request.form.get("tags", "").split(",") if t.strip()]
+                gcd.condividi_fascicolo(
+                    id_fascicolo=id_fasc,
+                    id_cliente=fasc.id_cliente,
+                    id_utente=utente_dest.id,
+                    username=utente_dest.username,
+                    nome_completo=utente_dest.nome_completo or utente_dest.username,
+                    ruolo=RuoloCondivisione(ruolo_str),
+                    condiviso_da=u.username,
+                    note=note,
+                    data_scadenza=data_scadenza,
+                    tags=tags,
+                )
+                flash(f"Fascicolo condiviso con {utente_dest.username}.", "success")
+                audit("condivisione.fascicolo.condividi", "fascicolo", id_fasc,
+                      dettagli=f"→ {utente_dest.username} [{ruolo_str}]")
+            elif azione == "revoca":
+                username_dest = utente_dest.username if utente_dest else id_dest
+                if gcd.revoca_fascicolo(id_fasc, id_dest):
+                    flash(f"Accesso fascicolo revocato per {username_dest}.", "success")
+                    audit("condivisione.fascicolo.revoca", "fascicolo", id_fasc,
+                          dettagli=f"→ {username_dest}")
+                else:
+                    flash("Accesso non trovato.", "warning")
+            return redirect(url_for("gestione_collaboratori_fascicolo", id_fasc=id_fasc))
+
+        collaboratori = gcd.collaboratori_fascicolo(id_fasc)
+        ids_collab = {a.id_utente for a in collaboratori}
+        tutti_utenti = [
+            ut for ut in gu.tutti(solo_attivi=True)
+            if ut.id != u.id and ut.id not in ids_collab
+        ]
+        return render_template(
+            "fascicoli/collaboratori_fascicolo.html",
+            fascicolo=fasc,
+            collaboratori=collaboratori,
+            utenti_disponibili=tutti_utenti,
+            ruoli_condivisione=list(RuoloCondivisione),
+        )
+
+    # ================================================================ #7 DOCUMENT VERSIONING
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/sostituisci", methods=["POST"])
+    def sostituisci_documento(id_fasc, id_doc):
+        """Sostituisce un documento mantenendo lo storico delle versioni."""
+        gf = get_fascicoli()
+        if "file" not in request.files or not request.files["file"].filename:
+            flash("Nessun file selezionato.", "warning")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        file = request.files["file"]
+        note = request.form.get("note", "").strip()
+        u = g.utente_corrente
+        try:
+            doc = gf.sostituisci_documento(
+                id_fasc=id_fasc,
+                id_doc=id_doc,
+                nome_file=file.filename,
+                contenuto=file.read(),
+                caricato_da=u.username if u else "",
+                note=note,
+            )
+            flash(f"Documento '{doc.nome}' aggiornato (versione precedente archiviata).", "success")
+            audit("fascicoli.documento.sostituisci", "fascicolo", id_fasc,
+                  dettagli=f"doc {id_doc} → {doc.nome}")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    # ================================================================ #10 API REST
+
+    @app.route("/api/v1/clienti/<id_cliente>/condivisioni", methods=["GET"])
+    def api_condivisioni_cliente(id_cliente):
+        """API REST: collaboratori di una cartella cliente."""
+        if not cliente_accessibile(id_cliente):
+            return jsonify({"errore": "Accesso negato"}), 403
+        gcd = get_condivisioni()
+        collaboratori = gcd.collaboratori_di(id_cliente)
+        return jsonify({
+            "id_cliente": id_cliente,
+            "collaboratori": [a.to_dict() for a in collaboratori],
+            "n_collaboratori": len(collaboratori),
+            "link_attivi": len(gcd.link_attivi_per_cliente(id_cliente)),
+            "statistiche": gcd.statistiche(),
+        })
+
+    @app.route("/api/v1/clienti/<id_cliente>/condivisioni", methods=["POST"])
+    def api_aggiungi_collaboratore(id_cliente):
+        """API REST: aggiunge un collaboratore a una cartella cliente."""
+        u = g.utente_corrente
+        puo = u and (u.ha_permesso("clienti.scrivi")
+                     or get_condivisioni().ha_accesso(u.id, id_cliente, RuoloCondivisione.GESTORE))
+        if not puo:
+            return jsonify({"errore": "Permesso insufficiente"}), 403
+
+        data = request.get_json(silent=True) or {}
+        gu = get_utenti()
+        utente_dest = gu.get(data.get("id_utente", ""))
+        if not utente_dest:
+            return jsonify({"errore": "Utente non trovato"}), 404
+
+        ruolo_str = data.get("ruolo", RuoloCondivisione.LETTURA.value)
+        try:
+            ruolo = RuoloCondivisione(ruolo_str)
+        except ValueError:
+            return jsonify({"errore": f"Ruolo '{ruolo_str}' non valido"}), 400
+
+        gcd = get_condivisioni()
+        gcd.condividi(
+            id_cliente=id_cliente,
+            id_utente=utente_dest.id,
+            username=utente_dest.username,
+            nome_completo=utente_dest.nome_completo or utente_dest.username,
+            ruolo=ruolo,
+            condiviso_da=u.username,
+            note=data.get("note", ""),
+            data_scadenza=data.get("data_scadenza", ""),
+            tags=data.get("tags", []),
+        )
+        audit("condivisione.api.condividi", "cliente", id_cliente,
+              dettagli=f"→ {utente_dest.username} [{ruolo_str}]")
+        return jsonify({"stato": "ok", "username": utente_dest.username, "ruolo": ruolo_str}), 201
+
+    @app.route("/api/v1/clienti/<id_cliente>/condivisioni/<id_utente>", methods=["DELETE"])
+    def api_revoca_collaboratore(id_cliente, id_utente):
+        """API REST: revoca accesso di un utente a una cartella cliente."""
+        u = g.utente_corrente
+        puo = u and (u.ha_permesso("clienti.scrivi")
+                     or get_condivisioni().ha_accesso(u.id, id_cliente, RuoloCondivisione.GESTORE))
+        if not puo:
+            return jsonify({"errore": "Permesso insufficiente"}), 403
+        rimosso = get_condivisioni().revoca(id_cliente, id_utente)
+        if rimosso:
+            audit("condivisione.api.revoca", "cliente", id_cliente, dettagli=f"→ {id_utente}")
+            return jsonify({"stato": "ok"}), 200
+        return jsonify({"errore": "Accesso non trovato"}), 404
+
+    @app.route("/api/v1/condivisioni/statistiche")
+    def api_statistiche_condivisioni():
+        """API REST: statistiche globali condivisioni."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Permesso insufficiente"}), 403
+        return jsonify(get_condivisioni().statistiche())
+
+    @app.route("/api/v1/condivisioni/pulizia-scaduti", methods=["POST"])
+    def api_pulizia_scaduti():
+        """API REST: revoca automatica accessi scaduti (utile come cron task)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.scrivi"):
+            return jsonify({"errore": "Permesso insufficiente"}), 403
+        gcd = get_condivisioni()
+        n_scaduti = gcd.revoca_scaduti()
+        n_link = gcd.pulisci_link_scaduti()
+        audit("condivisione.pulizia", "sistema", "",
+              dettagli=f"rimossi {n_scaduti} accessi + {n_link} link scaduti")
+        return jsonify({"accessi_rimossi": n_scaduti, "link_rimossi": n_link})
 
     # ================================================================ FASCICOLI
 

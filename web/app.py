@@ -91,6 +91,7 @@ from pct.scadenziario import (
 from pct.search_index import IndiceRicerca
 from pct.reports import fascicolo_pdf, scadenze_pdf
 from pct.database import GestioneDatabase
+from pct.sync import GestoreSincronizzazione, get_gestore
 
 # ------------------------------------------------------------------ factory
 
@@ -204,6 +205,9 @@ def create_app(config: dict | None = None) -> Flask:
             "search_index": app.config["SEARCH_INDEX"],
         })
 
+    # Singleton di sincronizzazione (uno per processo Flask)
+    _sync = get_gestore()
+
     # ---------------------------------------------------------------- auth middleware
 
     from flask import session, g, abort
@@ -242,6 +246,16 @@ def create_app(config: dict | None = None) -> Flask:
             ip=request.remote_addr or "",
         )
 
+    def sync_pubblica(tipo: str, modulo: str, id_risorsa: str = ""):
+        """Pubblica un evento di sincronizzazione a tutti gli operatori connessi."""
+        u = g.utente_corrente
+        _sync.pubblica(
+            tipo=tipo,
+            modulo=modulo,
+            id_risorsa=id_risorsa,
+            utente=u.username if u else "sistema",
+        )
+
     # ---------------------------------------------------------------- context
 
     @app.template_filter("fmt_data")
@@ -271,6 +285,7 @@ def create_app(config: dict | None = None) -> Flask:
             "utente_corrente": g.get("utente_corrente"),
             "RuoloUtente": RuoloUtente,
             "DESCRIZIONI_RUOLI": DESCRIZIONI_RUOLI,
+            "n_operatori_connessi": _sync.n_connessi,
         }
 
     @app.errorhandler(403)
@@ -567,6 +582,7 @@ def create_app(config: dict | None = None) -> Flask:
                     )
                 audit("scadenziario.crea", "scadenza", sc.id, sc.titolo)
                 flash(f"Scadenza '{sc.titolo}' creata.", "success")
+                sync_pubblica("crea", "scadenze", sc.id)
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -611,6 +627,7 @@ def create_app(config: dict | None = None) -> Flask:
                 )
                 audit("scadenziario.modifica", "scadenza", id_sc)
                 flash("Scadenza aggiornata.", "success")
+                sync_pubblica("modifica", "scadenze", id_sc)
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -633,6 +650,7 @@ def create_app(config: dict | None = None) -> Flask:
             gs.completa(id_sc, note=note)
             audit("scadenziario.completa", "scadenza", id_sc)
             flash("Scadenza segnata come completata.", "success")
+            sync_pubblica("modifica", "scadenze", id_sc)
         except ValueError as e:
             flash(str(e), "danger")
         return redirect(url_for("scadenziario"))
@@ -644,6 +662,7 @@ def create_app(config: dict | None = None) -> Flask:
             gs.elimina(id_sc)
             audit("scadenziario.elimina", "scadenza", id_sc)
             flash("Scadenza eliminata.", "success")
+            sync_pubblica("elimina", "scadenze", id_sc)
         except ValueError as e:
             flash(str(e), "danger")
         return redirect(url_for("scadenziario"))
@@ -851,6 +870,7 @@ def create_app(config: dict | None = None) -> Flask:
             try:
                 agenda.modifica(id_app, **campi)
                 flash("Appuntamento aggiornato.", "success")
+                sync_pubblica("modifica", "agenda", id_app)
                 return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -881,6 +901,7 @@ def create_app(config: dict | None = None) -> Flask:
         try:
             agenda.elimina(id_app)
             flash("Appuntamento eliminato.", "success")
+            sync_pubblica("elimina", "agenda", id_app)
         except KeyError as e:
             flash(str(e), "danger")
         return redirect(url_for("agenda_view"))
@@ -988,6 +1009,7 @@ def create_app(config: dict | None = None) -> Flask:
                     sito_web=f.get("sito_web", ""),
                 )
                 flash(f"Cliente '{c.nome_completo}' aggiunto.", "success")
+                sync_pubblica("crea", "clienti", c.id)
                 return redirect(url_for("dettaglio_cliente", id_cliente=c.id))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -1062,6 +1084,7 @@ def create_app(config: dict | None = None) -> Flask:
                     data_scadenza=f.get("doc_data_scadenza", ""),
                 )
                 flash("Cliente aggiornato.", "success")
+                sync_pubblica("modifica", "clienti", id_cliente)
                 return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -1082,6 +1105,7 @@ def create_app(config: dict | None = None) -> Flask:
         try:
             gc.elimina(id_cliente)
             flash("Cliente eliminato.", "success")
+            sync_pubblica("elimina", "clienti", id_cliente)
         except KeyError as e:
             flash(str(e), "danger")
         return redirect(url_for("lista_clienti"))
@@ -1210,6 +1234,7 @@ def create_app(config: dict | None = None) -> Flask:
                     note=f.get("note", ""),
                 )
                 flash(f"Fascicolo {fasc.numero} creato.", "success")
+                sync_pubblica("crea", "fascicoli", fasc.id)
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=fasc.id))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -1284,6 +1309,7 @@ def create_app(config: dict | None = None) -> Flask:
                     note=f.get("note", ""),
                 )
                 flash("Fascicolo aggiornato.", "success")
+                sync_pubblica("modifica", "fascicoli", id_fasc)
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -1366,6 +1392,7 @@ def create_app(config: dict | None = None) -> Flask:
         try:
             gf.elimina(id_fasc)
             flash("Fascicolo eliminato.", "success")
+            sync_pubblica("elimina", "fascicoli", id_fasc)
         except KeyError as e:
             flash(str(e), "danger")
         return redirect(url_for("lista_fascicoli"))
@@ -1941,6 +1968,59 @@ def create_app(config: dict | None = None) -> Flask:
         nome_file = f"scadenziario_{date.today().isoformat()}.pdf"
         audit("scadenziario.esporta_pdf")
         return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+
+    # ================================================================ SINCRONIZZAZIONE REAL-TIME
+
+    @app.route("/api/eventi")
+    def api_eventi():
+        """
+        SSE endpoint per notifiche in tempo reale agli operatori connessi.
+        Ogni client connesso riceve gli aggiornamenti degli altri operatori.
+        """
+        if not g.utente_corrente:
+            return jsonify({"errore": "Non autenticato"}), 401
+
+        client_id, q = _sync.subscribe()
+
+        def genera():
+            yield from _sync.sse_stream(client_id, q)
+
+        return Response(
+            genera(),
+            content_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache, no-store",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
+    @app.route("/api/sync/stato")
+    def api_sync_stato():
+        """Stato sincronizzazione: operatori connessi e versioni file."""
+        return jsonify({
+            "connessi": _sync.n_connessi,
+            "versioni": {
+                "clienti": _sync.versione_file(app.config["CLIENTI_DB"]),
+                "fascicoli": _sync.versione_file(app.config["FASCICOLI_DB"]),
+                "scadenze": _sync.versione_file(app.config["SCADENZIARIO_DB"]),
+                "agenda": _sync.versione_file(app.config["AGENDA_DB"]),
+                "messaggi": _sync.versione_file(app.config["MESSAGGI_DB"]),
+            },
+        })
+
+    @app.route("/api/sync/broadcast", methods=["POST"])
+    def api_sync_broadcast():
+        """Invia un messaggio informativo a tutti gli operatori (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        msg = request.json.get("messaggio", "") if request.is_json else request.form.get("messaggio", "")
+        if not msg:
+            return jsonify({"errore": "Messaggio obbligatorio"}), 400
+        n = _sync.pubblica_broadcast(msg, utente=u.username)
+        audit("sync.broadcast", dettagli=msg)
+        return jsonify({"ok": True, "raggiunti": n})
 
     # ================================================================ ADMIN DATABASE
 

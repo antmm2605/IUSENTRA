@@ -46,24 +46,31 @@
         <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
         <div class="row g-3">
           <div class="col-md-5">
-            <label class="form-label fw-semibold">Tribunale <span class="text-danger">*</span></label>
-            <select name="tribunale" class="form-select" required>
-              <option value="">— Seleziona tribunale —</option>
-              {% for u in tribunali|sort(attribute='nome') %}
-              <option value="{{ u.codice }}"
-                      {{ 'selected' if tribunale_sel == u.codice or tribunale_sel == u.nome }}>
-                {{ u.nome }}{% if u.distretto != u.nome.replace('Tribunale di ','') %} ({{ u.distretto }}){% endif %}
-              </option>
-              {% endfor %}
-              <optgroup label="Corti d'Appello">
-              {% for u in corti_appello|sort(attribute='nome') %}
-              <option value="{{ u.codice }}"
-                      {{ 'selected' if tribunale_sel == u.codice }}>
-                {{ u.nome }}
-              </option>
-              {% endfor %}
-              </optgroup>
-            </select>
+            <label class="form-label fw-semibold">
+              Tribunale / Ufficio giudiziario <span class="text-danger">*</span>
+            </label>
+            {# Campo visibile di ricerca #}
+            <div class="position-relative" id="ufficio-wrap">
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="ufficio-input" class="form-control border-start-0 ps-0"
+                       placeholder="Cerca tribunale, corte d'appello, procura…"
+                       autocomplete="off"
+                       value="{{ tribunale_sel_nome or '' }}"
+                       required>
+                <button type="button" class="btn btn-outline-secondary" id="ufficio-clear"
+                        title="Cancella" style="display:none">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div id="ufficio-dropdown"></div>
+            </div>
+            {# Campo nascosto con il valore da inviare #}
+            <input type="hidden" name="tribunale" id="ufficio-value"
+                   value="{{ tribunale_sel or '' }}">
+            <div id="ufficio-sel-badge" class="mt-1" style="display:none">
+              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle small" id="ufficio-sel-label"></span>
+            </div>
           </div>
           <div class="col-md-2">
             <label class="form-label fw-semibold">N. RG</label>
@@ -242,10 +249,210 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<style>
+/* Autocomplete uffici giudiziari */
+#ufficio-dropdown {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0; right: 0;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 2000;
+  display: none;
+}
+#ufficio-dropdown.show { display: block; }
+.uff-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: .5rem .85rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background .1s;
+}
+.uff-item:last-child { border-bottom: none; }
+.uff-item:hover, .uff-item.focused { background: #f0f4ff; }
+.uff-icon { font-size: 1rem; color: var(--bs-primary, #1a3a5c); flex-shrink: 0; }
+.uff-body { flex: 1; min-width: 0; }
+.uff-nome { font-size: .85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uff-sub  { font-size: .72rem; color: #64748b; }
+.uff-tipo-badge {
+  font-size: .62rem; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.uff-tipo-TRIBUNALE    { background: #dbeafe; color: #1e40af; }
+.uff-tipo-CORTE_APPELLO{ background: #d1fae5; color: #065f46; }
+.uff-tipo-PROCURA      { background: #fef3c7; color: #92400e; }
+.uff-tipo-CORTE_CASSAZIONE { background: #fce7f3; color: #9d174d; }
+.uff-empty { padding: .75rem 1rem; color: #94a3b8; font-size: .83rem; text-align: center; }
+[data-bs-theme="dark"] #ufficio-dropdown {
+  background: #1e293b; border-color: #334155;
+  box-shadow: 0 6px 20px rgba(0,0,0,.5);
+}
+[data-bs-theme="dark"] .uff-item { border-bottom-color: #273549; }
+[data-bs-theme="dark"] .uff-item:hover,
+[data-bs-theme="dark"] .uff-item.focused { background: #273549; }
+[data-bs-theme="dark"] .uff-nome { color: #e2e8f0; }
+</style>
 <script>
 // Auto-uppercase CF
 document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
   el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
 });
+
+// ---------------------------------------------------------------- Autocomplete uffici giudiziari
+(function () {
+  const input    = document.getElementById('ufficio-input');
+  const hidden   = document.getElementById('ufficio-value');
+  const dropdown = document.getElementById('ufficio-dropdown');
+  const clearBtn = document.getElementById('ufficio-clear');
+  const badge    = document.getElementById('ufficio-sel-badge');
+  const badgeLbl = document.getElementById('ufficio-sel-label');
+
+  if (!input) return;
+
+  const TIPO_ICONS = {
+    TRIBUNALE:       'bi-building',
+    CORTE_APPELLO:   'bi-bank2',
+    PROCURA:         'bi-shield-exclamation',
+    CORTE_CASSAZIONE:'bi-star-fill',
+  };
+  const TIPO_LABEL = {
+    TRIBUNALE:       'Tribunale',
+    CORTE_APPELLO:   "Corte d'Appello",
+    PROCURA:         'Procura',
+    CORTE_CASSAZIONE:'Cassazione',
+  };
+
+  let items = [];
+  let focusIdx = -1;
+  let timer = null;
+
+  function renderDropdown(data) {
+    focusIdx = -1;
+    if (!data.length) {
+      dropdown.innerHTML = '<div class="uff-empty"><i class="bi bi-search me-1"></i>Nessun ufficio trovato</div>';
+      dropdown.classList.add('show');
+      return;
+    }
+    dropdown.innerHTML = data.map((u, i) => `
+      <div class="uff-item" data-idx="${i}" tabindex="-1">
+        <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} uff-icon"></i>
+        <div class="uff-body">
+          <div class="uff-nome">${u.nome}</div>
+          <div class="uff-sub">${u.distretto}${u.pec ? ' · <span class="font-monospace">' + u.pec + '</span>' : ''}</div>
+        </div>
+        <span class="uff-tipo-badge uff-tipo-${u.tipo}">${TIPO_LABEL[u.tipo] || u.tipo}</span>
+      </div>`).join('');
+    dropdown.classList.add('show');
+    dropdown.querySelectorAll('.uff-item').forEach((el, i) => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(data[i]); });
+    });
+    items = data;
+  }
+
+  function seleziona(u) {
+    input.value  = u.nome;
+    hidden.value = u.codice;
+    badgeLbl.textContent = `${TIPO_LABEL[u.tipo] || u.tipo}: ${u.nome} (${u.distretto})`;
+    badge.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+    chiudi();
+  }
+
+  function chiudi() {
+    dropdown.classList.remove('show');
+    focusIdx = -1;
+    items = [];
+  }
+
+  function muoviFocus(dir) {
+    const els = dropdown.querySelectorAll('.uff-item');
+    if (!els.length) return;
+    els[focusIdx]?.classList.remove('focused');
+    focusIdx = (focusIdx + dir + els.length) % els.length;
+    els[focusIdx]?.classList.add('focused');
+    els[focusIdx]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    hidden.value = '';
+    badge.style.display = 'none';
+    clearBtn.style.display = q ? 'inline-flex' : 'none';
+    if (q.length < 2) { chiudi(); return; }
+    timer = setTimeout(() => {
+      fetch(`/api/uffici?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(renderDropdown)
+        .catch(() => chiudi());
+    }, 200);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown')  { e.preventDefault(); muoviFocus(+1); return; }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); muoviFocus(-1); return; }
+    if (e.key === 'Enter') {
+      const els = dropdown.querySelectorAll('.uff-item');
+      if (focusIdx >= 0 && els[focusIdx]) {
+        e.preventDefault();
+        seleziona(items[focusIdx]);
+      }
+      return;
+    }
+    if (e.key === 'Escape') { chiudi(); return; }
+  });
+
+  // Valida prima del submit: deve esserci un valore nel hidden
+  input.closest('form').addEventListener('submit', function (e) {
+    if (!hidden.value && input.value.trim()) {
+      // Prova a risolvere: cerca esatto
+      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}&limit=1`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.length) {
+            seleziona(data[0]);
+            this.submit();
+          } else {
+            input.setCustomValidity('Seleziona un ufficio dalla lista');
+            input.reportValidity();
+          }
+        });
+      e.preventDefault();
+      return;
+    }
+    if (!hidden.value) {
+      input.setCustomValidity('Seleziona un ufficio dalla lista');
+      input.reportValidity();
+      e.preventDefault();
+    }
+  });
+  input.addEventListener('input', () => input.setCustomValidity(''));
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    hidden.value = '';
+    badge.style.display = 'none';
+    clearBtn.style.display = 'none';
+    chiudi();
+    input.focus();
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('ufficio-wrap').contains(e.target)) chiudi();
+  });
+
+  // Se c'è già un valore preselezionato (dopo una ricerca), mostra il badge
+  if (hidden.value && input.value) {
+    badgeLbl.textContent = input.value;
+    badge.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+  }
+})();
 </script>
 {% endblock %}

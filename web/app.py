@@ -1382,17 +1382,8 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
-        from pct.reginde import ClientReGINde
-        reginde = ClientReGINde()
-        tribunali_list = reginde.elenca_uffici(tipo="TRIBUNALE")
-        corti_appello  = reginde.elenca_uffici(tipo="CORTE_APPELLO")
         demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
-        return render_template(
-            "polisWeb.html",
-            tribunali=tribunali_list,
-            corti_appello=corti_appello,
-            demo_mode=demo_mode,
-        )
+        return render_template("polisWeb.html", demo_mode=demo_mode)
 
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():
@@ -1426,12 +1417,14 @@ def create_app(config: dict | None = None) -> Flask:
 
         from pct.reginde import ClientReGINde
         reginde = ClientReGINde()
+        # Risolvi il nome leggibile dell'ufficio selezionato per pre-popolare il campo
+        uff_sel = reginde.cerca_ufficio_giudiziario(tribunale, tipo=None)
+        tribunale_sel_nome = uff_sel.nome if uff_sel else tribunale
         return render_template(
             "polisWeb.html",
-            tribunali=reginde.elenca_uffici(tipo="TRIBUNALE"),
-            corti_appello=reginde.elenca_uffici(tipo="CORTE_APPELLO"),
             fascicoli=fascicoli,
             tribunale_sel=tribunale,
+            tribunale_sel_nome=tribunale_sel_nome,
             numero_rg=numero_rg or "",
             anno_rg=anno_rg or "",
             nome_parte=nome_parte or "",
@@ -1503,6 +1496,36 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception as e:
             flash(str(e), "danger")
         return redirect(url_for("polisWeb_home"))
+
+    # ---------------------------------------------------------------- API autocomplete uffici giudiziari
+
+    @app.route("/api/uffici")
+    def api_uffici():
+        """Autocomplete uffici giudiziari per PolisWeb — nessuna autenticazione richiesta."""
+        from pct.reginde import _normalize_slug
+        q = request.args.get("q", "").strip()
+        tipo = request.args.get("tipo", "").upper()
+        if len(q) < 2:
+            return jsonify([])
+        slug_q = _normalize_slug(q)
+        q_up = q.upper()
+        risultati = []
+        reginde = ClientReGINde()
+        for uff in reginde.elenca_uffici(tipo=tipo or None):
+            nome_norm = _normalize_slug(uff.nome)
+            dist_norm = _normalize_slug(uff.distretto)
+            if (slug_q in nome_norm or slug_q in dist_norm or
+                    q_up in uff.nome.upper() or q_up in uff.distretto.upper()):
+                risultati.append({
+                    "codice": uff.codice,
+                    "nome": uff.nome,
+                    "distretto": uff.distretto,
+                    "tipo": uff.tipo,
+                    "pec": uff.pec,
+                })
+            if len(risultati) >= 20:
+                break
+        return jsonify(risultati)
 
     # ---------------------------------------------------------------- tribunali
 

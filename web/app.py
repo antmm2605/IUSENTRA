@@ -538,7 +538,10 @@ def create_app(config: dict | None = None) -> Flask:
     @app.errorhandler(500)
     def errore_500(e):
         import traceback as _tb
-        app.logger.error("500 Internal Server Error: %s\n%s", e, _tb.format_exc())
+        # e.__traceback__ è l'unico modo affidabile per ottenere il traceback
+        # fuori dal contesto dell'eccezione (come in Flask error handler)
+        tb_str = "".join(_tb.format_exception(type(e), e, e.__traceback__))
+        app.logger.error("500 Internal Server Error: %s\n%s", e, tb_str)
         return render_template("errori/500.html"), 500
 
     # ================================================================ AUTH
@@ -1385,8 +1388,15 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
-        demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
-        return render_template("polisWeb.html", demo_mode=demo_mode)
+        import traceback as _tb
+        try:
+            demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
+            return render_template("polisWeb.html", demo_mode=demo_mode)
+        except Exception as e:
+            tb = "".join(_tb.format_exception(type(e), e, e.__traceback__))
+            app.logger.error("ERRORE polisWeb_home:\n%s", tb)
+            # Mostra l'errore nel browser (app privata) così non serve cercare nei log
+            return f"<pre style='color:red;padding:2em'><b>Errore PolisWeb:</b>\n{tb}</pre>", 500
 
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():

@@ -144,6 +144,7 @@ def _decrypt_doc(data: bytes) -> bytes:
 def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.secret_key = os.getenv("PCT_SECRET_KEY", "dev-secret-pct-2024")
+    app.config["SECRET_KEY"] = app.secret_key
 
     # Sicurezza sessioni
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)

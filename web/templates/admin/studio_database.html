@@ -1,0 +1,241 @@
+{% extends "admin/base.html" %}
+{% block title %}Database — {{ studio.nome }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="text-decoration-none">{{ studio.nome }}</a></li>
+<li class="breadcrumb-item active">Database</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mt-3 mb-4 flex-wrap">
+  <div class="flex-grow-1">
+    <h4 class="mb-0 fw-bold">Configurazione Database</h4>
+    <p class="text-muted small mb-0">
+      Studio: <strong>{{ studio.nome }}</strong> —
+      modalità corrente:
+      <span class="badge bg-{{ db_mode_info[db.mode].colore if db.mode in db_mode_info else 'secondary' }}">
+        {{ db_mode_info[db.mode].nome if db.mode in db_mode_info else db.mode }}
+      </span>
+    </p>
+  </div>
+  <a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Torna al dettaglio
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- Selezione modalità -->
+  <div class="col-12 col-lg-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-database text-primary"></i> Modalità Storage
+      </div>
+      <div class="card-body">
+        {% for mode_key, mode_info in db_mode_info.items() %}
+        <div class="db-option-card mb-3 p-3 rounded-3 {{ 'border border-primary bg-primary bg-opacity-10' if db.mode == mode_key else 'border' }}"
+             id="option_{{ mode_key }}" style="cursor:pointer;transition:all .15s;"
+             onclick="selectMode('{{ mode_key }}')">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }} fs-5"></i>
+            <span class="fw-semibold">{{ mode_info.nome }}</span>
+            <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
+              {{ mode_info.badge }}
+            </span>
+            {% if db.mode == mode_key %}
+            <i class="bi bi-check-circle-fill text-primary ms-1"></i>
+            {% endif %}
+          </div>
+          <p class="text-muted small mb-0">{{ mode_info.desc }}</p>
+
+          {% if mode_key != 'LOCAL' %}
+          <!-- Stato connessione per questo driver -->
+          {% if db.mode == mode_key %}
+          <div class="mt-2">
+            {% if db.connessione_ok %}
+            <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Connessione OK</span>
+            {% elif db.ultimo_test %}
+            <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Connessione fallita</span>
+            {% else %}
+            <span class="badge bg-secondary">Non testata</span>
+            {% endif %}
+            {% if db.ultimo_test %}
+            <span class="text-muted ms-1" style="font-size:.72rem">
+              Ultimo test: {{ db.ultimo_test[:16].replace('T',' ') }}
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Parametri connessione -->
+  <div class="col-12 col-lg-7">
+    <form method="post" id="dbForm">
+      <input type="hidden" name="db_mode" id="dbModeField" value="{{ db.mode }}">
+
+      <!-- Pannello LOCAL -->
+      <div class="card mb-3 db-panel" id="panel_LOCAL"
+           style="{{ 'display:none' if db.mode != 'LOCAL' else '' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-secondary">
+          <i class="bi bi-hdd-fill"></i> Storage Locale (JSON)
+        </div>
+        <div class="card-body">
+          <div class="alert alert-success d-flex gap-2 mb-0">
+            <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+            <div>
+              <strong>Nessuna configurazione richiesta.</strong><br>
+              <span class="small">I dati sono salvati in
+                <code>./data/tenants/{{ studio.slug }}/</code>
+                sul filesystem del server. Zero dipendenze esterne.
+              </span>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="small text-muted fw-semibold mb-1">Directory dati:</div>
+            <code class="small">./data/tenants/{{ studio.slug }}/</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pannello MySQL -->
+      <div class="card mb-3 db-panel" id="panel_MYSQL"
+           style="{{ '' if db.mode == 'MYSQL' else 'display:none' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-warning">
+          <i class="bi bi-database-fill"></i> Parametri MySQL / MariaDB
+        </div>
+        <div class="card-body">
+          {% include "admin/_db_form_sql.html" with context %}
+        </div>
+      </div>
+
+      <!-- Pannello PostgreSQL -->
+      <div class="card mb-3 db-panel" id="panel_POSTGRESQL"
+           style="{{ '' if db.mode == 'POSTGRESQL' else 'display:none' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-primary">
+          <i class="bi bi-database-fill-gear"></i> Parametri PostgreSQL
+        </div>
+        <div class="card-body">
+          {% include "admin/_db_form_sql.html" with context %}
+        </div>
+      </div>
+
+      <!-- Pulsanti -->
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-1"></i>Salva configurazione
+        </button>
+        {% if db.mode != 'LOCAL' %}
+        <button type="button" class="btn btn-outline-info" id="btnTestConn">
+          <i class="bi bi-broadcast me-1"></i>Testa connessione
+        </button>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- Risultato test connessione -->
+    <div id="testResult" class="mt-3" style="display:none"></div>
+
+    <!-- Errore connessione precedente -->
+    {% if db.errore_connessione and not db.connessione_ok and db.mode != 'LOCAL' %}
+    <div class="alert alert-danger mt-3 small d-flex gap-2">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <div>
+        <strong>Ultimo errore connessione:</strong><br>
+        <code>{{ db.errore_connessione }}</code>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Guida dipendenze -->
+<div class="card mt-4">
+  <div class="card-header fw-semibold d-flex align-items-center gap-2">
+    <i class="bi bi-terminal text-muted"></i> Requisiti di installazione
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-hdd-fill text-secondary"></i>
+          <span class="fw-semibold small">LOCAL</span>
+          <span class="badge bg-success ms-auto">Già incluso</span>
+        </div>
+        <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-database-fill text-warning"></i>
+          <span class="fw-semibold small">MySQL</span>
+        </div>
+        <code class="small">pip install sqlalchemy pymysql</code>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-database-fill-gear text-primary"></i>
+          <span class="fw-semibold small">PostgreSQL</span>
+        </div>
+        <code class="small">pip install sqlalchemy psycopg2-binary</code>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TEST_URL = '{{ url_for("admin.testa_connessione_db", slug=studio.slug) }}';
+
+function selectMode(mode) {
+  document.getElementById('dbModeField').value = mode;
+  // Aggiorna stile card opzioni
+  document.querySelectorAll('.db-option-card').forEach(el => {
+    const isSelected = el.id === 'option_' + mode;
+    el.classList.toggle('border-primary', isSelected);
+    el.classList.toggle('bg-primary', isSelected);
+    el.classList.toggle('bg-opacity-10', isSelected);
+  });
+  // Mostra/nascondi pannelli
+  document.querySelectorAll('.db-panel').forEach(el => {
+    el.style.display = el.id === 'panel_' + mode ? '' : 'none';
+  });
+  // Mostra/nascondi bottone test
+  const testBtn = document.getElementById('btnTestConn');
+  if (testBtn) testBtn.style.display = mode === 'LOCAL' ? 'none' : '';
+}
+
+// Testa connessione via AJAX
+document.getElementById('btnTestConn')?.addEventListener('click', async function() {
+  const btn = this;
+  const result = document.getElementById('testResult');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso...';
+  result.style.display = 'none';
+
+  try {
+    const resp = await fetch(TEST_URL, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const data = await resp.json();
+    result.style.display = '';
+    if (data.ok) {
+      result.innerHTML = `<div class="alert alert-success d-flex gap-2">
+        <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+        <div><strong>Connessione riuscita!</strong> ${data.messaggio}</div></div>`;
+    } else {
+      result.innerHTML = `<div class="alert alert-danger d-flex gap-2">
+        <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+        <div><strong>Connessione fallita</strong><br><code>${data.messaggio}</code></div></div>`;
+    }
+  } catch(e) {
+    result.style.display = '';
+    result.innerHTML = `<div class="alert alert-danger">Errore nella richiesta: ${e}</div>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
+});
+</script>
+{% endblock %}

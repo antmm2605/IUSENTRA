@@ -101,6 +101,120 @@ PIANI: Dict[str, Dict[str, Any]] = {
 }
 
 
+# ============================================================== Modalità database
+
+class DbMode(str):
+    LOCAL      = "LOCAL"       # JSON su filesystem (default, zero dipendenze)
+    MYSQL      = "MYSQL"       # MySQL / MariaDB via SQLAlchemy
+    POSTGRESQL = "POSTGRESQL"  # PostgreSQL via SQLAlchemy
+
+
+DB_MODE_INFO: Dict[str, Dict[str, Any]] = {
+    DbMode.LOCAL: {
+        "nome":    "Locale (JSON)",
+        "icona":   "bi-hdd-fill",
+        "colore":  "secondary",
+        "porta":   None,
+        "desc":    "Dati salvati su filesystem. Nessuna configurazione richiesta. "
+                   "Ideale per studi con volumi ridotti o ambienti senza DB server.",
+        "badge":   "Incluso in tutti i piani",
+        "piano_min": None,  # disponibile sempre
+    },
+    DbMode.MYSQL: {
+        "nome":    "MySQL / MariaDB",
+        "icona":   "bi-database-fill",
+        "colore":  "warning",
+        "porta":   3306,
+        "desc":    "Database relazionale MySQL/MariaDB. Prestazioni superiori per studi "
+                   "con molti fascicoli. Richiede server MySQL accessibile.",
+        "badge":   "Professional / Enterprise",
+        "piano_min": "PROFESSIONAL",
+    },
+    DbMode.POSTGRESQL: {
+        "nome":    "PostgreSQL",
+        "icona":   "bi-database-fill-gear",
+        "colore":  "primary",
+        "porta":   5432,
+        "desc":    "PostgreSQL — massima affidabilità, ACID compliant, supporto JSON nativo. "
+                   "Consigliato per studi enterprise e deployment su cloud.",
+        "badge":   "Enterprise (raccomandato)",
+        "piano_min": "ENTERPRISE",
+    },
+}
+
+
+@dataclass
+class DatabaseConfig:
+    """
+    Configurazione del database per un tenant.
+    Per modalità LOCAL tutti i campi sono vuoti (non usati).
+    """
+    mode:       str = DbMode.LOCAL
+
+    # Connessione (MySQL / PostgreSQL)
+    host:       str = "localhost"
+    porta:      int = 0          # 0 = porta default del driver
+    db_name:    str = ""
+    utente:     str = ""
+    password:   str = ""         # NB: cifrata con AES in produzione
+    ssl:        bool = False
+    pool_size:  int = 5
+    pool_timeout: int = 30
+
+    # Stato ultima verifica connessione
+    connessione_ok:   bool = False
+    ultimo_test:      str  = ""  # ISO timestamp
+    errore_connessione: str = ""
+
+    @property
+    def porta_effettiva(self) -> int:
+        if self.porta:
+            return self.porta
+        defaults = {DbMode.MYSQL: 3306, DbMode.POSTGRESQL: 5432}
+        return defaults.get(self.mode, 0)
+
+    @property
+    def connection_url(self) -> str:
+        """Genera la SQLAlchemy connection URL."""
+        if self.mode == DbMode.LOCAL:
+            return ""
+        driver = "mysql+pymysql" if self.mode == DbMode.MYSQL else "postgresql+psycopg2"
+        porta = self.porta_effettiva
+        ssl_suffix = "?ssl=true" if self.ssl else ""
+        return (
+            f"{driver}://{self.utente}:{self.password}"
+            f"@{self.host}:{porta}/{self.db_name}{ssl_suffix}"
+        )
+
+    @property
+    def connection_url_safe(self) -> str:
+        """URL senza password (per display)."""
+        if self.mode == DbMode.LOCAL:
+            return "filesystem://local"
+        driver = "mysql+pymysql" if self.mode == DbMode.MYSQL else "postgresql+psycopg2"
+        return f"{driver}://{self.utente}:***@{self.host}:{self.porta_effettiva}/{self.db_name}"
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    @staticmethod
+    def from_dict(d: dict) -> "DatabaseConfig":
+        d = dict(d)
+        d.setdefault("mode", DbMode.LOCAL)
+        d.setdefault("host", "localhost")
+        d.setdefault("porta", 0)
+        d.setdefault("db_name", "")
+        d.setdefault("utente", "")
+        d.setdefault("password", "")
+        d.setdefault("ssl", False)
+        d.setdefault("pool_size", 5)
+        d.setdefault("pool_timeout", 30)
+        d.setdefault("connessione_ok", False)
+        d.setdefault("ultimo_test", "")
+        d.setdefault("errore_connessione", "")
+        return DatabaseConfig(**{k: v for k, v in d.items() if k in DatabaseConfig.__dataclass_fields__})
+
+
 # ============================================================== Stato tenant
 
 class StatoTenant(str):
@@ -163,6 +277,9 @@ class StudioLegale:
     # Branding
     branding: Dict[str, str] = field(default_factory=dict)
 
+    # Configurazione database (LOCAL | MYSQL | POSTGRESQL)
+    db_config: Dict[str, Any] = field(default_factory=dict)
+
     # API key dello studio (per REST API interna)
     api_key: str = field(default_factory=lambda: secrets.token_urlsafe(32))
 
@@ -213,6 +330,15 @@ class StudioLegale:
     def modulo_attivo(self, modulo: str) -> bool:
         return modulo in self.moduli_attivi
 
+    @property
+    def database(self) -> DatabaseConfig:
+        """Restituisce la configurazione DB tipizzata."""
+        return DatabaseConfig.from_dict(self.db_config) if self.db_config else DatabaseConfig()
+
+    @property
+    def db_mode(self) -> str:
+        return self.database.mode
+
     # ---- serializzazione
 
     def to_dict(self) -> dict:
@@ -230,6 +356,7 @@ class StudioLegale:
         d.setdefault("max_utenti", 0)
         d.setdefault("max_storage_mb", 0)
         d.setdefault("data_attivazione", "")
+        d.setdefault("db_config", {})
         return StudioLegale(**{k: v for k, v in d.items() if k in StudioLegale.__dataclass_fields__})
 
 
@@ -375,6 +502,66 @@ class GestioneTenant:
         nuova = secrets.token_urlsafe(32)
         studio = self.aggiorna(slug, api_key=nuova)
         return nuova if studio else None
+
+    def aggiorna_db_config(self, slug: str, config: DatabaseConfig) -> Optional[StudioLegale]:
+        """Salva la configurazione database del tenant."""
+        return self.aggiorna(slug, db_config=config.to_dict())
+
+    def testa_connessione(self, slug: str) -> Dict[str, Any]:
+        """
+        Testa la connessione al database del tenant.
+        Ritorna { ok: bool, messaggio: str, latenza_ms: int }.
+        Aggiorna anche db_config.connessione_ok e ultimo_test.
+        """
+        import time as _t
+        studi = self._carica()
+        studio = studi.get(slug)
+        if not studio:
+            return {"ok": False, "messaggio": "Studio non trovato", "latenza_ms": 0}
+
+        db = studio.database
+
+        if db.mode == DbMode.LOCAL:
+            data_dir = self._data_dir(slug)
+            ok = data_dir.exists()
+            msg = "Directory locale accessibile." if ok else f"Directory non trovata: {data_dir}"
+            db.connessione_ok = ok
+            db.ultimo_test = datetime.now().isoformat()
+            db.errore_connessione = "" if ok else msg
+            studio.db_config = db.to_dict()
+            self._salva(studi)
+            return {"ok": ok, "messaggio": msg, "latenza_ms": 0}
+
+        # MySQL / PostgreSQL
+        url = db.connection_url
+        if not url:
+            return {"ok": False, "messaggio": "Configurazione DB incompleta.", "latenza_ms": 0}
+
+        t0 = _t.monotonic()
+        try:
+            import sqlalchemy  # noqa: F401
+            from sqlalchemy import create_engine, text
+            engine = create_engine(url, pool_timeout=5, connect_args={"connect_timeout": 5})
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            latenza = int((_t.monotonic() - t0) * 1000)
+            db.connessione_ok = True
+            db.ultimo_test = datetime.now().isoformat()
+            db.errore_connessione = ""
+            studio.db_config = db.to_dict()
+            self._salva(studi)
+            return {"ok": True, "messaggio": f"Connessione riuscita in {latenza} ms.", "latenza_ms": latenza}
+        except ImportError:
+            msg = "SQLAlchemy non installato. Esegui: pip install sqlalchemy pymysql psycopg2-binary"
+        except Exception as exc:
+            msg = str(exc)
+        latenza = int((_t.monotonic() - t0) * 1000)
+        db.connessione_ok = False
+        db.ultimo_test = datetime.now().isoformat()
+        db.errore_connessione = msg
+        studio.db_config = db.to_dict()
+        self._salva(studi)
+        return {"ok": False, "messaggio": msg, "latenza_ms": latenza}
 
     # ---- Statistiche globali
 

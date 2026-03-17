@@ -29,6 +29,9 @@ from flask import (
 from pct.tenant import (
     GestioneTenant,
     StudioLegale,
+    DatabaseConfig,
+    DbMode,
+    DB_MODE_INFO,
     MODULI_DISPONIBILI,
     PIANI,
     PianoTenant,
@@ -161,11 +164,13 @@ def nuovo_studio():
 
         if not nome or not slug:
             flash("Nome e slug sono obbligatori.", "danger")
-            return render_template("admin/studio_nuovo.html", piani=PIANI, form=request.form)
+            return render_template("admin/studio_nuovo.html", piani=PIANI,
+                                   db_mode_info=DB_MODE_INFO, form=request.form)
 
         if not admin_password:
             flash("Imposta una password per l'amministratore dello studio.", "danger")
-            return render_template("admin/studio_nuovo.html", piani=PIANI, form=request.form)
+            return render_template("admin/studio_nuovo.html", piani=PIANI,
+                                   db_mode_info=DB_MODE_INFO, form=request.form)
 
         tm = _tenant_manager()
         try:
@@ -184,7 +189,14 @@ def nuovo_studio():
             )
         except ValueError as e:
             flash(str(e), "danger")
-            return render_template("admin/studio_nuovo.html", piani=PIANI, form=request.form)
+            return render_template("admin/studio_nuovo.html", piani=PIANI,
+                                   db_mode_info=DB_MODE_INFO, form=request.form)
+
+        # Salva la modalità DB scelta (per LOCAL basta il default, per gli altri serve config dettagliata)
+        db_mode = request.form.get("db_mode", DbMode.LOCAL)
+        if db_mode != DbMode.LOCAL:
+            cfg = DatabaseConfig(mode=db_mode)
+            tm.aggiorna_db_config(slug, cfg)
 
         # Crea utente amministratore dello studio
         gu = _utenti_tenant(slug)
@@ -202,9 +214,14 @@ def nuovo_studio():
             return redirect(url_for("admin.dettaglio_studio", slug=slug))
 
         flash(f"Studio '{nome}' creato con successo!", "success")
+        # Se scelto MySQL/PostgreSQL, rimanda direttamente alla config DB
+        if db_mode != DbMode.LOCAL:
+            flash("Configura ora i parametri di connessione al database.", "info")
+            return redirect(url_for("admin.database_studio", slug=slug))
         return redirect(url_for("admin.dettaglio_studio", slug=slug))
 
-    return render_template("admin/studio_nuovo.html", piani=PIANI, form={})
+    return render_template("admin/studio_nuovo.html", piani=PIANI,
+                           db_mode_info=DB_MODE_INFO, form={})
 
 
 @admin_bp.route("/studi/<slug>")
@@ -230,6 +247,7 @@ def dettaglio_studio(slug: str):
         utenti=utenti_studio,
         moduli_disponibili=MODULI_DISPONIBILI,
         piani=PIANI,
+        db_mode_info=DB_MODE_INFO,
         storage_mb=storage_mb,
     )
 
@@ -476,6 +494,58 @@ def elimina_utente(slug: str, uid: str):
     gu.elimina(uid)
     flash(f"Utente '{u.username}' eliminato.", "warning")
     return redirect(url_for("admin.utenti_studio", slug=slug))
+
+
+# ============================================================= Database config
+
+@admin_bp.route("/studi/<slug>/database", methods=["GET", "POST"])
+@superadmin_required
+def database_studio(slug: str):
+    tm = _tenant_manager()
+    studio = tm.get(slug)
+    if not studio:
+        abort(404)
+
+    if request.method == "POST":
+        mode = request.form.get("db_mode", DbMode.LOCAL)
+
+        cfg = DatabaseConfig(
+            mode=mode,
+            host=request.form.get("host", "localhost").strip(),
+            porta=int(request.form.get("porta", 0) or 0),
+            db_name=request.form.get("db_name", "").strip(),
+            utente=request.form.get("db_utente", "").strip(),
+            # Mantieni la password esistente se il campo è rimasto vuoto
+            password=request.form.get("db_password", "").strip()
+                     or studio.database.password,
+            ssl=request.form.get("ssl") == "on",
+            pool_size=int(request.form.get("pool_size", 5) or 5),
+            pool_timeout=int(request.form.get("pool_timeout", 30) or 30),
+            # Preserva lo stato dell'ultimo test
+            connessione_ok=studio.database.connessione_ok,
+            ultimo_test=studio.database.ultimo_test,
+            errore_connessione=studio.database.errore_connessione,
+        )
+        tm.aggiorna_db_config(slug, cfg)
+        flash("Configurazione database salvata.", "success")
+        return redirect(url_for("admin.database_studio", slug=slug))
+
+    return render_template(
+        "admin/studio_database.html",
+        studio=studio,
+        db=studio.database,
+        db_mode_info=DB_MODE_INFO,
+        DbMode=DbMode,
+    )
+
+
+@admin_bp.route("/studi/<slug>/database/test", methods=["POST"])
+@superadmin_required
+def testa_connessione_db(slug: str):
+    """Testa la connessione al DB del tenant e restituisce JSON."""
+    tm = _tenant_manager()
+    risultato = tm.testa_connessione(slug)
+    return jsonify(risultato)
 
 
 # ============================================================= API JSON

@@ -166,6 +166,10 @@ body {
   z-index: 199;
 }
 
+/* Hamburger e close nascosti su desktop */
+#sb-open  { display: none; }
+#sb-close { display: none; }
+
 /* ---- Main ---- */
 #main { margin-left: var(--sidebar-w); padding: 1.5rem 2rem; }
 
@@ -374,8 +378,8 @@ body {
   #sidebar { transform: translateX(-100%); }
   #sidebar.sb-open { transform: translateX(0); }
   #sb-overlay.sb-open { display: block; }
-  #sb-open { display: inline-flex !important; }
-  #sb-close { display: inline-flex !important; }
+  #sb-open  { display: inline-flex; }
+  #sb-close { display: inline-flex; }
   #main { margin-left: 0; padding: 1rem; padding-bottom: 76px; }
   #sync-toast-container { bottom: 72px; }
 

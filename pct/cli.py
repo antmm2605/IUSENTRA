@@ -57,21 +57,38 @@ from .scadenziario import (
 )
 
 
-def carica_config() -> dict:
-    """Carica configurazione da file .env o variabili d'ambiente."""
-    config = {
-        "pec_indirizzo": os.getenv("PCT_PEC_INDIRIZZO", ""),
-        "pec_password": os.getenv("PCT_PEC_PASSWORD", ""),
-        "pec_smtp_host": os.getenv("PCT_PEC_SMTP_HOST", "smtp.pec.aruba.it"),
-        "pec_smtp_port": int(os.getenv("PCT_PEC_SMTP_PORT", "465")),
-        "pec_imap_host": os.getenv("PCT_PEC_IMAP_HOST", "imaps.pec.aruba.it"),
-        "firma_p12": os.getenv("PCT_FIRMA_P12", ""),
-        "firma_password": os.getenv("PCT_FIRMA_PASSWORD", ""),
-        "cf_avvocato": os.getenv("PCT_CF_AVVOCATO", ""),
-        "nome_avvocato": os.getenv("PCT_NOME_AVVOCATO", ""),
-        "output_dir": os.getenv("PCT_OUTPUT_DIR", "./depositi"),
+def carica_config(config_path: str | None = None) -> dict:
+    """
+    Carica la configurazione da config/studio.json (priorità) o da variabili d'ambiente.
+    Il percorso del file può essere sovrascritto tramite PCT_STUDIO_CONFIG.
+    """
+    path = config_path or os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
+    try:
+        from .config_studio import GestioneConfigStudio
+        gs = GestioneConfigStudio(path)
+        c = gs.config
+    except Exception:
+        c = None
+
+    def _v(from_cfg, env_key, default=""):
+        """Restituisce from_cfg se non vuoto, altrimenti env var, altrimenti default."""
+        if from_cfg:
+            return from_cfg
+        return os.getenv(env_key, default)
+
+    return {
+        "pec_indirizzo":  _v(c and c.pec.indirizzo,  "PCT_PEC_INDIRIZZO"),
+        "pec_password":   _v(c and c.pec.password,   "PCT_PEC_PASSWORD"),
+        "pec_smtp_host":  _v(c and c.pec.smtp_host,  "PCT_PEC_SMTP_HOST", "smtp.pec.aruba.it"),
+        "pec_smtp_port":  (c and c.pec.smtp_port) or int(os.getenv("PCT_PEC_SMTP_PORT", "465")),
+        "pec_imap_host":  _v(c and c.pec.imap_host,  "PCT_PEC_IMAP_HOST", "imaps.pec.aruba.it"),
+        "firma_p12":      _v(c and c.firma.p12_path,  "PCT_FIRMA_P12"),
+        "firma_password": _v(c and c.firma.password,  "PCT_FIRMA_PASSWORD"),
+        "cf_avvocato":    _v(c and (c.studio.codice_fiscale_avvocato or c.firma.cf_avvocato),
+                            "PCT_CF_AVVOCATO"),
+        "nome_avvocato":  _v(c and c.studio.avvocato, "PCT_NOME_AVVOCATO"),
+        "output_dir":     os.getenv("PCT_OUTPUT_DIR", "./depositi"),
     }
-    return config
 
 
 @click.group()

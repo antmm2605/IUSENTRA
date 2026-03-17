@@ -127,5 +127,7 @@ def start_scheduler(app):
                 logger.error(f"[scheduler] Parcelle scadute fallito: {e}")
 
     scheduler.start()
+    # Salva il riferimento nell'app per consentire il reschedule dinamico
+    app.config["PCT_SCHEDULER"] = scheduler
     logger.info(f"[scheduler] Avviato — backup alle {ora_backup}, WA reminder alle {wa_ora}.")
     return scheduler

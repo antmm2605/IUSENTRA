@@ -2,10 +2,11 @@
 web/blueprints/impostazioni.py — Pannello impostazioni studio.
 
 Routes:
-  GET/POST  /impostazioni              → pagina principale (tabs)
+  GET/POST  /impostazioni                → pagina principale (tabs)
   POST      /impostazioni/test/pec-smtp  → AJAX test SMTP PEC
   POST      /impostazioni/test/pec-imap  → AJAX test IMAP PEC
   POST      /impostazioni/test/smtp      → AJAX test SMTP email
+  POST      /impostazioni/test/whatsapp  → AJAX test WhatsApp
 """
 from __future__ import annotations
 
@@ -41,18 +42,50 @@ def _applica_ad_app(cfg):
     """Sincronizza la configurazione salvata con app.config (nessun restart)."""
     app = current_app._get_current_object()
     s = cfg.studio
+    # Dati studio
     app.config["STUDIO_NOME"]      = s.nome
     app.config["STUDIO_AVVOCATO"]  = s.avvocato
     app.config["STUDIO_PIVA"]      = s.piva
     app.config["STUDIO_CF"]        = s.cf
     app.config["STUDIO_INDIRIZZO"] = s.indirizzo
     app.config["STUDIO_IBAN"]      = s.iban
-    app.config["TWILIO_SID"]       = cfg.whatsapp.twilio_sid
-    app.config["TWILIO_TOKEN"]     = cfg.whatsapp.twilio_token
-    app.config["TWILIO_NUMERO"]    = cfg.whatsapp.twilio_numero
-    app.config["CALLMEBOT_KEY"]    = cfg.whatsapp.callmebot_key
-    app.config["BACKUP_ORA"]       = cfg.scheduler.backup_ora
-    app.config["WA_REMINDER_ORA"]  = cfg.scheduler.wa_reminder_ora
+    # SMTP
+    app.config["SMTP_HOST"]      = cfg.smtp.host
+    app.config["SMTP_PORT"]      = cfg.smtp.port
+    app.config["SMTP_USER"]      = cfg.smtp.username
+    app.config["SMTP_PASS"]      = cfg.smtp.password
+    app.config["SMTP_FROM"]      = cfg.smtp.from_address
+    app.config["SMTP_FROM_NAME"] = cfg.smtp.from_name or s.nome
+    app.config["SMTP_USE_TLS"]   = cfg.smtp.use_tls
+    # WhatsApp
+    app.config["TWILIO_SID"]    = cfg.whatsapp.twilio_sid
+    app.config["TWILIO_TOKEN"]  = cfg.whatsapp.twilio_token
+    app.config["TWILIO_NUMERO"] = cfg.whatsapp.twilio_numero
+    app.config["CALLMEBOT_KEY"] = cfg.whatsapp.callmebot_key
+    # Scheduler
+    app.config["BACKUP_ORA"]      = cfg.scheduler.backup_ora
+    app.config["WA_REMINDER_ORA"] = cfg.scheduler.wa_reminder_ora
+    # Reschedule job se lo scheduler è attivo
+    _reschedule_jobs(app, cfg)
+
+
+def _reschedule_jobs(app, cfg):
+    """Aggiorna gli orari dei job schedulati senza riavviare l'app."""
+    try:
+        from apscheduler.triggers.cron import CronTrigger
+        scheduler = app.config.get("PCT_SCHEDULER")
+        if scheduler is None or not scheduler.running:
+            return
+        h, m = map(int, cfg.scheduler.backup_ora.split(":"))
+        scheduler.reschedule_job(
+            "backup_giornaliero", trigger=CronTrigger(hour=h, minute=m)
+        )
+        wh, wm = map(int, cfg.scheduler.wa_reminder_ora.split(":"))
+        scheduler.reschedule_job(
+            "wa_reminder", trigger=CronTrigger(hour=wh, minute=wm)
+        )
+    except Exception:
+        pass  # Lo scheduler potrebbe non essere avviato in certi ambienti
 
 
 # ─────────────────────────────────────────────────────────── pagina principale
@@ -67,7 +100,7 @@ def index():
         tab = f.get("_tab", "studio")
 
         from pct.config_studio import (
-            ConfigStudio, ConfigDatiStudio, ConfigPEC,
+            ConfigDatiStudio, ConfigPEC,
             ConfigFirma, ConfigSMTP, ConfigWhatsApp, ConfigScheduler,
         )
         cfg = gs.config
@@ -87,7 +120,6 @@ def index():
                 codice_fiscale_avvocato=f.get("codice_fiscale_avvocato", "").strip(),
             )
         elif tab == "pec":
-            # Preserva password se il campo è vuoto (non sovrascrive)
             pwd = f.get("pec_password", "").strip()
             cfg.pec = ConfigPEC(
                 indirizzo=f.get("pec_indirizzo", "").strip(),
@@ -155,7 +187,6 @@ def test_pec_smtp():
     data = request.get_json(force=True) or {}
     gs = _get_gestore()
     cfg_pec = gs.config.pec
-    # Usa i valori dal form se forniti, altrimenti quelli salvati
     pec = ConfigPEC(
         indirizzo=data.get("indirizzo") or cfg_pec.indirizzo,
         password=data.get("password") or cfg_pec.password,
@@ -165,8 +196,7 @@ def test_pec_smtp():
         imap_port=cfg_pec.imap_port,
         use_ssl=data.get("use_ssl", cfg_pec.use_ssl),
     )
-    result = _test(pec)
-    return jsonify(result)
+    return jsonify(_test(pec))
 
 
 @impostazioni.route("/impostazioni/test/pec-imap", methods=["POST"])
@@ -185,8 +215,7 @@ def test_pec_imap():
         imap_port=int(data.get("imap_port") or cfg_pec.imap_port),
         use_ssl=data.get("use_ssl", cfg_pec.use_ssl),
     )
-    result = _test(pec)
-    return jsonify(result)
+    return jsonify(_test(pec))
 
 
 @impostazioni.route("/impostazioni/test/smtp", methods=["POST"])
@@ -205,5 +234,20 @@ def test_smtp():
         from_name=cfg_smtp.from_name,
         use_tls=data.get("use_tls", cfg_smtp.use_tls),
     )
-    result = _test(smtp)
-    return jsonify(result)
+    return jsonify(_test(smtp))
+
+
+@impostazioni.route("/impostazioni/test/whatsapp", methods=["POST"])
+@_richiedi_login
+def test_whatsapp():
+    from pct.config_studio import ConfigWhatsApp, test_whatsapp as _test
+    data = request.get_json(force=True) or {}
+    gs = _get_gestore()
+    cfg_wa = gs.config.whatsapp
+    wa = ConfigWhatsApp(
+        twilio_sid=data.get("twilio_sid") or cfg_wa.twilio_sid,
+        twilio_token=data.get("twilio_token") or cfg_wa.twilio_token,
+        twilio_numero=data.get("twilio_numero") or cfg_wa.twilio_numero,
+        callmebot_key=data.get("callmebot_key") or cfg_wa.callmebot_key,
+    )
+    return jsonify(_test(wa))

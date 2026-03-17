@@ -512,7 +512,7 @@
         </div>
         <div class="col-md-5">
           <label class="form-label fw-semibold">Account SID</label>
-          <input type="text" name="twilio_sid" class="form-control font-monospace"
+          <input type="text" name="twilio_sid" id="twilio_sid" class="form-control font-monospace"
                  value="{{ cfg.whatsapp.twilio_sid }}" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
         </div>
         <div class="col-md-5">
@@ -531,7 +531,7 @@
         </div>
         <div class="col-md-4">
           <label class="form-label fw-semibold">Numero WhatsApp (whatsapp:+1...)</label>
-          <input type="text" name="twilio_numero" class="form-control font-monospace"
+          <input type="text" name="twilio_numero" id="twilio_numero" class="form-control font-monospace"
                  value="{{ cfg.whatsapp.twilio_numero }}" placeholder="whatsapp:+14155238886">
         </div>
 
@@ -541,7 +541,7 @@
         </div>
         <div class="col-md-5">
           <label class="form-label fw-semibold">API Key CallMeBot</label>
-          <input type="text" name="callmebot_key" class="form-control font-monospace"
+          <input type="text" name="callmebot_key" id="callmebot_key" class="form-control font-monospace"
                  value="{{ cfg.whatsapp.callmebot_key }}" placeholder="123456">
           <div class="form-text">
             Ottieni la tua API key su
@@ -550,10 +550,15 @@
         </div>
       </div>
 
-      <div class="d-flex gap-2 mt-4">
+      <div class="d-flex gap-2 mt-4 align-items-center flex-wrap">
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-floppy me-2"></i>Salva configurazione WhatsApp
         </button>
+        <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-wa"
+                onclick="testConn('whatsapp','btn-test-wa','res-test-wa')">
+          <i class="bi bi-whatsapp me-1"></i>Testa connessione WhatsApp
+        </button>
+        <span id="res-test-wa" class="test-result"></span>
       </div>
     </form>
   </div>
@@ -705,6 +710,14 @@ async function testConn(tipo, btnId, resId) {
       username: g('smtp_username'),
       password: g('smtp_password'),
       use_tls:  document.getElementById('smtp_use_tls')?.checked ?? true,
+    };
+  } else if (tipo === 'whatsapp') {
+    const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    payload = {
+      twilio_sid:    g('twilio_sid'),
+      twilio_token:  g('twilio_token'),
+      twilio_numero: g('twilio_numero'),
+      callmebot_key: g('callmebot_key'),
     };
   }
 

@@ -235,6 +235,47 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["STUDIO_CONFIG"] = cfg.get(
         "STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
     )
+    # ── Carica config studio da JSON al boot (prevale sulle env vars se esiste) ──
+    try:
+        from pct.config_studio import GestioneConfigStudio as _GCS
+        _gs_boot = _GCS(app.config["STUDIO_CONFIG"])
+        _sc = _gs_boot.config
+        # Dati studio
+        if _sc.studio.nome:
+            app.config["STUDIO_NOME"]      = _sc.studio.nome
+            app.config["STUDIO_AVVOCATO"]  = _sc.studio.avvocato
+            app.config["STUDIO_PIVA"]      = _sc.studio.piva
+            app.config["STUDIO_CF"]        = _sc.studio.cf
+            app.config["STUDIO_INDIRIZZO"] = _sc.studio.indirizzo
+            app.config["STUDIO_IBAN"]      = _sc.studio.iban
+        # WhatsApp
+        if _sc.whatsapp.twilio_sid:
+            app.config["TWILIO_SID"]    = _sc.whatsapp.twilio_sid
+            app.config["TWILIO_TOKEN"]  = _sc.whatsapp.twilio_token
+            app.config["TWILIO_NUMERO"] = _sc.whatsapp.twilio_numero
+        if _sc.whatsapp.callmebot_key:
+            app.config["CALLMEBOT_KEY"] = _sc.whatsapp.callmebot_key
+        # Scheduler
+        if _sc.scheduler.backup_ora:
+            app.config["BACKUP_ORA"]       = _sc.scheduler.backup_ora
+            app.config["WA_REMINDER_ORA"]  = _sc.scheduler.wa_reminder_ora
+        # SMTP — conservati in chiavi proprie per get_messaggi()
+        app.config["SMTP_HOST"]     = _sc.smtp.host or os.getenv("PCT_SMTP_HOST", "")
+        app.config["SMTP_PORT"]     = _sc.smtp.port or int(os.getenv("PCT_SMTP_PORT", "587"))
+        app.config["SMTP_USER"]     = _sc.smtp.username or os.getenv("PCT_SMTP_USER", "")
+        app.config["SMTP_PASS"]     = _sc.smtp.password or os.getenv("PCT_SMTP_PASS", "")
+        app.config["SMTP_FROM"]     = _sc.smtp.from_address or os.getenv("PCT_SMTP_FROM", "")
+        app.config["SMTP_FROM_NAME"]= _sc.smtp.from_name or app.config.get("STUDIO_NOME", "Studio Legale")
+        app.config["SMTP_USE_TLS"]  = _sc.smtp.use_tls
+    except Exception:
+        # Fallback: usa solo env vars (già impostati sopra)
+        app.config.setdefault("SMTP_HOST",      os.getenv("PCT_SMTP_HOST", ""))
+        app.config.setdefault("SMTP_PORT",      int(os.getenv("PCT_SMTP_PORT", "587")))
+        app.config.setdefault("SMTP_USER",      os.getenv("PCT_SMTP_USER", ""))
+        app.config.setdefault("SMTP_PASS",      os.getenv("PCT_SMTP_PASS", ""))
+        app.config.setdefault("SMTP_FROM",      os.getenv("PCT_SMTP_FROM", ""))
+        app.config.setdefault("SMTP_FROM_NAME", app.config.get("STUDIO_NOME", "Studio Legale"))
+        app.config.setdefault("SMTP_USE_TLS",   True)
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -250,22 +291,24 @@ def create_app(config: dict | None = None) -> Flask:
         )
 
     def get_messaggi() -> GestioneMessaggi:
+        # Usa app.config (popolato da config_studio.json al boot, con fallback su env)
         cfg = ConfigMessaggistica(
             email=ConfigEmail(
-                smtp_host=os.getenv("PCT_SMTP_HOST", ""),
-                smtp_port=int(os.getenv("PCT_SMTP_PORT", "587")),
-                username=os.getenv("PCT_SMTP_USER", ""),
-                password=os.getenv("PCT_SMTP_PASS", ""),
-                mittente_email=os.getenv("PCT_SMTP_FROM", ""),
-                mittente_nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale"),
+                smtp_host=app.config.get("SMTP_HOST", ""),
+                smtp_port=app.config.get("SMTP_PORT", 587),
+                username=app.config.get("SMTP_USER", ""),
+                password=app.config.get("SMTP_PASS", ""),
+                mittente_email=app.config.get("SMTP_FROM", ""),
+                mittente_nome=app.config.get("SMTP_FROM_NAME",
+                              app.config.get("STUDIO_NOME", "Studio Legale")),
             ),
             twilio=ConfigTwilio(
-                account_sid=os.getenv("TWILIO_ACCOUNT_SID", ""),
-                auth_token=os.getenv("TWILIO_AUTH_TOKEN", ""),
-                numero_sms=os.getenv("TWILIO_SMS_NUMBER", ""),
-                numero_whatsapp=os.getenv("TWILIO_WA_NUMBER", ""),
+                account_sid=app.config.get("TWILIO_SID", ""),
+                auth_token=app.config.get("TWILIO_TOKEN", ""),
+                numero_sms=app.config.get("TWILIO_NUMERO", ""),
+                numero_whatsapp=app.config.get("TWILIO_NUMERO", ""),
             ),
-            studio_nome=os.getenv("PCT_STUDIO_NOME", "Studio Legale"),
+            studio_nome=app.config.get("STUDIO_NOME", "Studio Legale"),
         )
         return GestioneMessaggi(config=cfg, db_path=app.config["MESSAGGI_DB"])
 

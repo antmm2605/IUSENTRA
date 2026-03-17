@@ -2429,6 +2429,60 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/visualizza")
+    def visualizza_documento(id_fasc, id_doc):
+        """Serve il documento decriptato inline per la visualizzazione nel browser."""
+        gf = get_fascicoli()
+        try:
+            percorso = gf.percorso_documento(id_fasc, id_doc)
+            fasc = gf.get(id_fasc)
+            doc = next(d for d in fasc.documenti if d.id == id_doc)
+            data = _decrypt_doc(percorso.read_bytes())
+            nome = doc.nome.lower()
+            if nome.endswith(".pdf"):
+                mime = "application/pdf"
+            elif nome.endswith((".jpg", ".jpeg")):
+                mime = "image/jpeg"
+            elif nome.endswith(".png"):
+                mime = "image/png"
+            elif nome.endswith(".gif"):
+                mime = "image/gif"
+            else:
+                # Formato non visualizzabile inline: scarica normalmente
+                return send_file(io.BytesIO(data), as_attachment=True, download_name=doc.nome)
+            audit("fascicoli.documento.visualizza", "fascicolo", id_fasc,
+                  dettagli=f"doc {id_doc} — {doc.nome}")
+            return send_file(io.BytesIO(data), mimetype=mime, as_attachment=False,
+                             download_name=doc.nome)
+        except (KeyError, StopIteration, ValueError) as e:
+            return str(e), 404
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["POST"])
+    def firma_documento(id_fasc, id_doc):
+        """Carica la versione firmata (.p7m/.pdf) e marca il documento come firmato."""
+        gf = get_fascicoli()
+        u = g.utente_corrente
+        try:
+            if "file" in request.files and request.files["file"].filename:
+                file = request.files["file"]
+                note = request.form.get("note", "Versione firmata per deposito").strip()
+                gf.sostituisci_documento(
+                    id_fasc=id_fasc,
+                    id_doc=id_doc,
+                    nome_file=file.filename,
+                    contenuto=_encrypt_doc(file.read()),
+                    caricato_da=u.username if u else "",
+                    note=note,
+                )
+            doc = gf.segna_firmato(id_fasc, id_doc)
+            flash(f"Documento '{doc.nome}' contrassegnato come firmato per deposito.", "success")
+            audit("fascicoli.documento.firma", "fascicolo", id_fasc,
+                  dettagli=f"doc {id_doc} — {doc.nome}")
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/elimina", methods=["POST"])
     def elimina_documento(id_fasc, id_doc):
         gf = get_fascicoli()

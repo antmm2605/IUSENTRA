@@ -199,12 +199,24 @@
             </thead>
             <tbody>
               {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
+              {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
+              {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
               <tr>
                 <td>
+                  {% if visualizzabile %}
+                  <a href="#" class="text-decoration-none fw-semibold"
+                     data-doc-nome="{{ doc.nome }}"
+                     data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                     data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                     onclick="apriVisualizzatore(this); return false;">
+                    <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+                  </a>
+                  {% else %}
                   <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                      class="text-decoration-none fw-semibold">
                     <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
                   </a>
+                  {% endif %}
                   {% if doc.note %}<div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>{% endif %}
                 </td>
                 <td>
@@ -225,10 +237,28 @@
                 </td>
                 <td>
                   <div class="btn-group btn-group-sm">
+                    {% if visualizzabile %}
+                    <button type="button" class="btn btn-outline-primary" title="Visualizza"
+                            data-doc-nome="{{ doc.nome }}"
+                            data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                            data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                            onclick="apriVisualizzatore(this)">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    {% endif %}
                     <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                        class="btn btn-outline-secondary" title="Scarica">
                       <i class="bi bi-download"></i>
                     </a>
+                    {% if not doc.firmato_digitalmente %}
+                    <button type="button" class="btn btn-outline-success" title="Firma per deposito"
+                            data-doc-nome="{{ doc.nome }}"
+                            data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                            data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                            onclick="apriFirma(this)">
+                      <i class="bi bi-pen"></i>
+                    </button>
+                    {% endif %}
                     <form method="post"
                           action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                           onsubmit="return confirm('Eliminare il documento?')">
@@ -521,6 +551,86 @@
   </div>
 </div>
 
+{# Modal: visualizzatore documenti inline #}
+<div class="modal fade" id="modalVisualizzatore" tabindex="-1">
+  <div class="modal-dialog modal-xl" style="max-width:95vw;height:92vh;margin:.5rem auto">
+    <div class="modal-content" style="height:100%">
+      <div class="modal-header py-2">
+        <h6 class="modal-title mb-0">
+          <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+          <span id="visualizzatore-titolo" class="text-truncate" style="max-width:60vw;display:inline-block"></span>
+        </h6>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <a id="visualizzatore-scarica" href="#" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i>Scarica
+          </a>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+      </div>
+      <div class="modal-body p-0" style="flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column">
+        <iframe id="visualizzatore-iframe" src="" style="width:100%;flex:1;border:0;min-height:0"
+                allow="fullscreen"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Modal: firma per deposito PCT #}
+<div class="modal fade" id="modalFirma" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data" id="firma-form">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-pen me-2 text-success"></i>Firma per deposito
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info small mb-3" role="alert">
+            Scarica il documento, firmalo con il tuo dispositivo (token USB / smart card)
+            tramite il software del tuo provider (es. Aruba Sign, FirmaOK, Namirial),
+            poi carica qui il file firmato.
+          </div>
+          <div class="border rounded p-3 d-flex align-items-center gap-3 mb-3 bg-light">
+            <i class="bi bi-file-earmark-text fs-3 text-primary"></i>
+            <div class="flex-grow-1 overflow-hidden">
+              <div class="fw-semibold text-truncate" id="firma-nome-doc"></div>
+              <a id="firma-scarica-link" href="#" class="small text-primary">
+                <i class="bi bi-download me-1"></i>Scarica per firmare esternamente
+              </a>
+            </div>
+          </div>
+          <hr>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Carica versione firmata
+              <span class="fw-normal text-muted small">(opzionale)</span>
+            </label>
+            <input type="file" name="file" id="firma-file-input" class="form-control"
+                   accept=".p7m,.pdf,.sig,.pkcs7">
+            <div class="form-text">
+              Formati accettati: <code>.p7m</code> (CAdES-BES), <code>.pdf</code> con firma PAdES.
+              Se non carichi un file il documento viene semplicemente marcato come firmato.
+            </div>
+          </div>
+          <div>
+            <label class="form-label fw-semibold">Note</label>
+            <input type="text" name="note" class="form-control"
+                   value="Versione firmata per deposito PCT">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-patch-check me-1"></i>Conferma firma
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {# Modal: definisci pratica #}
 <div class="modal fade" id="modalDefinisci" tabindex="-1">
   <div class="modal-dialog">
@@ -641,6 +751,28 @@
 
 {% block scripts %}
 <script>
+// ---- Visualizzatore documenti inline ----
+function apriVisualizzatore(btn) {
+  document.getElementById('visualizzatore-titolo').textContent = btn.dataset.docNome;
+  document.getElementById('visualizzatore-iframe').src = btn.dataset.docUrl;
+  document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl;
+  new bootstrap.Modal(document.getElementById('modalVisualizzatore')).show();
+}
+document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
+  // Ferma il caricamento del documento quando si chiude il modal
+  document.getElementById('visualizzatore-iframe').src = '';
+});
+
+// ---- Firma per deposito ----
+function apriFirma(btn) {
+  document.getElementById('firma-nome-doc').textContent = btn.dataset.docNome;
+  document.getElementById('firma-scarica-link').href = btn.dataset.scaricaUrl;
+  document.getElementById('firma-form').action = btn.dataset.firmaUrl;
+  document.getElementById('firma-file-input').value = '';
+  new bootstrap.Modal(document.getElementById('modalFirma')).show();
+}
+
+// ---- Drop-zone carica documento ----
 (function () {
   const zone = document.getElementById('drop-zone');
   const input = document.getElementById('fileInput');

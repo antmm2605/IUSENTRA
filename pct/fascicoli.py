@@ -563,6 +563,17 @@ class GestioneFascicoli:
         f.modificato_il = datetime.now().isoformat()
         self._salva()
 
+    def segna_firmato(self, id_fasc: str, id_doc: str) -> "Documento":
+        """Marca un documento come firmato digitalmente."""
+        f = self._get_o_errore(id_fasc)
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if not doc:
+            raise KeyError(f"Documento '{id_doc}' non trovato nel fascicolo.")
+        doc.firmato_digitalmente = True
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return doc
+
     def percorso_documento(self, id_fasc: str, id_doc: str) -> Path:
         f = self._get_o_errore(id_fasc)
         doc = next((d for d in f.documenti if d.id == id_doc), None)

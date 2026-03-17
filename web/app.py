@@ -2971,7 +2971,8 @@ def create_app(config: dict | None = None) -> Flask:
         if not g.utente_corrente:
             return jsonify({"errore": "Non autenticato"}), 401
 
-        client_id, q = _sync.subscribe()
+        user_key = g.utente_corrente.username if g.utente_corrente else ""
+        client_id, q = _sync.subscribe(user_key=user_key)
 
         def genera():
             yield from _sync.sse_stream(client_id, q)

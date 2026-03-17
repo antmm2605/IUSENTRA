@@ -107,6 +107,10 @@ class Evento:
 
 # ================================================================ Gestore
 
+# Sentinella per segnalare a un generatore SSE di terminare
+_SENTINEL = object()
+
+
 class GestoreSincronizzazione:
     """
     Gestore centralizzato di sincronizzazione multi-operatore.
@@ -118,6 +122,8 @@ class GestoreSincronizzazione:
         self._bus_lock = threading.Lock()
         # client_id → queue.Queue
         self._subscribers: Dict[str, queue.Queue] = {}
+        # username → client_id corrente (una sola connessione SSE per utente)
+        self._user_to_client: Dict[str, str] = {}
 
     # ---------------------------------------------------------------- File locking
 
@@ -186,20 +192,40 @@ class GestoreSincronizzazione:
 
     # ---------------------------------------------------------------- SSE event bus
 
-    def subscribe(self) -> Tuple[str, "queue.Queue[Evento]"]:
+    def subscribe(self, user_key: str = "") -> Tuple[str, "queue.Queue[Evento]"]:
         """
         Registra un client SSE.
+
+        Se user_key è fornito (username), sostituisce immediatamente la
+        connessione precedente dello stesso utente, evitando l'accumulo
+        di subscriber zombie quando l'utente naviga tra le pagine.
+
         Restituisce (client_id, queue) da usare con sse_stream().
         """
         client_id = uuid.uuid4().hex
         q: queue.Queue = queue.Queue(maxsize=100)
         with self._bus_lock:
+            if user_key:
+                old_id = self._user_to_client.get(user_key)
+                if old_id:
+                    old_q = self._subscribers.pop(old_id, None)
+                    if old_q is not None:
+                        # Segnala al vecchio generatore di terminare
+                        try:
+                            old_q.put_nowait(_SENTINEL)
+                        except queue.Full:
+                            pass
+                self._user_to_client[user_key] = client_id
             self._subscribers[client_id] = q
         return client_id, q
 
     def unsubscribe(self, client_id: str) -> None:
         with self._bus_lock:
             self._subscribers.pop(client_id, None)
+            # Rimuovi il mapping utente se appartiene a questo client
+            stale = [u for u, c in self._user_to_client.items() if c == client_id]
+            for u in stale:
+                del self._user_to_client[u]
 
     def pubblica(
         self,
@@ -241,7 +267,10 @@ class GestoreSincronizzazione:
             yield "data: {\"tipo\":\"connesso\"}\n\n"
             while True:
                 try:
-                    evento: Evento = q.get(timeout=25)
+                    evento = q.get(timeout=25)
+                    if evento is _SENTINEL:
+                        # Connessione sostituita da una più recente dello stesso utente
+                        break
                     yield evento.to_sse()
                 except queue.Empty:
                     # heartbeat

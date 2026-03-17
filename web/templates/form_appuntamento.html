@@ -67,15 +67,20 @@
 
     <hr class="col-12 my-1">
 
-    {# Cliente #}
+    {# Cliente con autocomplete #}
     <div class="col-md-6">
       <label class="form-label fw-semibold">Cliente</label>
-      <input type="text" name="cliente" class="form-control"
-             value="{{ app.cliente if app else '' }}" placeholder="Nome e cognome">
+      <div class="position-relative">
+        <input type="text" id="input-cliente" name="cliente" class="form-control"
+               value="{{ app.cliente if app else '' }}" placeholder="Digita per cercare..."
+               autocomplete="off">
+        <div id="clienti-dropdown" class="dropdown-menu w-100 shadow-sm"
+             style="display:none; max-height:220px; overflow-y:auto; position:absolute; z-index:1055; top:100%; left:0;"></div>
+      </div>
     </div>
     <div class="col-md-6">
       <label class="form-label fw-semibold">Codice fiscale cliente</label>
-      <input type="text" name="cf_cliente" class="form-control"
+      <input type="text" id="input-cf" name="cf_cliente" class="form-control"
              value="{{ app.cf_cliente if app else '' }}"
              placeholder="RSSMRA80A01H501Z" maxlength="16"
              style="text-transform:uppercase">
@@ -133,4 +138,61 @@
 </div>
 </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const inputCliente = document.getElementById('input-cliente');
+  const inputCF      = document.getElementById('input-cf');
+  const dropdown     = document.getElementById('clienti-dropdown');
+  let timer = null;
+
+  inputCliente.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { dropdown.style.display = 'none'; return; }
+    timer = setTimeout(() => cercaClienti(q), 220);
+  });
+
+  inputCliente.addEventListener('blur', function () {
+    setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+  });
+
+  function cercaClienti(q) {
+    fetch('/api/clienti?q=' + encodeURIComponent(q))
+      .then(r => r.json())
+      .then(data => {
+        dropdown.innerHTML = '';
+        if (!data.length) {
+          dropdown.innerHTML = '<span class="dropdown-item text-muted">Nessun cliente trovato</span>';
+          dropdown.style.display = 'block';
+          return;
+        }
+        data.slice(0, 10).forEach(c => {
+          const nome = c.nome_completo || (c.nome + ' ' + (c.cognome || '')).trim() || c.ragione_sociale || '';
+          const cf   = c.codice_fiscale || '';
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'dropdown-item d-flex flex-column py-2';
+          item.innerHTML = '<span class="fw-semibold">' + escHtml(nome) + '</span>'
+                         + (cf ? '<small class="text-muted">' + escHtml(cf) + '</small>' : '');
+          item.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            inputCliente.value = nome;
+            if (cf) inputCF.value = cf.toUpperCase();
+            dropdown.style.display = 'none';
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+      })
+      .catch(() => { dropdown.style.display = 'none'; });
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+})();
+</script>
 {% endblock %}

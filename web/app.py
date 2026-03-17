@@ -2973,6 +2973,8 @@ def create_app(config: dict | None = None) -> Flask:
 
         user_key = g.utente_corrente.username if g.utente_corrente else ""
         client_id, q = _sync.subscribe(user_key=user_key)
+        # Notifica subito tutti gli altri client del nuovo conteggio
+        _sync.notifica_connessi()
 
         def genera():
             yield from _sync.sse_stream(client_id, q)

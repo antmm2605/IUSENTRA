@@ -263,8 +263,8 @@ class GestoreSincronizzazione:
         Invia heartbeat ogni 25 secondi per mantenere la connessione aperta.
         """
         try:
-            # Messaggio iniziale di connessione
-            yield "data: {\"tipo\":\"connesso\"}\n\n"
+            # Messaggio iniziale con conteggio aggiornato (evita fetch HTTP separato)
+            yield f"data: {{\"tipo\":\"connesso\",\"n_connessi\":{self.n_connessi}}}\n\n"
             while True:
                 try:
                     evento = q.get(timeout=25)
@@ -290,6 +290,10 @@ class GestoreSincronizzazione:
             return list(self._subscribers.keys())
 
     # ---------------------------------------------------------------- Utilità
+
+    def notifica_connessi(self) -> None:
+        """Notifica immediatamente a tutti i client SSE il conteggio aggiornato."""
+        self.pubblica("connesso", "sistema", n_connessi=self.n_connessi)
 
     def pubblica_broadcast(self, messaggio: str, utente: str = "sistema") -> int:
         """Invia un messaggio informativo a tutti gli operatori connessi."""

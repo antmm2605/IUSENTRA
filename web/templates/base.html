@@ -589,8 +589,6 @@ function initPagination(tableId, selectId) {
 
     es.onopen = function () {
       reconnectDelay = 2000;
-      if (syncWidget) syncWidget.classList.add('attivo');
-      aggiornaContatore();
     };
 
     es.onmessage = function (e) {
@@ -599,7 +597,13 @@ function initPagination(tableId, selectId) {
       try { ev = JSON.parse(e.data); } catch { return; }
 
       if (ev.tipo === 'connesso') {
-        aggiornaContatore();
+        // Il conteggio arriva direttamente nell'evento SSE, nessun fetch necessario
+        if (typeof ev.n_connessi === 'number') {
+          if (syncCount) syncCount.textContent = ev.n_connessi;
+          if (syncWidget) syncWidget.classList.toggle('attivo', ev.n_connessi > 1);
+        } else {
+          aggiornaContatore();
+        }
         return;
       }
 

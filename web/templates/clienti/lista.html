@@ -172,6 +172,10 @@
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"
+                   class="btn btn-primary" title="Apri cartella">
+                  <i class="bi bi-folder2-open"></i>
+                </a>
                 <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
                    class="btn btn-outline-secondary" title="Dettaglio">
                   <i class="bi bi-eye"></i>

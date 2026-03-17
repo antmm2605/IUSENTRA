@@ -40,6 +40,10 @@
       </div>
     </div>
     <div class="d-flex gap-2 flex-shrink-0">
+      <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
+         class="btn btn-primary btn-sm fw-semibold" title="Cartella cliente — tutti i fascicoli">
+        <i class="bi bi-folder2-open me-1"></i>Cartella
+      </a>
       <a href="{{ url_for('portale_config', id_cliente=cliente.id) }}"
          class="btn btn-outline-info btn-sm" title="Portale self-service cliente">
         <i class="bi bi-person-badge me-1"></i>Portale
@@ -328,6 +332,14 @@
         <i class="bi bi-lightning me-2"></i>Azioni rapide
       </div>
       <div class="list-group list-group-flush">
+        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action fw-semibold">
+          <i class="bi bi-folder2-open me-2 text-primary"></i>Apri cartella
+        </a>
+        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-folder-plus me-2 text-warning"></i>Nuovo fascicolo
+        </a>
         <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
            class="list-group-item list-group-item-action">
           <i class="bi bi-pencil me-2 text-primary"></i>Modifica scheda

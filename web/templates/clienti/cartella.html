@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}Cartella — {{ cliente.nome_completo }}{% endblock %}
+{% block page_title %}Cartella Cliente{% endblock %}
+
+{% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
+{% set SC_ICON = {'APERTO':'bi-folder2-open','IN_CORSO':'bi-folder-check','SOSPESO':'bi-pause-circle','DEFINITO':'bi-check2-circle','ARCHIVIATO':'bi-archive'} %}
+{% set TC_COL = {'CIVILE':'primary','PENALE':'danger','AMMINISTRATIVO':'warning','STRAGIUDIZIALE':'info','CONSULENZA':'success','LAVORO':'purple','FAMIGLIA':'pink','SUCCESSIONI':'orange','ALTRO':'secondary'} %}
+{% set EC = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+
+{% block content %}
+
+{# ===== HEADER CLIENTE ===== #}
+<div class="card shadow-sm mb-3 border-0" style="background:linear-gradient(135deg,#1565c0 0%,#1976d2 100%)">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.18);
+                  color:#fff;font-size:1.7rem;display:flex;align-items:center;
+                  justify-content:center;flex-shrink:0">
+        <i class="bi bi-{% if cliente.tipo.value == 'PERSONA_FISICA' %}person{% else %}building{% endif %}"></i>
+      </div>
+      <div class="flex-grow-1 text-white">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <h4 class="fw-bold mb-0">{{ cliente.nome_completo }}</h4>
+          <span class="badge bg-white text-primary">
+            {{ cliente.stato.value }}
+          </span>
+        </div>
+        <div class="d-flex flex-wrap gap-3 small opacity-75">
+          {% if cliente.codice_fiscale %}<span><i class="bi bi-person-vcard me-1"></i>{{ cliente.codice_fiscale }}</span>{% endif %}
+          {% if cliente.recapiti.email %}<span><i class="bi bi-envelope me-1"></i>{{ cliente.recapiti.email }}</span>{% endif %}
+          {% if cliente.recapiti.cellulare %}<span><i class="bi bi-phone me-1"></i>{{ cliente.recapiti.cellulare }}</span>{% endif %}
+          {% if cliente.avvocato_referente %}<span><i class="bi bi-person-badge me-1"></i>{{ cliente.avvocato_referente }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-shrink-0">
+        <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-light" title="Scheda anagrafica">
+          <i class="bi bi-person-vcard me-1"></i>Scheda
+        </a>
+        <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-outline-light">
+          <i class="bi bi-pencil me-1"></i>Modifica
+        </a>
+        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
+           class="btn btn-sm btn-warning fw-semibold">
+          <i class="bi bi-folder-plus me-1"></i>Nuovo fascicolo
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ===== STATS BAR ===== #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100 text-center border-0" style="background:#e3f2fd">
+      <div class="card-body py-3">
+        <div style="font-size:2rem;font-weight:700;color:#1565c0">{{ fascicoli_attivi|length }}</div>
+        <div class="small text-muted">Fascicoli attivi</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100 text-center border-0" style="background:#f3e5f5">
+      <div class="card-body py-3">
+        <div style="font-size:2rem;font-weight:700;color:#6a1b9a">{{ fascicoli_archiviati|length }}</div>
+        <div class="small text-muted">Archiviati</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100 text-center border-0" style="background:#e8f5e9">
+      <div class="card-body py-3">
+        <div style="font-size:2rem;font-weight:700;color:#2e7d32">{{ n_documenti }}</div>
+        <div class="small text-muted">Documenti totali</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card shadow-sm h-100 text-center border-0"
+         style="background:{% if scadenze_imminenti %}#fff3e0{% else %}#fafafa{% endif %}">
+      <div class="card-body py-3">
+        <div style="font-size:2rem;font-weight:700;color:{% if scadenze_imminenti %}#e65100{% else %}#9e9e9e{% endif %}">
+          {{ scadenze_imminenti|length }}
+        </div>
+        <div class="small text-muted">Scad. imminenti</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ===== ALERT SCADENZE ===== #}
+{% if scadenze_imminenti %}
+<div class="alert alert-warning border-0 shadow-sm mb-3" role="alert">
+  <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Scadenze entro 7 giorni</div>
+  <ul class="mb-0 ps-3">
+    {% for fasc, att in scadenze_imminenti %}
+    <li>
+      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none fw-semibold">
+        {{ fasc.numero }}
+      </a>
+      — {{ att.titolo }}
+      <span class="badge bg-warning text-dark ms-1">{{ att.data|fmt_data }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{# ===== TABS ===== #}
+<ul class="nav nav-tabs mb-3" id="cartellaTabs" role="tablist">
+  <li class="nav-item">
+    <button class="nav-link active fw-semibold" data-bs-toggle="tab"
+            data-bs-target="#tab-attivi" type="button">
+      <i class="bi bi-folder2-open me-1"></i>Fascicoli attivi
+      {% if fascicoli_attivi %}
+        <span class="badge bg-primary rounded-pill ms-1">{{ fascicoli_attivi|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link fw-semibold" data-bs-toggle="tab"
+            data-bs-target="#tab-archivio" type="button">
+      <i class="bi bi-archive me-1"></i>Archivio
+      {% if fascicoli_archiviati %}
+        <span class="badge bg-secondary rounded-pill ms-1">{{ fascicoli_archiviati|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link fw-semibold" data-bs-toggle="tab"
+            data-bs-target="#tab-timeline" type="button">
+      <i class="bi bi-clock-history me-1"></i>Timeline attività
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  {# ===== TAB 1: FASCICOLI ATTIVI ===== #}
+  <div class="tab-pane fade show active" id="tab-attivi">
+    {% if fascicoli_attivi %}
+      <div class="d-flex flex-column gap-3">
+      {% for f in fascicoli_attivi %}
+        {% set ps = f.prossima_scadenza %}
+        <div class="card shadow-sm border-0 border-start border-{{ SC[f.stato.value] }} border-4">
+          <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+
+              {# Icona stato #}
+              <div style="width:44px;height:44px;border-radius:10px;flex-shrink:0;
+                          background:var(--bs-{{ SC[f.stato.value] }}-bg-subtle,#e3f2fd);
+                          color:var(--bs-{{ SC[f.stato.value] }},#1565c0);
+                          display:flex;align-items:center;justify-content:center;font-size:1.3rem">
+                <i class="bi {{ SC_ICON[f.stato.value] }}"></i>
+              </div>
+
+              <div class="flex-grow-1 min-width-0">
+                {# Riga superiore: numero + badges #}
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                  <span class="font-monospace text-muted small">{{ f.numero }}</span>
+                  <span class="badge bg-{{ SC[f.stato.value] }}">{{ f.stato.value.replace('_',' ') }}</span>
+                  <span class="badge bg-light text-dark border small">{{ f.tipo.value.replace('_',' ') }}</span>
+                  {% if f.archivio_pronto %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-inbox me-1"></i>Pronto archivio</span>
+                  {% endif %}
+                </div>
+
+                {# Titolo #}
+                <h6 class="fw-bold mb-1">
+                  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                     class="text-decoration-none text-dark">{{ f.titolo }}</a>
+                </h6>
+                {% if f.oggetto %}
+                  <div class="text-muted small mb-2">{{ f.oggetto }}</div>
+                {% endif %}
+
+                {# Meta info #}
+                <div class="d-flex flex-wrap gap-3 small text-muted">
+                  {% if f.tribunale %}<span><i class="bi bi-building-columns me-1"></i>{{ f.tribunale }}</span>{% endif %}
+                  {% if f.numero_rg %}<span><i class="bi bi-hash me-1"></i>RG {{ f.numero_rg }}/{{ f.anno_rg }}</span>{% endif %}
+                  {% if f.controparte %}<span><i class="bi bi-people me-1"></i>c/ {{ f.controparte }}</span>{% endif %}
+                  {% if f.avvocato_referente %}<span><i class="bi bi-person-badge me-1"></i>{{ f.avvocato_referente }}</span>{% endif %}
+                  <span><i class="bi bi-file-earmark me-1"></i>{{ f.documenti_count }} doc</span>
+                  <span><i class="bi bi-activity me-1"></i>{{ f.attivita_count }} att.</span>
+                  {% if f.data_apertura %}<span><i class="bi bi-calendar3 me-1"></i>Aperto: {{ f.data_apertura|fmt_data }}</span>{% endif %}
+                </div>
+
+                {# Prossima scadenza #}
+                {% if ps %}
+                  {% set giorni_diff = (ps.data|string)|string %}
+                  <div class="mt-2">
+                    <span class="badge bg-warning text-dark">
+                      <i class="bi bi-alarm me-1"></i>Prossima: {{ ps.titolo }} — {{ ps.data|fmt_data }}
+                    </span>
+                  </div>
+                {% endif %}
+              </div>
+
+              {# Azioni #}
+              <div class="d-flex gap-1 flex-shrink-0 flex-column align-items-end">
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-sm btn-primary">
+                  <i class="bi bi-folder2-open me-1"></i>Apri
+                </a>
+                <a href="{{ url_for('modifica_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-folder2-open" style="font-size:3rem;opacity:.3"></i>
+        <p class="mt-3 mb-1 fw-semibold">Nessun fascicolo attivo</p>
+        <p class="small">Crea il primo fascicolo per questo cliente.</p>
+        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
+           class="btn btn-primary mt-2">
+          <i class="bi bi-folder-plus me-2"></i>Nuovo fascicolo
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ===== TAB 2: ARCHIVIO ===== #}
+  <div class="tab-pane fade" id="tab-archivio">
+    {% if fascicoli_archiviati %}
+      <div class="accordion" id="accordionArchivio">
+      {% for f in fascicoli_archiviati %}
+        <div class="accordion-item border-0 shadow-sm mb-2 rounded">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed rounded fw-semibold"
+                    type="button" data-bs-toggle="collapse"
+                    data-bs-target="#archivio-{{ f.id }}">
+              <div class="d-flex align-items-center gap-2 flex-grow-1 me-3 flex-wrap">
+                <i class="bi bi-archive text-secondary"></i>
+                <span class="font-monospace small text-muted">{{ f.numero }}</span>
+                <span class="fw-bold">{{ f.titolo }}</span>
+                {% if f.archivio and f.archivio.esito_finale %}
+                  <span class="badge bg-{{ 'success' if f.archivio.esito_finale == 'favorevole' else 'secondary' }} ms-1">
+                    {{ f.archivio.esito_finale|capitalize }}
+                  </span>
+                {% endif %}
+                {% if f.archivio and f.archivio.data_archiviazione %}
+                  <span class="small text-muted ms-auto me-2">
+                    <i class="bi bi-calendar3 me-1"></i>{{ f.archivio.data_archiviazione|fmt_data }}
+                  </span>
+                {% endif %}
+              </div>
+            </button>
+          </h2>
+          <div id="archivio-{{ f.id }}" class="accordion-collapse collapse"
+               data-bs-parent="#accordionArchivio">
+            <div class="accordion-body pt-2">
+              <div class="row g-3">
+                <div class="col-md-8">
+                  <div class="d-flex flex-wrap gap-3 small text-muted mb-3">
+                    {% if f.tribunale %}<span><i class="bi bi-building-columns me-1"></i>{{ f.tribunale }}</span>{% endif %}
+                    {% if f.numero_rg %}<span><i class="bi bi-hash me-1"></i>RG {{ f.numero_rg }}/{{ f.anno_rg }}</span>{% endif %}
+                    {% if f.controparte %}<span><i class="bi bi-people me-1"></i>c/ {{ f.controparte }}</span>{% endif %}
+                    <span><i class="bi bi-file-earmark me-1"></i>{{ f.documenti_count }} doc</span>
+                    <span><i class="bi bi-activity me-1"></i>{{ f.attivita_count }} att.</span>
+                  </div>
+                  {% if f.archivio %}
+                    <dl class="row mb-0 small">
+                      {% if f.archivio.motivo %}
+                        <dt class="col-4 text-muted">Motivo chiusura</dt>
+                        <dd class="col-8">{{ f.archivio.motivo|replace('_',' ')|capitalize }}</dd>
+                      {% endif %}
+                      {% if f.archivio.note_archivio %}
+                        <dt class="col-4 text-muted">Note</dt>
+                        <dd class="col-8">{{ f.archivio.note_archivio }}</dd>
+                      {% endif %}
+                      {% if f.archivio.archiviato_da %}
+                        <dt class="col-4 text-muted">Archiviato da</dt>
+                        <dd class="col-8">{{ f.archivio.archiviato_da }}</dd>
+                      {% endif %}
+                    </dl>
+                  {% endif %}
+                </div>
+                <div class="col-md-4 d-flex flex-column gap-2 align-items-start">
+                  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                     class="btn btn-sm btn-outline-secondary w-100">
+                    <i class="bi bi-eye me-1"></i>Visualizza
+                  </a>
+                  <form method="post"
+                        action="{{ url_for('ripristina_fascicolo', id_fasc=f.id) }}"
+                        onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')"
+                        class="w-100">
+                    <button class="btn btn-sm btn-outline-success w-100">
+                      <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-archive" style="font-size:3rem;opacity:.3"></i>
+        <p class="mt-3 mb-0 fw-semibold">Nessun fascicolo archiviato</p>
+        <p class="small">I fascicoli completati compariranno qui.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ===== TAB 3: TIMELINE ===== #}
+  <div class="tab-pane fade" id="tab-timeline">
+    {% if timeline %}
+      <div class="position-relative" style="padding-left:2rem">
+        {# Linea verticale #}
+        <div style="position:absolute;left:.6rem;top:0;bottom:0;width:2px;background:#e0e0e0"></div>
+
+        {% set current_month = namespace(val='') %}
+        {% for fasc, att in timeline %}
+          {% set mese_anno = att.data[:7] if att.data else '' %}
+
+          {# Separatore mensile #}
+          {% if mese_anno != current_month.val %}
+            {% set current_month.val = mese_anno %}
+            <div class="position-relative mb-2 mt-4" style="margin-left:-2rem">
+              <span class="badge bg-light text-dark border fw-semibold px-3 py-2"
+                    style="margin-left:2rem">
+                <i class="bi bi-calendar3 me-1"></i>
+                {%- if att.data -%}
+                  {{ att.data[5:7] }}/{{ att.data[:4] }}
+                {%- endif -%}
+              </span>
+            </div>
+          {% endif %}
+
+          {# Entry timeline #}
+          {% set EC_COLOR = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+          <div class="d-flex gap-3 mb-3 position-relative">
+            {# Dot #}
+            <div style="position:absolute;left:-1.35rem;width:12px;height:12px;border-radius:50%;
+                        background:var(--bs-{{ EC_COLOR[att.esito.value] }},#6c757d);
+                        top:.3rem;border:2px solid #fff;box-shadow:0 0 0 2px var(--bs-{{ EC_COLOR[att.esito.value] }},#6c757d)">
+            </div>
+
+            <div class="card border-0 shadow-sm flex-grow-1">
+              <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div class="flex-grow-1">
+                    <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                      <span class="small text-muted">{{ att.data|fmt_data }}</span>
+                      <span class="badge bg-light text-dark border small">
+                        {{ att.tipo.value.replace('_',' ') }}
+                      </span>
+                      <span class="badge bg-{{ EC_COLOR[att.esito.value] }} small">
+                        {{ att.esito.value.replace('_',' ') }}
+                      </span>
+                    </div>
+                    <div class="fw-semibold">{{ att.titolo }}</div>
+                    {% if att.descrizione %}
+                      <div class="small text-muted mt-1">{{ att.descrizione }}</div>
+                    {% endif %}
+                    {% if att.luogo %}
+                      <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ att.luogo }}</div>
+                    {% endif %}
+                  </div>
+                  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}"
+                     class="btn btn-sm btn-link text-muted p-0 text-nowrap flex-shrink-0"
+                     title="{{ fasc.titolo }}">
+                    <i class="bi bi-folder2-open me-1"></i>{{ fasc.numero }}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+
+        {% if timeline|length >= 30 %}
+          <div class="text-center small text-muted pt-2">
+            <i class="bi bi-three-dots"></i> Mostrate le ultime 30 attività.
+            <a href="{{ url_for('lista_fascicoli') }}?q={{ cliente.nome_completo|urlencode }}">
+              Vedi tutti i fascicoli
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-clock-history" style="font-size:3rem;opacity:.3"></i>
+        <p class="mt-3 mb-0 fw-semibold">Nessuna attività registrata</p>
+        <p class="small">Le udienze, notifiche e depositi compariranno qui.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>{# /tab-content #}
+{% endblock %}

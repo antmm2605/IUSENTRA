@@ -15,15 +15,25 @@ Componenti:
 
 from __future__ import annotations
 
-import fcntl
 import json
 import queue
+import sys
 import threading
 import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterator, Optional, Tuple
+
+# File locking cross-platform
+if sys.platform == "win32":
+    import msvcrt
+    def _lock_fd(fd):   msvcrt.locking(fd.fileno(), msvcrt.LK_NBLCK, 1)
+    def _unlock_fd(fd): msvcrt.locking(fd.fileno(), msvcrt.LK_UNLCK, 1)
+else:
+    import fcntl
+    def _lock_fd(fd):   fcntl.flock(fd, fcntl.LOCK_EX)
+    def _unlock_fd(fd): fcntl.flock(fd, fcntl.LOCK_UN)
 
 
 # ================================================================ File lock
@@ -57,12 +67,12 @@ class FileLock:
         self._get_thread_lock().acquire()
         Path(self._lock_path).parent.mkdir(parents=True, exist_ok=True)
         self._fd = open(self._lock_path, "w")
-        fcntl.flock(self._fd, fcntl.LOCK_EX)
+        _lock_fd(self._fd)
         return self
 
     def __exit__(self, *_):
         if self._fd:
-            fcntl.flock(self._fd, fcntl.LOCK_UN)
+            _unlock_fd(self._fd)
             self._fd.close()
             self._fd = None
         self._get_thread_lock().release()

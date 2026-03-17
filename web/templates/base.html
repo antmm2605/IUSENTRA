@@ -29,203 +29,284 @@
 
 <!-- Sidebar -->
 <nav id="sidebar">
-  <div class="logo">
-    <i class="bi bi-briefcase-fill me-2" style="color:var(--accent)"></i>Studio Legale
-    <small>Portale PCT</small>
+  {# Logo + toggle mobile #}
+  <div class="sb-logo">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-briefcase-fill me-2" style="color:var(--accent)"></i>
+      <div>
+        <div class="fw-bold" style="font-size:.95rem;letter-spacing:.3px">Studio Legale</div>
+        <div style="font-size:.67rem;opacity:.6;font-weight:400">Portale PCT</div>
+      </div>
+    </div>
+    <button id="sb-close" class="btn btn-sm p-0" title="Chiudi menu"
+            style="color:rgba(255,255,255,.5);font-size:1.1rem;display:none">
+      <i class="bi bi-x-lg"></i>
+    </button>
   </div>
-  <div class="py-2 flex-grow-1">
 
-    {# ---- Recenti ---- #}
+  {# Area scorrevole #}
+  <div class="sb-scroll" id="sb-scroll">
+
+    {# Recenti (non collassabile) #}
     {% if recenti %}
-    <div class="section-label">Recenti</div>
+    <div class="sb-group-label">Recenti</div>
     {% for r in recenti %}
-    <a href="{{ r.url }}" class="nav-link" title="{{ r.titolo }}"
-       style="font-size:.79rem;padding:.38rem 1.2rem">
-      <i class="bi {{ r.icona }} me-2" style="color:var(--accent);opacity:.9;width:16px"></i>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-                   max-width:158px;display:inline-block;vertical-align:middle">{{ r.titolo }}</span>
+    <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
+      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
+      <span class="sb-txt">{{ r.titolo }}</span>
     </a>
     {% endfor %}
     {% endif %}
 
-    <div class="section-label">Principale</div>
+    {# Dashboard e Ricerca sempre visibili #}
     <a href="{{ url_for('dashboard') }}"
-       class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
-      <i class="bi bi-speedometer2 me-2"></i>Dashboard
+       class="nav-link sb-link sb-top {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i><span class="sb-txt">Dashboard</span>
     </a>
     <a href="{{ url_for('cerca') }}"
-       class="nav-link {% if request.endpoint == 'cerca' %}active{% endif %}">
-      <i class="bi bi-search me-2"></i>Ricerca
+       class="nav-link sb-link sb-top {% if request.endpoint == 'cerca' %}active{% endif %}">
+      <i class="bi bi-search"></i><span class="sb-txt">Ricerca globale</span>
     </a>
-    <div class="section-label">Agenda</div>
-    <a href="{{ url_for('agenda_view') }}?vista=giorno"
-       class="nav-link {% if request.endpoint == 'agenda_view' and request.args.get('vista')=='giorno' %}active{% endif %}">
-      <i class="bi bi-calendar-day me-2"></i>Vista Giorno
-    </a>
-    <a href="{{ url_for('agenda_view') }}?vista=settimana"
-       class="nav-link {% if request.endpoint == 'agenda_view' and request.args.get('vista','settimana')=='settimana' %}active{% endif %}">
-      <i class="bi bi-calendar-week me-2"></i>Vista Settimana
-    </a>
-    <a href="{{ url_for('agenda_view') }}?vista=mese"
-       class="nav-link {% if request.endpoint == 'agenda_view' and request.args.get('vista')=='mese' %}active{% endif %}">
-      <i class="bi bi-calendar-month me-2"></i>Vista Mese
-    </a>
-    <a href="{{ url_for('nuovo_appuntamento') }}"
-       class="nav-link {% if request.endpoint == 'nuovo_appuntamento' %}active{% endif %}">
-      <i class="bi bi-plus-circle me-2"></i>Nuovo Appuntamento
-    </a>
-    <div class="section-label">Fascicoli</div>
-    <a href="{{ url_for('lista_fascicoli') }}"
-       class="nav-link {% if request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo') %}active{% endif %}">
-      <i class="bi bi-folder2-open me-2"></i>Fascicoli
-    </a>
-    <a href="{{ url_for('nuovo_fascicolo') }}"
-       class="nav-link {% if request.endpoint == 'nuovo_fascicolo' %}active{% endif %}">
-      <i class="bi bi-folder-plus me-2"></i>Nuovo Fascicolo
-    </a>
-    <a href="{{ url_for('lista_archivio') }}"
-       class="nav-link {% if request.endpoint == 'lista_archivio' %}active{% endif %}">
-      <i class="bi bi-archive me-2"></i>Archivio
-    </a>
-    <div class="section-label">Clienti</div>
-    <a href="{{ url_for('lista_clienti') }}"
-       class="nav-link {% if request.endpoint in ('lista_clienti','dettaglio_cliente','nuovo_cliente','modifica_cliente') %}active{% endif %}">
-      <i class="bi bi-people me-2"></i>Anagrafica Clienti
-    </a>
-    <a href="{{ url_for('nuovo_cliente') }}"
-       class="nav-link {% if request.endpoint == 'nuovo_cliente' %}active{% endif %}">
-      <i class="bi bi-person-plus me-2"></i>Nuovo Cliente
-    </a>
-    <a href="{{ url_for('cartelle_condivise') }}"
-       class="nav-link {% if request.endpoint in ('cartelle_condivise','gestione_collaboratori') %}active{% endif %}">
-      <i class="bi bi-folder-symlink me-2"></i>Cartelle Condivise
-    </a>
-    <div class="section-label">Comunicazioni</div>
-    <a href="{{ url_for('lista_messaggi') }}"
-       class="nav-link {% if request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio') %}active{% endif %}">
-      <i class="bi bi-chat-dots me-2"></i>Messaggi
-    </a>
-    <a href="{{ url_for('nuovo_messaggio') }}"
-       class="nav-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
-      <i class="bi bi-send me-2"></i>Nuovo Messaggio
-    </a>
-    <div class="section-label">PCT / Telematico</div>
-    <a href="{{ url_for('polisWeb_home') }}"
-       class="nav-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
-      <i class="bi bi-building-fill-check me-2"></i>PolisWeb / PST
-    </a>
-    <a href="{{ url_for('tribunali') }}"
-       class="nav-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
-      <i class="bi bi-bank me-2"></i>Tribunali / PEC
-    </a>
-    <div class="section-label">Strumenti</div>
-    <a href="{{ url_for('tariffario') }}"
-       class="nav-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
-      <i class="bi bi-calculator me-2"></i>Tariffario DM 55/2014
-    </a>
-    <a href="{{ url_for('lista_backup') }}"
-       class="nav-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
-      <i class="bi bi-cloud-arrow-up me-2"></i>Backup
-    </a>
-    <div class="section-label">Scadenze</div>
-    <a href="{{ url_for('scadenziario') }}"
-       class="nav-link {% if request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') %}active{% endif %}">
-      <i class="bi bi-calendar-event me-2"></i>Scadenziario
-    </a>
-    <a href="{{ url_for('nuova_scadenza') }}"
-       class="nav-link {% if request.endpoint == 'nuova_scadenza' %}active{% endif %}">
-      <i class="bi bi-calendar-plus me-2"></i>Nuova Scadenza
-    </a>
-    <div class="section-label">Studio</div>
-    <a href="{{ url_for('fatturazione.lista') }}"
-       class="nav-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
-      <i class="bi bi-receipt me-2"></i>Fatturazione / Parcelle
-    </a>
-    <a href="{{ url_for('template_atti.lista') }}"
-       class="nav-link {% if request.blueprint == 'template_atti' %}active{% endif %}">
-      <i class="bi bi-file-earmark-text me-2"></i>Template Atti
-    </a>
-    <a href="{{ url_for('statistiche.index') }}"
-       class="nav-link {% if request.blueprint == 'statistiche' %}active{% endif %}">
-      <i class="bi bi-bar-chart-line me-2"></i>Statistiche
-    </a>
-    <a href="{{ url_for('notifiche.pannello') }}"
-       class="nav-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
-      <i class="bi bi-whatsapp me-2"></i>Notifiche WA
-    </a>
-    <a href="{{ url_for('pagamenti.impostazioni_pagamenti') }}"
-       class="nav-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
-      <i class="bi bi-credit-card me-2"></i>Pagamenti
-    </a>
-    {% if utente_corrente and utente_corrente.is_superadmin %}
-    <div class="section-label">Piattaforma</div>
-    <a href="{{ url_for('admin.dashboard') }}"
-       class="nav-link {% if request.blueprint == 'admin' %}active{% endif %}"
-       style="color:#f97316">
-      <i class="bi bi-building-gear me-2"></i>Pannello Admin
-    </a>
-    {% endif %}
-    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
-    <div class="section-label">Admin</div>
-    <a href="{{ url_for('lista_utenti') }}"
-       class="nav-link {% if request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente') %}active{% endif %}">
-      <i class="bi bi-people-fill me-2"></i>Utenti
-    </a>
-    <a href="{{ url_for('profili') }}"
-       class="nav-link {% if request.endpoint == 'profili' %}active{% endif %}">
-      <i class="bi bi-grid-3x3 me-2"></i>Profili e Permessi
-    </a>
-    <a href="{{ url_for('audit_log') }}"
-       class="nav-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
-      <i class="bi bi-journal-text me-2"></i>Audit Log
-    </a>
-    <a href="{{ url_for('admin_database') }}"
-       class="nav-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
-      <i class="bi bi-database-gear me-2"></i>Database
-    </a>
-    <a href="{{ url_for('registro_trattamenti') }}"
-       class="nav-link {% if request.endpoint in ('registro_trattamenti','nuovo_trattamento') %}active{% endif %}">
-      <i class="bi bi-file-earmark-medical me-2"></i>Registro GDPR
-    </a>
-    {% endif %}
-  </div>
 
-  {# Utente corrente + logout #}
-  {% if utente_corrente %}
-  <div class="p-3" style="border-top:1px solid rgba(255,255,255,.15)">
-    <div class="d-flex align-items-center gap-2 mb-2">
-      <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold"
-           style="width:32px;height:32px;font-size:.85rem">
-        {{ utente_corrente.username[0].upper() }}
-      </div>
-      <div style="line-height:1.2">
-        <div class="fw-semibold" style="font-size:.82rem">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
-        <div style="font-size:.68rem;opacity:.6">{{ utente_corrente.ruolo.value }}</div>
-      </div>
+    {# ---- Sezione: Agenda ---- #}
+    {% set _ag = request.endpoint in ('agenda_view','nuovo_appuntamento') %}
+    <button class="sb-toggle {% if _ag %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-agenda" aria-expanded="{{ 'true' if _ag else 'false' }}">
+      <span><i class="bi bi-calendar3"></i>Agenda</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _ag %}show{% endif %}" id="sb-agenda">
+      <a href="{{ url_for('agenda_view') }}?vista=settimana"
+         class="nav-link sb-link {% if request.endpoint == 'agenda_view' %}active{% endif %}">
+        <i class="bi bi-calendar-week"></i><span class="sb-txt">Calendario</span>
+      </a>
+      <a href="{{ url_for('nuovo_appuntamento') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_appuntamento' %}active{% endif %}">
+        <i class="bi bi-plus-circle"></i><span class="sb-txt">Nuovo Appuntamento</span>
+      </a>
     </div>
-    <div class="d-flex gap-1">
-      <a href="{{ url_for('profilo') }}" class="btn btn-sm btn-outline-light flex-grow-1"
-         style="font-size:.72rem;padding:.2rem .5rem">
-        <i class="bi bi-person me-1"></i>Profilo
+
+    {# ---- Sezione: Fascicoli ---- #}
+    {% set _fa = request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo','lista_archivio') %}
+    <button class="sb-toggle {% if _fa %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-fascicoli" aria-expanded="{{ 'true' if _fa else 'false' }}">
+      <span><i class="bi bi-folder2-open"></i>Fascicoli</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _fa %}show{% endif %}" id="sb-fascicoli">
+      <a href="{{ url_for('lista_fascicoli') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','modifica_fascicolo') %}active{% endif %}">
+        <i class="bi bi-folder2-open"></i><span class="sb-txt">Tutti i Fascicoli</span>
+      </a>
+      <a href="{{ url_for('nuovo_fascicolo') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_fascicolo' %}active{% endif %}">
+        <i class="bi bi-folder-plus"></i><span class="sb-txt">Nuovo Fascicolo</span>
+      </a>
+      <a href="{{ url_for('lista_archivio') }}"
+         class="nav-link sb-link {% if request.endpoint == 'lista_archivio' %}active{% endif %}">
+        <i class="bi bi-archive"></i><span class="sb-txt">Archivio</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Clienti ---- #}
+    {% set _cl = request.endpoint in ('lista_clienti','dettaglio_cliente','nuovo_cliente','modifica_cliente','cartelle_condivise','gestione_collaboratori') %}
+    <button class="sb-toggle {% if _cl %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-clienti" aria-expanded="{{ 'true' if _cl else 'false' }}">
+      <span><i class="bi bi-people"></i>Clienti</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _cl %}show{% endif %}" id="sb-clienti">
+      <a href="{{ url_for('lista_clienti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_clienti','dettaglio_cliente','modifica_cliente') %}active{% endif %}">
+        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+      </a>
+      <a href="{{ url_for('nuovo_cliente') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_cliente' %}active{% endif %}">
+        <i class="bi bi-person-plus"></i><span class="sb-txt">Nuovo Cliente</span>
+      </a>
+      <a href="{{ url_for('cartelle_condivise') }}"
+         class="nav-link sb-link {% if request.endpoint in ('cartelle_condivise','gestione_collaboratori') %}active{% endif %}">
+        <i class="bi bi-folder-symlink"></i><span class="sb-txt">Cartelle Condivise</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Comunicazioni ---- #}
+    {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio') %}
+    <button class="sb-toggle {% if _cm %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-comunicazioni" aria-expanded="{{ 'true' if _cm else 'false' }}">
+      <span><i class="bi bi-chat-dots"></i>Comunicazioni</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _cm %}show{% endif %}" id="sb-comunicazioni">
+      <a href="{{ url_for('lista_messaggi') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_messaggi','dettaglio_messaggio') %}active{% endif %}">
+        <i class="bi bi-inbox"></i><span class="sb-txt">Messaggi</span>
+      </a>
+      <a href="{{ url_for('nuovo_messaggio') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
+        <i class="bi bi-send"></i><span class="sb-txt">Nuovo Messaggio</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Scadenze ---- #}
+    {% set _sc = request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') %}
+    <button class="sb-toggle {% if _sc %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-scadenze" aria-expanded="{{ 'true' if _sc else 'false' }}">
+      <span><i class="bi bi-alarm"></i>Scadenze</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _sc %}show{% endif %}" id="sb-scadenze">
+      <a href="{{ url_for('scadenziario') }}"
+         class="nav-link sb-link {% if request.endpoint in ('scadenziario','dettaglio_scadenza','modifica_scadenza') %}active{% endif %}">
+        <i class="bi bi-calendar-event"></i><span class="sb-txt">Scadenziario</span>
+      </a>
+      <a href="{{ url_for('nuova_scadenza') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuova_scadenza' %}active{% endif %}">
+        <i class="bi bi-calendar-plus"></i><span class="sb-txt">Nuova Scadenza</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: PCT / Telematico ---- #}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','tribunali') %}
+    <button class="sb-toggle {% if _pct %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
+      <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _pct %}show{% endif %}" id="sb-pct">
+      <a href="{{ url_for('polisWeb_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
+        <i class="bi bi-building-fill-check"></i><span class="sb-txt">PolisWeb / PST</span>
+      </a>
+      <a href="{{ url_for('tribunali') }}"
+         class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
+        <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Studio ---- #}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','notifiche','pagamenti') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
+    <button class="sb-toggle {% if _st %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
+      <span><i class="bi bi-buildings"></i>Studio</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _st %}show{% endif %}" id="sb-studio">
+      <a href="{{ url_for('fatturazione.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
+        <i class="bi bi-receipt"></i><span class="sb-txt">Fatturazione</span>
+      </a>
+      <a href="{{ url_for('tariffario') }}"
+         class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
+        <i class="bi bi-calculator"></i><span class="sb-txt">Tariffario DM 55</span>
+      </a>
+      <a href="{{ url_for('template_atti.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'template_atti' %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Template Atti</span>
+      </a>
+      <a href="{{ url_for('statistiche.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'statistiche' %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i><span class="sb-txt">Statistiche</span>
+      </a>
+      <a href="{{ url_for('notifiche.pannello') }}"
+         class="nav-link sb-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
+        <i class="bi bi-whatsapp"></i><span class="sb-txt">Notifiche WA</span>
+      </a>
+      <a href="{{ url_for('pagamenti.impostazioni_pagamenti') }}"
+         class="nav-link sb-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
+        <i class="bi bi-credit-card"></i><span class="sb-txt">Pagamenti</span>
+      </a>
+      <a href="{{ url_for('lista_backup') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
+        <i class="bi bi-cloud-arrow-up"></i><span class="sb-txt">Backup</span>
+      </a>
+    </div>
+
+    {# ---- Piattaforma (superadmin) ---- #}
+    {% if utente_corrente and utente_corrente.is_superadmin %}
+    {% set _adm = request.blueprint == 'admin' %}
+    <button class="sb-toggle sb-admin {% if _adm %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-piattaforma" aria-expanded="{{ 'true' if _adm else 'false' }}">
+      <span><i class="bi bi-building-gear"></i>Piattaforma</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _adm %}show{% endif %}" id="sb-piattaforma">
+      <a href="{{ url_for('admin.dashboard') }}"
+         class="nav-link sb-link {% if request.blueprint == 'admin' %}active{% endif %}">
+        <i class="bi bi-building-gear"></i><span class="sb-txt">Pannello Admin</span>
+      </a>
+    </div>
+    {% endif %}
+
+    {# ---- Admin (permesso utenti) ---- #}
+    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+    {% set _usr = request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente','profili','audit_log','admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export','registro_trattamenti','nuovo_trattamento') %}
+    <button class="sb-toggle sb-admin {% if _usr %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-admin" aria-expanded="{{ 'true' if _usr else 'false' }}">
+      <span><i class="bi bi-shield-lock"></i>Amministrazione</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _usr %}show{% endif %}" id="sb-admin">
+      <a href="{{ url_for('lista_utenti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente') %}active{% endif %}">
+        <i class="bi bi-people-fill"></i><span class="sb-txt">Utenti</span>
+      </a>
+      <a href="{{ url_for('profili') }}"
+         class="nav-link sb-link {% if request.endpoint == 'profili' %}active{% endif %}">
+        <i class="bi bi-grid-3x3"></i><span class="sb-txt">Profili e Permessi</span>
+      </a>
+      <a href="{{ url_for('audit_log') }}"
+         class="nav-link sb-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
+        <i class="bi bi-journal-text"></i><span class="sb-txt">Audit Log</span>
+      </a>
+      <a href="{{ url_for('admin_database') }}"
+         class="nav-link sb-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
+        <i class="bi bi-database-gear"></i><span class="sb-txt">Database</span>
+      </a>
+      <a href="{{ url_for('registro_trattamenti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('registro_trattamenti','nuovo_trattamento') %}active{% endif %}">
+        <i class="bi bi-file-earmark-medical"></i><span class="sb-txt">Registro GDPR</span>
+      </a>
+    </div>
+    {% endif %}
+
+  </div>{# /sb-scroll #}
+
+  {# Utente corrente + logout — fisso in fondo #}
+  {% if utente_corrente %}
+  <div class="sb-user">
+    <div class="sb-avatar">{{ utente_corrente.username[0].upper() }}</div>
+    <div class="sb-userinfo">
+      <div class="fw-semibold">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
+      <div style="opacity:.55;font-size:.68rem">{{ utente_corrente.ruolo.value }}</div>
+    </div>
+    <div class="d-flex gap-1 ms-auto">
+      <a href="{{ url_for('profilo') }}" class="btn btn-sm btn-outline-light p-1" title="Profilo" style="font-size:.8rem">
+        <i class="bi bi-person"></i>
       </a>
       <form method="post" action="{{ url_for('logout') }}">
-        <button class="btn btn-sm btn-outline-light"
-                style="font-size:.72rem;padding:.2rem .5rem" title="Esci">
+        <button class="btn btn-sm btn-outline-light p-1" title="Esci" style="font-size:.8rem">
           <i class="bi bi-box-arrow-right"></i>
         </button>
       </form>
     </div>
   </div>
   {% else %}
-  <div class="p-3" style="border-top:1px solid rgba(255,255,255,.1); font-size:.72rem; opacity:.5;">
-    PCT Studio Legale v1.0
+  <div class="sb-user" style="opacity:.4;font-size:.72rem;justify-content:center">
+    PCT Studio v1.0
   </div>
   {% endif %}
 </nav>
 
+{# Overlay mobile #}
+<div id="sb-overlay"></div>
+
 <!-- Main -->
 <div id="main">
   <div class="topbar">
+    <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2 d-none" title="Menu">
+      <i class="bi bi-list" style="font-size:1.1rem"></i>
+    </button>
     <h1>{% block page_title %}{% endblock %}</h1>
     <div class="d-flex align-items-center gap-2">
       {# ---- Ricerca globale ---- #}
@@ -678,6 +759,20 @@ if ('serviceWorker' in navigator) {
       .catch(() => {}); // silenzioso: non blocca l'app
   });
 }
+</script>
+<script>
+/* ---- Sidebar mobile toggle ---- */
+(function(){
+  var sb  = document.getElementById('sidebar');
+  var ov  = document.getElementById('sb-overlay');
+  var btn = document.getElementById('sb-open');
+  var cls = document.getElementById('sb-close');
+  function open()  { sb.classList.add('sb-open');  ov.classList.add('sb-open'); }
+  function close() { sb.classList.remove('sb-open'); ov.classList.remove('sb-open'); }
+  if (btn) btn.addEventListener('click', open);
+  if (cls) cls.addEventListener('click', close);
+  if (ov)  ov.addEventListener('click', close);
+})();
 </script>
 </body>
 </html>

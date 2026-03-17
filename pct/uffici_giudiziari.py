@@ -3,10 +3,14 @@ pct/uffici_giudiziari.py — Gestore uffici giudiziari con cache persistente.
 
 Mantiene un registro aggiornato di tutti gli uffici giudiziari italiani:
   • 140+ Tribunali ordinari
-  • 29 Corti d'Appello
+  • 23  Corti d'Appello
   • 140+ Procure della Repubblica (generate dal registro tribunali)
-  • 27  Tribunali per i Minorenni
+  • 23  Procure Generali (una per Corte d'Appello)
+  • 26  Tribunali per i Minorenni
   • 26  Tribunali di Sorveglianza
+  • 29  Corti d'Assise
+  • 100+ Uffici del Giudice di Pace (capoluoghi + principali)
+  • 20+ TAR (Tribunali Amministrativi Regionali) + Consiglio di Stato
   • Corte Suprema di Cassazione
 
 Fonti per l'aggiornamento (priorità decrescente):
@@ -43,11 +47,15 @@ _PST_TIMEOUT  = 12  # secondi
 TIPI_UFFICIO = {
     "TRIBUNALE":         ("bi-building",            "Tribunale"),
     "CORTE_APPELLO":     ("bi-bank2",               "Corte d'Appello"),
-    "PROCURA":           ("bi-shield-exclamation",  "Procura"),
+    "PROCURA":           ("bi-shield-exclamation",  "Procura della Repubblica"),
+    "PROCURA_GENERALE":  ("bi-shield-fill",         "Procura Generale"),
     "CORTE_CASSAZIONE":  ("bi-star-fill",           "Cassazione"),
     "TM":                ("bi-people-fill",         "Trib. Minorenni"),
     "SORVEGLIANZA":      ("bi-eye-fill",            "Trib. Sorveglianza"),
+    "CORTE_ASSISE":      ("bi-hammer",              "Corte d'Assise"),
+    "GDP":               ("bi-person-badge",        "Giudice di Pace"),
     "TAR":               ("bi-building-check",      "TAR"),
+    "CDS":               ("bi-columns-gap",         "Consiglio di Stato"),
 }
 
 
@@ -82,6 +90,26 @@ def _tm(cod, nome, dist, slug):
 def _ts(cod, nome, dist, slug):
     return {"codice": cod, "nome": f"Tribunale di Sorveglianza di {nome}", "distretto": dist,
             "pec": f"tsor.{slug}@giustiziapec.it", "tipo": "SORVEGLIANZA"}
+
+
+def _pg(cod, nome, slug):
+    return {"codice": cod, "nome": f"Procura Generale di {nome}", "distretto": nome,
+            "pec": f"pg.{slug}@giustiziapec.it", "tipo": "PROCURA_GENERALE"}
+
+
+def _assise(cod, nome, dist, slug):
+    return {"codice": cod, "nome": f"Corte d'Assise di {nome}", "distretto": dist,
+            "pec": f"assise.{slug}@giustiziapec.it", "tipo": "CORTE_ASSISE"}
+
+
+def _gdp(cod, nome, dist, slug):
+    return {"codice": cod, "nome": f"Ufficio del Giudice di Pace di {nome}", "distretto": dist,
+            "pec": f"gdp.{slug}@giustiziapec.it", "tipo": "GDP"}
+
+
+def _tar(cod, nome, regione, slug):
+    return {"codice": cod, "nome": f"TAR {nome}", "distretto": regione,
+            "pec": f"tar-{slug}@pec.giustizia-amministrativa.it", "tipo": "TAR"}
 
 
 # Registro completo — aggiornato al 2025
@@ -381,6 +409,275 @@ _BUNDLE_RAW: list[dict] = [
     _ts("1010200","Sassari",         "Cagliari",  "sassari"),
     _ts("1020200","Bari",            "Bari",      "bari"),
     _ts("1040200","Lecce",           "Lecce",     "lecce"),
+
+    # ================================================================ PROCURE GENERALI
+    # (una per ogni Corte d'Appello — art. 105 ord. giudiziario)
+    _pg("0530500","Torino",       "torino"),
+    _pg("0540500","Genova",       "genova"),
+    _pg("0580500","Milano",       "milano"),
+    _pg("0600500","Brescia",      "brescia"),
+    _pg("0620500","Venezia",      "venezia"),
+    _pg("0660500","Trieste",      "trieste"),
+    _pg("0680500","Trento",       "trento"),
+    _pg("0700500","Bologna",      "bologna"),
+    _pg("0710500","Firenze",      "firenze"),
+    _pg("0730500","Perugia",      "perugia"),
+    _pg("0750500","Ancona",       "ancona"),
+    _pg("0760500","Roma",         "roma"),
+    _pg("0800500","L'Aquila",     "laquila"),
+    _pg("0815500","Campobasso",   "campobasso"),
+    _pg("0820500","Napoli",       "napoli"),
+    _pg("0870500","Potenza",      "potenza"),
+    _pg("0890500","Catanzaro",    "catanzaro"),
+    _pg("0920500","Palermo",      "palermo"),
+    _pg("0940500","Messina",      "messina"),
+    _pg("0950500","Catania",      "catania"),
+    _pg("0980500","Cagliari",     "cagliari"),
+    _pg("1020500","Bari",         "bari"),
+    _pg("1040500","Lecce",        "lecce"),
+
+    # ================================================================ CORTI D'ASSISE
+    # (art. 5 c.p.p. — competenza per reati gravi; una per distretto principale)
+    _assise("0530300","Torino",          "Torino",    "torino"),
+    _assise("0530301","Alessandria",     "Torino",    "alessandria"),
+    _assise("0530302","Asti",            "Torino",    "asti"),
+    _assise("0530303","Cuneo",           "Torino",    "cuneo"),
+    _assise("0530304","Novara",          "Torino",    "novara"),
+    _assise("0530305","Vercelli",        "Torino",    "vercelli"),
+    _assise("0540300","Genova",          "Genova",    "genova"),
+    _assise("0540301","Imperia",         "Genova",    "imperia"),
+    _assise("0540302","Savona",          "Genova",    "savona"),
+    _assise("0580300","Milano",          "Milano",    "milano"),
+    _assise("0580301","Bergamo",         "Milano",    "bergamo"),
+    _assise("0580302","Brescia",         "Brescia",   "brescia"),
+    _assise("0580303","Como",            "Milano",    "como"),
+    _assise("0580304","Cremona",         "Brescia",   "cremona"),
+    _assise("0580305","Mantova",         "Brescia",   "mantova"),
+    _assise("0580306","Varese",          "Milano",    "varese"),
+    _assise("0620300","Venezia",         "Venezia",   "venezia"),
+    _assise("0620301","Padova",          "Venezia",   "padova"),
+    _assise("0620302","Verona",          "Venezia",   "verona"),
+    _assise("0620303","Vicenza",         "Venezia",   "vicenza"),
+    _assise("0660300","Trieste",         "Trieste",   "trieste"),
+    _assise("0660301","Udine",           "Trieste",   "udine"),
+    _assise("0680300","Trento",          "Trento",    "trento"),
+    _assise("0700300","Bologna",         "Bologna",   "bologna"),
+    _assise("0700301","Modena",          "Bologna",   "modena"),
+    _assise("0700302","Parma",           "Bologna",   "parma"),
+    _assise("0700303","Ravenna",         "Bologna",   "ravenna"),
+    _assise("0700304","Reggio Emilia",   "Bologna",   "reggioEmilia"),
+    _assise("0710300","Firenze",         "Firenze",   "firenze"),
+    _assise("0710301","Arezzo",          "Firenze",   "arezzo"),
+    _assise("0710302","Livorno",         "Firenze",   "livorno"),
+    _assise("0710303","Siena",           "Firenze",   "siena"),
+    _assise("0730300","Perugia",         "Perugia",   "perugia"),
+    _assise("0740300","Terni",           "Perugia",   "terni"),
+    _assise("0750300","Ancona",          "Ancona",    "ancona"),
+    _assise("0760300","Roma",            "Roma",      "roma"),
+    _assise("0760301","Frosinone",       "Roma",      "frosinone"),
+    _assise("0760302","Latina",          "Roma",      "latina"),
+    _assise("0760303","Viterbo",         "Roma",      "viterbo"),
+    _assise("0800300","L'Aquila",        "L'Aquila",  "laquila"),
+    _assise("0810300","Chieti",          "L'Aquila",  "chieti"),
+    _assise("0810301","Pescara",         "L'Aquila",  "pescara"),
+    _assise("0810302","Teramo",          "L'Aquila",  "teramo"),
+    _assise("0815300","Campobasso",      "Campobasso","campobasso"),
+    _assise("0820300","Napoli",          "Napoli",    "napoli"),
+    _assise("0830300","Avellino",        "Napoli",    "avellino"),
+    _assise("0840300","Benevento",       "Napoli",    "benevento"),
+    _assise("0850300","Caserta",         "Napoli",    "caserta"),
+    _assise("0860300","Salerno",         "Napoli",    "salerno"),
+    _assise("0870300","Potenza",         "Potenza",   "potenza"),
+    _assise("0880300","Matera",          "Potenza",   "matera"),
+    _assise("0890300","Catanzaro",       "Catanzaro", "catanzaro"),
+    _assise("0900300","Cosenza",         "Catanzaro", "cosenza"),
+    _assise("0910300","Reggio Calabria", "Catanzaro", "reggiocalabria"),
+    _assise("0920300","Palermo",         "Palermo",   "palermo"),
+    _assise("0920301","Agrigento",       "Palermo",   "agrigento"),
+    _assise("0920302","Trapani",         "Palermo",   "trapani"),
+    _assise("0940300","Messina",         "Messina",   "messina"),
+    _assise("0950300","Catania",         "Catania",   "catania"),
+    _assise("0960300","Ragusa",          "Catania",   "ragusa"),
+    _assise("0970300","Siracusa",        "Catania",   "siracusa"),
+    _assise("0980300","Cagliari",        "Cagliari",  "cagliari"),
+    _assise("1000300","Nuoro",           "Cagliari",  "nuoro"),
+    _assise("1010300","Sassari",         "Cagliari",  "sassari"),
+    _assise("1020300","Bari",            "Bari",      "bari"),
+    _assise("1020301","Foggia",          "Bari",      "foggia"),
+    _assise("1020302","Taranto",         "Bari",      "taranto"),
+    _assise("1040300","Lecce",           "Lecce",     "lecce"),
+    _assise("1040301","Brindisi",        "Lecce",     "brindisi"),
+
+    # ================================================================ GIUDICI DI PACE
+    # Capoluoghi di regione + principali province (d.lgs. 274/2000, l. 374/1991)
+    # ── Nord-Ovest
+    _gdp("0530400","Torino",          "Torino",    "torino"),
+    _gdp("0530401","Aosta",           "Torino",    "aosta"),
+    _gdp("0530402","Alessandria",     "Torino",    "alessandria"),
+    _gdp("0530403","Asti",            "Torino",    "asti"),
+    _gdp("0530404","Biella",          "Torino",    "biella"),
+    _gdp("0530405","Cuneo",           "Torino",    "cuneo"),
+    _gdp("0530406","Novara",          "Torino",    "novara"),
+    _gdp("0530407","Verbania",        "Torino",    "verbania"),
+    _gdp("0530408","Vercelli",        "Torino",    "vercelli"),
+    _gdp("0530409","Moncalieri",      "Torino",    "moncalieri"),
+    _gdp("0530410","Ivrea",           "Torino",    "ivrea"),
+    _gdp("0540400","Genova",          "Genova",    "genova"),
+    _gdp("0540401","Imperia",         "Genova",    "imperia"),
+    _gdp("0540402","La Spezia",       "Genova",    "laspezia"),
+    _gdp("0540403","Sanremo",         "Genova",    "sanremo"),
+    _gdp("0540404","Savona",          "Genova",    "savona"),
+    # ── Nord-Est (Milano)
+    _gdp("0580400","Milano",          "Milano",    "milano"),
+    _gdp("0580401","Bergamo",         "Milano",    "bergamo"),
+    _gdp("0580402","Brescia",         "Brescia",   "brescia"),
+    _gdp("0580403","Busto Arsizio",   "Milano",    "bustoarsizio"),
+    _gdp("0580404","Como",            "Milano",    "como"),
+    _gdp("0580405","Cremona",         "Brescia",   "cremona"),
+    _gdp("0580406","Lecco",           "Milano",    "lecco"),
+    _gdp("0580407","Lodi",            "Milano",    "lodi"),
+    _gdp("0580408","Mantova",         "Brescia",   "mantova"),
+    _gdp("0580409","Monza",           "Milano",    "monza"),
+    _gdp("0580410","Pavia",           "Milano",    "pavia"),
+    _gdp("0580411","Sondrio",         "Milano",    "sondrio"),
+    _gdp("0580412","Varese",          "Milano",    "varese"),
+    _gdp("0580413","Vigevano",        "Milano",    "vigevano"),
+    # ── Venezia / Trieste
+    _gdp("0620400","Venezia",         "Venezia",   "venezia"),
+    _gdp("0620401","Belluno",         "Venezia",   "belluno"),
+    _gdp("0620402","Padova",          "Venezia",   "padova"),
+    _gdp("0620403","Rovigo",          "Venezia",   "rovigo"),
+    _gdp("0620404","Treviso",         "Venezia",   "treviso"),
+    _gdp("0620405","Verona",          "Venezia",   "verona"),
+    _gdp("0620406","Vicenza",         "Venezia",   "vicenza"),
+    _gdp("0660400","Trieste",         "Trieste",   "trieste"),
+    _gdp("0660401","Gorizia",         "Trieste",   "gorizia"),
+    _gdp("0660402","Pordenone",       "Trieste",   "pordenone"),
+    _gdp("0660403","Udine",           "Trieste",   "udine"),
+    _gdp("0680400","Trento",          "Trento",    "trento"),
+    _gdp("0690400","Bolzano",         "Trento",    "bolzano"),
+    # ── Bologna / Toscana / Umbria / Marche
+    _gdp("0700400","Bologna",         "Bologna",   "bologna"),
+    _gdp("0700401","Ferrara",         "Bologna",   "ferrara"),
+    _gdp("0700402","Forlì",           "Bologna",   "forli"),
+    _gdp("0700403","Modena",          "Bologna",   "modena"),
+    _gdp("0700404","Parma",           "Bologna",   "parma"),
+    _gdp("0700405","Piacenza",        "Bologna",   "piacenza"),
+    _gdp("0700406","Ravenna",         "Bologna",   "ravenna"),
+    _gdp("0700407","Reggio Emilia",   "Bologna",   "reggioEmilia"),
+    _gdp("0700408","Rimini",          "Bologna",   "rimini"),
+    _gdp("0710400","Firenze",         "Firenze",   "firenze"),
+    _gdp("0710401","Arezzo",          "Firenze",   "arezzo"),
+    _gdp("0710402","Grosseto",        "Firenze",   "grosseto"),
+    _gdp("0710403","Livorno",         "Firenze",   "livorno"),
+    _gdp("0710404","Lucca",           "Firenze",   "lucca"),
+    _gdp("0710405","Pisa",            "Firenze",   "pisa"),
+    _gdp("0710406","Pistoia",         "Firenze",   "pistoia"),
+    _gdp("0710407","Prato",           "Firenze",   "prato"),
+    _gdp("0710408","Siena",           "Firenze",   "siena"),
+    _gdp("0730400","Perugia",         "Perugia",   "perugia"),
+    _gdp("0740400","Terni",           "Perugia",   "terni"),
+    _gdp("0750400","Ancona",          "Ancona",    "ancona"),
+    _gdp("0750401","Ascoli Piceno",   "Ancona",    "ascolipiceno"),
+    _gdp("0750402","Macerata",        "Ancona",    "macerata"),
+    _gdp("0750403","Pesaro",          "Ancona",    "pesaro"),
+    _gdp("0750404","Fermo",           "Ancona",    "fermo"),
+    # ── Roma / Lazio / Abruzzo / Molise
+    _gdp("0760400","Roma",            "Roma",      "roma"),
+    _gdp("0760401","Civitavecchia",   "Roma",      "civitavecchia"),
+    _gdp("0760402","Frosinone",       "Roma",      "frosinone"),
+    _gdp("0760403","Latina",          "Roma",      "latina"),
+    _gdp("0760404","Rieti",           "Roma",      "rieti"),
+    _gdp("0760405","Viterbo",         "Roma",      "viterbo"),
+    _gdp("0800400","L'Aquila",        "L'Aquila",  "laquila"),
+    _gdp("0810400","Chieti",          "L'Aquila",  "chieti"),
+    _gdp("0810401","Pescara",         "L'Aquila",  "pescara"),
+    _gdp("0810402","Teramo",          "L'Aquila",  "teramo"),
+    _gdp("0815400","Campobasso",      "Campobasso","campobasso"),
+    _gdp("0815401","Isernia",         "Campobasso","isernia"),
+    # ── Napoli / Campania
+    _gdp("0820400","Napoli",          "Napoli",    "napoli"),
+    _gdp("0820401","Afragola",        "Napoli",    "afragola"),
+    _gdp("0820402","Giugliano",       "Napoli",    "giugliano"),
+    _gdp("0820403","Portici",         "Napoli",    "portici"),
+    _gdp("0830400","Avellino",        "Napoli",    "avellino"),
+    _gdp("0840400","Benevento",       "Napoli",    "benevento"),
+    _gdp("0850400","Caserta",         "Napoli",    "caserta"),
+    _gdp("0860400","Salerno",         "Napoli",    "salerno"),
+    # ── Basilicata / Calabria
+    _gdp("0870400","Potenza",         "Potenza",   "potenza"),
+    _gdp("0880400","Matera",          "Potenza",   "matera"),
+    _gdp("0890400","Catanzaro",       "Catanzaro", "catanzaro"),
+    _gdp("0900400","Cosenza",         "Catanzaro", "cosenza"),
+    _gdp("0910400","Reggio Calabria", "Catanzaro", "reggiocalabria"),
+    _gdp("0890401","Crotone",         "Catanzaro", "crotone"),
+    _gdp("0890402","Vibo Valentia",   "Catanzaro", "vibovalentia"),
+    # ── Sicilia
+    _gdp("0920400","Palermo",         "Palermo",   "palermo"),
+    _gdp("0920401","Agrigento",       "Palermo",   "agrigento"),
+    _gdp("0920402","Trapani",         "Palermo",   "trapani"),
+    _gdp("0940400","Messina",         "Messina",   "messina"),
+    _gdp("0950400","Catania",         "Catania",   "catania"),
+    _gdp("0950401","Enna",            "Catania",   "enna"),
+    _gdp("0960400","Ragusa",          "Catania",   "ragusa"),
+    _gdp("0970400","Siracusa",        "Catania",   "siracusa"),
+    _gdp("0930400","Caltanissetta",   "Palermo",   "caltanissetta"),
+    # ── Sardegna
+    _gdp("0980400","Cagliari",        "Cagliari",  "cagliari"),
+    _gdp("1000400","Nuoro",           "Cagliari",  "nuoro"),
+    _gdp("0980401","Oristano",        "Cagliari",  "oristano"),
+    _gdp("1010400","Sassari",         "Cagliari",  "sassari"),
+    # ── Puglia
+    _gdp("1020400","Bari",            "Bari",      "bari"),
+    _gdp("1020401","Altamura",        "Bari",      "altamura"),
+    _gdp("1020402","Molfetta",        "Bari",      "molfetta"),
+    _gdp("1020403","Taranto",         "Bari",      "taranto"),
+    _gdp("1020404","Trani",           "Bari",      "trani"),
+    _gdp("1030400","Foggia",          "Bari",      "foggia"),
+    _gdp("1040400","Lecce",           "Lecce",     "lecce"),
+    _gdp("1040401","Brindisi",        "Lecce",     "brindisi"),
+
+    # ================================================================ TAR — GIUSTIZIA AMMINISTRATIVA
+    _tar("T010000","Piemonte",            "Piemonte",          "piemonte"),
+    _tar("T010001","Piemonte - sez. II",  "Piemonte",          "piemonte-sez2"),
+    _tar("T020000","Valle d'Aosta",       "Valle d'Aosta",     "vda"),
+    _tar("T030000","Lombardia",           "Lombardia",         "lombardia"),
+    _tar("T030001","Lombardia - Brescia", "Lombardia",         "lombardia-bs"),
+    _tar("T030002","Lombardia - Milano",  "Lombardia",         "lombardia-mi"),
+    _tar("T040000","Liguria",             "Liguria",           "liguria"),
+    _tar("T050000","Trentino-A.A.",       "Trentino-A.A.",     "trento"),
+    _tar("T050001","Trentino-A.A. Bolzano","Trentino-A.A.",    "bolzano"),
+    _tar("T060000","Veneto",              "Veneto",            "veneto"),
+    _tar("T070000","Friuli-V.G.",         "Friuli-V.G.",       "trieste"),
+    _tar("T080000","Emilia-Romagna",      "Emilia-Romagna",    "bologna"),
+    _tar("T080001","Emilia-Romagna - Parma","Emilia-Romagna",  "parma"),
+    _tar("T090000","Toscana",             "Toscana",           "firenze"),
+    _tar("T100000","Umbria",              "Umbria",            "perugia"),
+    _tar("T110000","Marche",              "Marche",            "ancona"),
+    _tar("T120000","Lazio",               "Lazio",             "roma"),
+    _tar("T120001","Lazio - sez. I bis",  "Lazio",             "roma-sez1bis"),
+    _tar("T130000","Abruzzo",             "Abruzzo",           "laquila"),
+    _tar("T130001","Abruzzo - Pescara",   "Abruzzo",           "pescara"),
+    _tar("T140000","Molise",              "Molise",            "campobasso"),
+    _tar("T150000","Campania",            "Campania",          "napoli"),
+    _tar("T150001","Campania - Salerno",  "Campania",          "salerno"),
+    _tar("T160000","Basilicata",          "Basilicata",        "potenza"),
+    _tar("T170000","Calabria",            "Calabria",          "catanzaro"),
+    _tar("T170001","Calabria - Reggio",   "Calabria",          "reggiocalabria"),
+    _tar("T180000","Sicilia",             "Sicilia",           "palermo"),
+    _tar("T180001","Sicilia - Catania",   "Sicilia",           "catania"),
+    _tar("T190000","Sardegna",            "Sardegna",          "cagliari"),
+    _tar("T200000","Puglia",              "Puglia",            "bari"),
+    _tar("T200001","Puglia - Lecce",      "Puglia",            "lecce"),
+
+    # ── Consiglio di Stato
+    {
+        "codice": "CDS000000",
+        "nome":   "Consiglio di Stato",
+        "distretto": "Roma",
+        "pec":    "cds@pec.giustizia-amministrativa.it",
+        "tipo":   "CDS",
+    },
 ]
 
 

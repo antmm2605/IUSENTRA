@@ -87,12 +87,16 @@
 
             {# — Tab selezione tipo — #}
             <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
-              <button type="button" class="uff-tab active" data-tipo=""          role="tab">Tutti</button>
-              <button type="button" class="uff-tab" data-tipo="TRIBUNALE"        role="tab"><i class="bi bi-building me-1"></i>Tribunale</button>
-              <button type="button" class="uff-tab" data-tipo="PROCURA"          role="tab"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
-              <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"    role="tab"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
-              <button type="button" class="uff-tab" data-tipo="TM"               role="tab"><i class="bi bi-people me-1"></i>Min.</button>
-              <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"     role="tab"><i class="bi bi-eye me-1"></i>Sorv.</button>
+              <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
+              <button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Tribunale</button>
+              <button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
+              <button type="button" class="uff-tab" data-tipo="PROCURA_GENERALE"><i class="bi bi-shield-fill me-1"></i>Proc.Gen.</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>
+              <button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>
+              <button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>
+              <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>
+              <button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
             </div>
 
             {# — Campo ricerca testo — #}
@@ -328,18 +332,16 @@
 [data-bs-theme="dark"] .uff-tab:hover    { background: #1e3a5f; color: #93c5fd; border-color: #3b82f6; }
 [data-bs-theme="dark"] .uff-tab.active   { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 
-/* ── Dropdown risultati ─────────────────────────────────────────── */
+/* ── Dropdown risultati — position:fixed per evitare clip da overflow ── */
 #ufficio-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0; right: 0;
+  position: fixed;          /* immune a overflow:hidden degli antenati */
   background: #fff;
   border: 1px solid #dee2e6;
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.13);
+  box-shadow: 0 8px 28px rgba(0,0,0,.16);
   max-height: 340px;
   overflow-y: auto;
-  z-index: 2000;
+  z-index: 9999;
   display: none;
 }
 #ufficio-dropdown.show { display: block; }
@@ -488,25 +490,58 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
     TRIBUNALE:          'bi-building',
     CORTE_APPELLO:      'bi-bank2',
     PROCURA:            'bi-shield-exclamation',
+    PROCURA_GENERALE:   'bi-shield-fill',
     CORTE_CASSAZIONE:   'bi-star-fill',
     TM:                 'bi-people-fill',
     SORVEGLIANZA:       'bi-eye-fill',
+    CORTE_ASSISE:       'bi-hammer',
+    GDP:                'bi-person-badge',
+    TAR:                'bi-building-check',
+    CDS:                'bi-columns-gap',
   };
   const TIPO_LABEL = {
     TRIBUNALE:          'Tribunale',
     CORTE_APPELLO:      "Corte d'Appello",
-    PROCURA:            'Procura',
+    PROCURA:            'Procura della Repubblica',
+    PROCURA_GENERALE:   'Procura Generale',
     CORTE_CASSAZIONE:   'Cassazione',
     TM:                 'Trib. Minorenni',
     SORVEGLIANZA:       'Trib. Sorveglianza',
+    CORTE_ASSISE:       "Corte d'Assise",
+    GDP:                'Giudice di Pace',
+    TAR:                'TAR',
+    CDS:                'Consiglio di Stato',
+  };
+  const TIPO_PLACEHOLDER = {
+    TRIBUNALE:          'tribunale per città (es. Milano)…',
+    CORTE_APPELLO:      "corte d'appello (es. Roma)…",
+    PROCURA:            'procura per città (es. Napoli)…',
+    PROCURA_GENERALE:   'procura generale (es. Torino)…',
+    CORTE_ASSISE:       "corte d'assise per città…",
+    GDP:                'giudice di pace per città…',
+    TM:                 'tribunale minorenni per città…',
+    SORVEGLIANZA:       'tribunale sorveglianza per città…',
+    TAR:                'TAR per regione (es. Lombardia)…',
   };
   // Ordine gruppi nel dropdown (quando tipo=Tutti)
-  const GRUPPI_ORDER = ['CORTE_CASSAZIONE','CORTE_APPELLO','TRIBUNALE','PROCURA','TM','SORVEGLIANZA'];
+  const GRUPPI_ORDER = ['CORTE_CASSAZIONE','CDS','CORTE_APPELLO','PROCURA_GENERALE',
+                         'TRIBUNALE','PROCURA','CORTE_ASSISE','GDP','TM','SORVEGLIANZA','TAR'];
 
   let tipoFiltro  = '';   // tipo attivo (vuoto = Tutti)
   let items       = [];   // uffici nella lista aperta
   let focusIdx    = -1;
   let timer       = null;
+
+  // ── Posiziona il dropdown fixed sotto il campo input ────────
+  function posizionaDropdown() {
+    const rect = input.getBoundingClientRect();
+    dropdown.style.top   = (rect.bottom + 4 + window.scrollY) + 'px';
+    dropdown.style.left  = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    // Evita che esca dallo schermo in basso
+    const spazioGiu = window.innerHeight - rect.bottom - 8;
+    dropdown.style.maxHeight = Math.min(340, spazioGiu) + 'px';
+  }
 
   // ── Tab: cambio tipo ─────────────────────────────────────────
   tabs?.querySelectorAll('.uff-tab').forEach(tab => {
@@ -515,13 +550,11 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
       tab.classList.add('active');
       tipoFiltro = tab.dataset.tipo;
       // Aggiorna icona nel campo
-      const icon = tipoFiltro ? TIPO_ICONS[tipoFiltro] : 'bi-search';
+      const icon = tipoFiltro ? (TIPO_ICONS[tipoFiltro] || 'bi-search') : 'bi-search';
       tipoIcon.innerHTML = `<i class="bi ${icon} text-muted"></i>`;
       // Placeholder dinamico
-      const nomi = { TRIBUNALE: 'tribunale', PROCURA: 'procura', CORTE_APPELLO: "corte d'appello",
-                     TM: 'tribunale minorenni', SORVEGLIANZA: 'tribunale sorveglianza' };
       input.placeholder = tipoFiltro
-        ? `Cerca ${nomi[tipoFiltro] || tipoFiltro.toLowerCase()} per città…`
+        ? `Cerca ${TIPO_PLACEHOLDER[tipoFiltro] || tipoFiltro.toLowerCase() + '…'}`
         : 'Cerca per città o nome…';
       // Riapri dropdown se c'è già testo
       if (input.value.trim().length >= 2) cerca(input.value.trim());
@@ -534,6 +567,7 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
   function renderDropdown(data) {
     focusIdx = -1;
     items = [];
+    posizionaDropdown();
     if (!data.length) {
       dropdown.innerHTML = `<div class="uff-empty">
         <i class="bi bi-search me-1"></i>Nessun ufficio trovato
@@ -669,6 +703,10 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
     if (!document.getElementById('ufficio-wrap')?.contains(e.target) &&
         !document.getElementById('ufficio-tabs')?.contains(e.target)) chiudi();
   });
+
+  // Riposiziona se la pagina scrolla o cambia dimensione
+  window.addEventListener('scroll', () => { if (dropdown.classList.contains('show')) posizionaDropdown(); }, { passive: true });
+  window.addEventListener('resize', () => { if (dropdown.classList.contains('show')) posizionaDropdown(); }, { passive: true });
 
   if (hidden.value && input.value) {
     badgeLbl.textContent = input.value;

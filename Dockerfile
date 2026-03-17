@@ -32,7 +32,7 @@ ENV PATH="/venv/bin:$PATH"
 # Layer cache: ricalcola solo se setup.py cambia
 COPY setup.py .
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir ".[pdf,pades]" gunicorn gevent
+RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 
 
 # ─────────────────────────────────────────────────────────────

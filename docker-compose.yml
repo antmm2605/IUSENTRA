@@ -89,7 +89,7 @@ services:
   #  Attivo di default. Porta 80.
   # --------------------------------------------------------------------------
   nginx:
-    image: nginx:alpine
+    image: nginx:stable-alpine
     container_name: hacs-nginx
     restart: unless-stopped
 

@@ -10,6 +10,7 @@ from typing import Optional
 
 import click
 
+from . import __version__
 from .busta import DatiBusta, Allegato
 from .pec import ConfigPEC
 from .deposito import DepositoCivile, DepositoPenale
@@ -74,7 +75,7 @@ def carica_config() -> dict:
 
 
 @click.group()
-@click.version_option("1.0.0")
+@click.version_option(__version__)
 def cli():
     """PCT - Sistema di deposito telematico per studi legali italiani."""
     pass
@@ -1370,6 +1371,759 @@ def cmd_sc_statistiche(db):
     click.echo(f"Critiche:        {stats['critiche']}")
     click.echo(f"Alta priorità:   {stats['alte']}")
     click.echo(f"Entro 7 giorni:  {stats['imminenti_7gg']}")
+
+
+# ============================================================ TARIFFARIO
+
+from .tariffario import (
+    calcola_compenso,
+    tutte_le_materie,
+    tutti_i_gradi,
+    tutte_le_fasi,
+    Materia,
+    Grado,
+    Fase,
+)
+
+
+@cli.group("tariffario")
+def grp_tariffario():
+    """Calcolo compensi secondo DM 55/2014."""
+    pass
+
+
+@grp_tariffario.command("materie")
+def cmd_tar_materie():
+    """Elenca le materie disponibili."""
+    for m in tutte_le_materie():
+        click.echo(f"  {m.value}")
+
+
+@grp_tariffario.command("gradi")
+def cmd_tar_gradi():
+    """Elenca i gradi di giudizio disponibili."""
+    for g in tutti_i_gradi():
+        click.echo(f"  {g.value}")
+
+
+@grp_tariffario.command("fasi")
+def cmd_tar_fasi():
+    """Elenca le fasi processuali disponibili."""
+    for f in tutte_le_fasi():
+        click.echo(f"  {f.value}")
+
+
+@grp_tariffario.command("calcola")
+@click.option("--materia", required=True,
+              type=click.Choice([m.value for m in Materia]))
+@click.option("--grado", required=True,
+              type=click.Choice([g.value for g in Grado]))
+@click.option("--valore", required=True, type=float,
+              help="Valore della controversia in euro")
+@click.option("--fasi", default="",
+              help="Fasi da liquidare separate da virgola (es. STUDIO,INTRODUTTIVA)")
+def cmd_tar_calcola(materia, grado, valore, fasi):
+    """Calcola il compenso professionale (DM 55/2014)."""
+    fasi_list = [Fase(f.strip()) for f in fasi.split(",") if f.strip()] if fasi else list(tutte_le_fasi())
+    try:
+        r = calcola_compenso(Materia(materia), Grado(grado), valore, fasi_list)
+        click.echo(f"Materia:     {r.materia.value}")
+        click.echo(f"Grado:       {r.grado.value}")
+        click.echo(f"Valore:      € {r.valore_controversia:,.2f}")
+        click.echo(f"Scaglione:   {r.scaglione.label}")
+        click.echo("")
+        click.echo(f"{'FASE':<22} {'MINIMO':>10} {'BASE':>10} {'MASSIMO':>10}")
+        click.echo("-" * 56)
+        for fase, sc in r.dettaglio.items():
+            click.echo(
+                f"{fase.value:<22} € {sc.minimo:>8,.2f} € {sc.base:>8,.2f} € {sc.massimo:>8,.2f}"
+            )
+        click.echo("-" * 56)
+        click.echo(
+            f"{'TOTALE':<22} € {r.totale_minimo:>8,.2f} € {r.totale_base:>8,.2f} € {r.totale_massimo:>8,.2f}"
+        )
+        if r.note:
+            click.echo(f"\nNote: {r.note}")
+    except (ValueError, KeyError) as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+# ============================================================ PARCELLE (FATTURAZIONE)
+
+from .fatturazione import GestioneFatturazione, StatoParcella, MetodoPagamento
+
+
+def _fatturazione(db="./fatturazione/parcelle.json") -> GestioneFatturazione:
+    return GestioneFatturazione(db_path=db)
+
+
+def _fmt_parcella(p, verbose: bool = False) -> str:
+    line = (
+        f"{p.id[:8]:<10} {p.numero:<8} {p.data_emissione:<12} "
+        f"{p.stato.value:<10} € {p.totale:>10,.2f}"
+    )
+    if verbose:
+        line += f"\n  Cliente: {p.id_cliente}  Fascicolo: {p.id_fascicolo or '—'}"
+        line += f"\n  Scadenza: {p.data_scadenza or '—'}  Metodo: {(p.metodo_pagamento or {MetodoPagamento}).value if p.metodo_pagamento else '—'}"
+    return line
+
+
+@cli.group("parcelle")
+def grp_parcelle():
+    """Gestione parcelle e fatturazione."""
+    pass
+
+
+@grp_parcelle.command("lista")
+@click.option("--stato", default="", help="Filtra per stato (BOZZA, EMESSA, PAGATA, ...)")
+@click.option("--cliente", default="", help="Filtra per ID cliente")
+@click.option("--verbose", "-v", is_flag=True)
+@click.option("--db", default="./fatturazione/parcelle.json")
+def cmd_par_lista(stato, cliente, verbose, db):
+    """Elenca le parcelle."""
+    gf = _fatturazione(db)
+    parcelle = gf.per_cliente(cliente) if cliente else gf.tutte()
+    if stato:
+        try:
+            s = StatoParcella(stato)
+            parcelle = [p for p in parcelle if p.stato == s]
+        except ValueError:
+            click.echo(f"Stato non valido: {stato}", err=True)
+            return
+    click.echo(f"{'ID':<10} {'N.':<8} {'DATA':<12} {'STATO':<10} {'TOTALE':>12}")
+    click.echo("-" * 56)
+    for p in parcelle:
+        click.echo(_fmt_parcella(p, verbose))
+    click.echo(f"\nTotale: {len(parcelle)} parcella/e")
+
+
+@grp_parcelle.command("nuova")
+@click.option("--cliente", required=True, help="ID cliente")
+@click.option("--fascicolo", default="", help="ID fascicolo (opzionale)")
+@click.option("--voce", multiple=True,
+              help="Voce: 'descrizione:qta:prezzo' (ripetibile)")
+@click.option("--iva/--no-iva", default=True)
+@click.option("--cassa/--no-cassa", default=True)
+@click.option("--ritenuta/--no-ritenuta", default=False)
+@click.option("--bollo/--no-bollo", default=False)
+@click.option("--scadenza", default="", help="Data scadenza YYYY-MM-DD")
+@click.option("--note", default="")
+@click.option("--db", default="./fatturazione/parcelle.json")
+def cmd_par_nuova(cliente, fascicolo, voce, iva, cassa, ritenuta, bollo, scadenza, note, db):
+    """Crea una nuova parcella."""
+    from .fatturazione import VoceParcella
+    voci = []
+    for v in voce:
+        parti = v.split(":")
+        if len(parti) < 3:
+            click.echo(f"Formato voce non valido: '{v}' (usa descrizione:qta:prezzo)", err=True)
+            return
+        try:
+            voci.append(VoceParcella(
+                descrizione=parti[0],
+                quantita=float(parti[1]),
+                prezzo_unitario=float(parti[2]),
+            ))
+        except ValueError as e:
+            click.echo(f"Errore nella voce '{v}': {e}", err=True)
+            return
+    if not voci:
+        click.echo("Specificare almeno una voce con --voce 'descrizione:qta:prezzo'", err=True)
+        return
+    gf = _fatturazione(db)
+    try:
+        p = gf.crea(
+            id_cliente=cliente,
+            voci=voci,
+            creato_da="cli",
+            id_fascicolo=fascicolo or None,
+            data_scadenza=scadenza or None,
+            applica_iva=iva,
+            applica_cassa=cassa,
+            applica_ritenuta=ritenuta,
+            applica_bollo=bollo,
+            note=note,
+        )
+        click.echo(f"Parcella creata: {p.id}  (n. {p.numero})")
+        click.echo(f"  Imponibile: € {p.imponibile:,.2f}")
+        if p.applica_iva:
+            click.echo(f"  IVA 22%:    € {p.iva:,.2f}")
+        if p.applica_cassa:
+            click.echo(f"  Cassa Forense 4%: € {p.cassa_forense:,.2f}")
+        click.echo(f"  Totale:     € {p.totale:,.2f}")
+    except Exception as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_parcelle.command("stato")
+@click.argument("id_parcella")
+@click.option("--nuovo-stato", required=True,
+              type=click.Choice([s.value for s in StatoParcella]))
+@click.option("--data-pagamento", default="", help="Data pagamento YYYY-MM-DD")
+@click.option("--metodo", default="",
+              type=click.Choice([m.value for m in MetodoPagamento] + [""]))
+@click.option("--db", default="./fatturazione/parcelle.json")
+def cmd_par_stato(id_parcella, nuovo_stato, data_pagamento, metodo, db):
+    """Cambia lo stato di una parcella."""
+    gf = _fatturazione(db)
+    try:
+        gf.cambia_stato(
+            id_parcella,
+            StatoParcella(nuovo_stato),
+            data_pagamento=data_pagamento or None,
+            metodo_pagamento=metodo or None,
+        )
+        click.echo(f"Parcella {id_parcella[:8]} → {nuovo_stato}")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_parcelle.command("statistiche")
+@click.option("--anno", default=None, type=int)
+@click.option("--db", default="./fatturazione/parcelle.json")
+def cmd_par_statistiche(anno, db):
+    """Mostra statistiche di fatturazione."""
+    gf = _fatturazione(db)
+    stats = gf.statistiche(anno=anno)
+    titolo = f"Anno {anno}" if anno else "Tutti gli anni"
+    click.echo(f"── Fatturazione — {titolo} ──")
+    click.echo(f"Totale parcelle: {stats.get('totale', 0)}")
+    click.echo(f"Bozze:           {stats.get('bozze', 0)}")
+    click.echo(f"Emesse:          {stats.get('emesse', 0)}")
+    click.echo(f"Pagate:          {stats.get('pagate', 0)}")
+    click.echo(f"Scadute:         {stats.get('scadute', 0)}")
+    click.echo(f"Fatturato tot.:  € {stats.get('fatturato_totale', 0):,.2f}")
+    click.echo(f"Incassato:       € {stats.get('incassato', 0):,.2f}")
+    click.echo(f"Da incassare:    € {stats.get('da_incassare', 0):,.2f}")
+
+
+# ============================================================ TEMPLATE ATTI
+
+from .template_atti import GestioneTemplateAtti, CATEGORIE
+
+
+def _template_atti(db="./template_atti/templates.json") -> GestioneTemplateAtti:
+    return GestioneTemplateAtti(db_path=db)
+
+
+@cli.group("template-atti")
+def grp_template_atti():
+    """Gestione template per atti processuali."""
+    pass
+
+
+@grp_template_atti.command("lista")
+@click.option("--categoria", default="", help="Filtra per categoria")
+@click.option("--db", default="./template_atti/templates.json")
+def cmd_ta_lista(categoria, db):
+    """Elenca i template disponibili."""
+    gt = _template_atti(db)
+    templates = gt.tutti()
+    if categoria:
+        templates = [t for t in templates if t.categoria.lower() == categoria.lower()]
+    click.echo(f"{'ID':<10} {'CATEGORIA':<20} {'BUILTIN':<8} TITOLO")
+    click.echo("-" * 72)
+    for t in templates:
+        builtin = "✓" if t.builtin else " "
+        click.echo(f"{t.id[:8]:<10} {t.categoria:<20} {builtin:<8} {t.titolo}")
+    click.echo(f"\nTotale: {len(templates)} template")
+    if not categoria:
+        click.echo(f"Categorie: {', '.join(CATEGORIE)}")
+
+
+@grp_template_atti.command("dettaglio")
+@click.argument("id_template")
+@click.option("--db", default="./template_atti/templates.json")
+def cmd_ta_dettaglio(id_template, db):
+    """Mostra il testo di un template."""
+    gt = _template_atti(db)
+    t = gt.get(id_template)
+    if not t:
+        click.echo(f"Template '{id_template}' non trovato.", err=True)
+        return
+    click.echo(f"Titolo:    {t.titolo}")
+    click.echo(f"Categoria: {t.categoria}")
+    click.echo(f"Builtin:   {'sì' if t.builtin else 'no'}")
+    if t.note:
+        click.echo(f"Note:      {t.note}")
+    click.echo("\n── Corpo ──")
+    click.echo(t.corpo)
+
+
+@grp_template_atti.command("nuovo")
+@click.option("--titolo", required=True)
+@click.option("--categoria", required=True,
+              type=click.Choice(CATEGORIE))
+@click.option("--corpo", required=True, help="Testo del template (Jinja2). Usa @- per leggere da stdin.")
+@click.option("--note", default="")
+@click.option("--db", default="./template_atti/templates.json")
+def cmd_ta_nuovo(titolo, categoria, corpo, note, db):
+    """Crea un nuovo template atto."""
+    if corpo == "@-":
+        corpo = click.get_text_stream("stdin").read()
+    gt = _template_atti(db)
+    t = gt.crea(titolo=titolo, categoria=categoria, corpo=corpo, note=note)
+    click.echo(f"Template creato: {t.id}")
+    click.echo(f"  Titolo: {t.titolo}")
+
+
+@grp_template_atti.command("elimina")
+@click.argument("id_template")
+@click.option("--db", default="./template_atti/templates.json")
+def cmd_ta_elimina(id_template, db):
+    """Elimina un template (solo personalizzati)."""
+    gt = _template_atti(db)
+    try:
+        gt.elimina(id_template)
+        click.echo(f"Template {id_template} eliminato.")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+@grp_template_atti.command("genera")
+@click.argument("id_template")
+@click.option("--var", multiple=True,
+              help="Variabile: 'nome=valore' (ripetibile)")
+@click.option("--output", "-o", default="", help="File di output (default: stdout)")
+@click.option("--db", default="./template_atti/templates.json")
+def cmd_ta_genera(id_template, var, output, db):
+    """Renderizza un template con le variabili fornite."""
+    gt = _template_atti(db)
+    variabili = {}
+    for v in var:
+        if "=" not in v:
+            click.echo(f"Formato non valido: '{v}' (usa nome=valore)", err=True)
+            return
+        k, _, val = v.partition("=")
+        variabili[k.strip()] = val.strip()
+    try:
+        testo = gt.renderizza(id_template, variabili)
+        if output:
+            Path(output).write_text(testo, encoding="utf-8")
+            click.echo(f"Template scritto in: {output}")
+        else:
+            click.echo(testo)
+    except (ValueError, Exception) as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+# ============================================================ PRIVACY / GDPR
+
+from .privacy import GestioneTrattamenti, TrattamentoDati
+
+
+def _privacy(db="./privacy/registro.json") -> GestioneTrattamenti:
+    return GestioneTrattamenti(db_path=db)
+
+
+@cli.group("privacy")
+def grp_privacy():
+    """Registro dei trattamenti dati (GDPR art. 30)."""
+    pass
+
+
+@grp_privacy.command("lista")
+@click.option("--tutti", is_flag=True, default=False,
+              help="Mostra anche trattamenti disattivati")
+@click.option("--db", default="./privacy/registro.json")
+def cmd_priv_lista(tutti, db):
+    """Elenca i trattamenti nel registro."""
+    gt = _privacy(db)
+    trattamenti = gt.tutti(solo_attivi=not tutti)
+    click.echo(f"{'ID':<10} {'ATTIVO':<8} NOME")
+    click.echo("-" * 60)
+    for t in trattamenti:
+        attivo = "✓" if t.attivo else "✗"
+        click.echo(f"{t.id[:8]:<10} {attivo:<8} {t.nome}")
+    click.echo(f"\nTotale: {len(trattamenti)}")
+
+
+@grp_privacy.command("dettaglio")
+@click.argument("id_trattamento")
+@click.option("--db", default="./privacy/registro.json")
+def cmd_priv_dettaglio(id_trattamento, db):
+    """Mostra i dettagli di un trattamento."""
+    gt = _privacy(db)
+    t = gt.get(id_trattamento)
+    if not t:
+        click.echo(f"Trattamento '{id_trattamento}' non trovato.", err=True)
+        return
+    click.echo(f"Nome:                  {t.nome}")
+    click.echo(f"Finalità:              {t.finalita}")
+    click.echo(f"Categoria dati:        {t.categoria_dati}")
+    click.echo(f"Base giuridica:        {t.base_giuridica}")
+    click.echo(f"Soggetti interessati:  {t.soggetti_interessati}")
+    click.echo(f"Destinatari:           {t.destinatari}")
+    click.echo(f"Trasf. extra-UE:       {'sì' if t.trasferimento_extra_ue else 'no'}")
+    if t.trasferimento_extra_ue:
+        click.echo(f"Paese destinazione:    {t.paese_destinazione or '—'}")
+    click.echo(f"Termine conservazione: {t.termine_conservazione}")
+    click.echo(f"Misure sicurezza:      {t.misure_sicurezza}")
+    click.echo(f"Responsabile:          {t.responsabile or '—'}")
+    click.echo(f"Attivo:                {'sì' if t.attivo else 'no'}")
+    if t.note:
+        click.echo(f"Note:                  {t.note}")
+
+
+@grp_privacy.command("nuovo")
+@click.option("--nome", required=True)
+@click.option("--finalita", required=True)
+@click.option("--categoria-dati", required=True)
+@click.option("--base-giuridica", required=True)
+@click.option("--soggetti", required=True, help="Soggetti interessati")
+@click.option("--destinatari", required=True)
+@click.option("--conservazione", required=True, help="Termine di conservazione")
+@click.option("--misure-sicurezza", required=True)
+@click.option("--responsabile", default="")
+@click.option("--extra-ue", is_flag=True, default=False,
+              help="Trasferimento extra-UE")
+@click.option("--paese", default="")
+@click.option("--note", default="")
+@click.option("--db", default="./privacy/registro.json")
+def cmd_priv_nuovo(nome, finalita, categoria_dati, base_giuridica, soggetti,
+                   destinatari, conservazione, misure_sicurezza, responsabile,
+                   extra_ue, paese, note, db):
+    """Aggiunge un trattamento al registro GDPR."""
+    gt = _privacy(db)
+    t = gt.nuovo(
+        nome=nome,
+        finalita=finalita,
+        categoria_dati=categoria_dati,
+        base_giuridica=base_giuridica,
+        soggetti_interessati=soggetti,
+        destinatari=destinatari,
+        termine_conservazione=conservazione,
+        misure_sicurezza=misure_sicurezza,
+        responsabile=responsabile or None,
+        trasferimento_extra_ue=extra_ue,
+        paese_destinazione=paese or None,
+        note=note or None,
+    )
+    click.echo(f"Trattamento creato: {t.id}")
+    click.echo(f"  Nome: {t.nome}")
+
+
+@grp_privacy.command("elimina")
+@click.argument("id_trattamento")
+@click.option("--db", default="./privacy/registro.json")
+def cmd_priv_elimina(id_trattamento, db):
+    """Rimuove un trattamento dal registro."""
+    gt = _privacy(db)
+    try:
+        gt.elimina(id_trattamento)
+        click.echo(f"Trattamento {id_trattamento} eliminato.")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+# ============================================================ OCR
+
+from .ocr import estrai_testo
+
+
+@cli.command("ocr")
+@click.argument("file", type=click.Path(exists=True))
+@click.option("--output", "-o", default="",
+              help="File di output (default: stdout)")
+def cmd_ocr(file, output):
+    """Estrae testo da un PDF o immagine tramite OCR."""
+    try:
+        testo = estrai_testo(file)
+        if output:
+            Path(output).write_text(testo, encoding="utf-8")
+            click.echo(f"Testo estratto in: {output}")
+        else:
+            click.echo(testo)
+    except Exception as e:
+        click.echo(f"Errore OCR: {e}", err=True)
+
+
+# ============================================================ REPORT PDF
+
+from .reports import fascicolo_pdf, scadenze_pdf
+
+
+@cli.group("report")
+def grp_report():
+    """Generazione report PDF."""
+    pass
+
+
+@grp_report.command("fascicolo")
+@click.argument("id_fasc")
+@click.option("--output", "-o", required=True, help="File PDF di output")
+@click.option("--studio", default="Studio Legale", help="Nome dello studio")
+@click.option("--db-fasc", default="./fascicoli/fascicoli.json")
+def cmd_rep_fascicolo(id_fasc, output, studio, db_fasc):
+    """Genera il report PDF di un fascicolo."""
+    gf_mod = _fascicoli(db_fasc)
+    f = gf_mod.get(id_fasc)
+    if not f:
+        click.echo(f"Fascicolo '{id_fasc}' non trovato.", err=True)
+        return
+    try:
+        percorso = fascicolo_pdf(f.to_dict(), output, studio_nome=studio)
+        click.echo(f"Report generato: {percorso}")
+    except Exception as e:
+        click.echo(f"Errore generazione PDF: {e}", err=True)
+
+
+@grp_report.command("scadenze")
+@click.option("--output", "-o", required=True, help="File PDF di output")
+@click.option("--studio", default="Studio Legale", help="Nome dello studio")
+@click.option("--titolo", default="Scadenziario")
+@click.option("--giorni", default=0, type=int,
+              help="Solo scadenze entro N giorni (0 = tutte)")
+@click.option("--db", default="./scadenziario/scadenze.json")
+def cmd_rep_scadenze(output, studio, titolo, giorni, db):
+    """Genera il report PDF dello scadenziario."""
+    gs = _scadenziario(db)
+    if giorni:
+        scadenze = gs.imminenti(entro_giorni=giorni)
+    else:
+        scadenze = gs.tutte()
+    try:
+        percorso = scadenze_pdf(
+            [s.to_dict() if hasattr(s, "to_dict") else s for s in scadenze],
+            output,
+            titolo=titolo,
+            studio_nome=studio,
+        )
+        click.echo(f"Report generato: {percorso}")
+    except Exception as e:
+        click.echo(f"Errore generazione PDF: {e}", err=True)
+
+
+# ============================================================ PORTALE CLIENTI
+
+from .portale import GestionePortale
+
+
+def _portale(db="./portale/portali.json") -> GestionePortale:
+    return GestionePortale(db_path=db)
+
+
+@cli.group("portale")
+def grp_portale():
+    """Gestione portale clienti."""
+    pass
+
+
+@grp_portale.command("stato")
+@click.argument("id_cliente")
+@click.option("--db", default="./portale/portali.json")
+def cmd_portale_stato(id_cliente, db):
+    """Mostra lo stato del portale per un cliente."""
+    gp = _portale(db)
+    p = gp.get_by_cliente(id_cliente)
+    if not p:
+        click.echo(f"Nessun portale attivato per il cliente '{id_cliente}'.")
+        return
+    click.echo(f"ID portale:     {p.id}")
+    click.echo(f"Attivo:         {'sì' if p.is_attivo else 'no'}")
+    click.echo(f"Creato il:      {p.creato_il[:10]}")
+    click.echo(f"Scade il:       {p.scade_il or 'mai'}")
+    click.echo(f"Accessi:        {p.n_accessi}")
+    click.echo(f"Ultimo accesso: {(p.ultimo_accesso or '—')[:19]}")
+    click.echo(f"Privacy firmata: {'sì' if p.privacy_firmata else 'no'}")
+
+
+@grp_portale.command("attiva")
+@click.argument("id_cliente")
+@click.option("--scadenza", default="", help="Data scadenza YYYY-MM-DD (opzionale)")
+@click.option("--db", default="./portale/portali.json")
+def cmd_portale_attiva(id_cliente, scadenza, db):
+    """Attiva il portale per un cliente e stampa il token di accesso."""
+    gp = _portale(db)
+    from .portale import PermessiPortale
+    token, p = gp.crea(
+        id_cliente=id_cliente,
+        creato_da="cli",
+        permessi=PermessiPortale(),
+        scade_il=scadenza or None,
+    )
+    click.echo(f"Portale attivato: {p.id}")
+    click.echo(f"  Token di accesso: {token}")
+    click.echo(f"  Scade il: {p.scade_il or 'mai'}")
+    click.echo("\nATTENZIONE: conservare il token in modo sicuro — non verrà mostrato di nuovo.")
+
+
+@grp_portale.command("revoca")
+@click.argument("id_cliente")
+@click.option("--db", default="./portale/portali.json")
+def cmd_portale_revoca(id_cliente, db):
+    """Revoca l'accesso al portale per un cliente."""
+    gp = _portale(db)
+    p = gp.get_by_cliente(id_cliente)
+    if not p:
+        click.echo(f"Nessun portale trovato per '{id_cliente}'.", err=True)
+        return
+    try:
+        gp.revoca(p.id)
+        click.echo(f"Portale {p.id} revocato.")
+    except ValueError as e:
+        click.echo(f"Errore: {e}", err=True)
+
+
+# ============================================================ NOTIFICHE WHATSAPP
+
+from .notifiche_wa import (
+    ConfigWA,
+    wa_link,
+    invia_messaggio,
+    msg_libero,
+    msg_promemoria_appuntamento,
+    msg_nuova_parcella,
+    msg_scadenza_imminente,
+    msg_link_portale,
+)
+
+
+@cli.group("notifiche-wa")
+def grp_notifiche_wa():
+    """Invio messaggi WhatsApp ai clienti."""
+    pass
+
+
+@grp_notifiche_wa.command("link")
+@click.argument("numero")
+@click.argument("messaggio")
+def cmd_wa_link(numero, messaggio):
+    """Genera un link wa.me (apre WhatsApp senza configurazione API)."""
+    url = wa_link(numero, messaggio)
+    click.echo(url)
+
+
+@grp_notifiche_wa.command("invia")
+@click.argument("numero")
+@click.argument("messaggio")
+@click.option("--studio", default="Studio Legale", help="Nome studio (per template)")
+def cmd_wa_invia(numero, messaggio, studio):
+    """Invia un messaggio WhatsApp tramite Twilio o CallMeBot (da env)."""
+    cfg = ConfigWA.da_env()
+    if not cfg.ha_twilio and not cfg.ha_callmebot:
+        click.echo(
+            "Nessun provider configurato. Imposta le variabili d'ambiente:\n"
+            "  Twilio:     PCT_TWILIO_SID, PCT_TWILIO_TOKEN, PCT_TWILIO_NUMERO\n"
+            "  CallMeBot:  PCT_CALLMEBOT_KEY",
+            err=True,
+        )
+        return
+    try:
+        result = invia_messaggio(numero, messaggio, cfg)
+        click.echo(f"Messaggio inviato. Risposta: {result.get('status', result)}")
+    except Exception as e:
+        click.echo(f"Errore invio: {e}", err=True)
+
+
+@grp_notifiche_wa.command("template")
+@click.option("--tipo", required=True,
+              type=click.Choice(["appuntamento", "parcella", "scadenza", "portale", "libero"]))
+@click.option("--nome-cliente", required=True)
+@click.option("--studio", default="Studio Legale")
+@click.option("--titolo", default="")
+@click.option("--data-ora", default="")
+@click.option("--luogo", default="")
+@click.option("--numero-parcella", default="")
+@click.option("--totale", default=0.0, type=float)
+@click.option("--scadenza", default="")
+@click.option("--fascicolo", default="")
+@click.option("--perentorio", is_flag=True, default=False)
+@click.option("--link", default="")
+@click.option("--testo-libero", default="")
+def cmd_wa_template(tipo, nome_cliente, studio, titolo, data_ora, luogo,
+                    numero_parcella, totale, scadenza, fascicolo, perentorio, link, testo_libero):
+    """Genera il testo di un messaggio WhatsApp da template."""
+    if tipo == "appuntamento":
+        msg = msg_promemoria_appuntamento(nome_cliente, titolo, data_ora, luogo, studio)
+    elif tipo == "parcella":
+        msg = msg_nuova_parcella(nome_cliente, numero_parcella, totale, scadenza, studio)
+    elif tipo == "scadenza":
+        msg = msg_scadenza_imminente(nome_cliente, titolo, scadenza, fascicolo, perentorio)
+    elif tipo == "portale":
+        msg = msg_link_portale(nome_cliente, link, studio)
+    else:
+        msg = msg_libero(nome_cliente, testo_libero, studio)
+    click.echo(msg)
+
+
+# ============================================================ PAGAMENTI
+
+from .pagamenti import GestionePagamenti, StatoPagamento
+
+
+def _pagamenti(db_dir="./pagamenti") -> GestionePagamenti:
+    return GestionePagamenti(db_dir=db_dir)
+
+
+@cli.group("pagamenti")
+def grp_pagamenti():
+    """Gestione link di pagamento digitale."""
+    pass
+
+
+@grp_pagamenti.command("config")
+@click.option("--dir", "db_dir", default="./pagamenti")
+def cmd_pag_config(db_dir):
+    """Mostra i provider di pagamento configurati."""
+    gp = _pagamenti(db_dir)
+    cfg = gp.config
+    attivi = cfg.provider_attivi()
+    click.echo(f"Provider attivi: {', '.join(attivi) if attivi else '(nessuno)'}")
+    click.echo(f"  Stripe:   {'abilitato' if cfg.stripe.abilitato else 'disabilitato'}")
+    click.echo(f"  PayPal:   {'abilitato' if cfg.paypal.abilitato else 'disabilitato'}")
+    click.echo(f"  Satispay: {'abilitato' if cfg.satispay.abilitato else 'disabilitato'}")
+    click.echo(f"  SumUp:    {'abilitato' if cfg.sumup.abilitato else 'disabilitato'}")
+    click.echo(f"  Bonifico: {'abilitato' if cfg.bonifico.abilitato else 'disabilitato'}")
+    if cfg.bonifico.abilitato:
+        click.echo(f"    IBAN: {cfg.bonifico.iban}")
+
+
+@grp_pagamenti.command("lista")
+@click.option("--stato", default="",
+              type=click.Choice([s.value for s in StatoPagamento] + [""]))
+@click.option("--dir", "db_dir", default="./pagamenti")
+def cmd_pag_lista(stato, db_dir):
+    """Elenca i link di pagamento."""
+    gp = _pagamenti(db_dir)
+    links = gp.tutti_link()
+    if stato:
+        links = [lp for lp in links if lp.stato.value == stato]
+    click.echo(f"{'ID':<10} {'PARCELLA':<10} {'IMPORTO':>10} {'STATO':<10} {'SCADE':<12} PROVIDER")
+    click.echo("-" * 72)
+    for lp in links:
+        click.echo(
+            f"{lp.id[:8]:<10} {lp.id_parcella[:8]:<10} "
+            f"€ {lp.importo:>8,.2f} {lp.stato.value:<10} "
+            f"{(lp.scade_il or '—')[:10]:<12} {lp.provider_usato or '—'}"
+        )
+    click.echo(f"\nTotale: {len(links)}")
+
+
+@grp_pagamenti.command("nuovo-link")
+@click.option("--parcella", required=True, help="ID parcella")
+@click.option("--cliente", required=True, help="ID cliente")
+@click.option("--importo", required=True, type=float, help="Importo in euro")
+@click.option("--descrizione", default="Pagamento parcella")
+@click.option("--giorni-validita", default=30, show_default=True)
+@click.option("--dir", "db_dir", default="./pagamenti")
+def cmd_pag_nuovo_link(parcella, cliente, importo, descrizione, giorni_validita, db_dir):
+    """Crea un link di pagamento per una parcella."""
+    gp = _pagamenti(db_dir)
+    try:
+        lp = gp.crea_link(
+            id_parcella=parcella,
+            id_cliente=cliente,
+            importo=importo,
+            descrizione=descrizione,
+            giorni_validita=giorni_validita,
+        )
+        click.echo(f"Link creato: {lp.id}")
+        click.echo(f"  Token:    {lp.token}")
+        click.echo(f"  Importo:  € {lp.importo:,.2f}")
+        click.echo(f"  Scade il: {lp.scade_il or '—'}")
+    except Exception as e:
+        click.echo(f"Errore: {e}", err=True)
 
 
 def main():

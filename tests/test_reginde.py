@@ -13,7 +13,7 @@ def test_cerca_tribunale_milano(client):
     ufficio = client.cerca_ufficio_giudiziario("MILANO")
     assert ufficio is not None
     assert "Milano" in ufficio.nome
-    assert ufficio.pec.endswith("@giustizia.it")
+    assert ufficio.pec.endswith("@giustiziapec.it")
 
 
 def test_cerca_tribunale_roma(client):
@@ -30,7 +30,7 @@ def test_cerca_tribunale_inesistente(client):
 def test_ottieni_pec_per_codice(client):
     pec = client.ottieni_pec_ufficio("0580010")
     assert pec is not None
-    assert "@giustizia.it" in pec
+    assert "@giustiziapec.it" in pec
 
 
 def test_ottieni_pec_codice_inesistente(client):

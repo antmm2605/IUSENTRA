@@ -14,6 +14,8 @@ from typing import Optional
 import requests
 from dataclasses import dataclass
 
+_TIPO_DEFAULT = object()  # sentinel: tipo non specificato (default TRIBUNALE)
+
 
 # ================================================================ Dataclass
 
@@ -349,7 +351,7 @@ class ClientReGINde:
     def cerca_ufficio_giudiziario(
         self,
         nome: str,
-        tipo: Optional[str] = None,
+        tipo=_TIPO_DEFAULT,
     ) -> Optional[UfficioGiudiziario]:
         """
         Cerca un ufficio giudiziario per nome (ricerca multi-strategia).
@@ -362,7 +364,15 @@ class ClientReGINde:
         """
         nome_up = nome.upper().strip()
         slug_cerca = _normalize_slug(nome)
-        tipo_filtro = (tipo or "TRIBUNALE").upper()
+        # tipo=_TIPO_DEFAULT → prima chiamata, cerca per TRIBUNALE poi riprova senza filtro
+        # tipo=None          → chiamata interna senza filtro tipo
+        # tipo=stringa       → filtra esplicitamente per quel tipo
+        if tipo is _TIPO_DEFAULT:
+            tipo_filtro = "TRIBUNALE"
+        elif tipo is None:
+            tipo_filtro = ""
+        else:
+            tipo_filtro = tipo.upper()
 
         # 1. Chiave esatta
         chiave_esatta = f"{tipo_filtro}_{nome_up.replace(' ', '_')}"
@@ -383,8 +393,8 @@ class ClientReGINde:
             if slug_cerca in uff.pec.lower():
                 return uff
 
-        # 4. Ricerca senza filtro tipo (fallback)
-        if tipo_filtro:
+        # 4. Ricerca senza filtro tipo (fallback — solo dalla prima chiamata)
+        if tipo is _TIPO_DEFAULT:
             return self.cerca_ufficio_giudiziario(nome, tipo=None)
 
         # 5. Ricerca remota PST (ultimo tentativo)

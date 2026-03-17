@@ -179,11 +179,11 @@ class BustaTelematica:
                 root = etree.fromstring(xml_data)
                 ns = {"p": self.NAMESPACE}
 
-                id_el = root.find("IdBusta")
+                id_el = root.find("p:IdBusta", ns)
                 if id_el is not None:
                     risultato["id_busta"] = id_el.text
 
-                for doc in root.findall(".//NomeFile"):
+                for doc in root.findall(".//p:NomeFile", ns):
                     risultato["documenti"].append(doc.text)
 
                 risultato["valida"] = True

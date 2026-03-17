@@ -433,6 +433,16 @@ class ClientPolisWebDemo(ClientPolisWeb):
     Restituisce dati fittizi verosimili.
     """
 
+    def _nome_ufficio_demo(self, codice_o_nome: str) -> str:
+        try:
+            import os
+            from pct.uffici_giudiziari import get_gestore
+            gestore = get_gestore(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"))
+            uff = next((u for u in gestore.carica() if u.get("codice") == codice_o_nome), None)
+            return uff["nome"] if uff else f"Ufficio {codice_o_nome}"
+        except Exception:
+            return f"Ufficio {codice_o_nome}"
+
     def __init__(self):
         # Non richiede certificato
         self.p12_path = ""
@@ -460,8 +470,8 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 data_udienza=f"{date.today().year + (1 if date.today().month >= 10 else 0)}-03-20",
                 parti=["Mario Bianchi", "Alfa S.p.A."],
                 note="Dato demo — collegare al PST con certificato reale",
-                codice_ufficio="0580010",
-                nome_ufficio=f"Tribunale di {tribunale.title()}",
+                codice_ufficio=tribunale if tribunale.isdigit() else "0000000",
+                nome_ufficio=self._nome_ufficio_demo(tribunale),
             )
         ]
 

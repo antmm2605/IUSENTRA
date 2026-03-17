@@ -1433,10 +1433,10 @@ def create_app(config: dict | None = None) -> Flask:
             return redirect(url_for("polisWeb_home"))
 
         try:
-            from pct.reginde import ClientReGINde
-            reginde = ClientReGINde()
-            uff_sel = reginde.cerca_ufficio_giudiziario(tribunale, tipo=None)
-            tribunale_sel_nome = uff_sel.nome if uff_sel else tribunale
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _cache = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            _uff = next((u for u in _get_uff(_cache).carica() if u.get("codice") == tribunale), None)
+            tribunale_sel_nome = _uff["nome"] if _uff else tribunale
         except Exception as e:
             app.logger.warning("Errore risoluzione nome ufficio '%s': %s", tribunale, e)
             tribunale_sel_nome = tribunale

@@ -1,32 +1,71 @@
 # ============================================================
-#  Studio Legale PCT — Dockerfile produzione
-#  Build:  docker build -t studio-legale-pct .
-#  Run:    docker run -p 8080:8080 -v pct-data:/data studio-legale-pct
+#  Studio Legale PCT — Dockerfile produzione (versione integrale)
+#
+#  Build multi-stage:
+#    Stage 1 (builder)  – compila le dipendenze Python con gcc
+#    Stage 2 (runtime)  – immagine finale snella, senza build tools
+#
+#  Build:  docker build -t hacs .
+#  Run:    docker run -p 8080:8080 -v hacs-data:/data hacs
 # ============================================================
 
-FROM python:3.12-slim
 
-# Dipendenze di sistema minime (reportlab + cryptography le richiedono)
+# ─────────────────────────────────────────────────────────────
+#  Stage 1 — builder: compila tutte le dipendenze Python
+# ─────────────────────────────────────────────────────────────
+FROM python:3.12-slim AS builder
+
+# Dipendenze di build (rimangono solo in questo stage)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         libffi-dev \
+        libxml2-dev \
+        libxslt1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Crea un venv isolato → tutto finisce in /venv
+RUN python -m venv /venv
+ENV PATH="/venv/bin:$PATH"
+
+# Layer cache: ricalcola solo se setup.py cambia
+COPY setup.py .
+COPY pct/__init__.py pct/__init__.py
+RUN pip install --no-cache-dir ".[pdf,pades]" gunicorn gevent
+
+
+# ─────────────────────────────────────────────────────────────
+#  Stage 2 — runtime: immagine finale senza gcc né librerie -dev
+# ─────────────────────────────────────────────────────────────
+FROM python:3.12-slim
+
+# Solo le librerie runtime strettamente necessarie
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libffi8 \
+        libxml2 \
+        libxslt1.1 \
         tesseract-ocr \
         tesseract-ocr-ita \
+        poppler-utils \
     && rm -rf /var/lib/apt/lists/*
+
+# Copia il venv compilato dallo stage builder
+COPY --from=builder /venv /venv
+ENV PATH="/venv/bin:$PATH"
 
 WORKDIR /app
 
-# Copia prima solo i file di dipendenze per sfruttare la cache Docker
-COPY setup.py .
-COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir -e ".[pdf,pades]" gunicorn gevent
-
-# Copia il resto del codice
+# Copia tutto il sorgente (templates, static, blueprints, ecc.)
 COPY . .
+
+# PYTHONPATH → pct/ e web/ vengono importati dal sorgente in /app
+# (le dipendenze esterne arrivano dal /venv)
+ENV PYTHONPATH=/app
 
 # ---- Dati persistenti: tutti i file runtime puntano a /data ----
 # Su Railway/Render monta un volume su /data
-# In locale:  docker run -v $(pwd)/data:/data ...
+# In locale:  docker run -v $(pwd)/data:/data ... oppure usa docker-compose
 ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_CLIENTI_DB=/data/clienti/anagrafica.json \
     PCT_CONDIVISIONI_DB=/data/clienti/condivisioni.json \

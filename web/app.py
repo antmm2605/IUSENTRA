@@ -537,6 +537,8 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.errorhandler(500)
     def errore_500(e):
+        import traceback as _tb
+        app.logger.error("500 Internal Server Error: %s\n%s", e, _tb.format_exc())
         return render_template("errori/500.html"), 500
 
     # ================================================================ AUTH
@@ -1383,8 +1385,12 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
-        demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
-        return render_template("polisWeb.html", demo_mode=demo_mode)
+        try:
+            demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
+            return render_template("polisWeb.html", demo_mode=demo_mode)
+        except Exception as e:
+            app.logger.exception("Errore polisWeb_home: %s", e)
+            raise
 
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():
@@ -1415,12 +1421,20 @@ def create_app(config: dict | None = None) -> Flask:
         except ConnectionError as e:
             flash(f"Errore connessione PST: {e}", "danger")
             return redirect(url_for("polisWeb_home"))
+        except Exception as e:
+            app.logger.exception("Errore polisWeb_ricerca PST: %s", e)
+            flash(f"Errore ricerca: {e}", "danger")
+            return redirect(url_for("polisWeb_home"))
 
-        from pct.reginde import ClientReGINde
-        reginde = ClientReGINde()
-        # Risolvi il nome leggibile dell'ufficio selezionato per pre-popolare il campo
-        uff_sel = reginde.cerca_ufficio_giudiziario(tribunale, tipo=None)
-        tribunale_sel_nome = uff_sel.nome if uff_sel else tribunale
+        try:
+            from pct.reginde import ClientReGINde
+            reginde = ClientReGINde()
+            uff_sel = reginde.cerca_ufficio_giudiziario(tribunale, tipo=None)
+            tribunale_sel_nome = uff_sel.nome if uff_sel else tribunale
+        except Exception as e:
+            app.logger.warning("Errore risoluzione nome ufficio '%s': %s", tribunale, e)
+            tribunale_sel_nome = tribunale
+
         return render_template(
             "polisWeb.html",
             fascicoli=fascicoli,

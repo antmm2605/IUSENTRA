@@ -2411,6 +2411,11 @@ def create_app(config: dict | None = None) -> Flask:
             apps = agenda.cerca(testo=fasc.numero_rg)
         track_recente("fascicolo", id_fasc, f"{fasc.numero} — {fasc.titolo}",
                       url_for("dettaglio_fascicolo", id_fasc=id_fasc), "bi-folder2-open")
+        # PEC del tribunale dal registro ReGINde
+        pec_tribunale = ""
+        if fasc.tribunale:
+            uff = ClientReGINde().cerca_ufficio_giudiziario(fasc.tribunale)
+            pec_tribunale = uff.pec if uff else ""
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -2419,6 +2424,7 @@ def create_app(config: dict | None = None) -> Flask:
             tipi_doc=list(TipoDocumento),
             tipi_att=list(TipoAttivita),
             esiti=list(EsitoAttivita),
+            pec_tribunale=pec_tribunale,
         )
 
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])

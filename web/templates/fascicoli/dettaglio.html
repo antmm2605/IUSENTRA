@@ -649,8 +649,8 @@
             <div class="col-12">
               <label class="form-label fw-semibold">PEC Tribunale <span class="text-danger">*</span></label>
               <input type="email" name="pec_destinatario" class="form-control"
-                     placeholder="cancelleria.tribunale@pec.giustizia.it"
-                     value="{{ fascicolo.tribunale|lower|replace(' ','.') }}@pec.giustizia.it" required>
+                     placeholder="tribunale.sede@giustiziapec.it"
+                     value="{{ pec_tribunale or '' }}" required>
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Messaggio / protocollo</label>

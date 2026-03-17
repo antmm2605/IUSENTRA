@@ -8,7 +8,6 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "gunicorn --bind 0.0.0.0:$PORT --worker-class gevent --workers 2 --worker-connections 100 --timeout 120 --access-logfile - --error-logfile - wsgi:app"
 healthcheckPath = "/login"
 healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"

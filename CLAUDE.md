@@ -24,3 +24,14 @@
 ## Note tecniche
 
 - **`web/app.py` — `SECRET_KEY`**: quando si imposta `app.secret_key`, impostare sempre anche `app.config["SECRET_KEY"] = app.secret_key`. La funzione `get_condivisioni()` usa `app.config["SECRET_KEY"]` e senza questa riga solleva `KeyError` causando un 500.
+
+- **`polisWeb` — ricerca uffici giudiziari**:
+  - Il form (`polisWeb.html`) invia il **codice** ufficio nel campo hidden `name="tribunale"` (es. `0580010`), **non il nome**.
+  - La route `polisWeb_ricerca` riceve il codice e deve risolvere il nome con:
+    ```python
+    _uff = next((u for u in get_gestore(cache_path).carica() if u.get("codice") == tribunale), None)
+    tribunale_sel_nome = _uff["nome"] if _uff else tribunale
+    ```
+  - **NON usare** `cerca_ufficio_giudiziario(tribunale, ...)` per risolvere il nome: quella funzione cerca per testo nel nome, non per codice → restituisce `None` quando riceve un codice numerico.
+  - `ricerca_fascicoli(tribunale=codice)` accetta sia codice che nome (il client reale usa `_risolvi_codice_ufficio` che riconosce `str.isdigit()`).
+  - Il demo client (`_ClientPolisWebDemo`) usa `_nome_ufficio_demo(codice)` per risolvere il nome leggibile dal codice tramite `get_gestore().carica()`.

@@ -86,6 +86,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_TEMPLATE_ATTI_DB=/data/template_atti/templates.json \
     PCT_PAGAMENTI_DIR=/data/pagamenti \
     PCT_TENANTS_REGISTRY=/data/tenants.json \
+    PCT_STUDIO_CONFIG=/data/config/studio.json \
     PCT_MULTI_TENANT=1 \
     PCT_HTTPS=true \
     PCT_STUDIO_NOME="HACS - Studio Legale PCT"

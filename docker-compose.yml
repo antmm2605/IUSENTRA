@@ -64,6 +64,7 @@ services:
       PCT_TEMPLATE_ATTI_DB: /data/template_atti/templates.json
       PCT_PAGAMENTI_DIR:    /data/pagamenti
       PCT_TENANTS_REGISTRY: /data/tenants.json
+      PCT_STUDIO_CONFIG:    /data/config/studio.json
       PCT_MULTI_TENANT:     "1"
 
     healthcheck:

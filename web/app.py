@@ -231,6 +231,10 @@ def create_app(config: dict | None = None) -> Flask:
         "TENANTS_REGISTRY", os.getenv("PCT_TENANTS_REGISTRY", "./data/tenants.json")
     )
     app.config["MULTI_TENANT"] = os.getenv("PCT_MULTI_TENANT", "1").lower() not in ("0", "false", "no")
+    # Impostazioni studio persistenti (PEC, firma, SMTP, WhatsApp, scheduler)
+    app.config["STUDIO_CONFIG"] = cfg.get(
+        "STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
+    )
 
     def get_agenda() -> Agenda:
         return Agenda(db_path=app.config["AGENDA_DB"])
@@ -3743,6 +3747,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     from web.blueprints.admin import admin_bp  # Pannello Admin multi-tenant /admin/*
     app.register_blueprint(admin_bp)
+
+    from web.blueprints.impostazioni import impostazioni as impostazioni_bp  # Impostazioni studio /impostazioni/*
+    app.register_blueprint(impostazioni_bp)
 
     # ---- iCal export per agenda e scadenziario
     @app.route("/agenda/export.ics")

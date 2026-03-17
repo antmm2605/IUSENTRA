@@ -220,6 +220,10 @@
          class="nav-link sb-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
         <i class="bi bi-cloud-arrow-up"></i><span class="sb-txt">Backup</span>
       </a>
+      <a href="{{ url_for('impostazioni.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'impostazioni' %}active{% endif %}">
+        <i class="bi bi-gear-fill"></i><span class="sb-txt">Impostazioni</span>
+      </a>
     </div>
 
     {# ---- Piattaforma (superadmin) ---- #}

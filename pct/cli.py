@@ -2126,6 +2126,171 @@ def cmd_pag_nuovo_link(parcella, cliente, importo, descrizione, giorni_validita,
         click.echo(f"Errore: {e}", err=True)
 
 
+# ============================================================ IMPOSTAZIONI STUDIO
+
+from .config_studio import (
+    GestioneConfigStudio,
+    ConfigPEC as _ConfigPEC,
+    ConfigSMTP as _ConfigSMTP,
+    test_pec_smtp,
+    test_pec_imap,
+    test_smtp_email,
+)
+
+
+def _cfg_studio(config_path="./config/studio.json") -> GestioneConfigStudio:
+    return GestioneConfigStudio(config_path=config_path)
+
+
+@cli.group("impostazioni")
+def grp_impostazioni():
+    """Configurazione dello studio (PEC, SMTP, firma, WhatsApp, scheduler)."""
+    pass
+
+
+@grp_impostazioni.command("mostra")
+@click.option("--config", default="./config/studio.json")
+def cmd_imp_mostra(config):
+    """Mostra la configurazione corrente dello studio."""
+    gs = _cfg_studio(config)
+    c = gs.config
+    s = c.studio
+    click.echo(f"── Dati Studio ──────────────────────────────")
+    click.echo(f"  Nome:       {s.nome or '—'}")
+    click.echo(f"  Avvocato:   {s.avvocato or '—'}")
+    click.echo(f"  P.IVA:      {s.piva or '—'}")
+    click.echo(f"  C.F.:       {s.cf or '—'}")
+    click.echo(f"  Indirizzo:  {s.indirizzo or '—'}")
+    click.echo(f"  IBAN:       {s.iban or '—'}")
+    click.echo(f"\n── PEC ──────────────────────────────────────")
+    click.echo(f"  Indirizzo:  {c.pec.indirizzo or '—'}")
+    click.echo(f"  SMTP:       {c.pec.smtp_host}:{c.pec.smtp_port}  SSL={'sì' if c.pec.use_ssl else 'no'}")
+    click.echo(f"  IMAP:       {c.pec.imap_host}:{c.pec.imap_port}")
+    click.echo(f"  Password:   {'configurata' if c.pec.password else 'non impostata'}")
+    click.echo(f"\n── Firma Digitale ───────────────────────────")
+    click.echo(f"  P12 path:   {c.firma.p12_path or '—'}")
+    click.echo(f"  CF avvocato:{c.firma.cf_avvocato or '—'}")
+    click.echo(f"  Password:   {'configurata' if c.firma.password else 'non impostata'}")
+    click.echo(f"\n── SMTP Email ───────────────────────────────")
+    click.echo(f"  Host:       {c.smtp.host or '—'}:{c.smtp.port}")
+    click.echo(f"  Username:   {c.smtp.username or '—'}")
+    click.echo(f"  From:       {c.smtp.from_address or '—'}")
+    click.echo(f"  TLS:        {'sì' if c.smtp.use_tls else 'no'}")
+    click.echo(f"\n── WhatsApp ─────────────────────────────────")
+    click.echo(f"  Twilio SID: {c.whatsapp.twilio_sid or '—'}")
+    click.echo(f"  Twilio num: {c.whatsapp.twilio_numero or '—'}")
+    click.echo(f"  CallMeBot:  {'configurato' if c.whatsapp.callmebot_key else '—'}")
+    click.echo(f"\n── Scheduler ────────────────────────────────")
+    click.echo(f"  Backup:     {c.scheduler.backup_ora}  ({'abilitato' if c.scheduler.backup_abilitato else 'disabilitato'})")
+    click.echo(f"  WA remind:  {c.scheduler.wa_reminder_ora}  ({'abilitato' if c.scheduler.wa_reminder_abilitato else 'disabilitato'})")
+
+
+@grp_impostazioni.command("pec")
+@click.option("--indirizzo", required=True, help="Indirizzo PEC (es. studio@pec.aruba.it)")
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True,
+              help="Password casella PEC")
+@click.option("--smtp-host", default="smtp.pec.aruba.it", show_default=True)
+@click.option("--smtp-port", default=465, show_default=True, type=int)
+@click.option("--imap-host", default="imaps.pec.aruba.it", show_default=True)
+@click.option("--imap-port", default=993, show_default=True, type=int)
+@click.option("--no-ssl", is_flag=True, default=False)
+@click.option("--config", default="./config/studio.json")
+def cmd_imp_pec(indirizzo, password, smtp_host, smtp_port, imap_host, imap_port, no_ssl, config):
+    """Configura l'account PEC dello studio."""
+    from .config_studio import ConfigPEC
+    gs = _cfg_studio(config)
+    cfg = gs.config
+    cfg.pec = ConfigPEC(
+        indirizzo=indirizzo,
+        password=password,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        imap_host=imap_host,
+        imap_port=imap_port,
+        use_ssl=not no_ssl,
+    )
+    gs.aggiorna(cfg)
+    click.echo(f"PEC configurata: {indirizzo}  (salvata in {config})")
+
+
+@grp_impostazioni.command("test-pec")
+@click.option("--config", default="./config/studio.json")
+def cmd_imp_test_pec(config):
+    """Testa la connessione PEC (SMTP + IMAP)."""
+    gs = _cfg_studio(config)
+    c = gs.config.pec
+    if not c.indirizzo:
+        click.echo("PEC non configurata. Usa: pct impostazioni pec --indirizzo ...", err=True)
+        return
+    click.echo(f"Test SMTP ({c.smtp_host}:{c.smtp_port})...", nl=False)
+    r = test_pec_smtp(c)
+    click.echo(f"  {'✓ OK' if r['ok'] else '✗ ERRORE'}  {r['messaggio']}")
+    click.echo(f"Test IMAP ({c.imap_host}:{c.imap_port})...", nl=False)
+    r = test_pec_imap(c)
+    click.echo(f"  {'✓ OK' if r['ok'] else '✗ ERRORE'}  {r['messaggio']}")
+
+
+@grp_impostazioni.command("smtp")
+@click.option("--host", required=True)
+@click.option("--port", default=587, type=int, show_default=True)
+@click.option("--username", required=True)
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True)
+@click.option("--from-address", default="")
+@click.option("--from-name", default="")
+@click.option("--no-tls", is_flag=True, default=False)
+@click.option("--config", default="./config/studio.json")
+def cmd_imp_smtp(host, port, username, password, from_address, from_name, no_tls, config):
+    """Configura il server SMTP per le email dello studio."""
+    from .config_studio import ConfigSMTP
+    gs = _cfg_studio(config)
+    cfg = gs.config
+    cfg.smtp = ConfigSMTP(
+        host=host, port=port,
+        username=username, password=password,
+        from_address=from_address or username,
+        from_name=from_name,
+        use_tls=not no_tls,
+    )
+    gs.aggiorna(cfg)
+    click.echo(f"SMTP configurato: {username}@{host}:{port}")
+
+
+@grp_impostazioni.command("test-smtp")
+@click.option("--config", default="./config/studio.json")
+def cmd_imp_test_smtp(config):
+    """Testa la connessione SMTP email."""
+    gs = _cfg_studio(config)
+    c = gs.config.smtp
+    if not c.host:
+        click.echo("SMTP non configurato.", err=True)
+        return
+    click.echo(f"Test SMTP ({c.host}:{c.port})...", nl=False)
+    r = test_smtp_email(c)
+    click.echo(f"  {'✓ OK' if r['ok'] else '✗ ERRORE'}  {r['messaggio']}")
+
+
+@grp_impostazioni.command("studio")
+@click.option("--nome", default="")
+@click.option("--avvocato", default="")
+@click.option("--piva", default="")
+@click.option("--cf", default="")
+@click.option("--indirizzo", default="")
+@click.option("--iban", default="")
+@click.option("--config", default="./config/studio.json")
+def cmd_imp_studio(nome, avvocato, piva, cf, indirizzo, iban, config):
+    """Imposta i dati anagrafici dello studio."""
+    gs = _cfg_studio(config)
+    cfg = gs.config
+    if nome:        cfg.studio.nome = nome
+    if avvocato:    cfg.studio.avvocato = avvocato
+    if piva:        cfg.studio.piva = piva
+    if cf:          cfg.studio.cf = cf
+    if indirizzo:   cfg.studio.indirizzo = indirizzo
+    if iban:        cfg.studio.iban = iban
+    gs.aggiorna(cfg)
+    click.echo(f"Dati studio aggiornati e salvati in {config}")
+
+
 def main():
     cli()
 

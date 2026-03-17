@@ -1385,28 +1385,30 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
-        try:
-            demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
-            return render_template("polisWeb.html", demo_mode=demo_mode)
-        except Exception as e:
-            app.logger.exception("Errore polisWeb_home: %s", e)
-            raise
+        demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
+        return render_template("polisWeb.html", demo_mode=demo_mode)
 
     @app.route("/polisWeb/ricerca", methods=["POST"])
     def polisWeb_ricerca():
-        from pct.polisWeb import crea_client
         f = request.form
         tribunale  = f.get("tribunale", "").strip()
-        numero_rg  = f.get("numero_rg", "").strip() or None
-        anno_rg    = int(f.get("anno_rg") or 0) or None
-        nome_parte = f.get("nome_parte", "").strip() or None
-        cf_parte   = f.get("cf_parte", "").strip() or None
         demo_mode  = f.get("demo_mode") == "1" or not bool(os.getenv("PCT_FIRMA_P12"))
 
         if not tribunale:
             flash("Seleziona un tribunale.", "danger")
             return redirect(url_for("polisWeb_home"))
+
         try:
+            numero_rg  = f.get("numero_rg", "").strip() or None
+            anno_rg    = int(f.get("anno_rg") or 0) or None
+            nome_parte = f.get("nome_parte", "").strip() or None
+            cf_parte   = f.get("cf_parte", "").strip() or None
+        except (ValueError, TypeError) as e:
+            flash(f"Parametri non validi: {e}", "danger")
+            return redirect(url_for("polisWeb_home"))
+
+        try:
+            from pct.polisWeb import crea_client
             client = crea_client(demo=demo_mode)
             fascicoli = client.ricerca_fascicoli(
                 tribunale=tribunale,
@@ -1415,15 +1417,9 @@ def create_app(config: dict | None = None) -> Flask:
                 nome_parte=nome_parte,
                 codice_fiscale_parte=cf_parte,
             )
-        except (ImportError, FileNotFoundError) as e:
-            flash(str(e), "danger")
-            return redirect(url_for("polisWeb_home"))
-        except ConnectionError as e:
-            flash(f"Errore connessione PST: {e}", "danger")
-            return redirect(url_for("polisWeb_home"))
         except Exception as e:
-            app.logger.exception("Errore polisWeb_ricerca PST: %s", e)
-            flash(f"Errore ricerca: {e}", "danger")
+            app.logger.exception("Errore polisWeb_ricerca: %s", e)
+            flash(f"Errore ricerca PST: {e}", "danger")
             return redirect(url_for("polisWeb_home"))
 
         try:
@@ -1449,18 +1445,21 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/polisWeb/documenti", methods=["GET"])
     def polisWeb_documenti():
-        from pct.polisWeb import crea_client
         codice_ufficio = request.args.get("codice_ufficio", "")
         numero_rg      = request.args.get("numero_rg", "")
-        anno_rg        = int(request.args.get("anno_rg", 0) or 0)
         demo_mode      = not bool(os.getenv("PCT_FIRMA_P12"))
         try:
+            anno_rg = int(request.args.get("anno_rg", 0) or 0)
+        except (ValueError, TypeError):
+            anno_rg = 0
+        try:
+            from pct.polisWeb import crea_client
             client = crea_client(demo=demo_mode)
             documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
         except Exception as e:
+            app.logger.exception("Errore polisWeb_documenti: %s", e)
             flash(str(e), "danger")
             return redirect(url_for("polisWeb_home"))
-        from pct.reginde import ClientReGINde
         return render_template(
             "polisWeb_documenti.html",
             documenti=documenti,

@@ -324,13 +324,14 @@
 }
 .uff-tab:hover { background: #f0f4ff; border-color: #93c5fd; color: #1d4ed8; }
 .uff-tab.active {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  color: #fff;
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff !important;
+  font-weight: 700;
 }
 [data-bs-theme="dark"] .uff-tab          { border-color: #334155; color: #94a3b8; }
 [data-bs-theme="dark"] .uff-tab:hover    { background: #1e3a5f; color: #93c5fd; border-color: #3b82f6; }
-[data-bs-theme="dark"] .uff-tab.active   { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+[data-bs-theme="dark"] .uff-tab.active   { background: #3b82f6 !important; border-color: #3b82f6 !important; color: #fff !important; }
 
 /* ── Dropdown risultati — position:fixed per evitare clip da overflow ── */
 #ufficio-dropdown {
@@ -535,17 +536,18 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
   // ── Posiziona il dropdown fixed sotto il campo input ────────
   function posizionaDropdown() {
     const rect = input.getBoundingClientRect();
-    dropdown.style.top   = (rect.bottom + 4 + window.scrollY) + 'px';
+    // position:fixed → coordinate relative al viewport, NON aggiungere scrollY
+    dropdown.style.top   = (rect.bottom + 4) + 'px';
     dropdown.style.left  = rect.left + 'px';
     dropdown.style.width = rect.width + 'px';
-    // Evita che esca dallo schermo in basso
     const spazioGiu = window.innerHeight - rect.bottom - 8;
     dropdown.style.maxHeight = Math.min(340, spazioGiu) + 'px';
   }
 
   // ── Tab: cambio tipo ─────────────────────────────────────────
   tabs?.querySelectorAll('.uff-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', (e) => {
+      e.stopPropagation();  // impedisce che document.click intercetti prima
       tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       tipoFiltro = tab.dataset.tipo;

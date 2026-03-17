@@ -19,7 +19,7 @@ WORKDIR /app
 # Copia prima solo i file di dipendenze per sfruttare la cache Docker
 COPY setup.py .
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir -e ".[pdf]" gunicorn gevent
+RUN pip install --no-cache-dir -e ".[pdf,pades]" gunicorn gevent
 
 # Copia il resto del codice
 COPY . .

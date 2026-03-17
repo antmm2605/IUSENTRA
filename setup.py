@@ -13,10 +13,17 @@ setup(
         "requests>=2.31.0",
         "click>=8.1.0",
         "flask>=3.0.0",
+        "apscheduler>=3.10.0",
+        "jinja2>=3.1.0",
+        "pdfplumber>=0.10.0",
+        "reportlab>=4.0.0",
+        "twilio>=8.0.0",
+        "stripe>=7.0.0",
+        "zeep>=4.2.1",
     ],
     extras_require={
         "pades": ["pyhanko>=0.20.0", "pyhanko-certvalidator>=0.26.0"],
-        "pdf": ["reportlab>=4.0.0"],
+        "pdf": ["reportlab>=4.0.0", "pdfplumber>=0.10.0"],
     },
     entry_points={
         "console_scripts": [

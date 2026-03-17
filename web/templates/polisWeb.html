@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container-fluid py-3" style="max-width:1000px">
 
-  <div class="d-flex align-items-center gap-2 mb-3">
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
     <i class="bi bi-building-fill-check fs-4 text-primary"></i>
     <h4 class="mb-0 fw-bold">PolisWeb / PST</h4>
     <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
@@ -16,7 +16,42 @@
       <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
     </span>
     {% endif %}
+    {# Badge stato registro uffici — visibile solo agli admin #}
+    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+    <span id="badge-uffici-stato" class="badge bg-secondary ms-auto small"
+          style="cursor:pointer" title="Clicca per aggiornare il registro"
+          onclick="document.getElementById('panel-uffici-admin').classList.toggle('d-none')">
+      <i class="bi bi-database me-1"></i>
+      <span id="badge-uffici-txt">Registro uffici</span>
+    </span>
+    {% endif %}
   </div>
+
+  {# Pannello admin registro uffici (solo admin) #}
+  {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+  <div id="panel-uffici-admin" class="d-none mb-3">
+    <div class="card border-secondary shadow-sm">
+      <div class="card-header d-flex align-items-center gap-2 py-2 small fw-semibold">
+        <i class="bi bi-database text-primary"></i>Registro Uffici Giudiziari
+        <button class="btn-close ms-auto btn-sm" onclick="document.getElementById('panel-uffici-admin').classList.add('d-none')"></button>
+      </div>
+      <div class="card-body py-2 px-3 small" id="uffici-info-body">
+        <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento…</div>
+      </div>
+      <div class="card-footer py-2 px-3 d-flex gap-2 align-items-center">
+        <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" onclick="aggiornaUffici()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna ora
+        </button>
+        <div class="input-group input-group-sm" style="max-width:340px">
+          <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+          <input type="url" id="uffici-url-custom" class="form-control"
+                 placeholder="URL JSON personalizzato (facoltativo)">
+        </div>
+        <small class="text-muted" id="uffici-aggiorna-esito"></small>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   {% if demo_mode %}
   <div class="alert alert-warning alert-dismissible fade show small mb-3">
@@ -303,6 +338,74 @@
 document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
   el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
 });
+
+// ---------------------------------------------------------------- Stato registro uffici (admin)
+const TIPO_LABEL = {
+  TRIBUNALE: "Tribunale", CORTE_APPELLO: "Corte d'Appello", PROCURA: "Procura",
+  CORTE_CASSAZIONE: "Cassazione", TM: "Trib. Minorenni", SORVEGLIANZA: "Trib. Sorveglianza",
+};
+
+function caricaStatoUffici() {
+  const badge = document.getElementById('badge-uffici-stato');
+  if (!badge) return;
+  fetch('/api/uffici/stato')
+    .then(r => r.json())
+    .then(d => {
+      const txt = document.getElementById('badge-uffici-txt');
+      const body = document.getElementById('uffici-info-body');
+      const scad = d.scaduta;
+      badge.className = `badge ${scad ? 'bg-warning text-dark' : 'bg-success'} ms-auto small`;
+      if (txt) txt.textContent = `${d.n_uffici} uffici · ${scad ? 'da aggiornare' : 'aggiornati'}`;
+      if (body) {
+        const dt = d.aggiornato_il !== '—'
+          ? new Date(d.aggiornato_il).toLocaleString('it-IT')
+          : '—';
+        body.innerHTML = `
+          <div class="row g-2">
+            <div class="col-6 col-md-3"><div class="text-muted">Uffici</div><div class="fw-semibold fs-5">${d.n_uffici}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Sorgente</div><div class="fw-semibold">${d.sorgente}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">Aggiornato il</div><div class="fw-semibold">${dt}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">TTL</div><div class="fw-semibold">${d.ttl_giorni} giorni</div></div>
+          </div>
+          ${scad ? '<div class="alert alert-warning mt-2 py-1 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Cache scaduta — clicca "Aggiorna ora"</div>' : ''}`;
+      }
+    })
+    .catch(() => {});
+}
+
+function aggiornaUffici() {
+  const btn    = document.getElementById('btn-aggiorna-uffici');
+  const esito  = document.getElementById('uffici-aggiorna-esito');
+  const urlBox = document.getElementById('uffici-url-custom');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Aggiornamento…';
+  if (esito) esito.textContent = '';
+  fetch('/api/uffici/aggiorna', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ url: urlBox ? urlBox.value.trim() : '' }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Aggiorna ora';
+      if (esito) {
+        esito.textContent = d.messaggio;
+        esito.className = d.ok ? 'text-success small' : 'text-danger small';
+      }
+      caricaStatoUffici();
+    })
+    .catch(e => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Aggiorna ora';
+      if (esito) { esito.textContent = 'Errore di rete.'; esito.className = 'text-danger small'; }
+    });
+}
+
+// Carica lo stato al click sul pannello
+document.getElementById('badge-uffici-stato')?.addEventListener('click', caricaStatoUffici);
+// Carica subito se il pannello è visibile
+document.addEventListener('DOMContentLoaded', caricaStatoUffici);
 
 // ---------------------------------------------------------------- Autocomplete uffici giudiziari
 (function () {

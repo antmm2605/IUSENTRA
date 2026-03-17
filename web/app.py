@@ -1501,31 +1501,38 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/uffici")
     def api_uffici():
-        """Autocomplete uffici giudiziari per PolisWeb — nessuna autenticazione richiesta."""
-        from pct.reginde import _normalize_slug
-        q = request.args.get("q", "").strip()
-        tipo = request.args.get("tipo", "").upper()
-        if len(q) < 2:
-            return jsonify([])
-        slug_q = _normalize_slug(q)
-        q_up = q.upper()
-        risultati = []
-        reginde = ClientReGINde()
-        for uff in reginde.elenca_uffici(tipo=tipo or None):
-            nome_norm = _normalize_slug(uff.nome)
-            dist_norm = _normalize_slug(uff.distretto)
-            if (slug_q in nome_norm or slug_q in dist_norm or
-                    q_up in uff.nome.upper() or q_up in uff.distretto.upper()):
-                risultati.append({
-                    "codice": uff.codice,
-                    "nome": uff.nome,
-                    "distretto": uff.distretto,
-                    "tipo": uff.tipo,
-                    "pec": uff.pec,
-                })
-            if len(risultati) >= 20:
-                break
-        return jsonify(risultati)
+        """Autocomplete uffici giudiziari — usa la cache aggiornata del GestoreUfficiGiudiziari."""
+        from pct.uffici_giudiziari import get_gestore
+        q    = request.args.get("q", "").strip()
+        tipo = request.args.get("tipo", "")
+        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+        gestore = get_gestore(cache_path)
+        return jsonify(gestore.cerca(q, tipo))
+
+    @app.route("/api/uffici/aggiorna", methods=["POST"])
+    def api_uffici_aggiorna():
+        """Forza l'aggiornamento della cache degli uffici giudiziari (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"ok": False, "messaggio": "Non autorizzato"}), 403
+        from pct.uffici_giudiziari import get_gestore
+        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+        gestore = get_gestore(cache_path)
+        url_personalizzato = request.json.get("url", "") if request.is_json else ""
+        ok, messaggio = gestore.aggiorna(url=url_personalizzato)
+        stato = gestore.stato()
+        audit("uffici.aggiorna", "sistema", None, dettagli=messaggio)
+        return jsonify({"ok": ok, "messaggio": messaggio, "stato": stato})
+
+    @app.route("/api/uffici/stato")
+    def api_uffici_stato():
+        """Stato della cache degli uffici giudiziari (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"ok": False}), 403
+        from pct.uffici_giudiziari import get_gestore
+        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+        return jsonify(get_gestore(cache_path).stato())
 
     # ---------------------------------------------------------------- tribunali
 

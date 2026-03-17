@@ -109,10 +109,19 @@
        class="nav-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
       <i class="bi bi-send me-2"></i>Nuovo Messaggio
     </a>
-    <div class="section-label">Strumenti</div>
+    <div class="section-label">PCT / Telematico</div>
+    <a href="{{ url_for('polisWeb_home') }}"
+       class="nav-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
+      <i class="bi bi-building-fill-check me-2"></i>PolisWeb / PST
+    </a>
     <a href="{{ url_for('tribunali') }}"
        class="nav-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
       <i class="bi bi-bank me-2"></i>Tribunali / PEC
+    </a>
+    <div class="section-label">Strumenti</div>
+    <a href="{{ url_for('tariffario') }}"
+       class="nav-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
+      <i class="bi bi-calculator me-2"></i>Tariffario DM 55/2014
     </a>
     <a href="{{ url_for('lista_backup') }}"
        class="nav-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
@@ -130,7 +139,7 @@
     <div class="section-label">Studio</div>
     <a href="{{ url_for('fatturazione.lista') }}"
        class="nav-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
-      <i class="bi bi-receipt me-2"></i>Fatturazione
+      <i class="bi bi-receipt me-2"></i>Fatturazione / Parcelle
     </a>
     <a href="{{ url_for('template_atti.lista') }}"
        class="nav-link {% if request.blueprint == 'template_atti' %}active{% endif %}">

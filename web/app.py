@@ -1329,6 +1329,132 @@ def create_app(config: dict | None = None) -> Flask:
             fasi_sel=fasi_sel,
         )
 
+    # ---------------------------------------------------------------- PolisWeb — Consultazione e importazione fascicoli
+
+    @app.route("/polisWeb", methods=["GET"])
+    def polisWeb_home():
+        from pct.reginde import ClientReGINde
+        reginde = ClientReGINde()
+        tribunali_list = reginde.elenca_uffici(tipo="TRIBUNALE")
+        corti_appello  = reginde.elenca_uffici(tipo="CORTE_APPELLO")
+        demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
+        return render_template(
+            "polisWeb.html",
+            tribunali=tribunali_list,
+            corti_appello=corti_appello,
+            demo_mode=demo_mode,
+        )
+
+    @app.route("/polisWeb/ricerca", methods=["POST"])
+    def polisWeb_ricerca():
+        from pct.polisWeb import crea_client
+        f = request.form
+        tribunale  = f.get("tribunale", "").strip()
+        numero_rg  = f.get("numero_rg", "").strip() or None
+        anno_rg    = int(f.get("anno_rg") or 0) or None
+        nome_parte = f.get("nome_parte", "").strip() or None
+        cf_parte   = f.get("cf_parte", "").strip() or None
+        demo_mode  = f.get("demo_mode") == "1" or not bool(os.getenv("PCT_FIRMA_P12"))
+
+        if not tribunale:
+            flash("Seleziona un tribunale.", "danger")
+            return redirect(url_for("polisWeb_home"))
+        try:
+            client = crea_client(demo=demo_mode)
+            fascicoli = client.ricerca_fascicoli(
+                tribunale=tribunale,
+                numero_rg=numero_rg,
+                anno_rg=anno_rg,
+                nome_parte=nome_parte,
+                codice_fiscale_parte=cf_parte,
+            )
+        except (ImportError, FileNotFoundError) as e:
+            flash(str(e), "danger")
+            return redirect(url_for("polisWeb_home"))
+        except ConnectionError as e:
+            flash(f"Errore connessione PST: {e}", "danger")
+            return redirect(url_for("polisWeb_home"))
+
+        from pct.reginde import ClientReGINde
+        reginde = ClientReGINde()
+        return render_template(
+            "polisWeb.html",
+            tribunali=reginde.elenca_uffici(tipo="TRIBUNALE"),
+            corti_appello=reginde.elenca_uffici(tipo="CORTE_APPELLO"),
+            fascicoli=fascicoli,
+            tribunale_sel=tribunale,
+            numero_rg=numero_rg or "",
+            anno_rg=anno_rg or "",
+            nome_parte=nome_parte or "",
+            cf_parte=cf_parte or "",
+            demo_mode=demo_mode,
+        )
+
+    @app.route("/polisWeb/documenti", methods=["GET"])
+    def polisWeb_documenti():
+        from pct.polisWeb import crea_client
+        codice_ufficio = request.args.get("codice_ufficio", "")
+        numero_rg      = request.args.get("numero_rg", "")
+        anno_rg        = int(request.args.get("anno_rg", 0) or 0)
+        demo_mode      = not bool(os.getenv("PCT_FIRMA_P12"))
+        try:
+            client = crea_client(demo=demo_mode)
+            documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
+        except Exception as e:
+            flash(str(e), "danger")
+            return redirect(url_for("polisWeb_home"))
+        from pct.reginde import ClientReGINde
+        return render_template(
+            "polisWeb_documenti.html",
+            documenti=documenti,
+            numero_rg=numero_rg,
+            anno_rg=anno_rg,
+            demo_mode=demo_mode,
+        )
+
+    @app.route("/polisWeb/importa", methods=["POST"])
+    def polisWeb_importa():
+        """Importa una pratica PolisWeb come nuovo fascicolo nel gestionale."""
+        import json as _json
+        from pct.polisWeb import crea_client, FascicoloPolisWeb
+        f = request.form
+        demo_mode = f.get("demo_mode") == "1" or not bool(os.getenv("PCT_FIRMA_P12"))
+        u = g.utente_corrente
+        try:
+            fascicolo_pw = FascicoloPolisWeb(
+                numero_rg=f.get("numero_rg", ""),
+                anno_rg=int(f.get("anno_rg", 0) or 0),
+                ruolo=f.get("ruolo", "CIVILE_COGNIZIONE"),
+                stato=f.get("stato", "PENDENTE"),
+                oggetto=f.get("oggetto", ""),
+                sezione=f.get("sezione", ""),
+                giudice=f.get("giudice", ""),
+                data_iscrizione=f.get("data_iscrizione", ""),
+                data_udienza=f.get("data_udienza", ""),
+                parti=_json.loads(f.get("parti_json", "[]")),
+                codice_ufficio=f.get("codice_ufficio", ""),
+                nome_ufficio=f.get("nome_ufficio", ""),
+            )
+            client = crea_client(demo=demo_mode)
+            risultato = client.importa_fascicolo(
+                fascicolo_pw=fascicolo_pw,
+                gestione_fascicoli=get_fascicoli(),
+                gestione_clienti=get_clienti(),
+                avvocato_referente=u.username if u else "",
+            )
+            if risultato.successo:
+                for avviso in risultato.avvisi:
+                    flash(avviso, "warning")
+                flash(risultato.messaggio, "success")
+                audit("polisWeb.importa", "fascicolo", risultato.id_fascicolo_locale,
+                      dettagli=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}")
+                return redirect(url_for("dettaglio_fascicolo",
+                                        id_fasc=risultato.id_fascicolo_locale))
+            flash(risultato.messaggio, "danger")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("polisWeb_home"))
+
     # ---------------------------------------------------------------- tribunali
 
     @app.route("/tribunali")

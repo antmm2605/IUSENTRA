@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}PolisWeb — Consultazione PST{% endblock %}
+{% block pct_modulo %}polisWeb{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3" style="max-width:1000px">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-building-fill-check fs-4 text-primary"></i>
+    <h4 class="mb-0 fw-bold">PolisWeb / PST</h4>
+    <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
+      Portale Servizi Telematici — MinGiust
+    </span>
+    {% if demo_mode %}
+    <span class="badge bg-warning text-dark ms-2">
+      <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
+    </span>
+    {% endif %}
+  </div>
+
+  {% if demo_mode %}
+  <div class="alert alert-warning alert-dismissible fade show small mb-3">
+    <i class="bi bi-cone me-2"></i>
+    <strong>Certificato P12 non configurato.</strong>
+    I risultati mostrati sono dati di esempio (offline).
+    Per accedere al PST reale, configurare <code>PCT_FIRMA_P12</code> e <code>PCT_FIRMA_PASSWORD</code> nel file <code>.env</code>.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'danger') }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  {# ---- Form ricerca ---- #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-search me-2 text-primary"></i>Ricerca pratiche nel registro del tribunale
+    </div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('polisWeb_ricerca') }}">
+        <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <div class="row g-3">
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Tribunale <span class="text-danger">*</span></label>
+            <select name="tribunale" class="form-select" required>
+              <option value="">— Seleziona tribunale —</option>
+              {% for u in tribunali|sort(attribute='nome') %}
+              <option value="{{ u.codice }}"
+                      {{ 'selected' if tribunale_sel == u.codice or tribunale_sel == u.nome }}>
+                {{ u.nome }}{% if u.distretto != u.nome.replace('Tribunale di ','') %} ({{ u.distretto }}){% endif %}
+              </option>
+              {% endfor %}
+              <optgroup label="Corti d'Appello">
+              {% for u in corti_appello|sort(attribute='nome') %}
+              <option value="{{ u.codice }}"
+                      {{ 'selected' if tribunale_sel == u.codice }}>
+                {{ u.nome }}
+              </option>
+              {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">N. RG</label>
+            <input type="text" name="numero_rg" class="form-control"
+                   placeholder="es. 12345"
+                   value="{{ numero_rg or '' }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Anno RG</label>
+            <input type="number" name="anno_rg" class="form-control"
+                   placeholder="{{ now().year }}"
+                   min="2000" max="{{ now().year }}"
+                   value="{{ anno_rg or '' }}">
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-search me-1"></i>Cerca
+            </button>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Nome parte (attore / convenuto)</label>
+            <input type="text" name="nome_parte" class="form-control"
+                   placeholder="es. Rossi Mario"
+                   value="{{ nome_parte or '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">C.F. parte</label>
+            <input type="text" name="cf_parte" class="form-control"
+                   placeholder="Codice fiscale"
+                   value="{{ cf_parte or '' }}"
+                   maxlength="16" style="text-transform:uppercase">
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---- Risultati ricerca ---- #}
+  {% if fascicoli is defined %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+      <span>
+        <i class="bi bi-list-ul me-2 text-primary"></i>
+        Risultati — {{ fascicoli|length }} pratica/e trovate
+      </span>
+    </div>
+    {% if fascicoli %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th>RG</th>
+            <th>Oggetto</th>
+            <th>Ruolo</th>
+            <th>Parti</th>
+            <th>Udienza</th>
+            <th>Stato</th>
+            <th class="text-end">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli %}
+          <tr>
+            <td class="text-nowrap fw-semibold">
+              {{ f.numero_rg }}/{{ f.anno_rg }}
+              {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
+            </td>
+            <td>
+              {{ f.oggetto or '—' }}
+              {% if f.giudice %}<br><small class="text-muted">Dr. {{ f.giudice }}</small>{% endif %}
+            </td>
+            <td>{{ f.ruolo|replace('_',' ')|title }}</td>
+            <td class="small text-muted">
+              {% for p in f.parti[:2] %}{{ p }}<br>{% endfor %}
+              {% if f.parti|length > 2 %}<em>+{{ f.parti|length - 2 }} altre</em>{% endif %}
+              {% if not f.parti %}—{% endif %}
+            </td>
+            <td class="text-nowrap">
+              {% if f.data_udienza %}
+                <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <span class="badge rounded-pill
+                {% if f.stato == 'PENDENTE' %}bg-primary
+                {% elif f.stato == 'DEFINITO' %}bg-success
+                {% elif f.stato == 'SOSPESO' %}bg-warning text-dark
+                {% else %}bg-secondary{% endif %}">
+                {{ f.stato }}
+              </span>
+            </td>
+            <td class="text-end text-nowrap">
+              {# Link a documenti #}
+              <a href="{{ url_for('polisWeb_documenti',
+                          codice_ufficio=f.codice_ufficio,
+                          numero_rg=f.numero_rg,
+                          anno_rg=f.anno_rg) }}"
+                 class="btn btn-sm btn-outline-secondary"
+                 title="Visualizza documenti nel fascicolo telematico">
+                <i class="bi bi-files"></i>
+              </a>
+              {# Form importazione #}
+              <form method="post" action="{{ url_for('polisWeb_importa') }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Importare RG {{ f.numero_rg }}/{{ f.anno_rg }} come nuovo fascicolo?')">
+                <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+                <input type="hidden" name="numero_rg" value="{{ f.numero_rg }}">
+                <input type="hidden" name="anno_rg" value="{{ f.anno_rg }}">
+                <input type="hidden" name="ruolo" value="{{ f.ruolo }}">
+                <input type="hidden" name="stato" value="{{ f.stato }}">
+                <input type="hidden" name="oggetto" value="{{ f.oggetto }}">
+                <input type="hidden" name="sezione" value="{{ f.sezione }}">
+                <input type="hidden" name="giudice" value="{{ f.giudice }}">
+                <input type="hidden" name="data_iscrizione" value="{{ f.data_iscrizione }}">
+                <input type="hidden" name="data_udienza" value="{{ f.data_udienza }}">
+                <input type="hidden" name="parti_json" value="{{ f.parti | tojson }}">
+                <input type="hidden" name="codice_ufficio" value="{{ f.codice_ufficio }}">
+                <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
+                <button type="submit" class="btn btn-sm btn-primary"
+                        title="Importa come nuovo fascicolo nel gestionale">
+                  <i class="bi bi-download me-1"></i>Importa
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted small">
+      <i class="bi bi-search fs-4 d-block mb-2"></i>
+      Nessuna pratica trovata con i criteri specificati.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ---- Info tecnica ---- #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold small">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Come funziona l'integrazione
+    </div>
+    <div class="card-body small text-muted">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-search text-primary me-1"></i>Consultazione fascicoli
+          </div>
+          Ricerca pratiche nel registro del tribunale tramite web service SOAP PST
+          (<code>RicercaFascicoliRegistro</code>). Autenticazione con certificato P12.
+          Funziona per <strong>tutti i 140+ tribunali italiani</strong>.
+        </div>
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-download text-primary me-1"></i>Importazione pratiche
+          </div>
+          La funzione "Importa" crea automaticamente un nuovo fascicolo nel gestionale
+          con i dati RG, oggetto, giudice, sezione e la prossima udienza nell'agenda.
+          Il cliente va assegnato manualmente se non presente in anagrafica.
+        </div>
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-send text-primary me-1"></i>Depositi telematici
+          </div>
+          Il deposito degli atti avviene tramite <strong>PEC + busta .enc</strong>
+          (PCT civile, art. 11 DM 44/2011) dalla sezione
+          <a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a> del gestionale.
+          PolisWeb è un portale di consultazione, non di deposito.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-uppercase CF
+document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
+  el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
+});
+</script>
+{% endblock %}

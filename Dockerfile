@@ -19,7 +19,7 @@ WORKDIR /app
 # Copia prima solo i file di dipendenze per sfruttare la cache Docker
 COPY setup.py .
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir -e ".[pdf]" gunicorn
+RUN pip install --no-cache-dir -e ".[pdf]" gunicorn gevent
 
 # Copia il resto del codice
 COPY . .
@@ -58,10 +58,12 @@ RUN mkdir -p /data
 
 EXPOSE 8080
 
-# Gunicorn: 2 worker sincroni, timeout 120s per PDF/ZIP grandi
+# Gunicorn: worker gevent per SSE/long-polling, timeout 120s per PDF/ZIP grandi
 CMD gunicorn \
     --bind "0.0.0.0:${PORT:-8080}" \
+    --worker-class gevent \
     --workers 2 \
+    --worker-connections 100 \
     --timeout 120 \
     --access-logfile - \
     --error-logfile - \

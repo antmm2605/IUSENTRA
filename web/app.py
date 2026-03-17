@@ -99,6 +99,7 @@ from pct.reports import fascicolo_pdf, scadenze_pdf
 from pct.database import GestioneDatabase
 from pct.sync import GestoreSincronizzazione, get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
+from pct import __version__ as APP_VERSION
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
 
@@ -458,6 +459,7 @@ def create_app(config: dict | None = None) -> Flask:
             "n_operatori_connessi": _sync.n_connessi,
             "RuoloCondivisione": RuoloCondivisione,
             "recenti": session.get("recenti", []),
+            "app_version": APP_VERSION,
         }
 
     # ================================================================ PWA

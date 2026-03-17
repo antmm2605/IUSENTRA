@@ -19,6 +19,7 @@ from __future__ import annotations
 from functools import wraps
 
 from flask import Blueprint, g, jsonify, request, current_app
+from pct import __version__ as APP_VERSION
 
 from web.helpers import (
     get_agenda,
@@ -90,7 +91,7 @@ def info():
     """Informazioni generali sull'API."""
     return _ok({
         "app": current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
-        "version": "1.0",
+        "version": APP_VERSION,
         "autenticazione": ["session", "X-API-Key"],
         "endpoints": {
             "clienti":   "/api/v1/clienti",

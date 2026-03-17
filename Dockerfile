@@ -46,8 +46,10 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_NOTIFICHE_LOG=/data/notifiche/log.json \
     PCT_TEMPLATE_ATTI_DB=/data/template_atti/templates.json \
     PCT_PAGAMENTI_DIR=/data/pagamenti \
+    PCT_TENANTS_REGISTRY=/data/tenants.json \
+    PCT_MULTI_TENANT=1 \
     PCT_HTTPS=true \
-    PCT_STUDIO_NOME="Studio Legale PCT"
+    PCT_STUDIO_NOME="HACS - Studio Legale PCT"
 
 # PCT_SECRET_KEY e PCT_DOC_KEY vanno impostati come variabili d'ambiente
 # nel pannello Railway/Render — NON metterle nel Dockerfile!

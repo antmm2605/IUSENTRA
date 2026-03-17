@@ -1,0 +1,102 @@
+# =============================================================================
+#  HACS — Studio Legale PCT  |  Docker Compose per sviluppo locale
+#
+#  Avvio rapido:
+#    1. cp .env.example .env          (solo la prima volta)
+#    2. docker compose up --build     (prima volta — compila l'immagine)
+#    3. docker compose up -d          (volte successive — in background)
+#
+#  Apri il browser su:  http://localhost:8080
+#  Credenziali default: admin / admin  (cambia subito dopo il primo accesso!)
+#
+#  Dati persistenti: cartella ./data/  sul tuo PC
+#  Stop:   docker compose down
+#  Reset:  docker compose down -v  (ATTENZIONE: cancella tutti i dati!)
+# =============================================================================
+
+services:
+
+  # --------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hacs-app
+    restart: unless-stopped
+
+    ports:
+      - "${HACS_PORT:-8080}:8080"
+
+    volumes:
+      # Dati persistenti: montati dalla cartella ./data/ del progetto
+      - ./data:/data
+
+    env_file:
+      - .env
+
+    environment:
+      # Override: in locale non serve HTTPS forzato
+      PCT_HTTPS: "false"
+      # Path dati (già nel Dockerfile, ridondante ma esplicito)
+      PCT_AGENDA_DB:        /data/agenda/appuntamenti.json
+      PCT_CLIENTI_DB:       /data/clienti/anagrafica.json
+      PCT_CONDIVISIONI_DB:  /data/clienti/condivisioni.json
+      PCT_FASCICOLI_DB:     /data/fascicoli/fascicoli.json
+      PCT_FASCICOLI_DOCS:   /data/fascicoli/documenti
+      PCT_FASCICOLI_ARCH:   /data/fascicoli/archivio
+      PCT_MESSAGGI_DB:      /data/messaggi/storico.json
+      PCT_BACKUP_DIR:       /data/backup
+      PCT_AUTH_DB:          /data/auth/utenti.json
+      PCT_AUDIT_DB:         /data/auth/audit.json
+      PCT_SCADENZIARIO_DB:  /data/scadenziario/scadenze.json
+      PCT_SEARCH_INDEX:     /data/search/index.db
+      PCT_PRIVACY_DB:       /data/privacy/registro.json
+      PCT_PORTALE_DB:       /data/portale/portali.json
+      PCT_PORTALE_UPLOADS:  /data/portale/uploads
+      PCT_FATTURAZIONE_DB:  /data/fatturazione/parcelle.json
+      PCT_NOTIFICHE_LOG:    /data/notifiche/log.json
+      PCT_TEMPLATE_ATTI_DB: /data/template_atti/templates.json
+      PCT_PAGAMENTI_DIR:    /data/pagamenti
+      PCT_TENANTS_REGISTRY: /data/tenants.json
+      PCT_MULTI_TENANT:     "1"
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8080/login')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    # Limiti risorse (opzionale — adatta alla tua macchina)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+
+
+# =============================================================================
+#  Profilo "con-nginx": espone via Nginx su porta 80 con proxy inverso
+#  Avvio: docker compose --profile nginx up -d
+# =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: hacs-nginx
+    profiles: ["nginx"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+
+# =============================================================================
+# Volume nominato (alternativa al bind-mount ./data — usa uno o l'altro)
+# Per usarlo: cambia  ./data:/data  in  hacs-data:/data
+# e decommenta il blocco qui sotto.
+# =============================================================================
+# volumes:
+#   hacs-data:
+#     driver: local

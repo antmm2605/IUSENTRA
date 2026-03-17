@@ -82,14 +82,27 @@
         <div class="row g-3">
           <div class="col-md-5">
             <label class="form-label fw-semibold">
-              Tribunale / Ufficio giudiziario <span class="text-danger">*</span>
+              Ufficio giudiziario <span class="text-danger">*</span>
             </label>
-            {# Campo visibile di ricerca #}
+
+            {# — Tab selezione tipo — #}
+            <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
+              <button type="button" class="uff-tab active" data-tipo=""          role="tab">Tutti</button>
+              <button type="button" class="uff-tab" data-tipo="TRIBUNALE"        role="tab"><i class="bi bi-building me-1"></i>Tribunale</button>
+              <button type="button" class="uff-tab" data-tipo="PROCURA"          role="tab"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"    role="tab"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
+              <button type="button" class="uff-tab" data-tipo="TM"               role="tab"><i class="bi bi-people me-1"></i>Min.</button>
+              <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"     role="tab"><i class="bi bi-eye me-1"></i>Sorv.</button>
+            </div>
+
+            {# — Campo ricerca testo — #}
             <div class="position-relative" id="ufficio-wrap">
               <div class="input-group">
-                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <span class="input-group-text bg-white" id="ufficio-tipo-icon">
+                  <i class="bi bi-search text-muted"></i>
+                </span>
                 <input type="text" id="ufficio-input" class="form-control border-start-0 ps-0"
-                       placeholder="Cerca tribunale, corte d'appello, procura…"
+                       placeholder="Cerca per città o nome…"
                        autocomplete="off"
                        value="{{ tribunale_sel_nome or '' }}"
                        required>
@@ -100,11 +113,12 @@
               </div>
               <div id="ufficio-dropdown"></div>
             </div>
-            {# Campo nascosto con il valore da inviare #}
+
             <input type="hidden" name="tribunale" id="ufficio-value"
                    value="{{ tribunale_sel or '' }}">
             <div id="ufficio-sel-badge" class="mt-1" style="display:none">
-              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle small" id="ufficio-sel-label"></span>
+              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle small"
+                    id="ufficio-sel-label"></span>
             </div>
           </div>
           <div class="col-md-2">
@@ -285,53 +299,103 @@
 
 {% block extra_scripts %}
 <style>
-/* Autocomplete uffici giudiziari */
+/* ── Tab selezione tipo ──────────────────────────────────────────── */
+.uff-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.uff-tab {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border: 1px solid #dee2e6;
+  border-radius: 20px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+.uff-tab:hover { background: #f0f4ff; border-color: #93c5fd; color: #1d4ed8; }
+.uff-tab.active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+[data-bs-theme="dark"] .uff-tab          { border-color: #334155; color: #94a3b8; }
+[data-bs-theme="dark"] .uff-tab:hover    { background: #1e3a5f; color: #93c5fd; border-color: #3b82f6; }
+[data-bs-theme="dark"] .uff-tab.active   { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+
+/* ── Dropdown risultati ─────────────────────────────────────────── */
 #ufficio-dropdown {
   position: absolute;
-  top: calc(100% + 3px);
+  top: calc(100% + 4px);
   left: 0; right: 0;
   background: #fff;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.12);
-  max-height: 320px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.13);
+  max-height: 340px;
   overflow-y: auto;
   z-index: 2000;
   display: none;
 }
 #ufficio-dropdown.show { display: block; }
+
+/* Intestazione gruppo categoria */
+.uff-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: .35rem .85rem .2rem;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+.uff-group-header:first-child { border-top: none; }
+
 .uff-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: .5rem .85rem;
+  padding: .45rem .85rem;
   cursor: pointer;
   border-bottom: 1px solid #f3f4f6;
   transition: background .1s;
 }
 .uff-item:last-child { border-bottom: none; }
-.uff-item:hover, .uff-item.focused { background: #f0f4ff; }
-.uff-icon { font-size: 1rem; color: var(--bs-primary, #1a3a5c); flex-shrink: 0; }
+.uff-item:hover, .uff-item.focused { background: #eff6ff; }
+.uff-icon { font-size: .95rem; color: var(--bs-primary, #1a3a5c); flex-shrink: 0; }
 .uff-body { flex: 1; min-width: 0; }
-.uff-nome { font-size: .85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.uff-sub  { font-size: .72rem; color: #64748b; }
+.uff-nome { font-size: .84rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uff-sub  { font-size: .71rem; color: #64748b; }
 .uff-tipo-badge {
-  font-size: .62rem; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
-  padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+  font-size: .60rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 20px; flex-shrink: 0;
 }
-.uff-tipo-TRIBUNALE    { background: #dbeafe; color: #1e40af; }
-.uff-tipo-CORTE_APPELLO{ background: #d1fae5; color: #065f46; }
-.uff-tipo-PROCURA      { background: #fef3c7; color: #92400e; }
+.uff-tipo-TRIBUNALE        { background: #dbeafe; color: #1e40af; }
+.uff-tipo-CORTE_APPELLO    { background: #d1fae5; color: #065f46; }
+.uff-tipo-PROCURA          { background: #fef3c7; color: #92400e; }
 .uff-tipo-CORTE_CASSAZIONE { background: #fce7f3; color: #9d174d; }
-.uff-empty { padding: .75rem 1rem; color: #94a3b8; font-size: .83rem; text-align: center; }
+.uff-tipo-TM               { background: #e0e7ff; color: #3730a3; }
+.uff-tipo-SORVEGLIANZA     { background: #ecfdf5; color: #065f46; }
+.uff-empty { padding: .85rem 1rem; color: #94a3b8; font-size: .83rem; text-align: center; }
+
 [data-bs-theme="dark"] #ufficio-dropdown {
   background: #1e293b; border-color: #334155;
-  box-shadow: 0 6px 20px rgba(0,0,0,.5);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
 }
-[data-bs-theme="dark"] .uff-item { border-bottom-color: #273549; }
+[data-bs-theme="dark"] .uff-group-header { background: #1a2742; border-color: #273549; }
+[data-bs-theme="dark"] .uff-item         { border-bottom-color: #273549; }
 [data-bs-theme="dark"] .uff-item:hover,
-[data-bs-theme="dark"] .uff-item.focused { background: #273549; }
-[data-bs-theme="dark"] .uff-nome { color: #e2e8f0; }
+[data-bs-theme="dark"] .uff-item.focused { background: #1e3a5f; }
+[data-bs-theme="dark"] .uff-nome         { color: #e2e8f0; }
 </style>
 <script>
 // Auto-uppercase CF
@@ -407,7 +471,7 @@ document.getElementById('badge-uffici-stato')?.addEventListener('click', caricaS
 // Carica subito se il pannello è visibile
 document.addEventListener('DOMContentLoaded', caricaStatoUffici);
 
-// ---------------------------------------------------------------- Autocomplete uffici giudiziari
+// ---------------------------------------------------------------- Ricerca uffici giudiziari (tab tipo + autocomplete)
 (function () {
   const input    = document.getElementById('ufficio-input');
   const hidden   = document.getElementById('ufficio-value');
@@ -415,62 +479,126 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
   const clearBtn = document.getElementById('ufficio-clear');
   const badge    = document.getElementById('ufficio-sel-badge');
   const badgeLbl = document.getElementById('ufficio-sel-label');
+  const tabs     = document.getElementById('ufficio-tabs');
+  const tipoIcon = document.getElementById('ufficio-tipo-icon');
 
   if (!input) return;
 
   const TIPO_ICONS = {
-    TRIBUNALE:       'bi-building',
-    CORTE_APPELLO:   'bi-bank2',
-    PROCURA:         'bi-shield-exclamation',
-    CORTE_CASSAZIONE:'bi-star-fill',
+    TRIBUNALE:          'bi-building',
+    CORTE_APPELLO:      'bi-bank2',
+    PROCURA:            'bi-shield-exclamation',
+    CORTE_CASSAZIONE:   'bi-star-fill',
+    TM:                 'bi-people-fill',
+    SORVEGLIANZA:       'bi-eye-fill',
   };
   const TIPO_LABEL = {
-    TRIBUNALE:       'Tribunale',
-    CORTE_APPELLO:   "Corte d'Appello",
-    PROCURA:         'Procura',
-    CORTE_CASSAZIONE:'Cassazione',
+    TRIBUNALE:          'Tribunale',
+    CORTE_APPELLO:      "Corte d'Appello",
+    PROCURA:            'Procura',
+    CORTE_CASSAZIONE:   'Cassazione',
+    TM:                 'Trib. Minorenni',
+    SORVEGLIANZA:       'Trib. Sorveglianza',
   };
+  // Ordine gruppi nel dropdown (quando tipo=Tutti)
+  const GRUPPI_ORDER = ['CORTE_CASSAZIONE','CORTE_APPELLO','TRIBUNALE','PROCURA','TM','SORVEGLIANZA'];
 
-  let items = [];
-  let focusIdx = -1;
-  let timer = null;
+  let tipoFiltro  = '';   // tipo attivo (vuoto = Tutti)
+  let items       = [];   // uffici nella lista aperta
+  let focusIdx    = -1;
+  let timer       = null;
 
+  // ── Tab: cambio tipo ─────────────────────────────────────────
+  tabs?.querySelectorAll('.uff-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      tipoFiltro = tab.dataset.tipo;
+      // Aggiorna icona nel campo
+      const icon = tipoFiltro ? TIPO_ICONS[tipoFiltro] : 'bi-search';
+      tipoIcon.innerHTML = `<i class="bi ${icon} text-muted"></i>`;
+      // Placeholder dinamico
+      const nomi = { TRIBUNALE: 'tribunale', PROCURA: 'procura', CORTE_APPELLO: "corte d'appello",
+                     TM: 'tribunale minorenni', SORVEGLIANZA: 'tribunale sorveglianza' };
+      input.placeholder = tipoFiltro
+        ? `Cerca ${nomi[tipoFiltro] || tipoFiltro.toLowerCase()} per città…`
+        : 'Cerca per città o nome…';
+      // Riapri dropdown se c'è già testo
+      if (input.value.trim().length >= 2) cerca(input.value.trim());
+      else chiudi();
+      input.focus();
+    });
+  });
+
+  // ── Rendering dropdown con raggruppamento ───────────────────
   function renderDropdown(data) {
     focusIdx = -1;
+    items = [];
     if (!data.length) {
-      dropdown.innerHTML = '<div class="uff-empty"><i class="bi bi-search me-1"></i>Nessun ufficio trovato</div>';
+      dropdown.innerHTML = `<div class="uff-empty">
+        <i class="bi bi-search me-1"></i>Nessun ufficio trovato
+        <div class="mt-1 small">Prova con un nome di città diverso</div>
+      </div>`;
       dropdown.classList.add('show');
       return;
     }
-    dropdown.innerHTML = data.map((u, i) => `
-      <div class="uff-item" data-idx="${i}" tabindex="-1">
-        <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} uff-icon"></i>
-        <div class="uff-body">
-          <div class="uff-nome">${u.nome}</div>
-          <div class="uff-sub">${u.distretto}${u.pec ? ' · <span class="font-monospace">' + u.pec + '</span>' : ''}</div>
-        </div>
-        <span class="uff-tipo-badge uff-tipo-${u.tipo}">${TIPO_LABEL[u.tipo] || u.tipo}</span>
-      </div>`).join('');
-    dropdown.classList.add('show');
-    dropdown.querySelectorAll('.uff-item').forEach((el, i) => {
-      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(data[i]); });
+
+    // Raggruppa per tipo
+    const gruppi = {};
+    data.forEach(u => {
+      const t = u.tipo || 'TRIBUNALE';
+      (gruppi[t] = gruppi[t] || []).push(u);
     });
-    items = data;
+
+    // Ordine gruppi
+    const tipiPresenti = GRUPPI_ORDER.filter(t => gruppi[t]);
+    // Tipi extra non in GRUPPI_ORDER
+    Object.keys(gruppi).forEach(t => { if (!tipiPresenti.includes(t)) tipiPresenti.push(t); });
+
+    // Mostra intestazione gruppo solo se ci sono più tipi
+    const multiGruppo = tipiPresenti.length > 1;
+
+    let html = '';
+    tipiPresenti.forEach(tipo => {
+      if (multiGruppo) {
+        const ic = TIPO_ICONS[tipo] || 'bi-building';
+        html += `<div class="uff-group-header"><i class="bi ${ic}"></i>${TIPO_LABEL[tipo] || tipo}</div>`;
+      }
+      gruppi[tipo].forEach(u => {
+        const idx = items.length;
+        items.push(u);
+        html += `
+        <div class="uff-item" data-idx="${idx}" tabindex="-1">
+          <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} uff-icon"></i>
+          <div class="uff-body">
+            <div class="uff-nome">${u.nome}</div>
+            <div class="uff-sub">${u.distretto}${u.pec ? ' · <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
+          </div>
+          ${multiGruppo ? '' : `<span class="uff-tipo-badge uff-tipo-${u.tipo}">${TIPO_LABEL[u.tipo] || u.tipo}</span>`}
+        </div>`;
+      });
+    });
+    dropdown.innerHTML = html;
+    dropdown.classList.add('show');
+    dropdown.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(items[+el.dataset.idx]); });
+    });
   }
 
   function seleziona(u) {
     input.value  = u.nome;
     hidden.value = u.codice;
-    badgeLbl.textContent = `${TIPO_LABEL[u.tipo] || u.tipo}: ${u.nome} (${u.distretto})`;
+    const label  = TIPO_LABEL[u.tipo] || u.tipo;
+    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} me-1"></i>${label}: <strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto})</span>`;
     badge.style.display = 'block';
     clearBtn.style.display = 'inline-flex';
+    input.setCustomValidity('');
     chiudi();
   }
 
   function chiudi() {
     dropdown.classList.remove('show');
     focusIdx = -1;
-    items = [];
   }
 
   function muoviFocus(dir) {
@@ -482,6 +610,14 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
     els[focusIdx]?.scrollIntoView({ block: 'nearest' });
   }
 
+  function cerca(q) {
+    const url = `/api/uffici?q=${encodeURIComponent(q)}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(renderDropdown)
+      .catch(() => chiudi());
+  }
+
   input.addEventListener('input', function () {
     clearTimeout(timer);
     const q = this.value.trim();
@@ -489,12 +625,7 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
     badge.style.display = 'none';
     clearBtn.style.display = q ? 'inline-flex' : 'none';
     if (q.length < 2) { chiudi(); return; }
-    timer = setTimeout(() => {
-      fetch(`/api/uffici?q=${encodeURIComponent(q)}`)
-        .then(r => r.json())
-        .then(renderDropdown)
-        .catch(() => chiudi());
-    }, 200);
+    timer = setTimeout(() => cerca(q), 180);
   });
 
   input.addEventListener('keydown', function (e) {
@@ -502,29 +633,19 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
     if (e.key === 'ArrowUp')    { e.preventDefault(); muoviFocus(-1); return; }
     if (e.key === 'Enter') {
       const els = dropdown.querySelectorAll('.uff-item');
-      if (focusIdx >= 0 && els[focusIdx]) {
-        e.preventDefault();
-        seleziona(items[focusIdx]);
-      }
+      if (focusIdx >= 0 && els[focusIdx]) { e.preventDefault(); seleziona(items[focusIdx]); }
       return;
     }
     if (e.key === 'Escape') { chiudi(); return; }
   });
 
-  // Valida prima del submit: deve esserci un valore nel hidden
   input.closest('form').addEventListener('submit', function (e) {
     if (!hidden.value && input.value.trim()) {
-      // Prova a risolvere: cerca esatto
-      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}&limit=1`)
+      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}&limit=1`)
         .then(r => r.json())
         .then(data => {
-          if (data.length) {
-            seleziona(data[0]);
-            this.submit();
-          } else {
-            input.setCustomValidity('Seleziona un ufficio dalla lista');
-            input.reportValidity();
-          }
+          if (data.length) { seleziona(data[0]); this.submit(); }
+          else { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); }
         });
       e.preventDefault();
       return;
@@ -538,19 +659,17 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
   input.addEventListener('input', () => input.setCustomValidity(''));
 
   clearBtn.addEventListener('click', () => {
-    input.value = '';
-    hidden.value = '';
+    input.value = ''; hidden.value = '';
     badge.style.display = 'none';
     clearBtn.style.display = 'none';
-    chiudi();
-    input.focus();
+    chiudi(); input.focus();
   });
 
   document.addEventListener('click', e => {
-    if (!document.getElementById('ufficio-wrap').contains(e.target)) chiudi();
+    if (!document.getElementById('ufficio-wrap')?.contains(e.target) &&
+        !document.getElementById('ufficio-tabs')?.contains(e.target)) chiudi();
   });
 
-  // Se c'è già un valore preselezionato (dopo una ricerca), mostra il badge
   if (hidden.value && input.value) {
     badgeLbl.textContent = input.value;
     badge.style.display = 'block';

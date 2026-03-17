@@ -20,3 +20,7 @@
 - Messaggi di commit in italiano, descrittivi
 - Nessuna dipendenza esterna aggiunta senza necessità
 - Mantenere coerenza visiva con Bootstrap 5 e le classi già usate nel progetto
+
+## Note tecniche
+
+- **`web/app.py` — `SECRET_KEY`**: quando si imposta `app.secret_key`, impostare sempre anche `app.config["SECRET_KEY"] = app.secret_key`. La funzione `get_condivisioni()` usa `app.config["SECRET_KEY"]` e senza questa riga solleva `KeyError` causando un 500.

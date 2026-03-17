@@ -230,6 +230,44 @@ def pdf(id_parcella: str):
                      as_attachment=False, download_name=nome_file)
 
 
+# ================================================================ XML FatturaPA
+
+@fatturazione.route("/<id_parcella>/xml", methods=["GET"])
+@_richiedi_login
+def xml_fattura_pa(id_parcella: str):
+    """Genera e scarica il file XML FatturaPA 1.2 per la parcella."""
+    from pct.fattura_pa import genera_xml_fattura_pa, nome_file_fattura_pa
+    gf = _get_gf()
+    p = gf.get(id_parcella)
+    if not p:
+        abort(404)
+    cliente = get_clienti().get(p.id_cliente)
+    cfg = current_app.config
+    studio_nome = cfg.get("STUDIO_NOME", "Studio Legale")
+    studio_piva = p.studio_piva or cfg.get("STUDIO_PIVA", "")
+    studio_cf   = p.studio_cf   or cfg.get("STUDIO_CF", "")
+    studio_ind  = p.studio_indirizzo or cfg.get("STUDIO_INDIRIZZO", "")
+    pec_cl = ""
+    if cliente and getattr(cliente, "recapiti", None):
+        pec_cl = getattr(cliente.recapiti, "pec", "")
+    xml_bytes = genera_xml_fattura_pa(
+        parcella=p,
+        cliente=cliente,
+        studio_nome=studio_nome,
+        studio_piva=studio_piva,
+        studio_cf=studio_cf,
+        studio_indirizzo=studio_ind,
+        pec_destinatario=pec_cl,
+    )
+    nome = nome_file_fattura_pa(studio_piva, p.numero)
+    return send_file(
+        io.BytesIO(xml_bytes),
+        mimetype="application/xml",
+        as_attachment=True,
+        download_name=nome,
+    )
+
+
 # ================================================================ FASCICOLI per cliente (AJAX)
 
 @fatturazione.route("/ajax/fascicoli/<id_cliente>")

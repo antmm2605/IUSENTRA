@@ -259,6 +259,14 @@
                       <i class="bi bi-pen"></i>
                     </button>
                     {% endif %}
+                    {% if ext == 'pdf' %}
+                    <form method="post"
+                          action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=doc.id) }}">
+                      <button class="btn btn-outline-info" title="Scarica copia con attestazione di conformità">
+                        <i class="bi bi-patch-check"></i>
+                      </button>
+                    </form>
+                    {% endif %}
                     <form method="post"
                           action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                           onsubmit="return confirm('Eliminare il documento?')">
@@ -275,6 +283,67 @@
         </div>
         {% else %}
         <div class="text-muted text-center py-4 small">Nessun documento caricato</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---- Depositi telematici PCT ---- #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>
+          <i class="bi bi-send me-2 text-primary"></i>
+          Depositi telematici PCT
+          {% if fascicolo.depositi_pct %}
+          <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
+          {% endif %}
+        </span>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                data-bs-target="#modalDeposito">
+          <i class="bi bi-plus-lg me-1"></i>Registra esito
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if fascicolo.depositi_pct %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th>Data</th><th>Tipo atto</th><th>PEC Tribunale</th>
+                <th>Stato</th><th>Ricevute</th><th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
+              <tr>
+                <td class="text-nowrap">{{ dep.timestamp[:10] }}</td>
+                <td>{{ dep.tipo_atto }}</td>
+                <td class="text-muted" style="font-size:.75rem">{{ dep.pec_destinatario }}</td>
+                <td>
+                  <span class="badge rounded-pill
+                    {% if dep.stato == 'CONSEGNATO' %}bg-success
+                    {% elif dep.stato == 'ACCETTATO' %}bg-info text-dark
+                    {% elif dep.stato == 'RIFIUTATO' or dep.stato == 'ERRORE' %}bg-danger
+                    {% else %}bg-secondary{% endif %}">
+                    {{ dep.stato }}
+                  </span>
+                </td>
+                <td>
+                  {% if dep.ricevuta_accettazione %}
+                    <i class="bi bi-check-circle text-info" title="Accettazione ricevuta"></i>
+                  {% endif %}
+                  {% if dep.ricevuta_consegna %}
+                    <i class="bi bi-check-circle-fill text-success" title="Consegna ricevuta"></i>
+                  {% endif %}
+                  {% if not dep.ricevuta_accettazione and not dep.ricevuta_consegna %}—{% endif %}
+                </td>
+                <td class="text-muted" style="font-size:.72rem">{{ dep.note or dep.messaggio }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-4 small">Nessun deposito telematico registrato</div>
         {% endif %}
       </div>
     </div>
@@ -544,6 +613,71 @@
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
           <button type="submit" class="btn btn-primary">
             <i class="bi bi-upload me-1"></i>Carica
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modal: registra esito deposito PCT #}
+<div class="modal fade" id="modalDeposito" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo atto <span class="text-danger">*</span></label>
+              <input type="text" name="tipo_atto" class="form-control"
+                     placeholder="es. Memoria, Ricorso, Citazione" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Stato</label>
+              <select name="stato" class="form-select">
+                <option value="INVIATO">INVIATO</option>
+                <option value="ACCETTATO">ACCETTATO</option>
+                <option value="CONSEGNATO" selected>CONSEGNATO</option>
+                <option value="RIFIUTATO">RIFIUTATO</option>
+                <option value="ERRORE">ERRORE</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">PEC Tribunale <span class="text-danger">*</span></label>
+              <input type="email" name="pec_destinatario" class="form-control"
+                     placeholder="cancelleria.tribunale@pec.giustizia.it"
+                     value="{{ fascicolo.tribunale|lower|replace(' ','.') }}@pec.giustizia.it" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Messaggio / protocollo</label>
+              <input type="text" name="messaggio" class="form-control"
+                     placeholder="Numero protocollo o messaggio dell'esito">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Ricevuta accettazione</label>
+              <input type="text" name="ricevuta_accettazione" class="form-control"
+                     placeholder="ID ricevuta PEC">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Ricevuta consegna</label>
+              <input type="text" name="ricevuta_consegna" class="form-control"
+                     placeholder="ID ricevuta PEC">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="2"
+                        placeholder="Annotazioni sull'esito del deposito"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>Registra
           </button>
         </div>
       </form>

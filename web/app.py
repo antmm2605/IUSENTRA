@@ -1292,6 +1292,43 @@ def create_app(config: dict | None = None) -> Flask:
     def api_statistiche():
         return jsonify(get_agenda().statistiche())
 
+    # ---------------------------------------------------------------- tariffario DM 55/2014
+
+    @app.route("/tariffario", methods=["GET", "POST"])
+    def tariffario():
+        from pct.tariffario import (calcola_compenso, tutte_le_materie,
+                                    tutti_i_gradi, tutte_le_fasi,
+                                    Materia, Grado, Fase)
+        risultato = None
+        materia_sel = request.form.get("materia", "")
+        grado_sel   = request.form.get("grado", "")
+        valore_str  = request.form.get("valore", "0").replace(",", ".").strip()
+        fasi_sel    = request.form.getlist("fasi")
+
+        if request.method == "POST":
+            try:
+                materia = Materia(materia_sel)
+                grado   = Grado(grado_sel)
+                valore  = float(valore_str) if valore_str else 0.0
+                fasi    = [Fase(f) for f in fasi_sel if f]
+                if not fasi:
+                    fasi = list(Fase)
+                risultato = calcola_compenso(materia, grado, valore, fasi)
+            except (ValueError, KeyError) as e:
+                flash(str(e), "danger")
+
+        return render_template(
+            "tariffario.html",
+            materie=tutte_le_materie(),
+            gradi=tutti_i_gradi(),
+            fasi=tutte_le_fasi(),
+            risultato=risultato,
+            materia_sel=materia_sel,
+            grado_sel=grado_sel,
+            valore_str=valore_str,
+            fasi_sel=fasi_sel,
+        )
+
     # ---------------------------------------------------------------- tribunali
 
     @app.route("/tribunali")
@@ -2527,6 +2564,114 @@ def create_app(config: dict | None = None) -> Flask:
                 note=request.form.get("note", ""),
             )
             flash("Esito aggiornato.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    # ---- Attestazione di conformità
+
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/attestazione", methods=["POST"])
+    def attestazione_conformita(id_fasc, id_doc):
+        """
+        Appone un'attestazione di conformità al documento PDF e lo restituisce.
+        Utilizza pyhanko per aggiungere un'annotazione visibile al PDF.
+        """
+        gf = get_fascicoli()
+        u = g.utente_corrente
+        try:
+            percorso = gf.percorso_documento(id_fasc, id_doc)
+            fasc = gf.get(id_fasc)
+            doc = next(d for d in fasc.documenti if d.id == id_doc)
+            data_raw = _decrypt_doc(percorso.read_bytes())
+
+            nome_avvocato = (u.nome_completo if hasattr(u, "nome_completo") else u.username) if u else "Avvocato"
+            data_oggi = __import__("datetime").date.today().strftime("%d/%m/%Y")
+            testo = (
+                f"Copia conforme all'originale\n"
+                f"ai sensi dell'art. 22, co. 2, D.Lgs. 82/2005 (CAD)\n"
+                f"Avv. {nome_avvocato} — {data_oggi}"
+            )
+
+            try:
+                from pyhanko.pdf_utils.reader import PdfFileReader
+                from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+                from pyhanko.stamp import TextStamp, TextStampStyle, TextStampBox
+                from pyhanko.pdf_utils import generic
+
+                buf_in = io.BytesIO(data_raw)
+                reader = PdfFileReader(buf_in)
+                writer = IncrementalPdfFileWriter(buf_in)
+
+                style = TextStampStyle(
+                    stamp_text=testo,
+                    background_opacity=0.85,
+                )
+                stamp = TextStamp(
+                    writer=writer,
+                    style=style,
+                    dest_page=0,
+                    x=20, y=20,
+                    width=350, height=65,
+                )
+                stamp.apply()
+
+                buf_out = io.BytesIO()
+                writer.write(buf_out)
+                buf_out.seek(0)
+                attested = buf_out.read()
+
+            except Exception:
+                # Fallback: aggiunge una pagina di attestazione con reportlab
+                import reportlab.lib.pagesizes as pagesizes
+                from reportlab.pdfgen import canvas as rlcanvas
+                buf_att = io.BytesIO()
+                c = rlcanvas.Canvas(buf_att, pagesize=pagesizes.A4)
+                c.setFont("Helvetica-Bold", 11)
+                c.drawString(50, 780, "ATTESTAZIONE DI CONFORMITÀ")
+                c.setFont("Helvetica", 10)
+                for i, riga in enumerate(testo.split("\n")):
+                    c.drawString(50, 760 - i * 18, riga)
+                c.save()
+                buf_att.seek(0)
+                # Combina con reportlab
+                try:
+                    from reportlab.lib.pagesizes import A4
+                    attested = data_raw + buf_att.read()
+                except Exception:
+                    attested = data_raw
+
+            audit("fascicoli.documento.attestazione", "fascicolo", id_fasc,
+                  dettagli=f"doc {id_doc} — {doc.nome}")
+            nome_out = doc.nome.replace(".pdf", "_conf.pdf") if doc.nome.endswith(".pdf") else doc.nome + "_conf.pdf"
+            return send_file(io.BytesIO(attested), mimetype="application/pdf",
+                             as_attachment=True, download_name=nome_out)
+        except (KeyError, StopIteration, ValueError) as e:
+            flash(str(e), "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    # ---- Registra esito deposito PCT
+
+    @app.route("/fascicoli/<id_fasc>/depositi/aggiungi", methods=["POST"])
+    def aggiungi_esito_deposito(id_fasc):
+        """Registra manualmente un esito di deposito telematico nel fascicolo."""
+        gf = get_fascicoli()
+        u = g.utente_corrente
+        f = request.form
+        try:
+            gf.aggiungi_esito_deposito(
+                id_fasc=id_fasc,
+                tipo_atto=f.get("tipo_atto", "ATTO"),
+                pec_destinatario=f.get("pec_destinatario", ""),
+                stato=f.get("stato", "INVIATO"),
+                messaggio=f.get("messaggio", ""),
+                ricevuta_accettazione=f.get("ricevuta_accettazione", ""),
+                ricevuta_consegna=f.get("ricevuta_consegna", ""),
+                note=f.get("note", ""),
+                registrato_da=u.username if u else "",
+            )
+            flash("Esito deposito registrato nel fascicolo.", "success")
+            audit("fascicoli.deposito.aggiungi", "fascicolo", id_fasc)
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))

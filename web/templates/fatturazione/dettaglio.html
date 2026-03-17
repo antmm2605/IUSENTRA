@@ -163,6 +163,10 @@
            target="_blank" class="btn btn-primary">
           <i class="bi bi-file-earmark-pdf me-2"></i>Scarica PDF
         </a>
+        <a href="{{ url_for('fatturazione.xml_fattura_pa', id_parcella=p.id) }}"
+           class="btn btn-outline-success" title="Scarica XML FatturaPA 1.2 per SDI">
+          <i class="bi bi-filetype-xml me-2"></i>FatturaPA XML
+        </a>
         {% if cliente and cliente.recapiti and cliente.recapiti.email %}
         <a href="mailto:{{ cliente.recapiti.email }}?subject=Parcella {{ p.numero }} - {{ studio_nome }}&body=Gentile {{ cliente.nome_completo }},%0D%0A%0D%0AIn allegato la parcella n. {{ p.numero }} del {{ p.data_emissione }}%0D%0ATotale: € {{ '%.2f'|format(p.totale) }}%0D%0A%0D%0ACordiali saluti%0D%0A{{ studio_nome }}"
            class="btn btn-outline-primary">

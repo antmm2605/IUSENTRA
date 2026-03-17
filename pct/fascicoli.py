@@ -196,6 +196,44 @@ class DatiArchivio:
     archiviato_da: str = ""
 
 
+# ------------------------------------------------------------------ Esito deposito PCT
+
+@dataclass
+class EsitoDepositoPCT:
+    """Esito di un deposito telematico archiviato nel fascicolo."""
+    id: str
+    timestamp: str                  # ISO datetime dell'invio
+    stato: str                      # INVIATO | ACCETTATO | CONSEGNATO | RIFIUTATO | ERRORE
+    tipo_atto: str                  # es. "MEMORIA", "RICORSO"
+    pec_destinatario: str           # PEC del tribunale
+    messaggio: str = ""
+    ricevuta_accettazione: str = "" # path o contenuto base64
+    ricevuta_consegna: str = ""     # path o contenuto base64
+    note: str = ""
+    registrato_da: str = ""
+    registrato_il: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": self.timestamp,
+            "stato": self.stato,
+            "tipo_atto": self.tipo_atto,
+            "pec_destinatario": self.pec_destinatario,
+            "messaggio": self.messaggio,
+            "ricevuta_accettazione": self.ricevuta_accettazione,
+            "ricevuta_consegna": self.ricevuta_consegna,
+            "note": self.note,
+            "registrato_da": self.registrato_da,
+            "registrato_il": self.registrato_il,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "EsitoDepositoPCT":
+        campi = {f for f in cls.__dataclass_fields__}
+        return cls(**{k: v for k, v in d.items() if k in campi})
+
+
 # ------------------------------------------------------------------ Fascicolo
 
 @dataclass
@@ -239,6 +277,7 @@ class Fascicolo:
     documenti: List[Documento] = field(default_factory=list)
     attivita: List[AttivitaProcessuale] = field(default_factory=list)
     avanzamento: List[AvanzamentoPratica] = field(default_factory=list)
+    depositi_pct: List[EsitoDepositoPCT] = field(default_factory=list)
     note: str = ""
     note_riservate: str = ""
 
@@ -292,6 +331,7 @@ class Fascicolo:
         d["stato"] = self.stato.value
         d["documenti"] = [doc.to_dict() for doc in self.documenti]
         d["attivita"] = [att.to_dict() for att in self.attivita]
+        d["depositi_pct"] = [dep.to_dict() for dep in self.depositi_pct]
         if self.archivio:
             d["archivio"] = asdict(self.archivio)
         return d
@@ -310,9 +350,13 @@ class Fascicolo:
         d["avanzamento"] = [
             AvanzamentoPratica(**av) for av in (d.get("avanzamento") or [])
         ]
+        d["depositi_pct"] = [
+            EsitoDepositoPCT.from_dict(dep) for dep in (d.get("depositi_pct") or [])
+        ]
         arch = d.get("archivio")
         d["archivio"] = DatiArchivio(**arch) if arch else None
-        return cls(**d)
+        campi = set(cls.__dataclass_fields__)
+        return cls(**{k: v for k, v in d.items() if k in campi})
 
 
 # ------------------------------------------------------------------ Repository
@@ -562,6 +606,37 @@ class GestioneFascicoli:
         f.documenti = [d for d in f.documenti if d.id != id_doc]
         f.modificato_il = datetime.now().isoformat()
         self._salva()
+
+    def aggiungi_esito_deposito(
+        self,
+        id_fasc: str,
+        tipo_atto: str,
+        pec_destinatario: str,
+        stato: str = "INVIATO",
+        messaggio: str = "",
+        ricevuta_accettazione: str = "",
+        ricevuta_consegna: str = "",
+        note: str = "",
+        registrato_da: str = "",
+    ) -> EsitoDepositoPCT:
+        """Registra nel fascicolo l'esito di un deposito telematico."""
+        f = self._get_o_errore(id_fasc)
+        esito = EsitoDepositoPCT(
+            id=uuid.uuid4().hex[:8].upper(),
+            timestamp=datetime.now().isoformat(),
+            stato=stato,
+            tipo_atto=tipo_atto,
+            pec_destinatario=pec_destinatario,
+            messaggio=messaggio,
+            ricevuta_accettazione=ricevuta_accettazione,
+            ricevuta_consegna=ricevuta_consegna,
+            note=note,
+            registrato_da=registrato_da,
+        )
+        f.depositi_pct.append(esito)
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return esito
 
     def segna_firmato(self, id_fasc: str, id_doc: str) -> "Documento":
         """Marca un documento come firmato digitalmente."""

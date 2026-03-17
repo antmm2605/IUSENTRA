@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Tariffario DM 55/2014 — Studio Legale PCT{% endblock %}
+{% block pct_modulo %}tariffario{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3" style="max-width:900px">
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-calculator fs-4 text-primary"></i>
+    <h4 class="mb-0 fw-bold">Tariffario forense</h4>
+    <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">DM 55/2014 e s.m.i.</span>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-sliders me-2 text-primary"></i>Parametri del calcolo
+    </div>
+    <div class="card-body">
+      <form method="post">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Materia</label>
+            <select name="materia" class="form-select" required>
+              <option value="">— Seleziona —</option>
+              {% for m in materie %}
+              <option value="{{ m.value }}" {{ 'selected' if m.value == materia_sel }}>
+                {{ m.value }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Grado di giudizio</label>
+            <select name="grado" class="form-select" required>
+              <option value="">— Seleziona —</option>
+              {% for g in gradi %}
+              <option value="{{ g.value }}" {{ 'selected' if g.value == grado_sel }}>
+                {{ g.value }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Valore controversia (€)</label>
+            <input type="number" name="valore" class="form-control"
+                   placeholder="0 = indeterminabile"
+                   min="0" step="100"
+                   value="{{ valore_str }}">
+            <div class="form-text">0 = valore indeterminabile</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Fasi da includere</label>
+            <div class="d-flex flex-wrap gap-3">
+              {% for f in fasi %}
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input"
+                       name="fasi" id="fase_{{ loop.index }}"
+                       value="{{ f.value }}"
+                       {{ 'checked' if not fasi_sel or f.value in fasi_sel }}>
+                <label class="form-check-label" for="fase_{{ loop.index }}">
+                  {{ f.value }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-calculator me-1"></i>Calcola compenso
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if risultato %}
+  <div class="card shadow-sm mb-4 border-primary">
+    <div class="card-header bg-primary text-white fw-semibold">
+      <i class="bi bi-cash-coin me-2"></i>Risultato del calcolo
+    </div>
+    <div class="card-body">
+      <div class="row g-2 mb-3 small text-muted">
+        <div class="col-auto"><strong>Materia:</strong> {{ risultato.materia }}</div>
+        <div class="col-auto">·</div>
+        <div class="col-auto"><strong>Grado:</strong> {{ risultato.grado }}</div>
+        <div class="col-auto">·</div>
+        <div class="col-auto"><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle mb-0 small">
+          <thead class="table-light">
+            <tr>
+              <th>Fase</th>
+              <th class="text-end">Minimo</th>
+              <th class="text-end">Base <span class="text-muted fw-normal">(art. 4 co.1)</span></th>
+              <th class="text-end">Massimo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
+            <tr>
+              <td class="fw-semibold">{{ fase }}</td>
+              <td class="text-end text-muted">€ {{ "%.2f"|format(vmin) }}</td>
+              <td class="text-end fw-semibold">€ {{ "%.2f"|format(vbase) }}</td>
+              <td class="text-end text-muted">€ {{ "%.2f"|format(vmax) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-primary">
+            <tr>
+              <th>TOTALE</th>
+              <th class="text-end">€ {{ "%.2f"|format(risultato.totale_minimo) }}</th>
+              <th class="text-end fw-bold fs-6">€ {{ "%.2f"|format(risultato.totale_base) }}</th>
+              <th class="text-end">€ {{ "%.2f"|format(risultato.totale_massimo) }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {% if risultato.note %}
+      <div class="alert alert-info small mt-3 mb-0">
+        <i class="bi bi-info-circle me-1"></i>{{ risultato.note }}
+      </div>
+      {% endif %}
+
+      <div class="alert alert-warning small mt-3 mb-0">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <strong>Nota:</strong> I valori sono indicativi ex DM 55/2014 (mod. DM 37/2018).
+        Il compenso definitivo può essere adeguato alla complessità del caso concreto
+        fino al <strong>+80% del massimo</strong> per cause di particolare importanza (art. 4, co. 2).
+        Aggiungere Cassa Forense 4%, IVA 22% e marca da bollo se dovuta.
+      </div>
+
+      {# Riepilogo fiscale rapido #}
+      <div class="mt-3 p-3 bg-light rounded small">
+        <div class="fw-semibold mb-2">Riepilogo fiscale sul compenso base:</div>
+        {% set imp = risultato.totale_base %}
+        {% set cassa = imp * 0.04 %}
+        {% set base_iva = imp + cassa %}
+        {% set iva = base_iva * 0.22 %}
+        {% set totale = base_iva + iva %}
+        <div class="row g-1">
+          <div class="col-8">Imponibile (onorari)</div>
+          <div class="col-4 text-end">€ {{ "%.2f"|format(imp) }}</div>
+          <div class="col-8">Contributo Cassa Forense 4%</div>
+          <div class="col-4 text-end">€ {{ "%.2f"|format(cassa) }}</div>
+          <div class="col-8">IVA 22% su € {{ "%.2f"|format(base_iva) }}</div>
+          <div class="col-4 text-end">€ {{ "%.2f"|format(iva) }}</div>
+          <div class="col-8 fw-bold border-top pt-1">Totale con IVA e Cassa</div>
+          <div class="col-4 text-end fw-bold border-top pt-1 text-primary">€ {{ "%.2f"|format(totale) }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer d-flex gap-2">
+      <a href="{{ url_for('fatturazione.nuova') }}?importo={{ risultato.totale_base }}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-receipt me-1"></i>Usa come base per nuova parcella
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold small">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Riferimenti normativi
+    </div>
+    <div class="card-body small text-muted">
+      <ul class="mb-0">
+        <li><strong>DM 10 marzo 2014, n. 55</strong> — Regolamento parametri compensi professionali avvocati</li>
+        <li><strong>DM 8 marzo 2018, n. 37</strong> — Modifica tabelle DM 55/2014</li>
+        <li>Art. 4, co. 1: compenso <em>base</em> come riferimento ordinario</li>
+        <li>Art. 4, co. 2: possibile aumento fino a <strong>+80% del massimo</strong> per cause complesse</li>
+        <li>Art. 4, co. 3: riduzione fino al <strong>50% del minimo</strong> per cause semplici</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

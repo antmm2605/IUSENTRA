@@ -183,7 +183,20 @@ body {
   align-items: center;
   justify-content: space-between;
 }
-.topbar h1 { font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--primary); }
+.topbar h1 {
+  font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--primary);
+  flex-shrink: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.topbar-actions {
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  padding-bottom: 2px;
+}
+.topbar-actions::-webkit-scrollbar { height: 3px; }
+.topbar-actions::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
 /* ---- Search autocomplete ---- */
 #search-wrap { position: relative; }

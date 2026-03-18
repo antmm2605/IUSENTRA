@@ -305,65 +305,66 @@
 {# Overlay mobile #}
 <div id="sb-overlay"></div>
 
-<!-- Main -->
-<div id="main">
-  <div class="topbar">
-    <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
-      <i class="bi bi-list" style="font-size:1.1rem"></i>
-    </button>
-    <h1>{% block page_title %}{% endblock %}</h1>
-    <div class="d-flex align-items-center gap-2 topbar-actions">
-      {# ---- Ricerca globale ---- #}
-      <div id="search-wrap">
-        <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="search-input" name="q"
-                   class="form-control border-start-0 ps-0"
-                   placeholder="Cerca fascicoli, clienti…"
-                   value="{{ request.args.get('q','') }}">
-          </div>
-        </form>
-        <div id="search-dropdown"></div>
-      </div>
-      <span class="text-muted small d-none d-md-inline">
-        <i class="bi bi-clock me-1"></i>{{ oggi.strftime('%d/%m/%Y') }}
-      </span>
-      <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
-         title="Scadenziario">
-        <i class="bi bi-calendar-event"></i>
-      </a>
-      <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning"
-         title="Nuovo appuntamento">
-        <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
-      </a>
-      <div id="htmx-loader" title="Caricamento…"></div>
-      {% if utente_corrente %}
-      <button class="btn btn-sm btn-outline-warning" id="btn-notifiche"
-              onclick="PCT_NOTIFICHE.richiediPermesso()"
-              title="Abilita notifiche push per scadenze urgenti"
-              style="display:none">
-        <i class="bi bi-bell"></i>
-      </button>
-      {% endif %}
-      <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
-              onclick="toggleTema()" title="Tema chiaro / scuro">
-        <i class="bi bi-moon-fill" id="icon-tema"></i>
-      </button>
-      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-              data-bs-target="#modalScorciatoie" title="Scorciatoie da tastiera (?)">
-        <i class="bi bi-keyboard"></i>
-      </button>
-      {% if utente_corrente %}
-      <span id="sync-operatori" title="Operatori connessi in questo momento">
-        <span class="dot"></span>
-        <span id="sync-count">{{ n_operatori_connessi }}</span>
-        <i class="bi bi-people"></i>
-      </span>
-      {% endif %}
+<!-- Topbar: layer autonomo, sempre sopra il contenuto -->
+<div class="topbar">
+  <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
+    <i class="bi bi-list" style="font-size:1.1rem"></i>
+  </button>
+  <h1>{% block page_title %}{% endblock %}</h1>
+  <div class="d-flex align-items-center gap-2 topbar-actions">
+    {# ---- Ricerca globale ---- #}
+    <div id="search-wrap">
+      <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="search-input" name="q"
+                 class="form-control border-start-0 ps-0"
+                 placeholder="Cerca fascicoli, clienti…"
+                 value="{{ request.args.get('q','') }}">
+        </div>
+      </form>
+      <div id="search-dropdown"></div>
     </div>
+    <span class="text-muted small d-none d-md-inline">
+      <i class="bi bi-clock me-1"></i>{{ oggi.strftime('%d/%m/%Y') }}
+    </span>
+    <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
+       title="Scadenziario">
+      <i class="bi bi-calendar-event"></i>
+    </a>
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning"
+       title="Nuovo appuntamento">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
+    </a>
+    <div id="htmx-loader" title="Caricamento…"></div>
+    {% if utente_corrente %}
+    <button class="btn btn-sm btn-outline-warning" id="btn-notifiche"
+            onclick="PCT_NOTIFICHE.richiediPermesso()"
+            title="Abilita notifiche push per scadenze urgenti"
+            style="display:none">
+      <i class="bi bi-bell"></i>
+    </button>
+    {% endif %}
+    <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
+            onclick="toggleTema()" title="Tema chiaro / scuro">
+      <i class="bi bi-moon-fill" id="icon-tema"></i>
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#modalScorciatoie" title="Scorciatoie da tastiera (?)">
+      <i class="bi bi-keyboard"></i>
+    </button>
+    {% if utente_corrente %}
+    <span id="sync-operatori" title="Operatori connessi in questo momento">
+      <span class="dot"></span>
+      <span id="sync-count">{{ n_operatori_connessi }}</span>
+      <i class="bi bi-people"></i>
+    </span>
+    {% endif %}
   </div>
+</div>
 
+<!-- Main: area di contenuto scrollabile -->
+<div id="main">
   {# ---- Banner dati non aggiornati ---- #}
   <div id="sync-stale-banner">
     <i class="bi bi-arrow-clockwise"></i>

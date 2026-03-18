@@ -176,14 +176,19 @@ body {
 #main { margin-left: var(--sidebar-w); padding: 1.5rem 2rem; }
 
 /* ---- Topbar ---- */
+/* Su desktop: layer sticky sopra #main (stesso margin-left della sidebar) */
+/* Su mobile: position:fixed gestito nel media query */
 .topbar {
   background: #fff;
   border-bottom: 1px solid #e2e8f0;
   padding: .6rem 1.5rem;
-  margin: -1.5rem -2rem 1.5rem;
+  margin-left: var(--sidebar-w);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 .topbar h1 {
   font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--primary);
@@ -332,7 +337,7 @@ body {
 #sync-stale-banner {
   display: none;
   position: sticky;
-  top: 0;
+  top: var(--topbar-h); /* si àncora sotto la topbar sticky */
   z-index: 800;
   background: #fef3c7;
   border-bottom: 2px solid #f59e0b;
@@ -390,29 +395,30 @@ body {
 #bottom-nav { display: none; }
 
 @media (max-width: 768px) {
+  /* ================================================================
+     MOBILE SHELL — layout "Figma frame"
+     Il viewport è il frame fisso. Tre layer sovrapposti:
+       1. Topbar    — z:200, position:fixed, top:0
+       2. #main     — z:auto, position:fixed, top:52px / bottom:62px+safe-area
+       3. #bottom-nav — z:1000, position:fixed, bottom:0
+     html/body non scrollano mai: tutto lo scroll vive dentro #main.
+     ================================================================ */
+
+  /* Blocca il viewport — nessuno scroll sul body */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /* Sidebar drawer (off-screen di default) */
   #sidebar { transform: translateX(-100%); }
   #sidebar.sb-open { transform: translateX(0); }
   #sb-overlay.sb-open { display: block; }
   #sb-open  { display: inline-flex; }
   #sb-close { display: inline-flex; }
-  /* #main: contenitore scrollabile autonomo tra topbar e bottom-nav */
-  #main {
-    margin-left: 0;
-    position: fixed;
-    top: var(--topbar-h);
-    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
-    left: 0;
-    right: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    padding: 1rem;
-  }
-  #sync-toast-container {
-    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + .5rem);
-  }
 
-  /* Topbar mobile: fixed al viewport — niente margini negativi, niente calcoli fragili */
+  /* ---- Layer 1: Topbar ---- */
   .topbar {
     position: fixed;
     top: 0;
@@ -423,23 +429,44 @@ body {
     margin: 0;
     padding: .5rem .75rem;
     gap: .35rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
   }
   .topbar h1 {
     font-size: .92rem;
     flex: 1 1 0;
     min-width: 0;
   }
-  .topbar-actions {
-    flex-shrink: 0;
-    gap: .25rem;
-  }
+  .topbar-actions { flex-shrink: 0; gap: .25rem; }
 
-  /* Nascondi su mobile: ricerca (troppo larga), widget operatori, scorciatoie tastiera */
-  #search-wrap               { display: none; }
-  #sync-operatori            { display: none; }
+  /* Nascondi elementi non adatti a mobile */
+  #search-wrap                         { display: none; }
+  #sync-operatori                      { display: none; }
   [data-bs-target="#modalScorciatoie"] { display: none !important; }
 
+  /* Banner: top:0 perché #main già inizia a --topbar-h dal viewport */
+  #sync-stale-banner { top: 0; }
+
+  /* ---- Layer 2: Area contenuto scrollabile ---- */
+  #main {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;             /* nessun overflow laterale */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain; /* nessun rimbalzo iOS oltre i bordi */
+  }
+
+  /* Toast: segue il bottom-nav */
+  #sync-toast-container {
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + .5rem);
+  }
+
+  /* ---- Layer 3: Bottom navigation ---- */
   #bottom-nav {
     display: flex;
     position: fixed;

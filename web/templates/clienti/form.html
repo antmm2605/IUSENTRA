@@ -286,15 +286,20 @@
 </div>
 
 {# ---- Documento identità (solo PF) ---- #}
-<div class="pf-only card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-credit-card me-2 text-primary"></i>Documento d'identità
+<div class="pf-only card shadow-sm mb-3" id="card-documento">
+  <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-credit-card me-2 text-primary"></i>Documento d'identità</span>
+    <button type="button" id="btn-scansiona"
+            class="btn btn-sm btn-outline-primary d-none"
+            onclick="apriScanner()">
+      <i class="bi bi-camera me-1"></i>Scansiona
+    </button>
   </div>
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
         <label class="form-label fw-semibold">Tipo documento</label>
-        <select name="doc_tipo" class="form-select">
+        <select name="doc_tipo" id="doc_tipo" class="form-select">
           {% for td in tipi_doc %}
           <option value="{{ td.value }}"
             {{ 'selected' if cliente and cliente.documento.tipo == td }}>
@@ -303,9 +308,20 @@
           {% endfor %}
         </select>
       </div>
+
+      {# Sottotipo CIE (cartacea vs elettronica) — visibile solo per CARTA_IDENTITA #}
+      <div class="col-md-4" id="wrap-cie-gen" style="display:none">
+        <label class="form-label fw-semibold">Generazione CIE</label>
+        <select id="cie_generazione" class="form-select">
+          <option value="elettronica">Elettronica — dal 2016 (con MRZ)</option>
+          <option value="plastificata">Plastificata — 2000–2016</option>
+          <option value="cartacea">Cartacea — pre-2000</option>
+        </select>
+      </div>
+
       <div class="col-md-4">
         <label class="form-label fw-semibold">Numero</label>
-        <input type="text" name="doc_numero" class="form-control font-monospace"
+        <input type="text" name="doc_numero" id="doc_numero" class="form-control font-monospace"
                value="{{ cliente.documento.numero if cliente else '' }}"
                placeholder="CA12345AB" style="text-transform:uppercase">
       </div>
@@ -322,8 +338,161 @@
       </div>
       <div class="col-md-3">
         <label class="form-label fw-semibold">Data scadenza</label>
-        <input type="date" name="doc_data_scadenza" class="form-control"
+        <input type="date" name="doc_data_scadenza" id="doc_data_scadenza" class="form-control"
                value="{{ cliente.documento.data_scadenza if cliente else '' }}">
+      </div>
+    </div>
+
+    {# Hint scan — appare sotto i campi #}
+    <div id="scan-hint" class="alert alert-info border-0 mt-3 py-2 d-none small">
+      <i class="bi bi-info-circle me-1"></i>
+      <span id="scan-hint-text"></span>
+    </div>
+  </div>
+</div>
+
+{# ════════════════════════════════════════════════════════
+   MODAL SCANNER DOCUMENTO
+   ════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="modalScanner" tabindex="-1"
+     aria-labelledby="scannerLabel" aria-hidden="true"
+     data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="scannerLabel">
+            <i class="bi bi-camera me-2 text-primary"></i>Scansiona documento
+          </h5>
+          <small class="text-muted" id="scanner-subtitle">Inquadra il documento per estrarre i dati automaticamente</small>
+        </div>
+        <button type="button" class="btn-close" id="btn-chiudi-scanner"></button>
+      </div>
+
+      <div class="modal-body p-0">
+
+        {# ---- STEP 1: selezione metodo acquisizione ---- #}
+        <div id="scan-step-source" class="p-3">
+          <div id="scan-guide" class="scan-guide-box mb-3">
+            <i class="bi bi-credit-card-2-back scan-guide-icon"></i>
+            <div id="scan-guide-text" class="scan-guide-desc"></div>
+          </div>
+
+          <div class="d-grid gap-2">
+            {# Fotocamera mobile (nativo) #}
+            <label class="btn btn-outline-primary scan-method-btn" id="btn-camera-mobile">
+              <i class="bi bi-camera-fill me-2"></i>
+              <span>Usa fotocamera</span>
+              <small class="d-block text-muted mt-1">Apre la fotocamera del dispositivo</small>
+              <input type="file" id="input-camera"
+                     accept="image/*" capture="environment"
+                     style="display:none">
+            </label>
+
+            {# Webcam desktop #}
+            <button type="button" class="btn btn-outline-secondary scan-method-btn"
+                    id="btn-webcam" onclick="apriWebcam()">
+              <i class="bi bi-webcam-fill me-2"></i>
+              <span>Usa webcam</span>
+              <small class="d-block text-muted mt-1">Acquisisce da webcam in tempo reale</small>
+            </button>
+
+            {# Carica file #}
+            <label class="btn btn-outline-secondary scan-method-btn">
+              <i class="bi bi-image me-2"></i>
+              <span>Carica immagine</span>
+              <small class="d-block text-muted mt-1">Seleziona una foto già scattata</small>
+              <input type="file" id="input-file"
+                     accept="image/*"
+                     style="display:none">
+            </label>
+          </div>
+        </div>
+
+        {# ---- STEP 2: webcam live ---- #}
+        <div id="scan-step-webcam" style="display:none" class="p-3">
+          <div class="scan-video-wrap mb-3">
+            <video id="scan-video" autoplay playsinline muted
+                   style="width:100%;border-radius:.5rem;background:#000;max-height:380px;object-fit:cover"></video>
+            <div class="scan-overlay">
+              <div class="scan-frame">
+                <div class="scan-corner tl"></div>
+                <div class="scan-corner tr"></div>
+                <div class="scan-corner bl"></div>
+                <div class="scan-corner br"></div>
+              </div>
+              <p class="scan-overlay-tip">Posiziona il documento all'interno del riquadro</p>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary flex-grow-1" onclick="scattaWebcam()">
+              <i class="bi bi-camera me-1"></i>Scatta
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="tornaSource()">
+              <i class="bi bi-arrow-left me-1"></i>Indietro
+            </button>
+          </div>
+          <canvas id="webcam-canvas" style="display:none"></canvas>
+        </div>
+
+        {# ---- STEP 3: elaborazione ---- #}
+        <div id="scan-step-processing" style="display:none" class="p-4 text-center">
+          <div class="scan-process-anim mb-3">
+            <i class="bi bi-cpu scan-cpu-icon"></i>
+          </div>
+          <div class="fw-semibold mb-1" id="scan-process-msg">Analisi in corso…</div>
+          <div class="progress mt-2" style="height:6px">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                 id="scan-progress" style="width:15%"></div>
+          </div>
+          <small class="text-muted mt-2 d-block">Elaborazione client-side — nessun dato inviato a server esterni</small>
+        </div>
+
+        {# ---- STEP 4: risultato e conferma ---- #}
+        <div id="scan-step-result" style="display:none" class="p-3">
+          <div class="row g-3">
+            {# Preview immagine acquisita #}
+            <div class="col-md-5">
+              <div class="scan-preview-wrap">
+                <img id="scan-result-img" class="img-fluid rounded shadow-sm" src="" alt="">
+                <div class="scan-preview-badge" id="scan-mrz-badge" style="display:none">
+                  <i class="bi bi-shield-check text-success me-1"></i>MRZ letto
+                </div>
+              </div>
+            </div>
+
+            {# Campi estratti #}
+            <div class="col-md-7">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-semibold small">Dati estratti</span>
+                <span class="badge bg-success" id="scan-confidence-badge" style="display:none"></span>
+              </div>
+              <div id="scan-fields-list" class="scan-fields-grid"></div>
+              <div id="scan-no-mrz-msg" style="display:none"
+                   class="alert alert-warning border-0 small mt-2">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Documento senza MRZ standard. L'immagine è visibile a lato —
+                compila i campi manualmente.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>{# /modal-body #}
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="btn-scanner-annulla">
+          <i class="bi bi-x me-1"></i>Annulla
+        </button>
+        <button type="button" class="btn btn-success d-none" id="btn-scanner-applica"
+                onclick="applicaDatiScan()">
+          <i class="bi bi-check2 me-1"></i>Applica dati al form
+        </button>
+        <button type="button" class="btn btn-primary d-none" id="btn-scanner-ripeti"
+                onclick="tornaSource()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Riprova
+        </button>
       </div>
     </div>
   </div>
@@ -383,6 +552,666 @@
 </form>
 </div>{# /col #}
 </div>{# /row #}
+
+{# ════════════════════════════════════════════════════════
+   STILI SCANNER
+   ════════════════════════════════════════════════════════ #}
+<style>
+/* ---- Guide box ---- */
+.scan-guide-box {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 1px solid #bfdbfe; border-radius: .5rem;
+  padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: .75rem;
+}
+.scan-guide-icon { font-size: 2rem; color: #2563eb; flex-shrink: 0; margin-top: .1rem; }
+.scan-guide-desc { font-size: .85rem; color: #1e40af; line-height: 1.5; }
+
+/* ---- Pulsanti metodo acquisizione ---- */
+.scan-method-btn {
+  text-align: left; padding: .75rem 1rem;
+  border-radius: .5rem; line-height: 1.3;
+  transition: background .15s, border-color .15s;
+}
+.scan-method-btn span { font-weight: 500; font-size: .92rem; }
+.scan-method-btn small { font-size: .75rem; }
+
+/* ---- Webcam overlay ---- */
+.scan-video-wrap { position: relative; background: #000; border-radius: .5rem; overflow: hidden; }
+.scan-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.scan-frame {
+  width: 85%; aspect-ratio: 1.586; position: relative;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,.45);
+  border-radius: 4px;
+}
+.scan-corner {
+  position: absolute; width: 20px; height: 20px;
+  border-color: #fff; border-style: solid;
+}
+.scan-corner.tl { top: 0; left: 0;   border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.scan-corner.tr { top: 0; right: 0;  border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+.scan-corner.bl { bottom: 0; left: 0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+.scan-corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+.scan-overlay-tip {
+  color: rgba(255,255,255,.85); font-size: .78rem;
+  margin-top: .5rem; text-shadow: 0 1px 3px rgba(0,0,0,.7);
+}
+
+/* ---- Elaborazione ---- */
+.scan-process-anim { font-size: 3rem; color: #2563eb; animation: scan-pulse 1.2s ease-in-out infinite; }
+@keyframes scan-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.9); } }
+
+/* ---- Preview risultato ---- */
+.scan-preview-wrap { position: relative; }
+.scan-preview-badge {
+  position: absolute; bottom: .5rem; left: .5rem;
+  background: rgba(255,255,255,.92); border-radius: 6px;
+  padding: 2px 8px; font-size: .75rem; font-weight: 500;
+}
+
+/* ---- Griglia campi estratti ---- */
+.scan-fields-grid { display: flex; flex-direction: column; gap: .35rem; }
+.scan-field-row {
+  display: flex; align-items: baseline; gap: .5rem;
+  padding: .3rem .5rem; border-radius: 6px; background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+.scan-field-label { font-size: .72rem; color: #64748b; flex-shrink: 0; min-width: 90px; }
+.scan-field-value { font-size: .88rem; font-weight: 500; color: #1e293b; flex: 1; }
+.scan-field-row.uncertain { background: #fffbeb; border-color: #fde68a; }
+.scan-field-row.uncertain .scan-field-value { color: #92400e; }
+
+/* ---- Dark mode ---- */
+[data-bs-theme="dark"] .scan-guide-box { background: #1e2d40; border-color: #334155; }
+[data-bs-theme="dark"] .scan-guide-desc { color: #93c5fd; }
+[data-bs-theme="dark"] .scan-field-row { background: #1e293b; border-color: #334155; }
+[data-bs-theme="dark"] .scan-field-row.uncertain { background: #2d1f00; border-color: #92400e; }
+[data-bs-theme="dark"] .scan-field-value { color: #e2e8f0; }
+</style>
+
+{# ════════════════════════════════════════════════════════
+   JAVASCRIPT SCANNER DOCUMENTO
+   ════════════════════════════════════════════════════════ #}
+<script>
+(function () {
+'use strict';
+
+/* ================================================================
+   CONFIG: quale tipo di doc supporta MRZ e come
+   ================================================================ */
+const DOC_CONFIG = {
+  CARTA_IDENTITA: {
+    label: 'Carta d\'Identità',
+    hasMRZ: {
+      elettronica: true,   // CIE v3 dal 2016 — MRZ TD1 sul retro
+      plastificata: false, // 2000–2016 — senza MRZ
+      cartacea: false,     // pre-2000 — senza MRZ
+    },
+    guide: {
+      elettronica: '<b>CIE Elettronica</b>: inquadra il <b>retro</b> della carta — la striscia MRZ è nella parte bassa.',
+      plastificata: '<b>CIE Plastificata</b>: la carta non ha codice MRZ. Carica un\'immagine del fronte per aiutarti a compilare i campi.',
+      cartacea: '<b>CIE Cartacea</b>: documento senza MRZ. Carica un\'immagine per aiutarti nella compilazione.',
+    },
+    icon: 'bi-credit-card-2-back',
+  },
+  PASSAPORTO: {
+    label: 'Passaporto',
+    hasMRZ: { default: true },
+    guide: { default: 'Inquadra la pagina con la <b>foto e i dati</b> — la striscia MRZ è in fondo alla pagina.' },
+    icon: 'bi-passport',
+  },
+  PATENTE: {
+    label: 'Patente di guida',
+    hasMRZ: { default: false },
+    guide: { default: 'La patente non ha striscia MRZ. Carica un\'immagine del <b>fronte</b> per aiutarti nella compilazione.' },
+    icon: 'bi-car-front',
+  },
+  PERMESSO_SOGGIORNO: {
+    label: 'Permesso di soggiorno',
+    hasMRZ: { default: true },
+    guide: { default: 'Inquadra il <b>retro</b> del permesso — la striscia MRZ è nella parte bassa.' },
+    icon: 'bi-person-vcard',
+  },
+  ALTRO: {
+    label: 'Altro documento',
+    hasMRZ: { default: false },
+    guide: { default: 'Carica un\'immagine del documento per aiutarti nella compilazione.' },
+    icon: 'bi-file-earmark-person',
+  },
+};
+
+/* ================================================================
+   STATO
+   ================================================================ */
+let _videoStream   = null;
+let _capturedDataURL = null;
+let _parsedData    = null;
+let _tesseractWorker = null;
+let _tesseractReady  = false;
+let _currentDocType  = 'CARTA_IDENTITA';
+let _currentSubtype  = 'elettronica';
+
+/* ================================================================
+   INIT — aggiorna UI al cambio tipo documento
+   ================================================================ */
+const selTipo = document.getElementById('doc_tipo');
+const selGen  = document.getElementById('cie_generazione');
+const wrapGen = document.getElementById('wrap-cie-gen');
+const btnScan = document.getElementById('btn-scansiona');
+const hintEl  = document.getElementById('scan-hint');
+const hintTxt = document.getElementById('scan-hint-text');
+
+function aggiornaUI() {
+  _currentDocType = selTipo ? selTipo.value : 'CARTA_IDENTITA';
+  _currentSubtype = (selGen ? selGen.value : null) || 'default';
+  const cfg = DOC_CONFIG[_currentDocType] || DOC_CONFIG.ALTRO;
+
+  // Mostra/nasconde selezione generazione CIE
+  if (wrapGen) wrapGen.style.display = _currentDocType === 'CARTA_IDENTITA' ? '' : 'none';
+
+  // Pulsante scan sempre visibile per PF
+  if (btnScan) {
+    btnScan.classList.remove('d-none');
+    btnScan.innerHTML = `<i class="bi ${cfg.icon} me-1"></i>Scansiona`;
+  }
+
+  // Hint sotto i campi
+  const hasMRZ = _hasMRZ();
+  if (hintEl && hintTxt) {
+    if (hasMRZ) {
+      hintTxt.innerHTML = `<b>OCR attivo</b> — Clicca "Scansiona" per estrarre automaticamente cognome, nome, CF, data nascita e scadenza dalla striscia MRZ.`;
+      hintEl.className = 'alert alert-info border-0 mt-3 py-2 d-block small';
+    } else {
+      hintTxt.innerHTML = `Scansiona per acquisire un'immagine del documento come riferimento per la compilazione manuale.`;
+      hintEl.className = 'alert alert-secondary border-0 mt-3 py-2 d-block small';
+    }
+  }
+}
+
+function _hasMRZ() {
+  const cfg = DOC_CONFIG[_currentDocType];
+  if (!cfg) return false;
+  if (_currentDocType === 'CARTA_IDENTITA') {
+    return cfg.hasMRZ[_currentSubtype === 'default' ? 'elettronica' : _currentSubtype] || false;
+  }
+  return cfg.hasMRZ['default'] || false;
+}
+
+if (selTipo) { selTipo.addEventListener('change', aggiornaUI); aggiornaUI(); }
+if (selGen)  { selGen.addEventListener('change', aggiornaUI); }
+
+/* ================================================================
+   APERTURA MODAL
+   ================================================================ */
+window.apriScanner = function () {
+  _capturedDataURL = null;
+  _parsedData = null;
+  mostraStep('source');
+
+  const cfg = DOC_CONFIG[_currentDocType] || DOC_CONFIG.ALTRO;
+  const sub = _currentDocType === 'CARTA_IDENTITA' ? _currentSubtype : 'default';
+  const guideText = (cfg.guide && cfg.guide[sub]) || cfg.guide['default'] || '';
+
+  const guideEl = document.getElementById('scan-guide-text');
+  const iconEl  = document.querySelector('#scan-guide .scan-guide-icon');
+  if (guideEl) guideEl.innerHTML = guideText;
+  if (iconEl) iconEl.className = `bi ${cfg.icon} scan-guide-icon`;
+
+  document.getElementById('scanner-subtitle').textContent =
+    _hasMRZ() ? 'Posiziona la zona MRZ (striscia in basso) nel riquadro'
+               : 'Acquisisci l\'immagine del documento per aiutarti nella compilazione';
+
+  document.getElementById('btn-scanner-applica').classList.add('d-none');
+  document.getElementById('btn-scanner-ripeti').classList.add('d-none');
+
+  const modal = new bootstrap.Modal(document.getElementById('modalScanner'));
+  modal.show();
+};
+
+/* ================================================================
+   STEP NAVIGATION
+   ================================================================ */
+function mostraStep(step) {
+  ['source','webcam','processing','result'].forEach(s => {
+    const el = document.getElementById('scan-step-' + s);
+    if (el) el.style.display = s === step ? '' : 'none';
+  });
+}
+
+window.tornaSource = function () {
+  fermaWebcam();
+  mostraStep('source');
+  document.getElementById('btn-scanner-applica').classList.add('d-none');
+  document.getElementById('btn-scanner-ripeti').classList.add('d-none');
+};
+
+/* ================================================================
+   WEBCAM
+   ================================================================ */
+window.apriWebcam = async function () {
+  mostraStep('webcam');
+  try {
+    _videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false,
+    });
+    const video = document.getElementById('scan-video');
+    video.srcObject = _videoStream;
+  } catch (e) {
+    alert('Webcam non disponibile: ' + e.message + '\nUsa l\'opzione "Carica immagine".');
+    tornaSource();
+  }
+};
+
+window.scattaWebcam = function () {
+  const video  = document.getElementById('scan-video');
+  const canvas = document.getElementById('webcam-canvas');
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  _capturedDataURL = canvas.toDataURL('image/jpeg', 0.92);
+  fermaWebcam();
+  elaboraImmagine(_capturedDataURL);
+};
+
+function fermaWebcam() {
+  if (_videoStream) {
+    _videoStream.getTracks().forEach(t => t.stop());
+    _videoStream = null;
+  }
+  const video = document.getElementById('scan-video');
+  if (video) video.srcObject = null;
+}
+
+/* ================================================================
+   INPUT FILE (fotocamera mobile + carica file)
+   ================================================================ */
+document.getElementById('input-camera').addEventListener('change', leggiFile);
+document.getElementById('input-file').addEventListener('change', leggiFile);
+
+function leggiFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => elaboraImmagine(ev.target.result);
+  reader.readAsDataURL(file);
+  e.target.value = ''; // reset per poter riscattare lo stesso file
+}
+
+/* ================================================================
+   ELABORAZIONE IMMAGINE
+   ================================================================ */
+async function elaboraImmagine(dataURL) {
+  _capturedDataURL = dataURL;
+  mostraStep('processing');
+  document.getElementById('btn-scanner-applica').classList.add('d-none');
+  document.getElementById('btn-scanner-ripeti').classList.add('d-none');
+  aggiornaProg(10, 'Caricamento immagine…');
+
+  const hasMRZ = _hasMRZ();
+
+  if (!hasMRZ) {
+    // Nessuna MRZ — mostra immagine come riferimento visivo
+    mostraRisultatoNoMRZ(dataURL);
+    return;
+  }
+
+  // MRZ path — pre-processa poi OCR
+  try {
+    aggiornaProg(20, 'Pre-elaborazione immagine…');
+    const mrzDataURL = await preprocessMRZ(dataURL);
+
+    aggiornaProg(35, 'Caricamento motore OCR…');
+    const worker = await getWorker();
+
+    aggiornaProg(55, 'Riconoscimento caratteri MRZ…');
+    const { data: { text } } = await worker.recognize(mrzDataURL);
+
+    aggiornaProg(80, 'Analisi striscia MRZ…');
+    const mrzLines = estraiRigheMRZ(text);
+    _parsedData = parseMRZ(mrzLines);
+
+    aggiornaProg(100, 'Completato.');
+    setTimeout(() => mostraRisultato(dataURL, _parsedData, mrzLines.length > 0), 400);
+  } catch (err) {
+    console.error('Errore OCR:', err);
+    mostraRisultatoNoMRZ(dataURL, 'Errore durante il riconoscimento. Prova con un\'immagine più nitida.');
+  }
+}
+
+function aggiornaProg(perc, msg) {
+  const bar = document.getElementById('scan-progress');
+  const lbl = document.getElementById('scan-process-msg');
+  if (bar) bar.style.width = perc + '%';
+  if (lbl) lbl.textContent = msg;
+}
+
+/* ================================================================
+   PRE-PROCESSAZIONE IMMAGINE PER MRZ
+   Ritaglia il 30% inferiore e aumenta il contrasto
+   ================================================================ */
+function preprocessMRZ(dataURL) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      // Canvas piena immagine
+      const full = document.createElement('canvas');
+      full.width  = img.width;
+      full.height = img.height;
+      full.getContext('2d').drawImage(img, 0, 0);
+
+      // Ritaglia zona MRZ: bottom 28% (dove è la striscia su CIE/Passaporto)
+      const mrzH = Math.floor(img.height * 0.28);
+      const mrzY = img.height - mrzH;
+      const mrz  = document.createElement('canvas');
+      // Scala 2× per migliorare OCR
+      mrz.width  = img.width * 2;
+      mrz.height = mrzH * 2;
+      const ctx  = mrz.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, mrzY, img.width, mrzH, 0, 0, mrz.width, mrz.height);
+
+      // Grayscale + hard threshold per font OCR-B
+      const id = ctx.getImageData(0, 0, mrz.width, mrz.height);
+      const d  = id.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        const v   = lum > 150 ? 255 : 0;
+        d[i] = d[i+1] = d[i+2] = v;
+      }
+      ctx.putImageData(id, 0, 0);
+      resolve(mrz.toDataURL('image/png'));
+    };
+    img.onerror = reject;
+    img.src = dataURL;
+  });
+}
+
+/* ================================================================
+   TESSERACT.JS — lazy load
+   ================================================================ */
+function getWorker() {
+  if (_tesseractReady && _tesseractWorker) return Promise.resolve(_tesseractWorker);
+  return new Promise((resolve, reject) => {
+    if (window.Tesseract) {
+      creaWorker().then(resolve).catch(reject);
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload  = () => creaWorker().then(resolve).catch(reject);
+    s.onerror = () => reject(new Error('Impossibile caricare Tesseract.js'));
+    document.head.appendChild(s);
+  });
+}
+
+async function creaWorker() {
+  const w = await Tesseract.createWorker('ocrb', 1, {
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0_best',
+    logger: m => {
+      if (m.status === 'recognizing text') {
+        aggiornaProg(55 + Math.round(m.progress * 25), 'Riconoscimento caratteri…');
+      }
+    },
+  });
+  await w.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<' });
+  _tesseractWorker = w;
+  _tesseractReady  = true;
+  return w;
+}
+
+/* ================================================================
+   ESTRAZIONE RIGHE MRZ DAL TESTO OCR
+   ================================================================ */
+function estraiRigheMRZ(rawText) {
+  // Pulisce e filtra solo le righe che sembrano MRZ
+  const lines = rawText.split('\n')
+    .map(l => l.trim().toUpperCase().replace(/[^A-Z0-9<]/g, ''))
+    .filter(l => l.length >= 20 && (l.match(/</g) || []).length >= 2);
+
+  // TD3: 2 righe da 44
+  const td3 = lines.filter(l => l.length >= 40 && l.length <= 48);
+  if (td3.length >= 2) {
+    // Prendi le due righe più lunghe
+    const sorted = td3.sort((a, b) => b.length - a.length);
+    return [sorted[0].substring(0, 44).padEnd(44, '<'),
+            sorted[1].substring(0, 44).padEnd(44, '<')];
+  }
+
+  // TD1: 3 righe da 30
+  const td1 = lines.filter(l => l.length >= 27 && l.length <= 33);
+  if (td1.length >= 3) {
+    const sorted = td1.sort((a, b) => b.length - a.length);
+    return [sorted[0].substring(0, 30).padEnd(30, '<'),
+            sorted[1].substring(0, 30).padEnd(30, '<'),
+            sorted[2].substring(0, 30).padEnd(30, '<')];
+  }
+  if (td1.length === 2) {
+    return [td1[0].substring(0, 30).padEnd(30, '<'),
+            td1[1].substring(0, 30).padEnd(30, '<'), '<'.repeat(30)];
+  }
+  return [];
+}
+
+/* ================================================================
+   PARSER MRZ
+   ================================================================ */
+function parseMRZ(lines) {
+  const r = { cognome: '', nome: '', sesso: '', data_nascita: '', scadenza: '',
+              numero: '', nazionalita: '', cf: '', raw_type: '' };
+  if (!lines || lines.length === 0) return r;
+
+  // Normalizza
+  lines = lines.map(l => l.toUpperCase().replace(/[^A-Z0-9<]/g, '').padEnd(
+    lines[0].length >= 40 ? 44 : 30, '<'
+  ));
+
+  if (lines.length >= 2 && lines[0].length === 44) {
+    // ── TD3 (Passaporto) ──────────────────────────────────────
+    r.raw_type = 'TD3';
+    const L1 = lines[0], L2 = lines[1];
+    // Nomi: L1[5..43]
+    const nomi = L1.substring(5);
+    const dd   = nomi.indexOf('<<');
+    if (dd !== -1) {
+      r.cognome = nomi.substring(0, dd).replace(/</g, ' ').trim();
+      r.nome    = nomi.substring(dd + 2).replace(/<+/g, ' ').trim();
+    }
+    r.numero      = L2.substring(0, 9).replace(/</g, '').trim();
+    r.nazionalita = L2.substring(10, 13).replace(/</g, '').trim();
+    r.data_nascita = mrzDateToISO(L2.substring(13, 19));
+    r.sesso        = L2.charAt(20) === 'M' ? 'M' : (L2.charAt(20) === 'F' ? 'F' : '');
+    r.scadenza     = mrzDateToISO(L2.substring(21, 27));
+    // CF italiano: personal number (pos 28-43)
+    const pn = L2.substring(28, 43).replace(/</g, '').trim();
+    if (/^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$/.test(pn)) r.cf = pn;
+
+  } else if (lines.length >= 2 && lines[0].length === 30) {
+    // ── TD1 (CIE elettronica, Permesso) ──────────────────────
+    r.raw_type = 'TD1';
+    const L1 = lines[0], L2 = lines[1], L3 = (lines[2] || '').padEnd(30, '<');
+    // Numero documento L1[5..13]
+    r.numero = L1.substring(5, 14).replace(/</g, '').trim();
+    // CF: Italian CIE v3 mette il CF in L2[18..29] o in L1[15..29]
+    const opt1 = L1.substring(15, 30).replace(/</g, '').trim();
+    const opt2 = L2.substring(18, 29).replace(/</g, '').trim();
+    for (const cand of [opt2, opt1]) {
+      if (/^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]/.test(cand)) {
+        r.cf = cand.substring(0, 16); break;
+      }
+    }
+    // Date e sesso
+    r.data_nascita = mrzDateToISO(L2.substring(0, 6));
+    r.sesso        = L2.charAt(7) === 'M' ? 'M' : (L2.charAt(7) === 'F' ? 'F' : '');
+    r.scadenza     = mrzDateToISO(L2.substring(8, 14));
+    r.nazionalita  = L2.substring(15, 18).replace(/</g, '').trim();
+    // Nomi in L3
+    const dd = L3.indexOf('<<');
+    if (dd !== -1) {
+      r.cognome = L3.substring(0, dd).replace(/</g, ' ').trim();
+      r.nome    = L3.substring(dd + 2).replace(/<+/g, ' ').trim();
+    }
+  }
+  return r;
+}
+
+function mrzDateToISO(yymmdd) {
+  if (!yymmdd || yymmdd.length !== 6 || yymmdd === '<<<<<<') return '';
+  const yy = parseInt(yymmdd.substring(0, 2), 10);
+  const mm = yymmdd.substring(2, 4);
+  const dd = yymmdd.substring(4, 6);
+  const yyyy = yy >= 0 && yy <= 30 ? 2000 + yy : 1900 + yy;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/* ================================================================
+   VISUALIZZAZIONE RISULTATO
+   ================================================================ */
+function mostraRisultato(dataURL, data, hasMRZ) {
+  mostraStep('result');
+  document.getElementById('scan-result-img').src = dataURL;
+  document.getElementById('scan-mrz-badge').style.display = hasMRZ ? '' : 'none';
+  document.getElementById('scan-no-mrz-msg').style.display = hasMRZ ? 'none' : '';
+
+  const fieldsDef = [
+    { key: 'cognome',      label: 'Cognome' },
+    { key: 'nome',         label: 'Nome' },
+    { key: 'cf',           label: 'Codice fiscale' },
+    { key: 'data_nascita', label: 'Data di nascita' },
+    { key: 'sesso',        label: 'Sesso' },
+    { key: 'scadenza',     label: 'Scadenza doc.' },
+    { key: 'numero',       label: 'N. documento' },
+    { key: 'nazionalita',  label: 'Nazionalità' },
+  ];
+
+  const container = document.getElementById('scan-fields-list');
+  container.innerHTML = '';
+
+  let nCampi = 0;
+  fieldsDef.forEach(f => {
+    const val = data && data[f.key];
+    if (!val) return;
+    nCampi++;
+    const row = document.createElement('div');
+    row.className = 'scan-field-row';
+    row.innerHTML =
+      `<span class="scan-field-label">${f.label}</span>` +
+      `<span class="scan-field-value">${formattaValore(f.key, val)}</span>`;
+    container.appendChild(row);
+  });
+
+  if (nCampi === 0) {
+    container.innerHTML = '<div class="text-muted small">Nessun dato estratto — prova con immagine più nitida o usa la compilazione manuale.</div>';
+  }
+
+  const confBadge = document.getElementById('scan-confidence-badge');
+  if (hasMRZ && nCampi > 0) {
+    confBadge.textContent = nCampi + ' campi estratti';
+    confBadge.style.display = '';
+    document.getElementById('btn-scanner-applica').classList.remove('d-none');
+  } else {
+    confBadge.style.display = 'none';
+  }
+  document.getElementById('btn-scanner-ripeti').classList.remove('d-none');
+}
+
+function mostraRisultatoNoMRZ(dataURL, msg) {
+  _parsedData = null;
+  mostraRisultato(dataURL, {}, false);
+  if (msg) {
+    const el = document.getElementById('scan-no-mrz-msg');
+    if (el) { el.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>${msg}`; el.style.display = ''; }
+  }
+}
+
+function formattaValore(key, val) {
+  if ((key === 'data_nascita' || key === 'scadenza') && val && val.includes('-')) {
+    const p = val.split('-');
+    return `${p[2]}/${p[1]}/${p[0]}`;
+  }
+  if (key === 'sesso') return val === 'M' ? 'Maschile' : (val === 'F' ? 'Femminile' : val);
+  return val;
+}
+
+/* ================================================================
+   APPLICA DATI AL FORM
+   ================================================================ */
+window.applicaDatiScan = function () {
+  const d = _parsedData;
+  if (!d) return;
+
+  function set(name, val) {
+    if (!val) return;
+    const el = document.querySelector(`[name="${name}"]`) ||
+               document.getElementById(name);
+    if (el) el.value = val;
+  }
+
+  // Anagrafici
+  set('cognome', d.cognome);
+  set('nome', d.nome);
+  set('codice_fiscale', d.cf);
+  set('data_nascita', d.data_nascita);
+  set('sesso', d.sesso);
+
+  // Documento
+  set('doc_numero', d.numero);
+  set('doc_data_scadenza', d.scadenza);
+
+  // Nazionalità — mappa codice ISO3 → stringa
+  if (d.nazionalita) {
+    const iso3map = { ITA:'Italiana', DEU:'Tedesca', FRA:'Francese', GBR:'Britannica',
+      ESP:'Spagnola', USA:'Americana', CHN:'Cinese', ROU:'Romena', ALB:'Albanese',
+      MAR:'Marocchina', TUN:'Tunisina', SEN:'Senegalese', UKR:'Ucraina', POL:'Polacca' };
+    const naz = iso3map[d.nazionalita] || d.nazionalita;
+    set('nazionalita', naz);
+  }
+
+  // Se CF trovato, triggera decodifica automatica
+  if (d.cf) {
+    const cfEl = document.getElementById('cod_fiscale') || document.querySelector('[name="codice_fiscale"]');
+    if (cfEl) cfEl.dispatchEvent(new Event('input'));
+  }
+
+  // Chiudi modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalScanner'));
+  if (modal) modal.hide();
+
+  // Flash visivo sui campi compilati
+  setTimeout(() => {
+    ['cognome','nome','codice_fiscale','data_nascita','doc_numero','doc_data_scadenza'].forEach(n => {
+      const el = document.querySelector(`[name="${n}"]`);
+      if (el && el.value) {
+        el.classList.add('border-success');
+        setTimeout(() => el.classList.remove('border-success'), 2000);
+      }
+    });
+  }, 300);
+};
+
+/* ================================================================
+   CHIUSURA MODAL — ferma webcam e resetta
+   ================================================================ */
+['btn-chiudi-scanner','btn-scanner-annulla'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', () => {
+    fermaWebcam();
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalScanner'));
+    if (modal) modal.hide();
+  });
+});
+
+document.getElementById('modalScanner').addEventListener('hidden.bs.modal', fermaWebcam);
+
+})(); // fine IIFE
+</script>
 {% endblock %}
 
 {% block scripts %}

@@ -440,12 +440,14 @@ body {
     overflow: visible;
   }
 
-  /* 3. Topbar: ancorata in alto, larghezza piena */
+  /* 3. Topbar: ancorata in alto, con padding per la status bar (notch/safe-area) */
   .topbar {
     position: fixed;
     top: 0; left: 0; right: 0;
-    height: var(--topbar-h);
-    padding: 0 .75rem;
+    height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: .75rem;
+    padding-right: .75rem;
     z-index: 200;
     box-shadow: 0 2px 8px rgba(0,0,0,.1);
   }
@@ -456,10 +458,10 @@ body {
   }
   .topbar-actions { gap: .25rem; }
 
-  /* 4. Main: occupa esattamente lo spazio tra topbar e bottom-nav */
+  /* 4. Main: inizia sotto la topbar (inclusa safe-area) */
   #main {
     position: fixed;
-    top: var(--topbar-h);
+    top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
     left: 0; right: 0;
     bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
     padding: 1rem;

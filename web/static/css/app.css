@@ -7,6 +7,8 @@
 /* ---- Variabili & Font ---- */
 :root {
   --sidebar-w: 240px;
+  --topbar-h: 52px;
+  --bottomnav-h: 62px;
   --primary: #1a3a5c;
   --accent:  #c8972b;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -393,9 +395,22 @@ body {
   #sb-overlay.sb-open { display: block; }
   #sb-open  { display: inline-flex; }
   #sb-close { display: inline-flex; }
-  /* #main: padding-top compensa la topbar fixed (≈52px) */
-  #main { margin-left: 0; padding: 1rem; padding-top: calc(52px + .5rem); padding-bottom: 76px; }
-  #sync-toast-container { bottom: 72px; }
+  /* #main: contenitore scrollabile autonomo tra topbar e bottom-nav */
+  #main {
+    margin-left: 0;
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: 1rem;
+  }
+  #sync-toast-container {
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + .5rem);
+  }
 
   /* Topbar mobile: fixed al viewport — niente margini negativi, niente calcoli fragili */
   .topbar {
@@ -429,12 +444,12 @@ body {
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    height: 62px;
+    height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--primary);
     border-top: 1px solid rgba(255,255,255,.1);
     box-shadow: 0 -2px 12px rgba(0,0,0,.25);
     z-index: 1000;
-    padding-bottom: env(safe-area-inset-bottom, 0);
   }
   .bn-item {
     flex: 1;

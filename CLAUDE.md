@@ -21,6 +21,24 @@
 - Nessuna dipendenza esterna aggiunta senza necessità
 - Mantenere coerenza visiva con Bootstrap 5 e le classi già usate nel progetto
 
+## Versioning — REGOLA OBBLIGATORIA
+
+**Ad ogni modifica che richiede un bump di versione, aggiornare SEMPRE tutti e tre i file:**
+
+| File | Campo | Esempio |
+|---|---|---|
+| `pct/__init__.py` | `__version__ = "X.Y.Z"` | unica fonte di verità |
+| `setup.py` | `version="X.Y.Z"` | package Python |
+| `Dockerfile` | `LABEL … version="X.Y.Z"` | immagine Docker |
+
+**La versione web è automaticamente sincronizzata** — `web/app.py` importa `pct.__version__` come `APP_VERSION` (riga 102) e la espone nel template `base.html` tramite `{{ app_version }}`. Non esiste una versione web separata.
+
+**Schema SemVer:**
+- `MAJOR.MINOR.PATCH`
+- Patch (+0.0.1): bug fix, correzioni dati, aggiornamenti documentazione
+- Minor (+0.1.0): nuova funzionalità retrocompatibile
+- Major (+1.0.0): breaking change
+
 ## Note tecniche
 
 - **`web/app.py` — `SECRET_KEY`**: quando si imposta `app.secret_key`, impostare sempre anche `app.config["SECRET_KEY"] = app.secret_key`. La funzione `get_condivisioni()` usa `app.config["SECRET_KEY"]` e senza questa riga solleva `KeyError` causando un 500.

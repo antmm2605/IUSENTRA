@@ -78,7 +78,7 @@
           {% for categoria, chiave, etichetta in tutti_permessi %}
           <tr{% if categoria != ns.last_cat %} class="table-light"{% endif %}>
             {% if categoria != ns.last_cat %}
-            {% set _ = ns.__setattr__('last_cat', categoria) %}
+            {% set ns.last_cat = categoria %}
             <td class="fw-bold text-uppercase" style="font-size:.7rem; letter-spacing:.5px; color:#1a3a5c">
               {{ categoria }}
             </td>

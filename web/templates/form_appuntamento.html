@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/_ufficio_picker.html" import ufficio_picker %}
 {% block title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
 {% block page_title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
 
@@ -94,15 +95,10 @@
     </div>
     <div class="col-md-6">
       <label class="form-label fw-semibold">Tribunale</label>
-      <select name="tribunale" class="form-select">
-        <option value="">— Seleziona —</option>
-        {% for u in tribunali %}
-        <option value="{{ u.nome }}"
-          {{ 'selected' if app and app.tribunale == u.nome }}>
-          {{ u.nome }}
-        </option>
-        {% endfor %}
-      </select>
+      {{ ufficio_picker("tribunale",
+          current_value = app.tribunale if app else "",
+          usa_nome = true,
+          uid = "uffp-app-tribunale") }}
     </div>
 
     {# Avvocato #}

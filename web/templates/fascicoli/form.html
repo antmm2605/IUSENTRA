@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "includes/_ufficio_picker.html" import ufficio_picker %}
 {% block title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
 {% block page_title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
 
@@ -80,15 +81,11 @@
     <div class="row g-3">
       <div class="col-md-5">
         <label class="form-label fw-semibold">Tribunale</label>
-        <select name="tribunale" class="form-select">
-          <option value="">— Seleziona —</option>
-          {% for u in tribunali %}
-          <option value="{{ u.nome }}"
-            {{ 'selected' if fascicolo and fascicolo.tribunale == u.nome }}>
-            {{ u.nome }}
-          </option>
-          {% endfor %}
-        </select>
+        {{ ufficio_picker("tribunale",
+            current_value = fascicolo.tribunale if fascicolo else "",
+            usa_nome = true,
+            label = "Tribunale",
+            uid = "uffp-fascicolo-tribunale") }}
       </div>
       <div class="col-md-3">
         <label class="form-label fw-semibold">Numero RG</label>

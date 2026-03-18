@@ -1207,13 +1207,10 @@ def create_app(config: dict | None = None) -> Flask:
             except ValueError as e:
                 flash(str(e), "danger")
 
-        reginde = ClientReGINde()
-        tribunali = reginde.elenca_uffici()
         return render_template(
             "form_appuntamento.html",
             app=None,
             tipi=list(TipoAppuntamento),
-            tribunali=tribunali,
         )
 
     @app.route("/agenda/<id_app>")
@@ -1260,13 +1257,10 @@ def create_app(config: dict | None = None) -> Flask:
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
 
-        reginde = ClientReGINde()
-        tribunali = reginde.elenca_uffici()
         return render_template(
             "form_appuntamento.html",
             app=app,
             tipi=list(TipoAppuntamento),
-            tribunali=tribunali,
         )
 
     @app.route("/agenda/<id_app>/stato", methods=["POST"])
@@ -1650,14 +1644,12 @@ def create_app(config: dict | None = None) -> Flask:
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
 
-        reginde = ClientReGINde()
         return render_template(
             "clienti/form.html",
             cliente=None,
             tipi=list(TipoCliente),
             stati=list(StatoCliente),
             tipi_doc=list(TipoDocumentoCliente),
-            tribunali=reginde.elenca_uffici(),
         )
 
     @app.route("/clienti/<id_cliente>")
@@ -1895,14 +1887,12 @@ def create_app(config: dict | None = None) -> Flask:
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
 
-        reginde = ClientReGINde()
         return render_template(
             "clienti/form.html",
             cliente=c,
             tipi=list(TipoCliente),
             stati=list(StatoCliente),
             tipi_doc=list(TipoDocumentoCliente),
-            tribunali=reginde.elenca_uffici(),
         )
 
     @app.route("/clienti/<id_cliente>/elimina", methods=["POST"])
@@ -2512,7 +2502,6 @@ def create_app(config: dict | None = None) -> Flask:
     def nuovo_fascicolo():
         gc = get_clienti()
         gf = get_fascicoli()
-        reginde = ClientReGINde()
         if request.method == "POST":
             f = request.form
             id_cliente = f.get("id_cliente", "")
@@ -2554,7 +2543,6 @@ def create_app(config: dict | None = None) -> Flask:
             clienti=clienti,
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
-            tribunali=reginde.elenca_uffici(),
             id_cliente_pre=request.args.get("id_cliente", ""),
         )
 
@@ -2594,7 +2582,6 @@ def create_app(config: dict | None = None) -> Flask:
     def modifica_fascicolo(id_fasc):
         gf = get_fascicoli()
         gc = get_clienti()
-        reginde = ClientReGINde()
         fasc = gf.get(id_fasc)
         if not fasc:
             flash("Fascicolo non trovato.", "warning")
@@ -2637,7 +2624,6 @@ def create_app(config: dict | None = None) -> Flask:
             clienti=clienti,
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
-            tribunali=reginde.elenca_uffici(),
             id_cliente_pre="",
         )
 

@@ -305,7 +305,14 @@
 {# Overlay mobile #}
 <div id="sb-overlay"></div>
 
-<!-- Topbar: layer autonomo, sempre sopra il contenuto -->
+<!-- ============================================================
+     App Body: pannello destro (topbar + contenuto scrollabile)
+     Su desktop: margin-left uguale alla sidebar, flexbox column
+     Su mobile:  margin-left:0, si adatta al viewport bloccato
+     ============================================================ -->
+<div id="app-body">
+
+<!-- Topbar: primo elemento del flex column — sempre visibile -->
 <div class="topbar">
   <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
     <i class="bi bi-list" style="font-size:1.1rem"></i>
@@ -363,7 +370,7 @@
   </div>
 </div>
 
-<!-- Main: area di contenuto scrollabile -->
+<!-- Main: area di contenuto scrollabile (flex: 1) -->
 <div id="main">
   {# ---- Banner dati non aggiornati ---- #}
   <div id="sync-stale-banner">
@@ -387,7 +394,9 @@
   {% endwith %}
 
   {% block content %}{% endblock %}
-</div>
+</div>{# /main #}
+
+</div>{# /app-body #}
 
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>

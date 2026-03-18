@@ -14,6 +14,11 @@
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* App shell: html e body coprono esattamente il viewport */
+html, body {
+  height: 100%;
+}
+
 body {
   background: #f4f6f9;
   font-size: .92rem;
@@ -172,23 +177,39 @@ body {
 #sb-open  { display: none; }
 #sb-close { display: none; }
 
-/* ---- Main ---- */
-#main { margin-left: var(--sidebar-w); padding: 1.5rem 2rem; }
+/* ================================================================
+   APP SHELL DESKTOP — flexbox column a destra della sidebar
+   ================================================================ */
+
+/* Pannello destro: topbar in alto + #main che scorre sotto */
+#app-body {
+  margin-left: var(--sidebar-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* nessun overflow fuori dal frame */
+}
 
 /* ---- Topbar ---- */
-/* Su desktop: layer sticky sopra #main (stesso margin-left della sidebar) */
-/* Su mobile: position:fixed gestito nel media query */
+/* Primo elemento del flex column: altezza fissa, sempre visibile */
 .topbar {
+  flex-shrink: 0;
   background: #fff;
   border-bottom: 1px solid #e2e8f0;
-  padding: .6rem 1.5rem;
-  margin-left: var(--sidebar-w);
+  padding: .6rem 2rem;    /* allineato al padding orizzontale di #main */
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  z-index: 150;           /* sopra il contenuto, sotto la sidebar (200) */
+}
+
+/* ---- Main ---- */
+/* Secondo elemento del flex column: cresce e scorre */
+#main {
+  flex: 1 1 0;            /* occupa tutto lo spazio rimanente */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem 2rem;
 }
 .topbar h1 {
   font-size: 1.15rem; font-weight: 600; margin: 0; color: var(--primary);
@@ -337,7 +358,7 @@ body {
 #sync-stale-banner {
   display: none;
   position: sticky;
-  top: var(--topbar-h); /* si àncora sotto la topbar sticky */
+  top: 0; /* si àncora al top di #main (lo scroll container) */
   z-index: 800;
   background: #fef3c7;
   border-bottom: 2px solid #f59e0b;
@@ -396,38 +417,41 @@ body {
 
 @media (max-width: 768px) {
   /* ================================================================
-     MOBILE SHELL — layout "Figma frame"
-     Il viewport è il frame fisso. Tre layer sovrapposti:
-       1. Topbar    — z:200, position:fixed, top:0
-       2. #main     — z:auto, position:fixed, top:52px / bottom:62px+safe-area
-       3. #bottom-nav — z:1000, position:fixed, bottom:0
-     html/body non scrollano mai: tutto lo scroll vive dentro #main.
+     MOBILE SHELL — layout "app nativa"
+     ┌────────────────────┐  ← viewport (100dvh)
+     │  .topbar (52px)    │  flex-shrink: 0
+     ├────────────────────┤
+     │  #main (flex: 1)   │  overflow-y: auto — UNICO scroll
+     │                    │
+     ├────────────────────┤
+     │  #bottom-nav (62px)│  position: fixed, bottom: 0
+     └────────────────────┘
+     html/body non scrollano mai. body cede spazio al bottom-nav
+     tramite padding-bottom + box-sizing: border-box.
      ================================================================ */
 
-  /* Blocca il viewport — nessuno scroll sul body */
+  /* 1. Blocca il viewport */
   html, body {
-    height: 100%;
     overflow: hidden;
     overscroll-behavior: none;
   }
 
-  /* Sidebar drawer (off-screen di default) */
-  #sidebar { transform: translateX(-100%); }
-  #sidebar.sb-open { transform: translateX(0); }
-  #sb-overlay.sb-open { display: block; }
-  #sb-open  { display: inline-flex; }
-  #sb-close { display: inline-flex; }
+  /* 2. Body cede spazio al bottom-nav (position:fixed) */
+  body {
+    padding-bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+  }
 
-  /* ---- Layer 1: Topbar ---- */
+  /* 3. App body: rimuove il margin desktop, occupa tutta l'altezza disponibile */
+  #app-body {
+    margin-left: 0;
+    height: 100%; /* = body content-box = viewport − bottom-nav */
+  }
+
+  /* 4. Topbar: altezza esatta, zero padding top/bottom (flex align:center gestisce) */
   .topbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    z-index: 200;
-    margin: 0;
-    padding: .5rem .75rem;
+    height: var(--topbar-h);
+    padding: 0 .75rem;
     gap: .35rem;
     box-shadow: 0 2px 8px rgba(0,0,0,.1);
   }
@@ -438,35 +462,31 @@ body {
   }
   .topbar-actions { flex-shrink: 0; gap: .25rem; }
 
-  /* Nascondi elementi non adatti a mobile */
+  /* 5. Main: occupa lo spazio residuo del flex column */
+  #main {
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* 6. Sidebar drawer */
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.sb-open { transform: translateX(0); }
+  #sb-overlay.sb-open { display: block; }
+  #sb-open  { display: inline-flex; }
+  #sb-close { display: inline-flex; }
+
+  /* 7. Nascondi elementi non adatti a mobile */
   #search-wrap                         { display: none; }
   #sync-operatori                      { display: none; }
   [data-bs-target="#modalScorciatoie"] { display: none !important; }
 
-  /* Banner: top:0 perché #main già inizia a --topbar-h dal viewport */
-  #sync-stale-banner { top: 0; }
-
-  /* ---- Layer 2: Area contenuto scrollabile ---- */
-  #main {
-    position: fixed;
-    top: var(--topbar-h);
-    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
-    left: 0;
-    right: 0;
-    margin: 0;
-    padding: 1rem;
-    overflow-y: auto;
-    overflow-x: hidden;             /* nessun overflow laterale */
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain; /* nessun rimbalzo iOS oltre i bordi */
-  }
-
-  /* Toast: segue il bottom-nav */
+  /* 8. Toast: segue il bottom-nav */
   #sync-toast-container {
     bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + .5rem);
   }
 
-  /* ---- Layer 3: Bottom navigation ---- */
+  /* 9. Bottom navigation: unico elemento position:fixed */
   #bottom-nav {
     display: flex;
     position: fixed;

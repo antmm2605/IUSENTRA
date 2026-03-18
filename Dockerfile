@@ -40,6 +40,11 @@ RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24
 # ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim
 
+LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
+      org.opencontainers.image.version="1.0.1" \
+      org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+      org.opencontainers.image.created="2026-03-18"
+
 # Solo le librerie runtime strettamente necessarie
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libffi8 \

@@ -69,7 +69,7 @@
       </div>
       <div class="pf-only col-md-2">
         <label class="form-label fw-semibold">Sesso</label>
-        <select name="sesso" class="form-select">
+        <select name="sesso" id="cf_sesso" class="form-select">
           <option value="">—</option>
           <option value="M" {{ 'selected' if cliente and cliente.sesso=='M' }}>M</option>
           <option value="F" {{ 'selected' if cliente and cliente.sesso=='F' }}>F</option>
@@ -98,10 +98,23 @@
       {# Campi comuni #}
       <div class="col-md-4">
         <label class="form-label fw-semibold">Codice fiscale</label>
-        <input type="text" name="codice_fiscale" class="form-control font-monospace"
-               value="{{ cliente.codice_fiscale if cliente else '' }}"
-               placeholder="RSSMRA80A01H501Z" maxlength="16"
-               style="text-transform:uppercase">
+        <div class="input-group">
+          <input type="text" name="codice_fiscale" id="cf_input"
+                 class="form-control font-monospace"
+                 value="{{ cliente.codice_fiscale if cliente else '' }}"
+                 placeholder="RSSMRA80A01H501Z" maxlength="16"
+                 style="text-transform:uppercase"
+                 autocomplete="off">
+          <span class="input-group-text" id="cf_spinner" style="display:none">
+            <span class="spinner-border spinner-border-sm text-primary"></span>
+          </span>
+          <span class="input-group-text text-success" id="cf_ok" style="display:none">
+            <i class="bi bi-check-circle-fill"></i>
+          </span>
+        </div>
+        <div class="form-text text-primary" id="cf_hint" style="display:none">
+          <i class="bi bi-magic me-1"></i>Dati compilati automaticamente
+        </div>
       </div>
       <div class="pg-only col-md-4" style="display:none">
         <label class="form-label fw-semibold">Partita IVA</label>
@@ -113,22 +126,32 @@
       {# Nascita (solo PF) #}
       <div class="pf-only col-md-3">
         <label class="form-label fw-semibold">Data di nascita</label>
-        <input type="date" name="data_nascita" class="form-control"
+        <input type="date" name="data_nascita" id="cf_data_nascita"
+               class="form-control"
                value="{{ cliente.data_nascita if cliente else '' }}">
+      </div>
+      <div class="pf-only col-md-1">
+        <label class="form-label fw-semibold">Età</label>
+        <input type="number" name="eta" id="cf_eta" class="form-control"
+               value="{{ cliente.eta if cliente and cliente.eta is not none else '' }}"
+               placeholder="—" min="0" max="150" readonly
+               tabindex="-1" style="background:#f8f9fa;cursor:default">
       </div>
       <div class="pf-only col-md-4">
         <label class="form-label fw-semibold">Luogo di nascita</label>
-        <input type="text" name="luogo_nascita" class="form-control"
+        <input type="text" name="luogo_nascita" id="cf_luogo_nascita"
+               class="form-control"
                value="{{ cliente.luogo_nascita if cliente else '' }}"
                placeholder="Roma">
       </div>
       <div class="pf-only col-md-2">
         <label class="form-label fw-semibold">Prov.</label>
-        <input type="text" name="provincia_nascita" class="form-control"
+        <input type="text" name="provincia_nascita" id="cf_provincia_nascita"
+               class="form-control"
                value="{{ cliente.provincia_nascita if cliente else '' }}"
                maxlength="2" placeholder="RM" style="text-transform:uppercase">
       </div>
-      <div class="pf-only col-md-3">
+      <div class="pf-only col-md-2">
         <label class="form-label fw-semibold">Nazionalità</label>
         <input type="text" name="nazionalita" class="form-control"
                value="{{ cliente.nazionalita if cliente else 'Italiana' }}">
@@ -364,7 +387,7 @@
 
 {% block scripts %}
 <script>
-// Switcher Persona Fisica / Giuridica
+// ---- Switcher Persona Fisica / Giuridica ----
 function aggiornaVista() {
   const isPF = document.querySelector('input[name="tipo"]:checked')?.value === 'PERSONA_FISICA'
               || '{{ cliente.tipo.value if cliente else "PERSONA_FISICA" }}' === 'PERSONA_FISICA';
@@ -375,5 +398,85 @@ document.querySelectorAll('input[name="tipo"]').forEach(r =>
   r.addEventListener('change', aggiornaVista)
 );
 aggiornaVista();
+
+// ---- Decodifica automatica Codice Fiscale ----
+(function () {
+  const cfInput    = document.getElementById('cf_input');
+  const spinner    = document.getElementById('cf_spinner');
+  const okIcon     = document.getElementById('cf_ok');
+  const hint       = document.getElementById('cf_hint');
+  const fSesso     = document.getElementById('cf_sesso');
+  const fData      = document.getElementById('cf_data_nascita');
+  const fEta       = document.getElementById('cf_eta');
+  const fLuogo     = document.getElementById('cf_luogo_nascita');
+  const fProv      = document.getElementById('cf_provincia_nascita');
+
+  if (!cfInput) return;
+
+  // Calcola età da data ISO
+  function calcolaEta(dataIso) {
+    if (!dataIso) return '';
+    const nascita = new Date(dataIso);
+    const oggi = new Date();
+    let eta = oggi.getFullYear() - nascita.getFullYear();
+    const m = oggi.getMonth() - nascita.getMonth();
+    if (m < 0 || (m === 0 && oggi.getDate() < nascita.getDate())) eta--;
+    return eta >= 0 ? eta : '';
+  }
+
+  // Aggiorna campo età quando cambia la data manualmente
+  if (fData) {
+    fData.addEventListener('change', () => {
+      if (fEta) fEta.value = calcolaEta(fData.value);
+    });
+    // Inizializza età se data già presente
+    if (fData.value && fEta && !fEta.value) {
+      fEta.value = calcolaEta(fData.value);
+    }
+  }
+
+  let debounceTimer = null;
+
+  cfInput.addEventListener('input', function () {
+    const cf = this.value.replace(/\s/g, '').toUpperCase();
+    this.value = cf;
+
+    clearTimeout(debounceTimer);
+    okIcon.style.display = 'none';
+    hint.style.display = 'none';
+
+    if (cf.length !== 16) return;
+
+    spinner.style.display = '';
+    debounceTimer = setTimeout(() => decodificaCF(cf), 300);
+  });
+
+  function decodificaCF(cf) {
+    fetch('/api/cf/decodifica?cf=' + encodeURIComponent(cf))
+      .then(r => r.json())
+      .then(data => {
+        spinner.style.display = 'none';
+        if (data.errore) return;
+
+        // Compila solo i campi ancora vuoti (o tutti se il form è nuovo)
+        const isNuovo = !{{ 'true' if cliente else 'false' }};
+
+        function setIfEmpty(el, val) {
+          if (el && (isNuovo || !el.value)) el.value = val;
+        }
+
+        if (fSesso && (isNuovo || !fSesso.value)) fSesso.value = data.sesso || '';
+        setIfEmpty(fData, data.data_nascita || '');
+        if (fEta) fEta.value = data.eta !== undefined ? data.eta : calcolaEta(data.data_nascita);
+        setIfEmpty(fLuogo, data.luogo_nascita || '');
+        setIfEmpty(fProv, data.provincia_nascita || '');
+
+        okIcon.style.display = '';
+        hint.style.display = '';
+        setTimeout(() => { okIcon.style.display = 'none'; hint.style.display = 'none'; }, 4000);
+      })
+      .catch(() => { spinner.style.display = 'none'; });
+  }
+})();
 </script>
 {% endblock %}

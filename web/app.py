@@ -1560,6 +1560,22 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore api_uffici_stato: %s", e)
             return jsonify({"ok": False, "errore": str(e)}), 200
 
+    # ---------------------------------------------------------------- codice fiscale
+
+    @app.route("/api/cf/decodifica")
+    def api_cf_decodifica():
+        """Decodifica un codice fiscale e restituisce i dati anagrafici."""
+        cf = request.args.get("cf", "").strip()
+        try:
+            from pct.codice_fiscale import decodifica
+            risultato = decodifica(cf)
+            if risultato is None:
+                return jsonify({"errore": "CF non valido o troppo corto"}), 200
+            return jsonify(risultato)
+        except Exception as e:
+            app.logger.exception("Errore api_cf_decodifica: %s", e)
+            return jsonify({"errore": str(e)}), 200
+
     # ---------------------------------------------------------------- tribunali
 
     @app.route("/tribunali")

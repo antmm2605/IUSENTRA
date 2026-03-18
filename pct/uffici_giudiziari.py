@@ -781,13 +781,28 @@ class GestoreUfficiGiudiziari:
     # ---------------------------------------------------------------- lettura
 
     def carica(self) -> list[dict]:
-        """Restituisce la lista degli uffici (da cache o bundle)."""
+        """Restituisce la lista degli uffici (da cache o bundle).
+
+        Auto-upgrade: se la cache su disco ha meno uffici del bundle interno
+        (es. dopo un aggiornamento del codice che aggiunge nuovi uffici), la
+        cache viene automaticamente rigenerata dal bundle aggiornato.
+        """
         if self._mem is not None:
             return self._mem
-        self._mem = self._da_file() or _build_bundle_completo()
-        # Salva su disco se mancante
-        if not self.cache_path.exists():
-            self._salva(self._mem)
+        da_file = self._da_file()
+        bundle  = _build_bundle_completo()
+        if da_file and len(da_file) >= len(bundle):
+            # La cache è completa o più aggiornata del bundle → usala
+            self._mem = da_file
+        else:
+            # Cache assente o meno completa del bundle → rigenera
+            if da_file is not None:
+                log.info(
+                    "Auto-upgrade cache uffici: %d (cache) < %d (bundle) → rigenero",
+                    len(da_file), len(bundle),
+                )
+            self._mem = bundle
+            self._salva(bundle, sorgente="bundle")
         return self._mem
 
     def cerca(self, q: str, tipo: str = "") -> list[dict]:

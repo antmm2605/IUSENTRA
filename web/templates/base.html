@@ -333,8 +333,9 @@
          title="Scadenziario">
         <i class="bi bi-calendar-event"></i>
       </a>
-      <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning">
-        <i class="bi bi-plus-lg me-1"></i>Nuovo
+      <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning"
+         title="Nuovo appuntamento">
+        <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
       </a>
       <div id="htmx-loader" title="Caricamento…"></div>
       {% if utente_corrente %}

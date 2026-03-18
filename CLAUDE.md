@@ -39,6 +39,11 @@
 - Minor (+0.1.0): nuova funzionalità retrocompatibile
 - Major (+1.0.0): breaking change
 
+**Deploy — Railway (produzione online):**
+- Il deploy su Railway avviene dopo il bump di versione e il push sul branch.
+- Ad ogni release va aggiornata anche la versione sul pannello Railway (variabile d'ambiente o redeploy dell'immagine).
+- Versione corrente in produzione: **1.0.1**
+
 ## Note tecniche
 
 - **`web/app.py` — `SECRET_KEY`**: quando si imposta `app.secret_key`, impostare sempre anche `app.config["SECRET_KEY"] = app.secret_key`. La funzione `get_condivisioni()` usa `app.config["SECRET_KEY"]` e senza questa riga solleva `KeyError` causando un 500.

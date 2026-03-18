@@ -194,6 +194,7 @@ class DatiArchivio:
     percorso_zip: str = ""          # path dell'archivio ZIP
     hash_zip: str = ""
     archiviato_da: str = ""
+    dimensione_zip: int = 0         # dimensione in byte del file ZIP
 
 
 # ------------------------------------------------------------------ Esito deposito PCT
@@ -721,16 +722,25 @@ class GestioneFascicoli:
         note: str = "",
         avvocato: str = "",
     ) -> Fascicolo:
-        """Marca il fascicolo come DEFINITO (pronto per archiviazione)."""
+        """
+        Marca il fascicolo come DEFINITO e crea automaticamente il ZIP compresso.
+        Da questo momento la pratica è accessibile nella cartella digitale del cliente
+        in formato compresso; può essere sfogliata o ripristinata senza riaprire il fascicolo.
+        """
         f = self._get_o_errore(id_fasc)
         if f.stato == StatoFascicolo.ARCHIVIATO:
             raise ValueError("Il fascicolo è già archiviato.")
+        # Crea l'archivio ZIP in anticipo (compressione preventiva)
+        zip_path, hash_zip, dim = self._crea_archivio_zip(f)
         f.archivio = DatiArchivio(
-            data_archiviazione="",
+            data_archiviazione=date.today().isoformat(),
             motivo=motivo,
             esito_finale=esito_finale,
             note_archivio=note,
             archiviato_da=avvocato,
+            percorso_zip=zip_path,
+            hash_zip=hash_zip,
+            dimensione_zip=dim,
         )
         return self.cambia_stato(id_fasc, StatoFascicolo.DEFINITO, note=note, avvocato=avvocato)
 
@@ -753,20 +763,31 @@ class GestioneFascicoli:
 
         zip_path = ""
         hash_zip = ""
+        dimensione_zip = 0
 
         if crea_zip:
-            zip_path, hash_zip = self._crea_archivio_zip(f)
+            # Riusa il ZIP creato da definisci() se già esistente e valido
+            zip_esistente = (f.archivio and f.archivio.percorso_zip
+                             and Path(f.archivio.percorso_zip).exists())
+            if zip_esistente:
+                zip_path = f.archivio.percorso_zip
+                hash_zip = f.archivio.hash_zip
+                dimensione_zip = f.archivio.dimensione_zip
+            else:
+                zip_path, hash_zip, dimensione_zip = self._crea_archivio_zip(f)
 
         if f.archivio:
             f.archivio.data_archiviazione = date.today().isoformat()
             f.archivio.percorso_zip = zip_path
             f.archivio.hash_zip = hash_zip
+            f.archivio.dimensione_zip = dimensione_zip
             f.archivio.archiviato_da = avvocato
         else:
             f.archivio = DatiArchivio(
                 data_archiviazione=date.today().isoformat(),
                 percorso_zip=zip_path,
                 hash_zip=hash_zip,
+                dimensione_zip=dimensione_zip,
                 archiviato_da=avvocato,
             )
 
@@ -782,8 +803,8 @@ class GestioneFascicoli:
         return self.cambia_stato(id_fasc, StatoFascicolo.APERTO,
                                  note="Ripristinato dall'archivio", avvocato=avvocato)
 
-    def _crea_archivio_zip(self, f: Fascicolo) -> tuple[str, str]:
-        """Crea un archivio ZIP del fascicolo e restituisce (path, hash)."""
+    def _crea_archivio_zip(self, f: Fascicolo) -> tuple[str, str, int]:
+        """Crea un archivio ZIP del fascicolo e restituisce (path, hash, dimensione_bytes)."""
         nome_zip = f"fascicolo_{f.numero.replace('/', '_')}_{f.id}.zip"
         zip_path = self.archive_dir / nome_zip
 
@@ -805,13 +826,47 @@ class GestioneFascicoli:
             zf.writestr("indice_documenti.json",
                         json.dumps(indice, ensure_ascii=False, indent=2))
 
-        # hash del ZIP
+        # hash e dimensione del ZIP
         sha256 = hashlib.sha256()
         with open(zip_path, "rb") as fh:
             for chunk in iter(lambda: fh.read(8192), b""):
                 sha256.update(chunk)
+        dimensione = zip_path.stat().st_size
 
-        return str(zip_path), sha256.hexdigest()
+        return str(zip_path), sha256.hexdigest(), dimensione
+
+    def contenuto_archivio(self, id_fasc: str) -> list[dict]:
+        """Restituisce la lista dei file presenti nel ZIP dell'archivio."""
+        f = self._get_o_errore(id_fasc)
+        if not f.archivio or not f.archivio.percorso_zip:
+            return []
+        p = Path(f.archivio.percorso_zip)
+        if not p.exists():
+            return []
+        with zipfile.ZipFile(p, "r") as zf:
+            return [
+                {
+                    "nome": info.filename,
+                    "dimensione": info.file_size,
+                    "estensione": Path(info.filename).suffix.lower(),
+                }
+                for info in zf.infolist()
+                if not info.is_dir()
+            ]
+
+    def estrai_file_archivio(self, id_fasc: str, nome_file: str) -> bytes:
+        """Estrae e restituisce il contenuto di un singolo file dal ZIP."""
+        f = self._get_o_errore(id_fasc)
+        if not f.archivio or not f.archivio.percorso_zip:
+            raise FileNotFoundError("Archivio ZIP non disponibile per questo fascicolo.")
+        p = Path(f.archivio.percorso_zip)
+        if not p.exists():
+            raise FileNotFoundError("File ZIP non trovato su disco.")
+        with zipfile.ZipFile(p, "r") as zf:
+            nomi = zf.namelist()
+            if nome_file not in nomi:
+                raise FileNotFoundError(f"File '{nome_file}' non trovato nell'archivio.")
+            return zf.read(nome_file)
 
     # ---------------------------------------------------------------- Query
 

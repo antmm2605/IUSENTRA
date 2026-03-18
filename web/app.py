@@ -1715,8 +1715,13 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Non hai accesso a questa cartella cliente.", "danger")
             return redirect(url_for("lista_clienti"))
         tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
-        fascicoli_attivi = [f for f in tutti if f.stato != StatoFascicolo.ARCHIVIATO]
-        fascicoli_archiviati = [f for f in tutti if f.stato == StatoFascicolo.ARCHIVIATO]
+        _stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
+        fascicoli_attivi    = [f for f in tutti if f.stato not in _stati_chiusi]
+        fascicoli_archiviati = [f for f in tutti if f.stato in _stati_chiusi]
+        fascicoli_archiviati.sort(
+            key=lambda f: (f.archivio.data_archiviazione if f.archivio else ""),
+            reverse=True,
+        )
         n_documenti = sum(f.documenti_count for f in tutti)
         # Scadenze imminenti (entro 7 giorni)
         from datetime import timedelta
@@ -2973,7 +2978,36 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
-    # ---- Download archivio ZIP
+    # ---- Sfoglia e download da archivio ZIP
+
+    @app.route("/fascicoli/<id_fasc>/archivio/contenuto")
+    def archivio_contenuto(id_fasc):
+        """API: restituisce la lista dei file nel ZIP dell'archivio (JSON)."""
+        gf = get_fascicoli()
+        try:
+            files = gf.contenuto_archivio(id_fasc)
+            return jsonify(files)
+        except Exception as e:
+            app.logger.exception("archivio_contenuto %s: %s", id_fasc, e)
+            return jsonify({"errore": str(e)}), 200
+
+    @app.route("/fascicoli/<id_fasc>/archivio/file/<path:nome_file>")
+    def archivio_scarica_file(id_fasc, nome_file):
+        """Estrae e serve un singolo file dal ZIP senza decomprimere l'intero archivio."""
+        gf = get_fascicoli()
+        try:
+            dati = gf.estrai_file_archivio(id_fasc, nome_file)
+        except FileNotFoundError as e:
+            flash(str(e), "warning")
+            return redirect(url_for("lista_archivio"))
+        import io, mimetypes
+        mime, _ = mimetypes.guess_type(nome_file)
+        return send_file(
+            io.BytesIO(dati),
+            mimetype=mime or "application/octet-stream",
+            as_attachment=True,
+            download_name=Path(nome_file).name,
+        )
 
     @app.route("/fascicoli/<id_fasc>/archivio/scarica")
     def scarica_archivio(id_fasc):

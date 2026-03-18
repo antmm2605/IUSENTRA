@@ -23,7 +23,7 @@
 
 ## Versioning — REGOLA OBBLIGATORIA
 
-**Ad ogni modifica che richiede un bump di versione, aggiornare SEMPRE tutti e tre i file:**
+**Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e tre i file:**
 
 | File | Campo | Esempio |
 |---|---|---|
@@ -42,7 +42,7 @@
 **Deploy — Railway (produzione online):**
 - Il deploy su Railway avviene dopo il bump di versione e il push sul branch.
 - Ad ogni release va aggiornata anche la versione sul pannello Railway (variabile d'ambiente o redeploy dell'immagine).
-- Versione corrente in produzione: **1.0.2**
+- Versione corrente in produzione: **1.1.0**
 
 ## Note tecniche
 

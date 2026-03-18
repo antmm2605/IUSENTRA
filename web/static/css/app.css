@@ -417,42 +417,36 @@ body {
 
 @media (max-width: 768px) {
   /* ================================================================
-     MOBILE SHELL — layout "app nativa"
-     ┌────────────────────┐  ← viewport (100dvh)
-     │  .topbar (52px)    │  flex-shrink: 0
-     ├────────────────────┤
-     │  #main (flex: 1)   │  overflow-y: auto — UNICO scroll
-     │                    │
-     ├────────────────────┤
-     │  #bottom-nav (62px)│  position: fixed, bottom: 0
-     └────────────────────┘
-     html/body non scrollano mai. body cede spazio al bottom-nav
-     tramite padding-bottom + box-sizing: border-box.
+     MOBILE SHELL — coordinate esplicite, nessun calcolo derivato
+     Ogni layer occupa esattamente i suoi pixel nel viewport.
+     Topbar:     position:fixed  top:0          h:52px
+     #main:      position:fixed  top:52px       bottom:62px+safe
+     #bottom-nav:position:fixed  bottom:0       h:62px+safe
+     html/body:  overflow:hidden — il body non scrolla mai
      ================================================================ */
 
-  /* 1. Blocca il viewport */
+  /* 1. Blocca il viewport — il body non scorre */
   html, body {
     overflow: hidden;
     overscroll-behavior: none;
   }
 
-  /* 2. Body cede spazio al bottom-nav (position:fixed) */
-  body {
-    padding-bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
-    box-sizing: border-box;
-  }
-
-  /* 3. App body: rimuove il margin desktop, occupa tutta l'altezza disponibile */
+  /* 2. #app-body: torna un block normale su mobile,
+        i suoi figli usano position:fixed */
   #app-body {
     margin-left: 0;
-    height: 100%; /* = body content-box = viewport − bottom-nav */
+    height: auto;
+    display: block;
+    overflow: visible;
   }
 
-  /* 4. Topbar: altezza esatta, zero padding top/bottom (flex align:center gestisce) */
+  /* 3. Topbar: ancorata in alto, larghezza piena */
   .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
     height: var(--topbar-h);
     padding: 0 .75rem;
-    gap: .35rem;
+    z-index: 200;
     box-shadow: 0 2px 8px rgba(0,0,0,.1);
   }
   .topbar h1 {
@@ -460,16 +454,22 @@ body {
     flex: 1 1 0;
     min-width: 0;
   }
-  .topbar-actions { flex-shrink: 0; gap: .25rem; }
+  .topbar-actions { gap: .25rem; }
 
-  /* 5. Main: occupa lo spazio residuo del flex column */
+  /* 4. Main: occupa esattamente lo spazio tra topbar e bottom-nav */
   #main {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0; right: 0;
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
     padding: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
   }
 
-  /* 6. Sidebar drawer */
+  /* 5. Sidebar drawer */
   #sidebar { transform: translateX(-100%); }
   #sidebar.sb-open { transform: translateX(0); }
   #sb-overlay.sb-open { display: block; }

@@ -23,13 +23,14 @@
 
 ## Versioning — REGOLA OBBLIGATORIA
 
-**Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e tre i file:**
+**Ad ogni implementazione (nuova funzionalità, bug fix, qualsiasi modifica al codice) eseguire SEMPRE il bump di versione e aggiornare tutti e quattro i file:**
 
 | File | Campo | Esempio |
 |---|---|---|
 | `pct/__init__.py` | `__version__ = "X.Y.Z"` | unica fonte di verità |
 | `setup.py` | `version="X.Y.Z"` | package Python |
 | `Dockerfile` | `LABEL … version="X.Y.Z"` | immagine Docker |
+| `railway.toml` | `#  version: X.Y.Z` | trigger redeploy Railway |
 
 **La versione web è automaticamente sincronizzata** — `web/app.py` importa `pct.__version__` come `APP_VERSION` (riga 102) e la espone nel template `base.html` tramite `{{ app_version }}`. Non esiste una versione web separata.
 

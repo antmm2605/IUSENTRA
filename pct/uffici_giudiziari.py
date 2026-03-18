@@ -183,7 +183,7 @@ _BUNDLE_RAW: list[dict] = [
     _t("0700014","Parma",          "Bologna",   "parma"),
     _t("0700015","Piacenza",       "Bologna",   "piacenza"),
     _t("0700016","Ravenna",        "Bologna",   "ravenna"),
-    _t("0700017","Reggio Emilia",  "Bologna",   "reggioEmilia"),
+    _t("0700017","Reggio Emilia",  "Bologna",   "reggioemilia"),
     _t("0700018","Rimini",         "Bologna",   "rimini"),
 
     # — Firenze
@@ -307,7 +307,6 @@ _BUNDLE_RAW: list[dict] = [
     # — Lecce
     _t("1040010","Lecce",          "Lecce",     "lecce"),
     _t("1040011","Brindisi",       "Lecce",     "brindisi"),
-    _t("1040012","Cotrone",        "Lecce",     "cotrone"),
 
     # ================================================================ CORTI D'APPELLO
     _ca("0530000","Torino",       "torino"),
@@ -465,7 +464,7 @@ _BUNDLE_RAW: list[dict] = [
     _assise("0700301","Modena",          "Bologna",   "modena"),
     _assise("0700302","Parma",           "Bologna",   "parma"),
     _assise("0700303","Ravenna",         "Bologna",   "ravenna"),
-    _assise("0700304","Reggio Emilia",   "Bologna",   "reggioEmilia"),
+    _assise("0700304","Reggio Emilia",   "Bologna",   "reggioemilia"),
     _assise("0710300","Firenze",         "Firenze",   "firenze"),
     _assise("0710301","Arezzo",          "Firenze",   "arezzo"),
     _assise("0710302","Livorno",         "Firenze",   "livorno"),
@@ -564,7 +563,7 @@ _BUNDLE_RAW: list[dict] = [
     _gdp("0700404","Parma",           "Bologna",   "parma"),
     _gdp("0700405","Piacenza",        "Bologna",   "piacenza"),
     _gdp("0700406","Ravenna",         "Bologna",   "ravenna"),
-    _gdp("0700407","Reggio Emilia",   "Bologna",   "reggioEmilia"),
+    _gdp("0700407","Reggio Emilia",   "Bologna",   "reggioemilia"),
     _gdp("0700408","Rimini",          "Bologna",   "rimini"),
     _gdp("0710400","Firenze",         "Firenze",   "firenze"),
     _gdp("0710401","Arezzo",          "Firenze",   "arezzo"),

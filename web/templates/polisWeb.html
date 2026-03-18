@@ -625,7 +625,7 @@ document.addEventListener('DOMContentLoaded', caricaStatoUffici);
     input.value  = u.nome;
     hidden.value = u.codice;
     const label  = TIPO_LABEL[u.tipo] || u.tipo;
-    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} me-1"></i>${label}: <strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto})</span>`;
+    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} me-1"></i><strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto})</span>`;
     badge.style.display = 'block';
     clearBtn.style.display = 'inline-flex';
     input.setCustomValidity('');

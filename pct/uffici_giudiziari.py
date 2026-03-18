@@ -813,21 +813,30 @@ class GestoreUfficiGiudiziari:
 
     def stato(self) -> dict:
         """Restituisce metadati sulla cache (usata nell'UI admin)."""
+        from collections import Counter
+
+        def _conta_per_tipo(uffici: list[dict]) -> dict:
+            c = Counter(u.get("tipo", "?") for u in uffici)
+            return dict(sorted(c.items()))
+
         if self.cache_path.exists():
-            meta = self._leggi_meta()
-            n_uffici = len(self._da_file() or [])
+            meta    = self._leggi_meta()
+            uffici  = self._da_file() or []
             return {
                 "sorgente":       meta.get("sorgente", "bundle"),
                 "aggiornato_il":  meta.get("aggiornato_il", "—"),
-                "n_uffici":       n_uffici,
+                "n_uffici":       len(uffici),
+                "per_tipo":       _conta_per_tipo(uffici),
                 "cache_path":     str(self.cache_path),
                 "ttl_giorni":     _TTL_GIORNI,
                 "scaduta":        self._cache_scaduta(),
             }
+        bundle = _build_bundle_completo()
         return {
             "sorgente":      "bundle",
             "aggiornato_il": "—",
-            "n_uffici":      len(_build_bundle_completo()),
+            "n_uffici":      len(bundle),
+            "per_tipo":      _conta_per_tipo(bundle),
             "cache_path":    str(self.cache_path),
             "ttl_giorni":    _TTL_GIORNI,
             "scaduta":       True,
@@ -846,6 +855,13 @@ class GestoreUfficiGiudiziari:
         4. Ri-salva il bundle interno (sempre riuscito)
         """
         import requests as req
+
+        # Ricarica esplicita dal bundle interno (richiesta dall'UI con url='bundle')
+        if url == "bundle":
+            bundle = _build_bundle_completo()
+            self._salva(bundle, sorgente="bundle")
+            self._mem = bundle
+            return True, f"Bundle interno ricaricato: {len(bundle)} uffici"
 
         fonti = [
             ("parametro",   url),

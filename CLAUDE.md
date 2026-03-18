@@ -133,3 +133,10 @@
   **Valore inviato dai form** (differenze per sezione app):
   - `polisWeb.html`: campo hidden invia `u.codice` (es. `0580010`)
   - `fascicoli/form.html`, `form_appuntamento.html`, `clienti/form.html`: `<select>` invia `u.nome` (es. `"Tribunale di Milano"`)
+
+  **Verifica visiva dopo ogni modifica al bundle** — pannello admin in `polisWeb.html`:
+  - Il badge "N uffici · aggiornati" (verde) è visibile solo agli admin.
+  - Cliccandolo si apre il pannello con il **breakdown per tipo** (Tribunali, Procure, G.d.P., ecc.).
+  - Dopo ogni modifica al bundle, cliccare **"Ricarica bundle"** per rigenerare la cache dal codice aggiornato (senza attendere TTL né fonti remote).
+  - Valori attesi a bundle v1.0.2: 648 uffici totali — GDP: 155, TRIBUNALE: 146, PROCURA: 147, CORTE_APPELLO: 23, PROCURA_GENERALE: 23, SORVEGLIANZA: 26, TM: 26, TAR: 31, CORTE_ASSISE: 69.
+  - Se i numeri non corrispondono dopo "Ricarica bundle", il deploy non ha incluso le modifiche a `pct/uffici_giudiziari.py`.

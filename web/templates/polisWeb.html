@@ -38,11 +38,14 @@
       <div class="card-body py-2 px-3 small" id="uffici-info-body">
         <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento…</div>
       </div>
-      <div class="card-footer py-2 px-3 d-flex gap-2 align-items-center">
-        <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" onclick="aggiornaUffici()">
-          <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna ora
+      <div class="card-footer py-2 px-3 d-flex flex-wrap gap-2 align-items-center">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-ricarica-bundle" onclick="ricaricaBundle()">
+          <i class="bi bi-box-arrow-in-down me-1"></i>Ricarica bundle
         </button>
-        <div class="input-group input-group-sm" style="max-width:340px">
+        <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" onclick="aggiornaUffici()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna da remoto
+        </button>
+        <div class="input-group input-group-sm" style="max-width:300px">
           <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
           <input type="url" id="uffici-url-custom" class="form-control"
                  placeholder="URL JSON personalizzato (facoltativo)">
@@ -412,61 +415,81 @@ const TIPO_LABEL = {
   CORTE_CASSAZIONE: "Cassazione", TM: "Trib. Minorenni", SORVEGLIANZA: "Trib. Sorveglianza",
 };
 
+const _TIPO_LABEL = {
+  TRIBUNALE: 'Tribunali', PROCURA: 'Procure', PROCURA_GENERALE: 'Proc. Generali',
+  CORTE_APPELLO: 'Corti d\'App.', CORTE_ASSISE: 'Assise', GDP: 'G.d.P.',
+  TM: 'Trib. Minorenni', SORVEGLIANZA: 'Sorveglianza', TAR: 'TAR',
+  CONSIGLIO_DI_STATO: 'Cons. Stato',
+};
+
 function caricaStatoUffici() {
   const badge = document.getElementById('badge-uffici-stato');
   if (!badge) return;
   fetch('/api/uffici/stato')
     .then(r => r.json())
     .then(d => {
-      const txt = document.getElementById('badge-uffici-txt');
+      const txt  = document.getElementById('badge-uffici-txt');
       const body = document.getElementById('uffici-info-body');
       const scad = d.scaduta;
       badge.className = `badge ${scad ? 'bg-warning text-dark' : 'bg-success'} ms-auto small`;
       if (txt) txt.textContent = `${d.n_uffici} uffici · ${scad ? 'da aggiornare' : 'aggiornati'}`;
       if (body) {
-        const dt = d.aggiornato_il !== '—'
+        const dt = d.aggiornato_il && d.aggiornato_il !== '—'
           ? new Date(d.aggiornato_il).toLocaleString('it-IT')
           : '—';
+        const perTipo = d.per_tipo || {};
+        const tipoRows = Object.entries(perTipo).map(([tipo, n]) => {
+          const label = _TIPO_LABEL[tipo] || tipo;
+          const hl = tipo === 'GDP' ? ' fw-bold text-primary' : '';
+          return `<span class="badge bg-light text-dark border me-1 mb-1${hl}">${label}: ${n}</span>`;
+        }).join('');
         body.innerHTML = `
-          <div class="row g-2">
-            <div class="col-6 col-md-3"><div class="text-muted">Uffici</div><div class="fw-semibold fs-5">${d.n_uffici}</div></div>
-            <div class="col-6 col-md-3"><div class="text-muted">Sorgente</div><div class="fw-semibold">${d.sorgente}</div></div>
-            <div class="col-6 col-md-3"><div class="text-muted">Aggiornato il</div><div class="fw-semibold">${dt}</div></div>
-            <div class="col-6 col-md-3"><div class="text-muted">TTL</div><div class="fw-semibold">${d.ttl_giorni} giorni</div></div>
+          <div class="row g-2 mb-2">
+            <div class="col-6 col-md-3"><div class="text-muted small">Totale uffici</div><div class="fw-semibold fs-5">${d.n_uffici}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted small">Sorgente</div><div class="fw-semibold">${d.sorgente}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted small">Aggiornato il</div><div class="fw-semibold">${dt}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted small">TTL</div><div class="fw-semibold">${d.ttl_giorni} giorni</div></div>
           </div>
-          ${scad ? '<div class="alert alert-warning mt-2 py-1 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Cache scaduta — clicca "Aggiorna ora"</div>' : ''}`;
+          <div class="border-top pt-2">${tipoRows || '<span class="text-muted">—</span>'}</div>
+          ${scad ? '<div class="alert alert-warning mt-2 py-1 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Cache scaduta — clicca "Ricarica bundle" o "Aggiorna da remoto"</div>' : ''}`;
       }
     })
     .catch(() => {});
 }
 
-function aggiornaUffici() {
-  const btn    = document.getElementById('btn-aggiorna-uffici');
-  const esito  = document.getElementById('uffici-aggiorna-esito');
-  const urlBox = document.getElementById('uffici-url-custom');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Aggiornamento…';
+function _inviaAggiorna(url, btnEl, labelOk) {
+  const esito = document.getElementById('uffici-aggiorna-esito');
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
   if (esito) esito.textContent = '';
   fetch('/api/uffici/aggiorna', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ url: urlBox ? urlBox.value.trim() : '' }),
+    body: JSON.stringify({ url }),
   })
     .then(r => r.json())
     .then(d => {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Aggiorna ora';
-      if (esito) {
-        esito.textContent = d.messaggio;
-        esito.className = d.ok ? 'text-success small' : 'text-danger small';
-      }
+      btnEl.disabled = false;
+      btnEl.innerHTML = labelOk;
+      if (esito) { esito.textContent = d.messaggio; esito.className = d.ok ? 'text-success small' : 'text-danger small'; }
       caricaStatoUffici();
     })
-    .catch(e => {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Aggiorna ora';
+    .catch(() => {
+      btnEl.disabled = false;
+      btnEl.innerHTML = labelOk;
       if (esito) { esito.textContent = 'Errore di rete.'; esito.className = 'text-danger small'; }
     });
+}
+
+function ricaricaBundle() {
+  const btn = document.getElementById('btn-ricarica-bundle');
+  _inviaAggiorna('bundle', btn, '<i class="bi bi-box-arrow-in-down me-1"></i>Ricarica bundle');
+}
+
+function aggiornaUffici() {
+  const btn    = document.getElementById('btn-aggiorna-uffici');
+  const urlBox = document.getElementById('uffici-url-custom');
+  _inviaAggiorna(urlBox ? urlBox.value.trim() : '', btn, '<i class="bi bi-arrow-clockwise me-1"></i>Aggiorna da remoto');
 }
 
 // Carica lo stato al click sul pannello

@@ -1714,45 +1714,48 @@ def create_app(config: dict | None = None) -> Flask:
         if not cliente_accessibile(id_cliente):
             flash("Non hai accesso a questa cartella cliente.", "danger")
             return redirect(url_for("lista_clienti"))
-        tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
-        _stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
-        fascicoli_attivi    = [f for f in tutti if f.stato not in _stati_chiusi]
-        fascicoli_archiviati = [f for f in tutti if f.stato in _stati_chiusi]
-        fascicoli_archiviati.sort(
-            key=lambda f: (f.archivio.data_archiviazione if f.archivio else ""),
-            reverse=True,
-        )
-        n_documenti = sum(f.documenti_count for f in tutti)
-        # Scadenze imminenti (entro 7 giorni)
-        from datetime import timedelta
-        oggi = date.today()
-        soglia = (oggi + timedelta(days=7)).isoformat()
-        scadenze_imminenti = []
-        for f in fascicoli_attivi:
-            ps = f.prossima_scadenza
-            if ps and ps.data and ps.data <= soglia:
-                scadenze_imminenti.append((f, ps))
-        scadenze_imminenti.sort(key=lambda x: x[1].data)
-        # Timeline: ultime 30 attività in ordine cronologico decrescente
-        timeline = []
-        for f in fascicoli_attivi:
-            for att in f.attivita:
-                timeline.append((f, att))
-        timeline.sort(key=lambda x: x[1].data if x[1].data else "", reverse=True)
-        timeline = timeline[:30]
-        track_recente("cliente", id_cliente, c.nome_completo,
-                      url_for("cartella_cliente", id_cliente=id_cliente),
-                      "bi-folder2-open")
-        return render_template(
-            "clienti/cartella.html",
-            cliente=c,
-            fascicoli_attivi=fascicoli_attivi,
-            fascicoli_archiviati=fascicoli_archiviati,
-            n_documenti=n_documenti,
-            scadenze_imminenti=scadenze_imminenti,
-            timeline=timeline,
-            oggi=oggi,
-        )
+        try:
+            tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
+            _stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
+            fascicoli_attivi    = [f for f in tutti if f.stato not in _stati_chiusi]
+            fascicoli_archiviati = [f for f in tutti if f.stato in _stati_chiusi]
+            fascicoli_archiviati.sort(
+                key=lambda x: (x.archivio.data_archiviazione if x.archivio else ""),
+                reverse=True,
+            )
+            n_documenti = sum(f.documenti_count for f in tutti)
+            from datetime import timedelta
+            oggi = date.today()
+            soglia = (oggi + timedelta(days=7)).isoformat()
+            scadenze_imminenti = []
+            for f in fascicoli_attivi:
+                ps = f.prossima_scadenza
+                if ps and ps.data and ps.data <= soglia:
+                    scadenze_imminenti.append((f, ps))
+            scadenze_imminenti.sort(key=lambda x: x[1].data)
+            timeline = []
+            for f in fascicoli_attivi:
+                for att in f.attivita:
+                    timeline.append((f, att))
+            timeline.sort(key=lambda x: x[1].data if x[1].data else "", reverse=True)
+            timeline = timeline[:30]
+            track_recente("cliente", id_cliente, c.nome_completo,
+                          url_for("cartella_cliente", id_cliente=id_cliente),
+                          "bi-folder2-open")
+            return render_template(
+                "clienti/cartella.html",
+                cliente=c,
+                fascicoli_attivi=fascicoli_attivi,
+                fascicoli_archiviati=fascicoli_archiviati,
+                n_documenti=n_documenti,
+                scadenze_imminenti=scadenze_imminenti,
+                timeline=timeline,
+                oggi=oggi,
+            )
+        except Exception as e:
+            app.logger.exception("Errore cartella_cliente %s: %s", id_cliente, e)
+            flash(f"Errore nel caricamento della cartella: {e}", "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
 
     # ================================================================ PORTALE CLIENTE
     # Pannello avvocato per gestire il portale self-service del cliente

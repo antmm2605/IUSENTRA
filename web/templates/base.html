@@ -786,7 +786,7 @@ if ('serviceWorker' in navigator) {
   var cls = document.getElementById('sb-close');
   function open()  { sb.classList.add('sb-open');  ov.classList.add('sb-open'); }
   function close() { sb.classList.remove('sb-open'); ov.classList.remove('sb-open'); }
-  if (btn) btn.addEventListener('click', open);
+  if (btn) btn.addEventListener('click', function(){ sb.classList.contains('sb-open') ? close() : open(); });
   if (cls) cls.addEventListener('click', close);
   if (ov)  ov.addEventListener('click', close);
 })();

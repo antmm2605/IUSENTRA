@@ -42,7 +42,7 @@
 **Deploy — Railway (produzione online):**
 - Il deploy su Railway avviene dopo il bump di versione e il push sul branch.
 - Ad ogni release va aggiornata anche la versione sul pannello Railway (variabile d'ambiente o redeploy dell'immagine).
-- Versione corrente in produzione: **1.0.1**
+- Versione corrente in produzione: **1.0.2**
 
 ## Note tecniche
 

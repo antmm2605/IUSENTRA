@@ -1526,12 +1526,16 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/api/uffici")
     def api_uffici():
         """Autocomplete uffici giudiziari — usa la cache aggiornata del GestoreUfficiGiudiziari."""
-        from pct.uffici_giudiziari import get_gestore
-        q    = request.args.get("q", "").strip()
-        tipo = request.args.get("tipo", "")
-        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-        gestore = get_gestore(cache_path)
-        return jsonify(gestore.cerca(q, tipo))
+        try:
+            from pct.uffici_giudiziari import get_gestore
+            q    = request.args.get("q", "").strip()
+            tipo = request.args.get("tipo", "")
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            gestore = get_gestore(cache_path)
+            return jsonify(gestore.cerca(q, tipo))
+        except Exception as e:
+            app.logger.exception("Errore api_uffici: %s", e)
+            return jsonify([]), 200  # restituisce lista vuota per non bloccare l'autocomplete
 
     @app.route("/api/uffici/aggiorna", methods=["POST"])
     def api_uffici_aggiorna():
@@ -1554,9 +1558,13 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"ok": False}), 403
-        from pct.uffici_giudiziari import get_gestore
-        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-        return jsonify(get_gestore(cache_path).stato())
+        try:
+            from pct.uffici_giudiziari import get_gestore
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            return jsonify(get_gestore(cache_path).stato())
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_stato: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
 
     # ---------------------------------------------------------------- tribunali
 

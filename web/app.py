@@ -1823,7 +1823,7 @@ def create_app(config: dict | None = None) -> Flask:
                 cliente=c,
                 portale_obj=portale_obj,
                 link_portale=link_portale,
-                oggi=date.today().isoformat(),
+                oggi=date.today(),
                 studio_nome=app.config.get("STUDIO_NOME", "Studio Legale PCT"),
             )
         except Exception as e:

@@ -135,32 +135,51 @@
 
     {# Selezione documenti #}
     <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-paperclip me-2 text-primary"></i>
-        Documenti da includere nella busta
+      <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-paperclip me-2 text-primary"></i>Documenti da includere nella busta</span>
+        <span class="badge bg-secondary" id="contaDoc">0 selezionati</span>
       </div>
       <div class="card-body p-0">
         {% if fascicolo.documenti %}
-        <div class="table-responsive">
+
+        {# Barra dimensione busta #}
+        <div class="px-3 pt-3 pb-1">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <small class="text-muted">Dimensione stimata busta</small>
+            <small id="dimTot" class="fw-semibold">0 KB</small>
+          </div>
+          <div class="progress" style="height:6px">
+            <div id="dimBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+          </div>
+          <div id="dimWarning" class="text-danger small mt-1" style="display:none">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            Dimensione supera i 30 MB — ridurre gli allegati prima dell'invio.
+          </div>
+        </div>
+
+        <div class="table-responsive mt-2">
           <table class="table table-hover align-middle mb-0 small">
             <thead class="table-light">
               <tr>
                 <th style="width:90px" class="text-center">Atto princ.</th>
                 <th style="width:80px" class="text-center">Allegato</th>
                 <th>Nome documento</th>
-                <th>Tipo</th>
-                <th>Data</th>
-                <th>Firmato</th>
+                <th>Formato</th>
+                <th>Firma</th>
+                <th>Dim.</th>
+                <th style="width:180px">Tipo allegato</th>
               </tr>
             </thead>
             <tbody>
               {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
               {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
-              <tr>
+              {% set nome_base = doc.nome.rsplit('.',1)[0] if '.' in doc.nome else doc.nome %}
+              {% set dim_mb = (doc.dimensione_bytes / 1048576) if doc.dimensione_bytes else 0 %}
+              <tr data-bytes="{{ doc.dimensione_bytes or 0 }}">
                 <td class="text-center">
                   <input type="radio" name="atto_principale_id"
                          value="{{ doc.id }}"
-                         class="form-check-input"
+                         class="form-check-input radio-atto"
                          {% if loop.first %}checked{% endif %}
                          title="Imposta come atto principale">
                 </td>
@@ -171,29 +190,79 @@
                          title="Includi come allegato">
                 </td>
                 <td>
-                  <div class="fw-semibold">{{ doc.nome }}</div>
+                  <div class="fw-semibold text-truncate" style="max-width:200px" title="{{ doc.nome }}">
+                    {{ doc.nome }}
+                  </div>
                   {% if doc.note %}
                   <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
                   {% endif %}
+                  {# warning nome con spazi/caratteri speciali #}
+                  {% if ' ' in doc.nome or '(' in doc.nome or ')' in doc.nome or '[' in doc.nome or '#' in doc.nome %}
+                  <div class="text-warning" style="font-size:.68rem" title="Il nome contiene spazi o caratteri speciali">
+                    <i class="bi bi-exclamation-triangle-fill"></i> nome non conforme
+                  </div>
+                  {% endif %}
                 </td>
                 <td>
-                  <span class="badge bg-light text-dark border" style="font-size:.68rem">
-                    {{ doc.tipo.value.replace('_',' ') }}
-                  </span>
+                  {% if ext == 'p7m' %}
+                    <span class="badge bg-success text-white" style="font-size:.68rem">P7M</span>
+                    <div class="text-muted" style="font-size:.65rem">CAdES</div>
+                  {% elif ext == 'pdf' %}
+                    <span class="badge bg-primary text-white" style="font-size:.68rem">PDF</span>
+                    <div class="text-muted" style="font-size:.65rem">raccomandate PDF/A</div>
+                  {% elif ext in ('doc','docx','odt','rtf') %}
+                    <span class="badge bg-danger text-white" style="font-size:.68rem">{{ ext|upper }}</span>
+                    <div class="text-danger" style="font-size:.65rem">non conforme PCT</div>
+                  {% else %}
+                    <span class="badge bg-secondary text-white" style="font-size:.68rem">{{ ext|upper or '?' }}</span>
+                  {% endif %}
                 </td>
-                <td class="text-nowrap">{{ doc.data_documento or '—' }}</td>
                 <td>
                   {% if doc.firmato_digitalmente %}
-                  <i class="bi bi-patch-check-fill text-success" title="Firmato"></i>
+                    <i class="bi bi-patch-check-fill text-success fs-5" title="Firmato digitalmente"></i>
                   {% else %}
-                  <i class="bi bi-dash text-muted"></i>
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-5"
+                       title="Non firmato — l'atto principale richiede firma digitale"></i>
                   {% endif %}
+                </td>
+                <td class="text-nowrap {% if dim_mb > 30 %}text-danger fw-semibold{% endif %}">
+                  {% if doc.dimensione_bytes %}
+                    {% if dim_mb >= 1 %}
+                      {{ "%.1f"|format(dim_mb) }} MB
+                    {% else %}
+                      {{ (doc.dimensione_bytes // 1024) }} KB
+                    {% endif %}
+                    {% if dim_mb > 30 %}
+                    <i class="bi bi-exclamation-triangle-fill text-danger" title="File supera 30 MB"></i>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <select name="tipo_allegato_{{ doc.id }}"
+                          class="form-select form-select-sm sel-tipo-allegato"
+                          style="display:none;font-size:.72rem"
+                          data-doc-id="{{ doc.id }}">
+                    <option value="ALLEGATO">Documento probatorio</option>
+                    <option value="PROCURA">Procura alle liti</option>
+                    <option value="NOTA_SPESE">Nota spese</option>
+                    <option value="COMUNICAZIONE">Comunicazione / corrispondenza</option>
+                  </select>
                 </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        {# Avviso atto principale non firmato #}
+        <div id="avvisoFirma" class="alert alert-warning small m-3 mb-2 py-2" style="display:none">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <strong>Attenzione:</strong> l'atto principale selezionato non risulta firmato digitalmente.
+          La firma CAdES (.p7m) o PAdES è obbligatoria per il deposito PCT.
+        </div>
+
         {% else %}
         <div class="text-muted text-center py-4 small">
           <i class="bi bi-exclamation-circle me-2"></i>
@@ -238,6 +307,37 @@
           La busta viene creata localmente e inviata via PEC all'ufficio selezionato.
           Le ricevute di accettazione e consegna vengono monitorate automaticamente.
         </div>
+      </div>
+    </div>
+
+    {# Requisiti tecnici PCT 2026 #}
+    <div class="card shadow-sm mb-3 border-warning">
+      <div class="card-header fw-semibold bg-warning-subtle">
+        <i class="bi bi-shield-check me-2 text-warning"></i>Requisiti tecnici PCT 2026
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush small">
+          <li class="list-group-item py-2">
+            <i class="bi bi-check2-circle text-success me-2"></i>
+            <strong>Firma obbligatoria</strong> sull'atto principale<br>
+            <span class="text-muted" style="font-size:.72rem">CAdES (.p7m) o PAdES incorporata nel PDF</span>
+          </li>
+          <li class="list-group-item py-2">
+            <i class="bi bi-check2-circle text-success me-2"></i>
+            <strong>Formato PDF/A</strong> raccomandato<br>
+            <span class="text-muted" style="font-size:.72rem">ISO 19005 — garantisce la leggibilità a lungo termine</span>
+          </li>
+          <li class="list-group-item py-2">
+            <i class="bi bi-check2-circle text-success me-2"></i>
+            <strong>Nomi file</strong> senza spazi né caratteri speciali<br>
+            <span class="text-muted" style="font-size:.72rem">Usare solo lettere, numeri, trattini e underscore</span>
+          </li>
+          <li class="list-group-item py-2">
+            <i class="bi bi-check2-circle text-success me-2"></i>
+            <strong>Dimensione massima busta:</strong> 30 MB<br>
+            <span class="text-muted" style="font-size:.72rem">Somma di atto principale + tutti gli allegati</span>
+          </li>
+        </ul>
       </div>
     </div>
 
@@ -306,13 +406,13 @@
 
 <script>
 /* ---- Autocomplete uffici giudiziari ---- */
-const inp   = document.getElementById('uffInput');
-const drop  = document.getElementById('uffDropdown');
+const inp    = document.getElementById('uffInput');
+const drop   = document.getElementById('uffDropdown');
 const hidCod = document.getElementById('codiceUfficio');
 const hidNom = document.getElementById('tribunaleNome');
 const hidPec = document.getElementById('tribunalePec');
-const pecRow  = document.getElementById('pecPreviewRow');
-const pecTxt  = document.getElementById('pecPreviewTxt');
+const pecRow = document.getElementById('pecPreviewRow');
+const pecTxt = document.getElementById('pecPreviewTxt');
 
 let _timer = null;
 
@@ -348,10 +448,10 @@ function cercaUffici(q) {
 }
 
 function seleziona(u) {
-  inp.value     = u.nome;
-  hidCod.value  = u.codice  || '';
-  hidNom.value  = u.nome;
-  hidPec.value  = u.pec     || '';
+  inp.value    = u.nome;
+  hidCod.value = u.codice || '';
+  hidNom.value = u.nome;
+  hidPec.value = u.pec   || '';
   drop.style.display = 'none';
   if (u.pec) {
     pecTxt.textContent   = u.pec;
@@ -369,53 +469,120 @@ function seleziona(u) {
       .then(r => r.json())
       .then(lista => {
         const u = lista.find(x => x.nome === nomePrecomp) || lista[0];
-        if (u) { hidCod.value = u.codice || ''; hidPec.value = u.pec || '';
-          if (u.pec) { pecTxt.textContent = u.pec; pecRow.style.display = ''; } }
+        if (u) {
+          hidCod.value = u.codice || '';
+          hidPec.value = u.pec   || '';
+          if (u.pec) { pecTxt.textContent = u.pec; pecRow.style.display = ''; }
+        }
       }).catch(() => {});
   }
 })();
 
-/* ---- Mutex atto principale ↔ allegato ---- */
-document.querySelectorAll('input[name="atto_principale_id"]').forEach(radio => {
+/* ---- Mutex atto principale ↔ allegato + mostra tipo allegato ---- */
+document.querySelectorAll('.radio-atto').forEach(radio => {
   radio.addEventListener('change', function() {
-    /* deseleziona automaticamente la checkbox allegato corrispondente */
-    const row = this.closest('tr');
-    if (row) {
-      const cb = row.querySelector('.check-allegato');
-      if (cb) cb.checked = false;
-    }
+    aggiornaUI();
   });
 });
 
 document.querySelectorAll('.check-allegato').forEach(cb => {
   cb.addEventListener('change', function() {
-    if (!this.checked) return;
-    /* se l'utente seleziona allegato per la stessa riga che ha l'atto principale, deseleziona radio */
     const row = this.closest('tr');
-    const radio = row ? row.querySelector('input[name="atto_principale_id"]') : null;
-    if (radio && radio.checked) {
-      /* non facciamo niente — permettiamo che lo stesso doc sia sia atto che allegato
-         (caso bordo: utente sa quello che fa) */
-    }
+    const sel = row ? row.querySelector('.sel-tipo-allegato') : null;
+    if (sel) sel.style.display = this.checked ? '' : 'none';
+    aggiornaUI();
   });
 });
 
-/* ---- Submit: mostra spinner ---- */
+/* ---- Aggiorna dimensione busta + badge contatore + avviso firma ---- */
+const LIMITE_MB = 30;
+const LIMITE_BYTES = LIMITE_MB * 1024 * 1024;
+
+function aggiornaUI() {
+  let totalBytes = 0;
+  let selCount   = 0;
+  let attoPrincipaleRow = null;
+
+  /* Atto principale sempre conteggiato */
+  const radioSel = document.querySelector('.radio-atto:checked');
+  if (radioSel) {
+    const tr = radioSel.closest('tr');
+    if (tr) {
+      totalBytes += parseInt(tr.dataset.bytes || 0);
+      attoPrincipaleRow = tr;
+    }
+  }
+
+  /* Allegati selezionati */
+  document.querySelectorAll('.check-allegato:checked').forEach(cb => {
+    const tr = cb.closest('tr');
+    if (tr) {
+      totalBytes += parseInt(tr.dataset.bytes || 0);
+      selCount++;
+    }
+  });
+
+  /* Badge contatore */
+  document.getElementById('contaDoc').textContent =
+    selCount + ' allegat' + (selCount === 1 ? 'o' : 'i');
+
+  /* Dimensione */
+  const dimEl  = document.getElementById('dimTot');
+  const barEl  = document.getElementById('dimBar');
+  const warnEl = document.getElementById('dimWarning');
+  const mb     = totalBytes / 1048576;
+  dimEl.textContent = mb >= 1
+    ? mb.toFixed(1) + ' MB'
+    : Math.round(totalBytes / 1024) + ' KB';
+
+  const pct = Math.min((totalBytes / LIMITE_BYTES) * 100, 100);
+  barEl.style.width = pct + '%';
+  if (mb > LIMITE_MB) {
+    barEl.className = 'progress-bar bg-danger';
+    warnEl.style.display = '';
+  } else if (mb > LIMITE_MB * 0.8) {
+    barEl.className = 'progress-bar bg-warning';
+    warnEl.style.display = 'none';
+  } else {
+    barEl.className = 'progress-bar bg-success';
+    warnEl.style.display = 'none';
+  }
+
+  /* Avviso firma atto principale */
+  const avvisoFirma = document.getElementById('avvisoFirma');
+  if (avvisoFirma && attoPrincipaleRow) {
+    const icona = attoPrincipaleRow.querySelector('.bi-exclamation-triangle-fill.text-warning');
+    avvisoFirma.style.display = icona ? '' : 'none';
+  }
+}
+
+/* Init al caricamento */
+aggiornaUI();
+
+/* ---- Submit: valida e mostra spinner ---- */
 function avviaDeposito() {
-  /* Validazione minima */
   const tribunaleNome = document.getElementById('tribunaleNome').value.trim();
   if (!tribunaleNome) {
     alert('Seleziona un ufficio giudiziario destinatario.');
     return false;
   }
-  const attoSel = document.querySelector('input[name="atto_principale_id"]:checked');
+  const attoSel = document.querySelector('.radio-atto:checked');
   if (!attoSel) {
     alert('Seleziona l\'atto principale da includere nella busta.');
     return false;
   }
+
+  /* Blocca se oltre 30 MB */
+  const rows = [attoSel.closest('tr'),
+    ...Array.from(document.querySelectorAll('.check-allegato:checked')).map(c => c.closest('tr'))];
+  const totBytes = rows.reduce((s, tr) => s + parseInt(tr ? tr.dataset.bytes || 0 : 0), 0);
+  if (totBytes > LIMITE_BYTES) {
+    if (!confirm('La dimensione stimata supera i 30 MB. Procedere comunque?')) return false;
+  }
+
   document.getElementById('btnInvia').disabled = true;
   document.getElementById('invioSpinner').style.display = '';
-  return true; /* lascia procedere il submit normale */
+  return true;
 }
 </script>
 

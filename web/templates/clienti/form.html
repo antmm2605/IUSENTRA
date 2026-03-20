@@ -938,26 +938,36 @@ function preprocessMRZ(dataURL) {
 function getWorker() {
   if (_tesseractReady && _tesseractWorker) return Promise.resolve(_tesseractWorker);
   return new Promise((resolve, reject) => {
+    // Timeout globale 40 s: evita blocco silenzioso se CDN è irraggiungibile
+    const timeout = setTimeout(() => reject(new Error('Timeout caricamento motore OCR (rete lenta o CDN non raggiungibile)')), 40000);
+    const done = (fn, val) => { clearTimeout(timeout); fn(val); };
     if (window.Tesseract) {
-      creaWorker().then(resolve).catch(reject);
+      creaWorker().then(w => done(resolve, w)).catch(e => done(reject, e));
       return;
     }
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload  = () => creaWorker().then(resolve).catch(reject);
-    s.onerror = () => reject(new Error('Impossibile caricare Tesseract.js'));
+    s.onload  = () => creaWorker().then(w => done(resolve, w)).catch(e => done(reject, e));
+    s.onerror = () => done(reject, new Error('Impossibile caricare Tesseract.js dal CDN'));
     document.head.appendChild(s);
   });
 }
 
 async function creaWorker() {
+  // langPath: jsDelivr GitHub CDN — più affidabile di tessdata.projectnaptha.com
   const w = await Tesseract.createWorker('ocrb', 1, {
     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0_best',
+    corePath:   'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+    langPath:   'https://cdn.jsdelivr.net/gh/naptha/tessdata@4.0.0_best',
     logger: m => {
-      if (m.status === 'recognizing text') {
-        aggiornaProg(55 + Math.round(m.progress * 25), 'Riconoscimento caratteri…');
+      if (m.status === 'loading tesseract core') {
+        aggiornaProg(40, 'Caricamento core WASM…');
+      } else if (m.status === 'initializing tesseract') {
+        aggiornaProg(48, 'Inizializzazione motore…');
+      } else if (m.status === 'loading language traineddata') {
+        aggiornaProg(35 + Math.round((m.progress || 0) * 15), 'Download modello OCR…');
+      } else if (m.status === 'recognizing text') {
+        aggiornaProg(55 + Math.round((m.progress || 0) * 25), 'Riconoscimento caratteri…');
       }
     },
   });

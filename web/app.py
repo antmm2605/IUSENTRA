@@ -1210,10 +1210,12 @@ def create_app(config: dict | None = None) -> Flask:
             except ValueError as e:
                 flash(str(e), "danger")
 
+        data_default = request.args.get("data", "")
         return render_template(
             "form_appuntamento.html",
             app=None,
             tipi=list(TipoAppuntamento),
+            data_default=data_default,
         )
 
     @app.route("/agenda/<id_app>")

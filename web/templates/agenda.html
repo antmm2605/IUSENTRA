@@ -391,11 +391,27 @@
     setTimeout(() => { t.style.display = 'none'; }, 4000);
   }
 
+  /* ------------------------------------------------------------------ click giorno → nuovo appuntamento */
+  function initClickGiorno() {
+    document.querySelectorAll('.dnd-drop-zone[data-date]').forEach(zona => {
+      zona.style.cursor = 'pointer';
+      zona.addEventListener('click', function (e) {
+        // ignora se è stato appena trascinato
+        if (window._wasDragging) return;
+        // ignora click su pill esistente (link appuntamento)
+        if (e.target.closest('.app-pill, .dnd-pill, a')) return;
+        const data = zona.dataset.date;
+        if (data) window.location.href = '/agenda/nuovo?data=' + data;
+      });
+    });
+  }
+
   /* ------------------------------------------------------------------ init */
   document.addEventListener('DOMContentLoaded', () => {
     initPills();
     initDropZones();
     initGiornoRows();
+    initClickGiorno();
   });
 })();
 </script>

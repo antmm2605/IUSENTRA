@@ -39,7 +39,7 @@
     <div class="col-md-3">
       <label class="form-label fw-semibold">Data <span class="text-danger">*</span></label>
       <input type="date" name="data" class="form-control"
-             value="{{ app.data_ora_dt.strftime('%Y-%m-%d') if app else '' }}" required>
+             value="{{ app.data_ora_dt.strftime('%Y-%m-%d') if app else (data_default or '') }}" required>
     </div>
     <div class="col-md-3">
       <label class="form-label fw-semibold">Ora <span class="text-danger">*</span></label>

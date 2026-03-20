@@ -76,7 +76,13 @@
                  value="{{ cfg.studio.cf }}" placeholder="RSSMRA80A01H501Z" maxlength="16">
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold">C.F. Avvocato (PCT)</label>
+          <label class="form-label fw-semibold">
+            C.F. Avvocato (PCT)
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="C.F. Avvocato per i depositi PCT"
+                    data-bs-content="<p class='mb-1'>Diverso dal C.F. dello studio.</p><p class='mb-0'>Viene inserito nelle buste telematiche come identificativo del difensore. <strong>Deve corrispondere esattamente al C.F. nel certificato di firma digitale</strong>, altrimenti il deposito viene rifiutato dal sistema PST.</p>">?</button>
+          </label>
           <input type="text" name="codice_fiscale_avvocato" class="form-control font-monospace"
                  value="{{ cfg.studio.codice_fiscale_avvocato }}" placeholder="Usato nei depositi telematici">
           <div class="form-text">Codice fiscale per i depositi PCT.</div>
@@ -102,7 +108,13 @@
                  value="{{ cfg.studio.sito_web }}" placeholder="https://www.studiorossi.it">
         </div>
         <div class="col-md-6">
-          <label class="form-label fw-semibold">IBAN</label>
+          <label class="form-label fw-semibold">
+            IBAN
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="A cosa serve l'IBAN"
+                    data-bs-content="Appare automaticamente nelle parcelle PDF generate dall'app, nella sezione pagamenti, con le istruzioni per il bonifico al cliente. Non viene usato per transazioni automatiche.">?</button>
+          </label>
           <input type="text" name="iban" class="form-control font-monospace"
                  value="{{ cfg.studio.iban }}" placeholder="IT60X0542811101000000123456">
           <div class="form-text">Usato nelle parcelle e nelle istruzioni di bonifico.</div>
@@ -193,7 +205,13 @@
           {% endif %}
         </div>
 
-        <div class="col-12"><hr class="my-1"><span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-send me-1 text-primary"></i>SMTP (invio)</span></div>
+        <div class="col-12"><hr class="my-1">
+          <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-send me-1 text-primary"></i>SMTP (invio)</span>
+          <button type="button" class="btn-help ms-1"
+                  data-bs-toggle="popover"
+                  data-bs-title="SMTP — protocollo di invio"
+                  data-bs-content="SMTP è il protocollo usato per <strong>inviare</strong> messaggi PEC. Serve per i depositi telematici e le notifiche. La porta standard per PEC con SSL è <code>465</code>.">?</button>
+        </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Host SMTP</label>
           <input type="text" name="pec_smtp_host" id="pec_smtp_host" class="form-control font-monospace"
@@ -209,11 +227,23 @@
             <input class="form-check-input" type="checkbox" role="switch"
                    name="pec_use_ssl" id="pec_use_ssl" value="1"
                    {{ 'checked' if cfg.pec.use_ssl }}>
-            <label class="form-check-label fw-semibold" for="pec_use_ssl">SSL/TLS</label>
+            <label class="form-check-label fw-semibold" for="pec_use_ssl">
+              SSL/TLS
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="SSL/TLS vs STARTTLS"
+                      data-bs-content="<ul><li><strong>SSL/TLS</strong> (porta 465): connessione cifrata fin dall'inizio. Usato dalla maggior parte dei provider PEC italiani.</li><li><strong>STARTTLS</strong> (porta 587): avvia in chiaro poi cifra. Meno comune per PEC, più usato per email ordinaria.</li></ul>Lascia attivo per Aruba, Legalmail, Namirial e Poste.">?</button>
+            </label>
           </div>
         </div>
 
-        <div class="col-12"><span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-inbox me-1 text-primary"></i>IMAP (ricezione / lettura ricevute)</span></div>
+        <div class="col-12">
+          <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-inbox me-1 text-primary"></i>IMAP (ricezione / lettura ricevute)</span>
+          <button type="button" class="btn-help ms-1"
+                  data-bs-toggle="popover"
+                  data-bs-title="IMAP — lettura ricevute PEC"
+                  data-bs-content="IMAP è il protocollo usato per <strong>leggere</strong> la posta in arrivo. Serve per recuperare le ricevute di accettazione e consegna dei depositi telematici. La porta standard è <code>993</code> con SSL.">?</button>
+        </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Host IMAP</label>
           <input type="text" name="pec_imap_host" id="pec_imap_host" class="form-control font-monospace"
@@ -297,7 +327,13 @@
 
       {# ── Selezione formato ── #}
       <div class="mb-4">
-        <label class="form-label fw-semibold">Formato certificato</label>
+        <label class="form-label fw-semibold">
+          Formato certificato
+          <button type="button" class="btn-help"
+                  data-bs-toggle="popover"
+                  data-bs-title="P12/PFX vs PEM — quale scegliere?"
+                  data-bs-content="<ul><li><strong>P12/PFX</strong> — file unico che contiene certificato e chiave privata. È il formato rilasciato da Aruba, Infocert, Namirial, Poste. È quello più comune.</li><li><strong>PEM</strong> — due file separati: <code>.crt</code> (certificato) e <code>.key</code> (chiave privata). Da usare solo se il provider non rilascia P12.</li></ul>Se non sai quale hai, guarda l'estensione del file ricevuto.">?</button>
+        </label>
         <div class="d-flex gap-3 flex-wrap">
           <div class="form-check">
             <input class="form-check-input" type="radio" name="firma_formato" id="fmt_p12"
@@ -323,7 +359,13 @@
       {# ── Sezione P12 ── #}
       <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt == 'pem' }}">
         <div class="col-12">
-          <label class="form-label fw-semibold">Percorso file P12/PFX</label>
+          <label class="form-label fw-semibold">
+            Percorso file P12/PFX
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="Dove mettere il file P12"
+                    data-bs-content="<p class='mb-1'><strong>Con Docker:</strong> monta il file nel volume <code>/data/config/</code> aggiungendo nel <code>docker-compose.yml</code>:</p><code>volumes:<br>&nbsp;&nbsp;- ./firma.p12:/data/config/firma.p12</code><p class='mb-0 mt-1'>Poi inserisci qui il percorso <code>/data/config/firma.p12</code>.</p>">?</button>
+          </label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-file-earmark-lock2"></i></span>
             <input type="text" name="firma_p12_path" class="form-control font-monospace"
@@ -402,7 +444,13 @@
       {# ── Codice Fiscale (comune) ── #}
       <div class="row g-3 mt-1">
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Codice Fiscale Avvocato</label>
+          <label class="form-label fw-semibold">
+            Codice Fiscale Avvocato
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="CF nel certificato di firma"
+                    data-bs-content="<strong>Deve corrispondere esattamente</strong> al codice fiscale codificato nel certificato di firma digitale. Se non corrispondono, il PST rifiuta il deposito con errore di autenticazione.<br><br>Per verificare il CF nel tuo certificato, aprilo con un gestore certificati (es. Keychain su Mac, Gestore certificati su Windows) e controlla il campo <em>Subject</em>.">?</button>
+          </label>
           <input type="text" name="firma_cf_avvocato" class="form-control font-monospace text-uppercase"
                  value="{{ cfg.firma.cf_avvocato }}" placeholder="RSSMRA80A01H501Z" maxlength="16">
           <div class="form-text">Deve corrispondere al CF nel certificato di firma.</div>
@@ -484,7 +532,13 @@ function switchFirmaFmt(fmt) {
             <input class="form-check-input" type="checkbox" role="switch"
                    name="smtp_use_tls" id="smtp_use_tls" value="1"
                    {{ 'checked' if cfg.smtp.use_tls }}>
-            <label class="form-check-label fw-semibold" for="smtp_use_tls">STARTTLS</label>
+            <label class="form-check-label fw-semibold" for="smtp_use_tls">
+              STARTTLS
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="STARTTLS"
+                      data-bs-content="Abilita se il provider usa STARTTLS su porta 587 (Gmail, Outlook, IONOS). Disabilita se usa SSL diretto su porta 465 (Aruba). Se la connessione di test fallisce, prova a invertire questa impostazione.">?</button>
+            </label>
           </div>
         </div>
         <div class="col-md-6">
@@ -496,7 +550,13 @@ function switchFirmaFmt(fmt) {
           </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Password / App Password</label>
+          <label class="form-label fw-semibold">
+            Password / App Password
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="App Password per Gmail e Outlook"
+                    data-bs-content="<strong>Gmail:</strong> non usare la password principale. Vai su <em>myaccount.google.com → Sicurezza → Password per le app</em> e genera una password dedicata per questa app (16 caratteri senza spazi).<br><br><strong>Outlook / Microsoft 365:</strong> se hai la 2FA attiva, genera un'App Password da <em>account.microsoft.com → Sicurezza</em>.">?</button>
+          </label>
           <div class="input-group">
             <input type="password" name="smtp_password" id="smtp_password" class="form-control font-monospace"
                    placeholder="{{ '••••••••' if cfg.smtp.password else 'Nessuna password' }}"
@@ -632,7 +692,13 @@ function switchFirmaFmt(fmt) {
           {% endif %}
         </div>
         <div class="col-md-4">
-          <label class="form-label fw-semibold">Numero WhatsApp (whatsapp:+1...)</label>
+          <label class="form-label fw-semibold">
+            Numero WhatsApp
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="Formato numero Twilio WhatsApp"
+                    data-bs-content="<p class='mb-1'>Il numero deve iniziare con il prefisso <code>whatsapp:</code> seguito dal numero internazionale.</p><p class='mb-1'><strong>Sandbox (test):</strong> <code>whatsapp:+14155238886</code></p><p class='mb-0'><strong>Numero Business:</strong> <code>whatsapp:+39XXXXXXXXXX</code><br>Lo trovi nel pannello Twilio → Messaging → Sender overview.</p>">?</button>
+          </label>
           <input type="text" name="twilio_numero" id="twilio_numero" class="form-control font-monospace"
                  value="{{ cfg.whatsapp.twilio_numero }}" placeholder="whatsapp:+14155238886">
         </div>

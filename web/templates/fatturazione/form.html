@@ -48,7 +48,13 @@
       <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
         <div class="card-body">
           <div class="d-flex align-items-center justify-content-between mb-3">
-            <h6 class="fw-semibold mb-0"><i class="bi bi-list-ul me-2"></i>Voci prestazioni</h6>
+            <h6 class="fw-semibold mb-0">
+              <i class="bi bi-list-ul me-2"></i>Voci prestazioni
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Voci prestazioni"
+                      data-bs-content="<p class='mb-1'>Ogni voce ha <strong>Descrizione</strong>, <strong>Quantità</strong> e <strong>Importo unitario</strong>.</p><ul><li><em>Quantità</em>: accetta decimali, es. <code>2.5</code> per 2 ore e mezza.</li><li><em>Importo</em>: il prezzo unitario in euro.</li></ul>Usa i pulsanti rapidi sotto per le prestazioni più comuni.">?</button>
+            </h6>
             <button type="button" class="btn btn-sm btn-outline-primary" id="btn-aggiungi-voce">
               <i class="bi bi-plus-lg me-1"></i>Aggiungi voce
             </button>
@@ -140,6 +146,10 @@
                      name="applica_cassa" id="chk-cassa" value="1" checked>
               <label class="form-check-label" for="chk-cassa" style="font-size:.85rem;">
                 Cassa Forense 4 %
+                <button type="button" class="btn-help"
+                        data-bs-toggle="popover"
+                        data-bs-title="Contributo integrativo Cassa Forense"
+                        data-bs-content="<strong>Obbligatorio</strong> per tutti gli avvocati iscritti all'Albo. Va addebitato ai clienti su tutti i compensi professionali, indipendentemente dal regime fiscale (anche forfettario). Si calcola sul totale del compenso prima dell'IVA.">?</button>
               </label>
             </div>
             <div class="form-check form-switch">
@@ -147,6 +157,10 @@
                      name="applica_iva" id="chk-iva" value="1" checked>
               <label class="form-check-label" for="chk-iva" style="font-size:.85rem;">
                 IVA 22 %
+                <button type="button" class="btn-help"
+                        data-bs-toggle="popover"
+                        data-bs-title="IVA al 22%"
+                        data-bs-content="Applica se sei in <strong>regime ordinario IVA</strong>.<br><br>Se sei in <strong>regime forfettario</strong> (Legge 190/2014), deseleziona questa voce e aggiungi la dicitura legale di esenzione nella sezione Note.">?</button>
               </label>
             </div>
             <div class="form-check form-switch">
@@ -154,6 +168,10 @@
                      name="applica_ritenuta" id="chk-ritenuta" value="1">
               <label class="form-check-label" for="chk-ritenuta" style="font-size:.85rem;">
                 Ritenuta d'acconto 20 %
+                <button type="button" class="btn-help"
+                        data-bs-toggle="popover"
+                        data-bs-title="Ritenuta d'acconto 20%"
+                        data-bs-content="Da applicare <strong>solo</strong> quando il cliente è un <em>sostituto d'imposta</em>: società, professionisti con P.IVA, enti pubblici, associazioni.<br><br><strong>NON si applica</strong> per clienti privati (persone fisiche senza P.IVA).<br><br>La ritenuta viene trattenuta dal cliente e versata all'Erario: per te è un anticipo IRPEF.">?</button>
               </label>
             </div>
             <div class="form-check form-switch">
@@ -161,6 +179,10 @@
                      name="applica_bollo" id="chk-bollo" value="1">
               <label class="form-check-label" for="chk-bollo" style="font-size:.85rem;">
                 Marca da bollo € 2,00
+                <button type="button" class="btn-help"
+                        data-bs-toggle="popover"
+                        data-bs-title="Marca da bollo"
+                        data-bs-content="Obbligatoria se il totale supera <strong>€ 77,47</strong> e la prestazione è esente IVA (es. regime forfettario, o cliente PA esente).<br><br>In regime ordinario con IVA applicata, la marca da bollo di solito non è dovuta sulle fatture. Verifica con il tuo commercialista.">?</button>
               </label>
             </div>
           </div>

@@ -687,6 +687,63 @@ tr.htmx-request {
 [data-bs-theme="dark"] .uff-item.focused { background: #1e3a5f; }
 [data-bs-theme="dark"] .uff-nome         { color: #e2e8f0; }
 
+/* ================================================================
+   Sistema aiuto contestuale — .btn-help
+   Piccolo bottone "?" accanto ai label per spiegazioni inline
+   ================================================================ */
+.btn-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px; height: 15px;
+  font-size: .6rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 50%;
+  border: 1.5px solid var(--bs-secondary-color, #6c757d);
+  color: var(--bs-secondary-color, #6c757d);
+  background: transparent;
+  cursor: help;
+  vertical-align: middle;
+  margin-left: .3rem;
+  padding: 0;
+  transition: color .15s, border-color .15s, background .15s;
+  flex-shrink: 0;
+  position: relative;
+  top: -1px;
+}
+.btn-help:hover,
+.btn-help:focus {
+  color: var(--primary, #1a3a5c);
+  border-color: var(--primary, #1a3a5c);
+  background: rgba(26,58,92,.07);
+  outline: none;
+  box-shadow: none;
+}
+/* Popover aiuto contestuale — stile uniforme */
+.popover-help .popover-header {
+  font-size: .82rem;
+  font-weight: 600;
+  padding: .5rem .75rem .35rem;
+}
+.popover-help .popover-body {
+  font-size: .8rem;
+  padding: .4rem .75rem .6rem;
+  line-height: 1.55;
+}
+.popover-help .popover-body ul { margin-bottom: 0; padding-left: 1.1rem; }
+.popover-help .popover-body li { margin-bottom: .2rem; }
+[data-bs-theme="dark"] .btn-help {
+  border-color: rgba(255,255,255,.4);
+  color: rgba(255,255,255,.5);
+}
+[data-bs-theme="dark"] .btn-help:hover,
+[data-bs-theme="dark"] .btn-help:focus {
+  color: #fff;
+  border-color: #fff;
+  background: rgba(255,255,255,.1);
+}
+
 /* polisWeb usa ID specifico per il dropdown (mantenuto per retrocompat.) */
 #ufficio-dropdown {
   position: fixed; background: #fff;

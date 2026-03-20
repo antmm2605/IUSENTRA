@@ -84,8 +84,12 @@
 
   {# ---- Form ricerca ---- #}
   <div class="card shadow-sm mb-4">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-search me-2 text-primary"></i>Ricerca pratiche nel registro del tribunale
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-search text-primary"></i>Ricerca pratiche nel registro del tribunale
+      <button type="button" class="btn-help ms-1"
+              data-bs-toggle="popover"
+              data-bs-title="Come funziona la ricerca"
+              data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>Portale Servizi Telematici (PST)</strong> tramite il servizio <em>RicercaFascicoliRegistro</em>.</p><ul><li>Seleziona l'ufficio e inserisci almeno N. RG oppure il nome di una parte.</li><li><strong>Modalità demo</strong>: dati di esempio, nessuna connessione reale.</li><li>Per il PST reale configura la firma in <em>Impostazioni → Firma Digitale</em>.</li></ul>">?</button>
     </div>
     <div class="card-body">
       <form method="post" action="{{ url_for('polisWeb_ricerca') }}">
@@ -137,13 +141,25 @@
             </div>
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-semibold">N. RG</label>
+            <label class="form-label fw-semibold">
+              N. RG
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Numero di Registro Generale"
+                      data-bs-content="Il numero identificativo della pratica assegnato dal tribunale all'iscrizione a ruolo (es. <strong>12345</strong>). Non coincide con il numero dell'atto o del fascicolo cartaceo. Puoi trovarlo sul biglietto di cancelleria o nella ricevuta di deposito.">?</button>
+            </label>
             <input type="text" name="numero_rg" class="form-control"
                    placeholder="es. 12345"
                    value="{{ numero_rg or '' }}">
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-semibold">Anno RG</label>
+            <label class="form-label fw-semibold">
+              Anno RG
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Anno di iscrizione a ruolo"
+                      data-bs-content="Anno in cui la pratica è stata iscritta a ruolo. Per pratiche pluriennali la ricerca funziona specificando l'anno di apertura, non l'anno corrente.">?</button>
+            </label>
             <input type="number" name="anno_rg" class="form-control"
                    placeholder="{{ oggi.year }}"
                    min="2000" max="{{ oggi.year }}"
@@ -155,7 +171,13 @@
             </button>
           </div>
           <div class="col-md-5">
-            <label class="form-label fw-semibold">Nome parte (attore / convenuto)</label>
+            <label class="form-label fw-semibold">
+              Nome parte (attore / convenuto)
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Ricerca per nome parte"
+                      data-bs-content="Digita almeno 2 caratteri per cercare tra i tuoi clienti in anagrafica. Se selezioni un cliente, il codice fiscale viene compilato automaticamente. Puoi anche inserire un nome manualmente per parti non presenti in anagrafica.">?</button>
+            </label>
             <div class="position-relative" id="nome-parte-wrap">
               <input type="text" name="nome_parte" id="nome-parte-input" class="form-control"
                      placeholder="es. Rossi Mario — cerca nei tuoi clienti"
@@ -171,6 +193,10 @@
           <div class="col-md-4">
             <label class="form-label fw-semibold">
               C.F. parte
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Codice fiscale della parte"
+                      data-bs-content="Codice fiscale dell'attore o del convenuto. Se selezioni un cliente dall'autocomplete sopra, viene compilato automaticamente. Lascia vuoto per cercare solo per numero RG o nome.">?</button>
               <span id="cf-da-anagrafica" class="badge bg-success ms-1 small d-none">
                 <i class="bi bi-person-check me-1"></i>da anagrafica
               </span>

@@ -441,6 +441,29 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
+/* ---- Sistema aiuto contestuale — inizializza tutti i .btn-help / popover ---- */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+    new bootstrap.Popover(el, {
+      trigger: 'click',
+      html: true,
+      sanitize: false,
+      placement: 'auto',
+      customClass: 'popover-help',
+    });
+  });
+  // Click fuori chiude tutti i popover aperti
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-bs-toggle="popover"]')) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+        var pop = bootstrap.Popover.getInstance(el);
+        if (pop) pop.hide();
+      });
+    }
+  });
+});
+</script>
+<script>
 /* ---- Paginazione tabelle ---- */
 function initPagination(tableId, selectId) {
   const tbl = document.getElementById(tableId);

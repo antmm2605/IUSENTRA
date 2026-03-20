@@ -62,7 +62,10 @@
     I risultati mostrati sono dati di esempio.
     Per accedere al PST reale configurare il certificato in
     <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
-    oppure nel file <code>.env</code>:
+    oppure nel file <code>.env</code>.
+    <a href="{{ url_for('guida_firma_digitale') }}" class="alert-link ms-2">
+      <i class="bi bi-book me-1"></i>Leggi la guida completa
+    </a>
     <ul class="mb-0 mt-1">
       <li><strong>P12/PFX</strong> (file unico): <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
       <li><strong>PEM</strong> (cert + chiave separati): <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code> [+ <code>PCT_FIRMA_KEY_PASSWORD</code>]</li>

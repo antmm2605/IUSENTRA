@@ -1541,6 +1541,11 @@ def create_app(config: dict | None = None) -> Flask:
         """Checklist operativa per il deposito telematico, per tipo di procedimento."""
         return render_template("deposito_checklist.html")
 
+    @app.route("/guida/firma-digitale")
+    def guida_firma_digitale():
+        """Guida interattiva su come ottenere e configurare il certificato di firma digitale."""
+        return render_template("guida_firma_digitale.html")
+
     # ---------------------------------------------------------------- API autocomplete uffici giudiziari
 
     @app.route("/api/uffici")

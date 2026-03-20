@@ -167,7 +167,7 @@
     </div>
 
     {# ---- Sezione: PCT / Telematico ---- #}
-    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','tribunali','deposito_checklist') %}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
       <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
@@ -185,6 +185,10 @@
       <a href="{{ url_for('deposito_checklist') }}"
          class="nav-link sb-link {% if request.endpoint == 'deposito_checklist' %}active{% endif %}">
         <i class="bi bi-list-check"></i><span class="sb-txt">Checklist deposito</span>
+      </a>
+      <a href="{{ url_for('guida_firma_digitale') }}"
+         class="nav-link sb-link {% if request.endpoint == 'guida_firma_digitale' %}active{% endif %}">
+        <i class="bi bi-book"></i><span class="sb-txt">Guida firma digitale</span>
       </a>
     </div>
 

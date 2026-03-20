@@ -40,6 +40,10 @@
       </div>
     </div>
     <div class="d-flex gap-2 flex-shrink-0">
+      <a href="{{ url_for('faldone_cliente', id_cliente=cliente.id) }}"
+         class="btn btn-warning btn-sm fw-semibold" title="Faldone digitale — vista unificata">
+        <i class="bi bi-folder2-open me-1"></i>Faldone
+      </a>
       <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
          class="btn btn-primary btn-sm fw-semibold" title="Cartella cliente — tutti i fascicoli">
         <i class="bi bi-folder2-open me-1"></i>Cartella

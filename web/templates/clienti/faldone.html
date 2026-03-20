@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+{% block title %}Faldone — {{ cliente.nome_completo }}{% endblock %}
+{% block page_title %}Faldone Digitale{% endblock %}
+
+{% set SC      = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
+{% set SC_ICON = {'APERTO':'bi-folder2-open','IN_CORSO':'bi-folder-check','SOSPESO':'bi-pause-circle','DEFINITO':'bi-check2-circle','ARCHIVIATO':'bi-archive'} %}
+{% set TC_COL  = {'CIVILE':'primary','PENALE':'danger','AMMINISTRATIVO':'warning','STRAGIUDIZIALE':'info','CONSULENZA':'success','LAVORO':'secondary','FAMIGLIA':'secondary','SUCCESSIONI':'secondary','ALTRO':'secondary'} %}
+{% set TC_ICON = {'CIVILE':'bi-balance-scale','PENALE':'bi-shield-exclamation','AMMINISTRATIVO':'bi-building','STRAGIUDIZIALE':'bi-handshake','CONSULENZA':'bi-lightbulb','LAVORO':'bi-briefcase','FAMIGLIA':'bi-house-heart','SUCCESSIONI':'bi-file-earmark-richtext','ALTRO':'bi-folder2'} %}
+{% set PR_COL  = {'CRITICA':'danger','ALTA':'warning','MEDIA':'primary','BASSA':'secondary'} %}
+
+{% block content %}
+
+{# ══════════════════════════════════════════════════════════
+   HEADER
+   ══════════════════════════════════════════════════════════ #}
+<div class="card border-0 shadow-sm mb-3 cd-header overflow-hidden">
+  <div class="card-body p-0">
+    <div class="cd-header-bg d-flex align-items-center gap-3 p-3">
+      <div class="cd-avatar flex-shrink-0">
+        <i class="bi bi-folder2-open"></i>
+      </div>
+      <div class="flex-grow-1 text-white min-w-0">
+        <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+          <h5 class="fw-bold mb-0 text-white">{{ cliente.nome_completo }}</h5>
+          <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-30">
+            Faldone Digitale
+          </span>
+        </div>
+        <div class="d-flex flex-wrap gap-x-3 gap-y-1 small text-white-50">
+          {% if cliente.codice_fiscale %}<span><i class="bi bi-person-vcard me-1"></i>{{ cliente.codice_fiscale }}</span>{% endif %}
+          {% if cliente.recapiti.email %}<span class="d-none d-md-inline"><i class="bi bi-envelope me-1"></i>{{ cliente.recapiti.email }}</span>{% endif %}
+          {% if cliente.avvocato_referente %}<span><i class="bi bi-person-badge me-1"></i>{{ cliente.avvocato_referente }}</span>{% endif %}
+          <span><i class="bi bi-folder2 me-1"></i>{{ tutti|length }} pratiche totali</span>
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-shrink-0 align-items-center">
+        <a href="{{ url_for('faldone_pdf_export', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-light d-flex align-items-center gap-1" title="Esporta PDF Faldone">
+          <i class="bi bi-file-earmark-pdf text-danger"></i><span class="d-none d-md-inline">PDF</span>
+        </a>
+        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-light d-flex align-items-center gap-1">
+          <i class="bi bi-folder2-open"></i><span class="d-none d-md-inline">Cartella</span>
+        </a>
+        <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-light d-none d-md-flex align-items-center gap-1">
+          <i class="bi bi-person-vcard"></i><span>Scheda</span>
+        </a>
+        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
+           class="btn btn-sm btn-warning fw-semibold d-flex align-items-center gap-1">
+          <i class="bi bi-folder-plus"></i><span class="d-none d-sm-inline">Nuova pratica</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════
+   STAT CARDS
+   ══════════════════════════════════════════════════════════ #}
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-blue">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-folder2-open"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ fascicoli_attivi|length }}</div>
+          <div class="cd-stat-label">Pratiche attive</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-green">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-file-earmark-fill"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ n_doc }}</div>
+          <div class="cd-stat-label">Documenti</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card border-0 shadow-sm h-100 cd-stat {% if n_scad > 0 %}cd-stat-orange{% else %}cd-stat-gray{% endif %}">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-alarm-fill"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ n_scad }}</div>
+          <div class="cd-stat-label">Scadenze aperte</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-purple">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-send-fill"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ n_dep }}</div>
+          <div class="cd-stat-label">Depositi PCT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-gray">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-list-check"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ n_att }}</div>
+          <div class="cd-stat-label">Attività</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════
+   ALERT SCADENZE URGENTI
+   ══════════════════════════════════════════════════════════ #}
+{% set urgenti = scadenze_aperte | selectattr('1.priorita.value', 'in', ['CRITICA','ALTA']) | list %}
+{% if urgenti %}
+<div class="alert alert-danger border-0 shadow-sm mb-3 d-flex gap-2" role="alert">
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <div class="fw-semibold mb-1">{{ urgenti|length }} scadenza/e urgente/i</div>
+    <ul class="mb-0 ps-3 small">
+      {% for fasc, sc in urgenti[:5] %}
+      <li>
+        <span class="badge bg-danger me-1">{{ sc.priorita.value }}</span>
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="fw-semibold text-decoration-none">{{ fasc.numero }}</a>
+        — {{ sc.titolo }}
+        <span class="badge bg-danger ms-1">{{ sc.data_scadenza|fmt_data }}</span>
+        {% if sc.perentorio %}<span class="badge bg-dark ms-1">perentorio</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{# ══════════════════════════════════════════════════════════
+   TABS
+   ══════════════════════════════════════════════════════════ #}
+<ul class="nav nav-tabs mb-0 cd-tabs" id="faldoneTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pratiche" type="button" role="tab">
+      <i class="bi bi-folder2-open me-1"></i>Pratiche
+      {% if fascicoli_attivi %}<span class="badge bg-primary rounded-pill ms-1">{{ fascicoli_attivi|length }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-timeline" type="button" role="tab">
+      <i class="bi bi-clock-history me-1"></i>Timeline
+      {% if timeline %}<span class="badge bg-secondary rounded-pill ms-1">{{ timeline|length }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documenti" type="button" role="tab">
+      <i class="bi bi-files me-1"></i>Documenti
+      {% if n_doc %}<span class="badge bg-success rounded-pill ms-1">{{ n_doc }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-scadenze" type="button" role="tab">
+      <i class="bi bi-alarm me-1"></i>Scadenze
+      {% if n_scad %}<span class="badge bg-{{ 'danger' if urgenti else 'warning text-dark' }} rounded-pill ms-1">{{ n_scad }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-depositi" type="button" role="tab">
+      <i class="bi bi-send me-1"></i>Depositi PCT
+      {% if n_dep %}<span class="badge bg-secondary rounded-pill ms-1">{{ n_dep }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-agenda" type="button" role="tab">
+      <i class="bi bi-calendar-event me-1"></i>Agenda
+      {% if apps_cliente %}<span class="badge bg-secondary rounded-pill ms-1">{{ apps_cliente|length }}</span>{% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-note" type="button" role="tab">
+      <i class="bi bi-journal-text me-1"></i>Note interne
+    </button>
+  </li>
+  {% if audit_trail %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-audit" type="button" role="tab">
+      <i class="bi bi-shield-check me-1"></i>Audit
+    </button>
+  </li>
+  {% endif %}
+</ul>
+
+<div class="tab-content cd-tab-body">
+
+  {# ── TAB: PRATICHE ── #}
+  <div class="tab-pane fade show active pt-3" id="tab-pratiche" role="tabpanel">
+    {% if not fascicoli_attivi %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-folder2 fs-1 d-block mb-2"></i>
+      Nessuna pratica attiva.
+      <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}" class="d-block mt-2 fw-semibold">+ Apri la prima pratica</a>
+    </div>
+    {% else %}
+
+    {# Sezioni per tipo #}
+    {% for tipo, gruppo in fascicoli_per_tipo.items() %}
+    <div class="mb-3">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-{{ TC_COL.get(tipo, 'secondary') }} d-flex align-items-center gap-1 px-2 py-1 fs-6">
+          <i class="bi {{ TC_ICON.get(tipo, 'bi-folder2') }}"></i>
+          {{ tipo }}
+        </span>
+        <span class="text-muted small">{{ gruppo|length }} pratica{% if gruppo|length != 1 %}che{% endif %}</span>
+      </div>
+
+      {% for f in gruppo %}
+      <div class="card border shadow-sm mb-2 cd-pratica-card cd-pratica-{{ SC.get(f.stato.value, 'secondary') }}">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-start gap-3">
+            <div class="cd-stato-icon cd-stato-{{ SC.get(f.stato.value, 'secondary') }} flex-shrink-0">
+              <i class="bi {{ SC_ICON.get(f.stato.value, 'bi-folder2') }}"></i>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="fw-semibold text-decoration-none text-dark">
+                  {{ f.numero }} — {{ f.titolo }}
+                </a>
+                <span class="badge bg-{{ SC.get(f.stato.value, 'secondary') }}">{{ f.stato.value }}</span>
+              </div>
+              <div class="d-flex flex-wrap gap-3 small text-muted">
+                {% if f.tribunale %}<span><i class="bi bi-building me-1"></i>{{ f.tribunale }}</span>{% endif %}
+                {% if f.numero_rg %}<span><i class="bi bi-hash me-1"></i>RG {{ f.numero_rg }}{% if f.anno_rg %}/{{ f.anno_rg }}{% endif %}</span>{% endif %}
+                {% if f.avvocato_referente %}<span><i class="bi bi-person-badge me-1"></i>{{ f.avvocato_referente }}</span>{% endif %}
+                {% if f.data_prossima_udienza %}<span class="text-warning fw-semibold"><i class="bi bi-calendar-event me-1"></i>Prossima udienza: {{ f.data_prossima_udienza|fmt_data }}</span>{% endif %}
+              </div>
+              {% if scadenze_per_fascicolo.get(f.id) %}
+              <div class="mt-1">
+                {% for sc in scadenze_per_fascicolo[f.id][:3] %}
+                <span class="badge bg-{{ PR_COL.get(sc.priorita.value, 'secondary') }}-subtle text-{{ PR_COL.get(sc.priorita.value, 'secondary') }}-emphasis border border-{{ PR_COL.get(sc.priorita.value, 'secondary') }}-subtle me-1 small">
+                  <i class="bi bi-alarm me-1"></i>{{ sc.titolo }} · {{ sc.data_scadenza|fmt_data }}
+                </span>
+                {% endfor %}
+                {% if scadenze_per_fascicolo[f.id]|length > 3 %}
+                <span class="text-muted small">+{{ scadenze_per_fascicolo[f.id]|length - 3 }} altre</span>
+                {% endif %}
+              </div>
+              {% endif %}
+            </div>
+            <div class="cd-pratica-actions flex-shrink-0">
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Apri fascicolo">
+                <i class="bi bi-folder2-open"></i>
+              </a>
+              <a href="{{ url_for('modifica_fascicolo', id_fasc=f.id) }}"
+                 class="btn btn-sm btn-outline-secondary" title="Modifica">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    {% if fascicoli_archiviati %}
+    <details class="mt-3">
+      <summary class="fw-semibold text-muted small mb-2" style="cursor:pointer">
+        <i class="bi bi-archive me-1"></i>Pratiche archiviate ({{ fascicoli_archiviati|length }})
+      </summary>
+      <div class="mt-2">
+        {% for f in fascicoli_archiviati %}
+        <div class="card border-0 bg-light shadow-sm mb-2">
+          <div class="card-body p-2 d-flex align-items-center gap-2">
+            <i class="bi bi-archive text-muted"></i>
+            <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}" class="text-muted text-decoration-none small">
+              {{ f.numero }} — {{ f.titolo }}
+            </a>
+            <span class="badge bg-secondary ms-auto">{{ f.stato.value }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  {# ── TAB: TIMELINE ── #}
+  <div class="tab-pane fade pt-3" id="tab-timeline" role="tabpanel">
+    {% if not timeline %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-clock-history fs-1 d-block mb-2"></i>Nessuna attività registrata.
+    </div>
+    {% else %}
+    <div class="position-relative" style="padding-left:2rem">
+      <div class="position-absolute top-0 start-0 h-100" style="width:2px;background:#e2e8f0;left:.75rem"></div>
+      {% for fasc, att in timeline %}
+      {% set esito_col = {'FAVOREVOLE':'success','SFAVOREVOLE':'danger','PARZIALE':'warning','RINVIATO':'info','ANNULLATO':'dark','IN_ATTESA':'secondary','NON_APPLICABILE':'light'} %}
+      <div class="d-flex gap-3 mb-3 position-relative">
+        <div class="position-absolute" style="left:-1.5rem;top:.2rem">
+          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white"
+               style="width:1.1rem;height:1.1rem;font-size:.5rem">
+            <i class="bi bi-circle-fill"></i>
+          </div>
+        </div>
+        <div class="card border-0 shadow-sm flex-grow-1">
+          <div class="card-body p-2 px-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
+              <div>
+                <span class="fw-semibold">{{ att.titolo }}</span>
+                <span class="badge bg-secondary ms-2 small">{{ att.tipo.value }}</span>
+                {% if att.esito.value != 'IN_ATTESA' %}
+                <span class="badge bg-{{ esito_col.get(att.esito.value, 'secondary') }} ms-1 small">{{ att.esito.value }}</span>
+                {% endif %}
+              </div>
+              <div class="text-muted small text-nowrap">{{ att.data|fmt_data }}</div>
+            </div>
+            <div class="small text-muted mt-1">
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none">
+                <i class="bi bi-folder2 me-1"></i>{{ fasc.numero }} — {{ fasc.titolo|truncate(40) }}
+              </a>
+              {% if att.luogo %} · <i class="bi bi-geo-alt me-1"></i>{{ att.luogo }}{% endif %}
+              {% if att.avvocato %} · <i class="bi bi-person-badge me-1"></i>{{ att.avvocato }}{% endif %}
+            </div>
+            {% if att.descrizione %}
+            <div class="small text-muted mt-1 fst-italic">{{ att.descrizione|truncate(120) }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── TAB: DOCUMENTI ── #}
+  <div class="tab-pane fade pt-3" id="tab-documenti" role="tabpanel">
+    {% if not tutti_documenti %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-files fs-1 d-block mb-2"></i>Nessun documento caricato.
+    </div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle small">
+        <thead class="table-light">
+          <tr>
+            <th>Documento</th>
+            <th>Tipo</th>
+            <th>Fascicolo</th>
+            <th>Data</th>
+            <th>Firma</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fasc, doc in tutti_documenti %}
+          <tr>
+            <td>
+              <i class="bi bi-file-earmark-text text-primary me-1"></i>
+              {{ doc.nome }}
+              {% if doc.note %}<div class="text-muted" style="font-size:.72rem">{{ doc.note|truncate(60) }}</div>{% endif %}
+            </td>
+            <td><span class="badge bg-secondary">{{ doc.tipo.value }}</span></td>
+            <td>
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none small">
+                {{ fasc.numero }}
+              </a>
+            </td>
+            <td class="text-nowrap">{{ doc.data_caricamento[:10]|fmt_data }}</td>
+            <td>
+              {% if doc.firmato_digitalmente %}
+              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                <i class="bi bi-patch-check-fill me-1"></i>Firmato
+              </span>
+              {% endif %}
+            </td>
+            <td class="text-nowrap">
+              <a href="{{ url_for('scarica_documento', id_fasc=fasc.id, id_doc=doc.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Scarica">
+                <i class="bi bi-download"></i>
+              </a>
+              <a href="{{ url_for('visualizza_documento', id_fasc=fasc.id, id_doc=doc.id) }}"
+                 class="btn btn-sm btn-outline-secondary ms-1" title="Visualizza" target="_blank">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── TAB: SCADENZE ── #}
+  <div class="tab-pane fade pt-3" id="tab-scadenze" role="tabpanel">
+    {% if not scadenze_aperte %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-alarm fs-1 d-block mb-2"></i>Nessuna scadenza aperta.
+    </div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle small">
+        <thead class="table-light">
+          <tr>
+            <th>Data</th>
+            <th>Titolo</th>
+            <th>Fascicolo</th>
+            <th>Priorità</th>
+            <th>Tipo</th>
+            <th>Per.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fasc, sc in scadenze_aperte %}
+          {% set giorni_mancanti = (sc.data_scadenza_obj - oggi).days if sc.data_scadenza_obj else 999 %}
+          <tr class="{% if giorni_mancanti <= 3 %}table-danger{% elif giorni_mancanti <= 7 %}table-warning{% endif %}">
+            <td class="text-nowrap fw-semibold">
+              {{ sc.data_scadenza|fmt_data }}
+              {% if giorni_mancanti >= 0 and giorni_mancanti <= 30 %}
+              <div class="text-muted" style="font-size:.7rem">tra {{ giorni_mancanti }} gg</div>
+              {% elif giorni_mancanti < 0 %}
+              <div class="text-danger" style="font-size:.7rem">scaduta {{ -giorni_mancanti }} gg fa</div>
+              {% endif %}
+            </td>
+            <td>{{ sc.titolo }}</td>
+            <td>
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none">
+                {{ fasc.numero }}
+              </a>
+            </td>
+            <td><span class="badge bg-{{ PR_COL.get(sc.priorita.value, 'secondary') }}">{{ sc.priorita.value }}</span></td>
+            <td class="text-muted">{{ sc.tipo.value if sc.tipo else '—' }}</td>
+            <td>{% if sc.perentorio %}<i class="bi bi-exclamation-triangle-fill text-danger" title="Perentorio"></i>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── TAB: DEPOSITI PCT ── #}
+  <div class="tab-pane fade pt-3" id="tab-depositi" role="tabpanel">
+    {% if not tutti_depositi %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-send fs-1 d-block mb-2"></i>Nessun deposito telematico registrato.
+    </div>
+    {% else %}
+    {% set DEP_COL = {'INVIATO':'primary','ACCETTATO':'info','CONSEGNATO':'success','RIFIUTATO':'danger','ERRORE':'danger'} %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle small">
+        <thead class="table-light">
+          <tr>
+            <th>Data</th>
+            <th>Atto</th>
+            <th>Fascicolo</th>
+            <th>Stato</th>
+            <th>PEC destinatario</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fasc, dep in tutti_depositi %}
+          <tr>
+            <td class="text-nowrap">{{ dep.timestamp[:10]|fmt_data }}</td>
+            <td>{{ dep.tipo_atto }}</td>
+            <td>
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none">
+                {{ fasc.numero }}
+              </a>
+            </td>
+            <td><span class="badge bg-{{ DEP_COL.get(dep.stato, 'secondary') }}">{{ dep.stato }}</span></td>
+            <td class="text-muted">{{ dep.pec_destinatario }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── TAB: AGENDA ── #}
+  <div class="tab-pane fade pt-3" id="tab-agenda" role="tabpanel">
+    {% if not apps_cliente %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-calendar-event fs-1 d-block mb-2"></i>Nessun appuntamento associato a questo cliente.
+    </div>
+    {% else %}
+    {% set APP_COL = {'UDIENZA':'primary','CONSULTAZIONE':'success','DEPOSITO':'purple','SCADENZA':'danger','RIUNIONE':'warning','ALTRO':'secondary'} %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle small">
+        <thead class="table-light">
+          <tr><th>Data</th><th>Titolo</th><th>Tipo</th><th>Luogo</th><th>Stato</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for a in apps_cliente | sort(attribute='data_ora_dt', reverse=True) %}
+          <tr>
+            <td class="text-nowrap">
+              {{ a.data_ora_dt.strftime('%d/%m/%Y') }}<br>
+              <span class="text-muted">{{ a.data_ora_dt.strftime('%H:%M') }}</span>
+            </td>
+            <td class="fw-semibold">{{ a.titolo }}</td>
+            <td><span class="badge badge-{{ a.tipo.value }}">{{ a.tipo.value }}</span></td>
+            <td class="text-muted">{{ a.luogo or '—' }}</td>
+            <td><span class="badge bg-secondary">{{ a.stato.value }}</span></td>
+            <td>
+              <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+                 class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    <div class="mt-2">
+      <a href="{{ url_for('nuovo_appuntamento') }}?cliente={{ cliente.nome_completo|urlencode }}"
+         class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-calendar-plus me-1"></i>Nuovo appuntamento
+      </a>
+    </div>
+  </div>
+
+  {# ── TAB: NOTE INTERNE ── #}
+  <div class="tab-pane fade pt-3" id="tab-note" role="tabpanel">
+    <div id="note-toast" class="alert d-none mb-3" role="alert"></div>
+    {% if note_faldone.get('_modificato_il') %}
+    <div class="text-muted small mb-3">
+      <i class="bi bi-pencil me-1"></i>
+      Ultima modifica: {{ note_faldone['_modificato_il']|fmt_data }}
+      {% if note_faldone.get('_modificato_da') %} da <strong>{{ note_faldone['_modificato_da'] }}</strong>{% endif %}
+    </div>
+    {% endif %}
+
+    {% for sezione, label, placeholder in [
+        ('generale',   'Note generali',        'Appunti generici sul cliente, modalità di lavoro, preferenze…'),
+        ('strategia',  'Strategia legale',      'Strategia processuale, punti di forza/debolezza, orientamento…'),
+        ('riservato',  'Note riservate',        'Informazioni riservate, da non condividere con collaboratori…')
+    ] %}
+    <div class="mb-4">
+      <label class="form-label fw-semibold d-flex align-items-center gap-2">
+        {% if sezione == 'riservato' %}<i class="bi bi-lock-fill text-danger"></i>{% else %}<i class="bi bi-journal-text text-primary"></i>{% endif %}
+        {{ label }}
+        {% if sezione == 'riservato' %}<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Riservato</span>{% endif %}
+      </label>
+      <textarea class="form-control faldone-nota" rows="4"
+                data-sezione="{{ sezione }}"
+                placeholder="{{ placeholder }}">{{ note_faldone.get(sezione, '') }}</textarea>
+      <div class="d-flex justify-content-end mt-1">
+        <button class="btn btn-sm btn-primary faldone-salva-nota" data-sezione="{{ sezione }}">
+          <i class="bi bi-save me-1"></i>Salva
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── TAB: AUDIT TRAIL ── #}
+  {% if audit_trail %}
+  <div class="tab-pane fade pt-3" id="tab-audit" role="tabpanel">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle small">
+        <thead class="table-light">
+          <tr><th>Data/Ora</th><th>Utente</th><th>Azione</th><th>Esito</th><th>IP</th></tr>
+        </thead>
+        <tbody>
+          {% for e in audit_trail %}
+          <tr>
+            <td class="text-nowrap text-muted">{{ e.timestamp[:16].replace('T',' ') }}</td>
+            <td>{{ e.username or '—' }}</td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ e.azione }}</span>
+              {% if e.dettagli %}<div class="text-muted" style="font-size:.7rem">{{ e.dettagli }}</div>{% endif %}
+            </td>
+            <td>
+              <span class="badge bg-{{ 'success' if e.esito == 'OK' else 'danger' }}">{{ e.esito }}</span>
+            </td>
+            <td class="text-muted">{{ e.ip or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>{# /tab-content #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  const ID_CLIENTE = '{{ cliente.id }}';
+  const URL_NOTE   = `/clienti/${ID_CLIENTE}/faldone/note`;
+
+  function mostraFeedback(ok, msg) {
+    const el = document.getElementById('note-toast');
+    if (!el) return;
+    el.className = `alert alert-${ok ? 'success' : 'danger'} d-flex align-items-center gap-2`;
+    el.innerHTML = `<i class="bi bi-${ok ? 'check-circle-fill' : 'exclamation-triangle-fill'}"></i>${msg}`;
+    el.classList.remove('d-none');
+    setTimeout(() => el.classList.add('d-none'), 3500);
+  }
+
+  document.querySelectorAll('.faldone-salva-nota').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sezione = btn.dataset.sezione;
+      const textarea = document.querySelector(`.faldone-nota[data-sezione="${sezione}"]`);
+      const testo = textarea ? textarea.value : '';
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvataggio…';
+      try {
+        const res = await fetch(URL_NOTE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sezione, testo }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          mostraFeedback(true, 'Note salvate.');
+        } else {
+          mostraFeedback(false, data.errore || 'Errore nel salvataggio.');
+        }
+      } catch (err) {
+        mostraFeedback(false, 'Errore di rete.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-save me-1"></i>Salva';
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

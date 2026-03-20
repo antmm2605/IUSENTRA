@@ -5,7 +5,7 @@
 {% block content %}
 
 {# ---- Stat cards ---- #}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-1 stat-cards-row" id="stat-cards-dashboard">
   {% set cards = [
     ("Oggi",          stats.oggi,            "bi-calendar-check",  "#e3f2fd", "#1565c0"),
     ("Questa sett.",  stats.questa_settimana,"bi-calendar-week",   "#f3e5f5", "#6a1b9a"),
@@ -27,6 +27,9 @@
     </div>
   </div>
   {% endfor %}
+</div>
+<div class="stat-cards-dots mb-3" id="dots-dashboard">
+  <span class="active"></span><span></span><span></span><span></span>
 </div>
 
 {# ---- Scadenze critiche alert ---- #}
@@ -262,6 +265,17 @@
 
 {% block scripts %}
 <script>
+// Dots carosello stat-cards (mobile)
+(function(){
+  var row  = document.getElementById('stat-cards-dashboard');
+  var dots = document.querySelectorAll('#dots-dashboard span');
+  if (!row || !dots.length) return;
+  row.addEventListener('scroll', function() {
+    var idx = Math.round(row.scrollLeft / (row.scrollWidth / dots.length));
+    dots.forEach(function(d,i){ d.classList.toggle('active', i === idx); });
+  }, { passive: true });
+})();
+
 Chart.defaults.font.family = "'Helvetica Neue', Arial, sans-serif";
 Chart.defaults.font.size = 12;
 

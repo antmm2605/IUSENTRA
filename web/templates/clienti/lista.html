@@ -6,7 +6,7 @@
 {% block content %}
 
 {# ---- Stat cards ---- #}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-1 stat-cards-row">
   {% set cards = [
     ("Totale",          stats.totale,                       "bi-people",          "#e3f2fd", "#1565c0"),
     ("Attivi",          stats.per_stato.ATTIVO,             "bi-person-check",    "#e8f5e9", "#2e7d32"),
@@ -28,6 +28,9 @@
     </div>
   </div>
   {% endfor %}
+</div>
+<div class="stat-cards-dots mb-3" id="dots-clienti">
+  <span class="active"></span><span></span><span></span><span></span>
 </div>
 
 {# ---- Barra ricerca + filtri ---- #}
@@ -101,7 +104,7 @@
   {% if clienti %}
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tbl-clienti" data-paginate="page-size-clienti">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-clienti" data-paginate="page-size-clienti">
         <thead class="table-light">
           <tr>
             <th>Cliente</th>
@@ -117,8 +120,8 @@
         <tbody>
           {% for c in clienti %}
           {% set sc = {'ATTIVO':'success','INATTIVO':'secondary','POTENZIALE':'warning','ARCHIVIATO':'dark'} %}
-          <tr>
-            <td>
+          <tr data-swipe-delete="1" title="{{ c.nome_completo }}">
+            <td data-label="Cliente">
               <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
                  class="fw-semibold text-decoration-none text-dark">
                 {{ c.nome_completo }}
@@ -131,7 +134,7 @@
                    title="Documento scaduto"></i>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Tipo">
               {% if c.tipo == TipoCliente.PERSONA_FISICA %}
                 <span class="badge bg-info-subtle text-info-emphasis rounded-pill">
                   <i class="bi bi-person me-1"></i>Persona fisica
@@ -143,10 +146,10 @@
                 </span>
               {% endif %}
             </td>
-            <td class="font-monospace small">
+            <td data-label="CF / P.IVA" class="font-monospace small">
               {{ c.codice_fiscale or c.partita_iva or '—' }}
             </td>
-            <td class="small">
+            <td data-label="Contatti" class="small">
               {% if c.recapiti.cellulare %}
                 <div><i class="bi bi-phone me-1 text-muted"></i>{{ c.recapiti.cellulare }}</div>
               {% elif c.recapiti.telefono %}
@@ -158,8 +161,8 @@
                 </div>
               {% endif %}
             </td>
-            <td class="small">{{ c.avvocato_referente or '—' }}</td>
-            <td class="text-center">
+            <td data-label="Avv." class="small" data-mob-hide>{{ c.avvocato_referente or '—' }}</td>
+            <td data-label="Pratiche" class="text-center">
               {% set n_proc = c.procedimenti_attivi|length %}
               {% if n_proc %}
                 <span class="badge bg-primary rounded-pill">{{ n_proc }}</span>
@@ -167,10 +170,10 @@
                 <span class="text-muted">—</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Stato">
               <span class="badge bg-{{ sc[c.stato.value] }}">{{ c.stato.value }}</span>
             </td>
-            <td class="text-end">
+            <td data-label="" class="text-end">
               <div class="btn-group btn-group-sm">
                 <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"
                    class="btn btn-primary" title="Apri cartella">
@@ -208,5 +211,17 @@
 {% endblock %}
 
 {% block scripts %}
-<script>initPagination('tbl-clienti', 'page-size-clienti');</script>
+<script>
+initPagination('tbl-clienti', 'page-size-clienti');
+// Dots carosello stat-cards (mobile)
+(function(){
+  var row  = document.querySelector('.stat-cards-row');
+  var dots = document.querySelectorAll('#dots-clienti span');
+  if (!row || !dots.length) return;
+  row.addEventListener('scroll', function() {
+    var idx = Math.round(row.scrollLeft / (row.scrollWidth / dots.length));
+    dots.forEach(function(d,i){ d.classList.toggle('active', i === idx); });
+  }, { passive: true });
+})();
+</script>
 {% endblock %}

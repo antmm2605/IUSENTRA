@@ -753,3 +753,254 @@ tr.htmx-request {
 }
 #ufficio-dropdown.show { display: block; }
 [data-bs-theme="dark"] #ufficio-dropdown { background: #1e293b; border-color: #334155; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+
+/* ================================================================
+   SIDEBAR MINI/COLLASSATA — solo desktop (≥ 769 px)
+   Larghezza ridotta a 58 px, icone centrate, testo nascosto.
+   ================================================================ */
+@media (min-width: 769px) {
+  #sidebar.sb-mini { width: 58px; overflow: visible; }
+  #sidebar.sb-mini .sb-txt,
+  #sidebar.sb-mini .sb-chev,
+  #sidebar.sb-mini .sb-group-label { display: none !important; }
+  /* Logo: nascondi il testo, centra l'icona */
+  #sidebar.sb-mini .sb-logo .d-flex > div { display: none !important; }
+  #sidebar.sb-mini .sb-logo {
+    justify-content: center;
+    padding: .75rem .25rem;
+  }
+  /* Nav link: centra l'icona, aggiungi tooltip nativo */
+  #sidebar.sb-mini .sb-link {
+    justify-content: center;
+    padding: .55rem 0;
+    border-radius: 8px;
+    margin: 0 6px;
+  }
+  /* Nascondi i toggle di sezione e le loro collapse */
+  #sidebar.sb-mini .sb-toggle { display: none !important; }
+  /* Mostra le voci che sarebbero collassate */
+  #sidebar.sb-mini .collapse { display: block !important; }
+  /* Nascondi sezioni admin (troppo numerose per mini) */
+  #sidebar.sb-mini .sb-admin { display: none !important; }
+  /* User footer: solo avatar, senza nome/bottoni */
+  #sidebar.sb-mini .sb-userinfo,
+  #sidebar.sb-mini .sb-user .d-flex.gap-1 { display: none !important; }
+  #sidebar.sb-mini .sb-user { justify-content: center; padding: .6rem .25rem; }
+  /* App body si restringe di conseguenza */
+  #app-body.sb-mini { margin-left: 58px; }
+  /* Icona del bottone toggle cambia verso */
+  #sidebar.sb-mini #sb-mini-toggle i.bi-layout-sidebar-reverse {
+    transform: scaleX(-1);
+  }
+}
+
+/* Bottone collapse sidebar — visibile solo su desktop */
+#sb-mini-toggle {
+  color: rgba(255,255,255,.45);
+  font-size: .95rem;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color .15s, background .15s;
+  display: none; /* nascosto su mobile */
+}
+#sb-mini-toggle:hover { color: #fff; background: rgba(255,255,255,.1); }
+@media (min-width: 769px) { #sb-mini-toggle { display: inline-flex; align-items: center; } }
+[data-bs-theme="dark"] #sb-mini-toggle:hover { background: rgba(255,255,255,.12); }
+
+/* ================================================================
+   MOBILE — Avatar utente nella topbar
+   Visibile solo su mobile (< 769 px), nascosto su desktop
+   ================================================================ */
+.topbar-user-mobile {
+  display: none;
+}
+@media (max-width: 768px) {
+  .topbar-user-mobile { display: flex; align-items: center; }
+}
+.topbar-user-btn {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--primary, #1a3a5c);
+  color: #fff !important;
+  border: 2px solid rgba(255,255,255,.25);
+  font-size: .75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.topbar-user-btn::after { display: none !important; } /* nasconde caret dropdown */
+.topbar-user-btn:focus { box-shadow: none; }
+/* Dropdown utente mobile */
+.dropdown-menu-user-mobile {
+  min-width: 200px;
+  font-size: .84rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+}
+.dropdown-menu-user-mobile .user-info {
+  padding: .5rem .9rem .4rem;
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+}
+
+/* ================================================================
+   SWIPE-TO-DISMISS — righe lista (mobile touch gesture)
+   Target: tr[data-swipe-delete]
+   ================================================================ */
+tr[data-swipe-delete] {
+  touch-action: pan-y;
+  will-change: transform;
+  cursor: default;
+  backface-visibility: hidden; /* GPU acceleration */
+}
+/* Underlay rosso (div floating creato via JS) */
+.pct-swipe-underlay {
+  position: fixed;
+  background: linear-gradient(to left, #dc3545 60%, rgba(220,53,69,.5));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 1.4rem;
+  color: #fff;
+  z-index: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.pct-swipe-underlay.visible { opacity: 1; }
+/* Toast "elemento rimosso" */
+.pct-swipe-toast {
+  position: fixed;
+  bottom: calc(var(--bottomnav-h, 62px) + 1rem);
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: #1e293b;
+  color: #f8fafc;
+  padding: .48rem 1.2rem;
+  border-radius: 8px;
+  font-size: .82rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  opacity: 0;
+  transition: opacity .22s, transform .22s;
+  z-index: 9999;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.pct-swipe-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+@media (min-width: 769px) {
+  .pct-swipe-toast { bottom: 1.5rem; }
+}
+[data-bs-theme="dark"] .pct-swipe-toast { background: #334155; }
+
+/* ================================================================
+   STAT CARDS — scroll orizzontale su xs (< 576 px)
+   Carosello snap: mostra ~2 card alla volta, scorrimento fluido.
+   ================================================================ */
+@media (max-width: 575.98px) {
+  .stat-cards-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: .6rem !important;
+    padding-bottom: .4rem;
+    /* Nasconde scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .stat-cards-row::-webkit-scrollbar { display: none; }
+  .stat-cards-row > [class*="col-"] {
+    flex: 0 0 44vw !important;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  /* Dots indicatori paginazione */
+  .stat-cards-dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: .3rem;
+    margin-bottom: .6rem;
+  }
+  .stat-cards-dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #dee2e6;
+    transition: background .2s, transform .2s;
+    flex-shrink: 0;
+  }
+  .stat-cards-dots span.active {
+    background: var(--primary, #1a3a5c);
+    transform: scale(1.3);
+  }
+}
+@media (min-width: 576px) {
+  .stat-cards-dots { display: none !important; }
+}
+
+/* ================================================================
+   MOBILE TABLE → CARD LIST
+   Trasforma le tabelle responsive in card staccate su mobile.
+   Applica classe .mob-cards alla <table> per attivare.
+   I <td> devono avere data-label="Nome colonna".
+   ================================================================ */
+@media (max-width: 767.98px) {
+  .mob-cards thead { display: none; }
+  .mob-cards,
+  .mob-cards tbody,
+  .mob-cards tr,
+  .mob-cards td { display: block; }
+  .mob-cards tr {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 10px;
+    margin-bottom: .65rem;
+    padding: .55rem .75rem;
+    background: var(--bs-body-bg, #fff);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    position: relative;
+    overflow: hidden; /* necessario per swipe-to-dismiss */
+  }
+  .mob-cards td {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    border: none !important;
+    padding: .22rem 0 !important;
+    font-size: .84rem;
+    min-height: 0;
+  }
+  .mob-cards td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: .7rem;
+    color: var(--bs-secondary-color, #6c757d);
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    min-width: 82px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .mob-cards td[data-label=""] { justify-content: flex-end; }
+  .mob-cards td[data-label=""]::before { display: none; }
+  /* Nascondi colonne poco importanti su mobile */
+  .mob-cards td[data-mob-hide] { display: none; }
+  /* Evidenzia riga in swipe */
+  .mob-cards tr[data-swipe-delete] { touch-action: pan-y; }
+  [data-bs-theme="dark"] .mob-cards tr {
+    border-color: #334155;
+    background: #1e293b;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+}
+

@@ -95,7 +95,7 @@ from pct.scadenziario import (
     è_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
-from pct.reports import fascicolo_pdf, scadenze_pdf
+from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf
 from pct.database import GestioneDatabase
 from pct.sync import GestoreSincronizzazione, get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
@@ -161,6 +161,9 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["CONDIVISIONI_DB"] = cfg.get(
         "CONDIVISIONI_DB", os.getenv("PCT_CONDIVISIONI_DB", "./clienti/condivisioni.json")
+    )
+    app.config["NOTE_FALDONE_DB"] = cfg.get(
+        "NOTE_FALDONE_DB", os.getenv("PCT_NOTE_FALDONE_DB", "./clienti/note_faldone.json")
     )
     app.config["FASCICOLI_DB"] = cfg.get(
         "FASCICOLI_DB", os.getenv("PCT_FASCICOLI_DB", "./fascicoli/fascicoli.json")
@@ -2030,6 +2033,291 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore cartella_cliente %s: %s", id_cliente, e)
             flash(f"Errore nel caricamento della cartella: {e}", "danger")
             return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+
+    # ================================================================ FALDONE DIGITALE
+    # Vista unificata per tipo: fascicoli, atti, PEC, depositi, scadenze
+
+    @app.route("/clienti/<id_cliente>/faldone")
+    def faldone_cliente(id_cliente):
+        """Faldone digitale: tutte le pratiche del cliente organizzate per tipologia."""
+        try:
+            gc = get_clienti()
+            c = gc.get(id_cliente)
+            if not c:
+                flash("Cliente non trovato.", "warning")
+                return redirect(url_for("lista_clienti"))
+            if not cliente_accessibile(id_cliente):
+                flash("Non hai accesso a questa cartella cliente.", "danger")
+                return redirect(url_for("lista_clienti"))
+
+            gf = get_fascicoli()
+            gs = get_scadenziario()
+            agenda = get_agenda()
+
+            tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
+
+            # Gruppa fascicoli per tipo (solo attivi/in_corso/sospesi in primo piano)
+            _stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
+            fascicoli_attivi    = [f for f in tutti if f.stato not in _stati_chiusi]
+            fascicoli_archiviati = [f for f in tutti if f.stato in _stati_chiusi]
+
+            # Ordine fisso dei tipi
+            _ordine_tipi = [
+                "CIVILE", "PENALE", "LAVORO", "FAMIGLIA", "AMMINISTRATIVO",
+                "STRAGIUDIZIALE", "SUCCESSIONI", "CONSULENZA", "ALTRO",
+            ]
+            fascicoli_per_tipo: dict = {}
+            for tipo in _ordine_tipi:
+                gruppo = [f for f in fascicoli_attivi if f.tipo.value == tipo]
+                if gruppo:
+                    fascicoli_per_tipo[tipo] = gruppo
+            # Eventuali tipi non in lista ordine
+            for f in fascicoli_attivi:
+                if f.tipo.value not in fascicoli_per_tipo:
+                    fascicoli_per_tipo.setdefault(f.tipo.value, []).append(f)
+
+            # Scadenze aperte da scadenziario per ciascun fascicolo
+            scadenze_per_fascicolo: dict = {}
+            for f in tutti:
+                sc_list = gs.tutte(id_fascicolo=f.id, stato=None)
+                if sc_list:
+                    scadenze_per_fascicolo[f.id] = sc_list
+
+            # Tutte le scadenze aggregate (aperte), ordinate per data
+            from pct.scadenziario import StatoTermine
+            scadenze_aperte = sorted(
+                [
+                    (f, sc)
+                    for f in tutti
+                    for sc in scadenze_per_fascicolo.get(f.id, [])
+                    if sc.stato == StatoTermine.APERTO and sc.data_scadenza
+                ],
+                key=lambda x: x[1].data_scadenza,
+            )
+
+            # Tutti i documenti aggregati (attivi + archiviati), più recenti prima
+            tutti_documenti = sorted(
+                [(f, doc) for f in tutti for doc in f.documenti],
+                key=lambda x: x[1].data_caricamento,
+                reverse=True,
+            )
+
+            # Tutti i depositi PCT aggregati
+            tutti_depositi = sorted(
+                [(f, dep) for f in tutti for dep in f.depositi_pct],
+                key=lambda x: x[1].timestamp,
+                reverse=True,
+            )
+
+            # Timeline attività (ultime 50)
+            timeline = sorted(
+                [(f, att) for f in tutti for att in f.attivita],
+                key=lambda x: x[1].data if x[1].data else "",
+                reverse=True,
+            )[:50]
+
+            # Appuntamenti del cliente
+            apps_cliente = agenda.cerca(cliente=c.nome_completo)
+
+            # Stats
+            n_doc      = sum(f.documenti_count for f in tutti)
+            n_dep      = sum(len(f.depositi_pct) for f in tutti)
+            n_scad     = len(scadenze_aperte)
+            n_att      = sum(f.attivita_count for f in fascicoli_attivi)
+
+            # Note interne e audit trail
+            note_faldone = _carica_note_faldone(id_cliente)
+
+            # Ultimi 20 accessi al faldone (audit)
+            try:
+                from pct.auth import GestioneUtenti
+                _ga = GestioneUtenti(db_path=app.config["AUTH_DB"],
+                                     audit_path=app.config["AUDIT_DB"])
+                audit_trail = _ga.audit_log(limit=500)
+                audit_trail = [e for e in audit_trail if e.risorsa_id == id_cliente][:20]
+            except Exception:
+                audit_trail = []
+
+            track_recente("cliente", id_cliente, c.nome_completo,
+                          url_for("faldone_cliente", id_cliente=id_cliente),
+                          "bi-folder2-open")
+            audit("faldone.accesso", "cliente", id_cliente)
+
+            return render_template(
+                "clienti/faldone.html",
+                cliente=c,
+                tutti=tutti,
+                fascicoli_attivi=fascicoli_attivi,
+                fascicoli_archiviati=fascicoli_archiviati,
+                fascicoli_per_tipo=fascicoli_per_tipo,
+                scadenze_per_fascicolo=scadenze_per_fascicolo,
+                scadenze_aperte=scadenze_aperte,
+                tutti_documenti=tutti_documenti[:60],
+                tutti_depositi=tutti_depositi[:60],
+                timeline=timeline,
+                apps_cliente=apps_cliente,
+                n_doc=n_doc,
+                n_dep=n_dep,
+                n_scad=n_scad,
+                n_att=n_att,
+                note_faldone=note_faldone,
+                audit_trail=audit_trail,
+                oggi=date.today(),
+            )
+        except Exception as e:
+            app.logger.exception("Errore faldone_cliente %s: %s", id_cliente, e)
+            flash(f"Errore nel caricamento del faldone: {e}", "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+
+    # --- Helper note faldone (JSON semplice chiavato per id_cliente) ---
+    def _carica_note_faldone(id_cliente: str) -> dict:
+        import json as _j
+        try:
+            with open(app.config["NOTE_FALDONE_DB"]) as fh:
+                return _j.load(fh).get(id_cliente, {})
+        except (FileNotFoundError, ValueError):
+            return {}
+
+    def _salva_note_faldone(id_cliente: str, note: dict) -> None:
+        import json as _j
+        p = app.config["NOTE_FALDONE_DB"]
+        try:
+            with open(p) as fh:
+                tutti = _j.load(fh)
+        except (FileNotFoundError, ValueError):
+            tutti = {}
+        tutti[id_cliente] = note
+        import os as _os
+        _os.makedirs(_os.path.dirname(_os.path.abspath(p)), exist_ok=True)
+        with open(p, "w") as fh:
+            _j.dump(tutti, fh, ensure_ascii=False, indent=2)
+
+    @app.route("/clienti/<id_cliente>/faldone/note", methods=["POST"])
+    def faldone_salva_note(id_cliente):
+        """Salva le note interne del faldone via AJAX."""
+        try:
+            gc = get_clienti()
+            if not gc.get(id_cliente):
+                return jsonify({"ok": False, "errore": "Cliente non trovato"}), 404
+            if not cliente_accessibile(id_cliente, RuoloCondivisione.SCRITTURA):
+                return jsonify({"ok": False, "errore": "Non autorizzato"}), 403
+            dati = request.get_json(silent=True) or {}
+            sezione = dati.get("sezione", "generale")
+            testo   = dati.get("testo", "")
+            note    = _carica_note_faldone(id_cliente)
+            note[sezione] = testo
+            note["_modificato_il"] = date.today().isoformat()
+            u = g.utente_corrente
+            note["_modificato_da"] = u.username if u else ""
+            _salva_note_faldone(id_cliente, note)
+            audit("faldone.note", "cliente", id_cliente,
+                  dettagli=f"sezione={sezione}")
+            return jsonify({"ok": True})
+        except Exception as e:
+            app.logger.exception("Errore faldone_salva_note %s: %s", id_cliente, e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
+    @app.route("/clienti/<id_cliente>/faldone/pdf")
+    def faldone_pdf_export(id_cliente):
+        """Genera e scarica il PDF «Indice Faldone Digitale»."""
+        try:
+            gc = get_clienti()
+            c  = gc.get(id_cliente)
+            if not c:
+                flash("Cliente non trovato.", "warning")
+                return redirect(url_for("lista_clienti"))
+            if not cliente_accessibile(id_cliente):
+                flash("Non hai accesso a questa cartella cliente.", "danger")
+                return redirect(url_for("lista_clienti"))
+
+            gf = get_fascicoli()
+            gs = get_scadenziario()
+            from pct.scadenziario import StatoTermine
+
+            tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
+            _stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
+            fascicoli_attivi = [f for f in tutti if f.stato not in _stati_chiusi]
+
+            _ordine = ["CIVILE","PENALE","LAVORO","FAMIGLIA","AMMINISTRATIVO",
+                       "STRAGIUDIZIALE","SUCCESSIONI","CONSULENZA","ALTRO"]
+            fasc_per_tipo_raw: dict = {}
+            for tipo in _ordine:
+                gruppo = [f.to_dict() for f in fascicoli_attivi if f.tipo.value == tipo]
+                if gruppo:
+                    fasc_per_tipo_raw[tipo] = gruppo
+            for f in fascicoli_attivi:
+                if f.tipo.value not in fasc_per_tipo_raw:
+                    fasc_per_tipo_raw.setdefault(f.tipo.value, []).append(f.to_dict())
+
+            # Scadenze aperte
+            scad_pdf = []
+            for f in tutti:
+                for sc in gs.tutte(id_fascicolo=f.id, stato=None):
+                    if sc.stato == StatoTermine.APERTO and sc.data_scadenza:
+                        scad_pdf.append({
+                            "data_scadenza": sc.data_scadenza,
+                            "fascicolo_numero": f.numero,
+                            "titolo": sc.titolo,
+                            "priorita": sc.priorita.value,
+                            "perentorio": sc.perentorio,
+                        })
+            scad_pdf.sort(key=lambda x: x["data_scadenza"])
+
+            # Timeline
+            tl_pdf = sorted(
+                [{"data": a.data, "fascicolo_numero": f.numero,
+                  "tipo": a.tipo.value, "titolo": a.titolo, "esito": a.esito.value}
+                 for f in tutti for a in f.attivita],
+                key=lambda x: x["data"] or "", reverse=True,
+            )
+
+            # Stats
+            stats = {
+                "n_doc":  sum(f.documenti_count for f in tutti),
+                "n_dep":  sum(len(f.depositi_pct) for f in tutti),
+                "n_att":  sum(f.attivita_count for f in fascicoli_attivi),
+                "n_scad": len(scad_pdf),
+            }
+            note = _carica_note_faldone(id_cliente)
+
+            cfg_studio = get_config_studio()
+            studio_nome = cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale PCT")
+
+            import tempfile, io
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                tmp_path = tmp.name
+
+            cli_dict = {
+                "nome_completo": c.nome_completo,
+                "codice_fiscale": c.codice_fiscale or "",
+                "partita_iva": getattr(c, "partita_iva", "") or "",
+            }
+            faldone_pdf(
+                cliente_dict=cli_dict,
+                fascicoli_per_tipo=fasc_per_tipo_raw,
+                scadenze_aperte=scad_pdf,
+                timeline=tl_pdf[:20],
+                note=note,
+                studio_nome=studio_nome,
+                output_path=tmp_path,
+                stats=stats,
+            )
+            audit("faldone.pdf", "cliente", id_cliente)
+            nome_file = f"faldone_{c.nome_completo.replace(' ', '_').lower()}_{date.today().isoformat()}.pdf"
+            with open(tmp_path, "rb") as fh:
+                data = fh.read()
+            import os as _os2
+            _os2.unlink(tmp_path)
+            return send_file(
+                io.BytesIO(data),
+                mimetype="application/pdf",
+                as_attachment=True,
+                download_name=nome_file,
+            )
+        except Exception as e:
+            app.logger.exception("Errore faldone_pdf_export %s: %s", id_cliente, e)
+            flash(f"Errore generazione PDF: {e}", "danger")
+            return redirect(url_for("faldone_cliente", id_cliente=id_cliente))
 
     # ================================================================ PORTALE CLIENTE
     # Pannello avvocato per gestire il portale self-service del cliente

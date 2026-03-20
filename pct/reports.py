@@ -751,6 +751,216 @@ class GeneratoreReport:
         return output_path
 
 
+    # -------------------------------------------------------------- faldone_pdf
+
+    def faldone_pdf(
+        self,
+        cliente_dict: dict,
+        fascicoli_per_tipo: dict,
+        scadenze_aperte: list,
+        timeline: list,
+        note: dict,
+        studio_nome: str,
+        output_path: str,
+        stats: dict,
+    ) -> str:
+        """
+        Genera il PDF «Indice Faldone Digitale» per un cliente.
+
+        Parameters
+        ----------
+        cliente_dict      : dati anagrafici del cliente (dict o to_dict())
+        fascicoli_per_tipo: {tipo_str: [fascicolo_dict, ...]}
+        scadenze_aperte   : lista di dict con chiavi data_scadenza, titolo,
+                            priorita, perentorio, fascicolo_numero
+        timeline          : lista di dict con data, tipo, titolo, esito,
+                            fascicolo_numero
+        note              : {sezione: testo} — note interne per sezione
+        studio_nome       : nome dello studio (intestazione)
+        output_path       : percorso file PDF da creare
+        stats             : {n_doc, n_dep, n_att, n_scad}
+        """
+        output_path = os.path.abspath(output_path)
+        if os.path.dirname(output_path):
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        styles = _build_styles()
+        doc = SimpleDocTemplate(
+            output_path,
+            pagesize=pagesizes.A4,
+            leftMargin=MARGIN_LEFT,
+            rightMargin=MARGIN_RIGHT,
+            topMargin=MARGIN_TOP,
+            bottomMargin=MARGIN_BOTTOM,
+        )
+        page_w = pagesizes.A4[0] - MARGIN_LEFT - MARGIN_RIGHT
+        story  = []
+
+        nome_cliente = cliente_dict.get("nome_completo") or (
+            (cliente_dict.get("nome", "") + " " + cliente_dict.get("cognome", "")).strip()
+            or cliente_dict.get("ragione_sociale", "—")
+        )
+        cf = cliente_dict.get("codice_fiscale") or cliente_dict.get("partita_iva") or ""
+
+        # ---------- Intestazione studio
+        story.append(_intestazione_studio(
+            studio_nome,
+            "Faldone Digitale",
+            f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            styles, page_w,
+        ))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # ---------- Titolo
+        story.append(Paragraph(nome_cliente, styles["titolo_fascicolo"]))
+        if cf:
+            story.append(Paragraph(f"C.F. / P.IVA: {cf}", styles["numero_fascicolo"]))
+        story.append(HRFlowable(width=page_w, thickness=1, color=ORO_ACCENTO, spaceAfter=6))
+
+        # ---------- Riepilogo numerico
+        story.append(_sezione_header("Riepilogo Faldone", styles, page_w))
+        story.append(Spacer(1, 0.15 * cm))
+        n_attive = sum(len(v) for v in fascicoli_per_tipo.values())
+        totali   = [
+            ("Pratiche attive",     str(n_attive)),
+            ("Scadenze aperte",     str(stats.get("n_scad", 0))),
+            ("Documenti totali",    str(stats.get("n_doc", 0))),
+            ("Depositi PCT",        str(stats.get("n_dep", 0))),
+            ("Attività registrate", str(stats.get("n_att", 0))),
+            ("Tipologie presenti",  str(len(fascicoli_per_tipo))),
+        ]
+        story.append(_griglia_campi(totali, styles, page_w, cols=3))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # ---------- Pratiche per tipo
+        _LABEL = {
+            "CIVILE": "Civile", "PENALE": "Penale",
+            "AMMINISTRATIVO": "Amministrativo", "STRAGIUDIZIALE": "Stragiudiziale",
+            "CONSULENZA": "Consulenza", "LAVORO": "Lavoro",
+            "FAMIGLIA": "Famiglia", "SUCCESSIONI": "Successioni", "ALTRO": "Altro",
+        }
+        story.append(_sezione_header("Pratiche per Tipologia", styles, page_w))
+        story.append(Spacer(1, 0.15 * cm))
+
+        for tipo, fascicoli in fascicoli_per_tipo.items():
+            label = _LABEL.get(tipo, tipo.replace("_", " ").title())
+            story.append(Paragraph(
+                f"<b>▸ {label} ({len(fascicoli)} pratiCA{'a' if len(fascicoli)==1 else 'he'})</b>",
+                styles["campo_label"],
+            ))
+            rows = [["N.", "Titolo", "Stato", "Tribunale", "Apertura"]]
+            for i, f in enumerate(fascicoli, 1):
+                rows.append([
+                    str(i),
+                    f.get("titolo", "—")[:45],
+                    f.get("stato", "—").replace("_", " "),
+                    (f.get("tribunale") or "—")[:25],
+                    _fmt_date(f.get("data_apertura")),
+                ])
+            t = Table(rows, colWidths=[0.5*cm, page_w*0.42, page_w*0.14, page_w*0.28, page_w*0.14])
+            t.setStyle(TableStyle([
+                ("BACKGROUND",   (0, 0), (-1, 0),  BLU_SCURO),
+                ("TEXTCOLOR",    (0, 0), (-1, 0),  BIANCO),
+                ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+                ("FONTSIZE",     (0, 0), (-1, -1), 8),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
+                ("GRID",         (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
+                ("ALIGN",        (0, 0), (0, -1),  "CENTER"),
+                ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING",   (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING",(0, 0), (-1, -1), 3),
+            ]))
+            story.append(t)
+            story.append(Spacer(1, 0.3 * cm))
+
+        # ---------- Scadenze aperte
+        if scadenze_aperte:
+            story.append(Spacer(1, 0.2 * cm))
+            story.append(_sezione_header("Scadenze Aperte", styles, page_w))
+            story.append(Spacer(1, 0.15 * cm))
+            sc_rows = [["Data", "Fascicolo", "Titolo", "Priorità", "Per."]]
+            for sc in scadenze_aperte[:30]:
+                sc_rows.append([
+                    _fmt_date(sc.get("data_scadenza")),
+                    sc.get("fascicolo_numero", "—"),
+                    sc.get("titolo", "—")[:40],
+                    sc.get("priorita", "—"),
+                    "Sì" if sc.get("perentorio") else "No",
+                ])
+            t2 = Table(sc_rows, colWidths=[page_w*0.14, page_w*0.15, page_w*0.45, page_w*0.14, page_w*0.08])
+            t2.setStyle(TableStyle([
+                ("BACKGROUND",   (0, 0), (-1, 0),  BLU_SCURO),
+                ("TEXTCOLOR",    (0, 0), (-1, 0),  BIANCO),
+                ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+                ("FONTSIZE",     (0, 0), (-1, -1), 8),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
+                ("GRID",         (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
+                ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING",   (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING",(0, 0), (-1, -1), 3),
+            ]))
+            story.append(t2)
+            story.append(Spacer(1, 0.4 * cm))
+
+        # ---------- Timeline (ultime 20 attività)
+        if timeline:
+            story.append(_sezione_header("Ultime Attività", styles, page_w))
+            story.append(Spacer(1, 0.15 * cm))
+            tl_rows = [["Data", "Fascicolo", "Tipo", "Titolo", "Esito"]]
+            for ev in timeline[:20]:
+                tl_rows.append([
+                    _fmt_date(ev.get("data")),
+                    ev.get("fascicolo_numero", "—"),
+                    ev.get("tipo", "—").replace("_", " "),
+                    ev.get("titolo", "—")[:35],
+                    ev.get("esito", "—").replace("_", " "),
+                ])
+            t3 = Table(tl_rows, colWidths=[page_w*0.13, page_w*0.15, page_w*0.18, page_w*0.38, page_w*0.16])
+            t3.setStyle(TableStyle([
+                ("BACKGROUND",   (0, 0), (-1, 0),  BLU_SCURO),
+                ("TEXTCOLOR",    (0, 0), (-1, 0),  BIANCO),
+                ("FONTNAME",     (0, 0), (-1, 0),  "Helvetica-Bold"),
+                ("FONTSIZE",     (0, 0), (-1, -1), 8),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
+                ("GRID",         (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO),
+                ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING",   (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING",(0, 0), (-1, -1), 3),
+            ]))
+            story.append(t3)
+            story.append(Spacer(1, 0.4 * cm))
+
+        # ---------- Note interne (solo se presenti)
+        note_testo = {k: v for k, v in note.items() if v and v.strip()}
+        if note_testo:
+            story.append(_sezione_header("Note Interne Faldone", styles, page_w))
+            story.append(Spacer(1, 0.1 * cm))
+            story.append(Paragraph(
+                "<i>Documento riservato — uso interno studio legale</i>",
+                styles["note_testo"],
+            ))
+            story.append(Spacer(1, 0.15 * cm))
+            for sez, testo in note_testo.items():
+                story.append(Paragraph(f"<b>{sez}:</b>", styles["campo_label"]))
+                story.append(Paragraph(testo.replace("\n", "<br/>"), styles["note_testo"]))
+                story.append(Spacer(1, 0.2 * cm))
+
+        # ---------- Footer
+        def _add_footer(canvas, doc_obj):
+            canvas.saveState()
+            canvas.setFont("Helvetica", 7)
+            canvas.setFillColor(colors.HexColor("#888888"))
+            canvas.drawCentredString(
+                pagesizes.A4[0] / 2,
+                MARGIN_BOTTOM / 2,
+                f"{studio_nome}  —  Faldone Digitale: {nome_cliente}  —  Pag. {doc_obj.page}",
+            )
+            canvas.restoreState()
+
+        doc.build(story, onFirstPage=_add_footer, onLaterPages=_add_footer)
+        return output_path
+
+
 # ------------------------------------------------------------------ Funzioni di convenienza
 
 _generatore = GeneratoreReport()
@@ -773,3 +983,26 @@ def scadenze_pdf(
 ) -> str:
     """Funzione di convenienza — crea un report PDF dello scadenziario."""
     return _generatore.scadenze_pdf(scadenze, output_path, titolo, studio_nome)
+
+
+def faldone_pdf(
+    cliente_dict: dict,
+    fascicoli_per_tipo: dict,
+    scadenze_aperte: list,
+    timeline: list,
+    note: dict,
+    studio_nome: str,
+    output_path: str,
+    stats: dict,
+) -> str:
+    """Funzione di convenienza — genera l'indice PDF del faldone digitale."""
+    return _generatore.faldone_pdf(
+        cliente_dict=cliente_dict,
+        fascicoli_per_tipo=fascicoli_per_tipo,
+        scadenze_aperte=scadenze_aperte,
+        timeline=timeline,
+        note=note,
+        studio_nome=studio_nome,
+        output_path=output_path,
+        stats=stats,
+    )

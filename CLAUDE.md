@@ -40,6 +40,21 @@
 - Minor (+0.1.0): nuova funzionalità retrocompatibile
 - Major (+1.0.0): breaking change
 
+**Deploy — Docker locale (REGOLA OBBLIGATORIA):**
+- Dopo ogni bump di versione, ricostruire e riavviare il Docker locale con:
+  ```bash
+  cd /home/user/hacs
+  docker compose build --no-cache
+  docker compose up -d
+  ```
+- Eseguire **sempre** `--no-cache` per garantire che la nuova versione del codice sia inclusa nell'immagine (il layer del codice si aggiorna solo con rebuild).
+- Verificare che il container sia tornato healthy prima di considerare il deploy completato:
+  ```bash
+  docker compose ps          # Status deve essere "healthy"
+  docker compose logs --tail=20 app   # Controllare errori di avvio
+  ```
+- URL locale: `http://localhost` (via Nginx) oppure `http://localhost:8080` (diretto Gunicorn).
+
 **Deploy — Railway (produzione online):**
 - Il deploy su Railway avviene dopo il bump di versione e il push sul branch.
 - Ad ogni release va aggiornata anche la versione sul pannello Railway (variabile d'ambiente o redeploy dell'immagine).

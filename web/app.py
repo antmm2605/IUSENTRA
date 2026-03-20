@@ -3257,6 +3257,290 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
+    # ---- Wizard deposito telematico PCT
+
+    @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
+    def deposito_prepara(id_fasc):
+        """Mostra il wizard per la preparazione e l'invio del deposito telematico."""
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+        demo_mode = _polis_demo_mode()
+        return render_template(
+            "fascicoli/deposito_prepara.html",
+            fascicolo=fasc,
+            demo_mode=demo_mode,
+            oggi=date.today(),
+        )
+
+    @app.route("/fascicoli/<id_fasc>/deposito/invia", methods=["POST"])
+    def deposito_invia(id_fasc):
+        """
+        Crea la busta telematica e la invia via PEC all'ufficio giudiziario.
+        In demo mode simula l'invio senza connessioni reali.
+        """
+        import uuid as _uuid
+        from datetime import datetime as _dt
+        from pct.fascicoli import EsitoDepositoPCT
+
+        gf  = get_fascicoli()
+        u   = g.utente_corrente
+        f   = request.form
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+
+        demo_mode        = f.get("demo_mode") == "1" or _polis_demo_mode()
+        tipo_atto        = f.get("tipo_atto", "ATTO").strip()
+        codice_registro  = f.get("codice_registro", "RG").strip()
+        numero_rg        = f.get("numero_rg", "").strip()
+        anno_rg_str      = f.get("anno_rg", "").strip()
+        oggetto          = f.get("oggetto", "").strip() or fasc.titolo
+        note             = f.get("note", "").strip()
+        tribunale_nome   = f.get("tribunale_nome", "").strip()
+        tribunale_pec    = f.get("tribunale_pec", "").strip()
+        codice_ufficio   = f.get("codice_ufficio", "").strip()
+        atto_id          = f.get("atto_principale_id", "").strip()
+        allegati_ids     = request.form.getlist("allegati_ids")
+
+        if not tribunale_nome:
+            flash("Seleziona un ufficio giudiziario destinatario.", "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+        if not atto_id:
+            flash("Seleziona l'atto principale da includere nella busta.", "danger")
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+
+        anno_rg = int(anno_rg_str) if anno_rg_str.isdigit() else (fasc.anno_rg or 0)
+        id_dep  = _uuid.uuid4().hex[:8].upper()
+        ts      = _dt.now().isoformat()
+
+        if demo_mode:
+            # Simulazione: nessun file su disco, nessuna PEC reale
+            esito = EsitoDepositoPCT(
+                id=id_dep,
+                timestamp=ts,
+                stato="INVIATO",
+                tipo_atto=tipo_atto,
+                pec_destinatario=tribunale_pec or f"{tribunale_nome.lower().replace(' ','.')}@pec.demo",
+                messaggio=(
+                    f"[DEMO] Busta {id_dep} creata e PEC simulata per {tribunale_nome}. "
+                    f"Atto: {tipo_atto} — RG {numero_rg}/{anno_rg}."
+                ),
+                note=note,
+                registrato_da=u.username if u else "demo",
+            )
+        else:
+            # Deposito reale: crea busta + firma + invia PEC
+            try:
+                from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
+                from pct.deposito import DepositoCivile
+                from pct.pec import ClientPEC, ConfigPEC
+                from pct.firma import FirmaDigitale
+                import os as _os
+
+                # Risolvi percorsi documenti
+                atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
+                if not atto_doc:
+                    flash("Documento selezionato come atto principale non trovato.", "danger")
+                    return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+
+                atto_path = str(gf.percorso_documento(id_fasc, atto_id))
+
+                allegati_busta = []
+                for all_id in allegati_ids:
+                    if all_id == atto_id:
+                        continue  # evita duplicati
+                    all_doc = next((d for d in fasc.documenti if d.id == all_id), None)
+                    if all_doc:
+                        all_path = str(gf.percorso_documento(id_fasc, all_id))
+                        allegati_busta.append(
+                            AllegatoBusta(percorso=all_path, descrizione=all_doc.nome)
+                        )
+
+                dati = DatiBusta(
+                    codice_ufficio=codice_ufficio or tribunale_nome,
+                    codice_registro=codice_registro,
+                    oggetto=oggetto,
+                    tipo_atto=tipo_atto,
+                    atto_principale=atto_path,
+                    allegati=allegati_busta,
+                    numero_rg=numero_rg or None,
+                    anno_rg=anno_rg or None,
+                    operatore=u.username if u else "",
+                    cf_mittente="",
+                )
+
+                # Config PEC e firma dalla config studio
+                cfg_studio = get_config_studio().config
+                pec_cfg    = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, 'pec') else None
+                firma_cfg  = cfg_studio.firma if cfg_studio and hasattr(cfg_studio, 'firma') else None
+
+                if not pec_cfg or not pec_cfg.indirizzo:
+                    raise RuntimeError(
+                        "Configurazione PEC non trovata. Configura le credenziali PEC nelle impostazioni."
+                    )
+
+                config_pec = ConfigPEC(
+                    indirizzo=pec_cfg.indirizzo,
+                    password=pec_cfg.password,
+                    smtp_host=getattr(pec_cfg, 'smtp_host', 'smtp.pec.provider.it'),
+                    smtp_port=getattr(pec_cfg, 'smtp_port', 465),
+                    imap_host=getattr(pec_cfg, 'imap_host', ''),
+                    imap_port=getattr(pec_cfg, 'imap_port', 993),
+                )
+
+                firma = None
+                if firma_cfg and getattr(firma_cfg, 'configurato', False):
+                    try:
+                        firma = FirmaDigitale.da_config(firma_cfg)
+                    except Exception as _fe:
+                        app.logger.warning("FirmaDigitale non inizializzata: %s", _fe)
+
+                output_dir = _os.getenv("PCT_DEPOSITI_DIR", "/data/depositi")
+                dep = DepositoCivile(config_pec=config_pec, firma=firma, output_dir=output_dir)
+
+                # Risolvi PEC tribunale
+                pec_dest = tribunale_pec
+                if not pec_dest and codice_ufficio:
+                    try:
+                        from pct.uffici_giudiziari import get_gestore as _get_uff
+                        _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                        _uff = next(
+                            (x for x in _get_uff(_cache).carica() if x.get("codice") == codice_ufficio),
+                            None,
+                        )
+                        pec_dest = _uff["pec"] if _uff else ""
+                    except Exception:
+                        pass
+
+                if not pec_dest:
+                    raise RuntimeError(
+                        f"Indirizzo PEC non trovato per l'ufficio '{tribunale_nome}'. "
+                        "Verifica la selezione o imposta manualmente la PEC."
+                    )
+
+                # Invia senza attendere ricevute (polling successivo)
+                esito_dep = dep.deposita(
+                    dati=dati,
+                    tribunale=codice_ufficio or tribunale_nome,
+                    attendi_ricevute=False,
+                )
+                dep.salva_esito(esito_dep)
+
+                esito = EsitoDepositoPCT(
+                    id=esito_dep.id_deposito,
+                    timestamp=esito_dep.timestamp,
+                    stato=esito_dep.stato,
+                    tipo_atto=tipo_atto,
+                    pec_destinatario=esito_dep.pec_destinatario,
+                    messaggio=esito_dep.messaggio,
+                    ricevuta_accettazione=esito_dep.ricevuta_accettazione or "",
+                    ricevuta_consegna=esito_dep.ricevuta_consegna or "",
+                    note=note,
+                    registrato_da=u.username if u else "",
+                )
+
+            except Exception as _exc:
+                app.logger.exception("Errore deposito_invia %s: %s", id_fasc, _exc)
+                flash(f"Errore durante il deposito: {_exc}", "danger")
+                return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+
+        # Salva esito nel fascicolo
+        try:
+            from datetime import datetime as _dtnow
+            fasc.depositi_pct.append(esito)
+            fasc.modificato_il = _dtnow.now().isoformat()
+            gf._salva()
+            audit("fascicoli.deposito.invia", "fascicolo", id_fasc,
+                  dettagli=f"Deposito {esito.id} — {tipo_atto} verso {esito.pec_destinatario}")
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+            if demo_mode:
+                flash(
+                    f"[DEMO] Deposito simulato con ID {esito.id}. "
+                    "In modalità reale la busta verrebbe firmata e inviata via PEC.",
+                    "warning",
+                )
+            else:
+                flash(
+                    f"Deposito {esito.id} inviato via PEC a {esito.pec_destinatario}. "
+                    "Ricevute di accettazione e consegna saranno disponibili a breve.",
+                    "success",
+                )
+        except Exception as _se:
+            app.logger.exception("Errore salvataggio esito deposito %s: %s", id_fasc, _se)
+            flash(f"Deposito inviato ma errore nel salvataggio: {_se}", "warning")
+
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/api/fascicoli/<id_fasc>/depositi/<id_dep>/controlla", methods=["POST"])
+    def deposito_controlla_ricevute(id_fasc, id_dep):
+        """
+        Controlla via IMAP se sono arrivate nuove ricevute PEC per un deposito.
+        Aggiorna il fascicolo e restituisce lo stato aggiornato in JSON.
+        """
+        gf   = get_fascicoli()
+        u    = g.utente_corrente
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            return jsonify({"errore": "Fascicolo non trovato"}), 200
+
+        dep = next((d for d in fasc.depositi_pct if d.id == id_dep), None)
+        if not dep:
+            return jsonify({"errore": "Deposito non trovato"}), 200
+
+        try:
+            cfg_studio = get_config_studio().config
+            pec_cfg    = cfg_studio.pec if cfg_studio and hasattr(cfg_studio, 'pec') else None
+
+            if not pec_cfg or not pec_cfg.imap_host:
+                return jsonify({
+                    "stato": dep.stato,
+                    "ricevuta_accettazione": bool(dep.ricevuta_accettazione),
+                    "ricevuta_consegna": bool(dep.ricevuta_consegna),
+                    "info": "IMAP non configurato — verifica manuale necessaria.",
+                })
+
+            from pct.pec import ClientPEC, ConfigPEC
+            config_pec = ConfigPEC(
+                indirizzo=pec_cfg.indirizzo,
+                password=pec_cfg.password,
+                smtp_host=getattr(pec_cfg, 'smtp_host', ''),
+                imap_host=pec_cfg.imap_host,
+                imap_port=getattr(pec_cfg, 'imap_port', 993),
+            )
+            client_pec = ClientPEC(config_pec)
+            ricevute   = client_pec.attendi_ricevute(timeout=15)  # check rapido
+
+            aggiornato = False
+            if ricevute.get("accettazione") and not dep.ricevuta_accettazione:
+                dep.ricevuta_accettazione = ricevute["accettazione"]
+                if dep.stato == "INVIATO":
+                    dep.stato = "ACCETTATO"
+                aggiornato = True
+            if ricevute.get("consegna") and not dep.ricevuta_consegna:
+                dep.ricevuta_consegna = ricevute["consegna"]
+                dep.stato = "CONSEGNATO"
+                aggiornato = True
+
+            if aggiornato:
+                gf._salva()
+                audit("fascicoli.deposito.ricevute", "fascicolo", id_fasc,
+                      dettagli=f"Deposito {id_dep} aggiornato a {dep.stato}")
+
+            return jsonify({
+                "stato": dep.stato,
+                "ricevuta_accettazione": bool(dep.ricevuta_accettazione),
+                "ricevuta_consegna": bool(dep.ricevuta_consegna),
+                "aggiornato": aggiornato,
+            })
+
+        except Exception as e:
+            app.logger.exception("deposito_controlla_ricevute %s/%s: %s", id_fasc, id_dep, e)
+            return jsonify({"errore": str(e), "stato": dep.stato})
+
     # ---- Sfoglia e download da archivio ZIP
 
     @app.route("/fascicoli/<id_fasc>/archivio/contenuto")

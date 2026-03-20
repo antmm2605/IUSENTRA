@@ -297,10 +297,16 @@
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
           {% endif %}
         </span>
-        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
-                data-bs-target="#modalDeposito">
-          <i class="bi bi-plus-lg me-1"></i>Registra esito
-        </button>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('deposito_prepara', id_fasc=fascicolo.id) }}"
+             class="btn btn-sm btn-primary">
+            <i class="bi bi-send me-1"></i>Invia deposito
+          </a>
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                  data-bs-target="#modalDeposito">
+            <i class="bi bi-plus-lg me-1"></i>Registra manuale
+          </button>
+        </div>
       </div>
       <div class="card-body p-0">
         {% if fascicolo.depositi_pct %}
@@ -308,18 +314,19 @@
           <table class="table table-hover align-middle mb-0 small">
             <thead class="table-light">
               <tr>
-                <th>Data</th><th>Tipo atto</th><th>PEC Tribunale</th>
-                <th>Stato</th><th>Ricevute</th><th>Note</th>
+                <th>Data</th><th>ID</th><th>Tipo atto</th><th>PEC Tribunale</th>
+                <th>Stato</th><th>Ricevute</th><th>Note</th><th></th>
               </tr>
             </thead>
             <tbody>
               {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
-              <tr>
+              <tr id="dep-row-{{ dep.id }}">
                 <td class="text-nowrap">{{ dep.timestamp[:10] }}</td>
+                <td class="font-monospace text-muted" style="font-size:.72rem">{{ dep.id }}</td>
                 <td>{{ dep.tipo_atto }}</td>
                 <td class="text-muted" style="font-size:.75rem">{{ dep.pec_destinatario }}</td>
                 <td>
-                  <span class="badge rounded-pill
+                  <span class="badge rounded-pill dep-stato-{{ dep.id }}
                     {% if dep.stato == 'CONSEGNATO' %}bg-success
                     {% elif dep.stato == 'ACCETTATO' %}bg-info text-dark
                     {% elif dep.stato == 'RIFIUTATO' or dep.stato == 'ERRORE' %}bg-danger
@@ -327,7 +334,7 @@
                     {{ dep.stato }}
                   </span>
                 </td>
-                <td>
+                <td class="dep-ricevute-{{ dep.id }}">
                   {% if dep.ricevuta_accettazione %}
                     <i class="bi bi-check-circle text-info" title="Accettazione ricevuta"></i>
                   {% endif %}
@@ -337,6 +344,16 @@
                   {% if not dep.ricevuta_accettazione and not dep.ricevuta_consegna %}—{% endif %}
                 </td>
                 <td class="text-muted" style="font-size:.72rem">{{ dep.note or dep.messaggio }}</td>
+                <td>
+                  {% if dep.stato in ('INVIATO', 'ACCETTATO') %}
+                  <button type="button"
+                          class="btn btn-sm btn-outline-info"
+                          title="Controlla ricevute PEC"
+                          onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
+                    <i class="bi bi-arrow-repeat"></i>
+                  </button>
+                  {% endif %}
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -904,6 +921,57 @@ function apriFirma(btn) {
   document.getElementById('firma-form').action = btn.dataset.firmaUrl;
   document.getElementById('firma-file-input').value = '';
   new bootstrap.Modal(document.getElementById('modalFirma')).show();
+}
+
+// ---- Controlla ricevute deposito PCT ----
+function controllaRicevute(idFasc, idDep, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+  fetch('/api/fascicoli/' + idFasc + '/depositi/' + idDep + '/controlla', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.errore) {
+      btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>';
+      btn.title = 'Errore: ' + data.errore;
+      btn.disabled = false;
+      return;
+    }
+    /* Aggiorna badge stato */
+    const badge = document.querySelector('.dep-stato-' + idDep);
+    if (badge) {
+      badge.textContent = data.stato;
+      badge.className = badge.className
+        .replace(/bg-\w+/g, '')
+        .replace(/text-\w+/g, '');
+      if (data.stato === 'CONSEGNATO')      badge.classList.add('bg-success');
+      else if (data.stato === 'ACCETTATO') badge.classList.add('bg-info','text-dark');
+      else if (['RIFIUTATO','ERRORE'].includes(data.stato)) badge.classList.add('bg-danger');
+      else badge.classList.add('bg-secondary');
+    }
+    /* Aggiorna icone ricevute */
+    const ricCell = document.querySelector('.dep-ricevute-' + idDep);
+    if (ricCell) {
+      let html = '';
+      if (data.ricevuta_accettazione) html += '<i class="bi bi-check-circle text-info me-1" title="Accettazione ricevuta"></i>';
+      if (data.ricevuta_consegna)     html += '<i class="bi bi-check-circle-fill text-success" title="Consegna ricevuta"></i>';
+      if (!data.ricevuta_accettazione && !data.ricevuta_consegna) html = '—';
+      ricCell.innerHTML = html;
+    }
+    if (['CONSEGNATO','RIFIUTATO','ERRORE'].includes(data.stato)) {
+      btn.remove(); /* stato finale: rimuovi bottone */
+    } else {
+      btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+      btn.disabled = false;
+    }
+  })
+  .catch(err => {
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+    btn.disabled = false;
+    btn.title = 'Errore di rete: ' + err;
+  });
 }
 
 // ---- Drop-zone carica documento ----

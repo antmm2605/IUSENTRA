@@ -380,6 +380,7 @@
       <button class="topbar-user-btn dropdown-toggle"
               type="button"
               data-bs-toggle="dropdown"
+              data-bs-strategy="fixed"
               aria-expanded="false"
               title="{{ utente_corrente.nome_completo or utente_corrente.username }}">
         {{ utente_corrente.username[0].upper() }}
@@ -444,6 +445,11 @@
 
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
+
+{# ---- Handle nascondi/mostra bottom nav (mobile) ---- #}
+<div id="bn-handle" title="Nascondi/mostra navigazione">
+  <span class="bn-handle-pill"></span>
+</div>
 
 {# ---- Bottom Navigation (mobile/tablet) ---- #}
 <nav id="bottom-nav" aria-label="Navigazione principale">
@@ -845,6 +851,30 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script>
+/* ---- Bottom nav hide/show ---- */
+(function(){
+  var bn    = document.getElementById('bottom-nav');
+  var bnh   = document.getElementById('bn-handle');
+  var main  = document.getElementById('main');
+  var toast = document.getElementById('sync-toast-container');
+  if (!bn || !bnh) return;
+  var hidden = localStorage.getItem('pct-bn-hidden') === '1';
+  function applyState(animate) {
+    if (animate) { bn.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)'; }
+    bn.classList.toggle('bn-hidden', hidden);
+    bnh.classList.toggle('bn-hidden', hidden);
+    if (main)  main.classList.toggle('bn-hidden', hidden);
+    if (toast) toast.classList.toggle('bn-hidden', hidden);
+    bnh.querySelector('.bn-handle-pill').style.transform = hidden ? 'rotate(180deg) scaleX(0.7)' : '';
+  }
+  applyState(false);
+  bnh.addEventListener('click', function(){
+    hidden = !hidden;
+    localStorage.setItem('pct-bn-hidden', hidden ? '1' : '');
+    applyState(true);
+  });
+})();
+
 /* ---- Sidebar mobile toggle + desktop mini ---- */
 (function(){
   var sb      = document.getElementById('sidebar');

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Documenti ricorso {{ numero_ricorso }}/{{ anno }}{% endblock %}
+{% block pct_modulo %}pat{% endblock %}
+
+{% block content %}
+
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{{ url_for('pat_home') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <h5 class="mb-0 fw-bold">
+      Fascicolo amministrativo — N.RG {{ numero_ricorso }}/{{ anno }}
+    </h5>
+    {% if demo_mode %}
+    <span class="badge bg-warning text-dark ms-1 small">DEMO</span>
+    {% endif %}
+  </div>
+
+  {% if documenti %}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-files me-2 text-success"></i>
+      Documenti nel fascicolo — {{ documenti|length }} atti
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th>Data deposito</th>
+            <th>Nome file</th>
+            <th>Tipo</th>
+            <th>Mittente</th>
+            <th>Dimensione</th>
+            <th>Disponibile</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in documenti|sort(attribute='data_deposito', reverse=True) %}
+          <tr>
+            <td class="text-nowrap">{{ d.data_deposito or '—' }}</td>
+            <td class="fw-semibold">{{ d.nome }}</td>
+            <td>
+              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                {{ d.tipo|replace('_',' ')|title }}
+              </span>
+            </td>
+            <td class="text-muted">{{ d.mittente or '—' }}</td>
+            <td class="text-muted">
+              {% if d.dimensione_bytes %}{{ (d.dimensione_bytes / 1024)|int }} KB{% else %}—{% endif %}
+            </td>
+            <td>
+              {% if d.disponibile %}
+              <i class="bi bi-check-circle-fill text-success"></i>
+              {% else %}
+              <i class="bi bi-x-circle text-danger" title="Documento non più disponibile"></i>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>Nessun documento disponibile per questo fascicolo.
+  </div>
+  {% endif %}
+
+  <div class="alert alert-light border small mt-3">
+    <i class="bi bi-info-circle me-2 text-success"></i>
+    Per scaricare gli atti dal fascicolo amministrativo è necessario accedere direttamente al
+    <a href="https://www.giustizia-amministrativa.it/pac" target="_blank" rel="noopener">portale PAT / SIGA</a>
+    con CNS/CIE o SPID. Il gestionale mostra l'elenco degli atti ma il download
+    diretto richiede sessione autenticata via browser.
+  </div>
+
+{% endblock %}

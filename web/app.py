@@ -1534,6 +1534,249 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("polisWeb_home"))
 
+    # ---------------------------------------------------------------- PDP Penale — Portale Deposito Atti
+
+    @app.route("/pdp", methods=["GET"])
+    def pdp_home():
+        demo_mode = _polis_demo_mode()
+        return render_template("pdp.html", demo_mode=demo_mode, oggi=date.today())
+
+    @app.route("/pdp/ricerca", methods=["POST"])
+    def pdp_ricerca():
+        from pct.pdp import crea_client_pdp
+        f          = request.form
+        ufficio    = f.get("ufficio", "").strip()
+        demo_mode  = f.get("demo_mode") == "1" or _polis_demo_mode()
+
+        if not ufficio:
+            flash("Seleziona un ufficio giudiziario.", "warning")
+            return redirect(url_for("pdp_home"))
+
+        numero_rg     = f.get("numero_rg", "").strip() or None
+        anno_rg_str   = f.get("anno_rg", "").strip()
+        anno_rg       = int(anno_rg_str) if anno_rg_str.isdigit() else None
+        nome_imputato = f.get("nome_imputato", "").strip() or None
+        tipo_registro = f.get("tipo_registro", "").strip() or None
+
+        try:
+            client = crea_client_pdp(demo=demo_mode)
+            fascicoli = client.ricerca_fascicoli(
+                ufficio=ufficio,
+                numero_rg=numero_rg,
+                anno_rg=anno_rg,
+                nome_imputato=nome_imputato,
+                tipo_registro=tipo_registro,
+            )
+            # Risolvi nome ufficio dal codice
+            try:
+                from pct.uffici_giudiziari import get_gestore as _get_uff
+                _uff = next(
+                    (u for u in _get_uff(
+                        os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                    ).carica() if u.get("codice") == ufficio),
+                    None,
+                )
+                ufficio_sel_nome = _uff["nome"] if _uff else ufficio
+            except Exception:
+                ufficio_sel_nome = ufficio
+            return render_template(
+                "pdp.html",
+                demo_mode=demo_mode,
+                fascicoli=fascicoli,
+                ufficio_sel=ufficio,
+                ufficio_sel_nome=ufficio_sel_nome,
+                numero_rg=numero_rg or "",
+                anno_rg=anno_rg or "",
+                nome_imputato=nome_imputato or "",
+                tipo_registro=tipo_registro or "",
+                oggi=date.today(),
+            )
+        except Exception as e:
+            app.logger.exception("Errore pdp_ricerca: %s", e)
+            flash(str(e), "danger")
+            return redirect(url_for("pdp_home"))
+
+    @app.route("/pdp/documenti")
+    def pdp_documenti():
+        from pct.pdp import crea_client_pdp
+        codice_ufficio = request.args.get("codice_ufficio", "")
+        numero_rg      = request.args.get("numero_rg", "")
+        anno_rg_str    = request.args.get("anno_rg", "0")
+        anno_rg        = int(anno_rg_str) if anno_rg_str.isdigit() else 0
+        demo_mode      = _polis_demo_mode()
+        try:
+            client    = crea_client_pdp(demo=demo_mode)
+            documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
+        except Exception as e:
+            app.logger.exception("Errore pdp_documenti: %s", e)
+            documenti = []
+            flash(str(e), "danger")
+        return render_template(
+            "pdp_documenti.html",
+            documenti=documenti,
+            numero_rg=numero_rg,
+            anno_rg=anno_rg,
+            demo_mode=demo_mode,
+        )
+
+    @app.route("/pdp/importa", methods=["POST"])
+    def pdp_importa():
+        from pct.pdp import crea_client_pdp, FascicoloPDP
+        import json
+        f         = request.form
+        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
+        try:
+            fascicolo = FascicoloPDP(
+                numero_rg=f.get("numero_rg", ""),
+                anno_rg=int(f.get("anno_rg", 0) or 0),
+                tipo_registro=f.get("tipo_registro", ""),
+                fase=f.get("fase", ""),
+                stato=f.get("stato", ""),
+                reato=f.get("reato", ""),
+                sezione=f.get("sezione", ""),
+                giudice=f.get("giudice", ""),
+                data_iscrizione=f.get("data_iscrizione", ""),
+                data_udienza=f.get("data_udienza", ""),
+                imputati=json.loads(f.get("imputati_json", "[]")),
+                parti_offese=json.loads(f.get("parti_offese_json", "[]")),
+                codice_ufficio=f.get("codice_ufficio", ""),
+                nome_ufficio=f.get("nome_ufficio", ""),
+            )
+            client    = crea_client_pdp(demo=demo_mode)
+            avv       = g.utente_corrente.username if g.utente_corrente else ""
+            risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
+            for avviso in risultato.avvisi:
+                flash(avviso, "warning")
+            if risultato.successo and risultato.id_fascicolo_locale:
+                flash(risultato.messaggio, "success")
+                return redirect(url_for("dettaglio_fascicolo",
+                                        id_fasc=risultato.id_fascicolo_locale))
+            flash(risultato.messaggio, "danger")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("pdp_home"))
+
+    # ---------------------------------------------------------------- PAT Amministrativo — SIGA
+
+    @app.route("/pat", methods=["GET"])
+    def pat_home():
+        demo_mode = _polis_demo_mode()
+        return render_template("pat.html", demo_mode=demo_mode, oggi=date.today())
+
+    @app.route("/pat/ricerca", methods=["POST"])
+    def pat_ricerca():
+        from pct.pat import crea_client_pat
+        f         = request.form
+        ufficio   = f.get("ufficio", "").strip()
+        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
+
+        if not ufficio:
+            flash("Seleziona un ufficio giudiziario.", "warning")
+            return redirect(url_for("pat_home"))
+
+        numero_ricorso  = f.get("numero_ricorso", "").strip() or None
+        anno_str        = f.get("anno", "").strip()
+        anno            = int(anno_str) if anno_str.isdigit() else None
+        nome_ricorrente = f.get("nome_ricorrente", "").strip() or None
+        materia         = f.get("materia", "").strip() or None
+
+        try:
+            client    = crea_client_pat(demo=demo_mode)
+            fascicoli = client.ricerca_fascicoli(
+                ufficio=ufficio,
+                numero_ricorso=numero_ricorso,
+                anno=anno,
+                nome_ricorrente=nome_ricorrente,
+                materia=materia,
+            )
+            try:
+                from pct.uffici_giudiziari import get_gestore as _get_uff
+                _uff = next(
+                    (u for u in _get_uff(
+                        os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                    ).carica() if u.get("codice") == ufficio),
+                    None,
+                )
+                ufficio_sel_nome = _uff["nome"] if _uff else ufficio
+            except Exception:
+                ufficio_sel_nome = ufficio
+            return render_template(
+                "pat.html",
+                demo_mode=demo_mode,
+                fascicoli=fascicoli,
+                ufficio_sel=ufficio,
+                ufficio_sel_nome=ufficio_sel_nome,
+                numero_ricorso=numero_ricorso or "",
+                anno=anno or "",
+                nome_ricorrente=nome_ricorrente or "",
+                materia=materia or "",
+                oggi=date.today(),
+            )
+        except Exception as e:
+            app.logger.exception("Errore pat_ricerca: %s", e)
+            flash(str(e), "danger")
+            return redirect(url_for("pat_home"))
+
+    @app.route("/pat/documenti")
+    def pat_documenti():
+        from pct.pat import crea_client_pat
+        codice_ufficio = request.args.get("codice_ufficio", "")
+        numero_ricorso = request.args.get("numero_ricorso", "")
+        anno_str       = request.args.get("anno", "0")
+        anno           = int(anno_str) if anno_str.isdigit() else 0
+        demo_mode      = _polis_demo_mode()
+        try:
+            client    = crea_client_pat(demo=demo_mode)
+            documenti = client.consulta_documenti(codice_ufficio, numero_ricorso, anno)
+        except Exception as e:
+            app.logger.exception("Errore pat_documenti: %s", e)
+            documenti = []
+            flash(str(e), "danger")
+        return render_template(
+            "pat_documenti.html",
+            documenti=documenti,
+            numero_ricorso=numero_ricorso,
+            anno=anno,
+            demo_mode=demo_mode,
+        )
+
+    @app.route("/pat/importa", methods=["POST"])
+    def pat_importa():
+        from pct.pat import crea_client_pat, FascicoloPAT
+        import json
+        f         = request.form
+        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
+        try:
+            fascicolo = FascicoloPAT(
+                numero_ricorso=f.get("numero_ricorso", ""),
+                anno=int(f.get("anno", 0) or 0),
+                tipo=f.get("tipo", ""),
+                stato=f.get("stato", ""),
+                materia=f.get("materia", ""),
+                sezione=f.get("sezione", ""),
+                giudice_relatore=f.get("giudice_relatore", ""),
+                data_deposito=f.get("data_deposito", ""),
+                data_udienza=f.get("data_udienza", ""),
+                oggetto=f.get("oggetto", ""),
+                ricorrenti=json.loads(f.get("ricorrenti_json", "[]")),
+                resistenti=json.loads(f.get("resistenti_json", "[]")),
+                codice_ufficio=f.get("codice_ufficio", ""),
+                nome_ufficio=f.get("nome_ufficio", ""),
+            )
+            client    = crea_client_pat(demo=demo_mode)
+            avv       = g.utente_corrente.username if g.utente_corrente else ""
+            risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
+            for avviso in risultato.avvisi:
+                flash(avviso, "warning")
+            if risultato.successo and risultato.id_fascicolo_locale:
+                flash(risultato.messaggio, "success")
+                return redirect(url_for("dettaglio_fascicolo",
+                                        id_fasc=risultato.id_fascicolo_locale))
+            flash(risultato.messaggio, "danger")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("pat_home"))
+
     # ---------------------------------------------------------------- Checklist deposito telematico
 
     @app.route("/deposito/checklist")

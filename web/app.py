@@ -1515,7 +1515,7 @@ def create_app(config: dict | None = None) -> Flask:
                 giudice=f.get("giudice", ""),
                 data_iscrizione=f.get("data_iscrizione", ""),
                 data_udienza=f.get("data_udienza", ""),
-                parti=_json.loads(f.get("parti_json", "[]")),
+                parti=_json.loads(f.get("parti_json", "[]") or "[]"),
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )

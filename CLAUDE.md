@@ -62,6 +62,8 @@
 
 ## Note tecniche
 
+- **`web/app.py` — variabile `oggi` nei `render_template`**: passare **sempre** `oggi=date.today()` (oggetto `date`), **mai** `oggi=date.today().isoformat()` (stringa). `base.html` riga 350 chiama `oggi.strftime('%d/%m/%Y')` che è un metodo di `date`/`datetime`, non di `str` → se si passa la stringa si ottiene `AttributeError: 'str' object has no attribute 'strftime'`. I campi `min="{{ oggi }}"` degli input HTML `type="date"` ricevono comunque il formato corretto perché `str(date.today())` restituisce `YYYY-MM-DD`.
+
 - **`web/app.py` — `SECRET_KEY`**: quando si imposta `app.secret_key`, impostare sempre anche `app.config["SECRET_KEY"] = app.secret_key`. La funzione `get_condivisioni()` usa `app.config["SECRET_KEY"]` e senza questa riga solleva `KeyError` causando un 500.
 
 - **`web/app.py` — Route API senza try/except → 500 generico**: le route `/api/uffici`, `/api/uffici/stato`, `/api/uffici/aggiorna` **non hanno l'handler di errore HTTP** del Flask (a differenza di `/polisWeb`, `/polisWeb/ricerca`, `/polisWeb/documenti` che usano già try/except). Se lanciano un'eccezione non catturata, Flask risponde con "500 — Errore interno". Regola:

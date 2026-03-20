@@ -2275,9 +2275,9 @@ def create_app(config: dict | None = None) -> Flask:
                 if gc.get(id_c)
             ]
             cartelle_gestite = [
-                (gc.get(id_c), gcd.collaboratori_di(id_c))
-                for id_c in gc.tutti(stato=None)
-                if gc.get(id_c) and gcd.n_collaboratori(id_c) > 0
+                (c, gcd.collaboratori_di(c.id))
+                for c in gc.tutti(stato=None)
+                if gcd.n_collaboratori(c.id) > 0
             ]
             return render_template(
                 "clienti/cartelle_condivise.html",

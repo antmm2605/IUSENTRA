@@ -1800,34 +1800,36 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/clienti/<id_cliente>/portale", methods=["GET"])
     def portale_config(id_cliente):
-        gc = get_clienti()
-        c = gc.get(id_cliente)
-        if not c:
-            flash("Cliente non trovato.", "warning")
-            return redirect(url_for("lista_clienti"))
-        gp = _get_portale_mgr()
-        portale_obj = gp.get_by_cliente(id_cliente)
-        # Se esiste un portale, costruisci il link da mostrare
-        link_portale = None
-        if portale_obj and portale_obj.is_attivo:
-            # Il link grezzo non è salvato; mostriamo solo il link se appena creato
-            # (viene passato via flash/session) — qui mostriamo link generico
-            base = request.host_url.rstrip("/")
-            # Il token grezzo non viene mai salvato. Se c'è un token in sessione, lo usiamo.
-            raw_token = session.pop("portale_token_grezzo", None)
-            if raw_token:
-                link_portale = f"{base}/portale/{raw_token}"
-                session["portale_link_cache"] = link_portale
-            else:
-                link_portale = session.get("portale_link_cache")
-        return render_template(
-            "clienti/portale_config.html",
-            cliente=c,
-            portale_obj=portale_obj,
-            link_portale=link_portale,
-            oggi=date.today().isoformat(),
-            studio_nome=app.config.get("STUDIO_NOME", "Studio Legale PCT"),
-        )
+        try:
+            gc = get_clienti()
+            c = gc.get(id_cliente)
+            if not c:
+                flash("Cliente non trovato.", "warning")
+                return redirect(url_for("lista_clienti"))
+            gp = _get_portale_mgr()
+            portale_obj = gp.get_by_cliente(id_cliente)
+            # Se esiste un portale, costruisci il link da mostrare
+            link_portale = None
+            if portale_obj and portale_obj.is_attivo:
+                base = request.host_url.rstrip("/")
+                raw_token = session.pop("portale_token_grezzo", None)
+                if raw_token:
+                    link_portale = f"{base}/portale/{raw_token}"
+                    session["portale_link_cache"] = link_portale
+                else:
+                    link_portale = session.get("portale_link_cache")
+            return render_template(
+                "clienti/portale_config.html",
+                cliente=c,
+                portale_obj=portale_obj,
+                link_portale=link_portale,
+                oggi=date.today().isoformat(),
+                studio_nome=app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+            )
+        except Exception as e:
+            app.logger.exception("Errore portale_config [%s]: %s", id_cliente, e)
+            flash(f"Errore caricamento portale: {e}", "danger")
+            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
 
     @app.route("/clienti/<id_cliente>/portale/attiva", methods=["POST"])
     def portale_attiva(id_cliente):

@@ -975,7 +975,7 @@ if ('serviceWorker' in navigator) {
         mkUnderlay();
       }
       if (!isTracking) return;
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       deltaX = Math.min(0, dx);
       var progress = Math.min(1, Math.abs(deltaX) / row.offsetWidth);
       row.style.transform = 'translateX(' + deltaX + 'px)';

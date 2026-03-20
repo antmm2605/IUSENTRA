@@ -271,13 +271,54 @@
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
     <h6 class="fw-bold mb-1"><i class="bi bi-pen-fill text-primary me-2"></i>Firma Digitale</h6>
-    <p class="text-muted mb-4" style="font-size:.82rem;">
-      Certificato P12/PFX per la firma CAdES degli atti da depositare.
+    <p class="text-muted mb-3" style="font-size:.82rem;">
+      Certificato per la firma CAdES degli atti e per l'autenticazione al PST (PolisWeb).
       Rilasciato da: Infocert, Namirial, Aruba, Poste Italiane, Intesa.
     </p>
+
+    {# Stato attuale #}
+    {% set fmt = cfg.firma.formato_attivo %}
+    <div class="alert alert-{{ 'success' if fmt != 'nessuno' else 'secondary' }} py-2 small mb-4">
+      <i class="bi bi-{{ 'patch-check-fill' if fmt != 'nessuno' else 'exclamation-circle' }} me-2"></i>
+      {% if fmt == 'p12' %}
+        <strong>Formato attivo: P12/PFX</strong> — file trovato su disco.
+      {% elif fmt == 'pem' %}
+        <strong>Formato attivo: PEM</strong> — certificato + chiave trovati su disco.
+      {% else %}
+        <strong>Nessun certificato configurato</strong> — PolisWeb funziona in modalità demo.
+      {% endif %}
+    </div>
+
     <form method="post">
       <input type="hidden" name="_tab" value="firma">
-      <div class="row g-3">
+
+      {# ── Selezione formato ── #}
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Formato certificato</label>
+        <div class="d-flex gap-3 flex-wrap">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_p12"
+                   value="p12" onchange="switchFirmaFmt('p12')"
+                   {{ 'checked' if fmt != 'pem' }}>
+            <label class="form-check-label" for="fmt_p12">
+              <strong>P12 / PFX</strong>
+              <span class="text-muted small d-block">File unico .p12 o .pfx — il più comune</span>
+            </label>
+          </div>
+          <div class="form-check ms-4">
+            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pem"
+                   value="pem" onchange="switchFirmaFmt('pem')"
+                   {{ 'checked' if fmt == 'pem' }}>
+            <label class="form-check-label" for="fmt_pem">
+              <strong>PEM</strong>
+              <span class="text-muted small d-block">Due file separati (.crt + .key) — alcuni provider non rilasciano P12</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {# ── Sezione P12 ── #}
+      <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt == 'pem' }}">
         <div class="col-12">
           <label class="form-label fw-semibold">Percorso file P12/PFX</label>
           <div class="input-group">
@@ -305,6 +346,58 @@
           <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
           {% endif %}
         </div>
+      </div>
+
+      {# ── Sezione PEM ── #}
+      <div id="sezione_pem" class="row g-3 {{ '' if fmt == 'pem' else 'd-none' }}">
+        <div class="col-12">
+          <div class="alert alert-info py-2 small">
+            <i class="bi bi-info-circle me-1"></i>
+            Usare questo formato se il tuo provider (es. Namirial, Aruba, InfoCert) rilascia
+            il certificato come due file separati <code>.crt</code> e <code>.key</code>
+            invece del classico file <code>.p12</code>.
+            Monta entrambi i file in <code>/data/config/</code>.
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Percorso certificato (.crt / .pem)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
+            <input type="text" name="firma_cert_pem_path" class="form-control font-monospace"
+                   value="{{ cfg.firma.cert_pem_path }}"
+                   placeholder="/data/config/firma.crt">
+          </div>
+          <div class="form-text">File che contiene il certificato pubblico (può includere la chain CA).</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Percorso chiave privata (.key / .pem)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+            <input type="text" name="firma_key_pem_path" class="form-control font-monospace"
+                   value="{{ cfg.firma.key_pem_path }}"
+                   placeholder="/data/config/firma.key">
+          </div>
+          <div class="form-text">File con la chiave privata RSA/EC. Può essere in chiaro o cifrata.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Password chiave privata <span class="text-muted fw-normal">(se cifrata)</span></label>
+          <div class="input-group">
+            <input type="password" name="firma_key_pem_password" id="firma_key_pem_password"
+                   class="form-control font-monospace"
+                   placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Lascia vuoto se chiave non cifrata' }}"
+                   autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% if cfg.firma.key_pem_password %}
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Codice Fiscale (comune) ── #}
+      <div class="row g-3 mt-1">
         <div class="col-md-6">
           <label class="form-label fw-semibold">Codice Fiscale Avvocato</label>
           <input type="text" name="firma_cf_avvocato" class="form-control font-monospace text-uppercase"
@@ -318,7 +411,6 @@
         <div>
           <strong>Rinnovo certificato:</strong> I certificati di firma digitale scadono ogni 3 anni.
           Verifica la scadenza sul portale del tuo provider e rinnova prima del termine.
-          Il sistema non verifica automaticamente la scadenza del P12.
         </div>
       </div>
 
@@ -330,6 +422,13 @@
     </form>
   </div>
 </div>
+
+<script>
+function switchFirmaFmt(fmt) {
+  document.getElementById('sezione_p12').classList.toggle('d-none', fmt !== 'p12');
+  document.getElementById('sezione_pem').classList.toggle('d-none', fmt !== 'pem');
+}
+</script>
 {% endif %}
 
 {# ════════════════════════════════════════ TAB: EMAIL SMTP #}

@@ -34,6 +34,7 @@ _ENC_PREFIX = "ENC:"
 _CAMPI_CIFRATI: List[tuple[str, str]] = [
     ("pec",       "password"),
     ("firma",     "password"),
+    ("firma",     "key_pem_password"),
     ("smtp",      "password"),
     ("whatsapp",  "twilio_token"),
 ]
@@ -112,9 +113,34 @@ class ConfigPEC:
 
 @dataclass
 class ConfigFirma:
+    # ── Formato P12/PFX (PKCS#12 — bundle cert+chiave in un unico file) ──────
     p12_path: str = ""
-    password: str = ""
+    password: str = ""          # password del P12 (cifrata a riposo)
+
+    # ── Formato PEM (cert e chiave in file separati) ─────────────────────────
+    # Usare quando il provider non rilascia il formato P12 (es. alcuni token
+    # Namirial / Aruba / InfoCert forniscono .crt + .key o .pem separati).
+    cert_pem_path: str = ""     # percorso al file .crt / .pem (solo certificato)
+    key_pem_path:  str = ""     # percorso al file .key / .pem (chiave privata)
+    key_pem_password: str = ""  # password chiave privata cifrata (lasciare vuoto se non cifrata)
+
+    # ── Comune ai due formati ────────────────────────────────────────────────
     cf_avvocato: str = ""
+
+    @property
+    def formato_attivo(self) -> str:
+        """Restituisce il formato rilevato: 'p12', 'pem' o 'nessuno'."""
+        import os as _os
+        if self.p12_path and _os.path.exists(self.p12_path):
+            return "p12"
+        if self.cert_pem_path and self.key_pem_path and \
+           _os.path.exists(self.cert_pem_path) and _os.path.exists(self.key_pem_path):
+            return "pem"
+        return "nessuno"
+
+    @property
+    def configurato(self) -> bool:
+        return self.formato_attivo != "nessuno"
 
 
 @dataclass

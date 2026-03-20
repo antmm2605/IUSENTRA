@@ -132,9 +132,16 @@ def index():
             )
         elif tab == "firma":
             pwd = f.get("firma_password", "").strip()
+            key_pwd = f.get("firma_key_pem_password", "").strip()
             cfg.firma = ConfigFirma(
+                # P12
                 p12_path=f.get("firma_p12_path", "").strip(),
                 password=pwd if pwd else cfg.firma.password,
+                # PEM
+                cert_pem_path=f.get("firma_cert_pem_path", "").strip(),
+                key_pem_path=f.get("firma_key_pem_path", "").strip(),
+                key_pem_password=key_pwd if key_pwd else cfg.firma.key_pem_password,
+                # Comune
                 cf_avvocato=f.get("firma_cf_avvocato", "").strip(),
             )
         elif tab == "smtp":

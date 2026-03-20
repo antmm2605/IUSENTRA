@@ -1380,11 +1380,30 @@ def create_app(config: dict | None = None) -> Flask:
 
     # ---------------------------------------------------------------- PolisWeb — Consultazione e importazione fascicoli
 
+    def _polis_demo_mode() -> bool:
+        """
+        True se nessun certificato è configurato (né P12 né PEM).
+        Controlla env vars + config studio per supportare entrambi i formati.
+        """
+        # Controllo variabili d'ambiente
+        if os.getenv("PCT_FIRMA_P12"):
+            return False
+        if os.getenv("PCT_FIRMA_CERT") and os.getenv("PCT_FIRMA_KEY"):
+            return False
+        # Controllo config studio (impostazioni UI)
+        try:
+            cfg = get_config_studio().config.firma
+            if cfg.configurato:
+                return False
+        except Exception:
+            pass
+        return True
+
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
         import traceback as _tb
         try:
-            demo_mode = not bool(app.config.get("PCT_FIRMA_P12") or os.getenv("PCT_FIRMA_P12"))
+            demo_mode = _polis_demo_mode()
             return render_template("polisWeb.html", demo_mode=demo_mode)
         except Exception as e:
             tb = "".join(_tb.format_exception(type(e), e, e.__traceback__))
@@ -1396,7 +1415,7 @@ def create_app(config: dict | None = None) -> Flask:
     def polisWeb_ricerca():
         f = request.form
         tribunale  = f.get("tribunale", "").strip()
-        demo_mode  = f.get("demo_mode") == "1" or not bool(os.getenv("PCT_FIRMA_P12"))
+        demo_mode  = f.get("demo_mode") == "1" or _polis_demo_mode()
 
         if not tribunale:
             flash("Seleziona un tribunale.", "danger")
@@ -1451,7 +1470,7 @@ def create_app(config: dict | None = None) -> Flask:
     def polisWeb_documenti():
         codice_ufficio = request.args.get("codice_ufficio", "")
         numero_rg      = request.args.get("numero_rg", "")
-        demo_mode      = not bool(os.getenv("PCT_FIRMA_P12"))
+        demo_mode      = _polis_demo_mode()
         try:
             anno_rg = int(request.args.get("anno_rg", 0) or 0)
         except (ValueError, TypeError):
@@ -1478,7 +1497,7 @@ def create_app(config: dict | None = None) -> Flask:
         import json as _json
         from pct.polisWeb import crea_client, FascicoloPolisWeb
         f = request.form
-        demo_mode = f.get("demo_mode") == "1" or not bool(os.getenv("PCT_FIRMA_P12"))
+        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         u = g.utente_corrente
         try:
             fascicolo_pw = FascicoloPolisWeb(

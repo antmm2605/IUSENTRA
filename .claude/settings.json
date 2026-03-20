@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/user/hacs && [ -f .venv/bin/activate ] && source .venv/bin/activate 2>/dev/null || true; python3 -c \"import pct; print('[remote-control] HACS v' + pct.__version__ + ' pronto')\" 2>/dev/null || echo '[remote-control] ambiente pronto'",
+            "statusMessage": "Inizializzazione ambiente HACS..."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -12,5 +23,6 @@
         ]
       }
     ]
-  }
+  },
+  "remote": {}
 }

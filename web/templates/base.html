@@ -1057,7 +1057,7 @@ if ('serviceWorker' in navigator) {
   }
 
   window.PCT_SWIPE = { init: initSwipe };
-  document.addEventListener('DOMContentLoaded', initSwipe);
+  document.addEventListener('DOMContentLoaded', function() { initSwipe(document); });
 })();
 </script>
 </body>

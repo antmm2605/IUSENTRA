@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+{% block title %}Checklist Deposito Telematico{% endblock %}
+{% block page_title %}Checklist Deposito Telematico{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  {# ---- Intro ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:52px;height:52px;border-radius:12px;background:#e8f5e9;
+                      color:#2e7d32;font-size:1.5rem;display:flex;align-items:center;
+                      justify-content:center;flex-shrink:0">
+            <i class="bi bi-list-check"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-1">Checklist operativa per il deposito telematico</h5>
+            <p class="text-muted mb-0 small">
+              Seleziona il tipo di procedimento. Le spunte vengono salvate nel browser per la sessione corrente.
+              Usa questa lista prima di ogni deposito per non dimenticare nessun passaggio.
+            </p>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetTutte()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset tutte
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Kit base (sempre) ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 border-start border-4 border-primary">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-tools me-2 text-primary"></i>Kit base — necessario per qualsiasi deposito
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Indipendentemente dal tipo di rito, questi requisiti devono essere sempre soddisfatti prima di procedere.
+        </p>
+        {% set kit = [
+          ("kit_firma",  "bi-patch-check",  "Firma digitale attiva", "Certificato valido, PIN disponibile, software di firma installato e funzionante."),
+          ("kit_pec",    "bi-envelope-at",  "PEC attiva e capiente", "Casella PEC operativa, spazio sufficiente per inviare e ricevere le ricevute."),
+          ("kit_pdf",    "bi-file-earmark-pdf", "Documenti in formato corretto", "PDF testuale (non immagini scannerizzate pesanti), conformi alle regole tecniche vigenti."),
+          ("kit_portale","bi-browser-chrome","Portale giusto per il rito giusto", "Civile/DI/IR → PCT; Penale → PDP; Amministrativo → PAT/Portale Avvocato."),
+          ("kit_sw",     "bi-arrow-repeat",  "Software aggiornato", "Redattore atti / client PCT aggiornato alle specifiche tecniche più recenti (verificare anche nel 2026)."),
+          ("kit_rx",     "bi-inbox-fill",    "Controllo ricevute dopo l'invio", "Dopo ogni invio: accettazione, consegna, esiti controlli automatici, esito cancelleria.")
+        ] %}
+        {% for id, icon, titolo, desc in kit %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked)" style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold"><i class="bi {{ icon }} me-1 text-primary"></i>{{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 1. Civile (PCT) ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>1. Civile — deposito telematico</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_civile">0 / 8</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale: <strong>PCT</strong> (Processo Civile Telematico). Valido per atti civili in generale.
+        </p>
+        {% set civile = [
+          ("civ1", "Verifica e attiva la PEC",           "Le ricevute e le comunicazioni passano dalla PEC. Deve essere operativa prima dell'invio."),
+          ("civ2", "Verifica firma digitale",            "Certificato valido, PIN disponibile, software funzionante."),
+          ("civ3", "Accedi come soggetto abilitato",     "I tuoi dati devono risultare correttamente nei registri/servizi telematici del Ministero."),
+          ("civ4", "Prepara l'atto principale (PDF)",    "PDF testuale, non immagini scannerizzate. Rispetta le regole tecniche vigenti."),
+          ("civ5", "Prepara gli allegati",               "Procura, documenti, ricevute, attestazioni, contributo unificato se dovuto."),
+          ("civ6", "Crea la busta telematica",           "Usa il redattore atti / sistema compatibile con il PCT. Software aggiornato alle specifiche più recenti."),
+          ("civ7", "Firma i documenti richiesti",        "Firma digitale applicata agli atti che la richiedono."),
+          ("civ8", "Invia e controlla le ricevute",      "Accettazione → Consegna → Esiti controlli automatici → Esito cancelleria.")
+        ] %}
+        {% for id, titolo, desc in civile %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('civile', {{ civile|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+        <div class="alert alert-info py-2 small mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Verifica finale:</strong> firma valida · PEC capiente · PDF corretto · allegati nominati bene · contributo unificato assolto · software aggiornato.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- 2. Decreto ingiuntivo ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>2. Decreto ingiuntivo</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_di">0 / 7</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Segue il canale <strong>PCT</strong>. La base è la stessa del civile, ma con documenti specifici.
+        </p>
+        {% set di = [
+          ("di1", "Prepara il ricorso per D.I. (PDF conforme)",  "PDF testuale, formato conforme alle regole tecniche."),
+          ("di2", "Allega la prova del credito",                 "Fatture, contratto, estratti, diffide, documenti giustificativi."),
+          ("di3", "Allega la procura (se necessaria)",           "Procura alle liti firmata dal cliente."),
+          ("di4", "Gestisci contributo unificato e diritti",     "Verifica importi e modalità di pagamento; allega ricevuta se richiesto."),
+          ("di5", "Crea la busta telematica col redattore",      "Software PCT aggiornato; compila i metadati correttamente."),
+          ("di6", "Firma e invia",                               "Firma digitale sugli atti che la richiedono; invio tramite PEC/redattore."),
+          ("di7", "Conserva ricevute PEC ed esiti",              "Accettazione, consegna, esiti automatici, nota di iscrizione a ruolo.")
+        ] %}
+        {% for id, titolo, desc in di %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('di', {{ di|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 3. Iscrizione a ruolo ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>3. Iscrizione a ruolo</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_ir">0 / 8</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale <strong>PCT</strong> per il civile. Primo deposito che apre il fascicolo telematico.
+        </p>
+        {% set ir = [
+          ("ir1", "Prepara l'atto introduttivo",              "Citazione, ricorso o altro atto a seconda del rito."),
+          ("ir2", "Inserisci i dati corretti delle parti",    "Dati anagrafici e codici fiscali corretti per ogni parte."),
+          ("ir3", "Allega documenti, procura, ricevute",      "Procura alle liti, eventuali prove di notifica, documenti allegati."),
+          ("ir4", "Compila i campi richiesti dal redattore",  "Tipo di ufficio, sezione, rito, valore della causa, ecc."),
+          ("ir5", "Verifica importi e pagamenti",             "Contributo unificato, diritti di segreteria, spese di notifica."),
+          ("ir6", "Firma gli atti richiesti",                 "Firma digitale sull'atto e sugli allegati che la richiedono."),
+          ("ir7", "Invia la busta telematica",                "Tramite PEC o redattore integrato, a seconda del sistema."),
+          ("ir8", "Controlla l'esito e registra nel fascicolo", "Numero RG assegnato, data iscrizione, ricevute da conservare.")
+        ] %}
+        {% for id, titolo, desc in ir %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('ir', {{ ir|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 4. Deposito allegati civile ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>4. Deposito allegati (civile)</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_all">0 / 6</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Per depositi successivi all'iscrizione a ruolo: memorie, note, allegati.
+        </p>
+        {% set all = [
+          ("all1", "Individua il fascicolo corretto",          "Numero RG, sezione e anno devono corrispondere."),
+          ("all2", "Scegli il tipo di deposito nel redattore", "Tipo atto corretto (memoria, note, allegati, ecc.)."),
+          ("all3", "Carica solo allegati ammessi e leggibili", "Formato corretto, dimensione nei limiti, file non corrotti."),
+          ("all4", "Firma se richiesto",                       "Atto principale firmato digitalmente se previsto."),
+          ("all5", "Invia",                                    "Tramite PEC o redattore integrato."),
+          ("all6", "Verifica acquisizione nel fascicolo",       "Controlla che il deposito sia stato acquisito correttamente nel fascicolo telematico.")
+        ] %}
+        {% for id, titolo, desc in all %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('all', {{ all|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 5. Penale (PDP) ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-danger">PDP</span>
+        <span>5. Penale — Portale Deposito Atti</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_pen">0 / 9</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale: <strong>PDP (Portale Deposito Atti Penali)</strong>. Non è il PCT — le regole tecniche sono diverse.
+        </p>
+        {% set pen = [
+          ("pen1", "Verifica depositabilità telematica dell'atto", "Non tutti gli atti penali sono gestiti dal PDP. Controlla le norme vigenti (aggiornate anche nel 2026)."),
+          ("pen2", "Firma digitale e credenziali PDP",             "Accesso al portale con le credenziali abilitate; firma digitale valida."),
+          ("pen3", "Prepara atto e allegati nei formati richiesti","Rispetta i formati specifici del PDP, che possono differire dal PCT."),
+          ("pen4", "Accedi al PDP",                               "Portale Deposito Atti Penali del Ministero della Giustizia."),
+          ("pen5", "Seleziona il procedimento / registro corretto","RGNR, RG GIP, Dibattimento — scegli correttamente."),
+          ("pen6", "Carica atto e allegati",                       "Tramite l'interfaccia del PDP."),
+          ("pen7", "Firma dove richiesto",                         "Firma digitale sugli atti che la richiedono secondo le specifiche PDP."),
+          ("pen8", "Invia",                                        "Conferma l'invio tramite il portale."),
+          ("pen9", "Conserva ricevuta ed esito del deposito",      "Scarica e archivia la ricevuta del PDP.")
+        ] %}
+        {% for id, titolo, desc in pen %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('pen', {{ pen|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+        <div class="alert alert-warning py-2 small mb-0">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>Attenzione:</strong> avere PEC e firma non basta. Verifica sempre che quell'atto specifico sia gestito dal PDP e secondo quali specifiche tecniche aggiornate.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- 6. Amministrativo (PAT/SIGA) ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark">PAT</span>
+        <span>6. Amministrativo — PAT / SIGA</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_amm">0 / 9</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale: <strong>PAT/SIGA</strong> tramite il Portale dell'Avvocato della Giustizia Amministrativa.
+        </p>
+        {% set amm = [
+          ("amm1", "Verifica accesso al Portale dell'Avvocato",  "Credenziali attive e funzionanti sul portale della Giustizia Amministrativa."),
+          ("amm2", "Firma digitale e PEC",                       "Entrambi devono essere attivi e funzionanti."),
+          ("amm3", "Prepara ricorso/atto in formato conforme",   "Rispetta i requisiti tecnici del sistema PAT (formato, dimensione, struttura)."),
+          ("amm4", "Prepara allegati e documentazione",          "Procura, documenti, prove, relazioni di notifica se richieste."),
+          ("amm5", "Accedi al sistema PAT/SIGA",                 "Tramite il Portale dell'Avvocato con le credenziali abilitate."),
+          ("amm6", "Compila i dati del deposito",                "Sezione, RG, tipo atto, parti — tutti i campi del form di deposito."),
+          ("amm7", "Carica atto e allegati",                     "Tramite l'interfaccia PAT/SIGA."),
+          ("amm8", "Firma",                                       "Firma digitale applicata come richiesto dal sistema."),
+          ("amm9", "Invia e conserva ricevute/esiti",            "Conferma invio, scarica e archivia le ricevute.")
+        ] %}
+        {% for id, titolo, desc in amm %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('amm', {{ amm|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- Riepilogo orientamento rapido ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 bg-light">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2 text-secondary"></i>Regola rapida per orientarti</h6>
+        <div class="row g-2">
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
+              <span class="badge bg-primary mt-1">PCT</span>
+              <div class="small">
+                <div class="fw-semibold">Civile, Decreto ingiuntivo, Iscrizione a ruolo, Allegati civile</div>
+                <div class="text-muted">Processo Civile Telematico via PEC con busta .enc</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
+              <span class="badge bg-danger mt-1">PDP</span>
+              <div class="small">
+                <div class="fw-semibold">Penale</div>
+                <div class="text-muted">Portale Deposito Atti Penali — sistema separato dal PCT</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
+              <span class="badge bg-warning text-dark mt-1">PAT</span>
+              <div class="small">
+                <div class="fw-semibold">Amministrativo</div>
+                <div class="text-muted">PAT / Portale dell'Avvocato / SIGA</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Link utili ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-link-45deg me-2"></i>Sezioni utili nell'applicativo
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('polisWeb_home') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-building-fill-check me-1"></i>PolisWeb / PST
+          </a>
+          <a href="{{ url_for('tribunali') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-bank me-1"></i>Tribunali / PEC
+          </a>
+          <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-folder2 me-1"></i>Fascicoli
+          </a>
+          <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-calendar-check me-1"></i>Scadenziario
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Chiavi localStorage per ogni checkbox
+const PREFIX = 'chk_deposito_';
+
+function salva(id, val) {
+  try { localStorage.setItem(PREFIX + id, val ? '1' : '0'); } catch(e){}
+}
+
+function carica(id) {
+  try { return localStorage.getItem(PREFIX + id) === '1'; } catch(e){ return false; }
+}
+
+function aggiorna_prog(gruppo, totale) {
+  const prefix_map = {
+    civile: ['civ1','civ2','civ3','civ4','civ5','civ6','civ7','civ8'],
+    di:     ['di1','di2','di3','di4','di5','di6','di7'],
+    ir:     ['ir1','ir2','ir3','ir4','ir5','ir6','ir7','ir8'],
+    all:    ['all1','all2','all3','all4','all5','all6'],
+    pen:    ['pen1','pen2','pen3','pen4','pen5','pen6','pen7','pen8','pen9'],
+    amm:   ['amm1','amm2','amm3','amm4','amm5','amm6','amm7','amm8','amm9']
+  };
+  const ids = prefix_map[gruppo] || [];
+  const checked = ids.filter(i => {
+    const el = document.getElementById(i);
+    return el && el.checked;
+  }).length;
+  const badge = document.getElementById('prog_' + gruppo);
+  if (badge) {
+    badge.textContent = checked + ' / ' + ids.length;
+    badge.className = 'ms-auto badge border ' + (checked === ids.length && ids.length > 0
+      ? 'bg-success text-white' : 'bg-light text-dark');
+  }
+}
+
+function resetTutte() {
+  if (!confirm('Azzerare tutte le spunte?')) return;
+  document.querySelectorAll('input[type="checkbox"]').forEach(el => {
+    el.checked = false;
+    try { localStorage.removeItem(PREFIX + el.id); } catch(e){}
+  });
+  ['civile','di','ir','all','pen','amm'].forEach(g => aggiorna_prog(g));
+}
+
+// Ripristina stato al caricamento
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('input[type="checkbox"]').forEach(el => {
+    if (el.id && !el.id.startsWith('kit')) {
+      el.checked = carica(el.id);
+    } else if (el.id) {
+      el.checked = carica(el.id);
+    }
+  });
+  ['civile','di','ir','all','pen','amm'].forEach(g => aggiorna_prog(g));
+});
+</script>
+{% endblock %}

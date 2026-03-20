@@ -167,7 +167,7 @@
     </div>
 
     {# ---- Sezione: PCT / Telematico ---- #}
-    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','tribunali') %}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','tribunali','deposito_checklist') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
       <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
@@ -181,6 +181,10 @@
       <a href="{{ url_for('tribunali') }}"
          class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
         <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
+      </a>
+      <a href="{{ url_for('deposito_checklist') }}"
+         class="nav-link sb-link {% if request.endpoint == 'deposito_checklist' %}active{% endif %}">
+        <i class="bi bi-list-check"></i><span class="sb-txt">Checklist deposito</span>
       </a>
     </div>
 

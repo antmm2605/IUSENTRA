@@ -1515,6 +1515,13 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("polisWeb_home"))
 
+    # ---------------------------------------------------------------- Checklist deposito telematico
+
+    @app.route("/deposito/checklist")
+    def deposito_checklist():
+        """Checklist operativa per il deposito telematico, per tipo di procedimento."""
+        return render_template("deposito_checklist.html")
+
     # ---------------------------------------------------------------- API autocomplete uffici giudiziari
 
     @app.route("/api/uffici")

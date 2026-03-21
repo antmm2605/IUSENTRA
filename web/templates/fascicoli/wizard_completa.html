@@ -348,40 +348,40 @@
                   <select name="tipo_atto" class="form-select form-select-sm" required>
                     <option value="">— seleziona —</option>
                     {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
-                    <option value="RICORSO">Ricorso al TAR</option>
-                    <option value="APPELLO">Appello al Consiglio di Stato</option>
-                    <option value="MEMORIA">Memoria difensiva</option>
-                    <option value="REPLICA">Replica / controricorso</option>
-                    <option value="MOTIVI_AGGIUNTI">Motivi aggiunti</option>
-                    <option value="RICORSO_INCIDENTALE">Ricorso incidentale</option>
-                    <option value="ISTANZA">Istanza</option>
-                    <option value="DEPOSITO_DOCUMENTI">Deposito documenti</option>
-                    <option value="ALTRO">Altro atto</option>
+                    <option value="RICORSO"{% if tmpl.tipo_atto_default == "RICORSO" %} selected{% endif %}>Ricorso al TAR</option>
+                    <option value="APPELLO"{% if tmpl.tipo_atto_default == "APPELLO" %} selected{% endif %}>Appello al Consiglio di Stato</option>
+                    <option value="MEMORIA"{% if tmpl.tipo_atto_default == "MEMORIA" %} selected{% endif %}>Memoria difensiva</option>
+                    <option value="REPLICA"{% if tmpl.tipo_atto_default == "REPLICA" %} selected{% endif %}>Replica / controricorso</option>
+                    <option value="MOTIVI_AGGIUNTI"{% if tmpl.tipo_atto_default == "MOTIVI_AGGIUNTI" %} selected{% endif %}>Motivi aggiunti</option>
+                    <option value="RICORSO_INCIDENTALE"{% if tmpl.tipo_atto_default == "RICORSO_INCIDENTALE" %} selected{% endif %}>Ricorso incidentale</option>
+                    <option value="ISTANZA"{% if tmpl.tipo_atto_default == "ISTANZA" %} selected{% endif %}>Istanza</option>
+                    <option value="DEPOSITO_DOCUMENTI"{% if tmpl.tipo_atto_default == "DEPOSITO_DOCUMENTI" %} selected{% endif %}>Deposito documenti</option>
+                    <option value="ALTRO"{% if tmpl.tipo_atto_default == "ALTRO" %} selected{% endif %}>Altro atto</option>
                     {% elif tmpl.canale == "PDP_PENALE" %}
-                    <option value="ATTO_DIFESA">Atto di difesa</option>
-                    <option value="MEMORIA">Memoria difensiva</option>
-                    <option value="IMPUGNAZIONE">Atto di impugnazione</option>
-                    <option value="APPELLO">Appello penale</option>
-                    <option value="ISTANZA">Istanza</option>
-                    <option value="RICHIESTA_RIESAME">Richiesta di riesame</option>
-                    <option value="OPPOSIZIONE">Opposizione</option>
-                    <option value="MOTIVI_NUOVI">Motivi nuovi</option>
-                    <option value="DEPOSITO_DOCUMENTI">Deposito documenti</option>
-                    <option value="ALTRO">Altro atto</option>
+                    <option value="ATTO_DIFESA"{% if tmpl.tipo_atto_default == "ATTO_DIFESA" %} selected{% endif %}>Atto di difesa</option>
+                    <option value="MEMORIA"{% if tmpl.tipo_atto_default == "MEMORIA" %} selected{% endif %}>Memoria difensiva</option>
+                    <option value="IMPUGNAZIONE"{% if tmpl.tipo_atto_default == "IMPUGNAZIONE" %} selected{% endif %}>Atto di impugnazione</option>
+                    <option value="APPELLO"{% if tmpl.tipo_atto_default == "APPELLO" %} selected{% endif %}>Appello penale</option>
+                    <option value="ISTANZA"{% if tmpl.tipo_atto_default == "ISTANZA" %} selected{% endif %}>Istanza</option>
+                    <option value="RICHIESTA_RIESAME"{% if tmpl.tipo_atto_default == "RICHIESTA_RIESAME" %} selected{% endif %}>Richiesta di riesame</option>
+                    <option value="OPPOSIZIONE"{% if tmpl.tipo_atto_default == "OPPOSIZIONE" %} selected{% endif %}>Opposizione</option>
+                    <option value="MOTIVI_NUOVI"{% if tmpl.tipo_atto_default == "MOTIVI_NUOVI" %} selected{% endif %}>Motivi nuovi</option>
+                    <option value="DEPOSITO_DOCUMENTI"{% if tmpl.tipo_atto_default == "DEPOSITO_DOCUMENTI" %} selected{% endif %}>Deposito documenti</option>
+                    <option value="ALTRO"{% if tmpl.tipo_atto_default == "ALTRO" %} selected{% endif %}>Altro atto</option>
                     {% else %}
-                    <option value="RICORSO">Ricorso</option>
-                    <option value="CITAZIONE">Atto di citazione</option>
-                    <option value="MEMORIA">Memoria</option>
-                    <option value="COMPARSA">Comparsa di risposta</option>
-                    <option value="REPLICA">Replica</option>
-                    <option value="ISTANZA">Istanza</option>
-                    <option value="NOTA_SPESE">Nota spese</option>
-                    <option value="PROCURA">Procura alle liti</option>
-                    <option value="DECRETO_INGIUNTIVO">Ricorso per decreto ingiuntivo</option>
-                    <option value="OPPOSIZIONE">Atto di opposizione</option>
-                    <option value="APPELLO">Atto di appello</option>
-                    <option value="RECLAMO">Reclamo</option>
-                    <option value="ALTRO">Altro atto</option>
+                    <option value="RICORSO"{% if tmpl.tipo_atto_default == "RICORSO" %} selected{% endif %}>Ricorso</option>
+                    <option value="CITAZIONE"{% if tmpl.tipo_atto_default == "CITAZIONE" %} selected{% endif %}>Atto di citazione</option>
+                    <option value="MEMORIA"{% if tmpl.tipo_atto_default == "MEMORIA" %} selected{% endif %}>Memoria</option>
+                    <option value="COMPARSA"{% if tmpl.tipo_atto_default == "COMPARSA" %} selected{% endif %}>Comparsa di risposta</option>
+                    <option value="REPLICA"{% if tmpl.tipo_atto_default == "REPLICA" %} selected{% endif %}>Replica</option>
+                    <option value="ISTANZA"{% if tmpl.tipo_atto_default == "ISTANZA" %} selected{% endif %}>Istanza</option>
+                    <option value="NOTA_SPESE"{% if tmpl.tipo_atto_default == "NOTA_SPESE" %} selected{% endif %}>Nota spese</option>
+                    <option value="PROCURA"{% if tmpl.tipo_atto_default == "PROCURA" %} selected{% endif %}>Procura alle liti</option>
+                    <option value="DECRETO_INGIUNTIVO"{% if tmpl.tipo_atto_default == "DECRETO_INGIUNTIVO" %} selected{% endif %}>Ricorso per decreto ingiuntivo</option>
+                    <option value="OPPOSIZIONE"{% if tmpl.tipo_atto_default == "OPPOSIZIONE" %} selected{% endif %}>Atto di opposizione</option>
+                    <option value="APPELLO"{% if tmpl.tipo_atto_default == "APPELLO" %} selected{% endif %}>Atto di appello</option>
+                    <option value="RECLAMO"{% if tmpl.tipo_atto_default == "RECLAMO" %} selected{% endif %}>Reclamo</option>
+                    <option value="ALTRO"{% if tmpl.tipo_atto_default == "ALTRO" %} selected{% endif %}>Altro atto</option>
                     {% endif %}
                   </select>
                 </div>

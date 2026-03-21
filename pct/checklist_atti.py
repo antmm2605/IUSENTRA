@@ -33,6 +33,8 @@ class TemplateAtto:
     canale: str = "PCT_TELEMATICO"
     # URL Flask endpoint per il deposito telematico (se applicabile)
     endpoint_deposito: str = ""
+    # Tipo atto predefinito per il modal deposito (pre-compila la select)
+    tipo_atto_default: str = ""
     # Note sul canale/redattore
     nota_canale: str = ""
     documenti: List[DocumentoRichiesto] = field(default_factory=list)
@@ -83,6 +85,7 @@ DECRETO_INGIUNTIVO = TemplateAtto(
     nome_cartella="Decreto_ingiuntivo_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="DECRETO_INGIUNTIVO",
     nota_canale=(
         "Il ricorso si deposita tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
         "che genera e invia direttamente la busta telematica .enc al tribunale. "
@@ -125,6 +128,7 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
     nome_cartella="Iscrizione_ruolo_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="CITAZIONE",
     nota_canale=(
         "L'iscrizione a ruolo avviene tramite deposito telematico PCT. "
         "Usare il redattore atti per creare e inviare la busta con la nota di iscrizione e gli allegati. "
@@ -167,6 +171,7 @@ COMPARSA_RISPOSTA = TemplateAtto(
     nome_cartella="Comparsa_risposta_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="COMPARSA",
     nota_canale=(
         "La comparsa si deposita tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
         "che crea e invia la busta telematica al tribunale. "
@@ -203,6 +208,7 @@ MEMORIA_DIFENSIVA = TemplateAtto(
     nome_cartella="Memoria_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="MEMORIA",
     nota_canale=(
         "Le memorie si depositano tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
         "che crea e invia la busta telematica. "
@@ -237,6 +243,7 @@ RICORSO_APPELLO = TemplateAtto(
     nome_cartella="Appello_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="APPELLO",
     nota_canale=(
         "L'appello civile si deposita tramite redattore atti presso la Corte d'Appello (se abilitata). "
         "Il redattore crea e invia la busta telematica direttamente. "
@@ -275,6 +282,7 @@ OPPOSIZIONE_DI = TemplateAtto(
     nome_cartella="Opposizione_DI_{rg}_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="OPPOSIZIONE",
     nota_canale=(
         "L'opposizione si introduce con citazione notificata; "
         "l'iscrizione a ruolo avviene poi tramite redattore atti (busta telematica PCT). "
@@ -339,6 +347,7 @@ PIGNORAMENTO = TemplateAtto(
     nome_cartella="Pignoramento_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="ALTRO",
     nota_canale=(
         "Il pignoramento immobiliare e presso terzi si iscrive a ruolo tramite redattore atti (PCT). "
         "Il pignoramento mobiliare avviene tramite ufficiale giudiziario (UNEP); "
@@ -374,6 +383,7 @@ RICORSO_CAUTELARE = TemplateAtto(
     nome_cartella="Cautelare_{parte}_{data}",
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
+    tipo_atto_default="RICORSO",
     nota_canale=(
         "Il ricorso cautelare si deposita tramite redattore atti (PCT): "
         "il redattore crea e invia la busta telematica direttamente al tribunale. "
@@ -411,6 +421,7 @@ RICORSO_TAR = TemplateAtto(
     nome_cartella="Ricorso_TAR_{parte}_{data}",
     canale="PAT_AMMINISTRATIVO",
     endpoint_deposito="pat_home",
+    tipo_atto_default="RICORSO",
     nota_canale=(
         "Il ricorso TAR si deposita tramite il Portale Atti Amministrativi (PAT) "
         "con firma digitale CAdES (.p7m). Non si usa il redattore atti civile né PolisWeb."
@@ -479,6 +490,7 @@ APPELLO_PENALE = TemplateAtto(
     nome_cartella="Appello_penale_{rg}_{parte}_{data}",
     canale="PDP_PENALE",
     endpoint_deposito="pdp_home",
+    tipo_atto_default="APPELLO",
     nota_canale=(
         "L'appello penale si deposita tramite il Portale Deposito Atti Penali (PDP) "
         "con firma digitale CAdES (.p7m). Non si usa il redattore atti civile né PolisWeb."

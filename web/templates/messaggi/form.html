@@ -1,501 +1,153 @@
 {% extends "base.html" %}
 {% block title %}Nuovo Messaggio{% endblock %}
-
-{% block extra_head %}
-<style>
-/* ══════════════════════════════════════════════════════════════
-   NUOVO MESSAGGIO — compose card
-   ══════════════════════════════════════════════════════════════ */
-:root {
-  --cp-bg:      #f1f5f9;
-  --cp-surface: #ffffff;
-  --cp-border:  #e2e8f0;
-  --cp-text:    #0f172a;
-  --cp-sub:     #475569;
-  --cp-muted:   #94a3b8;
-  --cp-accent:  #2563eb;
-  --cp-radius:  .75rem;
-  --cp-shadow:  0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.06);
-}
-
-.cp-shell {
-  max-width: 680px;
-  margin: 0 auto;
-}
-
-/* ── Page header ─────────────────────────────────────────────── */
-.cp-topbar {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  margin-bottom: 1.25rem;
-}
-.cp-topbar-back {
-  display: flex;
-  align-items: center;
-  gap: .35rem;
-  font-size: .82rem;
-  color: var(--cp-sub);
-  text-decoration: none;
-  transition: color .1s;
-}
-.cp-topbar-back:hover { color: var(--cp-accent); }
-.cp-topbar-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--cp-text);
-  flex: 1;
-}
-
-/* ── WA Web alert ────────────────────────────────────────────── */
-.cp-wa-alert {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: var(--cp-radius);
-  padding: 1rem 1.1rem;
-  margin-bottom: 1.1rem;
-  display: flex;
-  gap: .875rem;
-  align-items: flex-start;
-}
-.cp-wa-alert-icon {
-  font-size: 1.5rem;
-  color: #16a34a;
-  flex-shrink: 0;
-  margin-top: .1rem;
-}
-.cp-wa-alert-body {}
-.cp-wa-alert-title { font-size: .9rem; font-weight: 700; color: #15803d; margin-bottom: .25rem; }
-.cp-wa-alert-sub   { font-size: .81rem; color: #166534; margin-bottom: .6rem; line-height: 1.5; }
-.cp-wa-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  padding: .45rem 1rem;
-  background: #16a34a;
-  color: #fff;
-  border-radius: 2rem;
-  font-size: .82rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background .15s;
-}
-.cp-wa-btn:hover { background: #15803d; color: #fff; }
-.cp-wa-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  padding: .45rem .9rem;
-  border: 1px solid var(--cp-border);
-  border-radius: 2rem;
-  font-size: .82rem;
-  color: var(--cp-sub);
-  text-decoration: none;
-  margin-left: .5rem;
-  transition: background .1s;
-}
-.cp-wa-secondary:hover { background: var(--cp-bg); color: var(--cp-text); }
-
-/* ── Info alert (from_cliente) ───────────────────────────────── */
-.cp-info-bar {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .6rem .875rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: .5rem;
-  font-size: .82rem;
-  color: #1e40af;
-  margin-bottom: .875rem;
-}
-.cp-info-bar a { color: #1d4ed8; font-weight: 600; }
-
-/* ── Card ────────────────────────────────────────────────────── */
-.cp-card {
-  background: var(--cp-surface);
-  border: 1px solid var(--cp-border);
-  border-radius: var(--cp-radius);
-  box-shadow: var(--cp-shadow);
-  overflow: hidden;
-  margin-bottom: 1rem;
-}
-.cp-card-header {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .875rem 1.1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--cp-border);
-  font-size: .84rem;
-  font-weight: 700;
-  color: var(--cp-sub);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
-.cp-card-header i { color: var(--cp-accent); font-size: 1rem; }
-
-/* ── Channel tabs ────────────────────────────────────────────── */
-.cp-ch-tabs {
-  display: flex;
-  gap: .4rem;
-  padding: .875rem 1.1rem .5rem;
-}
-.cp-ch-tab {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .5rem 1.1rem;
-  border-radius: 2rem;
-  border: 1.5px solid var(--cp-border);
-  background: #f8fafc;
-  font-size: .82rem;
-  font-weight: 600;
-  color: var(--cp-sub);
-  cursor: pointer;
-  transition: all .15s;
-}
-.cp-ch-tab:hover { border-color: #94a3b8; color: var(--cp-text); }
-.cp-ch-tab.active-email  { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
-.cp-ch-tab.active-sms    { background: #ecfeff; border-color: #67e8f9; color: #0e7490; }
-.cp-ch-tab.active-wa     { background: #f0fdf4; border-color: #86efac; color: #166534; }
-.cp-ch-tab i { font-size: .95rem; }
-
-/* ── Fields ──────────────────────────────────────────────────── */
-.cp-fields { padding: .75rem 1.1rem; display: flex; flex-direction: column; gap: 0; }
-.cp-field {
-  display: flex;
-  align-items: flex-start;
-  gap: .75rem;
-  padding: .65rem 0;
-  border-bottom: 1px solid var(--cp-border);
-}
-.cp-field:last-child { border-bottom: none; }
-.cp-field-label {
-  width: 90px;
-  flex-shrink: 0;
-  font-size: .7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--cp-muted);
-  padding-top: .45rem;
-}
-.cp-field-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: .88rem;
-  color: var(--cp-text);
-  background: transparent;
-  padding: .35rem 0;
-  width: 100%;
-}
-.cp-field-input::placeholder { color: #cbd5e1; }
-.cp-field-select {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: .88rem;
-  color: var(--cp-text);
-  background: transparent;
-  padding: .35rem 0;
-}
-.cp-field-textarea {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: .88rem;
-  color: var(--cp-text);
-  background: transparent;
-  padding: .35rem 0;
-  resize: vertical;
-  min-height: 120px;
-  width: 100%;
-  line-height: 1.6;
-}
-.cp-field-textarea::placeholder { color: #cbd5e1; }
-
-/* ── Footer ──────────────────────────────────────────────────── */
-.cp-footer {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .875rem 1.1rem;
-  background: #f8fafc;
-  border-top: 1px solid var(--cp-border);
-}
-.cp-btn-send {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .55rem 1.4rem;
-  background: var(--cp-accent);
-  color: #fff;
-  border-radius: 2rem;
-  font-size: .85rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(37,99,235,.28);
-  transition: background .15s, box-shadow .15s, transform .1s;
-}
-.cp-btn-send:hover {
-  background: #1d4ed8;
-  box-shadow: 0 4px 14px rgba(37,99,235,.38);
-  transform: translateY(-1px);
-}
-.cp-btn-discard {
-  display: flex;
-  align-items: center;
-  gap: .35rem;
-  padding: .5rem 1rem;
-  background: transparent;
-  color: var(--cp-sub);
-  border: 1px solid var(--cp-border);
-  border-radius: 2rem;
-  font-size: .84rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background .1s, color .1s;
-}
-.cp-btn-discard:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
-
-/* ── Sidebar info card ───────────────────────────────────────── */
-.cp-info-card {
-  background: var(--cp-surface);
-  border: 1px solid var(--cp-border);
-  border-radius: var(--cp-radius);
-  box-shadow: var(--cp-shadow);
-  overflow: hidden;
-}
-.cp-info-card-header {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .75rem 1rem;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--cp-border);
-  font-size: .78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--cp-sub);
-}
-.cp-info-card-header i { color: var(--cp-accent); }
-.cp-info-item {
-  display: flex;
-  gap: .6rem;
-  align-items: flex-start;
-  padding: .65rem 1rem;
-  border-bottom: 1px solid var(--cp-border);
-  font-size: .81rem;
-}
-.cp-info-item:last-child { border-bottom: none; }
-.cp-info-item i { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
-.cp-info-item strong { display: block; margin-bottom: .1rem; font-size: .82rem; }
-
-/* ── Mobile ──────────────────────────────────────────────────── */
-@media (max-width: 575.98px) {
-  .cp-ch-tabs { flex-wrap: wrap; }
-  .cp-field { flex-wrap: wrap; }
-  .cp-field-label { width: 100%; padding-top: 0; margin-bottom: -.2rem; }
-}
-</style>
-{% endblock %}
+{% block page_title %}Nuovo Messaggio{% endblock %}
 
 {% block content %}
-<div class="cp-shell">
+<div class="row g-4">
 
-  {# ── Top bar ── #}
-  <div class="cp-topbar">
-    {% if from_cliente %}
-    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}" class="cp-topbar-back">
-      <i class="bi bi-arrow-left"></i>Cartella cliente
-    </a>
-    {% else %}
-    <a href="{{ url_for('lista_messaggi') }}" class="cp-topbar-back">
-      <i class="bi bi-arrow-left"></i>Messaggi
-    </a>
-    {% endif %}
-    <span class="cp-topbar-title">Nuovo messaggio</span>
-  </div>
+{# ── Colonna form ── #}
+<div class="col-lg-8">
+<form method="post">
+  <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
 
-  {# ── From_cliente info ── #}
   {% if from_cliente %}
-  <div class="cp-info-bar">
+  <div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
     <i class="bi bi-info-circle-fill"></i>
-    Stai inviando dalla cartella cliente.
-    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}">Torna alla cartella</a>
+    <span>Stai inviando un messaggio dalla cartella cliente.
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="fw-semibold">Torna alla cartella</a></span>
   </div>
   {% endif %}
 
-  {# ── WhatsApp Web fallback alert ── #}
   {% if wa_link %}
-  <div class="cp-wa-alert">
-    <i class="bi bi-whatsapp cp-wa-alert-icon"></i>
-    <div class="cp-wa-alert-body">
-      <div class="cp-wa-alert-title">Messaggio salvato — aprilo in WhatsApp</div>
-      <div class="cp-wa-alert-sub">
-        Twilio non è configurato. Il testo è già precompilato nel link qui sotto:
-        aprilo su mobile (avvia l'app) o su desktop (WhatsApp Web).
+  <div class="alert alert-success border-0 mb-3" id="wa-link-alert">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-whatsapp fs-4 text-success flex-shrink-0 mt-1"></i>
+      <div class="flex-grow-1">
+        <div class="fw-semibold mb-1">Messaggio salvato — apri WhatsApp Web per inviarlo</div>
+        <p class="mb-2 small text-muted">
+          Twilio non è configurato. Il testo è già precompilato nel link qui sotto:
+          aprilo su mobile (avvia l'app WhatsApp) o su desktop (WhatsApp Web).
+        </p>
+        <a href="{{ wa_link }}" target="_blank" rel="noopener"
+           class="btn btn-success btn-sm">
+          <i class="bi bi-whatsapp me-1"></i>Apri WhatsApp Web
+        </a>
+        {% if from_cliente %}
+        <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+           class="btn btn-outline-secondary btn-sm ms-2">Torna alla cartella</a>
+        {% else %}
+        <a href="{{ url_for('lista_messaggi') }}"
+           class="btn btn-outline-secondary btn-sm ms-2">Vai ai messaggi</a>
+        {% endif %}
       </div>
-      <a href="{{ wa_link }}" target="_blank" rel="noopener" class="cp-wa-btn">
-        <i class="bi bi-whatsapp"></i>Apri WhatsApp Web
-      </a>
-      {% if from_cliente %}
-      <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}" class="cp-wa-secondary">
-        <i class="bi bi-arrow-left"></i>Torna alla cartella
-      </a>
-      {% else %}
-      <a href="{{ url_for('lista_messaggi') }}" class="cp-wa-secondary">
-        <i class="bi bi-list-ul"></i>Vai ai messaggi
-      </a>
-      {% endif %}
     </div>
   </div>
   {% endif %}
 
-  <div class="row g-3">
-  <div class="col-lg-8">
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-chat-dots me-2 text-primary"></i>Composizione messaggio
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
 
-  {# ── Compose card ── #}
-  <form method="post" id="frm">
-    <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
-    <input type="hidden" name="canale" id="canale-hidden" value="{{ canale_default or 'EMAIL' }}">
-
-    <div class="cp-card">
-      <div class="cp-card-header">
-        <i class="bi bi-pencil-square"></i>Composizione
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Canale <span class="text-danger">*</span></label>
+        <select name="canale" id="canale" class="form-select" required onchange="aggiornaForm()">
+          {% for c in canali %}
+          <option value="{{ c.value }}"
+            {{ 'selected' if c.value == canale_default }}>{{ c.value }}</option>
+          {% endfor %}
+        </select>
       </div>
 
-      {# Channel picker #}
-      <div class="cp-ch-tabs" id="ch-tabs">
-        {% for c in canali %}
-        <button type="button"
-                class="cp-ch-tab {% if c.value == (canale_default or 'EMAIL') %}
-                  {% if c.value == 'EMAIL' %}active-email
-                  {% elif c.value == 'SMS' %}active-sms
-                  {% else %}active-wa{% endif %}
-                {% endif %}"
-                data-ch="{{ c.value }}"
-                onclick="selezionaCanale('{{ c.value }}')">
-          {% if c.value == 'EMAIL' %}<i class="bi bi-envelope"></i>Email
-          {% elif c.value == 'SMS' %}<i class="bi bi-phone"></i>SMS
-          {% else %}<i class="bi bi-whatsapp"></i>WhatsApp
-          {% endif %}
-        </button>
-        {% endfor %}
+      <div class="col-md-8">
+        <label class="form-label fw-semibold" id="lbl-destinatario">
+          Destinatario <span class="text-danger">*</span>
+        </label>
+        <input type="text" name="destinatario" id="destinatario" class="form-control" required
+               value="{{ cliente_presel.recapiti.email if (cliente_presel and canale_default == 'EMAIL') else (cliente_presel.recapiti.cellulare if cliente_presel else '') }}"
+               placeholder="email@esempio.it | +39 333 1234567">
+        <div class="form-text" id="hint-destinatario">Email per EMAIL, telefono E.164 per SMS/WhatsApp</div>
       </div>
 
-      {# Fields #}
-      <div class="cp-fields">
-
-        {# Destinatario #}
-        <div class="cp-field">
-          <span class="cp-field-label" id="lbl-dest">A</span>
-          <input class="cp-field-input" type="text" name="destinatario" id="destinatario" required
-                 value="{{ cliente_presel.recapiti.email if (cliente_presel and (canale_default or 'EMAIL') == 'EMAIL') else (cliente_presel.recapiti.cellulare if cliente_presel else '') }}"
-                 placeholder="email@esempio.it oppure +39 333 1234567">
-        </div>
-
-        {# Cliente #}
-        <div class="cp-field">
-          <span class="cp-field-label">Cliente</span>
-          {% if cliente_presel %}
-          <span class="cp-field-input" style="color:var(--cp-sub)">{{ cliente_presel.nome_completo }}</span>
-          <input type="hidden" name="id_cliente" value="{{ cliente_presel.id }}">
-          {% else %}
-          <select name="id_cliente" id="sel-cliente" class="cp-field-select" onchange="onClienteChange()">
-            <option value="">— Nessuno —</option>
-            {% for c in clienti %}
-            <option value="{{ c.id }}"
-                    data-email="{{ c.recapiti.email or '' }}"
-                    data-telefono="{{ c.recapiti.cellulare or c.recapiti.telefono or '' }}"
-                    {{ 'selected' if c.id == id_cliente }}>{{ c.nome_completo }}</option>
-            {% endfor %}
-          </select>
-          {% endif %}
-        </div>
-
-        {# Oggetto (solo EMAIL) #}
-        <div class="cp-field" id="riga-oggetto">
-          <span class="cp-field-label">Oggetto</span>
-          <input class="cp-field-input" type="text" name="oggetto"
-                 placeholder="Oggetto del messaggio…">
-        </div>
-
-        {# Testo #}
-        <div class="cp-field">
-          <span class="cp-field-label">Testo</span>
-          <textarea class="cp-field-textarea" name="testo" required
-                    placeholder="Scrivi il messaggio…"></textarea>
-        </div>
-
-      </div>{# /cp-fields #}
-
-      {# Footer #}
-      <div class="cp-footer">
-        <button type="submit" class="cp-btn-send">
-          <i class="bi bi-send"></i>Invia
-        </button>
-        {% if from_cliente %}
-        <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}" class="cp-btn-discard">
-          <i class="bi bi-x"></i>Annulla
-        </a>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Cliente</label>
+        {% if cliente_presel %}
+        <input type="text" class="form-control bg-light text-muted"
+               value="{{ cliente_presel.nome_completo }}" readonly>
+        <input type="hidden" name="id_cliente" value="{{ cliente_presel.id }}">
         {% else %}
-        <a href="{{ url_for('lista_messaggi') }}" class="cp-btn-discard">
-          <i class="bi bi-x"></i>Annulla
-        </a>
+        <select name="id_cliente" id="sel-cliente" class="form-select" onchange="onClienteChange()">
+          <option value="">— Nessun cliente —</option>
+          {% for c in clienti %}
+          <option value="{{ c.id }}"
+                  data-email="{{ c.recapiti.email or '' }}"
+                  data-telefono="{{ c.recapiti.cellulare or c.recapiti.telefono or '' }}"
+                  {{ 'selected' if c.id == id_cliente }}>{{ c.nome_completo }}</option>
+          {% endfor %}
+        </select>
         {% endif %}
       </div>
 
-    </div>{# /cp-card #}
-  </form>
+      <div id="riga-oggetto" class="col-12">
+        <label class="form-label fw-semibold">Oggetto</label>
+        <input type="text" name="oggetto" class="form-control"
+               placeholder="Oggetto del messaggio">
+      </div>
 
-  </div>{# /col-lg-8 #}
+      <div class="col-12">
+        <label class="form-label fw-semibold">Testo <span class="text-danger">*</span></label>
+        <textarea name="testo" class="form-control" rows="6" required
+                  placeholder="Testo del messaggio…"></textarea>
+      </div>
 
-  {# ── Sidebar ── #}
-  <div class="col-lg-4">
-    <div class="cp-info-card">
-      <div class="cp-info-card-header">
-        <i class="bi bi-info-circle"></i>Canali disponibili
-      </div>
-      <div class="cp-info-item">
-        <i class="bi bi-envelope" style="color:#2563eb"></i>
-        <div>
-          <strong>Email</strong>
-          Invio via SMTP. Supporta oggetto e corpo HTML.
-        </div>
-      </div>
-      <div class="cp-info-item">
-        <i class="bi bi-phone" style="color:#0891b2"></i>
-        <div>
-          <strong>SMS</strong>
-          Numero in formato E.164 (es. <code>+39 333 1234567</code>).
-        </div>
-      </div>
-      <div class="cp-info-item">
-        <i class="bi bi-whatsapp" style="color:#16a34a"></i>
-        <div>
-          <strong>WhatsApp</strong>
-          {% if ha_wa_api %}
-            Invio tramite API Twilio configurata.
-          {% else %}
-            <span style="color:#16a34a;font-weight:600">Modalità WhatsApp Web</span> —
-            viene generato un link con il testo precompilato da aprire nel browser.
-          {% endif %}
-        </div>
-      </div>
     </div>
   </div>
+</div>
 
-  </div>{# /row #}
+<div class="d-flex gap-2 mb-4">
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-send me-1"></i>Invia
+  </button>
+  {% if from_cliente %}
+  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+     class="btn btn-outline-secondary">Annulla</a>
+  {% else %}
+  <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary">Annulla</a>
+  {% endif %}
+</div>
 
-</div>{# /cp-shell #}
+</form>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Canali disponibili
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>EMAIL</strong>: invio via SMTP configurato nelle impostazioni. Supporta oggetto e corpo HTML.</p>
+      <p class="mb-2"><strong>SMS</strong>: numero in formato E.164 (es. <code>+39 333 1234567</code>).</p>
+      <p class="mb-0"><strong>WHATSAPP</strong>:
+        {% if ha_wa_api %}
+          invio tramite API Twilio configurata.
+        {% else %}
+          <span class="text-success fw-semibold">Twilio non configurato</span> —
+          viene generato un link <strong>WhatsApp Web</strong> con il testo precompilato
+          da aprire nel browser o sull'app mobile.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 
 <script>
+// Dati clienti per auto-fill destinatario
 const CLIENTI_MAP = {};
 {% for c in clienti %}
 CLIENTI_MAP["{{ c.id }}"] = {
@@ -504,38 +156,39 @@ CLIENTI_MAP["{{ c.id }}"] = {
 };
 {% endfor %}
 
-const CH_ACTIVE = { EMAIL: 'active-email', SMS: 'active-sms', WHATSAPP: 'active-wa' };
-
-function selezionaCanale(ch) {
-  document.getElementById('canale-hidden').value = ch;
-  // tabs
-  document.querySelectorAll('.cp-ch-tab').forEach(t => {
-    t.classList.remove('active-email','active-sms','active-wa');
-    if (t.dataset.ch === ch) t.classList.add(CH_ACTIVE[ch]);
-  });
-  // oggetto
-  document.getElementById('riga-oggetto').style.display = ch === 'EMAIL' ? '' : 'none';
-  // label
-  document.getElementById('lbl-dest').textContent = ch === 'EMAIL' ? 'A' : 'Telefono';
-  document.getElementById('destinatario').placeholder =
-    ch === 'EMAIL' ? 'email@esempio.it' : '+39 333 1234567';
-  // auto-fill
-  const sel = document.getElementById('sel-cliente');
-  if (sel && sel.value) onClienteChange();
+function aggiornaForm() {
+  const canale = document.getElementById('canale').value;
+  const rigaOggetto = document.getElementById('riga-oggetto');
+  rigaOggetto.style.display = canale === 'EMAIL' ? '' : 'none';
+  const lbl = document.getElementById('lbl-destinatario');
+  if (canale === 'EMAIL') {
+    lbl.innerHTML = 'Email destinatario <span class="text-danger">*</span>';
+    document.getElementById('hint-destinatario').textContent = 'Indirizzo email del destinatario';
+  } else {
+    lbl.innerHTML = 'Telefono destinatario <span class="text-danger">*</span>';
+    document.getElementById('hint-destinatario').textContent = 'Numero in formato E.164 es. +39 333 1234567';
+  }
+  // Se c'è un cliente selezionato, aggiorna il destinatario
+  const selCliente = document.getElementById('sel-cliente');
+  if (selCliente && selCliente.value) onClienteChange();
 }
 
 function onClienteChange() {
-  const sel = document.getElementById('sel-cliente');
-  if (!sel) return;
-  const dati = CLIENTI_MAP[sel.value];
+  const selCliente = document.getElementById('sel-cliente');
+  if (!selCliente) return;
+  const cid = selCliente.value;
+  if (!cid) return;
+  const dati = CLIENTI_MAP[cid];
   if (!dati) return;
-  const ch = document.getElementById('canale-hidden').value;
+  const canale = document.getElementById('canale').value;
   const dest = document.getElementById('destinatario');
-  if (ch === 'EMAIL' && dati.email) dest.value = dati.email;
-  else if (dati.telefono) dest.value = dati.telefono;
+  if (canale === 'EMAIL' && dati.email) {
+    dest.value = dati.email;
+  } else if ((canale === 'SMS' || canale === 'WHATSAPP') && dati.telefono) {
+    dest.value = dati.telefono;
+  }
 }
 
-// Init
-selezionaCanale(document.getElementById('canale-hidden').value);
+aggiornaForm();
 </script>
 {% endblock %}

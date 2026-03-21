@@ -201,15 +201,35 @@ class DatiArchivio:
 
 @dataclass
 class EsitoDepositoPCT:
-    """Esito di un deposito telematico archiviato nel fascicolo."""
+    """
+    Esito di un deposito telematico archiviato nel fascicolo.
+
+    Flusso ufficiale PCT (4 fasi):
+      Fase 4 → ACCETTATO_PEC        : ricevuta accettazione PEC (gestore mittente)
+      Fase 5 → CONSEGNATO            : ricevuta avvenuta consegna (sistema MinGiustizia)
+      Fase 6 → WARN_CONTROLLI /
+               ERRORE_CONTROLLI      : esito controlli automatici busta
+      Fase 7 → ACCETTATO_CANCELLERIA : deposito accettato dalla cancelleria (definitivo)
+               RIFIUTATO_CANCELLERIA : deposito rifiutato dalla cancelleria
+
+    Stati legacy mantenuti per retro-compatibilità:
+      INVIATO, ACCETTATO (= ACCETTATO_PEC), RIFIUTATO, ERRORE
+    """
     id: str
     timestamp: str                  # ISO datetime dell'invio
-    stato: str                      # INVIATO | ACCETTATO | CONSEGNATO | RIFIUTATO | ERRORE
+    stato: str                      # vedi docstring sopra
     tipo_atto: str                  # es. "MEMORIA", "RICORSO"
     pec_destinatario: str           # PEC del tribunale
     messaggio: str = ""
-    ricevuta_accettazione: str = "" # path o contenuto base64
-    ricevuta_consegna: str = ""     # path o contenuto base64
+    # ── Fase 4: ricevuta accettazione PEC ──────────────────────────
+    ricevuta_accettazione: str = ""
+    # ── Fase 5: ricevuta avvenuta consegna ─────────────────────────
+    ricevuta_consegna: str = ""
+    # ── Fase 6: esito controlli automatici ─────────────────────────
+    ricevuta_controlli_automatici: str = ""   # messaggio PEC fase 6
+    esito_controlli: str = ""                 # OK | WARN | ERROR
+    # ── Fase 7: esito cancelleria ──────────────────────────────────
+    ricevuta_cancelleria: str = ""            # messaggio PEC fase 7
     note: str = ""
     registrato_da: str = ""
     registrato_il: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -224,6 +244,9 @@ class EsitoDepositoPCT:
             "messaggio": self.messaggio,
             "ricevuta_accettazione": self.ricevuta_accettazione,
             "ricevuta_consegna": self.ricevuta_consegna,
+            "ricevuta_controlli_automatici": self.ricevuta_controlli_automatici,
+            "esito_controlli": self.esito_controlli,
+            "ricevuta_cancelleria": self.ricevuta_cancelleria,
             "note": self.note,
             "registrato_da": self.registrato_da,
             "registrato_il": self.registrato_il,
@@ -617,6 +640,9 @@ class GestioneFascicoli:
         messaggio: str = "",
         ricevuta_accettazione: str = "",
         ricevuta_consegna: str = "",
+        ricevuta_controlli_automatici: str = "",
+        esito_controlli: str = "",
+        ricevuta_cancelleria: str = "",
         note: str = "",
         registrato_da: str = "",
     ) -> EsitoDepositoPCT:
@@ -631,6 +657,9 @@ class GestioneFascicoli:
             messaggio=messaggio,
             ricevuta_accettazione=ricevuta_accettazione,
             ricevuta_consegna=ricevuta_consegna,
+            ricevuta_controlli_automatici=ricevuta_controlli_automatici,
+            esito_controlli=esito_controlli,
+            ricevuta_cancelleria=ricevuta_cancelleria,
             note=note,
             registrato_da=registrato_da,
         )

@@ -372,49 +372,152 @@
       </div>
       <div class="card-body p-0">
         {% if fascicolo.depositi_pct %}
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light">
-              <tr>
-                <th>Data</th><th>ID</th><th>Tipo atto</th><th>PEC Tribunale</th>
-                <th>Stato</th><th>Ricevute</th><th>Note</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
-              <tr id="dep-row-{{ dep.id }}">
-                <td class="text-nowrap">{{ dep.timestamp[:10] }}</td>
-                <td class="font-monospace text-muted" style="font-size:.72rem">{{ dep.id }}</td>
-                <td>{{ dep.tipo_atto }}</td>
-                <td class="text-muted" style="font-size:.75rem">{{ dep.pec_destinatario }}</td>
-                <td>
+        <div class="list-group list-group-flush">
+          {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
+          {# ── Calcolo fasi per il tracker ── #}
+          {% set f4_ok = dep.ricevuta_accettazione | length > 0 %}
+          {% set f5_ok = dep.ricevuta_consegna | length > 0 %}
+          {% set f6_ok = dep.ricevuta_controlli_automatici | default('') | length > 0 %}
+          {% set f6_err = dep.esito_controlli | default('') == 'ERROR' %}
+          {% set f6_warn = dep.esito_controlli | default('') == 'WARN' %}
+          {% set f7_ok = dep.ricevuta_cancelleria | default('') | length > 0 %}
+          {% set is_accettato = dep.stato == 'ACCETTATO_CANCELLERIA' %}
+          {% set is_rifiutato = dep.stato in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
+          {% set is_errore = dep.stato in ('ERRORE_CONTROLLI','ERRORE') %}
+          {% set is_finale = is_accettato or is_rifiutato or is_errore %}
+
+          <div class="list-group-item px-3 py-3" id="dep-row-{{ dep.id }}">
+            <div class="d-flex align-items-start gap-3 flex-wrap">
+
+              {# Icona esito globale #}
+              <div class="flex-shrink-0 mt-1">
+                {% if is_accettato %}
+                  <i class="bi bi-check-circle-fill text-success fs-4" title="Accettato dalla cancelleria"></i>
+                {% elif is_rifiutato %}
+                  <i class="bi bi-x-circle-fill text-danger fs-4" title="Rifiutato"></i>
+                {% elif is_errore %}
+                  <i class="bi bi-exclamation-triangle-fill text-danger fs-4" title="Errore controlli"></i>
+                {% elif f6_warn %}
+                  <i class="bi bi-exclamation-circle-fill text-warning fs-4" title="Anomalia controlli (WARN)"></i>
+                {% elif f5_ok %}
+                  <i class="bi bi-hourglass-split text-primary fs-4" title="Consegnato — in attesa cancelleria"></i>
+                {% else %}
+                  <i class="bi bi-send text-secondary fs-4" title="In elaborazione"></i>
+                {% endif %}
+              </div>
+
+              {# Info principali #}
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                  <strong class="small">{{ dep.tipo_atto }}</strong>
                   <span class="badge rounded-pill dep-stato-{{ dep.id }}
-                    {% if dep.stato == 'CONSEGNATO' %}bg-success
-                    {% elif dep.stato == 'ACCETTATO' %}bg-info text-dark
-                    {% elif dep.stato == 'RIFIUTATO' or dep.stato == 'ERRORE' %}bg-danger
-                    {% else %}bg-secondary{% endif %}">
+                    {% if is_accettato %}bg-success
+                    {% elif is_rifiutato or is_errore %}bg-danger
+                    {% elif f6_warn %}bg-warning text-dark
+                    {% elif f5_ok %}bg-primary
+                    {% elif f4_ok %}bg-info text-dark
+                    {% else %}bg-secondary{% endif %}"
+                    style="font-size:.7rem">
                     {{ dep.stato }}
                   </span>
-                </td>
-                <td class="dep-ricevute-{{ dep.id }}">
-                  {% if dep.ricevuta_accettazione %}<i class="bi bi-check-circle text-info" title="Accettazione ricevuta"></i>{% endif %}
-                  {% if dep.ricevuta_consegna %}<i class="bi bi-check-circle-fill text-success" title="Consegna ricevuta"></i>{% endif %}
-                  {% if not dep.ricevuta_accettazione and not dep.ricevuta_consegna %}—{% endif %}
-                </td>
-                <td class="text-muted" style="font-size:.72rem">{{ dep.note or dep.messaggio }}</td>
-                <td>
-                  {% if dep.stato in ('INVIATO', 'ACCETTATO') %}
-                  <button type="button" class="btn btn-sm btn-outline-info"
-                          title="Controlla ricevute PEC"
-                          onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
-                    <i class="bi bi-arrow-repeat"></i>
-                  </button>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                  <span class="text-muted small font-monospace">{{ dep.id }}</span>
+                  <span class="text-muted small">{{ dep.timestamp[:10] }}</span>
+                </div>
+
+                <div class="text-muted small mb-2">{{ dep.pec_destinatario }}</div>
+
+                {# ── Tracker 4 fasi ── #}
+                <div class="d-flex align-items-center gap-1 dep-tracker-{{ dep.id }}" style="flex-wrap:wrap">
+
+                  {# Fase 4: Accettazione PEC #}
+                  <span class="badge px-2 py-1
+                    {% if f4_ok %}bg-success-subtle text-success border border-success-subtle
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Ricevuta di accettazione PEC (fase 4)">
+                    {% if f4_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ① Accett. PEC
+                  </span>
+                  <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
+
+                  {# Fase 5: Consegna #}
+                  <span class="badge px-2 py-1
+                    {% if f5_ok %}bg-success-subtle text-success border border-success-subtle
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Ricevuta di avvenuta consegna (fase 5)">
+                    {% if f5_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ② Consegna
+                  </span>
+                  <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
+
+                  {# Fase 6: Controlli automatici #}
+                  <span class="badge px-2 py-1
+                    {% if is_errore %}bg-danger text-white
+                    {% elif f6_warn %}bg-warning text-dark border border-warning
+                    {% elif f6_ok %}bg-success-subtle text-success border border-success-subtle
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Esito controlli automatici (fase 6){% if dep.esito_controlli | default('') %}: {{ dep.esito_controlli }}{% endif %}">
+                    {% if is_errore %}<i class="bi bi-x-lg me-1"></i>
+                    {% elif f6_warn %}<i class="bi bi-exclamation me-1"></i>
+                    {% elif f6_ok %}<i class="bi bi-check-lg me-1"></i>
+                    {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ③ Controlli{% if f6_warn %} WARN{% elif is_errore %} ERR{% endif %}
+                  </span>
+                  <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
+
+                  {# Fase 7: Cancelleria #}
+                  <span class="badge px-2 py-1
+                    {% if is_accettato %}bg-success text-white
+                    {% elif is_rifiutato %}bg-danger text-white
+                    {% elif f7_ok %}bg-info text-dark
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Esito cancelleria (fase 7)">
+                    {% if is_accettato %}<i class="bi bi-check-lg me-1"></i>
+                    {% elif is_rifiutato %}<i class="bi bi-x-lg me-1"></i>
+                    {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ④ Cancelleria
+                  </span>
+                </div>
+
+                {% if dep.note or dep.messaggio %}
+                <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.note or dep.messaggio }}</div>
+                {% endif %}
+
+                {% if is_errore %}
+                <div class="alert alert-danger py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Errore nei controlli automatici. Contatta il fornitore del software redattore atti.
+                </div>
+                {% elif is_rifiutato %}
+                <div class="alert alert-danger py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-x-circle me-1"></i>
+                  Deposito rifiutato dalla cancelleria. Verifica le motivazioni e contatta l'ufficio giudiziario.
+                </div>
+                {% elif f6_warn %}
+                <div class="alert alert-warning py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  Anomalia WARN nei controlli automatici. Il deposito prosegue ma verifica i dettagli con la cancelleria.
+                </div>
+                {% endif %}
+              </div>
+
+              {# Pulsante controlla #}
+              <div class="flex-shrink-0">
+                {% if not is_finale %}
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        title="Controlla ricevute PEC"
+                        onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+                {% endif %}
+              </div>
+
+            </div>
+          </div>
+          {% endfor %}
         </div>
         {% else %}
         <div class="text-center py-4 px-3">
@@ -717,11 +820,20 @@
             <div class="col-md-6">
               <label class="form-label fw-semibold">Stato</label>
               <select name="stato" class="form-select">
-                <option value="INVIATO">INVIATO</option>
-                <option value="ACCETTATO">ACCETTATO</option>
-                <option value="CONSEGNATO" selected>CONSEGNATO</option>
-                <option value="RIFIUTATO">RIFIUTATO</option>
-                <option value="ERRORE">ERRORE</option>
+                <optgroup label="Fasi ufficiali PCT">
+                  <option value="INVIATO">INVIATO — busta inviata</option>
+                  <option value="ACCETTATO_PEC">ACCETTATO_PEC — fase 4: accettazione PEC</option>
+                  <option value="CONSEGNATO" selected>CONSEGNATO — fase 5: consegnato al sistema</option>
+                  <option value="WARN_CONTROLLI">WARN_CONTROLLI — fase 6: anomalia non bloccante</option>
+                  <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI — fase 6: errore bloccante</option>
+                  <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA — fase 7: accettato ✓</option>
+                  <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA — fase 7: rifiutato</option>
+                </optgroup>
+                <optgroup label="Legacy">
+                  <option value="ACCETTATO">ACCETTATO (vecchio)</option>
+                  <option value="RIFIUTATO">RIFIUTATO (vecchio)</option>
+                  <option value="ERRORE">ERRORE (vecchio)</option>
+                </optgroup>
               </select>
             </div>
             <div class="col-12">
@@ -736,14 +848,33 @@
                      placeholder="Numero protocollo o messaggio dell'esito">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Ricevuta accettazione</label>
+              <label class="form-label fw-semibold">① Ricevuta accettazione PEC</label>
               <input type="text" name="ricevuta_accettazione" class="form-control"
-                     placeholder="ID ricevuta PEC">
+                     placeholder="ID ricevuta fase 4">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Ricevuta consegna</label>
+              <label class="form-label fw-semibold">② Ricevuta consegna</label>
               <input type="text" name="ricevuta_consegna" class="form-control"
-                     placeholder="ID ricevuta PEC">
+                     placeholder="ID ricevuta fase 5">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">③ Ricevuta controlli automatici</label>
+              <input type="text" name="ricevuta_controlli_automatici" class="form-control"
+                     placeholder="ID ricevuta fase 6">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">③ Esito controlli</label>
+              <select name="esito_controlli" class="form-select">
+                <option value="">— non ricevuto —</option>
+                <option value="OK">OK</option>
+                <option value="WARN">WARN (anomalia non bloccante)</option>
+                <option value="ERROR">ERROR (errore bloccante)</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">④ Ricevuta cancelleria</label>
+              <input type="text" name="ricevuta_cancelleria" class="form-control"
+                     placeholder="ID ricevuta fase 7">
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Note</label>
@@ -984,7 +1115,7 @@ function apriFirma(btn) {
   new bootstrap.Modal(document.getElementById('modalFirma')).show();
 }
 
-// ---- Controlla ricevute deposito PCT ----
+// ---- Controlla ricevute deposito PCT (4 fasi) ----
 function controllaRicevute(idFasc, idDep, btn) {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -1000,33 +1131,61 @@ function controllaRicevute(idFasc, idDep, btn) {
       btn.disabled = false;
       return;
     }
-    /* Aggiorna badge stato */
+    const STATI_FINALI = ['ACCETTATO_CANCELLERIA','RIFIUTATO_CANCELLERIA',
+                          'ERRORE_CONTROLLI','RIFIUTATO','ERRORE'];
+
+    /* Aggiorna badge stato principale */
     const badge = document.querySelector('.dep-stato-' + idDep);
     if (badge) {
       badge.textContent = data.stato;
-      badge.className = badge.className
-        .replace(/bg-\w+/g, '')
-        .replace(/text-\w+/g, '');
-      if (data.stato === 'CONSEGNATO')      badge.classList.add('bg-success');
-      else if (data.stato === 'ACCETTATO') badge.classList.add('bg-info','text-dark');
-      else if (['RIFIUTATO','ERRORE'].includes(data.stato)) badge.classList.add('bg-danger');
-      else badge.classList.add('bg-secondary');
+      badge.className = badge.className.replace(/bg-\S+/g,'').replace(/text-\S+/g,'').trim();
+      if (data.stato === 'ACCETTATO_CANCELLERIA')
+        badge.classList.add('bg-success');
+      else if (['RIFIUTATO_CANCELLERIA','RIFIUTATO','ERRORE_CONTROLLI','ERRORE'].includes(data.stato))
+        badge.classList.add('bg-danger');
+      else if (data.stato === 'WARN_CONTROLLI')
+        badge.classList.add('bg-warning','text-dark');
+      else if (data.stato === 'CONSEGNATO')
+        badge.classList.add('bg-primary');
+      else if (['ACCETTATO_PEC','ACCETTATO'].includes(data.stato))
+        badge.classList.add('bg-info','text-dark');
+      else
+        badge.classList.add('bg-secondary');
     }
-    /* Aggiorna icone ricevute */
-    const ricCell = document.querySelector('.dep-ricevute-' + idDep);
-    if (ricCell) {
-      let html = '';
-      if (data.ricevuta_accettazione) html += '<i class="bi bi-check-circle text-info me-1" title="Accettazione ricevuta"></i>';
-      if (data.ricevuta_consegna)     html += '<i class="bi bi-check-circle-fill text-success" title="Consegna ricevuta"></i>';
-      if (!data.ricevuta_accettazione && !data.ricevuta_consegna) html = '—';
-      ricCell.innerHTML = html;
+
+    /* Rigenera tracker 4 fasi */
+    const tracker = document.querySelector('.dep-tracker-' + idDep);
+    if (tracker) {
+      function faseBadge(n, label, ok, warn, err) {
+        let cls = 'bg-light text-muted border';
+        let icon = 'bi-circle';
+        if (err)       { cls = 'bg-danger text-white'; icon = 'bi-x-lg'; }
+        else if (warn) { cls = 'bg-warning text-dark border border-warning'; icon = 'bi-exclamation'; }
+        else if (ok)   { cls = 'bg-success-subtle text-success border border-success-subtle'; icon = 'bi-check-lg'; }
+        return '<span class="badge px-2 py-1 ' + cls + '" style="font-size:.72rem">'
+             + '<i class="bi ' + icon + ' me-1"></i>' + n + ' ' + label + '</span>';
+      }
+      const sep = '<i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>';
+      const ec = (data.esito_controlli || '').toUpperCase();
+      const ctrl_label = '③ Controlli' + (ec==='WARN'?' WARN' : ec==='ERROR'?' ERR' : '');
+      tracker.innerHTML =
+        faseBadge('①','Accett. PEC', data.ricevuta_accettazione, false, false) + sep +
+        faseBadge('②','Consegna',    data.ricevuta_consegna, false, false) + sep +
+        faseBadge(ctrl_label, '',    data.ricevuta_controlli && ec==='OK',
+                                     data.ricevuta_controlli && ec==='WARN',
+                                     data.ricevuta_controlli && ec==='ERROR') + sep +
+        faseBadge('④','Cancelleria', data.stato==='ACCETTATO_CANCELLERIA',
+                                     false,
+                                     data.stato==='RIFIUTATO_CANCELLERIA');
     }
-    if (['CONSEGNATO','RIFIUTATO','ERRORE'].includes(data.stato)) {
-      btn.remove(); /* stato finale: rimuovi bottone */
+
+    if (STATI_FINALI.includes(data.stato)) {
+      btn.remove();
     } else {
       btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
       btn.disabled = false;
     }
+    if (data.aggiornato) setTimeout(() => location.reload(), 800);
   })
   .catch(err => {
     btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';

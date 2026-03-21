@@ -3559,6 +3559,9 @@ def create_app(config: dict | None = None) -> Flask:
                 messaggio=f.get("messaggio", ""),
                 ricevuta_accettazione=f.get("ricevuta_accettazione", ""),
                 ricevuta_consegna=f.get("ricevuta_consegna", ""),
+                ricevuta_controlli_automatici=f.get("ricevuta_controlli_automatici", ""),
+                esito_controlli=f.get("esito_controlli", ""),
+                ricevuta_cancelleria=f.get("ricevuta_cancelleria", ""),
                 note=f.get("note", ""),
                 registrato_da=u.username if u else "",
             )
@@ -3827,14 +3830,41 @@ def create_app(config: dict | None = None) -> Flask:
             ricevute   = client_pec.attendi_ricevute(timeout=15)  # check rapido
 
             aggiornato = False
+
+            # Fase 4 — ricevuta accettazione PEC
             if ricevute.get("accettazione") and not dep.ricevuta_accettazione:
                 dep.ricevuta_accettazione = ricevute["accettazione"]
-                if dep.stato == "INVIATO":
-                    dep.stato = "ACCETTATO"
+                if dep.stato in ("INVIATO",):
+                    dep.stato = "ACCETTATO_PEC"
                 aggiornato = True
+
+            # Fase 5 — ricevuta avvenuta consegna
             if ricevute.get("consegna") and not dep.ricevuta_consegna:
                 dep.ricevuta_consegna = ricevute["consegna"]
-                dep.stato = "CONSEGNATO"
+                if dep.stato not in ("WARN_CONTROLLI", "ERRORE_CONTROLLI",
+                                     "ACCETTATO_CANCELLERIA", "RIFIUTATO_CANCELLERIA"):
+                    dep.stato = "CONSEGNATO"
+                aggiornato = True
+
+            # Fase 6 — esito controlli automatici
+            if ricevute.get("controlli") and not dep.ricevuta_controlli_automatici:
+                dep.ricevuta_controlli_automatici = ricevute["controlli"]
+                ec = ricevute.get("esito_controlli", "OK").upper()
+                dep.esito_controlli = ec
+                if ec == "ERROR":
+                    dep.stato = "ERRORE_CONTROLLI"
+                elif ec == "WARN":
+                    dep.stato = "WARN_CONTROLLI"
+                # OK: stato resta CONSEGNATO, si attende cancelleria
+                aggiornato = True
+
+            # Fase 7 — esito cancelleria
+            if ricevute.get("cancelleria") and not dep.ricevuta_cancelleria:
+                dep.ricevuta_cancelleria = ricevute["cancelleria"]
+                if ricevute.get("cancelleria_accettato", True):
+                    dep.stato = "ACCETTATO_CANCELLERIA"
+                else:
+                    dep.stato = "RIFIUTATO_CANCELLERIA"
                 aggiornato = True
 
             if aggiornato:
@@ -3846,6 +3876,9 @@ def create_app(config: dict | None = None) -> Flask:
                 "stato": dep.stato,
                 "ricevuta_accettazione": bool(dep.ricevuta_accettazione),
                 "ricevuta_consegna": bool(dep.ricevuta_consegna),
+                "ricevuta_controlli": bool(dep.ricevuta_controlli_automatici),
+                "esito_controlli": dep.esito_controlli,
+                "ricevuta_cancelleria": bool(dep.ricevuta_cancelleria),
                 "aggiornato": aggiornato,
             })
 

@@ -3576,17 +3576,33 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
     def deposito_prepara(id_fasc):
-        """Mostra il wizard per la preparazione e l'invio del deposito telematico."""
+        """Mostra il riepilogo documenti e la guida al deposito telematico."""
+        import os as _os
         gf = get_fascicoli()
         fasc = gf.get(id_fasc)
         if not fasc:
             flash("Fascicolo non trovato.", "danger")
             return redirect(url_for("lista_fascicoli"))
-        demo_mode = _polis_demo_mode()
+
+        # Cerca PEC del tribunale dal nome salvato nel fascicolo
+        pec_tribunale = ""
+        if fasc.tribunale:
+            try:
+                from pct.uffici_giudiziari import get_gestore as _get_uff
+                _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                _uff = next(
+                    (u for u in _get_uff(_cache).carica()
+                     if u.get("nome", "").lower() == fasc.tribunale.lower()),
+                    None,
+                )
+                pec_tribunale = _uff["pec"] if _uff else ""
+            except Exception:
+                pass
+
         return render_template(
             "fascicoli/deposito_prepara.html",
             fascicolo=fasc,
-            demo_mode=demo_mode,
+            pec_tribunale=pec_tribunale,
             oggi=date.today(),
         )
 

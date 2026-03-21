@@ -1,589 +1,255 @@
 {% extends "base.html" %}
-{% block title %}Deposito telematico PCT — {{ fascicolo.numero }}{% endblock %}
+{% block title %}Deposito telematico — {{ fascicolo.numero }}{% endblock %}
 
 {% block content %}
 
+{# ---- Header ---- #}
 <div class="d-flex align-items-center gap-2 mb-3">
   <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
      class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left"></i>
   </a>
   <h5 class="mb-0 fw-bold">
-    <i class="bi bi-send me-2 text-primary"></i>Deposito telematico PCT
+    <i class="bi bi-send me-2 text-success"></i>Deposito telematico PCT
   </h5>
   <span class="badge bg-light text-dark border">{{ fascicolo.numero }}</span>
-  {% if demo_mode %}
-  <span class="badge bg-warning text-dark ms-1 small">DEMO</span>
-  {% endif %}
 </div>
 
-{% if demo_mode %}
-<div class="alert alert-warning small mb-3">
-  <i class="bi bi-exclamation-triangle me-2"></i>
-  <strong>Modalità demo:</strong> nessun certificato digitale configurato. Il deposito verrà simulato
-  senza inviare realmente la PEC. Per abilitare il deposito reale, configura
-  <a href="{{ url_for('impostazioni.index') }}">Impostazioni studio → Firma digitale &amp; PEC</a>.
+{# ---- Info banner ---- #}
+<div class="alert alert-info d-flex gap-3 mb-4 align-items-start">
+  <i class="bi bi-info-circle-fill fs-5 mt-1 flex-shrink-0"></i>
+  <div>
+    <strong>HACS prepara — il software PCT invia.</strong><br>
+    <span class="small">
+      HACS gestisce i fascicoli e i documenti. Il deposito telematico va eseguito dal tuo
+      software dedicato (es. <strong>Consolle dell'Avvocato</strong>) usando i documenti
+      elencati qui sotto. Dopo l'invio, registra l'esito per tenere traccia nel fascicolo.
+    </span>
+  </div>
 </div>
-{% endif %}
 
-<form method="POST" action="{{ url_for('deposito_invia', id_fasc=fascicolo.id) }}"
-      id="formDeposito" onsubmit="return avviaDeposito()">
+<div class="row g-4">
 
-<div class="row g-3">
+  {# ============================================================
+     COLONNA SINISTRA — riepilogo fascicolo + documenti
+  ============================================================ #}
+  <div class="col-lg-7">
 
-  {# ---- Colonna principale ---- #}
-  <div class="col-lg-8">
-
-    {# Dati busta #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-file-earmark-text me-2 text-primary"></i>Dati dell'atto
+    {# Riepilogo fascicolo #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold bg-light">
+        <i class="bi bi-folder2-open me-2 text-primary"></i>Dati fascicolo
       </div>
       <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Tipo atto <span class="text-danger">*</span></label>
-            <select name="tipo_atto" class="form-select" required>
-              <option value="">— seleziona —</option>
-              <option value="RICORSO">Ricorso</option>
-              <option value="CITAZIONE">Atto di citazione</option>
-              <option value="MEMORIA">Memoria</option>
-              <option value="COMPARSA">Comparsa di risposta</option>
-              <option value="REPLICA">Replica</option>
-              <option value="ISTANZA">Istanza</option>
-              <option value="NOTA_SPESE">Nota spese</option>
-              <option value="PROCURA">Procura alle liti</option>
-              <option value="DECRETO_INGIUNTIVO">Ricorso per decreto ingiuntivo</option>
-              <option value="OPPOSIZIONE">Atto di opposizione</option>
-              <option value="APPELLO">Atto di appello</option>
-              <option value="RICORSO_CASSAZIONE">Ricorso per cassazione</option>
-              <option value="RECLAMO">Reclamo</option>
-              <option value="DICHIARAZIONE">Dichiarazione</option>
-              <option value="ALTRO">Altro atto</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Registro</label>
-            <select name="codice_registro" class="form-select">
-              <option value="RG">RG — Ruolo Generale</option>
-              <option value="RGNR">RGNR — Reg. Gen. Notizie Reato</option>
-              <option value="GIP">GIP</option>
-              <option value="GUP">GUP</option>
-              <option value="RGES">RGES — Esecuzione</option>
-            </select>
-          </div>
-          <div class="col-md-5">
-            <label class="form-label fw-semibold">N. RG</label>
-            <input type="text" name="numero_rg" class="form-control font-monospace"
-                   value="{{ fascicolo.numero_rg }}"
-                   placeholder="es. 1234">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Anno</label>
-            <input type="number" name="anno_rg" class="form-control font-monospace"
-                   value="{{ fascicolo.anno_rg or '' }}"
-                   min="2000" max="2099" placeholder="{{ oggi.year }}">
-          </div>
-          <div class="col-12">
-            <label class="form-label fw-semibold">Oggetto del deposito <span class="text-danger">*</span></label>
-            <input type="text" name="oggetto" class="form-control" required
-                   value="{{ fascicolo.titolo }}"
-                   placeholder="es. Deposito memoria difensiva">
-          </div>
-          <div class="col-12">
-            <label class="form-label fw-semibold">Note aggiuntive</label>
-            <textarea name="note" class="form-control" rows="2"
-                      placeholder="Note da includere nel corpo della PEC…"></textarea>
-          </div>
-        </div>
+        <dl class="row mb-0 small">
+          <dt class="col-sm-4 text-muted">Numero</dt>
+          <dd class="col-sm-8 fw-semibold font-monospace">{{ fascicolo.numero }}</dd>
+
+          <dt class="col-sm-4 text-muted">Titolo</dt>
+          <dd class="col-sm-8">{{ fascicolo.titolo }}</dd>
+
+          {% if fascicolo.oggetto %}
+          <dt class="col-sm-4 text-muted">Oggetto</dt>
+          <dd class="col-sm-8">{{ fascicolo.oggetto }}</dd>
+          {% endif %}
+
+          {% if fascicolo.tribunale %}
+          <dt class="col-sm-4 text-muted">Tribunale</dt>
+          <dd class="col-sm-8">{{ fascicolo.tribunale }}</dd>
+          {% endif %}
+
+          {% if pec_tribunale %}
+          <dt class="col-sm-4 text-muted">PEC destinatario</dt>
+          <dd class="col-sm-8 font-monospace">{{ pec_tribunale }}</dd>
+          {% endif %}
+
+          {% if fascicolo.numero_rg %}
+          <dt class="col-sm-4 text-muted">N. RG</dt>
+          <dd class="col-sm-8 font-monospace">
+            {{ fascicolo.numero_rg }}/{{ fascicolo.anno_rg }}
+          </dd>
+          {% endif %}
+
+          {% if fascicolo.sezione %}
+          <dt class="col-sm-4 text-muted">Sezione</dt>
+          <dd class="col-sm-8">{{ fascicolo.sezione }}</dd>
+          {% endif %}
+
+          {% if fascicolo.giudice %}
+          <dt class="col-sm-4 text-muted">Giudice</dt>
+          <dd class="col-sm-8">{{ fascicolo.giudice }}</dd>
+          {% endif %}
+        </dl>
       </div>
     </div>
 
-    {# Tribunale destinatario #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-building me-2 text-primary"></i>Ufficio giudiziario destinatario
+    {# Documenti disponibili #}
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold bg-light d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-paperclip me-2 text-primary"></i>Documenti disponibili</span>
+        <span class="badge bg-primary rounded-pill">{{ fascicolo.documenti | length }}</span>
       </div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="form-label fw-semibold">Cerca ufficio <span class="text-danger">*</span></label>
-            <div class="position-relative">
-              <input type="text" id="uffInput" class="form-control"
-                     placeholder="es. Tribunale di Milano…"
-                     autocomplete="off"
-                     value="{{ fascicolo.tribunale }}">
-              <div id="uffDropdown"
-                   class="dropdown-menu w-100 shadow-sm"
-                   style="max-height:260px;overflow-y:auto;display:none;position:absolute;z-index:1055">
-              </div>
-            </div>
-            <input type="hidden" name="codice_ufficio" id="codiceUfficio">
-            <input type="hidden" name="tribunale_nome"  id="tribunaleNome"
-                   value="{{ fascicolo.tribunale }}">
-            <input type="hidden" name="tribunale_pec"   id="tribunalePec">
-          </div>
-          <div class="col-12" id="pecPreviewRow" style="display:none">
-            <div class="alert alert-light border py-2 small mb-0">
-              <i class="bi bi-envelope me-2 text-primary"></i>
-              PEC destinatario: <strong id="pecPreviewTxt"></strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {# Selezione documenti #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-        <span><i class="bi bi-paperclip me-2 text-primary"></i>Documenti da includere nella busta</span>
-        <span class="badge bg-secondary" id="contaDoc">0 selezionati</span>
-      </div>
-      <div class="card-body p-0">
-        {% if fascicolo.documenti %}
-
-        {# Barra dimensione busta #}
-        <div class="px-3 pt-3 pb-1">
-          <div class="d-flex justify-content-between align-items-center mb-1">
-            <small class="text-muted">Dimensione stimata busta</small>
-            <small id="dimTot" class="fw-semibold">0 KB</small>
-          </div>
-          <div class="progress" style="height:6px">
-            <div id="dimBar" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
-          </div>
-          <div id="dimWarning" class="text-danger small mt-1" style="display:none">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i>
-            Dimensione supera i 30 MB — ridurre gli allegati prima dell'invio.
-          </div>
-        </div>
-
-        <div class="table-responsive mt-2">
-          <table class="table table-hover align-middle mb-0 small">
-            <thead class="table-light">
-              <tr>
-                <th style="width:90px" class="text-center">Atto princ.</th>
-                <th style="width:80px" class="text-center">Allegato</th>
-                <th>Nome documento</th>
-                <th>Formato</th>
-                <th>Firma</th>
-                <th>Dim.</th>
-                <th style="width:180px">Tipo allegato</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
-              {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
-              {% set nome_base = doc.nome.rsplit('.',1)[0] if '.' in doc.nome else doc.nome %}
-              {% set dim_mb = (doc.dimensione_bytes / 1048576) if doc.dimensione_bytes else 0 %}
-              <tr data-bytes="{{ doc.dimensione_bytes or 0 }}">
-                <td class="text-center">
-                  <input type="radio" name="atto_principale_id"
-                         value="{{ doc.id }}"
-                         class="form-check-input radio-atto"
-                         {% if loop.first %}checked{% endif %}
-                         title="Imposta come atto principale">
-                </td>
-                <td class="text-center">
-                  <input type="checkbox" name="allegati_ids"
-                         value="{{ doc.id }}"
-                         class="form-check-input check-allegato"
-                         title="Includi come allegato">
-                </td>
-                <td>
-                  <div class="fw-semibold text-truncate" style="max-width:200px" title="{{ doc.nome }}">
-                    {{ doc.nome }}
-                  </div>
-                  {% if doc.note %}
-                  <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
-                  {% endif %}
-                  {# warning nome con spazi/caratteri speciali #}
-                  {% if ' ' in doc.nome or '(' in doc.nome or ')' in doc.nome or '[' in doc.nome or '#' in doc.nome %}
-                  <div class="text-warning" style="font-size:.68rem" title="Il nome contiene spazi o caratteri speciali">
-                    <i class="bi bi-exclamation-triangle-fill"></i> nome non conforme
-                  </div>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if ext == 'p7m' %}
-                    <span class="badge bg-success text-white" style="font-size:.68rem">P7M</span>
-                    <div class="text-muted" style="font-size:.65rem">CAdES</div>
-                  {% elif ext == 'pdf' %}
-                    <span class="badge bg-primary text-white" style="font-size:.68rem">PDF</span>
-                    <div class="text-muted" style="font-size:.65rem">raccomandate PDF/A</div>
-                  {% elif ext in ('doc','docx','odt','rtf') %}
-                    <span class="badge bg-danger text-white" style="font-size:.68rem">{{ ext|upper }}</span>
-                    <div class="text-danger" style="font-size:.65rem">non conforme PCT</div>
-                  {% else %}
-                    <span class="badge bg-secondary text-white" style="font-size:.68rem">{{ ext|upper or '?' }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if doc.firmato_digitalmente %}
-                    <i class="bi bi-patch-check-fill text-success fs-5" title="Firmato digitalmente"></i>
-                  {% else %}
-                    <i class="bi bi-exclamation-triangle-fill text-warning fs-5"
-                       title="Non firmato — l'atto principale richiede firma digitale"></i>
-                  {% endif %}
-                </td>
-                <td class="text-nowrap {% if dim_mb > 30 %}text-danger fw-semibold{% endif %}">
-                  {% if doc.dimensione_bytes %}
-                    {% if dim_mb >= 1 %}
-                      {{ "%.1f"|format(dim_mb) }} MB
-                    {% else %}
-                      {{ (doc.dimensione_bytes // 1024) }} KB
-                    {% endif %}
-                    {% if dim_mb > 30 %}
-                    <i class="bi bi-exclamation-triangle-fill text-danger" title="File supera 30 MB"></i>
-                    {% endif %}
-                  {% else %}
-                    <span class="text-muted">—</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <select name="tipo_allegato_{{ doc.id }}"
-                          class="form-select form-select-sm sel-tipo-allegato"
-                          style="display:none;font-size:.72rem"
-                          data-doc-id="{{ doc.id }}">
-                    <option value="ALLEGATO">Documento probatorio</option>
-                    <option value="PROCURA">Procura alle liti</option>
-                    <option value="NOTA_SPESE">Nota spese</option>
-                    <option value="COMUNICAZIONE">Comunicazione / corrispondenza</option>
-                  </select>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        {# Avviso atto principale non firmato #}
-        <div id="avvisoFirma" class="alert alert-warning small m-3 mb-2 py-2" style="display:none">
-          <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          <strong>Attenzione:</strong> l'atto principale selezionato non risulta firmato digitalmente.
-          La firma CAdES (.p7m) o PAdES è obbligatoria per il deposito PCT.
-        </div>
-
-        {% else %}
-        <div class="text-muted text-center py-4 small">
-          <i class="bi bi-exclamation-circle me-2"></i>
-          Nessun documento caricato nel fascicolo.
-          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">
-            Carica prima i documenti
-          </a>.
-        </div>
-        {% endif %}
-      </div>
-    </div>
-
-  </div>{# /col-lg-8 #}
-
-  {# ---- Colonna laterale ---- #}
-  <div class="col-lg-4">
-
-    {# Riepilogo busta #}
-    <div class="card shadow-sm mb-3 border-primary">
-      <div class="card-header fw-semibold bg-primary-subtle">
-        <i class="bi bi-box-seam me-2 text-primary"></i>Riepilogo busta
-      </div>
-      <div class="card-body small">
-        <div class="mb-2">
-          <span class="text-muted">Fascicolo:</span>
-          <strong class="ms-1">{{ fascicolo.numero }}</strong>
-        </div>
-        <div class="mb-2">
-          <span class="text-muted">Cliente:</span>
-          <span class="ms-1">{{ fascicolo.nome_cliente or '—' }}</span>
-        </div>
-        <hr class="my-2">
-        <div class="mb-1 text-muted">Struttura busta .enc:</div>
-        <ul class="list-unstyled mb-0" style="font-size:.75rem">
-          <li><i class="bi bi-file-earmark-code text-secondary me-1"></i>DatiAtto.xml</li>
-          <li><i class="bi bi-file-earmark-text text-primary me-1"></i>Atto principale (PDF/p7m)</li>
-          <li class="text-muted">+ allegati selezionati</li>
-        </ul>
-        <hr class="my-2">
-        <div class="alert alert-light border py-2 mb-0" style="font-size:.72rem">
-          <i class="bi bi-info-circle me-1 text-primary"></i>
-          La busta viene creata localmente e inviata via PEC all'ufficio selezionato.
-          Le ricevute di accettazione e consegna vengono monitorate automaticamente.
-        </div>
-      </div>
-    </div>
-
-    {# Requisiti tecnici PCT 2026 #}
-    <div class="card shadow-sm mb-3 border-warning">
-      <div class="card-header fw-semibold bg-warning-subtle">
-        <i class="bi bi-shield-check me-2 text-warning"></i>Requisiti tecnici PCT 2026
-      </div>
-      <div class="card-body p-0">
-        <ul class="list-group list-group-flush small">
-          <li class="list-group-item py-2">
-            <i class="bi bi-check2-circle text-success me-2"></i>
-            <strong>Firma obbligatoria</strong> sull'atto principale<br>
-            <span class="text-muted" style="font-size:.72rem">CAdES (.p7m) o PAdES incorporata nel PDF</span>
-          </li>
-          <li class="list-group-item py-2">
-            <i class="bi bi-check2-circle text-success me-2"></i>
-            <strong>Formato PDF/A</strong> raccomandato<br>
-            <span class="text-muted" style="font-size:.72rem">ISO 19005 — garantisce la leggibilità a lungo termine</span>
-          </li>
-          <li class="list-group-item py-2">
-            <i class="bi bi-check2-circle text-success me-2"></i>
-            <strong>Nomi file</strong> senza spazi né caratteri speciali<br>
-            <span class="text-muted" style="font-size:.72rem">Usare solo lettere, numeri, trattini e underscore</span>
-          </li>
-          <li class="list-group-item py-2">
-            <i class="bi bi-check2-circle text-success me-2"></i>
-            <strong>Dimensione massima busta:</strong> 30 MB<br>
-            <span class="text-muted" style="font-size:.72rem">Somma di atto principale + tutti gli allegati</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    {# Avanzamento stati PCT #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-arrow-right-circle me-2"></i>Flusso deposito PCT
-      </div>
-      <div class="card-body p-0">
-        <ul class="list-group list-group-flush small">
-          <li class="list-group-item d-flex align-items-center gap-2 py-2">
-            <i class="bi bi-circle text-secondary"></i>
-            <span class="text-muted">Bozza</span>
-          </li>
-          <li class="list-group-item d-flex align-items-center gap-2 py-2">
-            <i class="bi bi-arrow-right text-primary"></i>
-            <span><strong>INVIATO</strong> — PEC spedita al tribunale</span>
-          </li>
-          <li class="list-group-item d-flex align-items-center gap-2 py-2">
-            <i class="bi bi-check-circle text-info"></i>
-            <span>ACCETTATO — ricevuta accettazione PEC</span>
-          </li>
-          <li class="list-group-item d-flex align-items-center gap-2 py-2">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <span>CONSEGNATO — ricevuta consegna PEC</span>
-          </li>
-          <li class="list-group-item d-flex align-items-center gap-2 py-2">
-            <i class="bi bi-building-check text-success"></i>
-            <span>ESITO CANCELLERIA — accettato dal cancelliere</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    {# Bottone invio #}
-    <div class="d-grid gap-2">
       {% if fascicolo.documenti %}
-      <button type="submit" id="btnInvia" class="btn btn-primary btn-lg">
-        <i class="bi bi-send me-2"></i>
-        {% if demo_mode %}Simula deposito{% else %}Invia deposito PCT{% endif %}
-      </button>
+      <ul class="list-group list-group-flush">
+        {% for doc in fascicolo.documenti %}
+        <li class="list-group-item d-flex align-items-center gap-2 py-2 px-3">
+          {% if doc.firmato_digitalmente %}
+          <i class="bi bi-patch-check-fill text-success flex-shrink-0"
+             title="Firmato digitalmente"></i>
+          {% else %}
+          <i class="bi bi-file-earmark-pdf text-muted flex-shrink-0"></i>
+          {% endif %}
+          <span class="flex-grow-1 small">{{ doc.nome }}</span>
+          <span class="text-muted small font-monospace flex-shrink-0">
+            {% if doc.dimensione_bytes >= 1048576 %}
+              {{ (doc.dimensione_bytes / 1048576) | round(1) }} MB
+            {% elif doc.dimensione_bytes >= 1024 %}
+              {{ (doc.dimensione_bytes / 1024) | round(0) | int }} KB
+            {% elif doc.dimensione_bytes > 0 %}
+              {{ doc.dimensione_bytes }} B
+            {% else %}
+              —
+            {% endif %}
+          </span>
+          {% if not doc.firmato_digitalmente %}
+          <span class="badge bg-warning text-dark small flex-shrink-0"
+                title="Atto non firmato digitalmente">non firmato</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
       {% else %}
-      <button type="button" class="btn btn-secondary btn-lg" disabled>
-        <i class="bi bi-send me-2"></i>Nessun documento disponibile
-      </button>
+      <div class="card-body text-center text-muted small py-4">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Nessun documento caricato nel fascicolo.
+      </div>
       {% endif %}
-      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
-         class="btn btn-outline-secondary">
-        <i class="bi bi-x-lg me-1"></i>Annulla
-      </a>
     </div>
 
-    {# Spinner invio #}
-    <div id="invioSpinner" class="text-center mt-3" style="display:none">
-      <div class="spinner-border text-primary" role="status"></div>
-      <div class="small text-muted mt-2" id="invioStato">Creazione busta telematica…</div>
+  </div>{# /col-lg-7 #}
+
+  {# ============================================================
+     COLONNA DESTRA — istruzioni + registra esito
+  ============================================================ #}
+  <div class="col-lg-5">
+
+    {# Guida deposito #}
+    <div class="card shadow-sm border-success mb-4">
+      <div class="card-header fw-semibold text-white bg-success">
+        <i class="bi bi-list-check me-2"></i>Come effettuare il deposito
+      </div>
+      <div class="card-body">
+        <ol class="mb-4 small ps-3">
+          <li class="mb-2">
+            Apri il tuo software PCT
+            (<strong>Consolle dell'Avvocato</strong> o strumento equivalente).
+          </li>
+          <li class="mb-2">
+            Crea una nuova <strong>busta telematica</strong> e seleziona
+            il tipo di atto corretto.
+          </li>
+          <li class="mb-2">
+            Allega i <strong>documenti elencati</strong> a sinistra;
+            indica quale è l'atto principale e quali sono gli allegati.
+          </li>
+          <li class="mb-2">
+            Verifica che l'atto principale sia
+            <strong>firmato digitalmente</strong> (.p7m / CAdES).
+          </li>
+          <li class="mb-2">
+            Seleziona il tribunale destinatario
+            {% if pec_tribunale %}
+            (<span class="font-monospace">{{ pec_tribunale }}</span>)
+            {% endif %}
+            e invia tramite <strong>PEC</strong>.
+          </li>
+          <li>
+            Torna qui e <strong>registra l'esito</strong> con il numero
+            di protocollo ricevuto.
+          </li>
+        </ol>
+
+        <a href="https://pst.giustizia.it/"
+           target="_blank" rel="noopener noreferrer"
+           class="btn btn-success w-100 fw-semibold mb-2">
+          <i class="bi bi-box-arrow-up-right me-2"></i>Portale dei Servizi Telematici (PST)
+        </a>
+        <p class="text-muted small text-center mb-0">
+          pst.giustizia.it — portale ufficiale del Ministero della Giustizia
+        </p>
+      </div>
     </div>
 
-  </div>{# /col-lg-4 #}
+    {# Registra esito #}
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold bg-light">
+        <i class="bi bi-pencil-square me-2 text-primary"></i>Registra l'esito nel fascicolo
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          Dopo aver inviato la busta, inserisci qui lo stato e le ricevute
+          per tenere traccia del deposito.
+        </p>
+        <form method="POST"
+              action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+
+          {# Tipo atto #}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">
+              Tipo atto <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="tipo_atto" class="form-control form-control-sm"
+                   placeholder="es. Ricorso, Memoria, Citazione, Appello" required>
+          </div>
+
+          {# Stato #}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Stato deposito</label>
+            <select name="stato" class="form-select form-select-sm">
+              <option value="INVIATO">INVIATO — busta inviata</option>
+              <option value="ACCETTATO_PEC">ACCETTATO_PEC — ricevuta accettazione</option>
+              <option value="CONSEGNATO" selected>CONSEGNATO — ricevuta consegna</option>
+              <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA — accettato ✓</option>
+              <option value="WARN_CONTROLLI">WARN_CONTROLLI — anomalia non bloccante</option>
+              <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI — errore bloccante</option>
+              <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA — rifiutato</option>
+            </select>
+          </div>
+
+          {# PEC #}
+          {% if pec_tribunale %}
+          <input type="hidden" name="pec_destinatario" value="{{ pec_tribunale }}">
+          {% else %}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">PEC tribunale</label>
+            <input type="email" name="pec_destinatario" class="form-control form-control-sm"
+                   placeholder="tribunale.sede@giustiziapec.it">
+          </div>
+          {% endif %}
+
+          {# Protocollo / messaggio #}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Numero protocollo / ID deposito</label>
+            <input type="text" name="messaggio" class="form-control form-control-sm"
+                   placeholder="es. PCT-2024-0001234">
+          </div>
+
+          {# Note #}
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Note</label>
+            <textarea name="note" class="form-control form-control-sm" rows="2"
+                      placeholder="Annotazioni sull'esito del deposito…"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            <i class="bi bi-save me-1"></i>Salva esito nel fascicolo
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>{# /col-lg-5 #}
 
 </div>{# /row #}
-
-<input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
-
-</form>
-
-<script>
-/* ---- Autocomplete uffici giudiziari ---- */
-const inp    = document.getElementById('uffInput');
-const drop   = document.getElementById('uffDropdown');
-const hidCod = document.getElementById('codiceUfficio');
-const hidNom = document.getElementById('tribunaleNome');
-const hidPec = document.getElementById('tribunalePec');
-const pecRow = document.getElementById('pecPreviewRow');
-const pecTxt = document.getElementById('pecPreviewTxt');
-
-let _timer = null;
-
-inp.addEventListener('input', function() {
-  clearTimeout(_timer);
-  const q = this.value.trim();
-  if (q.length < 2) { drop.style.display = 'none'; return; }
-  _timer = setTimeout(() => cercaUffici(q), 200);
-});
-
-inp.addEventListener('blur', function() {
-  setTimeout(() => { drop.style.display = 'none'; }, 200);
-});
-
-function cercaUffici(q) {
-  fetch('/api/uffici?q=' + encodeURIComponent(q))
-    .then(r => r.json())
-    .then(lista => {
-      drop.innerHTML = '';
-      if (!lista.length) { drop.style.display = 'none'; return; }
-      lista.slice(0, 12).forEach(u => {
-        const a = document.createElement('a');
-        a.className = 'dropdown-item py-1';
-        a.href = '#';
-        a.innerHTML = `<strong>${u.nome}</strong> <small class="text-muted">(${u.distretto})</small>`
-          + (u.pec ? `<div style="font-size:.72rem" class="text-muted">${u.pec}</div>` : '');
-        a.addEventListener('mousedown', e => { e.preventDefault(); seleziona(u); });
-        drop.appendChild(a);
-      });
-      drop.style.display = 'block';
-    })
-    .catch(() => { drop.style.display = 'none'; });
-}
-
-function seleziona(u) {
-  inp.value    = u.nome;
-  hidCod.value = u.codice || '';
-  hidNom.value = u.nome;
-  hidPec.value = u.pec   || '';
-  drop.style.display = 'none';
-  if (u.pec) {
-    pecTxt.textContent   = u.pec;
-    pecRow.style.display = '';
-  } else {
-    pecRow.style.display = 'none';
-  }
-}
-
-/* Imposta da fascicolo se già valorizzato */
-(function() {
-  const nomePrecomp = hidNom.value.trim();
-  if (nomePrecomp) {
-    fetch('/api/uffici?q=' + encodeURIComponent(nomePrecomp))
-      .then(r => r.json())
-      .then(lista => {
-        const u = lista.find(x => x.nome === nomePrecomp) || lista[0];
-        if (u) {
-          hidCod.value = u.codice || '';
-          hidPec.value = u.pec   || '';
-          if (u.pec) { pecTxt.textContent = u.pec; pecRow.style.display = ''; }
-        }
-      }).catch(() => {});
-  }
-})();
-
-/* ---- Mutex atto principale ↔ allegato + mostra tipo allegato ---- */
-document.querySelectorAll('.radio-atto').forEach(radio => {
-  radio.addEventListener('change', function() {
-    aggiornaUI();
-  });
-});
-
-document.querySelectorAll('.check-allegato').forEach(cb => {
-  cb.addEventListener('change', function() {
-    const row = this.closest('tr');
-    const sel = row ? row.querySelector('.sel-tipo-allegato') : null;
-    if (sel) sel.style.display = this.checked ? '' : 'none';
-    aggiornaUI();
-  });
-});
-
-/* ---- Aggiorna dimensione busta + badge contatore + avviso firma ---- */
-const LIMITE_MB = 30;
-const LIMITE_BYTES = LIMITE_MB * 1024 * 1024;
-
-function aggiornaUI() {
-  let totalBytes = 0;
-  let selCount   = 0;
-  let attoPrincipaleRow = null;
-
-  /* Atto principale sempre conteggiato */
-  const radioSel = document.querySelector('.radio-atto:checked');
-  if (radioSel) {
-    const tr = radioSel.closest('tr');
-    if (tr) {
-      totalBytes += parseInt(tr.dataset.bytes || 0);
-      attoPrincipaleRow = tr;
-    }
-  }
-
-  /* Allegati selezionati */
-  document.querySelectorAll('.check-allegato:checked').forEach(cb => {
-    const tr = cb.closest('tr');
-    if (tr) {
-      totalBytes += parseInt(tr.dataset.bytes || 0);
-      selCount++;
-    }
-  });
-
-  /* Badge contatore */
-  document.getElementById('contaDoc').textContent =
-    selCount + ' allegat' + (selCount === 1 ? 'o' : 'i');
-
-  /* Dimensione */
-  const dimEl  = document.getElementById('dimTot');
-  const barEl  = document.getElementById('dimBar');
-  const warnEl = document.getElementById('dimWarning');
-  const mb     = totalBytes / 1048576;
-  dimEl.textContent = mb >= 1
-    ? mb.toFixed(1) + ' MB'
-    : Math.round(totalBytes / 1024) + ' KB';
-
-  const pct = Math.min((totalBytes / LIMITE_BYTES) * 100, 100);
-  barEl.style.width = pct + '%';
-  if (mb > LIMITE_MB) {
-    barEl.className = 'progress-bar bg-danger';
-    warnEl.style.display = '';
-  } else if (mb > LIMITE_MB * 0.8) {
-    barEl.className = 'progress-bar bg-warning';
-    warnEl.style.display = 'none';
-  } else {
-    barEl.className = 'progress-bar bg-success';
-    warnEl.style.display = 'none';
-  }
-
-  /* Avviso firma atto principale */
-  const avvisoFirma = document.getElementById('avvisoFirma');
-  if (avvisoFirma && attoPrincipaleRow) {
-    const icona = attoPrincipaleRow.querySelector('.bi-exclamation-triangle-fill.text-warning');
-    avvisoFirma.style.display = icona ? '' : 'none';
-  }
-}
-
-/* Init al caricamento */
-aggiornaUI();
-
-/* ---- Submit: valida e mostra spinner ---- */
-function avviaDeposito() {
-  const tribunaleNome = document.getElementById('tribunaleNome').value.trim();
-  if (!tribunaleNome) {
-    alert('Seleziona un ufficio giudiziario destinatario.');
-    return false;
-  }
-  const attoSel = document.querySelector('.radio-atto:checked');
-  if (!attoSel) {
-    alert('Seleziona l\'atto principale da includere nella busta.');
-    return false;
-  }
-
-  /* Blocca se oltre 30 MB */
-  const rows = [attoSel.closest('tr'),
-    ...Array.from(document.querySelectorAll('.check-allegato:checked')).map(c => c.closest('tr'))];
-  const totBytes = rows.reduce((s, tr) => s + parseInt(tr ? tr.dataset.bytes || 0 : 0), 0);
-  if (totBytes > LIMITE_BYTES) {
-    if (!confirm('La dimensione stimata supera i 30 MB. Procedere comunque?')) return false;
-  }
-
-  document.getElementById('btnInvia').disabled = true;
-  document.getElementById('invioSpinner').style.display = '';
-  return true;
-}
-</script>
 
 {% endblock %}

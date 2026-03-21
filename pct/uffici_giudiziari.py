@@ -911,7 +911,137 @@ class GestoreUfficiGiudiziari:
         log.info("Aggiornamento dal bundle interno: %d uffici", n)
         return True, f"Aggiornati {n} uffici dal registro interno (sorgente remota non disponibile)"
 
+    # ---------------------------------------------------------------- verifica variazioni
+
+    def verifica_variazioni(self) -> dict:
+        """
+        Confronta il bundle interno con la sorgente remota (PST) e riporta le variazioni.
+
+        Rileva:
+        - PEC modificate (critico: depositi potrebbero non arrivare)
+        - Uffici aggiunti nel remoto ma assenti nel bundle
+        - Uffici presenti nel bundle ma assenti nel remoto
+
+        Il report viene salvato in <cache_dir>/verifica_variazioni.json e restituito.
+        Se la sorgente remota non è raggiungibile, il report registra l'errore senza
+        modificare nulla.
+        """
+        import requests as req
+
+        report_path = self.cache_path.parent / "verifica_variazioni.json"
+        ts = datetime.now().isoformat(timespec="seconds")
+
+        fonti = [
+            ("env",        _REMOTO_URL),
+            ("pst_public", _PST_UFFICI),
+        ]
+
+        remoti: list[dict] = []
+        sorgente_usata = "—"
+        errore: str | None = None
+
+        for nome_fonte, endpoint in fonti:
+            if not endpoint:
+                continue
+            try:
+                log.info("Verifica variazioni: tentativo da %s (%s)", nome_fonte, endpoint)
+                resp = req.get(
+                    endpoint, timeout=_PST_TIMEOUT,
+                    headers={"Accept": "application/json",
+                             "User-Agent": "PCT-Studio/2.0 (uffici-verifica)"},
+                )
+                if resp.ok:
+                    remoti = self._normalizza_risposta(resp.json())
+                    if remoti:
+                        sorgente_usata = nome_fonte
+                        log.info("Verifica: %d uffici remoti da %s", len(remoti), nome_fonte)
+                        break
+            except Exception as exc:
+                log.warning("Verifica: sorgente %s non raggiungibile: %s", nome_fonte, exc)
+                errore = str(exc)
+
+        if not remoti:
+            report: dict = {
+                "verificato_il": ts,
+                "sorgente": sorgente_usata,
+                "bundle_n": len(_build_bundle_completo()),
+                "remoto_n": 0,
+                "pec_modificate": [],
+                "aggiunti": [],
+                "rimossi": [],
+                "ok": False,
+                "errore": errore or "Nessuna sorgente remota disponibile",
+            }
+            self._salva_report(report_path, report)
+            return report
+
+        bundle = _build_bundle_completo()
+        bundle_idx = {u["codice"]: u for u in bundle if u.get("codice")}
+        remoto_idx = {u["codice"]: u for u in remoti if u.get("codice")}
+
+        pec_modificate = []
+        for codice, bu in bundle_idx.items():
+            if codice not in remoto_idx:
+                continue
+            pec_b = (bu.get("pec") or "").strip().lower()
+            pec_r = (remoto_idx[codice].get("pec") or "").strip().lower()
+            if pec_b and pec_r and pec_b != pec_r:
+                pec_modificate.append({
+                    "codice":     codice,
+                    "nome":       bu.get("nome", ""),
+                    "pec_bundle": bu.get("pec", ""),
+                    "pec_remoto": remoto_idx[codice].get("pec", ""),
+                })
+
+        aggiunti = [
+            u for codice, u in remoto_idx.items()
+            if codice not in bundle_idx
+        ]
+        rimossi = [
+            u for codice, u in bundle_idx.items()
+            if codice not in remoto_idx
+        ]
+
+        n_variazioni = len(pec_modificate) + len(aggiunti) + len(rimossi)
+        log.info(
+            "Verifica completata: %d PEC modificate, %d aggiunti, %d rimossi",
+            len(pec_modificate), len(aggiunti), len(rimossi),
+        )
+
+        report = {
+            "verificato_il":  ts,
+            "sorgente":       sorgente_usata,
+            "bundle_n":       len(bundle),
+            "remoto_n":       len(remoti),
+            "pec_modificate": pec_modificate,
+            "aggiunti":       aggiunti,
+            "rimossi":        rimossi,
+            "n_variazioni":   n_variazioni,
+            "ok":             True,
+            "errore":         None,
+        }
+        self._salva_report(report_path, report)
+        return report
+
+    def carica_report_variazioni(self) -> dict | None:
+        """Restituisce l'ultimo report di verifica variazioni, o None se assente."""
+        report_path = self.cache_path.parent / "verifica_variazioni.json"
+        if not report_path.exists():
+            return None
+        try:
+            return json.loads(report_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            log.warning("Lettura report variazioni fallita: %s", exc)
+            return None
+
     # ---------------------------------------------------------------- privati
+
+    def _salva_report(self, path: Path, report: dict) -> None:
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as exc:
+            log.warning("Salvataggio report variazioni fallito: %s", exc)
 
     def _da_file(self) -> list[dict] | None:
         if not self.cache_path.exists():

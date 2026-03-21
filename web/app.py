@@ -2146,6 +2146,40 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore api_uffici_stato: %s", e)
             return jsonify({"ok": False, "errore": str(e)}), 200
 
+    @app.route("/api/uffici/variazioni")
+    def api_uffici_variazioni():
+        """Ultimo report di verifica variazioni uffici (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"ok": False}), 403
+        try:
+            from pct.uffici_giudiziari import get_gestore
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            report = get_gestore(cache_path).carica_report_variazioni()
+            if report is None:
+                return jsonify({"ok": False, "errore": "Nessun controllo eseguito ancora"})
+            return jsonify(report)
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_variazioni: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
+    @app.route("/api/uffici/variazioni/esegui", methods=["POST"])
+    def api_uffici_variazioni_esegui():
+        """Avvia manualmente la verifica variazioni uffici (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"ok": False}), 403
+        try:
+            from pct.uffici_giudiziari import get_gestore
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            report = get_gestore(cache_path).verifica_variazioni()
+            audit("uffici.verifica_variazioni", u.username, None,
+                  dettagli=f"n_variazioni={report.get('n_variazioni', 0)}")
+            return jsonify(report)
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_variazioni_esegui: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
     # ---------------------------------------------------------------- codice fiscale
 
     @app.route("/api/cf/decodifica")

@@ -40,6 +40,20 @@
       <div class="card-body py-2 px-3 small" id="uffici-info-body">
         <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento…</div>
       </div>
+      {# Sezione verifica variazioni #}
+      <div class="card-body border-top py-2 px-3 small" id="uffici-variazioni-body">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-shield-check text-info"></i>
+          <strong>Verifica variazioni PST</strong>
+          <span id="variazioni-badge" class="badge bg-secondary ms-1">—</span>
+          <button class="btn btn-sm btn-outline-info ms-auto" id="btn-verifica-variazioni" onclick="eseguiVerificaVariazioni()">
+            <i class="bi bi-search me-1"></i>Controlla ora
+          </button>
+        </div>
+        <div id="variazioni-dettaglio" class="text-muted small">
+          <i class="bi bi-clock-history me-1"></i>Controllo automatico ogni giorno alle 03:30
+        </div>
+      </div>
       <div class="card-footer py-2 px-3 d-flex flex-wrap gap-2 align-items-center">
         <button class="btn btn-sm btn-outline-secondary" id="btn-ricarica-bundle" onclick="ricaricaBundle()">
           <i class="bi bi-box-arrow-in-down me-1"></i>Ricarica bundle
@@ -506,7 +520,118 @@ function aggiornaUffici() {
 // Carica lo stato al click sul pannello
 document.getElementById('badge-uffici-stato')?.addEventListener('click', caricaStatoUffici);
 // Carica subito se il pannello è visibile
-document.addEventListener('DOMContentLoaded', caricaStatoUffici);
+document.addEventListener('DOMContentLoaded', () => {
+  caricaStatoUffici();
+  caricaVariazioni();
+});
+
+// ---------------------------------------------------------------- Verifica variazioni uffici (admin)
+function caricaVariazioni() {
+  fetch('/api/uffici/variazioni')
+    .then(r => r.json())
+    .then(d => _renderVariazioni(d))
+    .catch(() => {});
+}
+
+function _renderVariazioni(d) {
+  const badge   = document.getElementById('variazioni-badge');
+  const dettaglio = document.getElementById('variazioni-dettaglio');
+  if (!badge || !dettaglio) return;
+
+  if (!d.ok && d.errore && d.errore.includes('Nessun controllo')) {
+    badge.className = 'badge bg-secondary ms-1';
+    badge.textContent = 'mai eseguito';
+    dettaglio.innerHTML = '<i class="bi bi-clock-history me-1"></i>Controllo automatico ogni giorno alle 03:30. Clicca "Controlla ora" per il primo controllo.';
+    return;
+  }
+
+  const ts = d.verificato_il ? new Date(d.verificato_il).toLocaleString('it-IT') : '—';
+
+  if (!d.ok) {
+    badge.className = 'badge bg-warning text-dark ms-1';
+    badge.textContent = 'errore';
+    dettaglio.innerHTML = `<i class="bi bi-exclamation-triangle text-warning me-1"></i>Ultimo tentativo: ${ts} — <span class="text-danger">${d.errore || 'sorgente non raggiungibile'}</span>`;
+    return;
+  }
+
+  const nPec    = (d.pec_modificate || []).length;
+  const nAdd    = (d.aggiunti || []).length;
+  const nRim    = (d.rimossi || []).length;
+  const nTot    = (d.n_variazioni || 0);
+
+  if (nTot === 0) {
+    badge.className = 'badge bg-success ms-1';
+    badge.textContent = 'nessuna variazione';
+  } else if (nPec > 0) {
+    badge.className = 'badge bg-danger ms-1';
+    badge.textContent = `${nTot} variazioni`;
+  } else {
+    badge.className = 'badge bg-warning text-dark ms-1';
+    badge.textContent = `${nTot} variazioni`;
+  }
+
+  let html = `<div class="text-muted mb-1"><i class="bi bi-clock-history me-1"></i>Ultimo controllo: <strong>${ts}</strong> — sorgente: ${d.sorgente} (bundle: ${d.bundle_n}, remoto: ${d.remoto_n})</div>`;
+
+  if (nPec > 0) {
+    html += `<div class="alert alert-danger py-1 px-2 mb-1 small">
+      <i class="bi bi-envelope-exclamation me-1"></i><strong>${nPec} PEC modificate</strong> — rischio recapito depositi!
+      <ul class="mb-0 mt-1">`;
+    (d.pec_modificate || []).forEach(p => {
+      html += `<li><strong>${p.nome}</strong> (${p.codice})<br>
+        <span class="text-muted">Bundle:</span> <code>${p.pec_bundle}</code><br>
+        <span class="text-muted">Remoto:</span> <code class="text-danger">${p.pec_remoto}</code></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  if (nAdd > 0) {
+    html += `<div class="alert alert-info py-1 px-2 mb-1 small">
+      <i class="bi bi-plus-circle me-1"></i><strong>${nAdd} uffici aggiunti</strong> nel registro remoto ma assenti nel bundle.
+      <ul class="mb-0 mt-1">`;
+    (d.aggiunti || []).slice(0, 5).forEach(u => {
+      html += `<li>${u.nome} <span class="text-muted">(${u.codice})</span></li>`;
+    });
+    if (nAdd > 5) html += `<li class="text-muted">…e altri ${nAdd - 5}</li>`;
+    html += `</ul></div>`;
+  }
+
+  if (nRim > 0) {
+    html += `<div class="alert alert-secondary py-1 px-2 mb-1 small">
+      <i class="bi bi-dash-circle me-1"></i><strong>${nRim} uffici non trovati</strong> nel registro remoto (presenti nel bundle).
+      <ul class="mb-0 mt-1">`;
+    (d.rimossi || []).slice(0, 5).forEach(u => {
+      html += `<li>${u.nome} <span class="text-muted">(${u.codice})</span></li>`;
+    });
+    if (nRim > 5) html += `<li class="text-muted">…e altri ${nRim - 5}</li>`;
+    html += `</ul></div>`;
+  }
+
+  if (nTot === 0) {
+    html += `<div class="text-success small"><i class="bi bi-check-circle me-1"></i>Bundle allineato con il registro PST.</div>`;
+  }
+
+  dettaglio.innerHTML = html;
+}
+
+function eseguiVerificaVariazioni() {
+  const btn = document.getElementById('btn-verifica-variazioni');
+  const badge = document.getElementById('variazioni-badge');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Controllo…';
+  badge.className = 'badge bg-secondary ms-1';
+  badge.textContent = 'in corso…';
+  fetch('/api/uffici/variazioni/esegui', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-search me-1"></i>Controlla ora';
+      _renderVariazioni(d);
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-search me-1"></i>Controlla ora';
+    });
+}
 
 // ---------------------------------------------------------------- Ricerca uffici giudiziari (tab tipo + autocomplete)
 (function () {

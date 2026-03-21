@@ -3,6 +3,10 @@ Gestione del deposito telematico civile e penale.
 
 - Civile: Deposito via PEC con busta .enc
 - Penale: Deposito tramite Portale Deposito Atti Penali (PDP)
+
+Conformità PST (D.M. 44/2011):
+  - Verifica PDF/A pre-firma (via pct.validazione)
+  - Marcatura temporale RFC 3161 opzionale (via pct.rfc3161)
 """
 
 import json
@@ -15,6 +19,8 @@ from .busta import BustaTelematica, DatiBusta, Allegato
 from .pec import ClientPEC, ConfigPEC
 from .reginde import ClientReGINde
 from .firma import FirmaDigitale
+from .validazione import valida_documento_deposito
+from .rfc3161 import richiedi_timestamp, salva_token, TSA_URL_DEFAULT
 
 
 @dataclass
@@ -59,14 +65,16 @@ class DepositoCivile:
         dati: DatiBusta,
         tribunale: str,
         attendi_ricevute: bool = True,
+        tsa_url: Optional[str] = None,
     ) -> EsitoDeposito:
         """
         Esegue il deposito telematico completo.
 
         Args:
-            dati: Dati dell'atto da depositare
-            tribunale: Nome del tribunale (es. "MILANO")
-            attendi_ricevute: Se True attende le ricevute PEC
+            dati:              Dati dell'atto da depositare
+            tribunale:         Nome del tribunale (es. "MILANO")
+            attendi_ricevute:  Se True attende le ricevute PEC
+            tsa_url:           URL TSA per marcatura temporale RFC 3161 (None = disabilitata)
 
         Returns:
             Esito del deposito
@@ -75,6 +83,22 @@ class DepositoCivile:
 
         id_deposito = str(uuid.uuid4())[:8].upper()
         timestamp = datetime.now().isoformat()
+
+        # 0. Validazione PDF/A pre-firma (D.M. 44/2011 art. 12)
+        if Path(dati.atto_principale).exists():
+            esito_pdfa = valida_documento_deposito(dati.atto_principale, atto_principale=True)
+            if not esito_pdfa["ok"]:
+                return EsitoDeposito(
+                    id_deposito=id_deposito,
+                    timestamp=timestamp,
+                    stato="ERRORE",
+                    busta_path="",
+                    pec_destinatario="",
+                    messaggio=(
+                        "Deposito bloccato — atto principale non conforme: "
+                        + "; ".join(esito_pdfa["errori"])
+                    ),
+                )
 
         # 1. Cerca PEC tribunale
         ufficio = self.reginde.cerca_ufficio_giudiziario(tribunale)
@@ -104,6 +128,10 @@ class DepositoCivile:
             dati.atto_principale = self._firma_documento(dati.atto_principale)
             for allegato in dati.allegati:
                 allegato.percorso = self._firma_documento(allegato.percorso)
+
+            # 2b. Marcatura temporale RFC 3161 (opzionale — D.M. 44/2011 art. 12)
+            if tsa_url:
+                self._apponi_timestamp(dati.atto_principale, tsa_url)
 
         # 3. Crea busta telematica
         busta = BustaTelematica(dati)
@@ -159,6 +187,22 @@ class DepositoCivile:
         return self.firma.salva_documento_firmato(
             contenuto, percorso, formato="cades"
         )
+
+    def _apponi_timestamp(self, percorso: str, tsa_url: str) -> None:
+        """
+        Richiede un timestamp RFC 3161 per il documento firmato e salva il token .tsr.
+
+        Non solleva eccezioni: se la TSA non risponde il deposito continua
+        senza marcatura (la ricevuta PEC ha valore legale equivalente).
+        """
+        try:
+            with open(percorso, "rb") as f:
+                data = f.read()
+            esito = richiedi_timestamp(data, tsa_url=tsa_url)
+            if esito["ok"] and esito["token"]:
+                salva_token(esito["token"], percorso)
+        except Exception:
+            pass  # timestamp opzionale — non blocca il deposito
 
     def salva_esito(self, esito: EsitoDeposito) -> str:
         """Salva l'esito del deposito in formato JSON."""

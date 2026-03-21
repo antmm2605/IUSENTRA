@@ -92,28 +92,64 @@
       {% if fascicolo.documenti %}
       <ul class="list-group list-group-flush">
         {% for doc in fascicolo.documenti %}
-        <li class="list-group-item d-flex align-items-center gap-2 py-2 px-3">
-          {% if doc.firmato_digitalmente %}
-          <i class="bi bi-patch-check-fill text-success flex-shrink-0"
-             title="Firmato digitalmente"></i>
-          {% else %}
-          <i class="bi bi-file-earmark-pdf text-muted flex-shrink-0"></i>
-          {% endif %}
-          <span class="flex-grow-1 small">{{ doc.nome }}</span>
-          <span class="text-muted small font-monospace flex-shrink-0">
-            {% if doc.dimensione_bytes >= 1048576 %}
-              {{ (doc.dimensione_bytes / 1048576) | round(1) }} MB
-            {% elif doc.dimensione_bytes >= 1024 %}
-              {{ (doc.dimensione_bytes / 1024) | round(0) | int }} KB
-            {% elif doc.dimensione_bytes > 0 %}
-              {{ doc.dimensione_bytes }} B
+        <li class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-center gap-2">
+            {% if doc.firmato_digitalmente %}
+            <i class="bi bi-patch-check-fill text-success flex-shrink-0"
+               title="Firmato digitalmente (.p7m CAdES)"></i>
             {% else %}
-              —
+            <i class="bi bi-file-earmark-pdf text-muted flex-shrink-0"></i>
             {% endif %}
-          </span>
-          {% if not doc.firmato_digitalmente %}
-          <span class="badge bg-warning text-dark small flex-shrink-0"
-                title="Atto non firmato digitalmente">non firmato</span>
+            <span class="flex-grow-1 small">{{ doc.nome }}</span>
+            <span class="text-muted small font-monospace flex-shrink-0">
+              {% if doc.dimensione_bytes >= 1048576 %}
+                {{ (doc.dimensione_bytes / 1048576) | round(1) }} MB
+              {% elif doc.dimensione_bytes >= 1024 %}
+                {{ (doc.dimensione_bytes / 1024) | round(0) | int }} KB
+              {% elif doc.dimensione_bytes > 0 %}
+                {{ doc.dimensione_bytes }} B
+              {% else %}
+                —
+              {% endif %}
+            </span>
+            {% if not doc.firmato_digitalmente %}
+            <span class="badge bg-warning text-dark small flex-shrink-0"
+                  title="Atto non firmato digitalmente">non firmato</span>
+            {% endif %}
+          </div>
+          {# Badge conformità PDF/A #}
+          {% if doc.id in pdfa_stato %}
+          {% set ps = pdfa_stato[doc.id] %}
+          <div class="mt-1 ms-4">
+            {% if ps.conforme == true %}
+            <span class="badge bg-success bg-opacity-10 text-success border border-success small">
+              <i class="bi bi-check-circle me-1"></i>PDF/A {{ ps.versione }}
+            </span>
+            {% elif ps.conforme == false %}
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger small"
+                  title="{{ ps.messaggio }}">
+              <i class="bi bi-exclamation-circle me-1"></i>Non PDF/A
+            </span>
+            {% if ps.avvisi %}
+            <span class="small text-muted ms-1">— {{ ps.avvisi[0] | truncate(80) }}</span>
+            {% endif %}
+            {% elif ps.conforme is none %}
+            <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary small"
+                  title="{{ ps.messaggio }}">
+              <i class="bi bi-shield-check me-1"></i>Firmato (.p7m)
+            </span>
+            {% endif %}
+            {% if ps.cifrato %}
+            <span class="badge bg-danger small ms-1" title="PDF cifrato non ammesso dal PST">
+              <i class="bi bi-lock-fill me-1"></i>Cifrato
+            </span>
+            {% endif %}
+            {% if ps.dimensione and not ps.dimensione.ok %}
+            <span class="badge bg-danger small ms-1" title="{{ ps.dimensione.messaggio }}">
+              <i class="bi bi-exclamation-triangle me-1"></i>Troppo grande
+            </span>
+            {% endif %}
+          </div>
           {% endif %}
         </li>
         {% endfor %}
@@ -125,6 +161,23 @@
       </div>
       {% endif %}
     </div>
+
+    {# Legenda conformità PDF/A #}
+    {% if pdfa_stato %}
+    {% set n_ok = pdfa_stato.values() | selectattr('conforme', 'equalto', true) | list | length %}
+    {% set n_ko = pdfa_stato.values() | selectattr('conforme', 'equalto', false) | list | length %}
+    {% if n_ko > 0 %}
+    <div class="alert alert-warning d-flex gap-2 mt-3 small">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+      <div>
+        <strong>{{ n_ko }} documento{% if n_ko > 1 %}i{% endif %} non conforme{% if n_ko > 1 %}i{% endif %} PDF/A.</strong>
+        Il PST richiede PDF/A per gli atti (D.M. 44/2011 art. 12). Riconvertire il file
+        con LibreOffice (<em>File → Esporta come PDF → PDF/A-2</em>) o Microsoft Word
+        (<em>Salva come → PDF → Opzioni → ISO 19005-1</em>) prima di firmare e depositare.
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
 
   </div>{# /col-lg-7 #}
 
@@ -177,6 +230,35 @@
         <p class="text-muted small text-center mb-0">
           pst.giustizia.it — portale ufficiale del Ministero della Giustizia
         </p>
+      </div>
+    </div>
+
+    {# Conformità PST — note tecniche #}
+    <div class="card shadow-sm border-0 bg-light mb-4">
+      <div class="card-body py-3 px-3">
+        <p class="fw-semibold small mb-2">
+          <i class="bi bi-shield-check text-success me-1"></i>Conformità PST
+        </p>
+        <ul class="list-unstyled mb-0 small text-muted">
+          <li class="mb-1">
+            <i class="bi bi-check2 text-success me-1"></i>
+            <strong>PDF/A</strong> — verifica automatica mostrata sopra (D.M. 44/2011 art. 12)
+          </li>
+          <li class="mb-1">
+            <i class="bi bi-check2 text-success me-1"></i>
+            <strong>Firma CAdES (.p7m)</strong> — obbligatoria sull'atto principale
+          </li>
+          <li class="mb-1">
+            <i class="bi bi-check2 text-success me-1"></i>
+            <strong>Ricevuta PEC</strong> — ha valore legale equivalente al timestamp (D.M. 44/2011 art. 14)
+          </li>
+          <li class="mb-1 text-secondary">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>Timestamp RFC 3161</strong> — <em>opzionale</em>; aggiunge certezza
+            sull'ora esatta indipendentemente dalla PEC. Configurabile nelle Impostazioni studio
+            (campo <code>tsa_url</code> nella configurazione firma).
+          </li>
+        </ul>
       </div>
     </div>
 

@@ -4009,10 +4009,26 @@ def create_app(config: dict | None = None) -> Flask:
             except Exception:
                 pass
 
+        # Verifica conformità PDF/A per ogni documento del fascicolo
+        pdfa_stato: dict = {}
+        try:
+            from pct.validazione import verifica_pdfa, verifica_dimensione
+            for doc in fasc.documenti:
+                try:
+                    percorso = str(gf.percorso_documento(id_fasc, doc.id))
+                    pdfa = verifica_pdfa(percorso)
+                    dim  = verifica_dimensione(percorso)
+                    pdfa_stato[doc.id] = {**pdfa, "dimensione": dim}
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         return render_template(
             "fascicoli/deposito_prepara.html",
             fascicolo=fasc,
             pec_tribunale=pec_tribunale,
+            pdfa_stato=pdfa_stato,
             oggi=date.today(),
         )
 

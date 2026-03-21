@@ -703,14 +703,26 @@
     {% endif %}
 
     {# Parti del procedimento #}
+    {% set assistiti   = parti | selectattr("0.ruolo.value", "equalto", "ASSISTITO") | list %}
+    {% set controparti = parti | selectattr("0.ruolo.value", "in", ["CONTROPARTE","DIFENSORE_CONTROPARTE","CREDITORE","DEBITORE"]) | list %}
+    {% set altri       = parti | rejectattr("0.ruolo.value", "in", ["ASSISTITO","CONTROPARTE","DIFENSORE_CONTROPARTE","CREDITORE","DEBITORE"]) | list %}
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-people me-2 text-primary"></i>Parti del procedimento</span>
         <span class="badge bg-primary rounded-pill">{{ parti|length }}</span>
       </div>
+
       {% if parti %}
+
+      {# ── Assistiti / clienti della pratica ── #}
+      {% if assistiti %}
+      <div class="px-3 pt-2 pb-1">
+        <small class="text-success fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
+          <i class="bi bi-person-check me-1"></i>Assistiti / clienti della pratica
+        </small>
+      </div>
       <div class="list-group list-group-flush">
-        {% for parte, sogg in parti %}
+        {% for parte, sogg in assistiti %}
         <div class="list-group-item py-2 px-3">
           <div class="d-flex align-items-start justify-content-between gap-2">
             <div class="flex-grow-1 min-w-0">
@@ -718,12 +730,8 @@
                  class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
                 {{ sogg.nome_completo }}
               </a>
-              <span class="badge bg-{{ parte.ruolo.colore_bootstrap }} mt-1" style="font-size:.68rem">
-                {{ parte.ruolo.label }}
-              </span>
-              {% if parte.note %}
-              <div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>
-              {% endif %}
+              <span class="badge bg-success mt-1" style="font-size:.68rem">{{ parte.ruolo.label }}</span>
+              {% if parte.note %}<div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>{% endif %}
             </div>
             <form method="post"
                   action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
@@ -736,12 +744,81 @@
         </div>
         {% endfor %}
       </div>
+      {% endif %}
+
+      {# ── Controparti ── #}
+      {% if controparti %}
+      {% if assistiti %}<hr class="my-0">{% endif %}
+      <div class="px-3 pt-2 pb-1">
+        <small class="text-danger fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
+          <i class="bi bi-person-x me-1"></i>Controparti
+        </small>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for parte, sogg in controparti %}
+        <div class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}"
+                 class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
+                {{ sogg.nome_completo }}
+              </a>
+              <span class="badge bg-{{ parte.ruolo.colore_bootstrap }} mt-1" style="font-size:.68rem">{{ parte.ruolo.label }}</span>
+              {% if parte.note %}<div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>{% endif %}
+            </div>
+            <form method="post"
+                  action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
+                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
+                <i class="bi bi-x-lg" style="font-size:.7rem"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ── Altri soggetti ── #}
+      {% if altri %}
+      {% if assistiti or controparti %}<hr class="my-0">{% endif %}
+      <div class="px-3 pt-2 pb-1">
+        <small class="text-secondary fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
+          <i class="bi bi-people me-1"></i>Altri soggetti
+        </small>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for parte, sogg in altri %}
+        <div class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}"
+                 class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
+                {{ sogg.nome_completo }}
+              </a>
+              <span class="badge bg-{{ parte.ruolo.colore_bootstrap }} mt-1" style="font-size:.68rem">{{ parte.ruolo.label }}</span>
+              {% if parte.note %}<div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>{% endif %}
+            </div>
+            <form method="post"
+                  action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
+                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
+                <i class="bi bi-x-lg" style="font-size:.7rem"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
       {% else %}
       <div class="card-body text-center text-muted small py-3">
         <i class="bi bi-people d-block mb-1 opacity-25 fs-4"></i>
         Nessuna parte aggiunta
       </div>
       {% endif %}
+
       <div class="card-footer p-2">
         <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal"
                 data-bs-target="#modalAggiungiParte">

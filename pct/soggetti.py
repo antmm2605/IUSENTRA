@@ -31,6 +31,7 @@ class TipoSoggetto(Enum):
 
 
 class RuoloSoggetto(Enum):
+    ASSISTITO              = "ASSISTITO"              # Co-cliente / assistito aggiuntivo
     CONTROPARTE            = "CONTROPARTE"
     DIFENSORE_CONTROPARTE  = "DIFENSORE_CONTROPARTE"
     TESTIMONE              = "TESTIMONE"
@@ -51,6 +52,7 @@ class RuoloSoggetto(Enum):
     @property
     def label(self) -> str:
         labels = {
+            "ASSISTITO":             "Assistito / co-cliente",
             "CONTROPARTE":           "Controparte",
             "DIFENSORE_CONTROPARTE": "Difensore controparte",
             "TESTIMONE":             "Testimone",
@@ -73,6 +75,7 @@ class RuoloSoggetto(Enum):
     @property
     def colore_bootstrap(self) -> str:
         colori = {
+            "ASSISTITO":             "success",
             "CONTROPARTE":           "danger",
             "DIFENSORE_CONTROPARTE": "danger",
             "TESTIMONE":             "warning",

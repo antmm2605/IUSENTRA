@@ -1,257 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Componi — Email{% endblock %}
 
-{% block extra_head %}
-<style>
-/* ══════════════════════════════════════════════════════════
-   COMPOSE — finestra componi email moderna e professionale
-   ══════════════════════════════════════════════════════════ */
-
-.cp-shell {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.cp-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: .75rem;
-  box-shadow: 0 4px 16px rgba(15,23,42,.08), 0 1px 4px rgba(15,23,42,.06);
-  overflow: hidden;
-}
-
-/* Header */
-.cp-header {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  padding: 1rem 1.25rem .875rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-.cp-header-icon {
-  width: 36px; height: 36px;
-  border-radius: .5rem;
-  background: #eff6ff;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.cp-header-icon i { color: #2563eb; font-size: 1.05rem; }
-.cp-header-title {
-  font-size: .95rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-.cp-header-sub {
-  font-size: .78rem;
-  color: #64748b;
-  margin: .05rem 0 0;
-}
-
-/* Campi */
-.cp-fields { padding: 0; }
-.cp-field {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid #f1f5f9;
-  padding: .55rem 1.25rem;
-  gap: .75rem;
-  min-height: 48px;
-  transition: background .1s;
-}
-.cp-field:focus-within { background: #fafcff; }
-.cp-field:last-of-type { border-bottom: none; }
-
-.cp-label {
-  font-size: .8rem;
-  font-weight: 600;
-  color: #64748b;
-  min-width: 56px;
-  flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
-
-.cp-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: .875rem;
-  color: #0f172a;
-  outline: none;
-  min-width: 0;
-  font-family: inherit;
-}
-.cp-input::placeholder { color: #94a3b8; }
-
-.cp-client-select {
-  flex-shrink: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: .4rem;
-  background: #f8fafc;
-  color: #475569;
-  font-size: .78rem;
-  padding: .25rem .5rem;
-  cursor: pointer;
-  outline: none;
-  transition: border-color .1s;
-}
-.cp-client-select:focus { border-color: #2563eb; }
-
-/* Textarea corpo */
-.cp-textarea-wrap {
-  padding: 0;
-  border-bottom: 1px solid #e2e8f0;
-}
-.cp-textarea {
-  display: block;
-  width: 100%;
-  border: none;
-  outline: none;
-  padding: 1rem 1.25rem;
-  font-size: .875rem;
-  color: #0f172a;
-  line-height: 1.7;
-  resize: vertical;
-  min-height: 300px;
-  font-family: inherit;
-  background: #fff;
-}
-.cp-textarea::placeholder { color: #94a3b8; }
-
-/* Footer */
-.cp-footer {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .875rem 1.25rem;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  flex-wrap: wrap;
-}
-
-.cp-btn-send {
-  display: inline-flex;
-  align-items: center;
-  gap: .45rem;
-  padding: .55rem 1.5rem;
-  font-size: .875rem;
-  font-weight: 600;
-  border-radius: 2rem;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(37,99,235,.3);
-  transition: background .15s, box-shadow .15s, transform .1s;
-}
-.cp-btn-send:hover {
-  background: #1d4ed8;
-  box-shadow: 0 4px 14px rgba(37,99,235,.4);
-  transform: translateY(-1px);
-}
-.cp-btn-send:active { transform: scale(.97); }
-
-.cp-btn-discard {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  padding: .45rem .75rem;
-  font-size: .82rem;
-  color: #64748b;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: .5rem;
-  text-decoration: none;
-  transition: background .1s, color .1s, border-color .1s;
-  cursor: pointer;
-}
-.cp-btn-discard:hover { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
-
-/* Mobile adjustments */
-@media (max-width: 575.98px) {
-  .cp-card { border-radius: 0; border-left: none; border-right: none; }
-  .cp-label { min-width: 44px; }
-}
-</style>
-{% endblock %}
-
 {% block content %}
 
-<div class="cp-shell">
-
-  {# ── Breadcrumb ─────────────────────────────────────────── #}
-  <div class="d-flex align-items-center gap-2 mb-3">
-    <a href="{{ url_for('email_client.casella') }}"
-       class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
-      <i class="bi bi-arrow-left" style="font-size:.85rem"></i>
-      <span class="d-none d-sm-inline">Casella</span>
-    </a>
-    <span class="text-muted small">Nuova email</span>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-pencil-square"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Componi email</h1>
+    <p class="ds-ph-sub">Il messaggio verrà inviato tramite l'account SMTP configurato</p>
   </div>
-
-  <div class="cp-card">
-
-    {# ── Header card ─────────────────────────────────────── #}
-    <div class="cp-header">
-      <div class="cp-header-icon"><i class="bi bi-pencil-square"></i></div>
-      <div>
-        <p class="cp-header-title">Componi email</p>
-        <p class="cp-header-sub">Il messaggio verrà inviato tramite l'account SMTP configurato</p>
-      </div>
-    </div>
-
-    <form method="post" action="{{ url_for('email_client.scrivi') }}">
-      <div class="cp-fields">
-
-        {# ── A: ─────────────────────────────────────────── #}
-        <div class="cp-field">
-          <span class="cp-label">A</span>
-          <input type="email" name="a" value="{{ a }}"
-                 class="cp-input" placeholder="destinatario@email.com"
-                 required autocomplete="email">
-          {% if clienti %}
-          <select class="cp-client-select"
-                  title="Seleziona da clienti"
-                  onchange="if(this.value){document.querySelector('[name=a]').value=this.value;this.value=''}">
-            <option value="">Clienti…</option>
-            {% for cl in clienti %}{% if cl.email %}
-            <option value="{{ cl.email }}">{{ cl.nome_completo }}</option>
-            {% endif %}{% endfor %}
-          </select>
-          {% endif %}
-        </div>
-        <input type="hidden" name="id_cliente" value="">
-
-        {# ── Oggetto ────────────────────────────────────── #}
-        <div class="cp-field">
-          <span class="cp-label">Oggetto</span>
-          <input type="text" name="oggetto" value="{{ oggetto }}"
-                 class="cp-input" placeholder="Oggetto del messaggio" required>
-        </div>
-
-      </div>
-
-      {# ── Corpo ────────────────────────────────────────── #}
-      <div class="cp-textarea-wrap">
-        <textarea name="corpo" class="cp-textarea"
-                  placeholder="Scrivi il messaggio…"></textarea>
-      </div>
-
-      {# ── Footer ───────────────────────────────────────── #}
-      <div class="cp-footer">
-        <button type="submit" class="cp-btn-send">
-          <i class="bi bi-send-fill"></i>Invia
-        </button>
-        <a href="{{ url_for('email_client.casella') }}" class="cp-btn-discard">
-          <i class="bi bi-x-lg"></i>Annulla
-        </a>
-      </div>
-    </form>
-
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('email_client.casella') }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Casella</span>
+    </a>
   </div>
 </div>
+
+<div class="row g-3">
+<div class="col-lg-8">
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-envelope me-2 text-primary"></i>Nuovo messaggio
+  </div>
+  <div class="card-body p-0">
+    <form method="post" action="{{ url_for('email_client.scrivi') }}">
+
+      {# A: #}
+      <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+        <span class="text-muted small fw-semibold text-uppercase" style="min-width:60px;letter-spacing:.05em">A</span>
+        <input type="email" name="a" value="{{ a }}"
+               class="form-control border-0 shadow-none ps-0 flex-grow-1"
+               placeholder="destinatario@email.com" required autocomplete="email">
+        {% if clienti %}
+        <select class="form-select form-select-sm w-auto border"
+                title="Seleziona da clienti"
+                onchange="if(this.value){document.querySelector('[name=a]').value=this.value;this.value=''}">
+          <option value="">Clienti…</option>
+          {% for cl in clienti %}{% if cl.email %}
+          <option value="{{ cl.email }}">{{ cl.nome_completo }}</option>
+          {% endif %}{% endfor %}
+        </select>
+        {% endif %}
+      </div>
+      <input type="hidden" name="id_cliente" value="">
+
+      {# Oggetto #}
+      <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+        <span class="text-muted small fw-semibold text-uppercase" style="min-width:60px;letter-spacing:.05em">Oggetto</span>
+        <input type="text" name="oggetto" value="{{ oggetto }}"
+               class="form-control border-0 shadow-none ps-0"
+               placeholder="Oggetto del messaggio" required>
+      </div>
+
+      {# Corpo #}
+      <div class="border-bottom">
+        <textarea name="corpo" rows="14"
+                  class="form-control border-0 shadow-none rounded-0"
+                  placeholder="Scrivi il messaggio…"
+                  style="resize:vertical;min-height:260px;font-size:.9rem;line-height:1.7"></textarea>
+      </div>
+
+      {# Footer #}
+      <div class="d-flex align-items-center gap-2 px-3 py-3 bg-light">
+        <button type="submit" class="btn btn-primary rounded-pill px-4">
+          <i class="bi bi-send-fill me-1"></i>Invia
+        </button>
+        <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary rounded-pill px-3">
+          <i class="bi bi-x me-1"></i>Annulla
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+</div>{# /col-lg-8 #}
+
+<div class="col-lg-4">
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Info
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2">L'email viene inviata tramite il server SMTP configurato in
+        <a href="{{ url_for('email_client.impostazioni') }}">Impostazioni email</a>.</p>
+      <p class="mb-0">Le risposte ai clienti vengono registrate automaticamente nello storico.</p>
+    </div>
+  </div>
+</div>
+
+</div>{# /row #}
 
 {% endblock %}

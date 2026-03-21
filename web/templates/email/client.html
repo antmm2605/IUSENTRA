@@ -1,642 +1,239 @@
 {% extends "base.html" %}
 {% block title %}Email — {{ cartella|replace('INBOX','In arrivo')|replace('INVIATI','Inviati')|replace('CESTINO','Cestino') }}{% endblock %}
 
-{% block extra_head %}
-<style>
-/* ══════════════════════════════════════════════════════════════
-   EMAIL CLIENT — design moderno, professionale
-   ══════════════════════════════════════════════════════════════ */
-:root {
-  --em-bg:        #f1f5f9;
-  --em-surface:   #ffffff;
-  --em-border:    #e2e8f0;
-  --em-text:      #0f172a;
-  --em-sub:       #475569;
-  --em-muted:     #94a3b8;
-  --em-accent:    #2563eb;
-  --em-accent-bg: #eff6ff;
-  --em-hover:     #f8fafc;
-  --em-sel:       #dbeafe;
-  --em-unread:    #2563eb;
-  --em-radius:    .75rem;
-  --em-sidebar-w: 220px;
-  --em-list-w:    320px;
-  --em-shadow:    0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.06);
-}
-
-/* ── Shell container ──────────────────────────────────────── */
-.em-shell {
-  display: flex;
-  height: calc(100vh - 112px);
-  min-height: 500px;
-  background: var(--em-bg);
-  border: 1px solid var(--em-border);
-  border-radius: var(--em-radius);
-  overflow: hidden;
-  box-shadow: var(--em-shadow);
-}
-
-/* ── Sidebar ──────────────────────────────────────────────── */
-.em-sidebar {
-  width: var(--em-sidebar-w);
-  flex-shrink: 0;
-  background: var(--em-surface);
-  border-right: 1px solid var(--em-border);
-  display: flex;
-  flex-direction: column;
-  padding: .75rem 0 1rem;
-  overflow-y: auto;
-}
-
-.em-compose {
-  margin: 0 .75rem .875rem;
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  padding: .65rem 1rem;
-  background: var(--em-accent);
-  color: #fff;
-  border-radius: 2rem;
-  font-size: .84rem;
-  font-weight: 600;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(37,99,235,.35);
-  transition: background .15s, box-shadow .15s, transform .1s;
-}
-.em-compose:hover {
-  background: #1d4ed8;
-  box-shadow: 0 4px 14px rgba(37,99,235,.45);
-  color: #fff;
-  transform: translateY(-1px);
-}
-.em-compose i { font-size: 1rem; flex-shrink: 0; }
-
-/* Nav folder items */
-.em-nav-item {
-  display: flex;
-  align-items: center;
-  gap: .55rem;
-  padding: .48rem .75rem .48rem .875rem;
-  margin: .06rem .5rem .06rem .375rem;
-  border-radius: .5rem;
-  font-size: .84rem;
-  font-weight: 500;
-  color: var(--em-sub);
-  text-decoration: none;
-  transition: background .1s, color .1s;
-  position: relative;
-}
-.em-nav-item:hover { background: var(--em-hover); color: var(--em-text); }
-.em-nav-item.active {
-  background: var(--em-accent-bg);
-  color: var(--em-accent);
-  font-weight: 600;
-}
-.em-nav-item i { font-size: 1rem; flex-shrink: 0; width: 1.1rem; text-align: center; }
-.em-nav-count {
-  margin-left: auto;
-  font-size: .74rem;
-  font-weight: 700;
-  background: var(--em-accent);
-  color: #fff;
-  border-radius: 99px;
-  padding: .1em .45em;
-  min-width: 1.35em;
-  text-align: center;
-  line-height: 1.4;
-}
-.em-nav-item.active .em-nav-count { background: var(--em-accent); }
-.em-nav-sep {
-  border: none;
-  border-top: 1px solid var(--em-border);
-  margin: .5rem .75rem;
-}
-.em-nav-label {
-  font-size: .7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--em-muted);
-  padding: .5rem .875rem .25rem 1.25rem;
-}
-
-/* ── Email list panel ─────────────────────────────────────── */
-.em-list {
-  width: var(--em-list-w);
-  flex-shrink: 0;
-  background: var(--em-surface);
-  border-right: 1px solid var(--em-border);
-  display: flex;
-  flex-direction: column;
-}
-
-.em-list-toolbar {
-  padding: .55rem .65rem;
-  border-bottom: 1px solid var(--em-border);
-  display: flex;
-  gap: .4rem;
-  align-items: center;
-  flex-shrink: 0;
-  background: var(--em-surface);
-}
-
-.em-search-box {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  background: #f1f5f9;
-  border: 1px solid transparent;
-  border-radius: .5rem;
-  padding: .32rem .65rem;
-  gap: .4rem;
-  transition: border-color .15s, background .15s;
-}
-.em-search-box:focus-within {
-  background: #fff;
-  border-color: var(--em-accent);
-}
-.em-search-box i { color: var(--em-muted); font-size: .82rem; flex-shrink: 0; }
-.em-search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: .82rem;
-  color: var(--em-text);
-  outline: none;
-  min-width: 0;
-}
-.em-search-input::placeholder { color: var(--em-muted); }
-
-.em-filter-btn {
-  width: 32px; height: 32px;
-  border-radius: .4rem;
-  border: 1px solid var(--em-border);
-  background: transparent;
-  color: var(--em-sub);
-  display: flex; align-items: center; justify-content: center;
-  font-size: .82rem;
-  cursor: pointer;
-  transition: background .1s, border-color .1s, color .1s;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-.em-filter-btn:hover { background: var(--em-hover); color: var(--em-text); border-color: #cbd5e1; }
-.em-filter-btn.active { background: var(--em-accent-bg); border-color: var(--em-accent); color: var(--em-accent); }
-
-.em-list-body { flex: 1; overflow-y: auto; }
-.em-list-count {
-  font-size: .72rem;
-  color: var(--em-muted);
-  padding: .45rem .75rem .3rem;
-  font-weight: 500;
-  letter-spacing: .02em;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-/* ── Email rows ───────────────────────────────────────────── */
-.em-row {
-  display: flex;
-  align-items: flex-start;
-  padding: .65rem .75rem .6rem .7rem;
-  border-bottom: 1px solid #f1f5f9;
-  cursor: pointer;
-  transition: background .08s;
-  gap: .55rem;
-  position: relative;
-}
-.em-row:last-child { border-bottom: none; }
-.em-row:hover { background: var(--em-hover); }
-.em-row.sel { background: var(--em-sel); }
-.em-row.sel:hover { background: #c7d9fb; }
-
-/* Unread left accent */
-.em-row.unread::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 8px; bottom: 8px;
-  width: 3px;
-  background: var(--em-accent);
-  border-radius: 0 3px 3px 0;
-}
-.em-row.unread .em-row-sender { font-weight: 700; color: var(--em-text); }
-.em-row.unread .em-row-subj   { font-weight: 600; color: var(--em-text); }
-
-/* Avatar */
-.em-av {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .75rem; font-weight: 700; color: #fff;
-  flex-shrink: 0;
-  margin-top: .05rem;
-  letter-spacing: 0;
-}
-
-/* Row body */
-.em-row-body { flex: 1; min-width: 0; }
-.em-row-top {
-  display: flex;
-  align-items: baseline;
-  gap: .35rem;
-  margin-bottom: .15rem;
-}
-.em-row-sender {
-  font-size: .825rem;
-  font-weight: 500;
-  color: var(--em-sub);
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.em-row-date {
-  font-size: .7rem;
-  color: var(--em-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-.em-row.unread .em-row-date { color: var(--em-accent); font-weight: 600; }
-
-.em-row-subj {
-  font-size: .8rem;
-  color: var(--em-sub);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: .1rem;
-}
-.em-row-preview {
-  font-size: .75rem;
-  color: var(--em-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-.em-row-chips {
-  display: flex;
-  gap: .25rem;
-  align-items: center;
-  margin-top: .25rem;
-}
-.em-chip-pst {
-  font-size: .65rem;
-  font-weight: 700;
-  background: var(--em-accent-bg);
-  color: var(--em-accent);
-  border: 1px solid #bfdbfe;
-  border-radius: 99px;
-  padding: .08em .45em;
-  letter-spacing: .02em;
-}
-.em-chip-attach {
-  font-size: .7rem;
-  color: var(--em-muted);
-}
-
-/* ── Content pane ─────────────────────────────────────────── */
-.em-content {
-  flex: 1;
-  overflow-y: auto;
-  background: var(--em-surface);
-}
-.em-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: .875rem;
-  color: var(--em-muted);
-}
-.em-placeholder i { font-size: 3rem; opacity: .18; }
-.em-placeholder p { font-size: .875rem; margin: 0; }
-
-/* ── Cestino footer ───────────────────────────────────────── */
-.em-trash-footer {
-  padding: .55rem .65rem;
-  border-top: 1px solid var(--em-border);
-  flex-shrink: 0;
-}
-
-/* ── Scrollbars ───────────────────────────────────────────── */
-.em-list-body::-webkit-scrollbar,
-.em-content::-webkit-scrollbar,
-.em-sidebar::-webkit-scrollbar { width: 4px; }
-.em-list-body::-webkit-scrollbar-thumb,
-.em-content::-webkit-scrollbar-thumb,
-.em-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-
-/* ── Toast ────────────────────────────────────────────────── */
-#em-toast-area { z-index: 9999; pointer-events: none; }
-#em-toast-area .toast { pointer-events: all; }
-
-/* ══ TABLET (768–1199px) ══════════════════════════════════════ */
-@media (max-width: 1199.98px) {
-  :root { --em-list-w: 280px; --em-sidebar-w: 190px; }
-}
-
-/* ══ MOBILE (< 768px) ════════════════════════════════════════ */
-@media (max-width: 767.98px) {
-  .em-shell {
-    height: auto;
-    flex-direction: column;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    border-top: none;
-    box-shadow: none;
-    min-height: 0;
-  }
-
-  /* Sidebar → tab bar */
-  .em-sidebar {
-    width: 100%;
-    flex-direction: row;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 0;
-    border-right: none;
-    border-bottom: 1px solid var(--em-border);
-    scrollbar-width: none;
-    background: var(--em-surface);
-  }
-  .em-sidebar::-webkit-scrollbar { display: none; }
-  .em-compose { display: none !important; }
-  .em-nav-label, .em-nav-sep { display: none; }
-
-  .em-nav-item {
-    flex-direction: row;
-    padding: .75rem .875rem;
-    margin: 0;
-    border-radius: 0;
-    white-space: nowrap;
-    border-bottom: 2.5px solid transparent;
-    font-size: .82rem;
-  }
-  .em-nav-item.active {
-    background: transparent;
-    color: var(--em-accent);
-    border-bottom-color: var(--em-accent);
-  }
-
-  .em-list { width: 100%; border-right: none; }
-  .em-content { display: none; }
-
-  /* FAB compose — mobile */
-  .em-fab {
-    display: flex !important;
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.25rem;
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: var(--em-accent);
-    color: #fff;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    box-shadow: 0 4px 16px rgba(37,99,235,.45);
-    z-index: 200;
-    text-decoration: none;
-    transition: transform .15s, box-shadow .15s;
-  }
-  .em-fab:hover { transform: scale(1.07); color: #fff; }
-}
-
-/* FAB hidden on desktop */
-.em-fab { display: none; }
-</style>
-{% endblock %}
-
 {% block content %}
 
-{# ── Page header ──────────────────────────────────────────── #}
-<div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-  <div class="d-flex align-items-center gap-2">
-    <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color:var(--em-text,#0f172a)">
-      <i class="bi bi-envelope-fill" style="color:var(--em-accent,#2563eb)"></i>Email
-    </h5>
-    {% if stats.non_lette > 0 %}
-    <span class="badge rounded-pill" style="background:var(--em-accent-bg,#eff6ff);color:var(--em-accent,#2563eb);font-size:.72rem;border:1px solid #bfdbfe">
-      {{ stats.non_lette }} non lette
-    </span>
-    {% endif %}
-    {% if stats.pst > 0 %}
-    <span class="badge rounded-pill" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-size:.72rem">
-      <i class="bi bi-shield-check me-1"></i>{{ stats.pst }} PST
-    </span>
-    {% endif %}
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-envelope-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Email</h1>
+    <p class="ds-ph-sub">Casella di posta dello studio</p>
   </div>
-  <div class="ms-auto d-flex gap-2 align-items-center">
-    <button class="btn btn-sm btn-outline-secondary" id="btnSync" title="Sincronizza IMAP">
-      <i class="bi bi-arrow-clockwise me-1"></i><span class="d-none d-sm-inline">Aggiorna</span>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('email_client.scrivi') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-pencil-square"></i><span class="d-none d-sm-inline">Componi</span>
+    </a>
+    <button class="ds-btn ds-btn-outline" id="btnSync" title="Sincronizza IMAP">
+      <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline">Aggiorna</span>
     </button>
     {% if stats.pst > 0 %}
-    <button class="btn btn-sm btn-outline-success" id="btnAutoEsiti" title="Aggiorna esiti PCT">
-      <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Auto-esiti</span>
+    <button class="ds-btn ds-btn-outline" id="btnAutoEsiti" title="Aggiorna esiti PCT">
+      <i class="bi bi-magic"></i><span class="d-none d-sm-inline">Auto-esiti</span>
     </button>
     {% endif %}
-    <a href="{{ url_for('email_client.impostazioni') }}" class="btn btn-sm btn-outline-secondary" title="Impostazioni email">
+    <a href="{{ url_for('email_client.impostazioni') }}" class="ds-btn ds-btn-outline" title="Impostazioni email">
       <i class="bi bi-gear"></i>
     </a>
   </div>
 </div>
 
-{# Toast area #}
-<div id="em-toast-area" class="position-fixed top-0 end-0 p-3"></div>
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> totali
+  </span>
+  {% if stats.non_lette > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-circle-fill text-primary" style="font-size:.5rem"></i>
+    <span class="num">{{ stats.non_lette }}</span> non lette
+  </span>
+  {% endif %}
+  {% if stats.pst > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-shield-check text-primary"></i>
+    <span class="num">{{ stats.pst }}</span> PST
+  </span>
+  {% endif %}
+  {% if stats.cestino > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-trash text-muted"></i>
+    <span class="num">{{ stats.cestino }}</span> nel cestino
+  </span>
+  {% endif %}
+</div>
 
-{# FAB mobile compose #}
-<a href="{{ url_for('email_client.scrivi') }}" class="em-fab">
-  <i class="bi bi-pencil-square"></i>
-</a>
+{# ── Cartelle tabs ── #}
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for cid, label, icon in [('INBOX','In arrivo','inbox'), ('INVIATI','Inviati','send'), ('CESTINO','Cestino','trash')] %}
+  <a href="{{ url_for('email_client.casella', cartella=cid) }}"
+     class="btn btn-sm {{ 'btn-primary' if cartella == cid else 'btn-outline-secondary' }}">
+    <i class="bi bi-{{ icon }} me-1"></i>{{ label }}
+    {% if cid == 'INBOX' and stats.non_lette > 0 %}
+    <span class="badge bg-white text-primary ms-1" style="font-size:.68rem">{{ stats.non_lette }}</span>
+    {% elif cid == 'CESTINO' and stats.cestino > 0 %}
+    <span class="badge bg-white text-secondary ms-1" style="font-size:.68rem">{{ stats.cestino }}</span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
 
-{# ── Shell ─────────────────────────────────────────────────── #}
-<div class="em-shell" id="emShell">
+{# ── Filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="hidden" name="cartella" value="{{ cartella }}">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca mittente, oggetto…"
+         value="{{ q }}" autocomplete="off">
+  {% if cartella == 'INBOX' %}
+  <a href="{{ url_for('email_client.casella', cartella=cartella, non_lette='1' if not solo_non_lette else '') }}"
+     class="ds-btn {{ 'ds-btn-primary' if solo_non_lette else 'ds-btn-outline' }}"
+     title="{{ 'Mostra tutte' if solo_non_lette else 'Solo non lette' }}">
+    <i class="bi bi-circle{{ '-fill' if solo_non_lette else '' }}"></i>
+    <span class="d-none d-sm-inline">Non lette</span>
+  </a>
+  {% endif %}
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-search"></i>Cerca
+  </button>
+  {% if q %}
+  <a href="{{ url_for('email_client.casella', cartella=cartella) }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
 
-  {# ── Sidebar ────────────────────────────────────────────── #}
-  <nav class="em-sidebar">
-
-    <a href="{{ url_for('email_client.scrivi') }}" class="em-compose d-none d-md-flex">
-      <i class="bi bi-pencil-square"></i>Componi
-    </a>
-
-    {% macro navitem(cid, label, icon, icon_a, count=0) %}
-    <a href="{{ url_for('email_client.casella', cartella=cid) }}"
-       class="em-nav-item {{ 'active' if cartella == cid }}">
-      <i class="bi bi-{{ icon_a if cartella == cid else icon }}"></i>
-      <span>{{ label }}</span>
-      {% if count > 0 %}<span class="em-nav-count">{{ count }}</span>{% endif %}
-    </a>
-    {% endmacro %}
-
-    {{ navitem('INBOX',   'In arrivo', 'inbox',  'inbox-fill',  stats.non_lette) }}
-    {{ navitem('INVIATI', 'Inviati',   'send',   'send-fill') }}
-    {{ navitem('CESTINO', 'Cestino',   'trash',  'trash-fill',  stats.cestino) }}
-
-    <hr class="em-nav-sep d-none d-md-block">
-
-    <a href="{{ url_for('email_client.impostazioni') }}"
-       class="em-nav-item d-none d-md-flex {{ 'active' if request.endpoint == 'email_client.impostazioni' }}">
-      <i class="bi bi-gear{{ '-fill' if request.endpoint == 'email_client.impostazioni' else '' }}"></i>
-      <span>Impostazioni</span>
-    </a>
-  </nav>
-
-  {# ── Lista email ─────────────────────────────────────────── #}
-  <div class="em-list">
-
-    {# Toolbar #}
-    <div class="em-list-toolbar">
-      <form method="get" class="d-flex gap-2 flex-grow-1">
-        <input type="hidden" name="cartella" value="{{ cartella }}">
-        <div class="em-search-box flex-grow-1">
-          <i class="bi bi-search"></i>
-          <input type="text" name="q" value="{{ q }}"
-                 class="em-search-input" placeholder="Cerca…">
-          {% if q %}
-          <a href="{{ url_for('email_client.casella', cartella=cartella) }}"
-             style="color:var(--em-muted);text-decoration:none;line-height:1">
-            <i class="bi bi-x-lg" style="font-size:.75rem"></i>
-          </a>
-          {% endif %}
-        </div>
-      </form>
-      {% if cartella == 'INBOX' %}
-      <a href="{{ url_for('email_client.casella', cartella=cartella, non_lette='1' if not solo_non_lette else '') }}"
-         class="em-filter-btn {{ 'active' if solo_non_lette }}"
-         title="{{ 'Mostra tutte' if solo_non_lette else 'Solo non lette' }}">
-        <i class="bi bi-circle-fill" style="font-size:.45rem"></i>
-      </a>
-      {% endif %}
-    </div>
-
-    {# Email list #}
-    <div class="em-list-body">
-      {% if emails %}
-      <div class="em-list-count">{{ emails|length }} {% if solo_non_lette %}non lett{{ 'a' if emails|length == 1 else 'e' }}{% else %}email{% endif %}</div>
-        {% for em in emails %}
-        {% set is_sel    = email_sel and email_sel.id == em.id %}
-        {% set is_unread = em.stato == 'NON_LETTA' %}
-        {% set _name    = em.mittente_nome or em.mittente or em.destinatari or '?' %}
-        {% set _palette = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'] %}
-        {% set _ci      = (_name|lower|first)|int(default=0) % 8 %}
-
-        <div class="em-row {{ 'sel' if is_sel }} {{ 'unread' if is_unread }}"
-             onclick="selEmail('{{ em.id }}', event)" data-id="{{ em.id }}">
-
-          <div class="em-av" style="background:{{ _palette[_ci] }}">{{ _name|upper|first }}</div>
-
-          <div class="em-row-body">
-            <div class="em-row-top">
-              <span class="em-row-sender">{{ _name }}</span>
-              <span class="em-row-date">
-                {% set ts = em.timestamp %}{% if ts %}
-                  {% if ts[:10] == oggi.strftime('%Y-%m-%d') %}{{ ts[11:16] }}
-                  {% elif ts[:4] == oggi.strftime('%Y') %}{{ ts[5:7] }}/{{ ts[8:10] }}
-                  {% else %}{{ ts[2:10] }}{% endif %}
+{# ── Lista email ── #}
+{% if emails %}
+<div class="card shadow-sm">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold text-muted small">
+      {{ emails|length }} email{% if solo_non_lette %} non lette{% endif %}
+    </span>
+    {% if cartella == 'CESTINO' %}
+    <form method="post" action="{{ url_for('email_client.svuota_cestino') }}"
+          onsubmit="return confirm('Svuotare definitivamente il cestino?')">
+      <button class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-trash3 me-1"></i>Svuota cestino
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:36px"></th>
+            <th>{{ 'A' if cartella == 'INVIATI' else 'Da' }}</th>
+            <th>Oggetto</th>
+            <th class="d-none d-md-table-cell">Data</th>
+            <th style="width:80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for em in emails %}
+          {% set is_unread = em.stato == 'NON_LETTA' %}
+          {% set _name = em.mittente_nome or em.mittente or em.destinatari or '?' %}
+          {% set _palette = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'] %}
+          {% set _ci = (_name|lower|first)|int(default=0) % 8 %}
+          <tr class="{{ 'fw-semibold' if is_unread }}">
+            <td class="ps-3">
+              <div style="width:32px;height:32px;border-radius:50%;background:{{ _palette[_ci] }};
+                          display:flex;align-items:center;justify-content:center;
+                          font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0">
+                {{ _name|upper|first }}
+              </div>
+            </td>
+            <td class="small">
+              <div class="d-flex align-items-center gap-1">
+                {% if is_unread %}
+                <span style="width:7px;height:7px;border-radius:50%;background:#2563eb;
+                             flex-shrink:0;display:inline-block"></span>
                 {% endif %}
-              </span>
-            </div>
-            <div class="em-row-subj">{{ em.oggetto or '(nessun oggetto)' }}</div>
-            {% if em.anteprima %}
-            <div class="em-row-preview">{{ em.anteprima }}</div>
-            {% endif %}
-            {% if em.e_pst or em.allegati %}
-            <div class="em-row-chips">
-              {% if em.e_pst %}<span class="em-chip-pst"><i class="bi bi-shield-check me-1"></i>PST</span>{% endif %}
-              {% if em.allegati %}<span class="em-chip-attach"><i class="bi bi-paperclip me-1"></i>{{ em.allegati|length }}</span>{% endif %}
-            </div>
-            {% endif %}
-          </div>
-        </div>
-        {% endfor %}
-
-      {% else %}
-      <div class="d-flex flex-column align-items-center justify-content-center py-5 gap-2" style="color:var(--em-muted)">
-        <i class="bi bi-{{ 'search' if q else ('inbox' if cartella == 'INBOX' else ('send' if cartella == 'INVIATI' else 'trash')) }} fs-1 opacity-25"></i>
-        <p class="small mb-0">
-          {% if q %}Nessun risultato per «{{ q }}»
-          {% elif cartella == 'INBOX' %}Posta in arrivo vuota
-          {% elif cartella == 'INVIATI' %}Nessuna email inviata
-          {% else %}Cestino vuoto{% endif %}
-        </p>
-        {% if q %}
-        <a href="{{ url_for('email_client.casella', cartella=cartella) }}"
-           class="btn btn-sm btn-outline-secondary mt-1">Rimuovi filtro</a>
-        {% endif %}
-      </div>
-      {% endif %}
+                <span class="text-truncate" style="max-width:160px">
+                  {% if cartella == 'INVIATI' %}{{ em.destinatari }}{% else %}{{ _name }}{% endif %}
+                </span>
+              </div>
+            </td>
+            <td class="small">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-truncate {{ 'text-dark' if is_unread else 'text-muted' }}"
+                      style="max-width:320px">
+                  {{ em.oggetto or '(nessun oggetto)' }}
+                </span>
+                {% if em.e_pst %}
+                <span class="badge" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-size:.65rem;font-weight:700">
+                  <i class="bi bi-shield-check me-1"></i>PST
+                </span>
+                {% endif %}
+                {% if em.allegati %}
+                <span class="text-muted small"><i class="bi bi-paperclip"></i> {{ em.allegati|length }}</span>
+                {% endif %}
+              </div>
+              {% if em.anteprima %}
+              <div class="text-muted text-truncate" style="font-size:.76rem;max-width:400px">{{ em.anteprima }}</div>
+              {% endif %}
+            </td>
+            <td class="small text-nowrap text-muted d-none d-md-table-cell">
+              {% set ts = em.timestamp %}{% if ts %}
+                {% if ts[:10] == oggi.strftime('%Y-%m-%d') %}{{ ts[11:16] }}
+                {% elif ts[:4] == oggi.strftime('%Y') %}{{ ts[5:7] }}/{{ ts[8:10] }}
+                {% else %}{{ ts[2:10] }}{% endif %}
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end pe-2">
+                <a href="{{ url_for('email_client.dettaglio', id_email=em.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Leggi">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if cartella != 'CESTINO' %}
+                <form method="post" action="{{ url_for('email_client.cestino', id_email=em.id) }}">
+                  <input type="hidden" name="cartella" value="{{ cartella }}">
+                  <button class="btn btn-sm btn-outline-danger" title="Cestino">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% else %}
+                <form method="post" action="{{ url_for('email_client.ripristina', id_email=em.id) }}">
+                  <button class="btn btn-sm btn-outline-success" title="Ripristina">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-
-    {# Footer cestino #}
-    {% if cartella == 'CESTINO' and emails %}
-    <div class="em-trash-footer">
-      <form method="post" action="{{ url_for('email_client.svuota_cestino') }}"
-            onsubmit="return confirm('Svuotare definitivamente il cestino? L\'operazione non è reversibile.')">
-        <button class="btn btn-sm btn-outline-danger w-100">
-          <i class="bi bi-trash3 me-1"></i>Svuota cestino ({{ emails|length }})
-        </button>
-      </form>
-    </div>
-    {% endif %}
   </div>
+</div>
 
-  {# ── Pannello lettura ────────────────────────────────────── #}
-  <div class="em-content" id="emContent">
-    {% if email_sel %}
-      {% include 'email/_dettaglio_panel.html' %}
-    {% else %}
-    <div class="em-placeholder">
-      <i class="bi bi-envelope-open"></i>
-      <p>Seleziona un'email per leggerla</p>
-    </div>
-    {% endif %}
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-{{ 'search' if q else ('inbox' if cartella == 'INBOX' else ('send' if cartella == 'INVIATI' else 'trash')) }} ds-empty-icon"></i>
+  <div class="ds-empty-title">
+    {% if q %}Nessun risultato per «{{ q }}»
+    {% elif cartella == 'INBOX' %}Posta in arrivo vuota
+    {% elif cartella == 'INVIATI' %}Nessuna email inviata
+    {% else %}Cestino vuoto{% endif %}
   </div>
+  <div class="ds-empty-sub">
+    {% if not q %}Usa "Aggiorna" per sincronizzare la casella IMAP.{% endif %}
+  </div>
+  {% if q %}
+  <a href="{{ url_for('email_client.casella', cartella=cartella) }}" class="ds-btn ds-btn-outline mt-3">
+    <i class="bi bi-x-circle"></i>Rimuovi filtro
+  </a>
+  {% endif %}
+</div>
+{% endif %}
 
-</div>{# /em-shell #}
+{# Toast area #}
+<div id="em-toast-area" class="position-fixed top-0 end-0 p-3" style="z-index:9999;pointer-events:none">
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// ── Avatar palette
-const _AV = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'];
-
-// ── Split view: seleziona email
-function selEmail(id, evt) {
-  if (window.innerWidth < 768) {
-    window.location = "{{ url_for('email_client.dettaglio', id_email='__X__') }}".replace('__X__', id);
-    return;
-  }
-  const url = new URL(window.location);
-  url.searchParams.set('id', id);
-  url.searchParams.set('cartella', '{{ cartella }}');
-  window.history.replaceState({}, '', url);
-
-  document.querySelectorAll('.em-row').forEach(r => r.classList.remove('sel'));
-  evt.currentTarget.classList.add('sel');
-  evt.currentTarget.classList.remove('unread');
-  evt.currentTarget.querySelector('.em-row::before');
-  evt.currentTarget.style.setProperty('--unread-bar', 'none');
-
-  const panel = document.getElementById('emContent');
-  panel.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;height:100%;gap:.6rem;color:var(--em-muted,#94a3b8)">
-      <div class="spinner-border spinner-border-sm" style="border-color:#e2e8f0;border-top-color:#2563eb"></div>
-      <span style="font-size:.85rem">Caricamento…</span>
-    </div>`;
-
-  fetch("{{ url_for('email_client.dettaglio', id_email='__X__') }}?_panel=1".replace('__X__', id))
-    .then(r => r.text())
-    .then(html => { panel.innerHTML = html; _aggiornaBadge(); })
-    .catch(() => { panel.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted small">Errore caricamento</div>'; });
-}
-
 // ── Sync IMAP
 document.getElementById('btnSync')?.addEventListener('click', function () {
   const btn = this;
   btn.disabled = true;
+  const orig = btn.innerHTML;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="d-none d-sm-inline">Sync…</span>';
   fetch("{{ url_for('email_client.sincronizza') }}", { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
     .then(r => r.json())
@@ -651,49 +248,34 @@ document.getElementById('btnSync')?.addEventListener('click', function () {
       } else _toast('danger', d.errore || 'Errore sincronizzazione');
     })
     .catch(() => _toast('danger', 'Errore di rete'))
-    .finally(() => {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i><span class="d-none d-sm-inline">Aggiorna</span>';
-    });
+    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
 });
 
 // ── Auto-esiti
 document.getElementById('btnAutoEsiti')?.addEventListener('click', function () {
   const btn = this;
   btn.disabled = true;
+  const orig = btn.innerHTML;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
   fetch("{{ url_for('email_client.auto_esiti') }}", { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
     .then(r => r.json())
     .then(d => _toast(d.ok ? 'success' : 'danger',
       d.ok ? `${d.aggiornati} esiti PCT aggiornati automaticamente.` : 'Errore auto-esiti'))
-    .finally(() => {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Auto-esiti</span>';
-    });
+    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
 });
 
-// ── Badge non lette
-function _aggiornaBadge() {
-  fetch("{{ url_for('email_client.api_stats') }}")
-    .then(r => r.json())
-    .then(d => {
-      const sb = document.getElementById('badgeEmailNonLette');
-      if (sb) { sb.textContent = d.non_lette; sb.classList.toggle('d-none', d.non_lette === 0); }
-    }).catch(() => {});
-}
-
-// ── Toast
 function _toast(tipo, msg) {
   const area = document.getElementById('em-toast-area');
   const id   = 'toast_' + Date.now();
   const colors = { success: '#059669', danger: '#dc2626', warning: '#d97706', info: '#2563eb' };
   const icons  = { success: 'check-circle-fill', danger: 'x-circle-fill', warning: 'exclamation-triangle-fill', info: 'info-circle-fill' };
+  area.style.pointerEvents = 'all';
   area.insertAdjacentHTML('beforeend', `
     <div id="${id}" class="toast align-items-center border-0 show mb-2"
          style="background:#0f172a;color:#fff;border-radius:.625rem;min-width:280px;max-width:400px;box-shadow:0 8px 24px rgba(15,23,42,.25)">
       <div class="d-flex">
         <div class="toast-body d-flex gap-2 align-items-start py-3 px-3">
-          <i class="bi bi-${icons[tipo] || 'info-circle-fill'} flex-shrink-0 mt-1" style="color:${colors[tipo] || '#fff'}"></i>
+          <i class="bi bi-${icons[tipo]||'info-circle-fill'} flex-shrink-0 mt-1" style="color:${colors[tipo]||'#fff'}"></i>
           <span style="font-size:.85rem;line-height:1.5">${msg}</span>
         </div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"

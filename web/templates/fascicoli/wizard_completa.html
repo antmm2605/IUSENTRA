@@ -204,7 +204,8 @@
     <div class="card border-0 shadow-sm mb-3 {% if tutti_obbligatori %}border-success border{% endif %}">
       <div class="card-body">
         <h6 class="fw-bold mb-1">
-          <i class="bi bi-send me-2 text-success"></i>Deposito telematico
+          <i class="bi {{ canale_icon.get(tmpl.canale, 'bi-send') }} me-2 text-{{ canale_col.get(tmpl.canale, 'success') }}"></i>
+          {{ canale_label.get(tmpl.canale, 'Deposito telematico') }}
         </h6>
         <p class="small text-muted mb-3">
           {% if tutti_obbligatori %}
@@ -245,11 +246,24 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
 
-      {# Header #}
-      <div class="modal-header bg-success text-white py-3">
+      {# Header — colore e titolo dipendono dal canale #}
+      {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
+        {% set _modal_bg = "bg-info" %}
+        {% set _modal_titolo = "Deposito telematico PAT Amministrativo" %}
+        {% set _modal_icon = "bi-building" %}
+      {% elif tmpl.canale == "PDP_PENALE" %}
+        {% set _modal_bg = "bg-dark" %}
+        {% set _modal_titolo = "Deposito telematico PDP Penale" %}
+        {% set _modal_icon = "bi-shield-fill" %}
+      {% else %}
+        {% set _modal_bg = "bg-success" %}
+        {% set _modal_titolo = "Deposito telematico PCT" %}
+        {% set _modal_icon = "bi-send-fill" %}
+      {% endif %}
+      <div class="modal-header {{ _modal_bg }} text-white py-3">
         <div>
           <h5 class="modal-title mb-0" id="modalDepositoLabel">
-            <i class="bi bi-send-fill me-2"></i>Deposito telematico PCT
+            <i class="bi {{ _modal_icon }} me-2"></i>{{ _modal_titolo }}
           </h5>
           <div class="small mt-1 opacity-75">
             {{ fascicolo.numero }} — {{ fascicolo.titolo }}
@@ -268,7 +282,11 @@
                     data-bs-toggle="tab" data-bs-target="#pannello-busta"
                     type="button" role="tab">
               <i class="bi bi-file-zip me-1"></i>
-              <span class="d-none d-sm-inline">① Genera busta PCT</span>
+              <span class="d-none d-sm-inline">① Genera busta
+                {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}PAT
+                {% elif tmpl.canale == "PDP_PENALE" %}PDP
+                {% else %}PCT{% endif %}
+              </span>
               <span class="d-sm-none">① Genera</span>
             </button>
           </li>
@@ -329,6 +347,28 @@
                   </label>
                   <select name="tipo_atto" class="form-select form-select-sm" required>
                     <option value="">— seleziona —</option>
+                    {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
+                    <option value="RICORSO">Ricorso al TAR</option>
+                    <option value="APPELLO">Appello al Consiglio di Stato</option>
+                    <option value="MEMORIA">Memoria difensiva</option>
+                    <option value="REPLICA">Replica / controricorso</option>
+                    <option value="MOTIVI_AGGIUNTI">Motivi aggiunti</option>
+                    <option value="RICORSO_INCIDENTALE">Ricorso incidentale</option>
+                    <option value="ISTANZA">Istanza</option>
+                    <option value="DEPOSITO_DOCUMENTI">Deposito documenti</option>
+                    <option value="ALTRO">Altro atto</option>
+                    {% elif tmpl.canale == "PDP_PENALE" %}
+                    <option value="ATTO_DIFESA">Atto di difesa</option>
+                    <option value="MEMORIA">Memoria difensiva</option>
+                    <option value="IMPUGNAZIONE">Atto di impugnazione</option>
+                    <option value="APPELLO">Appello penale</option>
+                    <option value="ISTANZA">Istanza</option>
+                    <option value="RICHIESTA_RIESAME">Richiesta di riesame</option>
+                    <option value="OPPOSIZIONE">Opposizione</option>
+                    <option value="MOTIVI_NUOVI">Motivi nuovi</option>
+                    <option value="DEPOSITO_DOCUMENTI">Deposito documenti</option>
+                    <option value="ALTRO">Altro atto</option>
+                    {% else %}
                     <option value="RICORSO">Ricorso</option>
                     <option value="CITAZIONE">Atto di citazione</option>
                     <option value="MEMORIA">Memoria</option>
@@ -342,16 +382,27 @@
                     <option value="APPELLO">Atto di appello</option>
                     <option value="RECLAMO">Reclamo</option>
                     <option value="ALTRO">Altro atto</option>
+                    {% endif %}
                   </select>
                 </div>
                 <div class="col-sm-3">
                   <label class="form-label fw-semibold small">Registro</label>
                   <select name="codice_registro" class="form-select form-select-sm">
+                    {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
+                    <option value="RG" selected>RG (TAR / CDS)</option>
+                    {% elif tmpl.canale == "PDP_PENALE" %}
+                    <option value="RGNR" selected>RGNR</option>
+                    <option value="RG">RG</option>
+                    <option value="GIP">GIP</option>
+                    <option value="GUP">GUP</option>
+                    <option value="RGES">RGES</option>
+                    {% else %}
                     <option value="RG" selected>RG</option>
                     <option value="RGNR">RGNR</option>
                     <option value="GIP">GIP</option>
                     <option value="GUP">GUP</option>
                     <option value="RGES">RGES</option>
+                    {% endif %}
                   </select>
                 </div>
                 <div class="col-sm-4">
@@ -463,7 +514,13 @@
                 Per inviare direttamente, configura le credenziali PEC in
                 <a href="{{ url_for('impostazioni.index') }}">Impostazioni → PEC</a>.
                 Con il bottone <em>Scarica busta</em> puoi comunque esportare il file .enc
+                {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
+                e caricarlo nel portale PAT.
+                {% elif tmpl.canale == "PDP_PENALE" %}
+                e caricarlo nel portale PDP.
+                {% else %}
                 e importarlo in Consolle dell'Avvocato.
+                {% endif %}
               </div>
             </div>
             {% else %}
@@ -471,8 +528,14 @@
               <i class="bi bi-send flex-shrink-0 mt-1"></i>
               <div class="small">
                 <strong>PEC configurata.</strong>
-                Usa <em>Invia via PEC</em> per spedire la busta direttamente al tribunale,
+                Usa <em>Invia via PEC</em> per spedire la busta direttamente
+                {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}al TAR / Consiglio di Stato,
+                oppure <em>Scarica busta</em> per caricarla nel portale PAT.
+                {% elif tmpl.canale == "PDP_PENALE" %}all'ufficio giudiziario penale,
+                oppure <em>Scarica busta</em> per caricarla nel portale PDP.
+                {% else %}al tribunale,
                 oppure <em>Scarica busta</em> per importarla in Consolle dell'Avvocato.
+                {% endif %}
               </div>
             </div>
             {% endif %}

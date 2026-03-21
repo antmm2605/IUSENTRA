@@ -3793,7 +3793,10 @@ def create_app(config: dict | None = None) -> Flask:
                 use_ssl=getattr(pec_cfg, "use_ssl", True),
             )
             client_pec = ClientPEC(config_pec)
-            oggetto_pec = f"DEPOSITO {tipo_atto} - {fasc.tribunale} - RG {fasc.numero_rg}/{fasc.anno_rg}"
+            oggetto_pec = (
+                f"DEPOSITO {tipo_atto} - {fasc.tribunale}"
+                + (f" - {codice_registro} {fasc.numero_rg}/{fasc.anno_rg}" if fasc.numero_rg else "")
+            )
             ris = client_pec.invia_busta(
                 destinatario_pec=pec_dest,
                 busta_path=enc_path,

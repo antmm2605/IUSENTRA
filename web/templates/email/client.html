@@ -3,288 +3,433 @@
 
 {% block extra_head %}
 <style>
-/* ══════════════════════════════════════════════════════
-   EMAIL CLIENT — Gmail-like professional layout
-   ══════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   EMAIL CLIENT — design moderno, professionale
+   ══════════════════════════════════════════════════════════════ */
 :root {
-  --gm-bg:        #f6f8fc;
-  --gm-surface:   #ffffff;
-  --gm-border:    #e0e0e0;
-  --gm-border-l:  #e8eaed;
-  --gm-text:      #202124;
-  --gm-sub:       #5f6368;
-  --gm-muted:     #80868b;
-  --gm-blue:      #1a73e8;
-  --gm-blue-bg:   #e8f0fe;
-  --gm-hover:     #f2f6fc;
-  --gm-sel:       #c2dbff;
-  --gm-sidebar-w: 244px;
-  --gm-list-w:    340px;
-  --gm-radius:    .5rem;
+  --em-bg:        #f1f5f9;
+  --em-surface:   #ffffff;
+  --em-border:    #e2e8f0;
+  --em-text:      #0f172a;
+  --em-sub:       #475569;
+  --em-muted:     #94a3b8;
+  --em-accent:    #2563eb;
+  --em-accent-bg: #eff6ff;
+  --em-hover:     #f8fafc;
+  --em-sel:       #dbeafe;
+  --em-unread:    #2563eb;
+  --em-radius:    .75rem;
+  --em-sidebar-w: 220px;
+  --em-list-w:    320px;
+  --em-shadow:    0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.06);
 }
 
-/* ── Shell ──────────────────────────────────────────── */
-.gm-shell {
+/* ── Shell container ──────────────────────────────────────── */
+.em-shell {
   display: flex;
-  height: calc(100vh - 116px);
-  min-height: 480px;
-  background: var(--gm-bg);
-  border: 1px solid var(--gm-border);
-  border-radius: var(--gm-radius);
+  height: calc(100vh - 112px);
+  min-height: 500px;
+  background: var(--em-bg);
+  border: 1px solid var(--em-border);
+  border-radius: var(--em-radius);
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0,0,0,.07);
+  box-shadow: var(--em-shadow);
 }
 
-/* ── Sidebar ────────────────────────────────────────── */
-.gm-sidebar {
-  width: var(--gm-sidebar-w);
+/* ── Sidebar ──────────────────────────────────────────────── */
+.em-sidebar {
+  width: var(--em-sidebar-w);
   flex-shrink: 0;
-  background: var(--gm-bg);
+  background: var(--em-surface);
+  border-right: 1px solid var(--em-border);
   display: flex;
   flex-direction: column;
+  padding: .75rem 0 1rem;
   overflow-y: auto;
-  padding-bottom: .5rem;
 }
 
-/* Compose button — like Gmail's red button */
-.gm-compose-btn {
-  margin: 1rem .75rem .75rem;
+.em-compose {
+  margin: 0 .75rem .875rem;
   display: flex;
   align-items: center;
   gap: .6rem;
-  padding: .875rem 1.25rem;
-  background: var(--gm-surface);
-  color: var(--gm-text);
-  border-radius: 1rem;
-  font-size: .875rem;
-  font-weight: 500;
+  padding: .65rem 1rem;
+  background: var(--em-accent);
+  color: #fff;
+  border-radius: 2rem;
+  font-size: .84rem;
+  font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(0,0,0,.15), 0 1px 2px rgba(0,0,0,.1);
-  transition: box-shadow .15s, background .15s;
-  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(37,99,235,.35);
+  transition: background .15s, box-shadow .15s, transform .1s;
 }
-.gm-compose-btn:hover {
-  background: #f8f9fa;
-  box-shadow: 0 2px 8px rgba(0,0,0,.18);
-  color: var(--gm-text);
+.em-compose:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 14px rgba(37,99,235,.45);
+  color: #fff;
+  transform: translateY(-1px);
 }
-.gm-compose-btn i { font-size: 1.2rem; color: var(--gm-blue); flex-shrink: 0; }
+.em-compose i { font-size: 1rem; flex-shrink: 0; }
 
-/* Nav items — pill shape with rounded right */
-.gm-nav-item {
+/* Nav folder items */
+.em-nav-item {
   display: flex;
   align-items: center;
   gap: .55rem;
-  padding: .375rem .75rem .375rem 1rem;
-  margin: .05rem .5rem .05rem 0;
-  border-radius: 0 1.5rem 1.5rem 0;
-  font-size: .875rem;
+  padding: .48rem .75rem .48rem .875rem;
+  margin: .06rem .5rem .06rem .375rem;
+  border-radius: .5rem;
+  font-size: .84rem;
   font-weight: 500;
-  color: var(--gm-sub);
+  color: var(--em-sub);
   text-decoration: none;
-  transition: background .1s;
+  transition: background .1s, color .1s;
+  position: relative;
 }
-.gm-nav-item:hover { background: rgba(0,0,0,.06); color: var(--gm-text); }
-.gm-nav-item.active { background: var(--gm-blue-bg); color: var(--gm-blue); font-weight: 700; }
-.gm-nav-item i { font-size: 1.05rem; flex-shrink: 0; }
-.gm-nav-badge {
-  margin-left: auto;
-  font-size: .8rem;
+.em-nav-item:hover { background: var(--em-hover); color: var(--em-text); }
+.em-nav-item.active {
+  background: var(--em-accent-bg);
+  color: var(--em-accent);
   font-weight: 600;
-  color: var(--gm-text);
 }
-.gm-nav-item.active .gm-nav-badge { color: var(--gm-blue); }
-.gm-nav-sep { border: none; border-top: 1px solid var(--gm-border-l); margin: .4rem .75rem; }
+.em-nav-item i { font-size: 1rem; flex-shrink: 0; width: 1.1rem; text-align: center; }
+.em-nav-count {
+  margin-left: auto;
+  font-size: .74rem;
+  font-weight: 700;
+  background: var(--em-accent);
+  color: #fff;
+  border-radius: 99px;
+  padding: .1em .45em;
+  min-width: 1.35em;
+  text-align: center;
+  line-height: 1.4;
+}
+.em-nav-item.active .em-nav-count { background: var(--em-accent); }
+.em-nav-sep {
+  border: none;
+  border-top: 1px solid var(--em-border);
+  margin: .5rem .75rem;
+}
+.em-nav-label {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--em-muted);
+  padding: .5rem .875rem .25rem 1.25rem;
+}
 
-/* ── Email list ─────────────────────────────────────── */
-.gm-list {
-  width: var(--gm-list-w);
+/* ── Email list panel ─────────────────────────────────────── */
+.em-list {
+  width: var(--em-list-w);
   flex-shrink: 0;
-  background: var(--gm-surface);
-  border-right: 1px solid var(--gm-border);
+  background: var(--em-surface);
+  border-right: 1px solid var(--em-border);
   display: flex;
   flex-direction: column;
 }
-.gm-list-toolbar {
-  padding: .45rem .65rem;
-  border-bottom: 1px solid var(--gm-border-l);
-  background: var(--gm-surface);
+
+.em-list-toolbar {
+  padding: .55rem .65rem;
+  border-bottom: 1px solid var(--em-border);
   display: flex;
-  gap: .35rem;
+  gap: .4rem;
   align-items: center;
   flex-shrink: 0;
+  background: var(--em-surface);
 }
-.gm-search-wrap {
+
+.em-search-box {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #f1f3f4;
-  border-radius: 1.5rem;
-  padding: .3rem .75rem;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: .5rem;
+  padding: .32rem .65rem;
   gap: .4rem;
-  min-width: 0;
+  transition: border-color .15s, background .15s;
 }
-.gm-search-wrap i { color: var(--gm-muted); font-size: .88rem; flex-shrink: 0; }
-.gm-search-input {
+.em-search-box:focus-within {
+  background: #fff;
+  border-color: var(--em-accent);
+}
+.em-search-box i { color: var(--em-muted); font-size: .82rem; flex-shrink: 0; }
+.em-search-input {
   flex: 1;
   border: none;
   background: transparent;
   font-size: .82rem;
-  color: var(--gm-text);
+  color: var(--em-text);
   outline: none;
   min-width: 0;
 }
-.gm-search-input::placeholder { color: #9aa0a6; }
-.gm-list-body { flex: 1; overflow-y: auto; }
+.em-search-input::placeholder { color: var(--em-muted); }
 
-/* ── Email rows ─────────────────────────────────────── */
-.gm-row {
-  display: flex;
-  align-items: center;
-  padding: .45rem .75rem .45rem .6rem;
-  border-bottom: 1px solid #f0f0f0;
+.em-filter-btn {
+  width: 32px; height: 32px;
+  border-radius: .4rem;
+  border: 1px solid var(--em-border);
+  background: transparent;
+  color: var(--em-sub);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .82rem;
   cursor: pointer;
-  transition: background .08s;
-  position: relative;
-  gap: .5rem;
-  min-height: 50px;
-}
-.gm-row:last-child { border-bottom: none; }
-.gm-row:hover {
-  background: var(--gm-hover);
-  box-shadow: inset 1px 0 0 var(--gm-border), inset -1px 0 0 var(--gm-border);
-}
-.gm-row.sel { background: var(--gm-sel) !important; }
-.gm-row.sel:hover { background: #b8d4fc !important; }
-
-/* Unread: bold text, blue dot */
-.gm-row.unread .gm-row-sender,
-.gm-row.unread .gm-row-subj { font-weight: 700; color: var(--gm-text); }
-
-/* Unread dot */
-.gm-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
+  transition: background .1s, border-color .1s, color .1s;
+  text-decoration: none;
   flex-shrink: 0;
 }
-.gm-dot.unread { background: var(--gm-blue); }
-.gm-dot.read   { background: transparent; }
+.em-filter-btn:hover { background: var(--em-hover); color: var(--em-text); border-color: #cbd5e1; }
+.em-filter-btn.active { background: var(--em-accent-bg); border-color: var(--em-accent); color: var(--em-accent); }
+
+.em-list-body { flex: 1; overflow-y: auto; }
+.em-list-count {
+  font-size: .72rem;
+  color: var(--em-muted);
+  padding: .45rem .75rem .3rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* ── Email rows ───────────────────────────────────────────── */
+.em-row {
+  display: flex;
+  align-items: flex-start;
+  padding: .65rem .75rem .6rem .7rem;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background .08s;
+  gap: .55rem;
+  position: relative;
+}
+.em-row:last-child { border-bottom: none; }
+.em-row:hover { background: var(--em-hover); }
+.em-row.sel { background: var(--em-sel); }
+.em-row.sel:hover { background: #c7d9fb; }
+
+/* Unread left accent */
+.em-row.unread::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  background: var(--em-accent);
+  border-radius: 0 3px 3px 0;
+}
+.em-row.unread .em-row-sender { font-weight: 700; color: var(--em-text); }
+.em-row.unread .em-row-subj   { font-weight: 600; color: var(--em-text); }
 
 /* Avatar */
-.gm-av {
-  width: 32px; height: 32px;
+.em-av {
+  width: 34px; height: 34px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: .75rem; font-weight: 700; color: #fff;
   flex-shrink: 0;
+  margin-top: .05rem;
+  letter-spacing: 0;
 }
 
 /* Row body */
-.gm-row-body { flex: 1; min-width: 0; }
-.gm-row-top  { display: flex; align-items: baseline; gap: .4rem; margin-bottom: .05rem; }
-.gm-row-sender {
-  font-size: .83rem; font-weight: 500; color: var(--gm-sub);
-  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.em-row-body { flex: 1; min-width: 0; }
+.em-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: .35rem;
+  margin-bottom: .15rem;
 }
-.gm-row-date { font-size: .72rem; color: var(--gm-muted); white-space: nowrap; flex-shrink: 0; }
-.gm-row-mid  { display: flex; align-items: baseline; gap: .3rem; }
-.gm-row-subj {
-  font-size: .8rem; color: var(--gm-sub);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+.em-row-sender {
+  font-size: .825rem;
+  font-weight: 500;
+  color: var(--em-sub);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.gm-row-snippet {
-  font-size: .76rem; color: var(--gm-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.gm-row-icons { display: flex; gap: .25rem; align-items: center; flex-shrink: 0; }
-.gm-row-icons i { font-size: .72rem; }
-.gm-icon-pst    { color: var(--gm-blue); }
-.gm-icon-attach { color: var(--gm-muted); }
-
-/* ── Content pane ─────────────────────────────────── */
-.gm-content { flex: 1; overflow-y: auto; background: var(--gm-surface); }
-.gm-empty {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  height: 100%; gap: .75rem; color: var(--gm-muted);
-}
-.gm-empty i { font-size: 3.5rem; opacity: .25; }
-.gm-empty p  { margin: 0; font-size: .9rem; }
-
-/* ── Cestino footer ───────────────────────────────── */
-.gm-trash-footer {
-  padding: .45rem .65rem;
-  border-top: 1px solid var(--gm-border-l);
+.em-row-date {
+  font-size: .7rem;
+  color: var(--em-muted);
+  white-space: nowrap;
   flex-shrink: 0;
-  background: var(--gm-surface);
+  font-variant-numeric: tabular-nums;
+}
+.em-row.unread .em-row-date { color: var(--em-accent); font-weight: 600; }
+
+.em-row-subj {
+  font-size: .8rem;
+  color: var(--em-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: .1rem;
+}
+.em-row-preview {
+  font-size: .75rem;
+  color: var(--em-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.em-row-chips {
+  display: flex;
+  gap: .25rem;
+  align-items: center;
+  margin-top: .25rem;
+}
+.em-chip-pst {
+  font-size: .65rem;
+  font-weight: 700;
+  background: var(--em-accent-bg);
+  color: var(--em-accent);
+  border: 1px solid #bfdbfe;
+  border-radius: 99px;
+  padding: .08em .45em;
+  letter-spacing: .02em;
+}
+.em-chip-attach {
+  font-size: .7rem;
+  color: var(--em-muted);
 }
 
-/* ── Scrollbars ───────────────────────────────────── */
-.gm-list-body::-webkit-scrollbar,
-.gm-content::-webkit-scrollbar,
-.gm-sidebar::-webkit-scrollbar   { width: 4px; }
-.gm-list-body::-webkit-scrollbar-thumb,
-.gm-content::-webkit-scrollbar-thumb,
-.gm-sidebar::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 99px; }
+/* ── Content pane ─────────────────────────────────────────── */
+.em-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--em-surface);
+}
+.em-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: .875rem;
+  color: var(--em-muted);
+}
+.em-placeholder i { font-size: 3rem; opacity: .18; }
+.em-placeholder p { font-size: .875rem; margin: 0; }
 
-/* ── Toast ────────────────────────────────────────── */
-#gm-toast-area { z-index: 9999; pointer-events: none; }
-#gm-toast-area .toast { pointer-events: all; }
+/* ── Cestino footer ───────────────────────────────────────── */
+.em-trash-footer {
+  padding: .55rem .65rem;
+  border-top: 1px solid var(--em-border);
+  flex-shrink: 0;
+}
 
-/* ══ MOBILE (< 768px) ════════════════════════════════ */
+/* ── Scrollbars ───────────────────────────────────────────── */
+.em-list-body::-webkit-scrollbar,
+.em-content::-webkit-scrollbar,
+.em-sidebar::-webkit-scrollbar { width: 4px; }
+.em-list-body::-webkit-scrollbar-thumb,
+.em-content::-webkit-scrollbar-thumb,
+.em-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+
+/* ── Toast ────────────────────────────────────────────────── */
+#em-toast-area { z-index: 9999; pointer-events: none; }
+#em-toast-area .toast { pointer-events: all; }
+
+/* ══ TABLET (768–1199px) ══════════════════════════════════════ */
+@media (max-width: 1199.98px) {
+  :root { --em-list-w: 280px; --em-sidebar-w: 190px; }
+}
+
+/* ══ MOBILE (< 768px) ════════════════════════════════════════ */
 @media (max-width: 767.98px) {
-  .gm-shell {
-    height: auto; flex-direction: column;
-    border-radius: 0; border-left: none; border-right: none;
-    box-shadow: none; min-height: 0;
+  .em-shell {
+    height: auto;
+    flex-direction: column;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    box-shadow: none;
+    min-height: 0;
   }
-  .gm-sidebar {
-    width: 100%; flex-direction: row;
-    overflow-x: auto; overflow-y: hidden;
-    padding: 0; background: var(--gm-surface);
-    border-bottom: 1px solid var(--gm-border);
+
+  /* Sidebar → tab bar */
+  .em-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--em-border);
     scrollbar-width: none;
+    background: var(--em-surface);
   }
-  .gm-sidebar::-webkit-scrollbar { display: none; }
-  .gm-compose-btn { display: none !important; }
-  .gm-nav-item {
-    flex-direction: row; padding: .65rem 1rem; margin: 0;
-    border-radius: 0; white-space: nowrap;
+  .em-sidebar::-webkit-scrollbar { display: none; }
+  .em-compose { display: none !important; }
+  .em-nav-label, .em-nav-sep { display: none; }
+
+  .em-nav-item {
+    flex-direction: row;
+    padding: .75rem .875rem;
+    margin: 0;
+    border-radius: 0;
+    white-space: nowrap;
     border-bottom: 2.5px solid transparent;
+    font-size: .82rem;
   }
-  .gm-nav-item.active {
-    background: transparent; color: var(--gm-blue);
-    border-bottom-color: var(--gm-blue);
+  .em-nav-item.active {
+    background: transparent;
+    color: var(--em-accent);
+    border-bottom-color: var(--em-accent);
   }
-  .gm-nav-sep,
-  .gm-nav-settings { display: none; }
-  .gm-list { width: 100%; border-right: none; }
-  .gm-content { display: none; }
+
+  .em-list { width: 100%; border-right: none; }
+  .em-content { display: none; }
+
+  /* FAB compose — mobile */
+  .em-fab {
+    display: flex !important;
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.25rem;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--em-accent);
+    color: #fff;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 16px rgba(37,99,235,.45);
+    z-index: 200;
+    text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .em-fab:hover { transform: scale(1.07); color: #fff; }
 }
+
+/* FAB hidden on desktop */
+.em-fab { display: none; }
 </style>
 {% endblock %}
 
 {% block content %}
 
-{# ── Top bar ─────────────────────────────────────────── #}
+{# ── Page header ──────────────────────────────────────────── #}
 <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
   <div class="d-flex align-items-center gap-2">
-    <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color:#202124">
-      <i class="bi bi-envelope text-primary"></i>Email
+    <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color:var(--em-text,#0f172a)">
+      <i class="bi bi-envelope-fill" style="color:var(--em-accent,#2563eb)"></i>Email
     </h5>
     {% if stats.non_lette > 0 %}
-    <span class="badge rounded-pill px-2" style="background:var(--gm-blue-bg);color:var(--gm-blue);font-size:.73rem">
-      <i class="bi bi-circle-fill me-1" style="font-size:.42rem;vertical-align:.15em"></i>{{ stats.non_lette }} non lette
+    <span class="badge rounded-pill" style="background:var(--em-accent-bg,#eff6ff);color:var(--em-accent,#2563eb);font-size:.72rem;border:1px solid #bfdbfe">
+      {{ stats.non_lette }} non lette
     </span>
     {% endif %}
     {% if stats.pst > 0 %}
-    <span class="badge rounded-pill px-2" style="background:linear-gradient(135deg,#1a73e8,#7c3aed);color:#fff;font-size:.73rem">
+    <span class="badge rounded-pill" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-size:.72rem">
       <i class="bi bi-shield-check me-1"></i>{{ stats.pst }} PST
     </span>
     {% endif %}
   </div>
-
-  <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+  <div class="ms-auto d-flex gap-2 align-items-center">
     <button class="btn btn-sm btn-outline-secondary" id="btnSync" title="Sincronizza IMAP">
       <i class="bi bi-arrow-clockwise me-1"></i><span class="d-none d-sm-inline">Aggiorna</span>
     </button>
@@ -293,37 +438,36 @@
       <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Auto-esiti</span>
     </button>
     {% endif %}
-    {# Mobile compose #}
-    <a href="{{ url_for('email_client.scrivi') }}" class="btn btn-sm btn-primary d-md-none">
-      <i class="bi bi-pencil-square"></i>
-    </a>
-    <a href="{{ url_for('email_client.impostazioni') }}" class="btn btn-sm btn-outline-secondary" title="Impostazioni">
+    <a href="{{ url_for('email_client.impostazioni') }}" class="btn btn-sm btn-outline-secondary" title="Impostazioni email">
       <i class="bi bi-gear"></i>
     </a>
   </div>
 </div>
 
 {# Toast area #}
-<div id="gm-toast-area" class="position-fixed top-0 end-0 p-3"></div>
+<div id="em-toast-area" class="position-fixed top-0 end-0 p-3"></div>
 
-{# ── Shell ───────────────────────────────────────────── #}
-<div class="gm-shell" id="gmShell">
+{# FAB mobile compose #}
+<a href="{{ url_for('email_client.scrivi') }}" class="em-fab">
+  <i class="bi bi-pencil-square"></i>
+</a>
 
-  {# ── Sidebar ─────────────────────────────────────────── #}
-  <nav class="gm-sidebar">
+{# ── Shell ─────────────────────────────────────────────────── #}
+<div class="em-shell" id="emShell">
 
-    {# Compose button (desktop) #}
-    <a href="{{ url_for('email_client.scrivi') }}" class="gm-compose-btn d-none d-md-flex">
-      <i class="bi bi-pencil-square"></i>
-      <span>Componi</span>
+  {# ── Sidebar ────────────────────────────────────────────── #}
+  <nav class="em-sidebar">
+
+    <a href="{{ url_for('email_client.scrivi') }}" class="em-compose d-none d-md-flex">
+      <i class="bi bi-pencil-square"></i>Componi
     </a>
 
     {% macro navitem(cid, label, icon, icon_a, count=0) %}
     <a href="{{ url_for('email_client.casella', cartella=cid) }}"
-       class="gm-nav-item {{ 'active' if cartella == cid }}">
+       class="em-nav-item {{ 'active' if cartella == cid }}">
       <i class="bi bi-{{ icon_a if cartella == cid else icon }}"></i>
       <span>{{ label }}</span>
-      {% if count > 0 %}<span class="gm-nav-badge">{{ count }}</span>{% endif %}
+      {% if count > 0 %}<span class="em-nav-count">{{ count }}</span>{% endif %}
     </a>
     {% endmacro %}
 
@@ -331,98 +475,90 @@
     {{ navitem('INVIATI', 'Inviati',   'send',   'send-fill') }}
     {{ navitem('CESTINO', 'Cestino',   'trash',  'trash-fill',  stats.cestino) }}
 
-    <hr class="gm-nav-sep">
+    <hr class="em-nav-sep d-none d-md-block">
 
     <a href="{{ url_for('email_client.impostazioni') }}"
-       class="gm-nav-item gm-nav-settings {{ 'active' if request.endpoint == 'email_client.impostazioni' }}">
-      <i class="bi bi-gear"></i><span>Impostazioni</span>
+       class="em-nav-item d-none d-md-flex {{ 'active' if request.endpoint == 'email_client.impostazioni' }}">
+      <i class="bi bi-gear{{ '-fill' if request.endpoint == 'email_client.impostazioni' else '' }}"></i>
+      <span>Impostazioni</span>
     </a>
   </nav>
 
-  {# ── Lista email ────────────────────────────────────── #}
-  <div class="gm-list">
+  {# ── Lista email ─────────────────────────────────────────── #}
+  <div class="em-list">
 
-    {# Toolbar ricerca #}
-    <div class="gm-list-toolbar">
-      <form method="get" class="d-flex gap-1 flex-grow-1 min-width-0">
+    {# Toolbar #}
+    <div class="em-list-toolbar">
+      <form method="get" class="d-flex gap-2 flex-grow-1">
         <input type="hidden" name="cartella" value="{{ cartella }}">
-        <div class="gm-search-wrap flex-grow-1">
+        <div class="em-search-box flex-grow-1">
           <i class="bi bi-search"></i>
           <input type="text" name="q" value="{{ q }}"
-                 class="gm-search-input" placeholder="Cerca nella casella…">
+                 class="em-search-input" placeholder="Cerca…">
           {% if q %}
           <a href="{{ url_for('email_client.casella', cartella=cartella) }}"
-             style="color:var(--gm-muted);text-decoration:none;line-height:1" title="Cancella">
-            <i class="bi bi-x-lg" style="font-size:.85rem"></i>
+             style="color:var(--em-muted);text-decoration:none;line-height:1">
+            <i class="bi bi-x-lg" style="font-size:.75rem"></i>
           </a>
           {% endif %}
         </div>
       </form>
       {% if cartella == 'INBOX' %}
       <a href="{{ url_for('email_client.casella', cartella=cartella, non_lette='1' if not solo_non_lette else '') }}"
-         class="btn btn-sm {{ 'btn-primary' if solo_non_lette else 'btn-outline-secondary' }} rounded-3 px-2"
-         title="{{ 'Mostra tutte' if solo_non_lette else 'Solo non lette' }}" style="flex-shrink:0">
-        <i class="bi bi-circle-fill" style="font-size:.45rem;vertical-align:.1em"></i>
+         class="em-filter-btn {{ 'active' if solo_non_lette }}"
+         title="{{ 'Mostra tutte' if solo_non_lette else 'Solo non lette' }}">
+        <i class="bi bi-circle-fill" style="font-size:.45rem"></i>
       </a>
       {% endif %}
     </div>
 
-    {# Messaggi #}
-    <div class="gm-list-body">
+    {# Email list #}
+    <div class="em-list-body">
       {% if emails %}
+      <div class="em-list-count">{{ emails|length }} {% if solo_non_lette %}non lett{{ 'a' if emails|length == 1 else 'e' }}{% else %}email{% endif %}</div>
         {% for em in emails %}
         {% set is_sel    = email_sel and email_sel.id == em.id %}
         {% set is_unread = em.stato == 'NON_LETTA' %}
         {% set _name    = em.mittente_nome or em.mittente or em.destinatari or '?' %}
-        {% set _colors  = ['#1a73e8','#7c3aed','#db2777','#e37400','#188038','#0097a7','#c5221f','#689f38'] %}
+        {% set _palette = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'] %}
         {% set _ci      = (_name|lower|first)|int(default=0) % 8 %}
-        {% set _color   = _colors[_ci] %}
 
-        <div class="gm-row {{ 'sel' if is_sel }} {{ 'unread' if is_unread }}"
-             onclick="selEmail('{{ em.id }}', event)"
-             data-id="{{ em.id }}">
+        <div class="em-row {{ 'sel' if is_sel }} {{ 'unread' if is_unread }}"
+             onclick="selEmail('{{ em.id }}', event)" data-id="{{ em.id }}">
 
-          {# Unread dot #}
-          <div class="gm-dot {{ 'unread' if is_unread else 'read' }}"></div>
+          <div class="em-av" style="background:{{ _palette[_ci] }}">{{ _name|upper|first }}</div>
 
-          {# Avatar #}
-          <div class="gm-av" style="background:{{ _color }}">{{ _name|upper|first }}</div>
-
-          {# Body #}
-          <div class="gm-row-body">
-            <div class="gm-row-top">
-              <span class="gm-row-sender">{{ _name }}</span>
-              <span class="gm-row-date">
-                {% set ts = em.timestamp %}
-                {% if ts %}
+          <div class="em-row-body">
+            <div class="em-row-top">
+              <span class="em-row-sender">{{ _name }}</span>
+              <span class="em-row-date">
+                {% set ts = em.timestamp %}{% if ts %}
                   {% if ts[:10] == oggi.strftime('%Y-%m-%d') %}{{ ts[11:16] }}
                   {% elif ts[:4] == oggi.strftime('%Y') %}{{ ts[5:7] }}/{{ ts[8:10] }}
-                  {% else %}{{ ts[:10] }}{% endif %}
+                  {% else %}{{ ts[2:10] }}{% endif %}
                 {% endif %}
               </span>
             </div>
-            <div class="gm-row-mid">
-              <span class="gm-row-subj">{{ em.oggetto or '(nessun oggetto)' }}</span>
-              {% if em.e_pst or em.allegati %}
-              <span class="gm-row-icons">
-                {% if em.e_pst %}<i class="bi bi-shield-check gm-icon-pst" title="Risposta PST"></i>{% endif %}
-                {% if em.allegati %}<i class="bi bi-paperclip gm-icon-attach" title="{{ em.allegati|length }} allegati"></i>{% endif %}
-              </span>
-              {% endif %}
-            </div>
+            <div class="em-row-subj">{{ em.oggetto or '(nessun oggetto)' }}</div>
             {% if em.anteprima %}
-            <div class="gm-row-snippet">{{ em.anteprima }}</div>
+            <div class="em-row-preview">{{ em.anteprima }}</div>
+            {% endif %}
+            {% if em.e_pst or em.allegati %}
+            <div class="em-row-chips">
+              {% if em.e_pst %}<span class="em-chip-pst"><i class="bi bi-shield-check me-1"></i>PST</span>{% endif %}
+              {% if em.allegati %}<span class="em-chip-attach"><i class="bi bi-paperclip me-1"></i>{{ em.allegati|length }}</span>{% endif %}
+            </div>
             {% endif %}
           </div>
         </div>
         {% endfor %}
 
       {% else %}
-      <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted gap-2">
+      <div class="d-flex flex-column align-items-center justify-content-center py-5 gap-2" style="color:var(--em-muted)">
         <i class="bi bi-{{ 'search' if q else ('inbox' if cartella == 'INBOX' else ('send' if cartella == 'INVIATI' else 'trash')) }} fs-1 opacity-25"></i>
         <p class="small mb-0">
-          {% if q %}Nessun risultato per "{{ q }}"
-          {% elif cartella == 'INBOX' %}Nessuna email ricevuta
+          {% if q %}Nessun risultato per «{{ q }}»
+          {% elif cartella == 'INBOX' %}Posta in arrivo vuota
           {% elif cartella == 'INVIATI' %}Nessuna email inviata
           {% else %}Cestino vuoto{% endif %}
         </p>
@@ -436,7 +572,7 @@
 
     {# Footer cestino #}
     {% if cartella == 'CESTINO' and emails %}
-    <div class="gm-trash-footer">
+    <div class="em-trash-footer">
       <form method="post" action="{{ url_for('email_client.svuota_cestino') }}"
             onsubmit="return confirm('Svuotare definitivamente il cestino? L\'operazione non è reversibile.')">
         <button class="btn btn-sm btn-outline-danger w-100">
@@ -447,30 +583,30 @@
     {% endif %}
   </div>
 
-  {# ── Pannello contenuto ────────────────────────────── #}
-  <div class="gm-content" id="gmContent">
+  {# ── Pannello lettura ────────────────────────────────────── #}
+  <div class="em-content" id="emContent">
     {% if email_sel %}
       {% include 'email/_dettaglio_panel.html' %}
     {% else %}
-    <div class="gm-empty">
+    <div class="em-placeholder">
       <i class="bi bi-envelope-open"></i>
       <p>Seleziona un'email per leggerla</p>
     </div>
     {% endif %}
   </div>
 
-</div>{# /gm-shell #}
+</div>{# /em-shell #}
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// ── Avatar color (spec. Gmail palette) ───────────────
-const _AV_COLORS = ['#1a73e8','#7c3aed','#db2777','#e37400','#188038','#0097a7','#c5221f','#689f38'];
+// ── Avatar palette
+const _AV = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'];
 
-// ── Selezione email (split view desktop) ─────────────
+// ── Split view: seleziona email
 function selEmail(id, evt) {
   if (window.innerWidth < 768) {
-    window.location = "{{ url_for('email_client.dettaglio', id_email='__ID__') }}".replace('__ID__', id);
+    window.location = "{{ url_for('email_client.dettaglio', id_email='__X__') }}".replace('__X__', id);
     return;
   }
   const url = new URL(window.location);
@@ -478,25 +614,26 @@ function selEmail(id, evt) {
   url.searchParams.set('cartella', '{{ cartella }}');
   window.history.replaceState({}, '', url);
 
-  document.querySelectorAll('.gm-row').forEach(el => el.classList.remove('sel'));
+  document.querySelectorAll('.em-row').forEach(r => r.classList.remove('sel'));
   evt.currentTarget.classList.add('sel');
   evt.currentTarget.classList.remove('unread');
-  evt.currentTarget.querySelector('.gm-dot')?.classList.remove('unread');
+  evt.currentTarget.querySelector('.em-row::before');
+  evt.currentTarget.style.setProperty('--unread-bar', 'none');
 
-  const panel = document.getElementById('gmContent');
+  const panel = document.getElementById('emContent');
   panel.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;height:100%;gap:.6rem;color:#80868b">
-      <div class="spinner-border spinner-border-sm"></div>
-      <span style="font-size:.88rem">Caricamento…</span>
+    <div style="display:flex;align-items:center;justify-content:center;height:100%;gap:.6rem;color:var(--em-muted,#94a3b8)">
+      <div class="spinner-border spinner-border-sm" style="border-color:#e2e8f0;border-top-color:#2563eb"></div>
+      <span style="font-size:.85rem">Caricamento…</span>
     </div>`;
 
-  fetch("{{ url_for('email_client.dettaglio', id_email='__ID__') }}?_panel=1".replace('__ID__', id))
+  fetch("{{ url_for('email_client.dettaglio', id_email='__X__') }}?_panel=1".replace('__X__', id))
     .then(r => r.text())
     .then(html => { panel.innerHTML = html; _aggiornaBadge(); })
-    .catch(() => { panel.innerHTML = '<div style="text-align:center;color:#80868b;padding:3rem">Errore caricamento</div>'; });
+    .catch(() => { panel.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted small">Errore caricamento</div>'; });
 }
 
-// ── Sync IMAP ────────────────────────────────────────
+// ── Sync IMAP
 document.getElementById('btnSync')?.addEventListener('click', function () {
   const btn = this;
   btn.disabled = true;
@@ -520,7 +657,7 @@ document.getElementById('btnSync')?.addEventListener('click', function () {
     });
 });
 
-// ── Auto-esiti ───────────────────────────────────────
+// ── Auto-esiti
 document.getElementById('btnAutoEsiti')?.addEventListener('click', function () {
   const btn = this;
   btn.disabled = true;
@@ -535,7 +672,7 @@ document.getElementById('btnAutoEsiti')?.addEventListener('click', function () {
     });
 });
 
-// ── Badge non lette ───────────────────────────────────
+// ── Badge non lette
 function _aggiornaBadge() {
   fetch("{{ url_for('email_client.api_stats') }}")
     .then(r => r.json())
@@ -545,23 +682,25 @@ function _aggiornaBadge() {
     }).catch(() => {});
 }
 
-// ── Toast helper ──────────────────────────────────────
+// ── Toast
 function _toast(tipo, msg) {
-  const area = document.getElementById('gm-toast-area');
+  const area = document.getElementById('em-toast-area');
   const id   = 'toast_' + Date.now();
-  const icon = tipo === 'success' ? 'check-circle-fill' : tipo === 'warning' ? 'exclamation-triangle-fill' : 'x-circle-fill';
+  const colors = { success: '#059669', danger: '#dc2626', warning: '#d97706', info: '#2563eb' };
+  const icons  = { success: 'check-circle-fill', danger: 'x-circle-fill', warning: 'exclamation-triangle-fill', info: 'info-circle-fill' };
   area.insertAdjacentHTML('beforeend', `
-    <div id="${id}" class="toast align-items-center text-bg-${tipo} border-0 show mb-2"
-         role="alert" style="min-width:280px;max-width:400px">
+    <div id="${id}" class="toast align-items-center border-0 show mb-2"
+         style="background:#0f172a;color:#fff;border-radius:.625rem;min-width:280px;max-width:400px;box-shadow:0 8px 24px rgba(15,23,42,.25)">
       <div class="d-flex">
-        <div class="toast-body d-flex gap-2 align-items-start">
-          <i class="bi bi-${icon} flex-shrink-0 mt-1"></i><span>${msg}</span>
+        <div class="toast-body d-flex gap-2 align-items-start py-3 px-3">
+          <i class="bi bi-${icons[tipo] || 'info-circle-fill'} flex-shrink-0 mt-1" style="color:${colors[tipo] || '#fff'}"></i>
+          <span style="font-size:.85rem;line-height:1.5">${msg}</span>
         </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
+        <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"
                 onclick="document.getElementById('${id}').remove()"></button>
       </div>
     </div>`);
-  setTimeout(() => document.getElementById(id)?.remove(), 6000);
+  setTimeout(() => document.getElementById(id)?.remove(), 5500);
 }
 </script>
 {% endblock %}

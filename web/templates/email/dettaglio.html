@@ -3,18 +3,18 @@
 
 {% block extra_head %}
 <style>
-/* ── Header sticky mobile ──────────────────────────── */
-.det-nav {
+.det-topbar {
   display: flex;
   align-items: center;
   gap: .75rem;
   padding: .625rem 1rem;
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 1px 4px rgba(15,23,42,.07);
+  margin-bottom: 0;
 }
 .det-back {
   display: flex;
@@ -22,31 +22,37 @@
   justify-content: center;
   width: 36px; height: 36px;
   border-radius: 50%;
-  color: #5f6368;
+  color: #475569;
   text-decoration: none;
-  transition: background .1s;
+  transition: background .1s, color .1s;
   flex-shrink: 0;
 }
-.det-back:hover { background: #f1f3f4; color: #202124; }
-.det-folder {
+.det-back:hover { background: #f1f5f9; color: #0f172a; }
+.det-folder-label {
   font-size: .82rem;
-  color: #5f6368;
   font-weight: 500;
+  color: #64748b;
+}
+.det-content {
+  background: #fff;
+  min-height: calc(100vh - 180px);
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="det-nav">
+
+<div class="det-topbar">
   <a href="{{ url_for('email_client.casella', cartella=em.cartella) }}" class="det-back">
-    <i class="bi bi-arrow-left" style="font-size:1.1rem"></i>
+    <i class="bi bi-arrow-left" style="font-size:1.05rem"></i>
   </a>
-  <span class="det-folder">
+  <span class="det-folder-label">
     {{ em.cartella|replace('INBOX','In arrivo')|replace('INVIATI','Inviati')|replace('CESTINO','Cestino') }}
   </span>
 </div>
 
-<div style="background:#fff;min-height:calc(100vh - 200px)">
+<div class="det-content">
   {% include 'email/_dettaglio_panel.html' %}
 </div>
+
 {% endblock %}

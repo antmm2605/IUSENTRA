@@ -1,176 +1,386 @@
 {% extends "base.html" %}
 {% block title %}Impostazioni email{% endblock %}
-{% block page_title %}Impostazioni email{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ── Impostazioni email ──────────────────────────────────── */
+.imp-shell { max-width: 860px; margin: 0 auto; }
+
+.imp-section-title {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #64748b;
+  margin-bottom: .625rem;
+}
+.imp-section-title i {
+  width: 22px; height: 22px;
+  border-radius: .375rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem;
+  flex-shrink: 0;
+}
+.imp-section-title.send i  { background: #eff6ff; color: #2563eb; }
+.imp-section-title.recv i  { background: #f0fdf4; color: #059669; }
+
+.imp-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: .75rem;
+  box-shadow: 0 1px 4px rgba(15,23,42,.06);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.imp-card-header {
+  padding: .875rem 1.25rem .75rem;
+  border-bottom: 1px solid #f1f5f9;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.imp-card-header-icon {
+  width: 32px; height: 32px;
+  border-radius: .4rem;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .875rem;
+  flex-shrink: 0;
+}
+.imp-card-title {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+.imp-card-sub {
+  font-size: .75rem;
+  color: #64748b;
+  margin: .1rem 0 0;
+}
+.imp-card-body { padding: 1.125rem 1.25rem; flex: 1; }
+
+.imp-field { margin-bottom: 1rem; }
+.imp-field:last-child { margin-bottom: 0; }
+.imp-label {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: .3rem;
+}
+.imp-input {
+  display: block;
+  width: 100%;
+  padding: .45rem .75rem;
+  font-size: .85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: .5rem;
+  background: #fff;
+  color: #0f172a;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+  font-family: inherit;
+}
+.imp-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+.imp-input::placeholder { color: #94a3b8; }
+.imp-input-hint { font-size: .73rem; color: #94a3b8; margin-top: .25rem; }
+
+.imp-row { display: flex; gap: .75rem; }
+.imp-row .imp-field { flex: 1; min-width: 0; }
+
+.imp-check-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem 0;
+}
+.imp-check-wrap input[type=checkbox] {
+  width: 1rem; height: 1rem;
+  cursor: pointer;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+.imp-check-wrap label {
+  font-size: .83rem;
+  color: #374151;
+  cursor: pointer;
+  margin: 0;
+}
+
+.imp-divider {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  margin: 1.125rem 0;
+}
+
+.imp-test-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  width: 100%;
+  padding: .5rem 1rem;
+  font-size: .82rem;
+  font-weight: 600;
+  border-radius: .5rem;
+  border: 1px solid;
+  cursor: pointer;
+  transition: background .12s, box-shadow .12s, transform .08s;
+  background: transparent;
+}
+.imp-test-btn:active { transform: scale(.98); }
+.imp-test-smtp { border-color: #bfdbfe; color: #2563eb; }
+.imp-test-smtp:hover { background: #eff6ff; }
+.imp-test-imap { border-color: #a7f3d0; color: #059669; }
+.imp-test-imap:hover { background: #f0fdf4; }
+.imp-sync-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .65rem 1rem;
+  font-size: .875rem;
+  font-weight: 700;
+  border-radius: .5rem;
+  border: none;
+  background: #059669;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(5,150,105,.3);
+  transition: background .15s, box-shadow .15s, transform .1s;
+}
+.imp-sync-btn:hover {
+  background: #047857;
+  box-shadow: 0 4px 12px rgba(5,150,105,.4);
+  transform: translateY(-1px);
+}
+
+/* Footer azioni */
+.imp-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .625rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1.5rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center gap-2 mb-3">
-  <a href="{{ url_for('email_client.casella') }}" class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i>
-  </a>
-  <h5 class="mb-0 fw-bold">
-    <i class="bi bi-gear me-2 text-primary"></i>Impostazioni email
-  </h5>
-</div>
 
-{# Toast area #}
-<div id="toastArea" class="position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
+<div class="imp-shell">
 
-{# ── PEC configurata ──────────────────────────────────────────────── #}
-{% if pec_cfg and pec_cfg.indirizzo %}
-<div class="alert alert-success d-flex gap-2 align-items-start mb-3 small">
-  <i class="bi bi-check-circle-fill flex-shrink-0 mt-1"></i>
-  <div>
-    <strong>PEC configurata:</strong> {{ pec_cfg.indirizzo }}
-    — usata come account primario per depositi telematici e ricezione risposte PST.
-    <a href="{{ url_for('impostazioni.index') }}#pec" class="text-success fw-semibold">
-      Modifica PEC →
+  {# ── Breadcrumb ─────────────────────────────────────────── #}
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a href="{{ url_for('email_client.casella') }}"
+       class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+      <i class="bi bi-arrow-left" style="font-size:.85rem"></i>
+      <span class="d-none d-sm-inline">Casella</span>
     </a>
-  </div>
-</div>
-{% endif %}
-
-<form method="post" action="{{ url_for('email_client.impostazioni') }}" id="formEmail">
-<input type="hidden" name="azione" value="salva">
-
-<div class="row g-4">
-
-  {# ── SMTP (invio) ─────────────────────────────────────────────── #}
-  <div class="col-md-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-upload me-2 text-primary"></i>Invio (SMTP)
-      </div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Server SMTP</label>
-          <input type="text" name="smtp_host" class="form-control form-control-sm"
-                 value="{{ email_cfg.host if email_cfg else '' }}"
-                 placeholder="smtp.gmail.com">
-        </div>
-        <div class="row g-2 mb-3">
-          <div class="col-5">
-            <label class="form-label small fw-semibold">Porta</label>
-            <input type="number" name="smtp_port" class="form-control form-control-sm"
-                   value="{{ email_cfg.port if email_cfg else 587 }}">
-          </div>
-          <div class="col-7 d-flex align-items-end">
-            <div class="form-check mb-0">
-              <input class="form-check-input" type="checkbox" name="use_tls" value="1" id="chkTls"
-                     {{ 'checked' if email_cfg and email_cfg.use_tls }}>
-              <label class="form-check-label small" for="chkTls">STARTTLS</label>
-            </div>
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Username / Email</label>
-          <input type="email" name="username" class="form-control form-control-sm"
-                 value="{{ email_cfg.username if email_cfg else '' }}"
-                 placeholder="tuoemail@gmail.com">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Password</label>
-          <input type="password" name="password" class="form-control form-control-sm"
-                 placeholder="{{ '••••••••' if email_cfg and email_cfg.password else 'Password email' }}"
-                 autocomplete="new-password">
-          <div class="form-text">Lascia vuoto per mantenere la password attuale.</div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Nome mittente</label>
-          <input type="text" name="mittente_nome" class="form-control form-control-sm"
-                 value="{{ email_cfg.from_name if email_cfg else '' }}"
-                 placeholder="Studio Legale Rossi">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Email mittente</label>
-          <input type="email" name="mittente_email" class="form-control form-control-sm"
-                 value="{{ email_cfg.from_address if email_cfg else '' }}"
-                 placeholder="info@studiolegale.it">
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Reply-To</label>
-          <input type="email" name="reply_to" class="form-control form-control-sm"
-                 value="{{ email_cfg.from_address if email_cfg else '' }}"
-                 placeholder="(opzionale)">
-        </div>
-        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="btnTestSmtp">
-          <i class="bi bi-plug me-1"></i>Test connessione SMTP
-        </button>
-      </div>
+    <div>
+      <h6 class="mb-0 fw-bold" style="color:#0f172a">
+        <i class="bi bi-gear-fill text-primary me-2"></i>Impostazioni email
+      </h6>
     </div>
   </div>
 
-  {# ── IMAP (ricezione) ─────────────────────────────────────────── #}
-  <div class="col-md-6">
-    <div class="card shadow-sm h-100">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-download me-2 text-success"></i>Ricezione (IMAP)
-      </div>
-      <div class="card-body">
-        <div class="alert alert-info small py-2 mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          L'account IMAP viene usato per <strong>importare le email ricevute</strong>
-          (incluse le risposte del Portale Servizi Telematici).
-          Se hai già configurato la <strong>PEC</strong>, usa le stesse credenziali IMAP.
-        </div>
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Server IMAP</label>
-          <input type="text" name="imap_host" class="form-control form-control-sm"
-                 value="{{ pec_cfg.imap_host if email_cfg and pec_cfg.imap_host else '' }}"
-                 placeholder="imap.gmail.com">
-        </div>
-        <div class="row g-2 mb-3">
-          <div class="col-5">
-            <label class="form-label small fw-semibold">Porta</label>
-            <input type="number" name="imap_port" class="form-control form-control-sm"
-                   value="{{ pec_cfg.imap_port if email_cfg and pec_cfg.imap_port else 993 }}">
+  {# ── PEC banner ─────────────────────────────────────────── #}
+  {% if pec_cfg and pec_cfg.indirizzo %}
+  <div class="alert alert-success d-flex gap-2 align-items-start mb-4 small py-2 px-3"
+       style="border-radius:.625rem;border-color:#a7f3d0">
+    <i class="bi bi-check-circle-fill flex-shrink-0 mt-1" style="color:#059669"></i>
+    <div>
+      <strong>PEC configurata:</strong> {{ pec_cfg.indirizzo }} — utilizzata per depositi telematici e risposte PST.
+      <a href="{{ url_for('impostazioni.index') }}#pec" class="fw-semibold ms-1" style="color:#059669">
+        Modifica PEC →
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Toast area #}
+  <div id="toastArea" class="position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
+
+  <form method="post" action="{{ url_for('email_client.impostazioni') }}" id="formEmail">
+  <input type="hidden" name="azione" value="salva">
+
+  <div class="row g-4">
+
+    {# ── SMTP ─────────────────────────────────────────────── #}
+    <div class="col-lg-6">
+      <div class="imp-card">
+        <div class="imp-card-header">
+          <div class="imp-card-header-icon" style="background:#eff6ff;color:#2563eb">
+            <i class="bi bi-send-fill"></i>
           </div>
-          <div class="col-7 d-flex align-items-end">
-            <div class="form-check mb-0">
-              <input class="form-check-input" type="checkbox" name="imap_ssl" value="1" id="chkImapSsl"
-                     {{ 'checked' if not email_cfg or not pec_cfg.use_ssl is defined or pec_cfg.use_ssl }}>
-              <label class="form-check-label small" for="chkImapSsl">SSL/TLS</label>
+          <div>
+            <p class="imp-card-title">Invio (SMTP)</p>
+            <p class="imp-card-sub">Configurazione server per l'invio di email</p>
+          </div>
+        </div>
+        <div class="imp-card-body">
+
+          <div class="imp-field">
+            <label class="imp-label">Server SMTP</label>
+            <input type="text" name="smtp_host" class="imp-input"
+                   value="{{ email_cfg.host if email_cfg else '' }}"
+                   placeholder="smtp.gmail.com">
+          </div>
+
+          <div class="imp-row">
+            <div class="imp-field" style="max-width:110px">
+              <label class="imp-label">Porta</label>
+              <input type="number" name="smtp_port" class="imp-input"
+                     value="{{ email_cfg.port if email_cfg else 587 }}">
+            </div>
+            <div class="imp-field d-flex align-items-end pb-1">
+              <div class="imp-check-wrap">
+                <input type="checkbox" name="use_tls" value="1" id="chkTls"
+                       {{ 'checked' if email_cfg and email_cfg.use_tls }}>
+                <label for="chkTls">STARTTLS</label>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="alert alert-light border small py-2 mb-3">
-          <strong>Username e password</strong> sono gli stessi dell'account SMTP sopra.
-        </div>
+          <div class="imp-field">
+            <label class="imp-label">Username / Email</label>
+            <input type="email" name="username" class="imp-input"
+                   value="{{ email_cfg.username if email_cfg else '' }}"
+                   placeholder="tuoemail@gmail.com">
+          </div>
 
-        <button type="button" class="btn btn-sm btn-outline-success w-100 mb-2" id="btnTestImap">
-          <i class="bi bi-plug me-1"></i>Test connessione IMAP
-        </button>
+          <div class="imp-field">
+            <label class="imp-label">Password</label>
+            <input type="password" name="password" class="imp-input"
+                   placeholder="{{ '••••••••' if email_cfg and email_cfg.password else 'Password email' }}"
+                   autocomplete="new-password">
+            <p class="imp-input-hint">Lascia vuoto per mantenere la password attuale.</p>
+          </div>
 
-        <hr class="my-3">
+          <div class="imp-row">
+            <div class="imp-field">
+              <label class="imp-label">Nome mittente</label>
+              <input type="text" name="mittente_nome" class="imp-input"
+                     value="{{ email_cfg.from_name if email_cfg else '' }}"
+                     placeholder="Studio Legale Rossi">
+            </div>
+          </div>
 
-        {# Sync manuale #}
-        <div class="d-grid">
-          <button type="button" class="btn btn-success fw-semibold" id="btnSincNow">
-            <i class="bi bi-cloud-download me-2"></i>Connetti e scarica email ora
+          <div class="imp-field">
+            <label class="imp-label">Email mittente</label>
+            <input type="email" name="mittente_email" class="imp-input"
+                   value="{{ email_cfg.from_address if email_cfg else '' }}"
+                   placeholder="info@studiolegale.it">
+          </div>
+
+          <div class="imp-field">
+            <label class="imp-label">Reply-To <span style="font-weight:400;color:#94a3b8">(opzionale)</span></label>
+            <input type="email" name="reply_to" class="imp-input"
+                   value="{{ email_cfg.from_address if email_cfg else '' }}"
+                   placeholder="risposta@studiolegale.it">
+          </div>
+
+          <hr class="imp-divider">
+
+          <button type="button" class="imp-test-btn imp-test-smtp" id="btnTestSmtp">
+            <i class="bi bi-plug"></i>Test connessione SMTP
           </button>
-        </div>
-        <div class="small text-muted text-center mt-2">
-          Scarica le ultime 100 email dalla casella IMAP e aggiorna automaticamente gli esiti PST.
-        </div>
 
-        <div id="syncResult" class="mt-3" style="display:none"></div>
+        </div>
       </div>
     </div>
+
+    {# ── IMAP ─────────────────────────────────────────────── #}
+    <div class="col-lg-6">
+      <div class="imp-card">
+        <div class="imp-card-header">
+          <div class="imp-card-header-icon" style="background:#f0fdf4;color:#059669">
+            <i class="bi bi-cloud-download-fill"></i>
+          </div>
+          <div>
+            <p class="imp-card-title">Ricezione (IMAP)</p>
+            <p class="imp-card-sub">Importa email ricevute e risposte PST</p>
+          </div>
+        </div>
+        <div class="imp-card-body">
+
+          <div class="alert alert-light border small py-2 px-3 mb-3"
+               style="border-radius:.5rem;background:#f8fafc;border-color:#e2e8f0 !important;color:#475569">
+            <i class="bi bi-info-circle me-1" style="color:#2563eb"></i>
+            Se hai già configurato la <strong>PEC</strong>, usa le stesse credenziali IMAP per ricevere le notifiche del portale telematico.
+          </div>
+
+          <div class="imp-field">
+            <label class="imp-label">Server IMAP</label>
+            <input type="text" name="imap_host" class="imp-input"
+                   value="{{ pec_cfg.imap_host if email_cfg and pec_cfg.imap_host else '' }}"
+                   placeholder="imap.gmail.com">
+          </div>
+
+          <div class="imp-row">
+            <div class="imp-field" style="max-width:110px">
+              <label class="imp-label">Porta</label>
+              <input type="number" name="imap_port" class="imp-input"
+                     value="{{ pec_cfg.imap_port if email_cfg and pec_cfg.imap_port else 993 }}">
+            </div>
+            <div class="imp-field d-flex align-items-end pb-1">
+              <div class="imp-check-wrap">
+                <input type="checkbox" name="imap_ssl" value="1" id="chkImapSsl"
+                       {{ 'checked' if not email_cfg or not pec_cfg.use_ssl is defined or pec_cfg.use_ssl }}>
+                <label for="chkImapSsl">SSL/TLS</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-light border small py-2 px-3 mb-3"
+               style="border-radius:.5rem;background:#f8fafc;border-color:#e2e8f0 !important;color:#64748b">
+            Username e password corrispondono all'account SMTP configurato sopra.
+          </div>
+
+          <button type="button" class="imp-test-btn imp-test-imap mb-3" id="btnTestImap">
+            <i class="bi bi-plug"></i>Test connessione IMAP
+          </button>
+
+          <hr class="imp-divider">
+
+          <button type="button" class="imp-sync-btn" id="btnSincNow">
+            <i class="bi bi-cloud-download"></i>Scarica email ora
+          </button>
+          <p class="imp-input-hint text-center mt-2">
+            Scarica le ultime 100 email e aggiorna automaticamente gli esiti PST.
+          </p>
+
+          <div id="syncResult" class="mt-3" style="display:none"></div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>{# /row #}
+
+  <div class="imp-footer">
+    <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary">
+      Annulla
+    </a>
+    <button type="submit" class="btn btn-primary fw-semibold px-4">
+      <i class="bi bi-floppy me-1"></i>Salva impostazioni
+    </button>
   </div>
 
-</div>{# /row #}
+  </form>
 
-<div class="d-flex justify-content-end mt-4">
-  <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary me-2">
-    Annulla
-  </a>
-  <button type="submit" class="btn btn-primary fw-semibold">
-    <i class="bi bi-save me-1"></i>Salva impostazioni
-  </button>
-</div>
-
-</form>
-
+</div>{# /imp-shell #}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -178,11 +388,17 @@
 function _toast(tipo, msg) {
   const area = document.getElementById('toastArea');
   const id = 'toast_' + Date.now();
+  const colors = { success: '#059669', danger: '#dc2626', warning: '#d97706' };
+  const icons  = { success: 'check-circle-fill', danger: 'x-circle-fill', warning: 'exclamation-triangle-fill' };
   area.insertAdjacentHTML('beforeend', `
-    <div id="${id}" class="toast align-items-center text-bg-${tipo} border-0 show mb-2">
+    <div id="${id}" class="toast align-items-center border-0 show mb-2"
+         style="background:#0f172a;color:#fff;border-radius:.625rem;min-width:260px;box-shadow:0 8px 24px rgba(15,23,42,.25)">
       <div class="d-flex">
-        <div class="toast-body">${msg}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto"
+        <div class="toast-body d-flex gap-2 align-items-start py-3 px-3">
+          <i class="bi bi-${icons[tipo] || 'info-circle-fill'} flex-shrink-0 mt-1" style="color:${colors[tipo] || '#fff'}"></i>
+          <span style="font-size:.83rem;line-height:1.5">${msg}</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"
                 onclick="document.getElementById('${id}').remove()"></button>
       </div>
     </div>`);
@@ -195,25 +411,35 @@ function _postForm(azione) {
   return fetch('', { method: 'POST', body: fd }).then(r => r.json());
 }
 
-document.getElementById('btnTestSmtp')?.addEventListener('click', function() {
-  this.disabled = true;
-  _postForm('test_smtp').then(d => {
-    _toast(d.ok ? 'success' : 'danger', d.messaggio || d.errore);
-  }).finally(() => this.disabled = false);
+document.getElementById('btnTestSmtp')?.addEventListener('click', function () {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test…';
+  _postForm('test_smtp')
+    .then(d => _toast(d.ok ? 'success' : 'danger', d.messaggio || d.errore))
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-plug"></i>Test connessione SMTP';
+    });
 });
 
-document.getElementById('btnTestImap')?.addEventListener('click', function() {
-  this.disabled = true;
-  _postForm('test_imap').then(d => {
-    _toast(d.ok ? 'success' : 'danger', d.messaggio || d.errore);
-  }).finally(() => this.disabled = false);
+document.getElementById('btnTestImap')?.addEventListener('click', function () {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test…';
+  _postForm('test_imap')
+    .then(d => _toast(d.ok ? 'success' : 'danger', d.messaggio || d.errore))
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-plug"></i>Test connessione IMAP';
+    });
 });
 
-document.getElementById('btnSincNow')?.addEventListener('click', function() {
+document.getElementById('btnSincNow')?.addEventListener('click', function () {
   const btn = this;
   const result = document.getElementById('syncResult');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Connessione in corso…';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Connessione in corso…';
   result.style.display = 'none';
 
   fetch("{{ url_for('email_client.sincronizza') }}", {
@@ -225,27 +451,25 @@ document.getElementById('btnSincNow')?.addEventListener('click', function() {
     let html, tipo;
     if (d.ok) {
       tipo = 'success';
-      html = `<strong>${d.nuove}</strong> email nuove scaricate.`;
-      if (d.pst_trovate) html += ` <strong>${d.pst_trovate}</strong> risposta/e PST rilevata/e.`;
-      if (d.esiti_aggiornati) html += ` <strong>${d.esiti_aggiornati}</strong> esito/i aggiornati nei fascicoli.`;
-      if (d.errore) html += ` <em class="text-warning">Avviso: ${d.errore}</em>`;
+      html = `<strong>${d.nuove}</strong> email scaricate.`;
+      if (d.pst_trovate)       html += ` <strong>${d.pst_trovate}</strong> risposta/e PST.`;
+      if (d.esiti_aggiornati)  html += ` <strong>${d.esiti_aggiornati}</strong> esito/i aggiornato/i.`;
+      if (d.errore) html += ` <em class="opacity-75">Avviso: ${d.errore}</em>`;
     } else {
       tipo = 'danger';
       html = d.errore || 'Errore sincronizzazione.';
     }
-    result.innerHTML = `<div class="alert alert-${tipo} small py-2 mb-0">${html}</div>`;
+    result.innerHTML = `<div class="alert alert-${tipo} small py-2 px-3 mb-0" style="border-radius:.5rem">${html}</div>`;
     result.style.display = 'block';
-    if (d.ok && d.nuove > 0) {
-      setTimeout(() => window.location = "{{ url_for('email_client.casella') }}", 2000);
-    }
+    if (d.ok && d.nuove > 0) setTimeout(() => window.location = "{{ url_for('email_client.casella') }}", 2000);
   })
   .catch(() => {
-    result.innerHTML = '<div class="alert alert-danger small py-2 mb-0">Errore di rete.</div>';
+    result.innerHTML = '<div class="alert alert-danger small py-2 px-3 mb-0" style="border-radius:.5rem">Errore di rete.</div>';
     result.style.display = 'block';
   })
   .finally(() => {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-cloud-download me-2"></i>Connetti e scarica email ora';
+    btn.innerHTML = '<i class="bi bi-cloud-download"></i>Scarica email ora';
   });
 });
 </script>

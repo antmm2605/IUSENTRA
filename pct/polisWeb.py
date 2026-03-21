@@ -68,11 +68,14 @@ class DocumentoPolisWeb:
     """Documento presente nel fascicolo telematico del tribunale."""
     id_documento: str
     nome: str
-    tipo: str                   # ATTO | MEMORIA | SENTENZA | ORDINANZA | …
+    tipo: str                   # ATTO | ALLEGATO | INDICE | PROVVEDIMENTO | …
     data_deposito: str          # YYYY-MM-DD
     mittente: str
     dimensione_bytes: int = 0
     disponibile: bool = True
+    # Raggruppamento per busta/deposito (tutti i file della stessa busta condividono id_deposito)
+    id_deposito: str = ""       # identificativo univoco della busta telematica
+    tipo_atto: str = ""         # tipo atto della busta (es. "Decreto Ingiuntivo", "Memoria")
 
 
 @dataclass
@@ -476,6 +479,8 @@ class ClientPolisWeb:
                     mittente=str(getattr(item, "mittente", "") or ""),
                     dimensione_bytes=int(getattr(item, "dimensione", 0) or 0),
                     disponibile=bool(getattr(item, "disponibile", True)),
+                    id_deposito=str(getattr(item, "idBusta", getattr(item, "idDeposito", "")) or ""),
+                    tipo_atto=str(getattr(item, "tipoAtto", getattr(item, "tipoAtta", "")) or ""),
                 )
                 documenti.append(d)
         except (AttributeError, TypeError, ValueError):
@@ -534,24 +539,91 @@ class ClientPolisWebDemo(ClientPolisWeb):
         ]
 
     def consulta_documenti(self, codice_ufficio, numero_rg, anno_rg) -> List[DocumentoPolisWeb]:
-        return [
+        """
+        Dati demo: simula un fascicolo telematico con 4 buste realistiche
+        (Decreto Ingiuntivo, Comparsa di risposta, Memoria, Provvedimento cancelleria).
+        """
+        anno = str(anno_rg)
+        # Busta 1 — Ricorso per Decreto Ingiuntivo (depositato dall'avvocato ricorrente)
+        busta1 = [
             DocumentoPolisWeb(
-                id_documento="DEMO-001",
-                nome="atto_citazione.pdf.p7m",
-                tipo="ATTO",
-                data_deposito=f"{anno_rg}-01-15",
-                mittente="avv.demo@pec.it",
-                dimensione_bytes=245760,
+                id_documento="DEMO-B1-001", nome=f"DI_ricorso_{numero_rg}_{anno}.pdf.p7m",
+                tipo="ATTO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=312320,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
             ),
             DocumentoPolisWeb(
-                id_documento="DEMO-002",
-                nome="memoria_difensiva.pdf.p7m",
-                tipo="MEMORIA",
-                data_deposito=f"{anno_rg}-03-10",
-                mittente="avv.controparte@pec.it",
-                dimensione_bytes=189440,
+                id_documento="DEMO-B1-002", nome="DI_procura_alle_liti.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=98304,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B1-003", nome="DI_indice_documenti.xml",
+                tipo="INDICE", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=4096,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B1-004", nome="DI_contratto_fornitura.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=204800,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B1-005", nome="DI_fatture_insolute.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=153600,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
             ),
         ]
+        # Busta 2 — Decreto Ingiuntivo emesso dalla cancelleria
+        busta2 = [
+            DocumentoPolisWeb(
+                id_documento="DEMO-B2-001", nome=f"decreto_ingiuntivo_{numero_rg}_{anno}.pdf",
+                tipo="PROVVEDIMENTO", data_deposito=f"{anno}-01-28",
+                mittente="cancelleria@tribunale.giustiziapec.it", dimensione_bytes=87040,
+                id_deposito="BUSTA-DI-PROV-002", tipo_atto="Provvedimento — Decreto Ingiuntivo",
+                disponibile=True,
+            ),
+        ]
+        # Busta 3 — Opposizione al Decreto Ingiuntivo (controparte)
+        busta3 = [
+            DocumentoPolisWeb(
+                id_documento="DEMO-B3-001", nome="opposizione_DI.pdf.p7m",
+                tipo="ATTO", data_deposito=f"{anno}-02-20",
+                mittente="avv.controparte@pec.it", dimensione_bytes=198656,
+                id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B3-002", nome="opposizione_procura.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-02-20",
+                mittente="avv.controparte@pec.it", dimensione_bytes=81920,
+                id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B3-003", nome="opposizione_indice.xml",
+                tipo="INDICE", data_deposito=f"{anno}-02-20",
+                mittente="avv.controparte@pec.it", dimensione_bytes=3072,
+                id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
+            ),
+        ]
+        # Busta 4 — Memoria difensiva (avvocato ricorrente in sede di opposizione)
+        busta4 = [
+            DocumentoPolisWeb(
+                id_documento="DEMO-B4-001", nome="memoria_difensiva.pdf.p7m",
+                tipo="ATTO", data_deposito=f"{anno}-03-10",
+                mittente="avv.demo@pec.it", dimensione_bytes=265216,
+                id_deposito="BUSTA-MEM-004", tipo_atto="Memoria Difensiva",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B4-002", nome="memoria_documenti_nuovi.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-03-10",
+                mittente="avv.demo@pec.it", dimensione_bytes=122880,
+                id_deposito="BUSTA-MEM-004", tipo_atto="Memoria Difensiva",
+            ),
+        ]
+        return busta1 + busta2 + busta3 + busta4
 
 
 # ================================================================ Utils

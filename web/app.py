@@ -1494,11 +1494,45 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore polisWeb_documenti: %s", e)
             flash(str(e), "danger")
             return redirect(url_for("polisWeb_home"))
+
+        # Risolvi nome ufficio dal codice
+        nome_ufficio = codice_ufficio
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _uff = next(
+                (u for u in _get_uff(
+                    os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                ).carica() if u.get("codice") == codice_ufficio),
+                None,
+            )
+            nome_ufficio = _uff["nome"] if _uff else codice_ufficio
+        except Exception:
+            pass
+
+        # Raggruppa per id_deposito → lista ordinata per data (più recenti prima)
+        from collections import OrderedDict
+        _gruppi: dict = OrderedDict()
+        for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
+            chiave = doc.id_deposito or f"__{doc.data_deposito}__{doc.mittente}"
+            if chiave not in _gruppi:
+                _gruppi[chiave] = {
+                    "id_deposito": doc.id_deposito or chiave,
+                    "tipo_atto": doc.tipo_atto or doc.tipo.replace("_", " ").title(),
+                    "data_deposito": doc.data_deposito,
+                    "mittente": doc.mittente,
+                    "documenti": [],
+                }
+            _gruppi[chiave]["documenti"].append(doc)
+        depositi = list(_gruppi.values())
+
         return render_template(
             "polisWeb_documenti.html",
             documenti=documenti,
+            depositi=depositi,
             numero_rg=numero_rg,
             anno_rg=anno_rg,
+            codice_ufficio=codice_ufficio,
+            nome_ufficio=nome_ufficio,
             demo_mode=demo_mode,
         )
 
@@ -1511,9 +1545,27 @@ def create_app(config: dict | None = None) -> Flask:
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         u = g.utente_corrente
         try:
+            numero_rg_imp = f.get("numero_rg", "")
+            anno_rg_imp   = int(f.get("anno_rg", 0) or 0)
+            nome_ufficio_imp = f.get("nome_ufficio", "")
+
+            # Controllo duplicati: evita di importare lo stesso RG due volte
+            gf_dup = get_fascicoli()
+            for fc_esistente in gf_dup.tutti():
+                if (fc_esistente.numero_rg == numero_rg_imp
+                        and fc_esistente.anno_rg == anno_rg_imp
+                        and fc_esistente.tribunale == nome_ufficio_imp):
+                    flash(
+                        f"Il fascicolo RG {numero_rg_imp}/{anno_rg_imp} "
+                        f"({nome_ufficio_imp}) è già presente nel gestionale.",
+                        "warning",
+                    )
+                    return redirect(url_for("dettaglio_fascicolo",
+                                            id_fasc=fc_esistente.id))
+
             fascicolo_pw = FascicoloPolisWeb(
-                numero_rg=f.get("numero_rg", ""),
-                anno_rg=int(f.get("anno_rg", 0) or 0),
+                numero_rg=numero_rg_imp,
+                anno_rg=anno_rg_imp,
                 ruolo=f.get("ruolo", "CIVILE_COGNIZIONE"),
                 stato=f.get("stato", "PENDENTE"),
                 oggetto=f.get("oggetto", ""),
@@ -1523,7 +1575,7 @@ def create_app(config: dict | None = None) -> Flask:
                 data_udienza=f.get("data_udienza", ""),
                 parti=_json.loads(f.get("parti_json", "[]") or "[]"),
                 codice_ufficio=f.get("codice_ufficio", ""),
-                nome_ufficio=f.get("nome_ufficio", ""),
+                nome_ufficio=nome_ufficio_imp,
             )
             client = crea_client(demo=demo_mode)
             risultato = client.importa_fascicolo(

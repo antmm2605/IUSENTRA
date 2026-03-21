@@ -2351,6 +2351,7 @@ def create_app(config: dict | None = None) -> Flask:
                 appuntamenti_cliente=appuntamenti_cliente,
                 messaggi_cliente=messaggi_cliente,
                 parcelle_cliente=parcelle_cliente,
+                tipi_fascicolo=list(TipoFascicolo),
             )
         except Exception as e:
             app.logger.exception("Errore cartella_cliente %s: %s", id_cliente, e)

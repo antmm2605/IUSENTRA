@@ -63,10 +63,11 @@
   </span>
   <div class="d-flex gap-2 align-items-center flex-wrap">
     {# Azioni contestuali veloci #}
-    <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
-       class="btn btn-sm btn-outline-primary">
+    <button class="btn btn-sm btn-outline-primary"
+            type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#offcNuovoFasc">
       <i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline">Nuova pratica</span>
-    </a>
+    </button>
     {# Dropdown Aggiungi — azione principale #}
     <div class="dropdown">
       <button class="btn btn-primary dropdown-toggle fw-semibold" type="button"
@@ -76,7 +77,7 @@
       <ul class="dropdown-menu dropdown-menu-end shadow">
         <li><h6 class="dropdown-header"><i class="bi bi-folder2-open me-1"></i>Pratiche</h6></li>
         <li>
-          <a class="dropdown-item" href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}">
+          <a class="dropdown-item" href="#" data-bs-toggle="offcanvas" data-bs-target="#offcNuovoFasc">
             <i class="bi bi-folder-plus me-2 text-primary"></i>Nuova pratica
           </a>
         </li>
@@ -343,10 +344,26 @@
                    class="btn btn-sm btn-primary">
                   <i class="bi bi-folder2-open me-1"></i><span class="d-none d-sm-inline">Apri</span>
                 </a>
-                <a href="{{ url_for('modifica_fascicolo', id_fasc=f.id) }}"
-                   class="btn btn-sm btn-outline-secondary" title="Modifica">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary apri-modifica-fasc"
+                        title="Modifica pratica"
+                        data-bs-toggle="offcanvas" data-bs-target="#offcModificaFasc"
+                        data-id="{{ f.id }}"
+                        data-titolo="{{ f.titolo|e }}"
+                        data-tipo="{{ f.tipo.value }}"
+                        data-oggetto="{{ f.oggetto|e if f.oggetto else '' }}"
+                        data-controparte="{{ f.controparte|e if f.controparte else '' }}"
+                        data-tribunale="{{ f.tribunale|e if f.tribunale else '' }}"
+                        data-numero-rg="{{ f.numero_rg|e if f.numero_rg else '' }}"
+                        data-anno-rg="{{ f.anno_rg if f.anno_rg else oggi.year }}"
+                        data-sezione="{{ f.sezione|e if f.sezione else '' }}"
+                        data-giudice="{{ f.giudice|e if f.giudice else '' }}"
+                        data-valore-causa="{{ f.valore_causa if f.valore_causa else '' }}"
+                        data-avvocato-referente="{{ f.avvocato_referente|e if f.avvocato_referente else '' }}"
+                        data-avvocato-dominus="{{ f.avvocato_dominus|e if f.avvocato_dominus else '' }}"
+                        data-note="{{ f.note|e if f.note else '' }}">
                   <i class="bi bi-pencil"></i>
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -770,6 +787,205 @@
 </div>{# /tab-content #}
 
 {# ═══════════════════════════════════════════════
+   OFFCANVAS — NUOVO FASCICOLO
+   ═══════════════════════════════════════════════ #}
+{% from "includes/_ufficio_picker.html" import ufficio_picker %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcNuovoFasc"
+     aria-labelledby="offcNuovoFascLabel" style="width:min(100vw,560px)">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title fw-bold" id="offcNuovoFascLabel">
+      <i class="bi bi-folder-plus me-2 text-primary"></i>Nuova pratica
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="post" action="{{ url_for('nuovo_fascicolo') }}">
+      <input type="hidden" name="id_cliente" value="{{ cliente.id }}">
+
+      {# Dati principali #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+        <input type="text" name="titolo" class="form-control" required
+               placeholder="es. Rossi c/ Bianchi — Inadempimento contrattuale">
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+          <select name="tipo" class="form-select" required>
+            {% for t in tipi_fascicolo %}
+            <option value="{{ t.value }}">{{ t.value.replace('_',' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold">Controparte</label>
+          <input type="text" name="controparte" class="form-control" placeholder="Nome controparte">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
+        <textarea name="oggetto" class="form-control" rows="2"
+                  placeholder="Breve descrizione della causa…"></textarea>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-bank me-1"></i>Dati processuali</p>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Tribunale</label>
+        {{ ufficio_picker("tribunale", uid="uffp-nuovo-fasc-trib", mostra_tabs=false) }}
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Numero RG</label>
+          <input type="text" name="numero_rg" class="form-control font-monospace" placeholder="1234">
+        </div>
+        <div class="col-4">
+          <label class="form-label fw-semibold small">Anno RG</label>
+          <input type="number" name="anno_rg" class="form-control"
+                 value="{{ oggi.year }}" min="2000" max="2099">
+        </div>
+        <div class="col-3">
+          <label class="form-label fw-semibold small">Sezione</label>
+          <input type="text" name="sezione" class="form-control" placeholder="I">
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold small">Giudice</label>
+          <input type="text" name="giudice" class="form-control" placeholder="Dott. …">
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Valore causa (€)</label>
+          <input type="number" name="valore_causa" class="form-control" step="0.01" min="0" placeholder="0.00">
+        </div>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-briefcase me-1"></i>Avvocati responsabili</p>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato referente</label>
+          <input type="text" name="avvocato_referente" class="form-control" placeholder="Avv. …">
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato dominus</label>
+          <input type="text" name="avvocato_dominus" class="form-control" placeholder="Avv. …">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold small">Note</label>
+        <textarea name="note" class="form-control" rows="2"></textarea>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">
+          <i class="bi bi-check-lg me-1"></i>Crea pratica
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Annulla</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════
+   OFFCANVAS — MODIFICA FASCICOLO
+   ═══════════════════════════════════════════════ #}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcModificaFasc"
+     aria-labelledby="offcModificaFascLabel" style="width:min(100vw,560px)">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title fw-bold" id="offcModificaFascLabel">
+      <i class="bi bi-pencil-square me-2 text-warning"></i>Modifica pratica
+      <span class="offc-fasc-num badge bg-light text-muted border ms-1 fw-normal small"></span>
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="post" action="">
+      {# Dati principali #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+        <input type="text" name="titolo" class="form-control" required>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+          <select name="tipo" class="form-select" required>
+            {% for t in tipi_fascicolo %}
+            <option value="{{ t.value }}">{{ t.value.replace('_',' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold">Controparte</label>
+          <input type="text" name="controparte" class="form-control">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
+        <textarea name="oggetto" class="form-control" rows="2"></textarea>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-bank me-1"></i>Dati processuali</p>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Tribunale</label>
+        {{ ufficio_picker("tribunale", uid="uffp-modifica-fasc-trib", mostra_tabs=false) }}
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Numero RG</label>
+          <input type="text" name="numero_rg" class="form-control font-monospace">
+        </div>
+        <div class="col-4">
+          <label class="form-label fw-semibold small">Anno RG</label>
+          <input type="number" name="anno_rg" class="form-control" min="2000" max="2099">
+        </div>
+        <div class="col-3">
+          <label class="form-label fw-semibold small">Sezione</label>
+          <input type="text" name="sezione" class="form-control">
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold small">Giudice</label>
+          <input type="text" name="giudice" class="form-control">
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Valore causa (€)</label>
+          <input type="number" name="valore_causa" class="form-control" step="0.01" min="0">
+        </div>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-briefcase me-1"></i>Avvocati responsabili</p>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato referente</label>
+          <input type="text" name="avvocato_referente" class="form-control">
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato dominus</label>
+          <input type="text" name="avvocato_dominus" class="form-control">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold small">Note</label>
+        <textarea name="note" class="form-control" rows="2"></textarea>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-warning flex-grow-1">
+          <i class="bi bi-check-lg me-1"></i>Salva modifiche
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Annulla</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════
    MODAL — SFOGLIA ARCHIVIO ZIP
    ═══════════════════════════════════════════════ #}
 <div class="modal fade" id="modalSfoglia" tabindex="-1" aria-labelledby="sfoglia-label" aria-hidden="true">
@@ -884,6 +1100,59 @@
       });
   };
 }());
+
+/* ---- Offcanvas Modifica Fascicolo — popola campi da data-* ---- */
+document.querySelectorAll('.apri-modifica-fasc').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var d = btn.dataset;
+    var oc = document.getElementById('offcModificaFasc');
+
+    /* action form */
+    oc.querySelector('form').action = '/fascicoli/' + d.id + '/modifica';
+
+    /* titolo offcanvas */
+    oc.querySelector('.offc-fasc-num').textContent = d.id;
+
+    /* campi semplici */
+    oc.querySelector('[name="titolo"]').value         = d.titolo       || '';
+    oc.querySelector('[name="oggetto"]').value        = d.oggetto      || '';
+    oc.querySelector('[name="controparte"]').value    = d.controparte  || '';
+    oc.querySelector('[name="numero_rg"]').value      = d.numeroRg     || '';
+    oc.querySelector('[name="anno_rg"]').value        = d.annoRg       || '';
+    oc.querySelector('[name="sezione"]').value        = d.sezione      || '';
+    oc.querySelector('[name="giudice"]').value        = d.giudice      || '';
+    oc.querySelector('[name="valore_causa"]').value   = d.valoreCausa  || '';
+    oc.querySelector('[name="avvocato_referente"]').value = d.avvocatoReferente || '';
+    oc.querySelector('[name="avvocato_dominus"]').value   = d.avvocatoDominus   || '';
+    oc.querySelector('[name="note"]').value           = d.note         || '';
+
+    /* tipo select */
+    var selTipo = oc.querySelector('[name="tipo"]');
+    selTipo.value = d.tipo || '';
+
+    /* ufficio picker */
+    var tribunale = d.tribunale || '';
+    var root = oc.querySelector('.uffp-root');
+    if (root) {
+      root.querySelector('[data-uffp-input]').value  = tribunale;
+      root.querySelector('[data-uffp-value]').value  = tribunale;
+      var badge     = root.querySelector('[data-uffp-badge]');
+      var badgeLbl  = root.querySelector('[data-uffp-badge-label]');
+      if (tribunale) {
+        badgeLbl.textContent   = tribunale;
+        badge.style.display    = 'block';
+        root.querySelector('[data-uffp-icon] i').className = 'bi bi-building-columns text-primary';
+        var clearBtn = root.querySelector('[data-uffp-clear]');
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+      } else {
+        badge.style.display = 'none';
+        root.querySelector('[data-uffp-icon] i').className = 'bi bi-search text-muted';
+        var clearBtn2 = root.querySelector('[data-uffp-clear]');
+        if (clearBtn2) clearBtn2.style.display = 'none';
+      }
+    }
+  });
+});
 
 /* ---- Navigazione card pratiche ---- */
 function navigaCard(e, card) {

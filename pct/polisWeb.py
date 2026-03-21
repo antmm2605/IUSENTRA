@@ -287,7 +287,7 @@ class ClientPolisWeb:
                         break
 
             # 3. Crea fascicolo
-            fasc = gestione_fascicoli.crea(
+            fasc = gestione_fascicoli.nuovo(
                 titolo=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.oggetto[:80]}",
                 tipo=tipo_fascicolo,
                 id_cliente=id_cliente,

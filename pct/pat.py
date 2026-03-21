@@ -192,7 +192,7 @@ class ClientPAT:
             oggetto_breve = fascicolo_pat.oggetto[:80] if fascicolo_pat.oggetto else (
                 fascicolo_pat.materia or f"Ricorso {fascicolo_pat.tipo}"
             )
-            fasc = gestione_fascicoli.crea(
+            fasc = gestione_fascicoli.nuovo(
                 titolo=f"N.RG {fascicolo_pat.numero_ricorso}/{fascicolo_pat.anno} — {oggetto_breve}",
                 tipo=TipoFascicolo.AMMINISTRATIVO,
                 id_cliente=id_cliente,

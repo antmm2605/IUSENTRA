@@ -191,7 +191,7 @@ class ClientPDP:
             reato_breve = (fascicolo_pdp.reato[:80]
                            if fascicolo_pdp.reato
                            else f"Proc. {fascicolo_pdp.tipo_registro}")
-            fasc = gestione_fascicoli.crea(
+            fasc = gestione_fascicoli.nuovo(
                 titolo=f"RG {fascicolo_pdp.numero_rg}/{fascicolo_pdp.anno_rg} — {reato_breve}",
                 tipo=TipoFascicolo.PENALE,
                 id_cliente=id_cliente,

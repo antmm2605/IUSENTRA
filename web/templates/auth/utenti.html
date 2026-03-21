@@ -3,41 +3,43 @@
 {% block page_title %}Gestione Utenti{% endblock %}
 
 {% block content %}
-{# Stat cards #}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-primary">{{ stats.totale_utenti }}</div>
-      <div class="small text-muted">Utenti totali</div>
-    </div>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-people-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Gestione Utenti</h1>
+    <p class="ds-ph-sub">Accessi, ruoli e permessi degli utenti dello studio</p>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-success">{{ stats.attivi }}</div>
-      <div class="small text-muted">Attivi</div>
-    </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('profili') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-grid-3x3"></i><span class="d-none d-sm-inline">Matrice permessi</span>
+    </a>
+    <a href="{{ url_for('nuovo_utente') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-person-plus-fill"></i><span class="d-none d-sm-inline">Nuovo utente</span>
+    </a>
   </div>
+</div>
+
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale_utenti }}</span> utenti totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-person-check text-success"></i>
+    <span class="num">{{ stats.attivi }}</span> attivi
+  </span>
   {% for ruolo, n in stats.per_ruolo.items() %}
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-4 fw-bold">{{ n }}</div>
-      <div class="small text-muted">{{ ruolo.replace('_',' ') }}</div>
-    </div>
-  </div>
+  <span class="ds-stat-pill">
+    <span class="num">{{ n }}</span> {{ ruolo.replace('_',' ') | lower }}
+  </span>
   {% endfor %}
 </div>
 
 <div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-    <span><i class="bi bi-people me-2 text-primary"></i>Utenti — {{ utenti|length }}</span>
-    <div class="d-flex gap-1">
-      <a href="{{ url_for('profili') }}" class="btn btn-sm btn-outline-primary">
-        <i class="bi bi-grid-3x3 me-1"></i>Matrice permessi
-      </a>
-      <a href="{{ url_for('nuovo_utente') }}" class="btn btn-sm btn-primary">
-        <i class="bi bi-person-plus me-1"></i>Nuovo utente
-      </a>
-    </div>
+  <div class="card-header">
+    <span class="fw-semibold text-muted small">{{ utenti|length }} utenti</span>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">

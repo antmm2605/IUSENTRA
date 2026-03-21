@@ -3,15 +3,19 @@
 {% block page_title %}Registro dei Trattamenti{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div class="text-muted small">
-    <i class="bi bi-info-circle me-1"></i>
-    Art. 30 Reg. UE 2016/679 — obbligatorio per org. ≥250 persone,
-    <strong>raccomandato</strong> per tutti i titolari del trattamento.
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-shield-check"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Registro dei Trattamenti</h1>
+    <p class="ds-ph-sub">Art. 30 Reg. UE 2016/679 — raccomandato per tutti i titolari del trattamento</p>
   </div>
-  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuovo">
-    <i class="bi bi-plus-lg me-1"></i>Nuovo trattamento
-  </button>
+  <div class="ds-ph-actions">
+    <button class="ds-btn ds-btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuovo">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo trattamento</span>
+    </button>
+  </div>
 </div>
 
 {% if trattamenti %}

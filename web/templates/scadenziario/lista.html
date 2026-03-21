@@ -4,7 +4,48 @@
 {% block page_title %}Scadenziario Legale{% endblock %}
 
 {% block content %}
-{# Alert scadute/critiche #}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-calendar-event"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Scadenziario Legale</h1>
+    <p class="ds-ph-sub">Gestione termini, udienze e scadenze processuali</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('export_scadenziario_csv') }}?tipo={{ filtro_tipo }}&priorita={{ filtro_priorita }}&id_fascicolo={{ id_fascicolo }}"
+       class="ds-btn ds-btn-outline" title="Esporta CSV">
+      <i class="bi bi-filetype-csv"></i><span class="d-none d-sm-inline">CSV</span>
+    </a>
+    <a href="{{ url_for('scadenziario_pdf_export') }}?stato=tutte"
+       class="ds-btn ds-btn-outline" title="Esporta PDF">
+      <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-sm-inline">PDF</span>
+    </a>
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-ghost dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-calendar-arrow-down"></i><span class="d-none d-sm-inline">iCal</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('impostazioni_calendario') }}">
+            <i class="bi bi-arrow-repeat me-2 text-primary"></i>Sync automatica…
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
+            <i class="bi bi-download me-2 text-warning"></i>Scarica .ics (una-tantum)
+          </a>
+        </li>
+      </ul>
+    </div>
+    <a href="{{ url_for('nuova_scadenza') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuova scadenza</span>
+    </a>
+  </div>
+</div>
+
+{# ── Alert scadute/critiche ── #}
 {% if scadute %}
 <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
   <i class="bi bi-exclamation-octagon-fill fs-5 mt-1 flex-shrink-0"></i>
@@ -34,121 +75,73 @@
 </div>
 {% endif %}
 
-{# Stat cards #}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-primary">{{ stats.aperte }}</div>
-      <div class="small text-muted">Aperte</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-danger">{{ stats.critiche }}</div>
-      <div class="small text-muted">Critiche</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-warning">{{ stats.alte }}</div>
-      <div class="small text-muted">Alta prio.</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-success">{{ stats.completate }}</div>
-      <div class="small text-muted">Completate</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-secondary">{{ stats.scadute }}</div>
-      <div class="small text-muted">Scadute</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-2">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-info">{{ stats.imminenti_7gg }}</div>
-      <div class="small text-muted">Entro 7gg</div>
-    </div>
-  </div>
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <i class="bi bi-calendar2-check text-primary"></i>
+    <span class="num">{{ stats.aperte }}</span> aperte
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-exclamation-triangle text-danger"></i>
+    <span class="num">{{ stats.critiche }}</span> critiche
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-arrow-up-circle text-warning"></i>
+    <span class="num">{{ stats.alte }}</span> alta priorità
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="num">{{ stats.completate }}</span> completate
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-clock-history text-secondary"></i>
+    <span class="num">{{ stats.scadute }}</span> scadute
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-alarm text-info"></i>
+    <span class="num">{{ stats.imminenti_7gg }}</span> entro 7 gg
+  </span>
 </div>
 
+{# ── Filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:180px">
+    <option value="">Tutti i tipi</option>
+    {% for t in tipi %}
+    <option value="{{ t.value }}" {{ 'selected' if t.value == filtro_tipo }}>
+      {{ t.value.replace('_',' ') }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="priorita" class="form-select form-select-sm" style="max-width:160px">
+    <option value="">Tutte le priorità</option>
+    {% for p in priorita_list %}
+    <option value="{{ p.value }}" {{ 'selected' if p.value == filtro_priorita }}>
+      {{ p.value }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
+  {% if filtro_tipo or filtro_priorita %}
+  <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Tabella scadenze ── #}
+{% if scadenze %}
 <div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-    <span><i class="bi bi-calendar-event me-2 text-primary"></i>Scadenze — {{ scadenze|length }}</span>
-    <div class="d-flex gap-1 align-items-center">
-      <select id="page-size-scadenze" class="form-select form-select-sm" style="width:auto">
-        <option value="25">25 per pagina</option>
-        <option value="50">50 per pagina</option>
-        <option value="0">Tutti</option>
-      </select>
-      <a href="{{ url_for('export_scadenziario_csv') }}?tipo={{ filtro_tipo }}&priorita={{ filtro_priorita }}&id_fascicolo={{ id_fascicolo }}"
-         class="btn btn-sm btn-outline-success" title="Esporta CSV">
-        <i class="bi bi-filetype-csv me-1"></i>CSV
-      </a>
-      <a href="{{ url_for('scadenziario_pdf_export') }}?stato=tutte" class="btn btn-sm btn-outline-danger" title="Esporta PDF">
-        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-      </a>
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                data-bs-toggle="dropdown"
-                title="Esporta / sincronizza scadenze">
-          <i class="bi bi-calendar-arrow-down me-1"></i>iCal
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow">
-          <li>
-            <a class="dropdown-item" href="{{ url_for('impostazioni_calendario') }}">
-              <i class="bi bi-arrow-repeat me-2 text-primary"></i>Sync automatica…
-            </a>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
-              <i class="bi bi-download me-2 text-warning"></i>Scarica .ics (una-tantum)
-            </a>
-          </li>
-        </ul>
-      </div>
-      <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-sm btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nuova
-      </a>
-    </div>
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-muted small">{{ scadenze|length }} scadenze</span>
+    <select id="page-size-scadenze" class="form-select form-select-sm" style="width:auto">
+      <option value="25">25 per pagina</option>
+      <option value="50">50 per pagina</option>
+      <option value="0">Tutti</option>
+    </select>
   </div>
-
-  {# Filtri #}
-  <div class="card-body border-bottom py-2">
-    <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-3">
-        <select name="tipo" class="form-select form-select-sm">
-          <option value="">Tutti i tipi</option>
-          {% for t in tipi %}
-          <option value="{{ t.value }}" {{ 'selected' if t.value == filtro_tipo }}>
-            {{ t.value.replace('_',' ') }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <select name="priorita" class="form-select form-select-sm">
-          <option value="">Tutte le priorità</option>
-          {% for p in priorita_list %}
-          <option value="{{ p.value }}" {{ 'selected' if p.value == filtro_priorita }}>
-            {{ p.value }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-primary btn-sm">Filtra</button>
-        <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm ms-1">
-          <i class="bi bi-x-lg"></i>
-        </a>
-      </div>
-    </form>
-  </div>
-
-  {% if scadenze %}
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0" id="tbl-scadenze" data-paginate="page-size-scadenze">
@@ -230,13 +223,27 @@
       </table>
     </div>
   </div>
-  {% else %}
-  <div class="card-body text-center text-muted py-5">
-    <i class="bi bi-calendar-check fs-1 d-block mb-2"></i>
-    Nessuna scadenza aperta.
+</div>
+
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-calendar-check ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessuna scadenza aperta</div>
+  <div class="ds-empty-sub">
+    {% if filtro_tipo or filtro_priorita %}
+      Nessun risultato per i filtri selezionati.
+    {% else %}
+      Aggiungi scadenze e termini processuali per tenere tutto sotto controllo.
+    {% endif %}
   </div>
+  {% if not filtro_tipo and not filtro_priorita %}
+  <a href="{{ url_for('nuova_scadenza') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-plus-lg"></i>Nuova scadenza
+  </a>
   {% endif %}
 </div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

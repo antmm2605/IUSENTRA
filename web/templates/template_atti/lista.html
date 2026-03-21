@@ -2,11 +2,19 @@
 {% block title %}Template Atti{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-  <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Template Atti</h4>
-  <a href="{{ url_for('template_atti.nuovo') }}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-1"></i>Nuovo template
-  </a>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-file-earmark-text"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Template Atti</h1>
+    <p class="ds-ph-sub">Modelli predefiniti per la redazione degli atti legali</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('template_atti.nuovo') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo template</span>
+    </a>
+  </div>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}

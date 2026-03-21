@@ -4,32 +4,41 @@
 
 {% block content %}
 
-{# ---- Stat cards ---- #}
-<div class="row g-3 mb-1 stat-cards-row" id="stat-cards-dashboard">
-  {% set cards = [
-    ("Oggi",          stats.oggi,            "bi-calendar-check",  "#e3f2fd", "#1565c0"),
-    ("Questa sett.",  stats.questa_settimana,"bi-calendar-week",   "#f3e5f5", "#6a1b9a"),
-    ("Questo mese",   stats.questo_mese,     "bi-calendar-month",  "#e8f5e9", "#2e7d32"),
-    ("Totale",        stats.totale,          "bi-archive",         "#fff3e0", "#e65100"),
-  ] %}
-  {% for label, val, icon, bg, color in cards %}
-  <div class="col-6 col-md-3">
-    <div class="card stat-card shadow-sm h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <div class="icon-wrap" style="background:{{ bg }}; color:{{ color }}">
-          <i class="bi {{ icon }}"></i>
-        </div>
-        <div>
-          <div class="fs-3 fw-bold lh-1" style="color:{{ color }}">{{ val }}</div>
-          <div class="text-muted small">{{ label }}</div>
-        </div>
-      </div>
-    </div>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-speedometer2"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Dashboard</h1>
+    <p class="ds-ph-sub">Panoramica dello studio — {{ oggi.strftime('%d %B %Y') }}</p>
   </div>
-  {% endfor %}
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-calendar-plus"></i><span class="d-none d-sm-inline">Appuntamento</span>
+    </a>
+    <a href="{{ url_for('nuova_scadenza') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Scadenza</span>
+    </a>
+  </div>
 </div>
-<div class="stat-cards-dots mb-3" id="dots-dashboard">
-  <span class="active"></span><span></span><span></span><span></span>
+
+{# ── Stats agenda ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <i class="bi bi-calendar-check text-primary"></i>
+    <span class="num">{{ stats.oggi }}</span> oggi
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-calendar-week text-success"></i>
+    <span class="num">{{ stats.questa_settimana }}</span> questa settimana
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-calendar-month text-warning"></i>
+    <span class="num">{{ stats.questo_mese }}</span> questo mese
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-archive text-secondary"></i>
+    <span class="num">{{ stats.totale }}</span> totali
+  </span>
 </div>
 
 {# ---- Scadenze critiche alert ---- #}
@@ -265,17 +274,6 @@
 
 {% block scripts %}
 <script>
-// Dots carosello stat-cards (mobile)
-(function(){
-  var row  = document.getElementById('stat-cards-dashboard');
-  var dots = document.querySelectorAll('#dots-dashboard span');
-  if (!row || !dots.length) return;
-  row.addEventListener('scroll', function() {
-    var idx = Math.round(row.scrollLeft / (row.scrollWidth / dots.length));
-    dots.forEach(function(d,i){ d.classList.toggle('active', i === idx); });
-  }, { passive: true });
-})();
-
 Chart.defaults.font.family = "'Helvetica Neue', Arial, sans-serif";
 Chart.defaults.font.size = 12;
 

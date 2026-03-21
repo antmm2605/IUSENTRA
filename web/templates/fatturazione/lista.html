@@ -2,11 +2,19 @@
 {% block title %}Fatturazione{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-  <h4 class="mb-0 fw-bold"><i class="bi bi-receipt me-2 text-primary"></i>Fatturazione</h4>
-  <a href="{{ url_for('fatturazione.nuova') }}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-1"></i>Nuova parcella
-  </a>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-receipt"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Fatturazione</h1>
+    <p class="ds-ph-sub">Parcelle e note spese — {{ stats.anno }}</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('fatturazione.nuova') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuova parcella</span>
+    </a>
+  </div>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -17,60 +25,44 @@
   {% endfor %}
 {% endwith %}
 
-<!-- Statistiche anno -->
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
-      <div class="card-body text-center py-3">
-        <div class="fw-bold fs-4 text-primary">€ {{ "%.0f"|format(stats.fatturato_lordo) }}</div>
-        <div class="text-muted" style="font-size:.75rem;">Fatturato {{ stats.anno }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
-      <div class="card-body text-center py-3">
-        <div class="fw-bold fs-4 text-success">€ {{ "%.0f"|format(stats.incassato) }}</div>
-        <div class="text-muted" style="font-size:.75rem;">Incassato</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
-      <div class="card-body text-center py-3">
-        <div class="fw-bold fs-4 text-warning">€ {{ "%.0f"|format(stats.da_incassare) }}</div>
-        <div class="text-muted" style="font-size:.75rem;">Da incassare</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:14px;">
-      <div class="card-body text-center py-3">
-        <div class="fw-bold fs-4 text-danger">€ {{ "%.0f"|format(stats.scaduto) }}</div>
-        <div class="text-muted" style="font-size:.75rem;">Scaduto</div>
-      </div>
-    </div>
-  </div>
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <i class="bi bi-graph-up text-primary"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.fatturato_lordo) }}</span> fatturato {{ stats.anno }}
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.incassato) }}</span> incassato
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-hourglass-split text-warning"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.da_incassare) }}</span> da incassare
+  </span>
+  {% if stats.scaduto > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-exclamation-circle text-danger"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.scaduto) }}</span> scaduto
+  </span>
+  {% endif %}
 </div>
 
-<!-- Filtri -->
-<form method="get" class="row g-2 mb-3 align-items-end">
-  <div class="col-auto">
-    <select name="anno" class="form-select form-select-sm" onchange="this.form.submit()">
-      {% for a in anni_disponibili %}
-      <option value="{{ a }}" {{ 'selected' if a == anno }}>{{ a }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <select name="stato" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">Tutti gli stati</option>
-      {% for s in ['BOZZA','EMESSA','PAGATA','SCADUTA','ANNULLATA'] %}
-      <option value="{{ s }}" {{ 'selected' if s == stato_filtro }}>{{ s.title() }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <input type="hidden" name="anno" value="{{ anno }}">
+{# ── Filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
+    {% for a in anni_disponibili %}
+    <option value="{{ a }}" {{ 'selected' if a == anno }}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm" style="max-width:150px" onchange="this.form.submit()">
+    <option value="">Tutti gli stati</option>
+    {% for s in ['BOZZA','EMESSA','PAGATA','SCADUTA','ANNULLATA'] %}
+    <option value="{{ s }}" {{ 'selected' if s == stato_filtro }}>{{ s.title() }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
 </form>
 
 <!-- Lista parcelle -->
@@ -129,12 +121,13 @@
   </div>
 </div>
 {% else %}
-<div class="card border-0 shadow-sm text-center py-5" style="border-radius:16px;">
-  <i class="bi bi-receipt fs-1 text-muted opacity-40 d-block mb-3"></i>
-  <div class="fw-semibold">Nessuna parcella per {{ anno }}</div>
-  <div class="text-muted mt-1" style="font-size:.85rem;">
-    <a href="{{ url_for('fatturazione.nuova') }}">Crea la prima parcella</a>
-  </div>
+<div class="ds-empty">
+  <i class="bi bi-receipt ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessuna parcella per {{ anno }}</div>
+  <div class="ds-empty-sub">Crea la prima parcella per iniziare a gestire la fatturazione.</div>
+  <a href="{{ url_for('fatturazione.nuova') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-plus-lg"></i>Nuova parcella
+  </a>
 </div>
 {% endif %}
 {% endblock %}

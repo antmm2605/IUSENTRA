@@ -2,14 +2,19 @@
 {% block title %}Impostazioni Studio{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-  <div>
-    <h4 class="mb-0 fw-bold"><i class="bi bi-gear-fill me-2 text-primary"></i>Impostazioni Studio</h4>
-    <div class="text-muted" style="font-size:.8rem;">Configurazione generale, PEC, firma digitale e notifiche</div>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-gear-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Impostazioni Studio</h1>
+    <p class="ds-ph-sub">Configurazione generale, PEC, firma digitale e notifiche</p>
   </div>
-  <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2">
-    <i class="bi bi-shield-check me-1"></i>Dati salvati localmente · non inviati a terzi
-  </span>
+  <div class="ds-ph-actions">
+    <span class="ds-role ds-role-success">
+      <i class="bi bi-shield-check"></i>Dati salvati localmente
+    </span>
+  </div>
 </div>
 
 {# ── Flash messages ── #}

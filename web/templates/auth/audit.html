@@ -3,13 +3,25 @@
 {% block page_title %}Audit Log{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-    <span><i class="bi bi-journal-text me-2 text-warning"></i>Audit Log — {{ eventi|length }} eventi</span>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-journal-text"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Audit Log</h1>
+    <p class="ds-ph-sub">Registro accessi e operazioni degli utenti</p>
+  </div>
+  <div class="ds-ph-actions">
     <a href="{{ url_for('esporta_audit_csv', id_utente=filtro_utente, azione=filtro_azione) }}"
-       class="btn btn-sm btn-outline-secondary" title="Scarica CSV (tutti i filtri attivi)">
-      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Esporta CSV
+       class="ds-btn ds-btn-outline" title="Scarica CSV">
+      <i class="bi bi-file-earmark-spreadsheet"></i><span class="d-none d-sm-inline">Esporta CSV</span>
     </a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header">
+    <span class="fw-semibold text-muted small">{{ eventi|length }} eventi</span>
   </div>
 
   {# Filtri #}

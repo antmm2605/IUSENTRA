@@ -1131,7 +1131,7 @@ def create_app(config: dict | None = None) -> Flask:
 
             # Appuntamenti oggi
             app_oggi = sorted(
-                [a for a in ag.tutti() if a.data_ora.date() == oggi],
+                [a for a in ag.tutti() if a.data_ora_dt.date() == oggi],
                 key=lambda a: a.data_ora,
             )
             if app_oggi:
@@ -1141,7 +1141,7 @@ def create_app(config: dict | None = None) -> Flask:
                     "icona": "calendar-check-fill",
                     "titolo": f"{len(app_oggi)} appuntamento/i oggi",
                     "corpo": " • ".join(
-                        f"{a.titolo} {a.data_ora.strftime('%H:%M')}" for a in app_oggi[:3]
+                        f"{a.titolo} {a.data_ora_dt.strftime('%H:%M')}" for a in app_oggi[:3]
                     ),
                     "url": "/agenda",
                     "ts": oggi.isoformat(),
@@ -1150,7 +1150,7 @@ def create_app(config: dict | None = None) -> Flask:
 
             # Appuntamenti domani
             app_domani = sorted(
-                [a for a in ag.tutti() if a.data_ora.date() == domani],
+                [a for a in ag.tutti() if a.data_ora_dt.date() == domani],
                 key=lambda a: a.data_ora,
             )
             if app_domani:
@@ -1160,7 +1160,7 @@ def create_app(config: dict | None = None) -> Flask:
                     "icona": "calendar-event",
                     "titolo": f"{len(app_domani)} appuntamento/i domani",
                     "corpo": " • ".join(
-                        f"{a.titolo} {a.data_ora.strftime('%H:%M')}" for a in app_domani[:3]
+                        f"{a.titolo} {a.data_ora_dt.strftime('%H:%M')}" for a in app_domani[:3]
                     ),
                     "url": "/agenda",
                     "ts": domani.isoformat(),

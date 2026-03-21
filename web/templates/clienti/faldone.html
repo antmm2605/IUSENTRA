@@ -38,6 +38,10 @@
            class="btn btn-sm btn-light d-flex align-items-center gap-1" title="Esporta PDF Faldone">
           <i class="bi bi-file-earmark-pdf text-danger"></i><span class="d-none d-md-inline">PDF</span>
         </a>
+        <a href="{{ url_for('copertina_faldone', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-light d-flex align-items-center gap-1" title="Copertina Faldone" target="_blank">
+          <i class="bi bi-layout-text-window text-primary"></i><span class="d-none d-md-inline">Copertina</span>
+        </a>
         <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
            class="btn btn-sm btn-light d-flex align-items-center gap-1">
           <i class="bi bi-folder2-open"></i><span class="d-none d-md-inline">Cartella</span>
@@ -151,12 +155,6 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-timeline" type="button" role="tab">
-      <i class="bi bi-clock-history me-1"></i>Timeline
-      {% if timeline %}<span class="badge bg-secondary rounded-pill ms-1">{{ timeline|length }}</span>{% endif %}
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documenti" type="button" role="tab">
       <i class="bi bi-files me-1"></i>Documenti
       {% if n_doc %}<span class="badge bg-success rounded-pill ms-1">{{ n_doc }}</span>{% endif %}
@@ -172,12 +170,6 @@
     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-depositi" type="button" role="tab">
       <i class="bi bi-send me-1"></i>Depositi PCT
       {% if n_dep %}<span class="badge bg-secondary rounded-pill ms-1">{{ n_dep }}</span>{% endif %}
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-agenda" type="button" role="tab">
-      <i class="bi bi-calendar-event me-1"></i>Agenda
-      {% if apps_cliente %}<span class="badge bg-secondary rounded-pill ms-1">{{ apps_cliente|length }}</span>{% endif %}
     </button>
   </li>
   <li class="nav-item" role="presentation">
@@ -288,54 +280,6 @@
       </div>
     </details>
     {% endif %}
-    {% endif %}
-  </div>
-
-  {# ── TAB: TIMELINE ── #}
-  <div class="tab-pane fade pt-3" id="tab-timeline" role="tabpanel">
-    {% if not timeline %}
-    <div class="text-center text-muted py-5">
-      <i class="bi bi-clock-history fs-1 d-block mb-2"></i>Nessuna attività registrata.
-    </div>
-    {% else %}
-    <div class="position-relative" style="padding-left:2rem">
-      <div class="position-absolute top-0 start-0 h-100" style="width:2px;background:#e2e8f0;left:.75rem"></div>
-      {% for fasc, att in timeline %}
-      {% set esito_col = {'FAVOREVOLE':'success','SFAVOREVOLE':'danger','PARZIALE':'warning','RINVIATO':'info','ANNULLATO':'dark','IN_ATTESA':'secondary','NON_APPLICABILE':'light'} %}
-      <div class="d-flex gap-3 mb-3 position-relative">
-        <div class="position-absolute" style="left:-1.5rem;top:.2rem">
-          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white"
-               style="width:1.1rem;height:1.1rem;font-size:.5rem">
-            <i class="bi bi-circle-fill"></i>
-          </div>
-        </div>
-        <div class="card border-0 shadow-sm flex-grow-1">
-          <div class="card-body p-2 px-3">
-            <div class="d-flex justify-content-between align-items-start flex-wrap gap-1">
-              <div>
-                <span class="fw-semibold">{{ att.titolo }}</span>
-                <span class="badge bg-secondary ms-2 small">{{ att.tipo.value }}</span>
-                {% if att.esito.value != 'IN_ATTESA' %}
-                <span class="badge bg-{{ esito_col.get(att.esito.value, 'secondary') }} ms-1 small">{{ att.esito.value }}</span>
-                {% endif %}
-              </div>
-              <div class="text-muted small text-nowrap">{{ att.data|fmt_data }}</div>
-            </div>
-            <div class="small text-muted mt-1">
-              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}" class="text-decoration-none">
-                <i class="bi bi-folder2 me-1"></i>{{ fasc.numero }} — {{ fasc.titolo|truncate(40) }}
-              </a>
-              {% if att.luogo %} · <i class="bi bi-geo-alt me-1"></i>{{ att.luogo }}{% endif %}
-              {% if att.avvocato %} · <i class="bi bi-person-badge me-1"></i>{{ att.avvocato }}{% endif %}
-            </div>
-            {% if att.descrizione %}
-            <div class="small text-muted mt-1 fst-italic">{{ att.descrizione|truncate(120) }}</div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
     {% endif %}
   </div>
 
@@ -485,47 +429,7 @@
     {% endif %}
   </div>
 
-  {# ── TAB: AGENDA ── #}
-  <div class="tab-pane fade pt-3" id="tab-agenda" role="tabpanel">
-    {% if not apps_cliente %}
-    <div class="text-center text-muted py-5">
-      <i class="bi bi-calendar-event fs-1 d-block mb-2"></i>Nessun appuntamento associato a questo cliente.
-    </div>
-    {% else %}
-    {% set APP_COL = {'UDIENZA':'primary','CONSULTAZIONE':'success','DEPOSITO':'purple','SCADENZA':'danger','RIUNIONE':'warning','ALTRO':'secondary'} %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle small">
-        <thead class="table-light">
-          <tr><th>Data</th><th>Titolo</th><th>Tipo</th><th>Luogo</th><th>Stato</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for a in apps_cliente | sort(attribute='data_ora_dt', reverse=True) %}
-          <tr>
-            <td class="text-nowrap">
-              {{ a.data_ora_dt.strftime('%d/%m/%Y') }}<br>
-              <span class="text-muted">{{ a.data_ora_dt.strftime('%H:%M') }}</span>
-            </td>
-            <td class="fw-semibold">{{ a.titolo }}</td>
-            <td><span class="badge badge-{{ a.tipo.value }}">{{ a.tipo.value }}</span></td>
-            <td class="text-muted">{{ a.luogo or '—' }}</td>
-            <td><span class="badge bg-secondary">{{ a.stato.value }}</span></td>
-            <td>
-              <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-                 class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% endif %}
-    <div class="mt-2">
-      <a href="{{ url_for('nuovo_appuntamento') }}?cliente={{ cliente.nome_completo|urlencode }}"
-         class="btn btn-sm btn-outline-primary">
-        <i class="bi bi-calendar-plus me-1"></i>Nuovo appuntamento
-      </a>
-    </div>
-  </div>
+  {# ── TAB: AGENDA rimossa — disponibile nella Cartella Cliente ── #}
 
   {# ── TAB: NOTE INTERNE ── #}
   <div class="tab-pane fade pt-3" id="tab-note" role="tabpanel">

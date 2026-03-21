@@ -2253,7 +2253,6 @@ def create_app(config: dict | None = None) -> Flask:
 
             gf = get_fascicoli()
             gs = get_scadenziario()
-            agenda = get_agenda()
 
             tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
 
@@ -2310,16 +2309,6 @@ def create_app(config: dict | None = None) -> Flask:
                 reverse=True,
             )
 
-            # Timeline attività (ultime 50)
-            timeline = sorted(
-                [(f, att) for f in tutti for att in f.attivita],
-                key=lambda x: x[1].data if x[1].data else "",
-                reverse=True,
-            )[:50]
-
-            # Appuntamenti del cliente
-            apps_cliente = agenda.cerca(cliente=c.nome_completo)
-
             # Stats
             n_doc      = sum(f.documenti_count for f in tutti)
             n_dep      = sum(len(f.depositi_pct) for f in tutti)
@@ -2355,8 +2344,6 @@ def create_app(config: dict | None = None) -> Flask:
                 scadenze_aperte=scadenze_aperte,
                 tutti_documenti=tutti_documenti[:60],
                 tutti_depositi=tutti_depositi[:60],
-                timeline=timeline,
-                apps_cliente=apps_cliente,
                 n_doc=n_doc,
                 n_dep=n_dep,
                 n_scad=n_scad,
@@ -2519,6 +2506,69 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore faldone_pdf_export %s: %s", id_cliente, e)
             flash(f"Errore generazione PDF: {e}", "danger")
             return redirect(url_for("faldone_cliente", id_cliente=id_cliente))
+
+    # ================================================================ COPERTINE
+
+    @app.route("/clienti/<id_cliente>/faldone/copertina")
+    def copertina_faldone(id_cliente):
+        """Copertina stampabile del faldone digitale cliente."""
+        try:
+            gc = get_clienti()
+            c = gc.get(id_cliente)
+            if not c:
+                flash("Cliente non trovato.", "warning")
+                return redirect(url_for("lista_clienti"))
+            if not cliente_accessibile(id_cliente):
+                flash("Non hai accesso a questa cartella cliente.", "danger")
+                return redirect(url_for("lista_clienti"))
+            gf = get_fascicoli()
+            tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
+            _stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
+            fascicoli_attivi = [f for f in tutti if f.stato not in _stati_chiusi]
+            fascicoli_archiviati = [f for f in tutti if f.stato in _stati_chiusi]
+            cfg_studio = get_config_studio()
+            studio_nome = cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale")
+            return render_template(
+                "clienti/copertina_faldone.html",
+                cliente=c,
+                fascicoli_attivi=fascicoli_attivi,
+                fascicoli_archiviati=fascicoli_archiviati,
+                tutti=tutti,
+                studio_nome=studio_nome,
+                oggi=date.today(),
+            )
+        except Exception as e:
+            app.logger.exception("Errore copertina_faldone %s: %s", id_cliente, e)
+            flash(f"Errore copertina faldone: {e}", "danger")
+            return redirect(url_for("faldone_cliente", id_cliente=id_cliente))
+
+    @app.route("/fascicoli/<id_fasc>/copertina")
+    def copertina_fascicolo(id_fasc):
+        """Copertina stampabile del fascicolo."""
+        try:
+            gf = get_fascicoli()
+            gc = get_clienti()
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                flash("Fascicolo non trovato.", "warning")
+                return redirect(url_for("lista_fascicoli"))
+            cliente = gc.get(fasc.id_cliente) if fasc.id_cliente else None
+            if fasc.id_cliente and not cliente_accessibile(fasc.id_cliente):
+                flash("Non hai accesso a questo fascicolo.", "danger")
+                return redirect(url_for("lista_fascicoli"))
+            cfg_studio = get_config_studio()
+            studio_nome = cfg_studio.nome or app.config.get("PCT_STUDIO_NOME", "Studio Legale")
+            return render_template(
+                "fascicoli/copertina.html",
+                fascicolo=fasc,
+                cliente=cliente,
+                studio_nome=studio_nome,
+                oggi=date.today(),
+            )
+        except Exception as e:
+            app.logger.exception("Errore copertina_fascicolo %s: %s", id_fasc, e)
+            flash(f"Errore copertina fascicolo: {e}", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     # ================================================================ PORTALE CLIENTE
     # Pannello avvocato per gestire il portale self-service del cliente

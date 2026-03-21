@@ -70,6 +70,10 @@
       </div>
       {# Bottoni — solo su sm+ a destra dell'intestazione #}
       <div class="d-none d-sm-flex gap-2 flex-shrink-0 flex-wrap justify-content-end">
+        <a href="{{ url_for('copertina_fascicolo', id_fasc=fascicolo.id) }}"
+           class="btn btn-outline-secondary btn-sm" target="_blank" title="Copertina fascicolo">
+          <i class="bi bi-layout-text-window me-1"></i>Copertina
+        </a>
         <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
            class="btn btn-outline-primary btn-sm">
           <i class="bi bi-pencil me-1"></i>Modifica

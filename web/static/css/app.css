@@ -1103,3 +1103,192 @@ tr[data-swipe-delete] {
   }
 }
 
+/* ================================================================
+   CARTELLA / FALDONE CLIENTE — stili condivisi (cd-*)
+   Modern legal app look — Inter font, clean cards, accent lines
+   ================================================================ */
+
+/* ---- Header ---- */
+.cd-header-bg {
+  background: linear-gradient(135deg, #1a3a5c 0%, #1565c0 100%);
+  border-radius: .5rem;
+}
+.cd-avatar {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: rgba(255,255,255,.18); color: #fff;
+  font-size: 1.6rem; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ---- Stat cards ---- */
+.cd-stat {
+  border-radius: .65rem !important;
+  transition: transform .12s, box-shadow .12s;
+}
+.cd-stat:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.1) !important; }
+.cd-stat-icon {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+.cd-stat-num   { font-size: 1.75rem; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.cd-stat-label { font-size: .72rem; color: #64748b; font-weight: 500; margin-top: 2px; }
+
+.cd-stat-blue   { background: #eff6ff; border-top: 3px solid #3b82f6 !important; }
+.cd-stat-blue   .cd-stat-icon { background: #dbeafe; color: #1d4ed8; }
+.cd-stat-blue   .cd-stat-num  { color: #1d4ed8; }
+
+.cd-stat-purple { background: #faf5ff; border-top: 3px solid #8b5cf6 !important; }
+.cd-stat-purple .cd-stat-icon { background: #ede9fe; color: #7c3aed; }
+.cd-stat-purple .cd-stat-num  { color: #7c3aed; }
+
+.cd-stat-green  { background: #f0fdf4; border-top: 3px solid #22c55e !important; }
+.cd-stat-green  .cd-stat-icon { background: #dcfce7; color: #16a34a; }
+.cd-stat-green  .cd-stat-num  { color: #16a34a; }
+
+.cd-stat-orange { background: #fff7ed; border-top: 3px solid #f97316 !important; }
+.cd-stat-orange .cd-stat-icon { background: #fed7aa; color: #ea580c; }
+.cd-stat-orange .cd-stat-num  { color: #ea580c; }
+
+.cd-stat-gray   { background: #f8fafc; border-top: 3px solid #94a3b8 !important; }
+.cd-stat-gray   .cd-stat-icon { background: #e2e8f0; color: #64748b; }
+.cd-stat-gray   .cd-stat-num  { color: #475569; }
+
+/* ---- Tabs ---- */
+.cd-tabs {
+  overflow-x: auto; flex-wrap: nowrap;
+  border-bottom: none;
+  gap: 2px;
+  padding-bottom: 0;
+  scrollbar-width: none;
+}
+.cd-tabs::-webkit-scrollbar { display: none; }
+.cd-tabs .nav-link {
+  white-space: nowrap; font-weight: 600; font-size: .84rem;
+  border-bottom: 3px solid transparent;
+  border-top: 0; border-left: 0; border-right: 0;
+  padding: .65rem 1rem; color: #64748b; border-radius: 0;
+  letter-spacing: .01em;
+  transition: color .15s, border-color .15s;
+}
+.cd-tabs .nav-link:hover  { color: #1a3a5c; }
+.cd-tabs .nav-link.active { color: #1a3a5c; border-bottom-color: #c8972b; background: transparent; }
+.cd-tab-body {
+  background: #fff;
+  border: 1px solid #e2e8f0; border-top: 0;
+  border-radius: 0 0 .65rem .65rem;
+  padding: 0 1rem 1rem;
+}
+
+/* ---- Pratica card ---- */
+.cd-pratica-card {
+  border-radius: .55rem !important;
+  transition: box-shadow .15s, transform .12s;
+  border-left: 4px solid transparent !important;
+}
+.cd-pratica-card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,.1) !important;
+  transform: translateX(2px);
+}
+.cd-pratica-primary   { border-left-color: #3b82f6 !important; }
+.cd-pratica-success   { border-left-color: #22c55e !important; }
+.cd-pratica-warning   { border-left-color: #f59e0b !important; }
+.cd-pratica-info      { border-left-color: #06b6d4 !important; }
+.cd-pratica-secondary { border-left-color: #94a3b8 !important; }
+
+.cd-stato-icon {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.cd-stato-primary  { background: #eff6ff; color: #2563eb; }
+.cd-stato-success  { background: #f0fdf4; color: #16a34a; }
+.cd-stato-warning  { background: #fffbeb; color: #d97706; }
+.cd-stato-info     { background: #ecfeff; color: #0891b2; }
+.cd-stato-secondary{ background: #f1f5f9; color: #64748b; }
+
+.cd-pratica-actions { display: flex; flex-direction: column; gap: 4px; }
+
+/* ---- Archivio card ---- */
+.cd-archivio-card { border-radius: .55rem; }
+.cd-zip-icon {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.cd-zip-ok { background: #eff6ff; color: #2563eb; }
+.cd-zip-no { background: #f1f5f9; color: #94a3b8; }
+.cd-archivio-actions { display: flex; flex-direction: column; gap: 4px; }
+.cd-hash-badge {
+  display: inline-flex; align-items: center;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 6px; padding: 2px 8px; font-size: .72rem;
+}
+
+/* ---- Timeline ---- */
+.cd-timeline { position: relative; padding-left: 2rem; }
+.cd-timeline-line {
+  position: absolute; left: .6rem; top: 0; bottom: 0;
+  width: 2px; background: #e2e8f0;
+}
+.cd-timeline-month {
+  position: relative; margin-bottom: .5rem; margin-top: 1rem; margin-left: -2rem;
+}
+.cd-timeline-month .badge,
+.cd-timeline-month {
+  display: inline-flex; align-items: center;
+  background: #f1f5f9; color: #475569;
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 3px 10px; font-size: .78rem; font-weight: 600;
+  margin-left: 2rem;
+}
+.cd-timeline-entry { display: flex; gap: .75rem; margin-bottom: .75rem; position: relative; }
+.cd-tl-dot {
+  position: absolute; left: -1.35rem; top: .4rem;
+  width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff;
+  box-shadow: 0 0 0 2px currentColor;
+}
+.cd-tl-dot-success   { background: #22c55e; color: #22c55e; }
+.cd-tl-dot-danger    { background: #ef4444; color: #ef4444; }
+.cd-tl-dot-warning   { background: #f59e0b; color: #f59e0b; }
+.cd-tl-dot-info      { background: #06b6d4; color: #06b6d4; }
+.cd-tl-dot-secondary { background: #94a3b8; color: #94a3b8; }
+.cd-tl-dot-dark      { background: #1e293b; color: #1e293b; }
+.cd-tl-dot-light     { background: #e2e8f0; color: #e2e8f0; }
+
+/* ---- Empty state ---- */
+.cd-empty-state { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
+.cd-empty-state > i { font-size: 3rem; opacity: .35; display: block; }
+
+/* ---- Sfoglia modal ---- */
+.sfoglia-row td { vertical-align: middle; }
+.sfoglia-row .sf-icon { font-size: 1.1rem; }
+.sfoglia-row .sf-name { word-break: break-all; }
+.sfoglia-row .sf-size { white-space: nowrap; font-size: .8rem; color: #64748b; }
+
+/* ---- Dark mode ---- */
+[data-bs-theme="dark"] .cd-header-bg { background: linear-gradient(135deg, #0f2744 0%, #1a3a5c 100%); }
+[data-bs-theme="dark"] .cd-tab-body  { background: #1e293b; border-color: #334155; }
+[data-bs-theme="dark"] .cd-tabs .nav-link        { color: #94a3b8; }
+[data-bs-theme="dark"] .cd-tabs .nav-link.active { color: #fbbf24; border-bottom-color: #fbbf24; }
+[data-bs-theme="dark"] .cd-pratica-card,
+[data-bs-theme="dark"] .cd-archivio-card         { background: #1e293b; }
+[data-bs-theme="dark"] .cd-hash-badge            { background: #0f172a; border-color: #334155; }
+[data-bs-theme="dark"] .cd-stat-blue   { background: #1e2d40; border-top-color: #3b82f6 !important; }
+[data-bs-theme="dark"] .cd-stat-purple { background: #1e1b2e; border-top-color: #8b5cf6 !important; }
+[data-bs-theme="dark"] .cd-stat-green  { background: #0d2018; border-top-color: #22c55e !important; }
+[data-bs-theme="dark"] .cd-stat-orange { background: #1f1209; border-top-color: #f97316 !important; }
+[data-bs-theme="dark"] .cd-stat-gray   { background: #1e293b; border-top-color: #475569 !important; }
+[data-bs-theme="dark"] .cd-stat-label  { color: #94a3b8; }
+[data-bs-theme="dark"] .cd-timeline-month { background: #0f172a; border-color: #334155; color: #94a3b8; }
+
+/* ---- Responsive mobile ---- */
+@media (max-width: 575px) {
+  .cd-tab-body { padding: 0 .75rem .75rem; }
+  .cd-pratica-card .card-body,
+  .cd-archivio-card .card-body { padding: .75rem; }
+  .cd-pratica-actions { flex-direction: row; }
+  .cd-archivio-actions { flex-direction: row; flex-wrap: wrap; }
+  .cd-stat-num { font-size: 1.5rem; }
+}
+

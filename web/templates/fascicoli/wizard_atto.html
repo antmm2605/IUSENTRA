@@ -143,10 +143,12 @@
                ondragover="event.preventDefault();this.style.borderColor='#0d6efd'"
                ondragleave="this.style.borderColor='#ced4da'"
                ondrop="handleDrop(event)">
-            <i class="bi bi-cloud-arrow-up-fill fs-2 text-muted mb-2"></i>
-            <div class="fw-semibold">Trascina qui il file oppure clicca per selezionarlo</div>
-            <div class="small text-muted mt-1">Il file verrà rinominato automaticamente in:
-              <code>{{ step_corrente.nome_file }}.pdf</code>
+            <div id="dropZoneVisual">
+              <i class="bi bi-cloud-arrow-up-fill fs-2 text-muted mb-2"></i>
+              <div class="fw-semibold">Trascina qui il file oppure clicca per selezionarlo</div>
+              <div class="small text-muted mt-1">Il file verrà rinominato automaticamente in:
+                <code>{{ step_corrente.nome_file }}.pdf</code>
+              </div>
             </div>
             <input type="file" id="fileInput" name="file" class="d-none"
                    accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
@@ -303,6 +305,7 @@ function mostraFileSelezionato(input) {
   const preview   = document.getElementById('previewNome');
   const nomeEl    = document.getElementById('nomeFinale');
   const dropZone  = document.getElementById('dropZone');
+  const visual    = document.getElementById('dropZoneVisual');
 
   if (input.files && input.files[0]) {
     const f    = input.files[0];
@@ -313,12 +316,9 @@ function mostraFileSelezionato(input) {
     nomeEl.textContent = nome;
     preview.classList.remove('d-none');
     dropZone.style.borderColor = '#198754';
-    dropZone.innerHTML = `<i class="bi bi-file-earmark-check-fill fs-2 text-success mb-2"></i>
+    visual.innerHTML = `<i class="bi bi-file-earmark-check-fill fs-2 text-success mb-2"></i>
       <div class="fw-semibold text-success">${f.name}</div>
-      <div class="small text-muted mt-1">Verrà salvato come: <code>${nome}</code></div>
-      <input type="file" id="fileInput" name="file" class="d-none"
-             accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
-             onchange="mostraFileSelezionato(this)">`;
+      <div class="small text-muted mt-1">Verrà salvato come: <code>${nome}</code></div>`;
     btnCarica.disabled = false;
   }
 }

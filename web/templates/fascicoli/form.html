@@ -4,6 +4,29 @@
 {% block page_title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
 
 {% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if fascicolo %}pencil{% else %}folder-plus{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ 'Modifica: ' + fascicolo.titolo if fascicolo else 'Nuovo Fascicolo' }}</h1>
+    <p class="ds-ph-sub">Dati processuali, parti e informazioni del fascicolo</p>
+  </div>
+  <div class="ds-ph-actions">
+    {% if fascicolo %}
+    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicolo</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicoli</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 <div class="row g-4">
 <div class="col-lg-8">
 <form method="post">

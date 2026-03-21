@@ -7,106 +7,33 @@
 
 {% block content %}
 
-{# ---- Header ---- #}
-<div class="card shadow-sm mb-3">
-  <div class="card-body">
-    <div class="d-flex align-items-start gap-3">
-      <div class="flex-shrink-0 d-none d-sm-flex align-items-center justify-content-center"
-           style="width:56px;height:56px;border-radius:12px;background:#e3f2fd;
-                  color:#1565c0;font-size:1.6rem">
-        <i class="bi bi-folder2-open"></i>
-      </div>
-      <div class="flex-grow-1 min-width-0">
-        <div class="d-flex align-items-center gap-1 gap-sm-2 mb-1 flex-wrap">
-          <span class="font-monospace text-muted small">{{ fascicolo.numero }}</span>
-          <span class="badge bg-{{ SC[fascicolo.stato.value] }}">
-            {{ fascicolo.stato.value.replace('_',' ') }}
-          </span>
-          <span class="badge bg-light text-dark border">{{ fascicolo.tipo.value.replace('_',' ') }}</span>
-          {% if fascicolo.archivio_pronto %}
-          <span class="badge bg-warning text-dark">
-            <i class="bi bi-inbox me-1"></i><span class="d-none d-sm-inline">Pronto per </span>archivio
-          </span>
-          {% endif %}
-        </div>
-        <h5 class="fw-bold mb-1 text-break">{{ fascicolo.titolo }}</h5>
-        {% if fascicolo.oggetto %}
-          <div class="text-muted small text-break">{{ fascicolo.oggetto }}</div>
-        {% endif %}
-        {# Bottoni azione — su mobile sotto il titolo, su desktop a destra #}
-        <div class="d-flex gap-2 flex-wrap mt-2 d-sm-none">
-          <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
-             class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-pencil me-1"></i>Modifica
-          </a>
-          {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
-            {% if fascicolo.stato != StatoFascicolo.DEFINITO %}
-            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                    data-bs-target="#modalDefinisci">
-              <i class="bi bi-check2-circle me-1"></i>Definisci
-            </button>
-            {% endif %}
-            {% if fascicolo.stato == StatoFascicolo.DEFINITO %}
-            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-                    data-bs-target="#modalArchivia">
-              <i class="bi bi-archive me-1"></i>Archivia
-            </button>
-            {% endif %}
-          {% else %}
-          <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
-                onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
-            <button class="btn btn-sm btn-outline-success">
-              <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
-            </button>
-          </form>
-          {% endif %}
-          <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
-                onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
-            <button class="btn btn-sm btn-outline-danger">
-              <i class="bi bi-trash me-1"></i>Elimina
-            </button>
-          </form>
-        </div>
-      </div>
-      {# Bottoni — solo su sm+ a destra dell'intestazione #}
-      <div class="d-none d-sm-flex gap-2 flex-shrink-0 flex-wrap justify-content-end">
-        <a href="{{ url_for('copertina_fascicolo', id_fasc=fascicolo.id) }}"
-           class="btn btn-outline-secondary btn-sm" target="_blank" title="Copertina fascicolo">
-          <i class="bi bi-layout-text-window me-1"></i>Copertina
-        </a>
-        <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
-           class="btn btn-outline-primary btn-sm">
-          <i class="bi bi-pencil me-1"></i>Modifica
-        </a>
-        {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
-          {% if fascicolo.stato != StatoFascicolo.DEFINITO %}
-          <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                  data-bs-target="#modalDefinisci">
-            <i class="bi bi-check2-circle me-1"></i>Definisci
-          </button>
-          {% endif %}
-          {% if fascicolo.stato == StatoFascicolo.DEFINITO %}
-          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-                  data-bs-target="#modalArchivia">
-            <i class="bi bi-archive me-1"></i>Archivia
-          </button>
-          {% endif %}
-        {% else %}
-        <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
-          <button class="btn btn-sm btn-outline-success">
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
-          </button>
-        </form>
-        {% endif %}
-        <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
-          <button class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-trash me-1"></i>Elimina
-          </button>
-        </form>
-      </div>
-    </div>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-folder2-open"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title text-break">{{ fascicolo.titolo }}</h1>
+    <p class="ds-ph-sub">
+      <code class="small me-1">{{ fascicolo.numero }}</code>
+      <span class="badge bg-{{ SC[fascicolo.stato.value] }} me-1">{{ fascicolo.stato.value.replace('_',' ') }}</span>
+      <span class="badge bg-light text-dark border me-1">{{ fascicolo.tipo.value.replace('_',' ') }}</span>
+      {% if fascicolo.archivio_pronto %}
+        <span class="badge bg-warning text-dark"><i class="bi bi-inbox me-1"></i>Pronto per archivio</span>
+      {% endif %}
+      {% if fascicolo.oggetto %}<span class="ms-1">· {{ fascicolo.oggetto }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('copertina_fascicolo', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-ghost" target="_blank" title="Copertina fascicolo">
+      <i class="bi bi-layout-text-window"></i><span class="d-none d-sm-inline">Copertina</span>
+    </a>
+    <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-outline">
+      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
+    </a>
+    <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicoli</span>
+    </a>
   </div>
 </div>
 
@@ -625,6 +552,42 @@
       </div>
     </div>
     {% endif %}
+
+    {# Azioni fascicolo #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-lightning me-2 text-primary"></i>Azioni
+      </div>
+      <div class="list-group list-group-flush">
+        {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
+          {% if fascicolo.stato != StatoFascicolo.DEFINITO %}
+          <button class="list-group-item list-group-item-action text-info border-0 bg-transparent text-start w-100"
+                  data-bs-toggle="modal" data-bs-target="#modalDefinisci">
+            <i class="bi bi-check2-circle me-2"></i>Definisci fascicolo
+          </button>
+          {% endif %}
+          {% if fascicolo.stato == StatoFascicolo.DEFINITO %}
+          <button class="list-group-item list-group-item-action border-0 bg-transparent text-start w-100"
+                  data-bs-toggle="modal" data-bs-target="#modalArchivia">
+            <i class="bi bi-archive me-2"></i>Archivia fascicolo
+          </button>
+          {% endif %}
+        {% else %}
+        <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
+              onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
+          <button class="list-group-item list-group-item-action text-success border-0 bg-transparent text-start w-100">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Ripristina dall'archivio
+          </button>
+        </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
+              onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
+          <button class="list-group-item list-group-item-action text-danger border-0 bg-transparent text-start w-100">
+            <i class="bi bi-trash me-2"></i>Elimina fascicolo
+          </button>
+        </form>
+      </div>
+    </div>
 
     {# Avanzamento pratica #}
     <div class="card shadow-sm mb-3">

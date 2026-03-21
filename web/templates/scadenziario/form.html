@@ -3,6 +3,29 @@
 {% block page_title %}{{ 'Modifica' if scadenza else 'Nuova' }} Scadenza{% endblock %}
 
 {% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if scadenza %}pencil{% else %}calendar-event{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ 'Modifica: ' + scadenza.titolo if scadenza else 'Nuova Scadenza' }}</h1>
+    <p class="ds-ph-sub">Termini processuali, preavvisi e dati della scadenza</p>
+  </div>
+  <div class="ds-ph-actions">
+    {% if scadenza %}
+    <a href="{{ url_for('dettaglio_scadenza', id_sc=scadenza.id) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Dettaglio</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scadenziario</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 <div class="row g-4">
 
 {# ── Colonna form principale ── #}

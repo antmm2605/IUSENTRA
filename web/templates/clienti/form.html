@@ -3,6 +3,29 @@
 {% block page_title %}{{ 'Modifica' if cliente else 'Nuovo' }} Cliente{% endblock %}
 
 {% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if cliente %}pencil{% else %}person-plus-fill{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ 'Modifica: ' + cliente.nome_completo if cliente else 'Nuovo Cliente' }}</h1>
+    <p class="ds-ph-sub">Anagrafica cliente dello studio — persona fisica o giuridica</p>
+  </div>
+  <div class="ds-ph-actions">
+    {% if cliente %}
+    <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scheda cliente</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Clienti</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 <form method="post" id="formCliente">
 
 {# ---- Tipo (solo nuovo) ---- #}

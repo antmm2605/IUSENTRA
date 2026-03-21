@@ -4,15 +4,34 @@
 {% block page_title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
 
 {% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if app %}pencil{% else %}calendar-plus{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ 'Modifica appuntamento' if app else 'Nuovo appuntamento' }}</h1>
+    <p class="ds-ph-sub">Data, ora, luogo e dettagli dell'appuntamento</p>
+  </div>
+  <div class="ds-ph-actions">
+    {% if app %}
+    <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Dettaglio</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('agenda_view') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Agenda</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
 <div class="row g-4">
 
 {# ── Colonna form ── #}
 <div class="col-lg-8">
 <div class="card shadow-sm">
-<div class="card-header fw-semibold">
-  <i class="bi bi-calendar-plus me-2 text-primary"></i>
-  {{ 'Modifica appuntamento' if app else 'Aggiungi appuntamento' }}
-</div>
 <div class="card-body">
 
 <form method="post">

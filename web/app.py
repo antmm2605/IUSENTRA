@@ -3574,6 +3574,104 @@ def create_app(config: dict | None = None) -> Flask:
 
     # ---- Wizard deposito telematico PCT
 
+    @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
+    def deposito_genera_busta(id_fasc):
+        """
+        Genera la busta telematica (.enc) reale da importare in Consolle dell'Avvocato.
+        Restituisce il file come download diretto.
+        """
+        import os as _os
+        import tempfile as _tmp
+        from flask import send_file as _send_file
+        from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
+
+        gf   = get_fascicoli()
+        u    = g.utente_corrente
+        f    = request.form
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+
+        tipo_atto       = f.get("tipo_atto", "ATTO").strip()
+        codice_registro = f.get("codice_registro", "RG").strip()
+        oggetto         = f.get("oggetto", "").strip() or fasc.titolo
+        atto_id         = f.get("atto_principale_id", "").strip()
+        allegati_ids    = request.form.getlist("allegati_ids")
+
+        if not atto_id:
+            flash("Seleziona l'atto principale da includere nella busta.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        # Risolvi documento principale
+        try:
+            atto_path = str(gf.percorso_documento(id_fasc, atto_id))
+        except KeyError:
+            flash("Documento principale non trovato nel fascicolo.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        # Risolvi allegati
+        allegati_busta = []
+        for all_id in allegati_ids:
+            if all_id == atto_id:
+                continue
+            try:
+                all_doc  = next((d for d in fasc.documenti if d.id == all_id), None)
+                all_path = str(gf.percorso_documento(id_fasc, all_id))
+                allegati_busta.append(
+                    AllegatoBusta(percorso=all_path,
+                                  descrizione=all_doc.nome if all_doc else all_id)
+                )
+            except (KeyError, Exception):
+                pass
+
+        # Risolvi codice ufficio dal nome tribunale (o usa il nome direttamente)
+        codice_ufficio = fasc.tribunale
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            _uff = next(
+                (x for x in _get_uff(_cache).carica()
+                 if x.get("nome", "").lower() == fasc.tribunale.lower()),
+                None,
+            )
+            if _uff:
+                codice_ufficio = _uff["codice"]
+        except Exception:
+            pass
+
+        dati = DatiBusta(
+            codice_ufficio=codice_ufficio or fasc.tribunale or "SCONOSCIUTO",
+            codice_registro=codice_registro,
+            oggetto=oggetto,
+            tipo_atto=tipo_atto,
+            atto_principale=atto_path,
+            allegati=allegati_busta,
+            numero_rg=fasc.numero_rg or None,
+            anno_rg=fasc.anno_rg or None,
+            operatore=u.username if u else "",
+            cf_mittente="",
+        )
+
+        # Genera busta in directory temporanea e invia come download
+        try:
+            out_dir = _os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
+            busta   = BustaTelematica(dati)
+            enc_path = busta.crea_busta(out_dir)
+            nome_file = f"Busta_{fasc.numero.replace('/', '-')}_{tipo_atto}.enc"
+            audit("fascicoli.deposito.genera_busta", "fascicolo", id_fasc,
+                  dettagli=f"Busta {busta.id_busta[:8]} — {tipo_atto}")
+            return _send_file(
+                enc_path,
+                as_attachment=True,
+                download_name=nome_file,
+                mimetype="application/octet-stream",
+            )
+        except Exception as exc:
+            app.logger.exception("Errore genera_busta %s: %s", id_fasc, exc)
+            flash(f"Errore nella generazione della busta: {exc}", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
     @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
     def deposito_prepara(id_fasc):
         """Mostra il riepilogo documenti e la guida al deposito telematico."""

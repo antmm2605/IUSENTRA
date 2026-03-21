@@ -237,7 +237,7 @@
 </div>{# /row #}
 
 {# ================================================================
-   MODAL DEPOSITO TELEMATICO
+   MODAL DEPOSITO TELEMATICO — Consolle dell'Avvocato
 ================================================================ #}
 {% if tmpl.endpoint_deposito %}
 <div class="modal fade" id="modalDeposito" tabindex="-1"
@@ -246,130 +246,224 @@
     <div class="modal-content">
 
       {# Header #}
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="modalDepositoLabel">
-          <i class="bi bi-send me-2"></i>Deposito telematico PCT
-          <span class="badge bg-white text-success ms-2 small fw-normal">{{ fascicolo.numero }}</span>
-        </h5>
+      <div class="modal-header bg-success text-white py-3">
+        <div>
+          <h5 class="modal-title mb-0" id="modalDepositoLabel">
+            <i class="bi bi-send-fill me-2"></i>Deposito telematico PCT
+          </h5>
+          <div class="small mt-1 opacity-75">
+            {{ fascicolo.numero }} — {{ fascicolo.titolo }}
+            {% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}
+          </div>
+        </div>
         <button type="button" class="btn-close btn-close-white"
                 data-bs-dismiss="modal" aria-label="Chiudi"></button>
       </div>
 
+      {# Nav tabs #}
+      <div class="modal-header border-0 pb-0 pt-3 bg-light">
+        <ul class="nav nav-tabs" id="tabDeposito" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tab-busta"
+                    data-bs-toggle="tab" data-bs-target="#pannello-busta"
+                    type="button" role="tab">
+              <i class="bi bi-file-zip me-1"></i>
+              <span class="d-none d-sm-inline">① Genera busta PCT</span>
+              <span class="d-sm-none">① Genera</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-esito"
+                    data-bs-toggle="tab" data-bs-target="#pannello-esito"
+                    type="button" role="tab">
+              <i class="bi bi-pencil-square me-1"></i>
+              <span class="d-none d-sm-inline">② Registra esito</span>
+              <span class="d-sm-none">② Esito</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
       {# Body #}
-      <div class="modal-body p-4">
+      <div class="modal-body p-0">
+        <div class="tab-content">
 
-        {# Info banner #}
-        <div class="alert alert-info d-flex gap-3 align-items-start mb-4 py-2">
-          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
-          <div class="small">
-            <strong>HACS prepara — il software PCT invia.</strong>
-            Il deposito va effettuato dal tuo software dedicato
-            (es. <strong>Consolle dell'Avvocato</strong>) usando i documenti elencati qui sotto.
-            Dopo l'invio, registra l'esito per tracciarlo nel fascicolo.
-          </div>
-        </div>
+          {# ── TAB 1: GENERA BUSTA ── #}
+          <div class="tab-pane fade show active p-4" id="pannello-busta"
+               role="tabpanel">
 
-        <div class="row g-4">
-
-          {# Colonna sinistra: dati + documenti #}
-          <div class="col-lg-6">
-
-            {# Dati fascicolo #}
-            <h6 class="fw-bold text-muted text-uppercase small mb-2">
-              <i class="bi bi-folder2-open me-1"></i>Dati fascicolo
-            </h6>
-            <dl class="row small mb-4">
-              <dt class="col-5 text-muted">Fascicolo</dt>
-              <dd class="col-7 fw-semibold font-monospace">{{ fascicolo.numero }}</dd>
-              {% if fascicolo.titolo %}
-              <dt class="col-5 text-muted">Titolo</dt>
-              <dd class="col-7">{{ fascicolo.titolo }}</dd>
-              {% endif %}
+            {# Dati fascicolo (read-only) #}
+            <div class="row g-2 mb-4">
+              <div class="col-sm-4">
+                <div class="bg-light rounded px-3 py-2 small">
+                  <div class="text-muted">Fascicolo</div>
+                  <strong class="font-monospace">{{ fascicolo.numero }}</strong>
+                </div>
+              </div>
               {% if fascicolo.tribunale %}
-              <dt class="col-5 text-muted">Tribunale</dt>
-              <dd class="col-7">{{ fascicolo.tribunale }}</dd>
-              {% endif %}
-              {% if pec_tribunale %}
-              <dt class="col-5 text-muted">PEC</dt>
-              <dd class="col-7 font-monospace" style="word-break:break-all">{{ pec_tribunale }}</dd>
+              <div class="col-sm-4">
+                <div class="bg-light rounded px-3 py-2 small">
+                  <div class="text-muted">Tribunale</div>
+                  <strong>{{ fascicolo.tribunale }}</strong>
+                </div>
+              </div>
               {% endif %}
               {% if fascicolo.numero_rg %}
-              <dt class="col-5 text-muted">N. RG</dt>
-              <dd class="col-7 font-monospace">{{ fascicolo.numero_rg }}/{{ fascicolo.anno_rg }}</dd>
+              <div class="col-sm-4">
+                <div class="bg-light rounded px-3 py-2 small">
+                  <div class="text-muted">N. RG</div>
+                  <strong class="font-monospace">{{ fascicolo.numero_rg }}/{{ fascicolo.anno_rg }}</strong>
+                </div>
+              </div>
               {% endif %}
-            </dl>
+            </div>
 
-            {# Documenti #}
-            <h6 class="fw-bold text-muted text-uppercase small mb-2">
-              <i class="bi bi-paperclip me-1"></i>Documenti da allegare
-            </h6>
-            <ul class="list-group list-group-flush border rounded mb-0">
-              {% for s in steps_stato %}
-              {% if s.stato == 'done' and s.documento %}
-              <li class="list-group-item d-flex align-items-center gap-2 py-2 px-3">
-                {% if s.documento.firmato_digitalmente %}
-                <i class="bi bi-patch-check-fill text-success flex-shrink-0"
-                   title="Firmato digitalmente"></i>
-                {% else %}
-                <i class="bi bi-file-earmark-pdf text-muted flex-shrink-0"></i>
-                {% endif %}
-                <span class="flex-grow-1 small">{{ s.documento.nome }}</span>
-                <span class="text-muted small font-monospace flex-shrink-0">
-                  {{ (s.documento.dimensione_bytes / 1024) | round(0) | int }} KB
-                </span>
-              </li>
-              {% elif s.stato == 'pending' and s.doc.obbligatorio %}
-              <li class="list-group-item d-flex align-items-center gap-2 py-2 px-3 text-danger">
-                <i class="bi bi-exclamation-circle flex-shrink-0"></i>
-                <span class="small">{{ s.doc.descrizione }} — <em>mancante</em></span>
-              </li>
+            {# Form genera busta #}
+            <form id="formGeneraBusta" method="POST"
+                  action="{{ url_for('deposito_genera_busta', id_fasc=fascicolo.id) }}">
+
+              <div class="row g-3 mb-4">
+                <div class="col-sm-5">
+                  <label class="form-label fw-semibold small">
+                    Tipo atto <span class="text-danger">*</span>
+                  </label>
+                  <select name="tipo_atto" class="form-select form-select-sm" required>
+                    <option value="">— seleziona —</option>
+                    <option value="RICORSO">Ricorso</option>
+                    <option value="CITAZIONE">Atto di citazione</option>
+                    <option value="MEMORIA">Memoria</option>
+                    <option value="COMPARSA">Comparsa di risposta</option>
+                    <option value="REPLICA">Replica</option>
+                    <option value="ISTANZA">Istanza</option>
+                    <option value="NOTA_SPESE">Nota spese</option>
+                    <option value="PROCURA">Procura alle liti</option>
+                    <option value="DECRETO_INGIUNTIVO">Ricorso per decreto ingiuntivo</option>
+                    <option value="OPPOSIZIONE">Atto di opposizione</option>
+                    <option value="APPELLO">Atto di appello</option>
+                    <option value="RECLAMO">Reclamo</option>
+                    <option value="ALTRO">Altro atto</option>
+                  </select>
+                </div>
+                <div class="col-sm-3">
+                  <label class="form-label fw-semibold small">Registro</label>
+                  <select name="codice_registro" class="form-select form-select-sm">
+                    <option value="RG" selected>RG</option>
+                    <option value="RGNR">RGNR</option>
+                    <option value="GIP">GIP</option>
+                    <option value="GUP">GUP</option>
+                    <option value="RGES">RGES</option>
+                  </select>
+                </div>
+                <div class="col-sm-4">
+                  <label class="form-label fw-semibold small">Oggetto</label>
+                  <input type="text" name="oggetto" class="form-control form-control-sm"
+                         value="{{ fascicolo.oggetto or fascicolo.titolo }}"
+                         placeholder="Oggetto del deposito">
+                </div>
+              </div>
+
+              {# Selezione documenti #}
+              {% set docs_wizard = steps_stato | selectattr('stato', 'eq', 'done') | list %}
+              {% if docs_wizard %}
+              <div class="mb-3">
+                <label class="form-label fw-semibold small mb-2">
+                  Documenti da includere nella busta
+                  <span class="text-danger">*</span>
+                </label>
+
+                {# Tabella documenti con selezione atto principale / allegato #}
+                <div class="table-responsive border rounded">
+                  <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="small fw-semibold ps-3" style="width:40%">Documento</th>
+                        <th class="small fw-semibold text-center" style="width:25%">Atto principale</th>
+                        <th class="small fw-semibold text-center" style="width:25%">Allegato</th>
+                        <th class="small fw-semibold text-center" style="width:10%">Dim.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for s in docs_wizard %}
+                      {% set doc = s.documento %}
+                      <tr>
+                        <td class="ps-3">
+                          <div class="small fw-semibold">{{ doc.nome }}</div>
+                          {% if doc.firmato_digitalmente %}
+                          <div class="small text-success">
+                            <i class="bi bi-patch-check-fill me-1"></i>firmato digitalmente
+                          </div>
+                          {% else %}
+                          <div class="small text-muted">non firmato</div>
+                          {% endif %}
+                        </td>
+                        <td class="text-center">
+                          <input type="radio" name="atto_principale_id"
+                                 value="{{ doc.id }}"
+                                 class="form-check-input radio-principale"
+                                 {% if loop.first %}checked{% endif %}
+                                 required>
+                        </td>
+                        <td class="text-center">
+                          <input type="checkbox" name="allegati_ids"
+                                 value="{{ doc.id }}"
+                                 class="form-check-input check-allegato"
+                                 {% if not loop.first %}checked{% endif %}>
+                        </td>
+                        <td class="text-center text-muted small font-monospace">
+                          {{ (doc.dimensione_bytes / 1024) | round(0) | int }}K
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="small text-muted mt-1">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Seleziona l'atto principale (firmato digitalmente) e spunta gli allegati da includere.
+                </div>
+              </div>
+              {% else %}
+              <div class="alert alert-warning small">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Nessun documento caricato nel wizard. Carica prima i documenti richiesti.
+              </div>
               {% endif %}
-              {% endfor %}
-            </ul>
 
-          </div>{# /col-lg-6 #}
+            </form>
 
-          {# Colonna destra: istruzioni + form esito #}
-          <div class="col-lg-6">
+            {# Istruzioni post-download #}
+            <div class="alert alert-success d-flex gap-2 align-items-start py-2 mt-3 mb-0">
+              <i class="bi bi-download flex-shrink-0 mt-1"></i>
+              <div class="small">
+                Il file <strong>.enc</strong> generato è la busta telematica PCT pronta.
+                Aprila con <strong>Consolle dell'Avvocato</strong>:
+                <em>Nuovo deposito → Importa busta → seleziona il file .enc → Invia</em>.
+              </div>
+            </div>
 
-            {# Istruzioni #}
-            <h6 class="fw-bold text-muted text-uppercase small mb-2">
-              <i class="bi bi-list-check me-1"></i>Come effettuare il deposito
-            </h6>
-            <ol class="small ps-3 mb-3">
-              <li class="mb-2">Apri <strong>Consolle dell'Avvocato</strong> (o software equivalente)</li>
-              <li class="mb-2">Crea una nuova <strong>busta telematica</strong> e scegli il tipo di atto</li>
-              <li class="mb-2">Allega i documenti elencati a sinistra; indica l'atto principale</li>
-              <li class="mb-2">Verifica la <strong>firma digitale</strong> sull'atto principale (.p7m)</li>
-              <li class="mb-2">
-                Seleziona il tribunale
-                {% if fascicolo.tribunale %}<strong>({{ fascicolo.tribunale }})</strong>{% endif %}
-                e invia via <strong>PEC</strong>
-              </li>
-              <li>Torna qui e <strong>registra l'esito</strong> qui sotto</li>
-            </ol>
-            <a href="https://pst.giustizia.it/" target="_blank" rel="noopener noreferrer"
-               class="btn btn-outline-success btn-sm w-100 mb-4">
-              <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale dei Servizi Telematici (PST)
-            </a>
+          </div>{# /pannello-busta #}
 
-            {# Form registra esito #}
-            <h6 class="fw-bold text-muted text-uppercase small mb-2">
-              <i class="bi bi-pencil-square me-1"></i>Registra l'esito nel fascicolo
-            </h6>
+          {# ── TAB 2: REGISTRA ESITO ── #}
+          <div class="tab-pane fade p-4" id="pannello-esito" role="tabpanel">
+
+            <p class="small text-muted mb-3">
+              Dopo aver depositato tramite Consolle dell'Avvocato, inserisci qui
+              lo stato e i riferimenti ricevuti per tenere traccia nel fascicolo.
+            </p>
+
             <form id="formRegistraEsito" method="POST"
                   action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
 
-              <div class="row g-2 mb-2">
+              <div class="row g-3 mb-3">
                 <div class="col-sm-7">
-                  <label class="form-label small fw-semibold mb-1">
+                  <label class="form-label small fw-semibold">
                     Tipo atto <span class="text-danger">*</span>
                   </label>
                   <input type="text" name="tipo_atto" class="form-control form-control-sm"
                          placeholder="es. Ricorso, Memoria, Citazione" required>
                 </div>
                 <div class="col-sm-5">
-                  <label class="form-label small fw-semibold mb-1">Stato</label>
+                  <label class="form-label small fw-semibold">Stato</label>
                   <select name="stato" class="form-select form-select-sm">
                     <option value="INVIATO">INVIATO</option>
                     <option value="ACCETTATO_PEC">ACCETTATO_PEC</option>
@@ -385,38 +479,48 @@
               {% if pec_tribunale %}
               <input type="hidden" name="pec_destinatario" value="{{ pec_tribunale }}">
               {% else %}
-              <div class="mb-2">
-                <label class="form-label small fw-semibold mb-1">PEC tribunale</label>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">PEC tribunale</label>
                 <input type="email" name="pec_destinatario" class="form-control form-control-sm"
                        placeholder="tribunale.sede@giustiziapec.it">
               </div>
               {% endif %}
 
-              <div class="mb-2">
-                <label class="form-label small fw-semibold mb-1">N. protocollo / ID deposito</label>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">N. protocollo / ID deposito</label>
                 <input type="text" name="messaggio" class="form-control form-control-sm"
                        placeholder="es. PCT-2024-0001234">
               </div>
 
               <div class="mb-0">
-                <label class="form-label small fw-semibold mb-1">Note</label>
-                <textarea name="note" class="form-control form-control-sm" rows="2"
-                          placeholder="Annotazioni sull'esito…"></textarea>
+                <label class="form-label small fw-semibold">Note</label>
+                <textarea name="note" class="form-control form-control-sm" rows="3"
+                          placeholder="Annotazioni sull'esito del deposito…"></textarea>
               </div>
 
             </form>
 
-          </div>{# /col-lg-6 #}
-        </div>{# /row #}
+          </div>{# /pannello-esito #}
 
+        </div>{# /tab-content #}
       </div>{# /modal-body #}
 
-      {# Footer #}
-      <div class="modal-footer">
+      {# Footer contestuale #}
+      <div class="modal-footer bg-light">
         <button type="button" class="btn btn-outline-secondary"
                 data-bs-dismiss="modal">Chiudi</button>
+
+        {# Bottone Tab 1 — scarica busta #}
+        <button type="submit" form="formGeneraBusta"
+                id="btnFooterBusta"
+                class="btn btn-success fw-semibold">
+          <i class="bi bi-download me-1"></i>Scarica busta PCT (.enc)
+        </button>
+
+        {# Bottone Tab 2 — salva esito (nascosto di default) #}
         <button type="submit" form="formRegistraEsito"
-                class="btn btn-primary fw-semibold">
+                id="btnFooterEsito"
+                class="btn btn-primary fw-semibold d-none">
           <i class="bi bi-save me-1"></i>Salva esito nel fascicolo
         </button>
       </div>
@@ -424,6 +528,36 @@
     </div>{# /modal-content #}
   </div>{# /modal-dialog #}
 </div>
+
+{# Script: swap footer buttons on tab change #}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const tabBusta = document.getElementById('tab-busta');
+  const tabEsito = document.getElementById('tab-esito');
+  const btnBusta = document.getElementById('btnFooterBusta');
+  const btnEsito = document.getElementById('btnFooterEsito');
+
+  if (!tabBusta || !tabEsito) return;
+
+  tabEsito.addEventListener('shown.bs.tab', function () {
+    btnBusta.classList.add('d-none');
+    btnEsito.classList.remove('d-none');
+  });
+  tabBusta.addEventListener('shown.bs.tab', function () {
+    btnEsito.classList.add('d-none');
+    btnBusta.classList.remove('d-none');
+  });
+
+  /* Sincronizza tipo_atto dal tab busta → tab esito */
+  const selTipo = document.querySelector('#formGeneraBusta select[name="tipo_atto"]');
+  const inpTipo = document.querySelector('#formRegistraEsito input[name="tipo_atto"]');
+  if (selTipo && inpTipo) {
+    selTipo.addEventListener('change', function () {
+      inpTipo.value = selTipo.options[selTipo.selectedIndex].text;
+    });
+  }
+});
+</script>
 {% endif %}
 
 {% endblock %}

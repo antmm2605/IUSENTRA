@@ -619,13 +619,21 @@
             <i class="bi bi-download me-1"></i>Scarica busta (.enc)
           </button>
 
-          {# Invia via PEC — solo se PEC configurata #}
+          {# Invia via PEC — visibile sempre; disabilitato se PEC non configurata #}
           {% if pec_configurata %}
           <button type="button" id="btnInviaPec"
                   class="btn btn-success fw-semibold">
             <span id="spinnerPec" class="spinner-border spinner-border-sm me-1 d-none"
                   role="status"></span>
             <i class="bi bi-send-fill me-1" id="iconPec"></i>Invia via PEC
+          </button>
+          {% else %}
+          <button type="button" id="btnInviaPec"
+                  class="btn btn-success fw-semibold"
+                  disabled
+                  title="Configura le credenziali PEC in Impostazioni → PEC per abilitare l'invio diretto"
+                  data-bs-toggle="tooltip" data-bs-placement="top">
+            <i class="bi bi-send-fill me-1"></i>Invia via PEC
           </button>
           {% endif %}
         </div>

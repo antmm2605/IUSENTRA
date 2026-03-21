@@ -85,7 +85,8 @@ DECRETO_INGIUNTIVO = TemplateAtto(
     endpoint_deposito="polisWeb_home",
     nota_canale=(
         "Il ricorso si deposita tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
-        "che genera la busta telematica .enc da inviare via PolisWeb/PST. "
+        "che genera e invia direttamente la busta telematica .enc al tribunale. "
+        "PolisWeb/PST serve solo per consultare e scaricare i documenti del fascicolo. "
         "Verificare che l'ufficio destinatario sia abilitato al deposito telematico."
     ),
     documenti=[
@@ -109,7 +110,7 @@ DECRETO_INGIUNTIVO = TemplateAtto(
         _chk("Procura alle liti firmata e scansionata correttamente", critico=True),
         _chk("Contributo unificato pagato (telematicamente o F23) e ricevuta allegata", critico=True),
         _chk("Busta telematica .enc generata correttamente dal redattore atti", critico=True),
-        _chk("Busta inviata tramite PolisWeb/PST e ricevuta di accettazione PEC salvata"),
+        _chk("Busta inviata dal redattore atti e ricevuta di accettazione PEC salvata", critico=True),
         _chk("Valore della causa indicato correttamente nel ricorso"),
         _chk("Documenti allegati nel redattore con tipo corretto (principale / allegato)"),
         _chk("Tutti i PDF si aprono correttamente"),
@@ -126,8 +127,9 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
     endpoint_deposito="polisWeb_home",
     nota_canale=(
         "L'iscrizione a ruolo avviene tramite deposito telematico PCT. "
-        "Usare il redattore atti per creare la busta con la nota di iscrizione e gli allegati, "
-        "poi inviare via PolisWeb/PST. La prova notifica deve essere allegata alla busta."
+        "Usare il redattore atti per creare e inviare la busta con la nota di iscrizione e gli allegati. "
+        "La prova notifica deve essere allegata alla busta. "
+        "PolisWeb serve solo per consultare il fascicolo dopo l'accettazione."
     ),
     documenti=[
         _doc(1,  "Atto_introduttivo",               "Citazione o ricorso introduttivo"),
@@ -150,7 +152,7 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
         _chk("Nota di iscrizione a ruolo compilata correttamente nel redattore", critico=True),
         _chk("Prova notifica completa (relata + ricevute PEC) allegata alla busta", critico=True),
         _chk("Contributo unificato pagato e ricevuta allegata alla busta", critico=True),
-        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Numero RG corretto sulla nota di iscrizione"),
         _chk("Tutti i PDF leggibili e non protetti"),
@@ -166,8 +168,10 @@ COMPARSA_RISPOSTA = TemplateAtto(
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
     nota_canale=(
-        "La comparsa si deposita telematicamente via PCT tramite redattore atti. "
-        "Attenzione ai termini: deve essere depositata almeno 20 giorni prima dell'udienza."
+        "La comparsa si deposita tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
+        "che crea e invia la busta telematica al tribunale. "
+        "Attenzione ai termini: deve essere depositata almeno 20 giorni prima dell'udienza. "
+        "PolisWeb serve solo per consultare il fascicolo."
     ),
     documenti=[
         _doc(1,  "Comparsa_costituzione_risposta",  "Comparsa firmata dall'avvocato"),
@@ -185,7 +189,7 @@ COMPARSA_RISPOSTA = TemplateAtto(
         _chk("Procura alle liti del convenuto allegata nella busta", critico=True),
         _chk("Eccezioni processuali proposte a pena di decadenza", critico=True),
         _chk("Domande riconvenzionali dichiarate esplicitamente"),
-        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Numero RG e sezione indicati correttamente"),
     ],
@@ -200,8 +204,10 @@ MEMORIA_DIFENSIVA = TemplateAtto(
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
     nota_canale=(
-        "Le memorie si depositano esclusivamente via PCT tramite redattore atti. "
-        "Verificare il tipo di memoria (art. 171-ter n.1/2/3 o altro) e il termine perentorio."
+        "Le memorie si depositano tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
+        "che crea e invia la busta telematica. "
+        "Verificare il tipo di memoria (art. 171-ter n.1/2/3 o altro) e il termine perentorio. "
+        "PolisWeb serve solo per consultare il fascicolo."
     ),
     documenti=[
         _doc(1,  "Memoria",                         "Memoria difensiva o istruttoria"),
@@ -218,7 +224,7 @@ MEMORIA_DIFENSIVA = TemplateAtto(
         _chk("Tipo di memoria corretto (art. 171-ter n.1 / n.2 / n.3)", critico=True),
         _chk("Numero RG e sezione corretti nell'intestazione"),
         _chk("Allegati caricati nel redattore con tipo 'allegato'", critico=True),
-        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
     ],
 )
@@ -232,8 +238,9 @@ RICORSO_APPELLO = TemplateAtto(
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
     nota_canale=(
-        "L'appello civile si deposita telematicamente via PCT presso la Corte d'Appello, "
-        "se abilitata. Verificare l'abilitazione sul PST prima di procedere."
+        "L'appello civile si deposita tramite redattore atti presso la Corte d'Appello (se abilitata). "
+        "Il redattore crea e invia la busta telematica direttamente. "
+        "PolisWeb serve solo per consultare il fascicolo. Verificare l'abilitazione dell'ufficio sul PST."
     ),
     documenti=[
         _doc(1,  "Ricorso_in_appello",              "Atto di appello"),
@@ -254,7 +261,7 @@ RICORSO_APPELLO = TemplateAtto(
         _chk("Motivi di appello specifici ex art. 342 c.p.c.", critico=True),
         _chk("Contributo unificato per appello pagato e allegato", critico=True),
         _chk("Procura alle liti specifica per il grado di appello"),
-        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Istanza di sospensiva se urgente"),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
     ],
@@ -270,7 +277,8 @@ OPPOSIZIONE_DI = TemplateAtto(
     endpoint_deposito="polisWeb_home",
     nota_canale=(
         "L'opposizione si introduce con citazione notificata; "
-        "l'iscrizione a ruolo avviene poi telematicamente via PCT."
+        "l'iscrizione a ruolo avviene poi tramite redattore atti (busta telematica PCT). "
+        "PolisWeb serve solo per consultare il fascicolo."
     ),
     documenti=[
         _doc(1,  "Atto_di_opposizione",             "Citazione in opposizione"),
@@ -288,7 +296,7 @@ OPPOSIZIONE_DI = TemplateAtto(
         _chk("Istanza di sospensiva dell'esecutorietà se necessaria", critico=True),
         _chk("Tribunale competente verificato (art. 645 c.p.c.)"),
         _chk("Procura alle liti presente"),
-        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
     ],
 )
@@ -332,10 +340,10 @@ PIGNORAMENTO = TemplateAtto(
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
     nota_canale=(
-        "Il pignoramento immobiliare e presso terzi si iscrive a ruolo telematicamente via PCT. "
-        "Il pignoramento mobiliare avviene tramite ufficiale giudiziario (UNEP) — "
-        "l'iscrizione a ruolo successiva è telematica. "
-        "Verificare l'ufficio abilitato sul PST."
+        "Il pignoramento immobiliare e presso terzi si iscrive a ruolo tramite redattore atti (PCT). "
+        "Il pignoramento mobiliare avviene tramite ufficiale giudiziario (UNEP); "
+        "l'iscrizione a ruolo successiva avviene anch'essa con il redattore atti. "
+        "PolisWeb serve solo per consultare il fascicolo esecutivo."
     ),
     documenti=[
         _doc(1,  "Atto_di_pignoramento",            "Atto di pignoramento"),
@@ -367,9 +375,10 @@ RICORSO_CAUTELARE = TemplateAtto(
     canale="PCT_TELEMATICO",
     endpoint_deposito="polisWeb_home",
     nota_canale=(
-        "Il ricorso cautelare si deposita telematicamente via PCT. "
-        "Se urgente (inaudita altera parte), verificare le modalità dell'ufficio "
-        "per il deposito urgente fuori orario."
+        "Il ricorso cautelare si deposita tramite redattore atti (PCT): "
+        "il redattore crea e invia la busta telematica direttamente al tribunale. "
+        "Se urgente (inaudita altera parte), verificare con la cancelleria le modalità "
+        "per il deposito urgente fuori orario. PolisWeb serve solo per consultare il fascicolo."
     ),
     documenti=[
         _doc(1,  "Ricorso_cautelare",               "Ricorso ex art. 700 c.p.c. o per sequestro"),
@@ -386,7 +395,7 @@ RICORSO_CAUTELARE = TemplateAtto(
         _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Periculum in mora concretamente argomentato e documentato", critico=True),
         _chk("Fumus boni iuris documentato", critico=True),
-        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Busta telematica .enc generata e inviata dal redattore atti", critico=True),
         _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Competenza del giudice verificata"),
         _chk("Istanza inaudita altera parte se urgente (verifica modalità ufficio)"),

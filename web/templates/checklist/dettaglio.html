@@ -38,7 +38,11 @@
   {% if tmpl.endpoint_deposito %}
   <a href="{{ url_for(tmpl.endpoint_deposito) }}"
      class="btn btn-sm btn-light flex-shrink-0 fw-semibold">
+    {% if tmpl.canale == 'PCT_TELEMATICO' %}
+    <i class="bi bi-search me-1"></i>Consulta fascicolo
+    {% else %}
     <i class="bi bi-box-arrow-up-right me-1"></i>Apri portale
+    {% endif %}
   </a>
   {% endif %}
 </div>

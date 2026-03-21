@@ -5627,7 +5627,6 @@ def create_app(config: dict | None = None) -> Flask:
     # ----------------------------------------------------------------
 
     @app.route("/impostazioni/calendario")
-    @login_required
     def impostazioni_calendario():
         from pct.cal_token import get_token
         token_data = get_token(_cal_token_dir())
@@ -5653,7 +5652,6 @@ def create_app(config: dict | None = None) -> Flask:
         )
 
     @app.route("/impostazioni/calendario/rigenera", methods=["POST"])
-    @login_required
     def rigenera_token_calendario():
         from pct.cal_token import rigenera_token
         rigenera_token(_cal_token_dir())

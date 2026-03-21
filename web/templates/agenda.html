@@ -52,23 +52,30 @@
               title="Esporta / sincronizza calendario">
         <i class="bi bi-calendar-arrow-down"></i>
       </button>
-      <ul class="dropdown-menu dropdown-menu-end">
+      <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px">
+        <li><h6 class="dropdown-header"><i class="bi bi-arrow-repeat me-1"></i>Sincronizzazione automatica</h6></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('impostazioni_calendario') }}">
+            <i class="bi bi-gear me-2 text-primary"></i>Configura sync calendario…
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header"><i class="bi bi-download me-1"></i>Download manuale</h6></li>
         <li>
           <a class="dropdown-item" href="{{ url_for('agenda_ical') }}" download="agenda.ics">
-            <i class="bi bi-download me-2 text-primary"></i>Scarica agenda (.ics)
+            <i class="bi bi-calendar-week me-2 text-primary"></i>Scarica agenda (.ics)
           </a>
         </li>
         <li>
           <a class="dropdown-item" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
-            <i class="bi bi-download me-2 text-warning"></i>Scarica scadenze (.ics)
+            <i class="bi bi-alarm me-2 text-warning"></i>Scarica scadenze (.ics)
           </a>
         </li>
         <li><hr class="dropdown-divider"></li>
         <li>
-          <span class="dropdown-item-text small text-muted" style="max-width:260px;white-space:normal">
-            <i class="bi bi-info-circle me-1"></i>
-            Importa il file <code>.ics</code> in Google Calendar, Apple Calendar o Outlook
-            per sincronizzare agenda e scadenze.
+          <span class="dropdown-item-text small text-muted" style="white-space:normal">
+            <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+            Con la sync automatica il calendario si aggiorna ogni ora senza fare nulla.
           </span>
         </li>
       </ul>

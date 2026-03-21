@@ -90,10 +90,26 @@
       <a href="{{ url_for('scadenziario_pdf_export') }}?stato=tutte" class="btn btn-sm btn-outline-danger" title="Esporta PDF">
         <i class="bi bi-file-earmark-pdf me-1"></i>PDF
       </a>
-      <a href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics"
-         class="btn btn-sm btn-outline-secondary" title="Esporta iCalendar (.ics) — compatibile con Google Calendar, Apple Calendar, Outlook">
-        <i class="bi bi-calendar-arrow-down me-1"></i>iCal
-      </a>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                data-bs-toggle="dropdown"
+                title="Esporta / sincronizza scadenze">
+          <i class="bi bi-calendar-arrow-down me-1"></i>iCal
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow">
+          <li>
+            <a class="dropdown-item" href="{{ url_for('impostazioni_calendario') }}">
+              <i class="bi bi-arrow-repeat me-2 text-primary"></i>Sync automatica…
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
+              <i class="bi bi-download me-2 text-warning"></i>Scarica .ics (una-tantum)
+            </a>
+          </li>
+        </ul>
+      </div>
       <a href="{{ url_for('nuova_scadenza') }}" class="btn btn-sm btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Nuova
       </a>

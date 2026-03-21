@@ -5543,7 +5543,10 @@ def create_app(config: dict | None = None) -> Flask:
     from web.blueprints.email_client import email_client as email_client_bp  # Client email /email/*
     app.register_blueprint(email_client_bp)
 
-    # ---- iCal export per agenda e scadenziario
+    # ----------------------------------------------------------------
+    # iCal — download diretto (retrocompatibilità)
+    # ----------------------------------------------------------------
+
     @app.route("/agenda/export.ics")
     def agenda_ical():
         from pct.ical import agenda_to_ical
@@ -5562,6 +5565,122 @@ def create_app(config: dict | None = None) -> Flask:
         ical_str = scadenze_to_ical(gs.tutte(), studio_nome=studio_nome)
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Content-Disposition": "attachment; filename=scadenze.ics"})
+
+    # ----------------------------------------------------------------
+    # WebCal — feed live per subscription automatica
+    # URL: /cal/<token>/agenda.ics  (webcal:// o https://)
+    # Token segreto: pct/cal_token.py  →  ./agenda/cal_token.json
+    # ----------------------------------------------------------------
+
+    def _cal_token_dir() -> str:
+        """Directory dove viene salvato il token (accanto all'agenda DB)."""
+        agenda_db = app.config.get("AGENDA_DB", "./agenda/appuntamenti.json")
+        return os.path.dirname(os.path.abspath(agenda_db))
+
+    def _cal_token_valido(token: str) -> bool:
+        from pct.cal_token import get_token
+        try:
+            return get_token(_cal_token_dir()).get("token") == token
+        except Exception:
+            return False
+
+    @app.route("/cal/<token>/agenda.ics")
+    def cal_feed_agenda(token):
+        if not _cal_token_valido(token):
+            return Response("Token non valido.", status=403, mimetype="text/plain")
+        from pct.ical import agenda_to_ical
+        ag = get_agenda()
+        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        base_url = request.host_url.rstrip("/")
+        ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
+        return Response(ical_str, mimetype="text/calendar; charset=utf-8",
+                        headers={"Cache-Control": "no-cache, no-store"})
+
+    @app.route("/cal/<token>/scadenze.ics")
+    def cal_feed_scadenze(token):
+        if not _cal_token_valido(token):
+            return Response("Token non valido.", status=403, mimetype="text/plain")
+        from pct.ical import scadenze_to_ical
+        gs = get_scadenziario()
+        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        ical_str = scadenze_to_ical(gs.tutte(), studio_nome=studio_nome)
+        return Response(ical_str, mimetype="text/calendar; charset=utf-8",
+                        headers={"Cache-Control": "no-cache, no-store"})
+
+    @app.route("/cal/<token>/completo.ics")
+    def cal_feed_completo(token):
+        if not _cal_token_valido(token):
+            return Response("Token non valido.", status=403, mimetype="text/plain")
+        from pct.ical import agenda_scadenze_to_ical
+        ag = get_agenda()
+        gs = get_scadenziario()
+        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        base_url = request.host_url.rstrip("/")
+        ical_str = agenda_scadenze_to_ical(
+            ag.tutti(), gs.tutte(), studio_nome=studio_nome, base_url=base_url
+        )
+        return Response(ical_str, mimetype="text/calendar; charset=utf-8",
+                        headers={"Cache-Control": "no-cache, no-store"})
+
+    # ----------------------------------------------------------------
+    # Impostazioni calendario — pannello subscription
+    # ----------------------------------------------------------------
+
+    @app.route("/impostazioni/calendario")
+    @login_required
+    def impostazioni_calendario():
+        from pct.cal_token import get_token
+        token_data = get_token(_cal_token_dir())
+        token = token_data["token"]
+        base = request.host_url.rstrip("/")
+        feeds = {
+            "agenda":   f"{base}/cal/{token}/agenda.ics",
+            "scadenze": f"{base}/cal/{token}/scadenze.ics",
+            "completo": f"{base}/cal/{token}/completo.ics",
+        }
+        # Link Google Calendar (usa https:// direttamente)
+        from urllib.parse import quote
+        gcal_completo = (
+            "https://calendar.google.com/calendar/r/settings/addbyurl"
+            f"?url={quote(feeds['completo'], safe='')}"
+        )
+        return render_template(
+            "impostazioni/calendario.html",
+            token=token,
+            token_creato=token_data.get("creato_il", ""),
+            feeds=feeds,
+            gcal_url=gcal_completo,
+        )
+
+    @app.route("/impostazioni/calendario/rigenera", methods=["POST"])
+    @login_required
+    def rigenera_token_calendario():
+        from pct.cal_token import rigenera_token
+        rigenera_token(_cal_token_dir())
+        flash("Token calendario rigenerato. Aggiorna i link nei tuoi calendari.", "success")
+        return redirect(url_for("impostazioni_calendario"))
+
+    # ----------------------------------------------------------------
+    # API — badge scadenze urgenti (in-app, usato da base.html JS)
+    # ----------------------------------------------------------------
+
+    @app.route("/api/scadenze/urgenti")
+    def api_scadenze_urgenti():
+        """Conta scadenze aperte entro 7 giorni — usato dal badge navbar."""
+        try:
+            from datetime import timedelta
+            gs = get_scadenziario()
+            oggi_str = date.today().isoformat()
+            soglia = (date.today() + timedelta(days=7)).isoformat()
+            n = sum(
+                1 for s in gs.tutte()
+                if getattr(s, "data_scadenza", "") and oggi_str <= s.data_scadenza <= soglia
+                and getattr(s, "stato", None) and s.stato.value not in ("COMPLETATO", "ANNULLATO", "SCADUTO")
+            )
+            return jsonify({"n": n})
+        except Exception as e:
+            app.logger.exception("api_scadenze_urgenti: %s", e)
+            return jsonify({"n": 0})
 
     # ---- OCR route (su documento di un fascicolo)
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/ocr", methods=["POST"])

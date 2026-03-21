@@ -80,7 +80,7 @@
                  id="doc-{{ loop.index }}" style="cursor:pointer">
           <label class="flex-grow-1 min-w-0" for="doc-{{ loop.index }}" style="cursor:pointer">
             <div class="d-flex align-items-center gap-2">
-              <span class="badge bg-secondary" style="font-size:.65rem;min-width:2rem">{{ doc.numero|string.zfill(2) if doc.numero < 10 else doc.numero }}</span>
+              <span class="badge bg-secondary" style="font-size:.65rem;min-width:2rem">{{ "%02d"|format(doc.numero) }}</span>
               <span class="fw-medium small {% if not doc.obbligatorio %}text-muted{% endif %}">
                 {{ doc.nome_file }}.pdf
               </span>

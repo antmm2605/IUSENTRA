@@ -1681,11 +1681,45 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore pdp_documenti: %s", e)
             documenti = []
             flash(str(e), "danger")
+
+        # Risolvi nome ufficio dal codice
+        nome_ufficio = codice_ufficio
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _uff = next(
+                (u for u in _get_uff(
+                    os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                ).carica() if u.get("codice") == codice_ufficio),
+                None,
+            )
+            nome_ufficio = _uff["nome"] if _uff else codice_ufficio
+        except Exception:
+            pass
+
+        # Raggruppa per id_deposito → lista ordinata per data (più recenti prima)
+        from collections import OrderedDict
+        _gruppi: dict = OrderedDict()
+        for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
+            chiave = doc.id_deposito or f"__{doc.data_deposito}__{doc.mittente}"
+            if chiave not in _gruppi:
+                _gruppi[chiave] = {
+                    "id_deposito": doc.id_deposito or chiave,
+                    "tipo_atto": doc.tipo_atto or doc.tipo.replace("_", " ").title(),
+                    "data_deposito": doc.data_deposito,
+                    "mittente": doc.mittente,
+                    "documenti": [],
+                }
+            _gruppi[chiave]["documenti"].append(doc)
+        depositi = list(_gruppi.values())
+
         return render_template(
             "pdp_documenti.html",
             documenti=documenti,
+            depositi=depositi,
             numero_rg=numero_rg,
             anno_rg=anno_rg,
+            codice_ufficio=codice_ufficio,
+            nome_ufficio=nome_ufficio,
             demo_mode=demo_mode,
         )
 
@@ -1809,11 +1843,45 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore pat_documenti: %s", e)
             documenti = []
             flash(str(e), "danger")
+
+        # Risolvi nome ufficio dal codice
+        nome_ufficio = codice_ufficio
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _uff = next(
+                (u for u in _get_uff(
+                    os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                ).carica() if u.get("codice") == codice_ufficio),
+                None,
+            )
+            nome_ufficio = _uff["nome"] if _uff else codice_ufficio
+        except Exception:
+            pass
+
+        # Raggruppa per id_deposito → lista ordinata per data (più recenti prima)
+        from collections import OrderedDict
+        _gruppi: dict = OrderedDict()
+        for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
+            chiave = doc.id_deposito or f"__{doc.data_deposito}__{doc.mittente}"
+            if chiave not in _gruppi:
+                _gruppi[chiave] = {
+                    "id_deposito": doc.id_deposito or chiave,
+                    "tipo_atto": doc.tipo_atto or doc.tipo.replace("_", " ").title(),
+                    "data_deposito": doc.data_deposito,
+                    "mittente": doc.mittente,
+                    "documenti": [],
+                }
+            _gruppi[chiave]["documenti"].append(doc)
+        depositi = list(_gruppi.values())
+
         return render_template(
             "pat_documenti.html",
             documenti=documenti,
+            depositi=depositi,
             numero_ricorso=numero_ricorso,
             anno=anno,
+            codice_ufficio=codice_ufficio,
+            nome_ufficio=nome_ufficio,
             demo_mode=demo_mode,
         )
 

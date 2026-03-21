@@ -15,6 +15,20 @@
 - Persistenza: file JSON per clienti, fascicoli, agenda, ecc.
 - Stack: Python 3, Flask, Bootstrap 5, Bootstrap Icons
 
+## Regola obbligatoria — Portale Servizi Telematici
+
+**Qualsiasi implementazione che coinvolga i portali telematici (PST/polisWeb, PDP, PAT) deve sempre rispettare le regole impartite dal Portale Servizi Telematici del Ministero della Giustizia.**
+
+Regole chiave:
+- **Vista documenti a buste (accordion)**: i documenti vanno sempre raggruppati per `id_deposito` — stessa UX per PST/polisWeb, PDP e PAT. Ogni busta è un accordion collassabile con i file della busta dentro.
+- **Download non autonomo**: il gestionale mostra l'elenco degli atti ma non può scaricare documenti in autonomia — il download richiede sessione autenticata via browser sul portale ufficiale.
+  - PST → `pst.giustizia.it` (autenticazione: CNS/CIE/SPID)
+  - PDP → `appweb.giustizia.it` (autenticazione: CNS/CIE)
+  - PAT → `giustizia-amministrativa.it/pac` (autenticazione: CNS/CIE/SPID)
+- **Campi obbligatori nei modelli documento**: ogni `DocumentoXxx` (PST, PDP, PAT) deve avere `id_deposito` e `tipo_atto` per supportare la vista a buste.
+- **Logica di raggruppamento nelle route**: le route `*/documenti` devono sempre costruire la lista `depositi` (dict con `id_deposito`, `tipo_atto`, `data_deposito`, `mittente`, `documenti[]`) ordinata per data decrescente, e passare sia `documenti` (lista flat) sia `depositi` (lista raggruppata) al template.
+- **Fallback chiave raggruppamento**: se `id_deposito` è vuoto, usare `f"__{data_deposito}__{mittente}"` come chiave di raggruppamento.
+
 ## Convenzioni
 
 - Messaggi di commit in italiano, descrittivi

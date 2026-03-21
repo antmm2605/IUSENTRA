@@ -60,6 +60,9 @@ class DocumentoPAT:
     mittente: str
     dimensione_bytes: int = 0
     disponibile: bool = True
+    # Raggruppamento per busta/deposito (tutti i file della stessa busta condividono id_deposito)
+    id_deposito: str = ""       # identificativo univoco della busta telematica
+    tipo_atto: str = ""         # tipo atto della busta (es. "Ricorso", "Memoria", "Ordinanza")
 
 
 @dataclass
@@ -399,11 +402,14 @@ class ClientPATDemo(ClientPAT):
     def consulta_documenti(self, codice_ufficio, numero_ricorso, anno) -> List[DocumentoPAT]:
         return [
             DocumentoPAT("DEMO-A001", "ricorso_principale.pdf.p7m", "RICORSO",
-                         f"{anno}-02-28", "avv.demo@pec.it", 312000),
+                         f"{anno}-02-28", "avv.demo@pec.it", 312000,
+                         id_deposito="BUSTA-PAT-001", tipo_atto="Ricorso principale"),
             DocumentoPAT("DEMO-A002", "memoria_resistente.pdf.p7m", "MEMORIA",
-                         f"{anno}-05-15", "avv.ente@pec.avvocaturastato.it", 204800),
+                         f"{anno}-05-15", "avv.ente@pec.avvocaturastato.it", 204800,
+                         id_deposito="BUSTA-PAT-002", tipo_atto="Memoria del resistente"),
             DocumentoPAT("DEMO-A003", "ordinanza_cautelare.pdf.p7m", "ORDINANZA",
-                         f"{anno}-03-10", "tar.demo@giustizia-amministrativa.it", 48000),
+                         f"{anno}-03-10", "tar.demo@giustizia-amministrativa.it", 48000,
+                         id_deposito="BUSTA-PAT-003", tipo_atto="Ordinanza cautelare"),
         ]
 
 

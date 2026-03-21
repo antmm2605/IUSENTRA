@@ -59,6 +59,9 @@ class DocumentoPDP:
     mittente: str
     dimensione_bytes: int = 0
     disponibile: bool = True
+    # Raggruppamento per busta/deposito (tutti i file della stessa busta condividono id_deposito)
+    id_deposito: str = ""       # identificativo univoco della busta telematica
+    tipo_atto: str = ""         # tipo atto della busta (es. "Richiesta", "Decreto", "Memoria")
 
 
 @dataclass
@@ -396,11 +399,14 @@ class ClientPDPDemo(ClientPDP):
     def consulta_documenti(self, codice_ufficio, numero_rg, anno_rg) -> List[DocumentoPDP]:
         return [
             DocumentoPDP("DEMO-P001", "richiesta_rinvio_giudizio.pdf.p7m", "RICHIESTA",
-                         f"{anno_rg}-03-10", "pm.demo@pec.it", 189440),
+                         f"{anno_rg}-03-10", "pm.demo@pec.it", 189440,
+                         id_deposito="BUSTA-PDP-001", tipo_atto="Richiesta di rinvio a giudizio"),
             DocumentoPDP("DEMO-P002", "decreto_che_dispone_giudizio.pdf.p7m", "DECRETO",
-                         f"{anno_rg}-04-22", "cancelleria.penale@pec.it", 95000),
+                         f"{anno_rg}-04-22", "cancelleria.penale@pec.it", 95000,
+                         id_deposito="BUSTA-PDP-002", tipo_atto="Decreto che dispone il giudizio"),
             DocumentoPDP("DEMO-P003", "memoria_difensiva.pdf.p7m", "MEMORIA",
-                         f"{anno_rg}-05-01", "avv.demo@pec.it", 134000),
+                         f"{anno_rg}-05-01", "avv.demo@pec.it", 134000,
+                         id_deposito="BUSTA-PDP-003", tipo_atto="Memoria difensiva"),
         ]
 
 

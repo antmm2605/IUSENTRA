@@ -14,6 +14,17 @@
 <div class="card-body">
 
 <form method="post">
+  <input type="hidden" name="id_cliente" value="{{ id_cliente or (app.id_cliente if app else '') }}">
+  <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+
+  {% if from_cliente %}
+  <div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Stai aggiungendo un appuntamento dalla cartella cliente.
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="fw-semibold">Torna alla cartella</a></span>
+  </div>
+  {% endif %}
 
   <div class="row g-3">
 
@@ -71,6 +82,11 @@
     {# Cliente con autocomplete #}
     <div class="col-md-6">
       <label class="form-label fw-semibold">Cliente</label>
+      {% if cliente_presel and not app %}
+        <input type="text" class="form-control bg-light text-muted"
+               value="{{ cliente_presel.nome_completo }}" readonly>
+        <input type="hidden" name="cliente" value="{{ cliente_presel.nome_completo }}">
+      {% else %}
       <div class="position-relative">
         <input type="text" id="input-cliente" name="cliente" class="form-control"
                value="{{ app.cliente if app else '' }}" placeholder="Digita per cercare..."
@@ -78,13 +94,15 @@
         <div id="clienti-dropdown" class="dropdown-menu w-100 shadow-sm"
              style="display:none; max-height:220px; overflow-y:auto; position:absolute; z-index:1055; top:100%; left:0;"></div>
       </div>
+      {% endif %}
     </div>
     <div class="col-md-6">
       <label class="form-label fw-semibold">Codice fiscale cliente</label>
       <input type="text" id="input-cf" name="cf_cliente" class="form-control"
-             value="{{ app.cf_cliente if app else '' }}"
+             value="{{ app.cf_cliente if app else (cliente_presel.codice_fiscale if cliente_presel else '') }}"
              placeholder="RSSMRA80A01H501Z" maxlength="16"
-             style="text-transform:uppercase">
+             style="text-transform:uppercase"
+             {{ 'readonly' if cliente_presel and not app }}>
     </div>
 
     {# Procedimento + Tribunale #}
@@ -123,6 +141,9 @@
     </button>
     {% if app %}
     <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}"
+       class="btn btn-outline-secondary">Annulla</a>
+    {% elif from_cliente %}
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
        class="btn btn-outline-secondary">Annulla</a>
     {% else %}
     <a href="{{ url_for('agenda_view') }}" class="btn btn-outline-secondary">Annulla</a>

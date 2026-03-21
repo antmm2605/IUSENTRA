@@ -6,6 +6,17 @@
 <div class="row justify-content-center">
 <div class="col-xl-9">
 <form method="post" id="form-scadenza">
+<input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+<input type="hidden" name="id_cliente" value="{{ id_cliente or '' }}">
+
+{% if from_cliente %}
+<div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
+  <i class="bi bi-info-circle-fill"></i>
+  <span>Stai aggiungendo una scadenza dalla cartella cliente.
+  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+     class="fw-semibold">Torna alla cartella</a></span>
+</div>
+{% endif %}
 
 {# Preset termini processuali #}
 {% if not scadenza %}
@@ -93,7 +104,7 @@
           <option value="">— Nessun fascicolo —</option>
           {% for f in fascicoli %}
           <option value="{{ f.id }}"
-            {{ 'selected' if scadenza and scadenza.id_fascicolo == f.id }}>
+            {{ 'selected' if (scadenza and scadenza.id_fascicolo == f.id) or (not scadenza and id_fascicolo_presel and id_fascicolo_presel == f.id) }}>
             {{ f.numero }} — {{ f.titolo }}
           </option>
           {% endfor %}
@@ -128,7 +139,12 @@
   <button type="submit" class="btn btn-primary">
     <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if scadenza else 'Crea scadenza' }}
   </button>
+  {% if from_cliente %}
+  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+     class="btn btn-outline-secondary">Annulla</a>
+  {% else %}
   <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary">Annulla</a>
+  {% endif %}
 </div>
 </form>
 </div>

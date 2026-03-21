@@ -6,6 +6,16 @@
 <div class="row justify-content-center">
 <div class="col-xl-8">
 <form method="post">
+  <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+
+  {% if from_cliente %}
+  <div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Stai inviando un messaggio dalla cartella cliente.
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="fw-semibold">Torna alla cartella</a></span>
+  </div>
+  {% endif %}
 
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
@@ -18,7 +28,8 @@
         <label class="form-label fw-semibold">Canale <span class="text-danger">*</span></label>
         <select name="canale" id="canale" class="form-select" required onchange="aggiornaForm()">
           {% for c in canali %}
-          <option value="{{ c.value }}">{{ c.value }}</option>
+          <option value="{{ c.value }}"
+            {{ 'selected' if c.value == canale_default }}>{{ c.value }}</option>
           {% endfor %}
         </select>
       </div>
@@ -28,18 +39,28 @@
           Destinatario <span class="text-danger">*</span>
         </label>
         <input type="text" name="destinatario" id="destinatario" class="form-control" required
+               value="{{ cliente_presel.recapiti.email if (cliente_presel and canale_default == 'EMAIL') else (cliente_presel.recapiti.cellulare if cliente_presel else '') }}"
                placeholder="email@esempio.it | +39 333 1234567">
         <div class="form-text" id="hint-destinatario">Email per EMAIL, telefono E.164 per SMS/WhatsApp</div>
       </div>
 
       <div class="col-md-6">
-        <label class="form-label fw-semibold">Cliente (opzionale)</label>
-        <select name="id_cliente" class="form-select">
+        <label class="form-label fw-semibold">Cliente</label>
+        {% if cliente_presel %}
+        <input type="text" class="form-control bg-light text-muted"
+               value="{{ cliente_presel.nome_completo }}" readonly>
+        <input type="hidden" name="id_cliente" value="{{ cliente_presel.id }}">
+        {% else %}
+        <select name="id_cliente" id="sel-cliente" class="form-select" onchange="onClienteChange()">
           <option value="">— Nessun cliente —</option>
           {% for c in clienti %}
-          <option value="{{ c.id }}">{{ c.nome_completo }}</option>
+          <option value="{{ c.id }}"
+                  data-email="{{ c.recapiti.email or '' }}"
+                  data-telefono="{{ c.recapiti.cellulare or c.recapiti.telefono or '' }}"
+                  {{ 'selected' if c.id == id_cliente }}>{{ c.nome_completo }}</option>
           {% endfor %}
         </select>
+        {% endif %}
       </div>
 
       <div id="riga-oggetto" class="col-12">
@@ -62,7 +83,12 @@
   <button type="submit" class="btn btn-primary">
     <i class="bi bi-send me-1"></i>Invia
   </button>
+  {% if from_cliente %}
+  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+     class="btn btn-outline-secondary">Annulla</a>
+  {% else %}
   <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary">Annulla</a>
+  {% endif %}
 </div>
 
 </form>
@@ -70,11 +96,48 @@
 </div>
 
 <script>
+// Dati clienti per auto-fill destinatario
+const CLIENTI_MAP = {};
+{% for c in clienti %}
+CLIENTI_MAP["{{ c.id }}"] = {
+  email: "{{ c.recapiti.email or '' }}",
+  telefono: "{{ c.recapiti.cellulare or c.recapiti.telefono or '' }}"
+};
+{% endfor %}
+
 function aggiornaForm() {
   const canale = document.getElementById('canale').value;
   const rigaOggetto = document.getElementById('riga-oggetto');
   rigaOggetto.style.display = canale === 'EMAIL' ? '' : 'none';
+  const lbl = document.getElementById('lbl-destinatario');
+  if (canale === 'EMAIL') {
+    lbl.innerHTML = 'Email destinatario <span class="text-danger">*</span>';
+    document.getElementById('hint-destinatario').textContent = 'Indirizzo email del destinatario';
+  } else {
+    lbl.innerHTML = 'Telefono destinatario <span class="text-danger">*</span>';
+    document.getElementById('hint-destinatario').textContent = 'Numero in formato E.164 es. +39 333 1234567';
+  }
+  // Se c'è un cliente selezionato, aggiorna il destinatario
+  const selCliente = document.getElementById('sel-cliente');
+  if (selCliente && selCliente.value) onClienteChange();
 }
+
+function onClienteChange() {
+  const selCliente = document.getElementById('sel-cliente');
+  if (!selCliente) return;
+  const cid = selCliente.value;
+  if (!cid) return;
+  const dati = CLIENTI_MAP[cid];
+  if (!dati) return;
+  const canale = document.getElementById('canale').value;
+  const dest = document.getElementById('destinatario');
+  if (canale === 'EMAIL' && dati.email) {
+    dest.value = dati.email;
+  } else if ((canale === 'SMS' || canale === 'WHATSAPP') && dati.telefono) {
+    dest.value = dati.telefono;
+  }
+}
+
 aggiornaForm();
 </script>
 {% endblock %}

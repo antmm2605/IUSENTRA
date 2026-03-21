@@ -10,6 +10,16 @@
 </div>
 
 <form method="post" id="form-parcella">
+  <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+
+  {% if from_cliente %}
+  <div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Stai creando una parcella dalla cartella cliente.
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="fw-semibold">Torna alla cartella</a></span>
+  </div>
+  {% endif %}
 
   <div class="row g-4">
     <!-- Colonna sinistra -->

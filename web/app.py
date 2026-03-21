@@ -892,13 +892,20 @@ def create_app(config: dict | None = None) -> Flask:
         if request.method == "POST":
             gs = get_scadenziario()
             f = request.form
+            from_cliente = f.get("from_cliente", "")
             try:
                 preset = f.get("preset", "")
+                data_scadenza = f.get("data_scadenza", "").strip()
+                if not preset and not data_scadenza:
+                    raise ValueError("Data scadenza obbligatoria")
                 if preset:
+                    data_decorrenza = f.get("data_decorrenza", "").strip()
+                    if not data_decorrenza:
+                        raise ValueError("Seleziona la data decorrenza per il calcolo automatico del termine")
                     sc = gs.nuova_da_preset(
                         preset_key=preset,
                         titolo=f["titolo"].strip(),
-                        data_decorrenza=f["data_decorrenza"],
+                        data_decorrenza=data_decorrenza,
                         id_fascicolo=f.get("id_fascicolo", ""),
                         perentorio=f.get("perentorio") == "1",
                         id_utente_responsabile=f.get("id_utente", ""),
@@ -907,28 +914,43 @@ def create_app(config: dict | None = None) -> Flask:
                     sc = gs.nuova(
                         titolo=f["titolo"].strip(),
                         tipo=TipoTermine(f["tipo"]),
-                        data_scadenza=f["data_scadenza"],
+                        data_scadenza=data_scadenza,
                         id_fascicolo=f.get("id_fascicolo", ""),
                         descrizione=f.get("descrizione", ""),
-                        data_decorrenza=f.get("data_decorrenza", ""),
+                        data_decorrenza=f.get("data_decorrenza", "").strip(),
                         perentorio=f.get("perentorio") == "1",
                         id_utente_responsabile=f.get("id_utente", ""),
                     )
                 audit("scadenziario.crea", "scadenza", sc.id, sc.titolo)
                 flash(f"Scadenza '{sc.titolo}' creata.", "success")
                 sync_pubblica("crea", "scadenze", sc.id)
+                if from_cliente:
+                    return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
         gf = get_fascicoli()
         gu = get_utenti()
+        id_cliente_get = request.args.get("id_cliente", "")
+        from_cliente_get = request.args.get("from_cliente", "")
+        # Fascicoli pre-filtrati per cliente se arrivato dalla cartella
+        fascicoli = gf.tutti()
+        id_fascicolo_presel = ""
+        if id_cliente_get:
+            fascicoli_cliente = [f for f in fascicoli if f.id_cliente == id_cliente_get]
+            if fascicoli_cliente:
+                fascicoli = fascicoli_cliente
+                id_fascicolo_presel = fascicoli_cliente[0].id
         return render_template(
             "scadenziario/form.html",
             tipi=list(TipoTermine),
             preset_list=PRESET_TERMINI,
-            fascicoli=gf.tutti(),
+            fascicoli=fascicoli,
             utenti=gu.tutti(solo_attivi=True),
             scadenza=None,
+            id_cliente=id_cliente_get,
+            from_cliente=from_cliente_get,
+            id_fascicolo_presel=id_fascicolo_presel,
         )
 
     @app.route("/scadenziario/<id_sc>")
@@ -1193,8 +1215,10 @@ def create_app(config: dict | None = None) -> Flask:
             data = request.form.get("data", "")
             ora = request.form.get("ora", "09:00")
             data_ora = f"{data}T{ora}:00" if data else ""
+            id_cliente_post = request.form.get("id_cliente", "")
+            from_cliente = request.form.get("from_cliente", "")
             try:
-                app = agenda.aggiungi(
+                new_app = agenda.aggiungi(
                     titolo=request.form["titolo"],
                     tipo=TipoAppuntamento(request.form["tipo"]),
                     data_ora=data_ora,
@@ -1202,23 +1226,34 @@ def create_app(config: dict | None = None) -> Flask:
                     luogo=request.form.get("luogo", ""),
                     cliente=request.form.get("cliente", ""),
                     cf_cliente=request.form.get("cf_cliente", ""),
+                    id_cliente=id_cliente_post,
                     procedimento=request.form.get("procedimento", ""),
                     tribunale=request.form.get("tribunale", ""),
                     avvocato=request.form.get("avvocato", ""),
                     note=request.form.get("note", ""),
                     reminder_minuti=int(request.form.get("reminder", 60)),
                 )
-                flash(f"Appuntamento '{app.titolo}' aggiunto.", "success")
-                return redirect(url_for("dettaglio_appuntamento", id_app=app.id))
+                flash(f"Appuntamento '{new_app.titolo}' aggiunto.", "success")
+                if from_cliente:
+                    return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
+                return redirect(url_for("dettaglio_appuntamento", id_app=new_app.id))
             except ValueError as e:
                 flash(str(e), "danger")
 
         data_default = request.args.get("data", "")
+        id_cliente_get = request.args.get("id_cliente", "")
+        from_cliente_get = request.args.get("from_cliente", "")
+        cliente_presel = None
+        if id_cliente_get:
+            cliente_presel = get_clienti().get(id_cliente_get)
         return render_template(
             "form_appuntamento.html",
             app=None,
             tipi=list(TipoAppuntamento),
             data_default=data_default,
+            id_cliente=id_cliente_get,
+            from_cliente=from_cliente_get,
+            cliente_presel=cliente_presel,
         )
 
     @app.route("/agenda/<id_app>")
@@ -1251,6 +1286,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "luogo": request.form.get("luogo", ""),
                 "cliente": request.form.get("cliente", ""),
                 "cf_cliente": request.form.get("cf_cliente", ""),
+                "id_cliente": request.form.get("id_cliente", app.id_cliente),
                 "procedimento": request.form.get("procedimento", ""),
                 "tribunale": request.form.get("tribunale", ""),
                 "avvocato": request.form.get("avvocato", ""),
@@ -2161,6 +2197,23 @@ def create_app(config: dict | None = None) -> Flask:
                     timeline.append((f, att))
             timeline.sort(key=lambda x: x[1].data if x[1].data else "", reverse=True)
             timeline = timeline[:30]
+            # Appuntamenti del cliente
+            agenda_obj = get_agenda()
+            appuntamenti_cliente = agenda_obj.per_cliente(id_cliente)
+            # fallback: cerca anche per nome se ci sono appuntamenti senza id_cliente
+            if not appuntamenti_cliente:
+                appuntamenti_cliente = agenda_obj.cerca(cliente=c.nome_completo)
+
+            # Messaggi del cliente
+            gm = get_messaggi()
+            messaggi_cliente = gm.per_cliente(id_cliente)
+
+            # Parcelle del cliente
+            from pct.fatturazione import GestioneFatturazione
+            gfatt_path = app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+            gfatt = GestioneFatturazione(gfatt_path)
+            parcelle_cliente = gfatt.per_cliente(id_cliente)
+
             track_recente("cliente", id_cliente, c.nome_completo,
                           url_for("cartella_cliente", id_cliente=id_cliente),
                           "bi-folder2-open")
@@ -2173,6 +2226,9 @@ def create_app(config: dict | None = None) -> Flask:
                 scadenze_imminenti=scadenze_imminenti,
                 timeline=timeline,
                 oggi=oggi,
+                appuntamenti_cliente=appuntamenti_cliente,
+                messaggi_cliente=messaggi_cliente,
+                parcelle_cliente=parcelle_cliente,
             )
         except Exception as e:
             app.logger.exception("Errore cartella_cliente %s: %s", id_cliente, e)
@@ -4443,6 +4499,7 @@ def create_app(config: dict | None = None) -> Flask:
             testo = f.get("testo", "").strip()
             oggetto = f.get("oggetto", "").strip()
             id_cliente = f.get("id_cliente", "") or ""
+            from_cliente = f.get("from_cliente", "")
             try:
                 if canale == CanaleMsggio.EMAIL:
                     gm.invia_email(
@@ -4464,14 +4521,24 @@ def create_app(config: dict | None = None) -> Flask:
                         id_cliente=id_cliente,
                     )
                 flash("Messaggio inviato.", "success")
+                if from_cliente:
+                    return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
                 return redirect(url_for("lista_messaggi"))
             except Exception as e:
                 flash(str(e), "danger")
+        id_cliente_get = request.args.get("id_cliente", "")
+        canale_get = request.args.get("canale", "EMAIL")
+        from_cliente_get = request.args.get("from_cliente", "")
+        cliente_presel = gc.get(id_cliente_get) if id_cliente_get else None
         return render_template(
             "messaggi/form.html",
             clienti=clienti,
             canali=list(CanaleMsggio),
             tipi_automazione=list(TipoAutomazione),
+            id_cliente=id_cliente_get,
+            canale_default=canale_get,
+            from_cliente=from_cliente_get,
+            cliente_presel=cliente_presel,
         )
 
     @app.route("/messaggi/<id_msg>")

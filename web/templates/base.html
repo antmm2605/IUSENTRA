@@ -32,11 +32,13 @@
 <nav id="sidebar">
   {# Logo + toggle mobile + toggle mini (desktop) #}
   <div class="sb-logo">
-    <div class="d-flex align-items-center">
-      <i class="bi bi-briefcase-fill me-2" style="color:var(--accent)"></i>
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:32px;height:32px;background:rgba(200,151,43,.2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(200,151,43,.25)">
+        <i class="bi bi-briefcase-fill" style="color:var(--accent);font-size:.95rem"></i>
+      </div>
       <div>
-        <div class="fw-bold" style="font-size:.95rem;letter-spacing:.3px">Studio Legale</div>
-        <div style="font-size:.67rem;opacity:.6;font-weight:400">Portale PCT</div>
+        <div class="fw-bold" style="font-size:.9rem;letter-spacing:.2px;line-height:1.2">Studio Legale</div>
+        <div style="font-size:.64rem;opacity:.5;font-weight:500;letter-spacing:.6px;text-transform:uppercase">Portale PCT</div>
       </div>
     </div>
     {# Bottone chiudi (mobile) + comprimi (desktop) #}
@@ -391,8 +393,8 @@
       </form>
       <div id="search-dropdown"></div>
     </div>
-    <span class="text-muted small d-none d-md-inline">
-      <i class="bi bi-clock me-1"></i>{{ oggi.strftime('%d/%m/%Y') }}
+    <span class="topbar-date d-none d-md-inline">
+      <i class="bi bi-calendar3"></i>{{ oggi.strftime('%d/%m/%Y') }}
     </span>
     <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
        title="Scadenziario — scadenze entro 7 giorni" id="btn-scadenziario-nav">

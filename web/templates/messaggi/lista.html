@@ -85,7 +85,7 @@
         <tbody>
           {% for m in messaggi %}
           <tr>
-            <td class="small text-nowrap">{{ m.timestamp[:16].replace('T',' ') }}</td>
+            <td class="small text-nowrap">{{ m.creato_il[:16].replace('T',' ') }}</td>
             <td>
               {% if m.canale.value == 'EMAIL' %}
                 <span class="badge bg-primary">EMAIL</span>

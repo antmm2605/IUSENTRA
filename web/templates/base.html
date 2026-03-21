@@ -172,6 +172,12 @@
       </a>
     </div>
 
+    {# ---- Checklist Atti ---- #}
+    <a href="{{ url_for('checklist_atti') }}"
+       class="nav-link sb-link {% if request.endpoint in ('checklist_atti','checklist_dettaglio') %}active{% endif %}">
+      <i class="bi bi-card-checklist"></i><span class="sb-txt">Checklist Atti</span>
+    </a>
+
     {# ---- Sezione: PCT / Telematico ---- #}
     {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"

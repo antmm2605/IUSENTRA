@@ -4848,6 +4848,45 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Nessun testo estraibile da questo documento.", "warning")
         return redirect(url_for("dettaglio_fascicolo", id_fascicolo=id_fasc))
 
+    # ---------------------------------------------------------------- Checklist Atti
+    @app.route("/checklist")
+    def checklist_atti():
+        from pct.checklist_atti import TUTTI_I_TEMPLATE, CATEGORIE, CAT_ICON, CAT_COL
+        per_cat = {}
+        for t in TUTTI_I_TEMPLATE:
+            per_cat.setdefault(t.categoria, []).append(t)
+        return render_template(
+            "checklist/lista.html",
+            per_cat=per_cat,
+            categorie=CATEGORIE,
+            cat_icon=CAT_ICON,
+            cat_col=CAT_COL,
+            oggi=date.today(),
+        )
+
+    @app.route("/checklist/<id_template>")
+    def checklist_dettaglio(id_template):
+        from pct.checklist_atti import get_template, nome_cartella_compilato, CAT_ICON, CAT_COL
+        tmpl = get_template(id_template)
+        if not tmpl:
+            flash("Template non trovato.", "warning")
+            return redirect(url_for("checklist_atti"))
+        parte = request.args.get("parte", "")
+        rg    = request.args.get("rg", "")
+        data  = request.args.get("data", date.today().isoformat())
+        cartella = nome_cartella_compilato(tmpl, parte=parte, rg=rg, data=data)
+        return render_template(
+            "checklist/dettaglio.html",
+            tmpl=tmpl,
+            cartella=cartella,
+            parte=parte,
+            rg=rg,
+            data=data,
+            cat_icon=CAT_ICON,
+            cat_col=CAT_COL,
+            oggi=date.today(),
+        )
+
     # ---- Avvio scheduler background
     from pct.scheduler import start_scheduler
     start_scheduler(app)

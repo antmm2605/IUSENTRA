@@ -158,6 +158,182 @@
       </div>
       <div class="card-body p-0">
         {% if fascicolo.documenti %}
+
+        {# ── Macro riga documento (riusata nelle viste flat e accordion) ── #}
+        {% macro _riga(doc) %}
+        {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
+        {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
+        <tr>
+          <td>
+            {% if visualizzabile %}
+            <a href="#" class="text-decoration-none fw-semibold"
+               data-doc-nome="{{ doc.nome }}"
+               data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+               data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+               onclick="apriVisualizzatore(this); return false;">
+              <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+            </a>
+            {% else %}
+            <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+               class="text-decoration-none fw-semibold">
+              <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+            </a>
+            {% endif %}
+            {% if doc.note %}
+              {% if '[wizard:' in doc.note %}
+                {% set step_raw = doc.note.split(':')[-1].split(']')[0] %}
+                {% if step_raw != 'indice' %}
+                <div class="text-muted" style="font-size:.72rem">{{ step_raw|replace('step','Step ') }}</div>
+                {% endif %}
+              {% else %}
+                <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border" style="font-size:.68rem">
+              {{ doc.tipo.value.replace('_',' ') }}
+            </span>
+          </td>
+          <td>{{ doc.data_documento|fmt_data }}</td>
+          <td>
+            {% if doc.dimensione_bytes < 1024 %}{{ doc.dimensione_bytes }} B
+            {% elif doc.dimensione_bytes < 1048576 %}{{ (doc.dimensione_bytes/1024)|int }} KB
+            {% else %}{{ "%.1f"|format(doc.dimensione_bytes/1048576) }} MB{% endif %}
+          </td>
+          <td>
+            {% if doc.firmato_digitalmente %}
+              <i class="bi bi-patch-check-fill text-success" title="Firmato digitalmente"></i>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-nowrap">
+            <div class="d-flex gap-1 flex-wrap">
+              {% if visualizzabile %}
+              <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                      data-doc-nome="{{ doc.nome }}"
+                      data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      onclick="apriVisualizzatore(this)">
+                <i class="bi bi-eye"></i>
+              </button>
+              {% endif %}
+              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                 class="btn btn-outline-secondary btn-sm" title="Scarica">
+                <i class="bi bi-download"></i>
+              </a>
+              {% if not doc.firmato_digitalmente %}
+              <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+                      data-doc-nome="{{ doc.nome }}"
+                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      onclick="apriFirma(this)">
+                <i class="bi bi-pen"></i>
+              </button>
+              {% endif %}
+              {% if ext == 'pdf' %}
+              <form method="post"
+                    action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=doc.id) }}">
+                <button class="btn btn-outline-info btn-sm" title="Scarica copia con attestazione di conformità">
+                  <i class="bi bi-patch-check"></i>
+                </button>
+              </form>
+              {% endif %}
+              <form method="post"
+                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                    onsubmit="return confirm('Eliminare il documento?')">
+                <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endmacro %}
+
+        {# ── Raccoglie ID wizard presenti nei documenti ── #}
+        {% set ns = namespace(wizard_ids=[]) %}
+        {% for doc in fascicolo.documenti %}
+          {% if doc.note and '[wizard:' in doc.note %}
+            {% set wid = doc.note.split('[wizard:')[1].split(':')[0] %}
+            {% if wid not in ns.wizard_ids %}
+              {% set ns.wizard_ids = ns.wizard_ids + [wid] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {% if ns.wizard_ids %}
+        {# ── Vista accordion: un gruppo per ogni deposito/wizard ── #}
+        <div class="accordion accordion-flush" id="accDocumenti">
+          {% for wid in ns.wizard_ids %}
+          {% set ns2 = namespace(tmpl_nome=wid, wdocs=[]) %}
+          {% for tmpl in checklist_templates %}{% if tmpl.id == wid %}{% set ns2.tmpl_nome = tmpl.nome %}{% endif %}{% endfor %}
+          {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
+            {% if doc.note and '[wizard:' in doc.note and doc.note.split('[wizard:')[1].split(':')[0] == wid %}
+              {% set ns2.wdocs = ns2.wdocs + [doc] %}
+            {% endif %}
+          {% endfor %}
+          <div class="accordion-item border-0 border-bottom">
+            <h2 class="accordion-header">
+              <button class="accordion-button py-2 small fw-semibold {% if not loop.first %}collapsed{% endif %}"
+                      type="button" data-bs-toggle="collapse"
+                      data-bs-target="#wdocs-{{ wid }}"
+                      aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                <i class="bi bi-folder2-open me-2 text-warning"></i>
+                <span>{{ ns2.tmpl_nome }}</span>
+                <span class="badge bg-secondary rounded-pill ms-2">{{ ns2.wdocs|length }}</span>
+              </button>
+            </h2>
+            <div id="wdocs-{{ wid }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+              <div class="accordion-body p-0">
+                <table class="table table-hover align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Dim.</th><th>Firmato</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {% for doc in ns2.wdocs %}{{ _riga(doc) }}{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+
+          {# ── Altri documenti senza tag wizard ── #}
+          {% set ns3 = namespace(altri=[]) %}
+          {% for doc in fascicolo.documenti %}
+            {% if not (doc.note and '[wizard:' in doc.note) %}
+              {% set ns3.altri = ns3.altri + [doc] %}
+            {% endif %}
+          {% endfor %}
+          {% if ns3.altri %}
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header">
+              <button class="accordion-button py-2 small fw-semibold collapsed"
+                      type="button" data-bs-toggle="collapse"
+                      data-bs-target="#wdocs-altri" aria-expanded="false">
+                <i class="bi bi-folder me-2 text-secondary"></i>
+                <span>Altri documenti</span>
+                <span class="badge bg-secondary rounded-pill ms-2">{{ ns3.altri|length }}</span>
+              </button>
+            </h2>
+            <div id="wdocs-altri" class="accordion-collapse collapse">
+              <div class="accordion-body p-0">
+                <table class="table table-hover align-middle mb-0 small">
+                  <thead class="table-light">
+                    <tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Dim.</th><th>Firmato</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {% for doc in ns3.altri|sort(attribute='data_caricamento', reverse=True) %}{{ _riga(doc) }}{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% else %}
+        {# ── Vista flat (nessun documento wizard) ── #}
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0 small">
             <thead class="table-light">
@@ -165,88 +341,13 @@
             </thead>
             <tbody>
               {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
-              {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
-              {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
-              <tr>
-                <td>
-                  {% if visualizzabile %}
-                  <a href="#" class="text-decoration-none fw-semibold"
-                     data-doc-nome="{{ doc.nome }}"
-                     data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                     data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                     onclick="apriVisualizzatore(this); return false;">
-                    <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
-                  </a>
-                  {% else %}
-                  <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                     class="text-decoration-none fw-semibold">
-                    <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
-                  </a>
-                  {% endif %}
-                  {% if doc.note %}<div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>{% endif %}
-                </td>
-                <td>
-                  <span class="badge bg-light text-dark border" style="font-size:.68rem">
-                    {{ doc.tipo.value.replace('_',' ') }}
-                  </span>
-                </td>
-                <td>{{ doc.data_documento|fmt_data }}</td>
-                <td>
-                  {% if doc.dimensione_bytes < 1024 %}{{ doc.dimensione_bytes }} B
-                  {% elif doc.dimensione_bytes < 1048576 %}{{ (doc.dimensione_bytes/1024)|int }} KB
-                  {% else %}{{ "%.1f"|format(doc.dimensione_bytes/1048576) }} MB{% endif %}
-                </td>
-                <td>
-                  {% if doc.firmato_digitalmente %}
-                    <i class="bi bi-patch-check-fill text-success" title="Firmato digitalmente"></i>
-                  {% else %}—{% endif %}
-                </td>
-                <td class="text-nowrap">
-                  <div class="d-flex gap-1 flex-wrap">
-                    {% if visualizzabile %}
-                    <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
-                            data-doc-nome="{{ doc.nome }}"
-                            data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                            data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                            onclick="apriVisualizzatore(this)">
-                      <i class="bi bi-eye"></i>
-                    </button>
-                    {% endif %}
-                    <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                       class="btn btn-outline-secondary btn-sm" title="Scarica">
-                      <i class="bi bi-download"></i>
-                    </a>
-                    {% if not doc.firmato_digitalmente %}
-                    <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
-                            data-doc-nome="{{ doc.nome }}"
-                            data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                            data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                            onclick="apriFirma(this)">
-                      <i class="bi bi-pen"></i>
-                    </button>
-                    {% endif %}
-                    {% if ext == 'pdf' %}
-                    <form method="post"
-                          action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=doc.id) }}">
-                      <button class="btn btn-outline-info btn-sm" title="Scarica copia con attestazione di conformità">
-                        <i class="bi bi-patch-check"></i>
-                      </button>
-                    </form>
-                    {% endif %}
-                    <form method="post"
-                          action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                          onsubmit="return confirm('Eliminare il documento?')">
-                      <button class="btn btn-outline-danger btn-sm" title="Elimina">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
+              {{ _riga(doc) }}
               {% endfor %}
             </tbody>
           </table>
         </div>
+        {% endif %}
+
         {% else %}
         <div class="text-muted text-center py-4 small">Nessun documento caricato</div>
         {% endif %}
@@ -293,7 +394,16 @@
         </span>
         <div class="d-flex gap-1 gap-sm-2 flex-wrap align-items-center">
 
-          {# Dropdown: scegli tipo atto → wizard guidato #}
+          {# Prepara atto: link diretto se 1 solo template, dropdown se multipli #}
+          {% set ns_prep = namespace(wizard_tmpls=[]) %}
+          {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}{% set ns_prep.wizard_tmpls = ns_prep.wizard_tmpls + [tmpl] %}{% endif %}{% endfor %}
+          {% if ns_prep.wizard_tmpls|length == 1 %}
+          <a class="btn btn-sm btn-success fw-semibold"
+             href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=ns_prep.wizard_tmpls[0].id) }}"
+             title="{{ ns_prep.wizard_tmpls[0].nome }}">
+            <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
+          </a>
+          {% else %}
           <div class="dropdown">
             <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
                     type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -325,6 +435,7 @@
               {% endif %}{% endfor %}
             </ul>
           </div>
+          {% endif %}
 
           {# Accesso rapido al portale di consultazione #}
           <a href="{{ dep_portale_url }}" class="btn btn-sm btn-outline-{{ dep_col }} fw-semibold">

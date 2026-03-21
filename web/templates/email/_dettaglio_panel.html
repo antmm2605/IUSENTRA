@@ -1,101 +1,188 @@
-{# ── Contenuto email selezionata — usato sia nel pannello split sia nella pagina dettaglio ── #}
+{# ════════════════════════════════════════════════════════════
+   Email detail panel — Gmail-style
+   Usato sia nel pannello split (client.html) sia nella pagina
+   dettaglio.html (mobile).
+   ════════════════════════════════════════════════════════════ #}
 {% set em = em or email_sel %}
 {% if em %}
-<div class="d-flex align-items-start gap-2 mb-3 flex-wrap">
-  <div class="flex-grow-1">
-    <h6 class="fw-bold mb-1 text-break">{{ em.oggetto or '(nessun oggetto)' }}</h6>
-    <div class="small text-muted">
-      {% if em.cartella == 'INVIATI' %}
-        <span class="text-muted">A: <strong>{{ em.destinatari }}</strong></span>
-      {% else %}
-        <span>Da: <strong>{{ em.mittente_nome or em.mittente }}</strong></span>
-        {% if em.mittente_nome %}<span class="text-muted ms-1">&lt;{{ em.mittente }}&gt;</span>{% endif %}
+
+{# ── Colore avatar basato sulla prima lettera ──────────── #}
+{% set _sname  = em.mittente_nome or em.mittente or em.destinatari or '?' %}
+{% set _colors = ['#1a73e8','#7c3aed','#db2777','#e37400','#188038','#0097a7','#c5221f','#689f38'] %}
+{% set _ci     = (_sname|lower|first)|int(default=0) % 8 %}
+{% set _color  = _colors[_ci] %}
+
+{# ── Soggetto + azioni top ─────────────────────────────── #}
+<div style="padding:1.25rem 1.5rem .75rem;border-bottom:1px solid #e0e0e0">
+  <div class="d-flex align-items-start gap-3">
+    {# Subject #}
+    <h5 class="fw-bold text-break flex-grow-1 mb-0" style="font-size:1.1rem;color:#202124;line-height:1.35">
+      {{ em.oggetto or '(nessun oggetto)' }}
+      {% if em.e_pst %}
+      <span class="badge align-middle ms-1" style="background:#e8f0fe;color:#1a73e8;font-size:.65rem;font-weight:600;vertical-align:.1em">PST</span>
       {% endif %}
-      <span class="ms-2 text-muted">
-        {% set ts = em.timestamp %}{% if ts %}{{ ts[:16]|replace('T',' ') }}{% endif %}
-      </span>
+    </h5>
+    {# Azioni #}
+    <div class="d-flex gap-1 flex-shrink-0">
+      <a href="{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}"
+         class="btn btn-sm btn-outline-secondary rounded-3" title="Rispondi" style="font-size:.82rem;white-space:nowrap">
+        <i class="bi bi-reply me-1"></i>Rispondi
+      </a>
+      {% if em.cartella != 'CESTINO' %}
+      <form method="post" action="{{ url_for('email_client.cestino', id_email=em.id) }}" class="d-inline">
+        <input type="hidden" name="cartella" value="{{ em.cartella }}">
+        <button class="btn btn-sm btn-outline-secondary rounded-3 px-2" title="Sposta nel cestino">
+          <i class="bi bi-trash"></i>
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('email_client.ripristina', id_email=em.id) }}" class="d-inline">
+        <button class="btn btn-sm btn-outline-success rounded-3 px-2" title="Ripristina">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('email_client.elimina', id_email=em.id) }}" class="d-inline"
+            onsubmit="return confirm('Eliminare definitivamente questa email?')">
+        <button class="btn btn-sm btn-outline-danger rounded-3 px-2" title="Elimina definitivamente">
+          <i class="bi bi-trash3-fill"></i>
+        </button>
+      </form>
+      {% endif %}
     </div>
   </div>
-  {# Azioni #}
-  <div class="d-flex gap-1 flex-shrink-0">
-    <a href="{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}"
-       class="btn btn-sm btn-outline-primary" title="Rispondi">
-      <i class="bi bi-reply"></i>
-    </a>
-    {% if em.cartella != 'CESTINO' %}
-    <form method="post" action="{{ url_for('email_client.cestino', id_email=em.id) }}"
-          class="d-inline">
-      <input type="hidden" name="cartella" value="{{ em.cartella }}">
-      <button class="btn btn-sm btn-outline-danger" title="Cestino">
-        <i class="bi bi-trash"></i>
-      </button>
-    </form>
-    {% else %}
-    <form method="post" action="{{ url_for('email_client.ripristina', id_email=em.id) }}" class="d-inline">
-      <button class="btn btn-sm btn-outline-success" title="Ripristina">
-        <i class="bi bi-arrow-counterclockwise"></i>
-      </button>
-    </form>
-    <form method="post" action="{{ url_for('email_client.elimina', id_email=em.id) }}" class="d-inline"
-          onsubmit="return confirm('Eliminare definitivamente?')">
-      <button class="btn btn-sm btn-outline-danger" title="Elimina definitivamente">
-        <i class="bi bi-trash3-fill"></i>
-      </button>
-    </form>
-    {% endif %}
-  </div>
 </div>
 
-{# Badge PST #}
-{% if em.e_pst %}
-<div class="alert alert-primary d-flex gap-2 py-2 mb-3 align-items-center small">
-  <i class="bi bi-shield-check-fill flex-shrink-0"></i>
-  <div>
-    <strong>Risposta Portale Servizi Telematici</strong>
-    {% if em.stato_pct %}— stato rilevato: <code>{{ em.stato_pct }}</code>{% endif %}
-    {% if not em.auto_registrata %}
-    <span class="badge bg-warning text-dark ms-1">non ancora registrata nel fascicolo</span>
-    {% else %}
-    <span class="badge bg-success ms-1">esito aggiornato nel fascicolo</span>
-    {% endif %}
-  </div>
-</div>
-{% endif %}
+{# ── Header mittente ─────────────────────────────────── #}
+<div style="padding:.875rem 1.5rem;border-bottom:1px solid #e8eaed;display:flex;align-items:flex-start;gap:.875rem">
 
-<hr class="my-2">
-
-{# Corpo email #}
-<div class="email-body-container" style="font-size:.9rem;line-height:1.6">
-  {% if em.corpo_html %}
-  <div class="email-body-html">
-    <iframe srcdoc="{{ em.corpo_html|e }}"
-            style="width:100%;border:none;min-height:300px"
-            sandbox="allow-same-origin"
-            onload="this.style.height=this.contentDocument.documentElement.scrollHeight+'px'">
-    </iframe>
+  {# Avatar #}
+  <div style="width:40px;height:40px;border-radius:50%;background:{{ _color }};
+              display:flex;align-items:center;justify-content:center;
+              font-size:.9rem;font-weight:700;color:#fff;flex-shrink:0">
+    {{ _sname|upper|first }}
   </div>
-  {% elif em.corpo_testo %}
-  <pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit">{{ em.corpo_testo }}</pre>
-  {% else %}
-  <div class="text-muted fst-italic">(Nessun corpo email)</div>
+
+  {# Meta mittente/destinatario #}
+  <div style="flex:1;min-width:0">
+    <div style="display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap">
+      <span style="font-size:.88rem;font-weight:600;color:#202124">
+        {% if em.cartella == 'INVIATI' %}
+          {{ em.destinatari }}
+        {% else %}
+          {{ em.mittente_nome or em.mittente }}
+        {% endif %}
+      </span>
+      {% if em.mittente_nome and em.cartella != 'INVIATI' %}
+      <span style="font-size:.8rem;color:#5f6368">&lt;{{ em.mittente }}&gt;</span>
+      {% endif %}
+    </div>
+    <div style="font-size:.78rem;color:#5f6368;margin-top:.15rem">
+      {% if em.cartella == 'INVIATI' %}
+        <span>A: {{ em.destinatari }}</span>
+      {% else %}
+        <span>A: me</span>
+      {% endif %}
+      &ensp;·&ensp;
+      <span id="_detShow_{{ em.id }}"
+            style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted"
+            onclick="document.getElementById('_detMeta_{{ em.id }}').classList.toggle('d-none')">
+        Dettagli
+      </span>
+    </div>
+
+    {# Dettagli expandibili #}
+    <div id="_detMeta_{{ em.id }}" class="d-none mt-2"
+         style="font-size:.78rem;color:#5f6368;background:#f8f9fa;border-radius:.375rem;padding:.5rem .75rem;line-height:1.7">
+      {% if em.mittente %}<div><strong>Da:</strong> {{ em.mittente_nome or '' }} &lt;{{ em.mittente }}&gt;</div>{% endif %}
+      {% if em.destinatari %}<div><strong>A:</strong> {{ em.destinatari }}</div>{% endif %}
+      {% set ts = em.timestamp %}{% if ts %}<div><strong>Data:</strong> {{ ts[:16]|replace('T', ' ') }}</div>{% endif %}
+      {% if em.oggetto %}<div><strong>Oggetto:</strong> {{ em.oggetto }}</div>{% endif %}
+      {% if em.message_id %}<div class="text-muted" style="font-size:.72rem"><strong>Message-ID:</strong> {{ em.message_id }}</div>{% endif %}
+    </div>
+  </div>
+
+  {# Data/ora #}
+  {% set ts = em.timestamp %}
+  {% if ts %}
+  <span style="font-size:.78rem;color:#5f6368;white-space:nowrap;flex-shrink:0;margin-top:.1rem">
+    {{ ts[:16]|replace('T', ' ') }}
+  </span>
   {% endif %}
 </div>
 
-{# Allegati #}
-{% if em.allegati %}
-<hr class="my-2">
-<div class="small text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Allegati</div>
-<div class="d-flex flex-wrap gap-2">
-  {% for all in em.allegati %}
-  <span class="badge bg-light text-dark border px-2 py-1">
-    <i class="bi bi-file-earmark me-1"></i>{{ all.nome }}
-    {% if all.size %}<span class="text-muted ms-1">{{ (all.size / 1024)|round(0)|int }} KB</span>{% endif %}
-  </span>
-  {% endfor %}
-</div>
-<div class="small text-muted mt-2">
-  <i class="bi bi-info-circle me-1"></i>
-  Il download degli allegati richiede l'accesso autenticato al portale originale.
+{# ── Alert PST ────────────────────────────────────────── #}
+{% if em.e_pst %}
+<div style="margin:1rem 1.5rem 0;padding:.5rem .875rem;
+            background:#e8f0fe;border:1px solid #c5d9fb;border-radius:.5rem;
+            display:flex;align-items:center;gap:.625rem;font-size:.82rem;color:#174ea6">
+  <i class="bi bi-shield-check-fill flex-shrink-0"></i>
+  <div>
+    <strong>Portale Servizi Telematici</strong>
+    {% if em.stato_pct %} — stato rilevato:
+      <code style="background:rgba(23,78,166,.12);padding:.1em .35em;border-radius:.25rem;font-size:.85em">{{ em.stato_pct }}</code>
+    {% endif %}
+    {% if not em.auto_registrata %}
+    <span class="badge ms-1" style="background:#f9ab00;color:#000;font-size:.7rem">da registrare nel fascicolo</span>
+    {% else %}
+    <span class="badge ms-1 bg-success" style="font-size:.7rem">esito aggiornato</span>
+    {% endif %}
+  </div>
 </div>
 {% endif %}
+
+{# ── Corpo email ──────────────────────────────────────── #}
+<div style="padding:1.25rem 1.5rem;font-size:.88rem;line-height:1.7;color:#202124">
+  {% if em.corpo_html %}
+  <iframe srcdoc="{{ em.corpo_html|e }}"
+          style="width:100%;border:none;min-height:240px"
+          sandbox="allow-same-origin"
+          onload="this.style.height=(this.contentDocument.documentElement.scrollHeight+24)+'px'">
+  </iframe>
+  {% elif em.corpo_testo %}
+  <pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit;margin:0;color:#202124">{{ em.corpo_testo }}</pre>
+  {% else %}
+  <span style="color:#80868b;font-style:italic">(Nessun contenuto)</span>
+  {% endif %}
+</div>
+
+{# ── Allegati ─────────────────────────────────────────── #}
+{% if em.allegati %}
+<div style="padding:0 1.5rem 1rem;border-top:1px solid #e8eaed">
+  <div style="display:flex;align-items:center;gap:.35rem;margin-top:.875rem;margin-bottom:.5rem;
+              font-size:.8rem;color:#5f6368">
+    <i class="bi bi-paperclip"></i>
+    <span>{{ em.allegati|length }} allegato{{ '' if em.allegati|length == 1 else 'i' }}</span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+    {% for all in em.allegati %}
+    <div style="display:flex;align-items:center;gap:.5rem;
+                border:1px solid #dadce0;border-radius:.5rem;
+                padding:.4rem .75rem;background:#f8f9fa;font-size:.8rem">
+      <i class="bi bi-file-earmark" style="color:#5f6368;font-size:.95rem"></i>
+      <div>
+        <div style="font-weight:500;color:#202124">{{ all.nome }}</div>
+        {% if all.size %}
+        <div style="color:#80868b;font-size:.7rem">{{ (all.size / 1024)|round(0)|int }} KB</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="margin-top:.5rem;font-size:.75rem;color:#80868b">
+    <i class="bi bi-info-circle me-1"></i>Il download degli allegati richiede accesso autenticato al portale originale.
+  </div>
+</div>
+{% endif %}
+
+{# ── Reply bar ────────────────────────────────────────── #}
+<div style="padding:.75rem 1.5rem 1.25rem">
+  <div style="border:1px solid #dadce0;border-radius:.5rem;padding:.625rem 1rem;
+              font-size:.84rem;color:#5f6368;cursor:pointer;transition:box-shadow .15s"
+       onclick="window.location='{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}'"
+       onmouseenter="this.style.boxShadow='0 1px 4px rgba(0,0,0,.12)'"
+       onmouseleave="this.style.boxShadow=''">
+    <i class="bi bi-reply me-2 text-primary"></i>Rispondi a {{ em.mittente_nome or em.mittente }}…
+  </div>
+</div>
+
 {% endif %}

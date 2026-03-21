@@ -1,79 +1,183 @@
 {% extends "base.html" %}
-{% block title %}Componi email{% endblock %}
-{% block page_title %}Componi email{% endblock %}
+{% block title %}Componi — Email{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════════════
+   COMPOSE — Gmail-style window (full page)
+   ══════════════════════════════════════════════════════ */
+
+.compose-card {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: .5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.07);
+  overflow: hidden;
+}
+
+/* Dark title bar like Gmail compose */
+.compose-titlebar {
+  background: #404040;
+  color: #fff;
+  padding: .625rem 1rem;
+  font-size: .84rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  user-select: none;
+}
+.compose-titlebar i { font-size: 1rem; opacity: .8; }
+
+/* Field rows — thin dividers, no border boxes */
+.compose-field {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e8eaed;
+  padding: .5rem 1rem;
+  gap: .75rem;
+  min-height: 46px;
+}
+.compose-field:last-of-type { border-bottom: none; }
+
+.compose-field-label {
+  font-size: .82rem;
+  font-weight: 500;
+  color: #5f6368;
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.compose-field input,
+.compose-field select {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: .88rem;
+  color: #202124;
+  background: transparent;
+  min-width: 0;
+}
+.compose-field input::placeholder { color: #9aa0a6; }
+.compose-field select {
+  font-size: .8rem;
+  color: #5f6368;
+  max-width: 180px;
+  cursor: pointer;
+}
+.compose-field select option { color: #202124; }
+
+/* Textarea body */
+.compose-body textarea {
+  display: block;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #e8eaed;
+  outline: none;
+  padding: .875rem 1rem;
+  font-size: .88rem;
+  color: #202124;
+  line-height: 1.65;
+  resize: vertical;
+  min-height: 320px;
+  font-family: inherit;
+  background: #fff;
+}
+.compose-body textarea::placeholder { color: #9aa0a6; }
+
+/* Footer actions */
+.compose-footer {
+  padding: .75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: #fff;
+}
+.compose-footer .btn-send {
+  padding: .5rem 1.5rem;
+  font-weight: 600;
+  border-radius: 1.5rem;
+}
+.compose-footer .btn-discard {
+  margin-left: auto;
+  color: #5f6368;
+  font-size: .82rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .375rem .5rem;
+  border-radius: .375rem;
+  transition: background .1s;
+}
+.compose-footer .btn-discard:hover { background: #f1f3f4; color: #202124; }
+</style>
+{% endblock %}
 
 {% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{{ url_for('email_client.casella') }}" class="btn btn-sm btn-outline-secondary rounded-3">
+    <i class="bi bi-arrow-left me-1"></i>Casella
+  </a>
+</div>
+
 <div class="row justify-content-center">
 <div class="col-xl-8 col-lg-10">
 
-<div class="d-flex align-items-center gap-2 mb-3">
-  <a href="{{ url_for('email_client.casella') }}" class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i>
-  </a>
-  <h5 class="mb-0 fw-bold">
-    <i class="bi bi-pencil-square me-2 text-primary"></i>Nuova email
-  </h5>
-</div>
+<div class="compose-card">
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <form method="post" action="{{ url_for('email_client.scrivi') }}">
-
-      {# Destinatario #}
-      <div class="mb-3">
-        <label class="form-label small fw-semibold">
-          A <span class="text-danger">*</span>
-        </label>
-        <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-person"></i></span>
-          <input type="email" name="a" class="form-control"
-                 value="{{ a }}" placeholder="destinatario@email.it" required>
-        </div>
-        {% if clienti %}
-        <div class="mt-1 small text-muted">
-          Oppure scegli un cliente:
-          <select class="form-select form-select-sm d-inline-block mt-1" style="width:auto"
-                  onchange="if(this.value){document.querySelector('[name=a]').value=this.value;document.querySelector('[name=id_cliente]').value=this.dataset.id||''}">
-            <option value="">— seleziona —</option>
-            {% for cl in clienti %}
-            {% if cl.email %}
-            <option value="{{ cl.email }}" data-id="{{ cl.id }}">
-              {{ cl.nome_completo }} &lt;{{ cl.email }}&gt;
-            </option>
-            {% endif %}
-            {% endfor %}
-          </select>
-        </div>
-        {% endif %}
-        <input type="hidden" name="id_cliente" value="">
-      </div>
-
-      {# Oggetto #}
-      <div class="mb-3">
-        <label class="form-label small fw-semibold">
-          Oggetto <span class="text-danger">*</span>
-        </label>
-        <input type="text" name="oggetto" class="form-control"
-               value="{{ oggetto }}" placeholder="Oggetto del messaggio" required>
-      </div>
-
-      {# Corpo #}
-      <div class="mb-3">
-        <label class="form-label small fw-semibold">Messaggio</label>
-        <textarea name="corpo" class="form-control" rows="12"
-                  placeholder="Scrivi il tuo messaggio…" style="font-family:inherit"></textarea>
-      </div>
-
-      <div class="d-flex gap-2 justify-content-end flex-wrap">
-        <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary">
-          Annulla
-        </a>
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-send me-1"></i>Invia email
-        </button>
-      </div>
-    </form>
+  {# ── Title bar ─────────────────────────────────────── #}
+  <div class="compose-titlebar">
+    <i class="bi bi-pencil-square"></i>
+    Nuova email
   </div>
+
+  <form method="post" action="{{ url_for('email_client.scrivi') }}">
+
+    {# ── A: ────────────────────────────────────────────── #}
+    <div class="compose-field">
+      <span class="compose-field-label">A</span>
+      <input type="email" name="a" value="{{ a }}"
+             placeholder="Destinatario" required autocomplete="email">
+      {% if clienti %}
+      <select title="Seleziona da clienti"
+              onchange="if(this.value){document.querySelector('[name=a]').value=this.value;this.value=''}">
+        <option value="">Clienti…</option>
+        {% for cl in clienti %}
+        {% if cl.email %}
+        <option value="{{ cl.email }}" data-id="{{ cl.id }}">{{ cl.nome_completo }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+      {% endif %}
+    </div>
+    <input type="hidden" name="id_cliente" value="">
+
+    {# ── Oggetto ───────────────────────────────────────── #}
+    <div class="compose-field">
+      <span class="compose-field-label">Oggetto</span>
+      <input type="text" name="oggetto" value="{{ oggetto }}"
+             placeholder="Oggetto del messaggio" required>
+    </div>
+
+    {# ── Corpo ─────────────────────────────────────────── #}
+    <div class="compose-body">
+      <textarea name="corpo"
+                placeholder="Scrivi il tuo messaggio…"></textarea>
+    </div>
+
+    {# ── Footer ────────────────────────────────────────── #}
+    <div class="compose-footer">
+      <button type="submit" class="btn btn-primary btn-send">
+        <i class="bi bi-send me-1"></i>Invia
+      </button>
+      <a href="{{ url_for('email_client.casella') }}" class="btn-discard">
+        <i class="bi bi-trash"></i>Scarta
+      </a>
+    </div>
+
+  </form>
 </div>
 
 </div>

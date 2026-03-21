@@ -1070,6 +1070,109 @@ def create_app(config: dict | None = None) -> Flask:
             })
         return jsonify(alerts)
 
+    @app.route("/api/notifiche/inbox")
+    def notifiche_inbox():
+        """Centro notifiche in-app: scadenze urgenti + appuntamenti imminenti."""
+        if not g.utente_corrente:
+            return jsonify([])
+        try:
+            from datetime import timedelta
+            gs = get_scadenziario()
+            ag = get_agenda()
+            alerts = []
+            oggi = date.today()
+            domani = oggi + timedelta(days=1)
+
+            # Scadenze scadute
+            scadute = [s for s in gs.imminenti(entro_giorni=0)
+                       if s.giorni_alla_scadenza is not None and s.giorni_alla_scadenza < 0]
+            if scadute:
+                alerts.append({
+                    "id": f"scad-scadute-{oggi.isoformat()}",
+                    "tipo": "danger",
+                    "icona": "alarm-fill",
+                    "titolo": f"{len(scadute)} scadenza/e SCADUTA/E",
+                    "corpo": " • ".join(s.titolo for s in scadute[:3]),
+                    "url": "/scadenziario",
+                    "ts": oggi.isoformat(),
+                    "priorita": 1,
+                })
+
+            # Scadenze oggi
+            sc_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
+            if sc_oggi:
+                alerts.append({
+                    "id": f"scad-oggi-{oggi.isoformat()}",
+                    "tipo": "danger",
+                    "icona": "exclamation-circle-fill",
+                    "titolo": f"{len(sc_oggi)} scadenza/e OGGI",
+                    "corpo": " • ".join(s.titolo for s in sc_oggi[:3]),
+                    "url": "/scadenziario",
+                    "ts": oggi.isoformat(),
+                    "priorita": 2,
+                })
+
+            # Scadenze perentorie imminenti entro 3 giorni
+            imminenti = [s for s in gs.imminenti(entro_giorni=3)
+                         if s.perentorio and (s.giorni_alla_scadenza or 0) > 0]
+            if imminenti:
+                alerts.append({
+                    "id": f"scad-perent-{oggi.isoformat()}",
+                    "tipo": "warning",
+                    "icona": "clock-history",
+                    "titolo": f"{len(imminenti)} termine/i perentorio/i (entro 3 gg)",
+                    "corpo": " • ".join(
+                        f"{s.titolo} ({s.giorni_alla_scadenza}gg)" for s in imminenti[:3]
+                    ),
+                    "url": "/scadenziario",
+                    "ts": oggi.isoformat(),
+                    "priorita": 3,
+                })
+
+            # Appuntamenti oggi
+            app_oggi = sorted(
+                [a for a in ag.tutti() if a.data_ora.date() == oggi],
+                key=lambda a: a.data_ora,
+            )
+            if app_oggi:
+                alerts.append({
+                    "id": f"app-oggi-{oggi.isoformat()}",
+                    "tipo": "primary",
+                    "icona": "calendar-check-fill",
+                    "titolo": f"{len(app_oggi)} appuntamento/i oggi",
+                    "corpo": " • ".join(
+                        f"{a.titolo} {a.data_ora.strftime('%H:%M')}" for a in app_oggi[:3]
+                    ),
+                    "url": "/agenda",
+                    "ts": oggi.isoformat(),
+                    "priorita": 4,
+                })
+
+            # Appuntamenti domani
+            app_domani = sorted(
+                [a for a in ag.tutti() if a.data_ora.date() == domani],
+                key=lambda a: a.data_ora,
+            )
+            if app_domani:
+                alerts.append({
+                    "id": f"app-domani-{domani.isoformat()}",
+                    "tipo": "info",
+                    "icona": "calendar-event",
+                    "titolo": f"{len(app_domani)} appuntamento/i domani",
+                    "corpo": " • ".join(
+                        f"{a.titolo} {a.data_ora.strftime('%H:%M')}" for a in app_domani[:3]
+                    ),
+                    "url": "/agenda",
+                    "ts": domani.isoformat(),
+                    "priorita": 5,
+                })
+
+            alerts.sort(key=lambda x: x["priorita"])
+            return jsonify(alerts)
+        except Exception as e:
+            app.logger.exception("Errore notifiche_inbox: %s", e)
+            return jsonify([])
+
     @app.route("/scadenziario/<id_sc>/elimina", methods=["POST"])
     def elimina_scadenza(id_sc):
         gs = get_scadenziario()

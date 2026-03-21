@@ -400,12 +400,58 @@
     </a>
     <div id="htmx-loader" title="Caricamento…"></div>
     {% if utente_corrente %}
-    <button class="btn btn-sm btn-outline-warning" id="btn-notifiche"
-            onclick="PCT_NOTIFICHE.richiediPermesso()"
-            title="Abilita notifiche push per scadenze urgenti"
-            style="display:none">
-      <i class="bi bi-bell"></i>
-    </button>
+    {# ── Centro notifiche in-app ─────────────────────────────────── #}
+    <div class="dropdown d-inline-block" id="notifiche-center">
+      <button class="btn btn-sm btn-outline-secondary position-relative"
+              id="btn-notifiche-inbox"
+              data-bs-toggle="dropdown"
+              data-bs-auto-close="outside"
+              title="Notifiche"
+              aria-label="Centro notifiche">
+        <i class="bi bi-bell" id="icon-bell-inbox"></i>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              id="badge-notifiche"
+              style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+      </button>
+      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
+           id="notifiche-dropdown"
+           style="width:360px;max-width:95vw;border-radius:12px;overflow:hidden">
+        {# Header #}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2"
+             style="background:var(--bs-primary);color:#fff">
+          <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
+          <button class="btn btn-sm p-0 text-white opacity-75"
+                  id="btn-tutte-lette"
+                  style="font-size:.72rem;background:none;border:none"
+                  title="Segna tutte come lette">
+            <i class="bi bi-check2-all me-1"></i>Tutte lette
+          </button>
+        </div>
+        {# Lista notifiche (popolata da JS) #}
+        <div id="notifiche-lista" style="max-height:360px;overflow-y:auto">
+          <div class="text-center text-muted py-4 small" id="notif-placeholder">
+            <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
+            Nessuna notifica
+          </div>
+        </div>
+        {# Footer #}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
+             style="font-size:.75rem">
+          <a href="/scadenziario" class="text-decoration-none text-muted">
+            <i class="bi bi-list-check me-1"></i>Scadenziario
+          </a>
+          <button id="btn-abilita-push"
+                  class="btn btn-link p-0 text-muted"
+                  style="font-size:.75rem;display:none"
+                  onclick="PCT_NOTIFICHE.richiediPermesso()">
+            <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
+          </button>
+        </div>
+      </div>
+    </div>
+    {# Pulsante legacy nascosto — mantenuto per push.js #}
+    <button id="btn-notifiche" style="display:none"
+            onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
     {% endif %}
     <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
             onclick="toggleTema()" title="Tema chiaro / scuro">
@@ -876,6 +922,129 @@ function initPagination(tableId, selectId) {
 {# ---- Browser Notification API ---- #}
 {% if utente_corrente %}
 <script src="/static/js/push.js" defer></script>
+{% endif %}
+
+{# ---- Centro notifiche in-app ---- #}
+{% if utente_corrente %}
+<script>
+(function () {
+  const LETTE_KEY = 'pct_notif_lette_{{ utente_corrente.username | default("") }}';
+  const BADGE_EL  = document.getElementById('badge-notifiche');
+  const LISTA_EL  = document.getElementById('notifiche-lista');
+  const PLACEHOLDER = document.getElementById('notif-placeholder');
+  const BTN_LETTE = document.getElementById('btn-tutte-lette');
+  const BTN_PUSH  = document.getElementById('btn-abilita-push');
+
+  let _cache = [];
+
+  function getLette() {
+    try { return new Set(JSON.parse(localStorage.getItem(LETTE_KEY) || '[]')); }
+    catch (_) { return new Set(); }
+  }
+  function addLetta(id) {
+    const s = getLette(); s.add(id);
+    localStorage.setItem(LETTE_KEY, JSON.stringify([...s]));
+  }
+  function addTutteLette(ids) {
+    const s = getLette(); ids.forEach(id => s.add(id));
+    localStorage.setItem(LETTE_KEY, JSON.stringify([...s]));
+  }
+
+  function aggiornaIconaBell(non_lette) {
+    const icon = document.getElementById('icon-bell-inbox');
+    if (!icon) return;
+    icon.className = non_lette > 0 ? 'bi bi-bell-fill' : 'bi bi-bell';
+  }
+
+  function aggiornaBadge(alerts) {
+    const lette = getLette();
+    const n = alerts.filter(a => !lette.has(a.id)).length;
+    if (!BADGE_EL) return;
+    if (n > 0) {
+      BADGE_EL.textContent = n > 9 ? '9+' : n;
+      BADGE_EL.style.display = '';
+    } else {
+      BADGE_EL.style.display = 'none';
+    }
+    aggiornaIconaBell(n);
+  }
+
+  const COLORI = {danger:'#dc3545',warning:'#fd7e14',primary:'#0d6efd',info:'#0dcaf0',success:'#198754'};
+  const ICONE_COLORE = {danger:'text-danger',warning:'text-warning',primary:'text-primary',info:'text-info',success:'text-success'};
+
+  function renderLista(alerts) {
+    if (!LISTA_EL) return;
+    if (!alerts.length) {
+      LISTA_EL.innerHTML = '<div class="text-center text-muted py-4 small"><i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>Nessuna notifica</div>';
+      return;
+    }
+    const lette = getLette();
+    LISTA_EL.innerHTML = alerts.map(a => {
+      const non_letta = !lette.has(a.id);
+      return `<a href="${a.url}" class="d-block text-decoration-none border-bottom notif-item"
+                 data-id="${a.id}"
+                 style="padding:.65rem 1rem;background:${non_letta ? 'rgba(13,110,253,.04)' : ''}">
+        <div class="d-flex align-items-start gap-2">
+          <div class="flex-shrink-0 mt-1">
+            <i class="bi bi-${a.icona} ${ICONE_COLORE[a.tipo] || 'text-secondary'}" style="font-size:1rem"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold small ${ICONE_COLORE[a.tipo] || ''}">${a.titolo}</div>
+            <div class="text-muted" style="font-size:.73rem">${a.corpo}</div>
+          </div>
+          ${non_letta ? `<span class="flex-shrink-0 badge rounded-pill bg-${a.tipo}" style="width:7px;height:7px;padding:0;margin-top:.35rem" title="Non letta"></span>` : ''}
+        </div>
+      </a>`;
+    }).join('');
+
+    // Click → segna letta + naviga
+    LISTA_EL.querySelectorAll('.notif-item').forEach(el => {
+      el.addEventListener('click', function (e) {
+        const id = this.dataset.id;
+        addLetta(id);
+        aggiornaBadge(_cache);
+        // non preventDefault: lasciamo navigare normalmente
+      });
+    });
+  }
+
+  async function carica() {
+    try {
+      const resp = await fetch('/api/notifiche/inbox');
+      if (!resp.ok) return;
+      _cache = await resp.json();
+      aggiornaBadge(_cache);
+      renderLista(_cache);
+      // Mostra "Abilita notifiche desktop" se non ancora abilitato
+      if (BTN_PUSH && 'Notification' in window && Notification.permission === 'default') {
+        BTN_PUSH.style.display = '';
+      }
+    } catch (_) {}
+  }
+
+  // Carica al click sul dropdown
+  const dropEl = document.getElementById('notifiche-center');
+  if (dropEl) {
+    dropEl.addEventListener('show.bs.dropdown', carica);
+  }
+
+  // Segna tutte lette
+  if (BTN_LETTE) {
+    BTN_LETTE.addEventListener('click', function () {
+      addTutteLette(_cache.map(a => a.id));
+      aggiornaBadge(_cache);
+      renderLista(_cache);
+    });
+  }
+
+  // Init: carica badge al caricamento pagina
+  document.addEventListener('DOMContentLoaded', function () {
+    carica();
+    // Aggiorna ogni 5 minuti in background
+    setInterval(carica, 5 * 60 * 1000);
+  });
+})();
+</script>
 {% endif %}
 
 {# ---- Dark mode toggle ---- #}

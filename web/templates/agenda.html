@@ -47,6 +47,32 @@
     <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning ms-auto">
       <i class="bi bi-plus-lg me-1"></i>Nuovo appuntamento
     </a>
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
+              title="Esporta / sincronizza calendario">
+        <i class="bi bi-calendar-arrow-down"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('agenda_ical') }}" download="agenda.ics">
+            <i class="bi bi-download me-2 text-primary"></i>Scarica agenda (.ics)
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
+            <i class="bi bi-download me-2 text-warning"></i>Scarica scadenze (.ics)
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <span class="dropdown-item-text small text-muted" style="max-width:260px;white-space:normal">
+            <i class="bi bi-info-circle me-1"></i>
+            Importa il file <code>.ics</code> in Google Calendar, Apple Calendar o Outlook
+            per sincronizzare agenda e scadenze.
+          </span>
+        </li>
+      </ul>
+    </div>
   </div>
 </div>
 

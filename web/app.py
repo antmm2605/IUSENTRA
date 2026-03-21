@@ -728,7 +728,8 @@ def create_app(config: dict | None = None) -> Flask:
         totp_temp = session.get("totp_temp_secret", "")
         uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""
         return render_template("auth/profilo.html", utente=u,
-                               totp_temp_secret=totp_temp, totp_uri_qr=uri_qr)
+                               totp_temp_secret=totp_temp, totp_uri_qr=uri_qr,
+                               oggi=date.today())
 
     # ---- Gestione utenti (solo AMMINISTRATORE)
 
@@ -741,7 +742,8 @@ def create_app(config: dict | None = None) -> Flask:
         utenti = gu.tutti()
         stats = gu.statistiche()
         return render_template("auth/utenti.html",
-                               utenti=utenti, stats=stats, ruoli=list(RuoloUtente))
+                               utenti=utenti, stats=stats, ruoli=list(RuoloUtente),
+                               oggi=date.today())
 
     @app.route("/utenti/nuovo", methods=["GET", "POST"])
     def nuovo_utente():
@@ -763,7 +765,8 @@ def create_app(config: dict | None = None) -> Flask:
                 return redirect(url_for("lista_utenti"))
             except ValueError as e:
                 flash(str(e), "danger")
-        return render_template("auth/form_utente.html", ruoli=list(RuoloUtente), utente=None)
+        return render_template("auth/form_utente.html", ruoli=list(RuoloUtente), utente=None,
+                               oggi=date.today())
 
     @app.route("/utenti/<id_utente>/modifica", methods=["GET", "POST"])
     def modifica_utente(id_utente):
@@ -790,7 +793,7 @@ def create_app(config: dict | None = None) -> Flask:
             except ValueError as e:
                 flash(str(e), "danger")
         return render_template("auth/form_utente.html",
-                               ruoli=list(RuoloUtente), utente=target)
+                               ruoli=list(RuoloUtente), utente=target, oggi=date.today())
 
     @app.route("/utenti/<id_utente>/elimina", methods=["POST"])
     def elimina_utente(id_utente):
@@ -818,7 +821,8 @@ def create_app(config: dict | None = None) -> Flask:
         utenti = gu.tutti()
         return render_template("auth/audit.html",
                                eventi=eventi, utenti=utenti,
-                               filtro_utente=id_utente, filtro_azione=azione)
+                               filtro_utente=id_utente, filtro_azione=azione,
+                               oggi=date.today())
 
     @app.route("/api/utenti/statistiche")
     def api_utenti_statistiche():
@@ -844,6 +848,7 @@ def create_app(config: dict | None = None) -> Flask:
             permessi=PERMESSI,
             descrizioni=DESCRIZIONI_RUOLI,
             utenti_per_ruolo=utenti_per_ruolo,
+            oggi=date.today(),
         )
 
     @app.route("/utenti/<id_utente>/permessi", methods=["GET", "POST"])
@@ -875,6 +880,7 @@ def create_app(config: dict | None = None) -> Flask:
             tutti_permessi=TUTTI_PERMESSI,
             permessi_ruolo=PERMESSI.get(target.ruolo, []),
             descrizioni=DESCRIZIONI_RUOLI,
+            oggi=date.today(),
         )
 
     # ================================================================ SCADENZIARIO

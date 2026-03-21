@@ -29,9 +29,40 @@ class TemplateAtto:
     categoria: str
     descrizione: str
     nome_cartella: str
+    # Canale di deposito: PCT_TELEMATICO | PDP_PENALE | PAT_AMMINISTRATIVO | PEC | CARTACEO
+    canale: str = "PCT_TELEMATICO"
+    # URL Flask endpoint per il deposito telematico (se applicabile)
+    endpoint_deposito: str = ""
+    # Note sul canale/redattore
+    nota_canale: str = ""
     documenti: List[DocumentoRichiesto] = field(default_factory=list)
     checklist: List[ItemChecklist] = field(default_factory=list)
     note_generali: str = ""
+
+
+CANALE_LABEL = {
+    "PCT_TELEMATICO": "Deposito telematico PCT",
+    "PDP_PENALE":     "Portale Deposito Penale (PDP)",
+    "PAT_AMMINISTRATIVO": "Portale Atti Amministrativi (PAT)",
+    "PEC":            "Deposito a mezzo PEC",
+    "CARTACEO":       "Deposito cartaceo / cancelleria",
+}
+
+CANALE_ICON = {
+    "PCT_TELEMATICO":     "bi-send-fill",
+    "PDP_PENALE":         "bi-shield-fill",
+    "PAT_AMMINISTRATIVO": "bi-building",
+    "PEC":                "bi-envelope-fill",
+    "CARTACEO":           "bi-printer-fill",
+}
+
+CANALE_COL = {
+    "PCT_TELEMATICO":     "primary",
+    "PDP_PENALE":         "dark",
+    "PAT_AMMINISTRATIVO": "info",
+    "PEC":                "success",
+    "CARTACEO":           "secondary",
+}
 
 
 def _doc(n: int, nome: str, desc: str, obbl: bool = True, note: str = "") -> DocumentoRichiesto:
@@ -50,6 +81,13 @@ DECRETO_INGIUNTIVO = TemplateAtto(
     categoria="CIVILE",
     descrizione="Ricorso per decreto ingiuntivo ex artt. 633 ss. c.p.c.",
     nome_cartella="Decreto_ingiuntivo_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "Il ricorso si deposita tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
+        "che genera la busta telematica .enc da inviare via PolisWeb/PST. "
+        "Verificare che l'ufficio destinatario sia abilitato al deposito telematico."
+    ),
     documenti=[
         _doc(1,  "Ricorso_per_decreto_ingiuntivo",  "Ricorso principale firmato"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti con firma autenticata"),
@@ -64,15 +102,17 @@ DECRETO_INGIUNTIVO = TemplateAtto(
         _doc(10, "Eventuali_altri_allegati",        "Altri documenti utili", obbl=False),
     ],
     checklist=[
-        _chk("Ricorso in PDF leggibile e non protetto da password", critico=True),
+        _chk("Ufficio destinatario abilitato al deposito telematico PCT (verifica sul PST)", critico=True),
+        _chk("Redattore atti installato e aggiornato (Consolle Avvocato / FileSafe / Lextel)", critico=True),
+        _chk("Firma digitale valida e non scaduta (CNS o token USB)", critico=True),
+        _chk("Ricorso in PDF/A leggibile e non protetto da password", critico=True),
         _chk("Procura alle liti firmata e scansionata correttamente", critico=True),
-        _chk("Documenti numerati nello stesso ordine dell'indice", critico=True),
-        _chk("Indice coerente con i nomi effettivi dei file"),
-        _chk("Ricevuta contributo unificato presente e leggibile", critico=True),
+        _chk("Contributo unificato pagato (telematicamente o F23) e ricevuta allegata", critico=True),
+        _chk("Busta telematica .enc generata correttamente dal redattore atti", critico=True),
+        _chk("Busta inviata tramite PolisWeb/PST e ricevuta di accettazione PEC salvata"),
         _chk("Valore della causa indicato correttamente nel ricorso"),
-        _chk("Nessun carattere speciale nei nomi file (# % & spazi)"),
+        _chk("Documenti allegati nel redattore con tipo corretto (principale / allegato)"),
         _chk("Tutti i PDF si aprono correttamente"),
-        _chk("Scansioni dritte e leggibili (min. 150 dpi)"),
     ],
 )
 
@@ -82,6 +122,13 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
     categoria="CIVILE",
     descrizione="Iscrizione a ruolo dopo notifica dell'atto di citazione.",
     nome_cartella="Iscrizione_ruolo_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "L'iscrizione a ruolo avviene tramite deposito telematico PCT. "
+        "Usare il redattore atti per creare la busta con la nota di iscrizione e gli allegati, "
+        "poi inviare via PolisWeb/PST. La prova notifica deve essere allegata alla busta."
+    ),
     documenti=[
         _doc(1,  "Atto_introduttivo",               "Citazione o ricorso introduttivo"),
         _doc(2,  "Nota_iscrizione_a_ruolo",         "Nota di iscrizione a ruolo"),
@@ -96,15 +143,17 @@ ISCRIZIONE_A_RUOLO = TemplateAtto(
         _doc(11, "Diritti_cancelleria",             "Ricevuta diritti di cancelleria", obbl=False),
     ],
     checklist=[
+        _chk("Ufficio abilitato al deposito telematico PCT verificato sul PST", critico=True),
+        _chk("Redattore atti installato e aggiornato", critico=True),
+        _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Atto introduttivo notificato entro i termini", critico=True),
-        _chk("Nota di iscrizione a ruolo compilata correttamente", critico=True),
-        _chk("Prova notifica completa (relata + ricevute PEC)", critico=True),
-        _chk("Entrambe le ricevute PEC presenti (accettazione + consegna)"),
-        _chk("Contributo unificato pagato e ricevuta allegata", critico=True),
+        _chk("Nota di iscrizione a ruolo compilata correttamente nel redattore", critico=True),
+        _chk("Prova notifica completa (relata + ricevute PEC) allegata alla busta", critico=True),
+        _chk("Contributo unificato pagato e ricevuta allegata alla busta", critico=True),
+        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Numero RG corretto sulla nota di iscrizione"),
-        _chk("Procura alle liti presente"),
-        _chk("Allegati numerati e indice coerente"),
-        _chk("Tutti i PDF leggibili"),
+        _chk("Tutti i PDF leggibili e non protetti"),
     ],
 )
 
@@ -114,6 +163,12 @@ COMPARSA_RISPOSTA = TemplateAtto(
     categoria="CIVILE",
     descrizione="Costituzione in giudizio del convenuto.",
     nome_cartella="Comparsa_risposta_{rg}_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "La comparsa si deposita telematicamente via PCT tramite redattore atti. "
+        "Attenzione ai termini: deve essere depositata almeno 20 giorni prima dell'udienza."
+    ),
     documenti=[
         _doc(1,  "Comparsa_costituzione_risposta",  "Comparsa firmata dall'avvocato"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti del convenuto"),
@@ -124,13 +179,15 @@ COMPARSA_RISPOSTA = TemplateAtto(
         _doc(7,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
+        _chk("Ufficio abilitato al deposito telematico PCT verificato", critico=True),
+        _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Comparsa depositata entro 20 gg prima dell'udienza", critico=True),
-        _chk("Procura alle liti del convenuto allegata", critico=True),
+        _chk("Procura alle liti del convenuto allegata nella busta", critico=True),
         _chk("Eccezioni processuali proposte a pena di decadenza", critico=True),
         _chk("Domande riconvenzionali dichiarate esplicitamente"),
-        _chk("Indice coerente con i documenti allegati"),
+        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Numero RG e sezione indicati correttamente"),
-        _chk("Tutti i PDF leggibili"),
     ],
 )
 
@@ -140,6 +197,12 @@ MEMORIA_DIFENSIVA = TemplateAtto(
     categoria="CIVILE",
     descrizione="Deposito di memoria difensiva o istruttoria con allegati.",
     nome_cartella="Memoria_{rg}_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "Le memorie si depositano esclusivamente via PCT tramite redattore atti. "
+        "Verificare il tipo di memoria (art. 171-ter n.1/2/3 o altro) e il termine perentorio."
+    ),
     documenti=[
         _doc(1,  "Memoria",                         "Memoria difensiva o istruttoria"),
         _doc(2,  "Indice_allegati",                 "Indice degli allegati"),
@@ -147,15 +210,16 @@ MEMORIA_DIFENSIVA = TemplateAtto(
         _doc(4,  "Allegato_02",                     "Secondo allegato", obbl=False),
         _doc(5,  "Allegato_03",                     "Terzo allegato", obbl=False),
         _doc(6,  "Allegato_04",                     "Quarto allegato", obbl=False),
-        _doc(7,  "Ricevuta_PEC",                    "Ricevuta PEC se depositata a mezzo PEC", obbl=False),
     ],
     checklist=[
-        _chk("Rispettato il termine perentorio per il deposito", critico=True),
+        _chk("Ufficio abilitato al deposito telematico PCT verificato", critico=True),
+        _chk("Firma digitale valida e non scaduta", critico=True),
+        _chk("Termine perentorio rispettato", critico=True),
+        _chk("Tipo di memoria corretto (art. 171-ter n.1 / n.2 / n.3)", critico=True),
         _chk("Numero RG e sezione corretti nell'intestazione"),
-        _chk("Allegati numerati nello stesso ordine dell'indice", critico=True),
-        _chk("Indice coerente con i nomi dei file"),
-        _chk("Capitoli di prova per testimoni elencati correttamente"),
-        _chk("Tutti i PDF leggibili e non protetti"),
+        _chk("Allegati caricati nel redattore con tipo 'allegato'", critico=True),
+        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
     ],
 )
 
@@ -165,6 +229,12 @@ RICORSO_APPELLO = TemplateAtto(
     categoria="CIVILE",
     descrizione="Ricorso in appello avverso sentenza di primo grado.",
     nome_cartella="Appello_{rg}_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "L'appello civile si deposita telematicamente via PCT presso la Corte d'Appello, "
+        "se abilitata. Verificare l'abilitazione sul PST prima di procedere."
+    ),
     documenti=[
         _doc(1,  "Ricorso_in_appello",              "Atto di appello"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti per il grado di appello"),
@@ -176,15 +246,17 @@ RICORSO_APPELLO = TemplateAtto(
         _doc(8,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
+        _chk("Ufficio (Corte d'Appello) abilitato al deposito telematico PCT verificato", critico=True),
+        _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Termine rispettato (30 gg da notifica sentenza, 6 mesi da deposito)", critico=True),
         _chk("Corte d'Appello competente indicata correttamente", critico=True),
         _chk("Sentenza impugnata allegata integralmente", critico=True),
         _chk("Motivi di appello specifici ex art. 342 c.p.c.", critico=True),
         _chk("Contributo unificato per appello pagato e allegato", critico=True),
         _chk("Procura alle liti specifica per il grado di appello"),
+        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
         _chk("Istanza di sospensiva se urgente"),
-        _chk("Indice coerente"),
-        _chk("Tutti i PDF leggibili"),
+        _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
     ],
 )
 
@@ -194,6 +266,12 @@ OPPOSIZIONE_DI = TemplateAtto(
     categoria="CIVILE",
     descrizione="Atto di opposizione ex art. 645 c.p.c.",
     nome_cartella="Opposizione_DI_{rg}_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "L'opposizione si introduce con citazione notificata; "
+        "l'iscrizione a ruolo avviene poi telematicamente via PCT."
+    ),
     documenti=[
         _doc(1,  "Atto_di_opposizione",             "Citazione in opposizione"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti dell'opponente"),
@@ -204,13 +282,14 @@ OPPOSIZIONE_DI = TemplateAtto(
         _doc(7,  "Ricevuta_contributo_unificato",   "Contributo unificato se dovuto", obbl=False),
     ],
     checklist=[
+        _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Opposizione proposta entro 40 gg dalla notifica del DI", critico=True),
-        _chk("Decreto ingiuntivo integralmente allegato", critico=True),
+        _chk("Decreto ingiuntivo integralmente allegato nella busta", critico=True),
         _chk("Istanza di sospensiva dell'esecutorietà se necessaria", critico=True),
         _chk("Tribunale competente verificato (art. 645 c.p.c.)"),
         _chk("Procura alle liti presente"),
-        _chk("Eccezioni processuali e di merito chiaramente indicate"),
-        _chk("Tutti i PDF leggibili"),
+        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
     ],
 )
 
@@ -220,6 +299,12 @@ ATTO_PRECETTO = TemplateAtto(
     categoria="ESECUTIVO",
     descrizione="Precetto ex art. 480 c.p.c. precedente all'esecuzione forzata.",
     nome_cartella="Precetto_{parte}_{data}",
+    canale="CARTACEO",
+    nota_canale=(
+        "Il precetto non si deposita in tribunale: va notificato al debitore "
+        "tramite ufficiale giudiziario (UNEP) o, se consentito, a mezzo PEC. "
+        "Non è richiesto redattore atti né deposito telematico PCT."
+    ),
     documenti=[
         _doc(1,  "Atto_di_precetto",                "Precetto con intimazione di pagamento"),
         _doc(2,  "Titolo_esecutivo",                "Sentenza / DI / altro titolo"),
@@ -244,6 +329,14 @@ PIGNORAMENTO = TemplateAtto(
     categoria="ESECUTIVO",
     descrizione="Pignoramento mobiliare, immobiliare o presso terzi.",
     nome_cartella="Pignoramento_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "Il pignoramento immobiliare e presso terzi si iscrive a ruolo telematicamente via PCT. "
+        "Il pignoramento mobiliare avviene tramite ufficiale giudiziario (UNEP) — "
+        "l'iscrizione a ruolo successiva è telematica. "
+        "Verificare l'ufficio abilitato sul PST."
+    ),
     documenti=[
         _doc(1,  "Atto_di_pignoramento",            "Atto di pignoramento"),
         _doc(2,  "Titolo_esecutivo",                "Titolo esecutivo"),
@@ -271,6 +364,13 @@ RICORSO_CAUTELARE = TemplateAtto(
     categoria="CAUTELARE",
     descrizione="Ricorso per sequestro conservativo, giudiziario o provvedimento d'urgenza.",
     nome_cartella="Cautelare_{parte}_{data}",
+    canale="PCT_TELEMATICO",
+    endpoint_deposito="polisWeb_home",
+    nota_canale=(
+        "Il ricorso cautelare si deposita telematicamente via PCT. "
+        "Se urgente (inaudita altera parte), verificare le modalità dell'ufficio "
+        "per il deposito urgente fuori orario."
+    ),
     documenti=[
         _doc(1,  "Ricorso_cautelare",               "Ricorso ex art. 700 c.p.c. o per sequestro"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti"),
@@ -282,12 +382,15 @@ RICORSO_CAUTELARE = TemplateAtto(
         _doc(8,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
+        _chk("Ufficio abilitato al deposito telematico PCT verificato", critico=True),
+        _chk("Firma digitale valida e non scaduta", critico=True),
         _chk("Periculum in mora concretamente argomentato e documentato", critico=True),
         _chk("Fumus boni iuris documentato", critico=True),
+        _chk("Busta telematica .enc generata e inviata via PolisWeb/PST", critico=True),
+        _chk("Ricevuta di accettazione PEC salvata nel fascicolo"),
         _chk("Competenza del giudice verificata"),
-        _chk("Istanza di emissione inaudita altera parte se urgente"),
+        _chk("Istanza inaudita altera parte se urgente (verifica modalità ufficio)"),
         _chk("Cauzione eventuale valutata"),
-        _chk("Tutti i PDF leggibili"),
     ],
 )
 
@@ -297,6 +400,12 @@ RICORSO_TAR = TemplateAtto(
     categoria="AMMINISTRATIVO",
     descrizione="Ricorso al Tribunale Amministrativo Regionale.",
     nome_cartella="Ricorso_TAR_{parte}_{data}",
+    canale="PAT_AMMINISTRATIVO",
+    endpoint_deposito="pat_home",
+    nota_canale=(
+        "Il ricorso TAR si deposita tramite il Portale Atti Amministrativi (PAT) "
+        "con firma digitale CAdES (.p7m). Non si usa il redattore atti civile né PolisWeb."
+    ),
     documenti=[
         _doc(1,  "Ricorso_TAR",                     "Atto introduttivo del giudizio"),
         _doc(2,  "Procura_alle_liti",               "Procura alle liti"),
@@ -309,14 +418,17 @@ RICORSO_TAR = TemplateAtto(
         _doc(9,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
+        _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
+        _chk("Accesso al Portale PAT funzionante (pat_home in HACS)", critico=True),
         _chk("Termine di 60 gg dalla notifica/pubblicazione rispettato", critico=True),
         _chk("TAR territorialmente competente verificato", critico=True),
         _chk("Atto impugnato allegato integralmente", critico=True),
         _chk("Contributo unificato TAR pagato (importo diverso dal civile)", critico=True),
+        _chk("Contributo PAT / CPA pagato se dovuto"),
         _chk("Interesse a ricorrere chiaramente esposto"),
         _chk("Vizi di legittimità indicati (incompetenza, eccesso di potere, violazione di legge)"),
+        _chk("Deposito effettuato sul portale PAT e ricevuta salvata", critico=True),
         _chk("Istanza sospensiva se urgente"),
-        _chk("Tutti i PDF leggibili"),
     ],
 )
 
@@ -326,6 +438,12 @@ MEDIAZIONE = TemplateAtto(
     categoria="STRAGIUDIZIALE",
     descrizione="Istanza di mediazione obbligatoria o facoltativa.",
     nome_cartella="Mediazione_{parte}_{data}",
+    canale="CARTACEO",
+    nota_canale=(
+        "L'istanza di mediazione si deposita direttamente presso l'organismo di mediazione "
+        "(di persona, via email o PEC secondo le regole dell'organismo). "
+        "Non si usa PCT, PDP né PAT."
+    ),
     documenti=[
         _doc(1,  "Istanza_mediazione",              "Istanza di mediazione all'organismo"),
         _doc(2,  "Procura_alla_mediazione",         "Procura speciale per la mediazione", obbl=False),
@@ -350,6 +468,12 @@ APPELLO_PENALE = TemplateAtto(
     categoria="PENALE",
     descrizione="Atto di appello avverso sentenza penale di primo grado.",
     nome_cartella="Appello_penale_{rg}_{parte}_{data}",
+    canale="PDP_PENALE",
+    endpoint_deposito="pdp_home",
+    nota_canale=(
+        "L'appello penale si deposita tramite il Portale Deposito Atti Penali (PDP) "
+        "con firma digitale CAdES (.p7m). Non si usa il redattore atti civile né PolisWeb."
+    ),
     documenti=[
         _doc(1,  "Atto_di_appello",                 "Motivi di appello"),
         _doc(2,  "Procura_speciale",                "Procura speciale autenticata", obbl=False),
@@ -359,13 +483,15 @@ APPELLO_PENALE = TemplateAtto(
         _doc(6,  "Eventuali_altri_allegati",        "Altri allegati", obbl=False),
     ],
     checklist=[
+        _chk("Firma digitale CAdES (.p7m) valida e non scaduta", critico=True),
+        _chk("Accesso al Portale PDP Penale funzionante (pdp_home in HACS)", critico=True),
         _chk("Termine di 15 gg dal deposito motivazione rispettato", critico=True),
-        _chk("Corte d'Appello competente verificata", critico=True),
+        _chk("Corte d'Appello penale competente verificata", critico=True),
         _chk("Motivi specifici ex art. 581 c.p.p. indicati", critico=True),
         _chk("Sentenza impugnata allegata"),
+        _chk("Deposito effettuato sul portale PDP e ricevuta salvata", critico=True),
         _chk("Istanza misure cautelari se necessaria"),
         _chk("Procura speciale autenticata se imputato non presente"),
-        _chk("Tutti i PDF leggibili"),
     ],
 )
 

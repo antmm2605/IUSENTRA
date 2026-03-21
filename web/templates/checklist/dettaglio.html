@@ -23,6 +23,26 @@
   </div>
 </div>
 
+{# ── Banner canale deposito ── #}
+{% set c_col  = cat_col.get(tmpl.canale, 'secondary') %}
+{% set c_icon = {'PCT_TELEMATICO':'bi-send-fill','PDP_PENALE':'bi-shield-fill','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope-fill','CARTACEO':'bi-printer-fill'} %}
+{% set c_label = {'PCT_TELEMATICO':'Deposito telematico PCT — redattore atti + PolisWeb/PST','PDP_PENALE':'Portale Deposito Atti Penali (PDP)','PAT_AMMINISTRATIVO':'Portale Atti Amministrativi (PAT)','PEC':'Deposito a mezzo PEC','CARTACEO':'Deposito cartaceo / notifica tramite UNEP'} %}
+<div class="alert alert-{{ 'primary' if tmpl.canale == 'PCT_TELEMATICO' else 'dark' if tmpl.canale in ('PDP_PENALE','CARTACEO') else 'info' if tmpl.canale == 'PAT_AMMINISTRATIVO' else 'success' }} border-0 shadow-sm mb-3 d-flex align-items-start gap-3" role="alert">
+  <i class="bi {{ c_icon.get(tmpl.canale, 'bi-send') }} fs-5 flex-shrink-0 mt-1"></i>
+  <div class="flex-grow-1">
+    <div class="fw-semibold">{{ c_label.get(tmpl.canale, tmpl.canale) }}</div>
+    {% if tmpl.nota_canale %}
+    <div class="small mt-1">{{ tmpl.nota_canale }}</div>
+    {% endif %}
+  </div>
+  {% if tmpl.endpoint_deposito %}
+  <a href="{{ url_for(tmpl.endpoint_deposito) }}"
+     class="btn btn-sm btn-light flex-shrink-0 fw-semibold">
+    <i class="bi bi-box-arrow-up-right me-1"></i>Apri portale
+  </a>
+  {% endif %}
+</div>
+
 {# ── Form parametri ── #}
 <div class="card border shadow-sm mb-3">
   <div class="card-body p-3">

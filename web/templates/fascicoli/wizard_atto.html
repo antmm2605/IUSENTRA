@@ -197,39 +197,41 @@
             </label>
           </div>
 
-          {# Azioni step #}
-          <div class="d-flex gap-2 flex-wrap">
-            <button type="submit" id="btnCarica" class="btn btn-success fw-semibold" disabled>
-              <i class="bi bi-upload me-1"></i>Carica e vai al prossimo
+        </form>{# fine formWizardStep — il form "salta" deve stare fuori #}
+
+        {# Azioni step #}
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="submit" id="btnCarica" form="formWizardStep"
+                  class="btn btn-success fw-semibold" disabled>
+            <i class="bi bi-upload me-1"></i>Carica e vai al prossimo
+          </button>
+
+          {% if step_n > 1 %}
+          <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n - 1) }}"
+             class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Precedente
+          </a>
+          {% endif %}
+
+          {% if doc_esistente %}
+          {# Già caricato: consenti di andare avanti senza ricaricare #}
+          <a href="{% if step_n < step_totale %}{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n + 1) }}{% else %}{{ url_for('wizard_atto_completa', id_fasc=fascicolo.id, id_template=tmpl.id) }}{% endif %}"
+             class="btn btn-outline-primary">
+            <i class="bi bi-arrow-right me-1"></i>Prossimo step
+          </a>
+          {% endif %}
+
+          {% if not step_corrente.obbligatorio %}
+          <form method="POST"
+                action="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n) }}"
+                class="d-inline">
+            <input type="hidden" name="azione" value="salta">
+            <button type="submit" class="btn btn-outline-warning btn-sm">
+              <i class="bi bi-skip-forward me-1"></i>Salta (facoltativo)
             </button>
-
-            {% if step_n > 1 %}
-            <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n - 1) }}"
-               class="btn btn-outline-secondary">
-              <i class="bi bi-arrow-left me-1"></i>Precedente
-            </a>
-            {% endif %}
-
-            {% if doc_esistente %}
-            {# Già caricato: consenti di andare avanti senza ricaricare #}
-            <a href="{% if step_n < step_totale %}{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n + 1) }}{% else %}{{ url_for('wizard_atto_completa', id_fasc=fascicolo.id, id_template=tmpl.id) }}{% endif %}"
-               class="btn btn-outline-primary">
-              <i class="bi bi-arrow-right me-1"></i>Prossimo step
-            </a>
-            {% endif %}
-
-            {% if not step_corrente.obbligatorio %}
-            <form method="POST"
-                  action="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n) }}"
-                  class="d-inline">
-              <input type="hidden" name="azione" value="salta">
-              <button type="submit" class="btn btn-outline-warning btn-sm">
-                <i class="bi bi-skip-forward me-1"></i>Salta (facoltativo)
-              </button>
-            </form>
-            {% endif %}
-          </div>
-        </form>
+          </form>
+          {% endif %}
+        </div>
 
       </div>{# /card-body #}
     </div>{# /card #}

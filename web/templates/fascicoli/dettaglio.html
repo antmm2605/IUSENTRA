@@ -11,30 +11,65 @@
 <div class="card shadow-sm mb-3">
   <div class="card-body">
     <div class="d-flex align-items-start gap-3">
-      <div style="width:56px;height:56px;border-radius:12px;background:#e3f2fd;
-                  color:#1565c0;font-size:1.6rem;display:flex;align-items:center;
-                  justify-content:center;flex-shrink:0">
+      <div class="flex-shrink-0 d-none d-sm-flex align-items-center justify-content-center"
+           style="width:56px;height:56px;border-radius:12px;background:#e3f2fd;
+                  color:#1565c0;font-size:1.6rem">
         <i class="bi bi-folder2-open"></i>
       </div>
-      <div class="flex-grow-1">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="font-monospace text-muted">{{ fascicolo.numero }}</span>
+      <div class="flex-grow-1 min-width-0">
+        <div class="d-flex align-items-center gap-1 gap-sm-2 mb-1 flex-wrap">
+          <span class="font-monospace text-muted small">{{ fascicolo.numero }}</span>
           <span class="badge bg-{{ SC[fascicolo.stato.value] }}">
             {{ fascicolo.stato.value.replace('_',' ') }}
           </span>
           <span class="badge bg-light text-dark border">{{ fascicolo.tipo.value.replace('_',' ') }}</span>
           {% if fascicolo.archivio_pronto %}
           <span class="badge bg-warning text-dark">
-            <i class="bi bi-inbox me-1"></i>Pronto per archivio
+            <i class="bi bi-inbox me-1"></i><span class="d-none d-sm-inline">Pronto per </span>archivio
           </span>
           {% endif %}
         </div>
-        <h4 class="fw-bold mb-1">{{ fascicolo.titolo }}</h4>
+        <h5 class="fw-bold mb-1 text-break">{{ fascicolo.titolo }}</h5>
         {% if fascicolo.oggetto %}
-          <div class="text-muted">{{ fascicolo.oggetto }}</div>
+          <div class="text-muted small text-break">{{ fascicolo.oggetto }}</div>
         {% endif %}
+        {# Bottoni azione — su mobile sotto il titolo, su desktop a destra #}
+        <div class="d-flex gap-2 flex-wrap mt-2 d-sm-none">
+          <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
+             class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Modifica
+          </a>
+          {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
+            {% if fascicolo.stato != StatoFascicolo.DEFINITO %}
+            <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                    data-bs-target="#modalDefinisci">
+              <i class="bi bi-check2-circle me-1"></i>Definisci
+            </button>
+            {% endif %}
+            {% if fascicolo.stato == StatoFascicolo.DEFINITO %}
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                    data-bs-target="#modalArchivia">
+              <i class="bi bi-archive me-1"></i>Archivia
+            </button>
+            {% endif %}
+          {% else %}
+          <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
+                onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
+            <button class="btn btn-sm btn-outline-success">
+              <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
+            </button>
+          </form>
+          {% endif %}
+          <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
+                onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
+            <button class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash me-1"></i>Elimina
+            </button>
+          </form>
+        </div>
       </div>
-      <div class="d-flex gap-2 flex-shrink-0 flex-wrap justify-content-end">
+      {# Bottoni — solo su sm+ a destra dell'intestazione #}
+      <div class="d-none d-sm-flex gap-2 flex-shrink-0 flex-wrap justify-content-end">
         <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
            class="btn btn-outline-primary btn-sm">
           <i class="bi bi-pencil me-1"></i>Modifica
@@ -85,9 +120,9 @@
         <div class="row g-3 small">
           {% macro dc(label, val, mono=False) %}
           {% if val %}
-          <div class="col-sm-4">
+          <div class="col-6 col-sm-4">
             <div class="text-muted mb-1">{{ label }}</div>
-            <div class="fw-semibold {% if mono %}font-monospace{% endif %}">{{ val }}</div>
+            <div class="fw-semibold text-break {% if mono %}font-monospace{% endif %}">{{ val }}</div>
           </div>
           {% endif %}
           {% endmacro %}
@@ -120,13 +155,13 @@
 
     {# ---- Attività processuali ---- #}
     <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span>
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
           <i class="bi bi-list-check me-2 text-primary"></i>
           Attività processuali
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.attivita|length }}</span>
         </span>
-        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+        <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
                 data-bs-target="#modalAttivita">
           <i class="bi bi-plus-lg me-1"></i>Aggiungi
         </button>
@@ -179,13 +214,13 @@
 
     {# ---- Documenti ---- #}
     <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span>
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
           <i class="bi bi-paperclip me-2 text-primary"></i>
           Documenti
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
         </span>
-        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+        <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
                 data-bs-target="#modalDocumento">
           <i class="bi bi-upload me-1"></i>Carica
         </button>
@@ -235,10 +270,10 @@
                     <i class="bi bi-patch-check-fill text-success" title="Firmato digitalmente"></i>
                   {% else %}—{% endif %}
                 </td>
-                <td>
-                  <div class="btn-group btn-group-sm">
+                <td class="text-nowrap">
+                  <div class="d-flex gap-1 flex-wrap">
                     {% if visualizzabile %}
-                    <button type="button" class="btn btn-outline-primary" title="Visualizza"
+                    <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
                             data-doc-nome="{{ doc.nome }}"
                             data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                             data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
@@ -247,11 +282,11 @@
                     </button>
                     {% endif %}
                     <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                       class="btn btn-outline-secondary" title="Scarica">
+                       class="btn btn-outline-secondary btn-sm" title="Scarica">
                       <i class="bi bi-download"></i>
                     </a>
                     {% if not doc.firmato_digitalmente %}
-                    <button type="button" class="btn btn-outline-success" title="Firma per deposito"
+                    <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
                             data-doc-nome="{{ doc.nome }}"
                             data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                             data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
@@ -262,7 +297,7 @@
                     {% if ext == 'pdf' %}
                     <form method="post"
                           action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=doc.id) }}">
-                      <button class="btn btn-outline-info" title="Scarica copia con attestazione di conformità">
+                      <button class="btn btn-outline-info btn-sm" title="Scarica copia con attestazione di conformità">
                         <i class="bi bi-patch-check"></i>
                       </button>
                     </form>
@@ -270,7 +305,7 @@
                     <form method="post"
                           action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                           onsubmit="return confirm('Eliminare il documento?')">
-                      <button class="btn btn-outline-danger" title="Elimina">
+                      <button class="btn btn-outline-danger btn-sm" title="Elimina">
                         <i class="bi bi-trash"></i>
                       </button>
                     </form>
@@ -316,23 +351,24 @@
     {% endif %}
 
     <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span>
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
           <i class="bi {{ dep_icon }} me-2 text-{{ dep_col }}"></i>
-          {{ dep_label }}
+          <span class="d-none d-sm-inline">{{ dep_label }}</span>
+          <span class="d-sm-none">Depositi</span>
           {% if fascicolo.depositi_pct %}
           <span class="badge bg-{{ dep_col }} rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
           {% endif %}
         </span>
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="d-flex gap-1 gap-sm-2 flex-wrap align-items-center">
 
           {# Dropdown: scegli tipo atto → wizard guidato #}
           <div class="dropdown">
             <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
                     type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-magic me-1"></i>Prepara atto
+              <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:310px;max-height:380px;overflow-y:auto">
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:min(310px,calc(100vw - 1.5rem));max-height:380px;overflow-y:auto">
               <li><h6 class="dropdown-header small">Wizard guidato — carica e rinomina documenti</h6></li>
               {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
               <li>
@@ -361,12 +397,12 @@
 
           {# Accesso rapido al portale di consultazione #}
           <a href="{{ dep_portale_url }}" class="btn btn-sm btn-outline-{{ dep_col }} fw-semibold">
-            <i class="bi bi-search me-1"></i>{{ dep_portale_label }}
+            <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">{{ dep_portale_label }}</span><span class="d-sm-none">Portale</span>
           </a>
 
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                   data-bs-target="#modalDeposito">
-            <i class="bi bi-plus-lg me-1"></i>Registra
+            <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Registra</span>
           </button>
         </div>
       </div>
@@ -427,7 +463,7 @@
                 <div class="text-muted small mb-2">{{ dep.pec_destinatario }}</div>
 
                 {# ── Tracker 4 fasi ── #}
-                <div class="d-flex align-items-center gap-1 dep-tracker-{{ dep.id }}" style="flex-wrap:wrap">
+                <div class="d-flex align-items-center gap-1 flex-wrap dep-tracker-{{ dep.id }}">
 
                   {# Fase 4: Accettazione PEC #}
                   <span class="badge px-2 py-1
@@ -436,7 +472,8 @@
                     style="font-size:.72rem"
                     title="Ricevuta di accettazione PEC (fase 4)">
                     {% if f4_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    ① Accett. PEC
+                    <span class="d-none d-sm-inline">① Accett. PEC</span>
+                    <span class="d-sm-none">① PEC</span>
                   </span>
                   <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
 
@@ -447,7 +484,7 @@
                     style="font-size:.72rem"
                     title="Ricevuta di avvenuta consegna (fase 5)">
                     {% if f5_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    ② Consegna
+                    ② Cons.
                   </span>
                   <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
 
@@ -463,7 +500,7 @@
                     {% elif f6_warn %}<i class="bi bi-exclamation me-1"></i>
                     {% elif f6_ok %}<i class="bi bi-check-lg me-1"></i>
                     {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    ③ Controlli{% if f6_warn %} WARN{% elif is_errore %} ERR{% endif %}
+                    ③ Ctrl{% if f6_warn %} WARN{% elif is_errore %} ERR{% endif %}
                   </span>
                   <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
 
@@ -478,7 +515,7 @@
                     {% if is_accettato %}<i class="bi bi-check-lg me-1"></i>
                     {% elif is_rifiutato %}<i class="bi bi-x-lg me-1"></i>
                     {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
-                    ④ Cancelleria
+                    ④ Canc.
                   </span>
                 </div>
 

@@ -243,7 +243,7 @@
 {% if tmpl.endpoint_deposito %}
 <div class="modal fade" id="modalDeposito" tabindex="-1"
      aria-labelledby="modalDepositoLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-fullscreen-sm-down modal-dialog-scrollable">
     <div class="modal-content">
 
       {# Header — colore e titolo dipendono dal canale #}
@@ -312,22 +312,22 @@
 
             {# Dati fascicolo (read-only) #}
             <div class="row g-2 mb-4">
-              <div class="col-sm-4">
+              <div class="col-6 col-sm-4">
                 <div class="bg-light rounded px-3 py-2 small">
                   <div class="text-muted">Fascicolo</div>
-                  <strong class="font-monospace">{{ fascicolo.numero }}</strong>
+                  <strong class="font-monospace text-break">{{ fascicolo.numero }}</strong>
                 </div>
               </div>
               {% if fascicolo.tribunale %}
-              <div class="col-sm-4">
+              <div class="col-6 col-sm-4">
                 <div class="bg-light rounded px-3 py-2 small">
                   <div class="text-muted">Tribunale</div>
-                  <strong>{{ fascicolo.tribunale }}</strong>
+                  <strong class="text-break">{{ fascicolo.tribunale }}</strong>
                 </div>
               </div>
               {% endif %}
               {% if fascicolo.numero_rg %}
-              <div class="col-sm-4">
+              <div class="col-6 col-sm-4">
                 <div class="bg-light rounded px-3 py-2 small">
                   <div class="text-muted">N. RG</div>
                   <strong class="font-monospace">{{ fascicolo.numero_rg }}/{{ fascicolo.anno_rg }}</strong>
@@ -341,7 +341,7 @@
                   action="{{ url_for('deposito_genera_busta', id_fasc=fascicolo.id) }}">
 
               <div class="row g-3 mb-4">
-                <div class="col-sm-5">
+                <div class="col-12 col-sm-5">
                   <label class="form-label fw-semibold small">
                     Tipo atto <span class="text-danger">*</span>
                   </label>
@@ -385,7 +385,7 @@
                     {% endif %}
                   </select>
                 </div>
-                <div class="col-sm-3">
+                <div class="col-6 col-sm-3">
                   <label class="form-label fw-semibold small">Registro</label>
                   <select name="codice_registro" class="form-select form-select-sm">
                     {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
@@ -405,7 +405,7 @@
                     {% endif %}
                   </select>
                 </div>
-                <div class="col-sm-4">
+                <div class="col-12 col-sm-4">
                   <label class="form-label fw-semibold small">Oggetto</label>
                   <input type="text" name="oggetto" class="form-control form-control-sm"
                          value="{{ fascicolo.oggetto or fascicolo.titolo }}"
@@ -427,10 +427,10 @@
                   <table class="table table-sm table-hover mb-0 align-middle">
                     <thead class="table-light">
                       <tr>
-                        <th class="small fw-semibold ps-3" style="width:40%">Documento</th>
-                        <th class="small fw-semibold text-center" style="width:25%">Atto principale</th>
-                        <th class="small fw-semibold text-center" style="width:25%">Allegato</th>
-                        <th class="small fw-semibold text-center" style="width:10%">Dim.</th>
+                        <th class="small fw-semibold ps-3">Documento</th>
+                        <th class="small fw-semibold text-center text-nowrap">Atto princ.</th>
+                        <th class="small fw-semibold text-center">Allegato</th>
+                        <th class="small fw-semibold text-center">Dim.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -554,7 +554,7 @@
                   action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
 
               <div class="row g-3 mb-3">
-                <div class="col-sm-7">
+                <div class="col-12 col-sm-7">
                   <label class="form-label small fw-semibold">
                     Tipo atto <span class="text-danger">*</span>
                   </label>
@@ -562,7 +562,7 @@
                          class="form-control form-control-sm"
                          placeholder="es. Ricorso, Memoria, Citazione" required>
                 </div>
-                <div class="col-sm-5">
+                <div class="col-12 col-sm-5">
                   <label class="form-label small fw-semibold">Stato</label>
                   <select name="stato" class="form-select form-select-sm">
                     <option value="INVIATO" selected>INVIATO</option>

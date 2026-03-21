@@ -14,6 +14,9 @@
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* Utility: min-width:0 permette ai flex children di restringersi sotto il loro contenuto */
+.min-width-0 { min-width: 0; }
+
 /* App shell: html e body coprono esattamente il viewport */
 html, body {
   height: 100%;

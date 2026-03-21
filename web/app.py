@@ -4110,14 +4110,14 @@ def create_app(config: dict | None = None) -> Flask:
             }), 400
 
         # Config PEC studio
+        pec_cfg    = None
+        modalita_demo = False
         try:
             cfg_studio = get_config_studio().config
             pec_cfg    = cfg_studio.pec if cfg_studio else None
             if not pec_cfg or not pec_cfg.indirizzo or not pec_cfg.password:
-                return jsonify({
-                    "ok": False,
-                    "errore": "PEC non configurata. Vai in Impostazioni → PEC e inserisci le credenziali."
-                }), 400
+                modalita_demo = True
+                pec_cfg = None
         except Exception as exc:
             return jsonify({"ok": False, "errore": f"Errore lettura config studio: {exc}"}), 500
 
@@ -4142,33 +4142,45 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": f"Errore creazione busta: {exc}"}), 500
 
-        # Invia via PEC
-        try:
-            config_pec = PecCfg(
-                indirizzo=pec_cfg.indirizzo,
-                password=pec_cfg.password,
-                smtp_host=getattr(pec_cfg, "smtp_host", "smtp.pec.aruba.it"),
-                smtp_port=getattr(pec_cfg, "smtp_port", 465),
-                imap_host=getattr(pec_cfg, "imap_host", ""),
-                imap_port=getattr(pec_cfg, "imap_port", 993),
-                use_ssl=getattr(pec_cfg, "use_ssl", True),
-            )
-            client_pec = ClientPEC(config_pec)
-            oggetto_pec = (
-                f"DEPOSITO {tipo_atto} - {fasc.tribunale}"
-                + (f" - {codice_registro} {fasc.numero_rg}/{fasc.anno_rg}" if fasc.numero_rg else "")
-            )
-            ris = client_pec.invia_busta(
-                destinatario_pec=pec_dest,
-                busta_path=enc_path,
-                oggetto=oggetto_pec,
-            )
-            if not ris.get("inviato"):
-                errore_pec = ris.get("errore") or "Invio PEC fallito senza dettagli."
-                return jsonify({"ok": False, "errore": f"Errore PEC: {errore_pec}"}), 500
-        except Exception as exc:
-            app.logger.exception("Errore invio PEC %s: %s", id_fasc, exc)
-            return jsonify({"ok": False, "errore": f"Errore invio PEC: {exc}"}), 500
+        # Invia via PEC (reale o simulata)
+        if modalita_demo:
+            # Modalità demo: simula risposta PEC senza connessione reale
+            import hashlib as _hl
+            fake_mid = _hl.md5(f"{id_dep}{_dt.now().isoformat()}".encode()).hexdigest()[:16].upper()
+            ris = {
+                "inviato": True,
+                "message_id": f"DEMO-{fake_mid}@pst.giustizia.it",
+                "demo": True,
+            }
+            app.logger.info("Deposito DEMO %s — busta creata, invio PEC simulato", id_dep)
+        else:
+            try:
+                config_pec = PecCfg(
+                    indirizzo=pec_cfg.indirizzo,
+                    password=pec_cfg.password,
+                    smtp_host=getattr(pec_cfg, "smtp_host", "smtp.pec.aruba.it"),
+                    smtp_port=getattr(pec_cfg, "smtp_port", 465),
+                    imap_host=getattr(pec_cfg, "imap_host", ""),
+                    imap_port=getattr(pec_cfg, "imap_port", 993),
+                    use_ssl=getattr(pec_cfg, "use_ssl", True),
+                )
+                client_pec = ClientPEC(config_pec)
+                oggetto_pec = (
+                    f"DEPOSITO TELEMATICO - {tipo_atto} - RG {fasc.numero_rg}/{fasc.anno_rg}"
+                    if fasc.numero_rg else
+                    f"DEPOSITO TELEMATICO - {tipo_atto} - {fasc.tribunale}"
+                )
+                ris = client_pec.invia_busta(
+                    destinatario_pec=pec_dest,
+                    busta_path=enc_path,
+                    oggetto=oggetto_pec,
+                )
+                if not ris.get("inviato"):
+                    errore_pec = ris.get("errore") or "Invio PEC fallito senza dettagli."
+                    return jsonify({"ok": False, "errore": f"Errore PEC: {errore_pec}"}), 500
+            except Exception as exc:
+                app.logger.exception("Errore invio PEC %s: %s", id_fasc, exc)
+                return jsonify({"ok": False, "errore": f"Errore invio PEC: {exc}"}), 500
 
         # Salva esito nel fascicolo
         id_dep = busta.id_busta[:8].upper()
@@ -4177,14 +4189,15 @@ def create_app(config: dict | None = None) -> Flask:
             from datetime import datetime as _dtnow
             from pct.fascicoli import (AttivitaProcessuale, EsitoAttivita,
                                        TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto)
+            _msg_demo = "[DEMO] " if modalita_demo else ""
             esito = EsitoDepositoPCT(
                 id=id_dep,
                 timestamp=ts,
                 stato="INVIATO",
                 tipo_atto=tipo_atto,
                 pec_destinatario=pec_dest,
-                messaggio=f"Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id','')}",
-                note=note,
+                messaggio=f"{_msg_demo}Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id','')}",
+                note=("[SIMULAZIONE DEMO — nessun atto realmente inviato] " + note).strip() if modalita_demo else note,
                 registrato_da=u.username if u else "",
             )
             fasc.depositi_pct.append(esito)
@@ -4219,6 +4232,7 @@ def create_app(config: dict | None = None) -> Flask:
 
         return jsonify({
             "ok": True,
+            "demo": modalita_demo,
             "id_deposito": id_dep,
             "pec_dest": pec_dest,
             "tipo_atto": tipo_atto,

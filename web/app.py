@@ -310,6 +310,14 @@ def create_app(config: dict | None = None) -> Flask:
             archive_dir=app.config["FASCICOLI_ARCH"],
         )
 
+    def get_config_studio():
+        from pct.config_studio import GestioneConfigStudio
+        gs = GestioneConfigStudio(config_path=app.config.get("STUDIO_CONFIG", "./config/studio.json"))
+        cfg = gs.config
+        gs.nome = (cfg.studio.nome if cfg and hasattr(cfg, "studio") and cfg.studio.nome
+                   else app.config.get("STUDIO_NOME", "Studio Legale"))
+        return gs
+
     def get_messaggi() -> GestioneMessaggi:
         # Usa app.config (popolato da config_studio.json al boot, con fallback su env)
         cfg = ConfigMessaggistica(

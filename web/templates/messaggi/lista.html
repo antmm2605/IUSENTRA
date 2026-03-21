@@ -1,155 +1,591 @@
 {% extends "base.html" %}
 {% block title %}Messaggi{% endblock %}
-{% block page_title %}Messaggi{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════════════════════
+   MESSAGGI — design system (palette condivisa con email client)
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --ms-bg:        #f1f5f9;
+  --ms-surface:   #ffffff;
+  --ms-border:    #e2e8f0;
+  --ms-text:      #0f172a;
+  --ms-sub:       #475569;
+  --ms-muted:     #94a3b8;
+  --ms-accent:    #2563eb;
+  --ms-accent-bg: #eff6ff;
+  --ms-hover:     #f8fafc;
+  --ms-radius:    .75rem;
+  --ms-shadow:    0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.06);
+  --ms-sidebar-w: 220px;
+  --ms-email:     #2563eb;
+  --ms-sms:       #0891b2;
+  --ms-wa:        #16a34a;
+}
+
+/* ── Shell ──────────────────────────────────────────────────── */
+.ms-shell {
+  display: flex;
+  height: calc(100vh - 120px);
+  min-height: 520px;
+  background: var(--ms-bg);
+  border: 1px solid var(--ms-border);
+  border-radius: var(--ms-radius);
+  overflow: hidden;
+  box-shadow: var(--ms-shadow);
+}
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+.ms-sidebar {
+  width: var(--ms-sidebar-w);
+  flex-shrink: 0;
+  background: var(--ms-surface);
+  border-right: 1px solid var(--ms-border);
+  display: flex;
+  flex-direction: column;
+  padding: .875rem 0 1rem;
+  overflow-y: auto;
+}
+.ms-compose {
+  margin: 0 .75rem .875rem;
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .6rem 1rem;
+  background: var(--ms-accent);
+  color: #fff;
+  border-radius: 2rem;
+  font-size: .84rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(37,99,235,.30);
+  transition: background .15s, box-shadow .15s, transform .1s;
+}
+.ms-compose:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 14px rgba(37,99,235,.40);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.ms-compose i { font-size: 1rem; }
+.ms-nav-label {
+  font-size: .69rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ms-muted);
+  padding: .5rem .875rem .2rem 1.1rem;
+}
+.ms-nav-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .44rem .75rem .44rem .875rem;
+  margin: .04rem .5rem .04rem .375rem;
+  border-radius: .5rem;
+  font-size: .83rem;
+  font-weight: 500;
+  color: var(--ms-sub);
+  text-decoration: none;
+  transition: background .1s, color .1s;
+  cursor: pointer;
+}
+.ms-nav-item:hover { background: var(--ms-hover); color: var(--ms-text); }
+.ms-nav-item.active {
+  background: var(--ms-accent-bg);
+  color: var(--ms-accent);
+  font-weight: 600;
+}
+.ms-nav-item i { font-size: .95rem; width: 1.1rem; text-align: center; flex-shrink: 0; }
+.ms-nav-count {
+  margin-left: auto;
+  font-size: .72rem;
+  font-weight: 700;
+  background: var(--ms-accent);
+  color: #fff;
+  border-radius: 99px;
+  padding: .08em .4em;
+  min-width: 1.3em;
+  text-align: center;
+  line-height: 1.5;
+}
+.ms-nav-sep { border: none; border-top: 1px solid var(--ms-border); margin: .5rem .75rem; }
+
+/* ── Main pane ──────────────────────────────────────────────── */
+.ms-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.ms-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--ms-border);
+  background: var(--ms-surface);
+  flex-shrink: 0;
+}
+.ms-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .44rem .75rem;
+  border: 1px solid var(--ms-border);
+  border-radius: .5rem;
+  background: var(--ms-bg);
+  font-size: .84rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+.ms-search:focus-within {
+  border-color: var(--ms-accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  background: #fff;
+}
+.ms-search i { color: var(--ms-muted); font-size: .95rem; }
+.ms-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: .84rem;
+  color: var(--ms-text);
+  width: 100%;
+}
+.ms-search input::placeholder { color: var(--ms-muted); }
+.ms-filter-sel {
+  border: 1px solid var(--ms-border);
+  border-radius: .5rem;
+  padding: .4rem .65rem;
+  font-size: .8rem;
+  color: var(--ms-sub);
+  background: var(--ms-bg);
+  cursor: pointer;
+  outline: none;
+  transition: border-color .15s;
+}
+.ms-filter-sel:focus { border-color: var(--ms-accent); }
+.ms-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .44rem .8rem;
+  border: 1px solid var(--ms-border);
+  border-radius: .5rem;
+  background: var(--ms-bg);
+  color: var(--ms-sub);
+  font-size: .8rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.ms-toolbar-btn:hover { background: var(--ms-hover); color: var(--ms-text); border-color: #cbd5e1; }
+.ms-toolbar-btn.reset { color: #dc2626; border-color: #fecaca; background: #fff5f5; }
+.ms-toolbar-btn.reset:hover { background: #fee2e2; }
+
+/* ── Stats bar ──────────────────────────────────────────────── */
+.ms-stats {
+  display: flex;
+  gap: .5rem;
+  padding: .5rem 1rem;
+  border-bottom: 1px solid var(--ms-border);
+  background: var(--ms-bg);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.ms-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .76rem;
+  color: var(--ms-sub);
+  background: var(--ms-surface);
+  border: 1px solid var(--ms-border);
+  border-radius: 99px;
+  padding: .2rem .6rem;
+}
+.ms-stat-chip .num { font-weight: 700; color: var(--ms-text); }
+
+/* ── Message list ───────────────────────────────────────────── */
+.ms-list {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--ms-bg);
+}
+.ms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .875rem 1rem;
+  background: var(--ms-surface);
+  border-bottom: 1px solid var(--ms-border);
+  text-decoration: none;
+  color: inherit;
+  transition: background .1s;
+  position: relative;
+}
+.ms-row:hover { background: var(--ms-hover); }
+.ms-row:last-child { border-bottom: none; }
+
+/* Channel avatar */
+.ms-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  color: #fff;
+}
+.ms-av.email { background: var(--ms-email); }
+.ms-av.sms   { background: var(--ms-sms); }
+.ms-av.wa    { background: var(--ms-wa); }
+
+.ms-row-body { flex: 1; min-width: 0; }
+.ms-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .2rem;
+}
+.ms-row-name {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ms-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.ms-row-time {
+  font-size: .74rem;
+  color: var(--ms-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ms-row-subject {
+  font-size: .82rem;
+  color: var(--ms-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: .1rem;
+}
+.ms-row-preview {
+  font-size: .79rem;
+  color: var(--ms-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ms-row-meta { display: flex; align-items: center; gap: .35rem; margin-top: .3rem; flex-wrap: wrap; }
+
+/* Stato badges */
+.ms-badge {
+  font-size: .69rem;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: .15em .55em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.ms-badge-inviato   { background: #dbeafe; color: #1d4ed8; }
+.ms-badge-consegnato{ background: #dcfce7; color: #166534; }
+.ms-badge-letto     { background: #e0f2fe; color: #0369a1; }
+.ms-badge-in_coda   { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.ms-badge-fallito   { background: #fee2e2; color: #991b1b; }
+.ms-badge-annullato { background: #fef3c7; color: #92400e; }
+
+.ms-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .3rem;
+  flex-shrink: 0;
+}
+.ms-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: .4rem;
+  border: 1px solid var(--ms-border);
+  background: transparent;
+  color: var(--ms-muted);
+  font-size: .85rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.ms-action-btn:hover { background: var(--ms-hover); color: var(--ms-text); border-color: #cbd5e1; }
+.ms-action-btn.del:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+/* ── Empty state ────────────────────────────────────────────── */
+.ms-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  padding: 3rem 2rem;
+  color: var(--ms-muted);
+  flex: 1;
+}
+.ms-empty-icon { font-size: 2.5rem; opacity: .4; }
+.ms-empty-title { font-size: 1rem; font-weight: 600; color: var(--ms-sub); }
+.ms-empty-sub { font-size: .84rem; text-align: center; }
+.ms-empty-cta {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .55rem 1.25rem;
+  background: var(--ms-accent);
+  color: #fff;
+  border-radius: 2rem;
+  font-size: .84rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(37,99,235,.30);
+  transition: background .15s;
+  margin-top: .5rem;
+}
+.ms-empty-cta:hover { background: #1d4ed8; color: #fff; }
+
+/* ── WA link fallback chip ──────────────────────────────────── */
+.ms-wa-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .69rem;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 99px;
+  padding: .15em .55em;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .ms-shell {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    border-radius: .5rem;
+  }
+  .ms-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--ms-border);
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: .5rem;
+    gap: .25rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: center;
+  }
+  .ms-compose { margin: 0; flex-shrink: 0; }
+  .ms-nav-label { display: none; }
+  .ms-nav-sep { display: none; }
+  .ms-nav-item { flex-shrink: 0; }
+  .ms-list { max-height: 60vh; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
 
-{# ── Page Header ── #}
-<div class="ds-ph">
-  <div class="ds-ph-icon"><i class="bi bi-chat-dots-fill"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Messaggi</h1>
-    <p class="ds-ph-sub">Comunicazioni via email, SMS e WhatsApp ai clienti</p>
-  </div>
-  <div class="ds-ph-actions">
-    <a href="{{ url_for('nuovo_messaggio') }}" class="ds-btn ds-btn-primary">
-      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo messaggio</span>
+<div class="ms-shell">
+
+  {# ── Sidebar ── #}
+  <aside class="ms-sidebar">
+    <a href="{{ url_for('nuovo_messaggio') }}" class="ms-compose">
+      <i class="bi bi-pencil-square"></i><span>Nuovo</span>
     </a>
-  </div>
-</div>
 
-{# ── Stats ── #}
-{% set s = stats %}
-<div class="ds-stats">
-  <span class="ds-stat-pill">
-    <span class="num">{{ s.totale }}</span> totali
-  </span>
-  <span class="ds-stat-pill">
-    <i class="bi bi-send text-primary"></i>
-    <span class="num">{{ s.inviati }}</span> inviati
-  </span>
-  <span class="ds-stat-pill">
-    <i class="bi bi-hourglass-split text-warning"></i>
-    <span class="num">{{ s.in_coda }}</span> in coda
-  </span>
-  {% if s.falliti %}
-  <span class="ds-stat-pill">
-    <i class="bi bi-x-circle text-danger"></i>
-    <span class="num">{{ s.falliti }}</span> falliti
-  </span>
-  {% endif %}
-</div>
+    <div class="ms-nav-label">Canali</div>
+    <a href="{{ url_for('lista_messaggi') }}"
+       class="ms-nav-item {% if not canale %}active{% endif %}">
+      <i class="bi bi-grid"></i>
+      <span>Tutti</span>
+      <span class="ms-nav-count">{{ stats.totale }}</span>
+    </a>
+    <a href="{{ url_for('lista_messaggi', canale='EMAIL') }}"
+       class="ms-nav-item {% if canale == 'EMAIL' %}active{% endif %}">
+      <i class="bi bi-envelope"></i>
+      <span>Email</span>
+      {% if stats.per_canale.EMAIL %}<span class="ms-nav-count">{{ stats.per_canale.EMAIL }}</span>{% endif %}
+    </a>
+    <a href="{{ url_for('lista_messaggi', canale='SMS') }}"
+       class="ms-nav-item {% if canale == 'SMS' %}active{% endif %}">
+      <i class="bi bi-phone"></i>
+      <span>SMS</span>
+      {% if stats.per_canale.SMS %}<span class="ms-nav-count">{{ stats.per_canale.SMS }}</span>{% endif %}
+    </a>
+    <a href="{{ url_for('lista_messaggi', canale='WHATSAPP') }}"
+       class="ms-nav-item {% if canale == 'WHATSAPP' %}active{% endif %}">
+      <i class="bi bi-whatsapp"></i>
+      <span>WhatsApp</span>
+      {% if stats.per_canale.WHATSAPP %}<span class="ms-nav-count">{{ stats.per_canale.WHATSAPP }}</span>{% endif %}
+    </a>
 
-{# ── Filtri ── #}
-<form method="get" class="ds-search-bar mb-3">
-  <input type="search" name="q" class="ds-search-input"
-         placeholder="Destinatario, oggetto…"
-         value="{{ q }}" autocomplete="off">
-  <select name="canale" class="form-select form-select-sm" style="max-width:140px">
-    <option value="">Tutti i canali</option>
-    {% for c in canali %}
-    <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ c.value }}</option>
-    {% endfor %}
-  </select>
-  <select name="stato" class="form-select form-select-sm" style="max-width:150px">
-    <option value="">Tutti gli stati</option>
+    <hr class="ms-nav-sep">
+    <div class="ms-nav-label">Stato</div>
     {% for st in stati %}
-    <option value="{{ st.value }}" {{ 'selected' if st.value == stato }}>{{ st.value.replace('_',' ') }}</option>
+    <a href="{{ url_for('lista_messaggi', stato=st.value, canale=canale) }}"
+       class="ms-nav-item {% if stato == st.value %}active{% endif %}">
+      {% if st.value == 'INVIATO' %}<i class="bi bi-send"></i>
+      {% elif st.value == 'CONSEGNATO' %}<i class="bi bi-check2-all"></i>
+      {% elif st.value == 'LETTO' %}<i class="bi bi-eye"></i>
+      {% elif st.value == 'IN_CODA' %}<i class="bi bi-hourglass-split"></i>
+      {% elif st.value == 'FALLITO' %}<i class="bi bi-x-circle"></i>
+      {% else %}<i class="bi bi-slash-circle"></i>
+      {% endif %}
+      <span>{{ st.value.replace('_',' ').title() }}</span>
+    </a>
     {% endfor %}
-  </select>
-  <button type="submit" class="ds-btn ds-btn-outline">
-    <i class="bi bi-funnel"></i>Filtra
-  </button>
-  {% if q or canale or stato %}
-  <a href="{{ url_for('lista_messaggi') }}" class="ds-btn ds-btn-ghost">
-    <i class="bi bi-x-circle"></i>Reset
-  </a>
-  {% endif %}
-</form>
+  </aside>
 
-{# ── Tabella messaggi ── #}
-{% if messaggi %}
-<div class="card shadow-sm">
-  <div class="card-header">
-    <span class="fw-semibold text-muted small">{{ messaggi|length }} messaggi</span>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Data</th><th>Canale</th><th>Destinatario</th>
-            <th>Oggetto / Testo</th><th>Stato</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for m in messaggi %}
-          <tr>
-            <td class="small text-nowrap">{{ m.creato_il[:16].replace('T',' ') }}</td>
-            <td>
-              {% if m.canale.value == 'EMAIL' %}
-                <span class="badge bg-primary">EMAIL</span>
-              {% elif m.canale.value == 'SMS' %}
-                <span class="badge bg-success">SMS</span>
-              {% else %}
-                <span class="badge bg-success" style="background-color:#25D366 !important">
-                  <i class="bi bi-whatsapp"></i> WA
-                </span>
-              {% endif %}
-            </td>
-            <td class="small">
-              {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or '—' }}
-            </td>
-            <td class="small">
-              {% if m.oggetto %}<div class="fw-semibold">{{ m.oggetto }}</div>{% endif %}
-              <div class="text-muted text-truncate" style="max-width:280px">{{ m.corpo }}</div>
-            </td>
-            <td>
-              {% set colore = {
-                'IN_CODA': 'secondary', 'INVIATO': 'primary',
-                'CONSEGNATO': 'success', 'LETTO': 'info',
-                'FALLITO': 'danger', 'ANNULLATO': 'warning'
-              } %}
-              <span class="badge bg-{{ colore.get(m.stato.value, 'secondary') }}">
-                {{ m.stato.value.replace('_',' ') }}
-              </span>
-            </td>
-            <td>
-              <div class="btn-group btn-group-sm">
-                <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}"
-                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
-                <form method="post"
-                      action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
-                      onsubmit="return confirm('Eliminare il messaggio?')">
-                  <button class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  {# ── Main pane ── #}
+  <div class="ms-main">
+
+    {# Toolbar #}
+    <form method="get" class="ms-toolbar">
+      <input type="hidden" name="canale" value="{{ canale }}">
+      <input type="hidden" name="stato"  value="{{ stato }}">
+      <div class="ms-search">
+        <i class="bi bi-search"></i>
+        <input type="search" name="q" value="{{ q }}"
+               placeholder="Cerca destinatario, oggetto…" autocomplete="off">
+      </div>
+      <button type="submit" class="ms-toolbar-btn">
+        <i class="bi bi-funnel"></i>Filtra
+      </button>
+      {% if q or canale or stato %}
+      <a href="{{ url_for('lista_messaggi') }}" class="ms-toolbar-btn reset">
+        <i class="bi bi-x"></i>Reset
+      </a>
+      {% endif %}
+    </form>
+
+    {# Stats bar #}
+    <div class="ms-stats">
+      <span class="ms-stat-chip"><span class="num">{{ stats.totale }}</span> totali</span>
+      <span class="ms-stat-chip">
+        <i class="bi bi-send" style="color:var(--ms-accent)"></i>
+        <span class="num">{{ stats.inviati }}</span> inviati
+      </span>
+      <span class="ms-stat-chip">
+        <i class="bi bi-check2-all" style="color:#16a34a"></i>
+        <span class="num">{{ stats.consegnati }}</span> consegnati
+      </span>
+      <span class="ms-stat-chip">
+        <i class="bi bi-hourglass-split" style="color:#d97706"></i>
+        <span class="num">{{ stats.in_coda }}</span> in coda
+      </span>
+      {% if stats.falliti %}
+      <span class="ms-stat-chip">
+        <i class="bi bi-x-circle" style="color:#dc2626"></i>
+        <span class="num">{{ stats.falliti }}</span> falliti
+      </span>
+      {% endif %}
     </div>
-  </div>
-</div>
 
-{% else %}
-<div class="ds-empty">
-  <i class="bi bi-chat-dots ds-empty-icon"></i>
-  <div class="ds-empty-title">Nessun messaggio trovato</div>
-  <div class="ds-empty-sub">
-    {% if q or canale or stato %}
-      Nessun risultato per i filtri selezionati.
-    {% else %}
-      Invia comunicazioni ai clienti tramite email, SMS o WhatsApp.
-    {% endif %}
-  </div>
-  {% if not q and not canale and not stato %}
-  <a href="{{ url_for('nuovo_messaggio') }}" class="ds-btn ds-btn-primary mt-3">
-    <i class="bi bi-plus-lg"></i>Nuovo messaggio
-  </a>
-  {% endif %}
-</div>
-{% endif %}
+    {# Message list #}
+    <div class="ms-list">
+      {% if messaggi %}
+        {% for m in messaggi %}
+        {% set ch = m.canale.value %}
+        <div class="ms-row">
+          {# Channel avatar #}
+          <div class="ms-av {% if ch == 'EMAIL' %}email{% elif ch == 'SMS' %}sms{% else %}wa{% endif %}">
+            {% if ch == 'EMAIL' %}<i class="bi bi-envelope"></i>
+            {% elif ch == 'SMS' %}<i class="bi bi-phone"></i>
+            {% else %}<i class="bi bi-whatsapp"></i>
+            {% endif %}
+          </div>
+
+          {# Body #}
+          <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}" class="ms-row-body"
+             style="text-decoration:none">
+            <div class="ms-row-top">
+              <span class="ms-row-name">
+                {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or '—' }}
+              </span>
+              <span class="ms-row-time">{{ m.creato_il[:16].replace('T',' ') }}</span>
+            </div>
+            {% if m.oggetto %}
+            <div class="ms-row-subject">{{ m.oggetto }}</div>
+            {% endif %}
+            <div class="ms-row-preview">{{ m.corpo }}</div>
+            <div class="ms-row-meta">
+              {# Stato badge #}
+              {% set sv = m.stato.value %}
+              <span class="ms-badge ms-badge-{{ sv.lower() }}">
+                {{ sv.replace('_',' ') }}
+              </span>
+              {# WA Web chip se fallback #}
+              {% if ch == 'WHATSAPP' and m.sid_esterno and m.sid_esterno.startswith('https://wa.me') %}
+              <a href="{{ m.sid_esterno }}" target="_blank" rel="noopener" class="ms-wa-chip"
+                 onclick="event.stopPropagation()">
+                <i class="bi bi-box-arrow-up-right"></i>WhatsApp Web
+              </a>
+              {% endif %}
+              {# Errore #}
+              {% if m.errore %}
+              <span style="font-size:.72rem;color:#dc2626" title="{{ m.errore }}">
+                <i class="bi bi-exclamation-triangle"></i> {{ m.errore[:50] }}
+              </span>
+              {% endif %}
+            </div>
+          </a>
+
+          {# Actions #}
+          <div class="ms-row-actions">
+            <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}"
+               class="ms-action-btn" title="Visualizza">
+              <i class="bi bi-eye"></i>
+            </a>
+            <form method="post" action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
+                  onsubmit="return confirm('Eliminare il messaggio?')">
+              <button type="submit" class="ms-action-btn del" title="Elimina">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+
+      {% else %}
+        <div class="ms-empty">
+          <i class="bi bi-chat-dots ms-empty-icon"></i>
+          <div class="ms-empty-title">Nessun messaggio trovato</div>
+          <div class="ms-empty-sub">
+            {% if q or canale or stato %}
+              Nessun risultato per i filtri selezionati.
+            {% else %}
+              Invia comunicazioni ai clienti tramite email, SMS o WhatsApp.
+            {% endif %}
+          </div>
+          {% if not q and not canale and not stato %}
+          <a href="{{ url_for('nuovo_messaggio') }}" class="ms-empty-cta">
+            <i class="bi bi-plus-lg"></i>Nuovo messaggio
+          </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+  </div>{# /ms-main #}
+
+</div>{# /ms-shell #}
 
 {% endblock %}

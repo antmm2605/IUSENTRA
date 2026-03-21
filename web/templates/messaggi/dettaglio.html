@@ -1,105 +1,413 @@
 {% extends "base.html" %}
-{% block title %}Messaggio{% endblock %}
-{% block page_title %}Dettaglio Messaggio{% endblock %}
+{% block title %}Messaggio — {{ msg.id }}{% endblock %}
+
+{% block extra_head %}
+<style>
+/* ══════════════════════════════════════════════════════════════
+   DETTAGLIO MESSAGGIO
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --det-bg:      #f1f5f9;
+  --det-surface: #ffffff;
+  --det-border:  #e2e8f0;
+  --det-text:    #0f172a;
+  --det-sub:     #475569;
+  --det-muted:   #94a3b8;
+  --det-accent:  #2563eb;
+  --det-radius:  .75rem;
+  --det-shadow:  0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.06);
+}
+
+/* ── Back bar ────────────────────────────────────────────────── */
+.det-back {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .82rem;
+  color: var(--det-sub);
+  text-decoration: none;
+  margin-bottom: 1rem;
+  transition: color .1s;
+}
+.det-back:hover { color: var(--det-accent); }
+
+/* ── Card ────────────────────────────────────────────────────── */
+.det-card {
+  background: var(--det-surface);
+  border: 1px solid var(--det-border);
+  border-radius: var(--det-radius);
+  box-shadow: var(--det-shadow);
+  overflow: hidden;
+}
+
+/* ── Message header ──────────────────────────────────────────── */
+.det-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--det-border);
+  background: #fcfcfc;
+}
+.det-av {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  color: #fff;
+}
+.det-av.email { background: #2563eb; }
+.det-av.sms   { background: #0891b2; }
+.det-av.wa    { background: #16a34a; }
+.det-header-body { flex: 1; min-width: 0; }
+.det-channel {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--det-muted);
+  margin-bottom: .2rem;
+}
+.det-recipient {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--det-text);
+  margin-bottom: .25rem;
+}
+.det-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  align-items: center;
+}
+.det-meta-item {
+  font-size: .78rem;
+  color: var(--det-sub);
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+}
+.det-meta-item i { color: var(--det-muted); font-size: .85rem; }
+
+/* Stato badge */
+.det-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  border-radius: 99px;
+  padding: .18em .6em;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.det-badge-inviato   { background: #dbeafe; color: #1d4ed8; }
+.det-badge-consegnato{ background: #dcfce7; color: #166534; }
+.det-badge-letto     { background: #e0f2fe; color: #0369a1; }
+.det-badge-in_coda   { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.det-badge-fallito   { background: #fee2e2; color: #991b1b; }
+.det-badge-annullato { background: #fef3c7; color: #92400e; }
+
+/* ── WA Web link bar ─────────────────────────────────────────── */
+.det-wa-bar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1.25rem;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+}
+.det-wa-bar i { color: #16a34a; font-size: 1.1rem; }
+.det-wa-bar span { font-size: .83rem; color: #166534; flex: 1; }
+.det-wa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .4rem .875rem;
+  background: #16a34a;
+  color: #fff;
+  border-radius: 2rem;
+  font-size: .8rem;
+  font-weight: 600;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.det-wa-link:hover { background: #15803d; color: #fff; }
+
+/* ── Error bar ───────────────────────────────────────────────── */
+.det-err-bar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .65rem 1.25rem;
+  background: #fff5f5;
+  border-bottom: 1px solid #fecaca;
+  font-size: .82rem;
+  color: #991b1b;
+}
+.det-err-bar i { font-size: 1rem; flex-shrink: 0; }
+
+/* ── Metadata table ──────────────────────────────────────────── */
+.det-meta-table {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--det-border);
+}
+.det-mt-label {
+  padding: .65rem 1.25rem;
+  font-size: .74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--det-muted);
+  border-bottom: 1px solid var(--det-border);
+  background: #fcfcfc;
+  display: flex;
+  align-items: center;
+}
+.det-mt-label:last-of-type { border-bottom: none; }
+.det-mt-value {
+  padding: .65rem 1rem;
+  font-size: .86rem;
+  color: var(--det-text);
+  border-bottom: 1px solid var(--det-border);
+  display: flex;
+  align-items: center;
+  word-break: break-all;
+}
+.det-mt-value:last-child { border-bottom: none; }
+
+/* ── Body section ────────────────────────────────────────────── */
+.det-body-header {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .75rem 1.25rem;
+  background: #f8fafc;
+  border-top: 1px solid var(--det-border);
+  border-bottom: 1px solid var(--det-border);
+  font-size: .74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--det-sub);
+}
+.det-body-header i { color: var(--det-accent); font-size: .95rem; }
+.det-body-content {
+  padding: 1.1rem 1.25rem;
+  font-size: .9rem;
+  line-height: 1.7;
+  color: var(--det-text);
+}
+.det-body-content pre {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: inherit;
+  margin: 0;
+  color: var(--det-text);
+}
+
+/* ── Actions sidebar ─────────────────────────────────────────── */
+.det-actions {
+  background: var(--det-surface);
+  border: 1px solid var(--det-border);
+  border-radius: var(--det-radius);
+  box-shadow: var(--det-shadow);
+  overflow: hidden;
+}
+.det-actions-header {
+  padding: .75rem 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--det-border);
+  font-size: .74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--det-sub);
+}
+.det-action-btn {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .65rem 1rem;
+  font-size: .84rem;
+  font-weight: 500;
+  color: var(--det-sub);
+  text-decoration: none;
+  border-bottom: 1px solid var(--det-border);
+  transition: background .1s, color .1s;
+  cursor: pointer;
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+}
+.det-action-btn:last-child { border-bottom: none; }
+.det-action-btn:hover { background: var(--det-bg); color: var(--det-text); }
+.det-action-btn i { font-size: 1rem; width: 1.1rem; text-align: center; }
+.det-action-btn.danger:hover { background: #fee2e2; color: #dc2626; }
+
+/* ── Note bar ────────────────────────────────────────────────── */
+.det-note-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .65rem 1.25rem;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  font-size: .81rem;
+  color: #92400e;
+  border-top: 1px solid var(--det-border);
+}
+.det-note-bar i { flex-shrink: 0; margin-top: .1rem; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row g-3">
 
-{# ── Colonna principale ── #}
+<a href="{{ url_for('lista_messaggi') }}" class="det-back">
+  <i class="bi bi-arrow-left"></i>Messaggi
+</a>
+
+<div class="row g-3">
 <div class="col-lg-8">
 
-<div class="card shadow-sm mb-3">
-  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-    <span>
-      <i class="bi bi-envelope me-2 text-primary"></i>
-      {{ msg.canale.value }}
-      —
-      {% set colore = {
-        'IN_CODA': 'secondary', 'INVIATO': 'primary',
-        'CONSEGNATO': 'success', 'LETTO': 'info',
-        'FALLITO': 'danger', 'ANNULLATO': 'warning'
-      } %}
-      <span class="badge bg-{{ colore.get(msg.stato.value, 'secondary') }}">
-        {{ msg.stato.value.replace('_',' ') }}
-      </span>
-    </span>
-  </div>
-  <div class="card-body">
-    <dl class="row mb-0">
-      <dt class="col-sm-3">Data invio</dt>
-      <dd class="col-sm-9 font-monospace">{{ msg.creato_il[:19].replace('T',' ') }}</dd>
+{% set ch = msg.canale.value %}
+{% set sv = msg.stato.value %}
 
-      {% if msg.nome_destinatario %}
-      <dt class="col-sm-3">Destinatario</dt>
-      <dd class="col-sm-9">{{ msg.nome_destinatario }}</dd>
-      {% endif %}
-      {% if msg.email_destinatario %}
-      <dt class="col-sm-3">Email</dt>
-      <dd class="col-sm-9">{{ msg.email_destinatario }}</dd>
-      {% endif %}
-      {% if msg.telefono_destinatario %}
-      <dt class="col-sm-3">Telefono</dt>
-      <dd class="col-sm-9">{{ msg.telefono_destinatario }}</dd>
-      {% endif %}
+<div class="det-card">
 
-      {% if msg.oggetto %}
-      <dt class="col-sm-3">Oggetto</dt>
-      <dd class="col-sm-9">{{ msg.oggetto }}</dd>
+  {# ── Header ── #}
+  <div class="det-header">
+    <div class="det-av {% if ch == 'EMAIL' %}email{% elif ch == 'SMS' %}sms{% else %}wa{% endif %}">
+      {% if ch == 'EMAIL' %}<i class="bi bi-envelope"></i>
+      {% elif ch == 'SMS' %}<i class="bi bi-phone"></i>
+      {% else %}<i class="bi bi-whatsapp"></i>
       {% endif %}
-
-      {% if msg.id_cliente %}
-      <dt class="col-sm-3">ID Cliente</dt>
-      <dd class="col-sm-9 font-monospace small">{{ msg.id_cliente }}</dd>
-      {% endif %}
-
-      {% if msg.id_fascicolo %}
-      <dt class="col-sm-3">ID Fascicolo</dt>
-      <dd class="col-sm-9 font-monospace small">{{ msg.id_fascicolo }}</dd>
-      {% endif %}
-
-      {% if msg.errore %}
-      <dt class="col-sm-3 text-danger">Errore</dt>
-      <dd class="col-sm-9 text-danger">{{ msg.errore }}</dd>
-      {% endif %}
-    </dl>
-  </div>
-</div>
-
-<div class="card shadow-sm">
-  <div class="card-header fw-semibold"><i class="bi bi-file-text me-2"></i>Testo</div>
-  <div class="card-body">
-    {% if msg.corpo_html %}
-      <div class="border rounded p-3 bg-light">
-        {{ msg.corpo_html | safe }}
+    </div>
+    <div class="det-header-body">
+      <div class="det-channel">{{ ch }}</div>
+      <div class="det-recipient">
+        {{ msg.nome_destinatario or msg.email_destinatario or msg.telefono_destinatario or 'Destinatario sconosciuto' }}
       </div>
-    {% else %}
-      <pre class="mb-0" style="white-space:pre-wrap">{{ msg.corpo }}</pre>
+      <div class="det-meta">
+        <span class="det-badge det-badge-{{ sv.lower() }}">{{ sv.replace('_',' ') }}</span>
+        <span class="det-meta-item">
+          <i class="bi bi-clock"></i>{{ msg.creato_il[:19].replace('T',' ') }}
+        </span>
+        {% if msg.inviato_il %}
+        <span class="det-meta-item">
+          <i class="bi bi-send"></i>Inviato {{ msg.inviato_il[:16].replace('T',' ') }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── WA Web bar ── #}
+  {% if ch == 'WHATSAPP' and msg.sid_esterno and msg.sid_esterno.startswith('https://wa.me') %}
+  <div class="det-wa-bar">
+    <i class="bi bi-whatsapp"></i>
+    <span>Messaggio salvato — apri WhatsApp Web per inviarlo manualmente.</span>
+    <a href="{{ msg.sid_esterno }}" target="_blank" rel="noopener" class="det-wa-link">
+      <i class="bi bi-box-arrow-up-right"></i>Apri WhatsApp Web
+    </a>
+  </div>
+  {% endif %}
+
+  {# ── Error bar ── #}
+  {% if msg.errore %}
+  <div class="det-err-bar">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ msg.errore }}</span>
+  </div>
+  {% endif %}
+
+  {# ── Note bar ── #}
+  {% if msg.note %}
+  <div class="det-note-bar">
+    <i class="bi bi-info-circle"></i>
+    <span>{{ msg.note }}</span>
+  </div>
+  {% endif %}
+
+  {# ── Metadata ── #}
+  <div class="det-meta-table">
+    {% if msg.email_destinatario %}
+    <span class="det-mt-label">Email</span>
+    <span class="det-mt-value">{{ msg.email_destinatario }}</span>
+    {% endif %}
+    {% if msg.telefono_destinatario %}
+    <span class="det-mt-label">Telefono</span>
+    <span class="det-mt-value">{{ msg.telefono_destinatario }}</span>
+    {% endif %}
+    {% if msg.oggetto %}
+    <span class="det-mt-label">Oggetto</span>
+    <span class="det-mt-value">{{ msg.oggetto }}</span>
+    {% endif %}
+    {% if msg.id_cliente %}
+    <span class="det-mt-label">ID Cliente</span>
+    <span class="det-mt-value"><code style="font-size:.82rem">{{ msg.id_cliente }}</code></span>
+    {% endif %}
+    {% if msg.id_fascicolo %}
+    <span class="det-mt-label">ID Fascicolo</span>
+    <span class="det-mt-value"><code style="font-size:.82rem">{{ msg.id_fascicolo }}</code></span>
+    {% endif %}
+    {% if msg.tipo_automazione %}
+    <span class="det-mt-label">Automazione</span>
+    <span class="det-mt-value">{{ msg.tipo_automazione.replace('_',' ').title() }}</span>
+    {% endif %}
+    {% if msg.sid_esterno and not msg.sid_esterno.startswith('https://') %}
+    <span class="det-mt-label">SID esterno</span>
+    <span class="det-mt-value"><code style="font-size:.78rem">{{ msg.sid_esterno }}</code></span>
     {% endif %}
   </div>
-</div>
+
+  {# ── Body ── #}
+  <div class="det-body-header">
+    <i class="bi bi-file-text"></i>Contenuto
+  </div>
+  <div class="det-body-content">
+    {% if msg.corpo_html %}
+      {{ msg.corpo_html | safe }}
+    {% else %}
+      <pre>{{ msg.corpo }}</pre>
+    {% endif %}
+  </div>
+
+</div>{# /det-card #}
 
 </div>{# /col-lg-8 #}
 
-{# ── Sidebar azioni ── #}
+{# ── Sidebar ── #}
 <div class="col-lg-4">
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-lightning me-2 text-primary"></i>Azioni
-    </div>
-    <div class="card-body d-flex flex-column gap-2">
-      <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
-      </a>
-      <form method="post"
-            action="{{ url_for('elimina_messaggio', id_msg=msg.id) }}"
-            onsubmit="return confirm('Eliminare il messaggio?')">
-        <button class="btn btn-outline-danger btn-sm w-100">
-          <i class="bi bi-trash me-1"></i>Elimina messaggio
-        </button>
-      </form>
-    </div>
+  <div class="det-actions">
+    <div class="det-actions-header">Azioni</div>
+    <a href="{{ url_for('lista_messaggi') }}" class="det-action-btn">
+      <i class="bi bi-arrow-left"></i>Torna alla lista
+    </a>
+    {% if msg.id_cliente %}
+    <a href="{{ url_for('cartella_cliente', id_cliente=msg.id_cliente) }}" class="det-action-btn">
+      <i class="bi bi-person"></i>Cartella cliente
+    </a>
+    {% endif %}
+    <a href="{{ url_for('nuovo_messaggio',
+        id_cliente=msg.id_cliente,
+        canale=msg.canale.value) }}" class="det-action-btn">
+      <i class="bi bi-arrow-counterclockwise"></i>Rispondi / Rinvia
+    </a>
+    <form method="post" action="{{ url_for('elimina_messaggio', id_msg=msg.id) }}"
+          onsubmit="return confirm('Eliminare il messaggio?')">
+      <button type="submit" class="det-action-btn danger">
+        <i class="bi bi-trash"></i>Elimina messaggio
+      </button>
+    </form>
   </div>
-</div>{# /col-lg-4 #}
+</div>
 
 </div>{# /row #}
 {% endblock %}

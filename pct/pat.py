@@ -246,6 +246,84 @@ class ClientPAT:
                 fascicolo_pat=fascicolo_pat,
             )
 
+    # ---------------------------------------------------------------- Deposito atti
+
+    def deposita_atto(
+        self,
+        codice_ufficio: str,
+        tipo_atto: str,
+        atto_path: str,
+        numero_ricorso: str = "",
+        anno: int = 0,
+        oggetto: str = "",
+    ) -> dict:
+        """
+        Deposita un atto al sistema PAT/SIGA (Processo Amministrativo Telematico).
+
+        Flusso atteso dal portale SIGA (spec. D.P.C.M. 16/02/2016 e D.P.C.S.G.A. 28/07/2021):
+          SOAP depositoAtto → risposta immediata
+          Response: { "codiceEsito": "0", "descrizioneEsito": "Deposito accettato",
+                      "idDeposito": "...", "dataDeposito": "...", "stato": "INVIATO" }
+
+        Successivamente il sistema SIGA invia via PEC:
+          - Ricevuta accettazione (fase 4)
+          - Esito controlli automatici (fase 5/6)
+          - Esito cancelleria (fase 7)
+
+        Args:
+            codice_ufficio:  Codice TAR/CdS destinatario
+            tipo_atto:       Tipo atto (RICORSO, MEMORIA, APPELLO, MOTIVI_AGGIUNTI, ecc.)
+            atto_path:       Percorso al file firmato (.pdf.p7m)
+            numero_ricorso, anno: Riferimento procedimento
+            oggetto:         Descrizione sintetica
+
+        Returns:
+            dict con codiceEsito, idDeposito, dataDeposito, stato, messaggio
+        """
+        import uuid
+        from pathlib import Path
+
+        if not Path(atto_path).exists():
+            return {
+                "codiceEsito": "E_FILE",
+                "descrizioneEsito": f"File non trovato: {atto_path}",
+                "stato": "ERRORE",
+            }
+
+        try:
+            client = self._get_client(_WSDL_CONSULTA_AMM)   # riuso client SIGA
+            import base64
+
+            with open(atto_path, "rb") as f:
+                atto_b64 = base64.b64encode(f.read()).decode()
+
+            req = {
+                "codiceFiscaleAvvocato": self.cf_avvocato,
+                "codiceUfficio":         codice_ufficio,
+                "tipoAtto":              tipo_atto,
+                "attoFirmato":           atto_b64,
+                "oggetto":               oggetto,
+            }
+            if numero_ricorso:
+                req["numeroRicorso"] = numero_ricorso
+            if anno:
+                req["anno"] = anno
+
+            risposta = client.service.depositoAtto(**req)
+            return {
+                "codiceEsito":      getattr(risposta, "codiceEsito", "0"),
+                "descrizioneEsito": getattr(risposta, "descrizioneEsito", "Deposito accettato"),
+                "idDeposito":       getattr(risposta, "idDeposito", ""),
+                "dataDeposito":     getattr(risposta, "dataDeposito", ""),
+                "stato":            "INVIATO",
+            }
+        except Exception as e:
+            return {
+                "codiceEsito": "E_CONN",
+                "descrizioneEsito": f"Errore connessione PAT/SIGA: {e}",
+                "stato": "ERRORE",
+            }
+
     # ---------------------------------------------------------------- SOAP helpers
 
     def _get_client(self, wsdl_url: str):
@@ -411,6 +489,93 @@ class ClientPATDemo(ClientPAT):
                          f"{anno}-03-10", "tar.demo@giustizia-amministrativa.it", 48000,
                          id_deposito="BUSTA-PAT-003", tipo_atto="Ordinanza cautelare"),
         ]
+
+    def deposita_atto(
+        self,
+        codice_ufficio: str,
+        tipo_atto: str,
+        atto_path: str,
+        numero_ricorso: str = "",
+        anno: int = 0,
+        oggetto: str = "",
+    ) -> dict:
+        """
+        Demo: simula il deposito di un atto al PAT/SIGA.
+
+        Risposta conforme alle specifiche SIGA (D.P.C.M. 16/02/2016):
+          codiceEsito  "0"  = deposito accettato
+          codiceEsito  "1"  = deposito con avvertimenti (WARN)
+          codiceEsito  "2"  = deposito rifiutato (ERRORE)
+
+        Fasi simulate:
+          1. SOAP depositoAtto → risposta immediata (INVIATO)
+          2. PEC di accettazione busta → ACCETTATO_PEC
+          3. PEC esito controlli automatici → WARN_CONTROLLI / OK
+          4. PEC esito cancelleria TAR/CdS → ACCETTATO_CANCELLERIA
+
+        Gli step 2-4 in produzione arrivano via PEC dal sistema SIGA.
+        In demo mode il ciclo completo è restituito in un'unica risposta.
+        """
+        import uuid
+        from datetime import datetime as _dt
+        from pathlib import Path
+
+        if not Path(atto_path).exists():
+            return {
+                "codiceEsito":      "E_FILE",
+                "descrizioneEsito": f"File non trovato: {atto_path}",
+                "stato":            "ERRORE",
+            }
+
+        id_dep  = f"PAT-{str(uuid.uuid4())[:8].upper()}"
+        ts      = _dt.now().isoformat()
+        is_tar  = codice_ufficio.isdigit() or codice_ufficio.startswith("T")
+        ufficio = self._nome_ufficio_demo(codice_ufficio) if is_tar else codice_ufficio
+
+        return {
+            # ── Fase 1: risposta immediata all'invio ───────────────────────────
+            "codiceEsito":       "0",
+            "descrizioneEsito":  "Deposito accettato dal sistema PAT/SIGA",
+            "idDeposito":        id_dep,
+            "dataDeposito":      ts,
+            "stato":             "INVIATO",
+            "ufficio":           ufficio,
+            "tipoAtto":          tipo_atto,
+            "rifProcedimento":   f"{numero_ricorso}/{anno}" if numero_ricorso else "—",
+            # ── Fase 2: ricevuta accettazione PEC (simulata) ───────────────────
+            "ricevutaAccettazione": {
+                "mittente":  "noreply@pec.giustizia-amministrativa.it",
+                "oggetto":   f"Accettazione deposito {id_dep} — {tipo_atto}",
+                "corpo":     (
+                    f"Il deposito con identificativo {id_dep} è stato accettato "
+                    f"dal sistema SIGA in data {ts}. "
+                    f"Procedimento: {numero_ricorso}/{anno}. Ufficio: {ufficio}."
+                ),
+                "messageId": f"<{id_dep}.acc@pec.giustizia-amministrativa.it>",
+            },
+            # ── Fase 3: esito controlli automatici (simulato) ──────────────────
+            "esitoControlli": {
+                "codice":   "OK",
+                "messaggi": [
+                    "Firma digitale: valida (CAdES-BES o PAdES)",
+                    "Formato file: PDF/A conforme",
+                    "Dimensione busta: entro i limiti (< 30 MB)",
+                    "Codice fiscale avvocato: verificato",
+                    "Tipo atto: coerente con il registro TAR",
+                ],
+                "oggettoPEC": f"Esito controlli automatici deposito {id_dep}",
+            },
+            # ── Fase 4: esito cancelleria (simulato) ───────────────────────────
+            "esitoCancelleria": {
+                "stato":   "ACCETTATO_CANCELLERIA",
+                "oggetto": f"Esito deposito {id_dep} — {tipo_atto} accettato",
+                "corpo":   (
+                    f"Il deposito {id_dep} relativo al procedimento "
+                    f"{numero_ricorso}/{anno} è stato accettato dalla segreteria. "
+                    f"Numero di RG assegnato: N.RG {numero_ricorso or 'NUOVO'}/{anno or '2026'}."
+                ),
+            },
+        }
 
 
 # ================================================================ Utils

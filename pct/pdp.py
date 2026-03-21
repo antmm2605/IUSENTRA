@@ -245,6 +245,91 @@ class ClientPDP:
                 fascicolo_pdp=fascicolo_pdp,
             )
 
+    # ---------------------------------------------------------------- Deposito atti
+
+    def deposita_atto(
+        self,
+        codice_ufficio: str,
+        tipo_atto: str,
+        atto_path: str,
+        numero_rg: str = "",
+        anno_rg: int = 0,
+        oggetto: str = "",
+    ) -> dict:
+        """
+        Deposita un atto penale al Portale Deposito Atti Penali (PDP/SNT).
+
+        Flusso atteso dal portale (spec. RAP - Redattore Atti Penale):
+          POST {PDP_BASE}/depositi  (multipart/form-data)
+          Response: { "codiceEsito": "0", "descrizioneEsito": "Deposito accettato",
+                      "idDeposito": "...", "dataDeposito": "...", "stato": "INVIATO" }
+
+        Successivamente il sistema invia via PEC:
+          - Ricevuta accettazione (fase 4)
+          - Esito controlli automatici (fase 5/6)
+          - Esito cancelleria (fase 7)
+
+        Args:
+            codice_ufficio: Codice MinGiust della procura destinataria
+            tipo_atto: Tipo atto (es. MEMORIA, RICHIESTA, QUERELA, OPPOSIZIONE)
+            atto_path:  Percorso al file firmato (.pdf.p7m)
+            numero_rg, anno_rg: Riferimento procedimento (opzionale per nuovi depositi)
+            oggetto:    Descrizione sintetica dell'atto
+
+        Returns:
+            dict con codiceEsito, idDeposito, dataDeposito, stato, messaggio
+        """
+        import uuid
+        from datetime import datetime
+        from pathlib import Path
+
+        if not Path(atto_path).exists():
+            return {
+                "codiceEsito": "E_FILE",
+                "descrizioneEsito": f"File non trovato: {atto_path}",
+                "stato": "ERRORE",
+            }
+
+        try:
+            import requests
+            from requests import Session
+
+            session = Session()
+            if self.p12_path and os.path.exists(self.p12_path):
+                # autenticazione con certificato p12 (mTLS)
+                session.cert = self.p12_path
+            elif self.cert_pem_path and self.key_pem_path:
+                session.cert = (self.cert_pem_path, self.key_pem_path)
+
+            with open(atto_path, "rb") as f:
+                files = {"atto": (Path(atto_path).name, f, "application/octet-stream")}
+                data = {
+                    "codiceFiscaleAvvocato": self.cf_avvocato,
+                    "codiceUfficio":         codice_ufficio,
+                    "tipoAtto":              tipo_atto,
+                    "oggetto":               oggetto,
+                }
+                if numero_rg:
+                    data["numeroRG"] = numero_rg
+                if anno_rg:
+                    data["annoRG"] = str(anno_rg)
+
+                resp = session.post(
+                    f"{_PDP_BASE}/depositi",
+                    files=files,
+                    data=data,
+                    timeout=self.timeout,
+                )
+                resp.raise_for_status()
+                return resp.json()
+
+        except Exception as e:
+            return {
+                "codiceEsito": "E_CONN",
+                "descrizioneEsito": f"Errore connessione PDP: {e}",
+                "stato": "ERRORE",
+            }
+
     # ---------------------------------------------------------------- SOAP helpers
 
     def _get_client(self, wsdl_url: str):
@@ -408,6 +493,91 @@ class ClientPDPDemo(ClientPDP):
                          f"{anno_rg}-05-01", "avv.demo@pec.it", 134000,
                          id_deposito="BUSTA-PDP-003", tipo_atto="Memoria difensiva"),
         ]
+
+    def deposita_atto(
+        self,
+        codice_ufficio: str,
+        tipo_atto: str,
+        atto_path: str,
+        numero_rg: str = "",
+        anno_rg: int = 0,
+        oggetto: str = "",
+    ) -> dict:
+        """
+        Demo: simula il deposito di un atto al Portale Deposito Atti Penali (PDP).
+
+        Risposta conforme alle specifiche del Redattore Atti Penale (RAP):
+          codiceEsito  "0"  = deposito accettato
+          codiceEsito  "1"  = deposito con avvertimenti (WARN)
+          codiceEsito  "2"  = deposito rifiutato (ERRORE)
+
+        Fasi simulate:
+          1. Invio atto firmato → risposta immediata (INVIATO)
+          2. PEC di accettazione busta → ACCETTATO_PEC
+          3. PEC esito controlli automatici → WARN_CONTROLLI / OK
+          4. PEC esito procura / cancelleria → ACCETTATO_CANCELLERIA
+
+        Gli step 2-4 in produzione arrivano via PEC dalla procura.
+        In demo mode il ciclo completo è restituito in un'unica risposta.
+        """
+        import uuid
+        from datetime import datetime as _dt
+        from pathlib import Path
+
+        if not Path(atto_path).exists():
+            return {
+                "codiceEsito":      "E_FILE",
+                "descrizioneEsito": f"File non trovato: {atto_path}",
+                "stato":            "ERRORE",
+            }
+
+        id_dep  = f"PDP-{str(uuid.uuid4())[:8].upper()}"
+        ts      = _dt.now().isoformat()
+        ufficio = self._nome_ufficio_demo(codice_ufficio) if codice_ufficio.isdigit() else codice_ufficio
+
+        return {
+            # ── Fase 1: risposta immediata all'invio ───────────────────────────
+            "codiceEsito":       "0",
+            "descrizioneEsito":  "Deposito accettato dal sistema PDP",
+            "idDeposito":        id_dep,
+            "dataDeposito":      ts,
+            "stato":             "INVIATO",
+            "ufficio":           ufficio,
+            "tipoAtto":          tipo_atto,
+            "rifProcedimento":   f"{numero_rg}/{anno_rg}" if numero_rg else "—",
+            # ── Fase 2: ricevuta accettazione PEC (simulata) ───────────────────
+            "ricevutaAccettazione": {
+                "mittente":  f"noreply@pec.giustizia.it",
+                "oggetto":   f"Accettazione deposito {id_dep} — {tipo_atto}",
+                "corpo":     (
+                    f"Il deposito con identificativo {id_dep} è stato accettato "
+                    f"dal sistema del Portale Deposito Atti Penali in data {ts}. "
+                    f"Procedimento: {numero_rg}/{anno_rg}. Ufficio: {ufficio}."
+                ),
+                "messageId": f"<{id_dep}.acc@pec.giustizia.it>",
+            },
+            # ── Fase 3: esito controlli automatici (simulato) ──────────────────
+            "esitoControlli": {
+                "codice":   "OK",
+                "messaggi": [
+                    "Firma digitale: valida (CAdES-BES)",
+                    "Formato file: PDF/A conforme",
+                    "Dimensione busta: entro i limiti (< 30 MB)",
+                    "Codice fiscale avvocato: verificato",
+                ],
+                "oggettoPEC": f"Esito controlli automatici deposito {id_dep}",
+            },
+            # ── Fase 4: esito procura (simulato) ───────────────────────────────
+            "esitoCancelleria": {
+                "stato":    "ACCETTATO_CANCELLERIA",
+                "oggetto":  f"Esito deposito {id_dep} — {tipo_atto} accettato",
+                "corpo":    (
+                    f"Il deposito {id_dep} relativo al procedimento "
+                    f"{numero_rg}/{anno_rg} è stato accettato dalla cancelleria. "
+                    f"Numero di protocollo assegnato: PROT-{id_dep}."
+                ),
+            },
+        }
 
 
 # ================================================================ Utils

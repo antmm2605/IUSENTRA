@@ -19,6 +19,32 @@
   </div>
   {% endif %}
 
+  {% if wa_link %}
+  <div class="alert alert-success border-0 mb-3" id="wa-link-alert">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-whatsapp fs-4 text-success flex-shrink-0 mt-1"></i>
+      <div class="flex-grow-1">
+        <div class="fw-semibold mb-1">Messaggio salvato — apri WhatsApp Web per inviarlo</div>
+        <p class="mb-2 small text-muted">
+          Twilio non è configurato. Il testo è già precompilato nel link qui sotto:
+          aprilo su mobile (avvia l'app WhatsApp) o su desktop (WhatsApp Web).
+        </p>
+        <a href="{{ wa_link }}" target="_blank" rel="noopener"
+           class="btn btn-success btn-sm">
+          <i class="bi bi-whatsapp me-1"></i>Apri WhatsApp Web
+        </a>
+        {% if from_cliente %}
+        <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+           class="btn btn-outline-secondary btn-sm ms-2">Torna alla cartella</a>
+        {% else %}
+        <a href="{{ url_for('lista_messaggi') }}"
+           class="btn btn-outline-secondary btn-sm ms-2">Vai ai messaggi</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
     <i class="bi bi-chat-dots me-2 text-primary"></i>Composizione messaggio
@@ -105,7 +131,15 @@
     <div class="card-body small text-muted">
       <p class="mb-2"><strong>EMAIL</strong>: invio via SMTP configurato nelle impostazioni. Supporta oggetto e corpo HTML.</p>
       <p class="mb-2"><strong>SMS</strong>: numero in formato E.164 (es. <code>+39 333 1234567</code>).</p>
-      <p class="mb-0"><strong>WHATSAPP</strong>: richiede integrazione API attiva nelle impostazioni studio.</p>
+      <p class="mb-0"><strong>WHATSAPP</strong>:
+        {% if ha_wa_api %}
+          invio tramite API Twilio configurata.
+        {% else %}
+          <span class="text-success fw-semibold">Twilio non configurato</span> —
+          viene generato un link <strong>WhatsApp Web</strong> con il testo precompilato
+          da aprire nel browser o sull'app mobile.
+        {% endif %}
+      </p>
     </div>
   </div>
 </div>{# /col-lg-4 #}

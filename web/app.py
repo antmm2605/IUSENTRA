@@ -4738,6 +4738,7 @@ def create_app(config: dict | None = None) -> Flask:
         gm = get_messaggi()
         gc = get_clienti()
         clienti = gc.tutti()
+        ha_wa_api = bool(app.config.get("TWILIO_SID") and app.config.get("TWILIO_TOKEN"))
         if request.method == "POST":
             f = request.form
             canale_str = f["canale"]
@@ -4762,11 +4763,25 @@ def create_app(config: dict | None = None) -> Flask:
                         id_cliente=id_cliente,
                     )
                 else:
-                    gm.invia_whatsapp(
+                    msg_wa = gm.invia_whatsapp(
                         telefono=destinatario,
                         testo=testo,
                         id_cliente=id_cliente,
                     )
+                    if msg_wa.sid_esterno and msg_wa.sid_esterno.startswith("https://wa.me"):
+                        # Nessuna API — mostra link WhatsApp Web all'utente
+                        return render_template(
+                            "messaggi/form.html",
+                            clienti=clienti,
+                            canali=list(CanaleMsggio),
+                            tipi_automazione=list(TipoAutomazione),
+                            id_cliente=id_cliente,
+                            canale_default="WHATSAPP",
+                            from_cliente=from_cliente,
+                            cliente_presel=gc.get(id_cliente) if id_cliente else None,
+                            ha_wa_api=ha_wa_api,
+                            wa_link=msg_wa.sid_esterno,
+                        )
                 flash("Messaggio inviato.", "success")
                 if from_cliente:
                     return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
@@ -4786,6 +4801,7 @@ def create_app(config: dict | None = None) -> Flask:
             canale_default=canale_get,
             from_cliente=from_cliente_get,
             cliente_presel=cliente_presel,
+            ha_wa_api=ha_wa_api,
         )
 
     @app.route("/messaggi/<id_msg>")

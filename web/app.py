@@ -4136,7 +4136,7 @@ def create_app(config: dict | None = None) -> Flask:
                 numero_rg=fasc.numero_rg or None,
                 anno_rg=fasc.anno_rg or None,
                 operatore=u.username if u else "",
-                cf_mittente=getattr(cfg_studio, "codice_fiscale_avvocato", "") or "",
+                cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
             )
             out_dir  = _os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
             busta    = BustaTelematica(dati)

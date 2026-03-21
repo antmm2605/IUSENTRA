@@ -2,7 +2,10 @@
 {% block title %}PAT — Processo Amministrativo Telematico{% endblock %}
 {% block pct_modulo %}pat{% endblock %}
 
+{% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
 {% block content %}
+
+{{ banner_fascicolo(portale_col='info', portale_label='PAT Amministrativo') }}
 
   <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
     <i class="bi bi-building-check fs-4 text-success"></i>
@@ -53,6 +56,7 @@
     <div class="card-body">
       <form method="post" action="{{ url_for('pat_ricerca') }}">
         <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
         <div class="row g-3">
 
           {# ---- Ufficio giudiziario — solo TAR/CDS ---- #}
@@ -136,7 +140,7 @@
               <input type="text" name="nome_ricorrente" id="nome-parte-input" class="form-control"
                      placeholder="es. Costruzioni Alfa S.r.l. — cerca nei tuoi clienti"
                      autocomplete="off"
-                     value="{{ nome_ricorrente or '' }}">
+                     value="{{ nome_ricorrente or (fascicolo.nome_cliente if fascicolo else '') }}">
               <div id="nome-parte-dropdown"
                    style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9998;
                           background:#fff;border:1px solid #dee2e6;border-radius:8px;

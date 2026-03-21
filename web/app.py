@@ -1409,11 +1409,13 @@ def create_app(config: dict | None = None) -> Flask:
         import traceback as _tb
         try:
             demo_mode = _polis_demo_mode()
-            return render_template("polisWeb.html", demo_mode=demo_mode)
+            id_fasc = request.args.get("id_fasc", "")
+            fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
+            return render_template("polisWeb.html", demo_mode=demo_mode,
+                                   fascicolo=fascicolo_ctx, id_fasc=id_fasc)
         except Exception as e:
             tb = "".join(_tb.format_exception(type(e), e, e.__traceback__))
             app.logger.error("ERRORE polisWeb_home:\n%s", tb)
-            # Mostra l'errore nel browser (app privata) così non serve cercare nei log
             return f"<pre style='color:red;padding:2em'><b>Errore PolisWeb:</b>\n{tb}</pre>", 500
 
     @app.route("/polisWeb/ricerca", methods=["POST"])
@@ -1426,6 +1428,8 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Seleziona un tribunale.", "danger")
             return redirect(url_for("polisWeb_home"))
 
+        id_fasc       = f.get("id_fasc", "").strip()
+        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
         try:
             numero_rg  = f.get("numero_rg", "").strip() or None
             anno_rg    = int(f.get("anno_rg") or 0) or None
@@ -1469,6 +1473,8 @@ def create_app(config: dict | None = None) -> Flask:
             nome_parte=nome_parte or "",
             cf_parte=cf_parte or "",
             demo_mode=demo_mode,
+            fascicolo=fascicolo_ctx,
+            id_fasc=id_fasc,
         )
 
     @app.route("/polisWeb/documenti", methods=["GET"])
@@ -1544,7 +1550,10 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/pdp", methods=["GET"])
     def pdp_home():
         demo_mode = _polis_demo_mode()
-        return render_template("pdp.html", demo_mode=demo_mode, oggi=date.today())
+        id_fasc = request.args.get("id_fasc", "")
+        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
+        return render_template("pdp.html", demo_mode=demo_mode, oggi=date.today(),
+                               fascicolo=fascicolo_ctx, id_fasc=id_fasc)
 
     @app.route("/pdp/ricerca", methods=["POST"])
     def pdp_ricerca():
@@ -1557,6 +1566,8 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Seleziona un ufficio giudiziario.", "warning")
             return redirect(url_for("pdp_home"))
 
+        id_fasc       = f.get("id_fasc", "").strip()
+        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
         numero_rg     = f.get("numero_rg", "").strip() or None
         anno_rg_str   = f.get("anno_rg", "").strip()
         anno_rg       = int(anno_rg_str) if anno_rg_str.isdigit() else None
@@ -1594,12 +1605,14 @@ def create_app(config: dict | None = None) -> Flask:
                 anno_rg=anno_rg or "",
                 nome_imputato=nome_imputato or "",
                 tipo_registro=tipo_registro or "",
+                fascicolo=fascicolo_ctx,
+                id_fasc=id_fasc,
                 oggi=date.today(),
             )
         except Exception as e:
             app.logger.exception("Errore pdp_ricerca: %s", e)
             flash(str(e), "danger")
-            return redirect(url_for("pdp_home"))
+            return redirect(url_for("pdp_home", id_fasc=id_fasc) if id_fasc else url_for("pdp_home"))
 
     @app.route("/pdp/documenti")
     def pdp_documenti():
@@ -1666,7 +1679,10 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/pat", methods=["GET"])
     def pat_home():
         demo_mode = _polis_demo_mode()
-        return render_template("pat.html", demo_mode=demo_mode, oggi=date.today())
+        id_fasc = request.args.get("id_fasc", "")
+        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
+        return render_template("pat.html", demo_mode=demo_mode, oggi=date.today(),
+                               fascicolo=fascicolo_ctx, id_fasc=id_fasc)
 
     @app.route("/pat/ricerca", methods=["POST"])
     def pat_ricerca():
@@ -1679,6 +1695,8 @@ def create_app(config: dict | None = None) -> Flask:
             flash("Seleziona un ufficio giudiziario.", "warning")
             return redirect(url_for("pat_home"))
 
+        id_fasc         = f.get("id_fasc", "").strip()
+        fascicolo_ctx   = get_fascicoli().get(id_fasc) if id_fasc else None
         numero_ricorso  = f.get("numero_ricorso", "").strip() or None
         anno_str        = f.get("anno", "").strip()
         anno            = int(anno_str) if anno_str.isdigit() else None
@@ -1715,12 +1733,14 @@ def create_app(config: dict | None = None) -> Flask:
                 anno=anno or "",
                 nome_ricorrente=nome_ricorrente or "",
                 materia=materia or "",
+                fascicolo=fascicolo_ctx,
+                id_fasc=id_fasc,
                 oggi=date.today(),
             )
         except Exception as e:
             app.logger.exception("Errore pat_ricerca: %s", e)
             flash(str(e), "danger")
-            return redirect(url_for("pat_home"))
+            return redirect(url_for("pat_home", id_fasc=id_fasc) if id_fasc else url_for("pat_home"))
 
     @app.route("/pat/documenti")
     def pat_documenti():

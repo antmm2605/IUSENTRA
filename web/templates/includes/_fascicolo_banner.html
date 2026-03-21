@@ -1,0 +1,35 @@
+{#
+  Banner "fascicolo collegato" — incluso da pdp.html, pat.html, polisWeb.html
+  Richiede le variabili di contesto: fascicolo (oggetto Fascicolo|None), id_fasc (str)
+  Parametri macro:
+    portale_col   — colore Bootstrap (primary | danger | info)
+    portale_label — nome breve del portale (es. "PDP Penale")
+#}
+{% macro banner_fascicolo(portale_col='primary', portale_label='portale') %}
+{% if fascicolo %}
+<div class="alert alert-{{ portale_col }} border-{{ portale_col }} border-0 shadow-sm mb-3 py-2 px-3
+            d-flex align-items-center gap-3 flex-wrap" role="alert">
+  <i class="bi bi-folder2-open fs-5 flex-shrink-0"></i>
+  <div class="flex-grow-1 small">
+    <span class="fw-semibold">Fascicolo {{ fascicolo.numero_fascicolo }}</span>
+    <span class="text-muted ms-2">
+      {{ fascicolo.controparte or fascicolo.titolo }}
+    </span>
+    {% if fascicolo.tribunale %}
+      <span class="ms-2 text-muted">· {{ fascicolo.tribunale }}</span>
+    {% endif %}
+    {% if fascicolo.numero_rg %}
+      <span class="ms-2 text-muted">· RG {{ fascicolo.numero_rg }}</span>
+    {% endif %}
+    <span class="ms-2 badge bg-{{ portale_col }}-subtle text-{{ portale_col }}-emphasis
+                 border border-{{ portale_col }}-subtle" style="font-size:.7rem">
+      {{ portale_label }}
+    </span>
+  </div>
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+     class="btn btn-sm btn-outline-{{ portale_col }} fw-semibold flex-shrink-0">
+    <i class="bi bi-arrow-left me-1"></i>Torna al fascicolo
+  </a>
+</div>
+{% endif %}
+{% endmacro %}

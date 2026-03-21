@@ -287,42 +287,76 @@
       </div>
     </div>
 
-    {# ---- Depositi telematici PCT ---- #}
+    {# ---- Depositi telematici — adattivo per tipo fascicolo ---- #}
+    {% set ftipo = fascicolo.tipo.value if fascicolo.tipo else 'CIVILE' %}
+    {% if ftipo == 'PENALE' %}
+      {% set dep_icon      = 'bi-shield-fill' %}
+      {% set dep_col       = 'danger' %}
+      {% set dep_label     = 'Depositi PDP Penale' %}
+      {% set dep_portale_label = 'Consulta su PDP' %}
+      {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% elif ftipo == 'AMMINISTRATIVO' %}
+      {% set dep_icon      = 'bi-building' %}
+      {% set dep_col       = 'info' %}
+      {% set dep_label     = 'Depositi PAT Amministrativo' %}
+      {% set dep_portale_label = 'Consulta su PAT' %}
+      {% set dep_portale_url   = url_for('pat_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PAT_AMMINISTRATIVO', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo (firma CAdES .p7m via PAT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% else %}
+      {% set dep_icon      = 'bi-send-fill' %}
+      {% set dep_col       = 'primary' %}
+      {% set dep_label     = 'Depositi telematici PCT' %}
+      {% set dep_portale_label = 'Consulta su PolisWeb' %}
+      {% set dep_portale_url   = url_for('polisWeb_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PCT_TELEMATICO', 'PEC', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% endif %}
+
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
         <span>
-          <i class="bi bi-send me-2 text-primary"></i>
-          Depositi telematici PCT
+          <i class="bi {{ dep_icon }} me-2 text-{{ dep_col }}"></i>
+          {{ dep_label }}
           {% if fascicolo.depositi_pct %}
-          <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
+          <span class="badge bg-{{ dep_col }} rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
           {% endif %}
         </span>
         <div class="d-flex gap-2 flex-wrap">
+
           {# Dropdown: scegli tipo atto → checklist pre-compilata con dati fascicolo #}
           <div class="dropdown">
             <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
                     type="button" data-bs-toggle="dropdown" aria-expanded="false">
               <i class="bi bi-list-check me-1"></i>Prepara atto
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px;max-height:320px;overflow-y:auto">
-              <li><h6 class="dropdown-header">Scegli tipo di atto</h6></li>
-              {% for tmpl in checklist_templates %}
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:280px;max-height:340px;overflow-y:auto">
+              <li><h6 class="dropdown-header small">Checklist e istruzioni per il deposito</h6></li>
+              {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
               <li>
-                <a class="dropdown-item small py-1"
+                <a class="dropdown-item small py-2"
                    href="{{ url_for('checklist_dettaglio', id_template=tmpl.id,
                                     id_fasc=fascicolo.id,
                                     parte=fascicolo.controparte,
                                     rg=fascicolo.numero_rg) }}">
-                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-muted"></i>
+                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
                   {{ tmpl.nome }}
                 </a>
               </li>
-              {% endfor %}
+              {% endif %}{% endfor %}
             </ul>
           </div>
+
+          {# Accesso rapido al portale di consultazione #}
+          <a href="{{ dep_portale_url }}" class="btn btn-sm btn-outline-{{ dep_col }} fw-semibold">
+            <i class="bi bi-search me-1"></i>{{ dep_portale_label }}
+          </a>
+
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                   data-bs-target="#modalDeposito">
-            <i class="bi bi-plus-lg me-1"></i>Registra manuale
+            <i class="bi bi-plus-lg me-1"></i>Registra
           </button>
         </div>
       </div>
@@ -353,19 +387,14 @@
                   </span>
                 </td>
                 <td class="dep-ricevute-{{ dep.id }}">
-                  {% if dep.ricevuta_accettazione %}
-                    <i class="bi bi-check-circle text-info" title="Accettazione ricevuta"></i>
-                  {% endif %}
-                  {% if dep.ricevuta_consegna %}
-                    <i class="bi bi-check-circle-fill text-success" title="Consegna ricevuta"></i>
-                  {% endif %}
+                  {% if dep.ricevuta_accettazione %}<i class="bi bi-check-circle text-info" title="Accettazione ricevuta"></i>{% endif %}
+                  {% if dep.ricevuta_consegna %}<i class="bi bi-check-circle-fill text-success" title="Consegna ricevuta"></i>{% endif %}
                   {% if not dep.ricevuta_accettazione and not dep.ricevuta_consegna %}—{% endif %}
                 </td>
                 <td class="text-muted" style="font-size:.72rem">{{ dep.note or dep.messaggio }}</td>
                 <td>
                   {% if dep.stato in ('INVIATO', 'ACCETTATO') %}
-                  <button type="button"
-                          class="btn btn-sm btn-outline-info"
+                  <button type="button" class="btn btn-sm btn-outline-info"
                           title="Controlla ricevute PEC"
                           onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
                     <i class="bi bi-arrow-repeat"></i>
@@ -379,12 +408,9 @@
         </div>
         {% else %}
         <div class="text-center py-4 px-3">
-          <i class="bi bi-send fs-2 text-muted d-block mb-2"></i>
+          <i class="bi {{ dep_icon }} fs-2 text-{{ dep_col }} opacity-25 d-block mb-2"></i>
           <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
-          <div class="text-muted" style="font-size:.78rem">
-            Usa <strong>Prepara atto</strong> per aprire la checklist del redattore atti,
-            oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.
-          </div>
+          <div class="text-muted" style="font-size:.78rem">{{ dep_hint }}</div>
         </div>
         {% endif %}
       </div>

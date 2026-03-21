@@ -2,7 +2,10 @@
 {% block title %}PDP Penale — Portale Deposito Atti{% endblock %}
 {% block pct_modulo %}pdp{% endblock %}
 
+{% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
 {% block content %}
+
+{{ banner_fascicolo(portale_col='danger', portale_label='PDP Penale') }}
 
   <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
     <i class="bi bi-shield-exclamation fs-4 text-danger"></i>
@@ -52,6 +55,7 @@
     <div class="card-body">
       <form method="post" action="{{ url_for('pdp_ricerca') }}">
         <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
         <div class="row g-3">
 
           {# ---- Ufficio giudiziario ---- #}
@@ -136,7 +140,7 @@
               <input type="text" name="nome_imputato" id="nome-parte-input" class="form-control"
                      placeholder="es. Verdi Giuseppe — cerca nei tuoi clienti"
                      autocomplete="off"
-                     value="{{ nome_imputato or '' }}">
+                     value="{{ nome_imputato or (fascicolo.controparte if fascicolo else '') }}">
               <div id="nome-parte-dropdown"
                    style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9998;
                           background:#fff;border:1px solid #dee2e6;border-radius:8px;

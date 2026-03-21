@@ -90,6 +90,17 @@ class DepositoCivile:
 
         # 2. Firma documenti (se firma disponibile)
         if self.firma:
+            # Verifica scadenza certificato prima di firmare (D.M. 44/2011 art. 12)
+            stato_cert = self.firma.verifica_scadenza()
+            if stato_cert["scaduto"]:
+                return EsitoDeposito(
+                    id_deposito=id_deposito,
+                    timestamp=timestamp,
+                    stato="ERRORE",
+                    busta_path="",
+                    pec_destinatario="",
+                    messaggio=f"Deposito bloccato: {stato_cert['messaggio']}",
+                )
             dati.atto_principale = self._firma_documento(dati.atto_principale)
             for allegato in dati.allegati:
                 allegato.percorso = self._firma_documento(allegato.percorso)
@@ -100,10 +111,13 @@ class DepositoCivile:
         busta_path = busta.crea_busta(str(busta_dir))
 
         # 4. Invia via PEC
+        # Oggetto conforme D.M. 44/2011 art. 14 c.3: "DEPOSITO TELEMATICO - {TipoAtto}"
+        rg_str = f" - RG {dati.numero_rg}/{dati.anno_rg}" if dati.numero_rg else ""
+        oggetto_pec = f"DEPOSITO TELEMATICO - {dati.tipo_atto}{rg_str}"
         esito_invio = self.pec.invia_busta(
             destinatario_pec=ufficio.pec,
             busta_path=busta_path,
-            oggetto=f"DEPOSITO - {dati.oggetto}",
+            oggetto=oggetto_pec,
         )
 
         if not esito_invio["inviato"]:

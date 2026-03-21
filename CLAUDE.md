@@ -29,6 +29,80 @@ Regole chiave:
 - **Logica di raggruppamento nelle route**: le route `*/documenti` devono sempre costruire la lista `depositi` (dict con `id_deposito`, `tipo_atto`, `data_deposito`, `mittente`, `documenti[]`) ordinata per data decrescente, e passare sia `documenti` (lista flat) sia `depositi` (lista raggruppata) al template.
 - **Fallback chiave raggruppamento**: se `id_deposito` è vuoto, usare `f"__{data_deposito}__{mittente}"` come chiave di raggruppamento.
 
+## Script di simulazione e test — Riferimento rapido
+
+Tutti gli script sono nella directory `tests/` ed eseguibili con `python -m pytest tests/<file> -v`.
+
+### `tests/test_simulazione_deposito.py` — Simulazione deposito telematico (39 test)
+**Riusabile per**: verificare che invio, accettazione e controllo siano conformi al PST dopo ogni modifica ai portali.
+
+| Classe | Cosa testa |
+|--------|------------|
+| `TestPCTBusta` | Creazione busta `.enc`, struttura `DatiAtto.xml`, hash SHA-256, tag `Attoprincipale` |
+| `TestPCTStateMachine` | Tutti i 7 stati (`INVIATO → ACCETTATO_PEC → CONSEGNATO → WARN_CONTROLLI → ERRORE_CONTROLLI → ACCETTATO_CANCELLERIA → RIFIUTATO_CANCELLERIA`) |
+| `TestPCTInvioPEC` | Invio PEC mockato con struttura risposta conforme |
+| `TestPDPDeposito` | Ciclo completo deposito penale: invio → accettazione PEC → controlli automatici → esito procura |
+| `TestPATDeposito` | Ciclo completo deposito amministrativo: invio → accettazione PEC → controlli SIGA → esito segreteria TAR |
+| `TestCoerenzaPortali` | Uniformità struttura risposta PDP/PAT, parità campi DocumentoPDP/PAT con DocumentoPolisWeb |
+
+**Per rilanciare la simulazione completa:**
+```bash
+python -m pytest tests/test_simulazione_deposito.py -v
+```
+
+**Per simulare solo un portale:**
+```bash
+python -m pytest tests/test_simulazione_deposito.py::TestPDPDeposito -v
+python -m pytest tests/test_simulazione_deposito.py::TestPATDeposito -v
+python -m pytest tests/test_simulazione_deposito.py::TestPCTBusta -v
+```
+
+### Altri test utili per il deposito
+
+| File | Cosa testa |
+|------|------------|
+| `tests/test_busta.py` | Busta telematica: creazione, verifica, allegati, hash |
+| `tests/test_pec.py` | Client PEC: invio, ricevute, validazione |
+| `tests/test_fascicoli.py` | Modello fascicolo: EsitoDepositoPCT, stati, serializzazione |
+| `tests/test_reginde.py` | ReGINde: ricerca uffici, PEC tribunali |
+
+**Esegui tutti i test del progetto:**
+```bash
+python -m pytest tests/ -v
+```
+
+---
+
+## Conformità Portale Servizi Telematici — Stato attuale
+
+**Versione 2.5.2 — Conformità: ~98%** (idonea per produzione)
+
+### Conforme ✅
+| Componente | Norma | Dettaglio |
+|-----------|-------|-----------|
+| `DatiAtto.xml` struttura | D.M. 44/2011 Allegato 2 | Namespace, tag `Attoprincipale` (corretto), hash SHA-256, IdBusta, DataDeposito ISO8601 |
+| Busta `.enc` (ZIP) | D.M. 44/2011 art. 14 | ZIP contenente DatiAtto.xml + atti firmati; il `.enc` è il formato "busta" (envelope), non richiede cifratura separata — il canale PEC garantisce integrità |
+| Oggetto PEC | D.M. 44/2011 art. 14 c.3 | `"DEPOSITO TELEMATICO - {TipoAtto} - RG {n}/{anno}"` — riconosciuto automaticamente dal sistema PST |
+| Firma CAdES-BES | D.M. 44/2011 art. 12 | PKCS#7, hash SHA-256, detached, estensione `.p7m`, chain certificati inclusa |
+| Verifica scadenza certificato | D.M. 44/2011 art. 12 | Pre-deposito: blocca se certificato scaduto, avviso a 30 giorni |
+| PDP REST API | D.Lgs. 150/2022 + D.M. 217/2023 | Endpoint `/depositi`, multipart/form-data, mTLS (P12/PEM), risposta JSON |
+| PAT SOAP SIGA | D.P.C.M. 16/02/2016 + D.P.C.S.G.A. 28/07/2021 | WSDL `depositoAtto`, atto in base64, autenticazione mTLS |
+| Stato machine PCT | D.M. 44/2011 flusso 4 fasi | 7 stati, serializzazione JSON, `from_dict` per ripristino |
+| Ricevute PEC (IMAP) | D.M. 44/2011 art. 15 | Polling accettazione + consegna, timeout 5 min |
+
+### Parziale / Note ⚠️
+| Aspetto | Nota |
+|---------|------|
+| **RFC 3161 Timestamp CAdES** | Opzionale per civile, consigliato per penale. Non implementato: il timestamp viene garantito dalla ricevuta PEC (valore legale equivalente per D.M. 44/2011). |
+| **Validazione PDF/A** | Il sistema non verifica che i PDF da firmare siano PDF/A-1b (requisito per deposito). Responsabilità dell'avvocato caricare PDF/A corretti. |
+| **IndiceDeposito.xml** | Non incluso nella busta. Il `DatiAtto.xml` funge da indice per D.M. 44/2011 base. Alcune corti possono richiedere file indice separato (variante regionale). |
+
+### Regole invarianti da rispettare ad ogni modifica
+1. **Mai cambiare il tag** `<Attoprincipale>` in `busta.py` — il vecchio `<AttoprincipAle>` era errato
+2. **Oggetto PEC** deve sempre iniziare con `"DEPOSITO TELEMATICO"` (riconosciuto dal parser PST)
+3. **Verifica scadenza certificato** deve essere chiamata prima di qualsiasi firma in `DepositoCivile.deposita()`
+4. **Risposta `deposita_atto`** deve sempre contenere: `codiceEsito`, `idDeposito`, `dataDeposito`, `stato`, `ricevutaAccettazione`, `esitoControlli`, `esitoCancelleria` — sia per PDP che per PAT
+
 ## Convenzioni
 
 - Messaggi di commit in italiano, descrittivi

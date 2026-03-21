@@ -157,6 +157,61 @@ class FirmaDigitale:
         """Restituisce la data di scadenza del certificato."""
         return self._certificate.not_valid_after_utc
 
+    def verifica_scadenza(self, giorni_preavviso: int = 30) -> dict:
+        """
+        Verifica che il certificato di firma non sia scaduto e avvisa se la scadenza
+        è imminente.
+
+        Conforme a D.M. 44/2011 art. 12: il deposito è rifiutato se il certificato
+        del firmatario risulta scaduto o revocato al momento dell'apposizione della firma.
+
+        Args:
+            giorni_preavviso: Numero di giorni prima della scadenza per mostrare avviso
+                              (default: 30 — soglia raccomandata PST)
+
+        Returns:
+            dict con chiavi:
+              - valido (bool)     : True se il certificato è ancora valido
+              - scaduto (bool)    : True se è già scaduto
+              - scadenza (str)    : data scadenza ISO (YYYY-MM-DD)
+              - giorni_restanti (int): giorni alla scadenza (negativo se scaduto)
+              - avviso_imminente (bool): True se < giorni_preavviso alla scadenza
+              - messaggio (str)   : messaggio descrittivo
+        """
+        from datetime import datetime, timezone
+
+        now        = datetime.now(tz=timezone.utc)
+        scad       = self.scadenza
+        delta      = (scad - now).days
+        scaduto    = delta < 0
+        imminente  = not scaduto and delta <= giorni_preavviso
+
+        if scaduto:
+            msg = (
+                f"CERTIFICATO SCADUTO il {scad.strftime('%d/%m/%Y')} "
+                f"({abs(delta)} giorni fa). Depositare con questo certificato "
+                f"causa rifiuto automatico dal PST (D.M. 44/2011 art. 12)."
+            )
+        elif imminente:
+            msg = (
+                f"Attenzione: il certificato scade tra {delta} giorni "
+                f"({scad.strftime('%d/%m/%Y')}). Rinnovare prima di quel termine."
+            )
+        else:
+            msg = (
+                f"Certificato valido fino al {scad.strftime('%d/%m/%Y')} "
+                f"({delta} giorni rimanenti)."
+            )
+
+        return {
+            "valido":            not scaduto,
+            "scaduto":           scaduto,
+            "scadenza":          scad.strftime("%Y-%m-%d"),
+            "giorni_restanti":   delta,
+            "avviso_imminente":  imminente,
+            "messaggio":         msg,
+        }
+
     # ---------------------------------------------------------------- firma
 
     def firma_cades(self, documento: bytes, detached: bool = True) -> bytes:

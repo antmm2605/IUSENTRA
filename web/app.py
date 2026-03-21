@@ -3672,6 +3672,180 @@ def create_app(config: dict | None = None) -> Flask:
             flash(f"Errore nella generazione della busta: {exc}", "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
+    @app.route("/fascicoli/<id_fasc>/deposito/invia-pec", methods=["POST"])
+    def deposito_invia_pec(id_fasc):
+        """
+        Crea la busta telematica e la invia via PEC all'ufficio giudiziario.
+        Risponde sempre con JSON per essere chiamata via fetch() dal modal.
+        """
+        import uuid as _uuid
+        import os as _os
+        import tempfile as _tmp
+        from datetime import datetime as _dt
+        from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
+        from pct.pec import ClientPEC, ConfigPEC as PecCfg
+        from pct.fascicoli import EsitoDepositoPCT
+
+        gf   = get_fascicoli()
+        u    = g.utente_corrente
+        f    = request.form
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 404
+
+        tipo_atto       = f.get("tipo_atto", "ATTO").strip()
+        codice_registro = f.get("codice_registro", "RG").strip()
+        oggetto         = f.get("oggetto", "").strip() or fasc.titolo
+        atto_id         = f.get("atto_principale_id", "").strip()
+        allegati_ids    = request.form.getlist("allegati_ids")
+        note            = f.get("note", "").strip()
+
+        if not atto_id:
+            return jsonify({"ok": False, "errore": "Seleziona l'atto principale."}), 400
+
+        # Documento principale
+        try:
+            atto_path = str(gf.percorso_documento(id_fasc, atto_id))
+        except KeyError:
+            return jsonify({"ok": False, "errore": "Documento principale non trovato."}), 400
+
+        # Allegati
+        allegati_busta = []
+        for all_id in allegati_ids:
+            if all_id == atto_id:
+                continue
+            try:
+                all_doc  = next((d for d in fasc.documenti if d.id == all_id), None)
+                all_path = str(gf.percorso_documento(id_fasc, all_id))
+                allegati_busta.append(
+                    AllegatoBusta(percorso=all_path,
+                                  descrizione=all_doc.nome if all_doc else all_id)
+                )
+            except Exception:
+                pass
+
+        # Codice ufficio e PEC tribunale
+        codice_ufficio = fasc.tribunale or "SCONOSCIUTO"
+        pec_dest       = ""
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            _uff = next(
+                (x for x in _get_uff(_cache).carica()
+                 if x.get("nome", "").lower() == fasc.tribunale.lower()),
+                None,
+            ) if fasc.tribunale else None
+            if _uff:
+                codice_ufficio = _uff.get("codice", codice_ufficio)
+                pec_dest       = _uff.get("pec", "")
+        except Exception:
+            pass
+
+        if not pec_dest:
+            return jsonify({
+                "ok": False,
+                "errore": f"Indirizzo PEC non trovato per '{fasc.tribunale}'. "
+                          "Verifica il tribunale nel fascicolo."
+            }), 400
+
+        # Config PEC studio
+        try:
+            cfg_studio = get_config_studio().config
+            pec_cfg    = cfg_studio.pec if cfg_studio else None
+            if not pec_cfg or not pec_cfg.indirizzo or not pec_cfg.password:
+                return jsonify({
+                    "ok": False,
+                    "errore": "PEC non configurata. Vai in Impostazioni → PEC e inserisci le credenziali."
+                }), 400
+        except Exception as exc:
+            return jsonify({"ok": False, "errore": f"Errore lettura config studio: {exc}"}), 500
+
+        # Crea busta
+        try:
+            dati = DatiBusta(
+                codice_ufficio=codice_ufficio,
+                codice_registro=codice_registro,
+                oggetto=oggetto,
+                tipo_atto=tipo_atto,
+                atto_principale=atto_path,
+                allegati=allegati_busta,
+                numero_rg=fasc.numero_rg or None,
+                anno_rg=fasc.anno_rg or None,
+                operatore=u.username if u else "",
+                cf_mittente=getattr(cfg_studio, "codice_fiscale_avvocato", "") or "",
+            )
+            out_dir  = _os.getenv("PCT_DEPOSITI_DIR", _tmp.gettempdir())
+            busta    = BustaTelematica(dati)
+            enc_path = busta.crea_busta(out_dir)
+        except Exception as exc:
+            app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "errore": f"Errore creazione busta: {exc}"}), 500
+
+        # Invia via PEC
+        try:
+            config_pec = PecCfg(
+                indirizzo=pec_cfg.indirizzo,
+                password=pec_cfg.password,
+                smtp_host=getattr(pec_cfg, "smtp_host", "smtp.pec.aruba.it"),
+                smtp_port=getattr(pec_cfg, "smtp_port", 465),
+                imap_host=getattr(pec_cfg, "imap_host", ""),
+                imap_port=getattr(pec_cfg, "imap_port", 993),
+                use_ssl=getattr(pec_cfg, "use_ssl", True),
+            )
+            client_pec = ClientPEC(config_pec)
+            oggetto_pec = f"DEPOSITO {tipo_atto} - {fasc.tribunale} - RG {fasc.numero_rg}/{fasc.anno_rg}"
+            ris = client_pec.invia_busta(
+                destinatario_pec=pec_dest,
+                busta_path=enc_path,
+                oggetto=oggetto_pec,
+            )
+            if not ris.get("inviato"):
+                errore_pec = ris.get("errore") or "Invio PEC fallito senza dettagli."
+                return jsonify({"ok": False, "errore": f"Errore PEC: {errore_pec}"}), 500
+        except Exception as exc:
+            app.logger.exception("Errore invio PEC %s: %s", id_fasc, exc)
+            return jsonify({"ok": False, "errore": f"Errore invio PEC: {exc}"}), 500
+
+        # Salva esito nel fascicolo
+        id_dep = busta.id_busta[:8].upper()
+        ts     = _dt.now().isoformat()
+        try:
+            from datetime import datetime as _dtnow
+            esito = EsitoDepositoPCT(
+                id=id_dep,
+                timestamp=ts,
+                stato="INVIATO",
+                tipo_atto=tipo_atto,
+                pec_destinatario=pec_dest,
+                messaggio=f"Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id','')}",
+                note=note,
+                registrato_da=u.username if u else "",
+            )
+            fasc.depositi_pct.append(esito)
+            fasc.modificato_il = _dtnow.now().isoformat()
+            gf._salva()
+            audit("fascicoli.deposito.invia_pec", "fascicolo", id_fasc,
+                  dettagli=f"Deposito {id_dep} — {tipo_atto} → {pec_dest}")
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+        except Exception as exc:
+            app.logger.exception("Errore salvataggio esito PEC %s: %s", id_fasc, exc)
+            # L'invio è andato a buon fine anche se il salvataggio fallisce
+            return jsonify({
+                "ok": True,
+                "avviso": f"Busta inviata ma errore nel salvataggio: {exc}",
+                "id_deposito": id_dep,
+                "pec_dest": pec_dest,
+                "tipo_atto": tipo_atto,
+            })
+
+        return jsonify({
+            "ok": True,
+            "id_deposito": id_dep,
+            "pec_dest": pec_dest,
+            "tipo_atto": tipo_atto,
+            "timestamp": ts,
+        })
+
     @app.route("/fascicoli/<id_fasc>/deposito/prepara", methods=["GET"])
     def deposito_prepara(id_fasc):
         """Mostra il riepilogo documenti e la guida al deposito telematico."""
@@ -5262,6 +5436,14 @@ def create_app(config: dict | None = None) -> Flask:
             except Exception:
                 pass
 
+        # Verifica se PEC studio è configurata (per mostrare bottone invio diretto)
+        pec_configurata = False
+        try:
+            _cfg = get_config_studio().config
+            pec_configurata = bool(_cfg and _cfg.pec and _cfg.pec.indirizzo and _cfg.pec.password)
+        except Exception:
+            pass
+
         return render_template(
             "fascicoli/wizard_completa.html",
             fascicolo=fasc,
@@ -5270,6 +5452,7 @@ def create_app(config: dict | None = None) -> Flask:
             tutti_obbligatori=tutti_obbligatori,
             nome_cartella=nome_cartella,
             pec_tribunale=pec_tribunale,
+            pec_configurata=pec_configurata,
             canale_label=CANALE_LABEL,
             canale_icon=CANALE_ICON,
             canale_col=CANALE_COL,

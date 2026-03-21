@@ -431,15 +431,51 @@
 
             </form>
 
-            {# Istruzioni post-download #}
-            <div class="alert alert-success d-flex gap-2 align-items-start py-2 mt-3 mb-0">
-              <i class="bi bi-download flex-shrink-0 mt-1"></i>
-              <div class="small">
-                Il file <strong>.enc</strong> generato è la busta telematica PCT pronta.
-                Aprila con <strong>Consolle dell'Avvocato</strong>:
-                <em>Nuovo deposito → Importa busta → seleziona il file .enc → Invia</em>.
+            {# Pannello risultato invio PEC (nascosto, appare dopo invio) #}
+            <div id="riquadroEsitoInvio" class="d-none mt-3">
+              <div id="esitoOk" class="alert alert-success d-none d-flex gap-2 align-items-start py-2 mb-0">
+                <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+                <div class="small">
+                  <div class="fw-bold mb-1">Deposito inviato via PEC</div>
+                  <div>ID busta: <code id="esitoIdBusta"></code></div>
+                  <div>Destinatario: <code id="esitoPecDest"></code></div>
+                  <div class="mt-1 text-muted">
+                    L'esito è stato registrato automaticamente nel fascicolo.
+                    Vai alla scheda <strong>② Registra esito</strong> per aggiungere il numero di protocollo.
+                  </div>
+                </div>
+              </div>
+              <div id="esitoErr" class="alert alert-danger d-none d-flex gap-2 align-items-start py-2 mb-0">
+                <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+                <div class="small">
+                  <div class="fw-bold mb-1">Errore durante l'invio</div>
+                  <div id="esitoErrMsg"></div>
+                </div>
               </div>
             </div>
+
+            {# Nota scarica busta #}
+            {% if not pec_configurata %}
+            <div class="alert alert-warning d-flex gap-2 align-items-start py-2 mt-3 mb-0">
+              <i class="bi bi-exclamation-triangle flex-shrink-0 mt-1"></i>
+              <div class="small">
+                <strong>PEC non configurata.</strong>
+                Per inviare direttamente, configura le credenziali PEC in
+                <a href="{{ url_for('impostazioni.index') }}">Impostazioni → PEC</a>.
+                Con il bottone <em>Scarica busta</em> puoi comunque esportare il file .enc
+                e importarlo in Consolle dell'Avvocato.
+              </div>
+            </div>
+            {% else %}
+            <div class="alert alert-success d-flex gap-2 align-items-start py-2 mt-3 mb-0">
+              <i class="bi bi-send flex-shrink-0 mt-1"></i>
+              <div class="small">
+                <strong>PEC configurata.</strong>
+                Usa <em>Invia via PEC</em> per spedire la busta direttamente al tribunale,
+                oppure <em>Scarica busta</em> per importarla in Consolle dell'Avvocato.
+              </div>
+            </div>
+            {% endif %}
 
           </div>{# /pannello-busta #}
 
@@ -447,8 +483,8 @@
           <div class="tab-pane fade p-4" id="pannello-esito" role="tabpanel">
 
             <p class="small text-muted mb-3">
-              Dopo aver depositato tramite Consolle dell'Avvocato, inserisci qui
-              lo stato e i riferimenti ricevuti per tenere traccia nel fascicolo.
+              Dopo aver depositato (via PEC diretta o tramite Consolle dell'Avvocato),
+              inserisci qui i riferimenti ricevuti per tenere traccia nel fascicolo.
             </p>
 
             <form id="formRegistraEsito" method="POST"
@@ -459,15 +495,16 @@
                   <label class="form-label small fw-semibold">
                     Tipo atto <span class="text-danger">*</span>
                   </label>
-                  <input type="text" name="tipo_atto" class="form-control form-control-sm"
+                  <input type="text" id="inpTipoAttoEsito" name="tipo_atto"
+                         class="form-control form-control-sm"
                          placeholder="es. Ricorso, Memoria, Citazione" required>
                 </div>
                 <div class="col-sm-5">
                   <label class="form-label small fw-semibold">Stato</label>
                   <select name="stato" class="form-select form-select-sm">
-                    <option value="INVIATO">INVIATO</option>
+                    <option value="INVIATO" selected>INVIATO</option>
                     <option value="ACCETTATO_PEC">ACCETTATO_PEC</option>
-                    <option value="CONSEGNATO" selected>CONSEGNATO</option>
+                    <option value="CONSEGNATO">CONSEGNATO</option>
                     <option value="ACCETTATO_CANCELLERIA">ACCETTATO ✓</option>
                     <option value="WARN_CONTROLLI">WARN</option>
                     <option value="ERRORE_CONTROLLI">ERRORE</option>
@@ -488,7 +525,8 @@
 
               <div class="mb-3">
                 <label class="form-label small fw-semibold">N. protocollo / ID deposito</label>
-                <input type="text" name="messaggio" class="form-control form-control-sm"
+                <input type="text" id="inpProtocolloEsito" name="messaggio"
+                       class="form-control form-control-sm"
                        placeholder="es. PCT-2024-0001234">
               </div>
 
@@ -506,21 +544,33 @@
       </div>{# /modal-body #}
 
       {# Footer contestuale #}
-      <div class="modal-footer bg-light">
+      <div class="modal-footer bg-light flex-wrap gap-2">
         <button type="button" class="btn btn-outline-secondary"
                 data-bs-dismiss="modal">Chiudi</button>
 
-        {# Bottone Tab 1 — scarica busta #}
-        <button type="submit" form="formGeneraBusta"
-                id="btnFooterBusta"
-                class="btn btn-success fw-semibold">
-          <i class="bi bi-download me-1"></i>Scarica busta PCT (.enc)
-        </button>
+        <div class="ms-auto d-flex gap-2 flex-wrap" id="footerBtnsBusta">
+          {# Scarica busta .enc — sempre disponibile #}
+          <button type="submit" form="formGeneraBusta"
+                  id="btnScaricaBusta"
+                  class="btn btn-outline-success fw-semibold">
+            <i class="bi bi-download me-1"></i>Scarica busta (.enc)
+          </button>
+
+          {# Invia via PEC — solo se PEC configurata #}
+          {% if pec_configurata %}
+          <button type="button" id="btnInviaPec"
+                  class="btn btn-success fw-semibold">
+            <span id="spinnerPec" class="spinner-border spinner-border-sm me-1 d-none"
+                  role="status"></span>
+            <i class="bi bi-send-fill me-1" id="iconPec"></i>Invia via PEC
+          </button>
+          {% endif %}
+        </div>
 
         {# Bottone Tab 2 — salva esito (nascosto di default) #}
         <button type="submit" form="formRegistraEsito"
                 id="btnFooterEsito"
-                class="btn btn-primary fw-semibold d-none">
+                class="btn btn-primary fw-semibold ms-auto d-none">
           <i class="bi bi-save me-1"></i>Salva esito nel fascicolo
         </button>
       </div>
@@ -529,33 +579,99 @@
   </div>{# /modal-dialog #}
 </div>
 
-{# Script: swap footer buttons on tab change #}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const tabBusta = document.getElementById('tab-busta');
-  const tabEsito = document.getElementById('tab-esito');
-  const btnBusta = document.getElementById('btnFooterBusta');
-  const btnEsito = document.getElementById('btnFooterEsito');
+  const tabBusta    = document.getElementById('tab-busta');
+  const tabEsito    = document.getElementById('tab-esito');
+  const footerBusta = document.getElementById('footerBtnsBusta');
+  const btnEsito    = document.getElementById('btnFooterEsito');
 
-  if (!tabBusta || !tabEsito) return;
+  /* Swap footer in base al tab attivo */
+  if (tabBusta && tabEsito) {
+    tabEsito.addEventListener('shown.bs.tab', function () {
+      if (footerBusta) footerBusta.classList.add('d-none');
+      if (btnEsito)    btnEsito.classList.remove('d-none');
+    });
+    tabBusta.addEventListener('shown.bs.tab', function () {
+      if (footerBusta) footerBusta.classList.remove('d-none');
+      if (btnEsito)    btnEsito.classList.add('d-none');
+    });
+  }
 
-  tabEsito.addEventListener('shown.bs.tab', function () {
-    btnBusta.classList.add('d-none');
-    btnEsito.classList.remove('d-none');
-  });
-  tabBusta.addEventListener('shown.bs.tab', function () {
-    btnEsito.classList.add('d-none');
-    btnBusta.classList.remove('d-none');
-  });
-
-  /* Sincronizza tipo_atto dal tab busta → tab esito */
-  const selTipo = document.querySelector('#formGeneraBusta select[name="tipo_atto"]');
-  const inpTipo = document.querySelector('#formRegistraEsito input[name="tipo_atto"]');
+  /* Sincronizza tipo_atto busta → esito */
+  const selTipo  = document.querySelector('#formGeneraBusta select[name="tipo_atto"]');
+  const inpTipo  = document.getElementById('inpTipoAttoEsito');
   if (selTipo && inpTipo) {
     selTipo.addEventListener('change', function () {
       inpTipo.value = selTipo.options[selTipo.selectedIndex].text;
     });
   }
+
+  /* ---- Invio PEC via AJAX ---- */
+  const btnPec = document.getElementById('btnInviaPec');
+  if (!btnPec) return;
+
+  btnPec.addEventListener('click', function () {
+    const form = document.getElementById('formGeneraBusta');
+    if (!form.reportValidity()) return;
+
+    /* UI: spinner */
+    const spinner = document.getElementById('spinnerPec');
+    const icon    = document.getElementById('iconPec');
+    btnPec.disabled = true;
+    document.getElementById('btnScaricaBusta').disabled = true;
+    if (spinner) spinner.classList.remove('d-none');
+    if (icon)    icon.classList.add('d-none');
+
+    /* Nascondi eventuali esiti precedenti */
+    const riquadro = document.getElementById('riquadroEsitoInvio');
+    riquadro.classList.add('d-none');
+    document.getElementById('esitoOk').classList.add('d-none');
+    document.getElementById('esitoErr').classList.add('d-none');
+
+    const fd = new FormData(form);
+    fetch('{{ url_for("deposito_invia_pec", id_fasc=fascicolo.id) }}', {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+      riquadro.classList.remove('d-none');
+      if (data.ok) {
+        const ok = document.getElementById('esitoOk');
+        ok.classList.remove('d-none');
+        document.getElementById('esitoIdBusta').textContent = data.id_deposito || '—';
+        document.getElementById('esitoPecDest').textContent = data.pec_dest || '—';
+        /* Pre-compila tab Esito */
+        if (inpTipo) inpTipo.value = data.tipo_atto || '';
+        const inpProt = document.getElementById('inpProtocolloEsito');
+        if (inpProt) inpProt.value = data.id_deposito || '';
+        /* Dopo 1.5s passa al tab Esito */
+        setTimeout(() => {
+          const t = document.getElementById('tab-esito');
+          if (t) bootstrap.Tab.getOrCreateInstance(t).show();
+        }, 1500);
+      } else {
+        const err = document.getElementById('esitoErr');
+        err.classList.remove('d-none');
+        document.getElementById('esitoErrMsg').textContent = data.errore || 'Errore sconosciuto.';
+      }
+    })
+    .catch(e => {
+      const rq = document.getElementById('riquadroEsitoInvio');
+      rq.classList.remove('d-none');
+      const err = document.getElementById('esitoErr');
+      err.classList.remove('d-none');
+      document.getElementById('esitoErrMsg').textContent = 'Errore di rete: ' + e.message;
+    })
+    .finally(() => {
+      btnPec.disabled = false;
+      document.getElementById('btnScaricaBusta').disabled = false;
+      if (spinner) spinner.classList.add('d-none');
+      if (icon)    icon.classList.remove('d-none');
+    });
+  });
 });
 </script>
 {% endif %}

@@ -4,7 +4,9 @@
 {% block page_title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
+<div class="row g-4">
+
+{# ── Colonna form ── #}
 <div class="col-lg-8">
 <div class="card shadow-sm">
 <div class="card-header fw-semibold">
@@ -153,8 +155,32 @@
 </form>
 </div>
 </div>
-</div>
-</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Tipi di appuntamento
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>UDIENZA</strong>: comparizione in aula, include il tribunale di riferimento.</p>
+      <p class="mb-2"><strong>CONSULTAZIONE</strong>: incontro con il cliente in studio o da remoto.</p>
+      <p class="mb-2"><strong>RIUNIONE</strong>: meeting interno o con controparte.</p>
+      <p class="mb-0"><strong>Reminder</strong>: l'avviso viene inviato X minuti prima dell'appuntamento (default 60 min).</p>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-calendar-check me-2 text-muted"></i>Sincronizzazione
+    </div>
+    <div class="card-body small text-muted">
+      Gli appuntamenti sono inclusi nei feed WebCal e nei file iCal scaricabili dall'agenda. Abilita la sincronizzazione nelle <a href="{{ url_for('impostazioni_calendario') }}" class="text-decoration-none">impostazioni calendario</a>.
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}
 
 {% block scripts %}

@@ -3,8 +3,10 @@
 {% block page_title %}{{ 'Modifica' if scadenza else 'Nuova' }} Scadenza{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-9">
+<div class="row g-4">
+
+{# ── Colonna form principale ── #}
+<div class="col-lg-8">
 <form method="post" id="form-scadenza">
 <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
 <input type="hidden" name="id_cliente" value="{{ id_cliente or '' }}">
@@ -147,8 +149,31 @@
   {% endif %}
 </div>
 </form>
-</div>
-</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Guida rapida
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>Termine perentorio</strong>: il mancato rispetto determina la decadenza dal diritto, non sanabile.</p>
+      <p class="mb-2"><strong>Data decorrenza</strong>: giorno da cui inizia a decorrere il termine (es. data di notifica).</p>
+      <p class="mb-0"><strong>Calcolo automatico</strong>: usa i preset per calcolare automaticamente la data di scadenza dai termini processuali comuni (art. 183, 190 c.p.c. ecc.).</p>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-bell me-2 text-muted"></i>Preavvisi automatici
+    </div>
+    <div class="card-body small text-muted">
+      Il sistema invierà avvisi automatici a <strong>30, 15, 7 e 1 giorno</strong> prima della scadenza. Per i termini perentori l'avviso è prioritario.
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}
 
 {% block scripts %}

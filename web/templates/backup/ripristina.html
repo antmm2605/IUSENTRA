@@ -3,8 +3,8 @@
 {% block page_title %}Ripristina Backup{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-7">
+<div class="row g-4">
+<div class="col-lg-8">
 
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
@@ -99,6 +99,21 @@
   </div>
 </div>
 
-</div>
-</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar avvertenze ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm border-danger">
+    <div class="card-header fw-semibold text-danger">
+      <i class="bi bi-exclamation-triangle me-2"></i>Avvertenze importanti
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>Destinazione sicura</strong>: usa una cartella separata dai dati di produzione per evitare sovrascritture accidentali.</p>
+      <p class="mb-2"><strong>Backup preventivo</strong>: prima di sovrascrivere i dati in produzione, esegui un nuovo backup dalla lista backup.</p>
+      <p class="mb-0"><strong>File cifrati</strong>: se il backup è stato cifrato, la password è necessaria per il ripristino.</p>
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}

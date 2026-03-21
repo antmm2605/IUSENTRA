@@ -3,8 +3,10 @@
 {% block page_title %}Sincronizzazione Calendario{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-9">
+<div class="row g-4">
+
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
 
 {# ── Intro ── #}
 <div class="alert alert-info border-0 shadow-sm d-flex gap-2 mb-4" role="alert">
@@ -173,58 +175,63 @@
   </div>
 </div>
 
-{# ── Sicurezza & Token ── #}
-<div class="card shadow-sm mb-4 border-warning">
-  <div class="card-header fw-semibold text-warning-emphasis bg-warning-subtle">
-    <i class="bi bi-shield-lock me-2"></i>Sicurezza — Token segreto
-  </div>
-  <div class="card-body">
-    <p class="small text-muted mb-3">
-      I link feed contengono un token segreto che autentica l'accesso senza richiedere il login.
-      <strong>Non condividere questi link con persone non autorizzate.</strong>
-      Se sospetti che un link sia stato compromesso, rigenera il token qui sotto:
-      tutti i link precedenti smetteranno di funzionare e dovrai aggiornare i tuoi calendari.
-    </p>
-    <div class="d-flex align-items-center gap-3 flex-wrap">
-      <div class="small text-muted">
-        <i class="bi bi-clock me-1"></i>
-        Token generato il:
-        {% if token_creato %}
-          {{ token_creato[:10] }}
-        {% else %}
-          —
-        {% endif %}
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar ── #}
+<div class="col-lg-4">
+
+  {# Sicurezza & Token #}
+  <div class="card shadow-sm mb-4 border-warning">
+    <div class="card-header fw-semibold text-warning-emphasis bg-warning-subtle">
+      <i class="bi bi-shield-lock me-2"></i>Sicurezza — Token segreto
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-3">
+        I link feed contengono un token segreto che autentica l'accesso senza richiedere il login.
+        <strong>Non condividere questi link.</strong>
+        Se compromesso, rigenera il token: tutti i link precedenti smetteranno di funzionare.
+      </p>
+      <div class="d-flex flex-column gap-2">
+        <div class="small text-muted">
+          <i class="bi bi-clock me-1"></i>
+          Token generato il:
+          {% if token_creato %}
+            {{ token_creato[:10] }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('rigenera_token_calendario') }}"
+              onsubmit="return confirm('Rigenerare il token? Tutti i link esistenti nei calendari smetteranno di funzionare e dovranno essere aggiornati.')">
+          <button class="btn btn-sm btn-outline-warning w-100" type="submit">
+            <i class="bi bi-arrow-clockwise me-1"></i>Rigenera token
+          </button>
+        </form>
       </div>
-      <form method="post" action="{{ url_for('rigenera_token_calendario') }}"
-            onsubmit="return confirm('Rigenerare il token? Tutti i link esistenti nei calendari smetteranno di funzionare e dovranno essere aggiornati.')">
-        <button class="btn btn-sm btn-outline-warning" type="submit">
-          <i class="bi bi-arrow-clockwise me-1"></i>Rigenera token
-        </button>
-      </form>
     </div>
   </div>
-</div>
 
-{# ── Download manuale ── #}
-<div class="card shadow-sm mb-4">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-download me-2 text-secondary"></i>Download manuale (.ics)
+  {# Download manuale #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-download me-2 text-secondary"></i>Download manuale (.ics)
+    </div>
+    <div class="card-body d-flex flex-column gap-2">
+      <a href="{{ url_for('agenda_ical') }}" download="agenda.ics" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-calendar-arrow-down me-1"></i>Scarica agenda
+      </a>
+      <a href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-calendar-arrow-down me-1"></i>Scarica scadenze
+      </a>
+      <span class="small text-muted mt-1">
+        Importazione una-tantum: il file <code>.ics</code> non si aggiorna automaticamente.
+      </span>
+    </div>
   </div>
-  <div class="card-body d-flex gap-2 flex-wrap">
-    <a href="{{ url_for('agenda_ical') }}" download="agenda.ics" class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-calendar-arrow-down me-1"></i>Scarica agenda
-    </a>
-    <a href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics" class="btn btn-sm btn-outline-warning">
-      <i class="bi bi-calendar-arrow-down me-1"></i>Scarica scadenze
-    </a>
-    <span class="small text-muted align-self-center">
-      Importazione una-tantum: il file <code>.ics</code> non si aggiorna automaticamente.
-    </span>
-  </div>
-</div>
 
-</div>
-</div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 
 <script>
 function copiaUrl(inputId, btn) {

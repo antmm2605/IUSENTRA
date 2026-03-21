@@ -3,9 +3,6 @@
 {% block page_title %}Permessi utente: {{ target.username }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-9">
-
 {# ---- Info utente ---- #}
 {% set desc = descrizioni[target.ruolo] %}
 <div class="card shadow-sm mb-3">
@@ -152,8 +149,6 @@
 </div>
 </form>
 
-</div>
-</div>
 {% endblock %}
 
 {% block scripts %}

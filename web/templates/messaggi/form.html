@@ -3,8 +3,10 @@
 {% block page_title %}Nuovo Messaggio{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-8">
+<div class="row g-4">
+
+{# ── Colonna form ── #}
+<div class="col-lg-8">
 <form method="post">
   <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
 
@@ -92,8 +94,23 @@
 </div>
 
 </form>
-</div>
-</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Canali disponibili
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>EMAIL</strong>: invio via SMTP configurato nelle impostazioni. Supporta oggetto e corpo HTML.</p>
+      <p class="mb-2"><strong>SMS</strong>: numero in formato E.164 (es. <code>+39 333 1234567</code>).</p>
+      <p class="mb-0"><strong>WHATSAPP</strong>: richiede integrazione API attiva nelle impostazioni studio.</p>
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 
 <script>
 // Dati clienti per auto-fill destinatario

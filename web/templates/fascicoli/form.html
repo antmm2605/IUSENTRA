@@ -4,8 +4,8 @@
 {% block page_title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-9">
+<div class="row g-4">
+<div class="col-lg-8">
 <form method="post">
 
 {# Dati principali #}
@@ -161,6 +161,29 @@
 </div>
 
 </form>
-</div>
-</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Guida rapida
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>RG (Registro Generale)</strong>: numero assegnato dal tribunale all'atto dell'iscrizione a ruolo.</p>
+      <p class="mb-2"><strong>Sezione</strong>: sezione del tribunale competente (es. I, II, Lavoro).</p>
+      <p class="mb-0"><strong>Valore causa</strong>: influenza la determinazione degli onorari secondo i parametri ministeriali D.M. 55/2014.</p>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-lightning me-2 text-muted"></i>Prossimi passi
+    </div>
+    <div class="card-body small text-muted">
+      Dopo la creazione del fascicolo potrai aggiungere: documenti, scadenze processuali, attività, depositi telematici e note.
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}

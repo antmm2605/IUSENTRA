@@ -4919,6 +4919,272 @@ def create_app(config: dict | None = None) -> Flask:
             oggi=date.today(),
         )
 
+    # ---- Wizard guidato preparazione atto
+
+    def _wizard_step_stato(fasc, doc_richiesto, id_template):
+        """Ritorna 'done' o 'pending' per uno step del wizard."""
+        nota_tag = f"[wizard:{id_template}:step{doc_richiesto.numero}]"
+        nome_prefix = doc_richiesto.nome_file.lower()
+        for d in fasc.documenti:
+            if nota_tag in (d.note or ""):
+                return "done"
+            if d.nome.lower().startswith(nome_prefix):
+                return "done"
+        return "pending"
+
+    def _trova_documento_wizard(fasc, doc_richiesto, id_template):
+        """Cerca il documento nel fascicolo corrispondente allo step wizard."""
+        nota_tag = f"[wizard:{id_template}:step{doc_richiesto.numero}]"
+        nome_prefix = doc_richiesto.nome_file.lower()
+        for d in fasc.documenti:
+            if nota_tag in (d.note or ""):
+                return d
+            if d.nome.lower().startswith(nome_prefix):
+                return d
+        return None
+
+    @app.route("/fascicoli/<id_fasc>/wizard/<id_template>")
+    def wizard_atto_avvia(id_fasc, id_template):
+        """Avvia o riprende il wizard: redirect al primo step obbligatorio incompleto."""
+        from pct.checklist_atti import get_template
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+        tmpl = get_template(id_template)
+        if not tmpl:
+            flash("Template non trovato.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        # Trova primo step obbligatorio incompleto
+        for doc in tmpl.documenti:
+            if _wizard_step_stato(fasc, doc, id_template) == "pending" and doc.obbligatorio:
+                return redirect(url_for("wizard_atto_step", id_fasc=id_fasc,
+                                        id_template=id_template, n=doc.numero))
+        # Tutti gli obbligatori completati → pagina di completamento
+        return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc,
+                                id_template=id_template))
+
+    @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/step/<int:n>",
+               methods=["GET", "POST"])
+    def wizard_atto_step(id_fasc, id_template, n):
+        from pct.checklist_atti import get_template, nome_cartella_compilato
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+        tmpl = get_template(id_template)
+        if not tmpl:
+            flash("Template non trovato.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        doc_step = next((d for d in tmpl.documenti if d.numero == n), None)
+        if not doc_step:
+            flash("Step non trovato.", "danger")
+            return redirect(url_for("wizard_atto_avvia", id_fasc=id_fasc,
+                                    id_template=id_template))
+
+        if request.method == "POST":
+            azione = request.form.get("azione", "carica")
+            u = g.utente_corrente
+
+            if azione == "salta" and not doc_step.obbligatorio:
+                skip_key = f"wiz_skip_{id_fasc}_{id_template}"
+                skipped = session.get(skip_key, [])
+                if n not in skipped:
+                    skipped.append(n)
+                session[skip_key] = skipped
+                flash(f"«{doc_step.descrizione}» saltato.", "info")
+
+            elif azione == "carica":
+                if "file" not in request.files or not request.files["file"].filename:
+                    flash("Seleziona un file da caricare.", "warning")
+                    return redirect(url_for("wizard_atto_step", id_fasc=id_fasc,
+                                            id_template=id_template, n=n))
+                file = request.files["file"]
+                ext = Path(file.filename).suffix or ".pdf"
+                nome_wizard = f"{doc_step.nome_file}{ext}"
+                try:
+                    contenuto = _encrypt_doc(file.read())
+                    nota_w = f"[wizard:{id_template}:step{n}]"
+                    nota_extra = request.form.get("note", "").strip()
+                    if nota_extra:
+                        nota_w += f" {nota_extra}"
+                    gf.aggiungi_documento(
+                        id_fasc,
+                        nome_file=nome_wizard,
+                        tipo=TipoDocumento(request.form.get("tipo_doc", "ALTRO")),
+                        contenuto=contenuto,
+                        note=nota_w,
+                        data_documento=request.form.get("data_documento", ""),
+                        firmato=request.form.get("firmato") == "1",
+                        caricato_da=u.username if u else "",
+                    )
+                    flash(f"«{doc_step.descrizione}» caricato come {nome_wizard}.", "success")
+                    audit("fascicoli.wizard.carica", "fascicolo", id_fasc,
+                          dettagli=f"template:{id_template} step:{n} → {nome_wizard}")
+                except (ValueError, KeyError) as e:
+                    flash(str(e), "danger")
+                    return redirect(url_for("wizard_atto_step", id_fasc=id_fasc,
+                                            id_template=id_template, n=n))
+
+            # Vai al prossimo step
+            prossimo = n + 1
+            if prossimo <= len(tmpl.documenti):
+                return redirect(url_for("wizard_atto_step", id_fasc=id_fasc,
+                                        id_template=id_template, n=prossimo))
+            return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc,
+                                    id_template=id_template))
+
+        # GET — prepara stato di tutti gli step
+        skip_key = f"wiz_skip_{id_fasc}_{id_template}"
+        skipped = session.get(skip_key, [])
+        steps_stato = []
+        for d in tmpl.documenti:
+            stato = _wizard_step_stato(fasc, d, id_template)
+            if stato == "pending" and not d.obbligatorio and d.numero in skipped:
+                stato = "saltato"
+            steps_stato.append({
+                "doc": d,
+                "stato": stato,
+                "documento": _trova_documento_wizard(fasc, d, id_template),
+            })
+
+        doc_esistente = _trova_documento_wizard(fasc, doc_step, id_template)
+        nome_cartella = nome_cartella_compilato(tmpl, fasc.controparte, fasc.numero_rg)
+        return render_template(
+            "fascicoli/wizard_atto.html",
+            fascicolo=fasc,
+            tmpl=tmpl,
+            step_corrente=doc_step,
+            step_n=n,
+            step_totale=len(tmpl.documenti),
+            steps_stato=steps_stato,
+            doc_esistente=doc_esistente,
+            nome_cartella=nome_cartella,
+            oggi=date.today(),
+            tipo_documento_choices=[(t.value, t.value.replace("_", " ").title())
+                                    for t in TipoDocumento],
+        )
+
+    @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/completa")
+    def wizard_atto_completa(id_fasc, id_template):
+        from pct.checklist_atti import (get_template, nome_cartella_compilato,
+                                        CANALE_LABEL, CANALE_ICON, CANALE_COL)
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+        tmpl = get_template(id_template)
+        if not tmpl:
+            flash("Template non trovato.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        skip_key = f"wiz_skip_{id_fasc}_{id_template}"
+        skipped = session.get(skip_key, [])
+        steps_stato = []
+        tutti_obbligatori = True
+        for d in tmpl.documenti:
+            stato = _wizard_step_stato(fasc, d, id_template)
+            if stato == "pending" and not d.obbligatorio and d.numero in skipped:
+                stato = "saltato"
+            if d.obbligatorio and stato == "pending":
+                tutti_obbligatori = False
+            steps_stato.append({
+                "doc": d,
+                "stato": stato,
+                "documento": _trova_documento_wizard(fasc, d, id_template),
+            })
+
+        nome_cartella = nome_cartella_compilato(tmpl, fasc.controparte, fasc.numero_rg)
+        return render_template(
+            "fascicoli/wizard_completa.html",
+            fascicolo=fasc,
+            tmpl=tmpl,
+            steps_stato=steps_stato,
+            tutti_obbligatori=tutti_obbligatori,
+            nome_cartella=nome_cartella,
+            canale_label=CANALE_LABEL,
+            canale_icon=CANALE_ICON,
+            canale_col=CANALE_COL,
+            oggi=date.today(),
+        )
+
+    @app.route("/fascicoli/<id_fasc>/wizard/<id_template>/genera-indice", methods=["POST"])
+    def wizard_genera_indice(id_fasc, id_template):
+        from pct.checklist_atti import get_template, nome_cartella_compilato
+        from datetime import datetime as _dt
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "danger")
+            return redirect(url_for("lista_fascicoli"))
+        tmpl = get_template(id_template)
+        if not tmpl:
+            flash("Template non trovato.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        u = g.utente_corrente
+        skip_key = f"wiz_skip_{id_fasc}_{id_template}"
+        skipped = session.get(skip_key, [])
+        nome_cartella = nome_cartella_compilato(tmpl, fasc.controparte, fasc.numero_rg)
+
+        righe = []
+        for d in tmpl.documenti:
+            doc_fasc = _trova_documento_wizard(fasc, d, id_template)
+            if doc_fasc:
+                righe.append(
+                    f"  {d.numero:02d}. {doc_fasc.nome}\n"
+                    f"      {d.descrizione}"
+                    f" | {doc_fasc.data_documento or 'data n.d.'}"
+                    f" | sha256: {doc_fasc.hash_sha256[:16]}…"
+                )
+            elif not d.obbligatorio and d.numero in skipped:
+                righe.append(f"  {d.numero:02d}. [non allegato] {d.nome_file}  ({d.descrizione} — facoltativo)")
+            else:
+                righe.append(f"  {d.numero:02d}. [MANCANTE] {d.nome_file}  ({d.descrizione})")
+
+        sep = "═" * 64
+        testo = "\n".join([
+            sep,
+            f"  INDICE DOCUMENTI — {tmpl.nome.upper()}",
+            sep,
+            f"  Fascicolo  : {fasc.titolo}",
+            f"  RG         : {fasc.rg_completo or 'n.d.'}",
+            f"  Cliente    : {fasc.nome_cliente}",
+            f"  Controparte: {fasc.controparte}",
+            f"  Tribunale  : {fasc.tribunale or 'n.d.'}",
+            f"  Cartella   : {nome_cartella}",
+            f"  Generato il: {_dt.now().strftime('%d/%m/%Y %H:%M')}",
+            sep,
+            "",
+            *righe,
+            "",
+            sep,
+        ])
+
+        try:
+            contenuto_enc = _encrypt_doc(testo.encode("utf-8"))
+            nome_indice = f"00_Indice_{tmpl.id}.txt"
+            gf.aggiungi_documento(
+                id_fasc,
+                nome_file=nome_indice,
+                tipo=TipoDocumento.ALTRO,
+                contenuto=contenuto_enc,
+                note=f"[wizard:{id_template}:indice] Indice generato automaticamente",
+                caricato_da=u.username if u else "",
+            )
+            flash(f"Indice «{nome_indice}» generato e aggiunto al fascicolo.", "success")
+            audit("fascicoli.wizard.indice", "fascicolo", id_fasc,
+                  dettagli=f"template:{id_template}")
+        except Exception as e:
+            app.logger.exception("Errore wizard_genera_indice %s: %s", id_fasc, e)
+            flash(f"Errore generazione indice: {e}", "danger")
+
+        return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc,
+                                id_template=id_template))
+
     # ---- Avvio scheduler background
     from pct.scheduler import start_scheduler
     start_scheduler(app)

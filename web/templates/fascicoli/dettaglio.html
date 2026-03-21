@@ -326,23 +326,33 @@
         </span>
         <div class="d-flex gap-2 flex-wrap">
 
-          {# Dropdown: scegli tipo atto → checklist pre-compilata con dati fascicolo #}
+          {# Dropdown: scegli tipo atto → wizard guidato #}
           <div class="dropdown">
             <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
                     type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="bi bi-list-check me-1"></i>Prepara atto
+              <i class="bi bi-magic me-1"></i>Prepara atto
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:280px;max-height:340px;overflow-y:auto">
-              <li><h6 class="dropdown-header small">Checklist e istruzioni per il deposito</h6></li>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:310px;max-height:380px;overflow-y:auto">
+              <li><h6 class="dropdown-header small">Wizard guidato — carica e rinomina documenti</h6></li>
               {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
               <li>
                 <a class="dropdown-item small py-2"
+                   href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=tmpl.id) }}">
+                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
+                  {{ tmpl.nome }}
+                </a>
+              </li>
+              {% endif %}{% endfor %}
+              <li><hr class="dropdown-divider"></li>
+              <li><h6 class="dropdown-header small text-muted">Solo checklist (guida senza upload)</h6></li>
+              {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
+              <li>
+                <a class="dropdown-item small py-1 text-muted"
                    href="{{ url_for('checklist_dettaglio', id_template=tmpl.id,
                                     id_fasc=fascicolo.id,
                                     parte=fascicolo.controparte,
                                     rg=fascicolo.numero_rg) }}">
-                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
-                  {{ tmpl.nome }}
+                  <i class="bi bi-list-check me-2"></i>{{ tmpl.nome }}
                 </a>
               </li>
               {% endif %}{% endfor %}

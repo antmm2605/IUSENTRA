@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Wizard completato — {{ tmpl.nome }}{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }}</a>
+    </li>
+    <li class="breadcrumb-item active">Wizard — {{ tmpl.nome }}</li>
+  </ol>
+</nav>
+
+{# ── Header ── #}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+     class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h5 class="mb-0 fw-bold">
+      {% if tutti_obbligatori %}
+        <i class="bi bi-check-circle-fill me-2 text-success"></i>Documenti pronti — {{ tmpl.nome }}
+      {% else %}
+        <i class="bi bi-exclamation-circle-fill me-2 text-warning"></i>Completamento parziale — {{ tmpl.nome }}
+      {% endif %}
+    </h5>
+    <div class="text-muted small mt-1">
+      {{ fascicolo.titolo }}
+      {% if fascicolo.rg_completo %}
+        &mdash; <span class="font-monospace">{{ fascicolo.rg_completo }}</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── Banner esito ── #}
+{% if tutti_obbligatori %}
+<div class="alert alert-success d-flex align-items-start gap-3 mb-4">
+  <i class="bi bi-check-circle-fill fs-3 mt-1 flex-shrink-0"></i>
+  <div>
+    <div class="fw-bold fs-6">Tutti i documenti obbligatori sono stati caricati.</div>
+    <div class="small mt-1">
+      Puoi generare l'indice dei documenti e procedere al deposito.
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warning d-flex align-items-start gap-3 mb-4">
+  <i class="bi bi-exclamation-triangle-fill fs-3 mt-1 flex-shrink-0"></i>
+  <div>
+    <div class="fw-bold fs-6">Alcuni documenti obbligatori mancano ancora.</div>
+    <div class="small mt-1">
+      Clicca su uno step mancante per caricarlo prima di procedere al deposito.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    {# ── Riepilogo documenti ── #}
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-files text-primary"></i>
+        <span class="fw-semibold">Riepilogo documenti</span>
+        <span class="badge bg-light text-dark border ms-auto">
+          {{ steps_stato | selectattr('stato', 'eq', 'done') | list | length }}
+          / {{ steps_stato | length }} caricati
+        </span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for s in steps_stato %}
+        {% set d = s.doc %}
+        {% set stato = s.stato %}
+        {% set doc_fasc = s.documento %}
+        <li class="list-group-item px-3 py-2">
+          <div class="d-flex align-items-start gap-3">
+            {# Icona stato #}
+            <div class="flex-shrink-0 mt-1">
+              {% if stato == 'done' %}
+                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+              {% elif stato == 'saltato' %}
+                <i class="bi bi-dash-circle text-secondary fs-5"></i>
+              {% else %}
+                <i class="bi bi-circle {% if d.obbligatorio %}text-danger{% else %}text-muted{% endif %} fs-5"></i>
+              {% endif %}
+            </div>
+
+            {# Info documento #}
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge bg-light text-dark border" style="font-size:.7rem;min-width:2rem">
+                  {{ d.numero }}
+                </span>
+                <strong class="small">{{ d.descrizione }}</strong>
+                {% if not d.obbligatorio %}
+                  <span class="badge bg-light text-secondary border" style="font-size:.65rem">facoltativo</span>
+                {% endif %}
+              </div>
+
+              {% if doc_fasc %}
+              <div class="mt-1 d-flex align-items-center gap-2 flex-wrap">
+                <code class="small text-success">{{ doc_fasc.nome }}</code>
+                <span class="text-muted small">{{ doc_fasc.data_documento or '' }}</span>
+                <span class="text-muted small">{{ (doc_fasc.dimensione_bytes / 1024) | round(1) }} KB</span>
+                {% if doc_fasc.firmato_digitalmente %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle small">
+                    <i class="bi bi-patch-check-fill me-1"></i>firmato
+                  </span>
+                {% endif %}
+              </div>
+              {% elif stato == 'saltato' %}
+              <div class="small text-muted mt-1">Non allegato (saltato)</div>
+              {% else %}
+              <div class="small text-danger mt-1">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Documento mancante —
+                <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=d.numero) }}"
+                   class="fw-semibold">Carica ora</a>
+              </div>
+              {% endif %}
+            </div>
+
+            {# Azioni #}
+            <div class="flex-shrink-0 d-flex gap-1">
+              {% if doc_fasc %}
+              <a href="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc_fasc.id) }}"
+                 class="btn btn-sm btn-outline-secondary py-1 px-2" target="_blank" title="Visualizza">
+                <i class="bi bi-eye" style="font-size:.75rem"></i>
+              </a>
+              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc_fasc.id) }}"
+                 class="btn btn-sm btn-outline-secondary py-1 px-2" title="Scarica">
+                <i class="bi bi-download" style="font-size:.75rem"></i>
+              </a>
+              {% endif %}
+              <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=d.numero) }}"
+                 class="btn btn-sm {% if stato == 'done' %}btn-outline-secondary{% else %}btn-outline-primary{% endif %} py-1 px-2"
+                 title="{% if stato == 'done' %}Sostituisci{% else %}Carica{% endif %}">
+                <i class="bi bi-pencil" style="font-size:.75rem"></i>
+              </a>
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# ── Canale di deposito ── #}
+    <div class="card border-0 shadow-sm mb-4 border-start border-4
+      border-{{ canale_col.get(tmpl.canale, 'secondary') }}">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi {{ canale_icon.get(tmpl.canale, 'bi-info-circle') }}
+             text-{{ canale_col.get(tmpl.canale, 'secondary') }} fs-5"></i>
+          <strong class="small">{{ canale_label.get(tmpl.canale, tmpl.canale) }}</strong>
+        </div>
+        {% if tmpl.nota_canale %}
+        <div class="small text-muted mt-1">{{ tmpl.nota_canale }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>{# /col-lg-8 #}
+
+  {# ── Azioni sidebar ── #}
+  <div class="col-lg-4">
+
+    {# Cartella #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body py-2 px-3">
+        <div class="small fw-semibold text-muted mb-1">Cartella deposito</div>
+        <code class="small">{{ nome_cartella }}/</code>
+      </div>
+    </div>
+
+    {# Genera indice #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-1">
+          <i class="bi bi-list-ol me-2 text-primary"></i>Genera indice
+        </h6>
+        <p class="small text-muted mb-3">
+          Crea automaticamente il file <code>00_Indice_{{ tmpl.id }}.txt</code>
+          con l'elenco numerato di tutti i documenti allegati e aggiungilo al fascicolo.
+        </p>
+        <form method="POST"
+              action="{{ url_for('wizard_genera_indice', id_fasc=fascicolo.id, id_template=tmpl.id) }}">
+          <button type="submit" class="btn btn-primary w-100 fw-semibold">
+            <i class="bi bi-file-earmark-text me-1"></i>Genera indice
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# Deposito #}
+    {% if tmpl.endpoint_deposito %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-1">
+          <i class="bi bi-send me-2 text-success"></i>Deposito telematico
+        </h6>
+        <p class="small text-muted mb-3">
+          Tutti i documenti sono pronti. Procedi al deposito tramite
+          {{ canale_label.get(tmpl.canale, tmpl.canale) }}.
+        </p>
+        <a href="{{ url_for(tmpl.endpoint_deposito) if tmpl.endpoint_deposito else '#' }}"
+           class="btn btn-success w-100 fw-semibold {% if not tutti_obbligatori %}disabled{% endif %}">
+          <i class="bi bi-send me-1"></i>Vai al deposito
+        </a>
+        {% if not tutti_obbligatori %}
+        <div class="small text-muted mt-2">
+          <i class="bi bi-lock me-1"></i>Completa prima tutti i documenti obbligatori.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Torna al fascicolo #}
+    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+       class="btn btn-outline-secondary w-100">
+      <i class="bi bi-folder2-open me-1"></i>Torna al fascicolo
+    </a>
+
+  </div>{# /col-lg-4 #}
+</div>{# /row #}
+
+{% endblock %}

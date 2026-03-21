@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}Wizard — {{ tmpl.nome }} — Step {{ step_n }}/{{ step_totale }}{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }}</a>
+    </li>
+    <li class="breadcrumb-item active">Wizard — {{ tmpl.nome }}</li>
+  </ol>
+</nav>
+
+{# ── Header ── #}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+     class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h5 class="mb-0 fw-bold">
+      <i class="bi bi-magic me-2 text-success"></i>{{ tmpl.nome }}
+    </h5>
+    <div class="text-muted small mt-1">
+      {{ fascicolo.titolo }}
+      {% if fascicolo.rg_completo %}
+        &mdash; <span class="font-monospace">{{ fascicolo.rg_completo }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="ms-auto text-end">
+    <span class="badge bg-success fs-6">Step {{ step_n }} / {{ step_totale }}</span>
+  </div>
+</div>
+
+{# ── Progress stepper ── #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3 px-3">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      {% for s in steps_stato %}
+      {% set d = s.doc %}
+      {% set stato = s.stato %}
+      {% set is_current = (d.numero == step_n) %}
+      <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=d.numero) }}"
+         class="text-decoration-none"
+         title="{{ d.descrizione }}{% if not d.obbligatorio %} (facoltativo){% endif %}">
+        <span class="badge rounded-pill px-3 py-2
+          {% if is_current %}bg-primary
+          {% elif stato == 'done' %}bg-success
+          {% elif stato == 'saltato' %}bg-secondary
+          {% else %}bg-light text-dark border{% endif %}"
+          style="font-size:.8rem; min-width:2.4rem">
+          {% if stato == 'done' and not is_current %}
+            <i class="bi bi-check-lg"></i>
+          {% elif stato == 'saltato' %}
+            <i class="bi bi-dash"></i>
+          {% else %}
+            {{ d.numero }}
+          {% endif %}
+        </span>
+      </a>
+      {% if not loop.last %}
+        <span class="text-muted" style="font-size:.7rem">─</span>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="mt-2 small text-muted">
+      {% set done_count = steps_stato | selectattr('stato', 'eq', 'done') | list | length %}
+      {% set saltati_count = steps_stato | selectattr('stato', 'eq', 'saltato') | list | length %}
+      {{ done_count }} completati
+      {% if saltati_count %}, {{ saltati_count }} saltati{% endif %}
+      su {{ step_totale }} totali
+    </div>
+  </div>
+</div>
+
+{# ── Pannello step corrente ── #}
+<div class="row g-4">
+  <div class="col-lg-7">
+
+    {# Card step #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-3">
+        <div class="d-flex align-items-start gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0
+                      {% if doc_esistente %}bg-success{% else %}bg-primary{% endif %} text-white"
+               style="width:2.4rem;height:2.4rem;font-size:1rem;font-weight:700">
+            {% if doc_esistente %}
+              <i class="bi bi-check-lg"></i>
+            {% else %}
+              {{ step_corrente.numero }}
+            {% endif %}
+          </div>
+          <div>
+            <div class="fw-bold">{{ step_corrente.descrizione }}</div>
+            <code class="small text-muted">{{ step_corrente.nome_file }}<span class="text-secondary">.pdf</span></code>
+            {% if not step_corrente.obbligatorio %}
+              <span class="badge bg-light text-secondary border ms-2 small">facoltativo</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        {# Se esiste già un documento per questo step #}
+        {% if doc_esistente %}
+        <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+          <i class="bi bi-check-circle-fill fs-5"></i>
+          <div>
+            <strong>Documento già caricato:</strong> {{ doc_esistente.nome }}<br>
+            <span class="small text-muted">
+              {{ doc_esistente.data_documento or 'data n.d.' }}
+              &nbsp;·&nbsp; {{ (doc_esistente.dimensione_bytes / 1024) | round(1) }} KB
+              {% if doc_esistente.firmato_digitalmente %}
+                &nbsp;·&nbsp; <i class="bi bi-patch-check-fill text-success"></i> firmato
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <p class="small text-muted mb-3">
+          Puoi sostituire il documento caricando un nuovo file, oppure passare al prossimo step.
+        </p>
+        {% endif %}
+
+        {# Form upload #}
+        <form method="POST"
+              action="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n) }}"
+              enctype="multipart/form-data"
+              id="formWizardStep">
+          <input type="hidden" name="azione" value="carica">
+
+          {# Drop zone #}
+          <div id="dropZone"
+               class="border border-2 border-dashed rounded-3 text-center py-4 px-3 mb-3"
+               style="cursor:pointer;border-color:#ced4da!important;transition:border-color .2s"
+               onclick="document.getElementById('fileInput').click()"
+               ondragover="event.preventDefault();this.style.borderColor='#0d6efd'"
+               ondragleave="this.style.borderColor='#ced4da'"
+               ondrop="handleDrop(event)">
+            <i class="bi bi-cloud-arrow-up-fill fs-2 text-muted mb-2"></i>
+            <div class="fw-semibold">Trascina qui il file oppure clicca per selezionarlo</div>
+            <div class="small text-muted mt-1">Il file verrà rinominato automaticamente in:
+              <code>{{ step_corrente.nome_file }}.pdf</code>
+            </div>
+            <input type="file" id="fileInput" name="file" class="d-none"
+                   accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
+                   onchange="mostraFileSelezionato(this)">
+          </div>
+
+          {# Anteprima nome file #}
+          <div id="previewNome" class="alert alert-info small d-none mb-3">
+            <i class="bi bi-file-earmark-check me-1"></i>
+            Il file verrà salvato come: <strong id="nomeFinale"></strong>
+          </div>
+
+          {# Dati aggiuntivi #}
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Tipo documento</label>
+              <select name="tipo_doc" class="form-select form-select-sm">
+                {% for val, label in tipo_documento_choices %}
+                <option value="{{ val }}"
+                  {% if val == 'ATTO_GIUDIZIARIO' and step_corrente.numero == 1 %}selected
+                  {% elif val == 'PROCURA' and 'procura' in step_corrente.nome_file|lower %}selected
+                  {% elif val == 'ALLEGATO' %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Data documento</label>
+              <input type="date" name="data_documento" class="form-control form-control-sm"
+                     value="{{ oggi }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Note (opzionale)</label>
+            <input type="text" name="note" class="form-control form-control-sm"
+                   placeholder="Note sul documento...">
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="cbFirmato"
+                   name="firmato" value="1">
+            <label class="form-check-label small" for="cbFirmato">
+              <i class="bi bi-patch-check me-1 text-success"></i>Documento firmato digitalmente
+            </label>
+          </div>
+
+          {# Azioni step #}
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="submit" id="btnCarica" class="btn btn-success fw-semibold" disabled>
+              <i class="bi bi-upload me-1"></i>Carica e vai al prossimo
+            </button>
+
+            {% if step_n > 1 %}
+            <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n - 1) }}"
+               class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>Precedente
+            </a>
+            {% endif %}
+
+            {% if doc_esistente %}
+            {# Già caricato: consenti di andare avanti senza ricaricare #}
+            <a href="{% if step_n < step_totale %}{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n + 1) }}{% else %}{{ url_for('wizard_atto_completa', id_fasc=fascicolo.id, id_template=tmpl.id) }}{% endif %}"
+               class="btn btn-outline-primary">
+              <i class="bi bi-arrow-right me-1"></i>Prossimo step
+            </a>
+            {% endif %}
+
+            {% if not step_corrente.obbligatorio %}
+            <form method="POST"
+                  action="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n) }}"
+                  class="d-inline">
+              <input type="hidden" name="azione" value="salta">
+              <button type="submit" class="btn btn-outline-warning btn-sm">
+                <i class="bi bi-skip-forward me-1"></i>Salta (facoltativo)
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </form>
+
+      </div>{# /card-body #}
+    </div>{# /card #}
+
+  </div>{# /col-lg-7 #}
+
+  {# ── Sidebar info ── #}
+  <div class="col-lg-5">
+
+    {# Note step #}
+    {% if step_corrente.note %}
+    <div class="alert alert-warning small mb-3">
+      <i class="bi bi-info-circle me-1"></i> {{ step_corrente.note }}
+    </div>
+    {% endif %}
+
+    {# Info cartella #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <div class="small fw-semibold text-muted mb-1">Cartella deposito</div>
+        <code class="small">{{ nome_cartella }}/</code>
+      </div>
+    </div>
+
+    {# Elenco completo documenti richiesti #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="small fw-semibold">Documenti richiesti</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for s in steps_stato %}
+        {% set d = s.doc %}
+        {% set stato = s.stato %}
+        <li class="list-group-item px-3 py-2 d-flex align-items-start gap-2
+                   {% if d.numero == step_n %}list-group-item-primary{% endif %}">
+          <span class="badge rounded-pill mt-1 flex-shrink-0
+            {% if stato == 'done' %}bg-success
+            {% elif stato == 'saltato' %}bg-secondary
+            {% elif d.numero == step_n %}bg-primary
+            {% else %}bg-light text-dark border{% endif %}"
+            style="min-width:1.7rem">
+            {% if stato == 'done' %}<i class="bi bi-check"></i>
+            {% elif stato == 'saltato' %}–
+            {% else %}{{ d.numero }}{% endif %}
+          </span>
+          <div class="flex-grow-1">
+            <div class="small {% if d.numero == step_n %}fw-bold{% endif %}">{{ d.descrizione }}</div>
+            <code class="text-muted" style="font-size:.68rem">{{ d.nome_file }}</code>
+            {% if not d.obbligatorio %}
+              <span class="badge bg-light text-secondary border ms-1" style="font-size:.6rem">facoltativo</span>
+            {% endif %}
+          </div>
+          {% if s.documento %}
+          <a href="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=s.documento.id) }}"
+             class="btn btn-sm btn-outline-secondary py-0 px-1" target="_blank" title="Visualizza">
+            <i class="bi bi-eye" style="font-size:.75rem"></i>
+          </a>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div>{# /col-lg-5 #}
+</div>{# /row #}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function mostraFileSelezionato(input) {
+  const btnCarica = document.getElementById('btnCarica');
+  const preview   = document.getElementById('previewNome');
+  const nomeEl    = document.getElementById('nomeFinale');
+  const dropZone  = document.getElementById('dropZone');
+
+  if (input.files && input.files[0]) {
+    const f    = input.files[0];
+    const ext  = f.name.lastIndexOf('.') >= 0
+                 ? f.name.slice(f.name.lastIndexOf('.'))
+                 : '.pdf';
+    const nome = '{{ step_corrente.nome_file }}' + ext;
+    nomeEl.textContent = nome;
+    preview.classList.remove('d-none');
+    dropZone.style.borderColor = '#198754';
+    dropZone.innerHTML = `<i class="bi bi-file-earmark-check-fill fs-2 text-success mb-2"></i>
+      <div class="fw-semibold text-success">${f.name}</div>
+      <div class="small text-muted mt-1">Verrà salvato come: <code>${nome}</code></div>
+      <input type="file" id="fileInput" name="file" class="d-none"
+             accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
+             onchange="mostraFileSelezionato(this)">`;
+    btnCarica.disabled = false;
+  }
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  const dropZone = document.getElementById('dropZone');
+  dropZone.style.borderColor = '#ced4da';
+  const dt = event.dataTransfer;
+  if (dt.files && dt.files[0]) {
+    // Crea un input nascosto temporaneo per assegnare il file
+    const input = document.createElement('input');
+    input.type = 'file';
+    // Trasferimento non diretto possibile; si usa DataTransfer API
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(dt.files[0]);
+    const fileInputReal = document.getElementById('fileInput');
+    if (fileInputReal) {
+      fileInputReal.files = dataTransfer.files;
+      mostraFileSelezionato(fileInputReal);
+    }
+  }
+}
+</script>
+{% endblock %}

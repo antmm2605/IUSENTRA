@@ -63,20 +63,59 @@ class TipoDocumento(str, Enum):
 
 
 class TipoAttivita(str, Enum):
-    UDIENZA             = "UDIENZA"
-    DEPOSITO_ATTI       = "DEPOSITO_ATTI"
-    NOTIFICA            = "NOTIFICA"
-    CONSULTAZIONE       = "CONSULTAZIONE"
-    TERMINE_SCADENZA    = "TERMINE_SCADENZA"
-    ACCESSO_ATTI        = "ACCESSO_ATTI"
-    MEDIAZIONE          = "MEDIAZIONE"
-    CTU                 = "CTU"
-    SENTENZA_EMESSA     = "SENTENZA_EMESSA"
-    APPELLO             = "APPELLO"
-    ESECUZIONE          = "ESECUZIONE"
-    ACCORDO             = "ACCORDO"
-    RINVIO              = "RINVIO"
-    ALTRO               = "ALTRO"
+    UDIENZA                  = "UDIENZA"
+    DEPOSITO_ATTI            = "DEPOSITO_ATTI"
+    ISCRIZIONE_A_RUOLO       = "ISCRIZIONE_A_RUOLO"    # PST: avvio causa / iscrizione a ruolo
+    NOTIFICA                 = "NOTIFICA"
+    CONSULTAZIONE            = "CONSULTAZIONE"
+    TERMINE_SCADENZA         = "TERMINE_SCADENZA"
+    ACCESSO_ATTI             = "ACCESSO_ATTI"
+    MEDIAZIONE               = "MEDIAZIONE"
+    CTU                      = "CTU"
+    SENTENZA_EMESSA          = "SENTENZA_EMESSA"
+    PROVVEDIMENTO            = "PROVVEDIMENTO"          # PST: ordinanza / decreto del giudice
+    COMUNICAZIONE_CANCELLERIA = "COMUNICAZIONE_CANCELLERIA"  # PST: comunicazione / esito cancelleria
+    APPELLO                  = "APPELLO"
+    ESECUZIONE               = "ESECUZIONE"
+    ACCORDO                  = "ACCORDO"
+    RINVIO                   = "RINVIO"
+    ALTRO                    = "ALTRO"
+
+
+# Mapping tipo_atto (codice PST) → label italiana leggibile
+TIPO_ATTO_LABEL: dict = {
+    "RICORSO":              "Ricorso",
+    "CITAZIONE":            "Atto di citazione",
+    "MEMORIA":              "Memoria",
+    "COMPARSA":             "Comparsa di risposta",
+    "REPLICA":              "Replica",
+    "ISTANZA":              "Istanza",
+    "NOTA_SPESE":           "Nota spese",
+    "PROCURA":              "Procura alle liti",
+    "DECRETO_INGIUNTIVO":   "Ricorso per decreto ingiuntivo",
+    "OPPOSIZIONE":          "Atto di opposizione",
+    "APPELLO":              "Atto di appello",
+    "RECLAMO":              "Reclamo",
+    "ATTO_DIFESA":          "Atto di difesa",
+    "IMPUGNAZIONE":         "Atto di impugnazione",
+    "RICHIESTA_RIESAME":    "Richiesta di riesame",
+    "MOTIVI_NUOVI":         "Motivi nuovi",
+    "DEPOSITO_DOCUMENTI":   "Deposito documenti",
+    "MOTIVI_AGGIUNTI":      "Motivi aggiunti",
+    "RICORSO_INCIDENTALE":  "Ricorso incidentale",
+    "ALTRO":                "Altro atto",
+}
+
+
+def _tipo_attivita_da_tipo_atto(tipo_atto: str) -> "TipoAttivita":
+    """Deriva il TipoAttivita PST dal codice tipo_atto del deposito."""
+    _iscrizione = {"CITAZIONE", "DECRETO_INGIUNTIVO", "RICORSO", "RICORSO_INCIDENTALE"}
+    _appello    = {"APPELLO", "IMPUGNAZIONE"}
+    if tipo_atto in _iscrizione:
+        return TipoAttivita.ISCRIZIONE_A_RUOLO
+    if tipo_atto in _appello:
+        return TipoAttivita.APPELLO
+    return TipoAttivita.DEPOSITO_ATTI
 
 
 class EsitoAttivita(str, Enum):
@@ -665,6 +704,23 @@ class GestioneFascicoli:
         )
         f.depositi_pct.append(esito)
         f.modificato_il = datetime.now().isoformat()
+
+        # Auto-crea attività processuale collegata al deposito (PST: evento nel fascicolo)
+        tipo_att = _tipo_attivita_da_tipo_atto(tipo_atto)
+        label    = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
+        att = AttivitaProcessuale(
+            id=uuid.uuid4().hex[:8].upper(),
+            tipo=tipo_att,
+            data=date.today().isoformat(),
+            titolo=f"Deposito telematico — {label}",
+            descrizione=f"Tipo atto: {label}. Stato: {stato}.",
+            esito=EsitoAttivita.IN_ATTESA,
+            id_deposito_pct=esito.id,
+            avvocato=registrato_da,
+        )
+        f.attivita.append(att)
+        f.modificato_il = datetime.now().isoformat()
+
         self._salva()
         return esito
 

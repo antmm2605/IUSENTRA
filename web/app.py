@@ -3866,6 +3866,8 @@ def create_app(config: dict | None = None) -> Flask:
         ts     = _dt.now().isoformat()
         try:
             from datetime import datetime as _dtnow
+            from pct.fascicoli import (AttivitaProcessuale, EsitoAttivita,
+                                       TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto)
             esito = EsitoDepositoPCT(
                 id=id_dep,
                 timestamp=ts,
@@ -3877,6 +3879,19 @@ def create_app(config: dict | None = None) -> Flask:
                 registrato_da=u.username if u else "",
             )
             fasc.depositi_pct.append(esito)
+
+            # Auto-crea attività processuale collegata (PST: evento nel fascicolo informatico)
+            _label = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
+            fasc.attivita.append(AttivitaProcessuale(
+                id=__import__("uuid").uuid4().hex[:8].upper(),
+                tipo=_tipo_attivita_da_tipo_atto(tipo_atto),
+                data=date.today().isoformat(),
+                titolo=f"Deposito telematico — {_label}",
+                descrizione=f"Tipo atto: {_label}. PEC: {pec_dest}. Busta: {id_dep}.",
+                esito=EsitoAttivita.IN_ATTESA,
+                id_deposito_pct=id_dep,
+                avvocato=u.username if u else "",
+            ))
             fasc.modificato_il = _dtnow.now().isoformat()
             gf._salva()
             audit("fascicoli.deposito.invia_pec", "fascicolo", id_fasc,

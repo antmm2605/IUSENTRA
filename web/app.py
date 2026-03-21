@@ -4113,13 +4113,16 @@ def create_app(config: dict | None = None) -> Flask:
         pec_cfg    = None
         modalita_demo = False
         try:
-            cfg_studio = get_config_studio().config
-            pec_cfg    = cfg_studio.pec if cfg_studio else None
+            from pct.config_studio import GestioneConfigStudio as _GCS
+            _gcs    = _GCS(app.config.get("STUDIO_CONFIG", "./config/studio.json"))
+            _scfg   = _gcs.config
+            pec_cfg = _scfg.pec if _scfg else None
             if not pec_cfg or not pec_cfg.indirizzo or not pec_cfg.password:
                 modalita_demo = True
                 pec_cfg = None
-        except Exception as exc:
-            return jsonify({"ok": False, "errore": f"Errore lettura config studio: {exc}"}), 500
+        except Exception:
+            modalita_demo = True
+            pec_cfg = None
 
         # Crea busta
         try:

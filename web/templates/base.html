@@ -1148,8 +1148,18 @@ if ('serviceWorker' in navigator) {
   function isMobile() { return window.innerWidth <= MOBILE_BP; }
 
   /* ── Mobile overlay ── */
-  function openDrawer()  { sb.classList.add('sb-open');  ov.classList.add('sb-open'); }
-  function closeDrawer() { sb.classList.remove('sb-open'); ov.classList.remove('sb-open'); }
+  var bn = document.getElementById('bottom-nav');
+  var bnh = document.getElementById('bn-handle');
+  function openDrawer() {
+    sb.classList.add('sb-open'); ov.classList.add('sb-open');
+    if (isMobile() && bn)  { bn.classList.add('bn-hidden');  }
+    if (isMobile() && bnh) { bnh.classList.add('bn-hidden'); }
+  }
+  function closeDrawer() {
+    sb.classList.remove('sb-open'); ov.classList.remove('sb-open');
+    if (isMobile() && bn  && localStorage.getItem('pct-bn-hidden') !== '1') { bn.classList.remove('bn-hidden');  }
+    if (isMobile() && bnh && localStorage.getItem('pct-bn-hidden') !== '1') { bnh.classList.remove('bn-hidden'); }
+  }
 
   /* ── Desktop mini ── */
   function setMini(mini) {

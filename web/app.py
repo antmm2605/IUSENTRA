@@ -4145,11 +4145,15 @@ def create_app(config: dict | None = None) -> Flask:
             app.logger.exception("Errore creazione busta %s: %s", id_fasc, exc)
             return jsonify({"ok": False, "errore": f"Errore creazione busta: {exc}"}), 500
 
+        # id_dep e ts definiti subito dopo la busta, usati da tutti i blocchi seguenti
+        id_dep = busta.id_busta[:8].upper()
+        ts     = _dt.now().isoformat()
+
         # Invia via PEC (reale o simulata)
         if modalita_demo:
             # Modalità demo: simula risposta PEC senza connessione reale
             import hashlib as _hl
-            fake_mid = _hl.md5(f"{id_dep}{_dt.now().isoformat()}".encode()).hexdigest()[:16].upper()
+            fake_mid = _hl.md5(f"{id_dep}{ts}".encode()).hexdigest()[:16].upper()
             ris = {
                 "inviato": True,
                 "message_id": f"DEMO-{fake_mid}@pst.giustizia.it",
@@ -4186,8 +4190,6 @@ def create_app(config: dict | None = None) -> Flask:
                 return jsonify({"ok": False, "errore": f"Errore invio PEC: {exc}"}), 500
 
         # Salva esito nel fascicolo
-        id_dep = busta.id_busta[:8].upper()
-        ts     = _dt.now().isoformat()
         try:
             from datetime import datetime as _dtnow
             from pct.fascicoli import (AttivitaProcessuale, EsitoAttivita,
@@ -4227,6 +4229,7 @@ def create_app(config: dict | None = None) -> Flask:
             # L'invio è andato a buon fine anche se il salvataggio fallisce
             return jsonify({
                 "ok": True,
+                "demo": modalita_demo,
                 "avviso": f"Busta inviata ma errore nel salvataggio: {exc}",
                 "id_deposito": id_dep,
                 "pec_dest": pec_dest,

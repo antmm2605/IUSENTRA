@@ -1,0 +1,101 @@
+{# ── Contenuto email selezionata — usato sia nel pannello split sia nella pagina dettaglio ── #}
+{% set em = em or email_sel %}
+{% if em %}
+<div class="d-flex align-items-start gap-2 mb-3 flex-wrap">
+  <div class="flex-grow-1">
+    <h6 class="fw-bold mb-1 text-break">{{ em.oggetto or '(nessun oggetto)' }}</h6>
+    <div class="small text-muted">
+      {% if em.cartella == 'INVIATI' %}
+        <span class="text-muted">A: <strong>{{ em.destinatari }}</strong></span>
+      {% else %}
+        <span>Da: <strong>{{ em.mittente_nome or em.mittente }}</strong></span>
+        {% if em.mittente_nome %}<span class="text-muted ms-1">&lt;{{ em.mittente }}&gt;</span>{% endif %}
+      {% endif %}
+      <span class="ms-2 text-muted">
+        {% set ts = em.timestamp %}{% if ts %}{{ ts[:16]|replace('T',' ') }}{% endif %}
+      </span>
+    </div>
+  </div>
+  {# Azioni #}
+  <div class="d-flex gap-1 flex-shrink-0">
+    <a href="{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}"
+       class="btn btn-sm btn-outline-primary" title="Rispondi">
+      <i class="bi bi-reply"></i>
+    </a>
+    {% if em.cartella != 'CESTINO' %}
+    <form method="post" action="{{ url_for('email_client.cestino', id_email=em.id) }}"
+          class="d-inline">
+      <input type="hidden" name="cartella" value="{{ em.cartella }}">
+      <button class="btn btn-sm btn-outline-danger" title="Cestino">
+        <i class="bi bi-trash"></i>
+      </button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('email_client.ripristina', id_email=em.id) }}" class="d-inline">
+      <button class="btn btn-sm btn-outline-success" title="Ripristina">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('email_client.elimina', id_email=em.id) }}" class="d-inline"
+          onsubmit="return confirm('Eliminare definitivamente?')">
+      <button class="btn btn-sm btn-outline-danger" title="Elimina definitivamente">
+        <i class="bi bi-trash3-fill"></i>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{# Badge PST #}
+{% if em.e_pst %}
+<div class="alert alert-primary d-flex gap-2 py-2 mb-3 align-items-center small">
+  <i class="bi bi-shield-check-fill flex-shrink-0"></i>
+  <div>
+    <strong>Risposta Portale Servizi Telematici</strong>
+    {% if em.stato_pct %}— stato rilevato: <code>{{ em.stato_pct }}</code>{% endif %}
+    {% if not em.auto_registrata %}
+    <span class="badge bg-warning text-dark ms-1">non ancora registrata nel fascicolo</span>
+    {% else %}
+    <span class="badge bg-success ms-1">esito aggiornato nel fascicolo</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<hr class="my-2">
+
+{# Corpo email #}
+<div class="email-body-container" style="font-size:.9rem;line-height:1.6">
+  {% if em.corpo_html %}
+  <div class="email-body-html">
+    <iframe srcdoc="{{ em.corpo_html|e }}"
+            style="width:100%;border:none;min-height:300px"
+            sandbox="allow-same-origin"
+            onload="this.style.height=this.contentDocument.documentElement.scrollHeight+'px'">
+    </iframe>
+  </div>
+  {% elif em.corpo_testo %}
+  <pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit">{{ em.corpo_testo }}</pre>
+  {% else %}
+  <div class="text-muted fst-italic">(Nessun corpo email)</div>
+  {% endif %}
+</div>
+
+{# Allegati #}
+{% if em.allegati %}
+<hr class="my-2">
+<div class="small text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Allegati</div>
+<div class="d-flex flex-wrap gap-2">
+  {% for all in em.allegati %}
+  <span class="badge bg-light text-dark border px-2 py-1">
+    <i class="bi bi-file-earmark me-1"></i>{{ all.nome }}
+    {% if all.size %}<span class="text-muted ms-1">{{ (all.size / 1024)|round(0)|int }} KB</span>{% endif %}
+  </span>
+  {% endfor %}
+</div>
+<div class="small text-muted mt-2">
+  <i class="bi bi-info-circle me-1"></i>
+  Il download degli allegati richiede l'accesso autenticato al portale originale.
+</div>
+{% endif %}
+{% endif %}

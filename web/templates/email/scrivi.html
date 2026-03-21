@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Componi email{% endblock %}
+{% block page_title %}Componi email{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-xl-8 col-lg-10">
+
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{{ url_for('email_client.casella') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h5 class="mb-0 fw-bold">
+    <i class="bi bi-pencil-square me-2 text-primary"></i>Nuova email
+  </h5>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <form method="post" action="{{ url_for('email_client.scrivi') }}">
+
+      {# Destinatario #}
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">
+          A <span class="text-danger">*</span>
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input type="email" name="a" class="form-control"
+                 value="{{ a }}" placeholder="destinatario@email.it" required>
+        </div>
+        {% if clienti %}
+        <div class="mt-1 small text-muted">
+          Oppure scegli un cliente:
+          <select class="form-select form-select-sm d-inline-block mt-1" style="width:auto"
+                  onchange="if(this.value){document.querySelector('[name=a]').value=this.value;document.querySelector('[name=id_cliente]').value=this.dataset.id||''}">
+            <option value="">— seleziona —</option>
+            {% for cl in clienti %}
+            {% if cl.email %}
+            <option value="{{ cl.email }}" data-id="{{ cl.id }}">
+              {{ cl.nome_completo }} &lt;{{ cl.email }}&gt;
+            </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <input type="hidden" name="id_cliente" value="">
+      </div>
+
+      {# Oggetto #}
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">
+          Oggetto <span class="text-danger">*</span>
+        </label>
+        <input type="text" name="oggetto" class="form-control"
+               value="{{ oggetto }}" placeholder="Oggetto del messaggio" required>
+      </div>
+
+      {# Corpo #}
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">Messaggio</label>
+        <textarea name="corpo" class="form-control" rows="12"
+                  placeholder="Scrivi il tuo messaggio…" style="font-family:inherit"></textarea>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end flex-wrap">
+        <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary">
+          Annulla
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-send me-1"></i>Invia email
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ em.oggetto or 'Email' }} — Casella{% endblock %}
+{% block page_title %}Email{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{{ url_for('email_client.casella', cartella=em.cartella) }}"
+     class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <span class="small text-muted">
+    {{ em.cartella|replace('INBOX','In arrivo')|replace('INVIATI','Inviati')|replace('CESTINO','Cestino') }}
+  </span>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    {% include 'email/_dettaglio_panel.html' %}
+  </div>
+</div>
+{% endblock %}

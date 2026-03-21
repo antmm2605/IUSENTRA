@@ -177,6 +177,9 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["MESSAGGI_DB"] = cfg.get(
         "MESSAGGI_DB", os.getenv("PCT_MESSAGGI_DB", "./messaggi/storico.json")
     )
+    app.config["EMAIL_CASELLA_DB"] = cfg.get(
+        "EMAIL_CASELLA_DB", os.getenv("PCT_EMAIL_DB", "./email/casella.json")
+    )
     app.config["BACKUP_DIR"] = cfg.get(
         "BACKUP_DIR", os.getenv("PCT_BACKUP_DIR", "./backup")
     )
@@ -5293,6 +5296,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     from web.blueprints.impostazioni import impostazioni as impostazioni_bp  # Impostazioni studio /impostazioni/*
     app.register_blueprint(impostazioni_bp)
+
+    from web.blueprints.email_client import email_client as email_client_bp  # Client email /email/*
+    app.register_blueprint(email_client_bp)
 
     # ---- iCal export per agenda e scadenziario
     @app.route("/agenda/export.ics")

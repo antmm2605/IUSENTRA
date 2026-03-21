@@ -137,20 +137,28 @@
     </div>
 
     {# ---- Sezione: Comunicazioni ---- #}
-    {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio') %}
+    {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio',
+                                      'email_client.casella','email_client.dettaglio',
+                                      'email_client.scrivi','email_client.impostazioni') %}
     <button class="sb-toggle {% if _cm %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-comunicazioni" aria-expanded="{{ 'true' if _cm else 'false' }}">
       <span><i class="bi bi-chat-dots"></i>Comunicazioni</span>
       <i class="bi bi-chevron-down sb-chev"></i>
     </button>
     <div class="collapse {% if _cm %}show{% endif %}" id="sb-comunicazioni">
+      <a href="{{ url_for('email_client.casella') }}"
+         class="nav-link sb-link {% if request.endpoint and request.endpoint.startswith('email_client.') %}active{% endif %}">
+        <i class="bi bi-envelope"></i><span class="sb-txt">Email</span>
+        {# Badge non lette — caricato via JS per evitare query ad ogni render #}
+        <span class="badge bg-primary rounded-pill ms-auto d-none" id="badgeEmailNonLette"></span>
+      </a>
       <a href="{{ url_for('lista_messaggi') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_messaggi','dettaglio_messaggio') %}active{% endif %}">
-        <i class="bi bi-inbox"></i><span class="sb-txt">Messaggi</span>
+        <i class="bi bi-chat-dots"></i><span class="sb-txt">Messaggi</span>
       </a>
       <a href="{{ url_for('nuovo_messaggio') }}"
          class="nav-link sb-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
-        <i class="bi bi-send"></i><span class="sb-txt">Nuovo Messaggio</span>
+        <i class="bi bi-send"></i><span class="sb-txt">Nuovo SMS/WA</span>
       </a>
     </div>
 
@@ -620,6 +628,19 @@ function initPagination(tableId, selectId) {
 {% block scripts %}{% endblock %}
 <script src="/static/js/ufficio_picker.js"></script>
 {% block extra_scripts %}{% endblock %}
+<script>
+// Badge email non lette nella sidebar
+(function() {
+  const badge = document.getElementById('badgeEmailNonLette');
+  if (!badge) return;
+  fetch('/email/api/stats').then(r => r.json()).then(d => {
+    if (d.non_lette > 0) {
+      badge.textContent = d.non_lette;
+      badge.classList.remove('d-none');
+    }
+  }).catch(() => {});
+})();
+</script>
 
 {# ================================================================ SCORCIATOIE TASTIERA #}
 <div class="modal fade" id="modalScorciatoie" tabindex="-1" aria-label="Scorciatoie da tastiera">

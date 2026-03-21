@@ -1180,6 +1180,14 @@ tr[data-swipe-delete] {
   padding: 0 1rem 1rem;
 }
 
+/* ---- Stat card cliccabile ---- */
+.cd-stat-clickable { cursor: pointer; }
+.cd-stat-clickable:active { transform: translateY(1px) scale(.98); }
+
+/* ---- Card pratica cliccabile ---- */
+.cd-card-clickable { cursor: pointer; }
+.cd-card-clickable:active { opacity: .92; }
+
 /* ---- Pratica card ---- */
 .cd-pratica-card {
   border-radius: .55rem !important;

@@ -602,10 +602,47 @@
 <div class="tab-pane fade" id="tab-soggetto" role="tabpanel">
 <form method="post" action="{{ url_for('nuovo_soggetto') }}" id="formSoggettoQuick">
 
-  {# ── Tipo soggetto ── #}
+  {# ── Ruolo processuale ── #}
   <div class="card shadow-sm mb-3">
     <div class="card-header fw-semibold">
-      <i class="bi bi-person-badge me-2 text-primary"></i>Tipo soggetto
+      <i class="bi bi-diagram-3 me-2 text-primary"></i>Tipo soggetto processuale <span class="text-danger">*</span>
+    </div>
+    <div class="card-body">
+      <div class="row g-2" id="sq-ruolo-grid">
+        {% for val, lbl, icon, color in [
+            ('CONTROPARTE',           'Controparte',            'bi-person-x',         'danger'),
+            ('ASSISTITO',             'Assistito / co-cliente', 'bi-person-check',      'success'),
+            ('DIFENSORE_CONTROPARTE', 'Difensore controparte',  'bi-briefcase',         'danger'),
+            ('TESTIMONE',             'Testimone',              'bi-eye',               'warning'),
+            ('PERITO_CTP',            'Perito CTP',             'bi-clipboard2-pulse',  'info'),
+            ('PERITO_CTU',            'Perito CTU',             'bi-clipboard2-check',  'info'),
+            ('GIUDICE',               'Giudice',                'bi-bank',              'dark'),
+            ('PM',                    'P.M.',                   'bi-shield-fill',       'dark'),
+            ('NOTAIO',                'Notaio',                 'bi-pen',               'secondary'),
+            ('MEDIATORE',             'Mediatore',              'bi-arrows-collapse',   'success'),
+            ('CURATORE',              'Curatore',               'bi-person-lock',       'secondary'),
+            ('CREDITORE',             'Creditore',              'bi-coin',              'primary'),
+            ('DEBITORE',              'Debitore',               'bi-cash-stack',        'danger'),
+            ('ALTRO',                 'Altro',                  'bi-three-dots',        'secondary'),
+        ] %}
+        <div class="col-6 col-sm-4 col-md-3">
+          <label class="sq-ruolo-card w-100 border rounded-2 p-2 text-center"
+                 style="cursor:pointer;transition:all .15s">
+            <input type="radio" name="qualifica" value="{{ val }}" class="visually-hidden sq-ruolo-radio"
+                   {{ 'checked' if loop.first }}>
+            <i class="bi {{ icon }} d-block fs-5 mb-1 text-{{ color }}"></i>
+            <div class="small fw-semibold" style="font-size:.75rem">{{ lbl }}</div>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Tipo anagrafico ── #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-person-badge me-2 text-primary"></i>Tipo anagrafico
     </div>
     <div class="card-body">
       <div class="d-flex gap-3 flex-wrap">
@@ -1523,6 +1560,29 @@ aggiornaVista();
       })
       .catch(() => { spinner.style.display = 'none'; });
   }
+})();
+
+/* ── Ruolo processuale quick-form ── */
+(function () {
+  const ruoloRadios = document.querySelectorAll('.sq-ruolo-radio');
+  function aggiornaRuolo() {
+    ruoloRadios.forEach(r => {
+      const card = r.closest('.sq-ruolo-card');
+      if (!card) return;
+      card.classList.toggle('border-primary', r.checked);
+      card.classList.toggle('bg-primary', r.checked);
+      card.classList.toggle('bg-opacity-10', r.checked);
+      card.classList.toggle('fw-semibold', r.checked);
+    });
+  }
+  ruoloRadios.forEach(r => r.addEventListener('change', aggiornaRuolo));
+  document.querySelectorAll('.sq-ruolo-card').forEach(c => {
+    c.addEventListener('click', function () {
+      const r = this.querySelector('.sq-ruolo-radio');
+      if (r) { r.checked = true; aggiornaRuolo(); }
+    });
+  });
+  aggiornaRuolo();
 })();
 
 /* ── Tipo soggetto quick-form ── */

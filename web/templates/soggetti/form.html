@@ -3,6 +3,16 @@
 {% block page_title %}{{ 'Modifica Soggetto' if soggetto else 'Nuovo Soggetto' }}{% endblock %}
 
 {% block content %}
+{% set prefill = prefill if prefill is defined else {} %}
+
+{# ── Banner pre-compilazione da cliente ── #}
+{% if prefill.get('id_cliente') %}
+<div class="alert alert-info alert-dismissible border-0 mb-3 py-2" role="alert">
+  <i class="bi bi-person-check me-2"></i>
+  Form pre-compilato dai dati del cliente — verifica e completa i campi mancanti.
+  <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
 
 {# ── Page Header ── #}
 <div class="ds-ph">
@@ -37,7 +47,7 @@
                style="cursor:pointer;transition:all .15s"
                data-tipo="{{ tv }}">
           <input type="radio" name="tipo" value="{{ tv }}" class="visually-hidden tipo-radio"
-                 {{ 'checked' if (soggetto and soggetto.tipo.value == tv) or (not soggetto and tv == 'PERSONA_FISICA') }}>
+                 {{ 'checked' if (soggetto and soggetto.tipo.value == tv) or (not soggetto and (prefill.get('tipo') or 'PERSONA_FISICA') == tv) }}>
           <i class="bi {{ ti }} d-block fs-3 mb-1"></i>
           <div class="fw-semibold small">{{ tl }}</div>
         </label>
@@ -47,7 +57,8 @@
   </div>
 
   {# ── Dati persona fisica ── #}
-  <div class="ds-form-card" id="section-pf" style="{{ 'display:none' if soggetto and soggetto.tipo.value == 'PERSONA_GIURIDICA' else '' }}">
+  {% set _tipo_init = soggetto.tipo.value if soggetto else (prefill.get('tipo') or 'PERSONA_FISICA') %}
+  <div class="ds-form-card" id="section-pf" style="{{ 'display:none' if _tipo_init == 'PERSONA_GIURIDICA' else '' }}">
     <div class="ds-form-card-header">
       <i class="bi bi-person text-primary"></i> Dati anagrafici
     </div>
@@ -56,12 +67,12 @@
         <div class="col-md-4">
           <label class="ds-form-label">Cognome <span class="text-danger">*</span></label>
           <input type="text" name="cognome" class="form-control form-control-sm"
-                 value="{{ soggetto.cognome if soggetto else '' }}" placeholder="Rossi">
+                 value="{{ soggetto.cognome if soggetto else prefill.get('cognome', '') }}" placeholder="Rossi">
         </div>
         <div class="col-md-4">
           <label class="ds-form-label">Nome <span class="text-danger">*</span></label>
           <input type="text" name="nome" class="form-control form-control-sm"
-                 value="{{ soggetto.nome if soggetto else '' }}" placeholder="Mario">
+                 value="{{ soggetto.nome if soggetto else prefill.get('nome', '') }}" placeholder="Mario">
         </div>
         <div class="col-md-4">
           <label class="ds-form-label">Sesso</label>
@@ -74,7 +85,7 @@
         <div class="col-md-5">
           <label class="ds-form-label">Codice Fiscale</label>
           <input type="text" name="codice_fiscale" class="form-control form-control-sm font-monospace text-uppercase"
-                 value="{{ soggetto.codice_fiscale if soggetto else '' }}" placeholder="RSSMRA80A01H501Z"
+                 value="{{ soggetto.codice_fiscale if soggetto else prefill.get('codice_fiscale', '') }}" placeholder="RSSMRA80A01H501Z"
                  maxlength="16" autocapitalize="characters">
         </div>
         <div class="col-md-4">
@@ -92,7 +103,7 @@
   </div>
 
   {# ── Dati persona giuridica ── #}
-  <div class="ds-form-card" id="section-pg" style="{{ '' if soggetto and soggetto.tipo.value == 'PERSONA_GIURIDICA' else 'display:none' }}">
+  <div class="ds-form-card" id="section-pg" style="{{ '' if _tipo_init == 'PERSONA_GIURIDICA' else 'display:none' }}">
     <div class="ds-form-card-header">
       <i class="bi bi-building text-success"></i> Dati aziendali
     </div>
@@ -101,12 +112,12 @@
         <div class="col-md-6">
           <label class="ds-form-label">Ragione sociale <span class="text-danger">*</span></label>
           <input type="text" name="ragione_sociale" class="form-control form-control-sm"
-                 value="{{ soggetto.ragione_sociale if soggetto else '' }}" placeholder="Rossi Srl">
+                 value="{{ soggetto.ragione_sociale if soggetto else prefill.get('ragione_sociale', '') }}" placeholder="Rossi Srl">
         </div>
         <div class="col-md-3">
           <label class="ds-form-label">Partita IVA</label>
           <input type="text" name="partita_iva" class="form-control form-control-sm font-monospace"
-                 value="{{ soggetto.partita_iva if soggetto else '' }}" placeholder="12345678901">
+                 value="{{ soggetto.partita_iva if soggetto else prefill.get('partita_iva', '') }}" placeholder="12345678901">
         </div>
         <div class="col-md-3">
           <label class="ds-form-label">Codice Fiscale</label>
@@ -220,7 +231,7 @@
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-telephone"></i></span>
             <input type="tel" name="telefono" class="form-control"
-                   value="{{ soggetto.recapiti.telefono if soggetto else '' }}" placeholder="+39 06 000000">
+                   value="{{ soggetto.recapiti.telefono if soggetto else prefill.get('telefono', '') }}" placeholder="+39 06 000000">
           </div>
         </div>
         <div class="col-md-3">
@@ -228,7 +239,7 @@
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-phone"></i></span>
             <input type="tel" name="cellulare" class="form-control"
-                   value="{{ soggetto.recapiti.cellulare if soggetto else '' }}" placeholder="+39 333 0000000">
+                   value="{{ soggetto.recapiti.cellulare if soggetto else prefill.get('cellulare', '') }}" placeholder="+39 333 0000000">
           </div>
         </div>
         <div class="col-md-3">
@@ -236,7 +247,7 @@
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-envelope"></i></span>
             <input type="email" name="email" class="form-control"
-                   value="{{ soggetto.recapiti.email if soggetto else '' }}" placeholder="mario@esempio.it">
+                   value="{{ soggetto.recapiti.email if soggetto else prefill.get('email', '') }}" placeholder="mario@esempio.it">
           </div>
         </div>
         <div class="col-md-3">
@@ -244,7 +255,7 @@
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
             <input type="email" name="pec" class="form-control"
-                   value="{{ soggetto.recapiti.pec if soggetto else '' }}" placeholder="mario@pec.it">
+                   value="{{ soggetto.recapiti.pec if soggetto else prefill.get('pec', '') }}" placeholder="mario@pec.it">
           </div>
         </div>
         <div class="col-md-3">
@@ -282,7 +293,7 @@
           <select name="id_cliente" class="form-select form-select-sm">
             <option value="">— Nessun collegamento —</option>
             {% for c in clienti %}
-            <option value="{{ c.id }}" {{ 'selected' if soggetto and soggetto.id_cliente == c.id }}>
+            <option value="{{ c.id }}" {{ 'selected' if (soggetto and soggetto.id_cliente == c.id) or (not soggetto and prefill.get('id_cliente') == c.id) }}>
               {{ c.nome_completo }}{% if c.codice_fiscale %} · {{ c.codice_fiscale }}{% endif %}
             </option>
             {% endfor %}

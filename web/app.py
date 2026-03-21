@@ -6123,12 +6123,19 @@ def create_app(config: dict | None = None) -> Flask:
             audit("soggetti.crea", "soggetto", s.id, dettagli=s.nome_completo)
             flash(f"Soggetto «{s.nome_completo}» creato.", "success")
             return redirect(url_for("dettaglio_soggetto", id_soggetto=s.id))
+        # Pre-popola da query string (es. proveniente da scheda cliente)
+        prefill = {k: request.args.get(k, "") for k in (
+            "tipo", "nome", "cognome", "ragione_sociale",
+            "codice_fiscale", "partita_iva",
+            "email", "cellulare", "telefono", "pec", "id_cliente",
+        )}
         return render_template(
             "soggetti/form.html",
             soggetto=None,
             clienti=clienti_list,
             TipoSoggetto=TipoSoggetto,
             oggi=date.today(),
+            prefill=prefill,
         )
 
     @app.route("/soggetti/<id_soggetto>")

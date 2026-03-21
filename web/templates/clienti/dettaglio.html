@@ -309,6 +309,21 @@
            class="list-group-item list-group-item-action">
           <i class="bi bi-pencil me-2 text-primary"></i>Modifica scheda
         </a>
+        <a href="{{ url_for('nuovo_soggetto',
+                             id_cliente=cliente.id,
+                             tipo=cliente.tipo.value,
+                             nome=cliente.nome,
+                             cognome=cliente.cognome,
+                             ragione_sociale=cliente.ragione_sociale,
+                             codice_fiscale=cliente.codice_fiscale,
+                             partita_iva=cliente.partita_iva,
+                             email=cliente.recapiti.email,
+                             cellulare=cliente.recapiti.cellulare,
+                             telefono=cliente.recapiti.telefono,
+                             pec=cliente.recapiti.pec) }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-person-badge me-2 text-success"></i>Registra come soggetto
+        </a>
         <a href="{{ url_for('portale_config', id_cliente=cliente.id) }}"
            class="list-group-item list-group-item-action">
           <i class="bi bi-person-badge me-2 text-info"></i>Portale cliente

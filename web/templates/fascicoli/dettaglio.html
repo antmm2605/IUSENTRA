@@ -297,11 +297,29 @@
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
           {% endif %}
         </span>
-        <div class="d-flex gap-2">
-          <a href="{{ url_for('deposito_prepara', id_fasc=fascicolo.id) }}"
-             class="btn btn-sm btn-primary">
-            <i class="bi bi-send me-1"></i>Invia deposito
-          </a>
+        <div class="d-flex gap-2 flex-wrap">
+          {# Dropdown: scegli tipo atto → checklist pre-compilata con dati fascicolo #}
+          <div class="dropdown">
+            <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-list-check me-1"></i>Prepara atto
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:260px;max-height:320px;overflow-y:auto">
+              <li><h6 class="dropdown-header">Scegli tipo di atto</h6></li>
+              {% for tmpl in checklist_templates %}
+              <li>
+                <a class="dropdown-item small py-1"
+                   href="{{ url_for('checklist_dettaglio', id_template=tmpl.id,
+                                    id_fasc=fascicolo.id,
+                                    parte=fascicolo.controparte,
+                                    rg=fascicolo.numero_rg) }}">
+                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-muted"></i>
+                  {{ tmpl.nome }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                   data-bs-target="#modalDeposito">
             <i class="bi bi-plus-lg me-1"></i>Registra manuale
@@ -360,7 +378,14 @@
           </table>
         </div>
         {% else %}
-        <div class="text-muted text-center py-4 small">Nessun deposito telematico registrato</div>
+        <div class="text-center py-4 px-3">
+          <i class="bi bi-send fs-2 text-muted d-block mb-2"></i>
+          <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
+          <div class="text-muted" style="font-size:.78rem">
+            Usa <strong>Prepara atto</strong> per aprire la checklist del redattore atti,
+            oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.
+          </div>
+        </div>
         {% endif %}
       </div>
     </div>

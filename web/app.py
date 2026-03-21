@@ -3157,6 +3157,7 @@ def create_app(config: dict | None = None) -> Flask:
         if fasc.tribunale:
             uff = ClientReGINde().cerca_ufficio_giudiziario(fasc.tribunale)
             pec_tribunale = uff.pec if uff else ""
+        from pct.checklist_atti import TUTTI_I_TEMPLATE
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -3166,6 +3167,7 @@ def create_app(config: dict | None = None) -> Flask:
             tipi_att=list(TipoAttivita),
             esiti=list(EsitoAttivita),
             pec_tribunale=pec_tribunale,
+            checklist_templates=TUTTI_I_TEMPLATE,
         )
 
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
@@ -4871,8 +4873,16 @@ def create_app(config: dict | None = None) -> Flask:
         if not tmpl:
             flash("Template non trovato.", "warning")
             return redirect(url_for("checklist_atti"))
-        parte = request.args.get("parte", "")
-        rg    = request.args.get("rg", "")
+        # Fascicolo opzionale — pre-compila i parametri se passato
+        id_fasc  = request.args.get("id_fasc", "")
+        fascicolo_ctx = None
+        if id_fasc:
+            fasc = get_fascicoli().get(id_fasc)
+            if fasc:
+                fascicolo_ctx = fasc
+        # Parametri espliciti o derivati dal fascicolo
+        parte = request.args.get("parte") or (fascicolo_ctx.controparte if fascicolo_ctx else "")
+        rg    = request.args.get("rg")    or (getattr(fascicolo_ctx, "numero_rg", "") if fascicolo_ctx else "")
         data  = request.args.get("data", date.today().isoformat())
         cartella = nome_cartella_compilato(tmpl, parte=parte, rg=rg, data=data)
         return render_template(
@@ -4882,6 +4892,8 @@ def create_app(config: dict | None = None) -> Flask:
             parte=parte,
             rg=rg,
             data=data,
+            id_fasc=id_fasc,
+            fascicolo=fascicolo_ctx,
             cat_icon=CAT_ICON,
             cat_col=CAT_COL,
             oggi=date.today(),

@@ -16,17 +16,38 @@
         <h5 class="fw-bold mb-0 text-white">{{ tmpl.nome }}</h5>
         <div class="small text-white-50">{{ tmpl.descrizione }}</div>
       </div>
-      <a href="{{ url_for('checklist_atti') }}" class="btn btn-sm btn-light">
-        <i class="bi bi-arrow-left me-1"></i>Tutti gli atti
-      </a>
+      <div class="d-flex gap-2">
+        {% if fascicolo %}
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+           class="btn btn-sm btn-warning fw-semibold">
+          <i class="bi bi-folder2-open me-1"></i>Torna al fascicolo
+        </a>
+        {% endif %}
+        <a href="{{ url_for('checklist_atti') }}" class="btn btn-sm btn-light">
+          <i class="bi bi-arrow-left me-1"></i>Tutti gli atti
+        </a>
+      </div>
     </div>
   </div>
 </div>
 
+{# ── Banner fascicolo collegato ── #}
+{% if fascicolo %}
+<div class="alert alert-warning border-warning border-0 shadow-sm mb-3 py-2 px-3 d-flex align-items-center gap-3">
+  <i class="bi bi-folder2-open fs-5 text-warning flex-shrink-0"></i>
+  <div class="flex-grow-1 small">
+    <span class="fw-semibold">Fascicolo {{ fascicolo.numero_fascicolo }}</span>
+    <span class="text-muted ms-2">{{ fascicolo.controparte or fascicolo.titolo }}</span>
+    {% if fascicolo.tribunale %}<span class="ms-2 text-muted">· {{ fascicolo.tribunale }}</span>{% endif %}
+    {% if fascicolo.rg %}<span class="ms-2 text-muted">· RG {{ fascicolo.rg }}</span>{% endif %}
+  </div>
+</div>
+{% endif %}
+
 {# ── Banner canale deposito ── #}
 {% set c_col  = cat_col.get(tmpl.canale, 'secondary') %}
 {% set c_icon = {'PCT_TELEMATICO':'bi-send-fill','PDP_PENALE':'bi-shield-fill','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope-fill','CARTACEO':'bi-printer-fill'} %}
-{% set c_label = {'PCT_TELEMATICO':'Deposito telematico PCT — redattore atti + PolisWeb/PST','PDP_PENALE':'Portale Deposito Atti Penali (PDP)','PAT_AMMINISTRATIVO':'Portale Atti Amministrativi (PAT)','PEC':'Deposito a mezzo PEC','CARTACEO':'Deposito cartaceo / notifica tramite UNEP'} %}
+{% set c_label = {'PCT_TELEMATICO':'Deposito telematico PCT — tramite redattore atti (Consolle Avvocato / FileSafe / Lextel)','PDP_PENALE':'Portale Deposito Atti Penali (PDP)','PAT_AMMINISTRATIVO':'Portale Atti Amministrativi (PAT)','PEC':'Deposito a mezzo PEC','CARTACEO':'Deposito cartaceo / notifica tramite UNEP'} %}
 <div class="alert alert-{{ 'primary' if tmpl.canale == 'PCT_TELEMATICO' else 'dark' if tmpl.canale in ('PDP_PENALE','CARTACEO') else 'info' if tmpl.canale == 'PAT_AMMINISTRATIVO' else 'success' }} border-0 shadow-sm mb-3 d-flex align-items-start gap-3" role="alert">
   <i class="bi {{ c_icon.get(tmpl.canale, 'bi-send') }} fs-5 flex-shrink-0 mt-1"></i>
   <div class="flex-grow-1">

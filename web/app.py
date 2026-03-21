@@ -4259,10 +4259,21 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception:
             pass
 
+        # Verifica PEC studio configurata (mittente)
+        pec_configurata = False
+        try:
+            _cfg = get_config_studio().config
+            pec_configurata = bool(
+                _cfg and _cfg.pec and _cfg.pec.indirizzo and _cfg.pec.password
+            )
+        except Exception:
+            pass
+
         return render_template(
             "fascicoli/deposito_prepara.html",
             fascicolo=fasc,
             pec_tribunale=pec_tribunale,
+            pec_configurata=pec_configurata,
             pdfa_stato=pdfa_stato,
             oggi=date.today(),
         )

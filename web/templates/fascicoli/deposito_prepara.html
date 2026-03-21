@@ -263,19 +263,23 @@
     </div>
     <div class="card-body d-grid gap-3">
 
-      {# — Invio reale: solo se PEC tribunale e PEC studio entrambi disponibili — #}
-      {% if pec_tribunale and pec_configurata %}
+      {# — Invio via PEC — sempre visibile; demo=true finché PEC non configurata — #}
+      {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
       <div>
-        <button type="button" class="btn btn-success fw-semibold w-100" onclick="avviaInvioPec(false)">
+        <button type="button" class="btn btn-success fw-semibold w-100" onclick="avviaInvioPec(true)">
           <i class="bi bi-send-fill me-2"></i>Invia ora via PEC
         </button>
         <div class="form-text text-center mt-1">
+          {% if pec_tribunale %}
           Firma + busta + PEC a <strong>{{ pec_tribunale }}</strong>
+          {% else %}
+          Busta + PEC — destinatario da configurare
+          {% endif %}
         </div>
       </div>
       <div class="text-center text-muted small">— oppure —</div>
 
-      {% elif pec_tribunale and not pec_configurata %}
+      {% if pec_tribunale and not pec_configurata %}
       {# PEC tribunale OK ma PEC studio non configurata #}
       <div class="alert alert-warning small d-flex gap-2 align-items-start mb-0 py-2">
         <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
@@ -450,6 +454,8 @@
   <input type="hidden" name="codice_registro" id="gb_reg">
   <input type="hidden" name="oggetto" id="gb_ogg">
   <input type="hidden" name="atto_principale_id" id="gb_atto">
+  {# demo_mode=1 per prove; impostare 0 (o rimuovere) quando dati reali attivi #}
+  <input type="hidden" name="demo_mode" id="gb_demo" value="1">
   <div id="gb_allegati"></div>
 </form>
 

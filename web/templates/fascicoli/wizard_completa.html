@@ -201,19 +201,23 @@
 
     {# Deposito #}
     {% if tmpl.endpoint_deposito %}
-    <div class="card border-0 shadow-sm mb-3">
+    <div class="card border-0 shadow-sm mb-3 {% if tutti_obbligatori %}border-success border{% endif %}">
       <div class="card-body">
         <h6 class="fw-bold mb-1">
           <i class="bi bi-send me-2 text-success"></i>Deposito telematico
         </h6>
         <p class="small text-muted mb-3">
-          Tutti i documenti sono pronti. Procedi al deposito tramite
-          {{ canale_label.get(tmpl.canale, tmpl.canale) }}.
+          {% if tutti_obbligatori %}
+            Documenti pronti. Visualizza il riepilogo e le istruzioni per il deposito.
+          {% else %}
+            Completa tutti i documenti obbligatori per sbloccare il deposito.
+          {% endif %}
         </p>
-        <a href="{{ url_for(tmpl.endpoint_deposito) if tmpl.endpoint_deposito else '#' }}"
-           class="btn btn-success w-100 fw-semibold {% if not tutti_obbligatori %}disabled{% endif %}">
+        <button type="button"
+                class="btn btn-success w-100 fw-semibold {% if not tutti_obbligatori %}disabled{% endif %}"
+                data-bs-toggle="modal" data-bs-target="#modalDeposito">
           <i class="bi bi-send me-1"></i>Vai al deposito
-        </a>
+        </button>
         {% if not tutti_obbligatori %}
         <div class="small text-muted mt-2">
           <i class="bi bi-lock me-1"></i>Completa prima tutti i documenti obbligatori.
@@ -231,5 +235,195 @@
 
   </div>{# /col-lg-4 #}
 </div>{# /row #}
+
+{# ================================================================
+   MODAL DEPOSITO TELEMATICO
+================================================================ #}
+{% if tmpl.endpoint_deposito %}
+<div class="modal fade" id="modalDeposito" tabindex="-1"
+     aria-labelledby="modalDepositoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      {# Header #}
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="modalDepositoLabel">
+          <i class="bi bi-send me-2"></i>Deposito telematico PCT
+          <span class="badge bg-white text-success ms-2 small fw-normal">{{ fascicolo.numero }}</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+
+      {# Body #}
+      <div class="modal-body p-4">
+
+        {# Info banner #}
+        <div class="alert alert-info d-flex gap-3 align-items-start mb-4 py-2">
+          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
+          <div class="small">
+            <strong>HACS prepara — il software PCT invia.</strong>
+            Il deposito va effettuato dal tuo software dedicato
+            (es. <strong>Consolle dell'Avvocato</strong>) usando i documenti elencati qui sotto.
+            Dopo l'invio, registra l'esito per tracciarlo nel fascicolo.
+          </div>
+        </div>
+
+        <div class="row g-4">
+
+          {# Colonna sinistra: dati + documenti #}
+          <div class="col-lg-6">
+
+            {# Dati fascicolo #}
+            <h6 class="fw-bold text-muted text-uppercase small mb-2">
+              <i class="bi bi-folder2-open me-1"></i>Dati fascicolo
+            </h6>
+            <dl class="row small mb-4">
+              <dt class="col-5 text-muted">Fascicolo</dt>
+              <dd class="col-7 fw-semibold font-monospace">{{ fascicolo.numero }}</dd>
+              {% if fascicolo.titolo %}
+              <dt class="col-5 text-muted">Titolo</dt>
+              <dd class="col-7">{{ fascicolo.titolo }}</dd>
+              {% endif %}
+              {% if fascicolo.tribunale %}
+              <dt class="col-5 text-muted">Tribunale</dt>
+              <dd class="col-7">{{ fascicolo.tribunale }}</dd>
+              {% endif %}
+              {% if pec_tribunale %}
+              <dt class="col-5 text-muted">PEC</dt>
+              <dd class="col-7 font-monospace" style="word-break:break-all">{{ pec_tribunale }}</dd>
+              {% endif %}
+              {% if fascicolo.numero_rg %}
+              <dt class="col-5 text-muted">N. RG</dt>
+              <dd class="col-7 font-monospace">{{ fascicolo.numero_rg }}/{{ fascicolo.anno_rg }}</dd>
+              {% endif %}
+            </dl>
+
+            {# Documenti #}
+            <h6 class="fw-bold text-muted text-uppercase small mb-2">
+              <i class="bi bi-paperclip me-1"></i>Documenti da allegare
+            </h6>
+            <ul class="list-group list-group-flush border rounded mb-0">
+              {% for s in steps_stato %}
+              {% if s.stato == 'done' and s.documento %}
+              <li class="list-group-item d-flex align-items-center gap-2 py-2 px-3">
+                {% if s.documento.firmato_digitalmente %}
+                <i class="bi bi-patch-check-fill text-success flex-shrink-0"
+                   title="Firmato digitalmente"></i>
+                {% else %}
+                <i class="bi bi-file-earmark-pdf text-muted flex-shrink-0"></i>
+                {% endif %}
+                <span class="flex-grow-1 small">{{ s.documento.nome }}</span>
+                <span class="text-muted small font-monospace flex-shrink-0">
+                  {{ (s.documento.dimensione_bytes / 1024) | round(0) | int }} KB
+                </span>
+              </li>
+              {% elif s.stato == 'pending' and s.doc.obbligatorio %}
+              <li class="list-group-item d-flex align-items-center gap-2 py-2 px-3 text-danger">
+                <i class="bi bi-exclamation-circle flex-shrink-0"></i>
+                <span class="small">{{ s.doc.descrizione }} — <em>mancante</em></span>
+              </li>
+              {% endif %}
+              {% endfor %}
+            </ul>
+
+          </div>{# /col-lg-6 #}
+
+          {# Colonna destra: istruzioni + form esito #}
+          <div class="col-lg-6">
+
+            {# Istruzioni #}
+            <h6 class="fw-bold text-muted text-uppercase small mb-2">
+              <i class="bi bi-list-check me-1"></i>Come effettuare il deposito
+            </h6>
+            <ol class="small ps-3 mb-3">
+              <li class="mb-2">Apri <strong>Consolle dell'Avvocato</strong> (o software equivalente)</li>
+              <li class="mb-2">Crea una nuova <strong>busta telematica</strong> e scegli il tipo di atto</li>
+              <li class="mb-2">Allega i documenti elencati a sinistra; indica l'atto principale</li>
+              <li class="mb-2">Verifica la <strong>firma digitale</strong> sull'atto principale (.p7m)</li>
+              <li class="mb-2">
+                Seleziona il tribunale
+                {% if fascicolo.tribunale %}<strong>({{ fascicolo.tribunale }})</strong>{% endif %}
+                e invia via <strong>PEC</strong>
+              </li>
+              <li>Torna qui e <strong>registra l'esito</strong> qui sotto</li>
+            </ol>
+            <a href="https://pst.giustizia.it/" target="_blank" rel="noopener noreferrer"
+               class="btn btn-outline-success btn-sm w-100 mb-4">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale dei Servizi Telematici (PST)
+            </a>
+
+            {# Form registra esito #}
+            <h6 class="fw-bold text-muted text-uppercase small mb-2">
+              <i class="bi bi-pencil-square me-1"></i>Registra l'esito nel fascicolo
+            </h6>
+            <form id="formRegistraEsito" method="POST"
+                  action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+
+              <div class="row g-2 mb-2">
+                <div class="col-sm-7">
+                  <label class="form-label small fw-semibold mb-1">
+                    Tipo atto <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" name="tipo_atto" class="form-control form-control-sm"
+                         placeholder="es. Ricorso, Memoria, Citazione" required>
+                </div>
+                <div class="col-sm-5">
+                  <label class="form-label small fw-semibold mb-1">Stato</label>
+                  <select name="stato" class="form-select form-select-sm">
+                    <option value="INVIATO">INVIATO</option>
+                    <option value="ACCETTATO_PEC">ACCETTATO_PEC</option>
+                    <option value="CONSEGNATO" selected>CONSEGNATO</option>
+                    <option value="ACCETTATO_CANCELLERIA">ACCETTATO ✓</option>
+                    <option value="WARN_CONTROLLI">WARN</option>
+                    <option value="ERRORE_CONTROLLI">ERRORE</option>
+                    <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO</option>
+                  </select>
+                </div>
+              </div>
+
+              {% if pec_tribunale %}
+              <input type="hidden" name="pec_destinatario" value="{{ pec_tribunale }}">
+              {% else %}
+              <div class="mb-2">
+                <label class="form-label small fw-semibold mb-1">PEC tribunale</label>
+                <input type="email" name="pec_destinatario" class="form-control form-control-sm"
+                       placeholder="tribunale.sede@giustiziapec.it">
+              </div>
+              {% endif %}
+
+              <div class="mb-2">
+                <label class="form-label small fw-semibold mb-1">N. protocollo / ID deposito</label>
+                <input type="text" name="messaggio" class="form-control form-control-sm"
+                       placeholder="es. PCT-2024-0001234">
+              </div>
+
+              <div class="mb-0">
+                <label class="form-label small fw-semibold mb-1">Note</label>
+                <textarea name="note" class="form-control form-control-sm" rows="2"
+                          placeholder="Annotazioni sull'esito…"></textarea>
+              </div>
+
+            </form>
+
+          </div>{# /col-lg-6 #}
+        </div>{# /row #}
+
+      </div>{# /modal-body #}
+
+      {# Footer #}
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary"
+                data-bs-dismiss="modal">Chiudi</button>
+        <button type="submit" form="formRegistraEsito"
+                class="btn btn-primary fw-semibold">
+          <i class="bi bi-save me-1"></i>Salva esito nel fascicolo
+        </button>
+      </div>
+
+    </div>{# /modal-content #}
+  </div>{# /modal-dialog #}
+</div>
+{% endif %}
 
 {% endblock %}

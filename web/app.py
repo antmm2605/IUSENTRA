@@ -5147,6 +5147,23 @@ def create_app(config: dict | None = None) -> Flask:
             })
 
         nome_cartella = nome_cartella_compilato(tmpl, fasc.controparte, fasc.numero_rg)
+
+        # Cerca PEC del tribunale per il modal deposito
+        import os as _os
+        pec_tribunale = ""
+        if fasc.tribunale:
+            try:
+                from pct.uffici_giudiziari import get_gestore as _get_uff
+                _cache = _os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                _uff = next(
+                    (u for u in _get_uff(_cache).carica()
+                     if u.get("nome", "").lower() == fasc.tribunale.lower()),
+                    None,
+                )
+                pec_tribunale = _uff["pec"] if _uff else ""
+            except Exception:
+                pass
+
         return render_template(
             "fascicoli/wizard_completa.html",
             fascicolo=fasc,
@@ -5154,6 +5171,7 @@ def create_app(config: dict | None = None) -> Flask:
             steps_stato=steps_stato,
             tutti_obbligatori=tutti_obbligatori,
             nome_cartella=nome_cartella,
+            pec_tribunale=pec_tribunale,
             canale_label=CANALE_LABEL,
             canale_icon=CANALE_ICON,
             canale_col=CANALE_COL,

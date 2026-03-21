@@ -702,6 +702,54 @@
     </div>
     {% endif %}
 
+    {# Parti del procedimento #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people me-2 text-primary"></i>Parti del procedimento</span>
+        <span class="badge bg-primary rounded-pill">{{ parti|length }}</span>
+      </div>
+      {% if parti %}
+      <div class="list-group list-group-flush">
+        {% for parte, sogg in parti %}
+        <div class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}"
+                 class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
+                {{ sogg.nome_completo }}
+              </a>
+              <span class="badge bg-{{ parte.ruolo.colore_bootstrap }} mt-1" style="font-size:.68rem">
+                {{ parte.ruolo.label }}
+              </span>
+              {% if parte.note %}
+              <div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>
+              {% endif %}
+            </div>
+            <form method="post"
+                  action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
+                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
+                <i class="bi bi-x-lg" style="font-size:.7rem"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body text-center text-muted small py-3">
+        <i class="bi bi-people d-block mb-1 opacity-25 fs-4"></i>
+        Nessuna parte aggiunta
+      </div>
+      {% endif %}
+      <div class="card-footer p-2">
+        <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal"
+                data-bs-target="#modalAggiungiParte">
+          <i class="bi bi-person-plus me-1"></i>Aggiungi parte
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1131,6 +1179,53 @@
 </div>
 {% endfor %}
 
+{# Modal: aggiungi parte processuale #}
+<div class="modal fade" id="modalAggiungiParte" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('aggiungi_parte_fascicolo', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Aggiungi parte al fascicolo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Soggetto <span class="text-danger">*</span></label>
+            <input type="text" id="parti-search" class="form-control mb-1"
+                   placeholder="Cerca per nome, C.F., email…" autocomplete="off">
+            <input type="hidden" name="id_soggetto" id="parti-id" required>
+            <div id="parti-suggestions" class="list-group" style="max-height:200px;overflow-y:auto;display:none"></div>
+            <div id="parti-selected" class="alert alert-info py-1 px-2 small mt-1" style="display:none"></div>
+            <div class="form-text">
+              Non trovi il soggetto?
+              <a href="{{ url_for('nuovo_soggetto') }}" target="_blank">Crea nuovo soggetto</a>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Ruolo <span class="text-danger">*</span></label>
+            <select name="ruolo" class="form-select" required>
+              {% for r in RuoloSoggetto %}
+              <option value="{{ r.value }}">{{ r.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Note (opzionale)</label>
+            <input type="text" name="note" class="form-control"
+                   placeholder="es. Avv. Mario Rossi - domiciliato in …">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i>Aggiungi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -1269,6 +1364,59 @@ function controllaRicevute(idFasc, idDep, btn) {
       label.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><strong>' +
         input.files[0].name + '</strong> (' + (input.files[0].size / 1024).toFixed(0) + '\u00a0KB)';
     }
+  });
+})();
+
+// ---- Autocomplete soggetti nel modal Aggiungi Parte ----
+(function() {
+  const searchInput = document.getElementById('parti-search');
+  const hiddenId   = document.getElementById('parti-id');
+  const suggestions= document.getElementById('parti-suggestions');
+  const selected   = document.getElementById('parti-selected');
+  if (!searchInput) return;
+  let timer;
+  searchInput.addEventListener('input', function() {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { suggestions.style.display='none'; suggestions.innerHTML=''; return; }
+    timer = setTimeout(function() {
+      fetch('/api/soggetti?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+          suggestions.innerHTML = '';
+          if (!data.length) {
+            suggestions.style.display='none'; return;
+          }
+          data.forEach(function(s) {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action py-2 small';
+            a.innerHTML = '<strong>' + s.nome + '</strong>'
+              + (s.qualifica ? ' <span class="text-muted">· ' + s.qualifica + '</span>' : '')
+              + ' <span class="badge bg-secondary ms-1" style="font-size:.65rem">' + s.sigla + '</span>';
+            a.addEventListener('click', function(e) {
+              e.preventDefault();
+              hiddenId.value = s.id;
+              searchInput.value = s.nome;
+              selected.textContent = '✓ ' + s.nome + (s.qualifica ? ' (' + s.qualifica + ')' : '');
+              selected.style.display = 'block';
+              suggestions.style.display = 'none';
+            });
+            suggestions.appendChild(a);
+          });
+          suggestions.style.display = 'block';
+        });
+    }, 300);
+  });
+  document.addEventListener('click', function(e) {
+    if (!suggestions.contains(e.target) && e.target !== searchInput) {
+      suggestions.style.display = 'none';
+    }
+  });
+  document.getElementById('modalAggiungiParte').addEventListener('hidden.bs.modal', function() {
+    searchInput.value = ''; hiddenId.value = '';
+    selected.style.display = 'none'; suggestions.style.display = 'none';
+    suggestions.innerHTML = '';
   });
 })();
 </script>

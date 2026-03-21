@@ -83,6 +83,13 @@ from pct.auth import (
     totp_uri,
 )
 from pct.privacy import GestioneTrattamenti, TrattamentoDati
+from pct.soggetti import (
+    GestioneSoggetti,
+    Soggetto,
+    TipoSoggetto,
+    RuoloSoggetto,
+    ParteProcessuale,
+)
 from pct.scadenziario import (
     GestioneScadenziario,
     Scadenza,
@@ -211,6 +218,12 @@ def create_app(config: dict | None = None) -> Flask:
     )
     app.config["NOTIFICHE_LOG"] = cfg.get(
         "NOTIFICHE_LOG", os.getenv("PCT_NOTIFICHE_LOG", "./notifiche/log.json")
+    )
+    app.config["SOGGETTI_DB"] = cfg.get(
+        "SOGGETTI_DB", os.getenv("PCT_SOGGETTI_DB", "./soggetti/anagrafica.json")
+    )
+    app.config["SOGGETTI_PARTI_DB"] = cfg.get(
+        "SOGGETTI_PARTI_DB", os.getenv("PCT_SOGGETTI_PARTI_DB", "./soggetti/parti.json")
     )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
@@ -341,6 +354,12 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_scadenziario() -> GestioneScadenziario:
         return GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+
+    def get_soggetti() -> GestioneSoggetti:
+        return GestioneSoggetti(
+            soggetti_path=app.config["SOGGETTI_DB"],
+            parti_path=app.config["SOGGETTI_PARTI_DB"],
+        )
 
     def get_indice() -> IndiceRicerca:
         return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
@@ -3407,6 +3426,7 @@ def create_app(config: dict | None = None) -> Flask:
             uff = ClientReGINde().cerca_ufficio_giudiziario(fasc.tribunale)
             pec_tribunale = uff.pec if uff else ""
         from pct.checklist_atti import TUTTI_I_TEMPLATE
+        parti = get_soggetti().parti_fascicolo(id_fasc)
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -3417,6 +3437,8 @@ def create_app(config: dict | None = None) -> Flask:
             esiti=list(EsitoAttivita),
             pec_tribunale=pec_tribunale,
             checklist_templates=TUTTI_I_TEMPLATE,
+            parti=parti,
+            RuoloSoggetto=RuoloSoggetto,
         )
 
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
@@ -5809,6 +5831,233 @@ def create_app(config: dict | None = None) -> Flask:
 
         return redirect(url_for("wizard_atto_completa", id_fasc=id_fasc,
                                 id_template=id_template))
+
+    # ================================================================ Soggetti
+    # Anagrafica soggetti processuali (controparti, difensori, testimoni, ecc.)
+
+    @app.route("/soggetti")
+    def lista_soggetti():
+        gs = get_soggetti()
+        q = request.args.get("q", "").strip()
+        tipo_f = request.args.get("tipo", "").strip()
+        soggetti = gs.cerca(q=q, tipo=tipo_f)
+        return render_template(
+            "soggetti/lista.html",
+            soggetti=soggetti,
+            q=q,
+            tipo_f=tipo_f,
+            oggi=date.today(),
+        )
+
+    @app.route("/soggetti/nuovo", methods=["GET", "POST"])
+    def nuovo_soggetto():
+        gs = get_soggetti()
+        clienti_list = get_clienti().tutti()
+        if request.method == "POST":
+            tipo_val = request.form.get("tipo", "PERSONA_FISICA")
+            try:
+                tipo = TipoSoggetto(tipo_val)
+            except ValueError:
+                tipo = TipoSoggetto.PERSONA_FISICA
+            from pct.clienti import Indirizzo as _Ind, Recapiti as _Rec
+            indirizzo = _Ind(
+                via=request.form.get("via", ""),
+                civico=request.form.get("civico", ""),
+                cap=request.form.get("cap", ""),
+                comune=request.form.get("comune", ""),
+                provincia=request.form.get("provincia", ""),
+                nazione=request.form.get("nazione", "Italia"),
+            )
+            recapiti = _Rec(
+                telefono=request.form.get("telefono", ""),
+                cellulare=request.form.get("cellulare", ""),
+                email=request.form.get("email", ""),
+                pec=request.form.get("pec", ""),
+                fax=request.form.get("fax", ""),
+                sito_web=request.form.get("sito_web", ""),
+            )
+            tag_raw = request.form.get("tag", "")
+            tag = [t.strip() for t in tag_raw.split(",") if t.strip()]
+            s = gs.crea(
+                tipo=tipo,
+                nome=request.form.get("nome", ""),
+                cognome=request.form.get("cognome", ""),
+                codice_fiscale=request.form.get("codice_fiscale", ""),
+                data_nascita=request.form.get("data_nascita", ""),
+                luogo_nascita=request.form.get("luogo_nascita", ""),
+                sesso=request.form.get("sesso", ""),
+                ragione_sociale=request.form.get("ragione_sociale", ""),
+                partita_iva=request.form.get("partita_iva", ""),
+                forma_giuridica=request.form.get("forma_giuridica", ""),
+                rappresentante_legale=request.form.get("rappresentante_legale", ""),
+                qualifica=request.form.get("qualifica", ""),
+                ordine=request.form.get("ordine", ""),
+                numero_iscrizione=request.form.get("numero_iscrizione", ""),
+                indirizzo=indirizzo,
+                recapiti=recapiti,
+                id_cliente=request.form.get("id_cliente", ""),
+                note=request.form.get("note", ""),
+                tag=tag,
+            )
+            audit("soggetti.crea", "soggetto", s.id, dettagli=s.nome_completo)
+            flash(f"Soggetto «{s.nome_completo}» creato.", "success")
+            return redirect(url_for("dettaglio_soggetto", id_soggetto=s.id))
+        return render_template(
+            "soggetti/form.html",
+            soggetto=None,
+            clienti=clienti_list,
+            TipoSoggetto=TipoSoggetto,
+            oggi=date.today(),
+        )
+
+    @app.route("/soggetti/<id_soggetto>")
+    def dettaglio_soggetto(id_soggetto):
+        gs = get_soggetti()
+        s = gs.get(id_soggetto)
+        if not s:
+            abort(404)
+        ids_fascicoli = gs.fascicoli_con_soggetto(id_soggetto)
+        gf = get_fascicoli()
+        fascicoli_collegati = [f for f in [gf.get(i) for i in ids_fascicoli] if f]
+        cliente_collegato = None
+        if s.id_cliente:
+            cliente_collegato = get_clienti().get(s.id_cliente)
+        return render_template(
+            "soggetti/dettaglio.html",
+            soggetto=s,
+            fascicoli_collegati=fascicoli_collegati,
+            cliente_collegato=cliente_collegato,
+            oggi=date.today(),
+        )
+
+    @app.route("/soggetti/<id_soggetto>/modifica", methods=["GET", "POST"])
+    def modifica_soggetto(id_soggetto):
+        gs = get_soggetti()
+        s = gs.get(id_soggetto)
+        if not s:
+            abort(404)
+        clienti_list = get_clienti().tutti()
+        if request.method == "POST":
+            tipo_val = request.form.get("tipo", s.tipo.value)
+            try:
+                tipo = TipoSoggetto(tipo_val)
+            except ValueError:
+                tipo = s.tipo
+            from pct.clienti import Indirizzo as _Ind, Recapiti as _Rec
+            indirizzo = _Ind(
+                via=request.form.get("via", ""),
+                civico=request.form.get("civico", ""),
+                cap=request.form.get("cap", ""),
+                comune=request.form.get("comune", ""),
+                provincia=request.form.get("provincia", ""),
+                nazione=request.form.get("nazione", "Italia"),
+            )
+            recapiti = _Rec(
+                telefono=request.form.get("telefono", ""),
+                cellulare=request.form.get("cellulare", ""),
+                email=request.form.get("email", ""),
+                pec=request.form.get("pec", ""),
+                fax=request.form.get("fax", ""),
+                sito_web=request.form.get("sito_web", ""),
+            )
+            tag_raw = request.form.get("tag", "")
+            tag = [t.strip() for t in tag_raw.split(",") if t.strip()]
+            gs.aggiorna(
+                id_soggetto,
+                tipo=tipo,
+                nome=request.form.get("nome", ""),
+                cognome=request.form.get("cognome", ""),
+                codice_fiscale=request.form.get("codice_fiscale", ""),
+                data_nascita=request.form.get("data_nascita", ""),
+                luogo_nascita=request.form.get("luogo_nascita", ""),
+                sesso=request.form.get("sesso", ""),
+                ragione_sociale=request.form.get("ragione_sociale", ""),
+                partita_iva=request.form.get("partita_iva", ""),
+                forma_giuridica=request.form.get("forma_giuridica", ""),
+                rappresentante_legale=request.form.get("rappresentante_legale", ""),
+                qualifica=request.form.get("qualifica", ""),
+                ordine=request.form.get("ordine", ""),
+                numero_iscrizione=request.form.get("numero_iscrizione", ""),
+                indirizzo=indirizzo,
+                recapiti=recapiti,
+                id_cliente=request.form.get("id_cliente", ""),
+                note=request.form.get("note", ""),
+                tag=tag,
+            )
+            audit("soggetti.modifica", "soggetto", id_soggetto, dettagli=s.nome_completo)
+            flash("Soggetto aggiornato.", "success")
+            return redirect(url_for("dettaglio_soggetto", id_soggetto=id_soggetto))
+        return render_template(
+            "soggetti/form.html",
+            soggetto=s,
+            clienti=clienti_list,
+            TipoSoggetto=TipoSoggetto,
+            oggi=date.today(),
+        )
+
+    @app.route("/soggetti/<id_soggetto>/elimina", methods=["POST"])
+    def elimina_soggetto(id_soggetto):
+        gs = get_soggetti()
+        s = gs.get(id_soggetto)
+        if s:
+            nome = s.nome_completo
+            gs.elimina(id_soggetto)
+            audit("soggetti.elimina", "soggetto", id_soggetto, dettagli=nome)
+            flash(f"Soggetto «{nome}» eliminato.", "success")
+        return redirect(url_for("lista_soggetti"))
+
+    @app.route("/api/soggetti")
+    def api_soggetti():
+        """Autocomplete JSON — restituisce soggetti che corrispondono a ?q=..."""
+        try:
+            q = request.args.get("q", "").strip()
+            gs = get_soggetti()
+            risultati = gs.cerca(q=q)[:20]
+            return jsonify([{
+                "id": s.id,
+                "nome": s.nome_completo,
+                "tipo": s.tipo.value,
+                "sigla": s.sigla_tipo,
+                "qualifica": s.qualifica,
+                "identificativo": s.identificativo,
+            } for s in risultati])
+        except Exception as e:
+            app.logger.exception("Errore api_soggetti: %s", e)
+            return jsonify([])
+
+    # ---- Parti processuali di un fascicolo
+
+    @app.route("/fascicoli/<id_fasc>/parti/aggiungi", methods=["POST"])
+    def aggiungi_parte_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        f = gf.get(id_fasc)
+        if not f:
+            abort(404)
+        gs = get_soggetti()
+        id_soggetto = request.form.get("id_soggetto", "")
+        ruolo_val = request.form.get("ruolo", "ALTRO")
+        note = request.form.get("note", "")
+        try:
+            ruolo = RuoloSoggetto(ruolo_val)
+        except ValueError:
+            ruolo = RuoloSoggetto.ALTRO
+        s = gs.get(id_soggetto)
+        if not s:
+            flash("Soggetto non trovato.", "danger")
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        gs.aggiungi_parte(id_fasc, id_soggetto, ruolo, note)
+        audit("soggetti.aggiungi_parte", "fascicolo", id_fasc,
+              dettagli=f"{s.nome_completo} → {ruolo.label}")
+        flash(f"«{s.nome_completo}» aggiunto come {ruolo.label}.", "success")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/parti/<id_parte>/rimuovi", methods=["POST"])
+    def rimuovi_parte_fascicolo(id_fasc, id_parte):
+        gs = get_soggetti()
+        gs.rimuovi_parte(id_fasc, id_parte)
+        audit("soggetti.rimuovi_parte", "fascicolo", id_fasc, dettagli=id_parte)
+        flash("Parte rimossa dal fascicolo.", "success")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     # ---- Avvio scheduler background
     from pct.scheduler import start_scheduler

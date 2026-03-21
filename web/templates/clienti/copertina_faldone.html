@@ -353,13 +353,13 @@
             {{ cliente.recapiti.telefono or cliente.recapiti.cellulare or '—' }}
           </div>
         </div>
-        {% if cliente.indirizzo_residenza and cliente.indirizzo_residenza.citta %}
+        {% if cliente.indirizzo_residenza and cliente.indirizzo_residenza.comune %}
         <div class="info-item" style="grid-column:span 2">
           <div class="info-label">Indirizzo</div>
           <div class="info-value">
-            {{ cliente.indirizzo_residenza.via or '' }}{% if cliente.indirizzo_residenza.numero %}, {{ cliente.indirizzo_residenza.numero }}{% endif %}
+            {{ cliente.indirizzo_residenza.via or '' }}{% if cliente.indirizzo_residenza.civico %}, {{ cliente.indirizzo_residenza.civico }}{% endif %}
             &nbsp;—&nbsp;
-            {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.citta or '' }}
+            {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.comune or '' }}
             {% if cliente.indirizzo_residenza.provincia %} ({{ cliente.indirizzo_residenza.provincia }}){% endif %}
           </div>
         </div>

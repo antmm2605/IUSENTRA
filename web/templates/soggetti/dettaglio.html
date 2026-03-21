@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block title %}{{ soggetto.nome_completo }} — Soggetti{% endblock %}
+{% block page_title %}Soggetto{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    {% if soggetto.tipo.value == 'PERSONA_GIURIDICA' %}
+      <i class="bi bi-building"></i>
+    {% else %}
+      <i class="bi bi-person-badge"></i>
+    {% endif %}
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ soggetto.nome_completo }}</h1>
+    <p class="ds-ph-sub">
+      {% if soggetto.tipo.value == 'PERSONA_GIURIDICA' %}
+        Persona giuridica
+        {% if soggetto.forma_giuridica %} · {{ soggetto.forma_giuridica }}{% endif %}
+      {% else %}
+        Persona fisica
+        {% if soggetto.qualifica %} · {{ soggetto.qualifica }}{% endif %}
+      {% endif %}
+      {% if soggetto.identificativo %}
+        · <code class="small">{{ soggetto.identificativo }}</code>
+      {% endif %}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('modifica_soggetto', id_soggetto=soggetto.id) }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
+    </a>
+    <a href="{{ url_for('lista_soggetti') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Tutti i soggetti</span>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+
+  {# ── Colonna principale ── #}
+  <div class="col-lg-8">
+
+    {# Anagrafica #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-person-lines-fill me-2 text-primary"></i>Dati anagrafici
+      </div>
+      <div class="card-body">
+        <div class="ds-info">
+          {% if soggetto.tipo.value == 'PERSONA_FISICA' %}
+            {% if soggetto.cognome or soggetto.nome %}
+            <div class="ds-info-label">Cognome e nome</div>
+            <div class="ds-info-val">{{ soggetto.cognome }} {{ soggetto.nome }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.sesso %}
+            <div class="ds-info-label">Sesso</div>
+            <div class="ds-info-val">{{ 'Maschio' if soggetto.sesso == 'M' else 'Femmina' }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.codice_fiscale %}
+            <div class="ds-info-label">Codice fiscale</div>
+            <div class="ds-info-val"><code>{{ soggetto.codice_fiscale }}</code></div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.data_nascita %}
+            <div class="ds-info-label">Data di nascita</div>
+            <div class="ds-info-val">{{ soggetto.data_nascita|fmt_data if soggetto.data_nascita else '' }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.luogo_nascita %}
+            <div class="ds-info-label">Luogo di nascita</div>
+            <div class="ds-info-val">{{ soggetto.luogo_nascita }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+          {% else %}
+            {% if soggetto.ragione_sociale %}
+            <div class="ds-info-label">Ragione sociale</div>
+            <div class="ds-info-val fw-semibold">{{ soggetto.ragione_sociale }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.forma_giuridica %}
+            <div class="ds-info-label">Forma giuridica</div>
+            <div class="ds-info-val">{{ soggetto.forma_giuridica }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.partita_iva %}
+            <div class="ds-info-label">Partita IVA</div>
+            <div class="ds-info-val"><code>{{ soggetto.partita_iva }}</code></div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.codice_fiscale %}
+            <div class="ds-info-label">Codice fiscale</div>
+            <div class="ds-info-val"><code>{{ soggetto.codice_fiscale }}</code></div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+            {% if soggetto.rappresentante_legale %}
+            <div class="ds-info-label">Rappresentante legale</div>
+            <div class="ds-info-val">{{ soggetto.rappresentante_legale }}</div>
+            <div class="ds-info-sep"></div>
+            {% endif %}
+          {% endif %}
+
+          {# Qualifica professionale (comune a PF e PG) #}
+          {% if soggetto.qualifica %}
+          <div class="ds-info-label">Qualifica</div>
+          <div class="ds-info-val">{{ soggetto.qualifica }}</div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.ordine %}
+          <div class="ds-info-label">Ordine professionale</div>
+          <div class="ds-info-val">{{ soggetto.ordine }}</div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.numero_iscrizione %}
+          <div class="ds-info-label">N° iscrizione</div>
+          <div class="ds-info-val"><code>{{ soggetto.numero_iscrizione }}</code></div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Recapiti #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-telephone me-2 text-primary"></i>Recapiti
+      </div>
+      <div class="card-body">
+        <div class="ds-info">
+          {% if soggetto.recapiti.telefono %}
+          <div class="ds-info-label"><i class="bi bi-telephone me-1"></i>Telefono</div>
+          <div class="ds-info-val"><a href="tel:{{ soggetto.recapiti.telefono }}">{{ soggetto.recapiti.telefono }}</a></div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.recapiti.cellulare %}
+          <div class="ds-info-label"><i class="bi bi-phone me-1"></i>Cellulare</div>
+          <div class="ds-info-val"><a href="tel:{{ soggetto.recapiti.cellulare }}">{{ soggetto.recapiti.cellulare }}</a></div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.recapiti.email %}
+          <div class="ds-info-label"><i class="bi bi-envelope me-1"></i>Email</div>
+          <div class="ds-info-val"><a href="mailto:{{ soggetto.recapiti.email }}">{{ soggetto.recapiti.email }}</a></div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.recapiti.pec %}
+          <div class="ds-info-label"><i class="bi bi-shield-check me-1"></i>PEC</div>
+          <div class="ds-info-val"><a href="mailto:{{ soggetto.recapiti.pec }}">{{ soggetto.recapiti.pec }}</a></div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.recapiti.fax %}
+          <div class="ds-info-label"><i class="bi bi-printer me-1"></i>Fax</div>
+          <div class="ds-info-val">{{ soggetto.recapiti.fax }}</div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if soggetto.recapiti.sito_web %}
+          <div class="ds-info-label"><i class="bi bi-globe me-1"></i>Sito web</div>
+          <div class="ds-info-val"><a href="{{ soggetto.recapiti.sito_web }}" target="_blank" rel="noopener">{{ soggetto.recapiti.sito_web }}</a></div>
+          <div class="ds-info-sep"></div>
+          {% endif %}
+          {% if not (soggetto.recapiti.telefono or soggetto.recapiti.cellulare or soggetto.recapiti.email or soggetto.recapiti.pec) %}
+          <div class="text-muted small py-2">Nessun recapito registrato</div>
+          {% endif %}
+        </div>
+
+        {# Indirizzo #}
+        {% set ind = soggetto.indirizzo %}
+        {% if ind.via or ind.comune %}
+        <hr class="my-3">
+        <div class="small text-muted mb-1"><i class="bi bi-geo-alt me-1"></i>Indirizzo</div>
+        <address class="mb-0">
+          {% if ind.via %}{{ ind.via }}{% if ind.civico %}, {{ ind.civico }}{% endif %}<br>{% endif %}
+          {% if ind.cap %}{{ ind.cap }} {% endif %}{{ ind.comune }}{% if ind.provincia %} ({{ ind.provincia }}){% endif %}
+          {% if ind.nazione and ind.nazione != 'Italia' %}<br>{{ ind.nazione }}{% endif %}
+        </address>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Fascicoli collegati #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-folder2-open me-2 text-primary"></i>Fascicoli collegati</span>
+        <span class="badge bg-primary rounded-pill">{{ fascicoli_collegati|length }}</span>
+      </div>
+      {% if fascicoli_collegati %}
+      <div class="list-group list-group-flush">
+        {% for fasc in fascicoli_collegati %}
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}"
+           class="list-group-item list-group-item-action py-2">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold small">{{ fasc.titolo }}</div>
+              <div class="text-muted" style="font-size:.78rem">
+                {{ fasc.numero }}
+                {% if fasc.tribunale %} · {{ fasc.tribunale }}{% endif %}
+              </div>
+            </div>
+            <span class="badge bg-secondary ms-2" style="font-size:.68rem;white-space:nowrap">
+              {{ fasc.stato.value.replace('_',' ') }}
+            </span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body">
+        <div class="ds-empty" style="padding:1.5rem 0">
+          <i class="bi bi-folder2 ds-empty-icon" style="font-size:2rem"></i>
+          <div class="ds-empty-sub">Questo soggetto non è collegato ad alcun fascicolo</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Note #}
+    {% if soggetto.note %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-journal-text me-2 text-primary"></i>Note
+      </div>
+      <div class="card-body">
+        <div class="small">{{ soggetto.note | replace('\n', '<br>') | safe }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>{# /col-lg-8 #}
+
+  {# ── Colonna laterale ── #}
+  <div class="col-lg-4">
+
+    {# Tipo badge + cliente collegato #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-body text-center py-4">
+        <div class="ds-entity-avatar {% if soggetto.tipo.value == 'PERSONA_GIURIDICA' %}ds-avatar-pg{% else %}ds-avatar-pf{% endif %} mx-auto mb-3"
+             style="width:64px;height:64px;font-size:1.6rem">
+          {% if soggetto.tipo.value == 'PERSONA_GIURIDICA' %}
+            <i class="bi bi-building"></i>
+          {% else %}
+            {{ (soggetto.cognome[:1] + soggetto.nome[:1]) | upper if soggetto.cognome else soggetto.nome[:2] | upper }}
+          {% endif %}
+        </div>
+        <div class="fw-bold fs-5 mb-1">{{ soggetto.nome_completo }}</div>
+        <span class="badge {% if soggetto.tipo.value == 'PERSONA_GIURIDICA' %}bg-success{% else %}bg-primary{% endif %} mb-2">
+          {{ 'Persona giuridica' if soggetto.tipo.value == 'PERSONA_GIURIDICA' else 'Persona fisica' }}
+        </span>
+        {% if soggetto.id_cliente and cliente_collegato %}
+        <div class="mt-2">
+          <a href="{{ url_for('dettaglio_cliente', id_cliente=soggetto.id_cliente) }}"
+             class="ds-role ds-role-success text-decoration-none">
+            <i class="bi bi-person-check me-1"></i>Cliente studio: {{ cliente_collegato.nome_completo }}
+          </a>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer d-flex gap-2">
+        <a href="{{ url_for('modifica_soggetto', id_soggetto=soggetto.id) }}"
+           class="ds-btn ds-btn-outline ds-btn-sm flex-grow-1">
+          <i class="bi bi-pencil"></i>Modifica
+        </a>
+        <form method="post" action="{{ url_for('elimina_soggetto', id_soggetto=soggetto.id) }}"
+              onsubmit="return confirm('Eliminare definitivamente questo soggetto?')">
+          <button class="ds-btn ds-btn-danger ds-btn-sm ds-btn-icon" title="Elimina soggetto">
+            <i class="bi bi-trash"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# Tag #}
+    {% if soggetto.tag %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-tags me-2 text-primary"></i>Tag
+      </div>
+      <div class="card-body">
+        {% for t in soggetto.tag %}
+        <span class="badge bg-light text-dark border me-1 mb-1">{{ t }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Metadati #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-clock-history me-2 text-muted"></i>Metadati
+      </div>
+      <div class="card-body small">
+        <div class="text-muted mb-1">ID soggetto</div>
+        <code class="small">{{ soggetto.id }}</code>
+        {% if soggetto.creato_il %}
+        <div class="text-muted mt-2 mb-1">Creato il</div>
+        <div>{{ soggetto.creato_il[:10] | replace('-', '/') }}</div>
+        {% endif %}
+        {% if soggetto.modificato_il %}
+        <div class="text-muted mt-2 mb-1">Ultima modifica</div>
+        <div>{{ soggetto.modificato_il[:10] | replace('-', '/') }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>{# /col-lg-4 #}
+
+</div>
+
+{% endblock %}

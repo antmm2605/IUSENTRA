@@ -418,8 +418,8 @@
         <div class="subject-item">
           {{ cliente.nome_completo }}
           {% if cliente.indirizzo_residenza and cliente.indirizzo_residenza.via %}
-            {{ cliente.indirizzo_residenza.via }}, {{ cliente.indirizzo_residenza.numero or '' }}
-            &nbsp; {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.citta or '' }}
+            {{ cliente.indirizzo_residenza.via }}, {{ cliente.indirizzo_residenza.civico or '' }}
+            &nbsp; {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.comune or '' }}
           {% endif %}
           {% if cliente.codice_fiscale %}
             - C.F: {{ cliente.codice_fiscale }}

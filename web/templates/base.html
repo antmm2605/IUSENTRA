@@ -22,6 +22,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
   <!-- htmx — aggiornamenti inline senza reload di pagina -->
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
 </head>
@@ -133,6 +134,24 @@
       <a href="{{ url_for('cartelle_condivise') }}"
          class="nav-link sb-link {% if request.endpoint in ('cartelle_condivise','gestione_collaboratori') %}active{% endif %}">
         <i class="bi bi-folder-symlink"></i><span class="sb-txt">Cartelle Condivise</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Soggetti ---- #}
+    {% set _so = request.endpoint in ('lista_soggetti','dettaglio_soggetto','nuovo_soggetto','modifica_soggetto') %}
+    <button class="sb-toggle {% if _so %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-soggetti" aria-expanded="{{ 'true' if _so else 'false' }}">
+      <span><i class="bi bi-person-badge"></i>Soggetti</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _so %}show{% endif %}" id="sb-soggetti">
+      <a href="{{ url_for('lista_soggetti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_soggetti','dettaglio_soggetto','modifica_soggetto') %}active{% endif %}">
+        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+      </a>
+      <a href="{{ url_for('nuovo_soggetto') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_soggetto' %}active{% endif %}">
+        <i class="bi bi-person-plus"></i><span class="sb-txt">Nuovo Soggetto</span>
       </a>
     </div>
 

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Modifica' if cliente else 'Nuovo' }} Cliente{% endblock %}
-{% block page_title %}{{ 'Modifica' if cliente else 'Nuovo' }} Cliente{% endblock %}
+{% block title %}{{ 'Modifica' if cliente else 'Nuovo Cliente / Soggetto' }}{% endblock %}
+{% block page_title %}{{ 'Modifica Cliente' if cliente else 'Nuovo Cliente / Soggetto' }}{% endblock %}
 
 {% block content %}
 
@@ -10,8 +10,8 @@
     <i class="bi bi-{% if cliente %}pencil{% else %}person-plus-fill{% endif %}"></i>
   </div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">{{ 'Modifica: ' + cliente.nome_completo if cliente else 'Nuovo Cliente' }}</h1>
-    <p class="ds-ph-sub">Anagrafica cliente dello studio — persona fisica o giuridica</p>
+    <h1 class="ds-ph-title">{{ 'Modifica: ' + cliente.nome_completo if cliente else 'Nuovo Cliente / Soggetto' }}</h1>
+    <p class="ds-ph-sub">{% if cliente %}Anagrafica cliente dello studio{% else %}Crea un nuovo cliente oppure registra un soggetto processuale{% endif %}</p>
   </div>
   <div class="ds-ph-actions">
     {% if cliente %}
@@ -25,6 +25,28 @@
     {% endif %}
   </div>
 </div>
+
+{% if not cliente %}
+{# ── Tab Navigator ── #}
+<ul class="nav nav-tabs mb-3" id="nuovoTab" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-cliente-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-cliente"
+            type="button" role="tab" aria-selected="true">
+      <i class="bi bi-person-plus me-1"></i>Nuovo Cliente
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-soggetto-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-soggetto"
+            type="button" role="tab" aria-selected="false">
+      <i class="bi bi-person-badge me-1"></i>Nuovo Soggetto
+    </button>
+  </li>
+</ul>
+<div class="tab-content" id="nuovoTabContent">
+<div class="tab-pane fade show active" id="tab-cliente" role="tabpanel">
+{% endif %}
 
 <form method="post" id="formCliente">
 
@@ -570,6 +592,173 @@
 </div>
 
 </form>
+
+{% if not cliente %}
+</div>{# /tab-pane tab-cliente #}
+
+{# ════════════════════════════════════════════════════════
+   TAB NUOVO SOGGETTO
+   ════════════════════════════════════════════════════════ #}
+<div class="tab-pane fade" id="tab-soggetto" role="tabpanel">
+<form method="post" action="{{ url_for('nuovo_soggetto') }}" id="formSoggettoQuick">
+
+  {# ── Tipo soggetto ── #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-person-badge me-2 text-primary"></i>Tipo soggetto
+    </div>
+    <div class="card-body">
+      <div class="d-flex gap-3 flex-wrap">
+        <label class="tipo-toggle-sq flex-fill text-center py-3 border rounded-3"
+               style="cursor:pointer;transition:all .15s" data-tipo-sq="PERSONA_FISICA">
+          <input type="radio" name="tipo" value="PERSONA_FISICA" class="visually-hidden tipo-radio-sq" checked>
+          <i class="bi bi-person-fill d-block fs-3 mb-1 text-primary"></i>
+          <div class="fw-semibold small">Persona fisica</div>
+        </label>
+        <label class="tipo-toggle-sq flex-fill text-center py-3 border rounded-3"
+               style="cursor:pointer;transition:all .15s" data-tipo-sq="PERSONA_GIURIDICA">
+          <input type="radio" name="tipo" value="PERSONA_GIURIDICA" class="visually-hidden tipo-radio-sq">
+          <i class="bi bi-building-fill d-block fs-3 mb-1" style="color:#6a1b9a"></i>
+          <div class="fw-semibold small">Persona giuridica</div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  {# ── Dati persona fisica ── #}
+  <div class="card shadow-sm mb-3" id="sq-sec-pf">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-person me-2 text-primary"></i>Dati anagrafici
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Cognome <span class="text-danger">*</span></label>
+          <input type="text" name="cognome" class="form-control" placeholder="Rossi">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
+          <input type="text" name="nome" class="form-control" placeholder="Mario">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Codice Fiscale</label>
+          <input type="text" name="codice_fiscale" class="form-control font-monospace text-uppercase"
+                 placeholder="RSSMRA80A01H501Z" maxlength="16" autocapitalize="characters">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Dati persona giuridica ── #}
+  <div class="card shadow-sm mb-3" id="sq-sec-pg" style="display:none">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-building me-2 text-success"></i>Dati aziendali
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Ragione sociale <span class="text-danger">*</span></label>
+          <input type="text" name="ragione_sociale" class="form-control" placeholder="Rossi Srl">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Partita IVA</label>
+          <input type="text" name="partita_iva" class="form-control font-monospace" placeholder="12345678901">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Codice Fiscale</label>
+          <input type="text" name="codice_fiscale" class="form-control font-monospace" placeholder="CF società">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Qualifica professionale (opzionale) ── #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-briefcase text-primary"></i>Qualifica professionale
+      <span class="ms-auto text-muted fw-normal" style="font-size:.74rem">opzionale — per avvocati, periti, CTU ecc.</span>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Qualifica</label>
+          <input type="text" name="qualifica" class="form-control" list="sq-qualifiche-list"
+                 placeholder="es. Avvocato, Perito, CTU…">
+          <datalist id="sq-qualifiche-list">
+            {% for q in ['Avvocato','Procuratore','Notaio','Geometra','Ingegnere','Architetto','Medico','Commercialista','Perito industriale','Mediatore','Curatore fallimentare','Magistrato','Pubblico Ministero'] %}
+            <option value="{{ q }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Ordine professionale</label>
+          <input type="text" name="ordine" class="form-control"
+                 placeholder="es. Ordine Avvocati di Roma">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">N° iscrizione</label>
+          <input type="text" name="numero_iscrizione" class="form-control"
+                 placeholder="es. 12345/Roma">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Recapiti essenziali ── #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-telephone me-2 text-primary"></i>Recapiti
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Cellulare</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-phone"></i></span>
+            <input type="tel" name="cellulare" class="form-control" placeholder="+39 333 0000000">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Email</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" name="email" class="form-control" placeholder="mario@esempio.it">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">PEC</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+            <input type="email" name="pec" class="form-control" placeholder="mario@pec.it">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Note ── #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-card-text me-2 text-secondary"></i>Note
+    </div>
+    <div class="card-body">
+      <textarea name="note" class="form-control" rows="3"
+                placeholder="Note sul soggetto (ruolo, riferimenti, ecc.)…"></textarea>
+    </div>
+  </div>
+
+  {# ── Bottoni ── #}
+  <div class="d-flex gap-2 mb-4">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>Crea soggetto
+    </button>
+    <a href="{{ url_for('lista_clienti') }}" class="btn btn-outline-secondary">Annulla</a>
+  </div>
+
+</form>
+</div>{# /tab-pane tab-soggetto #}
+</div>{# /tab-content #}
+{% endif %}
 
 {# ════════════════════════════════════════════════════════
    STILI SCANNER
@@ -1334,6 +1523,35 @@ aggiornaVista();
       })
       .catch(() => { spinner.style.display = 'none'; });
   }
+})();
+
+/* ── Tipo soggetto quick-form ── */
+(function () {
+  const radios = document.querySelectorAll('.tipo-radio-sq');
+  const toggles = document.querySelectorAll('.tipo-toggle-sq');
+  const secPF = document.getElementById('sq-sec-pf');
+  const secPG = document.getElementById('sq-sec-pg');
+  if (!radios.length) return;
+
+  function aggiornaTipo() {
+    const val = document.querySelector('.tipo-radio-sq:checked')?.value || 'PERSONA_FISICA';
+    if (secPF) secPF.style.display = val === 'PERSONA_FISICA' ? '' : 'none';
+    if (secPG) secPG.style.display = val === 'PERSONA_GIURIDICA' ? '' : 'none';
+    toggles.forEach(t => {
+      const attivo = t.dataset.tipoSq === val;
+      t.classList.toggle('border-primary', attivo);
+      t.classList.toggle('bg-primary', attivo);
+      t.classList.toggle('bg-opacity-10', attivo);
+      t.classList.toggle('fw-semibold', attivo);
+    });
+  }
+
+  radios.forEach(r => r.addEventListener('change', aggiornaTipo));
+  toggles.forEach(t => t.addEventListener('click', function () {
+    const radio = this.querySelector('.tipo-radio-sq');
+    if (radio) { radio.checked = true; aggiornaTipo(); }
+  }));
+  aggiornaTipo();
 })();
 </script>
 {% endblock %}

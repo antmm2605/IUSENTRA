@@ -703,6 +703,24 @@ function initPagination(tableId, selectId) {
 <script src="/static/js/ufficio_picker.js"></script>
 {% block extra_scripts %}{% endblock %}
 <script>
+/* ---- Loading state globale sui form: disabilita submit e mostra spinner ---- */
+(function () {
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (form.dataset.noLoading) return;
+    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (btn) {
+      var orig = btn.innerHTML || btn.value;
+      btn.disabled = true;
+      if (btn.tagName === 'BUTTON') {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + (btn.dataset.loadingText || orig);
+      }
+      /* sicurezza: riabilita dopo 15s nel caso di errore server */
+      setTimeout(function () { btn.disabled = false; btn.innerHTML = orig; }, 15000);
+    });
+  });
+})();
+</script>
+<script>
 // Badge email non lette nella sidebar
 (function() {
   const badge = document.getElementById('badgeEmailNonLette');

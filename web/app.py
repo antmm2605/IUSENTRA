@@ -102,7 +102,7 @@ from pct.scadenziario import (
     è_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
-from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf
+from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf, lista_fascicoli_pdf, lista_clienti_pdf
 from pct.database import GestioneDatabase
 from pct.sync import GestoreSincronizzazione, get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
@@ -1072,6 +1072,31 @@ def create_app(config: dict | None = None) -> Flask:
         flash("Scadenza segnata come completata.", "success")
         return redirect(url_for("scadenziario"))
 
+    @app.route("/scadenziario/bulk-completa", methods=["POST"])
+    def bulk_completa_scadenze():
+        """Completa più scadenze in un colpo solo."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("scadenziario.scrivi"):
+            flash("Permesso insufficiente.", "danger")
+            return redirect(url_for("scadenziario"))
+        ids = request.form.getlist("ids")
+        if not ids:
+            flash("Nessuna scadenza selezionata.", "warning")
+            return redirect(url_for("scadenziario"))
+        gs = get_scadenziario()
+        completate = 0
+        for id_sc in ids:
+            try:
+                gs.completa(id_sc)
+                audit("scadenziario.completa", "scadenza", id_sc, dettagli="bulk")
+                completate += 1
+            except ValueError:
+                pass
+        if completate:
+            sync_pubblica("modifica", "scadenze", "bulk")
+            flash(f"{completate} scadenza/e segnata/e come completata/e.", "success")
+        return redirect(url_for("scadenziario"))
+
     @app.route("/api/notifiche/pending")
     def notifiche_pending():
         """Restituisce notifiche urgenti da mostrare via Browser Notification API."""
@@ -1291,6 +1316,16 @@ def create_app(config: dict | None = None) -> Flask:
                 if gc.get(id_c) and not ac.is_scaduto
             ][:5]
             accessi_in_scadenza = gcd.accessi_in_scadenza(entro_giorni=7)
+        # Widget documenti d'identità scaduti (solo admin/avvocati con accesso globale)
+        clienti_doc_scaduti = []
+        if u_dash and u_dash.ha_permesso("clienti.leggi"):
+            try:
+                clienti_doc_scaduti = [
+                    c for c in get_clienti().tutti()
+                    if c.documento.scaduto and c.documento.numero
+                ][:10]
+            except Exception:
+                pass
         return render_template(
             "dashboard.html",
             apps_oggi=apps_oggi,
@@ -1304,6 +1339,7 @@ def create_app(config: dict | None = None) -> Flask:
             stats_clienti=stats_clienti,
             cartelle_mie=cartelle_mie,
             accessi_in_scadenza=accessi_in_scadenza,
+            clienti_doc_scaduti=clienti_doc_scaduti,
         )
 
     # ---------------------------------------------------------------- agenda
@@ -2367,6 +2403,11 @@ def create_app(config: dict | None = None) -> Flask:
             audit("condivisione.accesso", "cliente", id_cliente,
                   dettagli=f"accesso lettura [{ruolo_cond.value}]")
         link_attivi = gcd.link_attivi_per_cliente(id_cliente)
+        # Fascicoli del cliente — preview inline (max 5)
+        fascicoli_cliente = [
+            f for f in get_fascicoli().tutti()
+            if f.id_cliente == id_cliente
+        ][:5]
         track_recente("cliente", id_cliente, c.nome_completo,
                       url_for("dettaglio_cliente", id_cliente=id_cliente), "bi-person")
         return render_template(
@@ -2376,6 +2417,7 @@ def create_app(config: dict | None = None) -> Flask:
             n_collaboratori=n_collaboratori,
             ruolo_condivisione=ruolo_cond,
             link_attivi=link_attivi,
+            fascicoli_cliente=fascicoli_cliente,
         )
 
     # ================================================================ CARTELLA CLIENTE
@@ -5150,6 +5192,48 @@ def create_app(config: dict | None = None) -> Flask:
             })
         audit("fascicoli.export_csv")
         return _csv_response(righe, f"fascicoli_{date.today().isoformat()}.csv")
+
+    @app.route("/fascicoli/export.pdf")
+    def export_fascicoli_pdf():
+        """Export PDF lista fascicoli con filtri correnti."""
+        gf = get_fascicoli()
+        testo = request.args.get("q", "").strip()
+        stato_f = request.args.get("stato", "")
+        tipo_f = request.args.get("tipo", "")
+        stato = StatoFascicolo(stato_f) if stato_f else None
+        tipo = TipoFascicolo(tipo_f) if tipo_f else None
+        fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+        mese_label = date.today().strftime("%B %Y").capitalize()
+        titolo = f"Elenco Fascicoli — {mese_label}"
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            out = tmp.name
+        lista_fascicoli_pdf([f.to_dict() for f in fascicoli], out, titolo=titolo, studio_nome=studio_nome)
+        audit("fascicoli.export_pdf")
+        nome_file = f"fascicoli_{date.today().isoformat()}.pdf"
+        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+
+    @app.route("/clienti/export.pdf")
+    def export_clienti_pdf():
+        """Export PDF lista clienti con filtri correnti."""
+        gc = get_clienti()
+        testo = request.args.get("q", "").strip()
+        tipo_f = request.args.get("tipo")
+        stato_f = request.args.get("stato", "ATTIVO")
+        tipo = TipoCliente(tipo_f) if tipo_f else None
+        stato = StatoCliente(stato_f) if stato_f else None
+        clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
+        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+        mese_label = date.today().strftime("%B %Y").capitalize()
+        titolo = f"Elenco Clienti — {mese_label}"
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            out = tmp.name
+        lista_clienti_pdf([c.to_dict() for c in clienti], out, titolo=titolo, studio_nome=studio_nome)
+        audit("clienti.export_pdf")
+        nome_file = f"clienti_{date.today().isoformat()}.pdf"
+        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
 
     @app.route("/scadenziario/export.csv")
     def export_scadenziario_csv():

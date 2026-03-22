@@ -68,7 +68,7 @@
 <div class="row g-3">
 
   {# ---- Reminder imminenti ---- #}
-  <div class="col-lg-4">
+  <div class="col-lg-4 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header bg-warning-subtle fw-semibold">
         <i class="bi bi-bell-fill text-warning me-2"></i>Reminder imminenti
@@ -97,7 +97,7 @@
   </div>
 
   {# ---- Appuntamenti di oggi ---- #}
-  <div class="col-lg-8">
+  <div class="col-lg-8 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-calendar-day me-2 text-primary"></i>Oggi — {{ oggi.strftime('%d %B %Y') }}</span>
@@ -229,11 +229,57 @@
 </div>
 {% endif %}
 
+{# ---- Widget documenti identità scaduti ---- #}
+{% if clienti_doc_scaduti %}
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card shadow-sm border-warning">
+      <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+        <h6 class="mb-0 fw-semibold text-warning">
+          <i class="bi bi-credit-card me-2"></i>Documenti d'identità scaduti
+          <span class="badge bg-warning text-dark ms-1">{{ clienti_doc_scaduti|length }}</span>
+        </h6>
+        <a href="{{ url_for('lista_clienti') }}" class="btn btn-sm btn-outline-warning">
+          Vedi clienti <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Cliente</th><th>Documento</th><th>Scaduto il</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for c in clienti_doc_scaduti %}
+            <tr>
+              <td>
+                <i class="bi bi-person text-secondary me-1"></i>
+                <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}" class="text-decoration-none fw-semibold">
+                  {{ c.nome_completo }}
+                </a>
+              </td>
+              <td class="small text-muted">{{ c.documento.tipo.value.replace('_',' ') }} {{ c.documento.numero }}</td>
+              <td class="small text-danger fw-semibold">{{ c.documento.data_scadenza|fmt_data }}</td>
+              <td>
+                <a href="{{ url_for('modifica_cliente', id_cliente=c.id) }}"
+                   class="btn btn-xs btn-outline-warning" title="Aggiorna documento">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ---- Grafici statistiche ---- #}
 <div class="row g-3 mt-1">
 
   {# Appuntamenti per tipo (barre) #}
-  <div class="col-lg-4">
+  <div class="col-lg-4 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header fw-semibold">
         <i class="bi bi-bar-chart me-2 text-primary"></i>Appuntamenti per tipo
@@ -245,7 +291,7 @@
   </div>
 
   {# Fascicoli per stato (donut) #}
-  <div class="col-lg-4">
+  <div class="col-lg-4 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header fw-semibold">
         <i class="bi bi-pie-chart me-2 text-success"></i>Fascicoli per stato
@@ -257,7 +303,7 @@
   </div>
 
   {# Scadenze per priorità (donut) #}
-  <div class="col-lg-4">
+  <div class="col-lg-4 col-md-12">
     <div class="card shadow-sm h-100">
       <div class="card-header fw-semibold">
         <i class="bi bi-alarm me-2 text-danger"></i>Scadenze per priorità

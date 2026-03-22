@@ -985,6 +985,151 @@ def scadenze_pdf(
     return _generatore.scadenze_pdf(scadenze, output_path, titolo, studio_nome)
 
 
+def lista_fascicoli_pdf(
+    fascicoli: list,
+    output_path: str,
+    titolo: str = "Elenco Fascicoli",
+    studio_nome: str = "Studio Legale",
+) -> str:
+    """Genera un report PDF con la lista dei fascicoli."""
+    output_path = os.path.abspath(output_path)
+    if os.path.dirname(output_path):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    styles = _build_styles()
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=pagesizes.A4,
+        leftMargin=MARGIN_LEFT, rightMargin=MARGIN_RIGHT,
+        topMargin=MARGIN_TOP, bottomMargin=MARGIN_BOTTOM,
+    )
+    page_w = pagesizes.A4[0] - MARGIN_LEFT - MARGIN_RIGHT
+    story = []
+    story.append(_intestazione_studio(
+        studio_nome, titolo,
+        f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        styles, page_w,
+    ))
+    story.append(Spacer(1, 0.4 * cm))
+    story.append(Paragraph(titolo, styles["titolo_fascicolo"]))
+    story.append(Paragraph(f"Totale: {len(fascicoli)} fascicoli", styles["numero_fascicolo"]))
+    story.append(HRFlowable(width=page_w, thickness=1, color=ORO_ACCENTO, spaceAfter=6))
+    story.append(Spacer(1, 0.2 * cm))
+
+    col_w = [page_w * w for w in [0.12, 0.26, 0.22, 0.20, 0.10, 0.10]]
+    rows = [[
+        Paragraph("<b>N. RG/Anno</b>", styles["nota"]),
+        Paragraph("<b>Titolo / Oggetto</b>", styles["nota"]),
+        Paragraph("<b>Cliente</b>", styles["nota"]),
+        Paragraph("<b>Tribunale</b>", styles["nota"]),
+        Paragraph("<b>Tipo</b>", styles["nota"]),
+        Paragraph("<b>Stato</b>", styles["nota"]),
+    ]]
+    for f in fascicoli:
+        rg = f"{f.get('numero_rg','')}/{f.get('anno_rg','')}" if f.get('numero_rg') else "—"
+        rows.append([
+            Paragraph(rg, styles["nota"]),
+            Paragraph(str(f.get("titolo") or f.get("oggetto") or "—")[:60], styles["nota"]),
+            Paragraph(str(f.get("nome_cliente") or "—")[:40], styles["nota"]),
+            Paragraph(str(f.get("tribunale") or "—")[:35], styles["nota"]),
+            Paragraph(str(f.get("tipo") or "—"), styles["nota"]),
+            Paragraph(str(f.get("stato") or "—"), styles["nota"]),
+        ])
+    tbl = Table(rows, colWidths=col_w, repeatRows=1)
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), BLU_SCURO), ("TEXTCOLOR", (0, 0), (-1, 0), BIANCO),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
+        ("GRID", (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(tbl)
+
+    def _f(canvas, doc_obj):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#888888"))
+        canvas.drawCentredString(pagesizes.A4[0] / 2, MARGIN_BOTTOM / 2,
+            f"{studio_nome}  —  {titolo}  —  Pag. {doc_obj.page}")
+        canvas.restoreState()
+    doc.build(story, onFirstPage=_f, onLaterPages=_f)
+    return output_path
+
+
+def lista_clienti_pdf(
+    clienti: list,
+    output_path: str,
+    titolo: str = "Elenco Clienti",
+    studio_nome: str = "Studio Legale",
+) -> str:
+    """Genera un report PDF con la lista dei clienti."""
+    output_path = os.path.abspath(output_path)
+    if os.path.dirname(output_path):
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    styles = _build_styles()
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=pagesizes.A4,
+        leftMargin=MARGIN_LEFT, rightMargin=MARGIN_RIGHT,
+        topMargin=MARGIN_TOP, bottomMargin=MARGIN_BOTTOM,
+    )
+    page_w = pagesizes.A4[0] - MARGIN_LEFT - MARGIN_RIGHT
+    story = []
+    story.append(_intestazione_studio(
+        studio_nome, titolo,
+        f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        styles, page_w,
+    ))
+    story.append(Spacer(1, 0.4 * cm))
+    story.append(Paragraph(titolo, styles["titolo_fascicolo"]))
+    story.append(Paragraph(f"Totale: {len(clienti)} clienti", styles["numero_fascicolo"]))
+    story.append(HRFlowable(width=page_w, thickness=1, color=ORO_ACCENTO, spaceAfter=6))
+    story.append(Spacer(1, 0.2 * cm))
+
+    col_w = [page_w * w for w in [0.30, 0.10, 0.22, 0.18, 0.10, 0.10]]
+    rows = [[
+        Paragraph("<b>Nome / Ragione Sociale</b>", styles["nota"]),
+        Paragraph("<b>Tipo</b>", styles["nota"]),
+        Paragraph("<b>Email / PEC</b>", styles["nota"]),
+        Paragraph("<b>Telefono</b>", styles["nota"]),
+        Paragraph("<b>Stato</b>", styles["nota"]),
+        Paragraph("<b>Doc. ID</b>", styles["nota"]),
+    ]]
+    for c in clienti:
+        rec = c.get("recapiti") or {}
+        doc_str = "⚠ scaduto" if (c.get("documento") or {}).get("scaduto") else ""
+        rows.append([
+            Paragraph(str(c.get("nome_completo") or "—")[:50], styles["nota"]),
+            Paragraph(str(c.get("tipo") or "—"), styles["nota"]),
+            Paragraph(str(rec.get("email") or rec.get("pec") or "—")[:35], styles["nota"]),
+            Paragraph(str(rec.get("telefono") or rec.get("cellulare") or "—"), styles["nota"]),
+            Paragraph(str(c.get("stato") or "—"), styles["nota"]),
+            Paragraph(doc_str, styles["nota"]),
+        ])
+    tbl = Table(rows, colWidths=col_w, repeatRows=1)
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), BLU_SCURO), ("TEXTCOLOR", (0, 0), (-1, 0), BIANCO),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [BIANCO, GRIGIO_CHIARO]),
+        ("GRID", (0, 0), (-1, -1), 0.3, GRIGIO_MEDIO), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(tbl)
+
+    def _f(canvas, doc_obj):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 7)
+        canvas.setFillColor(colors.HexColor("#888888"))
+        canvas.drawCentredString(pagesizes.A4[0] / 2, MARGIN_BOTTOM / 2,
+            f"{studio_nome}  —  {titolo}  —  Pag. {doc_obj.page}")
+        canvas.restoreState()
+    doc.build(story, onFirstPage=_f, onLaterPages=_f)
+    return output_path
+
+
 def faldone_pdf(
     cliente_dict: dict,
     fascicoli_per_tipo: dict,

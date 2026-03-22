@@ -133,9 +133,18 @@
 
 {# ── Tabella scadenze ── #}
 {% if scadenze %}
+<form method="post" action="{{ url_for('bulk_completa_scadenze') }}" id="form-bulk-scadenze">
 <div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold text-muted small">{{ scadenze|length }} scadenze</span>
+  <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-semibold text-muted small">{{ scadenze|length }} scadenze</span>
+      <button type="submit" id="btn-bulk-completa"
+              class="ds-btn ds-btn-outline btn-sm d-none"
+              title="Completa le scadenze selezionate">
+        <i class="bi bi-check2-all me-1"></i>Completa selezionate
+        <span class="badge bg-success ms-1" id="bulk-count">0</span>
+      </button>
+    </div>
     <select id="page-size-scadenze" class="form-select form-select-sm" style="width:auto">
       <option value="25">25 per pagina</option>
       <option value="50">50 per pagina</option>
@@ -147,6 +156,10 @@
       <table class="table table-hover align-middle mb-0" id="tbl-scadenze" data-paginate="page-size-scadenze">
         <thead class="table-light">
           <tr>
+            <th style="width:36px">
+              <input type="checkbox" id="bulk-select-all" class="form-check-input"
+                     title="Seleziona/deseleziona tutte">
+            </th>
             <th>Scadenza</th><th>Titolo</th><th>Tipo</th>
             <th>Priorità</th><th>Fascicolo</th><th>Giorni</th><th></th>
           </tr>
@@ -156,6 +169,10 @@
           {% set g = s.giorni_alla_scadenza %}
           <tr id="sc-{{ s.id }}"
               class="{{ 'table-danger' if s.priorita.value == 'CRITICA' else ('table-warning' if s.priorita.value == 'ALTA' else '') }}">
+            <td>
+              <input type="checkbox" name="ids" value="{{ s.id }}"
+                     class="form-check-input bulk-cb">
+            </td>
             <td class="font-monospace fw-semibold text-nowrap">
               {{ s.data_scadenza|fmt_data }}
               {% if s.perentorio %}
@@ -224,6 +241,41 @@
     </div>
   </div>
 </div>
+</form>
+{% block extra_scripts %}
+<script>
+(function () {
+  var allCb = document.getElementById('bulk-select-all');
+  var btnBulk = document.getElementById('btn-bulk-completa');
+  var countEl = document.getElementById('bulk-count');
+
+  function aggiornaContatore() {
+    var sel = document.querySelectorAll('.bulk-cb:checked').length;
+    countEl.textContent = sel;
+    btnBulk.classList.toggle('d-none', sel === 0);
+  }
+
+  if (allCb) {
+    allCb.addEventListener('change', function () {
+      document.querySelectorAll('.bulk-cb').forEach(function (cb) {
+        cb.checked = allCb.checked;
+      });
+      aggiornaContatore();
+    });
+  }
+
+  document.querySelectorAll('.bulk-cb').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var tutti = document.querySelectorAll('.bulk-cb');
+      var selezionati = document.querySelectorAll('.bulk-cb:checked');
+      if (allCb) allCb.indeterminate = selezionati.length > 0 && selezionati.length < tutti.length;
+      if (allCb) allCb.checked = selezionati.length === tutti.length;
+      aggiornaContatore();
+    });
+  });
+})();
+</script>
+{% endblock %}
 
 {% else %}
 <div class="ds-empty">

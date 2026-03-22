@@ -24,10 +24,23 @@
     <p class="ds-ph-sub">Procedimenti civili, penali e amministrativi dello studio</p>
   </div>
   <div class="ds-ph-actions">
-    <a href="{{ url_for('export_fascicoli_csv') }}?q={{ q }}&stato={{ stato_filtro }}&tipo={{ tipo_filtro }}"
-       class="ds-btn ds-btn-outline" title="Esporta CSV">
-      <i class="bi bi-filetype-csv"></i><span class="d-none d-sm-inline">CSV</span>
-    </a>
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-outline dropdown-toggle" data-bs-toggle="dropdown" title="Esporta">
+        <i class="bi bi-download"></i><span class="d-none d-sm-inline">Esporta</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_fascicoli_pdf') }}?q={{ q }}&stato={{ stato_filtro }}&tipo={{ tipo_filtro }}">
+            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF lista
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_fascicoli_csv') }}?q={{ q }}&stato={{ stato_filtro }}&tipo={{ tipo_filtro }}">
+            <i class="bi bi-filetype-csv me-2 text-success"></i>CSV
+          </a>
+        </li>
+      </ul>
+    </div>
     <a href="{{ url_for('lista_archivio') }}" class="ds-btn ds-btn-ghost">
       <i class="bi bi-archive"></i><span class="d-none d-sm-inline">Archivio</span>
     </a>

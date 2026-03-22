@@ -5,11 +5,11 @@ Funzionalità:
   - docx_to_html()  : .docx → HTML con mammoth (fedele ai formati Word)
   - pdf_to_html()   : .pdf → HTML con pdfplumber (testo + struttura)
   - html_to_docx()  : HTML → .docx con python-docx + lxml
-  - html_to_pdf()   : HTML → PDF con xhtml2pdf
+  - html_to_pdf()   : HTML → PDF con reportlab
   - txt_to_html()   : .txt → HTML semplice
 
 Tutte le funzioni lavorano su bytes già decifrati.
-Le dipendenze (mammoth, python-docx, xhtml2pdf) sono opzionali:
+Le dipendenze (mammoth, python-docx, reportlab) sono opzionali:
 se non presenti, si solleva ImportError con messaggio chiaro.
 
 Nota sul supporto PDF:
@@ -465,67 +465,209 @@ def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
 
 
 # ─────────────────────────────────────────────── HTML → PDF
-
-_PDF_CSS = """
-@page {
-  size: A4;
-  margin: 3cm 2.5cm 2.5cm 4cm;
-  @frame footer {
-    -pdf-frame-content: footer;
-    bottom: 1cm; margin: 0 1cm;
-  }
-}
-body {
-  font-family: "Times New Roman", Times, serif;
-  font-size: 12pt;
-  line-height: 1.6;
-  color: #111;
-}
-h1 { font-size: 16pt; font-weight: bold; margin-top: 1.2em; }
-h2 { font-size: 14pt; font-weight: bold; margin-top: 1em; }
-h3 { font-size: 13pt; font-weight: bold; }
-h4 { font-size: 12pt; font-weight: bold; text-decoration: underline; }
-p  { margin-bottom: 0.6em; text-align: justify; }
-table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
-td, th { border: 1px solid #555; padding: 4pt 6pt; }
-th { background: #f0f0f0; font-weight: bold; }
-ul, ol { margin-left: 1.5em; }
-"""
-
+# Usa reportlab (già in requirements) — nessuna dipendenza di sistema aggiuntiva
 
 def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
     """
-    Converte HTML in PDF tramite xhtml2pdf.
+    Converte HTML in PDF tramite reportlab (già installato).
+
+    Gestisce: paragrafi, H1-H4, grassetto, corsivo, liste,
+    tabelle di base, linee orizzontali.
 
     Returns:
         bytes del file PDF
     Raises:
-        ImportError se xhtml2pdf non è installato
-        RuntimeError se la conversione fallisce
+        ImportError se reportlab non è installato
     """
     try:
-        from xhtml2pdf import pisa
-    except ImportError:
-        raise ImportError(
-            "xhtml2pdf non installato. Esegui: pip install xhtml2pdf"
+        from reportlab.platypus import (
+            SimpleDocTemplate, Paragraph, Spacer,
+            Table, TableStyle, HRFlowable, ListFlowable, ListItem,
         )
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT, TA_LEFT
+    except ImportError:
+        raise ImportError("reportlab non installato. Esegui: pip install reportlab")
 
-    full_html = f"""<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="utf-8">
-  <title>{titolo}</title>
-  <style>{_PDF_CSS}</style>
-</head>
-<body>
-  {html}
-</body>
-</html>"""
+    try:
+        from lxml import etree
+    except ImportError:
+        raise ImportError("lxml non installato")
 
+    # ── Stili ────────────────────────────────────────────────
+    base = getSampleStyleSheet()
+    st_normal = ParagraphStyle(
+        "LegalNormal", parent=base["Normal"],
+        fontName="Times-Roman", fontSize=12, leading=18,
+        spaceAfter=6, alignment=TA_JUSTIFY,
+    )
+    st_h1 = ParagraphStyle(
+        "LegalH1", parent=base["Heading1"],
+        fontName="Times-Bold", fontSize=16, leading=20,
+        spaceBefore=12, spaceAfter=6,
+    )
+    st_h2 = ParagraphStyle(
+        "LegalH2", parent=base["Heading2"],
+        fontName="Times-Bold", fontSize=14, leading=18,
+        spaceBefore=10, spaceAfter=4,
+    )
+    st_h3 = ParagraphStyle(
+        "LegalH3", parent=base["Heading3"],
+        fontName="Times-Bold", fontSize=13, leading=16,
+        spaceBefore=8, spaceAfter=4,
+    )
+    st_h4 = ParagraphStyle(
+        "LegalH4", parent=base["Normal"],
+        fontName="Times-Bold", fontSize=12, leading=16,
+        spaceBefore=6, spaceAfter=4,
+        underlineWidth=0.5,
+    )
+    st_li = ParagraphStyle(
+        "LegalLI", parent=st_normal,
+        leftIndent=18, spaceAfter=3,
+    )
+    st_quote = ParagraphStyle(
+        "LegalQuote", parent=st_normal,
+        leftIndent=36, rightIndent=18,
+        fontName="Times-Italic", textColor=colors.HexColor("#555555"),
+    )
+
+    # Mappa tag → stile
+    HEADING_STYLES = {"h1": st_h1, "h2": st_h2, "h3": st_h3, "h4": st_h4}
+
+    # ── Parse HTML ───────────────────────────────────────────
+    html_clean = f"<div>{html}</div>"
+    try:
+        root = etree.fromstring(
+            html_clean.encode("utf-8"),
+            parser=etree.HTMLParser(encoding="utf-8"),
+        )
+        body = root.find(".//body") or root
+    except Exception:
+        body = None
+
+    # ── Conversione nodo → testo reportlab rich text ─────────
+    def _node_to_rich(el) -> str:
+        """Converte un elemento HTML in markup reportlab (para XML)."""
+        tag = (el.tag or "").lower().split("}")[-1]
+        text = (el.text or "")
+        parts = [text]
+        for child in el:
+            child_tag = (child.tag or "").lower().split("}")[-1]
+            inner = _node_to_rich(child)
+            if child_tag in ("strong", "b"):
+                parts.append(f"<b>{inner}</b>")
+            elif child_tag in ("em", "i"):
+                parts.append(f"<i>{inner}</i>")
+            elif child_tag in ("u",):
+                parts.append(f"<u>{inner}</u>")
+            else:
+                parts.append(inner)
+            if child.tail:
+                parts.append(child.tail)
+        return "".join(parts)
+
+    # ── Costruisce flowables ──────────────────────────────────
+    story = []
+
+    def _process(el):
+        tag = (el.tag or "").lower().split("}")[-1]
+
+        if tag in HEADING_STYLES:
+            rich = _node_to_rich(el)
+            story.append(Paragraph(rich, HEADING_STYLES[tag]))
+            return
+
+        if tag in ("p", "div"):
+            rich = _node_to_rich(el)
+            if rich.strip():
+                story.append(Paragraph(rich, st_normal))
+            else:
+                story.append(Spacer(1, 0.3 * cm))
+            return
+
+        if tag in ("ul", "ol"):
+            items = []
+            for li in el.findall("li"):
+                rich = _node_to_rich(li)
+                items.append(ListItem(Paragraph(rich, st_li), bulletType="bullet" if tag == "ul" else "1"))
+            if items:
+                story.append(ListFlowable(items, bulletType="bullet" if tag == "ul" else "1",
+                                          leftIndent=18, bulletFontSize=10))
+            return
+
+        if tag == "hr":
+            story.append(HRFlowable(width="100%", thickness=0.5,
+                                    color=colors.HexColor("#999999"), spaceAfter=6))
+            return
+
+        if tag == "blockquote":
+            rich = _node_to_rich(el)
+            story.append(Paragraph(rich, st_quote))
+            return
+
+        if tag == "table":
+            rows_data = []
+            for tr in el.findall(".//tr"):
+                row = []
+                for cell in tr.findall("th") + tr.findall("td"):
+                    testo_cella = etree.tostring(cell, encoding="unicode", method="text").strip()
+                    row.append(Paragraph(testo_cella, st_li))
+                if row:
+                    rows_data.append(row)
+            if rows_data:
+                col_n = max(len(r) for r in rows_data)
+                for r in rows_data:
+                    while len(r) < col_n:
+                        r.append(Paragraph("", st_li))
+                tbl = Table(rows_data, repeatRows=1)
+                tbl.setStyle(TableStyle([
+                    ("GRID",      (0, 0), (-1, -1), 0.5, colors.HexColor("#999999")),
+                    ("BACKGROUND",(0, 0), (-1, 0),  colors.HexColor("#f0f0f0")),
+                    ("FONTNAME",  (0, 0), (-1, 0),  "Times-Bold"),
+                    ("FONTSIZE",  (0, 0), (-1, -1), 10),
+                    ("TOPPADDING",(0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING",(0, 0), (-1, -1), 4),
+                ]))
+                story.append(tbl)
+                story.append(Spacer(1, 0.3 * cm))
+            return
+
+        # Fallback: processa figli
+        for child in el:
+            try:
+                _process(child)
+            except Exception:
+                pass
+
+    if body is not None:
+        for child in body:
+            try:
+                _process(child)
+            except Exception:
+                pass
+    else:
+        story.append(Paragraph(_strip_tags(html), st_normal))
+
+    if not story:
+        story.append(Paragraph(titolo, st_normal))
+
+    # ── Genera PDF ───────────────────────────────────────────
     buf = io.BytesIO()
-    result = pisa.CreatePDF(full_html.encode("utf-8"), dest=buf)
-    if result.err:
-        raise RuntimeError(f"Errore generazione PDF: {result.err}")
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        rightMargin=2.5 * cm,
+        leftMargin=4.0 * cm,   # margine sinistro legale italiano
+        topMargin=3.0 * cm,
+        bottomMargin=2.5 * cm,
+        title=titolo,
+        author="HACS - Studio Legale PCT",
+    )
+    doc.build(story)
     return buf.getvalue()
 
 

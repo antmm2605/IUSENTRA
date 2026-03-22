@@ -172,7 +172,7 @@
     </div>
     {% if fascicoli %}
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small">
+      <table class="table table-hover align-middle mb-0 small mob-cards">
         <thead class="table-light">
           <tr>
             <th>N. Ricorso</th>
@@ -188,35 +188,35 @@
         <tbody>
           {% for f in fascicoli %}
           <tr>
-            <td class="text-nowrap fw-semibold">
+            <td data-label="Ricorso" class="text-nowrap fw-semibold">
               {{ f.numero_ricorso }}/{{ f.anno }}
               {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
             </td>
-            <td>
+            <td data-label="Tipo" data-mob-hide>
               <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
                 {{ f.tipo }}
               </span>
             </td>
-            <td>
+            <td data-label="Oggetto">
               {{ f.oggetto or f.materia or '—' }}
               {% if f.giudice_relatore %}<br><small class="text-muted">Rel. {{ f.giudice_relatore }}</small>{% endif %}
             </td>
-            <td class="small text-muted">
+            <td data-label="Ricorrente" class="small text-muted" data-mob-hide>
               {% for r in f.ricorrenti[:2] %}{{ r }}<br>{% endfor %}
               {% if f.ricorrenti|length > 2 %}<em>+{{ f.ricorrenti|length - 2 }} altri</em>{% endif %}
               {% if not f.ricorrenti %}—{% endif %}
             </td>
-            <td class="small text-muted">
+            <td data-label="Resistente" class="small text-muted" data-mob-hide>
               {% for r in f.resistenti[:2] %}{{ r }}<br>{% endfor %}
               {% if f.resistenti|length > 2 %}<em>+{{ f.resistenti|length - 2 }} altri</em>{% endif %}
               {% if not f.resistenti %}—{% endif %}
             </td>
-            <td class="text-nowrap">
+            <td data-label="Udienza" class="text-nowrap">
               {% if f.data_udienza %}
                 <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
               {% else %}—{% endif %}
             </td>
-            <td>
+            <td data-label="Stato">
               <span class="badge rounded-pill
                 {% if f.stato == 'PENDENTE' %}bg-primary
                 {% elif f.stato == 'DEFINITO' %}bg-success
@@ -226,7 +226,7 @@
                 {{ f.stato }}
               </span>
             </td>
-            <td class="text-end text-nowrap">
+            <td data-label="" class="text-end text-nowrap">
               <a href="{{ url_for('pat_documenti',
                           codice_ufficio=f.codice_ufficio,
                           numero_ricorso=f.numero_ricorso,

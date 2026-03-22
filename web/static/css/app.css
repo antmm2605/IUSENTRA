@@ -1755,3 +1755,126 @@ tr[data-swipe-delete] {
   .ds-search-input { min-width: 0; }
 }
 
+/* ================================================================
+   MOBILE RESPONSIVE GLOBAL ENHANCEMENTS
+   Correzioni globali per tutti i template su schermi < 768px
+   ================================================================ */
+
+/* ---- Dropdown: non eccede il viewport su mobile ---- */
+@media (max-width: 768px) {
+  .dropdown-menu {
+    min-width: min(90vw, 280px) !important;
+    max-width: calc(100vw - 1rem);
+  }
+  .dropdown-menu-end {
+    right: 0 !important;
+    left: auto !important;
+  }
+
+  /* ---- Select nei filtri: occupano larghezza disponibile ---- */
+  .ds-search-bar .form-select {
+    max-width: 100% !important;
+    flex: 1 1 calc(50% - .5rem);
+    min-width: 0;
+  }
+
+  /* ---- ds-search-bar: wrap in colonne su XS ---- */
+  .ds-search-bar {
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+  .ds-search-bar .ds-search-input { flex: 1 1 100%; }
+  .ds-search-bar .ds-btn { flex: 1 1 calc(50% - .25rem); justify-content: center; }
+
+  /* ---- Testi troncati: usa viewport invece di px fissi ---- */
+  .text-truncate[style*="max-width"] {
+    max-width: min(var(--trunc-max, 200px), calc(100vw - 6rem)) !important;
+  }
+
+  /* ---- Bottoni azione tabella: non si sovrappongono ---- */
+  .table .btn-group.btn-group-sm {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+  .table .btn-group.btn-group-sm .btn {
+    flex-shrink: 0;
+    padding: .2rem .35rem;
+    font-size: .78rem;
+  }
+
+  /* ---- Card header flex-wrap per header con tanti pulsanti ---- */
+  .card-header.d-flex { flex-wrap: wrap; gap: .5rem; }
+
+  /* ---- Modal: full-width su mobile ---- */
+  .modal-dialog {
+    margin: .5rem;
+    max-width: calc(100vw - 1rem);
+  }
+  .modal-dialog.modal-lg,
+  .modal-dialog.modal-xl {
+    max-width: calc(100vw - 1rem);
+  }
+
+  /* ---- Accordion: padding ridotto su mobile ---- */
+  .accordion-body { padding: .75rem; }
+  .accordion-button { padding: .6rem .75rem; font-size: .875rem; }
+
+  /* ---- Tabelle dentro accordion: scroll orizzontale ---- */
+  .accordion-body .table-responsive,
+  .accordion-body table {
+    font-size: .8rem;
+  }
+
+  /* ---- Toast posizionato bene sopra la bottom-nav ---- */
+  .toast-container.position-fixed.bottom-0 {
+    bottom: calc(var(--bottomnav-h, 62px) + env(safe-area-inset-bottom, 0px) + .5rem) !important;
+  }
+
+  /* ---- Tabella attività/documenti dentro card: mob-cards auto ---- */
+  .mob-cards-auto thead { display: none; }
+  .mob-cards-auto,
+  .mob-cards-auto tbody,
+  .mob-cards-auto tr,
+  .mob-cards-auto td { display: block; }
+  .mob-cards-auto tr {
+    border: 1px solid var(--ds-border, #dee2e6);
+    border-radius: 8px;
+    margin-bottom: .5rem;
+    padding: .5rem .65rem;
+    background: var(--ds-surface, #fff);
+  }
+  .mob-cards-auto td {
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+    padding: .15rem 0;
+    border: none;
+    font-size: .82rem;
+    line-height: 1.35;
+  }
+  .mob-cards-auto td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #6c757d;
+    min-width: 5rem;
+    flex-shrink: 0;
+    font-size: .75rem;
+    padding-top: .05rem;
+  }
+  .mob-cards-auto td[data-label=""] { justify-content: flex-end; }
+  .mob-cards-auto td[data-label=""]::before { display: none; }
+  .mob-cards-auto td[data-mob-hide] { display: none; }
+  [data-bs-theme="dark"] .mob-cards-auto tr { background: #1e293b; border-color: #334155; }
+}
+
+/* ---- Extra small: iPhone SE (375px) e simili ---- */
+@media (max-width: 400px) {
+  .ds-search-bar .form-select { flex: 1 1 100%; }
+  .ds-search-bar .ds-btn { flex: 1 1 100%; }
+  .card-header .btn-group { flex-wrap: wrap; }
+  .ds-stat-pill { font-size: .72rem; padding: .2rem .55rem; }
+  .topbar h1 { font-size: .82rem; }
+  #main { padding: .6rem; }
+}
+

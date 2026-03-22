@@ -45,13 +45,13 @@
   <input type="search" name="q" class="ds-search-input"
          placeholder="Destinatario, oggetto…"
          value="{{ q }}" autocomplete="off">
-  <select name="canale" class="form-select form-select-sm" style="max-width:140px">
+  <select name="canale" class="form-select form-select-sm">
     <option value="">Tutti i canali</option>
     {% for c in canali %}
     <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ c.value }}</option>
     {% endfor %}
   </select>
-  <select name="stato" class="form-select form-select-sm" style="max-width:150px">
+  <select name="stato" class="form-select form-select-sm">
     <option value="">Tutti gli stati</option>
     {% for st in stati %}
     <option value="{{ st.value }}" {{ 'selected' if st.value == stato }}>{{ st.value.replace('_',' ') }}</option>
@@ -75,7 +75,7 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0 mob-cards">
         <thead class="table-light">
           <tr>
             <th>Data</th><th>Canale</th><th>Destinatario</th>
@@ -85,8 +85,8 @@
         <tbody>
           {% for m in messaggi %}
           <tr>
-            <td class="small text-nowrap">{{ m.creato_il[:16].replace('T',' ') }}</td>
-            <td>
+            <td data-label="Data" class="small text-nowrap">{{ m.creato_il[:16].replace('T',' ') }}</td>
+            <td data-label="Canale">
               {% if m.canale.value == 'EMAIL' %}
                 <span class="badge bg-primary">EMAIL</span>
               {% elif m.canale.value == 'SMS' %}
@@ -97,14 +97,14 @@
                 </span>
               {% endif %}
             </td>
-            <td class="small">
+            <td data-label="A" class="small">
               {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or '—' }}
             </td>
-            <td class="small">
+            <td data-label="Testo" class="small">
               {% if m.oggetto %}<div class="fw-semibold">{{ m.oggetto }}</div>{% endif %}
-              <div class="text-muted text-truncate" style="max-width:280px">{{ m.corpo }}</div>
+              <div class="text-muted text-truncate">{{ m.corpo }}</div>
             </td>
-            <td>
+            <td data-label="Stato">
               {% set colore = {
                 'IN_CODA': 'secondary', 'INVIATO': 'primary',
                 'CONSEGNATO': 'success', 'LETTO': 'info',
@@ -114,14 +114,14 @@
                 {{ m.stato.value.replace('_',' ') }}
               </span>
             </td>
-            <td>
-              <div class="btn-group btn-group-sm">
+            <td data-label="">
+              <div class="d-flex gap-1">
                 <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}"
-                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
                 <form method="post"
                       action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
                       onsubmit="return confirm('Eliminare il messaggio?')">
-                  <button class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                 </form>
               </div>
             </td>

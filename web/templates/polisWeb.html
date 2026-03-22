@@ -61,7 +61,7 @@
         <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" onclick="aggiornaUffici()">
           <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna da remoto
         </button>
-        <div class="input-group input-group-sm" style="max-width:300px">
+        <div class="input-group input-group-sm flex-grow-1" style="max-width:min(300px,100%)">
           <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
           <input type="url" id="uffici-url-custom" class="form-control"
                  placeholder="URL JSON personalizzato (facoltativo)">
@@ -240,7 +240,7 @@
     </div>
     {% if fascicoli %}
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small">
+      <table class="table table-hover align-middle mb-0 small mob-cards">
         <thead class="table-light">
           <tr>
             <th>RG</th>
@@ -255,26 +255,26 @@
         <tbody>
           {% for f in fascicoli %}
           <tr>
-            <td class="text-nowrap fw-semibold">
+            <td data-label="RG" class="text-nowrap fw-semibold">
               {{ f.numero_rg }}/{{ f.anno_rg }}
               {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
             </td>
-            <td>
+            <td data-label="Oggetto">
               {{ f.oggetto or '—' }}
               {% if f.giudice %}<br><small class="text-muted">Dr. {{ f.giudice }}</small>{% endif %}
             </td>
-            <td>{{ f.ruolo|replace('_',' ')|title }}</td>
-            <td class="small text-muted">
+            <td data-label="Ruolo" data-mob-hide>{{ f.ruolo|replace('_',' ')|title }}</td>
+            <td data-label="Parti" class="small text-muted" data-mob-hide>
               {% for p in f.parti[:2] %}{{ p }}<br>{% endfor %}
               {% if f.parti|length > 2 %}<em>+{{ f.parti|length - 2 }} altre</em>{% endif %}
               {% if not f.parti %}—{% endif %}
             </td>
-            <td class="text-nowrap">
+            <td data-label="Udienza" class="text-nowrap">
               {% if f.data_udienza %}
                 <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
               {% else %}—{% endif %}
             </td>
-            <td>
+            <td data-label="Stato">
               <span class="badge rounded-pill
                 {% if f.stato == 'PENDENTE' %}bg-primary
                 {% elif f.stato == 'DEFINITO' %}bg-success
@@ -283,7 +283,7 @@
                 {{ f.stato }}
               </span>
             </td>
-            <td class="text-end text-nowrap">
+            <td data-label="" class="text-end text-nowrap">
               {# Link a documenti #}
               <a href="{{ url_for('polisWeb_documenti',
                           codice_ufficio=f.codice_ufficio,

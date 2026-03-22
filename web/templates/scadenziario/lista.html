@@ -105,7 +105,7 @@
 
 {# ── Filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
-  <select name="tipo" class="form-select form-select-sm" style="max-width:180px">
+  <select name="tipo" class="form-select form-select-sm">
     <option value="">Tutti i tipi</option>
     {% for t in tipi %}
     <option value="{{ t.value }}" {{ 'selected' if t.value == filtro_tipo }}>
@@ -113,7 +113,7 @@
     </option>
     {% endfor %}
   </select>
-  <select name="priorita" class="form-select form-select-sm" style="max-width:160px">
+  <select name="priorita" class="form-select form-select-sm">
     <option value="">Tutte le priorità</option>
     {% for p in priorita_list %}
     <option value="{{ p.value }}" {{ 'selected' if p.value == filtro_priorita }}>
@@ -153,7 +153,7 @@
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tbl-scadenze" data-paginate="page-size-scadenze">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-scadenze" data-paginate="page-size-scadenze">
         <thead class="table-light">
           <tr>
             <th style="width:36px">
@@ -169,39 +169,39 @@
           {% set g = s.giorni_alla_scadenza %}
           <tr id="sc-{{ s.id }}"
               class="{{ 'table-danger' if s.priorita.value == 'CRITICA' else ('table-warning' if s.priorita.value == 'ALTA' else '') }}">
-            <td>
+            <td data-mob-hide>
               <input type="checkbox" name="ids" value="{{ s.id }}"
                      class="form-check-input bulk-cb">
             </td>
-            <td class="font-monospace fw-semibold text-nowrap">
+            <td data-label="Scadenza" class="font-monospace fw-semibold text-nowrap">
               {{ s.data_scadenza|fmt_data }}
               {% if s.perentorio %}
               <span class="badge bg-danger ms-1" title="Termine perentorio">P</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Titolo">
               <a href="{{ url_for('dettaglio_scadenza', id_sc=s.id) }}"
                  class="text-decoration-none fw-semibold">{{ s.titolo }}</a>
               {% if s.descrizione %}
-              <div class="small text-muted text-truncate" style="max-width:240px">
+              <div class="small text-muted text-truncate">
                 {{ s.descrizione }}
               </div>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Tipo" data-mob-hide>
               <span class="badge bg-light text-dark border small">
                 {{ s.tipo.value.replace('_',' ') }}
               </span>
             </td>
-            <td>
+            <td data-label="Priorità">
               {% set pcol = {'CRITICA':'danger','ALTA':'warning','MEDIA':'primary','BASSA':'secondary'} %}
               <span class="badge bg-{{ pcol.get(s.priorita.value,'secondary') }}
                 {{ ' text-dark' if s.priorita.value == 'ALTA' else '' }}">
                 {{ s.priorita.value }}
               </span>
             </td>
-            <td class="small font-monospace">{{ s.id_fascicolo[:8] if s.id_fascicolo else '—' }}</td>
-            <td class="fw-semibold">
+            <td data-label="Fascicolo" class="small font-monospace" data-mob-hide>{{ s.id_fascicolo[:8] if s.id_fascicolo else '—' }}</td>
+            <td data-label="Giorni" class="fw-semibold">
               {% if g is not none %}
                 {% if g < 0 %}
                   <span class="text-danger">{{ g }} gg</span>
@@ -214,20 +214,20 @@
                 {% endif %}
               {% else %}—{% endif %}
             </td>
-            <td>
-              <div class="btn-group btn-group-sm">
+            <td data-label="">
+              <div class="d-flex gap-1">
                 <a href="{{ url_for('dettaglio_scadenza', id_sc=s.id) }}"
-                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                   class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></a>
                 <a href="{{ url_for('modifica_scadenza', id_sc=s.id) }}"
-                   class="btn btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                   class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
                 <button
                   hx-post="{{ url_for('completa_scadenza', id_sc=s.id) }}"
                   hx-target="#sc-{{ s.id }}"
                   hx-swap="outerHTML"
                   hx-confirm="Segnare '{{ s.titolo }}' come completata?"
                   hx-indicator="#sc-{{ s.id }}"
-                  class="btn btn-outline-success"
-                  title="Completa (senza ricaricare la pagina)">
+                  class="btn btn-outline-success btn-sm"
+                  title="Completa">
                   <i class="bi bi-check-lg"></i>
                   <span class="htmx-indicator spinner-border spinner-border-sm ms-1"
                         role="status" aria-hidden="true"></span>

@@ -172,7 +172,7 @@
     </div>
     {% if fascicoli %}
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small">
+      <table class="table table-hover align-middle mb-0 small mob-cards">
         <thead class="table-light">
           <tr>
             <th>RG / Anno</th>
@@ -188,33 +188,33 @@
         <tbody>
           {% for f in fascicoli %}
           <tr>
-            <td class="text-nowrap fw-semibold">
+            <td data-label="RG" class="text-nowrap fw-semibold">
               {{ f.numero_rg }}/{{ f.anno_rg }}
               {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
             </td>
-            <td>
+            <td data-label="Registro" data-mob-hide>
               <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
                 {{ f.tipo_registro }}
               </span>
             </td>
-            <td>
+            <td data-label="Reato">
               {{ f.reato or '—' }}
               {% if f.giudice %}<br><small class="text-muted">Dr. {{ f.giudice }}</small>{% endif %}
             </td>
-            <td class="small text-muted">
+            <td data-label="Imputati" class="small text-muted" data-mob-hide>
               {% for p in f.imputati[:2] %}{{ p }}<br>{% endfor %}
               {% if f.imputati|length > 2 %}<em>+{{ f.imputati|length - 2 }} altri</em>{% endif %}
               {% if not f.imputati %}—{% endif %}
             </td>
-            <td>
+            <td data-label="Fase" data-mob-hide>
               <span class="badge bg-secondary">{{ f.fase|replace('_',' ')|title }}</span>
             </td>
-            <td class="text-nowrap">
+            <td data-label="Udienza" class="text-nowrap">
               {% if f.data_udienza %}
                 <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
               {% else %}—{% endif %}
             </td>
-            <td>
+            <td data-label="Stato">
               <span class="badge rounded-pill
                 {% if f.stato == 'PENDENTE' %}bg-primary
                 {% elif f.stato == 'DEFINITO' %}bg-success
@@ -224,7 +224,7 @@
                 {{ f.stato }}
               </span>
             </td>
-            <td class="text-end text-nowrap">
+            <td data-label="" class="text-end text-nowrap">
               <a href="{{ url_for('pdp_documenti',
                           codice_ufficio=f.codice_ufficio,
                           numero_rg=f.numero_rg,

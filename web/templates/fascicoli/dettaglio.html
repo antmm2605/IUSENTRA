@@ -221,7 +221,7 @@
                  class="btn btn-outline-secondary btn-sm" title="Scarica">
                 <i class="bi bi-download"></i>
               </a>
-              {% if ext in ('docx', 'txt', 'html', 'htm') %}
+              {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  class="btn btn-sm" title="Modifica con editor"
                  style="background:var(--ds-primary);color:#fff;border:none">

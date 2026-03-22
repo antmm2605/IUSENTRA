@@ -222,6 +222,8 @@
     <div class="ed-filename">
       {% if doc.nome.lower().endswith('.docx') %}
         <i class="bi bi-file-word"></i>
+      {% elif doc.nome.lower().endswith('.pdf') %}
+        <i class="bi bi-file-earmark-pdf" style="color:#dc2626"></i>
       {% elif doc.nome.lower().endswith('.txt') %}
         <i class="bi bi-file-text"></i>
       {% else %}
@@ -322,6 +324,30 @@
   </button>
 </div>
 
+{# ════════════════════ BANNER PDF (nascosto di default, mostrato via JS) ════════════ #}
+<div id="ed-pdf-banner" style="display:none;flex-shrink:0">
+  <div style="
+    background: linear-gradient(90deg, #fef9c3 0%, #fef3c7 100%);
+    border-bottom: 1px solid #fbbf24;
+    padding: .55rem 1.2rem;
+    display: flex; align-items: center; gap: .75rem;
+    font-size: .82rem; color: #92400e;
+  ">
+    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:1rem;flex-shrink:0"></i>
+    <div>
+      <strong>Editing PDF</strong> — Il testo è stato estratto e reso modificabile.
+      Il layout originale (immagini, colonne, intestazioni grafiche) non è preservato.
+      <span id="ed-pdf-ocr-note" style="display:none">
+        · <strong>Documento scansionato:</strong> il testo proviene da OCR (potrebbe contenere errori).
+      </span>
+    </div>
+    <button type="button" onclick="this.parentElement.parentElement.style.display='none'"
+            style="margin-left:auto;background:none;border:none;color:#92400e;cursor:pointer;font-size:1rem;line-height:1">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+</div>
+
 {# ════════════════════ CANVAS ════════════════════ #}
 <div class="ed-canvas">
   <div class="ed-paper" id="ed-paper">
@@ -405,6 +431,16 @@ async function caricaDocumento() {
     }
     if (data.avvisi && data.avvisi.length) {
       console.info('Avvisi conversione:', data.avvisi)
+    }
+    // ── Gestione PDF ─────────────────────────────────────
+    const meta = data.meta || {}
+    if (meta.tipo_originale === 'pdf') {
+      const banner = document.getElementById('ed-pdf-banner')
+      if (banner) banner.style.display = 'block'
+      if (meta.is_scanned) {
+        const ocrNote = document.getElementById('ed-pdf-ocr-note')
+        if (ocrNote) ocrNote.style.display = 'inline'
+      }
     }
   } catch(e) {
     console.error('Errore caricamento:', e)

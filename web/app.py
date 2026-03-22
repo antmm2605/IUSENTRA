@@ -4023,11 +4023,12 @@ def create_app(config: dict | None = None) -> Flask:
             fasc = gf.get(id_fasc)
             doc = next(d for d in fasc.documenti if d.id == id_doc)
             raw = _decrypt_doc(percorso.read_bytes())
-            html, avvisi = documento_to_html(raw, doc.nome)
-            return jsonify({"ok": True, "html": html, "avvisi": avvisi, "nome": doc.nome})
+            html, avvisi, meta = documento_to_html(raw, doc.nome)
+            return jsonify({"ok": True, "html": html, "avvisi": avvisi,
+                            "nome": doc.nome, "meta": meta})
         except Exception as e:
             app.logger.exception("Errore api_editor_carica_html: %s", e)
-            return jsonify({"ok": False, "html": f"<p>{e}</p>", "avvisi": [str(e)]})
+            return jsonify({"ok": False, "html": f"<p>{e}</p>", "avvisi": [str(e)], "meta": {}})
 
     @app.route("/api/editor/<id_fasc>/<id_doc>/salva", methods=["POST"])
     def api_editor_salva(id_fasc, id_doc):
@@ -4049,6 +4050,10 @@ def create_app(config: dict | None = None) -> Flask:
             if ext == "docx":
                 contenuto_raw = html_to_docx(html, titolo=nome.rsplit(".", 1)[0])
                 nome_salvato = nome
+            elif ext == "pdf":
+                from pct.editor import html_to_pdf
+                contenuto_raw = html_to_pdf(html, titolo=nome.rsplit(".", 1)[0])
+                nome_salvato = nome  # rimane .pdf
             else:
                 # Per .txt e altri: salva come .html
                 contenuto_raw = html.encode("utf-8")

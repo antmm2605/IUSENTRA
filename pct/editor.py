@@ -3,6 +3,7 @@ pct/editor.py — Conversione documenti per l'editor web.
 
 Funzionalità:
   - docx_to_html()  : .docx → HTML con mammoth (fedele ai formati Word)
+  - pdf_to_html()   : .pdf → HTML con pdfplumber (testo + struttura)
   - html_to_docx()  : HTML → .docx con python-docx + lxml
   - html_to_pdf()   : HTML → PDF con xhtml2pdf
   - txt_to_html()   : .txt → HTML semplice
@@ -10,6 +11,12 @@ Funzionalità:
 Tutte le funzioni lavorano su bytes già decifrati.
 Le dipendenze (mammoth, python-docx, xhtml2pdf) sono opzionali:
 se non presenti, si solleva ImportError con messaggio chiaro.
+
+Nota sul supporto PDF:
+  Il PDF è un formato di presentazione, non di editing. La conversione
+  PDF → HTML preserva testo e struttura di base (titoli, paragrafi,
+  grassetto) ma non layout complessi, immagini o tabelle grafiche.
+  Per PDF scansionati viene usato Tesseract OCR (lingua italiana).
 """
 from __future__ import annotations
 
@@ -19,7 +26,7 @@ from pathlib import Path
 from typing import Optional
 
 # Estensioni supportate dall'editor
-ESTENSIONI_EDITABILI = {".docx", ".txt", ".html", ".htm"}
+ESTENSIONI_EDITABILI = {".docx", ".txt", ".html", ".htm", ".pdf"}
 
 
 def estensione_editabile(nome_file: str) -> bool:
@@ -52,6 +59,188 @@ def docx_to_html(data: bytes) -> tuple[str, list[str]]:
         return f"<p><em>Errore conversione .docx: {e}</em></p>", [str(e)]
 
 
+# ─────────────────────────────────────────────── pdf → HTML
+
+def pdf_to_html(data: bytes) -> tuple[str, list[str], bool]:
+    """
+    Converte un file PDF in HTML per l'editing.
+
+    Strategia:
+      1. Prova estrazione testo nativo con pdfplumber (PDF digitali)
+      2. Se una pagina è vuota (PDF scansionato), usa Tesseract OCR
+      3. Usa la dimensione del font per rilevare titoli (H1/H2/H3)
+      4. Raggruppa il testo in paragrafi per riga
+
+    Returns:
+        (html, avvisi, is_scanned)
+        - html       : contenuto HTML pronto per TipTap
+        - avvisi     : lista di messaggi informativi
+        - is_scanned : True se almeno una pagina è stata processata via OCR
+    """
+    try:
+        import pdfplumber
+    except ImportError:
+        return (
+            "<p><em>pdfplumber non disponibile.</em></p>",
+            ["pdfplumber non installato"],
+            False,
+        )
+
+    avvisi: list[str] = []
+    html_parti: list[str] = []
+    is_scanned = False
+
+    try:
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            n_pagine = len(pdf.pages)
+            for i, pagina in enumerate(pdf.pages):
+                # ── Raccoglie caratteri con font info ──────────────
+                chars = pagina.chars
+                testo_plain = pagina.extract_text() or ""
+
+                if not testo_plain.strip():
+                    # Pagina scansionata → OCR
+                    testo_ocr = _ocr_pagina(pagina)
+                    if testo_ocr:
+                        is_scanned = True
+                        # OCR produce solo testo piano: wrap in paragrafi
+                        for blocco in _splitta_paragrafi(testo_ocr):
+                            html_parti.append(f"<p>{_escape_html(blocco)}</p>")
+                    avvisi.append(f"Pagina {i+1}: testo estratto via OCR")
+                    if n_pagine > 1 and i < n_pagine - 1:
+                        html_parti.append('<hr>')
+                    continue
+
+                # ── Estrae righe con dimensione font media ─────────
+                righe = _estrai_righe_con_font(chars, pagina.extract_text_lines() or [])
+
+                if not righe:
+                    # Fallback: testo piano
+                    for blocco in _splitta_paragrafi(testo_plain):
+                        html_parti.append(f"<p>{_escape_html(blocco)}</p>")
+                else:
+                    html_parti.extend(_righe_to_html(righe))
+
+                # Separatore di pagina visivo (tranne dopo l'ultima)
+                if n_pagine > 1 and i < n_pagine - 1:
+                    html_parti.append('<hr>')
+
+    except Exception as e:
+        avvisi.append(f"Errore estrazione PDF: {e}")
+        html_parti.append(f"<p><em>Errore: {_escape_html(str(e))}</em></p>")
+
+    html = "\n".join(html_parti) if html_parti else "<p></p>"
+    return html, avvisi, is_scanned
+
+
+def _ocr_pagina(pagina) -> str:
+    """OCR su pagina PDF via pytesseract."""
+    try:
+        import pytesseract
+        img = pagina.to_image(resolution=200).original
+        return pytesseract.image_to_string(img, lang="ita").strip()
+    except Exception:
+        return ""
+
+
+def _estrai_righe_con_font(chars: list, lines_raw: list) -> list[dict]:
+    """
+    Costruisce lista di righe con testo, dimensione media font e flag bold.
+    Ogni dict: {testo, size, bold}
+    """
+    if not chars:
+        return []
+
+    # Raggruppa chars per y (riga)
+    riga_map: dict[float, list] = {}
+    for c in chars:
+        y = round(c.get("top", 0), 1)
+        riga_map.setdefault(y, []).append(c)
+
+    righe = []
+    for y in sorted(riga_map.keys()):
+        gruppo = sorted(riga_map[y], key=lambda c: c.get("x0", 0))
+        testo = "".join(c.get("text", "") for c in gruppo).strip()
+        if not testo:
+            continue
+        sizes = [c.get("size", 10) for c in gruppo if c.get("size")]
+        avg_size = sum(sizes) / len(sizes) if sizes else 10
+        fonts = [c.get("fontname", "").lower() for c in gruppo]
+        is_bold = any("bold" in f for f in fonts)
+        righe.append({"testo": testo, "size": avg_size, "bold": is_bold})
+
+    return righe
+
+
+def _righe_to_html(righe: list[dict]) -> list[str]:
+    """
+    Converte righe con font info in tag HTML.
+    Usa dimensione relativa per classificare titoli:
+      size > 1.4x media → H1
+      size > 1.2x media → H2
+      size > 1.05x media → H3
+      altrimenti → <p>
+    """
+    if not righe:
+        return []
+
+    sizes = [r["size"] for r in righe]
+    media = sum(sizes) / len(sizes)
+
+    html: list[str] = []
+    paragrafo: list[str] = []
+
+    def _flush_paragrafo():
+        if paragrafo:
+            html.append("<p>" + " ".join(_escape_html(t) for t in paragrafo) + "</p>")
+            paragrafo.clear()
+
+    for r in righe:
+        testo = r["testo"]
+        size = r["size"]
+
+        if size >= media * 1.4:
+            _flush_paragrafo()
+            html.append(f"<h1>{_escape_html(testo)}</h1>")
+        elif size >= media * 1.2:
+            _flush_paragrafo()
+            html.append(f"<h2>{_escape_html(testo)}</h2>")
+        elif size >= media * 1.05:
+            _flush_paragrafo()
+            html.append(f"<h3>{_escape_html(testo)}</h3>")
+        elif r["bold"] and len(testo) < 120:
+            _flush_paragrafo()
+            html.append(f"<h4>{_escape_html(testo)}</h4>")
+        elif testo == "":
+            _flush_paragrafo()
+        else:
+            paragrafo.append(testo)
+
+    _flush_paragrafo()
+    return html
+
+
+def _splitta_paragrafi(testo: str) -> list[str]:
+    """Divide testo plain in paragrafi su righe vuote."""
+    blocchi, buf = [], []
+    for riga in testo.splitlines():
+        if riga.strip():
+            buf.append(riga.strip())
+        elif buf:
+            blocchi.append(" ".join(buf))
+            buf = []
+    if buf:
+        blocchi.append(" ".join(buf))
+    return blocchi or [testo.strip()]
+
+
+def _escape_html(s: str) -> str:
+    return (s.replace("&", "&amp;")
+             .replace("<", "&lt;")
+             .replace(">", "&gt;")
+             .replace('"', "&quot;"))
+
+
 # ─────────────────────────────────────────────── txt → HTML
 
 def txt_to_html(data: bytes) -> tuple[str, list[str]]:
@@ -78,19 +267,37 @@ def txt_to_html(data: bytes) -> tuple[str, list[str]]:
 
 # ─────────────────────────────────────────────── bytes → HTML (dispatcher)
 
-def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str]]:
+def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict]:
     """
     Dispatcher: converte il documento in HTML in base all'estensione.
+
+    Returns:
+        (html, avvisi, meta)
+        meta contiene: {tipo_originale, is_scanned, ...}
     """
     ext = Path(nome_file).suffix.lower()
+
     if ext == ".docx":
-        return docx_to_html(data)
+        html, avvisi = docx_to_html(data)
+        return html, avvisi, {"tipo_originale": "docx", "is_scanned": False}
+
+    if ext == ".pdf":
+        html, avvisi, is_scanned = pdf_to_html(data)
+        return html, avvisi, {"tipo_originale": "pdf", "is_scanned": is_scanned}
+
     if ext in (".txt",):
-        return txt_to_html(data)
+        html, avvisi = txt_to_html(data)
+        return html, avvisi, {"tipo_originale": "txt", "is_scanned": False}
+
     if ext in (".html", ".htm"):
         html = data.decode("utf-8", errors="replace")
-        return html, []
-    return "<p><em>Formato non supportato per la modifica inline.</em></p>", []
+        return html, [], {"tipo_originale": "html", "is_scanned": False}
+
+    return (
+        "<p><em>Formato non supportato per la modifica inline.</em></p>",
+        [],
+        {"tipo_originale": ext.lstrip("."), "is_scanned": False},
+    )
 
 
 # ─────────────────────────────────────────────── HTML → .docx

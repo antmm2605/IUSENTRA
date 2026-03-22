@@ -1868,10 +1868,30 @@ tr[data-swipe-delete] {
   [data-bs-theme="dark"] .mob-cards-auto tr { background: #1e293b; border-color: #334155; }
 }
 
+/* ---- Sezione documenti fascicolo: nomi file lunghi non fuoriescono ---- */
+.mob-cards td[data-label="Nome"] a,
+.mob-cards td[data-label="Nome"] {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
 /* ---- Bottone Editor: label nascosta di default, visibile su mobile ---- */
 .mob-editor-label { display: none; }
 
 @media (max-width: 767.98px) {
+  /* Accordion con tabelle: non genera overflow orizzontale */
+  .accordion-collapse .mob-cards,
+  .accordion-body .mob-cards {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+  .accordion-body { overflow: hidden; }
+
+  /* Card documenti: contenuto non esce mai dal bordo */
+  .card { overflow: hidden; }
+
   /* Nella card documento mobile l'editor diventa un CTA prominente */
   .mob-cards td[data-label=""] {
     flex-direction: column;

@@ -1868,6 +1868,51 @@ tr[data-swipe-delete] {
   [data-bs-theme="dark"] .mob-cards-auto tr { background: #1e293b; border-color: #334155; }
 }
 
+/* ---- Bottone Editor: label nascosta di default, visibile su mobile ---- */
+.mob-editor-label { display: none; }
+
+@media (max-width: 767.98px) {
+  /* Nella card documento mobile l'editor diventa un CTA prominente */
+  .mob-cards td[data-label=""] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .45rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--ds-border, #dee2e6);
+    margin-top: .25rem;
+  }
+  /* Bottone editor: piena larghezza, testo visibile, ordine primo */
+  .mob-cards td[data-label=""] .mob-editor-btn {
+    order: -1;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    gap: .4rem;
+    width: 100%;
+    padding: .55rem .75rem;
+    font-size: .88rem;
+    font-weight: 600;
+    border-radius: .5rem;
+    letter-spacing: .01em;
+    box-shadow: 0 2px 8px rgba(26,58,92,.18);
+  }
+  .mob-editor-label { display: inline; }
+  /* Bottoni secondari: raggruppati in riga orizzontale sotto l'editor */
+  .mob-cards td[data-label=""] > *:not(.mob-editor-btn) {
+    flex: 1;
+    justify-content: center;
+  }
+  .mob-cards td[data-label=""] > .d-flex,
+  .mob-cards td[data-label=""] > div {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+  [data-bs-theme="dark"] .mob-cards td[data-label=""] {
+    border-top-color: #334155;
+  }
+}
+
 /* ---- Extra small: iPhone SE (375px) e simili ---- */
 @media (max-width: 400px) {
   .ds-search-bar .form-select { flex: 1 1 100%; }

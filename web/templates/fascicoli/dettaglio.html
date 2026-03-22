@@ -207,9 +207,19 @@
             {% else %}—{% endif %}
           </td>
           <td data-label="" class="text-nowrap">
+            {# Editor: bottone principale — su mobile diventa full-width con label #}
+            {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+            <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+               class="btn btn-sm mob-editor-btn" title="Apri nell'editor"
+               style="background:var(--ds-primary);color:#fff;border:none">
+              <i class="bi bi-pencil-square"></i>
+              <span class="mob-editor-label">Apri editor</span>
+            </a>
+            {% endif %}
+            {# Bottoni secondari #}
             <div class="d-flex gap-1 flex-wrap">
               {% if visualizzabile %}
-              <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+              <button type="button" class="btn btn-outline-primary btn-sm" title="Anteprima"
                       data-doc-nome="{{ doc.nome }}"
                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
@@ -221,13 +231,6 @@
                  class="btn btn-outline-secondary btn-sm" title="Scarica">
                 <i class="bi bi-download"></i>
               </a>
-              {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
-              <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
-                 class="btn btn-sm" title="Modifica con editor"
-                 style="background:var(--ds-primary);color:#fff;border:none">
-                <i class="bi bi-pencil-square"></i>
-              </a>
-              {% endif %}
               {% if not doc.firmato_digitalmente %}
               <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
                       data-doc-nome="{{ doc.nome }}"

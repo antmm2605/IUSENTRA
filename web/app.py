@@ -298,17 +298,23 @@ def create_app(config: dict | None = None) -> Flask:
         app.config.setdefault("SMTP_USE_TLS",   True)
 
     def get_agenda() -> Agenda:
-        return Agenda(db_path=app.config["AGENDA_DB"])
+        if not hasattr(g, "_agenda"):
+            g._agenda = Agenda(db_path=app.config["AGENDA_DB"])
+        return g._agenda
 
     def get_clienti() -> GestioneClienti:
-        return GestioneClienti(db_path=app.config["CLIENTI_DB"])
+        if not hasattr(g, "_clienti"):
+            g._clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+        return g._clienti
 
     def get_fascicoli() -> GestioneFascicoli:
-        return GestioneFascicoli(
-            db_path=app.config["FASCICOLI_DB"],
-            documents_dir=app.config["FASCICOLI_DOCS"],
-            archive_dir=app.config["FASCICOLI_ARCH"],
-        )
+        if not hasattr(g, "_fascicoli"):
+            g._fascicoli = GestioneFascicoli(
+                db_path=app.config["FASCICOLI_DB"],
+                documents_dir=app.config["FASCICOLI_DOCS"],
+                archive_dir=app.config["FASCICOLI_ARCH"],
+            )
+        return g._fascicoli
 
     def get_config_studio():
         from pct.config_studio import GestioneConfigStudio
@@ -354,32 +360,44 @@ def create_app(config: dict | None = None) -> Flask:
         )
 
     def get_utenti() -> GestioneUtenti:
-        return GestioneUtenti(
-            db_path=app.config["AUTH_DB"],
-            audit_path=app.config["AUDIT_DB"],
-            secret_key=app.secret_key,
-        )
+        if not hasattr(g, "_utenti"):
+            g._utenti = GestioneUtenti(
+                db_path=app.config["AUTH_DB"],
+                audit_path=app.config["AUDIT_DB"],
+                secret_key=app.secret_key,
+            )
+        return g._utenti
 
     def get_scadenziario() -> GestioneScadenziario:
-        return GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+        if not hasattr(g, "_scadenziario"):
+            g._scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+        return g._scadenziario
 
     def get_soggetti() -> GestioneSoggetti:
-        return GestioneSoggetti(
-            soggetti_path=app.config["SOGGETTI_DB"],
-            parti_path=app.config["SOGGETTI_PARTI_DB"],
-        )
+        if not hasattr(g, "_soggetti"):
+            g._soggetti = GestioneSoggetti(
+                soggetti_path=app.config["SOGGETTI_DB"],
+                parti_path=app.config["SOGGETTI_PARTI_DB"],
+            )
+        return g._soggetti
 
     def get_indice() -> IndiceRicerca:
-        return IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
+        if not hasattr(g, "_indice"):
+            g._indice = IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
+        return g._indice
 
     def get_trattamenti() -> GestioneTrattamenti:
-        return GestioneTrattamenti(db_path=app.config["PRIVACY_DB"])
+        if not hasattr(g, "_trattamenti"):
+            g._trattamenti = GestioneTrattamenti(db_path=app.config["PRIVACY_DB"])
+        return g._trattamenti
 
     def get_condivisioni() -> GestioneCondivisioni:
-        return GestioneCondivisioni(
-            db_path=app.config["CONDIVISIONI_DB"],
-            secret_key=app.config["SECRET_KEY"],
-        )
+        if not hasattr(g, "_condivisioni"):
+            g._condivisioni = GestioneCondivisioni(
+                db_path=app.config["CONDIVISIONI_DB"],
+                secret_key=app.config["SECRET_KEY"],
+            )
+        return g._condivisioni
 
     def cliente_accessibile(id_cliente: str, richiesto: RuoloCondivisione = RuoloCondivisione.LETTURA) -> bool:
         """
@@ -837,7 +855,11 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             abort(403)
-        return jsonify(get_utenti().statistiche())
+        try:
+            return jsonify(get_utenti().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_utenti_statistiche: %s", e)
+            return jsonify({"errore": str(e)}), 200
 
     # ---- Gestione profili / matrice permessi
 
@@ -1055,34 +1077,38 @@ def create_app(config: dict | None = None) -> Flask:
         """Restituisce notifiche urgenti da mostrare via Browser Notification API."""
         if not g.utente_corrente:
             return jsonify([])
-        gs = get_scadenziario()
-        alerts = []
-        oggi = date.today()
-        scadute = [s for s in gs.imminenti(entro_giorni=0) if s.giorni_alla_scadenza is not None and s.giorni_alla_scadenza < 0]
-        critiche_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
-        imminenti = [s for s in gs.imminenti(entro_giorni=3) if s.perentorio and (s.giorni_alla_scadenza or 0) > 0]
-        if scadute:
-            alerts.append({
-                "titolo": f"⚠️ {len(scadute)} scadenza/e SCADUTA/E",
-                "corpo": " • ".join(s.titolo for s in scadute[:3]),
-                "url": "/scadenziario",
-                "delay": 2000,
-            })
-        if critiche_oggi:
-            alerts.append({
-                "titolo": f"🔴 {len(critiche_oggi)} scadenza/e OGGI",
-                "corpo": " • ".join(s.titolo for s in critiche_oggi[:3]),
-                "url": "/scadenziario",
-                "delay": 4000,
-            })
-        if imminenti:
-            alerts.append({
-                "titolo": f"🔔 {len(imminenti)} termine/i perentorio/i imminente/i",
-                "corpo": " • ".join(s.titolo for s in imminenti[:3]),
-                "url": "/scadenziario",
-                "delay": 6000,
-            })
-        return jsonify(alerts)
+        try:
+            gs = get_scadenziario()
+            alerts = []
+            oggi = date.today()
+            scadute = [s for s in gs.imminenti(entro_giorni=0) if s.giorni_alla_scadenza is not None and s.giorni_alla_scadenza < 0]
+            critiche_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
+            imminenti = [s for s in gs.imminenti(entro_giorni=3) if s.perentorio and (s.giorni_alla_scadenza or 0) > 0]
+            if scadute:
+                alerts.append({
+                    "titolo": f"⚠️ {len(scadute)} scadenza/e SCADUTA/E",
+                    "corpo": " • ".join(s.titolo for s in scadute[:3]),
+                    "url": "/scadenziario",
+                    "delay": 2000,
+                })
+            if critiche_oggi:
+                alerts.append({
+                    "titolo": f"🔴 {len(critiche_oggi)} scadenza/e OGGI",
+                    "corpo": " • ".join(s.titolo for s in critiche_oggi[:3]),
+                    "url": "/scadenziario",
+                    "delay": 4000,
+                })
+            if imminenti:
+                alerts.append({
+                    "titolo": f"🔔 {len(imminenti)} termine/i perentorio/i imminente/i",
+                    "corpo": " • ".join(s.titolo for s in imminenti[:3]),
+                    "url": "/scadenziario",
+                    "delay": 6000,
+                })
+            return jsonify(alerts)
+        except Exception as e:
+            app.logger.exception("Errore notifiche_pending: %s", e)
+            return jsonify([])
 
     @app.route("/api/notifiche/inbox")
     def notifiche_inbox():
@@ -1218,14 +1244,22 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/scadenziario/imminenti")
     def api_scadenze_imminenti():
-        giorni = int(request.args.get("giorni", 7))
-        gs = get_scadenziario()
-        sc = gs.imminenti(entro_giorni=giorni)
-        return jsonify([s.to_dict() for s in sc])
+        try:
+            giorni = int(request.args.get("giorni", 7))
+            gs = get_scadenziario()
+            sc = gs.imminenti(entro_giorni=giorni)
+            return jsonify([s.to_dict() for s in sc])
+        except Exception as e:
+            app.logger.exception("Errore api_scadenze_imminenti: %s", e)
+            return jsonify([])
 
     @app.route("/api/scadenziario/statistiche")
     def api_scadenziario_statistiche():
-        return jsonify(get_scadenziario().statistiche())
+        try:
+            return jsonify(get_scadenziario().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_scadenziario_statistiche: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ---------------------------------------------------------------- dashboard
 
@@ -1494,32 +1528,48 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/agenda")
     def api_agenda():
-        agenda = get_agenda()
-        da_str = request.args.get("da")
-        a_str = request.args.get("a")
-        da = date.fromisoformat(da_str) if da_str else None
-        a = date.fromisoformat(a_str) if a_str else None
-        apps = agenda.cerca(da=da, a=a)
-        return jsonify([a.to_dict() for a in apps])
+        try:
+            agenda = get_agenda()
+            da_str = request.args.get("da")
+            a_str = request.args.get("a")
+            da = date.fromisoformat(da_str) if da_str else None
+            a = date.fromisoformat(a_str) if a_str else None
+            apps = agenda.cerca(da=da, a=a)
+            return jsonify([a.to_dict() for a in apps])
+        except Exception as e:
+            app.logger.exception("Errore api_agenda: %s", e)
+            return jsonify([])
 
     @app.route("/api/agenda/<id_app>")
     def api_appuntamento(id_app):
-        agenda = get_agenda()
-        app = agenda.get(id_app)
-        if not app:
-            return jsonify({"errore": "Non trovato"}), 404
-        return jsonify(app.to_dict())
+        try:
+            agenda = get_agenda()
+            appt = agenda.get(id_app)
+            if not appt:
+                return jsonify({"errore": "Non trovato"}), 404
+            return jsonify(appt.to_dict())
+        except Exception as e:
+            app.logger.exception("Errore api_appuntamento: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/reminder")
     def api_reminder():
-        agenda = get_agenda()
-        entro = int(request.args.get("entro", 60))
-        apps = agenda.prossimi_reminder(entro_minuti=entro)
-        return jsonify([a.to_dict() for a in apps])
+        try:
+            agenda = get_agenda()
+            entro = int(request.args.get("entro", 60))
+            apps = agenda.prossimi_reminder(entro_minuti=entro)
+            return jsonify([a.to_dict() for a in apps])
+        except Exception as e:
+            app.logger.exception("Errore api_reminder: %s", e)
+            return jsonify([])
 
     @app.route("/api/statistiche")
     def api_statistiche():
-        return jsonify(get_agenda().statistiche())
+        try:
+            return jsonify(get_agenda().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_statistiche: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ---------------------------------------------------------------- tariffario DM 55/2014
 
@@ -2938,22 +2988,34 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/clienti")
     def api_clienti():
-        gc = get_clienti()
-        q = request.args.get("q", "")
-        clienti = gc.cerca(testo=q) if q else gc.tutti()
-        return jsonify([c.to_dict() for c in clienti])
+        try:
+            gc = get_clienti()
+            q = request.args.get("q", "")
+            clienti = gc.cerca(testo=q) if q else gc.tutti()
+            return jsonify([c.to_dict() for c in clienti])
+        except Exception as e:
+            app.logger.exception("Errore api_clienti: %s", e)
+            return jsonify([])
 
     @app.route("/api/clienti/<id_cliente>")
     def api_cliente(id_cliente):
-        gc = get_clienti()
-        c = gc.get(id_cliente)
-        if not c:
-            return jsonify({"errore": "Non trovato"}), 404
-        return jsonify(c.to_dict())
+        try:
+            gc = get_clienti()
+            c = gc.get(id_cliente)
+            if not c:
+                return jsonify({"errore": "Non trovato"}), 404
+            return jsonify(c.to_dict())
+        except Exception as e:
+            app.logger.exception("Errore api_cliente: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/clienti/statistiche")
     def api_clienti_statistiche():
-        return jsonify(get_clienti().statistiche())
+        try:
+            return jsonify(get_clienti().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_clienti_statistiche: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ---------------------------------------------------------------- helpers
 
@@ -3384,15 +3446,19 @@ def create_app(config: dict | None = None) -> Flask:
         """API REST: collaboratori di una cartella cliente."""
         if not cliente_accessibile(id_cliente):
             return jsonify({"errore": "Accesso negato"}), 403
-        gcd = get_condivisioni()
-        collaboratori = gcd.collaboratori_di(id_cliente)
-        return jsonify({
-            "id_cliente": id_cliente,
-            "collaboratori": [a.to_dict() for a in collaboratori],
-            "n_collaboratori": len(collaboratori),
-            "link_attivi": len(gcd.link_attivi_per_cliente(id_cliente)),
-            "statistiche": gcd.statistiche(),
-        })
+        try:
+            gcd = get_condivisioni()
+            collaboratori = gcd.collaboratori_di(id_cliente)
+            return jsonify({
+                "id_cliente": id_cliente,
+                "collaboratori": [a.to_dict() for a in collaboratori],
+                "n_collaboratori": len(collaboratori),
+                "link_attivi": len(gcd.link_attivi_per_cliente(id_cliente)),
+                "statistiche": gcd.statistiche(),
+            })
+        except Exception as e:
+            app.logger.exception("Errore api_condivisioni_cliente: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/v1/clienti/<id_cliente>/condivisioni", methods=["POST"])
     def api_aggiungi_collaboratore(id_cliente):
@@ -3439,11 +3505,15 @@ def create_app(config: dict | None = None) -> Flask:
                      or get_condivisioni().ha_accesso(u.id, id_cliente, RuoloCondivisione.GESTORE))
         if not puo:
             return jsonify({"errore": "Permesso insufficiente"}), 403
-        rimosso = get_condivisioni().revoca(id_cliente, id_utente)
-        if rimosso:
-            audit("condivisione.api.revoca", "cliente", id_cliente, dettagli=f"→ {id_utente}")
-            return jsonify({"stato": "ok"}), 200
-        return jsonify({"errore": "Accesso non trovato"}), 404
+        try:
+            rimosso = get_condivisioni().revoca(id_cliente, id_utente)
+            if rimosso:
+                audit("condivisione.api.revoca", "cliente", id_cliente, dettagli=f"→ {id_utente}")
+                return jsonify({"stato": "ok"}), 200
+            return jsonify({"errore": "Accesso non trovato"}), 404
+        except Exception as e:
+            app.logger.exception("Errore api_revoca_collaboratore: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/v1/condivisioni/statistiche")
     def api_statistiche_condivisioni():
@@ -3451,7 +3521,11 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Permesso insufficiente"}), 403
-        return jsonify(get_condivisioni().statistiche())
+        try:
+            return jsonify(get_condivisioni().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_statistiche_condivisioni: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/v1/condivisioni/pulizia-scaduti", methods=["POST"])
     def api_pulizia_scaduti():
@@ -3459,12 +3533,16 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.scrivi"):
             return jsonify({"errore": "Permesso insufficiente"}), 403
-        gcd = get_condivisioni()
-        n_scaduti = gcd.revoca_scaduti()
-        n_link = gcd.pulisci_link_scaduti()
-        audit("condivisione.pulizia", "sistema", "",
-              dettagli=f"rimossi {n_scaduti} accessi + {n_link} link scaduti")
-        return jsonify({"accessi_rimossi": n_scaduti, "link_rimossi": n_link})
+        try:
+            gcd = get_condivisioni()
+            n_scaduti = gcd.revoca_scaduti()
+            n_link = gcd.pulisci_link_scaduti()
+            audit("condivisione.pulizia", "sistema", "",
+                  dettagli=f"rimossi {n_scaduti} accessi + {n_link} link scaduti")
+            return jsonify({"accessi_rimossi": n_scaduti, "link_rimossi": n_link})
+        except Exception as e:
+            app.logger.exception("Errore api_pulizia_scaduti: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ================================================================ FASCICOLI
 
@@ -4691,23 +4769,35 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/fascicoli")
     def api_fascicoli():
-        gf = get_fascicoli()
-        q = request.args.get("q", "")
-        archiviati = request.args.get("archiviati", "0") == "1"
-        fascicoli = gf.cerca(testo=q, archiviati=archiviati)
-        return jsonify([f.to_dict() for f in fascicoli])
+        try:
+            gf = get_fascicoli()
+            q = request.args.get("q", "")
+            archiviati = request.args.get("archiviati", "0") == "1"
+            fascicoli = gf.cerca(testo=q, archiviati=archiviati)
+            return jsonify([f.to_dict() for f in fascicoli])
+        except Exception as e:
+            app.logger.exception("Errore api_fascicoli: %s", e)
+            return jsonify([])
 
     @app.route("/api/fascicoli/<id_fasc>")
     def api_fascicolo(id_fasc):
-        gf = get_fascicoli()
-        f = gf.get(id_fasc)
-        if not f:
-            return jsonify({"errore": "Non trovato"}), 404
-        return jsonify(f.to_dict())
+        try:
+            gf = get_fascicoli()
+            f = gf.get(id_fasc)
+            if not f:
+                return jsonify({"errore": "Non trovato"}), 404
+            return jsonify(f.to_dict())
+        except Exception as e:
+            app.logger.exception("Errore api_fascicolo: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/fascicoli/statistiche")
     def api_fascicoli_statistiche():
-        return jsonify(get_fascicoli().statistiche())
+        try:
+            return jsonify(get_fascicoli().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_fascicoli_statistiche: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ================================================================ MESSAGGI
 
@@ -4833,7 +4923,11 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/messaggi/statistiche")
     def api_messaggi_statistiche():
-        return jsonify(get_messaggi().statistiche())
+        try:
+            return jsonify(get_messaggi().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_messaggi_statistiche: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ================================================================ BACKUP
 
@@ -4937,7 +5031,11 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/api/backup/statistiche")
     def api_backup_statistiche():
-        return jsonify(get_backup().statistiche())
+        try:
+            return jsonify(get_backup().statistiche())
+        except Exception as e:
+            app.logger.exception("Errore api_backup_statistiche: %s", e)
+            return jsonify({"errore": str(e)})
 
     # ================================================================ HEALTH CHECK
 
@@ -5089,25 +5187,29 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/api/cerca")
     def api_cerca():
         """Ricerca globale full-text — usata dall'autocomplete topbar."""
-        q = request.args.get("q", "").strip()
-        tipi_raw = request.args.getlist("tipo")
-        limit = min(int(request.args.get("limit", 20)), 50)
-        if not q:
+        try:
+            q = request.args.get("q", "").strip()
+            tipi_raw = request.args.getlist("tipo")
+            limit = min(int(request.args.get("limit", 20)), 50)
+            if not q:
+                return jsonify([])
+            indice = get_indice()
+            risultati = indice.cerca(q, tipi=tipi_raw or None, limit=limit)
+            return jsonify([
+                {
+                    "tipo": r.tipo,
+                    "id": r.id,
+                    "titolo": r.titolo,
+                    "sottotitolo": r.sottotitolo,
+                    "url": r.url,
+                    "icona": r.icona,
+                    "snippet": r.snippet,
+                }
+                for r in risultati
+            ])
+        except Exception as e:
+            app.logger.exception("Errore api_cerca: %s", e)
             return jsonify([])
-        indice = get_indice()
-        risultati = indice.cerca(q, tipi=tipi_raw or None, limit=limit)
-        return jsonify([
-            {
-                "tipo": r.tipo,
-                "id": r.id,
-                "titolo": r.titolo,
-                "sottotitolo": r.sottotitolo,
-                "url": r.url,
-                "icona": r.icona,
-                "snippet": r.snippet,
-            }
-            for r in risultati
-        ])
 
     @app.route("/cerca")
     def cerca():
@@ -5125,15 +5227,19 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
-        indice = get_indice()
-        indice.ricostruisci(
-            clienti=get_clienti().tutti(),
-            fascicoli=get_fascicoli().tutti(),
-            appuntamenti=get_agenda().tutti(),
-            scadenze=get_scadenziario().tutte(solo_aperte=False),
-        )
-        audit("ricerca.ricostruisci_indice")
-        return jsonify({"ok": True, "statistiche": indice.statistiche()})
+        try:
+            indice = get_indice()
+            indice.ricostruisci(
+                clienti=get_clienti().tutti(),
+                fascicoli=get_fascicoli().tutti(),
+                appuntamenti=get_agenda().tutti(),
+                scadenze=get_scadenziario().tutte(solo_aperte=False),
+            )
+            audit("ricerca.ricostruisci_indice")
+            return jsonify({"ok": True, "statistiche": indice.statistiche()})
+        except Exception as e:
+            app.logger.exception("Errore api_ricerca_ricostruisci: %s", e)
+            return jsonify({"ok": False, "errore": str(e)})
 
     # ================================================================ PDF EXPORT
 
@@ -5213,16 +5319,20 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/api/sync/stato")
     def api_sync_stato():
         """Stato sincronizzazione: operatori connessi e versioni file."""
-        return jsonify({
-            "connessi": _sync.n_connessi,
-            "versioni": {
-                "clienti": _sync.versione_file(app.config["CLIENTI_DB"]),
-                "fascicoli": _sync.versione_file(app.config["FASCICOLI_DB"]),
-                "scadenze": _sync.versione_file(app.config["SCADENZIARIO_DB"]),
-                "agenda": _sync.versione_file(app.config["AGENDA_DB"]),
-                "messaggi": _sync.versione_file(app.config["MESSAGGI_DB"]),
-            },
-        })
+        try:
+            return jsonify({
+                "connessi": _sync.n_connessi,
+                "versioni": {
+                    "clienti": _sync.versione_file(app.config["CLIENTI_DB"]),
+                    "fascicoli": _sync.versione_file(app.config["FASCICOLI_DB"]),
+                    "scadenze": _sync.versione_file(app.config["SCADENZIARIO_DB"]),
+                    "agenda": _sync.versione_file(app.config["AGENDA_DB"]),
+                    "messaggi": _sync.versione_file(app.config["MESSAGGI_DB"]),
+                },
+            })
+        except Exception as e:
+            app.logger.exception("Errore api_sync_stato: %s", e)
+            return jsonify({"errore": str(e)})
 
     @app.route("/api/sync/broadcast", methods=["POST"])
     def api_sync_broadcast():
@@ -5230,12 +5340,16 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
-        msg = request.json.get("messaggio", "") if request.is_json else request.form.get("messaggio", "")
-        if not msg:
-            return jsonify({"errore": "Messaggio obbligatorio"}), 400
-        n = _sync.pubblica_broadcast(msg, utente=u.username)
-        audit("sync.broadcast", dettagli=msg)
-        return jsonify({"ok": True, "raggiunti": n})
+        try:
+            msg = request.json.get("messaggio", "") if request.is_json else request.form.get("messaggio", "")
+            if not msg:
+                return jsonify({"errore": "Messaggio obbligatorio"}), 400
+            n = _sync.pubblica_broadcast(msg, utente=u.username)
+            audit("sync.broadcast", dettagli=msg)
+            return jsonify({"ok": True, "raggiunti": n})
+        except Exception as e:
+            app.logger.exception("Errore api_sync_broadcast: %s", e)
+            return jsonify({"ok": False, "errore": str(e)})
 
     # ================================================================ ADMIN DATABASE
 

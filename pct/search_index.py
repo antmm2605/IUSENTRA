@@ -73,6 +73,14 @@ class IndiceRicerca:
                     valore TEXT
                 )
             """)
+            # Cache OCR: keyed by sha256 per evitare di ripetere l'OCR sullo stesso file
+            self._conn.execute("""
+                CREATE TABLE IF NOT EXISTS ocr_cache (
+                    hash_sha256 TEXT PRIMARY KEY,
+                    testo       TEXT,
+                    elaborato_il TEXT
+                )
+            """)
 
     # ---- indicizzazione
 
@@ -102,18 +110,63 @@ class IndiceRicerca:
                 (tipo, entity_id),
             )
 
+    def indicizza_documento(
+        self,
+        id_fasc: str,
+        id_doc: str,
+        nome: str,
+        testo: str,
+        tipo_doc: str = "",
+    ):
+        """
+        Indicizza il contenuto OCR di un documento allegato a un fascicolo.
+
+        entity_id = "{id_fasc}:{id_doc}" per garantire unicità globale.
+        """
+        if not testo or not testo.strip():
+            return
+        self.indicizza(
+            tipo="documento",
+            entity_id=f"{id_fasc}:{id_doc}",
+            titolo=nome,
+            corpo=testo,
+            meta={"id_fasc": id_fasc, "id_doc": id_doc, "tipo_doc": tipo_doc},
+        )
+
+    # ---- OCR cache
+
+    def get_ocr_cache(self, hash_sha256: str) -> Optional[str]:
+        """Restituisce il testo OCR dalla cache, o None se non presente."""
+        row = self._conn.execute(
+            "SELECT testo FROM ocr_cache WHERE hash_sha256=?", (hash_sha256,)
+        ).fetchone()
+        return row["testo"] if row else None
+
+    def set_ocr_cache(self, hash_sha256: str, testo: str):
+        """Salva il risultato OCR in cache."""
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO ocr_cache(hash_sha256, testo, elaborato_il) VALUES(?,?,?)",
+                (hash_sha256, testo, datetime.now().isoformat()),
+            )
+
     def ricostruisci(
         self,
         clienti=None,
         fascicoli=None,
         appuntamenti=None,
         scadenze=None,
+        documenti_ocr=None,
     ):
         """
         Ricostruisce l'indice completo dai dati forniti.
-        Accetta le liste di oggetti dei rispettivi moduli.
+
+        Args:
+            clienti, fascicoli, appuntamenti, scadenze: liste di oggetti/dict
+            documenti_ocr: lista di tuple (id_fasc, id_doc, nome, testo, tipo_doc)
+                           con il testo già estratto via OCR/cache
         """
-        # Svuota l'indice
+        # Svuota solo il testo indicizzato (non la cache OCR)
         with self._conn:
             self._conn.execute("DELETE FROM documenti")
 
@@ -129,6 +182,9 @@ class IndiceRicerca:
         if scadenze:
             for s in scadenze:
                 self._indicizza_scadenza(s)
+        if documenti_ocr:
+            for id_fasc, id_doc, nome, testo, tipo_doc in documenti_ocr:
+                self.indicizza_documento(id_fasc, id_doc, nome, testo, tipo_doc)
 
         with self._conn:
             self._conn.execute(
@@ -373,10 +429,17 @@ class IndiceRicerca:
             ds = meta.get("data_scadenza", "")
             p = meta.get("priorita", "")
             return f"{ds} — {p}" if ds else p
+        if tipo == "documento":
+            td = meta.get("tipo_doc", "").replace("_", " ")
+            return f"Documento — {td}" if td else "Documento"
         return ""
 
     @staticmethod
     def _url(tipo: str, entity_id: str) -> str:
+        if tipo == "documento":
+            # entity_id = "id_fasc:id_doc"
+            id_fasc = entity_id.split(":")[0]
+            return f"/fascicoli/{id_fasc}"
         routes = {
             "fascicolo": f"/fascicoli/{entity_id}",
             "cliente": f"/clienti/{entity_id}",
@@ -392,5 +455,6 @@ class IndiceRicerca:
             "cliente": "bi-person",
             "appuntamento": "bi-calendar-event",
             "scadenza": "bi-alarm",
+            "documento": "bi-file-text",
         }
         return icone.get(tipo, "bi-search")

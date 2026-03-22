@@ -10,6 +10,8 @@ import csv
 import io
 import os
 import json
+import queue
+import threading
 import zipfile as _zipfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -102,6 +104,7 @@ from pct.scadenziario import (
     è_giorno_lavorativo,
 )
 from pct.search_index import IndiceRicerca
+from pct.ocr import estrai_testo as ocr_estrai_testo, estensione_supportata as ocr_supportato
 from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf, lista_fascicoli_pdf, lista_clienti_pdf
 from pct.database import GestioneDatabase
 from pct.sync import GestoreSincronizzazione, get_gestore
@@ -144,6 +147,63 @@ def _decrypt_doc(data: bytes) -> bytes:
     payload = data[len(_ENC_MAGIC):]
     nonce, ct = payload[:12], payload[12:]
     return AESGCM(key).decrypt(nonce, ct, None)
+
+
+# ------------------------------------------------------------------ OCR worker asincrono
+
+_ocr_queue: queue.Queue = queue.Queue()
+_ocr_stats = {"totale": 0, "completati": 0, "errori": 0, "in_coda": 0}
+_ocr_stats_lock = threading.Lock()
+
+
+def _ocr_worker():
+    """Thread daemon che processa i job OCR in background."""
+    import logging
+    log = logging.getLogger("ocr_worker")
+    while True:
+        job = _ocr_queue.get()
+        if job is None:
+            break
+        percorso, hash_sha256, id_fasc, id_doc, nome_doc, tipo_doc, index_path = job
+        with _ocr_stats_lock:
+            _ocr_stats["in_coda"] = _ocr_queue.qsize()
+        try:
+            # Controlla cache prima di rieseguire l'OCR
+            idx = IndiceRicerca(index_path=index_path)
+            testo = idx.get_ocr_cache(hash_sha256)
+            if testo is None:
+                raw = Path(percorso).read_bytes()
+                decifrato = _decrypt_doc(raw)
+                testo = ocr_estrai_testo(decifrato, nome_doc)
+                idx.set_ocr_cache(hash_sha256, testo)
+            if testo:
+                idx.indicizza_documento(id_fasc, id_doc, nome_doc, testo, tipo_doc)
+            with _ocr_stats_lock:
+                _ocr_stats["completati"] += 1
+        except Exception as e:
+            log.warning("Errore OCR documento %s/%s: %s", id_fasc, id_doc, e)
+            with _ocr_stats_lock:
+                _ocr_stats["errori"] += 1
+        finally:
+            _ocr_queue.task_done()
+            with _ocr_stats_lock:
+                _ocr_stats["in_coda"] = _ocr_queue.qsize()
+
+
+# Avvia il worker all'import del modulo (daemon → termina con il processo)
+_ocr_thread = threading.Thread(target=_ocr_worker, daemon=True, name="ocr-worker")
+_ocr_thread.start()
+
+
+def _accoda_ocr(percorso: str, hash_sha256: str, id_fasc: str, id_doc: str,
+                nome_doc: str, tipo_doc: str, index_path: str):
+    """Accoda un job OCR se il file è di un tipo supportato."""
+    if not ocr_supportato(nome_doc):
+        return
+    with _ocr_stats_lock:
+        _ocr_stats["totale"] += 1
+        _ocr_stats["in_coda"] = _ocr_queue.qsize() + 1
+    _ocr_queue.put((percorso, hash_sha256, id_fasc, id_doc, nome_doc, tipo_doc, index_path))
 
 
 # ------------------------------------------------------------------ factory
@@ -3849,16 +3909,28 @@ def create_app(config: dict | None = None) -> Flask:
         f = request.form
         u = g.utente_corrente
         try:
-            contenuto = _encrypt_doc(file.read())
-            gf.aggiungi_documento(
+            raw = file.read()
+            contenuto = _encrypt_doc(raw)
+            tipo_doc = TipoDocumento(f.get("tipo_doc", "ALTRO"))
+            doc = gf.aggiungi_documento(
                 id_fasc,
                 nome_file=file.filename,
-                tipo=TipoDocumento(f.get("tipo_doc", "ALTRO")),
+                tipo=tipo_doc,
                 contenuto=contenuto,
                 note=f.get("note", ""),
                 data_documento=f.get("data_documento", ""),
                 firmato=f.get("firmato") == "1",
                 caricato_da=u.username if u else "",
+            )
+            # Accoda OCR asincrono (non blocca la risposta HTTP)
+            _accoda_ocr(
+                percorso=str(gf.percorso_documento(id_fasc, doc.id)),
+                hash_sha256=doc.hash_sha256,
+                id_fasc=id_fasc,
+                id_doc=doc.id,
+                nome_doc=file.filename,
+                tipo_doc=tipo_doc.value,
+                index_path=app.config["SEARCH_INDEX"],
             )
             flash(f"Documento '{file.filename}' caricato.", "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc,
@@ -5313,17 +5385,56 @@ def create_app(config: dict | None = None) -> Flask:
             return jsonify({"errore": "Non autorizzato"}), 403
         try:
             indice = get_indice()
+            gf = get_fascicoli()
+            # Raccoglie testo OCR dalla cache per tutti i documenti dei fascicoli
+            documenti_ocr = []
+            for fasc in gf.tutti():
+                d = fasc.to_dict() if hasattr(fasc, "to_dict") else fasc
+                for doc in d.get("documenti", []):
+                    testo = indice.get_ocr_cache(doc.get("hash_sha256", ""))
+                    if testo:
+                        documenti_ocr.append((
+                            d["id"], doc["id"], doc.get("nome", ""),
+                            testo, doc.get("tipo", ""),
+                        ))
+                    elif ocr_supportato(doc.get("nome", "")):
+                        # Accoda OCR per i file non ancora processati
+                        try:
+                            percorso = str(gf.percorso_documento(d["id"], doc["id"]))
+                            _accoda_ocr(
+                                percorso=percorso,
+                                hash_sha256=doc.get("hash_sha256", ""),
+                                id_fasc=d["id"],
+                                id_doc=doc["id"],
+                                nome_doc=doc.get("nome", ""),
+                                tipo_doc=doc.get("tipo", ""),
+                                index_path=app.config["SEARCH_INDEX"],
+                            )
+                        except Exception:
+                            pass
             indice.ricostruisci(
                 clienti=get_clienti().tutti(),
-                fascicoli=get_fascicoli().tutti(),
+                fascicoli=gf.tutti(),
                 appuntamenti=get_agenda().tutti(),
                 scadenze=get_scadenziario().tutte(solo_aperte=False),
+                documenti_ocr=documenti_ocr,
             )
             audit("ricerca.ricostruisci_indice")
             return jsonify({"ok": True, "statistiche": indice.statistiche()})
         except Exception as e:
             app.logger.exception("Errore api_ricerca_ricostruisci: %s", e)
             return jsonify({"ok": False, "errore": str(e)})
+
+    @app.route("/api/ocr/stato")
+    def api_ocr_stato():
+        """Stato del worker OCR asincrono (coda, completati, errori)."""
+        try:
+            with _ocr_stats_lock:
+                stats = dict(_ocr_stats)
+            stats["in_coda"] = _ocr_queue.qsize()
+            return jsonify(stats)
+        except Exception as e:
+            return jsonify({"errore": str(e)}), 200
 
     # ================================================================ PDF EXPORT
 

@@ -1,92 +1,120 @@
 """
-pct/ocr.py — Estrazione testo da documenti PDF e immagini.
+OCR — Estrazione testo da PDF e immagini per indicizzazione full-text.
 
-Usa pdfplumber per PDF (testo nativo e layer OCR) e Pillow+pytesseract per
-immagini scansionate (opzionale — se pytesseract non installato, restituisce '').
+Supporta:
+  - PDF digitali (pdfplumber): estrae testo selezionabile nativamente
+  - PDF scansionati: OCR per-pagina con pytesseract se nessun testo trovato
+  - Immagini (pytesseract): PNG, JPEG, TIFF, BMP, GIF
 
-Uso principale:
-  - Indicizzare automaticamente i documenti caricati nel portale cliente
-  - Permettere la ricerca full-text nel contenuto dei documenti
+Le funzioni che accettano `bytes` lavorano su contenuto già decifrato
+(la crittografia AES-256-GCM è gestita a carico del chiamante).
+Le dipendenze OCR (pytesseract, Pillow) sono opzionali: se non disponibili
+restituisce stringa vuota senza sollevare eccezioni.
 """
 from __future__ import annotations
 
+import io
+import logging
 import os
+from pathlib import Path
 from typing import Optional
 
+logger = logging.getLogger(__name__)
 
-def estrai_testo_pdf(percorso: str, max_pagine: int = 20) -> str:
+ESTENSIONI_PDF = {".pdf"}
+ESTENSIONI_IMG = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".gif"}
+ESTENSIONI_SUPPORTATE = ESTENSIONI_PDF | ESTENSIONI_IMG
+
+
+# ------------------------------------------------------------------ API pubblica
+
+def estrai_testo(data: bytes, nome_file: str, lang: str = "ita") -> str:
     """
-    Estrae testo da un file PDF usando pdfplumber.
-    Ritorna stringa vuota se il modulo non è disponibile o il file non è leggibile.
+    Estrae il testo da bytes di un documento.
+
+    Args:
+        data:      bytes del documento (già decifrati)
+        nome_file: nome originale del file (determina il tipo)
+        lang:      codice lingua Tesseract (default "ita" — italiano)
+
+    Returns:
+        Testo estratto; stringa vuota se il tipo non è supportato o se fallisce.
     """
-    try:
-        import pdfplumber
-    except ImportError:
-        return ""
-
-    testo_pagine = []
-    try:
-        with pdfplumber.open(percorso) as pdf:
-            for i, pagina in enumerate(pdf.pages[:max_pagine]):
-                t = pagina.extract_text()
-                if t:
-                    testo_pagine.append(t.strip())
-    except Exception:
-        return ""
-    return "\n\n".join(testo_pagine)
-
-
-def estrai_testo_immagine(percorso: str, lingua: str = "ita") -> str:
-    """
-    OCR su immagine (JPEG, PNG, TIFF) via pytesseract.
-    Richiede: pip install pytesseract Pillow  +  apt install tesseract-ocr tesseract-ocr-ita
-    Ritorna stringa vuota se non disponibile.
-    """
-    try:
-        from PIL import Image
-        import pytesseract
-    except ImportError:
-        return ""
-
-    try:
-        img = Image.open(percorso)
-        return pytesseract.image_to_string(img, lang=lingua).strip()
-    except Exception:
-        return ""
-
-
-def estrai_testo(percorso: str) -> str:
-    """
-    Rileva automaticamente il tipo di file ed estrae il testo.
-    Supporta: .pdf, .jpg, .jpeg, .png, .tiff, .tif
-    """
-    if not os.path.isfile(percorso):
-        return ""
-    ext = os.path.splitext(percorso)[1].lower()
-    if ext == ".pdf":
-        return estrai_testo_pdf(percorso)
-    if ext in (".jpg", ".jpeg", ".png", ".tiff", ".tif", ".bmp"):
-        return estrai_testo_immagine(percorso)
+    ext = Path(nome_file).suffix.lower()
+    if ext in ESTENSIONI_PDF:
+        return _da_pdf(data, lang)
+    if ext in ESTENSIONI_IMG:
+        return _da_immagine(data, lang)
     return ""
 
 
-def indicizza_documento(percorso: str, indice, id_fascicolo: str,
-                        nome_file: str, id_documento: Optional[str] = None):
+def estrai_testo_da_percorso(percorso: str, lang: str = "ita") -> str:
     """
-    Estrae il testo da un documento e lo aggiunge all'indice di ricerca.
-    indice: istanza di IndiceRicerca (pct.search_index)
+    Estrae il testo leggendo direttamente dal disco (per file NON cifrati).
+    Usato principalmente durante il rebuild dell'indice.
     """
-    testo = estrai_testo(percorso)
-    if not testo:
-        return False
+    path = Path(percorso)
+    if not path.is_file():
+        return ""
     try:
-        indice.indicizza(
-            tipo="documento",
-            id=id_documento or nome_file,
-            titolo=nome_file,
-            testo=testo,
-            meta={"id_fascicolo": id_fascicolo, "file": nome_file},
-        )
-        return True
-    except Exception:
-        return False
+        data = path.read_bytes()
+    except Exception as e:
+        logger.warning("Impossibile leggere %s: %s", percorso, e)
+        return ""
+    return estrai_testo(data, path.name, lang)
+
+
+def estensione_supportata(nome_file: str) -> bool:
+    """True se il file può essere processato dal modulo OCR."""
+    return Path(nome_file).suffix.lower() in ESTENSIONI_SUPPORTATE
+
+
+# ------------------------------------------------------------------ PDF
+
+def _da_pdf(data: bytes, lang: str) -> str:
+    try:
+        import pdfplumber
+    except ImportError:
+        logger.warning("pdfplumber non disponibile — OCR PDF disabilitato")
+        return ""
+
+    parti: list[str] = []
+    try:
+        with pdfplumber.open(io.BytesIO(data)) as pdf:
+            for pagina in pdf.pages:
+                testo = pagina.extract_text()
+                if testo and testo.strip():
+                    parti.append(testo.strip())
+                else:
+                    # Pagina senza testo selezionabile → OCR via Tesseract
+                    t = _ocr_pagina_pdf(pagina, lang)
+                    if t:
+                        parti.append(t)
+    except Exception as e:
+        logger.warning("Errore estrazione PDF: %s", e)
+
+    return "\n".join(parti)
+
+
+def _ocr_pagina_pdf(pagina, lang: str) -> str:
+    """OCR su singola pagina PDF renderizzata come immagine."""
+    try:
+        import pytesseract
+        img = pagina.to_image(resolution=200).original
+        return pytesseract.image_to_string(img, lang=lang).strip()
+    except Exception as e:
+        logger.debug("OCR pagina PDF fallito: %s", e)
+        return ""
+
+
+# ------------------------------------------------------------------ Immagini
+
+def _da_immagine(data: bytes, lang: str) -> str:
+    try:
+        import pytesseract
+        from PIL import Image
+        img = Image.open(io.BytesIO(data))
+        return pytesseract.image_to_string(img, lang=lang).strip()
+    except Exception as e:
+        logger.warning("Errore OCR immagine: %s", e)
+        return ""

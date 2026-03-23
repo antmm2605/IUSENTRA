@@ -78,6 +78,8 @@ class RisultatoOttimizzazione:
     riuscita: bool
     dettagli: str = ""
     ms: int = 0
+    bytes_prima: int = 0
+    bytes_dopo: int = 0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -646,6 +648,8 @@ class GestioneDatabase:
                     dettagli=f"{_fmt_bytes(dim_pre)} → {_fmt_bytes(dim_post)} "
                              f"({'+' if risparmio < 0 else '-'}{abs(risparmio)} B)",
                     ms=ms,
+                    bytes_prima=dim_pre,
+                    bytes_dopo=dim_post,
                 ))
             except Exception as e:
                 risultati.append(RisultatoOttimizzazione(

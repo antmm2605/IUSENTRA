@@ -5759,18 +5759,23 @@ def create_app(config: dict | None = None) -> Flask:
         db = get_database()
         risultati = db.ottimizza()
         audit("database.ottimizza")
+        def _res(r):
+            risparmio = r.bytes_prima - r.bytes_dopo
+            pct = round(risparmio / r.bytes_prima * 100, 1) if r.bytes_prima else 0
+            return {
+                "modulo": r.modulo,
+                "operazione": r.operazione,
+                "ok": r.riuscita,
+                "messaggio": r.dettagli,
+                "bytes_prima": r.bytes_prima,
+                "bytes_dopo": r.bytes_dopo,
+                "risparmio_bytes": max(risparmio, 0),
+                "risparmio_pct": pct if risparmio > 0 else 0,
+                "ms": r.ms,
+            }
         return jsonify({
             "ok": True,
-            "risultati": [
-                {
-                    "modulo": r.modulo,
-                    "operazione": r.operazione,
-                    "riuscita": r.riuscita,
-                    "dettagli": r.dettagli,
-                    "ms": r.ms,
-                }
-                for r in risultati
-            ],
+            "risultati": [_res(r) for r in risultati],
         })
 
     @app.route("/admin/database/migra", methods=["POST"])

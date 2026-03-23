@@ -20,15 +20,20 @@
 }
 
 /* ================================================================
-   FIX 1 — MODALI BOOTSTRAP: non finire sotto la topbar
+   FIX 1 — MODALI BOOTSTRAP: non finire sotto la topbar né dietro la bottom-nav
    Bootstrap di default usa margin-top: 0.5rem su mobile
    → il header della modale viene coperto dalla topbar fixed
+   app.css imposta height:calc(100%-1rem) senza tenere conto dei margini
+   → il footer (Annulla/Salva) usciva dal viewport e non era cliccabile
    ================================================================ */
 @media (max-width: 768px) {
-  /* Modale normale: inizia sotto la topbar */
+  /* Modale normale: inizia sotto la topbar e finisce sopra la bottom-nav */
   .modal-dialog:not(.modal-fullscreen):not(.modal-fullscreen-sm-down) {
     margin-top: calc(var(--mob-topbar-h) + .5rem) !important;
     margin-bottom: calc(var(--mob-botnav-h) + .5rem) !important;
+    /* Altezza corretta: 100% del viewport meno i due margini (topbar + botnav + gap) */
+    height: calc(100% - var(--mob-topbar-h) - var(--mob-botnav-h) - 1rem) !important;
+    max-height: calc(100% - var(--mob-topbar-h) - var(--mob-botnav-h) - 1rem) !important;
   }
 
   /* Modale fullscreen: padding-top per non essere coperta */

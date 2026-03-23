@@ -114,10 +114,12 @@
                   </span>
                 </td>
                 <td data-label="Titolo">
-                  <div class="fw-semibold">{{ att.titolo }}</div>
-                  {% if att.descrizione %}
-                    <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
-                  {% endif %}
+                  <div>
+                    <div class="fw-semibold">{{ att.titolo }}</div>
+                    {% if att.descrizione %}
+                      <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
+                    {% endif %}
+                  </div>
                 </td>
                 <td data-label="Luogo" data-mob-hide>{{ att.luogo or '—' }}</td>
                 <td data-label="Esito">

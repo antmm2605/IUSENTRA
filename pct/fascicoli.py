@@ -165,6 +165,7 @@ class Documento:
     note: str = ""
     id_deposito_pct: str = ""      # collegamento a deposito PCT
     caricato_da: str = ""
+    ocr_estratto: bool = False     # True dopo OCR completato e testo indicizzato
     # #7 — Storico versioni (versioni precedenti del documento)
     versioni: List["DocumentoVersione"] = field(default_factory=list)
 
@@ -178,6 +179,7 @@ class Documento:
         d = dict(d)
         d["tipo"] = TipoDocumento(d["tipo"])
         d["versioni"] = [DocumentoVersione.from_dict(v) for v in d.get("versioni", [])]
+        d.setdefault("ocr_estratto", False)
         return cls(**d)
 
 
@@ -463,6 +465,16 @@ class GestioneFascicoli:
                 ensure_ascii=False,
                 indent=2,
             )
+
+    def segna_ocr_estratto(self, id_fasc: str, id_doc: str) -> None:
+        """Segna un documento come indicizzato via OCR e persiste."""
+        f = self._fascicoli.get(id_fasc)
+        if not f:
+            return
+        doc = next((d for d in f.documenti if d.id == id_doc), None)
+        if doc and not doc.ocr_estratto:
+            doc.ocr_estratto = True
+            self._salva()
 
     # ---------------------------------------------------------------- Numeri
 

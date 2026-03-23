@@ -409,6 +409,12 @@
       <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
     </a>
     <div id="htmx-loader" title="Caricamento…"></div>
+    {# ── Indicatore stato worker OCR ── #}
+    <span id="ocr-pill" title="Worker OCR — elaborazione documenti in corso" style="display:none">
+      <span class="spinner-border ocr-pill-spinner" role="status" aria-hidden="true"></span>
+      <i class="bi bi-check2-all ocr-pill-check" style="display:none"></i>
+      <span id="ocr-pill-txt">OCR</span>
+    </span>
     {% if utente_corrente %}
     {# ── Centro notifiche in-app ─────────────────────────────────── #}
     <div class="dropdown d-inline-block" id="notifiche-center">
@@ -1398,6 +1404,48 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 <script>
+/* ---- OCR status pill — polling /api/ocr/stato ogni 15s ---- */
+(function () {
+  var pill    = document.getElementById('ocr-pill');
+  var txt     = document.getElementById('ocr-pill-txt');
+  if (!pill || !txt) return;
+  var spinner = pill.querySelector('.ocr-pill-spinner');
+  var check   = pill.querySelector('.ocr-pill-check');
+  var _doneTimer = null;
+  var _wasActive = false;
+  function aggiorna() {
+    fetch('/api/ocr/stato')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        clearTimeout(_doneTimer);
+        if (d.in_coda > 0) {
+          _wasActive = true;
+          txt.textContent = 'OCR \u00b7 ' + d.in_coda;
+          pill.classList.remove('ocr-done');
+          pill.style.display = 'inline-flex';
+          if (spinner) spinner.style.display = '';
+          if (check)   check.style.display   = 'none';
+        } else if (_wasActive) {
+          _wasActive = false;
+          txt.textContent = 'OCR';
+          pill.classList.add('ocr-done');
+          pill.style.display = 'inline-flex';
+          if (spinner) spinner.style.display = 'none';
+          if (check)   check.style.display   = '';
+          _doneTimer = setTimeout(function () {
+            pill.style.display = 'none';
+            pill.classList.remove('ocr-done');
+            if (spinner) spinner.style.display = '';
+            if (check)   check.style.display   = 'none';
+          }, 3000);
+        }
+      })
+      .catch(function () {});
+  }
+  aggiorna();
+  setInterval(aggiorna, 15000);
+})();
+
 /* Fix dropdown clippati da overflow:hidden su mobile (#main è position:fixed overflow-x:hidden).
    I dropdown all'interno di #main usano position:fixed via Popper strategy per non essere tagliati. */
 (function() {

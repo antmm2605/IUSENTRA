@@ -154,6 +154,7 @@ def _decrypt_doc(data: bytes) -> bytes:
 _ocr_queue: queue.Queue = queue.Queue()
 _ocr_stats = {"totale": 0, "completati": 0, "errori": 0, "in_coda": 0}
 _ocr_stats_lock = threading.Lock()
+_get_fascicoli_fn = None  # impostato da create_app per aggiornare ocr_estratto
 
 
 def _ocr_worker():
@@ -178,6 +179,11 @@ def _ocr_worker():
                 idx.set_ocr_cache(hash_sha256, testo)
             if testo:
                 idx.indicizza_documento(id_fasc, id_doc, nome_doc, testo, tipo_doc)
+                if _get_fascicoli_fn:
+                    try:
+                        _get_fascicoli_fn().segna_ocr_estratto(id_fasc, id_doc)
+                    except Exception:
+                        pass
             with _ocr_stats_lock:
                 _ocr_stats["completati"] += 1
         except Exception as e:
@@ -375,6 +381,9 @@ def create_app(config: dict | None = None) -> Flask:
                 archive_dir=app.config["FASCICOLI_ARCH"],
             )
         return g._fascicoli
+
+    global _get_fascicoli_fn
+    _get_fascicoli_fn = get_fascicoli
 
     def get_config_studio():
         from pct.config_studio import GestioneConfigStudio

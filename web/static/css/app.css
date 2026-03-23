@@ -900,6 +900,36 @@ tr.htmx-request {
 .htmx-settling #htmx-loader { display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---- OCR status pill (topbar) ---- */
+#ocr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .72rem;
+  font-weight: 600;
+  color: #d97706;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: .18rem .55rem;
+  cursor: default;
+  white-space: nowrap;
+  transition: color .3s, background .3s, border-color .3s;
+}
+#ocr-pill.ocr-done {
+  color: #16a34a;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+#ocr-pill .ocr-pill-spinner {
+  width: .65rem; height: .65rem;
+  border-width: 2px;
+  flex-shrink: 0;
+}
+#ocr-pill .ocr-pill-check { font-size: .8rem; flex-shrink: 0; }
+[data-bs-theme="dark"] #ocr-pill       { background: #451a03; border-color: #92400e; }
+[data-bs-theme="dark"] #ocr-pill.ocr-done { background: #052e16; border-color: #166534; color: #4ade80; }
+
 /* ================================================================
    Ufficio Picker — autocomplete riutilizzabile (polisWeb + form)
    ================================================================ */

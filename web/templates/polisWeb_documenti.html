@@ -138,20 +138,20 @@
            data-bs-parent="#accordionDepositi">
         <div class="accordion-body p-0">
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 small">
+            <table class="table table-hover align-middle mb-0 small mob-cards">
               <thead class="table-light">
                 <tr>
                   <th style="width:2rem"></th>
                   <th>Nome file</th>
-                  <th style="width:8rem">Tipo</th>
-                  <th style="width:6rem">Dimensione</th>
-                  <th style="width:5rem" class="text-center">Disponibile</th>
+                  <th>Tipo</th>
+                  <th>Dimensione</th>
+                  <th class="text-center">Disponibile</th>
                 </tr>
               </thead>
               <tbody>
                 {% for d in dep.documenti %}
                 <tr class="{% if not d.disponibile %}table-secondary text-muted{% endif %}">
-                  <td class="text-center ps-3">
+                  <td data-mob-hide class="text-center ps-3">
                     {# Icona per tipo file #}
                     {% if d.tipo == 'ATTO' %}
                       <i class="bi bi-file-earmark-pdf-fill text-danger" title="Atto principale"></i>
@@ -167,20 +167,20 @@
                       <i class="bi bi-file-earmark text-muted"></i>
                     {% endif %}
                   </td>
-                  <td>
-                    <span class="fw-semibold font-monospace" style="font-size:.8rem">{{ d.nome }}</span>
+                  <td data-label="File" style="word-break:break-word;overflow-wrap:anywhere;min-width:0">
+                    <span class="fw-semibold" style="font-size:.82rem">{{ d.nome }}</span>
                     {% if d.nome.endswith('.p7m') %}
                     <i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente (p7m)"></i>
                     {% endif %}
                     <br>
-                    <small class="text-muted font-monospace">{{ d.id_documento }}</small>
+                    <small class="text-muted">{{ d.id_documento }}</small>
                   </td>
-                  <td>
+                  <td data-label="Tipo">
                     <span class="badge bg-light text-dark border" style="font-size:.7rem">
                       {{ d.tipo | replace('_',' ') | title }}
                     </span>
                   </td>
-                  <td class="text-muted">
+                  <td data-label="Dim." class="text-muted">
                     {% if d.dimensione_bytes %}
                       {% if d.dimensione_bytes >= 1048576 %}
                         {{ "%.1f"|format(d.dimensione_bytes / 1048576) }} MB

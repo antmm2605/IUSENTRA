@@ -1880,17 +1880,14 @@ tr[data-swipe-delete] {
 .mob-editor-label { display: none; }
 
 @media (max-width: 767.98px) {
-  /* Accordion con tabelle: non genera overflow orizzontale */
+  /* Accordion con tabelle mob-cards: larghezza contenuta */
   .accordion-collapse .mob-cards,
   .accordion-body .mob-cards {
     width: 100%;
     max-width: 100%;
-    table-layout: fixed;
   }
-  .accordion-body { overflow: hidden; }
-
-  /* Card documenti: contenuto non esce mai dal bordo */
-  .card { overflow: hidden; }
+  /* Accordion-item: contiene il contenuto senza overflow */
+  .accordion-item { overflow: hidden; }
 
   /* Nella card documento mobile l'editor diventa un CTA prominente */
   .mob-cards td[data-label=""] {

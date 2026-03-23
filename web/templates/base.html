@@ -1397,5 +1397,28 @@ if ('serviceWorker' in navigator) {
   document.addEventListener('htmx:afterSettle', initMobileEnhancements);
 })();
 </script>
+<script>
+/* Fix dropdown clippati da overflow:hidden su mobile (#main è position:fixed overflow-x:hidden).
+   I dropdown all'interno di #main usano position:fixed via Popper strategy per non essere tagliati. */
+(function() {
+  function initFixedDropdowns(root) {
+    var main = document.getElementById('main');
+    if (!main) return;
+    (root || main).querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(el) {
+      // Inizializza solo se non già inizializzato
+      if (bootstrap.Dropdown.getInstance(el)) return;
+      new bootstrap.Dropdown(el, {
+        popperConfig: { strategy: 'fixed' }
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { initFixedDropdowns(); });
+  } else {
+    initFixedDropdowns();
+  }
+  document.addEventListener('htmx:afterSettle', function() { initFixedDropdowns(); });
+})();
+</script>
 </body>
 </html>

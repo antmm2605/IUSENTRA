@@ -540,6 +540,12 @@
 
 </div>{# /app-body #}
 
+{# ---- Modals: fuori da #main per evitare conflitto z-index con backdrop Bootstrap ---- #}
+{# Su mobile #main è position:fixed (stacking context z-index:auto) → tutto al suo interno
+   è sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
+   garantisce che partecipino al root stacking context e i loro z-index:1055 battano il backdrop. #}
+{% block modals %}{% endblock %}
+
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
 

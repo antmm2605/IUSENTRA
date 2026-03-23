@@ -167,13 +167,11 @@
                       <i class="bi bi-file-earmark text-muted"></i>
                     {% endif %}
                   </td>
-                  <td data-label="File" style="word-break:break-word;overflow-wrap:anywhere;min-width:0">
-                    <span class="fw-semibold" style="font-size:.82rem">{{ d.nome }}</span>
-                    {% if d.nome.endswith('.p7m') %}
-                    <i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente (p7m)"></i>
-                    {% endif %}
-                    <br>
-                    <small class="text-muted">{{ d.id_documento }}</small>
+                  <td data-label="File" style="min-width:0">
+                    <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
+                      <div class="fw-semibold" style="font-size:.82rem">{{ d.nome }}{% if d.nome.endswith('.p7m') %}<i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente (p7m)"></i>{% endif %}</div>
+                      <div><small class="text-muted">{{ d.id_documento }}</small></div>
+                    </div>
                   </td>
                   <td data-label="Tipo">
                     <span class="badge bg-light text-dark border" style="font-size:.7rem">
@@ -189,7 +187,7 @@
                       {% endif %}
                     {% else %}—{% endif %}
                   </td>
-                  <td class="text-center">
+                  <td data-label="Disp." class="text-center">
                     {% if d.disponibile %}
                     <i class="bi bi-check-circle-fill text-success" title="Disponibile"></i>
                     {% else %}

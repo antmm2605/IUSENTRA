@@ -1868,26 +1868,39 @@ tr[data-swipe-delete] {
   [data-bs-theme="dark"] .mob-cards-auto tr { background: #1e293b; border-color: #334155; }
 }
 
-/* ---- Sezione documenti fascicolo: nomi file lunghi non fuoriescono ---- */
-.mob-cards td[data-label="Nome"] a,
-.mob-cards td[data-label="Nome"] {
+/* ---- Celle testo mob-cards: contenuto wrappato in div → flex:1 min-width:0 ---- */
+.mob-cards td[data-label]:not([data-label=""]) > div {
+  flex: 1;
+  min-width: 0;
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+/* Compat: link diretti nelle celle nome (fallback senza wrapper div) */
+.mob-cards td[data-label="Nome"] > a,
+.mob-cards td[data-label="File"] > a,
+.mob-cards td[data-label="Titolo"] > a,
+.mob-cards td[data-label="Oggetto"] > a {
   min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* ---- Bottone Editor: label nascosta di default, visibile su mobile ---- */
 .mob-editor-label { display: none; }
 
 @media (max-width: 767.98px) {
-  /* Accordion con tabelle mob-cards: larghezza contenuta */
+  /* Accordion con tabelle mob-cards: larghezza contenuta, nessun overflow orizzontale */
   .accordion-collapse .mob-cards,
   .accordion-body .mob-cards {
     width: 100%;
     max-width: 100%;
+    overflow-x: clip;
   }
-  /* Accordion-item: contiene il contenuto senza overflow */
-  .accordion-item { overflow: hidden; }
+  /* table-responsive dentro accordion con mob-cards: disabilita scroll orizzontale
+     (mob-cards è già layout-block, non serve lo scroll container) */
+  .accordion-body .table-responsive {
+    overflow-x: visible;
+  }
 
   /* Nella card documento mobile l'editor diventa un CTA prominente */
   .mob-cards td[data-label=""] {
@@ -1927,6 +1940,13 @@ tr[data-swipe-delete] {
   }
   [data-bs-theme="dark"] .mob-cards td[data-label=""] {
     border-top-color: #334155;
+  }
+}
+
+/* ---- table-responsive che contiene mob-cards: nessun scroll orizzontale su mobile ---- */
+@media (max-width: 767.98px) {
+  .table-responsive:has(.mob-cards) {
+    overflow-x: visible;
   }
 }
 

@@ -767,7 +767,7 @@ class GestioneDatabase:
                         """, (
                             f.get("id"), f.get("numero"), f.get("titolo"),
                             f.get("tipo", "CIVILE"), f.get("stato", "APERTO"),
-                            f.get("id_cliente", ""), f.get("nome_cliente", ""),
+                            f.get("id_cliente") or None, f.get("nome_cliente", ""),
                             f.get("tribunale", ""), f.get("sezione", ""),
                             f.get("giudice", ""), f.get("numero_rg", ""),
                             f.get("anno_rg", ""), f.get("controparte", ""),
@@ -831,8 +831,8 @@ class GestioneDatabase:
                             s.get("stato", "APERTO"), s.get("titolo", ""),
                             s.get("data_scadenza", ""), s.get("priorita", "MEDIA"),
                             1 if s.get("perentorio") else 0,
-                            s.get("note", ""), s.get("id_fascicolo", ""),
-                            s.get("id_appuntamento", ""),
+                            s.get("note", ""), s.get("id_fascicolo") or None,
+                            s.get("id_appuntamento") or None,
                             s.get("id_utente_responsabile", ""),
                             json.dumps(s.get("giorni_preavviso", []), ensure_ascii=False),
                             json.dumps(s.get("avvisi_inviati", []), ensure_ascii=False),
@@ -863,7 +863,7 @@ class GestioneDatabase:
                             m.get("stato", "BOZZA"), m.get("oggetto", ""),
                             m.get("corpo", ""), m.get("email_destinatario", ""),
                             m.get("telefono_destinatario", ""),
-                            m.get("id_cliente", ""), m.get("id_fascicolo", ""),
+                            m.get("id_cliente") or None, m.get("id_fascicolo") or None,
                             m.get("tipo_automazione", ""), m.get("inviato_il", ""),
                             m.get("errore_invio", ""), m.get("creato_il", ""),
                         ))

@@ -1806,14 +1806,44 @@ tr[data-swipe-delete] {
   /* ---- Card header flex-wrap per header con tanti pulsanti ---- */
   .card-header.d-flex { flex-wrap: wrap; gap: .5rem; }
 
-  /* ---- Modal: full-width su mobile ---- */
+  /* ---- Modal: full-width e scrollable su mobile ---- */
+  /* Problema: html/body { overflow:hidden } impedisce lo scroll del .modal Bootstrap.
+     Soluzione: il modal-dialog occupa tutta l'altezza disponibile, solo il
+     modal-body scorre — header e footer restano sempre visibili e cliccabili. */
+  .modal {
+    padding: 0 !important; /* evita offset Bootstrap che sposta il dialog */
+  }
   .modal-dialog {
-    margin: .5rem;
+    margin: .5rem auto;
     max-width: calc(100vw - 1rem);
+    height: calc(100% - 1rem);
+    max-height: calc(100% - 1rem);
+    display: flex;
+    flex-direction: column;
   }
   .modal-dialog.modal-lg,
   .modal-dialog.modal-xl {
     max-width: calc(100vw - 1rem);
+  }
+  /* Struttura flex: header (fisso) + body (scorrevole) + footer (fisso) */
+  .modal-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    overflow: hidden;
+  }
+  .modal-header,
+  .modal-footer {
+    flex-shrink: 0;
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   /* ---- Accordion: padding ridotto su mobile ---- */

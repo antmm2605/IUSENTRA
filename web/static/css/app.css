@@ -2005,3 +2005,34 @@ tr[data-swipe-delete] {
   #main { padding: .6rem; }
 }
 
+/* ============================================================
+   TOUCH SCROLL GLOBALE — scroll-momentum per tutti i contenitori
+   con overflow che possono contenere elementi interattivi.
+   -webkit-overflow-scrolling:touch  → inerzia iOS (momentum scroll)
+   overscroll-behavior:contain       → lo scroll non si propaga al DOM padre
+   Applicato fuori da media query: funziona su tutti i device,
+   è ignorato su desktop (dove non c'è touch) senza side-effect.
+   ============================================================ */
+
+/* Dropdown Bootstrap con liste lunghe (es. "Prepara atto") */
+.dropdown-menu {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Lista notifiche nella topbar */
+#notifiche-lista {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ---- modalVisualizzatore: inline height:92vh override su mobile ---- */
+/* L'inline style height:92vh bypassa il fix CSS dei modal (.modal-dialog).
+   Su mobile usiamo auto + max-height per non superare il viewport. */
+@media (max-width: 768px) {
+  #modalVisualizzatore .modal-dialog {
+    height: auto !important;
+    max-height: calc(100% - 1rem) !important;
+  }
+}
+

@@ -5717,6 +5717,11 @@ def create_app(config: dict | None = None) -> Flask:
         sqlite_info = db.statistiche_sqlite(
             os.path.join(app.config.get("BACKUP_DIR", "./backup"), "studio_legale.db")
         )
+        if not sqlite_info:
+            # Fallback: usa l'indice di ricerca SQLite (sempre presente)
+            _si = db.percorsi.get("search_index")
+            if _si:
+                sqlite_info = db.statistiche_sqlite(str(_si))
         return render_template(
             "admin/database.html",
             statistiche=statistiche,

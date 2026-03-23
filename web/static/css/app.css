@@ -1846,6 +1846,21 @@ tr[data-swipe-delete] {
     overscroll-behavior: contain;
   }
 
+  /* ---- Offcanvas: body scrollabile, footer fisso sempre visibile ---- */
+  /* Rinforza Bootstrap: -webkit-overflow-scrolling attiva il momentum scroll
+     su iOS; overscroll-behavior:contain evita che lo scroll "travasi" sulla
+     pagina sottostante quando si raggiunge il fondo del pannello. */
+  .offcanvas-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  /* Footer fuori da offcanvas-body (pattern usato in cartella.html):
+     bg-body risponde al tema chiaro/scuro Bootstrap. */
+  [data-bs-theme="dark"] .offcanvas .border-top.bg-body {
+    background: var(--bs-body-bg) !important;
+  }
+
   /* ---- Accordion: padding ridotto su mobile ---- */
   .accordion-body { padding: .75rem; }
   .accordion-button { padding: .6rem .75rem; font-size: .875rem; }

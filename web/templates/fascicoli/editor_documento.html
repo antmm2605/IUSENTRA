@@ -5,142 +5,17 @@
 {# TipTap v2 via esm.sh — caricato come modulo ES #}
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   EDITOR LAYOUT — layout fullscreen a colonne
+   EDITOR — Canvas, toolbar e foglio A4
    ═══════════════════════════════════════════════════════════════ */
-#main {
-  padding: 0 !important;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background: #f1f5f9;
-}
 
-/* ─── Header barra superiore ─── */
-.ed-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1rem;
-  height: 52px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  flex-shrink: 0;
-  gap: .5rem;
-  position: sticky;
-  top: 0;
-  z-index: 90;
-}
-[data-bs-theme="dark"] .ed-header {
-  background: #1e293b;
-  border-bottom-color: #334155;
-  box-shadow: 0 1px 3px rgba(0,0,0,.3);
-}
-.ed-header-left  { display: flex; align-items: center; gap: .65rem; min-width: 0; flex: 1; }
-.ed-header-right { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
-
-.ed-back-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
-  color: #64748b; text-decoration: none;
-  transition: background .15s, color .15s;
-  flex-shrink: 0;
-}
-.ed-back-btn:hover { background: #f1f5f9; color: #1e293b; }
-[data-bs-theme="dark"] .ed-back-btn:hover { background: #334155; color: #e2e8f0; }
-
-.ed-filename {
-  font-size: .875rem;
-  font-weight: 600;
-  color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 28vw;
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-}
-[data-bs-theme="dark"] .ed-filename { color: #e2e8f0; }
-.ed-filename i { font-size: 1.1rem; flex-shrink: 0; }
-.ed-filename i.bi-file-word { color: #2563eb; }
-.ed-filename i.bi-file-earmark-pdf { color: #dc2626; }
-.ed-filename i.bi-file-text { color: #0891b2; }
-.ed-filename i.bi-file-earmark { color: #64748b; }
-
-.ed-divider-v {
-  width: 1px; height: 20px;
-  background: #e2e8f0; flex-shrink: 0;
-}
-[data-bs-theme="dark"] .ed-divider-v { background: #334155; }
-
-.ed-status {
-  display: inline-flex; align-items: center; gap: .3rem;
-  font-size: .75rem; font-weight: 500;
-  color: #94a3b8;
-  transition: color .25s;
-  white-space: nowrap;
-  padding: .2rem .55rem;
-  border-radius: 20px;
-  background: transparent;
-}
-.ed-status.saving { color: #d97706; background: #fffbeb; }
-.ed-status.saved  { color: #16a34a; background: #f0fdf4; }
-.ed-status.error  { color: #dc2626; background: #fef2f2; }
-[data-bs-theme="dark"] .ed-status.saving { background: rgba(217,119,6,.12); }
-[data-bs-theme="dark"] .ed-status.saved  { background: rgba(22,163,74,.12); }
-[data-bs-theme="dark"] .ed-status.error  { background: rgba(220,38,38,.12); }
-
-.ed-wordcount {
-  font-size: .72rem;
-  color: #94a3b8;
-  white-space: nowrap;
-  padding: 0 .25rem;
-  letter-spacing: .01em;
-}
-
-.ed-versions {
-  font-size: .72rem; color: #94a3b8;
-  display: flex; align-items: center; gap: .25rem;
-}
-
-/* Bottoni header */
-.ed-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
-  height: 32px; padding: 0 .75rem;
-  border-radius: 8px; border: 1px solid transparent;
-  font-size: .8rem; font-weight: 500;
-  cursor: pointer; white-space: nowrap;
-  transition: all .15s;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-.ed-btn i { font-size: .85rem; }
-.ed-btn-ghost {
-  color: #64748b; background: transparent; border-color: transparent;
-}
-.ed-btn-ghost:hover { background: #f1f5f9; color: #1e293b; border-color: #e2e8f0; }
-[data-bs-theme="dark"] .ed-btn-ghost { color: #94a3b8; }
-[data-bs-theme="dark"] .ed-btn-ghost:hover { background: #334155; color: #e2e8f0; }
-.ed-btn-outline {
-  color: #475569; background: transparent; border-color: #cbd5e1;
-}
-.ed-btn-outline:hover { background: #f8fafc; border-color: #94a3b8; color: #1e293b; }
-[data-bs-theme="dark"] .ed-btn-outline { color: #94a3b8; border-color: #475569; }
-[data-bs-theme="dark"] .ed-btn-outline:hover { background: #334155; color: #e2e8f0; }
-.ed-btn-primary {
-  color: #fff;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border-color: #1d4ed8;
-  box-shadow: 0 1px 3px rgba(37,99,235,.3), 0 1px 2px rgba(37,99,235,.2);
-}
-.ed-btn-primary:hover {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  border-color: #1e40af;
-  box-shadow: 0 4px 8px rgba(37,99,235,.3);
-  transform: translateY(-1px);
-}
-.ed-btn-primary:active { transform: translateY(0); }
+/* ─── Status pill (override colori su ds-stat-pill) ─── */
+.ed-status { transition: color .25s, background .25s; }
+.ed-status.saving { color: #d97706 !important; background: #fffbeb !important; }
+.ed-status.saved  { color: #16a34a !important; background: #f0fdf4 !important; }
+.ed-status.error  { color: #dc2626 !important; background: #fef2f2 !important; }
+[data-bs-theme="dark"] .ed-status.saving { background: rgba(217,119,6,.18) !important; }
+[data-bs-theme="dark"] .ed-status.saved  { background: rgba(22,163,74,.18) !important; }
+[data-bs-theme="dark"] .ed-status.error  { background: rgba(220,38,38,.18) !important; }
 
 /* ─── Toolbar ─── */
 .ed-toolbar {
@@ -149,23 +24,14 @@
   gap: 1px;
   padding: .4rem .75rem;
   background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  flex-shrink: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
 }
 .ed-toolbar::-webkit-scrollbar { display: none; }
-[data-bs-theme="dark"] .ed-toolbar {
-  background: #1e293b;
-  border-bottom-color: #334155;
-}
+[data-bs-theme="dark"] .ed-toolbar { background: #1e293b; }
 
-/* Gruppi toolbar */
-.ed-tb-group {
-  display: flex; align-items: center; gap: 1px;
-  flex-shrink: 0;
-}
+.ed-tb-group { display: flex; align-items: center; gap: 1px; flex-shrink: 0; }
 .ed-tb-sep {
   width: 1px; height: 20px;
   background: #e2e8f0; margin: 0 5px; flex-shrink: 0;
@@ -184,8 +50,7 @@
   position: relative;
 }
 .ed-tb-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #f1f5f9; color: #1e293b;
   box-shadow: 0 1px 3px rgba(0,0,0,.07);
 }
 .ed-tb-btn.is-active {
@@ -210,24 +75,17 @@
 }
 .ed-tb-select:hover { border-color: #cbd5e1; }
 .ed-tb-select:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-[data-bs-theme="dark"] .ed-tb-select {
-  background: #0f172a; border-color: #334155; color: #94a3b8;
-}
+[data-bs-theme="dark"] .ed-tb-select { background: #0f172a; border-color: #334155; color: #94a3b8; }
 
 .ed-tb-color-wrap {
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 6px;
   border: 1px solid #e2e8f0; background: #f8fafc;
   cursor: pointer; flex-shrink: 0;
-  transition: border-color .12s;
-  overflow: hidden;
+  transition: border-color .12s; overflow: hidden;
 }
 .ed-tb-color-wrap:hover { border-color: #94a3b8; }
-.ed-tb-color {
-  width: 26px; height: 26px; padding: 0;
-  border: none; border-radius: 4px;
-  cursor: pointer; background: none;
-}
+.ed-tb-color { width: 26px; height: 26px; padding: 0; border: none; border-radius: 4px; cursor: pointer; background: none; }
 .ed-tb-label {
   font-size: .71rem; font-weight: 700; color: #94a3b8;
   padding: 0 2px; white-space: nowrap; flex-shrink: 0;
@@ -241,8 +99,7 @@
   background: #1e293b; color: #f8fafc;
   font-size: .68rem; font-weight: 400; padding: 3px 8px; border-radius: 5px;
   white-space: nowrap; pointer-events: none; z-index: 999;
-  box-shadow: 0 2px 8px rgba(0,0,0,.2);
-  letter-spacing: .01em;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2); letter-spacing: .01em;
 }
 .ed-tb-btn[title]:hover::before {
   content: '';
@@ -253,23 +110,20 @@
 
 /* ─── Canvas / Foglio A4 ─── */
 .ed-canvas {
-  flex: 1; overflow-y: auto;
   background: #e8edf2;
   background-image:
     radial-gradient(circle at 20% 50%, rgba(37,99,235,.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16,185,129,.03) 0%, transparent 50%);
   display: flex; justify-content: center;
-  padding: 2.5rem 1.5rem 5rem;
+  padding: 2rem 1.5rem 5rem;
+  min-height: 400px;
 }
-[data-bs-theme="dark"] .ed-canvas {
-  background: #0f172a;
-  background-image: none;
-}
+[data-bs-theme="dark"] .ed-canvas { background: #0f172a; background-image: none; }
 
 .ed-paper {
   width: 100%;
-  max-width: 794px; /* A4 width at 96dpi */
-  min-height: 1123px; /* A4 height */
+  max-width: 794px;
+  min-height: 1123px;
   background: #fff;
   border-radius: 4px;
   box-shadow:
@@ -279,12 +133,8 @@
     0 20px 48px rgba(0,0,0,.05);
   padding: 72px 80px;
   font-family: "Times New Roman", Times, serif;
-  font-size: 12pt;
-  line-height: 1.75;
-  color: #111827;
-  outline: none;
-  position: relative;
-  transition: box-shadow .3s;
+  font-size: 12pt; line-height: 1.75; color: #111827;
+  outline: none; position: relative; transition: box-shadow .3s;
 }
 .ed-paper:focus-within {
   box-shadow:
@@ -294,15 +144,12 @@
     0 20px 48px rgba(0,0,0,.08);
 }
 [data-bs-theme="dark"] .ed-paper {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: #1e293b; color: #e2e8f0;
   box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 8px 32px rgba(0,0,0,.4);
 }
 
-/* TipTap editor element */
-.ed-paper .ProseMirror {
-  outline: none; min-height: 600px; caret-color: #2563eb;
-}
+/* TipTap */
+.ed-paper .ProseMirror { outline: none; min-height: 600px; caret-color: #2563eb; }
 .ed-paper .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left; pointer-events: none; height: 0;
@@ -321,12 +168,9 @@
 .ed-paper li { margin-bottom: .25rem; }
 .ed-paper table {
   border-collapse: collapse; width: 100%; margin-bottom: 1.2rem;
-  border-radius: 6px; overflow: hidden;
-  box-shadow: 0 0 0 1px #e2e8f0;
+  border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px #e2e8f0;
 }
-.ed-paper td, .ed-paper th {
-  border: 1px solid #e2e8f0; padding: .5rem .75rem; vertical-align: top;
-}
+.ed-paper td, .ed-paper th { border: 1px solid #e2e8f0; padding: .5rem .75rem; vertical-align: top; }
 .ed-paper th {
   background: #f8fafc; font-weight: 600;
   font-size: .88rem; color: #475569;
@@ -342,21 +186,17 @@
 }
 [data-bs-theme="dark"] .ed-paper blockquote { background: #0f172a; color: #94a3b8; }
 .ed-paper code {
-  background: #f1f5f9; border-radius: 4px;
-  padding: .15rem .45rem; font-size: .82em;
-  color: #e11d48; font-family: ui-monospace, monospace;
+  background: #f1f5f9; border-radius: 4px; padding: .15rem .45rem;
+  font-size: .82em; color: #e11d48; font-family: ui-monospace, monospace;
   border: 1px solid #e2e8f0;
 }
 [data-bs-theme="dark"] .ed-paper code { background: #0f172a; border-color: #334155; color: #fb7185; }
 .ed-paper pre {
-  background: #1e293b; color: #e2e8f0;
-  border-radius: 8px; padding: 1.2rem 1.4rem;
-  overflow-x: auto; font-size: .82em;
+  background: #1e293b; color: #e2e8f0; border-radius: 8px;
+  padding: 1.2rem 1.4rem; overflow-x: auto; font-size: .82em;
   box-shadow: inset 0 2px 8px rgba(0,0,0,.15);
 }
-.ed-paper hr {
-  border: none; border-top: 2px solid #e2e8f0; margin: 1.5rem 0;
-}
+.ed-paper hr { border: none; border-top: 2px solid #e2e8f0; margin: 1.5rem 0; }
 [data-bs-theme="dark"] .ed-paper hr { border-top-color: #334155; }
 
 /* ─── Loading overlay ─── */
@@ -364,8 +204,7 @@
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  background: rgba(255,255,255,.92);
-  backdrop-filter: blur(4px);
+  background: rgba(255,255,255,.92); backdrop-filter: blur(4px);
   z-index: 10; border-radius: 4px; gap: 1rem;
 }
 [data-bs-theme="dark"] .ed-loading { background: rgba(30,41,59,.92); }
@@ -374,189 +213,169 @@
 
 /* ─── Mobile ─── */
 @media (max-width: 768px) {
-  .ed-paper {
-    padding: 2rem 1.5rem;
-    min-height: 500px;
-    border-radius: 4px;
-  }
-  .ed-canvas {
-    padding: 1rem .5rem 5rem;
-    background: #e8edf2;
-  }
-  .ed-filename { max-width: 38vw; }
+  .ed-paper { padding: 2rem 1.5rem; min-height: 500px; border-radius: 4px; }
+  .ed-canvas { padding: 1rem .5rem 5rem; }
   .ed-tb-label { display: none; }
-  .ed-wordcount { display: none; }
-  .ed-versions  { display: none; }
-  .ed-header { padding: 0 .75rem; height: 48px; }
   .ed-mobile-actions {
     position: fixed;
     bottom: calc(62px + env(safe-area-inset-bottom, 0px));
     left: 0; right: 0; z-index: 200;
     display: flex; gap: .5rem; padding: .55rem .75rem;
-    background: #fff;
-    border-top: 1px solid #e2e8f0;
+    background: #fff; border-top: 1px solid #e2e8f0;
     box-shadow: 0 -4px 16px rgba(0,0,0,.08);
   }
-  [data-bs-theme="dark"] .ed-mobile-actions {
-    background: #1e293b; border-top-color: #334155;
-  }
+  [data-bs-theme="dark"] .ed-mobile-actions { background: #1e293b; border-top-color: #334155; }
   .ed-mobile-actions .ds-btn { flex: 1; justify-content: center; }
-  .ed-header-right .ed-desktop-only { display: none; }
-  /* Toolbar scrollabile orizzontale su mobile */
   .ed-toolbar { flex-wrap: nowrap; }
 }
 @media (min-width: 769px) {
   .ed-mobile-actions { display: none; }
-  /* Toolbar può andare a capo su desktop */
   .ed-toolbar { flex-wrap: wrap; row-gap: 2px; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-{# ════════════════════ HEADER ════════════════════ #}
-<div class="ed-header">
-  <div class="ed-header-left">
-    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=id_fasc) }}"
-       class="ed-back-btn" title="Torna al fascicolo">
-      <i class="bi bi-arrow-left"></i>
-    </a>
-    <div class="ed-divider-v"></div>
-    <div class="ed-filename">
-      {% if doc.nome.lower().endswith('.docx') %}
-        <i class="bi bi-file-word"></i>
-      {% elif doc.nome.lower().endswith('.pdf') %}
-        <i class="bi bi-file-earmark-pdf"></i>
-      {% elif doc.nome.lower().endswith('.txt') %}
-        <i class="bi bi-file-text"></i>
-      {% else %}
-        <i class="bi bi-file-earmark"></i>
-      {% endif %}
-      <span>{{ doc.nome }}</span>
-    </div>
-    <span class="ed-status" id="ed-status">
-      <i class="bi bi-cloud"></i>
-      <span id="ed-status-text">Pronto</span>
-    </span>
-    {% if doc.versioni %}
-    <div class="ed-versions d-none d-md-flex">
-      <i class="bi bi-clock-history"></i>
-      <span>{{ doc.versioni|length }} vers.</span>
-    </div>
+
+{# ════════════════════ PAGE HEADER ════════════════════ #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    {% if doc.nome.lower().endswith('.docx') %}
+      <i class="bi bi-file-word" style="color:#2563eb"></i>
+    {% elif doc.nome.lower().endswith('.pdf') %}
+      <i class="bi bi-file-earmark-pdf" style="color:#dc2626"></i>
+    {% elif doc.nome.lower().endswith('.txt') %}
+      <i class="bi bi-file-text" style="color:#0891b2"></i>
+    {% else %}
+      <i class="bi bi-file-earmark-text"></i>
     {% endif %}
   </div>
-  <div class="ed-header-right">
-    <span class="ed-wordcount d-none d-xl-block" id="ed-wordcount">0 parole</span>
-    <button class="ed-btn ed-btn-ghost ed-desktop-only" id="btn-docx" title="Scarica .docx">
-      <i class="bi bi-file-word"></i>
-      <span class="d-none d-lg-inline">.docx</span>
-    </button>
-    <button class="ed-btn ed-btn-outline ed-desktop-only" id="btn-pdf" title="Esporta PDF">
-      <i class="bi bi-file-earmark-pdf"></i>
-      <span class="d-none d-lg-inline">PDF</span>
-    </button>
-    <button class="ed-btn ed-btn-primary" id="btn-save">
-      <i class="bi bi-cloud-upload"></i>
-      <span>Salva</span>
-    </button>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ doc.nome }}</h1>
+    <p class="ds-ph-sub">Editor documento</p>
   </div>
+  <div class="ds-ph-actions">
+    <button class="ds-btn ds-btn-ghost d-none d-md-inline-flex" id="btn-docx" title="Scarica .docx">
+      <i class="bi bi-file-word"></i><span class="d-none d-lg-inline">.docx</span>
+    </button>
+    <button class="ds-btn ds-btn-outline d-none d-md-inline-flex" id="btn-pdf" title="Esporta PDF">
+      <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-lg-inline">PDF</span>
+    </button>
+    <button class="ds-btn ds-btn-primary" id="btn-save">
+      <i class="bi bi-cloud-upload"></i><span>Salva</span>
+    </button>
+    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=id_fasc) }}" class="ds-btn ds-btn-outline" title="Torna al fascicolo">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicolo</span>
+    </a>
+  </div>
+</div>
+
+{# ════════════════════ STATS / STATUS ════════════════════ #}
+<div class="ds-stats">
+  <span class="ds-stat-pill ed-status" id="ed-status">
+    <i class="bi bi-cloud"></i>
+    <span id="ed-status-text">Pronto</span>
+  </span>
+  <span class="ds-stat-pill d-none d-xl-inline-flex" id="ed-wordcount">0 parole</span>
+  {% if doc.versioni %}
+  <span class="ds-stat-pill d-none d-md-inline-flex">
+    <i class="bi bi-clock-history"></i>
+    <span>{{ doc.versioni|length }} versioni</span>
+  </span>
+  {% endif %}
 </div>
 
 {# ════════════════════ TOOLBAR ════════════════════ #}
-<div class="ed-toolbar" id="ed-toolbar">
+<div class="card shadow-sm mb-3">
+  <div class="ed-toolbar" id="ed-toolbar">
 
-  {# Stile testo #}
-  <div class="ed-tb-group">
-    <select class="ed-tb-select" id="tb-heading" title="Stile paragrafo">
-      <option value="paragraph">Normale</option>
-      <option value="heading1">Titolo 1</option>
-      <option value="heading2">Titolo 2</option>
-      <option value="heading3">Titolo 3</option>
-      <option value="heading4">Titolo 4</option>
-    </select>
+    {# Stile testo #}
+    <div class="ed-tb-group">
+      <select class="ed-tb-select" id="tb-heading" title="Stile paragrafo">
+        <option value="paragraph">Normale</option>
+        <option value="heading1">Titolo 1</option>
+        <option value="heading2">Titolo 2</option>
+        <option value="heading3">Titolo 3</option>
+        <option value="heading4">Titolo 4</option>
+      </select>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Formattazione base #}
+    <div class="ed-tb-group">
+      <button class="ed-tb-btn" id="tb-bold"      title="Grassetto (Ctrl+B)"><b>B</b></button>
+      <button class="ed-tb-btn" id="tb-italic"    title="Corsivo (Ctrl+I)"><em style="font-style:italic">I</em></button>
+      <button class="ed-tb-btn" id="tb-underline" title="Sottolineato (Ctrl+U)"><u>U</u></button>
+      <button class="ed-tb-btn" id="tb-strike"    title="Barrato"><s>S</s></button>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Colore testo #}
+    <div class="ed-tb-group">
+      <span class="ed-tb-label">A</span>
+      <label class="ed-tb-color-wrap" title="Colore testo">
+        <input type="color" class="ed-tb-color" id="tb-color" value="#111111">
+      </label>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Allineamento #}
+    <div class="ed-tb-group">
+      <button class="ed-tb-btn" id="tb-align-left"    title="Allinea a sinistra"><i class="bi bi-text-left"></i></button>
+      <button class="ed-tb-btn" id="tb-align-center"  title="Centra"><i class="bi bi-text-center"></i></button>
+      <button class="ed-tb-btn" id="tb-align-right"   title="Allinea a destra"><i class="bi bi-text-right"></i></button>
+      <button class="ed-tb-btn" id="tb-align-justify" title="Giustifica"><i class="bi bi-justify"></i></button>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Liste #}
+    <div class="ed-tb-group">
+      <button class="ed-tb-btn" id="tb-ul" title="Elenco puntato"><i class="bi bi-list-ul"></i></button>
+      <button class="ed-tb-btn" id="tb-ol" title="Elenco numerato"><i class="bi bi-list-ol"></i></button>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Blocchi #}
+    <div class="ed-tb-group">
+      <button class="ed-tb-btn" id="tb-quote" title="Citazione"><i class="bi bi-quote"></i></button>
+      <button class="ed-tb-btn" id="tb-code"  title="Codice inline"><i class="bi bi-code-slash"></i></button>
+      <button class="ed-tb-btn" id="tb-hr"    title="Linea separatrice"><i class="bi bi-dash-lg"></i></button>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Tabella #}
+    <div class="ed-tb-group">
+      <button class="ed-tb-btn" id="tb-table" title="Inserisci tabella"><i class="bi bi-table"></i></button>
+    </div>
+
+    <div class="ed-tb-sep"></div>
+
+    {# Storia #}
+    <div class="ed-tb-group">
+      <button class="ed-tb-btn" id="tb-undo" title="Annulla (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
+      <button class="ed-tb-btn" id="tb-redo" title="Ripeti (Ctrl+Y)"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+
+    <div class="ed-tb-sep d-none d-md-block"></div>
+
+    {# Fullscreen #}
+    <div class="ed-tb-group d-none d-md-flex">
+      <button class="ed-tb-btn" id="tb-fullscreen" title="Schermo intero"><i class="bi bi-fullscreen"></i></button>
+    </div>
+
   </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Formattazione base #}
-  <div class="ed-tb-group">
-    <button class="ed-tb-btn" id="tb-bold"      title="Grassetto (Ctrl+B)"><b>B</b></button>
-    <button class="ed-tb-btn" id="tb-italic"    title="Corsivo (Ctrl+I)"><em style="font-style:italic">I</em></button>
-    <button class="ed-tb-btn" id="tb-underline" title="Sottolineato (Ctrl+U)"><u>U</u></button>
-    <button class="ed-tb-btn" id="tb-strike"    title="Barrato"><s>S</s></button>
-  </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Colore testo #}
-  <div class="ed-tb-group">
-    <span class="ed-tb-label">A</span>
-    <label class="ed-tb-color-wrap" title="Colore testo">
-      <input type="color" class="ed-tb-color" id="tb-color" value="#111111">
-    </label>
-  </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Allineamento #}
-  <div class="ed-tb-group">
-    <button class="ed-tb-btn" id="tb-align-left"    title="Allinea a sinistra"><i class="bi bi-text-left"></i></button>
-    <button class="ed-tb-btn" id="tb-align-center"  title="Centra"><i class="bi bi-text-center"></i></button>
-    <button class="ed-tb-btn" id="tb-align-right"   title="Allinea a destra"><i class="bi bi-text-right"></i></button>
-    <button class="ed-tb-btn" id="tb-align-justify" title="Giustifica"><i class="bi bi-justify"></i></button>
-  </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Liste #}
-  <div class="ed-tb-group">
-    <button class="ed-tb-btn" id="tb-ul" title="Elenco puntato"><i class="bi bi-list-ul"></i></button>
-    <button class="ed-tb-btn" id="tb-ol" title="Elenco numerato"><i class="bi bi-list-ol"></i></button>
-  </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Blocchi #}
-  <div class="ed-tb-group">
-    <button class="ed-tb-btn" id="tb-quote" title="Citazione"><i class="bi bi-quote"></i></button>
-    <button class="ed-tb-btn" id="tb-code"  title="Codice inline"><i class="bi bi-code-slash"></i></button>
-    <button class="ed-tb-btn" id="tb-hr"    title="Linea separatrice"><i class="bi bi-dash-lg"></i></button>
-  </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Tabella #}
-  <div class="ed-tb-group">
-    <button class="ed-tb-btn" id="tb-table" title="Inserisci tabella"><i class="bi bi-table"></i></button>
-  </div>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Storia #}
-  <div class="ed-tb-group">
-    <button class="ed-tb-btn" id="tb-undo" title="Annulla (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
-    <button class="ed-tb-btn" id="tb-redo" title="Ripeti (Ctrl+Y)"><i class="bi bi-arrow-clockwise"></i></button>
-  </div>
-
-  <div class="ed-tb-sep d-none d-md-block"></div>
-
-  {# Fullscreen #}
-  <div class="ed-tb-group d-none d-md-flex">
-    <button class="ed-tb-btn" id="tb-fullscreen" title="Schermo intero"><i class="bi bi-fullscreen"></i></button>
-  </div>
-
 </div>
 
 {# ════════════════════ BANNER PDF (nascosto di default, mostrato via JS) ════════════ #}
-<div id="ed-pdf-banner" style="display:none;flex-shrink:0">
-  <div style="
-    background: linear-gradient(90deg, #fef9c3 0%, #fef3c7 100%);
-    border-bottom: 1px solid #fbbf24;
-    padding: .55rem 1.2rem;
-    display: flex; align-items: center; gap: .75rem;
-    font-size: .82rem; color: #92400e;
-  ">
-    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:1rem;flex-shrink:0"></i>
+<div id="ed-pdf-banner" style="display:none" class="mb-3">
+  <div class="alert alert-warning d-flex align-items-center gap-2 mb-0 py-2 px-3" style="font-size:.82rem">
+    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
     <div>
       <strong>Editing PDF</strong> — Il testo è stato estratto e reso modificabile.
       Il layout originale (immagini, colonne, intestazioni grafiche) non è preservato.
@@ -564,10 +383,7 @@
         · <strong>Documento scansionato:</strong> il testo proviene da OCR (potrebbe contenere errori).
       </span>
     </div>
-    <button type="button" onclick="this.parentElement.parentElement.style.display='none'"
-            style="margin-left:auto;background:none;border:none;color:#92400e;cursor:pointer;font-size:1rem;line-height:1">
-      <i class="bi bi-x-lg"></i>
-    </button>
+    <button type="button" class="btn-close ms-auto" onclick="this.closest('#ed-pdf-banner').style.display='none'" aria-label="Chiudi"></button>
   </div>
 </div>
 
@@ -586,13 +402,13 @@
 
 {# ════════════════════ AZIONI MOBILE ════════════════════ #}
 <div class="ed-mobile-actions">
-  <button class="ed-btn ed-btn-ghost" id="btn-pdf-mobile">
+  <button class="ds-btn ds-btn-ghost" id="btn-pdf-mobile">
     <i class="bi bi-file-earmark-pdf"></i>PDF
   </button>
-  <button class="ed-btn ed-btn-ghost" id="btn-docx-mobile">
+  <button class="ds-btn ds-btn-ghost" id="btn-docx-mobile">
     <i class="bi bi-file-word"></i>.docx
   </button>
-  <button class="ed-btn ed-btn-primary" id="btn-save-mobile">
+  <button class="ds-btn ds-btn-primary" id="btn-save-mobile">
     <i class="bi bi-cloud-upload"></i>Salva
   </button>
 </div>
@@ -711,8 +527,7 @@ async function salva(auto = false) {
 
 function setStatus(cls, testo) {
   const el = document.getElementById('ed-status')
-  const tx = document.getElementById('ed-status-text')
-  el.className = 'ed-status' + (cls ? ' ' + cls : '')
+  el.className = 'ds-stat-pill ed-status' + (cls ? ' ' + cls : '')
   const ico = cls === 'saving' ? 'bi-cloud-upload' :
               cls === 'saved'  ? 'bi-cloud-check' :
               cls === 'error'  ? 'bi-exclamation-circle' : 'bi-cloud'
@@ -895,4 +710,5 @@ document.addEventListener('keydown', e => {
   }
 })
 </script>
+
 {% endblock %}

@@ -6279,7 +6279,7 @@ def create_app(config: dict | None = None) -> Flask:
             flash(f"Testo estratto ({len(testo)} caratteri) e indicizzato.", "success")
         else:
             flash("Nessun testo estraibile da questo documento.", "warning")
-        return redirect(url_for("dettaglio_fascicolo", id_fascicolo=id_fasc))
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     # ---------------------------------------------------------------- Checklist Atti
     @app.route("/checklist")

@@ -6871,18 +6871,3 @@ def create_app(config: dict | None = None) -> Flask:
     start_scheduler(app)
 
     return app
-    @app.after_request
-    def add_header_development(response):
-        """Disabilita cache solo in modalità debug."""
-        if app.debug:
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "-1"
-        return response
-    
-    # In web/app.py, dopo create_app()
-    @app.context_processor
-    def inject_app_version():
-        """Aggiunge la versione dell'app a tutti i template."""
-        from pct import __version__
-        return dict(app_version=__version__)  

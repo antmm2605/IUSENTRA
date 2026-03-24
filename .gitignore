@@ -18,3 +18,4 @@ backup/
 messaggi/
 !web/templates/messaggi/
 data/
+fascicoli/

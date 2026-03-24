@@ -210,9 +210,9 @@
 }
 </style>
 {% endblock %}
+
 {% block content %}
 {# ════════════════════ HEADER ════════════════════ #}
-  
 <div class="ed-header">
   <div class="ed-header-left">
     <a href="{{ url_for('dettaglio_fascicolo', id_fasc=id_fasc) }}"
@@ -244,10 +244,6 @@
   </div>
   <div class="ed-header-right">
     <span class="ed-wordcount d-none d-lg-block" id="ed-wordcount">0 parole</span>
-    <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-print" title="Stampa">
-      <i class="bi bi-printer"></i>
-      <span class="d-none d-lg-inline">Stampa</span>
-    </button>
     <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-docx" title="Scarica .docx">
       <i class="bi bi-file-word"></i>
       <span class="d-none d-lg-inline">.docx</span>
@@ -276,32 +272,6 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Font Family #}
-  <span class="ed-tb-label d-none d-sm-inline">Font</span>
-  <select class="ed-tb-select" id="tb-font" title="Famiglia font" style="width:130px;">
-    <option value="Times New Roman">Times New Roman</option>
-    <option value="Arial">Arial</option>
-    <option value="Calibri">Calibri</option>
-    <option value="Georgia">Georgia</option>
-    <option value="Verdana">Verdana</option>
-    <option value="Courier New">Courier New</option>
-  </select>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Font Size #}
-  <span class="ed-tb-label d-none d-sm-inline">Dim</span>
-  <select class="ed-tb-select" id="tb-size" title="Dimensione font" style="width:70px;">
-    <option value="10px">10pt</option>
-    <option value="12px" selected>12pt</option>
-    <option value="14px">14pt</option>
-    <option value="16px">16pt</option>
-    <option value="18px">18pt</option>
-    <option value="24px">24pt</option>
-  </select>
-
-  <div class="ed-tb-sep"></div>
-
   {# Formattazione base #}
   <button class="ed-tb-btn" id="tb-bold"      title="Grassetto (Ctrl+B)"><b>B</b></button>
   <button class="ed-tb-btn" id="tb-italic"    title="Corsivo (Ctrl+I)"><i>I</i></button>
@@ -313,12 +283,6 @@
   {# Colore testo #}
   <span class="ed-tb-label d-none d-sm-inline">A</span>
   <input type="color" class="ed-tb-color" id="tb-color" title="Colore testo" value="#111111">
-
-  <div class="ed-tb-sep"></div>
-
-  {# Evidenziatore #}
-  <span class="ed-tb-label d-none d-sm-inline">🖍️</span>
-  <input type="color" class="ed-tb-color" id="tb-highlight" title="Colore evidenziazione" value="#ffff00">
 
   <div class="ed-tb-sep"></div>
 
@@ -343,13 +307,6 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Immagine #}
-  <button class="ed-tb-btn" id="tb-image" title="Inserisci immagine">
-    <i class="bi bi-image"></i>
-  </button>
-
-  <div class="ed-tb-sep"></div>
-
   {# Tabella #}
   <button class="ed-tb-btn" id="tb-table"     title="Inserisci tabella"><i class="bi bi-table"></i></button>
 
@@ -361,16 +318,22 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Fullscreen #}
+  {# Modalità fullscreen #}
   <button class="ed-tb-btn d-none d-md-inline-flex" id="tb-fullscreen" title="Schermo intero">
     <i class="bi bi-fullscreen"></i>
   </button>
 </div>
 
-{# ════════════════════ BANNER PDF ════════════════════ #}
+{# ════════════════════ BANNER PDF (nascosto di default, mostrato via JS) ════════════ #}
 <div id="ed-pdf-banner" style="display:none;flex-shrink:0">
-  <div class="ed-pdf-banner">
-    <i class="bi bi-exclamation-triangle-fill"></i>
+  <div style="
+    background: linear-gradient(90deg, #fef9c3 0%, #fef3c7 100%);
+    border-bottom: 1px solid #fbbf24;
+    padding: .55rem 1.2rem;
+    display: flex; align-items: center; gap: .75rem;
+    font-size: .82rem; color: #92400e;
+  ">
+    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:1rem;flex-shrink:0"></i>
     <div>
       <strong>Editing PDF</strong> — Il testo è stato estratto e reso modificabile.
       Il layout originale (immagini, colonne, intestazioni grafiche) non è preservato.
@@ -398,18 +361,6 @@
   </div>
 </div>
 
-{# ════════════════════ STATUS BAR ════════════════════ #}
-<div class="ed-status-bar">
-  <div class="ed-status-bar-left">
-    <span id="ed-wordcount-bar">0 parole</span>
-  </div>
-  <div class="ed-status-bar-right">
-    <span id="ed-save-status">
-      <i class="bi bi-check-circle text-success"></i> Pronto
-    </span>
-  </div>
-</div>
-
 {# ════════════════════ AZIONI MOBILE ════════════════════ #}
 <div class="ed-mobile-actions">
   <button class="ds-btn ds-btn-ghost ds-btn-sm" id="btn-pdf-mobile">
@@ -423,45 +374,26 @@
   </button>
 </div>
 
-{# ════════════════════ MODAL IMMAGINE ════════════════════ #}
-<div class="ed-image-modal" id="ed-image-modal">
-  <div class="ed-image-modal-content">
-    <h6 class="mb-3"><i class="bi bi-image me-2"></i>Inserisci immagine</h6>
-    <input type="file" id="img-upload-input" accept="image/*" class="form-control mb-3">
-    <div class="d-flex gap-2 justify-content-end">
-      <button class="ds-btn ds-btn-ghost ds-btn-sm" onclick="closeImageModal()">Annulla</button>
-      <button class="ds-btn ds-btn-primary ds-btn-sm" onclick="confirmImageUpload()">Inserisci</button>
-    </div>
-  </div>
-</div>
-
-{% endblock %}
-
-{% block scripts %}
+{# ════════════════════ SCRIPT EDITOR ════════════════════ #}
 <script type="module">
 // ── Import TipTap v2 dal CDN ESM ──────────────────────────
-import { Editor }       from 'https://esm.sh/@tiptap/core@2.4.0  '
-import StarterKit       from 'https://esm.sh/@tiptap/starter-kit@2.4.0  '
-import Underline        from 'https://esm.sh/@tiptap/extension-underline@2.4.0  '
-import TextAlign        from 'https://esm.sh/@tiptap/extension-text-align@2.4.0  '
-import TextStyle        from 'https://esm.sh/@tiptap/extension-text-style@2.4.0  '
-import FontFamily       from 'https://esm.sh/@tiptap/extension-font-family@2.4.0  '
-import Color            from 'https://esm.sh/@tiptap/extension-color@2.4.0  '
-import Highlight        from 'https://esm.sh/@tiptap/extension-highlight@2.4.0  '
-import Image            from 'https://esm.sh/@tiptap/extension-image@2.4.0  '
-import Table            from 'https://esm.sh/@tiptap/extension-table@2.4.0  '
-import TableRow         from 'https://esm.sh/@tiptap/extension-table-row@2.4.0  '
-import TableHeader      from 'https://esm.sh/@tiptap/extension-table-header@2.4.0  '
-import TableCell        from 'https://esm.sh/@tiptap/extension-table-cell@2.4.0  '
-import Placeholder      from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0  '
+import { Editor }       from 'https://esm.sh/@tiptap/core@2.4.0'
+import StarterKit       from 'https://esm.sh/@tiptap/starter-kit@2.4.0'
+import Underline        from 'https://esm.sh/@tiptap/extension-underline@2.4.0'
+import TextAlign        from 'https://esm.sh/@tiptap/extension-text-align@2.4.0'
+import TextStyle        from 'https://esm.sh/@tiptap/extension-text-style@2.4.0'
+import Color            from 'https://esm.sh/@tiptap/extension-color@2.4.0'
+import Highlight        from 'https://esm.sh/@tiptap/extension-highlight@2.4.0'
+import Table            from 'https://esm.sh/@tiptap/extension-table@2.4.0'
+import TableRow         from 'https://esm.sh/@tiptap/extension-table-row@2.4.0'
+import TableHeader      from 'https://esm.sh/@tiptap/extension-table-header@2.4.0'
+import TableCell        from 'https://esm.sh/@tiptap/extension-table-cell@2.4.0'
+import Placeholder      from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0'
 
 // ── Costanti ──────────────────────────────────────────────
 const ID_FASC = {{ id_fasc|tojson }}
 const ID_DOC  = {{ doc.id|tojson }}
 const NOME    = {{ doc.nome|tojson }}
-
-// Variabile globale per l'upload immagine
-let _pendingImageFile = null
 
 // ── Crea editor ───────────────────────────────────────────
 const editor = new Editor({
@@ -471,14 +403,8 @@ const editor = new Editor({
     Underline,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     TextStyle,
-    FontFamily,
     Color,
     Highlight.configure({ multicolor: true }),
-    Image.configure({
-      HTMLAttributes: {
-        class: 'img-fluid',
-      },
-    }),
     Table.configure({ resizable: true }),
     TableRow,
     TableHeader,
@@ -551,53 +477,23 @@ async function salva(auto = false) {
     if (data.ok) {
       _dirty = false
       setStatus('saved', auto ? 'Salvato auto' : 'Salvato')
-      showToast(auto ? 'Salvataggio automatico completato' : 'Documento salvato', 'success')
       setTimeout(() => setStatus('', 'Pronto'), 3000)
     } else {
       setStatus('error', data.errore || 'Errore salvataggio')
-      showToast('Errore nel salvataggio', 'error')
     }
   } catch(e) {
     setStatus('error', 'Errore di rete')
-    showToast('Errore di connessione', 'error')
   }
 }
 
 function setStatus(cls, testo) {
   const el = document.getElementById('ed-status')
   const tx = document.getElementById('ed-status-text')
-  const saveStatus = document.getElementById('ed-save-status')
-  
   el.className = 'ed-status' + (cls ? ' ' + cls : '')
   const ico = cls === 'saving' ? 'bi-cloud-upload' :
               cls === 'saved'  ? 'bi-cloud-check' :
               cls === 'error'  ? 'bi-exclamation-circle' : 'bi-cloud'
   el.innerHTML = `<i class="bi ${ico}"></i><span id="ed-status-text">${testo}</span>`
-  
-  if (saveStatus) {
-    saveStatus.innerHTML = cls === 'saving' ? 
-      '<i class="bi bi-cloud-upload text-warning"></i> Salvataggio…' :
-      cls === 'saved' ? 
-      '<i class="bi bi-check-circle text-success"></i> Salvato' :
-      cls === 'error' ?
-      '<i class="bi bi-x-circle text-danger"></i> Errore' :
-      '<i class="bi bi-check-circle text-success"></i> Pronto'
-  }
-}
-
-// ── Toast notifiche ──────────────────────────────────────
-function showToast(message, type = 'info') {
-  const existing = document.querySelector('.ed-toast')
-  if (existing) existing.remove()
-  
-  const toast = document.createElement('div')
-  toast.className = `ed-toast ${type}`
-  toast.innerHTML = `
-    <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'error' ? 'x-circle' : 'info-circle'}"></i>
-    ${message}
-  `
-  document.body.appendChild(toast)
-  setTimeout(() => toast.remove(), 3000)
 }
 
 // ── Contatore parole ──────────────────────────────────────
@@ -606,9 +502,7 @@ function updateWordCount() {
   const parole = testo ? testo.split(/\s+/).length : 0
   const chars  = testo.length
   const el = document.getElementById('ed-wordcount')
-  const barEl = document.getElementById('ed-wordcount-bar')
   if (el) el.textContent = `${parole} parole · ${chars} car.`
-  if (barEl) barEl.textContent = `${parole} parole`
 }
 
 // ── Aggiornamento stato toolbar ───────────────────────────
@@ -640,20 +534,6 @@ function updateToolbarState() {
     else if (editor.isActive('heading', { level: 3 })) sel.value = 'heading3'
     else if (editor.isActive('heading', { level: 4 })) sel.value = 'heading4'
     else sel.value = 'paragraph'
-  }
-
-  // Font family
-  const fontSel = document.getElementById('tb-font')
-  if (fontSel) {
-    const fontFamily = editor.getAttributes('textStyle').fontFamily
-    if (fontFamily) fontSel.value = fontFamily
-  }
-
-  // Font size
-  const sizeSel = document.getElementById('tb-size')
-  if (sizeSel) {
-    const fontSize = editor.getAttributes('textStyle').fontSize
-    if (fontSize) sizeSel.value = fontSize
   }
 }
 
@@ -693,69 +573,10 @@ document.getElementById('tb-heading')?.addEventListener('change', e => {
   }
 })
 
-// Font Family
-document.getElementById('tb-font')?.addEventListener('change', e => {
-  editor.chain().focus().setFontFamily(e.target.value).run()
-})
-
-// Font Size
-document.getElementById('tb-size')?.addEventListener('change', e => {
-  editor.chain().focus().setFontSize(e.target.value).run()
-})
-
 // Colore testo
 document.getElementById('tb-color')?.addEventListener('input', e => {
   editor.chain().focus().setColor(e.target.value).run()
 })
-
-// Evidenziatore
-document.getElementById('tb-highlight')?.addEventListener('input', e => {
-  editor.chain().focus().setHighlight({ color: e.target.value }).run()
-})
-
-// Immagine
-tb('tb-image', () => {
-  document.getElementById('ed-image-modal').classList.add('active')
-})
-
-function closeImageModal() {
-  document.getElementById('ed-image-modal').classList.remove('active')
-  document.getElementById('img-upload-input').value = ''
-  _pendingImageFile = null
-}
-
-async function confirmImageUpload() {
-  const fileInput = document.getElementById('img-upload-input')
-  const file = fileInput.files[0]
-  if (!file) {
-    showToast('Seleziona un file immagine', 'error')
-    return
-  }
-  
-  const formData = new FormData()
-  formData.append('image', file)
-  
-  try {
-    setStatus('saving', 'Upload immagine…')
-    const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/upload`, {
-      method: 'POST',
-      body: formData,
-    })
-    const data = await res.json()
-    if (data.url) {
-      editor.chain().focus().setImage({ src: data.url }).run()
-      showToast('Immagine inserita', 'success')
-      closeImageModal()
-    } else {
-      throw new Error(data.errore || 'Upload fallito')
-    }
-  } catch(e) {
-    console.error('Upload fallito:', e)
-    showToast('Errore upload immagine', 'error')
-  } finally {
-    setStatus('', 'Pronto')
-  }
-}
 
 // Fullscreen
 let _fullscreen = false
@@ -765,12 +586,12 @@ tb('tb-fullscreen', () => {
   const canvas = document.querySelector('.ed-canvas')
   const icon = document.querySelector('#tb-fullscreen i')
   if (_fullscreen) {
-    paper.classList.add('fullscreen')
-    canvas.classList.add('fullscreen')
+    paper.style.cssText += ';position:fixed;inset:0;max-width:none;border-radius:0;z-index:9000;overflow-y:auto'
+    canvas.style.padding = '0'
     if(icon) icon.className = 'bi bi-fullscreen-exit'
   } else {
-    paper.classList.remove('fullscreen')
-    canvas.classList.remove('fullscreen')
+    paper.removeAttribute('style')
+    canvas.style.padding = ''
     if(icon) icon.className = 'bi bi-fullscreen'
   }
 })
@@ -778,43 +599,6 @@ tb('tb-fullscreen', () => {
 // ── Bottoni Salva ─────────────────────────────────────────
 document.getElementById('btn-save')?.addEventListener('click', () => salva(false))
 document.getElementById('btn-save-mobile')?.addEventListener('click', () => salva(false))
-
-// ── Stampa ────────────────────────────────────────
-document.getElementById('btn-print')?.addEventListener('click', () => {
-  const printWindow = window.open('', '_blank')
-  const html = editor.getHTML()
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${NOME} - Stampa</title>
-        <style>
-          body { 
-            font-family: "Times New Roman", Times, serif; 
-            padding: 25mm;
-            font-size: 12pt;
-            line-height: 1.6;
-          }
-          img { max-width: 100%; height: auto; }
-          table { border-collapse: collapse; width: 100%; }
-          td, th { border: 1px solid #000; padding: 8px; }
-          @media print { 
-            body { padding: 0; }
-            @page { margin: 2cm; }
-          }
-        </style>
-      </head>
-      <body>${html}</body>
-    </html>
-  `)
-  printWindow.document.close()
-  printWindow.focus()
-  setTimeout(() => {
-    printWindow.print()
-    printWindow.close()
-  }, 250)
-  showToast('Apertura stampa...', 'info')
-})
 
 // ── Export PDF (server-side) ──────────────────────────────
 async function esportaPDF() {
@@ -835,11 +619,9 @@ async function esportaPDF() {
     a.click()
     URL.revokeObjectURL(url)
     setStatus('saved', 'PDF pronto')
-    showToast('PDF generato con successo', 'success')
     setTimeout(() => setStatus('', 'Pronto'), 3000)
   } catch(e) {
     setStatus('error', 'Errore PDF')
-    showToast('Errore generazione PDF', 'error')
     console.error(e)
   }
 }
@@ -865,11 +647,9 @@ async function esportaDocx() {
     a.click()
     URL.revokeObjectURL(url)
     setStatus('saved', '.docx pronto')
-    showToast('Documento Word generato', 'success')
     setTimeout(() => setStatus('', 'Pronto'), 3000)
   } catch(e) {
     setStatus('error', 'Errore .docx')
-    showToast('Errore generazione Word', 'error')
     console.error(e)
   }
 }
@@ -890,24 +670,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault()
     salva(false)
   }
-  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-    e.preventDefault()
-    document.getElementById('btn-print')?.click()
-  }
-})
-
-// ── Chiudi modal con ESC ──────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeImageModal()
-  }
-})
-
-// ── Chiudi modal cliccando fuori ──────────────────────────
-document.getElementById('ed-image-modal')?.addEventListener('click', e => {
-  if (e.target.id === 'ed-image-modal') {
-    closeImageModal()
-  }
 })
 </script>
 {% endblock %}
+

@@ -114,12 +114,10 @@
                   </span>
                 </td>
                 <td data-label="Titolo">
-                  <div>
-                    <div class="fw-semibold">{{ att.titolo }}</div>
-                    {% if att.descrizione %}
-                      <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
-                    {% endif %}
-                  </div>
+                  <div class="fw-semibold">{{ att.titolo }}</div>
+                  {% if att.descrizione %}
+                    <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
+                  {% endif %}
                 </td>
                 <td data-label="Luogo" data-mob-hide>{{ att.luogo or '—' }}</td>
                 <td data-label="Esito">
@@ -181,13 +179,6 @@
                  class="text-decoration-none fw-semibold">
                 <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
               </a>
-              {% endif %}
-              {% if doc.ocr_estratto %}
-              <span class="badge rounded-pill ms-1"
-                    style="font-size:.6rem;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;vertical-align:middle"
-                    title="Testo estratto e indicizzato (OCR)">
-                <i class="bi bi-text-paragraph"></i> OCR
-              </span>
               {% endif %}
               {% if doc.note %}
                 {% if '[wizard:' in doc.note %}
@@ -925,9 +916,6 @@
   </div>
 </div>
 
-{% endblock %}{# /content — modals sono fuori da #main per fix z-index backdrop #}
-
-{% block modals %}
 {# ================================================================ MODALS #}
 
 {# Modal: aggiungi attività #}
@@ -1160,8 +1148,8 @@
 
 {# Modal: visualizzatore documenti inline #}
 <div class="modal fade" id="modalVisualizzatore" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-fullscreen-sm-down" style="max-width:95vw;height:92vh;margin:.5rem auto">
-    <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
+  <div class="modal-dialog modal-xl" style="max-width:95vw;height:92vh;margin:.5rem auto">
+    <div class="modal-content" style="height:100%">
       <div class="modal-header py-2">
         <h6 class="modal-title mb-0">
           <i class="bi bi-file-earmark-text me-2 text-primary"></i>

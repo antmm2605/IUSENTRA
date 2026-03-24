@@ -6872,10 +6872,22 @@ def create_app(config: dict | None = None) -> Flask:
 
     return app
     @app.after_request
-def add_header_development(response):
-    """Disabilita cache solo in modalità debug."""
-    if app.debug:
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "-1"
-    return response
+    def add_header_development(response):
+        """Disabilita cache solo in modalità debug."""
+        if app.debug:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "-1"
+        return response
+    
+    @app.context_processor
+    def inject_file_version():
+        """Aggiunge funzione per versioning file statici."""
+        import os
+        def file_version(filepath):
+            try:
+                full_path = os.path.join(app.static_folder, filepath)
+                return str(int(os.path.getmtime(full_path)))
+            except Exception:
+                return "1"
+        return dict(file_version=file_version)    

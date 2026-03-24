@@ -3,265 +3,7 @@
 
 {% block extra_head %}
 {# TipTap v2 via esm.sh — caricato come modulo ES #}
-<style>
-/* ═══════════════════════════════════════════════════
-   EDITOR LAYOUT — sovrascrive il padding di #main
-   ═══════════════════════════════════════════════════ */
-#main { padding: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
-
-/* ─── Header barra superiore ─── */
-.ed-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: .55rem 1.2rem;
-  background: var(--ds-surface);
-  border-bottom: 1px solid var(--ds-border);
-  box-shadow: var(--ds-shadow-sm);
-  flex-shrink: 0; gap: .5rem; flex-wrap: wrap;
-  position: sticky; top: 0; z-index: 80;
-}
-.ed-header-left  { display: flex; align-items: center; gap: .6rem; min-width: 0; }
-.ed-header-right { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
-.ed-filename {
-  font-size: .88rem; font-weight: 600;
-  color: var(--ds-gray-700);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  max-width: 30vw;
-  display: flex; align-items: center; gap: .35rem;
-}
-.ed-filename i { color: #2563eb; font-size: 1.05rem; flex-shrink: 0; }
-.ed-status {
-  font-size: .76rem; font-weight: 500;
-  color: var(--ds-gray-400); display: flex; align-items: center; gap: .3rem;
-  transition: color .3s;
-  white-space: nowrap;
-}
-.ed-status.saving  { color: #d97706; }
-.ed-status.saved   { color: #16a34a; }
-.ed-status.error   { color: #dc2626; }
-
-/* ─── Toolbar ── */
-.ed-toolbar {
-  display: flex; align-items: center; gap: 2px;
-  padding: .35rem .8rem;
-  background: var(--ds-surface-raised);
-  border-bottom: 1px solid var(--ds-border);
-  flex-shrink: 0;
-  overflow-x: auto; overflow-y: hidden;
-  scrollbar-width: none;
-  flex-wrap: wrap;
-  row-gap: 2px;
-}
-.ed-toolbar::-webkit-scrollbar { display: none; }
-
-.ed-tb-sep {
-  width: 1px; height: 22px;
-  background: var(--ds-border); margin: 0 4px; flex-shrink: 0;
-}
-.ed-tb-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px;
-  border: none; background: transparent;
-  border-radius: 6px; cursor: pointer;
-  color: var(--ds-gray-600);
-  font-size: .82rem; font-weight: 700;
-  transition: background var(--ds-transition), color var(--ds-transition);
-  flex-shrink: 0;
-}
-.ed-tb-btn:hover     { background: var(--ds-gray-100); color: var(--ds-gray-800); }
-.ed-tb-btn.is-active { background: var(--ds-primary); color: #fff; }
-.ed-tb-btn i         { font-size: .9rem; }
-.ed-tb-select {
-  height: 30px; padding: 0 .4rem;
-  border: 1px solid var(--ds-border); border-radius: 6px;
-  background: var(--ds-surface); color: var(--ds-gray-700);
-  font-size: .78rem; cursor: pointer;
-  flex-shrink: 0;
-}
-.ed-tb-color {
-  width: 30px; height: 30px; padding: 2px;
-  border: 1px solid var(--ds-border); border-radius: 6px;
-  cursor: pointer; flex-shrink: 0;
-}
-.ed-tb-label {
-  font-size: .72rem; font-weight: 600; color: var(--ds-gray-400);
-  padding: 0 4px; white-space: nowrap; flex-shrink: 0;
-}
-
-/* ─── Canvas / Foglio ─── */
-.ed-canvas {
-  flex: 1; overflow-y: auto;
-  background: var(--ds-gray-100);
-  display: flex; justify-content: center;
-  padding: 2rem 1rem 4rem;
-}
-[data-bs-theme="dark"] .ed-canvas { background: #0f172a; }
-
-.ed-paper {
-  width: 100%; max-width: 820px;
-  min-height: 800px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.06);
-  padding: 4rem 5rem;
-  font-family: "Times New Roman", Times, serif;
-  font-size: 12pt;
-  line-height: 1.7;
-  color: #111;
-  outline: none;
-  position: relative;
-}
-[data-bs-theme="dark"] .ed-paper {
-  background: #1e293b; color: #e2e8f0;
-  box-shadow: 0 4px 24px rgba(0,0,0,.5);
-}
-
-/* TipTap editor element */
-.ed-paper .ProseMirror {
-  outline: none; min-height: 600px;
-}
-.ed-paper .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left; pointer-events: none; height: 0;
-  color: var(--ds-gray-400);
-}
-
-/* Stili documento */
-.ed-paper h1 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: .5rem; }
-.ed-paper h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.2rem; }
-.ed-paper h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; }
-.ed-paper h4 { font-size: 1rem; font-weight: 600; text-decoration: underline; }
-.ed-paper p  { margin-bottom: .7rem; }
-.ed-paper ul, .ed-paper ol { padding-left: 1.5rem; margin-bottom: .7rem; }
-.ed-paper table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
-.ed-paper td, .ed-paper th {
-  border: 1px solid #999; padding: .35rem .6rem; vertical-align: top;
-}
-.ed-paper th { background: #f0f0f0; font-weight: 600; }
-[data-bs-theme="dark"] .ed-paper th { background: #334155; }
-.ed-paper blockquote {
-  border-left: 4px solid var(--ds-accent); padding-left: 1rem;
-  color: var(--ds-gray-500); font-style: italic; margin: 1rem 0;
-}
-.ed-paper code {
-  background: var(--ds-gray-100); border-radius: 4px;
-  padding: .1rem .4rem; font-size: .88rem;
-}
-[data-bs-theme="dark"] .ed-paper code { background: #0f172a; }
-.ed-paper pre {
-  background: var(--ds-gray-900); color: #e2e8f0;
-  border-radius: 8px; padding: 1rem; overflow-x: auto;
-}
-
-/* Immagini nel documento */
-.ed-paper img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-  margin: 0.5rem 0;
-}
-.ed-paper img.ProseMirror-selectednode {
-  outline: 2px solid var(--ds-primary);
-}
-
-/* ─── Loading overlay ─── */
-.ed-loading {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: rgba(255,255,255,.88); z-index: 10;
-  border-radius: 6px; gap: .75rem;
-}
-[data-bs-theme="dark"] .ed-loading { background: rgba(30,41,59,.9); }
-.ed-loading .spinner-border { color: var(--ds-primary); width: 2.5rem; height: 2.5rem; }
-.ed-loading p { color: var(--ds-gray-500); font-size: .85rem; }
-
-/* ─── Tooltip toolbar ─── */
-.ed-tb-btn[title]:hover::after {
-  content: attr(title);
-  position: absolute; bottom: -26px; left: 50%; transform: translateX(-50%);
-  background: var(--ds-gray-800); color: #fff;
-  font-size: .7rem; padding: 2px 6px; border-radius: 4px;
-  white-space: nowrap; pointer-events: none; z-index: 999;
-}
-.ed-tb-btn { position: relative; }
-
-/* ─── Mobile ── */
-@media (max-width: 768px) {
-  .ed-paper { padding: 1.5rem 1.2rem; min-height: 400px; }
-  .ed-canvas { padding: 1rem .25rem 5rem; }
-  .ed-filename { max-width: 40vw; }
-  .ed-tb-label { display: none; }
-  .ed-mobile-actions {
-    position: fixed; bottom: calc(62px + env(safe-area-inset-bottom, 0px));
-    left: 0; right: 0; z-index: 200;
-    display: flex; gap: .5rem; padding: .6rem 1rem;
-    background: var(--ds-surface);
-    border-top: 1px solid var(--ds-border);
-    box-shadow: 0 -4px 12px rgba(0,0,0,.08);
-  }
-  .ed-mobile-actions .ds-btn { flex: 1; justify-content: center; }
-  .ed-header-right .ed-desktop-only { display: none; }
-}
-@media (min-width: 769px) {
-  .ed-mobile-actions { display: none; }
-}
-
-/* ─── Contatore parole ─── */
-.ed-wordcount {
-  font-size: .72rem; color: var(--ds-gray-400);
-  white-space: nowrap; padding: 0 .4rem;
-}
-
-/* ─── Indicatore versioni ─── */
-.ed-versions {
-  font-size: .74rem; color: var(--ds-gray-400);
-  display: flex; align-items: center; gap: .3rem;
-}
-
-/* ─── Toast notifiche ─── */
-.ed-toast {
-  position: fixed;
-  bottom: 100px;
-  right: 20px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  color: white;
-  font-size: .85rem;
-  z-index: 9999;
-  animation: slideIn 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ed-toast.success { background: #16a34a; }
-.ed-toast.error { background: #dc2626; }
-.ed-toast.info { background: #2563eb; }
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-/* ─── Modal immagine ─── */
-.ed-image-modal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 10000;
-  align-items: center;
-  justify-content: center;
-}
-.ed-image-modal.active { display: flex; }
-.ed-image-modal-content {
-  background: var(--ds-surface);
-  padding: 1.5rem;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 90%;
-}
-</style>
 {% endblock %}
-
 {% block content %}
 {# ════════════════════ HEADER ════════════════════ #}
 <div class="ed-header">
@@ -327,7 +69,7 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Font Family - NUOVO #}
+  {# Font Family #}
   <span class="ed-tb-label d-none d-sm-inline">Font</span>
   <select class="ed-tb-select" id="tb-font" title="Famiglia font" style="width:130px;">
     <option value="Times New Roman">Times New Roman</option>
@@ -340,7 +82,7 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Font Size - NUOVO #}
+  {# Font Size #}
   <span class="ed-tb-label d-none d-sm-inline">Dim</span>
   <select class="ed-tb-select" id="tb-size" title="Dimensione font" style="width:70px;">
     <option value="10px">10pt</option>
@@ -367,7 +109,7 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Evidenziatore - NUOVO #}
+  {# Evidenziatore #}
   <span class="ed-tb-label d-none d-sm-inline">🖍️</span>
   <input type="color" class="ed-tb-color" id="tb-highlight" title="Colore evidenziazione" value="#ffff00">
 
@@ -394,7 +136,7 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Immagine - NUOVO #}
+  {# Immagine #}
   <button class="ed-tb-btn" id="tb-image" title="Inserisci immagine">
     <i class="bi bi-image"></i>
   </button>
@@ -412,7 +154,7 @@
 
   <div class="ed-tb-sep"></div>
 
-  {# Modalità fullscreen #}
+  {# Fullscreen #}
   <button class="ed-tb-btn d-none d-md-inline-flex" id="tb-fullscreen" title="Schermo intero">
     <i class="bi bi-fullscreen"></i>
   </button>
@@ -420,14 +162,8 @@
 
 {# ════════════════════ BANNER PDF ════════════════════ #}
 <div id="ed-pdf-banner" style="display:none;flex-shrink:0">
-  <div style="
-    background: linear-gradient(90deg, #fef9c3 0%, #fef3c7 100%);
-    border-bottom: 1px solid #fbbf24;
-    padding: .55rem 1.2rem;
-    display: flex; align-items: center; gap: .75rem;
-    font-size: .82rem; color: #92400e;
-  ">
-    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:1rem;flex-shrink:0"></i>
+  <div class="ed-pdf-banner">
+    <i class="bi bi-exclamation-triangle-fill"></i>
     <div>
       <strong>Editing PDF</strong> — Il testo è stato estratto e reso modificabile.
       Il layout originale (immagini, colonne, intestazioni grafiche) non è preservato.
@@ -452,6 +188,18 @@
     </div>
     {# TipTap si monta qui #}
     <div id="ed-content"></div>
+  </div>
+</div>
+
+{# ════════════════════ STATUS BAR ════════════════════ #}
+<div class="ed-status-bar">
+  <div class="ed-status-bar-left">
+    <span id="ed-wordcount-bar">0 parole</span>
+  </div>
+  <div class="ed-status-bar-right">
+    <span id="ed-save-status">
+      <i class="bi bi-check-circle text-success"></i> Pronto
+    </span>
   </div>
 </div>
 
@@ -610,11 +358,23 @@ async function salva(auto = false) {
 function setStatus(cls, testo) {
   const el = document.getElementById('ed-status')
   const tx = document.getElementById('ed-status-text')
+  const saveStatus = document.getElementById('ed-save-status')
+  
   el.className = 'ed-status' + (cls ? ' ' + cls : '')
   const ico = cls === 'saving' ? 'bi-cloud-upload' :
               cls === 'saved'  ? 'bi-cloud-check' :
               cls === 'error'  ? 'bi-exclamation-circle' : 'bi-cloud'
   el.innerHTML = `<i class="bi ${ico}"></i><span id="ed-status-text">${testo}</span>`
+  
+  if (saveStatus) {
+    saveStatus.innerHTML = cls === 'saving' ? 
+      '<i class="bi bi-cloud-upload text-warning"></i> Salvataggio…' :
+      cls === 'saved' ? 
+      '<i class="bi bi-check-circle text-success"></i> Salvato' :
+      cls === 'error' ?
+      '<i class="bi bi-x-circle text-danger"></i> Errore' :
+      '<i class="bi bi-check-circle text-success"></i> Pronto'
+  }
 }
 
 // ── Toast notifiche ──────────────────────────────────────
@@ -638,7 +398,9 @@ function updateWordCount() {
   const parole = testo ? testo.split(/\s+/).length : 0
   const chars  = testo.length
   const el = document.getElementById('ed-wordcount')
+  const barEl = document.getElementById('ed-wordcount-bar')
   if (el) el.textContent = `${parole} parole · ${chars} car.`
+  if (barEl) barEl.textContent = `${parole} parole`
 }
 
 // ── Aggiornamento stato toolbar ───────────────────────────
@@ -723,12 +485,12 @@ document.getElementById('tb-heading')?.addEventListener('change', e => {
   }
 })
 
-// Font Family - NUOVO
+// Font Family
 document.getElementById('tb-font')?.addEventListener('change', e => {
   editor.chain().focus().setFontFamily(e.target.value).run()
 })
 
-// Font Size - NUOVO
+// Font Size
 document.getElementById('tb-size')?.addEventListener('change', e => {
   editor.chain().focus().setFontSize(e.target.value).run()
 })
@@ -738,12 +500,12 @@ document.getElementById('tb-color')?.addEventListener('input', e => {
   editor.chain().focus().setColor(e.target.value).run()
 })
 
-// Evidenziatore - NUOVO
+// Evidenziatore
 document.getElementById('tb-highlight')?.addEventListener('input', e => {
   editor.chain().focus().setHighlight({ color: e.target.value }).run()
 })
 
-// Immagine - NUOVO
+// Immagine
 tb('tb-image', () => {
   document.getElementById('ed-image-modal').classList.add('active')
 })
@@ -795,12 +557,12 @@ tb('tb-fullscreen', () => {
   const canvas = document.querySelector('.ed-canvas')
   const icon = document.querySelector('#tb-fullscreen i')
   if (_fullscreen) {
-    paper.style.cssText += ';position:fixed;inset:0;max-width:none;border-radius:0;z-index:9000;overflow-y:auto'
-    canvas.style.padding = '0'
+    paper.classList.add('fullscreen')
+    canvas.classList.add('fullscreen')
     if(icon) icon.className = 'bi bi-fullscreen-exit'
   } else {
-    paper.removeAttribute('style')
-    canvas.style.padding = ''
+    paper.classList.remove('fullscreen')
+    canvas.classList.remove('fullscreen')
     if(icon) icon.className = 'bi bi-fullscreen'
   }
 })
@@ -809,7 +571,7 @@ tb('tb-fullscreen', () => {
 document.getElementById('btn-save')?.addEventListener('click', () => salva(false))
 document.getElementById('btn-save-mobile')?.addEventListener('click', () => salva(false))
 
-// ── Stampa - NUOVO ────────────────────────────────────────
+// ── Stampa ────────────────────────────────────────
 document.getElementById('btn-print')?.addEventListener('click', () => {
   const printWindow = window.open('', '_blank')
   const html = editor.getHTML()

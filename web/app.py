@@ -6880,14 +6880,9 @@ def create_app(config: dict | None = None) -> Flask:
             response.headers["Expires"] = "-1"
         return response
     
+    # In web/app.py, dopo create_app()
     @app.context_processor
-    def inject_file_version():
-        """Aggiunge funzione per versioning file statici."""
-        import os
-        def file_version(filepath):
-            try:
-                full_path = os.path.join(app.static_folder, filepath)
-                return str(int(os.path.getmtime(full_path)))
-            except Exception:
-                return "1"
-        return dict(file_version=file_version)    
+    def inject_app_version():
+        """Aggiunge la versione dell'app a tutti i template."""
+        from pct import __version__
+        return dict(app_version=__version__)  

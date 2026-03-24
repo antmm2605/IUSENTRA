@@ -235,15 +235,13 @@
       <i class="bi bi-cloud-check"></i>
       <span id="ed-status-text">Pronto</span>
     </span>
-    {% if doc.versioni %}
-    <div class="ed-versions d-none d-md-flex">
-      <i class="bi bi-clock-history"></i>
-      <span>{{ doc.versioni|length }} versioni</span>
-    </div>
-    {% endif %}
   </div>
   <div class="ed-header-right">
     <span class="ed-wordcount d-none d-lg-block" id="ed-wordcount">0 parole</span>
+    <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-print" title="Stampa">
+      <i class="bi bi-printer"></i>
+      <span class="d-none d-lg-inline">Stampa</span>
+    </button>
     <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-docx" title="Scarica .docx">
       <i class="bi bi-file-word"></i>
       <span class="d-none d-lg-inline">.docx</span>
@@ -261,88 +259,91 @@
 
 {# ════════════════════ TOOLBAR ════════════════════ #}
 <div class="ed-toolbar" id="ed-toolbar">
-  {# Stile testo #}
-  <select class="ed-tb-select" id="tb-heading" title="Stile paragrafo">
-    <option value="paragraph">Normale</option>
-    <option value="heading1">Titolo 1</option>
-    <option value="heading2">Titolo 2</option>
-    <option value="heading3">Titolo 3</option>
-    <option value="heading4">Titolo 4</option>
-  </select>
+  
+  {# Gruppo: Stile #}
+  <div class="ed-toolbar-group">
+    <select class="ed-tb-select" id="tb-heading" title="Stile paragrafo">
+      <option value="paragraph">Normale</option>
+      <option value="heading1">Titolo 1</option>
+      <option value="heading2">Titolo 2</option>
+      <option value="heading3">Titolo 3</option>
+    </select>
+  </div>
 
-  <div class="ed-tb-sep"></div>
+  {# Gruppo: Font #}
+  <div class="ed-toolbar-group">
+    <select class="ed-tb-select" id="tb-font" title="Famiglia font" style="width:140px;">
+      <option value="Times New Roman">Times New Roman</option>
+      <option value="Arial">Arial</option>
+      <option value="Calibri">Calibri</option>
+      <option value="Georgia">Georgia</option>
+    </select>
+    <select class="ed-tb-select" id="tb-size" title="Dimensione font" style="width:75px;">
+      <option value="10px">10pt</option>
+      <option value="12px" selected>12pt</option>
+      <option value="14px">14pt</option>
+      <option value="16px">16pt</option>
+    </select>
+  </div>
 
-  {# Formattazione base #}
-  <button class="ed-tb-btn" id="tb-bold"      title="Grassetto (Ctrl+B)"><b>B</b></button>
-  <button class="ed-tb-btn" id="tb-italic"    title="Corsivo (Ctrl+I)"><i>I</i></button>
-  <button class="ed-tb-btn" id="tb-underline" title="Sottolineato (Ctrl+U)"><u>S</u></button>
-  <button class="ed-tb-btn" id="tb-strike"    title="Barrato"><s>S</s></button>
+  {# Gruppo: Formattazione #}
+  <div class="ed-toolbar-group">
+    <button class="ed-tb-btn" id="tb-bold" title="Grassetto"><i class="bi bi-type-bold"></i></button>
+    <button class="ed-tb-btn" id="tb-italic" title="Corsivo"><i class="bi bi-type-italic"></i></button>
+    <button class="ed-tb-btn" id="tb-underline" title="Sottolineato"><i class="bi bi-type-underline"></i></button>
+    <button class="ed-tb-btn" id="tb-strike" title="Barrato"><i class="bi bi-type-strikethrough"></i></button>
+  </div>
 
-  <div class="ed-tb-sep"></div>
+  {# Gruppo: Colori #}
+  <div class="ed-toolbar-group">
+    <span class="ed-tb-label">A</span>
+    <input type="color" class="ed-tb-color" id="tb-color" title="Colore testo" value="#111111">
+    <input type="color" class="ed-tb-color" id="tb-highlight" title="Evidenzia" value="#ffff00">
+  </div>
 
-  {# Colore testo #}
-  <span class="ed-tb-label d-none d-sm-inline">A</span>
-  <input type="color" class="ed-tb-color" id="tb-color" title="Colore testo" value="#111111">
+  {# Gruppo: Allineamento #}
+  <div class="ed-toolbar-group">
+    <button class="ed-tb-btn" id="tb-align-left" title="Sinistra"><i class="bi bi-text-left"></i></button>
+    <button class="ed-tb-btn" id="tb-align-center" title="Centra"><i class="bi bi-text-center"></i></button>
+    <button class="ed-tb-btn" id="tb-align-right" title="Destra"><i class="bi bi-text-right"></i></button>
+    <button class="ed-tb-btn" id="tb-align-justify" title="Giustifica"><i class="bi bi-justify"></i></button>
+  </div>
 
-  <div class="ed-tb-sep"></div>
+  {# Gruppo: Liste #}
+  <div class="ed-toolbar-group">
+    <button class="ed-tb-btn" id="tb-ul" title="Elenco puntato"><i class="bi bi-list-ul"></i></button>
+    <button class="ed-tb-btn" id="tb-ol" title="Elenco numerato"><i class="bi bi-list-ol"></i></button>
+  </div>
 
-  {# Allineamento #}
-  <button class="ed-tb-btn" id="tb-align-left"    title="Allinea a sinistra"><i class="bi bi-text-left"></i></button>
-  <button class="ed-tb-btn" id="tb-align-center"  title="Centra"><i class="bi bi-text-center"></i></button>
-  <button class="ed-tb-btn" id="tb-align-right"   title="Allinea a destra"><i class="bi bi-text-right"></i></button>
-  <button class="ed-tb-btn" id="tb-align-justify" title="Giustifica"><i class="bi bi-justify"></i></button>
+  {# Gruppo: Inserisci #}
+  <div class="ed-toolbar-group">
+    <button class="ed-tb-btn" id="tb-image" title="Immagine"><i class="bi bi-image"></i></button>
+    <button class="ed-tb-btn" id="tb-table" title="Tabella"><i class="bi bi-table"></i></button>
+    <button class="ed-tb-btn" id="tb-hr" title="Linea"><i class="bi bi-dash-lg"></i></button>
+  </div>
 
-  <div class="ed-tb-sep"></div>
+  {# Gruppo: Storia #}
+  <div class="ed-toolbar-group">
+    <button class="ed-tb-btn" id="tb-undo" title="Annulla"><i class="bi bi-arrow-counterclockwise"></i></button>
+    <button class="ed-tb-btn" id="tb-redo" title="Ripeti"><i class="bi bi-arrow-clockwise"></i></button>
+  </div>
 
-  {# Liste #}
-  <button class="ed-tb-btn" id="tb-ul" title="Elenco puntato"><i class="bi bi-list-ul"></i></button>
-  <button class="ed-tb-btn" id="tb-ol" title="Elenco numerato"><i class="bi bi-list-ol"></i></button>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Blocchi #}
-  <button class="ed-tb-btn" id="tb-quote"     title="Citazione"><i class="bi bi-chat-quote"></i></button>
-  <button class="ed-tb-btn" id="tb-code"      title="Codice inline"><i class="bi bi-code"></i></button>
-  <button class="ed-tb-btn" id="tb-hr"        title="Linea separatrice"><i class="bi bi-dash-lg"></i></button>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Tabella #}
-  <button class="ed-tb-btn" id="tb-table"     title="Inserisci tabella"><i class="bi bi-table"></i></button>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Storia #}
-  <button class="ed-tb-btn" id="tb-undo"      title="Annulla (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
-  <button class="ed-tb-btn" id="tb-redo"      title="Ripeti (Ctrl+Y)"><i class="bi bi-arrow-clockwise"></i></button>
-
-  <div class="ed-tb-sep"></div>
-
-  {# Modalità fullscreen #}
-  <button class="ed-tb-btn d-none d-md-inline-flex" id="tb-fullscreen" title="Schermo intero">
-    <i class="bi bi-fullscreen"></i>
-  </button>
+  {# Gruppo: Fullscreen #}
+  <div class="ed-toolbar-group">
+    <button class="ed-tb-btn" id="tb-fullscreen" title="Schermo intero"><i class="bi bi-fullscreen"></i></button>
+  </div>
 </div>
 
-{# ════════════════════ BANNER PDF (nascosto di default, mostrato via JS) ════════════ #}
+{# ════════════════════ BANNER PDF ════════════════════ #}
 <div id="ed-pdf-banner" style="display:none;flex-shrink:0">
-  <div style="
-    background: linear-gradient(90deg, #fef9c3 0%, #fef3c7 100%);
-    border-bottom: 1px solid #fbbf24;
-    padding: .55rem 1.2rem;
-    display: flex; align-items: center; gap: .75rem;
-    font-size: .82rem; color: #92400e;
-  ">
-    <i class="bi bi-exclamation-triangle-fill" style="color:#d97706;font-size:1rem;flex-shrink:0"></i>
+  <div class="ed-pdf-banner">
+    <i class="bi bi-exclamation-triangle-fill"></i>
     <div>
       <strong>Editing PDF</strong> — Il testo è stato estratto e reso modificabile.
-      Il layout originale (immagini, colonne, intestazioni grafiche) non è preservato.
-      <span id="ed-pdf-ocr-note" style="display:none">
-        · <strong>Documento scansionato:</strong> il testo proviene da OCR (potrebbe contenere errori).
-      </span>
+      Il layout originale non è preservato.
     </div>
     <button type="button" onclick="this.parentElement.parentElement.style.display='none'"
-            style="margin-left:auto;background:none;border:none;color:#92400e;cursor:pointer;font-size:1rem;line-height:1">
+            style="margin-left:auto;background:none;border:none;color:#92400e;cursor:pointer;">
       <i class="bi bi-x-lg"></i>
     </button>
   </div>
@@ -351,13 +352,23 @@
 {# ════════════════════ CANVAS ════════════════════ #}
 <div class="ed-canvas">
   <div class="ed-paper" id="ed-paper">
-    {# Loading overlay #}
     <div class="ed-loading" id="ed-loading">
       <div class="spinner-border" role="status"></div>
       <p>Caricamento documento…</p>
     </div>
-    {# TipTap si monta qui #}
     <div id="ed-content"></div>
+  </div>
+</div>
+
+{# ════════════════════ STATUS BAR ════════════════════ #}
+<div class="ed-status-bar">
+  <div class="ed-status-bar-left">
+    <span id="ed-wordcount-bar">0 parole</span>
+  </div>
+  <div class="ed-status-bar-right">
+    <span id="ed-save-status">
+      <i class="bi bi-check-circle text-success"></i> Pronto
+    </span>
   </div>
 </div>
 
@@ -374,28 +385,43 @@
   </button>
 </div>
 
-{# ════════════════════ SCRIPT EDITOR ════════════════════ #}
-<script type="module">
-// ── Import TipTap v2 dal CDN ESM ──────────────────────────
-import { Editor }       from 'https://esm.sh/@tiptap/core@2.4.0'
-import StarterKit       from 'https://esm.sh/@tiptap/starter-kit@2.4.0'
-import Underline        from 'https://esm.sh/@tiptap/extension-underline@2.4.0'
-import TextAlign        from 'https://esm.sh/@tiptap/extension-text-align@2.4.0'
-import TextStyle        from 'https://esm.sh/@tiptap/extension-text-style@2.4.0'
-import Color            from 'https://esm.sh/@tiptap/extension-color@2.4.0'
-import Highlight        from 'https://esm.sh/@tiptap/extension-highlight@2.4.0'
-import Table            from 'https://esm.sh/@tiptap/extension-table@2.4.0'
-import TableRow         from 'https://esm.sh/@tiptap/extension-table-row@2.4.0'
-import TableHeader      from 'https://esm.sh/@tiptap/extension-table-header@2.4.0'
-import TableCell        from 'https://esm.sh/@tiptap/extension-table-cell@2.4.0'
-import Placeholder      from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0'
+{# ════════════════════ MODAL IMMAGINE ════════════════════ #}
+<div class="ed-image-modal" id="ed-image-modal">
+  <div class="ed-image-modal-content">
+    <h6 class="mb-3"><i class="bi bi-image me-2"></i>Inserisci immagine</h6>
+    <input type="file" id="img-upload-input" accept="image/*" class="form-control mb-3">
+    <div class="d-flex gap-2 justify-content-end">
+      <button class="ds-btn ds-btn-ghost ds-btn-sm" onclick="closeImageModal()">Annulla</button>
+      <button class="ds-btn ds-btn-primary ds-btn-sm" onclick="confirmImageUpload()">Inserisci</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-// ── Costanti ──────────────────────────────────────────────
+{% block scripts %}
+<script type="module">
+// ── Import TipTap v2 ─────────────────────────────────
+import { Editor } from 'https://esm.sh/@tiptap/core@2.4.0'
+import StarterKit from 'https://esm.sh/@tiptap/starter-kit@2.4.0'
+import Underline from 'https://esm.sh/@tiptap/extension-underline@2.4.0'
+import TextAlign from 'https://esm.sh/@tiptap/extension-text-align@2.4.0'
+import TextStyle from 'https://esm.sh/@tiptap/extension-text-style@2.4.0'
+import FontFamily from 'https://esm.sh/@tiptap/extension-font-family@2.4.0'
+import Color from 'https://esm.sh/@tiptap/extension-color@2.4.0'
+import Highlight from 'https://esm.sh/@tiptap/extension-highlight@2.4.0'
+import Image from 'https://esm.sh/@tiptap/extension-image@2.4.0'
+import Table from 'https://esm.sh/@tiptap/extension-table@2.4.0'
+import TableRow from 'https://esm.sh/@tiptap/extension-table-row@2.4.0'
+import TableHeader from 'https://esm.sh/@tiptap/extension-table-header@2.4.0'
+import TableCell from 'https://esm.sh/@tiptap/extension-table-cell@2.4.0'
+import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0'
+
+// ── Costanti ────────────────────────────────────────
 const ID_FASC = {{ id_fasc|tojson }}
 const ID_DOC  = {{ doc.id|tojson }}
 const NOME    = {{ doc.nome|tojson }}
 
-// ── Crea editor ───────────────────────────────────────────
+// ── Crea editor ─────────────────────────────────────
 const editor = new Editor({
   element: document.getElementById('ed-content'),
   extensions: [
@@ -403,13 +429,13 @@ const editor = new Editor({
     Underline,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     TextStyle,
+    FontFamily,
     Color,
     Highlight.configure({ multicolor: true }),
+    Image.configure({ HTMLAttributes: { class: 'img-fluid' } }),
     Table.configure({ resizable: true }),
-    TableRow,
-    TableHeader,
-    TableCell,
-    Placeholder.configure({ placeholder: 'Inizia a scrivere il documento…' }),
+    TableRow, TableHeader, TableCell,
+    Placeholder.configure({ placeholder: 'Inizia a scrivere…' }),
   ],
   content: '',
   autofocus: false,
@@ -421,7 +447,7 @@ const editor = new Editor({
   onSelectionUpdate: () => { updateToolbarState() },
 })
 
-// ── Carica contenuto dal server ───────────────────────────
+// ── Carica documento ────────────────────────────────
 async function caricaDocumento() {
   try {
     const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/html`)
@@ -429,18 +455,10 @@ async function caricaDocumento() {
     if (data.html) {
       editor.commands.setContent(data.html, false)
     }
-    if (data.avvisi && data.avvisi.length) {
-      console.info('Avvisi conversione:', data.avvisi)
-    }
-    // ── Gestione PDF ─────────────────────────────────────
     const meta = data.meta || {}
     if (meta.tipo_originale === 'pdf') {
       const banner = document.getElementById('ed-pdf-banner')
       if (banner) banner.style.display = 'block'
-      if (meta.is_scanned) {
-        const ocrNote = document.getElementById('ed-pdf-ocr-note')
-        if (ocrNote) ocrNote.style.display = 'inline'
-      }
     }
   } catch(e) {
     console.error('Errore caricamento:', e)
@@ -452,7 +470,7 @@ async function caricaDocumento() {
 }
 caricaDocumento()
 
-// ── Auto-save ─────────────────────────────────────────────
+// ── Auto-save ───────────────────────────────────────
 let _saveTimer = null
 let _dirty = false
 
@@ -460,7 +478,7 @@ function scheduleAutosave() {
   _dirty = true
   setStatus('saving', 'Modificato…')
   clearTimeout(_saveTimer)
-  _saveTimer = setTimeout(() => salva(true), 30_000)  // 30s
+  _saveTimer = setTimeout(() => salva(true), 30000)
 }
 
 async function salva(auto = false) {
@@ -488,82 +506,86 @@ async function salva(auto = false) {
 
 function setStatus(cls, testo) {
   const el = document.getElementById('ed-status')
-  const tx = document.getElementById('ed-status-text')
-  el.className = 'ed-status' + (cls ? ' ' + cls : '')
   const ico = cls === 'saving' ? 'bi-cloud-upload' :
               cls === 'saved'  ? 'bi-cloud-check' :
               cls === 'error'  ? 'bi-exclamation-circle' : 'bi-cloud'
-  el.innerHTML = `<i class="bi ${ico}"></i><span id="ed-status-text">${testo}</span>`
+  el.className = 'ed-status' + (cls ? ' ' + cls : '')
+  el.innerHTML = `<i class="bi ${ico}"></i><span>${testo}</span>`
 }
 
-// ── Contatore parole ──────────────────────────────────────
+// ── Contatore parole ────────────────────────────────
 function updateWordCount() {
   const testo = editor.getText().trim()
   const parole = testo ? testo.split(/\s+/).length : 0
-  const chars  = testo.length
   const el = document.getElementById('ed-wordcount')
-  if (el) el.textContent = `${parole} parole · ${chars} car.`
+  const barEl = document.getElementById('ed-wordcount-bar')
+  if (el) el.textContent = `${parole} parole`
+  if (barEl) barEl.textContent = `${parole} parole`
 }
 
-// ── Aggiornamento stato toolbar ───────────────────────────
+// ── Update toolbar state ────────────────────────────
 function updateToolbarState() {
   const btns = {
-    'tb-bold':          () => editor.isActive('bold'),
-    'tb-italic':        () => editor.isActive('italic'),
-    'tb-underline':     () => editor.isActive('underline'),
-    'tb-strike':        () => editor.isActive('strike'),
-    'tb-align-left':    () => editor.isActive({ textAlign: 'left' }),
-    'tb-align-center':  () => editor.isActive({ textAlign: 'center' }),
-    'tb-align-right':   () => editor.isActive({ textAlign: 'right' }),
+    'tb-bold': () => editor.isActive('bold'),
+    'tb-italic': () => editor.isActive('italic'),
+    'tb-underline': () => editor.isActive('underline'),
+    'tb-strike': () => editor.isActive('strike'),
+    'tb-align-left': () => editor.isActive({ textAlign: 'left' }),
+    'tb-align-center': () => editor.isActive({ textAlign: 'center' }),
+    'tb-align-right': () => editor.isActive({ textAlign: 'right' }),
     'tb-align-justify': () => editor.isActive({ textAlign: 'justify' }),
-    'tb-ul':            () => editor.isActive('bulletList'),
-    'tb-ol':            () => editor.isActive('orderedList'),
-    'tb-quote':         () => editor.isActive('blockquote'),
-    'tb-code':          () => editor.isActive('code'),
+    'tb-ul': () => editor.isActive('bulletList'),
+    'tb-ol': () => editor.isActive('orderedList'),
   }
   for (const [id, fn] of Object.entries(btns)) {
     const el = document.getElementById(id)
     if (el) el.classList.toggle('is-active', fn())
   }
-
-  // Select heading
+  
   const sel = document.getElementById('tb-heading')
   if (sel) {
     if (editor.isActive('heading', { level: 1 })) sel.value = 'heading1'
     else if (editor.isActive('heading', { level: 2 })) sel.value = 'heading2'
     else if (editor.isActive('heading', { level: 3 })) sel.value = 'heading3'
-    else if (editor.isActive('heading', { level: 4 })) sel.value = 'heading4'
     else sel.value = 'paragraph'
+  }
+  
+  const fontSel = document.getElementById('tb-font')
+  if (fontSel) {
+    const fontFamily = editor.getAttributes('textStyle').fontFamily
+    if (fontFamily) fontSel.value = fontFamily
+  }
+  
+  const sizeSel = document.getElementById('tb-size')
+  if (sizeSel) {
+    const fontSize = editor.getAttributes('textStyle').fontSize
+    if (fontSize) sizeSel.value = fontSize
   }
 }
 
-// ── Toolbar: binding pulsanti ─────────────────────────────
+// ── Toolbar bindings ────────────────────────────────
 function tb(id, fn) {
   const el = document.getElementById(id)
   if (el) el.addEventListener('click', fn)
 }
 
-tb('tb-bold',          () => editor.chain().focus().toggleBold().run())
-tb('tb-italic',        () => editor.chain().focus().toggleItalic().run())
-tb('tb-underline',     () => editor.chain().focus().toggleUnderline().run())
-tb('tb-strike',        () => editor.chain().focus().toggleStrike().run())
-tb('tb-align-left',    () => editor.chain().focus().setTextAlign('left').run())
-tb('tb-align-center',  () => editor.chain().focus().setTextAlign('center').run())
-tb('tb-align-right',   () => editor.chain().focus().setTextAlign('right').run())
+tb('tb-bold', () => editor.chain().focus().toggleBold().run())
+tb('tb-italic', () => editor.chain().focus().toggleItalic().run())
+tb('tb-underline', () => editor.chain().focus().toggleUnderline().run())
+tb('tb-strike', () => editor.chain().focus().toggleStrike().run())
+tb('tb-align-left', () => editor.chain().focus().setTextAlign('left').run())
+tb('tb-align-center', () => editor.chain().focus().setTextAlign('center').run())
+tb('tb-align-right', () => editor.chain().focus().setTextAlign('right').run())
 tb('tb-align-justify', () => editor.chain().focus().setTextAlign('justify').run())
-tb('tb-ul',            () => editor.chain().focus().toggleBulletList().run())
-tb('tb-ol',            () => editor.chain().focus().toggleOrderedList().run())
-tb('tb-quote',         () => editor.chain().focus().toggleBlockquote().run())
-tb('tb-code',          () => editor.chain().focus().toggleCode().run())
-tb('tb-hr',            () => editor.chain().focus().setHorizontalRule().run())
-tb('tb-undo',          () => editor.chain().focus().undo().run())
-tb('tb-redo',          () => editor.chain().focus().redo().run())
-tb('tb-table',         () => {
-  editor.chain().focus()
-    .insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+tb('tb-ul', () => editor.chain().focus().toggleBulletList().run())
+tb('tb-ol', () => editor.chain().focus().toggleOrderedList().run())
+tb('tb-hr', () => editor.chain().focus().setHorizontalRule().run())
+tb('tb-undo', () => editor.chain().focus().undo().run())
+tb('tb-redo', () => editor.chain().focus().redo().run())
+tb('tb-table', () => {
+  editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
 })
 
-// Heading select
 document.getElementById('tb-heading')?.addEventListener('change', e => {
   const v = e.target.value
   if (v === 'paragraph') editor.chain().focus().setParagraph().run()
@@ -573,10 +595,53 @@ document.getElementById('tb-heading')?.addEventListener('change', e => {
   }
 })
 
-// Colore testo
+document.getElementById('tb-font')?.addEventListener('change', e => {
+  editor.chain().focus().setFontFamily(e.target.value).run()
+})
+
+document.getElementById('tb-size')?.addEventListener('change', e => {
+  editor.chain().focus().setFontSize(e.target.value).run()
+})
+
 document.getElementById('tb-color')?.addEventListener('input', e => {
   editor.chain().focus().setColor(e.target.value).run()
 })
+
+document.getElementById('tb-highlight')?.addEventListener('input', e => {
+  editor.chain().focus().setHighlight({ color: e.target.value }).run()
+})
+
+// Immagine
+tb('tb-image', () => {
+  document.getElementById('ed-image-modal').classList.add('active')
+})
+
+function closeImageModal() {
+  document.getElementById('ed-image-modal').classList.remove('active')
+  document.getElementById('img-upload-input').value = ''
+}
+
+async function confirmImageUpload() {
+  const file = document.getElementById('img-upload-input').files[0]
+  if (!file) return
+  
+  const formData = new FormData()
+  formData.append('image', file)
+  
+  try {
+    const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/upload`, {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+    if (data.url) {
+      editor.chain().focus().setImage({ src: data.url }).run()
+      closeImageModal()
+    }
+  } catch(e) {
+    console.error('Upload fallito:', e)
+  }
+}
 
 // Fullscreen
 let _fullscreen = false
@@ -586,22 +651,22 @@ tb('tb-fullscreen', () => {
   const canvas = document.querySelector('.ed-canvas')
   const icon = document.querySelector('#tb-fullscreen i')
   if (_fullscreen) {
-    paper.style.cssText += ';position:fixed;inset:0;max-width:none;border-radius:0;z-index:9000;overflow-y:auto'
-    canvas.style.padding = '0'
+    paper.classList.add('fullscreen')
+    canvas.classList.add('fullscreen')
     if(icon) icon.className = 'bi bi-fullscreen-exit'
   } else {
-    paper.removeAttribute('style')
-    canvas.style.padding = ''
+    paper.classList.remove('fullscreen')
+    canvas.classList.remove('fullscreen')
     if(icon) icon.className = 'bi bi-fullscreen'
   }
 })
 
-// ── Bottoni Salva ─────────────────────────────────────────
+// Bottoni Salva
 document.getElementById('btn-save')?.addEventListener('click', () => salva(false))
 document.getElementById('btn-save-mobile')?.addEventListener('click', () => salva(false))
 
-// ── Export PDF (server-side) ──────────────────────────────
-async function esportaPDF() {
+// Export PDF
+document.getElementById('btn-pdf')?.addEventListener('click', async () => {
   setStatus('saving', 'Generazione PDF…')
   try {
     const html = editor.getHTML()
@@ -610,26 +675,21 @@ async function esportaPDF() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html }),
     })
-    if (!res.ok) throw new Error(await res.text())
+    if (!res.ok) throw new Error()
     const blob = await res.blob()
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
     a.download = NOME.replace(/\.[^.]+$/, '') + '.pdf'
     a.click()
-    URL.revokeObjectURL(url)
     setStatus('saved', 'PDF pronto')
-    setTimeout(() => setStatus('', 'Pronto'), 3000)
   } catch(e) {
     setStatus('error', 'Errore PDF')
-    console.error(e)
   }
-}
-document.getElementById('btn-pdf')?.addEventListener('click', esportaPDF)
-document.getElementById('btn-pdf-mobile')?.addEventListener('click', esportaPDF)
+})
 
-// ── Export .docx (server-side) ────────────────────────────
-async function esportaDocx() {
+// Export DOCX
+document.getElementById('btn-docx')?.addEventListener('click', async () => {
   setStatus('saving', 'Generazione .docx…')
   try {
     const html = editor.getHTML()
@@ -638,38 +698,60 @@ async function esportaDocx() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html }),
     })
-    if (!res.ok) throw new Error(await res.text())
+    if (!res.ok) throw new Error()
     const blob = await res.blob()
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
     a.download = NOME.replace(/\.[^.]+$/, '') + '.docx'
     a.click()
-    URL.revokeObjectURL(url)
     setStatus('saved', '.docx pronto')
-    setTimeout(() => setStatus('', 'Pronto'), 3000)
   } catch(e) {
     setStatus('error', 'Errore .docx')
-    console.error(e)
-  }
-}
-document.getElementById('btn-docx')?.addEventListener('click', esportaDocx)
-document.getElementById('btn-docx-mobile')?.addEventListener('click', esportaDocx)
-
-// ── Avviso uscita con modifiche non salvate ───────────────
-window.addEventListener('beforeunload', e => {
-  if (_dirty) {
-    e.preventDefault()
-    e.returnValue = ''
   }
 })
 
-// ── Shortcut tastiera ─────────────────────────────────────
+// Stampa
+document.getElementById('btn-print')?.addEventListener('click', () => {
+  const printWindow = window.open('', '_blank')
+  const html = editor.getHTML()
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${NOME} - Stampa</title>
+        <style>
+          body { font-family: "Times New Roman", serif; padding: 25mm; font-size: 12pt; }
+          img { max-width: 100%; }
+          table { border-collapse: collapse; width: 100%; }
+          td, th { border: 1px solid #000; padding: 8px; }
+          @page { margin: 2cm; }
+        </style>
+      </head>
+      <body>${html}</body>
+    </html>
+  `)
+  printWindow.document.close()
+  setTimeout(() => { printWindow.print(); printWindow.close(); }, 250)
+})
+
+// Shortcut tastiera
+window.addEventListener('beforeunload', e => {
+  if (_dirty) { e.preventDefault(); e.returnValue = '' }
+})
+
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault()
     salva(false)
   }
+  if (e.key === 'Escape') {
+    closeImageModal()
+  }
+})
+
+document.getElementById('ed-image-modal')?.addEventListener('click', e => {
+  if (e.target.id === 'ed-image-modal') closeImageModal()
 })
 </script>
 {% endblock %}

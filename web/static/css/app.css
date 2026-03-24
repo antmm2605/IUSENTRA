@@ -2056,6 +2056,20 @@ tr[data-swipe-delete] {
   overscroll-behavior: contain;
 }
 
+/* Dropdown notifiche: assicuriamo che sia visibile sopra tutti gli elementi */
+#notifiche-dropdown {
+  z-index: 10000 !important;
+}
+
+/* Su mobile, il dropdown deve uscire dallo stacking context di #main */
+@media (max-width: 768px) {
+  #notifiche-dropdown {
+    position: fixed !important;
+    top: auto !important;
+    right: 0.5rem !important;
+  }
+}
+
 /* ---- modalVisualizzatore: inline height:92vh override su mobile ---- */
 /* L'inline style height:92vh bypassa il fix CSS dei modal (.modal-dialog).
    Su mobile usiamo auto + max-height per non superare il viewport. */

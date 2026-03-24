@@ -36,7 +36,9 @@ class ClientPEC:
     all'indirizzo PEC dell'ufficio giudiziario competente.
     """
 
-    SUBJECT_DEPOSITO = "DEPOSITO"
+    # Formato oggetto PEC conforme D.M. 44/2011 art. 14 comma 3
+    # Il portale PST riconosce automaticamente i depositi dall'oggetto
+    SUBJECT_DEPOSITO = "DEPOSITO TELEMATICO"
     TIMEOUT_RICEVUTA = 300  # 5 minuti
 
     def __init__(self, config: ConfigPEC):

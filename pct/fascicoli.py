@@ -63,20 +63,59 @@ class TipoDocumento(str, Enum):
 
 
 class TipoAttivita(str, Enum):
-    UDIENZA             = "UDIENZA"
-    DEPOSITO_ATTI       = "DEPOSITO_ATTI"
-    NOTIFICA            = "NOTIFICA"
-    CONSULTAZIONE       = "CONSULTAZIONE"
-    TERMINE_SCADENZA    = "TERMINE_SCADENZA"
-    ACCESSO_ATTI        = "ACCESSO_ATTI"
-    MEDIAZIONE          = "MEDIAZIONE"
-    CTU                 = "CTU"
-    SENTENZA_EMESSA     = "SENTENZA_EMESSA"
-    APPELLO             = "APPELLO"
-    ESECUZIONE          = "ESECUZIONE"
-    ACCORDO             = "ACCORDO"
-    RINVIO              = "RINVIO"
-    ALTRO               = "ALTRO"
+    UDIENZA                  = "UDIENZA"
+    DEPOSITO_ATTI            = "DEPOSITO_ATTI"
+    ISCRIZIONE_A_RUOLO       = "ISCRIZIONE_A_RUOLO"    # PST: avvio causa / iscrizione a ruolo
+    NOTIFICA                 = "NOTIFICA"
+    CONSULTAZIONE            = "CONSULTAZIONE"
+    TERMINE_SCADENZA         = "TERMINE_SCADENZA"
+    ACCESSO_ATTI             = "ACCESSO_ATTI"
+    MEDIAZIONE               = "MEDIAZIONE"
+    CTU                      = "CTU"
+    SENTENZA_EMESSA          = "SENTENZA_EMESSA"
+    PROVVEDIMENTO            = "PROVVEDIMENTO"          # PST: ordinanza / decreto del giudice
+    COMUNICAZIONE_CANCELLERIA = "COMUNICAZIONE_CANCELLERIA"  # PST: comunicazione / esito cancelleria
+    APPELLO                  = "APPELLO"
+    ESECUZIONE               = "ESECUZIONE"
+    ACCORDO                  = "ACCORDO"
+    RINVIO                   = "RINVIO"
+    ALTRO                    = "ALTRO"
+
+
+# Mapping tipo_atto (codice PST) → label italiana leggibile
+TIPO_ATTO_LABEL: dict = {
+    "RICORSO":              "Ricorso",
+    "CITAZIONE":            "Atto di citazione",
+    "MEMORIA":              "Memoria",
+    "COMPARSA":             "Comparsa di risposta",
+    "REPLICA":              "Replica",
+    "ISTANZA":              "Istanza",
+    "NOTA_SPESE":           "Nota spese",
+    "PROCURA":              "Procura alle liti",
+    "DECRETO_INGIUNTIVO":   "Ricorso per decreto ingiuntivo",
+    "OPPOSIZIONE":          "Atto di opposizione",
+    "APPELLO":              "Atto di appello",
+    "RECLAMO":              "Reclamo",
+    "ATTO_DIFESA":          "Atto di difesa",
+    "IMPUGNAZIONE":         "Atto di impugnazione",
+    "RICHIESTA_RIESAME":    "Richiesta di riesame",
+    "MOTIVI_NUOVI":         "Motivi nuovi",
+    "DEPOSITO_DOCUMENTI":   "Deposito documenti",
+    "MOTIVI_AGGIUNTI":      "Motivi aggiunti",
+    "RICORSO_INCIDENTALE":  "Ricorso incidentale",
+    "ALTRO":                "Altro atto",
+}
+
+
+def _tipo_attivita_da_tipo_atto(tipo_atto: str) -> "TipoAttivita":
+    """Deriva il TipoAttivita PST dal codice tipo_atto del deposito."""
+    _iscrizione = {"CITAZIONE", "DECRETO_INGIUNTIVO", "RICORSO", "RICORSO_INCIDENTALE"}
+    _appello    = {"APPELLO", "IMPUGNAZIONE"}
+    if tipo_atto in _iscrizione:
+        return TipoAttivita.ISCRIZIONE_A_RUOLO
+    if tipo_atto in _appello:
+        return TipoAttivita.APPELLO
+    return TipoAttivita.DEPOSITO_ATTI
 
 
 class EsitoAttivita(str, Enum):
@@ -194,21 +233,42 @@ class DatiArchivio:
     percorso_zip: str = ""          # path dell'archivio ZIP
     hash_zip: str = ""
     archiviato_da: str = ""
+    dimensione_zip: int = 0         # dimensione in byte del file ZIP
 
 
 # ------------------------------------------------------------------ Esito deposito PCT
 
 @dataclass
 class EsitoDepositoPCT:
-    """Esito di un deposito telematico archiviato nel fascicolo."""
+    """
+    Esito di un deposito telematico archiviato nel fascicolo.
+
+    Flusso ufficiale PCT (4 fasi):
+      Fase 4 → ACCETTATO_PEC        : ricevuta accettazione PEC (gestore mittente)
+      Fase 5 → CONSEGNATO            : ricevuta avvenuta consegna (sistema MinGiustizia)
+      Fase 6 → WARN_CONTROLLI /
+               ERRORE_CONTROLLI      : esito controlli automatici busta
+      Fase 7 → ACCETTATO_CANCELLERIA : deposito accettato dalla cancelleria (definitivo)
+               RIFIUTATO_CANCELLERIA : deposito rifiutato dalla cancelleria
+
+    Stati legacy mantenuti per retro-compatibilità:
+      INVIATO, ACCETTATO (= ACCETTATO_PEC), RIFIUTATO, ERRORE
+    """
     id: str
     timestamp: str                  # ISO datetime dell'invio
-    stato: str                      # INVIATO | ACCETTATO | CONSEGNATO | RIFIUTATO | ERRORE
+    stato: str                      # vedi docstring sopra
     tipo_atto: str                  # es. "MEMORIA", "RICORSO"
     pec_destinatario: str           # PEC del tribunale
     messaggio: str = ""
-    ricevuta_accettazione: str = "" # path o contenuto base64
-    ricevuta_consegna: str = ""     # path o contenuto base64
+    # ── Fase 4: ricevuta accettazione PEC ──────────────────────────
+    ricevuta_accettazione: str = ""
+    # ── Fase 5: ricevuta avvenuta consegna ─────────────────────────
+    ricevuta_consegna: str = ""
+    # ── Fase 6: esito controlli automatici ─────────────────────────
+    ricevuta_controlli_automatici: str = ""   # messaggio PEC fase 6
+    esito_controlli: str = ""                 # OK | WARN | ERROR
+    # ── Fase 7: esito cancelleria ──────────────────────────────────
+    ricevuta_cancelleria: str = ""            # messaggio PEC fase 7
     note: str = ""
     registrato_da: str = ""
     registrato_il: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -223,6 +283,9 @@ class EsitoDepositoPCT:
             "messaggio": self.messaggio,
             "ricevuta_accettazione": self.ricevuta_accettazione,
             "ricevuta_consegna": self.ricevuta_consegna,
+            "ricevuta_controlli_automatici": self.ricevuta_controlli_automatici,
+            "esito_controlli": self.esito_controlli,
+            "ricevuta_cancelleria": self.ricevuta_cancelleria,
             "note": self.note,
             "registrato_da": self.registrato_da,
             "registrato_il": self.registrato_il,
@@ -616,6 +679,9 @@ class GestioneFascicoli:
         messaggio: str = "",
         ricevuta_accettazione: str = "",
         ricevuta_consegna: str = "",
+        ricevuta_controlli_automatici: str = "",
+        esito_controlli: str = "",
+        ricevuta_cancelleria: str = "",
         note: str = "",
         registrato_da: str = "",
     ) -> EsitoDepositoPCT:
@@ -630,11 +696,31 @@ class GestioneFascicoli:
             messaggio=messaggio,
             ricevuta_accettazione=ricevuta_accettazione,
             ricevuta_consegna=ricevuta_consegna,
+            ricevuta_controlli_automatici=ricevuta_controlli_automatici,
+            esito_controlli=esito_controlli,
+            ricevuta_cancelleria=ricevuta_cancelleria,
             note=note,
             registrato_da=registrato_da,
         )
         f.depositi_pct.append(esito)
         f.modificato_il = datetime.now().isoformat()
+
+        # Auto-crea attività processuale collegata al deposito (PST: evento nel fascicolo)
+        tipo_att = _tipo_attivita_da_tipo_atto(tipo_atto)
+        label    = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
+        att = AttivitaProcessuale(
+            id=uuid.uuid4().hex[:8].upper(),
+            tipo=tipo_att,
+            data=date.today().isoformat(),
+            titolo=f"Deposito telematico — {label}",
+            descrizione=f"Tipo atto: {label}. Stato: {stato}.",
+            esito=EsitoAttivita.IN_ATTESA,
+            id_deposito_pct=esito.id,
+            avvocato=registrato_da,
+        )
+        f.attivita.append(att)
+        f.modificato_il = datetime.now().isoformat()
+
         self._salva()
         return esito
 
@@ -721,16 +807,25 @@ class GestioneFascicoli:
         note: str = "",
         avvocato: str = "",
     ) -> Fascicolo:
-        """Marca il fascicolo come DEFINITO (pronto per archiviazione)."""
+        """
+        Marca il fascicolo come DEFINITO e crea automaticamente il ZIP compresso.
+        Da questo momento la pratica è accessibile nella cartella digitale del cliente
+        in formato compresso; può essere sfogliata o ripristinata senza riaprire il fascicolo.
+        """
         f = self._get_o_errore(id_fasc)
         if f.stato == StatoFascicolo.ARCHIVIATO:
             raise ValueError("Il fascicolo è già archiviato.")
+        # Crea l'archivio ZIP in anticipo (compressione preventiva)
+        zip_path, hash_zip, dim = self._crea_archivio_zip(f)
         f.archivio = DatiArchivio(
-            data_archiviazione="",
+            data_archiviazione=date.today().isoformat(),
             motivo=motivo,
             esito_finale=esito_finale,
             note_archivio=note,
             archiviato_da=avvocato,
+            percorso_zip=zip_path,
+            hash_zip=hash_zip,
+            dimensione_zip=dim,
         )
         return self.cambia_stato(id_fasc, StatoFascicolo.DEFINITO, note=note, avvocato=avvocato)
 
@@ -753,20 +848,31 @@ class GestioneFascicoli:
 
         zip_path = ""
         hash_zip = ""
+        dimensione_zip = 0
 
         if crea_zip:
-            zip_path, hash_zip = self._crea_archivio_zip(f)
+            # Riusa il ZIP creato da definisci() se già esistente e valido
+            zip_esistente = (f.archivio and f.archivio.percorso_zip
+                             and Path(f.archivio.percorso_zip).exists())
+            if zip_esistente:
+                zip_path = f.archivio.percorso_zip
+                hash_zip = f.archivio.hash_zip
+                dimensione_zip = f.archivio.dimensione_zip
+            else:
+                zip_path, hash_zip, dimensione_zip = self._crea_archivio_zip(f)
 
         if f.archivio:
             f.archivio.data_archiviazione = date.today().isoformat()
             f.archivio.percorso_zip = zip_path
             f.archivio.hash_zip = hash_zip
+            f.archivio.dimensione_zip = dimensione_zip
             f.archivio.archiviato_da = avvocato
         else:
             f.archivio = DatiArchivio(
                 data_archiviazione=date.today().isoformat(),
                 percorso_zip=zip_path,
                 hash_zip=hash_zip,
+                dimensione_zip=dimensione_zip,
                 archiviato_da=avvocato,
             )
 
@@ -782,8 +888,8 @@ class GestioneFascicoli:
         return self.cambia_stato(id_fasc, StatoFascicolo.APERTO,
                                  note="Ripristinato dall'archivio", avvocato=avvocato)
 
-    def _crea_archivio_zip(self, f: Fascicolo) -> tuple[str, str]:
-        """Crea un archivio ZIP del fascicolo e restituisce (path, hash)."""
+    def _crea_archivio_zip(self, f: Fascicolo) -> tuple[str, str, int]:
+        """Crea un archivio ZIP del fascicolo e restituisce (path, hash, dimensione_bytes)."""
         nome_zip = f"fascicolo_{f.numero.replace('/', '_')}_{f.id}.zip"
         zip_path = self.archive_dir / nome_zip
 
@@ -805,13 +911,47 @@ class GestioneFascicoli:
             zf.writestr("indice_documenti.json",
                         json.dumps(indice, ensure_ascii=False, indent=2))
 
-        # hash del ZIP
+        # hash e dimensione del ZIP
         sha256 = hashlib.sha256()
         with open(zip_path, "rb") as fh:
             for chunk in iter(lambda: fh.read(8192), b""):
                 sha256.update(chunk)
+        dimensione = zip_path.stat().st_size
 
-        return str(zip_path), sha256.hexdigest()
+        return str(zip_path), sha256.hexdigest(), dimensione
+
+    def contenuto_archivio(self, id_fasc: str) -> list[dict]:
+        """Restituisce la lista dei file presenti nel ZIP dell'archivio."""
+        f = self._get_o_errore(id_fasc)
+        if not f.archivio or not f.archivio.percorso_zip:
+            return []
+        p = Path(f.archivio.percorso_zip)
+        if not p.exists():
+            return []
+        with zipfile.ZipFile(p, "r") as zf:
+            return [
+                {
+                    "nome": info.filename,
+                    "dimensione": info.file_size,
+                    "estensione": Path(info.filename).suffix.lower(),
+                }
+                for info in zf.infolist()
+                if not info.is_dir()
+            ]
+
+    def estrai_file_archivio(self, id_fasc: str, nome_file: str) -> bytes:
+        """Estrae e restituisce il contenuto di un singolo file dal ZIP."""
+        f = self._get_o_errore(id_fasc)
+        if not f.archivio or not f.archivio.percorso_zip:
+            raise FileNotFoundError("Archivio ZIP non disponibile per questo fascicolo.")
+        p = Path(f.archivio.percorso_zip)
+        if not p.exists():
+            raise FileNotFoundError("File ZIP non trovato su disco.")
+        with zipfile.ZipFile(p, "r") as zf:
+            nomi = zf.namelist()
+            if nome_file not in nomi:
+                raise FileNotFoundError(f"File '{nome_file}' non trovato nell'archivio.")
+            return zf.read(nome_file)
 
     # ---------------------------------------------------------------- Query
 

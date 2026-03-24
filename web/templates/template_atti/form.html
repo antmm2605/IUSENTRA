@@ -36,7 +36,7 @@
               <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Jinja2</span>
             </label>
             <textarea name="corpo" class="form-control font-monospace" rows="22"
-                      required placeholder="Testo del documento con variabili {{ }}...">{{ form.get('corpo', '') }}</textarea>
+                      required placeholder="Testo del documento con variabili {{ '{' }}{{ '{' }} variabile {{ '}' }}{{ '}' }}...">{{ form.get('corpo', '') }}</textarea>
           </div>
           <div>
             <label class="form-label fw-semibold" style="font-size:.82rem;">Note interne</label>

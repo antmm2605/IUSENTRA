@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copertina Faldone — {{ cliente.nome_completo }}</title>
+  <style>
+    :root {
+      --ink:       #1a1a2e;
+      --ink-muted: #4a4a6a;
+      --gold:      #c8972b;
+      --gold-lt:   #e8d5a3;
+      --bg:        #ffffff;
+      --section-bg:#f8f6f0;
+      --font-serif: 'Georgia', 'Times New Roman', serif;
+      --font-sans:  'Helvetica Neue', 'Arial', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #e0dbd4;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 2rem 1rem 4rem;
+      min-height: 100vh;
+    }
+
+    .cover-page {
+      background: var(--bg);
+      width: 210mm;
+      min-height: 297mm;
+      position: relative;
+      box-shadow: 0 6px 40px rgba(0,0,0,.22);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Striscia superiore oro ── */
+    .top-band {
+      height: 10mm;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    /* ── Corpo copertina ── */
+    .cover-body {
+      flex: 1;
+      padding: 12mm 18mm 8mm;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Etichetta faldone in alto a sinistra ── */
+    .faldone-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--section-bg);
+      border-left: 4px solid var(--gold);
+      padding: 4px 12px;
+      border-radius: 0 3px 3px 0;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--ink-muted);
+      font-weight: 700;
+      margin-bottom: 10mm;
+      align-self: flex-start;
+    }
+
+    /* ── Testata studio ── */
+    .studio-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 8mm;
+      padding-bottom: 4mm;
+      border-bottom: 2px solid var(--gold);
+    }
+    .studio-name {
+      font-family: var(--font-serif);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .studio-sub {
+      font-size: .7rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .date-block {
+      text-align: right;
+      font-size: .72rem;
+      color: var(--ink-muted);
+    }
+    .date-block strong { font-size: .88rem; color: var(--ink); }
+
+    /* ── Nome cliente (grande) ── */
+    .cliente-name {
+      font-family: var(--font-serif);
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: .01em;
+      line-height: 1.15;
+      margin-bottom: 2mm;
+    }
+    .cliente-sub {
+      font-size: .88rem;
+      color: var(--ink-muted);
+      margin-bottom: 8mm;
+    }
+    .gold-rule {
+      border: none;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), rgba(200,151,43,.15));
+      margin-bottom: 8mm;
+    }
+
+    /* ── Info cliente ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2mm 6mm;
+      background: var(--section-bg);
+      border-radius: 6px;
+      padding: 5mm;
+      margin-bottom: 8mm;
+    }
+    .info-item {}
+    .info-label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 1px;
+    }
+    .info-value {
+      font-size: .82rem;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .info-value.empty { color: #aaa; }
+
+    /* ── Tabella pratiche ── */
+    .pratiche-title {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 3mm;
+    }
+    .pratiche-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem;
+      margin-bottom: 6mm;
+    }
+    .pratiche-table th {
+      text-align: left;
+      padding: 2mm 3mm;
+      background: var(--ink);
+      color: #fff;
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      font-weight: 600;
+    }
+    .pratiche-table td {
+      padding: 2mm 3mm;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    .pratiche-table tr:nth-child(even) td { background: var(--section-bg); }
+    .badge-tipo {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: .62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .t-CIVILE         { background:#dbeafe; color:#1d4ed8; }
+    .t-PENALE         { background:#fee2e2; color:#b91c1c; }
+    .t-LAVORO         { background:#f3f4f6; color:#374151; }
+    .t-FAMIGLIA       { background:#fce7f3; color:#9d174d; }
+    .t-AMMINISTRATIVO { background:#fef9c3; color:#a16207; }
+    .t-STRAGIUDIZIALE { background:#cffafe; color:#0e7490; }
+    .t-SUCCESSIONI    { background:#ede9fe; color:#6d28d9; }
+    .t-CONSULENZA     { background:#dcfce7; color:#15803d; }
+    .t-ALTRO          { background:#f1f5f9; color:#475569; }
+
+    /* ── Stat pills ── */
+    .stat-row {
+      display: flex;
+      gap: 4mm;
+      flex-wrap: wrap;
+      margin-bottom: 6mm;
+    }
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3mm;
+      padding: 3mm 5mm;
+      border-radius: 8px;
+      background: var(--section-bg);
+      border: 1px solid var(--gold-lt);
+    }
+    .stat-pill .num {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .stat-pill .lbl {
+      font-size: .68rem;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── Striscia inferiore ── */
+    .bottom-band {
+      height: 6mm;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    /* ── Footer su striscia inferiore ── */
+    .cover-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: .65rem;
+      color: rgba(255,255,255,.85);
+      padding: 0 18mm;
+      align-items: center;
+      height: 6mm;
+      background: var(--gold);
+    }
+
+    /* ── Barra azioni (solo schermo) ── */
+    .screen-actions {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: .5rem;
+      z-index: 100;
+    }
+    .btn-action {
+      padding: .45rem 1rem;
+      border-radius: 6px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      text-decoration: none;
+    }
+    .btn-print  { background: #1a3a5c; color: #fff; }
+    .btn-print:hover  { background: #143058; }
+    .btn-back   { background: #fff; color: #333; border: 1px solid #ccc; }
+    .btn-back:hover { background: #f5f5f5; }
+
+    @media print {
+      body { background: white; }
+      .page-wrap { display: block; padding: 0; }
+      .cover-page { width: 100%; min-height: 100vh; box-shadow: none; }
+      .screen-actions { display: none !important; }
+      @page { size: A4; margin: 0; }
+    }
+
+    @media (max-width: 220mm) {
+      .cover-page { width: 100%; min-height: auto; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="screen-actions">
+  <a href="javascript:history.back()" class="btn-action btn-back">← Indietro</a>
+  <button class="btn-action btn-print" onclick="window.print()">🖨️ Stampa</button>
+</div>
+
+<div class="page-wrap">
+  <div class="cover-page">
+    <div class="top-band"></div>
+
+    <div class="cover-body">
+
+      <div class="faldone-badge">📂 Faldone Digitale</div>
+
+      <!-- Testata studio -->
+      <div class="studio-row">
+        <div>
+          <div class="studio-name">{{ studio_nome }}</div>
+          <div class="studio-sub">Gestione documentale cliente</div>
+        </div>
+        <div class="date-block">
+          Stampato il<br>
+          <strong>{{ oggi.strftime('%d/%m/%Y') }}</strong>
+        </div>
+      </div>
+
+      <!-- Nome cliente -->
+      <div class="cliente-name">{{ cliente.nome_completo }}</div>
+      <div class="cliente-sub">
+        {% if cliente.codice_fiscale %}C.F. {{ cliente.codice_fiscale }}{% endif %}
+        {% if cliente.partita_iva %} · P.IVA {{ cliente.partita_iva }}{% endif %}
+        {% if cliente.stato %} · {{ cliente.stato.value }}{% endif %}
+      </div>
+      <hr class="gold-rule">
+
+      <!-- Info cliente -->
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Avvocato referente</div>
+          <div class="info-value {% if not cliente.avvocato_referente %}empty{% endif %}">
+            {{ cliente.avvocato_referente or '—' }}
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Prima acquisizione</div>
+          <div class="info-value {% if not cliente.data_prima_acquisizione %}empty{% endif %}">
+            {% if cliente.data_prima_acquisizione %}
+              {{ cliente.data_prima_acquisizione[8:10] }}/{{ cliente.data_prima_acquisizione[5:7] }}/{{ cliente.data_prima_acquisizione[:4] }}
+            {% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Email</div>
+          <div class="info-value {% if not cliente.recapiti.email %}empty{% endif %}">
+            {{ cliente.recapiti.email or '—' }}
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Telefono / Cellulare</div>
+          <div class="info-value">
+            {{ cliente.recapiti.telefono or cliente.recapiti.cellulare or '—' }}
+          </div>
+        </div>
+        {% if cliente.indirizzo_residenza and cliente.indirizzo_residenza.comune %}
+        <div class="info-item" style="grid-column:span 2">
+          <div class="info-label">Indirizzo</div>
+          <div class="info-value">
+            {{ cliente.indirizzo_residenza.via or '' }}{% if cliente.indirizzo_residenza.civico %}, {{ cliente.indirizzo_residenza.civico }}{% endif %}
+            &nbsp;—&nbsp;
+            {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.comune or '' }}
+            {% if cliente.indirizzo_residenza.provincia %} ({{ cliente.indirizzo_residenza.provincia }}){% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Statistiche -->
+      <div class="stat-row">
+        <div class="stat-pill">
+          <div class="num">{{ fascicoli_attivi|length }}</div>
+          <div class="lbl">Pratiche<br>attive</div>
+        </div>
+        <div class="stat-pill">
+          <div class="num">{{ fascicoli_archiviati|length }}</div>
+          <div class="lbl">Pratiche<br>archiviate</div>
+        </div>
+        <div class="stat-pill">
+          <div class="num">{{ tutti|sum(attribute='documenti_count') }}</div>
+          <div class="lbl">Documenti<br>totali</div>
+        </div>
+        <div class="stat-pill">
+          <div class="num">{{ tutti|length }}</div>
+          <div class="lbl">Pratiche<br>totali</div>
+        </div>
+      </div>
+
+      <!-- Pratiche attive -->
+      {% if fascicoli_attivi %}
+      <div class="pratiche-title">Pratiche attive</div>
+      <table class="pratiche-table">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Pratica</th>
+            <th>Tipo</th>
+            <th>Tribunale</th>
+            <th>RG</th>
+            <th>Apertura</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli_attivi %}
+          <tr>
+            <td><code style="font-size:.7rem">{{ f.numero }}</code></td>
+            <td style="font-weight:600">{{ f.titolo|truncate(36) }}</td>
+            <td>
+              <span class="badge-tipo t-{{ f.tipo.value }}">{{ f.tipo.value }}</span>
+            </td>
+            <td style="font-size:.74rem;color:#555">{{ f.tribunale or '—' }}</td>
+            <td style="font-size:.74rem">{{ f.numero_rg or '—' }}{% if f.anno_rg %}/{{ f.anno_rg }}{% endif %}</td>
+            <td style="font-size:.74rem">
+              {% if f.data_apertura %}
+                {{ f.data_apertura[8:10] }}/{{ f.data_apertura[5:7] }}/{{ f.data_apertura[:4] }}
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      <!-- Pratiche archiviate (se ci sono) -->
+      {% if fascicoli_archiviati %}
+      <div class="pratiche-title" style="color:#8a8a9a">Pratiche archiviate ({{ fascicoli_archiviati|length }})</div>
+      <table class="pratiche-table" style="opacity:.7">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Pratica</th>
+            <th>Tipo</th>
+            <th>Tribunale</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli_archiviati %}
+          <tr>
+            <td><code style="font-size:.7rem">{{ f.numero }}</code></td>
+            <td>{{ f.titolo|truncate(40) }}</td>
+            <td><span class="badge-tipo t-{{ f.tipo.value }}">{{ f.tipo.value }}</span></td>
+            <td style="font-size:.74rem;color:#555">{{ f.tribunale or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+    </div>
+
+    <!-- Footer (striscia oro) -->
+    <div class="cover-footer">
+      <span>{{ studio_nome }}</span>
+      <span>{{ cliente.nome_completo }} — Faldone Digitale</span>
+      <span>{{ oggi.strftime('%d/%m/%Y') }}</span>
+    </div>
+    <div class="bottom-band"></div>
+
+  </div>
+</div>
+
+</body>
+</html>

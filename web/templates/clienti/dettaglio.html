@@ -5,71 +5,36 @@
 {% block content %}
 {% set sc = {'ATTIVO':'success','INATTIVO':'secondary','POTENZIALE':'warning','ARCHIVIATO':'dark'} %}
 
-{# ---- Header ---- #}
-<div class="card shadow-sm mb-3">
-  <div class="card-body d-flex align-items-center gap-3">
-    <div style="width:64px;height:64px;border-radius:50%;background:#e3f2fd;
-                color:#1565c0;font-size:1.8rem;display:flex;align-items:center;
-                justify-content:center;flex-shrink:0">
-      <i class="bi bi-{% if cliente.tipo == TipoCliente.PERSONA_FISICA %}person{% else %}building{% endif %}"></i>
-    </div>
-    <div class="flex-grow-1">
-      <h4 class="fw-bold mb-1">{{ cliente.nome_completo }}</h4>
-      <div class="d-flex flex-wrap gap-2">
-        <span class="badge bg-{{ sc[cliente.stato.value] }}">{{ cliente.stato.value }}</span>
-        {% if cliente.tipo == TipoCliente.PERSONA_FISICA %}
-          <span class="badge bg-info-subtle text-info-emphasis">
-            <i class="bi bi-person me-1"></i>Persona fisica
-            {% if cliente.eta %} · {{ cliente.eta }} anni{% endif %}
-          </span>
-        {% else %}
-          <span class="badge" style="background:#ede7f6;color:#4a148c">
-            <i class="bi bi-building me-1"></i>{{ cliente.forma_giuridica or 'Persona giuridica' }}
-          </span>
-        {% endif %}
-        {% if cliente.avvocato_referente %}
-          <span class="badge bg-light text-dark border">
-            <i class="bi bi-person-badge me-1"></i>{{ cliente.avvocato_referente }}
-          </span>
-        {% endif %}
-        {% if cliente.documento.scaduto %}
-          <span class="badge bg-warning text-dark">
-            <i class="bi bi-exclamation-triangle me-1"></i>Documento scaduto
-          </span>
-        {% endif %}
-      </div>
-    </div>
-    <div class="d-flex gap-2 flex-shrink-0">
-      <a href="{{ url_for('portale_config', id_cliente=cliente.id) }}"
-         class="btn btn-outline-info btn-sm" title="Portale self-service cliente">
-        <i class="bi bi-person-badge me-1"></i>Portale
-      </a>
-      <a href="{{ url_for('gestione_collaboratori', id_cliente=cliente.id) }}"
-         class="btn btn-outline-success btn-sm position-relative" title="Gestisci collaboratori">
-        <i class="bi bi-people me-1"></i>Collaboratori
-        {% if n_collaboratori %}
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success">
-          {{ n_collaboratori }}
-        </span>
-        {% endif %}
-      </a>
-      <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
-         class="btn btn-outline-primary btn-sm">
-        <i class="bi bi-pencil me-1"></i>Modifica
-      </a>
-      <a href="{{ url_for('gdpr_portabilita', id_cliente=cliente.id) }}"
-         class="btn btn-outline-secondary btn-sm" title="Esporta dati personali (GDPR Art. 20)"
-         {% if not utente_corrente.ha_permesso('clienti.leggi') %}style="display:none"{% endif %}>
-        <i class="bi bi-box-arrow-up me-1"></i>GDPR
-      </a>
-      <form method="post"
-            action="{{ url_for('elimina_cliente', id_cliente=cliente.id) }}"
-            onsubmit="return confirm('Eliminare definitivamente questo cliente?')">
-        <button class="btn btn-outline-danger btn-sm">
-          <i class="bi bi-trash me-1"></i>Elimina
-        </button>
-      </form>
-    </div>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if cliente.tipo == TipoCliente.PERSONA_FISICA %}person{% else %}building{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ cliente.nome_completo }}</h1>
+    <p class="ds-ph-sub">
+      <span class="badge bg-{{ sc[cliente.stato.value] }} me-1">{{ cliente.stato.value }}</span>
+      {% if cliente.tipo == TipoCliente.PERSONA_FISICA %}
+        Persona fisica{% if cliente.eta %} · {{ cliente.eta }} anni{% endif %}
+      {% else %}
+        {{ cliente.forma_giuridica or 'Persona giuridica' }}
+      {% endif %}
+      {% if cliente.avvocato_referente %} · <i class="bi bi-person-badge"></i> {{ cliente.avvocato_referente }}{% endif %}
+      {% if cliente.documento.scaduto %} · <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Documento scaduto</span>{% endif %}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
+       class="ds-btn ds-btn-primary" title="Cartella cliente — tutti i fascicoli">
+      <i class="bi bi-folder2-open"></i><span class="d-none d-sm-inline">Cartella</span>
+    </a>
+    <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
+       class="ds-btn ds-btn-outline">
+      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
+    </a>
+    <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Clienti</span>
+    </a>
   </div>
 </div>
 
@@ -177,6 +142,50 @@
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold"><i class="bi bi-sticky me-2"></i>Note</div>
       <div class="card-body">{{ cliente.note }}</div>
+    </div>
+    {% endif %}
+
+    {# Fascicoli del cliente — preview inline #}
+    {% if fascicoli_cliente %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-folder2-open me-2 text-primary"></i>Fascicoli aperti</span>
+        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-outline-primary">
+          Vedi tutti <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <tbody>
+            {% set stato_col = {'APERTO':'success','PENDENTE':'warning','SOSPESO':'secondary','DEFINITO':'info','ARCHIVIATO':'dark'} %}
+            {% for f in fascicoli_cliente %}
+            <tr>
+              <td>
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="text-decoration-none fw-semibold text-dark">
+                  {{ f.titolo or (f.numero_rg ~ '/' ~ f.anno_rg) }}
+                </a>
+                {% if f.tribunale %}
+                <div class="small text-muted">{{ f.tribunale }}</div>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">
+                <span class="badge bg-{{ stato_col.get(f.stato.value, 'secondary') }}">
+                  {{ f.stato.value }}
+                </span>
+              </td>
+              <td class="text-nowrap">
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}#depositi"
+                   class="btn btn-xs btn-outline-primary" title="Deposita atto">
+                  <i class="bi bi-cloud-upload"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     {% endif %}
 
@@ -328,9 +337,45 @@
         <i class="bi bi-lightning me-2"></i>Azioni rapide
       </div>
       <div class="list-group list-group-flush">
+        <a href="{{ url_for('faldone_cliente', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-folder2-open me-2 text-warning"></i>Faldone digitale
+        </a>
+        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action fw-semibold">
+          <i class="bi bi-folder2-open me-2 text-primary"></i>Apri cartella
+        </a>
+        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-folder-plus me-2 text-warning"></i>Nuovo fascicolo
+        </a>
         <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
            class="list-group-item list-group-item-action">
           <i class="bi bi-pencil me-2 text-primary"></i>Modifica scheda
+        </a>
+        <a href="{{ url_for('nuovo_soggetto',
+                             id_cliente=cliente.id,
+                             tipo=cliente.tipo.value,
+                             nome=cliente.nome,
+                             cognome=cliente.cognome,
+                             ragione_sociale=cliente.ragione_sociale,
+                             codice_fiscale=cliente.codice_fiscale,
+                             partita_iva=cliente.partita_iva,
+                             email=cliente.recapiti.email,
+                             cellulare=cliente.recapiti.cellulare,
+                             telefono=cliente.recapiti.telefono,
+                             pec=cliente.recapiti.pec) }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-person-badge me-2 text-success"></i>Registra come soggetto
+        </a>
+        <a href="{{ url_for('portale_config', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-person-badge me-2 text-info"></i>Portale cliente
+        </a>
+        <a href="{{ url_for('gestione_collaboratori', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action">
+          <i class="bi bi-people me-2 text-success"></i>Collaboratori
+          {% if n_collaboratori %}<span class="badge bg-success ms-1">{{ n_collaboratori }}</span>{% endif %}
         </a>
         <a href="{{ url_for('nuovo_appuntamento') }}?cliente={{ cliente.nome_completo|urlencode }}"
            class="list-group-item list-group-item-action">
@@ -348,6 +393,18 @@
           <i class="bi bi-envelope-check me-2 text-primary"></i>Invia PEC
         </a>
         {% endif %}
+        <a href="{{ url_for('gdpr_portabilita', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action"
+           {% if not utente_corrente.ha_permesso('clienti.leggi') %}style="display:none"{% endif %}>
+          <i class="bi bi-box-arrow-up me-2 text-secondary"></i>Esporta GDPR
+        </a>
+        <form method="post"
+              action="{{ url_for('elimina_cliente', id_cliente=cliente.id) }}"
+              onsubmit="return confirm('Eliminare definitivamente questo cliente?')">
+          <button class="list-group-item list-group-item-action text-danger w-100 text-start border-0 bg-transparent">
+            <i class="bi bi-trash me-2"></i>Elimina cliente
+          </button>
+        </form>
       </div>
     </div>
 

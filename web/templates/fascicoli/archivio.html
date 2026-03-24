@@ -3,12 +3,24 @@
 {% block page_title %}Archivio Fascicoli{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-    <span><i class="bi bi-archive me-2 text-secondary"></i>Fascicoli archiviati — {{ fascicoli|length }}</span>
-    <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-folder2-open me-1"></i>Fascicoli attivi
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-archive"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Archivio Fascicoli</h1>
+    <p class="ds-ph-sub">Procedimenti definiti e archiviati</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-folder2-open"></i><span class="d-none d-sm-inline">Fascicoli attivi</span>
     </a>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <span class="text-muted small">{{ fascicoli|length }} fascicoli archiviati</span>
   </div>
 
   {# Ricerca #}

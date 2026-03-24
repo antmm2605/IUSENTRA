@@ -385,6 +385,8 @@ class GestioneScadenziario:
         preset = PRESET_TERMINI.get(preset_key)
         if not preset:
             raise ValueError(f"Preset '{preset_key}' non trovato")
+        if not data_decorrenza or not data_decorrenza.strip():
+            raise ValueError("Data decorrenza obbligatoria per il calcolo del termine")
         d_inizio = date.fromisoformat(data_decorrenza)
         d_scadenza = calcola_termine(
             data_inizio=d_inizio,

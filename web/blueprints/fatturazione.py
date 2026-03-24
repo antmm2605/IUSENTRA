@@ -137,9 +137,14 @@ def nuova(id_cliente: str = ""):
             studio_iban=cfg.get("STUDIO_IBAN", ""),
         )
         flash(f"Parcella {p.numero} creata.", "success")
+        from_cliente = f.get("from_cliente", "")
+        if from_cliente:
+            from flask import url_for as _url_for
+            return redirect(_url_for("cartella_cliente", id_cliente=from_cliente))
         return redirect(url_for("fatturazione.dettaglio", id_parcella=p.id))
 
     # GET
+    from_cliente_get = request.args.get("from_cliente", "")
     clienti = gc.tutti()
     cliente_sel = gc.get(id_cliente) if id_cliente else None
     fascicoli = []
@@ -153,6 +158,7 @@ def nuova(id_cliente: str = ""):
         fascicoli=fascicoli,
         oggi=date.today().isoformat(),
         scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
+        from_cliente=from_cliente_get,
     )
 
 

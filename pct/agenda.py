@@ -44,6 +44,7 @@ class Appuntamento:
     note: str = ""
     cliente: str = ""
     cf_cliente: str = ""
+    id_cliente: str = ""                 # FK → Cliente.id
     procedimento: str = ""               # es. RG 1234/2024
     tribunale: str = ""
     avvocato: str = ""
@@ -208,12 +209,21 @@ class Agenda:
             if a.data_ora_dt.year == anno and a.data_ora_dt.month == mese
         ]
 
+    def per_cliente(self, id_cliente: str) -> List[Appuntamento]:
+        """Appuntamenti di un cliente per ID (ordinati per data desc)."""
+        return sorted(
+            [a for a in self._appuntamenti.values() if a.id_cliente == id_cliente],
+            key=lambda a: a.data_ora,
+            reverse=True,
+        )
+
     def cerca(
         self,
         testo: Optional[str] = None,
         tipo: Optional[TipoAppuntamento] = None,
         stato: Optional[StatoAppuntamento] = None,
         cliente: Optional[str] = None,
+        id_cliente: Optional[str] = None,
         da: Optional[date] = None,
         a: Optional[date] = None,
     ) -> List[Appuntamento]:
@@ -238,6 +248,8 @@ class Agenda:
                 a for a in risultati
                 if cliente.lower() in a.cliente.lower()
             ]
+        if id_cliente:
+            risultati = [a for a in risultati if a.id_cliente == id_cliente]
         if da:
             risultati = [a for a in risultati if a.data_ora_dt.date() >= da]
         if a:

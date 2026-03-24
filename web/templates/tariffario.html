@@ -3,13 +3,15 @@
 {% block pct_modulo %}tariffario{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3" style="max-width:900px">
 
-  <div class="d-flex align-items-center gap-2 mb-3">
-    <i class="bi bi-calculator fs-4 text-primary"></i>
-    <h4 class="mb-0 fw-bold">Tariffario forense</h4>
-    <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">DM 55/2014 e s.m.i.</span>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-calculator"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Tariffario Forense</h1>
+    <p class="ds-ph-sub">Calcolo compensi — DM 55/2014 e s.m.i.</p>
   </div>
+</div>
 
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold">
@@ -177,5 +179,4 @@
     </div>
   </div>
 
-</div>
 {% endblock %}

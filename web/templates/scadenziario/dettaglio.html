@@ -3,29 +3,45 @@
 {% block page_title %}Dettaglio Scadenza{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-8">
-
 {% set pcol = {'CRITICA':'danger','ALTA':'warning','MEDIA':'primary','BASSA':'secondary'} %}
 {% set g = sc.giorni_alla_scadenza %}
 
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if sc.priorita.value == 'CRITICA' %}alarm-fill{% elif sc.priorita.value == 'ALTA' %}exclamation-triangle-fill{% else %}calendar-event{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">
+      {{ sc.titolo }}
+      {% if sc.perentorio %}<span class="badge bg-danger ms-2 fs-6">PERENTORIO</span>{% endif %}
+    </h1>
+    <p class="ds-ph-sub">
+      <span class="badge bg-{{ pcol.get(sc.priorita.value,'secondary') }}{% if sc.priorita.value == 'ALTA' %} text-dark{% endif %} me-1">{{ sc.priorita.value }}</span>
+      <span class="badge bg-secondary me-1">{{ sc.stato.value }}</span>
+      {{ sc.tipo.value.replace('_',' ') }}
+      · {{ sc.data_scadenza|fmt_data }}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
+    </a>
+    <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scadenziario</span>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
+
 <div class="card shadow-sm mb-3
   {{ 'border-danger' if sc.priorita.value == 'CRITICA' else ('border-warning' if sc.priorita.value == 'ALTA' else '') }}">
-  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-    <span>
-      <i class="bi bi-calendar-event me-2 text-primary"></i>
-      {{ sc.titolo }}
-      {% if sc.perentorio %}
-      <span class="badge bg-danger ms-2">PERENTORIO</span>
-      {% endif %}
-    </span>
-    <div class="btn-group btn-group-sm">
-      <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}"
-         class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Modifica</a>
-      <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Lista
-      </a>
-    </div>
+  <div class="card-header fw-semibold">
+    <i class="bi bi-calendar-event me-2 text-primary"></i>Dettaglio scadenza
   </div>
   <div class="card-body">
 
@@ -105,24 +121,62 @@
   </div>
 </div>
 
-{# Azioni #}
-{% if sc.stato.value == 'APERTO' %}
-<div class="d-flex gap-2">
-  <form method="post" action="{{ url_for('completa_scadenza', id_sc=sc.id) }}">
-    <button type="submit" class="btn btn-success"
-            onclick="return confirm('Segnare come completata?')">
-      <i class="bi bi-check-lg me-1"></i>Segna come completata
-    </button>
-  </form>
-  <form method="post" action="{{ url_for('elimina_scadenza', id_sc=sc.id) }}"
-        onsubmit="return confirm('Eliminare la scadenza?')">
-    <button type="submit" class="btn btn-outline-danger">
-      <i class="bi bi-trash me-1"></i>Elimina
-    </button>
-  </form>
-</div>
-{% endif %}
+</div>{# /col-lg-8 #}
 
-</div>
-</div>
+{# ── Sidebar azioni ── #}
+<div class="col-lg-4">
+
+  {# Azioni rapide #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-lightning me-2 text-primary"></i>Azioni
+    </div>
+    <div class="card-body d-flex flex-column gap-2">
+      <a href="{{ url_for('modifica_scadenza', id_sc=sc.id) }}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-pencil me-1"></i>Modifica scadenza
+      </a>
+      {% if sc.stato.value == 'APERTO' %}
+      <form method="post" action="{{ url_for('completa_scadenza', id_sc=sc.id) }}">
+        <button type="submit" class="btn btn-success btn-sm w-100"
+                onclick="return confirm('Segnare come completata?')">
+          <i class="bi bi-check-lg me-1"></i>Segna come completata
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('elimina_scadenza', id_sc=sc.id) }}"
+            onsubmit="return confirm('Eliminare la scadenza?')">
+        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+          <i class="bi bi-trash me-1"></i>Elimina
+        </button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+    </div>
+  </div>
+
+  {# Preavvisi #}
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-bell me-2 text-muted"></i>Preavvisi configurati
+    </div>
+    <div class="card-body">
+      {% for gg in sc.giorni_preavviso %}
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small">{{ gg }} giorni prima</span>
+        {% if gg in sc.avvisi_inviati %}
+        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Inviato</span>
+        {% else %}
+        <span class="badge bg-light text-dark border">In attesa</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="text-muted small">Nessun preavviso configurato</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}

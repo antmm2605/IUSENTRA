@@ -68,11 +68,14 @@ class DocumentoPolisWeb:
     """Documento presente nel fascicolo telematico del tribunale."""
     id_documento: str
     nome: str
-    tipo: str                   # ATTO | MEMORIA | SENTENZA | ORDINANZA | …
+    tipo: str                   # ATTO | ALLEGATO | INDICE | PROVVEDIMENTO | …
     data_deposito: str          # YYYY-MM-DD
     mittente: str
     dimensione_bytes: int = 0
     disponibile: bool = True
+    # Raggruppamento per busta/deposito (tutti i file della stessa busta condividono id_deposito)
+    id_deposito: str = ""       # identificativo univoco della busta telematica
+    tipo_atto: str = ""         # tipo atto della busta (es. "Decreto Ingiuntivo", "Memoria")
 
 
 @dataclass
@@ -103,10 +106,14 @@ class ClientPolisWeb:
 
     def __init__(
         self,
-        p12_path: str,
-        p12_password: bytes,
+        p12_path: str = "",
+        p12_password: bytes = b"",
         codice_fiscale_avvocato: str = "",
         timeout: int = 30,
+        # ── Formato PEM alternativo al P12 ───────────────────────────────────
+        cert_pem_path: str = "",
+        key_pem_path: str = "",
+        key_pem_password: Optional[bytes] = None,
     ):
         """
         Args:
@@ -114,11 +121,19 @@ class ClientPolisWeb:
             p12_password:             Password del certificato P12.
             codice_fiscale_avvocato:  CF dell'avvocato (necessario per alcune query).
             timeout:                  Timeout HTTP in secondi.
+            cert_pem_path:            Percorso al certificato PEM (.crt/.pem).
+                                      Usare come alternativa al P12 quando il provider
+                                      non rilascia il formato PKCS#12.
+            key_pem_path:             Percorso alla chiave privata PEM (.key/.pem).
+            key_pem_password:         Password della chiave privata PEM (None = non cifrata).
         """
-        self.p12_path    = p12_path
-        self.p12_password = p12_password
-        self.cf_avvocato = codice_fiscale_avvocato.upper()
-        self.timeout     = timeout
+        self.p12_path         = p12_path
+        self.p12_password     = p12_password
+        self.cert_pem_path    = cert_pem_path
+        self.key_pem_path     = key_pem_path
+        self.key_pem_password = key_pem_password
+        self.cf_avvocato      = codice_fiscale_avvocato.upper()
+        self.timeout          = timeout
         self._zeep_cache: Dict[str, Any] = {}
 
     # ---------------------------------------------------------------- Ricerca fascicoli
@@ -275,7 +290,7 @@ class ClientPolisWeb:
                         break
 
             # 3. Crea fascicolo
-            fasc = gestione_fascicoli.crea(
+            fasc = gestione_fascicoli.nuovo(
                 titolo=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.oggetto[:80]}",
                 tipo=tipo_fascicolo,
                 id_cliente=id_cliente,
@@ -334,7 +349,11 @@ class ClientPolisWeb:
     def _get_client(self, wsdl_url: str):
         """
         Crea (e memorizza in cache) un client zeep con autenticazione
-        tramite certificato client P12.
+        tramite certificato client.
+
+        Supporta due formati:
+          - P12/PFX: usa requests-pkcs12 (Pkcs12Adapter)
+          - PEM:     usa requests nativo con session.cert = (cert_path, key_path)
         """
         if wsdl_url in self._zeep_cache:
             return self._zeep_cache[wsdl_url]
@@ -343,22 +362,64 @@ class ClientPolisWeb:
             import zeep
             import zeep.transports
             from requests import Session
-            from requests_pkcs12 import Pkcs12Adapter
-        except ImportError as e:
-            if "requests_pkcs12" in str(e):
-                raise ImportError(
-                    "Installa requests-pkcs12: pip install requests-pkcs12"
-                ) from e
-            raise ImportError(
-                "Installa zeep: pip install zeep"
-            ) from e
+        except ImportError:
+            raise ImportError("Installa zeep: pip install zeep")
 
         session = Session()
-        adapter = Pkcs12Adapter(
-            pkcs12_filename=self.p12_path,
-            pkcs12_password=self.p12_password,
+        pst_host = "https://wspa.giustizia.it"
+
+        # ── Selezione formato certificato ────────────────────────────────────
+        usa_pem = (
+            self.cert_pem_path and self.key_pem_path
+            and os.path.exists(self.cert_pem_path)
+            and os.path.exists(self.key_pem_path)
         )
-        session.mount("https://wspa.giustizia.it", adapter)
+
+        if usa_pem:
+            # PEM: requests supporta nativamente il mutual TLS con (cert, key)
+            if self.key_pem_password:
+                # Se la chiave è cifrata, la esportiamo temporaneamente in chiaro
+                # perché requests non supporta chiavi PEM protette da password
+                import tempfile
+                from cryptography.hazmat.primitives import serialization
+                from cryptography.hazmat.backends import default_backend
+                with open(self.key_pem_path, "rb") as f:
+                    key_data = f.read()
+                private_key = serialization.load_pem_private_key(
+                    key_data, password=self.key_pem_password, backend=default_backend()
+                )
+                key_pem_plain = private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+                tmp = tempfile.NamedTemporaryFile(suffix=".key", delete=False)
+                tmp.write(key_pem_plain)
+                tmp.flush()
+                session.cert = (self.cert_pem_path, tmp.name)
+            else:
+                session.cert = (self.cert_pem_path, self.key_pem_path)
+
+        elif self.p12_path and os.path.exists(self.p12_path):
+            # P12: usa requests-pkcs12
+            try:
+                from requests_pkcs12 import Pkcs12Adapter
+            except ImportError:
+                raise ImportError(
+                    "Installa requests-pkcs12: pip install requests-pkcs12"
+                )
+            adapter = Pkcs12Adapter(
+                pkcs12_filename=self.p12_path,
+                pkcs12_password=self.p12_password,
+            )
+            session.mount(pst_host, adapter)
+
+        else:
+            raise FileNotFoundError(
+                "Nessun certificato disponibile per l'autenticazione al PST. "
+                "Configurare P12 (PCT_FIRMA_P12) oppure PEM (PCT_FIRMA_CERT + PCT_FIRMA_KEY)."
+            )
+
         transport = zeep.transports.Transport(session=session, timeout=self.timeout)
         client = zeep.Client(wsdl=wsdl_url, transport=transport)
         self._zeep_cache[wsdl_url] = client
@@ -418,6 +479,8 @@ class ClientPolisWeb:
                     mittente=str(getattr(item, "mittente", "") or ""),
                     dimensione_bytes=int(getattr(item, "dimensione", 0) or 0),
                     disponibile=bool(getattr(item, "disponibile", True)),
+                    id_deposito=str(getattr(item, "idBusta", getattr(item, "idDeposito", "")) or ""),
+                    tipo_atto=str(getattr(item, "tipoAtto", getattr(item, "tipoAtta", "")) or ""),
                 )
                 documenti.append(d)
         except (AttributeError, TypeError, ValueError):
@@ -432,6 +495,16 @@ class ClientPolisWebDemo(ClientPolisWeb):
     Implementazione demo (offline) per sviluppo e test senza connessione PST.
     Restituisce dati fittizi verosimili.
     """
+
+    def _nome_ufficio_demo(self, codice_o_nome: str) -> str:
+        try:
+            import os
+            from pct.uffici_giudiziari import get_gestore
+            gestore = get_gestore(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"))
+            uff = next((u for u in gestore.carica() if u.get("codice") == codice_o_nome), None)
+            return uff["nome"] if uff else f"Ufficio {codice_o_nome}"
+        except Exception:
+            return f"Ufficio {codice_o_nome}"
 
     def __init__(self):
         # Non richiede certificato
@@ -460,30 +533,97 @@ class ClientPolisWebDemo(ClientPolisWeb):
                 data_udienza=f"{date.today().year + (1 if date.today().month >= 10 else 0)}-03-20",
                 parti=["Mario Bianchi", "Alfa S.p.A."],
                 note="Dato demo — collegare al PST con certificato reale",
-                codice_ufficio="0580010",
-                nome_ufficio=f"Tribunale di {tribunale.title()}",
+                codice_ufficio=tribunale if tribunale.isdigit() else "0000000",
+                nome_ufficio=self._nome_ufficio_demo(tribunale),
             )
         ]
 
     def consulta_documenti(self, codice_ufficio, numero_rg, anno_rg) -> List[DocumentoPolisWeb]:
-        return [
+        """
+        Dati demo: simula un fascicolo telematico con 4 buste realistiche
+        (Decreto Ingiuntivo, Comparsa di risposta, Memoria, Provvedimento cancelleria).
+        """
+        anno = str(anno_rg)
+        # Busta 1 — Ricorso per Decreto Ingiuntivo (depositato dall'avvocato ricorrente)
+        busta1 = [
             DocumentoPolisWeb(
-                id_documento="DEMO-001",
-                nome="atto_citazione.pdf.p7m",
-                tipo="ATTO",
-                data_deposito=f"{anno_rg}-01-15",
-                mittente="avv.demo@pec.it",
-                dimensione_bytes=245760,
+                id_documento="DEMO-B1-001", nome=f"DI_ricorso_{numero_rg}_{anno}.pdf.p7m",
+                tipo="ATTO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=312320,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
             ),
             DocumentoPolisWeb(
-                id_documento="DEMO-002",
-                nome="memoria_difensiva.pdf.p7m",
-                tipo="MEMORIA",
-                data_deposito=f"{anno_rg}-03-10",
-                mittente="avv.controparte@pec.it",
-                dimensione_bytes=189440,
+                id_documento="DEMO-B1-002", nome="DI_procura_alle_liti.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=98304,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B1-003", nome="DI_indice_documenti.xml",
+                tipo="INDICE", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=4096,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B1-004", nome="DI_contratto_fornitura.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=204800,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B1-005", nome="DI_fatture_insolute.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-01-15",
+                mittente="avv.demo@pec.it", dimensione_bytes=153600,
+                id_deposito="BUSTA-DI-001", tipo_atto="Decreto Ingiuntivo",
             ),
         ]
+        # Busta 2 — Decreto Ingiuntivo emesso dalla cancelleria
+        busta2 = [
+            DocumentoPolisWeb(
+                id_documento="DEMO-B2-001", nome=f"decreto_ingiuntivo_{numero_rg}_{anno}.pdf",
+                tipo="PROVVEDIMENTO", data_deposito=f"{anno}-01-28",
+                mittente="cancelleria@tribunale.giustiziapec.it", dimensione_bytes=87040,
+                id_deposito="BUSTA-DI-PROV-002", tipo_atto="Provvedimento — Decreto Ingiuntivo",
+                disponibile=True,
+            ),
+        ]
+        # Busta 3 — Opposizione al Decreto Ingiuntivo (controparte)
+        busta3 = [
+            DocumentoPolisWeb(
+                id_documento="DEMO-B3-001", nome="opposizione_DI.pdf.p7m",
+                tipo="ATTO", data_deposito=f"{anno}-02-20",
+                mittente="avv.controparte@pec.it", dimensione_bytes=198656,
+                id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B3-002", nome="opposizione_procura.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-02-20",
+                mittente="avv.controparte@pec.it", dimensione_bytes=81920,
+                id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B3-003", nome="opposizione_indice.xml",
+                tipo="INDICE", data_deposito=f"{anno}-02-20",
+                mittente="avv.controparte@pec.it", dimensione_bytes=3072,
+                id_deposito="BUSTA-OPP-003", tipo_atto="Opposizione a Decreto Ingiuntivo",
+            ),
+        ]
+        # Busta 4 — Memoria difensiva (avvocato ricorrente in sede di opposizione)
+        busta4 = [
+            DocumentoPolisWeb(
+                id_documento="DEMO-B4-001", nome="memoria_difensiva.pdf.p7m",
+                tipo="ATTO", data_deposito=f"{anno}-03-10",
+                mittente="avv.demo@pec.it", dimensione_bytes=265216,
+                id_deposito="BUSTA-MEM-004", tipo_atto="Memoria Difensiva",
+            ),
+            DocumentoPolisWeb(
+                id_documento="DEMO-B4-002", nome="memoria_documenti_nuovi.pdf.p7m",
+                tipo="ALLEGATO", data_deposito=f"{anno}-03-10",
+                mittente="avv.demo@pec.it", dimensione_bytes=122880,
+                id_deposito="BUSTA-MEM-004", tipo_atto="Memoria Difensiva",
+            ),
+        ]
+        return busta1 + busta2 + busta3 + busta4
 
 
 # ================================================================ Utils
@@ -516,29 +656,65 @@ def crea_client(
     p12_password: Optional[bytes] = None,
     cf_avvocato: str = "",
     demo: bool = False,
+    cert_pem_path: Optional[str] = None,
+    key_pem_path: Optional[str] = None,
+    key_pem_password: Optional[bytes] = None,
 ) -> ClientPolisWeb:
     """
     Factory: crea il client PolisWeb appropriato.
 
+    Supporta due formati di certificato (in ordine di priorità):
+      1. P12/PFX — PCT_FIRMA_P12 + PCT_FIRMA_PASSWORD
+      2. PEM     — PCT_FIRMA_CERT + PCT_FIRMA_KEY [+ PCT_FIRMA_KEY_PASSWORD]
+
     Args:
-        p12_path:      Percorso al P12 (None = usa PCT_FIRMA_P12 da env).
-        p12_password:  Password P12 (None = usa PCT_FIRMA_PASSWORD da env).
-        cf_avvocato:   Codice fiscale avvocato (None = usa PCT_CF_AVVOCATO da env).
-        demo:          True = usa ClientPolisWebDemo (no connessione reale).
+        p12_path:         Percorso al P12 (None = usa PCT_FIRMA_P12 da env).
+        p12_password:     Password P12 (None = usa PCT_FIRMA_PASSWORD da env).
+        cf_avvocato:      Codice fiscale avvocato (None = usa PCT_CF_AVVOCATO da env).
+        demo:             True = usa ClientPolisWebDemo (no connessione reale).
+        cert_pem_path:    Percorso al cert PEM (None = usa PCT_FIRMA_CERT da env).
+        key_pem_path:     Percorso alla chiave PEM (None = usa PCT_FIRMA_KEY da env).
+        key_pem_password: Password chiave PEM (None = usa PCT_FIRMA_KEY_PASSWORD da env).
 
     Returns:
         ClientPolisWeb o ClientPolisWebDemo.
+
+    Raises:
+        FileNotFoundError: se nessun certificato è configurato o trovato su disco.
     """
     if demo:
         return ClientPolisWebDemo()
 
-    p12  = p12_path     or os.getenv("PCT_FIRMA_P12", "")
-    pwd  = p12_password or os.getenv("PCT_FIRMA_PASSWORD", "").encode()
-    cf   = cf_avvocato  or os.getenv("PCT_CF_AVVOCATO", "")
+    cf = cf_avvocato or os.getenv("PCT_CF_AVVOCATO", "")
 
-    if not p12 or not os.path.exists(p12):
-        raise FileNotFoundError(
-            f"Certificato P12 non trovato: {p12!r}. "
-            "Configurare PCT_FIRMA_P12 nel file .env"
+    # ── Formato P12 ──────────────────────────────────────────────────────────
+    p12 = p12_path or os.getenv("PCT_FIRMA_P12", "")
+    pwd = p12_password or os.getenv("PCT_FIRMA_PASSWORD", "").encode()
+    if p12 and os.path.exists(p12):
+        return ClientPolisWeb(
+            p12_path=p12,
+            p12_password=pwd,
+            codice_fiscale_avvocato=cf,
         )
-    return ClientPolisWeb(p12_path=p12, p12_password=pwd, codice_fiscale_avvocato=cf)
+
+    # ── Formato PEM ──────────────────────────────────────────────────────────
+    cert = cert_pem_path or os.getenv("PCT_FIRMA_CERT", "")
+    key  = key_pem_path  or os.getenv("PCT_FIRMA_KEY", "")
+    key_pwd_str = os.getenv("PCT_FIRMA_KEY_PASSWORD", "")
+    key_pwd = key_pem_password or (key_pwd_str.encode() if key_pwd_str else None)
+
+    if cert and key and os.path.exists(cert) and os.path.exists(key):
+        return ClientPolisWeb(
+            cert_pem_path=cert,
+            key_pem_path=key,
+            key_pem_password=key_pwd,
+            codice_fiscale_avvocato=cf,
+        )
+
+    # ── Nessun certificato disponibile ───────────────────────────────────────
+    raise FileNotFoundError(
+        "Nessun certificato configurato per l'accesso al PST.\n"
+        "Opzione A — P12/PFX: impostare PCT_FIRMA_P12 e PCT_FIRMA_PASSWORD nel file .env\n"
+        "Opzione B — PEM:     impostare PCT_FIRMA_CERT e PCT_FIRMA_KEY nel file .env\n"
+        "In alternativa configurare i percorsi in Impostazioni → Firma Digitale."
+    )

@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifica' if soggetto else 'Nuovo' }} Soggetto{% endblock %}
+{% block page_title %}{{ 'Modifica Soggetto' if soggetto else 'Nuovo Soggetto' }}{% endblock %}
+
+{% block content %}
+{% set prefill = prefill if prefill is defined else {} %}
+
+{# ── Banner pre-compilazione da cliente ── #}
+{% if prefill.get('id_cliente') %}
+<div class="alert alert-info alert-dismissible border-0 mb-3 py-2" role="alert">
+  <i class="bi bi-person-check me-2"></i>
+  Form pre-compilato dai dati del cliente — verifica e completa i campi mancanti.
+  <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if soggetto %}pencil{% else %}person-plus-fill{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ 'Modifica: ' + soggetto.nome_completo if soggetto else 'Nuovo Soggetto' }}</h1>
+    <p  class="ds-ph-sub">Anagrafica soggetto processuale — controparte, difensore, testimone, perito…</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('lista_soggetti') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i>Indietro
+    </a>
+  </div>
+</div>
+
+<form method="post" id="formSoggetto">
+
+  {# ── Tipo soggetto ── #}
+  <div class="ds-form-card">
+    <div class="ds-form-card-header">
+      <i class="bi bi-person-badge text-primary"></i> Tipo soggetto
+    </div>
+    <div class="ds-form-card-body">
+      <div class="d-flex gap-3 flex-wrap">
+        {% for tv, tl, ti in [
+            ('PERSONA_FISICA',    'Persona fisica',    'bi-person-fill'),
+            ('PERSONA_GIURIDICA', 'Persona giuridica', 'bi-building-fill'),
+        ] %}
+        <label class="tipo-toggle flex-fill text-center py-3 border rounded-3 cursor-pointer"
+               style="cursor:pointer;transition:all .15s"
+               data-tipo="{{ tv }}">
+          <input type="radio" name="tipo" value="{{ tv }}" class="visually-hidden tipo-radio"
+                 {{ 'checked' if (soggetto and soggetto.tipo.value == tv) or (not soggetto and (prefill.get('tipo') or 'PERSONA_FISICA') == tv) }}>
+          <i class="bi {{ ti }} d-block fs-3 mb-1"></i>
+          <div class="fw-semibold small">{{ tl }}</div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Dati persona fisica ── #}
+  {% set _tipo_init = soggetto.tipo.value if soggetto else (prefill.get('tipo') or 'PERSONA_FISICA') %}
+  <div class="ds-form-card" id="section-pf" style="{{ 'display:none' if _tipo_init == 'PERSONA_GIURIDICA' else '' }}">
+    <div class="ds-form-card-header">
+      <i class="bi bi-person text-primary"></i> Dati anagrafici
+    </div>
+    <div class="ds-form-card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="ds-form-label">Cognome <span class="text-danger">*</span></label>
+          <input type="text" name="cognome" class="form-control form-control-sm"
+                 value="{{ soggetto.cognome if soggetto else prefill.get('cognome', '') }}" placeholder="Rossi">
+        </div>
+        <div class="col-md-4">
+          <label class="ds-form-label">Nome <span class="text-danger">*</span></label>
+          <input type="text" name="nome" class="form-control form-control-sm"
+                 value="{{ soggetto.nome if soggetto else prefill.get('nome', '') }}" placeholder="Mario">
+        </div>
+        <div class="col-md-4">
+          <label class="ds-form-label">Sesso</label>
+          <select name="sesso" class="form-select form-select-sm">
+            <option value="">—</option>
+            <option value="M" {{ 'selected' if soggetto and soggetto.sesso == 'M' }}>Maschile</option>
+            <option value="F" {{ 'selected' if soggetto and soggetto.sesso == 'F' }}>Femminile</option>
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="ds-form-label">Codice Fiscale</label>
+          <input type="text" name="codice_fiscale" class="form-control form-control-sm font-monospace text-uppercase"
+                 value="{{ soggetto.codice_fiscale if soggetto else prefill.get('codice_fiscale', '') }}" placeholder="RSSMRA80A01H501Z"
+                 maxlength="16" autocapitalize="characters">
+        </div>
+        <div class="col-md-4">
+          <label class="ds-form-label">Data di nascita</label>
+          <input type="date" name="data_nascita" class="form-control form-control-sm"
+                 value="{{ soggetto.data_nascita if soggetto else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Luogo di nascita</label>
+          <input type="text" name="luogo_nascita" class="form-control form-control-sm"
+                 value="{{ soggetto.luogo_nascita if soggetto else '' }}" placeholder="Roma">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Dati persona giuridica ── #}
+  <div class="ds-form-card" id="section-pg" style="{{ '' if _tipo_init == 'PERSONA_GIURIDICA' else 'display:none' }}">
+    <div class="ds-form-card-header">
+      <i class="bi bi-building text-success"></i> Dati aziendali
+    </div>
+    <div class="ds-form-card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="ds-form-label">Ragione sociale <span class="text-danger">*</span></label>
+          <input type="text" name="ragione_sociale" class="form-control form-control-sm"
+                 value="{{ soggetto.ragione_sociale if soggetto else prefill.get('ragione_sociale', '') }}" placeholder="Rossi Srl">
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Partita IVA</label>
+          <input type="text" name="partita_iva" class="form-control form-control-sm font-monospace"
+                 value="{{ soggetto.partita_iva if soggetto else prefill.get('partita_iva', '') }}" placeholder="12345678901">
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Codice Fiscale</label>
+          <input type="text" name="codice_fiscale_pg" class="form-control form-control-sm font-monospace"
+                 value="{{ soggetto.codice_fiscale if soggetto else '' }}" placeholder="CF società">
+        </div>
+        <div class="col-md-4">
+          <label class="ds-form-label">Forma giuridica</label>
+          <select name="forma_giuridica" class="form-select form-select-sm">
+            <option value="">—</option>
+            {% for fg in ['Srl','SpA','Sas','Snc','Ss','Impresa individuale','Cooperativa','Associazione','Fondazione','Ente pubblico','Altro'] %}
+            <option value="{{ fg }}" {{ 'selected' if soggetto and soggetto.forma_giuridica == fg }}>{{ fg }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="ds-form-label">Rappresentante legale</label>
+          <input type="text" name="rappresentante_legale" class="form-control form-control-sm"
+                 value="{{ soggetto.rappresentante_legale if soggetto else '' }}" placeholder="Nome e cognome">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Qualifica professionale ── #}
+  <div class="ds-form-card">
+    <div class="ds-form-card-header">
+      <i class="bi bi-briefcase text-primary"></i> Qualifica professionale
+      <span class="ms-auto text-muted fw-normal" style="font-size:.74rem">opzionale — compilare per avvocati, periti, CTU ecc.</span>
+    </div>
+    <div class="ds-form-card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="ds-form-label">Qualifica / Ruolo professionale</label>
+          <input type="text" name="qualifica" class="form-control form-control-sm"
+                 list="qualifiche-list"
+                 value="{{ soggetto.qualifica if soggetto else '' }}"
+                 placeholder="es. Avvocato, Geometra, CTU…">
+          <datalist id="qualifiche-list">
+            {% for q in ['Avvocato','Procuratore','Notaio','Geometra','Ingegnere','Architetto','Medico','Perito industriale','Commercialista','Consulente del lavoro','Mediatore','Curatore fallimentare','Liquidatore','Magistrato','Pubblico Ministero'] %}
+            <option value="{{ q }}">
+            {% endfor %}
+          </datalist>
+        </div>
+        <div class="col-md-5">
+          <label class="ds-form-label">Ordine professionale</label>
+          <input type="text" name="ordine" class="form-control form-control-sm"
+                 value="{{ soggetto.ordine if soggetto else '' }}"
+                 placeholder="es. Ordine Avvocati di Roma">
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">N° iscrizione</label>
+          <input type="text" name="numero_iscrizione" class="form-control form-control-sm"
+                 value="{{ soggetto.numero_iscrizione if soggetto else '' }}"
+                 placeholder="es. 12345/Roma">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Indirizzo ── #}
+  <div class="ds-form-card">
+    <div class="ds-form-card-header">
+      <i class="bi bi-geo-alt text-primary"></i> Indirizzo
+    </div>
+    <div class="ds-form-card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="ds-form-label">Via / Piazza</label>
+          <input type="text" name="via" class="form-control form-control-sm"
+                 value="{{ soggetto.indirizzo.via if soggetto else '' }}" placeholder="Via Roma">
+        </div>
+        <div class="col-md-2">
+          <label class="ds-form-label">Civico</label>
+          <input type="text" name="civico" class="form-control form-control-sm"
+                 value="{{ soggetto.indirizzo.civico if soggetto else '' }}" placeholder="12">
+        </div>
+        <div class="col-md-2">
+          <label class="ds-form-label">CAP</label>
+          <input type="text" name="cap" class="form-control form-control-sm"
+                 value="{{ soggetto.indirizzo.cap if soggetto else '' }}" placeholder="00100" maxlength="5">
+        </div>
+        <div class="col-md-2">
+          <label class="ds-form-label">Prov.</label>
+          <input type="text" name="provincia" class="form-control form-control-sm text-uppercase"
+                 value="{{ soggetto.indirizzo.provincia if soggetto else '' }}" placeholder="RM" maxlength="2">
+        </div>
+        <div class="col-md-5">
+          <label class="ds-form-label">Comune</label>
+          <input type="text" name="comune" class="form-control form-control-sm"
+                 value="{{ soggetto.indirizzo.comune if soggetto else '' }}" placeholder="Roma">
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Nazione</label>
+          <input type="text" name="nazione" class="form-control form-control-sm"
+                 value="{{ soggetto.indirizzo.nazione if soggetto else 'Italia' }}" placeholder="Italia">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Recapiti ── #}
+  <div class="ds-form-card">
+    <div class="ds-form-card-header">
+      <i class="bi bi-telephone text-primary"></i> Recapiti
+    </div>
+    <div class="ds-form-card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="ds-form-label">Telefono</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+            <input type="tel" name="telefono" class="form-control"
+                   value="{{ soggetto.recapiti.telefono if soggetto else prefill.get('telefono', '') }}" placeholder="+39 06 000000">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Cellulare</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-phone"></i></span>
+            <input type="tel" name="cellulare" class="form-control"
+                   value="{{ soggetto.recapiti.cellulare if soggetto else prefill.get('cellulare', '') }}" placeholder="+39 333 0000000">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Email</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" name="email" class="form-control"
+                   value="{{ soggetto.recapiti.email if soggetto else prefill.get('email', '') }}" placeholder="mario@esempio.it">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">PEC</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
+            <input type="email" name="pec" class="form-control"
+                   value="{{ soggetto.recapiti.pec if soggetto else prefill.get('pec', '') }}" placeholder="mario@pec.it">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="ds-form-label">Fax</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-printer"></i></span>
+            <input type="tel" name="fax" class="form-control"
+                   value="{{ soggetto.recapiti.fax if soggetto else '' }}" placeholder="+39 06 000001">
+          </div>
+        </div>
+        <div class="col-md-5">
+          <label class="ds-form-label">Sito web</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-globe"></i></span>
+            <input type="url" name="sito_web" class="form-control"
+                   value="{{ soggetto.recapiti.sito_web if soggetto else '' }}" placeholder="https://www.esempio.it">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Collegamento cliente + Note ── #}
+  <div class="ds-form-card">
+    <div class="ds-form-card-header">
+      <i class="bi bi-journal-text text-primary"></i> Collegamento e note
+    </div>
+    <div class="ds-form-card-body">
+      <div class="row g-3">
+        {% if clienti %}
+        <div class="col-md-6">
+          <label class="ds-form-label">
+            Cliente dello studio (se questo soggetto è anche un cliente)
+          </label>
+          <select name="id_cliente" class="form-select form-select-sm">
+            <option value="">— Nessun collegamento —</option>
+            {% for c in clienti %}
+            <option value="{{ c.id }}" {{ 'selected' if (soggetto and soggetto.id_cliente == c.id) or (not soggetto and prefill.get('id_cliente') == c.id) }}>
+              {{ c.nome_completo }}{% if c.codice_fiscale %} · {{ c.codice_fiscale }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Collega per mostrare questo soggetto nella cartella cliente</div>
+        </div>
+        {% endif %}
+        <div class="col-12">
+          <label class="ds-form-label">Note</label>
+          <textarea name="note" class="form-control form-control-sm" rows="3"
+                    placeholder="Annotazioni libere, informazioni utili…">{{ soggetto.note if soggetto else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Azioni ── #}
+  <div class="d-flex gap-2 justify-content-end flex-wrap">
+    <a href="{{ url_for('lista_soggetti') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-x-circle"></i>Annulla
+    </a>
+    {% if soggetto %}
+    <button type="submit" formaction="{{ url_for('elimina_soggetto', id_soggetto=soggetto.id) }}"
+            class="ds-btn ds-btn-danger"
+            onclick="return confirm('Eliminare definitivamente questo soggetto?')">
+      <i class="bi bi-trash"></i>Elimina
+    </button>
+    {% endif %}
+    <button type="submit" class="ds-btn ds-btn-primary">
+      <i class="bi bi-check-lg"></i>{{ 'Salva modifiche' if soggetto else 'Crea soggetto' }}
+    </button>
+  </div>
+
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* ── Toggle tipo soggetto ── */
+  const radios   = document.querySelectorAll('.tipo-radio');
+  const toggles  = document.querySelectorAll('.tipo-toggle');
+  const secPF    = document.getElementById('section-pf');
+  const secPG    = document.getElementById('section-pg');
+
+  function aggiornaTipo(val) {
+    secPF.style.display = val === 'PERSONA_FISICA'    ? '' : 'none';
+    secPG.style.display = val === 'PERSONA_GIURIDICA' ? '' : 'none';
+    toggles.forEach(t => {
+      const isActive = t.dataset.tipo === val;
+      t.style.background   = isActive ? 'var(--ds-primary)'     : '';
+      t.style.color        = isActive ? '#fff'                   : '';
+      t.style.borderColor  = isActive ? 'var(--ds-primary)'      : '';
+    });
+  }
+
+  radios.forEach(r => {
+    if (r.checked) aggiornaTipo(r.value);
+    r.addEventListener('change', () => aggiornaTipo(r.value));
+  });
+  toggles.forEach(t => {
+    t.addEventListener('click', () => {
+      const r = t.querySelector('.tipo-radio');
+      if (r) { r.checked = true; aggiornaTipo(r.value); }
+    });
+  });
+})();
+</script>
+{% endblock %}

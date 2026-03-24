@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /home/user/hacs && [ -f .venv/bin/activate ] && source .venv/bin/activate 2>/dev/null || true; python3 -c \"import pct; print('[remote-control] HACS v' + pct.__version__ + ' pronto')\" 2>/dev/null || echo '[remote-control] ambiente pronto'",
+            "statusMessage": "Inizializzazione ambiente HACS..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILEPATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); echo \"$FILEPATH\" | grep -q 'pct/__init__\\.py' && { VER=$(grep -oP '(?<=__version__ = \")[\\d.]+' \"$FILEPATH\"); [ -n \"$VER\" ] && sed -i \"s/^#  version: .*/#  version: $VER/\" railway.toml && echo \"[hook] railway.toml aggiornato a v$VER\"; } || true",
+            "statusMessage": "Sincronizzazione versione railway.toml..."
+          }
+        ]
+      }
+    ]
+  },
+  "remote": {}
+}

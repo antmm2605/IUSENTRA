@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-    version="1.0.0",
+    version="2.24.7",
     description="Sistema invio telematico per studi legali (PCT - Processo Civile Telematico)",
     packages=find_packages(),
     python_requires=">=3.9",
@@ -16,6 +16,9 @@ setup(
         "apscheduler>=3.10.0",
         "jinja2>=3.1.0",
         "pdfplumber>=0.10.0",
+        "pytesseract>=0.3.10",
+        "mammoth>=1.6.0",
+        "python-docx>=1.1.0",
         "reportlab>=4.0.0",
         "twilio>=8.0.0",
         "stripe>=7.0.0",

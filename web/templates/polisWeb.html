@@ -2,10 +2,12 @@
 {% block title %}PolisWeb — Consultazione PST{% endblock %}
 {% block pct_modulo %}polisWeb{% endblock %}
 
+{% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
 {% block content %}
-<div class="container-fluid py-3" style="max-width:1000px">
 
-  <div class="d-flex align-items-center gap-2 mb-3">
+{{ banner_fascicolo(portale_col='primary', portale_label='PolisWeb / PST') }}
+
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
     <i class="bi bi-building-fill-check fs-4 text-primary"></i>
     <h4 class="mb-0 fw-bold">PolisWeb / PST</h4>
     <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
@@ -16,14 +18,75 @@
       <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
     </span>
     {% endif %}
+    {# Badge stato registro uffici — visibile solo agli admin #}
+    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+    <span id="badge-uffici-stato" class="badge bg-secondary ms-auto small"
+          style="cursor:pointer" title="Clicca per aggiornare il registro"
+          onclick="document.getElementById('panel-uffici-admin').classList.toggle('d-none')">
+      <i class="bi bi-database me-1"></i>
+      <span id="badge-uffici-txt">Registro uffici</span>
+    </span>
+    {% endif %}
   </div>
+
+  {# Pannello admin registro uffici (solo admin) #}
+  {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+  <div id="panel-uffici-admin" class="d-none mb-3">
+    <div class="card border-secondary shadow-sm">
+      <div class="card-header d-flex align-items-center gap-2 py-2 small fw-semibold">
+        <i class="bi bi-database text-primary"></i>Registro Uffici Giudiziari
+        <button class="btn-close ms-auto btn-sm" onclick="document.getElementById('panel-uffici-admin').classList.add('d-none')"></button>
+      </div>
+      <div class="card-body py-2 px-3 small" id="uffici-info-body">
+        <div class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento…</div>
+      </div>
+      {# Sezione verifica variazioni #}
+      <div class="card-body border-top py-2 px-3 small" id="uffici-variazioni-body">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-shield-check text-info"></i>
+          <strong>Verifica variazioni PST</strong>
+          <span id="variazioni-badge" class="badge bg-secondary ms-1">—</span>
+          <button class="btn btn-sm btn-outline-info ms-auto" id="btn-verifica-variazioni" onclick="eseguiVerificaVariazioni()">
+            <i class="bi bi-search me-1"></i>Controlla ora
+          </button>
+        </div>
+        <div id="variazioni-dettaglio" class="text-muted small">
+          <i class="bi bi-clock-history me-1"></i>Controllo automatico ogni giorno alle 03:30
+        </div>
+      </div>
+      <div class="card-footer py-2 px-3 d-flex flex-wrap gap-2 align-items-center">
+        <button class="btn btn-sm btn-outline-secondary" id="btn-ricarica-bundle" onclick="ricaricaBundle()">
+          <i class="bi bi-box-arrow-in-down me-1"></i>Ricarica bundle
+        </button>
+        <button class="btn btn-sm btn-primary" id="btn-aggiorna-uffici" onclick="aggiornaUffici()">
+          <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna da remoto
+        </button>
+        <div class="input-group input-group-sm flex-grow-1" style="max-width:min(300px,100%)">
+          <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+          <input type="url" id="uffici-url-custom" class="form-control"
+                 placeholder="URL JSON personalizzato (facoltativo)">
+        </div>
+        <small class="text-muted" id="uffici-aggiorna-esito"></small>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   {% if demo_mode %}
   <div class="alert alert-warning alert-dismissible fade show small mb-3">
     <i class="bi bi-cone me-2"></i>
-    <strong>Certificato P12 non configurato.</strong>
-    I risultati mostrati sono dati di esempio (offline).
-    Per accedere al PST reale, configurare <code>PCT_FIRMA_P12</code> e <code>PCT_FIRMA_PASSWORD</code> nel file <code>.env</code>.
+    <strong>Certificato non configurato — modalità demo (offline).</strong>
+    I risultati mostrati sono dati di esempio.
+    Per accedere al PST reale configurare il certificato in
+    <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
+    oppure nel file <code>.env</code>.
+    <a href="{{ url_for('guida_firma_digitale') }}" class="alert-link ms-2">
+      <i class="bi bi-book me-1"></i>Leggi la guida completa
+    </a>
+    <ul class="mb-0 mt-1">
+      <li><strong>P12/PFX</strong> (file unico): <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
+      <li><strong>PEM</strong> (cert + chiave separati): <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code> [+ <code>PCT_FIRMA_KEY_PASSWORD</code>]</li>
+    </ul>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
   {% endif %}
@@ -38,44 +101,86 @@
 
   {# ---- Form ricerca ---- #}
   <div class="card shadow-sm mb-4">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-search me-2 text-primary"></i>Ricerca pratiche nel registro del tribunale
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-search text-primary"></i>Ricerca pratiche nel registro del tribunale
+      <button type="button" class="btn-help ms-1"
+              data-bs-toggle="popover"
+              data-bs-title="Come funziona la ricerca"
+              data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>Portale Servizi Telematici (PST)</strong> tramite il servizio <em>RicercaFascicoliRegistro</em>.</p><ul><li>Seleziona l'ufficio e inserisci almeno N. RG oppure il nome di una parte.</li><li><strong>Modalità demo</strong>: dati di esempio, nessuna connessione reale.</li><li>Per il PST reale configura la firma in <em>Impostazioni → Firma Digitale</em>.</li></ul>">?</button>
     </div>
     <div class="card-body">
       <form method="post" action="{{ url_for('polisWeb_ricerca') }}">
         <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
         <div class="row g-3">
           <div class="col-md-5">
-            <label class="form-label fw-semibold">Tribunale <span class="text-danger">*</span></label>
-            <select name="tribunale" class="form-select" required>
-              <option value="">— Seleziona tribunale —</option>
-              {% for u in tribunali|sort(attribute='nome') %}
-              <option value="{{ u.codice }}"
-                      {{ 'selected' if tribunale_sel == u.codice or tribunale_sel == u.nome }}>
-                {{ u.nome }}{% if u.distretto != u.nome.replace('Tribunale di ','') %} ({{ u.distretto }}){% endif %}
-              </option>
-              {% endfor %}
-              <optgroup label="Corti d'Appello">
-              {% for u in corti_appello|sort(attribute='nome') %}
-              <option value="{{ u.codice }}"
-                      {{ 'selected' if tribunale_sel == u.codice }}>
-                {{ u.nome }}
-              </option>
-              {% endfor %}
-              </optgroup>
-            </select>
+            <label class="form-label fw-semibold">
+              Ufficio giudiziario <span class="text-danger">*</span>
+            </label>
+
+            {# — Tab selezione tipo — #}
+            <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
+              <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
+              <button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Tribunale</button>
+              <button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
+              <button type="button" class="uff-tab" data-tipo="PROCURA_GENERALE"><i class="bi bi-shield-fill me-1"></i>Proc.Gen.</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>
+              <button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>
+              <button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>
+              <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>
+              <button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
+            </div>
+
+            {# — Campo ricerca testo — #}
+            <div class="position-relative" id="ufficio-wrap">
+              <div class="input-group">
+                <span class="input-group-text bg-white" id="ufficio-tipo-icon">
+                  <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="ufficio-input" class="form-control border-start-0 ps-0"
+                       placeholder="Cerca per città o nome…"
+                       autocomplete="off"
+                       value="{{ tribunale_sel_nome or '' }}"
+                       required>
+                <button type="button" class="btn btn-outline-secondary" id="ufficio-clear"
+                        title="Cancella" style="display:none">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div id="ufficio-dropdown"></div>
+            </div>
+
+            <input type="hidden" name="tribunale" id="ufficio-value"
+                   value="{{ tribunale_sel or '' }}">
+            <div id="ufficio-sel-badge" class="mt-1" style="display:none">
+              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle small"
+                    id="ufficio-sel-label"></span>
+            </div>
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-semibold">N. RG</label>
+            <label class="form-label fw-semibold">
+              N. RG
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Numero di Registro Generale"
+                      data-bs-content="Il numero identificativo della pratica assegnato dal tribunale all'iscrizione a ruolo (es. <strong>12345</strong>). Non coincide con il numero dell'atto o del fascicolo cartaceo. Puoi trovarlo sul biglietto di cancelleria o nella ricevuta di deposito.">?</button>
+            </label>
             <input type="text" name="numero_rg" class="form-control"
                    placeholder="es. 12345"
                    value="{{ numero_rg or '' }}">
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-semibold">Anno RG</label>
+            <label class="form-label fw-semibold">
+              Anno RG
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Anno di iscrizione a ruolo"
+                      data-bs-content="Anno in cui la pratica è stata iscritta a ruolo. Per pratiche pluriennali la ricerca funziona specificando l'anno di apertura, non l'anno corrente.">?</button>
+            </label>
             <input type="number" name="anno_rg" class="form-control"
-                   placeholder="{{ now().year }}"
-                   min="2000" max="{{ now().year }}"
+                   placeholder="{{ oggi.year }}"
+                   min="2000" max="{{ oggi.year }}"
                    value="{{ anno_rg or '' }}">
           </div>
           <div class="col-md-3 d-flex align-items-end">
@@ -84,14 +189,37 @@
             </button>
           </div>
           <div class="col-md-5">
-            <label class="form-label fw-semibold">Nome parte (attore / convenuto)</label>
-            <input type="text" name="nome_parte" class="form-control"
-                   placeholder="es. Rossi Mario"
-                   value="{{ nome_parte or '' }}">
+            <label class="form-label fw-semibold">
+              Nome parte (attore / convenuto)
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Ricerca per nome parte"
+                      data-bs-content="Digita almeno 2 caratteri per cercare tra i tuoi clienti in anagrafica. Se selezioni un cliente, il codice fiscale viene compilato automaticamente. Puoi anche inserire un nome manualmente per parti non presenti in anagrafica.">?</button>
+            </label>
+            <div class="position-relative" id="nome-parte-wrap">
+              <input type="text" name="nome_parte" id="nome-parte-input" class="form-control"
+                     placeholder="es. Rossi Mario — cerca nei tuoi clienti"
+                     autocomplete="off"
+                     value="{{ nome_parte or '' }}">
+              <div id="nome-parte-dropdown"
+                   style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9998;
+                          background:#fff;border:1px solid #dee2e6;border-radius:8px;
+                          box-shadow:0 6px 20px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:2px">
+              </div>
+            </div>
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-semibold">C.F. parte</label>
-            <input type="text" name="cf_parte" class="form-control"
+            <label class="form-label fw-semibold">
+              C.F. parte
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Codice fiscale della parte"
+                      data-bs-content="Codice fiscale dell'attore o del convenuto. Se selezioni un cliente dall'autocomplete sopra, viene compilato automaticamente. Lascia vuoto per cercare solo per numero RG o nome.">?</button>
+              <span id="cf-da-anagrafica" class="badge bg-success ms-1 small d-none">
+                <i class="bi bi-person-check me-1"></i>da anagrafica
+              </span>
+            </label>
+            <input type="text" name="cf_parte" id="cf-parte-input" class="form-control"
                    placeholder="Codice fiscale"
                    value="{{ cf_parte or '' }}"
                    maxlength="16" style="text-transform:uppercase">
@@ -112,7 +240,7 @@
     </div>
     {% if fascicoli %}
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small">
+      <table class="table table-hover align-middle mb-0 small mob-cards">
         <thead class="table-light">
           <tr>
             <th>RG</th>
@@ -127,26 +255,26 @@
         <tbody>
           {% for f in fascicoli %}
           <tr>
-            <td class="text-nowrap fw-semibold">
+            <td data-label="RG" class="text-nowrap fw-semibold">
               {{ f.numero_rg }}/{{ f.anno_rg }}
               {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
             </td>
-            <td>
+            <td data-label="Oggetto">
               {{ f.oggetto or '—' }}
               {% if f.giudice %}<br><small class="text-muted">Dr. {{ f.giudice }}</small>{% endif %}
             </td>
-            <td>{{ f.ruolo|replace('_',' ')|title }}</td>
-            <td class="small text-muted">
+            <td data-label="Ruolo" data-mob-hide>{{ f.ruolo|replace('_',' ')|title }}</td>
+            <td data-label="Parti" class="small text-muted" data-mob-hide>
               {% for p in f.parti[:2] %}{{ p }}<br>{% endfor %}
               {% if f.parti|length > 2 %}<em>+{{ f.parti|length - 2 }} altre</em>{% endif %}
               {% if not f.parti %}—{% endif %}
             </td>
-            <td class="text-nowrap">
+            <td data-label="Udienza" class="text-nowrap">
               {% if f.data_udienza %}
                 <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
               {% else %}—{% endif %}
             </td>
-            <td>
+            <td data-label="Stato">
               <span class="badge rounded-pill
                 {% if f.stato == 'PENDENTE' %}bg-primary
                 {% elif f.stato == 'DEFINITO' %}bg-success
@@ -155,7 +283,7 @@
                 {{ f.stato }}
               </span>
             </td>
-            <td class="text-end text-nowrap">
+            <td data-label="" class="text-end text-nowrap">
               {# Link a documenti #}
               <a href="{{ url_for('polisWeb_documenti',
                           codice_ufficio=f.codice_ufficio,
@@ -179,7 +307,7 @@
                 <input type="hidden" name="giudice" value="{{ f.giudice }}">
                 <input type="hidden" name="data_iscrizione" value="{{ f.data_iscrizione }}">
                 <input type="hidden" name="data_udienza" value="{{ f.data_udienza }}">
-                <input type="hidden" name="parti_json" value="{{ f.parti | tojson }}">
+                <input type="hidden" name="parti_json" value='{{ f.parti | tojson }}'>
                 <input type="hidden" name="codice_ufficio" value="{{ f.codice_ufficio }}">
                 <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
                 <button type="submit" class="btn btn-sm btn-primary"
@@ -238,14 +366,514 @@
     </div>
   </div>
 
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
+{# CSS uff-* ora in /static/css/app.css #}
 <script>
 // Auto-uppercase CF
 document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
   el.addEventListener('input', () => { el.value = el.value.toUpperCase(); });
 });
+
+// ── Autocomplete "Nome parte" — cerca nei clienti in anagrafica ──────
+(function () {
+  const inp  = document.getElementById('nome-parte-input');
+  const drop = document.getElementById('nome-parte-dropdown');
+  const cfIn = document.getElementById('cf-parte-input');
+  const cfBadge = document.getElementById('cf-da-anagrafica');
+  if (!inp || !drop) return;
+
+  let timer = null;
+
+  function escH(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function mostra(clienti) {
+    if (!clienti.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = clienti.map(c => {
+      const cf = c.codice_fiscale || c.cf || '';
+      const sub = [c.tipo, cf].filter(Boolean).join(' · ');
+      return `<div class="uff-item" data-nome="${escH(c.nome_completo || c.nome || '')}" data-cf="${escH(cf)}" style="cursor:pointer">
+        <i class="bi bi-person text-primary uff-icon"></i>
+        <div class="uff-body">
+          <div class="uff-nome">${escH(c.nome_completo || c.nome || '')}</div>
+          ${sub ? `<div class="uff-sub">${escH(sub)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    drop.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        inp.value = el.dataset.nome;
+        if (cfIn) {
+          cfIn.value = (el.dataset.cf || '').toUpperCase();
+          if (el.dataset.cf && cfBadge) cfBadge.classList.remove('d-none');
+        }
+        drop.style.display = 'none';
+      });
+    });
+    drop.style.display = 'block';
+  }
+
+  inp.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (cfBadge) cfBadge.classList.add('d-none');
+    if (q.length < 2) { drop.style.display = 'none'; return; }
+    timer = setTimeout(() => {
+      fetch('/api/clienti?q=' + encodeURIComponent(q))
+        .then(r => r.json()).then(mostra).catch(() => { drop.style.display = 'none'; });
+    }, 200);
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('nome-parte-wrap')?.contains(e.target))
+      drop.style.display = 'none';
+  });
+})();
+
+// ---------------------------------------------------------------- Stato registro uffici (admin)
+const TIPO_LABEL = {
+  TRIBUNALE: "Tribunale", CORTE_APPELLO: "Corte d'Appello", PROCURA: "Procura",
+  CORTE_CASSAZIONE: "Cassazione", TM: "Trib. Minorenni", SORVEGLIANZA: "Trib. Sorveglianza",
+};
+
+const _TIPO_LABEL = {
+  TRIBUNALE: 'Tribunali', PROCURA: 'Procure', PROCURA_GENERALE: 'Proc. Generali',
+  CORTE_APPELLO: 'Corti d\'App.', CORTE_ASSISE: 'Assise', GDP: 'G.d.P.',
+  TM: 'Trib. Minorenni', SORVEGLIANZA: 'Sorveglianza', TAR: 'TAR',
+  CONSIGLIO_DI_STATO: 'Cons. Stato',
+};
+
+function caricaStatoUffici() {
+  const badge = document.getElementById('badge-uffici-stato');
+  if (!badge) return;
+  fetch('/api/uffici/stato')
+    .then(r => r.json())
+    .then(d => {
+      const txt  = document.getElementById('badge-uffici-txt');
+      const body = document.getElementById('uffici-info-body');
+      const scad = d.scaduta;
+      badge.className = `badge ${scad ? 'bg-warning text-dark' : 'bg-success'} ms-auto small`;
+      if (txt) txt.textContent = `${d.n_uffici} uffici · ${scad ? 'da aggiornare' : 'aggiornati'}`;
+      if (body) {
+        const dt = d.aggiornato_il && d.aggiornato_il !== '—'
+          ? new Date(d.aggiornato_il).toLocaleString('it-IT')
+          : '—';
+        const perTipo = d.per_tipo || {};
+        const tipoRows = Object.entries(perTipo).map(([tipo, n]) => {
+          const label = _TIPO_LABEL[tipo] || tipo;
+          const hl = tipo === 'GDP' ? ' fw-bold text-primary' : '';
+          return `<span class="badge bg-light text-dark border me-1 mb-1${hl}">${label}: ${n}</span>`;
+        }).join('');
+        body.innerHTML = `
+          <div class="row g-2 mb-2">
+            <div class="col-6 col-md-3"><div class="text-muted small">Totale uffici</div><div class="fw-semibold fs-5">${d.n_uffici}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted small">Sorgente</div><div class="fw-semibold">${d.sorgente}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted small">Aggiornato il</div><div class="fw-semibold">${dt}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted small">TTL</div><div class="fw-semibold">${d.ttl_giorni} giorni</div></div>
+          </div>
+          <div class="border-top pt-2">${tipoRows || '<span class="text-muted">—</span>'}</div>
+          ${scad ? '<div class="alert alert-warning mt-2 py-1 small mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Cache scaduta — clicca "Ricarica bundle" o "Aggiorna da remoto"</div>' : ''}`;
+      }
+    })
+    .catch(() => {});
+}
+
+function _inviaAggiorna(url, btnEl, labelOk) {
+  const esito = document.getElementById('uffici-aggiorna-esito');
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>…';
+  if (esito) esito.textContent = '';
+  fetch('/api/uffici/aggiorna', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ url }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      btnEl.disabled = false;
+      btnEl.innerHTML = labelOk;
+      if (esito) { esito.textContent = d.messaggio; esito.className = d.ok ? 'text-success small' : 'text-danger small'; }
+      caricaStatoUffici();
+    })
+    .catch(() => {
+      btnEl.disabled = false;
+      btnEl.innerHTML = labelOk;
+      if (esito) { esito.textContent = 'Errore di rete.'; esito.className = 'text-danger small'; }
+    });
+}
+
+function ricaricaBundle() {
+  const btn = document.getElementById('btn-ricarica-bundle');
+  _inviaAggiorna('bundle', btn, '<i class="bi bi-box-arrow-in-down me-1"></i>Ricarica bundle');
+}
+
+function aggiornaUffici() {
+  const btn    = document.getElementById('btn-aggiorna-uffici');
+  const urlBox = document.getElementById('uffici-url-custom');
+  _inviaAggiorna(urlBox ? urlBox.value.trim() : '', btn, '<i class="bi bi-arrow-clockwise me-1"></i>Aggiorna da remoto');
+}
+
+// Carica lo stato al click sul pannello
+document.getElementById('badge-uffici-stato')?.addEventListener('click', caricaStatoUffici);
+// Carica subito se il pannello è visibile
+document.addEventListener('DOMContentLoaded', () => {
+  caricaStatoUffici();
+  caricaVariazioni();
+});
+
+// ---------------------------------------------------------------- Verifica variazioni uffici (admin)
+function caricaVariazioni() {
+  fetch('/api/uffici/variazioni')
+    .then(r => r.json())
+    .then(d => _renderVariazioni(d))
+    .catch(() => {});
+}
+
+function _renderVariazioni(d) {
+  const badge   = document.getElementById('variazioni-badge');
+  const dettaglio = document.getElementById('variazioni-dettaglio');
+  if (!badge || !dettaglio) return;
+
+  if (!d.ok && d.errore && d.errore.includes('Nessun controllo')) {
+    badge.className = 'badge bg-secondary ms-1';
+    badge.textContent = 'mai eseguito';
+    dettaglio.innerHTML = '<i class="bi bi-clock-history me-1"></i>Controllo automatico ogni giorno alle 03:30. Clicca "Controlla ora" per il primo controllo.';
+    return;
+  }
+
+  const ts = d.verificato_il ? new Date(d.verificato_il).toLocaleString('it-IT') : '—';
+
+  if (!d.ok) {
+    badge.className = 'badge bg-warning text-dark ms-1';
+    badge.textContent = 'errore';
+    dettaglio.innerHTML = `<i class="bi bi-exclamation-triangle text-warning me-1"></i>Ultimo tentativo: ${ts} — <span class="text-danger">${d.errore || 'sorgente non raggiungibile'}</span>`;
+    return;
+  }
+
+  const nPec    = (d.pec_modificate || []).length;
+  const nAdd    = (d.aggiunti || []).length;
+  const nRim    = (d.rimossi || []).length;
+  const nTot    = (d.n_variazioni || 0);
+
+  if (nTot === 0) {
+    badge.className = 'badge bg-success ms-1';
+    badge.textContent = 'nessuna variazione';
+  } else if (nPec > 0) {
+    badge.className = 'badge bg-danger ms-1';
+    badge.textContent = `${nTot} variazioni`;
+  } else {
+    badge.className = 'badge bg-warning text-dark ms-1';
+    badge.textContent = `${nTot} variazioni`;
+  }
+
+  let html = `<div class="text-muted mb-1"><i class="bi bi-clock-history me-1"></i>Ultimo controllo: <strong>${ts}</strong> — sorgente: ${d.sorgente} (bundle: ${d.bundle_n}, remoto: ${d.remoto_n})</div>`;
+
+  if (nPec > 0) {
+    html += `<div class="alert alert-danger py-1 px-2 mb-1 small">
+      <i class="bi bi-envelope-exclamation me-1"></i><strong>${nPec} PEC modificate</strong> — rischio recapito depositi!
+      <ul class="mb-0 mt-1">`;
+    (d.pec_modificate || []).forEach(p => {
+      html += `<li><strong>${p.nome}</strong> (${p.codice})<br>
+        <span class="text-muted">Bundle:</span> <code>${p.pec_bundle}</code><br>
+        <span class="text-muted">Remoto:</span> <code class="text-danger">${p.pec_remoto}</code></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  if (nAdd > 0) {
+    html += `<div class="alert alert-info py-1 px-2 mb-1 small">
+      <i class="bi bi-plus-circle me-1"></i><strong>${nAdd} uffici aggiunti</strong> nel registro remoto ma assenti nel bundle.
+      <ul class="mb-0 mt-1">`;
+    (d.aggiunti || []).slice(0, 5).forEach(u => {
+      html += `<li>${u.nome} <span class="text-muted">(${u.codice})</span></li>`;
+    });
+    if (nAdd > 5) html += `<li class="text-muted">…e altri ${nAdd - 5}</li>`;
+    html += `</ul></div>`;
+  }
+
+  if (nRim > 0) {
+    html += `<div class="alert alert-secondary py-1 px-2 mb-1 small">
+      <i class="bi bi-dash-circle me-1"></i><strong>${nRim} uffici non trovati</strong> nel registro remoto (presenti nel bundle).
+      <ul class="mb-0 mt-1">`;
+    (d.rimossi || []).slice(0, 5).forEach(u => {
+      html += `<li>${u.nome} <span class="text-muted">(${u.codice})</span></li>`;
+    });
+    if (nRim > 5) html += `<li class="text-muted">…e altri ${nRim - 5}</li>`;
+    html += `</ul></div>`;
+  }
+
+  if (nTot === 0) {
+    html += `<div class="text-success small"><i class="bi bi-check-circle me-1"></i>Bundle allineato con il registro PST.</div>`;
+  }
+
+  dettaglio.innerHTML = html;
+}
+
+function eseguiVerificaVariazioni() {
+  const btn = document.getElementById('btn-verifica-variazioni');
+  const badge = document.getElementById('variazioni-badge');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Controllo…';
+  badge.className = 'badge bg-secondary ms-1';
+  badge.textContent = 'in corso…';
+  fetch('/api/uffici/variazioni/esegui', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-search me-1"></i>Controlla ora';
+      _renderVariazioni(d);
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-search me-1"></i>Controlla ora';
+    });
+}
+
+// ---------------------------------------------------------------- Ricerca uffici giudiziari (tab tipo + autocomplete)
+(function () {
+  const input    = document.getElementById('ufficio-input');
+  const hidden   = document.getElementById('ufficio-value');
+  const dropdown = document.getElementById('ufficio-dropdown');
+  const clearBtn = document.getElementById('ufficio-clear');
+  const badge    = document.getElementById('ufficio-sel-badge');
+  const badgeLbl = document.getElementById('ufficio-sel-label');
+  const tabs     = document.getElementById('ufficio-tabs');
+  const tipoIcon = document.getElementById('ufficio-tipo-icon');
+
+  if (!input) return;
+
+  const TIPO_ICONS = {
+    TRIBUNALE:          'bi-building',
+    CORTE_APPELLO:      'bi-bank2',
+    PROCURA:            'bi-shield-exclamation',
+    PROCURA_GENERALE:   'bi-shield-fill',
+    CORTE_CASSAZIONE:   'bi-star-fill',
+    TM:                 'bi-people-fill',
+    SORVEGLIANZA:       'bi-eye-fill',
+    CORTE_ASSISE:       'bi-hammer',
+    GDP:                'bi-person-badge',
+    TAR:                'bi-building-check',
+    CDS:                'bi-columns-gap',
+  };
+  const TIPO_LABEL = {
+    TRIBUNALE:          'Tribunale',
+    CORTE_APPELLO:      "Corte d'Appello",
+    PROCURA:            'Procura della Repubblica',
+    PROCURA_GENERALE:   'Procura Generale',
+    CORTE_CASSAZIONE:   'Cassazione',
+    TM:                 'Trib. Minorenni',
+    SORVEGLIANZA:       'Trib. Sorveglianza',
+    CORTE_ASSISE:       "Corte d'Assise",
+    GDP:                'Giudice di Pace',
+    TAR:                'TAR',
+    CDS:                'Consiglio di Stato',
+  };
+  const TIPO_PLACEHOLDER = {
+    TRIBUNALE:          'tribunale per città (es. Milano)…',
+    CORTE_APPELLO:      "corte d'appello (es. Roma)…",
+    PROCURA:            'procura per città (es. Napoli)…',
+    PROCURA_GENERALE:   'procura generale (es. Torino)…',
+    CORTE_ASSISE:       "corte d'assise per città…",
+    GDP:                'giudice di pace per città…',
+    TM:                 'tribunale minorenni per città…',
+    SORVEGLIANZA:       'tribunale sorveglianza per città…',
+    TAR:                'TAR per regione (es. Lombardia)…',
+  };
+  // Ordine gruppi nel dropdown (quando tipo=Tutti)
+  const GRUPPI_ORDER = ['CORTE_CASSAZIONE','CDS','CORTE_APPELLO','PROCURA_GENERALE',
+                         'TRIBUNALE','PROCURA','CORTE_ASSISE','GDP','TM','SORVEGLIANZA','TAR'];
+
+  let tipoFiltro  = '';   // tipo attivo (vuoto = Tutti)
+  let items       = [];   // uffici nella lista aperta
+  let focusIdx    = -1;
+  let timer       = null;
+
+  // ── Posiziona il dropdown fixed sotto il campo input ────────
+  function posizionaDropdown() {
+    const rect = input.getBoundingClientRect();
+    // position:fixed → coordinate relative al viewport, NON aggiungere scrollY
+    dropdown.style.top   = (rect.bottom + 4) + 'px';
+    dropdown.style.left  = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    const spazioGiu = window.innerHeight - rect.bottom - 8;
+    dropdown.style.maxHeight = Math.min(340, spazioGiu) + 'px';
+  }
+
+  // ── Tab: cambio tipo ─────────────────────────────────────────
+  tabs?.querySelectorAll('.uff-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.stopPropagation();  // impedisce che document.click intercetti prima
+      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      tipoFiltro = tab.dataset.tipo;
+      // Aggiorna icona nel campo
+      const icon = tipoFiltro ? (TIPO_ICONS[tipoFiltro] || 'bi-search') : 'bi-search';
+      tipoIcon.innerHTML = `<i class="bi ${icon} text-muted"></i>`;
+      // Placeholder dinamico
+      input.placeholder = tipoFiltro
+        ? `Cerca ${TIPO_PLACEHOLDER[tipoFiltro] || tipoFiltro.toLowerCase() + '…'}`
+        : 'Cerca per città o nome…';
+      // Riapri dropdown se c'è già testo
+      if (input.value.trim().length >= 2) cerca(input.value.trim());
+      else chiudi();
+      input.focus();
+    });
+  });
+
+  // ── Rendering dropdown con raggruppamento ───────────────────
+  function renderDropdown(data) {
+    focusIdx = -1;
+    items = [];
+    posizionaDropdown();
+    if (!data.length) {
+      dropdown.innerHTML = `<div class="uff-empty">
+        <i class="bi bi-search me-1"></i>Nessun ufficio trovato
+        <div class="mt-1 small">Prova con un nome di città diverso</div>
+      </div>`;
+      dropdown.classList.add('show');
+      return;
+    }
+
+    // Raggruppa per tipo
+    const gruppi = {};
+    data.forEach(u => {
+      const t = u.tipo || 'TRIBUNALE';
+      (gruppi[t] = gruppi[t] || []).push(u);
+    });
+
+    // Ordine gruppi
+    const tipiPresenti = GRUPPI_ORDER.filter(t => gruppi[t]);
+    // Tipi extra non in GRUPPI_ORDER
+    Object.keys(gruppi).forEach(t => { if (!tipiPresenti.includes(t)) tipiPresenti.push(t); });
+
+    // Mostra intestazione gruppo solo se ci sono più tipi
+    const multiGruppo = tipiPresenti.length > 1;
+
+    let html = '';
+    tipiPresenti.forEach(tipo => {
+      if (multiGruppo) {
+        const ic = TIPO_ICONS[tipo] || 'bi-building';
+        html += `<div class="uff-group-header"><i class="bi ${ic}"></i>${TIPO_LABEL[tipo] || tipo}</div>`;
+      }
+      gruppi[tipo].forEach(u => {
+        const idx = items.length;
+        items.push(u);
+        html += `
+        <div class="uff-item" data-idx="${idx}" tabindex="-1">
+          <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} uff-icon"></i>
+          <div class="uff-body">
+            <div class="uff-nome">${u.nome}</div>
+            <div class="uff-sub">${u.distretto}${u.pec ? ' · <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
+          </div>
+          ${multiGruppo ? '' : `<span class="uff-tipo-badge uff-tipo-${u.tipo}">${TIPO_LABEL[u.tipo] || u.tipo}</span>`}
+        </div>`;
+      });
+    });
+    dropdown.innerHTML = html;
+    dropdown.classList.add('show');
+    dropdown.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(items[+el.dataset.idx]); });
+    });
+  }
+
+  function seleziona(u) {
+    input.value  = u.nome;
+    hidden.value = u.codice;
+    const label  = TIPO_LABEL[u.tipo] || u.tipo;
+    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} me-1"></i><strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto})</span>`;
+    badge.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+    input.setCustomValidity('');
+    chiudi();
+  }
+
+  function chiudi() {
+    dropdown.classList.remove('show');
+    focusIdx = -1;
+  }
+
+  function muoviFocus(dir) {
+    const els = dropdown.querySelectorAll('.uff-item');
+    if (!els.length) return;
+    els[focusIdx]?.classList.remove('focused');
+    focusIdx = (focusIdx + dir + els.length) % els.length;
+    els[focusIdx]?.classList.add('focused');
+    els[focusIdx]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function cerca(q) {
+    const url = `/api/uffici?q=${encodeURIComponent(q)}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}`;
+    fetch(url)
+      .then(r => r.json())
+      .then(renderDropdown)
+      .catch(() => chiudi());
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    hidden.value = '';
+    badge.style.display = 'none';
+    clearBtn.style.display = q ? 'inline-flex' : 'none';
+    if (q.length < 2) { chiudi(); return; }
+    timer = setTimeout(() => cerca(q), 180);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown')  { e.preventDefault(); muoviFocus(+1); return; }
+    if (e.key === 'ArrowUp')    { e.preventDefault(); muoviFocus(-1); return; }
+    if (e.key === 'Enter') {
+      const els = dropdown.querySelectorAll('.uff-item');
+      if (focusIdx >= 0 && els[focusIdx]) { e.preventDefault(); seleziona(items[focusIdx]); }
+      return;
+    }
+    if (e.key === 'Escape') { chiudi(); return; }
+  });
+
+  input.closest('form').addEventListener('submit', function (e) {
+    if (!hidden.value && input.value.trim()) {
+      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}&limit=1`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.length) { seleziona(data[0]); this.submit(); }
+          else { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); }
+        });
+      e.preventDefault();
+      return;
+    }
+    if (!hidden.value) {
+      input.setCustomValidity('Seleziona un ufficio dalla lista');
+      input.reportValidity();
+      e.preventDefault();
+    }
+  });
+  input.addEventListener('input', () => input.setCustomValidity(''));
+
+  clearBtn.addEventListener('click', () => {
+    input.value = ''; hidden.value = '';
+    badge.style.display = 'none';
+    clearBtn.style.display = 'none';
+    chiudi(); input.focus();
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('ufficio-wrap')?.contains(e.target) &&
+        !document.getElementById('ufficio-tabs')?.contains(e.target)) chiudi();
+  });
+
+  // Riposiziona se la pagina scrolla o cambia dimensione
+  window.addEventListener('scroll', () => { if (dropdown.classList.contains('show')) posizionaDropdown(); }, { passive: true });
+  window.addEventListener('resize', () => { if (dropdown.classList.contains('show')) posizionaDropdown(); }, { passive: true });
+
+  if (hidden.value && input.value) {
+    badgeLbl.textContent = input.value;
+    badge.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+  }
+})();
 </script>
 {% endblock %}

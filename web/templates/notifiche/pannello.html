@@ -2,15 +2,23 @@
 {% block title %}Notifiche WhatsApp{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-  <h4 class="mb-0 fw-bold"><i class="bi bi-whatsapp me-2 text-success"></i>Notifiche WhatsApp</h4>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon" style="background:#25D366;color:#fff"><i class="bi bi-whatsapp"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Notifiche WhatsApp</h1>
+    <p class="ds-ph-sub">Promemoria automatici e comunicazioni ai clienti via WhatsApp</p>
+  </div>
   {% if app_domani_con_cell %}
-  <form method="post" action="{{ url_for('notifiche.promemoria_domani') }}"
-        onsubmit="return confirm('Inviare promemoria a {{ app_domani_con_cell|length }} cliente/i con appuntamenti domani?')">
-    <button type="submit" class="btn btn-success">
-      <i class="bi bi-alarm me-2"></i>Promemoria domani ({{ app_domani_con_cell|length }})
-    </button>
-  </form>
+  <div class="ds-ph-actions">
+    <form method="post" action="{{ url_for('notifiche.promemoria_domani') }}"
+          onsubmit="return confirm('Inviare promemoria a {{ app_domani_con_cell|length }} cliente/i con appuntamenti domani?')">
+      <button type="submit" class="ds-btn ds-btn-primary">
+        <i class="bi bi-alarm"></i>Promemoria domani ({{ app_domani_con_cell|length }})
+      </button>
+    </form>
+  </div>
   {% endif %}
 </div>
 

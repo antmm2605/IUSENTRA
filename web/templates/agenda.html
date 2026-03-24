@@ -8,45 +8,95 @@
 
 {% block content %}
 
-{# ---- Switcher vista + navigazione ---- #}
-<div class="card shadow-sm mb-3">
-  <div class="card-body py-2 d-flex flex-wrap align-items-center gap-2">
-
-    <div class="btn-group btn-group-sm me-2">
-      <a href="{{ url_for('agenda_view') }}?vista=giorno&offset={{ offset if vista=='giorno' else 0 }}"
-         class="btn btn-outline-primary {% if vista=='giorno' %}active{% endif %}">
-        <i class="bi bi-calendar-day me-1"></i>Giorno
-      </a>
-      <a href="{{ url_for('agenda_view') }}?vista=settimana&offset={{ offset if vista=='settimana' else 0 }}"
-         class="btn btn-outline-primary {% if vista=='settimana' %}active{% endif %}">
-        <i class="bi bi-calendar-week me-1"></i>Settimana
-      </a>
-      <a href="{{ url_for('agenda_view') }}?vista=mese&offset={{ offset if vista=='mese' else 0 }}"
-         class="btn btn-outline-primary {% if vista=='mese' %}active{% endif %}">
-        <i class="bi bi-calendar-month me-1"></i>Mese
-      </a>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-calendar3"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Agenda</h1>
+    <p class="ds-ph-sub">Appuntamenti, udienze e impegni dello studio</p>
+  </div>
+  <div class="ds-ph-actions">
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-ghost dropdown-toggle" data-bs-toggle="dropdown"
+              title="Esporta / sincronizza calendario">
+        <i class="bi bi-calendar-arrow-down"></i><span class="d-none d-sm-inline">iCal</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li><h6 class="dropdown-header"><i class="bi bi-arrow-repeat me-1"></i>Sincronizzazione automatica</h6></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('impostazioni_calendario') }}">
+            <i class="bi bi-gear me-2 text-primary"></i>Configura sync calendario…
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header"><i class="bi bi-download me-1"></i>Download manuale</h6></li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('agenda_ical') }}" download="agenda.ics">
+            <i class="bi bi-calendar-week me-2 text-primary"></i>Scarica agenda (.ics)
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
+            <i class="bi bi-alarm me-2 text-warning"></i>Scarica scadenze (.ics)
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <span class="dropdown-item-text small text-muted" style="white-space:normal">
+            <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+            Con la sync automatica il calendario si aggiorna ogni ora senza fare nulla.
+          </span>
+        </li>
+      </ul>
     </div>
-
-    <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset - 1 }}"
-       class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
-    <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset=0"
-       class="btn btn-sm btn-outline-secondary">Oggi</a>
-    <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset + 1 }}"
-       class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
-
-    <span class="ms-2 fw-semibold text-primary">
-      {% if vista == 'giorno' %}
-        {{ giorno.strftime('%A %d %B %Y') }}
-      {% elif vista == 'settimana' %}
-        {{ inizio.strftime('%d %b') }} – {{ fine.strftime('%d %b %Y') }}
-      {% else %}
-        {{ nomi_mesi[mese] }} {{ anno }}
-      {% endif %}
-    </span>
-
-    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning ms-auto">
-      <i class="bi bi-plus-lg me-1"></i>Nuovo appuntamento
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo appuntamento</span>
     </a>
+  </div>
+</div>
+
+{# ── Switcher vista + navigazione ── #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    {# Riga 1: switcher vista + navigazione #}
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('agenda_view') }}?vista=giorno&offset={{ offset if vista=='giorno' else 0 }}"
+           class="btn btn-outline-primary {% if vista=='giorno' %}active{% endif %}"
+           title="Vista giorno">
+          <i class="bi bi-calendar-day"></i><span class="d-none d-sm-inline ms-1">Giorno</span>
+        </a>
+        <a href="{{ url_for('agenda_view') }}?vista=settimana&offset={{ offset if vista=='settimana' else 0 }}"
+           class="btn btn-outline-primary {% if vista=='settimana' %}active{% endif %}"
+           title="Vista settimana">
+          <i class="bi bi-calendar-week"></i><span class="d-none d-sm-inline ms-1">Sett.</span>
+        </a>
+        <a href="{{ url_for('agenda_view') }}?vista=mese&offset={{ offset if vista=='mese' else 0 }}"
+           class="btn btn-outline-primary {% if vista=='mese' %}active{% endif %}"
+           title="Vista mese">
+          <i class="bi bi-calendar-month"></i><span class="d-none d-sm-inline ms-1">Mese</span>
+        </a>
+      </div>
+
+      <div class="btn-group btn-group-sm">
+        <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset - 1 }}"
+           class="btn btn-outline-secondary" title="Precedente"><i class="bi bi-chevron-left"></i></a>
+        <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset=0"
+           class="btn btn-outline-secondary">Oggi</a>
+        <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset + 1 }}"
+           class="btn btn-outline-secondary" title="Successivo"><i class="bi bi-chevron-right"></i></a>
+      </div>
+
+      <span class="fw-semibold text-primary small">
+        {% if vista == 'giorno' %}
+          {{ giorno.strftime('%a %d %b %Y') }}
+        {% elif vista == 'settimana' %}
+          {{ inizio.strftime('%d %b') }} – {{ fine.strftime('%d %b %Y') }}
+        {% else %}
+          {{ nomi_mesi[mese] }} {{ anno }}
+        {% endif %}
+      </span>
+    </div>
   </div>
 </div>
 
@@ -73,7 +123,7 @@
         Trascina un appuntamento su un'altra riga per cambiarne l'orario
       </div>
       <div class="table-responsive">
-        <table class="table table-hover align-middle" id="table-giorno">
+        <table class="table table-hover align-middle mob-cards" id="table-giorno">
           <thead class="table-light">
             <tr><th>Ora</th><th>Titolo</th><th>Tipo</th><th>Cliente</th><th>Luogo</th><th>Stato</th><th></th></tr>
           </thead>
@@ -82,11 +132,11 @@
             <tr class="dnd-row"
                 data-date="{{ a.data_ora_dt.strftime('%Y-%m-%d') }}"
                 data-time="{{ a.data_ora_dt.strftime('%H:%M:%S') }}">
-              <td class="fw-semibold text-nowrap dnd-handle" style="cursor:grab">
-                <i class="bi bi-grip-vertical text-muted me-1"></i>
+              <td data-label="Ora" class="fw-semibold text-nowrap dnd-handle" style="cursor:grab">
+                <i class="bi bi-grip-vertical text-muted me-1 d-none d-md-inline"></i>
                 {{ a.data_ora_dt.strftime('%H:%M') }}–{{ a.fine_dt.strftime('%H:%M') }}
               </td>
-              <td>
+              <td data-label="Titolo">
                 <span class="dnd-app-pill app-row"
                       draggable="true"
                       data-id="{{ a.id }}"
@@ -99,14 +149,14 @@
                   {% if a.procedimento %}<div class="small text-muted">{{ a.procedimento }}</div>{% endif %}
                 </span>
               </td>
-              <td>{{ badge_tipo(a) }}</td>
-              <td class="small">{{ a.cliente or '—' }}</td>
-              <td class="small">{{ a.luogo or '—' }}</td>
-              <td>
+              <td data-label="Tipo">{{ badge_tipo(a) }}</td>
+              <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or '—' }}</td>
+              <td data-label="Luogo" class="small" data-mob-hide>{{ a.luogo or '—' }}</td>
+              <td data-label="Stato">
                 {% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
                 <span class="badge bg-{{ sc[a.stato.value] }}">{{ a.stato.value }}</span>
               </td>
-              <td>
+              <td data-label="">
                 <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
                    class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
               </td>
@@ -116,8 +166,14 @@
         </table>
       </div>
     {% else %}
-      <div class="text-center text-muted py-5">
-        <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>Nessun appuntamento
+      <div class="ds-empty py-4">
+        <i class="bi bi-calendar-x ds-empty-icon"></i>
+        <div class="ds-empty-title">Nessun appuntamento</div>
+        <div class="ds-empty-sub">Nessun impegno per questo giorno.</div>
+        <a href="{{ url_for('nuovo_appuntamento') }}?data={{ giorno.isoformat() }}"
+           class="ds-btn ds-btn-primary mt-3">
+          <i class="bi bi-plus-lg"></i>Aggiungi appuntamento
+        </a>
       </div>
     {% endif %}
   </div>
@@ -128,7 +184,9 @@
 {% set nomi_g = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'] %}
 <div class="card shadow-sm">
   <div class="card-body p-2">
-    <div class="row g-1">
+    <div class="d-md-none mb-2 text-muted small"><i class="bi bi-arrows-expand-vertical me-1"></i>Scorri per vedere tutti i giorni</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div class="row g-1" style="min-width:560px">
       {% for g in giorni %}
       <div class="col">
         <div class="p-2 week-col rounded dnd-drop-zone
@@ -155,6 +213,7 @@
       </div>
       {% endfor %}
     </div>
+    </div>{# /overflow wrapper #}
     <div class="text-muted small mt-2 text-end">
       <i class="bi bi-arrow-left-right me-1"></i>Trascina gli appuntamenti tra i giorni per spostarli
     </div>
@@ -166,6 +225,9 @@
 {% set nomi_g = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'] %}
 <div class="card shadow-sm">
   <div class="card-body p-2">
+    <div class="d-md-none mb-2 text-muted small"><i class="bi bi-arrows-expand-vertical me-1"></i>Scorri orizzontalmente per il calendario completo</div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div style="min-width:420px">
     {# intestazione giorni #}
     <div class="row g-1 mb-1">
       {% for ng in nomi_g %}
@@ -211,6 +273,8 @@
       {% endif %}
       {% endfor %}
     </div>
+    </div>{# /min-width wrapper #}
+    </div>{# /overflow wrapper #}
     <div class="text-muted small mt-2 text-end">
       <i class="bi bi-arrow-left-right me-1"></i>Trascina gli appuntamenti tra i giorni per spostarli
     </div>
@@ -391,11 +455,27 @@
     setTimeout(() => { t.style.display = 'none'; }, 4000);
   }
 
+  /* ------------------------------------------------------------------ click giorno → nuovo appuntamento */
+  function initClickGiorno() {
+    document.querySelectorAll('.dnd-drop-zone[data-date]').forEach(zona => {
+      zona.style.cursor = 'pointer';
+      zona.addEventListener('click', function (e) {
+        // ignora se è stato appena trascinato
+        if (window._wasDragging) return;
+        // ignora click su pill esistente (link appuntamento)
+        if (e.target.closest('.app-pill, .dnd-pill, a')) return;
+        const data = zona.dataset.date;
+        if (data) window.location.href = '/agenda/nuovo?data=' + data;
+      });
+    });
+  }
+
   /* ------------------------------------------------------------------ init */
   document.addEventListener('DOMContentLoaded', () => {
     initPills();
     initDropZones();
     initGiornoRows();
+    initClickGiorno();
   });
 })();
 </script>

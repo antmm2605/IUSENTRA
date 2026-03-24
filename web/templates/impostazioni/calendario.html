@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Sincronizzazione Calendario{% endblock %}
+{% block page_title %}Sincronizzazione Calendario{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
+
+{# ── Intro ── #}
+<div class="alert alert-info border-0 shadow-sm d-flex gap-2 mb-4" role="alert">
+  <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <div class="fw-semibold mb-1">Come funziona la sincronizzazione automatica</div>
+    <div class="small">
+      I feed WebCal sono URL speciali che Google Calendar, Apple Calendar e Outlook controllano
+      automaticamente ogni ora. Una volta aggiunto il link, il tuo calendario si aggiorna
+      da solo senza dover scaricare e importare il file <code>.ics</code> manualmente.
+      Le scadenze perentorie includono notifiche a <strong>7 giorni, 3 giorni, 1 giorno</strong>
+      e <strong>1 ora</strong> prima della scadenza.
+    </div>
+  </div>
+</div>
+
+{# ── Feed disponibili ── #}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-link-45deg me-2 text-primary"></i>Feed disponibili
+  </div>
+  <div class="card-body p-0">
+
+    {# Feed completo #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 pt-1">
+          <span class="badge bg-primary rounded-pill px-3 py-2">
+            <i class="bi bi-calendar-heart me-1"></i>Completo
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Agenda + Scadenze</div>
+          <div class="small text-muted mb-2">
+            Tutti gli appuntamenti e tutte le scadenze in un unico calendario.
+            <strong>Consigliato.</strong>
+          </div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace"
+                   value="{{ feeds.completo }}" readonly id="url-completo">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="copiaUrl('url-completo', this)" title="Copia link">
+              <i class="bi bi-clipboard me-1"></i>Copia
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Feed agenda #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 pt-1">
+          <span class="badge bg-success rounded-pill px-3 py-2">
+            <i class="bi bi-calendar-week me-1"></i>Agenda
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Solo appuntamenti</div>
+          <div class="small text-muted mb-2">Udienze, consultazioni e riunioni. Notifica 1 ora prima.</div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace"
+                   value="{{ feeds.agenda }}" readonly id="url-agenda">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="copiaUrl('url-agenda', this)" title="Copia link">
+              <i class="bi bi-clipboard me-1"></i>Copia
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Feed scadenze #}
+    <div class="p-3">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 pt-1">
+          <span class="badge bg-warning text-dark rounded-pill px-3 py-2">
+            <i class="bi bi-alarm me-1"></i>Scadenze
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Solo scadenze processuali</div>
+          <div class="small text-muted mb-2">
+            Termini e scadenze. Perentorie: notifiche a 7gg, 3gg, 1gg, 1h.
+          </div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace"
+                   value="{{ feeds.scadenze }}" readonly id="url-scadenze">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="copiaUrl('url-scadenze', this)" title="Copia link">
+              <i class="bi bi-clipboard me-1"></i>Copia
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Istruzioni per app ── #}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-phone me-2 text-success"></i>Come aggiungere al tuo calendario
+  </div>
+  <div class="card-body p-0">
+
+    {# Google Calendar #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <img src="https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_20_2x.png"
+             alt="Google Calendar" width="32" height="32" class="flex-shrink-0 mt-1"
+             onerror="this.outerHTML='<i class=\'bi bi-google flex-shrink-0 mt-1 fs-4 text-danger\'></i>'">
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Google Calendar</div>
+          <ol class="small text-muted mb-2 ps-3">
+            <li>Clicca il bottone qui sotto — si apre Google Calendar nella pagina giusta</li>
+            <li>Clicca <strong>Aggiungi calendario</strong></li>
+          </ol>
+          <a href="{{ gcal_url }}" target="_blank" rel="noopener"
+             class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Apri in Google Calendar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {# Apple Calendar #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <i class="bi bi-apple flex-shrink-0 mt-1 fs-4 text-dark"></i>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Apple Calendar (Mac / iPhone / iPad)</div>
+          <ol class="small text-muted mb-2 ps-3">
+            <li>Copia il link "Completo" qui sopra</li>
+            <li>Su <strong>Mac</strong>: Archivio → Nuova sottoscrizione al calendario → incolla l'URL</li>
+            <li>Su <strong>iPhone/iPad</strong>: Impostazioni → Calendario → Account → Aggiungi account → Altro → Aggiungi Cal. sottoscritto</li>
+          </ol>
+          <button class="btn btn-sm btn-outline-dark" type="button"
+                  onclick="copiaEApri('url-completo', '{{ feeds.completo|replace("https://","webcal://") }}')">
+            <i class="bi bi-clipboard me-1"></i>Copia link WebCal
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {# Outlook #}
+    <div class="p-3">
+      <div class="d-flex align-items-start gap-3">
+        <i class="bi bi-microsoft flex-shrink-0 mt-1 fs-4 text-primary"></i>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Microsoft Outlook</div>
+          <ol class="small text-muted mb-2 ps-3">
+            <li>Copia il link "Completo" qui sopra</li>
+            <li><strong>Outlook desktop</strong>: Aggiungi calendario → Da Internet → incolla l'URL</li>
+            <li><strong>Outlook web</strong>: Aggiungi calendario → Sottoscrivi da Web → incolla l'URL</li>
+          </ol>
+          <button class="btn btn-sm btn-outline-primary" type="button"
+                  onclick="copiaUrl('url-completo', this)">
+            <i class="bi bi-clipboard me-1"></i>Copia link
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar ── #}
+<div class="col-lg-4">
+
+  {# Sicurezza & Token #}
+  <div class="card shadow-sm mb-4 border-warning">
+    <div class="card-header fw-semibold text-warning-emphasis bg-warning-subtle">
+      <i class="bi bi-shield-lock me-2"></i>Sicurezza — Token segreto
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-3">
+        I link feed contengono un token segreto che autentica l'accesso senza richiedere il login.
+        <strong>Non condividere questi link.</strong>
+        Se compromesso, rigenera il token: tutti i link precedenti smetteranno di funzionare.
+      </p>
+      <div class="d-flex flex-column gap-2">
+        <div class="small text-muted">
+          <i class="bi bi-clock me-1"></i>
+          Token generato il:
+          {% if token_creato %}
+            {{ token_creato[:10] }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('rigenera_token_calendario') }}"
+              onsubmit="return confirm('Rigenerare il token? Tutti i link esistenti nei calendari smetteranno di funzionare e dovranno essere aggiornati.')">
+          <button class="btn btn-sm btn-outline-warning w-100" type="submit">
+            <i class="bi bi-arrow-clockwise me-1"></i>Rigenera token
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# Download manuale #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-download me-2 text-secondary"></i>Download manuale (.ics)
+    </div>
+    <div class="card-body d-flex flex-column gap-2">
+      <a href="{{ url_for('agenda_ical') }}" download="agenda.ics" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-calendar-arrow-down me-1"></i>Scarica agenda
+      </a>
+      <a href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-calendar-arrow-down me-1"></i>Scarica scadenze
+      </a>
+      <span class="small text-muted mt-1">
+        Importazione una-tantum: il file <code>.ics</code> non si aggiorna automaticamente.
+      </span>
+    </div>
+  </div>
+
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
+
+<script>
+function copiaUrl(inputId, btn) {
+  var el = document.getElementById(inputId);
+  navigator.clipboard.writeText(el.value).then(function() {
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copiato!';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-outline-secondary', 'btn-outline-dark', 'btn-outline-primary');
+    setTimeout(function() {
+      btn.innerHTML = orig;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-outline-secondary');
+    }, 2000);
+  }).catch(function() {
+    el.select();
+    document.execCommand('copy');
+  });
+}
+
+function copiaEApri(inputId, webcalUrl) {
+  var el = document.getElementById(inputId);
+  navigator.clipboard.writeText(webcalUrl).then(function() {
+    alert('Link webcal:// copiato!\n\nIncollalo in Apple Calendar → Aggiungi sottoscrizione.');
+  }).catch(function() {
+    el.value = webcalUrl;
+    el.select();
+    document.execCommand('copy');
+    el.value = '{{ feeds.completo }}';
+  });
+}
+</script>
+{% endblock %}

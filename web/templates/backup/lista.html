@@ -3,32 +3,35 @@
 {% block page_title %}Backup & Ripristino{% endblock %}
 
 {% block content %}
-{# Stat cards #}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-primary">{{ stats.totale }}</div>
-      <div class="small text-muted">Backup totali</div>
-    </div>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-cloud-upload"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Backup & Ripristino</h1>
+    <p class="ds-ph-sub">Gestione backup dei dati dello studio</p>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-success">{{ stats.ok }}</div>
-      <div class="small text-muted">Completati</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-danger">{{ stats.falliti }}</div>
-      <div class="small text-muted">Falliti</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-info">{{ stats.dimensione_totale_mb }} MB</div>
-      <div class="small text-muted">Spazio totale</div>
-    </div>
-  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> backup totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="num">{{ stats.ok }}</span> completati
+  </span>
+  {% if stats.falliti %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-x-circle text-danger"></i>
+    <span class="num">{{ stats.falliti }}</span> falliti
+  </span>
+  {% endif %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-hdd text-info"></i>
+    <span class="num">{{ stats.dimensione_totale_mb }} MB</span> spazio totale
+  </span>
 </div>
 
 {# Esegui backup #}
@@ -143,9 +146,12 @@
     </div>
   </div>
   {% else %}
-  <div class="card-body text-center text-muted py-5">
-    <i class="bi bi-cloud-slash fs-1 d-block mb-2"></i>
-    Nessun backup ancora eseguito.
+  <div class="card-body">
+    <div class="ds-empty py-3">
+      <i class="bi bi-cloud-slash ds-empty-icon"></i>
+      <div class="ds-empty-title">Nessun backup eseguito</div>
+      <div class="ds-empty-sub">Esegui il primo backup per proteggere i dati dello studio.</div>
+    </div>
   </div>
   {% endif %}
 </div>

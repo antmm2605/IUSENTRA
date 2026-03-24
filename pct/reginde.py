@@ -304,10 +304,14 @@ class ClientReGINde:
     """
     Client per la ricerca nel ReGINde e nel registro uffici giudiziari.
 
-    Offre tre livelli di ricerca:
-    1. Registro locale interno (UFFICI_GIUDIZIARI) — istantaneo
-    2. API PST (Portale Servizi Telematici) — richiede connettività
-    3. Fallback fuzzy sul registro locale — per errori di battitura
+    Gli uffici vengono ora letti dal GestoreUfficiGiudiziari (pct/uffici_giudiziari.py)
+    che mantiene una cache JSON persistente con aggiornamento automatico da sorgenti
+    remote (PST MinGiust / URL configurabile).
+
+    Funzionalità:
+    1. cerca_ufficio_giudiziario() — ricerca full-text multi-strategia
+    2. elenca_uffici()             — lista filtrata per tipo/distretto
+    3. cerca_avvocato_cf()         — ReGINde avvocati via PST
     """
 
     REGINDE_BASE_URL = "https://pst.giustizia.it/PST/resources/rest"
@@ -315,15 +319,23 @@ class ClientReGINde:
     def __init__(self, session=None):
         import requests as req
         self.session = session or req.Session()
-        self.session.headers.update({"User-Agent": "PCT-Studio/1.0 (reginde-client)"})
+        self.session.headers.update({"User-Agent": "PCT-Studio/2.0 (reginde-client)"})
+        from pct.uffici_giudiziari import get_gestore
+        self._gestore = get_gestore()
+
+    def _as_ufficio(self, d: dict) -> UfficioGiudiziario:
+        return UfficioGiudiziario(
+            codice=d.get("codice", ""),
+            nome=d.get("nome", ""),
+            distretto=d.get("distretto", ""),
+            pec=d.get("pec", ""),
+            tipo=d.get("tipo", "TRIBUNALE"),
+        )
 
     # ---------------------------------------------------------------- Avvocati
 
     def cerca_avvocato_cf(self, codice_fiscale: str) -> Optional[SoggettoReGINde]:
-        """
-        Cerca un avvocato nel ReGINde per codice fiscale.
-        Tenta prima l'API PST, poi restituisce None.
-        """
+        """Cerca un avvocato nel ReGINde per codice fiscale (API PST)."""
         cf = codice_fiscale.upper().strip()
         try:
             resp = self.session.get(
@@ -354,93 +366,70 @@ class ClientReGINde:
         tipo=_TIPO_DEFAULT,
     ) -> Optional[UfficioGiudiziario]:
         """
-        Cerca un ufficio giudiziario per nome (ricerca multi-strategia).
+        Cerca un ufficio giudiziario per nome nel registro aggiornato.
 
         Strategie:
-        1. Match esatto per chiave (TRIBUNALE_MILANO)
-        2. Match parziale nel campo nome
-        3. Ricerca per slug normalizzato
-        4. Query API PST (fallback remoto)
+        1. Match esatto nel nome (case-insensitive, normalizzato)
+        2. Match parziale (nome contiene il testo cercato)
+        3. Slug normalizzato nella PEC
+        4. Ricerca senza filtro tipo (se chiamata con tipo default)
         """
         nome_up = nome.upper().strip()
         slug_cerca = _normalize_slug(nome)
-        # tipo=_TIPO_DEFAULT → prima chiamata, cerca per TRIBUNALE poi riprova senza filtro
-        # tipo=None          → chiamata interna senza filtro tipo
-        # tipo=stringa       → filtra esplicitamente per quel tipo
+
         if tipo is _TIPO_DEFAULT:
             tipo_filtro = "TRIBUNALE"
         elif tipo is None:
             tipo_filtro = ""
         else:
-            tipo_filtro = tipo.upper()
+            tipo_filtro = str(tipo).upper()
 
-        # 1. Chiave esatta
-        chiave_esatta = f"{tipo_filtro}_{nome_up.replace(' ', '_')}"
-        if chiave_esatta in UFFICI_GIUDIZIARI:
-            return UFFICI_GIUDIZIARI[chiave_esatta]
+        uffici = self._gestore.carica()
 
-        # 2. Cerca nei valori: nome contiene la stringa cercata
-        for uff in UFFICI_GIUDIZIARI.values():
-            if tipo_filtro and uff.tipo != tipo_filtro:
+        # 1 + 2. Match nome
+        for d in uffici:
+            if tipo_filtro and d.get("tipo") != tipo_filtro:
                 continue
-            if nome_up in uff.nome.upper() or uff.nome.upper() in nome_up:
-                return uff
+            n = d.get("nome", "").upper()
+            if nome_up == n or nome_up in n or n in nome_up:
+                return self._as_ufficio(d)
 
-        # 3. Slug normalizzato nella PEC
-        for uff in UFFICI_GIUDIZIARI.values():
-            if tipo_filtro and uff.tipo != tipo_filtro:
+        # 3. Slug nella PEC
+        for d in uffici:
+            if tipo_filtro and d.get("tipo") != tipo_filtro:
                 continue
-            if slug_cerca in uff.pec.lower():
-                return uff
+            if slug_cerca in d.get("pec", "").lower():
+                return self._as_ufficio(d)
 
-        # 4. Ricerca senza filtro tipo (fallback — solo dalla prima chiamata)
+        # 4. Fallback senza filtro tipo
         if tipo is _TIPO_DEFAULT:
             return self.cerca_ufficio_giudiziario(nome, tipo=None)
-
-        # 5. Ricerca remota PST (ultimo tentativo)
-        try:
-            resp = self.session.get(
-                f"{self.REGINDE_BASE_URL}/ricercaUfficiGiudiziari",
-                params={"nome": nome, "tipo": tipo_filtro},
-                timeout=8,
-            )
-            if resp.ok:
-                data = resp.json()
-                uffici = data.get("risultati") or data.get("data") or []
-                if uffici:
-                    u = uffici[0]
-                    return UfficioGiudiziario(
-                        codice=u.get("codice", ""),
-                        nome=u.get("nome", nome),
-                        distretto=u.get("distretto", ""),
-                        pec=u.get("pec", ""),
-                        tipo=u.get("tipo", "TRIBUNALE"),
-                    )
-        except Exception:
-            pass
 
         return None
 
     def ottieni_pec_ufficio(self, codice_ufficio: str) -> Optional[str]:
         """Restituisce la PEC dato il codice ufficio."""
-        for uff in UFFICI_GIUDIZIARI.values():
-            if uff.codice == codice_ufficio:
-                return uff.pec
+        for d in self._gestore.carica():
+            if d.get("codice") == codice_ufficio:
+                return d.get("pec")
         return None
 
     def elenca_uffici(
         self,
         distretto: Optional[str] = None,
         tipo: Optional[str] = None,
-    ) -> list:
+    ) -> list[UfficioGiudiziario]:
         """Elenca gli uffici giudiziari, con filtri opzionali."""
-        uffici = list(UFFICI_GIUDIZIARI.values())
+        uffici = self._gestore.carica()
         if distretto:
             uffici = [u for u in uffici
-                      if u.distretto.upper() == distretto.upper()]
+                      if u.get("distretto", "").upper() == distretto.upper()]
         if tipo:
-            uffici = [u for u in uffici if u.tipo == tipo.upper()]
-        return sorted(uffici, key=lambda u: u.nome)
+            uffici = [u for u in uffici if u.get("tipo") == tipo.upper()]
+        return sorted(
+            [self._as_ufficio(d) for d in uffici],
+            key=lambda u: u.nome,
+        )
 
 
 # ================================================================ helpers

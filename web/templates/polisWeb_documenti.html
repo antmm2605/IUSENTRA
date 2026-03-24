@@ -3,78 +3,222 @@
 {% block pct_modulo %}polisWeb{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3" style="max-width:900px">
 
-  <div class="d-flex align-items-center gap-2 mb-3">
+  {# ---- Header ---- #}
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
     <a href="{{ url_for('polisWeb_home') }}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left"></i>
     </a>
-    <h5 class="mb-0 fw-bold">
-      Fascicolo telematico — RG {{ numero_rg }}/{{ anno_rg }}
-    </h5>
+    <div>
+      <h5 class="mb-0 fw-bold">
+        <i class="bi bi-folder2-open me-2 text-warning"></i>Fascicolo telematico — RG {{ numero_rg }}/{{ anno_rg }}
+      </h5>
+      {% if nome_ufficio %}
+      <div class="text-muted small ms-1">
+        <i class="bi bi-building me-1"></i>{{ nome_ufficio }}
+        {% if codice_ufficio and codice_ufficio != nome_ufficio %}
+        <span class="font-monospace text-muted ms-1" style="font-size:.75rem">{{ codice_ufficio }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
     {% if demo_mode %}
-    <span class="badge bg-warning text-dark ms-1 small">DEMO</span>
+    <span class="badge bg-warning text-dark ms-1 small"><i class="bi bi-cone me-1"></i>DEMO</span>
+    {% endif %}
+    {% if depositi %}
+    <span class="badge bg-secondary ms-auto">
+      {{ depositi|length }} atti · {{ documenti|length }} file totali
+    </span>
     {% endif %}
   </div>
 
-  {% if documenti %}
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-files me-2 text-primary"></i>
-      Documenti nel fascicolo — {{ documenti|length }} atti
-    </div>
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 small">
-        <thead class="table-light">
-          <tr>
-            <th>Data deposito</th>
-            <th>Nome file</th>
-            <th>Tipo</th>
-            <th>Mittente</th>
-            <th>Dimensione</th>
-            <th>Disponibile</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for d in documenti|sort(attribute='data_deposito', reverse=True) %}
-          <tr>
-            <td class="text-nowrap">{{ d.data_deposito or '—' }}</td>
-            <td class="fw-semibold">{{ d.nome }}</td>
-            <td>
-              <span class="badge bg-light text-dark border">{{ d.tipo|replace('_',' ')|title }}</span>
-            </td>
-            <td class="text-muted">{{ d.mittente or '—' }}</td>
-            <td class="text-muted">
-              {% if d.dimensione_bytes %}
-                {{ (d.dimensione_bytes / 1024)|int }} KB
-              {% else %}—{% endif %}
-            </td>
-            <td>
-              {% if d.disponibile %}
-              <i class="bi bi-check-circle-fill text-success"></i>
-              {% else %}
-              <i class="bi bi-x-circle text-danger" title="Documento non più disponibile"></i>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  {# ---- Alert info PST ---- #}
+  <div class="alert alert-light border small mb-3 py-2">
+    <i class="bi bi-info-circle me-1 text-primary"></i>
+    Documenti letti dal <strong>Portale Servizi Telematici (PST)</strong> — solo consultazione.
+    Per scaricare i file accedere direttamente a
+    <a href="https://pst.giustizia.it" target="_blank" rel="noopener">pst.giustizia.it</a>
+    con CNS/CIE/SPID. Il gestionale non può scaricare documenti in autonomia
+    (il download richiede sessione autenticata via browser).
   </div>
+
+  {% if depositi %}
+
+  {# ---- Vista cartelle (accordion per busta/atto) ---- #}
+  <div class="accordion shadow-sm" id="accordionDepositi">
+    {% for dep in depositi %}
+    {% set idx = loop.index %}
+    {% set aperto = loop.first %}
+
+    {# Determina icona e colore per tipo atto #}
+    {% set ta = dep.tipo_atto | upper %}
+    {% if 'DECRETO' in ta and 'INGIUNTIVO' in ta %}
+      {% set dep_icon = 'bi-file-earmark-ruled-fill' %}
+      {% set dep_col  = 'warning' %}
+    {% elif 'PROVVEDIMENTO' in ta or 'SENTENZA' in ta or 'ORDINANZA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-text-fill' %}
+      {% set dep_col  = 'success' %}
+    {% elif 'OPPOSIZIONE' in ta %}
+      {% set dep_icon = 'bi-file-earmark-x-fill' %}
+      {% set dep_col  = 'danger' %}
+    {% elif 'MEMORIA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-check-fill' %}
+      {% set dep_col  = 'primary' %}
+    {% elif 'RICORSO' in ta or 'CITAZIONE' in ta %}
+      {% set dep_icon = 'bi-file-earmark-arrow-up-fill' %}
+      {% set dep_col  = 'primary' %}
+    {% elif 'REPLICA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-arrow-up-fill' %}
+      {% set dep_col  = 'info' %}
+    {% else %}
+      {% set dep_icon = 'bi-folder-fill' %}
+      {% set dep_col  = 'secondary' %}
+    {% endif %}
+
+    {# Conta tipi file della busta #}
+    {% set n_atto    = dep.documenti | selectattr('tipo','equalto','ATTO')     | list | length %}
+    {% set n_allegati= dep.documenti | selectattr('tipo','equalto','ALLEGATO') | list | length %}
+    {% set n_indice  = dep.documenti | selectattr('tipo','equalto','INDICE')   | list | length %}
+    {% set n_prov    = dep.documenti | selectattr('tipo','equalto','PROVVEDIMENTO') | list | length %}
+
+    <div class="accordion-item border mb-2 rounded overflow-hidden">
+      <h2 class="accordion-header" id="heading-dep-{{ idx }}">
+        <button class="accordion-button {% if not aperto %}collapsed{% endif %} py-2 px-3"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-dep-{{ idx }}"
+                aria-expanded="{{ 'true' if aperto else 'false' }}"
+                aria-controls="collapse-dep-{{ idx }}">
+
+          <i class="bi {{ dep_icon }} text-{{ dep_col }} me-2 fs-5 flex-shrink-0"></i>
+
+          <div class="flex-grow-1">
+            <div class="fw-semibold">{{ dep.tipo_atto }}</div>
+            <div class="d-flex gap-2 flex-wrap mt-1" style="font-size:.72rem">
+              <span class="text-muted">
+                <i class="bi bi-calendar3 me-1"></i>{{ dep.data_deposito or '—' }}
+              </span>
+              <span class="text-muted">
+                <i class="bi bi-envelope me-1"></i>{{ dep.mittente or '—' }}
+              </span>
+              <span class="badge bg-light text-dark border">
+                {{ dep.documenti | length }} file
+              </span>
+              {% if n_atto %}
+              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                {{ n_atto }} atto{% if n_atto>1 %}i{% endif %}
+              </span>
+              {% endif %}
+              {% if n_allegati %}
+              <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                {{ n_allegati }} allegat{% if n_allegati>1 %}i{% else %}o{% endif %}
+              </span>
+              {% endif %}
+              {% if n_indice %}
+              <span class="badge bg-light text-muted border">indice</span>
+              {% endif %}
+              {% if n_prov %}
+              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                provvedimento
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if dep.id_deposito and not dep.id_deposito.startswith('__') %}
+          <span class="font-monospace text-muted d-none d-md-inline"
+                style="font-size:.68rem;margin-right:.5rem">{{ dep.id_deposito }}</span>
+          {% endif %}
+        </button>
+      </h2>
+
+      <div id="collapse-dep-{{ idx }}"
+           class="accordion-collapse collapse {% if aperto %}show{% endif %}"
+           aria-labelledby="heading-dep-{{ idx }}"
+           data-bs-parent="#accordionDepositi">
+        <div class="accordion-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small mob-cards">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:2rem"></th>
+                  <th>Nome file</th>
+                  <th>Tipo</th>
+                  <th>Dimensione</th>
+                  <th class="text-center">Disponibile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in dep.documenti %}
+                <tr class="{% if not d.disponibile %}table-secondary text-muted{% endif %}">
+                  <td data-mob-hide class="text-center ps-3">
+                    {# Icona per tipo file #}
+                    {% if d.tipo == 'ATTO' %}
+                      <i class="bi bi-file-earmark-pdf-fill text-danger" title="Atto principale"></i>
+                    {% elif d.tipo == 'ALLEGATO' %}
+                      <i class="bi bi-paperclip text-secondary" title="Allegato"></i>
+                    {% elif d.tipo == 'INDICE' %}
+                      <i class="bi bi-list-ol text-info" title="Indice documenti"></i>
+                    {% elif d.tipo == 'PROVVEDIMENTO' %}
+                      <i class="bi bi-file-earmark-text-fill text-success" title="Provvedimento"></i>
+                    {% elif d.tipo == 'MEMORIA' %}
+                      <i class="bi bi-file-earmark-check-fill text-primary" title="Memoria"></i>
+                    {% else %}
+                      <i class="bi bi-file-earmark text-muted"></i>
+                    {% endif %}
+                  </td>
+                  <td data-label="File" style="min-width:0">
+                    <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
+                      <div class="fw-semibold" style="font-size:.82rem">{{ d.nome }}{% if d.nome.endswith('.p7m') %}<i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente (p7m)"></i>{% endif %}</div>
+                      <div><small class="text-muted">{{ d.id_documento }}</small></div>
+                    </div>
+                  </td>
+                  <td data-label="Tipo">
+                    <span class="badge bg-light text-dark border" style="font-size:.7rem">
+                      {{ d.tipo | replace('_',' ') | title }}
+                    </span>
+                  </td>
+                  <td data-label="Dim." class="text-muted">
+                    {% if d.dimensione_bytes %}
+                      {% if d.dimensione_bytes >= 1048576 %}
+                        {{ "%.1f"|format(d.dimensione_bytes / 1048576) }} MB
+                      {% else %}
+                        {{ (d.dimensione_bytes / 1024)|int }} KB
+                      {% endif %}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td data-label="Disp." class="text-center">
+                    {% if d.disponibile %}
+                    <i class="bi bi-check-circle-fill text-success" title="Disponibile"></i>
+                    {% else %}
+                    <i class="bi bi-x-circle text-danger" title="Non disponibile"></i>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {# Nota regola PST: download richiede sessione autenticata #}
+          <div class="px-3 py-2 border-top bg-light d-flex align-items-center gap-2 small text-muted">
+            <i class="bi bi-lock-fill text-secondary flex-shrink-0"></i>
+            Per scaricare questi documenti accedere a
+            <a href="https://pst.giustizia.it" target="_blank" rel="noopener" class="ms-1">
+              pst.giustizia.it
+            </a>
+            con il proprio dispositivo CNS/CIE/SPID.
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
   {% else %}
   <div class="alert alert-info">
     <i class="bi bi-info-circle me-2"></i>Nessun documento disponibile per questo fascicolo.
   </div>
   {% endif %}
 
-  <div class="alert alert-light border small mt-3">
-    <i class="bi bi-info-circle me-2 text-primary"></i>
-    Per scaricare i documenti dal fascicolo telematico è necessario accedere direttamente
-    a <a href="https://pst.giustizia.it" target="_blank" rel="noopener">PolisWeb (pst.giustizia.it)</a>
-    con il proprio dispositivo CNS/CIE/SPID. Il gestionale mostra l'elenco ma non può
-    scaricare i documenti in autonomia (il download diretto richiede sessione autenticata via browser).
-  </div>
-
-</div>
 {% endblock %}

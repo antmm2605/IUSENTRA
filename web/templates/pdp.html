@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+{% block title %}PDP Penale — Portale Deposito Atti{% endblock %}
+{% block pct_modulo %}pdp{% endblock %}
+
+{% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
+{% block content %}
+
+{{ banner_fascicolo(portale_col='danger', portale_label='PDP Penale') }}
+
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <i class="bi bi-shield-exclamation fs-4 text-danger"></i>
+    <h4 class="mb-0 fw-bold">PDP Penale</h4>
+    <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
+      Portale Deposito Atti Penale — MinGiust
+    </span>
+    {% if demo_mode %}
+    <span class="badge bg-warning text-dark ms-2">
+      <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
+    </span>
+    {% endif %}
+  </div>
+
+  {% if demo_mode %}
+  <div class="alert alert-warning alert-dismissible fade show small mb-3">
+    <i class="bi bi-cone me-2"></i>
+    <strong>Certificato non configurato — modalità demo (offline).</strong>
+    I risultati mostrati sono dati di esempio.
+    Per accedere al PDP reale configurare il certificato CNS in
+    <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>.
+    <ul class="mb-0 mt-1">
+      <li><strong>P12/PFX:</strong> <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
+      <li><strong>PEM:</strong> <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code></li>
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'danger') }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  {# ---- Form ricerca ---- #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-search text-danger"></i>Ricerca fascicoli penali
+      <button type="button" class="btn-help ms-1"
+              data-bs-toggle="popover"
+              data-bs-title="Come funziona la ricerca PDP"
+              data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>Portale Deposito Atti Penale (PDP)</strong> tramite SOAP SNT.</p><ul><li>Seleziona tribunale o procura e inserisci almeno il numero RGNR/RG oppure il nome dell'imputato.</li><li>In <strong>modalità demo</strong> vengono mostrati dati di esempio.</li></ul>">?</button>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('pdp_ricerca') }}">
+        <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
+        <div class="row g-3">
+
+          {# ---- Ufficio giudiziario ---- #}
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">
+              Ufficio giudiziario <span class="text-danger">*</span>
+            </label>
+            <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
+              <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
+              <button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Tribunale</button>
+              <button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>
+              <button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>
+              <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>
+            </div>
+            <div class="position-relative" id="ufficio-wrap">
+              <div class="input-group">
+                <span class="input-group-text bg-white" id="ufficio-tipo-icon">
+                  <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="ufficio-input" class="form-control border-start-0 ps-0"
+                       placeholder="Cerca per città o nome…"
+                       autocomplete="off"
+                       value="{{ ufficio_sel_nome or '' }}"
+                       required>
+                <button type="button" class="btn btn-outline-secondary" id="ufficio-clear"
+                        title="Cancella" style="display:none">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div id="ufficio-dropdown"></div>
+            </div>
+            <input type="hidden" name="ufficio" id="ufficio-value" value="{{ ufficio_sel or '' }}">
+            <div id="ufficio-sel-badge" class="mt-1" style="display:none">
+              <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle small"
+                    id="ufficio-sel-label"></span>
+            </div>
+          </div>
+
+          {# ---- Numero RG ---- #}
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">N. RGNR / RG</label>
+            <input type="text" name="numero_rg" class="form-control"
+                   placeholder="es. 4521"
+                   value="{{ numero_rg or '' }}">
+          </div>
+
+          {# ---- Anno ---- #}
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Anno</label>
+            <input type="number" name="anno_rg" class="form-control"
+                   placeholder="{{ oggi.year }}"
+                   min="1990" max="{{ oggi.year }}"
+                   value="{{ anno_rg or '' }}">
+          </div>
+
+          {# ---- Tipo registro ---- #}
+          <div class="col-md-3 d-flex align-items-end">
+            <div class="w-100">
+              <label class="form-label fw-semibold">Registro</label>
+              <select name="tipo_registro" class="form-select">
+                <option value="">Tutti</option>
+                <option value="RGNR" {% if tipo_registro == 'RGNR' %}selected{% endif %}>RGNR — Notizie di reato</option>
+                <option value="RG"   {% if tipo_registro == 'RG'   %}selected{% endif %}>RG — Dibattimento</option>
+                <option value="GIP"  {% if tipo_registro == 'GIP'  %}selected{% endif %}>GIP</option>
+                <option value="GUP"  {% if tipo_registro == 'GUP'  %}selected{% endif %}>GUP</option>
+                <option value="RGES" {% if tipo_registro == 'RGES' %}selected{% endif %}>RGES — Esecuzione</option>
+              </select>
+            </div>
+          </div>
+
+          {# ---- Nome imputato ---- #}
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">
+              Nome imputato / indagato
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Ricerca per nome"
+                      data-bs-content="Digita almeno 2 caratteri per cercare tra i clienti in anagrafica. Puoi anche inserire un nome manualmente.">?</button>
+            </label>
+            <div class="position-relative" id="nome-parte-wrap">
+              <input type="text" name="nome_imputato" id="nome-parte-input" class="form-control"
+                     placeholder="es. Verdi Giuseppe — cerca nei tuoi clienti"
+                     autocomplete="off"
+                     value="{{ nome_imputato or (fascicolo.controparte if fascicolo else '') }}">
+              <div id="nome-parte-dropdown"
+                   style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9998;
+                          background:#fff;border:1px solid #dee2e6;border-radius:8px;
+                          box-shadow:0 6px 20px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:2px">
+              </div>
+            </div>
+          </div>
+
+          {# ---- Cerca ---- #}
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-danger w-100">
+              <i class="bi bi-search me-1"></i>Cerca nel PDP
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---- Risultati ricerca ---- #}
+  {% if fascicoli is defined %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+      <span>
+        <i class="bi bi-list-ul me-2 text-danger"></i>
+        Risultati — {{ fascicoli|length }} pratica/e trovate
+      </span>
+    </div>
+    {% if fascicoli %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small mob-cards">
+        <thead class="table-light">
+          <tr>
+            <th>RG / Anno</th>
+            <th>Registro</th>
+            <th>Reato / Imputazione</th>
+            <th>Imputati</th>
+            <th>Fase</th>
+            <th>Udienza</th>
+            <th>Stato</th>
+            <th class="text-end">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli %}
+          <tr>
+            <td data-label="RG" class="text-nowrap fw-semibold">
+              {{ f.numero_rg }}/{{ f.anno_rg }}
+              {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
+            </td>
+            <td data-label="Registro" data-mob-hide>
+              <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+                {{ f.tipo_registro }}
+              </span>
+            </td>
+            <td data-label="Reato">
+              {{ f.reato or '—' }}
+              {% if f.giudice %}<br><small class="text-muted">Dr. {{ f.giudice }}</small>{% endif %}
+            </td>
+            <td data-label="Imputati" class="small text-muted" data-mob-hide>
+              {% for p in f.imputati[:2] %}{{ p }}<br>{% endfor %}
+              {% if f.imputati|length > 2 %}<em>+{{ f.imputati|length - 2 }} altri</em>{% endif %}
+              {% if not f.imputati %}—{% endif %}
+            </td>
+            <td data-label="Fase" data-mob-hide>
+              <span class="badge bg-secondary">{{ f.fase|replace('_',' ')|title }}</span>
+            </td>
+            <td data-label="Udienza" class="text-nowrap">
+              {% if f.data_udienza %}
+                <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td data-label="Stato">
+              <span class="badge rounded-pill
+                {% if f.stato == 'PENDENTE' %}bg-primary
+                {% elif f.stato == 'DEFINITO' %}bg-success
+                {% elif f.stato == 'ARCHIVIATO' %}bg-success
+                {% elif f.stato == 'SOSPESO' %}bg-warning text-dark
+                {% else %}bg-secondary{% endif %}">
+                {{ f.stato }}
+              </span>
+            </td>
+            <td data-label="" class="text-end text-nowrap">
+              <a href="{{ url_for('pdp_documenti',
+                          codice_ufficio=f.codice_ufficio,
+                          numero_rg=f.numero_rg,
+                          anno_rg=f.anno_rg) }}"
+                 class="btn btn-sm btn-outline-secondary"
+                 title="Visualizza documenti nel fascicolo telematico">
+                <i class="bi bi-files"></i>
+              </a>
+              <form method="post" action="{{ url_for('pdp_importa') }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Importare RG {{ f.numero_rg }}/{{ f.anno_rg }} come nuovo fascicolo penale?')">
+                <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+                <input type="hidden" name="numero_rg" value="{{ f.numero_rg }}">
+                <input type="hidden" name="anno_rg" value="{{ f.anno_rg }}">
+                <input type="hidden" name="tipo_registro" value="{{ f.tipo_registro }}">
+                <input type="hidden" name="fase" value="{{ f.fase }}">
+                <input type="hidden" name="stato" value="{{ f.stato }}">
+                <input type="hidden" name="reato" value="{{ f.reato }}">
+                <input type="hidden" name="sezione" value="{{ f.sezione }}">
+                <input type="hidden" name="giudice" value="{{ f.giudice }}">
+                <input type="hidden" name="data_iscrizione" value="{{ f.data_iscrizione }}">
+                <input type="hidden" name="data_udienza" value="{{ f.data_udienza }}">
+                <input type="hidden" name="imputati_json" value="{{ f.imputati | tojson }}">
+                <input type="hidden" name="parti_offese_json" value="{{ f.parti_offese | tojson }}">
+                <input type="hidden" name="codice_ufficio" value="{{ f.codice_ufficio }}">
+                <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
+                <button type="submit" class="btn btn-sm btn-danger"
+                        title="Importa come nuovo fascicolo penale">
+                  <i class="bi bi-download me-1"></i>Importa
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted small">
+      <i class="bi bi-search fs-4 d-block mb-2"></i>
+      Nessun fascicolo trovato con i criteri specificati.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ---- Info tecnica ---- #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold small">
+      <i class="bi bi-info-circle me-2 text-danger"></i>Come funziona l'integrazione PDP
+    </div>
+    <div class="card-body small text-muted">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-shield-exclamation text-danger me-1"></i>Portale Deposito Atti Penale
+          </div>
+          Sistema introdotto con la <strong>Riforma Cartabia</strong> (D.Lgs. 150/2022).
+          Consente la consultazione e il deposito telematico di atti nel processo penale
+          tramite web service SOAP SNT con autenticazione CNS.
+        </div>
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-download text-danger me-1"></i>Importazione pratiche
+          </div>
+          La funzione "Importa" crea automaticamente un nuovo fascicolo di tipo
+          <strong>Penale</strong> con i dati RGNR/RG, imputazione, giudice e
+          la prossima udienza nell'agenda.
+        </div>
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-key text-danger me-1"></i>Credenziali
+          </div>
+          Il PDP usa le <strong>stesse credenziali CNS</strong> del PCT civile.
+          Configurare il certificato in
+          <a href="{{ url_for('impostazioni.index', tab='firma') }}">Impostazioni → Firma Digitale</a>
+          (P12 o PEM).
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ---------------------------------------------------------------- Autocomplete nome imputato
+(function () {
+  const inp  = document.getElementById('nome-parte-input');
+  const drop = document.getElementById('nome-parte-dropdown');
+  if (!inp || !drop) return;
+  let timer = null;
+  function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function mostra(clienti) {
+    if (!clienti.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = clienti.map(c => {
+      const sub = [c.tipo, c.codice_fiscale || c.cf || ''].filter(Boolean).join(' · ');
+      return `<div class="uff-item" data-nome="${escH(c.nome_completo || c.nome || '')}" style="cursor:pointer">
+        <i class="bi bi-person text-danger uff-icon"></i>
+        <div class="uff-body">
+          <div class="uff-nome">${escH(c.nome_completo || c.nome || '')}</div>
+          ${sub ? `<div class="uff-sub">${escH(sub)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    drop.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        inp.value = el.dataset.nome;
+        drop.style.display = 'none';
+      });
+    });
+    drop.style.display = 'block';
+  }
+  inp.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { drop.style.display = 'none'; return; }
+    timer = setTimeout(() => {
+      fetch('/api/clienti?q=' + encodeURIComponent(q))
+        .then(r => r.json()).then(mostra).catch(() => { drop.style.display = 'none'; });
+    }, 200);
+  });
+  document.addEventListener('click', e => {
+    if (!document.getElementById('nome-parte-wrap')?.contains(e.target))
+      drop.style.display = 'none';
+  });
+})();
+
+// ---------------------------------------------------------------- Autocomplete uffici giudiziari
+(function () {
+  const input    = document.getElementById('ufficio-input');
+  const hidden   = document.getElementById('ufficio-value');
+  const dropdown = document.getElementById('ufficio-dropdown');
+  const clearBtn = document.getElementById('ufficio-clear');
+  const badge    = document.getElementById('ufficio-sel-badge');
+  const badgeLbl = document.getElementById('ufficio-sel-label');
+  const tabs     = document.getElementById('ufficio-tabs');
+  const tipoIcon = document.getElementById('ufficio-tipo-icon');
+  if (!input) return;
+
+  const TIPO_ICONS = {
+    TRIBUNALE: 'bi-building', PROCURA: 'bi-shield-exclamation',
+    PROCURA_GENERALE: 'bi-shield-fill', CORTE_ASSISE: 'bi-hammer',
+    TM: 'bi-people-fill', SORVEGLIANZA: 'bi-eye-fill',
+    CORTE_APPELLO: 'bi-bank2',
+  };
+  const TIPO_LABEL = {
+    TRIBUNALE: 'Tribunale', PROCURA: 'Procura della Repubblica',
+    PROCURA_GENERALE: 'Procura Generale', CORTE_ASSISE: "Corte d'Assise",
+    TM: 'Trib. Minorenni', SORVEGLIANZA: 'Trib. Sorveglianza',
+    CORTE_APPELLO: "Corte d'Appello",
+  };
+  const GRUPPI_ORDER = ['CORTE_APPELLO', 'TRIBUNALE', 'PROCURA', 'CORTE_ASSISE', 'TM', 'SORVEGLIANZA'];
+
+  let tipoFiltro = '', items = [], focusIdx = -1, timer = null;
+
+  function posiziona() {
+    const rect = input.getBoundingClientRect();
+    dropdown.style.top  = (rect.bottom + 4) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    dropdown.style.maxHeight = Math.min(340, window.innerHeight - rect.bottom - 8) + 'px';
+  }
+
+  tabs?.querySelectorAll('.uff-tab').forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.stopPropagation();
+      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      tipoFiltro = tab.dataset.tipo;
+      tipoIcon.innerHTML = `<i class="bi ${tipoFiltro ? (TIPO_ICONS[tipoFiltro] || 'bi-search') : 'bi-search'} text-muted"></i>`;
+      if (input.value.trim().length >= 2) cerca(input.value.trim()); else chiudi();
+      input.focus();
+    });
+  });
+
+  function renderDropdown(data) {
+    focusIdx = -1; items = []; posiziona();
+    if (!data.length) {
+      dropdown.innerHTML = `<div class="uff-empty"><i class="bi bi-search me-1"></i>Nessun ufficio trovato</div>`;
+      dropdown.classList.add('show'); return;
+    }
+    const gruppi = {};
+    data.forEach(u => { const t = u.tipo || 'TRIBUNALE'; (gruppi[t] = gruppi[t] || []).push(u); });
+    const tipiPresenti = GRUPPI_ORDER.filter(t => gruppi[t]);
+    Object.keys(gruppi).forEach(t => { if (!tipiPresenti.includes(t)) tipiPresenti.push(t); });
+    const multi = tipiPresenti.length > 1;
+    let html = '';
+    tipiPresenti.forEach(tipo => {
+      if (multi) html += `<div class="uff-group-header"><i class="bi ${TIPO_ICONS[tipo] || 'bi-building'}"></i>${TIPO_LABEL[tipo] || tipo}</div>`;
+      gruppi[tipo].forEach(u => {
+        const idx = items.length; items.push(u);
+        html += `<div class="uff-item" data-idx="${idx}" tabindex="-1">
+          <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} uff-icon"></i>
+          <div class="uff-body">
+            <div class="uff-nome">${u.nome}</div>
+            <div class="uff-sub">${u.distretto}${u.pec ? ' · <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
+          </div>
+          ${multi ? '' : `<span class="uff-tipo-badge uff-tipo-${u.tipo}">${TIPO_LABEL[u.tipo] || u.tipo}</span>`}
+        </div>`;
+      });
+    });
+    dropdown.innerHTML = html; dropdown.classList.add('show');
+    dropdown.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(items[+el.dataset.idx]); });
+    });
+  }
+
+  function seleziona(u) {
+    input.value = u.nome; hidden.value = u.codice;
+    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-building'} me-1"></i><strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto})</span>`;
+    badge.style.display = 'block'; clearBtn.style.display = 'inline-flex';
+    input.setCustomValidity(''); chiudi();
+  }
+  function chiudi() { dropdown.classList.remove('show'); focusIdx = -1; }
+  function muoviFocus(dir) {
+    const els = dropdown.querySelectorAll('.uff-item'); if (!els.length) return;
+    els[focusIdx]?.classList.remove('focused');
+    focusIdx = (focusIdx + dir + els.length) % els.length;
+    els[focusIdx]?.classList.add('focused'); els[focusIdx]?.scrollIntoView({ block: 'nearest' });
+  }
+  function cerca(q) {
+    fetch(`/api/uffici?q=${encodeURIComponent(q)}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}`)
+      .then(r => r.json()).then(renderDropdown).catch(() => chiudi());
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer); const q = this.value.trim();
+    hidden.value = ''; badge.style.display = 'none';
+    clearBtn.style.display = q ? 'inline-flex' : 'none';
+    if (q.length < 2) { chiudi(); return; }
+    timer = setTimeout(() => cerca(q), 180);
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); muoviFocus(+1); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); muoviFocus(-1); return; }
+    if (e.key === 'Enter') {
+      const els = dropdown.querySelectorAll('.uff-item');
+      if (focusIdx >= 0 && els[focusIdx]) { e.preventDefault(); seleziona(items[focusIdx]); }
+      return;
+    }
+    if (e.key === 'Escape') { chiudi(); return; }
+  });
+  input.closest('form').addEventListener('submit', function (e) {
+    if (!hidden.value && input.value.trim()) {
+      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}&limit=1`)
+        .then(r => r.json()).then(data => {
+          if (data.length) { seleziona(data[0]); this.submit(); }
+          else { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); }
+        });
+      e.preventDefault(); return;
+    }
+    if (!hidden.value) { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); e.preventDefault(); }
+  });
+  input.addEventListener('input', () => input.setCustomValidity(''));
+  clearBtn.addEventListener('click', () => { input.value = ''; hidden.value = ''; badge.style.display = 'none'; clearBtn.style.display = 'none'; chiudi(); input.focus(); });
+  document.addEventListener('click', e => {
+    if (!document.getElementById('ufficio-wrap')?.contains(e.target) && !document.getElementById('ufficio-tabs')?.contains(e.target)) chiudi();
+  });
+  window.addEventListener('scroll', () => { if (dropdown.classList.contains('show')) posiziona(); }, { passive: true });
+  window.addEventListener('resize', () => { if (dropdown.classList.contains('show')) posiziona(); }, { passive: true });
+  if (hidden.value && input.value) { badgeLbl.textContent = input.value; badge.style.display = 'block'; clearBtn.style.display = 'inline-flex'; }
+})();
+</script>
+{% endblock %}

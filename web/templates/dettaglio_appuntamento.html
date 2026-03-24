@@ -5,33 +5,38 @@
 {% block content %}
 {% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
 
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-calendar-check"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ app.titolo }}</h1>
+    <p class="ds-ph-sub">
+      <span class="badge badge-{{ app.tipo.value }} me-1">{{ app.tipo.value }}</span>
+      <span class="badge bg-{{ sc[app.stato.value] }} me-1">{{ app.stato.value }}</span>
+      {{ app.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}
+      {% if app.luogo %} · {{ app.luogo }}{% endif %}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('modifica_appuntamento', id_app=app.id) }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
+    </a>
+    <a href="{{ url_for('agenda_view') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Agenda</span>
+    </a>
+  </div>
+</div>
+
 <div class="row g-3">
 
   {# ---- Scheda principale ---- #}
   <div class="col-lg-8">
     <div class="card shadow-sm">
-      <div class="card-header d-flex align-items-center justify-content-between">
-        <div>
-          <span class="badge badge-{{ app.tipo.value }} me-2">{{ app.tipo.value }}</span>
-          <span class="badge bg-{{ sc[app.stato.value] }}">{{ app.stato.value }}</span>
-        </div>
-        <div class="d-flex gap-2">
-          <a href="{{ url_for('modifica_appuntamento', id_app=app.id) }}"
-             class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-pencil me-1"></i>Modifica
-          </a>
-          <form method="post"
-                action="{{ url_for('elimina_appuntamento', id_app=app.id) }}"
-                onsubmit="return confirm('Eliminare questo appuntamento?')">
-            <button class="btn btn-sm btn-outline-danger">
-              <i class="bi bi-trash me-1"></i>Elimina
-            </button>
-          </form>
-        </div>
+      <div class="card-header fw-semibold">
+        <i class="bi bi-calendar-event me-2 text-primary"></i>Dettaglio appuntamento
       </div>
 
       <div class="card-body">
-        <h4 class="fw-bold mb-3">{{ app.titolo }}</h4>
 
         <div class="row g-3">
           <div class="col-sm-6">
@@ -132,6 +137,13 @@
            class="list-group-item list-group-item-action">
           <i class="bi bi-plus-circle me-2 text-warning"></i>Nuovo appuntamento
         </a>
+        <form method="post"
+              action="{{ url_for('elimina_appuntamento', id_app=app.id) }}"
+              onsubmit="return confirm('Eliminare questo appuntamento?')">
+          <button class="list-group-item list-group-item-action text-danger w-100 text-start border-0 bg-transparent">
+            <i class="bi bi-trash me-2"></i>Elimina appuntamento
+          </button>
+        </form>
       </div>
     </div>
   </div>

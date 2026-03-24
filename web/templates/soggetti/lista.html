@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Soggetti — Anagrafica{% endblock %}
+{% block page_title %}Soggetti{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-people-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Anagrafica Soggetti</h1>
+    <p  class="ds-ph-sub">Controparti, difensori, testimoni, periti, corrispondenti e altri soggetti processuali</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('nuovo_soggetto') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-person-plus-fill"></i><span class="d-none d-sm-inline">Nuovo soggetto</span>
+    </a>
+  </div>
+</div>
+
+{# ── Stats ── #}
+{% set n_pf = soggetti | selectattr('tipo.value', 'equalto', 'PERSONA_FISICA')    | list | length %}
+{% set n_pg = soggetti | selectattr('tipo.value', 'equalto', 'PERSONA_GIURIDICA') | list | length %}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ soggetti|length }}</span> totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-person text-primary"></i>
+    <span class="num">{{ n_pf }}</span> persone fisiche
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-building text-success"></i>
+    <span class="num">{{ n_pg }}</span> persone giuridiche
+  </span>
+</div>
+
+{# ── Barra ricerca + filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="search" name="q" class="ds-search-input" placeholder="Cerca per nome, C.F., email…"
+         value="{{ q or '' }}" autocomplete="off">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:170px">
+    <option value="">Tutti i tipi</option>
+    <option value="PERSONA_FISICA"    {{ 'selected' if tipo_f == 'PERSONA_FISICA' }}>Persona fisica</option>
+    <option value="PERSONA_GIURIDICA" {{ 'selected' if tipo_f == 'PERSONA_GIURIDICA' }}>Persona giuridica</option>
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
+  {% if q or tipo_f %}
+  <a href="{{ url_for('lista_soggetti') }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Lista soggetti ── #}
+{% if not soggetti %}
+<div class="ds-empty">
+  <i class="bi bi-people ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessun soggetto trovato</div>
+  <div class="ds-empty-sub">
+    {% if q or tipo_f %}
+      Nessun risultato per i filtri selezionati.
+    {% else %}
+      Aggiungi controparti, difensori, testimoni e altri soggetti processuali.
+    {% endif %}
+  </div>
+  {% if not q and not tipo_f %}
+  <a href="{{ url_for('nuovo_soggetto') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-person-plus-fill"></i>Nuovo soggetto
+  </a>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="row g-2">
+  {% for s in soggetti %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <a href="{{ url_for('dettaglio_soggetto', id_soggetto=s.id) }}" class="ds-entity-card">
+      <div class="d-flex align-items-center gap-3 p-3">
+
+        {# Avatar / iniziali #}
+        <div class="ds-entity-avatar {% if s.tipo.value == 'PERSONA_GIURIDICA' %}ds-avatar-pg{% else %}ds-avatar-pf{% endif %}">
+          {% if s.tipo.value == 'PERSONA_GIURIDICA' %}
+            <i class="bi bi-building"></i>
+          {% else %}
+            {{ (s.cognome[:1] + s.nome[:1]) | upper if s.cognome else s.nome[:2] | upper }}
+          {% endif %}
+        </div>
+
+        <div class="flex-grow-1 min-width-0">
+          <div class="ds-entity-name text-truncate">{{ s.nome_completo }}</div>
+          <div class="ds-entity-sub">
+            {% if s.qualifica %}
+              <span>{{ s.qualifica }}</span>
+              {% if s.identificativo %} · {% endif %}
+            {% endif %}
+            {% if s.identificativo %}
+              <code class="small">{{ s.identificativo }}</code>
+            {% endif %}
+          </div>
+          <div class="ds-entity-meta">
+            {% if s.recapiti.email %}
+              <span><i class="bi bi-envelope"></i> {{ s.recapiti.email }}</span>
+            {% endif %}
+            {% if s.recapiti.pec %}
+              <span><i class="bi bi-shield-check"></i> PEC</span>
+            {% endif %}
+            {% if s.recapiti.cellulare %}
+              <span><i class="bi bi-phone"></i> {{ s.recapiti.cellulare }}</span>
+            {% endif %}
+            {% if s.id_cliente %}
+              <span class="ds-role ds-role-success"><i class="bi bi-person-check"></i> Cliente studio</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="flex-shrink-0">
+          <span class="badge bg-light text-dark border" style="font-size:.68rem">
+            {{ 'PG' if s.tipo.value == 'PERSONA_GIURIDICA' else 'PF' }}
+          </span>
+        </div>
+
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+{# Paginazione se necessario #}
+{% if soggetti|length >= 100 %}
+<div class="text-center text-muted small mt-3">
+  <i class="bi bi-info-circle me-1"></i>Mostrati i primi 100 risultati. Usa la ricerca per filtrare.
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}

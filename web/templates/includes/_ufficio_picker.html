@@ -1,0 +1,82 @@
+{#
+  Macro: ufficio_picker
+  ─────────────────────────────────────────────────────────────────
+  Parametri:
+    field_name     — nome del campo form (default "tribunale")
+    current_value  — valore attuale (nome o codice, dipende da usa_nome)
+    current_text   — testo visibile nel campo (di solito uguale a current_value se usa_nome=True)
+    usa_nome       — True  → hidden manda u.nome  (fascicoli, appuntamenti, clienti)
+                     False → hidden manda u.codice (polisWeb — ma polisWeb usa il suo proprio widget)
+    required       — True = blocca submit se nessun ufficio selezionato
+    label          — etichetta del campo (default "Ufficio giudiziario")
+    uid            — id univoco del root div (default = field_name)
+    mostra_tabs    — True = mostra i tab di filtro per tipo (default True)
+    tipi_nascosti  — lista di tipi da NON mostrare nei tab (es. ["TAR","CDS"])
+  ─────────────────────────────────────────────────────────────────
+#}
+{% macro ufficio_picker(
+    field_name    = "tribunale",
+    current_value = "",
+    current_text  = "",
+    usa_nome      = true,
+    required      = false,
+    label         = "Ufficio giudiziario",
+    uid           = "",
+    mostra_tabs   = true,
+    tipi_nascosti = []
+) %}
+{% set _uid = uid if uid else ("uffp-" ~ field_name) %}
+{% set _text = current_text if current_text else current_value %}
+
+<div id="{{ _uid }}"
+     class="uffp-root"
+     data-uffp-usa-nome="{{ 'true' if usa_nome else 'false' }}"
+     data-uffp-required="{{ 'true' if required else 'false' }}"
+     data-uffp-current-text="{{ _text }}"
+     data-uffp-current-value="{{ current_value }}">
+
+  {% if mostra_tabs %}
+  <div class="uff-tabs mb-1" data-uffp-tabs>
+    <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
+    {% if "TRIBUNALE" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Trib.</button>{% endif %}
+    {% if "PROCURA" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>{% endif %}
+    {% if "CORTE_APPELLO" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>C.App.</button>{% endif %}
+    {% if "GDP" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>{% endif %}
+    {% if "TM" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Min.</button>{% endif %}
+    {% if "SORVEGLIANZA" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>{% endif %}
+    {% if "TAR" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="input-group">
+    <span class="input-group-text bg-white" data-uffp-icon>
+      <i class="bi bi-search text-muted"></i>
+    </span>
+    <input type="text"
+           class="form-control border-start-0 ps-0"
+           placeholder="Cerca per città o nome…"
+           autocomplete="off"
+           data-uffp-input
+           value="{{ _text }}">
+    <button type="button"
+            class="btn btn-outline-secondary"
+            data-uffp-clear
+            title="Cancella"
+            style="display:{{ 'inline-flex' if _text else 'none' }}">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <input type="hidden"
+         name="{{ field_name }}"
+         data-uffp-value
+         value="{{ current_value }}">
+
+  <div class="mt-1" data-uffp-badge style="display:{{ 'block' if _text else 'none' }}">
+    <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle small"
+          data-uffp-badge-label>{{ _text }}</span>
+  </div>
+
+  <div class="uffp-dropdown" data-uffp-dropdown></div>
+</div>
+{% endmacro %}

@@ -32,13 +32,18 @@ ENV PATH="/venv/bin:$PATH"
 # Layer cache: ricalcola solo se setup.py cambia
 COPY setup.py .
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir ".[pdf,pades]" gunicorn gevent
+RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 
 
 # ─────────────────────────────────────────────────────────────
 #  Stage 2 — runtime: immagine finale senza gcc né librerie -dev
 # ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim
+
+LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
+      org.opencontainers.image.version="2.24.7" \
+      org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+      org.opencontainers.image.created="2026-03-18"
 
 # Solo le librerie runtime strettamente necessarie
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -48,6 +53,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr \
         tesseract-ocr-ita \
         poppler-utils \
+        libjpeg62-turbo \
+        libpng16-16 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia il venv compilato dallo stage builder
@@ -85,7 +92,10 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_NOTIFICHE_LOG=/data/notifiche/log.json \
     PCT_TEMPLATE_ATTI_DB=/data/template_atti/templates.json \
     PCT_PAGAMENTI_DIR=/data/pagamenti \
+    PCT_UFFICI_DB=/data/uffici/uffici_giudiziari.json \
+    PCT_UFFICI_TTL_GIORNI=7 \
     PCT_TENANTS_REGISTRY=/data/tenants.json \
+    PCT_STUDIO_CONFIG=/data/config/studio.json \
     PCT_MULTI_TENANT=1 \
     PCT_HTTPS=true \
     PCT_STUDIO_NOME="HACS - Studio Legale PCT"

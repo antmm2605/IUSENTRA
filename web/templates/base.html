@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="pct-modulo" content="{% block pct_modulo %}{% endblock %}">
   <title>{% block title %}Studio Legale PCT{% endblock %}</title>
   <!-- PWA -->
@@ -21,7 +21,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="/static/css/app.css" rel="stylesheet">
+  <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
   <!-- htmx — aggiornamenti inline senza reload di pagina -->
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
 </head>
@@ -29,19 +30,27 @@
 
 <!-- Sidebar -->
 <nav id="sidebar">
-  {# Logo + toggle mobile #}
+  {# Logo + toggle mobile + toggle mini (desktop) #}
   <div class="sb-logo">
-    <div class="d-flex align-items-center">
-      <i class="bi bi-briefcase-fill me-2" style="color:var(--accent)"></i>
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:32px;height:32px;background:rgba(200,151,43,.2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(200,151,43,.25)">
+        <i class="bi bi-briefcase-fill" style="color:var(--accent);font-size:.95rem"></i>
+      </div>
       <div>
-        <div class="fw-bold" style="font-size:.95rem;letter-spacing:.3px">Studio Legale</div>
-        <div style="font-size:.67rem;opacity:.6;font-weight:400">Portale PCT</div>
+        <div class="fw-bold" style="font-size:.9rem;letter-spacing:.2px;line-height:1.2">Studio Legale</div>
+        <div style="font-size:.64rem;opacity:.5;font-weight:500;letter-spacing:.6px;text-transform:uppercase">Portale PCT</div>
       </div>
     </div>
-    <button id="sb-close" class="btn btn-sm p-0" title="Chiudi menu"
-            style="color:rgba(255,255,255,.5);font-size:1.1rem">
-      <i class="bi bi-x-lg"></i>
-    </button>
+    {# Bottone chiudi (mobile) + comprimi (desktop) #}
+    <div class="d-flex align-items-center gap-1">
+      <button id="sb-mini-toggle" title="Comprimi/espandi sidebar">
+        <i class="bi bi-layout-sidebar-reverse"></i>
+      </button>
+      <button id="sb-close" class="btn btn-sm p-0" title="Chiudi menu"
+              style="color:rgba(255,255,255,.5);font-size:1.1rem">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
   </div>
 
   {# Area scorrevole #}
@@ -130,21 +139,47 @@
       </a>
     </div>
 
+    {# ---- Sezione: Soggetti ---- #}
+    {% set _so = request.endpoint in ('lista_soggetti','dettaglio_soggetto','nuovo_soggetto','modifica_soggetto') %}
+    <button class="sb-toggle {% if _so %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-soggetti" aria-expanded="{{ 'true' if _so else 'false' }}">
+      <span><i class="bi bi-person-badge"></i>Soggetti</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _so %}show{% endif %}" id="sb-soggetti">
+      <a href="{{ url_for('lista_soggetti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_soggetti','dettaglio_soggetto','modifica_soggetto') %}active{% endif %}">
+        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+      </a>
+      <a href="{{ url_for('nuovo_soggetto') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_soggetto' %}active{% endif %}">
+        <i class="bi bi-person-plus"></i><span class="sb-txt">Nuovo Soggetto</span>
+      </a>
+    </div>
+
     {# ---- Sezione: Comunicazioni ---- #}
-    {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio') %}
+    {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio',
+                                      'email_client.casella','email_client.dettaglio',
+                                      'email_client.scrivi','email_client.impostazioni') %}
     <button class="sb-toggle {% if _cm %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-comunicazioni" aria-expanded="{{ 'true' if _cm else 'false' }}">
       <span><i class="bi bi-chat-dots"></i>Comunicazioni</span>
       <i class="bi bi-chevron-down sb-chev"></i>
     </button>
     <div class="collapse {% if _cm %}show{% endif %}" id="sb-comunicazioni">
+      <a href="{{ url_for('email_client.casella') }}"
+         class="nav-link sb-link {% if request.endpoint and request.endpoint.startswith('email_client.') %}active{% endif %}">
+        <i class="bi bi-envelope"></i><span class="sb-txt">Email</span>
+        {# Badge non lette — caricato via JS per evitare query ad ogni render #}
+        <span class="badge bg-primary rounded-pill ms-auto d-none" id="badgeEmailNonLette"></span>
+      </a>
       <a href="{{ url_for('lista_messaggi') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_messaggi','dettaglio_messaggio') %}active{% endif %}">
-        <i class="bi bi-inbox"></i><span class="sb-txt">Messaggi</span>
+        <i class="bi bi-chat-dots"></i><span class="sb-txt">Messaggi</span>
       </a>
       <a href="{{ url_for('nuovo_messaggio') }}"
          class="nav-link sb-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
-        <i class="bi bi-send"></i><span class="sb-txt">Nuovo Messaggio</span>
+        <i class="bi bi-send"></i><span class="sb-txt">Nuovo SMS/WA</span>
       </a>
     </div>
 
@@ -166,8 +201,14 @@
       </a>
     </div>
 
+    {# ---- Checklist Atti ---- #}
+    <a href="{{ url_for('checklist_atti') }}"
+       class="nav-link sb-link {% if request.endpoint in ('checklist_atti','checklist_dettaglio') %}active{% endif %}">
+      <i class="bi bi-card-checklist"></i><span class="sb-txt">Checklist Atti</span>
+    </a>
+
     {# ---- Sezione: PCT / Telematico ---- #}
-    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','tribunali') %}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
       <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
@@ -178,9 +219,25 @@
          class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
         <i class="bi bi-building-fill-check"></i><span class="sb-txt">PolisWeb / PST</span>
       </a>
+      <a href="{{ url_for('pdp_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('pdp_home','pdp_ricerca','pdp_documenti','pdp_importa') %}active{% endif %}">
+        <i class="bi bi-shield-exclamation"></i><span class="sb-txt">PDP Penale</span>
+      </a>
+      <a href="{{ url_for('pat_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('pat_home','pat_ricerca','pat_documenti','pat_importa') %}active{% endif %}">
+        <i class="bi bi-building-check"></i><span class="sb-txt">PAT Amministrativo</span>
+      </a>
       <a href="{{ url_for('tribunali') }}"
          class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
         <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
+      </a>
+      <a href="{{ url_for('deposito_checklist') }}"
+         class="nav-link sb-link {% if request.endpoint == 'deposito_checklist' %}active{% endif %}">
+        <i class="bi bi-list-check"></i><span class="sb-txt">Checklist deposito</span>
+      </a>
+      <a href="{{ url_for('guida_firma_digitale') }}"
+         class="nav-link sb-link {% if request.endpoint == 'guida_firma_digitale' %}active{% endif %}">
+        <i class="bi bi-book"></i><span class="sb-txt">Guida firma digitale</span>
       </a>
     </div>
 
@@ -219,6 +276,14 @@
       <a href="{{ url_for('lista_backup') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
         <i class="bi bi-cloud-arrow-up"></i><span class="sb-txt">Backup</span>
+      </a>
+      <a href="{{ url_for('impostazioni.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'impostazioni' and request.endpoint != 'impostazioni_calendario' %}active{% endif %}">
+        <i class="bi bi-gear-fill"></i><span class="sb-txt">Impostazioni</span>
+      </a>
+      <a href="{{ url_for('impostazioni_calendario') }}"
+         class="nav-link sb-link {% if request.endpoint == 'impostazioni_calendario' %}active{% endif %}">
+        <i class="bi bi-calendar-check"></i><span class="sb-txt">Sync Calendario</span>
       </a>
     </div>
 
@@ -293,7 +358,7 @@
   </div>
   {% else %}
   <div class="sb-user" style="opacity:.4;font-size:.72rem;justify-content:center">
-    PCT Studio v1.0
+    PCT Studio v{{ app_version }}
   </div>
   {% endif %}
 </nav>
@@ -301,64 +366,153 @@
 {# Overlay mobile #}
 <div id="sb-overlay"></div>
 
-<!-- Main -->
-<div id="main">
-  <div class="topbar">
-    <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
-      <i class="bi bi-list" style="font-size:1.1rem"></i>
-    </button>
-    <h1>{% block page_title %}{% endblock %}</h1>
-    <div class="d-flex align-items-center gap-2">
-      {# ---- Ricerca globale ---- #}
-      <div id="search-wrap">
-        <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="search-input" name="q"
-                   class="form-control border-start-0 ps-0"
-                   placeholder="Cerca fascicoli, clienti…"
-                   value="{{ request.args.get('q','') }}">
-          </div>
-        </form>
-        <div id="search-dropdown"></div>
-      </div>
-      <span class="text-muted small d-none d-md-inline">
-        <i class="bi bi-clock me-1"></i>{{ oggi.strftime('%d/%m/%Y') }}
-      </span>
-      <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
-         title="Scadenziario">
-        <i class="bi bi-calendar-event"></i>
-      </a>
-      <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning">
-        <i class="bi bi-plus-lg me-1"></i>Nuovo
-      </a>
-      <div id="htmx-loader" title="Caricamento…"></div>
-      {% if utente_corrente %}
-      <button class="btn btn-sm btn-outline-warning" id="btn-notifiche"
-              onclick="PCT_NOTIFICHE.richiediPermesso()"
-              title="Abilita notifiche push per scadenze urgenti"
-              style="display:none">
-        <i class="bi bi-bell"></i>
-      </button>
-      {% endif %}
-      <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
-              onclick="toggleTema()" title="Tema chiaro / scuro">
-        <i class="bi bi-moon-fill" id="icon-tema"></i>
-      </button>
-      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-              data-bs-target="#modalScorciatoie" title="Scorciatoie da tastiera (?)">
-        <i class="bi bi-keyboard"></i>
-      </button>
-      {% if utente_corrente %}
-      <span id="sync-operatori" title="Operatori connessi in questo momento">
-        <span class="dot"></span>
-        <span id="sync-count">{{ n_operatori_connessi }}</span>
-        <i class="bi bi-people"></i>
-      </span>
-      {% endif %}
-    </div>
-  </div>
+<!-- ============================================================
+     App Body: pannello destro (topbar + contenuto scrollabile)
+     Su desktop: margin-left uguale alla sidebar, flexbox column
+     Su mobile:  margin-left:0, si adatta al viewport bloccato
+     ============================================================ -->
+<div id="app-body">
 
+<!-- Topbar: primo elemento del flex column — sempre visibile -->
+<div class="topbar">
+  <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
+    <i class="bi bi-list" style="font-size:1.1rem"></i>
+  </button>
+  <h1>{% block page_title %}{% endblock %}</h1>
+  <div class="d-flex align-items-center gap-2 topbar-actions">
+    {# ---- Ricerca globale ---- #}
+    <div id="search-wrap">
+      <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="search-input" name="q"
+                 class="form-control border-start-0 ps-0"
+                 placeholder="Cerca fascicoli, clienti…"
+                 value="{{ request.args.get('q','') }}">
+        </div>
+      </form>
+      <div id="search-dropdown"></div>
+    </div>
+    <span class="topbar-date d-none d-md-inline">
+      <i class="bi bi-calendar3"></i>{{ oggi.strftime('%d/%m/%Y') }}
+    </span>
+    <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
+       title="Scadenziario — scadenze entro 7 giorni" id="btn-scadenziario-nav">
+      <i class="bi bi-calendar-event"></i>
+      <span id="badge-scadenze-nav"
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+            style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+    </a>
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning"
+       title="Nuovo appuntamento">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
+    </a>
+    <div id="htmx-loader" title="Caricamento…"></div>
+    {% if utente_corrente %}
+    {# ── Centro notifiche in-app ─────────────────────────────────── #}
+    <div class="dropdown d-inline-block" id="notifiche-center">
+      <button class="btn btn-sm btn-outline-secondary position-relative"
+              id="btn-notifiche-inbox"
+              data-bs-toggle="dropdown"
+              data-bs-auto-close="outside"
+              title="Notifiche"
+              aria-label="Centro notifiche">
+        <i class="bi bi-bell" id="icon-bell-inbox"></i>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              id="badge-notifiche"
+              style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+      </button>
+      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
+           id="notifiche-dropdown"
+           style="width:360px;max-width:95vw;border-radius:12px;overflow:hidden">
+        {# Header #}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2"
+             style="background:var(--bs-primary);color:#fff">
+          <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
+          <button class="btn btn-sm p-0 text-white opacity-75"
+                  id="btn-tutte-lette"
+                  style="font-size:.72rem;background:none;border:none"
+                  title="Segna tutte come lette">
+            <i class="bi bi-check2-all me-1"></i>Tutte lette
+          </button>
+        </div>
+        {# Lista notifiche (popolata da JS) #}
+        <div id="notifiche-lista" style="max-height:360px;overflow-y:auto">
+          <div class="text-center text-muted py-4 small" id="notif-placeholder">
+            <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
+            Nessuna notifica
+          </div>
+        </div>
+        {# Footer #}
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
+             style="font-size:.75rem">
+          <a href="/scadenziario" class="text-decoration-none text-muted">
+            <i class="bi bi-list-check me-1"></i>Scadenziario
+          </a>
+          <button id="btn-abilita-push"
+                  class="btn btn-link p-0 text-muted"
+                  style="font-size:.75rem;display:none"
+                  onclick="PCT_NOTIFICHE.richiediPermesso()">
+            <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
+          </button>
+        </div>
+      </div>
+    </div>
+    {# Pulsante legacy nascosto — mantenuto per push.js #}
+    <button id="btn-notifiche" style="display:none"
+            onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
+    {% endif %}
+    <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
+            onclick="toggleTema()" title="Tema chiaro / scuro">
+      <i class="bi bi-moon-fill" id="icon-tema"></i>
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#modalScorciatoie" title="Scorciatoie da tastiera (?)">
+      <i class="bi bi-keyboard"></i>
+    </button>
+    {# ---- Avatar utente mobile (visibile solo su mobile) ---- #}
+    {% if utente_corrente %}
+    <div class="topbar-user-mobile dropdown">
+      <button class="topbar-user-btn dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              data-bs-strategy="fixed"
+              aria-expanded="false"
+              title="{{ utente_corrente.nome_completo or utente_corrente.username }}">
+        {{ utente_corrente.username[0].upper() }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end dropdown-menu-user-mobile">
+        <li>
+          <div class="user-info">
+            <div class="fw-semibold" style="font-size:.85rem">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
+            <div class="text-muted" style="font-size:.73rem">{{ utente_corrente.ruolo.value }}</div>
+          </div>
+        </li>
+        <li><a class="dropdown-item py-2" href="{{ url_for('profilo') }}">
+          <i class="bi bi-person me-2 text-primary"></i>Profilo
+        </a></li>
+        <li>
+          <form method="post" action="{{ url_for('logout') }}" class="m-0">
+            <button type="submit" class="dropdown-item py-2 text-danger">
+              <i class="bi bi-box-arrow-right me-2"></i>Esci
+            </button>
+          </form>
+        </li>
+      </ul>
+    </div>
+    {% endif %}
+    {% if utente_corrente %}
+    <span id="sync-operatori" title="Operatori connessi in questo momento">
+      <span class="dot"></span>
+      <span id="sync-count">{{ n_operatori_connessi }}</span>
+      <i class="bi bi-people"></i>
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Main: area di contenuto scrollabile (flex: 1) -->
+<div id="main">
   {# ---- Banner dati non aggiornati ---- #}
   <div id="sync-stale-banner">
     <i class="bi bi-arrow-clockwise"></i>
@@ -381,10 +535,17 @@
   {% endwith %}
 
   {% block content %}{% endblock %}
-</div>
+</div>{# /main #}
+
+</div>{# /app-body #}
 
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
+
+{# ---- Handle nascondi/mostra bottom nav (mobile) ---- #}
+<div id="bn-handle" title="Nascondi/mostra navigazione">
+  <span class="bn-handle-pill"></span>
+</div>
 
 {# ---- Bottom Navigation (mobile/tablet) ---- #}
 <nav id="bottom-nav" aria-label="Navigazione principale">
@@ -417,6 +578,29 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+/* ---- Sistema aiuto contestuale — inizializza tutti i .btn-help / popover ---- */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+    new bootstrap.Popover(el, {
+      trigger: 'click',
+      html: true,
+      sanitize: false,
+      placement: 'auto',
+      customClass: 'popover-help',
+    });
+  });
+  // Click fuori chiude tutti i popover aperti
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-bs-toggle="popover"]')) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+        var pop = bootstrap.Popover.getInstance(el);
+        if (pop) pop.hide();
+      });
+    }
+  });
+});
+</script>
 <script>
 /* ---- Paginazione tabelle ---- */
 function initPagination(tableId, selectId) {
@@ -516,6 +700,39 @@ function initPagination(tableId, selectId) {
 })();
 </script>
 {% block scripts %}{% endblock %}
+<script src="/static/js/ufficio_picker.js"></script>
+{% block extra_scripts %}{% endblock %}
+<script>
+/* ---- Loading state globale sui form: disabilita submit e mostra spinner ---- */
+(function () {
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (form.dataset.noLoading) return;
+    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (btn) {
+      var orig = btn.innerHTML || btn.value;
+      btn.disabled = true;
+      if (btn.tagName === 'BUTTON') {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + (btn.dataset.loadingText || orig);
+      }
+      /* sicurezza: riabilita dopo 15s nel caso di errore server */
+      setTimeout(function () { btn.disabled = false; btn.innerHTML = orig; }, 15000);
+    });
+  });
+})();
+</script>
+<script>
+// Badge email non lette nella sidebar
+(function() {
+  const badge = document.getElementById('badgeEmailNonLette');
+  if (!badge) return;
+  fetch('/email/api/stats').then(r => r.json()).then(d => {
+    if (d.non_lette > 0) {
+      badge.textContent = d.non_lette;
+      badge.classList.remove('d-none');
+    }
+  }).catch(() => {});
+})();
+</script>
 
 {# ================================================================ SCORCIATOIE TASTIERA #}
 <div class="modal fade" id="modalScorciatoie" tabindex="-1" aria-label="Scorciatoie da tastiera">
@@ -734,6 +951,156 @@ function initPagination(tableId, selectId) {
 <script src="/static/js/push.js" defer></script>
 {% endif %}
 
+{# ---- Centro notifiche in-app ---- #}
+{% if utente_corrente %}
+<script>
+(function () {
+  const LETTE_KEY = 'pct_notif_lette_{{ utente_corrente.username | default("") }}';
+  const BADGE_EL  = document.getElementById('badge-notifiche');
+  const LISTA_EL  = document.getElementById('notifiche-lista');
+  const PLACEHOLDER = document.getElementById('notif-placeholder');
+  const BTN_LETTE = document.getElementById('btn-tutte-lette');
+  const BTN_PUSH  = document.getElementById('btn-abilita-push');
+
+  let _cache = [];
+
+  function getLette() {
+    try { return new Set(JSON.parse(localStorage.getItem(LETTE_KEY) || '[]')); }
+    catch (_) { return new Set(); }
+  }
+  function addLetta(id) {
+    const s = getLette(); s.add(id);
+    localStorage.setItem(LETTE_KEY, JSON.stringify([...s]));
+  }
+  function addTutteLette(ids) {
+    const s = getLette(); ids.forEach(id => s.add(id));
+    localStorage.setItem(LETTE_KEY, JSON.stringify([...s]));
+  }
+
+  function aggiornaIconaBell(non_lette) {
+    const icon = document.getElementById('icon-bell-inbox');
+    if (!icon) return;
+    icon.className = non_lette > 0 ? 'bi bi-bell-fill' : 'bi bi-bell';
+  }
+
+  function aggiornaBadge(alerts) {
+    const lette = getLette();
+    const n = alerts.filter(a => !lette.has(a.id)).length;
+    if (!BADGE_EL) return;
+    if (n > 0) {
+      BADGE_EL.textContent = n > 9 ? '9+' : n;
+      BADGE_EL.style.display = '';
+    } else {
+      BADGE_EL.style.display = 'none';
+    }
+    aggiornaIconaBell(n);
+  }
+
+  const COLORI = {danger:'#dc3545',warning:'#fd7e14',primary:'#0d6efd',info:'#0dcaf0',success:'#198754'};
+  const ICONE_COLORE = {danger:'text-danger',warning:'text-warning',primary:'text-primary',info:'text-info',success:'text-success'};
+
+  function renderLista(alerts) {
+    if (!LISTA_EL) return;
+    if (!alerts.length) {
+      LISTA_EL.innerHTML = '<div class="text-center text-muted py-4 small"><i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>Nessuna notifica</div>';
+      return;
+    }
+    const lette = getLette();
+    LISTA_EL.innerHTML = alerts.map(a => {
+      const non_letta = !lette.has(a.id);
+      return `<a href="${a.url}" class="d-block text-decoration-none border-bottom notif-item"
+                 data-id="${a.id}"
+                 style="padding:.65rem 1rem;background:${non_letta ? 'rgba(13,110,253,.04)' : ''}">
+        <div class="d-flex align-items-start gap-2">
+          <div class="flex-shrink-0 mt-1">
+            <i class="bi bi-${a.icona} ${ICONE_COLORE[a.tipo] || 'text-secondary'}" style="font-size:1rem"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold small ${ICONE_COLORE[a.tipo] || ''}">${a.titolo}</div>
+            <div class="text-muted" style="font-size:.73rem">${a.corpo}</div>
+          </div>
+          ${non_letta ? `<span class="flex-shrink-0 badge rounded-pill bg-${a.tipo}" style="width:7px;height:7px;padding:0;margin-top:.35rem" title="Non letta"></span>` : ''}
+        </div>
+      </a>`;
+    }).join('');
+
+    // Click → segna letta + naviga
+    LISTA_EL.querySelectorAll('.notif-item').forEach(el => {
+      el.addEventListener('click', function (e) {
+        const id = this.dataset.id;
+        addLetta(id);
+        aggiornaBadge(_cache);
+        // non preventDefault: lasciamo navigare normalmente
+      });
+    });
+  }
+
+  async function carica() {
+    try {
+      const resp = await fetch('/api/notifiche/inbox');
+      if (!resp.ok) return;
+      _cache = await resp.json();
+      aggiornaBadge(_cache);
+      renderLista(_cache);
+      // Mostra "Abilita notifiche desktop" se non ancora abilitato
+      if (BTN_PUSH && 'Notification' in window && Notification.permission === 'default') {
+        BTN_PUSH.style.display = '';
+      }
+    } catch (_) {}
+  }
+
+  // Carica al click sul dropdown
+  const dropEl = document.getElementById('notifiche-center');
+  if (dropEl) {
+    dropEl.addEventListener('show.bs.dropdown', carica);
+  }
+
+  // Segna tutte lette
+  if (BTN_LETTE) {
+    BTN_LETTE.addEventListener('click', function () {
+      addTutteLette(_cache.map(a => a.id));
+      aggiornaBadge(_cache);
+      renderLista(_cache);
+    });
+  }
+
+  // Init: carica badge al caricamento pagina
+  document.addEventListener('DOMContentLoaded', function () {
+    carica();
+    // Aggiorna ogni 5 minuti in background
+    setInterval(carica, 5 * 60 * 1000);
+  });
+})();
+</script>
+{% endif %}
+
+{# ---- Badge scadenze urgenti (entro 7 giorni) ---- #}
+{% if utente_corrente %}
+<script>
+(function() {
+  var badge = document.getElementById('badge-scadenze-nav');
+  if (!badge) return;
+  function aggiornaScadenze() {
+    fetch('/api/scadenze/urgenti')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) {
+        if (!d) return;
+        if (d.n > 0) {
+          badge.textContent = d.n > 9 ? '9+' : d.n;
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }).catch(function() {});
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    aggiornaScadenze();
+    setInterval(aggiornaScadenze, 10 * 60 * 1000); // ogni 10 min
+  });
+})();
+</script>
+{% endif %}
+
 {# ---- Dark mode toggle ---- #}
 <script>
 function toggleTema() {
@@ -761,17 +1128,223 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script>
-/* ---- Sidebar mobile toggle ---- */
+/* ---- Bottom nav hide/show ---- */
 (function(){
-  var sb  = document.getElementById('sidebar');
-  var ov  = document.getElementById('sb-overlay');
-  var btn = document.getElementById('sb-open');
-  var cls = document.getElementById('sb-close');
-  function open()  { sb.classList.add('sb-open');  ov.classList.add('sb-open'); }
-  function close() { sb.classList.remove('sb-open'); ov.classList.remove('sb-open'); }
-  if (btn) btn.addEventListener('click', open);
-  if (cls) cls.addEventListener('click', close);
-  if (ov)  ov.addEventListener('click', close);
+  var bn    = document.getElementById('bottom-nav');
+  var bnh   = document.getElementById('bn-handle');
+  var main  = document.getElementById('main');
+  var toast = document.getElementById('sync-toast-container');
+  if (!bn || !bnh) return;
+  var hidden = localStorage.getItem('pct-bn-hidden') === '1';
+  function applyState(animate) {
+    if (animate) { bn.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)'; }
+    bn.classList.toggle('bn-hidden', hidden);
+    bnh.classList.toggle('bn-hidden', hidden);
+    if (main)  main.classList.toggle('bn-hidden', hidden);
+    if (toast) toast.classList.toggle('bn-hidden', hidden);
+    bnh.querySelector('.bn-handle-pill').style.transform = hidden ? 'rotate(180deg) scaleX(0.7)' : '';
+  }
+  applyState(false);
+  bnh.addEventListener('click', function(){
+    hidden = !hidden;
+    localStorage.setItem('pct-bn-hidden', hidden ? '1' : '');
+    applyState(true);
+  });
+})();
+
+/* ---- Sidebar mobile toggle + desktop mini ---- */
+(function(){
+  var sb      = document.getElementById('sidebar');
+  var ab      = document.getElementById('app-body');
+  var ov      = document.getElementById('sb-overlay');
+  var btnOpen = document.getElementById('sb-open');      // hamburger topbar
+  var btnCls  = document.getElementById('sb-close');     // X nel logo (mobile)
+  var btnMini = document.getElementById('sb-mini-toggle'); // << freccia (desktop)
+
+  var MOBILE_BP = 768; // px
+
+  function isMobile() { return window.innerWidth <= MOBILE_BP; }
+
+  /* ── Mobile overlay ── */
+  var bn = document.getElementById('bottom-nav');
+  var bnh = document.getElementById('bn-handle');
+  function openDrawer() {
+    sb.classList.add('sb-open'); ov.classList.add('sb-open');
+    if (isMobile() && bn)  { bn.classList.add('bn-hidden');  }
+    if (isMobile() && bnh) { bnh.classList.add('bn-hidden'); }
+  }
+  function closeDrawer() {
+    sb.classList.remove('sb-open'); ov.classList.remove('sb-open');
+    if (isMobile() && bn  && localStorage.getItem('pct-bn-hidden') !== '1') { bn.classList.remove('bn-hidden');  }
+    if (isMobile() && bnh && localStorage.getItem('pct-bn-hidden') !== '1') { bnh.classList.remove('bn-hidden'); }
+  }
+
+  /* ── Desktop mini ── */
+  function setMini(mini) {
+    sb.classList.toggle('sb-mini', mini);
+    ab.classList.toggle('sb-mini', mini);
+    localStorage.setItem('pct-sb-mini', mini ? '1' : '');
+  }
+  function toggleMini() { setMini(!sb.classList.contains('sb-mini')); }
+
+  /* Ripristina stato mini al caricamento (solo desktop) */
+  if (!isMobile() && localStorage.getItem('pct-sb-mini') === '1') {
+    sb.classList.add('sb-mini');
+    ab.classList.add('sb-mini');
+  }
+
+  /* Il bottone hamburger (topbar): su mobile apre il drawer, su desktop fa mini */
+  if (btnOpen) btnOpen.addEventListener('click', function(){
+    if (isMobile()) {
+      sb.classList.contains('sb-open') ? closeDrawer() : openDrawer();
+    } else {
+      toggleMini();
+    }
+  });
+
+  /* X nel logo: chiude il drawer su mobile */
+  if (btnCls) btnCls.addEventListener('click', function(){
+    if (isMobile()) closeDrawer(); else toggleMini();
+  });
+
+  /* Freccia mini/expand nel logo (desktop) */
+  if (btnMini) btnMini.addEventListener('click', toggleMini);
+
+  if (ov) ov.addEventListener('click', closeDrawer);
+})();
+
+/* ================================================================
+   PCT SWIPE — Swipe-to-dismiss per righe tabella (mobile)
+   Attiva su: tr[data-swipe-delete]
+   Se data-swipe-delete ha un URL, chiama DELETE; altrimenti solo UI.
+   ================================================================ */
+(function() {
+  'use strict';
+
+  var THRESHOLD = 0.42; // 42% larghezza riga per confermare
+
+  function initSwipe(root) {
+    root = root || document;
+    root.querySelectorAll('tr[data-swipe-delete]').forEach(attachSwipe);
+  }
+
+  function attachSwipe(row) {
+    var startX, startY, deltaX = 0, isTracking = false, underlay = null;
+
+    function mkUnderlay() {
+      underlay = document.createElement('div');
+      underlay.className = 'pct-swipe-underlay';
+      underlay.innerHTML = '<i class="bi bi-trash3-fill" style="font-size:1.15rem;transition:transform .15s"></i>';
+      document.body.appendChild(underlay);
+    }
+    function positionUnderlay() {
+      if (!underlay) return;
+      var r = row.getBoundingClientRect();
+      underlay.style.cssText += ';top:' + r.top + 'px;left:' + r.left + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
+    }
+    function removeUnderlay() {
+      if (underlay) { underlay.remove(); underlay = null; }
+    }
+
+    row.addEventListener('touchstart', function(e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      deltaX = 0; isTracking = false;
+    }, { passive: true });
+
+    row.addEventListener('touchmove', function(e) {
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (!isTracking) {
+        if (Math.abs(dy) > Math.abs(dx) + 4) return; // scroll verticale
+        if (dx > 8) return;                           // swipe destra
+        isTracking = true;
+        mkUnderlay();
+      }
+      if (!isTracking) return;
+      if (e.cancelable) e.preventDefault();
+      deltaX = Math.min(0, dx);
+      var progress = Math.min(1, Math.abs(deltaX) / row.offsetWidth);
+      row.style.transform = 'translateX(' + deltaX + 'px)';
+      row.style.transition = 'none';
+      // Colora le celle in rosso progressivamente
+      row.querySelectorAll('td').forEach(function(td) {
+        td.style.background = 'rgba(220,53,69,' + (progress * 0.28) + ')';
+      });
+      positionUnderlay();
+      underlay.classList.toggle('visible', progress > 0.12);
+      underlay.querySelector('i').style.transform = 'scale(' + (0.75 + progress * 0.45) + ')';
+    }, { passive: false });
+
+    row.addEventListener('touchend', function() {
+      if (!isTracking) return;
+      removeUnderlay();
+      if (Math.abs(deltaX) >= row.offsetWidth * THRESHOLD) {
+        dismissRow(row);
+      } else {
+        snapBack(row);
+      }
+      isTracking = false;
+    });
+
+    row.addEventListener('touchcancel', function() {
+      if (isTracking) { snapBack(row); removeUnderlay(); isTracking = false; }
+    });
+  }
+
+  function snapBack(row) {
+    row.style.transition = 'transform .3s cubic-bezier(.4,0,.2,1)';
+    row.style.transform = 'translateX(0)';
+    row.querySelectorAll('td').forEach(function(td) { td.style.background = ''; });
+    setTimeout(function() { row.style.transition = ''; }, 320);
+  }
+
+  function dismissRow(row) {
+    // 1. Slide out
+    row.style.transition = 'transform .24s ease, opacity .24s ease';
+    row.style.transform = 'translateX(-110%)';
+    row.style.opacity = '0';
+    // 2. Collassa l'altezza delle celle
+    setTimeout(function() {
+      row.querySelectorAll('td').forEach(function(td) {
+        td.style.transition = 'padding .22s ease, height .22s ease, font-size .22s ease, line-height .22s ease, border-width .22s ease';
+        td.style.paddingTop    = '0';
+        td.style.paddingBottom = '0';
+        td.style.height        = '0';
+        td.style.fontSize      = '0';
+        td.style.lineHeight    = '0';
+        td.style.overflow      = 'hidden';
+        td.style.borderTopWidth = '0';
+        td.style.borderBottomWidth = '0';
+      });
+      // 3. Rimuovi dal DOM + chiama API se configurata
+      setTimeout(function() {
+        var deleteUrl = row.dataset.swipeDelete;
+        if (deleteUrl && deleteUrl !== 'true' && deleteUrl !== '1') {
+          fetch(deleteUrl, { method: 'DELETE',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .catch(function() {});
+        }
+        row.remove();
+        showSwipeToast('Elemento rimosso');
+      }, 240);
+    }, 240);
+  }
+
+  function showSwipeToast(msg) {
+    var t = document.createElement('div');
+    t.className = 'pct-swipe-toast';
+    t.innerHTML = '<i class="bi bi-check-circle me-2"></i>' + msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function() { t.classList.add('visible'); });
+    setTimeout(function() {
+      t.classList.remove('visible');
+      setTimeout(function() { t.remove(); }, 300);
+    }, 3200);
+  }
+
+  window.PCT_SWIPE = { init: initSwipe };
+  document.addEventListener('DOMContentLoaded', function() { initSwipe(document); });
 })();
 </script>
 </body>

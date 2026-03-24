@@ -16,4 +16,5 @@ privacy/
 search/
 backup/
 messaggi/
+!web/templates/messaggi/
 data/

@@ -94,7 +94,7 @@ class BustaTelematica:
 
         # Elenco documenti
         docs = etree.SubElement(root, "Documenti")
-        ap = etree.SubElement(docs, "AttoprincipAle")
+        ap = etree.SubElement(docs, "Attoprincipale")   # spec PST D.M. 44/2011
         etree.SubElement(ap, "NomeFile").text = Path(self.dati.atto_principale).name
         etree.SubElement(ap, "Hash").text = self._hash_file(self.dati.atto_principale)
 

@@ -3,8 +3,10 @@
 {% block page_title %}{{ 'Modifica' if utente else 'Nuovo' }} Utente{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-7">
+<div class="row g-4">
+
+{# ── Colonna form ── #}
+<div class="col-lg-8">
 <form method="post">
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
@@ -80,8 +82,30 @@
 {% endif %}
 </div>
 </form>
-</div>
-</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ruoli ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-people me-2 text-primary"></i>Ruoli disponibili
+    </div>
+    <div class="list-group list-group-flush" id="ruoli-lista">
+      {% for r in ruoli %}
+      {% set desc = DESCRIZIONI_RUOLI[r] %}
+      <div class="list-group-item small py-2">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi {{ desc.icona }} text-{{ desc.colore }}"></i>
+          <span class="fw-semibold badge bg-{{ desc.colore }}">{{ r.value.replace('_',' ') }}</span>
+        </div>
+        <div class="text-muted" style="font-size:.78rem">{{ desc.descrizione }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}
 
 {% block scripts %}

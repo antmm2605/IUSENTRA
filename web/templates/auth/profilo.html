@@ -3,8 +3,10 @@
 {% block page_title %}Il mio profilo{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-<div class="col-xl-7">
+<div class="row g-4">
+
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
 
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
@@ -71,10 +73,14 @@
   </div>
 </div>
 
-{# ---- 2FA #}
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar 2FA + info ── #}
+<div class="col-lg-4">
+
 <div class="card shadow-sm">
   <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-shield-lock me-2 text-success"></i>Autenticazione a due fattori (2FA)</span>
+    <span><i class="bi bi-shield-lock me-2 text-success"></i>Autenticazione 2FA</span>
     {% if utente.totp_attivato %}
       <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Attiva</span>
     {% else %}
@@ -88,13 +94,13 @@
       </p>
       <form method="post">
         <input type="hidden" name="azione" value="2fa_disattiva">
-        <div class="d-flex gap-2 align-items-end">
+        <div class="d-flex flex-column gap-2">
           <div>
             <label class="form-label fw-semibold">Password</label>
             <input type="password" name="pwd_disattiva" class="form-control"
                    placeholder="Conferma password" required>
           </div>
-          <button type="submit" class="btn btn-outline-danger"
+          <button type="submit" class="btn btn-outline-danger btn-sm"
                   onclick="return confirm('Disattivare il 2FA?')">
             <i class="bi bi-shield-x me-1"></i>Disattiva 2FA
           </button>
@@ -118,15 +124,15 @@
       </p>
       <form method="post">
         <input type="hidden" name="azione" value="2fa_conferma">
-        <div class="d-flex gap-2 align-items-end">
+        <div class="d-flex flex-column gap-2">
           <div>
             <label class="form-label fw-semibold">Codice verifica</label>
             <input type="text" name="codice_2fa" class="form-control"
                    inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
                    placeholder="123456" required
-                   style="width:140px;font-family:monospace;font-size:1.2rem;letter-spacing:.3rem">
+                   style="font-family:monospace;font-size:1.2rem;letter-spacing:.3rem">
           </div>
-          <button type="submit" class="btn btn-success">
+          <button type="submit" class="btn btn-success btn-sm">
             <i class="bi bi-shield-check me-1"></i>Conferma e attiva
           </button>
         </div>
@@ -138,7 +144,7 @@
       </p>
       <form method="post">
         <input type="hidden" name="azione" value="2fa_genera">
-        <button type="submit" class="btn btn-outline-success">
+        <button type="submit" class="btn btn-outline-success btn-sm w-100">
           <i class="bi bi-shield-plus me-1"></i>Configura 2FA
         </button>
       </form>
@@ -146,8 +152,9 @@
   </div>
 </div>
 
-</div>
-</div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}
 
 {% block scripts %}

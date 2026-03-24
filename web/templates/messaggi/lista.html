@@ -3,81 +3,79 @@
 {% block page_title %}Messaggi{% endblock %}
 
 {% block content %}
-{# Stat cards #}
-<div class="row g-3 mb-3">
-  {% set s = stats %}
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-primary">{{ s.totale }}</div>
-      <div class="small text-muted">Totale</div>
-    </div>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-chat-dots-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Messaggi</h1>
+    <p class="ds-ph-sub">Comunicazioni via email, SMS e WhatsApp ai clienti</p>
   </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-success">{{ s.inviati }}</div>
-      <div class="small text-muted">Inviati</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-warning">{{ s.in_coda }}</div>
-      <div class="small text-muted">In coda</div>
-    </div>
-  </div>
-  <div class="col-6 col-md-3">
-    <div class="card shadow-sm text-center py-3">
-      <div class="fs-3 fw-bold text-danger">{{ s.falliti }}</div>
-      <div class="small text-muted">Falliti</div>
-    </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('nuovo_messaggio') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo messaggio</span>
+    </a>
   </div>
 </div>
 
+{# ── Stats ── #}
+{% set s = stats %}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ s.totale }}</span> totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-send text-primary"></i>
+    <span class="num">{{ s.inviati }}</span> inviati
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-hourglass-split text-warning"></i>
+    <span class="num">{{ s.in_coda }}</span> in coda
+  </span>
+  {% if s.falliti %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-x-circle text-danger"></i>
+    <span class="num">{{ s.falliti }}</span> falliti
+  </span>
+  {% endif %}
+</div>
+
+{# ── Filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Destinatario, oggetto…"
+         value="{{ q }}" autocomplete="off">
+  <select name="canale" class="form-select form-select-sm">
+    <option value="">Tutti i canali</option>
+    {% for c in canali %}
+    <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ c.value }}</option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm">
+    <option value="">Tutti gli stati</option>
+    {% for st in stati %}
+    <option value="{{ st.value }}" {{ 'selected' if st.value == stato }}>{{ st.value.replace('_',' ') }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
+  {% if q or canale or stato %}
+  <a href="{{ url_for('lista_messaggi') }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Tabella messaggi ── #}
+{% if messaggi %}
 <div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
-    <span><i class="bi bi-chat-dots me-2 text-primary"></i>Messaggi — {{ messaggi|length }}</span>
-    <a href="{{ url_for('nuovo_messaggio') }}" class="btn btn-sm btn-primary">
-      <i class="bi bi-plus-lg me-1"></i>Nuovo messaggio
-    </a>
+  <div class="card-header">
+    <span class="fw-semibold text-muted small">{{ messaggi|length }} messaggi</span>
   </div>
-
-  {# Filtri #}
-  <div class="card-body border-bottom py-2">
-    <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
-          <input type="text" name="q" class="form-control" placeholder="Destinatario, oggetto…" value="{{ q }}">
-        </div>
-      </div>
-      <div class="col-md-2">
-        <select name="canale" class="form-select form-select-sm">
-          <option value="">Tutti i canali</option>
-          {% for c in canali %}
-          <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ c.value }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <select name="stato" class="form-select form-select-sm">
-          <option value="">Tutti gli stati</option>
-          {% for st in stati %}
-          <option value="{{ st.value }}" {{ 'selected' if st.value == stato }}>{{ st.value.replace('_',' ') }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-primary btn-sm">Filtra</button>
-        <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary btn-sm ms-1">
-          <i class="bi bi-x-lg"></i>
-        </a>
-      </div>
-    </form>
-  </div>
-
-  {% if messaggi %}
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0 mob-cards">
         <thead class="table-light">
           <tr>
             <th>Data</th><th>Canale</th><th>Destinatario</th>
@@ -87,8 +85,8 @@
         <tbody>
           {% for m in messaggi %}
           <tr>
-            <td class="small text-nowrap">{{ m.timestamp[:16].replace('T',' ') }}</td>
-            <td>
+            <td data-label="Data" class="small text-nowrap">{{ m.creato_il[:16].replace('T',' ') }}</td>
+            <td data-label="Canale">
               {% if m.canale.value == 'EMAIL' %}
                 <span class="badge bg-primary">EMAIL</span>
               {% elif m.canale.value == 'SMS' %}
@@ -99,14 +97,14 @@
                 </span>
               {% endif %}
             </td>
-            <td class="small">
+            <td data-label="A" class="small">
               {{ m.nome_destinatario or m.email_destinatario or m.telefono_destinatario or '—' }}
             </td>
-            <td class="small">
+            <td data-label="Testo" class="small">
               {% if m.oggetto %}<div class="fw-semibold">{{ m.oggetto }}</div>{% endif %}
-              <div class="text-muted text-truncate" style="max-width:280px">{{ m.corpo }}</div>
+              <div class="text-muted text-truncate">{{ m.corpo }}</div>
             </td>
-            <td>
+            <td data-label="Stato">
               {% set colore = {
                 'IN_CODA': 'secondary', 'INVIATO': 'primary',
                 'CONSEGNATO': 'success', 'LETTO': 'info',
@@ -116,14 +114,14 @@
                 {{ m.stato.value.replace('_',' ') }}
               </span>
             </td>
-            <td>
-              <div class="btn-group btn-group-sm">
+            <td data-label="">
+              <div class="d-flex gap-1">
                 <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}"
-                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
                 <form method="post"
                       action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
                       onsubmit="return confirm('Eliminare il messaggio?')">
-                  <button class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                 </form>
               </div>
             </td>
@@ -133,11 +131,25 @@
       </table>
     </div>
   </div>
-  {% else %}
-  <div class="card-body text-center text-muted py-5">
-    <i class="bi bi-chat-dots fs-1 d-block mb-2"></i>
-    Nessun messaggio{% if q %} per "{{ q }}"{% endif %}.
+</div>
+
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-chat-dots ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessun messaggio trovato</div>
+  <div class="ds-empty-sub">
+    {% if q or canale or stato %}
+      Nessun risultato per i filtri selezionati.
+    {% else %}
+      Invia comunicazioni ai clienti tramite email, SMS o WhatsApp.
+    {% endif %}
   </div>
+  {% if not q and not canale and not stato %}
+  <a href="{{ url_for('nuovo_messaggio') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-plus-lg"></i>Nuovo messaggio
+  </a>
   {% endif %}
 </div>
+{% endif %}
+
 {% endblock %}

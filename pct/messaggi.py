@@ -498,7 +498,7 @@ class GestioneMessaggi:
         tipo_automazione: str = "",
         id_fascicolo: str = "",
     ) -> Messaggio:
-        """Invia un messaggio WhatsApp tramite Twilio."""
+        """Invia un messaggio WhatsApp tramite Twilio, o genera link WhatsApp Web se non configurato."""
         msg = self._crea_messaggio(
             canale=CanaleMsggio.WHATSAPP,
             id_cliente=id_cliente,
@@ -508,6 +508,15 @@ class GestioneMessaggi:
             tipo_automazione=tipo_automazione,
             id_fascicolo=id_fascicolo,
         )
+
+        # Fallback WhatsApp Web se Twilio non è configurato
+        if not (self.config.twilio.account_sid and self.config.twilio.auth_token):
+            from pct.notifiche_wa import wa_link as _wa_link
+            msg.sid_esterno = _wa_link(telefono, testo)
+            msg.note = "WhatsApp Web — invio manuale tramite browser"
+            self._messaggi[msg.id] = msg
+            self._salva()
+            return msg
 
         try:
             client = self._twilio_client()

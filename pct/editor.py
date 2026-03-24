@@ -61,7 +61,9 @@ def docx_to_html(data: bytes) -> tuple[str, list[str]]:
 
 # ─────────────────────────────────────────────── pdf → HTML
 
-def pdf_to_html(data: bytes) -> tuple[str, list[str], bool]:
+# ─────────────────────────────────────────────── pdf → HTML
+
+def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
     """
     Converte un file PDF in HTML per l'editing.
 
@@ -69,13 +71,16 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool]:
       1. Prova estrazione testo nativo con pdfplumber (PDF digitali)
       2. Se una pagina è vuota (PDF scansionato), usa Tesseract OCR
       3. Usa la dimensione del font per rilevare titoli (H1/H2/H3)
-      4. Raggruppa il testo in paragrafi per riga
+      4. Preserva grassetto/corsivo dai font names
+      5. Estrae tabelle con formattazione HTML
+      6. Raggruppa il testo in paragrafi per riga
 
     Returns:
-        (html, avvisi, is_scanned)
+        (html, avvisi, is_scanned, n_pagine)
         - html       : contenuto HTML pronto per TipTap
         - avvisi     : lista di messaggi informativi
         - is_scanned : True se almeno una pagina è stata processata via OCR
+        - n_pagine   : numero totale di pagine nel PDF
     """
     try:
         import pdfplumber
@@ -84,16 +89,27 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool]:
             "<p><em>pdfplumber non disponibile.</em></p>",
             ["pdfplumber non installato"],
             False,
+            0
         )
 
     avvisi: list[str] = []
     html_parti: list[str] = []
     is_scanned = False
+    n_pagine = 0
 
     try:
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             n_pagine = len(pdf.pages)
+            
             for i, pagina in enumerate(pdf.pages):
+                # ── Estrae tabelle con formattazione ──────────────
+                tabelle = pagina.extract_tables()
+                if tabelle:
+                    for tabella in tabelle:
+                        html_tabella = _estrai_tabella_html(tabella)
+                        if html_tabella:
+                            html_parti.append(html_tabella)
+
                 # ── Raccoglie caratteri con font info ──────────────
                 chars = pagina.chars
                 testo_plain = pagina.extract_text() or ""
@@ -108,7 +124,7 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool]:
                             html_parti.append(f"<p>{_escape_html(blocco)}</p>")
                     avvisi.append(f"Pagina {i+1}: testo estratto via OCR")
                     if n_pagine > 1 and i < n_pagine - 1:
-                        html_parti.append('<hr>')
+                        html_parti.append('<hr class="page-break">')
                     continue
 
                 # ── Estrae righe con dimensione font media ─────────
@@ -123,14 +139,36 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool]:
 
                 # Separatore di pagina visivo (tranne dopo l'ultima)
                 if n_pagine > 1 and i < n_pagine - 1:
-                    html_parti.append('<hr>')
+                    html_parti.append('<hr class="page-break">')
 
     except Exception as e:
         avvisi.append(f"Errore estrazione PDF: {e}")
         html_parti.append(f"<p><em>Errore: {_escape_html(str(e))}</em></p>")
 
     html = "\n".join(html_parti) if html_parti else "<p></p>"
-    return html, avvisi, is_scanned
+    return html, avvisi, is_scanned, n_pagine
+
+
+def _estrai_tabella_html(tabella: list) -> str:
+    """
+    Converte una tabella pdfplumber in HTML con formattazione.
+    """
+    if not tabella:
+        return ""
+    
+    html = '<table class="pdf-table" style="border-collapse:collapse;width:100%;margin:1rem 0;">\n'
+    
+    for ri, riga in enumerate(tabella):
+        html += '  <tr>\n'
+        for cella in riga:
+            if cella is not None and str(cella).strip():
+                tag = 'th' if ri == 0 else 'td'
+                contenuto = _escape_html(str(cella).strip())
+                html += f'    <{tag} style="border:1px solid #999;padding:6px 8px;">{contenuto}</{tag}>\n'
+        html += '  </tr>\n'
+    
+    html += '</table>\n'
+    return html
 
 
 def _ocr_pagina(pagina) -> str:
@@ -145,8 +183,8 @@ def _ocr_pagina(pagina) -> str:
 
 def _estrai_righe_con_font(chars: list, lines_raw: list) -> list[dict]:
     """
-    Costruisce lista di righe con testo, dimensione media font e flag bold.
-    Ogni dict: {testo, size, bold}
+    Costruisce lista di righe con testo, dimensione media font e flag bold/italic.
+    Ogni dict: {testo, size, bold, italic}
     """
     if not chars:
         return []
@@ -166,8 +204,14 @@ def _estrai_righe_con_font(chars: list, lines_raw: list) -> list[dict]:
         sizes = [c.get("size", 10) for c in gruppo if c.get("size")]
         avg_size = sum(sizes) / len(sizes) if sizes else 10
         fonts = [c.get("fontname", "").lower() for c in gruppo]
-        is_bold = any("bold" in f for f in fonts)
-        righe.append({"testo": testo, "size": avg_size, "bold": is_bold})
+        is_bold = any("bold" in f or "black" in f for f in fonts)
+        is_italic = any("italic" in f or "oblique" in f for f in fonts)
+        righe.append({
+            "testo": testo,
+            "size": avg_size,
+            "bold": is_bold,
+            "italic": is_italic
+        })
 
     return righe
 
@@ -180,6 +224,7 @@ def _righe_to_html(righe: list[dict]) -> list[str]:
       size > 1.2x media → H2
       size > 1.05x media → H3
       altrimenti → <p>
+    Preserva grassetto e corsivo.
     """
     if not righe:
         return []
@@ -198,23 +243,34 @@ def _righe_to_html(righe: list[dict]) -> list[str]:
     for r in righe:
         testo = r["testo"]
         size = r["size"]
+        bold = r.get("bold", False)
+        italic = r.get("italic", False)
+
+        # Formatta testo con grassetto/corsivo
+        testo_format = _escape_html(testo)
+        if bold and italic:
+            testo_format = f"<strong><em>{testo_format}</em></strong>"
+        elif bold:
+            testo_format = f"<strong>{testo_format}</strong>"
+        elif italic:
+            testo_format = f"<em>{testo_format}</em>"
 
         if size >= media * 1.4:
             _flush_paragrafo()
-            html.append(f"<h1>{_escape_html(testo)}</h1>")
+            html.append(f"<h1>{testo_format}</h1>")
         elif size >= media * 1.2:
             _flush_paragrafo()
-            html.append(f"<h2>{_escape_html(testo)}</h2>")
+            html.append(f"<h2>{testo_format}</h2>")
         elif size >= media * 1.05:
             _flush_paragrafo()
-            html.append(f"<h3>{_escape_html(testo)}</h3>")
-        elif r["bold"] and len(testo) < 120:
+            html.append(f"<h3>{testo_format}</h3>")
+        elif bold and len(testo) < 120:
             _flush_paragrafo()
-            html.append(f"<h4>{_escape_html(testo)}</h4>")
+            html.append(f"<h4>{testo_format}</h4>")
         elif testo == "":
             _flush_paragrafo()
         else:
-            paragrafo.append(testo)
+            paragrafo.append(testo_format)
 
     _flush_paragrafo()
     return html
@@ -273,30 +329,49 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
 
     Returns:
         (html, avvisi, meta)
-        meta contiene: {tipo_originale, is_scanned, ...}
+        meta contiene: {tipo_originale, is_scanned, n_pagine, n_caratteri, ...}
     """
     ext = Path(nome_file).suffix.lower()
 
     if ext == ".docx":
         html, avvisi = docx_to_html(data)
-        return html, avvisi, {"tipo_originale": "docx", "is_scanned": False}
+        return html, avvisi, {
+            "tipo_originale": "docx",
+            "is_scanned": False,
+            "n_pagine": 1,
+            "n_caratteri": len(html)
+        }
 
     if ext == ".pdf":
-        html, avvisi, is_scanned = pdf_to_html(data)
-        return html, avvisi, {"tipo_originale": "pdf", "is_scanned": is_scanned}
+        html, avvisi, is_scanned, n_pagine = pdf_to_html(data)
+        return html, avvisi, {
+            "tipo_originale": "pdf",
+            "is_scanned": is_scanned,
+            "n_pagine": n_pagine,
+            "n_caratteri": len(html),
+            "layout_preservato": not is_scanned
+        }
 
     if ext in (".txt",):
         html, avvisi = txt_to_html(data)
-        return html, avvisi, {"tipo_originale": "txt", "is_scanned": False}
+        return html, avvisi, {
+            "tipo_originale": "txt",
+            "is_scanned": False,
+            "n_caratteri": len(html)
+        }
 
     if ext in (".html", ".htm"):
         html = data.decode("utf-8", errors="replace")
-        return html, [], {"tipo_originale": "html", "is_scanned": False}
+        return html, [], {
+            "tipo_originale": "html",
+            "is_scanned": False,
+            "n_caratteri": len(html)
+        }
 
     return (
         "<p><em>Formato non supportato per la modifica inline.</em></p>",
         [],
-        {"tipo_originale": ext.lstrip("."), "is_scanned": False},
+        {"tipo_originale": ext.lstrip("."), "is_scanned": False, "n_caratteri": 0},
     )
 
 

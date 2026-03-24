@@ -68,24 +68,6 @@
     background: var(--word-gray-100);
 }
 
-/* Sidebar scrolling */
-#sidebar {
-    overflow-y: auto;
-    overflow-x: hidden;
-    height: 100vh;
-    position: sticky;
-    top: 0;
-}
-
-/* Editor pages only */
-.editor-page #main {
-    overflow: hidden;
-    height: 100vh;
-}
-
-.editor-page .sidebar {
-    display: none;
-}
 
 /* ── HEADER EDITOR ─────────────────────────────────────────────── */
 .ed-header {

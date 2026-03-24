@@ -6852,4 +6852,3 @@ def create_app(config: dict | None = None) -> Flask:
     start_scheduler(app)
 
     return app
-

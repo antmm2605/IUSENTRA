@@ -3,9 +3,9 @@
 
 {% block extra_head %}
 {# TipTap v2 via esm.sh — caricato come modulo ES #}
-{% endblock %}
-{% block content %}
+<style>
 {# ════════════════════ HEADER ════════════════════ #}
+  #main { padding: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
 <div class="ed-header">
   <div class="ed-header-left">
     <a href="{{ url_for('dettaglio_fascicolo', id_fasc=id_fasc) }}"

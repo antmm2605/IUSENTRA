@@ -68,6 +68,24 @@
     background: var(--word-gray-100);
 }
 
+/* Sidebar scrolling */
+#sidebar {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+}
+
+/* Editor pages only */
+.editor-page #main {
+    overflow: hidden;
+    height: 100vh;
+}
+
+.editor-page .sidebar {
+    display: none;
+}
 
 /* ── HEADER EDITOR ─────────────────────────────────────────────── */
 .ed-header {
@@ -399,6 +417,47 @@
     flex-shrink: 0;
 }
 
+.ed-pdf-banner i {
+    color: #d97706;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* Tabelle estratte da PDF */
+.ed-paper .pdf-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1rem 0;
+    font-size: 11pt;
+}
+
+.ed-paper .pdf-table td,
+.ed-paper .pdf-table th {
+    border: 1px solid #999;
+    padding: 6px 8px;
+    vertical-align: top;
+}
+
+.ed-paper .pdf-table th {
+    background: #f0f0f0;
+    font-weight: 600;
+    text-align: left;
+}
+
+/* Separatore pagine per stampa */
+.ed-paper .page-break {
+    border: none;
+    border-top: 2px dashed #ccc;
+    margin: 2rem 0;
+}
+
+@media print {
+    .ed-paper .page-break {
+        border-top: 2px solid #000;
+        page-break-after: always;
+    }
+}
+
 /* ── MOBILE ACTIONS ──────────────────────────────────────────── */
 .ed-mobile-actions {
     position: fixed;
@@ -492,7 +551,27 @@
     .ed-header-right .ed-desktop-only {
         display: none;
     }
+    
+    /* ── AGGIUNGI QUI I TUOI BOTTONI DOCUMENTI ── */
+    .mob-cards td:last-child {
+        white-space: nowrap;
+    }
+    
+    .mob-cards .d-flex.gap-1 {
+        flex-wrap: wrap;
+    }
+    
+    .mob-cards .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .mob-cards .d-none.d-lg-inline {
+        display: none !important;
+    }
 }
+
+
 
 @media (min-width: 769px) {
     .ed-mobile-actions {

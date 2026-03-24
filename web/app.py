@@ -154,7 +154,6 @@ def _decrypt_doc(data: bytes) -> bytes:
 _ocr_queue: queue.Queue = queue.Queue()
 _ocr_stats = {"totale": 0, "completati": 0, "errori": 0, "in_coda": 0}
 _ocr_stats_lock = threading.Lock()
-_get_fascicoli_fn = None  # impostato da create_app per aggiornare ocr_estratto
 
 
 def _ocr_worker():
@@ -179,11 +178,6 @@ def _ocr_worker():
                 idx.set_ocr_cache(hash_sha256, testo)
             if testo:
                 idx.indicizza_documento(id_fasc, id_doc, nome_doc, testo, tipo_doc)
-                if _get_fascicoli_fn:
-                    try:
-                        _get_fascicoli_fn().segna_ocr_estratto(id_fasc, id_doc)
-                    except Exception:
-                        pass
             with _ocr_stats_lock:
                 _ocr_stats["completati"] += 1
         except Exception as e:
@@ -381,9 +375,6 @@ def create_app(config: dict | None = None) -> Flask:
                 archive_dir=app.config["FASCICOLI_ARCH"],
             )
         return g._fascicoli
-
-    global _get_fascicoli_fn
-    _get_fascicoli_fn = get_fascicoli
 
     def get_config_studio():
         from pct.config_studio import GestioneConfigStudio
@@ -5726,11 +5717,6 @@ def create_app(config: dict | None = None) -> Flask:
         sqlite_info = db.statistiche_sqlite(
             os.path.join(app.config.get("BACKUP_DIR", "./backup"), "studio_legale.db")
         )
-        if not sqlite_info:
-            # Fallback: usa l'indice di ricerca SQLite (sempre presente)
-            _si = db.percorsi.get("search_index")
-            if _si:
-                sqlite_info = db.statistiche_sqlite(str(_si))
         return render_template(
             "admin/database.html",
             statistiche=statistiche,
@@ -5773,23 +5759,18 @@ def create_app(config: dict | None = None) -> Flask:
         db = get_database()
         risultati = db.ottimizza()
         audit("database.ottimizza")
-        def _res(r):
-            risparmio = r.bytes_prima - r.bytes_dopo
-            pct = round(risparmio / r.bytes_prima * 100, 1) if r.bytes_prima else 0
-            return {
-                "modulo": r.modulo,
-                "operazione": r.operazione,
-                "ok": r.riuscita,
-                "messaggio": r.dettagli,
-                "bytes_prima": r.bytes_prima,
-                "bytes_dopo": r.bytes_dopo,
-                "risparmio_bytes": max(risparmio, 0),
-                "risparmio_pct": pct if risparmio > 0 else 0,
-                "ms": r.ms,
-            }
         return jsonify({
             "ok": True,
-            "risultati": [_res(r) for r in risultati],
+            "risultati": [
+                {
+                    "modulo": r.modulo,
+                    "operazione": r.operazione,
+                    "riuscita": r.riuscita,
+                    "dettagli": r.dettagli,
+                    "ms": r.ms,
+                }
+                for r in risultati
+            ],
         })
 
     @app.route("/admin/database/migra", methods=["POST"])
@@ -6288,7 +6269,7 @@ def create_app(config: dict | None = None) -> Flask:
             flash(f"Testo estratto ({len(testo)} caratteri) e indicizzato.", "success")
         else:
             flash("Nessun testo estraibile da questo documento.", "warning")
-        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+        return redirect(url_for("dettaglio_fascicolo", id_fascicolo=id_fasc))
 
     # ---------------------------------------------------------------- Checklist Atti
     @app.route("/checklist")
@@ -6871,3 +6852,4 @@ def create_app(config: dict | None = None) -> Flask:
     start_scheduler(app)
 
     return app
+

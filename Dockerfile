@@ -41,7 +41,11 @@ RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
+<<<<<<< HEAD
       org.opencontainers.image.version="2.24.7" \
+=======
+      org.opencontainers.image.version="2.26.7" \
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

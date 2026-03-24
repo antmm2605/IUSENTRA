@@ -23,6 +23,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
+<<<<<<< HEAD
+=======
+  <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
   <!-- htmx — aggiornamenti inline senza reload di pagina -->
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
 </head>
@@ -56,18 +60,7 @@
   {# Area scorrevole #}
   <div class="sb-scroll" id="sb-scroll">
 
-    {# Recenti (non collassabile) #}
-    {% if recenti %}
-    <div class="sb-group-label">Recenti</div>
-    {% for r in recenti %}
-    <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
-      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
-      <span class="sb-txt">{{ r.titolo }}</span>
-    </a>
-    {% endfor %}
-    {% endif %}
-
-    {# Dashboard e Ricerca sempre visibili #}
+    {# Dashboard e Ricerca - sempre visibili in cima #}
     <a href="{{ url_for('dashboard') }}"
        class="nav-link sb-link sb-top {% if request.endpoint == 'dashboard' %}active{% endif %}">
       <i class="bi bi-speedometer2"></i><span class="sb-txt">Dashboard</span>
@@ -76,6 +69,17 @@
        class="nav-link sb-link sb-top {% if request.endpoint == 'cerca' %}active{% endif %}">
       <i class="bi bi-search"></i><span class="sb-txt">Ricerca globale</span>
     </a>
+
+    {# Recenti (solo se presenti) #}
+    {% if recenti %}
+    <div class="sb-group-label" style="margin-top:.5rem">Recenti</div>
+    {% for r in recenti %}
+    <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
+      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
+      <span class="sb-txt">{{ r.titolo }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
 
     {# ---- Sezione: Agenda ---- #}
     {% set _ag = request.endpoint in ('agenda_view','nuovo_appuntamento') %}
@@ -408,6 +412,15 @@
       <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
     </a>
     <div id="htmx-loader" title="Caricamento…"></div>
+<<<<<<< HEAD
+=======
+    {# ── Indicatore stato worker OCR ── #}
+    <span id="ocr-pill" title="Worker OCR — elaborazione documenti in corso" style="display:none">
+      <span class="spinner-border ocr-pill-spinner" role="status" aria-hidden="true"></span>
+      <i class="bi bi-check2-all ocr-pill-check" style="display:none"></i>
+      <span id="ocr-pill-txt">OCR</span>
+    </span>
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
     {% if utente_corrente %}
     {# ── Centro notifiche in-app ─────────────────────────────────── #}
     <div class="dropdown d-inline-block" id="notifiche-center">
@@ -415,6 +428,10 @@
               id="btn-notifiche-inbox"
               data-bs-toggle="dropdown"
               data-bs-auto-close="outside"
+<<<<<<< HEAD
+=======
+              data-bs-placement="bottom-end"
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
               title="Notifiche"
               aria-label="Centro notifiche">
         <i class="bi bi-bell" id="icon-bell-inbox"></i>
@@ -538,6 +555,15 @@
 </div>{# /main #}
 
 </div>{# /app-body #}
+<<<<<<< HEAD
+=======
+
+{# ---- Modals: fuori da #main per evitare conflitto z-index con backdrop Bootstrap ---- #}
+{# Su mobile #main è position:fixed (stacking context z-index:auto) → tutto al suo interno
+   è sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
+   garantisce che partecipino al root stacking context e i loro z-index:1055 battano il backdrop. #}
+{% block modals %}{% endblock %}
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
 
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
@@ -1345,6 +1371,117 @@ if ('serviceWorker' in navigator) {
 
   window.PCT_SWIPE = { init: initSwipe };
   document.addEventListener('DOMContentLoaded', function() { initSwipe(document); });
+<<<<<<< HEAD
+=======
+})();
+</script>
+<!-- Mobile enhancements: tabelle scrollabili + modal bottom sheet -->
+<script>
+(function() {
+  'use strict';
+  function initMobileEnhancements() {
+    // 1. Rileva tabelle che traboccano → aggiunge classe .scrollable per fade-out
+    document.querySelectorAll('.ds-table-wrap').forEach(function(wrap) {
+      function checkScroll() {
+        wrap.classList.toggle('scrollable', wrap.scrollWidth > wrap.clientWidth + 4);
+      }
+      checkScroll();
+      var ro = new ResizeObserver(checkScroll);
+      ro.observe(wrap);
+      wrap.addEventListener('scroll', function() {
+        // Rimuovi fade quando si arriva in fondo
+        var atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 8;
+        wrap.classList.toggle('scrollable', !atEnd);
+      }, { passive: true });
+    });
+
+    // 2. Bottomsheet: modale con classe .modal-bottom → animazione slide-up
+    document.querySelectorAll('.modal.modal-bottom').forEach(function(modal) {
+      modal.addEventListener('show.bs.modal', function() {
+        var dialog = modal.querySelector('.modal-dialog');
+        if (dialog) dialog.style.transform = '';
+      });
+    });
+
+    // 3. Bottoni form footer sticky: aggiusta z-index per safe area
+    document.querySelectorAll('.form-footer-actions').forEach(function(el) {
+      // già gestito da CSS; nessuna azione JS necessaria
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileEnhancements);
+  } else {
+    initMobileEnhancements();
+  }
+  // Ri-esegui dopo caricamenti htmx
+  document.addEventListener('htmx:afterSettle', initMobileEnhancements);
+})();
+</script>
+<script>
+/* ---- OCR status pill — polling /api/ocr/stato ogni 15s ---- */
+(function () {
+  var pill    = document.getElementById('ocr-pill');
+  var txt     = document.getElementById('ocr-pill-txt');
+  if (!pill || !txt) return;
+  var spinner = pill.querySelector('.ocr-pill-spinner');
+  var check   = pill.querySelector('.ocr-pill-check');
+  var _doneTimer = null;
+  var _wasActive = false;
+  function aggiorna() {
+    fetch('/api/ocr/stato')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        clearTimeout(_doneTimer);
+        if (d.in_coda > 0) {
+          _wasActive = true;
+          txt.textContent = 'OCR \u00b7 ' + d.in_coda;
+          pill.classList.remove('ocr-done');
+          pill.style.display = 'inline-flex';
+          if (spinner) spinner.style.display = '';
+          if (check)   check.style.display   = 'none';
+        } else if (_wasActive) {
+          _wasActive = false;
+          txt.textContent = 'OCR';
+          pill.classList.add('ocr-done');
+          pill.style.display = 'inline-flex';
+          if (spinner) spinner.style.display = 'none';
+          if (check)   check.style.display   = '';
+          _doneTimer = setTimeout(function () {
+            pill.style.display = 'none';
+            pill.classList.remove('ocr-done');
+            if (spinner) spinner.style.display = '';
+            if (check)   check.style.display   = 'none';
+          }, 3000);
+        }
+      })
+      .catch(function () {});
+  }
+  aggiorna();
+  setInterval(aggiorna, 15000);
+})();
+
+/* Fix dropdown clippati da overflow:hidden su mobile (#main è position:fixed overflow-x:hidden).
+   I dropdown all'interno di #main usano position:fixed via Popper strategy per non essere tagliati. */
+(function() {
+  function initFixedDropdowns(root) {
+    var main = document.getElementById('main');
+    if (!main) return;
+    (root || main).querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(el) {
+      // Inizializza solo se non già inizializzato
+      if (bootstrap.Dropdown.getInstance(el)) return;
+      new bootstrap.Dropdown(el, {
+        popperConfig: { strategy: 'fixed' }
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { initFixedDropdowns(); });
+  } else {
+    initFixedDropdowns();
+  }
+  document.addEventListener('htmx:afterSettle', function() { initFixedDropdowns(); });
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
 })();
 </script>
 </body>

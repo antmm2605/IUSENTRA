@@ -252,3 +252,46 @@ python -m pytest tests/ -v
   - Questo risolve il caso in cui Railway (o qualsiasi server) abbia una cache salvata da sorgente remota (PST/URL esterno) con meno uffici di quanti ne ha il bundle aggiornato.
   - Il log mostra: `Auto-upgrade cache uffici: N (cache) < M (bundle) → rigenero`
   - **Non modificare questa logica**: è la salvaguardia principale contro dati incompleti su produzione.
+<<<<<<< HEAD
+=======
+
+- **Mobile — Modal visualizzatore documenti** (`fascicoli/dettaglio.html`, `#modalVisualizzatore`):
+  - Il modal deve avere **sempre** `modal-fullscreen-sm-down` per occupare tutto lo schermo su mobile.
+  - Il `modal-content` deve avere `display:flex;flex-direction:column` affinché il body con l'iframe possa espandersi con `flex:1`.
+  - Struttura corretta:
+    ```html
+    <div class="modal-dialog modal-xl modal-fullscreen-sm-down" style="max-width:95vw;height:92vh;margin:.5rem auto">
+      <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
+        <div class="modal-header py-2">…</div>
+        <div class="modal-body p-0" style="flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column">
+          <iframe … style="width:100%;flex:1;border:0;min-height:0"></iframe>
+        </div>
+      </div>
+    </div>
+    ```
+  - **Senza `display:flex` sul `modal-content`**: il `flex:1` sul modal-body non funziona → l'iframe collassa a altezza 0 → maschera apparentemente vuota/troppo piccola.
+
+- **Mobile — Modal Bootstrap: z-index backdrop e posizionamento**:
+  - I modal devono essere **figli diretti del `<body>`**, non annidati dentro `#main` o altri container con `position:relative/absolute` → altrimenti il backdrop Bootstrap non copre correttamente tutta la pagina e il modal può apparire parzialmente nascosto o in posizione errata.
+  - Regola: tutti i `<div class="modal fade" …>` vanno inseriti **in fondo al file HTML, fuori da qualsiasi wrapper**.
+
+- **Mobile — footer navbar fisso e scroll**:
+  - Il footer di navigazione mobile (`base.html`) usa `position:fixed;bottom:0` con `z-index:1030`.
+  - Il contenuto principale `#main` deve avere `padding-bottom` sufficiente (≥ 70px) per non essere coperto dal footer.
+  - Su iOS Safari il `100vh` include la barra URL → usare `min-height: -webkit-fill-available` come fallback per i modal fullscreen.
+
+- **Mobile — Dropdown tagliati da `overflow:hidden` su `#main`**:
+  - Su mobile `#main` è `position:fixed` con `overflow-y:auto; overflow-x:hidden` (vedi `app.css` riga ~614). Qualsiasi `position:absolute` dentro `#main` — inclusi i Bootstrap dropdown-menu — viene **clippato** ai bordi del container e risulta invisibile o troncato.
+  - **Sintomo**: cliccando un dropdown (es. "Esporta") appare un rettangolo bianco vuoto invece dei voci del menu.
+  - **Fix obbligatorio**: inizializzare i dropdown via JavaScript con `popperConfig: { strategy: 'fixed' }` — Popper usa `position:fixed` e aggira il clipping. Il fix globale è già in `base.html` (script alla fine del `<body>`):
+    ```javascript
+    new bootstrap.Dropdown(el, { popperConfig: { strategy: 'fixed' } });
+    ```
+  - **Regola**: ogni volta che si aggiunge un nuovo dropdown dentro `#main`, verificare che venga inizializzato dallo script globale (`[data-bs-toggle="dropdown"]` auto-rilevato). Non serve azione manuale se l'attributo standard è presente.
+  - **Non usare** `data-bs-display="static"` come workaround: disabilita il posizionamento dinamico di Popper e il menu appare sempre in posizione fissa rispetto al pulsante, ignorando i bordi del viewport.
+
+- **Mobile — pulsanti azione documento** (`fascicoli/dettaglio.html`, sezione atti):
+  - I pulsanti (Visualizza, Scarica, Firma, Elimina) nelle card documento su mobile erano non cliccabili a causa di un overlay trasparente generato da un elemento parent con `pointer-events` errato.
+  - Verificare sempre che i bottoni nelle card abbiano `position:relative;z-index` superiore a eventuali pseudo-elementi `::after` del container.
+  - I titoli delle sezioni (es. "Atti") non devono sovrapporsi ai pulsanti: usare `d-flex align-items-center justify-content-between` per header sezione + pulsante "Aggiungi".
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f

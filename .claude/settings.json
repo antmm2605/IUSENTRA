@@ -1,11 +1,31 @@
 {
+<<<<<<< HEAD
+=======
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)"
+    ]
+  },
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
+<<<<<<< HEAD
             "command": "cd /home/user/hacs && [ -f .venv/bin/activate ] && source .venv/bin/activate 2>/dev/null || true; python3 -c \"import pct; print('[remote-control] HACS v' + pct.__version__ + ' pronto')\" 2>/dev/null || echo '[remote-control] ambiente pronto'",
+=======
+            "command": "cd /home/user/hacs && [ -f .venv/bin/activate ] && source .venv/bin/activate 2>/dev/null || true; python3 -c \"import pct; print('[remote-control] HACS v' + pct.__version__ + ' pronto')\" 2>/dev/null || echo '[remote-control] ambiente pronto'; echo \"[hook] $(date '+%Y-%m-%d %H:%M:%S') - Sessione MCP avviata\" >> ./hacs/.mcp-hooks.log",
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
             "statusMessage": "Inizializzazione ambiente HACS..."
           }
         ]
@@ -19,6 +39,14 @@
             "type": "command",
             "command": "INPUT=$(cat); FILEPATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); echo \"$FILEPATH\" | grep -q 'pct/__init__\\.py' && { VER=$(grep -oP '(?<=__version__ = \")[\\d.]+' \"$FILEPATH\"); [ -n \"$VER\" ] && sed -i \"s/^#  version: .*/#  version: $VER/\" railway.toml && echo \"[hook] railway.toml aggiornato a v$VER\"; } || true",
             "statusMessage": "Sincronizzazione versione railway.toml..."
+<<<<<<< HEAD
+=======
+          },
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); FILEPATH=$(echo \"$INPUT\" | jq -r '.tool_input.file_path // \"\"'); echo \"$FILEPATH\" | grep -qE 'design-system\\.css|app\\.css|mobile\\.css' && { TS=$(date +%Y%m%d%H%M); grep -l \"design-system.css\" ./hacs/web/templates/*.html 2>/dev/null | head -1 | xargs -I {} sed -i \"s/design-system.css?v={{ app_version }}/design-system.css?v=${TS}/\" {} && echo \"[hook] CSS versionato a ${TS}\"; } || true",
+            "statusMessage": "Versioning CSS automatico..."
+>>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
           }
         ]
       }

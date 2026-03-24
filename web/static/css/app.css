@@ -2059,6 +2059,7 @@ tr[data-swipe-delete] {
 /* Dropdown notifiche: assicuriamo che sia visibile sopra tutti gli elementi */
 #notifiche-dropdown {
   z-index: 10000 !important;
+  position: absolute !important;
 }
 
 /* Su mobile, il dropdown deve uscire dallo stacking context di #main */

@@ -65,15 +65,16 @@
 
 /* Sidebar */
 #sidebar {
-    overflow-y: auto;
-    overflow-x: hidden;
-    height: 100vh;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
     background: var(--ds-primary);
     color: white;
-    width: 260px;
-    flex-shrink: 0;
+    z-index: 1000;
+    overflow-y: auto;
+    overflow-x: hidden;
     transition: width 0.28s cubic-bezier(.4,0,.2,1);
 }
 
@@ -94,17 +95,23 @@
 
 /* Main content */
 #main {
-    padding: 1.5rem;
     flex: 1;
+    padding: 1.5rem;
     overflow-y: auto;
     background: var(--ds-gray-100);
 }
 
 /* App body layout */
 #app-body {
+    margin-left: 260px;
     display: flex;
-    flex: 1;
-    overflow: hidden;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: margin-left 0.28s cubic-bezier(.4,0,.2,1);
+}
+
+#app-body.sb-mini {
+    margin-left: 70px;
 }
 
 /* ═══════════════════════════════════════════════════════════════

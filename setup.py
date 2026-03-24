@@ -2,11 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-<<<<<<< HEAD
-    version="2.24.7",
-=======
     version="2.30.3",
->>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f
     description="Sistema invio telematico per studi legali (PCT - Processo Civile Telematico)",
     packages=find_packages(),
     python_requires=">=3.9",

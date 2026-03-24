@@ -3,41 +3,7 @@
 
 {% block extra_head %}
 <!-- Design System + Editor Word -->
-<link href="{{ url_for('static', filename='css/design-system.css') }}?v={{ app_version }}" rel="stylesheet">
-
-<!-- Override specifici editor (solo se necessari) -->
-<style>
-/* Layout principale editor */
-#main { 
-    padding: 0 !important; 
-    overflow: hidden; 
-    display: flex; 
-    flex-direction: column; 
-}
-
-/* Toolbar sempre orizzontale */
-.ed-toolbar { 
-    flex-wrap: wrap; 
-    overflow-x: auto; 
-}
-
-/* Header editor - override se necessario */
-.ed-header {
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between;
-    padding: 0.6rem 1.2rem;
-    background: linear-gradient(180deg, var(--word-blue) 0%, var(--word-blue-dark) 100%);
-    border-bottom: 1px solid rgba(0,0,0,0.2);
-    flex-shrink: 0; 
-    gap: 1rem; 
-    flex-wrap: wrap;
-    position: sticky; 
-    top: 0; 
-    z-index: 100;
-    color: white;
-}
-</style>
+<link href="{{ url_for('static', filename='css/design-system.css') }}?v={{ file_version('css/design-system.css') }}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -64,12 +30,6 @@
       <i class="bi bi-cloud-check"></i>
       <span id="ed-status-text">Pronto</span>
     </span>
-    {% if doc.versioni %}
-    <div class="ed-versions d-none d-md-flex">
-      <i class="bi bi-clock-history"></i>
-      <span>{{ doc.versioni|length }} versioni</span>
-    </div>
-    {% endif %}
   </div>
   <div class="ed-header-right">
     <span class="ed-wordcount d-none d-lg-block" id="ed-wordcount">0 parole</span>
@@ -176,9 +136,6 @@
     <div>
       <strong>Editing PDF</strong> — Il testo è stato estratto e reso modificabile.
       Il layout originale non è preservato.
-      <span id="ed-pdf-ocr-note" style="display:none">
-        · <strong>Documento scansionato:</strong> testo da OCR (potrebbe contenere errori).
-      </span>
     </div>
     <button type="button" onclick="this.parentElement.parentElement.style.display='none'"
             style="margin-left:auto;background:none;border:none;color:#92400e;cursor:pointer;">

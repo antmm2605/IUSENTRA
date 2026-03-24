@@ -82,21 +82,38 @@ body {
   width: 100%;
   background: none;
   border: none;
-  color: rgba(255,255,255,.4);
-  font-size: .67rem;
+  color: rgba(255,255,255,.35);
+  font-size: .64rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.1px;
-  padding: .9rem 1.1rem .2rem;
+  letter-spacing: 1.2px;
+  padding: 1.1rem 1.1rem .35rem;
+  margin-top: .5rem;
   cursor: pointer;
-  transition: color .15s;
+  transition: all .2s ease;
   font-family: var(--font);
+  position: relative;
 }
-#sidebar .sb-toggle span { display: flex; align-items: center; gap: .42rem; }
-#sidebar .sb-toggle span i { font-size: .78rem; opacity: .7; }
-#sidebar .sb-toggle:hover { color: rgba(255,255,255,.75); }
-#sidebar .sb-toggle.open { color: rgba(255,255,255,.65); }
-#sidebar .sb-toggle.sb-admin { color: rgba(249,115,22,.6); }
+#sidebar .sb-toggle::before {
+  content: '';
+  position: absolute;
+  left: 1.1rem;
+  right: 1.1rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+  opacity: 0;
+  transition: opacity .2s;
+}
+#sidebar .sb-toggle:first-of-type::before { display: none; }
+#sidebar .sb-toggle:hover::before { opacity: 1; }
+#sidebar .sb-toggle span { display: flex; align-items: center; gap: .5rem; }
+#sidebar .sb-toggle span i { font-size: .85rem; opacity: .75; transition: opacity .2s; }
+#sidebar .sb-toggle:hover { color: rgba(255,255,255,.85); }
+#sidebar .sb-toggle:hover span i { opacity: 1; }
+#sidebar .sb-toggle.open { color: rgba(255,255,255,.75); }
+#sidebar .sb-toggle.open span i { opacity: 1; color: var(--accent); }
+#sidebar .sb-toggle.sb-admin { color: rgba(249,115,22,.55); }
 #sidebar .sb-toggle.sb-admin:hover,
 #sidebar .sb-toggle.sb-admin.open { color: #fb923c; }
 
@@ -112,40 +129,59 @@ body {
 #sidebar .sb-link {
   display: flex;
   align-items: center;
-  gap: .55rem;
-  color: rgba(255,255,255,.72);
-  padding: .44rem 1.1rem .44rem 1.35rem;
-  border-radius: 8px;
-  margin: 1px 8px;
-  font-size: .83rem;
-  transition: background .15s, color .15s, transform .15s, border-left-color .15s;
+  gap: .6rem;
+  color: rgba(255,255,255,.68);
+  padding: .55rem 1.1rem .55rem 1.45rem;
+  border-radius: 9px;
+  margin: 3px 9px;
+  font-size: .85rem;
+  transition: all .2s ease;
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
   border-left: 3px solid transparent;
+  position: relative;
 }
-#sidebar .sb-link i { flex-shrink: 0; width: 17px; font-size: .92rem; }
-#sidebar .sb-link .sb-txt { overflow: hidden; text-overflow: ellipsis; }
+#sidebar .sb-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 70%;
+  background: linear-gradient(90deg, rgba(200,151,43,.15), transparent);
+  border-radius: 0 3px 3px 0;
+  transition: width .2s ease;
+  opacity: 0;
+}
+#sidebar .sb-link i { flex-shrink: 0; width: 18px; font-size: .95rem; transition: transform .2s, color .2s; }
+#sidebar .sb-link .sb-txt { overflow: hidden; text-overflow: ellipsis; font-weight: 400; }
 #sidebar .sb-link:hover {
-  background: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.09);
   color: #fff;
-  transform: translateX(2px);
-  border-left-color: rgba(200,151,43,.4);
+  transform: translateX(3px);
+  border-left-color: rgba(200,151,43,.5);
 }
+#sidebar .sb-link:hover::before { width: 22px; opacity: 1; }
+#sidebar .sb-link:hover i { transform: scale(1.08); color: var(--accent); }
 #sidebar .sb-link.active {
-  background: linear-gradient(90deg, rgba(200,151,43,.22) 0%, rgba(200,151,43,.04) 100%);
+  background: linear-gradient(90deg, rgba(200,151,43,.25) 0%, rgba(200,151,43,.06) 100%);
   color: #fff;
   font-weight: 600;
   border-left-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(200,151,43,.12);
 }
+#sidebar .sb-link.active::before { width: 22px; opacity: 1; }
+#sidebar .sb-link.active i { color: var(--accent); transform: scale(1.05); }
 
 /* Top-level links (Dashboard, Ricerca) */
 #sidebar .sb-top {
-  margin: 2px 8px;
-  padding: .5rem 1.1rem;
-  font-size: .86rem;
+  margin: 4px 9px;
+  padding: .6rem 1.1rem;
+  font-size: .88rem;
   font-weight: 500;
-  color: rgba(255,255,255,.85);
+  color: rgba(255,255,255,.9);
 }
 
 /* Recent links */
@@ -156,12 +192,13 @@ body {
   text-overflow: ellipsis;
 }
 #sidebar .sb-group-label {
-  font-size: .63rem;
+  font-size: .6rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  opacity: .4;
-  padding: .65rem 1.1rem .15rem;
+  letter-spacing: 1.3px;
+  opacity: .35;
+  padding: .5rem 1.1rem .25rem;
   font-weight: 700;
+  margin-bottom: .15rem;
 }
 
 /* User footer */

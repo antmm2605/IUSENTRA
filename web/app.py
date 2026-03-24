@@ -6871,3 +6871,11 @@ def create_app(config: dict | None = None) -> Flask:
     start_scheduler(app)
 
     return app
+    @app.after_request
+def add_header_development(response):
+    """Disabilita cache solo in modalità debug."""
+    if app.debug:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "-1"
+    return response

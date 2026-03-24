@@ -57,18 +57,7 @@
   {# Area scorrevole #}
   <div class="sb-scroll" id="sb-scroll">
 
-    {# Recenti (non collassabile) #}
-    {% if recenti %}
-    <div class="sb-group-label">Recenti</div>
-    {% for r in recenti %}
-    <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
-      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
-      <span class="sb-txt">{{ r.titolo }}</span>
-    </a>
-    {% endfor %}
-    {% endif %}
-
-    {# Dashboard e Ricerca sempre visibili #}
+    {# Dashboard e Ricerca - sempre visibili in cima #}
     <a href="{{ url_for('dashboard') }}"
        class="nav-link sb-link sb-top {% if request.endpoint == 'dashboard' %}active{% endif %}">
       <i class="bi bi-speedometer2"></i><span class="sb-txt">Dashboard</span>
@@ -77,6 +66,17 @@
        class="nav-link sb-link sb-top {% if request.endpoint == 'cerca' %}active{% endif %}">
       <i class="bi bi-search"></i><span class="sb-txt">Ricerca globale</span>
     </a>
+
+    {# Recenti (solo se presenti) #}
+    {% if recenti %}
+    <div class="sb-group-label" style="margin-top:.5rem">Recenti</div>
+    {% for r in recenti %}
+    <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
+      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
+      <span class="sb-txt">{{ r.titolo }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
 
     {# ---- Sezione: Agenda ---- #}
     {% set _ag = request.endpoint in ('agenda_view','nuovo_appuntamento') %}

@@ -3,6 +3,9 @@
 
 {% block extra_head %}
 {# TipTap v2 via esm.sh — caricato come modulo ES #}
+<!-- Design System + Editor Word -->
+<link href="{{ url_for('static', filename='css/design-system.css') }}?v=20260324" rel="stylesheet">
+
 <style>
 /* ═══════════════════════════════════════════════════
    EDITOR LAYOUT — sovrascrive il padding di #main

@@ -315,16 +315,28 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
     import errno as _errno
     import socket
     codice = getattr(e, "errno", None)
-    if codice == _errno.ENETUNREACH or isinstance(e, socket.gaierror):
+    # DNS failure: hostname non trovato o non risolvibile
+    if isinstance(e, socket.gaierror):
+        host_info = ""
+        args = getattr(e, "args", ())
+        if len(args) >= 2:
+            host_info = f" ({args[1]})"
         return (
-            f"{prefisso}: rete non raggiungibile — verificare host/porta e "
-            "che il server abbia accesso a Internet (se in Docker, controllare "
-            "la configurazione di rete del container)."
+            f"{prefisso}: hostname non trovato{host_info} — "
+            "verificare che l'indirizzo del server sia corretto (es. smtp.gmail.com, "
+            "smtp.office365.com). Se il problema persiste in Docker, "
+            "aggiungere 'dns: [8.8.8.8, 8.8.4.4]' al servizio nel docker-compose.yml."
+        )
+    if codice == _errno.ENETUNREACH:
+        return (
+            f"{prefisso}: rete non raggiungibile — il container/server non ha accesso "
+            "a Internet. In Docker: verificare la configurazione di rete; "
+            "in produzione (Railway/Render): contattare il supporto."
         )
     if codice == _errno.ECONNREFUSED:
         return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
     if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
-        return f"{prefisso}: timeout — il server non risponde entro 10 secondi."
+        return f"{prefisso}: timeout — il server non risponde entro 10 secondi. Verificare host e porta."
     return f"{prefisso}: {e}"
 
 

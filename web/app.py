@@ -6197,6 +6197,30 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception:
             return False
 
+    def _get_base_url() -> str:
+        """Restituisce la base URL pubblica (sempre HTTPS in produzione).
+
+        Priorità:
+        1. PCT_BASE_URL env var — impostare su Railway/Render per URL stabile
+           (es. https://mio-studio.up.railway.app)
+        2. request.host_url aggiornato da ProxyFix (funziona se X-Forwarded-Proto è impostato)
+        3. Fallback: forza https:// su qualunque schema rilevato
+
+        Imposta PCT_BASE_URL nelle variabili d'ambiente Railway per eliminare
+        qualsiasi ambiguità HTTP/HTTPS nei feed iCal.
+        """
+        # 1. URL esplicito configurato dall'amministratore
+        configured = os.getenv("PCT_BASE_URL", "").rstrip("/")
+        if configured:
+            return configured
+        # 2. Legge request.host_url (ProxyFix la aggiorna con X-Forwarded-Proto)
+        #    e come safety net forza sempre https:// se il deploy è in produzione
+        base = request.host_url.rstrip("/")
+        if base.startswith("http://"):
+            # ProxyFix non ha ricevuto X-Forwarded-Proto → forza https manualmente
+            base = "https://" + base[len("http://"):]
+        return base
+
     @app.route("/cal/<token>/agenda.ics")
     def cal_feed_agenda(token):
         if not _cal_token_valido(token):
@@ -6204,7 +6228,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.ical import agenda_to_ical
         ag = get_agenda()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
+        base_url = _get_base_url()
         ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Cache-Control": "no-cache, no-store"})
@@ -6228,7 +6252,7 @@ def create_app(config: dict | None = None) -> Flask:
         ag = get_agenda()
         gs = get_scadenziario()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
+        base_url = _get_base_url()
         ical_str = agenda_scadenze_to_ical(
             ag.tutti(), gs.tutte(), studio_nome=studio_nome, base_url=base_url
         )
@@ -6244,9 +6268,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.cal_token import get_token
         token_data = get_token(_cal_token_dir())
         token = token_data["token"]
-        # Usa HTTPS se siamo dietro un proxy (es. Railway) che imposta X-Forwarded-Proto
-        scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
-        base = f"{scheme}://{request.host}"
+        base = _get_base_url()
         feeds = {
             "agenda":   f"{base}/cal/{token}/agenda.ics",
             "scadenze": f"{base}/cal/{token}/scadenze.ics",
@@ -6254,10 +6276,9 @@ def create_app(config: dict | None = None) -> Flask:
         }
         # Link Google Calendar — forza sempre https:// (requisito Google)
         from urllib.parse import quote
-        completo_https = feeds["completo"].replace("http://", "https://", 1)
         gcal_completo = (
             "https://calendar.google.com/calendar/r/settings/addbyurl"
-            f"?url={quote(completo_https, safe='')}"
+            f"?url={quote(feeds['completo'], safe='')}"
         )
         return render_template(
             "impostazioni/calendario.html",

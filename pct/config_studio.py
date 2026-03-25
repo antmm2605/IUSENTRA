@@ -329,9 +329,9 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
         )
     if codice == _errno.ENETUNREACH:
         return (
-            f"{prefisso}: rete non raggiungibile — il container/server non ha accesso "
-            "a Internet. In Docker: verificare la configurazione di rete; "
-            "in produzione (Railway/Render): contattare il supporto."
+            f"{prefisso}: rete non raggiungibile — probabilmente IPv6 non supportato "
+            "sul server. Il gestionale forza automaticamente IPv4; se l'errore persiste "
+            "verificare che la porta SMTP sia aperta (587 STARTTLS o 465 SSL)."
         )
     if codice == _errno.ECONNREFUSED:
         return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
@@ -346,12 +346,14 @@ def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     import ssl as _ssl
     try:
         ctx = _ssl.create_default_context()
+        _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
         if cfg.use_ssl:
             with smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port,
-                                   context=ctx, timeout=10) as s:
+                                   context=ctx, timeout=10, source_address=_src) as s:
                 s.login(cfg.indirizzo, cfg.password)
         else:
-            with smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=10) as s:
+            with smtplib.SMTP(cfg.smtp_host, cfg.smtp_port,
+                               timeout=10, source_address=_src) as s:
                 s.starttls(context=ctx)
                 s.login(cfg.indirizzo, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP PEC riuscita."}
@@ -381,15 +383,17 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
     try:
         ctx = _ssl.create_default_context()
+        _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
         if cfg.use_tls:
             # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
-            with smtplib.SMTP(cfg.host, cfg.port, timeout=10) as s:
+            with smtplib.SMTP(cfg.host, cfg.port, timeout=10, source_address=_src) as s:
                 s.starttls(context=ctx)
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
         else:
             # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
-            with smtplib.SMTP_SSL(cfg.host, cfg.port, context=ctx, timeout=10) as s:
+            with smtplib.SMTP_SSL(cfg.host, cfg.port, context=ctx,
+                                   timeout=10, source_address=_src) as s:
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP email riuscita."}

@@ -435,10 +435,11 @@ def _test_smtp(gs) -> "Response":
         return jsonify({"ok": False, "errore": "Compilare host, username e password."})
     try:
         ctx = _ssl.create_default_context()
+        _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
         if port == 465:
-            s = smtplib.SMTP_SSL(host, port, context=ctx, timeout=10)
+            s = smtplib.SMTP_SSL(host, port, context=ctx, timeout=10, source_address=_src)
         else:
-            s = smtplib.SMTP(host, port, timeout=10)
+            s = smtplib.SMTP(host, port, timeout=10, source_address=_src)
             if tls:
                 s.starttls(context=ctx)
         s.login(user, pwd)

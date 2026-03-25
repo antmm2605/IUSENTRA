@@ -819,7 +819,19 @@
         </div>
         <div class="col-5">
           <label class="form-label fw-semibold">Controparte</label>
-          <input type="text" name="controparte" class="form-control" placeholder="Nome controparte">
+          <div class="ss-wrap" id="ss-crt-nuovo">
+            <div class="ss-input-group">
+              <i class="bi bi-search ss-icon"></i>
+              <input type="text" name="controparte" id="ss-crt-nuovo-input"
+                     class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
+              <button type="button" class="ss-btn-new"
+                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+            <div id="ss-crt-nuovo-dropdown" class="ss-dropdown"></div>
+            <div id="ss-crt-nuovo-chip" class="ss-chip mt-1" style="display:none"></div>
+          </div>
         </div>
       </div>
       <div class="mb-3">
@@ -919,7 +931,19 @@
         </div>
         <div class="col-5">
           <label class="form-label fw-semibold">Controparte</label>
-          <input type="text" name="controparte" class="form-control">
+          <div class="ss-wrap" id="ss-crt-modifica">
+            <div class="ss-input-group">
+              <i class="bi bi-search ss-icon"></i>
+              <input type="text" name="controparte" id="ss-crt-modifica-input"
+                     class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
+              <button type="button" class="ss-btn-new"
+                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+            <div id="ss-crt-modifica-dropdown" class="ss-dropdown"></div>
+            <div id="ss-crt-modifica-chip" class="ss-chip mt-1" style="display:none"></div>
+          </div>
         </div>
       </div>
       <div class="mb-3">
@@ -1174,4 +1198,11 @@ function attivaTab(btnId) {
 }
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initSoggettoSearch({ uid: 'crt-nuovo',    allowFreeText: true });
+  initSoggettoSearch({ uid: 'crt-modifica', allowFreeText: true });
+});
+</script>
 {% endblock %}

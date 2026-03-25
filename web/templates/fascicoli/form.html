@@ -87,9 +87,35 @@
       </div>
       <div class="col-md-6">
         <label class="form-label fw-semibold">Controparte</label>
-        <input type="text" name="controparte" class="form-control"
-               value="{{ fascicolo.controparte if fascicolo else '' }}"
-               placeholder="Nome controparte">
+        {# Widget soggetto search — cerca nel DB o digita liberamente #}
+        <div class="ss-wrap" id="ss-controparte">
+          <div class="ss-input-group">
+            <i class="bi bi-search ss-icon"></i>
+            <input type="text"
+                   name="controparte"
+                   id="ss-controparte-input"
+                   class="ss-input"
+                   value="{{ fascicolo.controparte if fascicolo else '' }}"
+                   placeholder="Cerca per nome, C.F.… o digita"
+                   autocomplete="off">
+            <button type="button" class="ss-btn-new"
+                    onclick="window.open('/soggetti/nuovo','_blank')"
+                    title="Crea nuovo soggetto">
+              <i class="bi bi-plus-lg me-1"></i>Nuovo
+            </button>
+          </div>
+          <div id="ss-controparte-dropdown" class="ss-dropdown"></div>
+          <div id="ss-controparte-chip" class="ss-chip mt-1" style="display:none"></div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          initSoggettoSearch({
+            uid: 'controparte',
+            allowFreeText: true,
+            createLabel: 'Crea nuovo soggetto'
+          });
+        });
+        </script>
       </div>
     </div>
   </div>

@@ -1528,5 +1528,177 @@ if ('serviceWorker' in navigator) {
   document.addEventListener('htmx:afterSettle', function() { initFixedDropdowns(); });
 })();
 </script>
+
+{# ================================================================
+   SOGGETTO SEARCH WIDGET — funzione globale riutilizzabile
+   Chiama: initSoggettoSearch({ uid, inputId, allow_free_text })
+   Dove:
+     uid           = prefisso univoco per ID elementi DOM
+     inputId       = ID dell'<input type="text" name="controparte">
+     allowFreeText = true → l'utente può lasciare testo libero
+                     false → richiede selezione da lista (default)
+   ================================================================ #}
+<script>
+(function() {
+  // Debounce utility
+  function debounce(fn, ms) {
+    var t; return function() { var a = arguments, ctx = this; clearTimeout(t); t = setTimeout(function(){ fn.apply(ctx, a); }, ms); };
+  }
+
+  /**
+   * Inizializza il widget Soggetto Search su un <input type="text">.
+   * L'input deve trovarsi dentro un .ss-wrap con .ss-dropdown al suo interno.
+   *
+   * HTML previsto:
+   *   <div class="ss-wrap" id="ss-{uid}">
+   *     <div class="ss-input-group">
+   *       <i class="bi bi-search ss-icon"></i>
+   *       <input type="text" id="ss-{uid}-input" class="ss-input" ...>
+   *       <button type="button" class="ss-btn-new" onclick="...">+ Nuovo</button>
+   *     </div>
+   *     <div class="ss-dropdown" id="ss-{uid}-dropdown"></div>
+   *   </div>
+   *
+   * Il campo form effettivo è l'<input type="text"> stesso (se allowFreeText)
+   * oppure un hidden affiancato (se !allowFreeText).
+   */
+  window.initSoggettoSearch = function(opts) {
+    var uid          = opts.uid;
+    var allowFree    = opts.allowFreeText !== false;  // default true
+    var apiUrl       = opts.apiUrl || '/api/soggetti';
+    var createUrl    = opts.createUrl || '/soggetti/nuovo';
+    var createLabel  = opts.createLabel || 'Crea nuovo soggetto';
+    var minChars     = opts.minChars || 2;
+
+    var wrap  = document.getElementById('ss-' + uid);
+    var input = document.getElementById('ss-' + uid + '-input');
+    var drop  = document.getElementById('ss-' + uid + '-dropdown');
+    var chip  = document.getElementById('ss-' + uid + '-chip');
+
+    if (!wrap || !input || !drop) return;
+
+    var selected = null;   // oggetto soggetto selezionato
+    var results  = [];
+
+    // ── Renderizza i risultati
+    function renderResults(items) {
+      results = items;
+      if (!items.length) {
+        var q = input.value.trim();
+        drop.innerHTML =
+          '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q ? '?cognome=' + encodeURIComponent(q) : '')) + '')">' +
+            '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
+            createLabel + (q ? ' "' + _esc(q) + '"' : '') +
+          '</div>';
+        drop.classList.add('is-open');
+        return;
+      }
+      var html = items.map(function(s, i) {
+        var siglaClass = s.sigla === 'PG' ? 'ss-sigla pg' : 'ss-sigla';
+        var qualBadge  = s.qualifica ? '<span class="ss-item-qualifica">' + _esc(s.qualifica) + '</span>' : '';
+        var sub = [];
+        if (s.identificativo) sub.push(s.identificativo);
+        return '<div class="ss-item" data-idx="' + i + '" onclick="soggettoSearchSelect('' + uid + '',' + i + ', null)">' +
+          '<div class="' + siglaClass + '">' + _esc(s.sigla) + '</div>' +
+          '<div class="ss-item-body">' +
+            '<div class="ss-item-name">' + _esc(s.nome) + '</div>' +
+            (sub.length ? '<div class="ss-item-sub">' + _esc(sub.join(' · ')) + '</div>' : '') +
+          '</div>' +
+          qualBadge +
+        '</div>';
+      }).join('');
+      var q2 = input.value.trim();
+      html += '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q2 ? '?cognome=' + encodeURIComponent(q2) : '')) + '')">' +
+        '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
+        createLabel +
+      '</div>';
+      drop.innerHTML = html;
+      drop.classList.add('is-open');
+    }
+
+    // ── Ricerca API
+    var doSearch = debounce(function(q) {
+      if (q.length < minChars) { drop.classList.remove('is-open'); return; }
+      fetch(apiUrl + '?q=' + encodeURIComponent(q))
+        .then(function(r){ return r.json(); })
+        .then(function(data){ renderResults(data); })
+        .catch(function(){ drop.classList.remove('is-open'); });
+    }, 280);
+
+    // ── Event listeners input
+    input.addEventListener('input', function() {
+      if (selected && allowFree) { selected = null; _updateChip(); }
+      doSearch(this.value.trim());
+    });
+    input.addEventListener('focus', function() {
+      if (this.value.trim().length >= minChars) doSearch(this.value.trim());
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { drop.classList.remove('is-open'); }
+    });
+
+    // Chiudi su click esterno
+    document.addEventListener('click', function(e) {
+      if (!wrap.contains(e.target)) drop.classList.remove('is-open');
+    }, true);
+
+    // ── Selezione soggetto
+    window.soggettoSearchSelect = window.soggettoSearchSelect || {};
+    window['_ssSelect_' + uid] = function(idx, url) {
+      drop.classList.remove('is-open');
+      if (url) {
+        // "Crea nuovo" → apre in nuova scheda
+        window.open(decodeURIComponent(url), '_blank');
+        return;
+      }
+      if (idx === null || idx === undefined) return;
+      var s = results[idx];
+      if (!s) return;
+      selected = s;
+      input.value = s.nome;
+      _updateChip();
+    };
+
+    function _updateChip() {
+      if (!chip) return;
+      if (!selected) { chip.style.display = 'none'; return; }
+      chip.style.display = 'flex';
+      var siglaClass = selected.sigla === 'PG' ? 'ss-chip-sigla pg' : 'ss-chip-sigla';
+      chip.innerHTML =
+        '<div class="' + siglaClass + '">' + _esc(selected.sigla) + '</div>' +
+        '<span class="ss-chip-name">' + _esc(selected.nome) + '</span>' +
+        (selected.identificativo ? '<span class="ss-chip-name" style="font-weight:400;opacity:.7;font-size:.75rem">&nbsp;· ' + _esc(selected.identificativo) + '</span>' : '') +
+        '<button type="button" class="ss-chip-clear" onclick="_ssClear_' + uid + '()" title="Deseleziona">×</button>';
+    }
+
+    window['_ssClear_' + uid] = function() {
+      selected = null;
+      input.value = '';
+      if (chip) chip.style.display = 'none';
+      input.focus();
+    };
+
+    // ── Espone la funzione di selezione globale (onclick="soggettoSearchSelect(uid, idx, url)")
+    if (!window.soggettoSearchSelect || typeof window.soggettoSearchSelect !== 'function') {
+      window.soggettoSearchSelect = function(uid, idx, url) {
+        var fn = window['_ssSelect_' + uid];
+        if (fn) fn(idx, url);
+      };
+    }
+  };
+
+  function _esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Ri-espone globalmente (per onclick inline)
+  window.soggettoSearchSelect = function(uid, idx, url) {
+    var fn = window['_ssSelect_' + uid];
+    if (fn) fn(idx, url);
+  };
+
+})();
+</script>
 </body>
 </html>

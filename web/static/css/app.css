@@ -2110,3 +2110,299 @@ tr[data-swipe-delete] {
   }
 }
 
+
+/* ================================================================
+   SOGGETTO SEARCH WIDGET
+   Campo di ricerca riutilizzabile per soggetti processuali/clienti.
+   Usato in: fascicoli/form, clienti/cartella, e ovunque serva
+   selezionare un soggetto dal database o inserirne uno nuovo.
+   ================================================================ */
+
+/* ── Wrapper posizionato per il dropdown ── */
+.ss-wrap {
+  position: relative;
+}
+
+/* ── Input search con icona ── */
+.ss-input-group {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #dee2e6;
+  border-radius: 10px;
+  background: var(--bs-body-bg, #fff);
+  transition: border-color .18s, box-shadow .18s;
+  overflow: hidden;
+}
+.ss-input-group:focus-within {
+  border-color: var(--bs-primary, #0d6efd);
+  box-shadow: 0 0 0 3px rgba(13,110,253,.12);
+}
+.ss-icon {
+  padding: 0 .55rem 0 .75rem;
+  color: #94a3b8;
+  font-size: .9rem;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.ss-input {
+  flex: 1;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: .45rem .3rem;
+  font-size: .9rem;
+  min-width: 0;
+}
+.ss-input:focus { outline: none; }
+.ss-btn-new {
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid #e2e8f0;
+  border-radius: 0;
+  padding: .4rem .75rem;
+  font-size: .8rem;
+  color: var(--bs-primary, #0d6efd);
+  background: rgba(13,110,253,.04);
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.ss-btn-new:hover { background: rgba(13,110,253,.1); }
+
+/* ── Dropdown risultati ── */
+.ss-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  z-index: 10050;
+  background: var(--bs-body-bg, #fff);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.13), 0 2px 8px rgba(0,0,0,.07);
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.ss-dropdown.is-open { display: block; }
+
+/* ── Singolo risultato ── */
+.ss-item {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .6rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .12s;
+}
+.ss-item:last-child { border-bottom: none; }
+.ss-item:hover, .ss-item.is-active { background: rgba(13,110,253,.06); }
+.ss-sigla {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; font-weight: 700; letter-spacing: .02em;
+  background: #e0e7ff; color: #3730a3;
+}
+.ss-sigla.pg { background: #dcfce7; color: #166534; }
+.ss-item-body { flex: 1; min-width: 0; }
+.ss-item-name {
+  font-size: .88rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--bs-body-color, #1e293b);
+}
+.ss-item-sub {
+  font-size: .72rem; color: #94a3b8;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.ss-item-qualifica {
+  flex-shrink: 0;
+  font-size: .65rem;
+  background: #f1f5f9; color: #475569;
+  border-radius: 4px; padding: .1rem .35rem;
+}
+
+/* ── Voce "Crea nuovo" ── */
+.ss-create {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem 1rem;
+  cursor: pointer;
+  background: rgba(13,110,253,.03);
+  color: var(--bs-primary, #0d6efd);
+  font-size: .83rem; font-weight: 500;
+  transition: background .12s;
+  border-top: 1px solid #e9ecef;
+  text-decoration: none;
+}
+.ss-create:hover { background: rgba(13,110,253,.1); color: var(--bs-primary); }
+.ss-create-icon {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--bs-primary);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem;
+}
+
+/* ── Chip selezionato ── */
+.ss-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .6rem .35rem .5rem;
+  background: rgba(13,110,253,.08);
+  border: 1px solid rgba(13,110,253,.2);
+  border-radius: 8px;
+  font-size: .83rem;
+  color: var(--bs-primary, #0d6efd);
+  font-weight: 500;
+  max-width: 100%;
+}
+.ss-chip-sigla {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .6rem; font-weight: 700;
+  background: var(--bs-primary); color: #fff; flex-shrink: 0;
+}
+.ss-chip-name {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 200px;
+}
+.ss-chip-clear {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: none; background: rgba(13,110,253,.15);
+  color: var(--bs-primary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; line-height: 1;
+  transition: background .12s;
+  padding: 0;
+}
+.ss-chip-clear:hover { background: rgba(13,110,253,.3); }
+
+/* Dark mode */
+[data-bs-theme="dark"] .ss-input-group {
+  border-color: #334155; background: #0f172a;
+}
+[data-bs-theme="dark"] .ss-dropdown {
+  background: #1e293b; border-color: #334155;
+  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+}
+[data-bs-theme="dark"] .ss-item { border-color: #334155; }
+[data-bs-theme="dark"] .ss-item:hover,
+[data-bs-theme="dark"] .ss-item.is-active { background: rgba(59,130,246,.12); }
+[data-bs-theme="dark"] .ss-item-name { color: #e2e8f0; }
+[data-bs-theme="dark"] .ss-create { background: rgba(59,130,246,.06); border-color: #334155; }
+[data-bs-theme="dark"] .ss-chip {
+  background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.3);
+}
+[data-bs-theme="dark"] .ss-btn-new { border-color: #334155; background: rgba(59,130,246,.06); }
+
+/* ================================================================
+   CLIENT PICKER EMAIL — campo ricerca clienti ultra-moderno
+   ================================================================ */
+
+.cp-wrap {
+  position: relative;
+}
+.cp-result-card {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: .65rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .12s;
+}
+.cp-result-card:last-child { border-bottom: none; }
+.cp-result-card:hover { background: rgba(13,110,253,.05); }
+.cp-avatar {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 700; letter-spacing: -.02em;
+  color: #fff;
+}
+.cp-avatar.pf { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
+.cp-avatar.pg { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
+.cp-body { flex: 1; min-width: 0; }
+.cp-name {
+  font-size: .9rem; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--bs-body-color);
+}
+.cp-email {
+  font-size: .75rem; color: #64748b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cp-phone {
+  font-size: .72rem; color: #94a3b8; margin-top: 1px;
+}
+.cp-meta {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+}
+.cp-stato-badge {
+  font-size: .62rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: .1rem .4rem; border-radius: 4px;
+}
+.cp-stato-badge.attivo { background: #dcfce7; color: #166534; }
+.cp-stato-badge.inattivo { background: #f1f5f9; color: #64748b; }
+
+/* ── Empty / loading states ── */
+.cp-state {
+  padding: 1.2rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: .83rem;
+}
+.cp-state i { display: block; font-size: 1.4rem; margin-bottom: .35rem; opacity: .5; }
+
+/* ── Chip cliente selezionato ── */
+.cp-chip {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .75rem;
+  background: linear-gradient(135deg, rgba(99,102,241,.1) 0%, rgba(79,70,229,.08) 100%);
+  border: 1.5px solid rgba(99,102,241,.25);
+  border-radius: 10px;
+}
+.cp-chip-avatar {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.cp-chip-avatar.pf { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.cp-chip-avatar.pg { background: linear-gradient(135deg, #059669, #047857); }
+.cp-chip-info { flex: 1; min-width: 0; }
+.cp-chip-name { font-size: .85rem; font-weight: 600; color: #4f46e5; }
+.cp-chip-email { font-size: .72rem; color: #6366f1; }
+.cp-chip-clear {
+  flex-shrink: 0;
+  border: none; background: rgba(99,102,241,.15);
+  color: #4f46e5; border-radius: 6px;
+  padding: .25rem .5rem; cursor: pointer; font-size: .8rem;
+  transition: background .15s;
+}
+.cp-chip-clear:hover { background: rgba(99,102,241,.3); }
+
+/* Dark mode client picker */
+[data-bs-theme="dark"] .cp-result-card { border-color: #334155; }
+[data-bs-theme="dark"] .cp-result-card:hover { background: rgba(99,102,241,.1); }
+[data-bs-theme="dark"] .cp-name { color: #e2e8f0; }
+[data-bs-theme="dark"] .cp-email { color: #94a3b8; }
+[data-bs-theme="dark"] .cp-chip {
+  background: rgba(99,102,241,.12);
+  border-color: rgba(99,102,241,.3);
+}
+[data-bs-theme="dark"] .cp-chip-name { color: #818cf8; }
+[data-bs-theme="dark"] .cp-chip-email { color: #a5b4fc; }

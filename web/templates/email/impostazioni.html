@@ -196,6 +196,44 @@
   <button type="submit" class="btn btn-primary fw-semibold px-4">
     <i class="bi bi-floppy me-1"></i>Salva impostazioni
   </button>
+
+     <div class="d-flex gap-2">
+    <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary">
+      Annulla
+    </a>
+    <button type="submit" class="btn btn-primary fw-semibold px-4">
+      <i class="bi bi-floppy me-1"></i>Salva impostazioni
+    </button>
+  </div>
+</div>
+
+{# ── Modal conferma reset SMTP ── #}
+<div class="modal fade" id="modalResetSmtp" tabindex="-1" aria-labelledby="modalResetSmtpLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-semibold" id="modalResetSmtpLabel">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Reset configurazione SMTP
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-2">Questa operazione azzera <strong>tutti i campi SMTP</strong> salvati nel file di configurazione persistente (<code>studio.json</code>):</p>
+        <ul class="small text-muted mb-3">
+          <li>Server SMTP, porta, STARTTLS</li>
+          <li>Username e password</li>
+          <li>Indirizzo e nome mittente</li>
+        </ul>
+        <p class="mb-0 small text-muted">Dopo il reset dovrai reinserire le credenziali del nuovo provider (es. Gmail) e salvare.</p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnResetSmtpConferma">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Azzera configurazione SMTP
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 </form>
@@ -230,22 +268,46 @@ function _postForm(azione) {
   return fetch('', { method: 'POST', body: fd }).then(r => r.json());
 }
 
-document.getElementById('btnTestSmtp')?.addEventListener('click', function () {
-  const btn = this; btn.disabled = true;
-  const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test…';
-  _postForm('test_smtp')
-    .then(d => _toast(d.ok ? 'success' : 'danger', d.messaggio || d.errore))
-    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
+document.getElementById('btnResetSmtp')?.addEventListener('click', function () {
+  const modal = new bootstrap.Modal(document.getElementById('modalResetSmtp'));
+  modal.show();
 });
 
-document.getElementById('btnTestImap')?.addEventListener('click', function () {
-  const btn = this; btn.disabled = true;
-  const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test…';
-  _postForm('test_imap')
-    .then(d => _toast(d.ok ? 'success' : 'danger', d.messaggio || d.errore))
-    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
+document.getElementById('btnResetSmtpConferma')?.addEventListener('click', function () {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Reset…';
+
+  fetch("{{ url_for('email_client.reset_smtp') }}", {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+  .then(r => r.json())
+  .then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('modalResetSmtp'))?.hide();
+    if (d.ok) {
+      _toast('success', d.messaggio || 'Configurazione SMTP azzerata.');
+      // Svuota i campi del form visibili senza ricaricare la pagina
+      ['smtp_host', 'smtp_port', 'username', 'mittente_email'].forEach(n => {
+        const el = document.querySelector(`[name="${n}"]`);
+        if (el) el.value = n === 'smtp_port' ? '587' : '';
+      });
+      const chkTls = document.getElementById('chkTls');
+      if (chkTls) chkTls.checked = true;
+      const pwdEl = document.querySelector('[name="password"]');
+      if (pwdEl) { pwdEl.value = ''; pwdEl.placeholder = 'Password email'; }
+    } else {
+      _toast('danger', d.errore || 'Errore durante il reset.');
+    }
+  })
+  .catch(() => {
+    bootstrap.Modal.getInstance(document.getElementById('modalResetSmtp'))?.hide();
+    _toast('danger', 'Errore di rete durante il reset.');
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i>Azzera configurazione SMTP';
+  });
 });
 
 document.getElementById('btnSincNow')?.addEventListener('click', function () {

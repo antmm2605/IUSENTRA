@@ -310,6 +310,24 @@ class GestioneConfigStudio:
 
 # ──────────────────────────────────────────────────────────── test connessioni
 
+def _msg_errore_rete(e: Exception, prefisso: str) -> str:
+    """Trasforma eccezioni di rete in messaggi leggibili per l'utente."""
+    import errno as _errno
+    import socket
+    codice = getattr(e, "errno", None)
+    if codice == _errno.ENETUNREACH or isinstance(e, socket.gaierror):
+        return (
+            f"{prefisso}: rete non raggiungibile — verificare host/porta e "
+            "che il server abbia accesso a Internet (se in Docker, controllare "
+            "la configurazione di rete del container)."
+        )
+    if codice == _errno.ECONNREFUSED:
+        return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
+    if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
+        return f"{prefisso}: timeout — il server non risponde entro 10 secondi."
+    return f"{prefisso}: {e}"
+
+
 def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione SMTP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
     import smtplib
@@ -326,7 +344,7 @@ def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
                 s.login(cfg.indirizzo, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP PEC riuscita."}
     except Exception as e:
-        return {"ok": False, "messaggio": f"Errore SMTP: {e}"}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore SMTP PEC")}
 
 
 def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
@@ -340,7 +358,7 @@ def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
             m.login(cfg.indirizzo, cfg.password)
         return {"ok": True, "messaggio": "Connessione IMAP PEC riuscita."}
     except Exception as e:
-        return {"ok": False, "messaggio": f"Errore IMAP: {e}"}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore IMAP PEC")}
 
 
 def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
@@ -356,7 +374,7 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
                 s.login(cfg.username, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP email riuscita."}
     except Exception as e:
-        return {"ok": False, "messaggio": f"Errore SMTP email: {e}"}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore SMTP email")}
 
 
 def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:

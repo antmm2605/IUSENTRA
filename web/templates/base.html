@@ -417,56 +417,20 @@
     </span>
     {% if utente_corrente %}
     {# ── Centro notifiche in-app ─────────────────────────────────── #}
-    <div class="dropdown d-inline-block" id="notifiche-center">
+    <span id="notifiche-center" class="d-inline-block" style="position:relative">
       <button class="btn btn-sm btn-outline-secondary position-relative"
               id="btn-notifiche-inbox"
-              data-bs-toggle="dropdown"
-              data-bs-auto-close="outside"
-              data-bs-placement="bottom-end"
-              data-bs-strategy="fixed"
+              type="button"
               title="Notifiche"
-              aria-label="Centro notifiche">
+              aria-label="Centro notifiche"
+              aria-expanded="false"
+              onclick="pctNotifPanel.toggle(this)">
         <i class="bi bi-bell" id="icon-bell-inbox"></i>
         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
               id="badge-notifiche"
               style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
       </button>
-      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
-           id="notifiche-dropdown"
-           style="width:360px;max-width:95vw;border-radius:12px;overflow:hidden">
-        {# Header #}
-        <div class="d-flex align-items-center justify-content-between px-3 py-2"
-             style="background:var(--bs-primary);color:#fff">
-          <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
-          <button class="btn btn-sm p-0 text-white opacity-75"
-                  id="btn-tutte-lette"
-                  style="font-size:.72rem;background:none;border:none"
-                  title="Segna tutte come lette">
-            <i class="bi bi-check2-all me-1"></i>Tutte lette
-          </button>
-        </div>
-        {# Lista notifiche (popolata da JS) #}
-        <div id="notifiche-lista" style="max-height:360px;overflow-y:auto">
-          <div class="text-center text-muted py-4 small" id="notif-placeholder">
-            <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
-            Nessuna notifica
-          </div>
-        </div>
-        {# Footer #}
-        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
-             style="font-size:.75rem">
-          <a href="/scadenziario" class="text-decoration-none text-muted">
-            <i class="bi bi-list-check me-1"></i>Scadenziario
-          </a>
-          <button id="btn-abilita-push"
-                  class="btn btn-link p-0 text-muted"
-                  style="font-size:.75rem;display:none"
-                  onclick="PCT_NOTIFICHE.richiediPermesso()">
-            <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
-          </button>
-        </div>
-      </div>
-    </div>
+    </span>
     {# Pulsante legacy nascosto — mantenuto per push.js #}
     <button id="btn-notifiche" style="display:none"
             onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
@@ -553,6 +517,53 @@
    è sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
    garantisce che partecipino al root stacking context e i loro z-index:1055 battano il backdrop. #}
 {% block modals %}{% endblock %}
+
+{# ── Pannello notifiche in-app — figlio diretto del body per sfuggire
+   agli overflow/stacking context del topbar (backdrop-filter crea
+   containing block per position:fixed; overflow-x:auto su topbar-actions
+   forza overflow-y:auto che clippa i dropdown assolutamente posizionati) ── #}
+{% if utente_corrente %}
+<div id="notifiche-dropdown"
+     role="dialog"
+     aria-label="Centro notifiche"
+     style="display:none;position:fixed;z-index:10050;width:360px;max-width:calc(100vw - 1rem);
+            border-radius:12px;overflow:hidden;
+            box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);
+            border:1px solid rgba(0,0,0,.1);
+            background:var(--bs-body-bg,#fff)">
+  {# Header #}
+  <div class="d-flex align-items-center justify-content-between px-3 py-2"
+       style="background:var(--bs-primary);color:#fff">
+    <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
+    <button class="btn btn-sm p-0 text-white opacity-75"
+            id="btn-tutte-lette"
+            style="font-size:.72rem;background:none;border:none"
+            title="Segna tutte come lette">
+      <i class="bi bi-check2-all me-1"></i>Tutte lette
+    </button>
+  </div>
+  {# Lista notifiche (popolata da JS) #}
+  <div id="notifiche-lista" style="max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div class="text-center text-muted py-4 small" id="notif-placeholder">
+      <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
+      Nessuna notifica
+    </div>
+  </div>
+  {# Footer #}
+  <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
+       style="font-size:.75rem">
+    <a href="/scadenziario" class="text-decoration-none text-muted">
+      <i class="bi bi-list-check me-1"></i>Scadenziario
+    </a>
+    <button id="btn-abilita-push"
+            class="btn btn-link p-0 text-muted"
+            style="font-size:.75rem;display:none"
+            onclick="PCT_NOTIFICHE.richiediPermesso()">
+      <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
+    </button>
+  </div>
+</div>
+{% endif %}
 
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
@@ -1064,11 +1075,58 @@ function initPagination(tableId, selectId) {
     } catch (_) {}
   }
 
-  // Carica al click sul dropdown
-  const dropEl = document.getElementById('notifiche-center');
-  if (dropEl) {
-    dropEl.addEventListener('show.bs.dropdown', carica);
+  // ── Pannello notifiche custom (fuori dal topbar, position:fixed su body) ─────
+  const PANEL    = document.getElementById('notifiche-dropdown');
+  const BTN_BELL = document.getElementById('btn-notifiche-inbox');
+
+  function _posizionaPanel() {
+    if (!BTN_BELL || !PANEL) return;
+    const r = BTN_BELL.getBoundingClientRect();
+    const panW = Math.min(360, window.innerWidth - 16);
+    let left = r.right - panW;
+    if (left < 8) left = 8;
+    PANEL.style.width = panW + 'px';
+    PANEL.style.top   = (r.bottom + 4) + 'px';
+    PANEL.style.left  = left + 'px';
   }
+
+  function _apriPanel() {
+    if (!PANEL) return;
+    _posizionaPanel();
+    PANEL.style.display = 'block';
+    if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'true');
+    carica();
+  }
+
+  function _chiudiPanel() {
+    if (!PANEL) return;
+    PANEL.style.display = 'none';
+    if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'false');
+  }
+
+  // API pubblica usata dall'attributo onclick del button
+  window.pctNotifPanel = {
+    toggle: function (btn) {
+      if (PANEL && PANEL.style.display === 'block') {
+        _chiudiPanel();
+      } else {
+        _apriPanel();
+      }
+    }
+  };
+
+  // Chiudi al click fuori dal pannello
+  document.addEventListener('click', function (e) {
+    if (!PANEL || PANEL.style.display !== 'block') return;
+    if (PANEL.contains(e.target)) return;
+    if (BTN_BELL && BTN_BELL.contains(e.target)) return;
+    _chiudiPanel();
+  }, true);
+
+  // Riposiziona se il viewport cambia (orientamento mobile)
+  window.addEventListener('resize', function () {
+    if (PANEL && PANEL.style.display === 'block') _posizionaPanel();
+  });
 
   // Segna tutte lette
   if (BTN_LETTE) {

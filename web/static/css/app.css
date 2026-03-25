@@ -2093,19 +2093,11 @@ tr[data-swipe-delete] {
   overscroll-behavior: contain;
 }
 
-/* Dropdown notifiche: assicuriamo che sia visibile sopra tutti gli elementi */
+/* Pannello notifiche — figlio diretto del body, posizionato via JS.
+   Non usa Bootstrap dropdown: position:fixed sul root viewport,
+   sfugge agli overflow/stacking context del topbar (backdrop-filter). */
 #notifiche-dropdown {
-  z-index: 10000 !important;
-  position: absolute !important;
-}
-
-/* Su mobile, il dropdown deve uscire dallo stacking context di #main */
-@media (max-width: 768px) {
-  #notifiche-dropdown {
-    position: fixed !important;
-    top: auto !important;
-    right: 0.5rem !important;
-  }
+  /* position e top/left sono impostati inline da JS _posizionaPanel() */
 }
 
 /* ---- modalVisualizzatore: inline height:92vh override su mobile ---- */

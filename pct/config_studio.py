@@ -390,7 +390,11 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
     if codice == _errno.ECONNREFUSED:
         return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
     if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
-        return f"{prefisso}: timeout — il server non risponde entro 10 secondi. Verificare host e porta."
+        return (
+            f"{prefisso}: timeout — il server non risponde entro 10 secondi. "
+            "Su Railway/cloud la causa più comune è la porta 25 bloccata da GCP: "
+            "usare porta 587 (STARTTLS) o 465 (SSL). Verificare anche host e porta nelle impostazioni."
+        )
     return f"{prefisso}: {e}"
 
 
@@ -432,6 +436,12 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     import ssl as _ssl
     if not cfg.host:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
+    # Porta 25 è bloccata da GCP/Railway/AWS outbound (anti-spam) → timeout garantito
+    if cfg.port == 25:
+        return {"ok": False, "messaggio": (
+            "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
+            "Usare porta 587 (STARTTLS) o 465 (SSL diretto)."
+        )}
     try:
         ctx = _ssl.create_default_context()
         if cfg.use_tls:

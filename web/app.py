@@ -6118,7 +6118,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.ical import agenda_to_ical
         ag = get_agenda()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/")
+        base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
         ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Content-Disposition": "attachment; filename=agenda.ics"})
@@ -6157,7 +6157,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.ical import agenda_to_ical
         ag = get_agenda()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/")
+        base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
         ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Cache-Control": "no-cache, no-store"})
@@ -6181,7 +6181,7 @@ def create_app(config: dict | None = None) -> Flask:
         ag = get_agenda()
         gs = get_scadenziario()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/")
+        base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
         ical_str = agenda_scadenze_to_ical(
             ag.tutti(), gs.tutte(), studio_nome=studio_nome, base_url=base_url
         )

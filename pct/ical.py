@@ -203,10 +203,9 @@ class ICalBuilder:
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
             f"PRODID:{self._prod_id}",
+            "CALSCALE:GREGORIAN",
             f"X-WR-CALNAME:{_escape(self._cal_name)}",
             "X-WR-TIMEZONE:Europe/Rome",
-            "CALSCALE:GREGORIAN",
-            "METHOD:PUBLISH",
             "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
             "X-PUBLISHED-TTL:PT1H",
         ])

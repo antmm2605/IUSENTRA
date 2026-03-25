@@ -35,10 +35,7 @@ services:
          value: tuo@email.com
        - key: PCT_SMTP_PASS
          sync: false   # inserisci manualmente nel pannello Render
-         
-         dns:
-          - 8.8.8.8
-          - 8.8.4.4
+      
 
 
       # Cifratura documenti — opzionale

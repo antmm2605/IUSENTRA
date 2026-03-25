@@ -13,6 +13,9 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
+from zoneinfo import ZoneInfo
+
+_ROME = ZoneInfo("Europe/Rome")
 
 
 # ──────────────────────────────────────────── helpers RFC 5545
@@ -28,10 +31,15 @@ def _escape(s: str) -> str:
 
 
 def _dt(dt: datetime) -> str:
-    """Datetime → stringa UTC iCal (YYYYMMDDTHHMMSSZ)."""
+    """Datetime → stringa UTC iCal (YYYYMMDDTHHMMSSZ).
+
+    I datetime senza fuso orario (naive) vengono trattati come Europe/Rome
+    e convertiti in UTC prima dell'emissione. Questo evita che Google Calendar
+    interpreti gli orari come UTC (causando uno sfasamento di 1-2 ore).
+    """
     if dt.tzinfo is None:
-        # Tratta come ora locale (floating), senza conversione
-        return dt.strftime("%Y%m%dT%H%M%S")
+        # Naive datetime: assume Europe/Rome (fuso orario italiano)
+        dt = dt.replace(tzinfo=_ROME)
     return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 

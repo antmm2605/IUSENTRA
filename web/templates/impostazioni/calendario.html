@@ -124,12 +124,24 @@
           <div class="fw-semibold mb-1">Google Calendar</div>
           <ol class="small text-muted mb-2 ps-3">
             <li>Clicca il bottone qui sotto — si apre Google Calendar nella pagina giusta</li>
-            <li>Clicca <strong>Aggiungi calendario</strong></li>
+            <li>Incolla l'URL se non viene compilato automaticamente, poi clicca <strong>Aggiungi calendario</strong></li>
           </ol>
-          <a href="{{ gcal_url }}" target="_blank" rel="noopener"
-             class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Apri in Google Calendar
-          </a>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="{{ gcal_url }}" target="_blank" rel="noopener"
+               class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Apri in Google Calendar
+            </a>
+            <button class="btn btn-sm btn-link text-muted p-0" type="button"
+                    onclick="copiaUrl('url-completo', this)" title="Copia il link per incollarlo manualmente">
+              <i class="bi bi-clipboard me-1"></i><span style="font-size:.8rem">Copia link (backup)</span>
+            </button>
+          </div>
+          <div class="alert alert-warning border-0 py-2 px-3 mt-2 mb-0 small" role="alert">
+            <i class="bi bi-clock me-1"></i>
+            <strong>Tempo di sincronizzazione:</strong> Google Calendar aggiorna i calendari sottoscritti
+            ogni <strong>6–24 ore</strong> (non ogni ora come Apple/Outlook). Se gli eventi non compaiono subito,
+            attendi e ricontrolla dopo qualche ora.
+          </div>
         </div>
       </div>
     </div>

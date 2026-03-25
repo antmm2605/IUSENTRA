@@ -6197,17 +6197,20 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.cal_token import get_token
         token_data = get_token(_cal_token_dir())
         token = token_data["token"]
-        base = request.host_url.rstrip("/")
+        # Usa HTTPS se siamo dietro un proxy (es. Railway) che imposta X-Forwarded-Proto
+        scheme = request.headers.get("X-Forwarded-Proto", request.scheme)
+        base = f"{scheme}://{request.host}"
         feeds = {
             "agenda":   f"{base}/cal/{token}/agenda.ics",
             "scadenze": f"{base}/cal/{token}/scadenze.ics",
             "completo": f"{base}/cal/{token}/completo.ics",
         }
-        # Link Google Calendar (usa https:// direttamente)
+        # Link Google Calendar — forza sempre https:// (requisito Google)
         from urllib.parse import quote
+        completo_https = feeds["completo"].replace("http://", "https://", 1)
         gcal_completo = (
             "https://calendar.google.com/calendar/r/settings/addbyurl"
-            f"?url={quote(feeds['completo'], safe='')}"
+            f"?url={quote(completo_https, safe='')}"
         )
         return render_template(
             "impostazioni/calendario.html",

@@ -750,6 +750,41 @@ class GestioneFascicoli:
         self._salva()
         return esito
 
+    def modifica_esito_deposito(
+        self,
+        id_fasc: str,
+        id_dep: str,
+        tipo_atto: str,
+        pec_destinatario: str,
+        stato: str = "INVIATO",
+        messaggio: str = "",
+        ricevuta_accettazione: str = "",
+        ricevuta_consegna: str = "",
+        ricevuta_controlli_automatici: str = "",
+        esito_controlli: str = "",
+        ricevuta_cancelleria: str = "",
+        note: str = "",
+        modificato_da: str = "",
+    ) -> EsitoDepositoPCT:
+        """Modifica i dati di un deposito telematico già registrato nel fascicolo."""
+        f = self._get_o_errore(id_fasc)
+        dep = next((d for d in f.depositi_pct if d.id == id_dep), None)
+        if not dep:
+            raise KeyError(f"Deposito '{id_dep}' non trovato nel fascicolo.")
+        dep.tipo_atto = tipo_atto
+        dep.pec_destinatario = pec_destinatario
+        dep.stato = stato
+        dep.messaggio = messaggio
+        dep.ricevuta_accettazione = ricevuta_accettazione
+        dep.ricevuta_consegna = ricevuta_consegna
+        dep.ricevuta_controlli_automatici = ricevuta_controlli_automatici
+        dep.esito_controlli = esito_controlli
+        dep.ricevuta_cancelleria = ricevuta_cancelleria
+        dep.note = note
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return dep
+
     def segna_firmato(self, id_fasc: str, id_doc: str) -> "Documento":
         """Marca un documento come firmato digitalmente."""
         f = self._get_o_errore(id_fasc)

@@ -656,8 +656,25 @@
                 {% endif %}
               </div>
 
-              {# Pulsante controlla #}
-              <div class="flex-shrink-0">
+              {# Pulsanti azione deposito #}
+              <div class="flex-shrink-0 d-flex flex-column gap-1">
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        title="Modifica deposito"
+                        onclick="apriModificaDeposito({
+                          id:'{{ dep.id }}',
+                          tipo_atto:{{ dep.tipo_atto | tojson }},
+                          stato:{{ dep.stato | tojson }},
+                          pec_destinatario:{{ dep.pec_destinatario | tojson }},
+                          messaggio:{{ dep.messaggio | tojson }},
+                          ricevuta_accettazione:{{ dep.ricevuta_accettazione | tojson }},
+                          ricevuta_consegna:{{ dep.ricevuta_consegna | tojson }},
+                          ricevuta_controlli_automatici:{{ (dep.ricevuta_controlli_automatici or '') | tojson }},
+                          esito_controlli:{{ (dep.esito_controlli or '') | tojson }},
+                          ricevuta_cancelleria:{{ (dep.ricevuta_cancelleria or '') | tojson }},
+                          note:{{ dep.note | tojson }}
+                        })">
+                  <i class="bi bi-pencil"></i>
+                </button>
                 {% if not is_finale %}
                 <button type="button" class="btn btn-sm btn-outline-secondary"
                         title="Controlla ricevute PEC"
@@ -1118,9 +1135,10 @@
 <div class="modal fade" id="modalDeposito" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+      <form method="post" id="formDeposito" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+        <input type="hidden" name="id_deposito_modifica" id="idDepositoModifica" value="">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT</h5>
+          <h5 class="modal-title" id="modalDepositoTitolo"><i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -1198,7 +1216,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" id="btnSubmitDeposito">
             <i class="bi bi-save me-1"></i>Registra
           </button>
         </div>
@@ -1553,6 +1571,49 @@ function controllaRicevute(idFasc, idDep, btn) {
     btn.title = 'Errore di rete: ' + err;
   });
 }
+
+// ---- Modifica deposito PCT ----
+const _urlAggiungi = "{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}";
+const _urlModificaTpl = "{{ url_for('modifica_esito_deposito', id_fasc=fascicolo.id, id_dep='__ID__') }}";
+
+function apriModificaDeposito(dep) {
+  const form = document.getElementById('formDeposito');
+  form.action = _urlModificaTpl.replace('__ID__', dep.id);
+  document.getElementById('idDepositoModifica').value = dep.id;
+  document.getElementById('modalDepositoTitolo').innerHTML =
+    '<i class="bi bi-pencil me-2 text-primary"></i>Modifica deposito ' + dep.id;
+  document.getElementById('btnSubmitDeposito').innerHTML =
+    '<i class="bi bi-save me-1"></i>Salva modifiche';
+  // Popola i campi
+  form.querySelector('[name=tipo_atto]').value = dep.tipo_atto || '';
+  const statoSel = form.querySelector('[name=stato]');
+  if (statoSel) statoSel.value = dep.stato || 'INVIATO';
+  form.querySelector('[name=pec_destinatario]').value = dep.pec_destinatario || '';
+  form.querySelector('[name=messaggio]').value = dep.messaggio || '';
+  form.querySelector('[name=ricevuta_accettazione]').value = dep.ricevuta_accettazione || '';
+  form.querySelector('[name=ricevuta_consegna]').value = dep.ricevuta_consegna || '';
+  form.querySelector('[name=ricevuta_controlli_automatici]').value = dep.ricevuta_controlli_automatici || '';
+  const esitoCtrSel = form.querySelector('[name=esito_controlli]');
+  if (esitoCtrSel) esitoCtrSel.value = dep.esito_controlli || '';
+  form.querySelector('[name=ricevuta_cancelleria]').value = dep.ricevuta_cancelleria || '';
+  form.querySelector('[name=note]').value = dep.note || '';
+  new bootstrap.Modal(document.getElementById('modalDeposito')).show();
+}
+
+// Ripristina il modal in modalità "aggiungi" quando si apre dal pulsante +Registra
+document.getElementById('modalDeposito').addEventListener('show.bs.modal', function (e) {
+  // Se l'evento non proviene da apriModificaDeposito (nessun relatedTarget = pulsante standard)
+  if (e.relatedTarget) {
+    const form = document.getElementById('formDeposito');
+    form.action = _urlAggiungi;
+    document.getElementById('idDepositoModifica').value = '';
+    document.getElementById('modalDepositoTitolo').innerHTML =
+      '<i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT';
+    document.getElementById('btnSubmitDeposito').innerHTML =
+      '<i class="bi bi-save me-1"></i>Registra';
+    form.reset();
+  }
+});
 
 // ---- Drop-zone carica documento ----
 (function () {

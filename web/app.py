@@ -4326,6 +4326,35 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
+    @app.route("/fascicoli/<id_fasc>/depositi/<id_dep>/modifica", methods=["POST"])
+    def modifica_esito_deposito(id_fasc, id_dep):
+        """Modifica manualmente un esito di deposito telematico nel fascicolo."""
+        gf = get_fascicoli()
+        u = g.utente_corrente
+        f = request.form
+        try:
+            gf.modifica_esito_deposito(
+                id_fasc=id_fasc,
+                id_dep=id_dep,
+                tipo_atto=f.get("tipo_atto", "ATTO"),
+                pec_destinatario=f.get("pec_destinatario", ""),
+                stato=f.get("stato", "INVIATO"),
+                messaggio=f.get("messaggio", ""),
+                ricevuta_accettazione=f.get("ricevuta_accettazione", ""),
+                ricevuta_consegna=f.get("ricevuta_consegna", ""),
+                ricevuta_controlli_automatici=f.get("ricevuta_controlli_automatici", ""),
+                esito_controlli=f.get("esito_controlli", ""),
+                ricevuta_cancelleria=f.get("ricevuta_cancelleria", ""),
+                note=f.get("note", ""),
+                modificato_da=u.username if u else "",
+            )
+            flash("Deposito aggiornato.", "success")
+            audit("fascicoli.deposito.modifica", "fascicolo", id_fasc)
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
     # ---- Wizard deposito telematico PCT
 
     @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])

@@ -39,7 +39,7 @@ RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24
 #  Stage 2 — sass: scarica dart-sass e compila gli SCSS → CSS
 #  (nessun Node.js richiesto: dart-sass è un eseguibile standalone)
 # ─────────────────────────────────────────────────────────────
-FROM debian:bookworm-slim AS sass-builder
+FROM python:3.12-slim AS sass-builder
 
 ARG DART_SASS_VERSION=1.83.0
 

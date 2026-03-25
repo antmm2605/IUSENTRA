@@ -302,6 +302,9 @@ def create_app(config: dict | None = None) -> Flask:
     # Scheduler
     app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
     app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
+    # Assistente virtuale PCT (Ollama locale)
+    app.config["OLLAMA_URL"]       = os.getenv("PCT_OLLAMA_URL", "http://localhost:11434")
+    app.config["OLLAMA_MODEL"]     = os.getenv("PCT_OLLAMA_MODEL", "mistral")
     # Pagamenti digitali
     app.config["PAGAMENTI_DIR"] = cfg.get(
         "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
@@ -6102,6 +6105,9 @@ def create_app(config: dict | None = None) -> Flask:
 
     from web.blueprints.email_client import email_client as email_client_bp  # Client email /email/*
     app.register_blueprint(email_client_bp)
+
+    from web.blueprints.assistente import assistente as assistente_bp  # Assistente PCT /api/assistente/*
+    app.register_blueprint(assistente_bp)
 
     # ----------------------------------------------------------------
     # iCal — download diretto (retrocompatibilità)

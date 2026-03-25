@@ -324,17 +324,19 @@ class _SMTPv4(_smtplib.SMTP):
     originale in self._host per la validazione TLS/SNI in fase di STARTTLS.
     """
     def _get_socket(self, host, port, timeout):
+        # Risolve SOLO in IPv4 — gaierror = hostname non ha record A, fallback al default
         try:
             infos = _socket_mod.getaddrinfo(
                 host, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-            if infos:
-                ipv4_addr = infos[0][4][0]
-                sock = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-                sock.settimeout(timeout)
-                sock.connect((ipv4_addr, port))
-                return sock
-        except (_socket_mod.gaierror, OSError):
-            pass
+        except _socket_mod.gaierror:
+            infos = []
+        if infos:
+            ipv4_addr = infos[0][4][0]
+            sock = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+            sock.settimeout(timeout)
+            sock.connect((ipv4_addr, port))  # errori di connessione propagati direttamente
+            return sock
+        # Nessun record A: lascia tentare il comportamento di default (IPv6 compreso)
         return super()._get_socket(host, port, timeout)
 
 
@@ -348,15 +350,15 @@ class _SMTP_SSLv4(_smtplib.SMTP_SSL):
         try:
             infos = _socket_mod.getaddrinfo(
                 host, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-            if infos:
-                ipv4_addr = infos[0][4][0]
-                raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-                raw.settimeout(timeout)
-                raw.connect((ipv4_addr, port))
-                # Avvolge con SSL usando l'hostname originale per SNI e verifica cert
-                return self._context.wrap_socket(raw, server_hostname=host)
-        except (_socket_mod.gaierror, OSError):
-            pass
+        except _socket_mod.gaierror:
+            infos = []
+        if infos:
+            ipv4_addr = infos[0][4][0]
+            raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+            raw.settimeout(timeout)
+            raw.connect((ipv4_addr, port))  # errori di connessione propagati direttamente
+            # Avvolge con SSL usando l'hostname originale per SNI e verifica cert
+            return self._context.wrap_socket(raw, server_hostname=host)
         return super()._get_socket(host, port, timeout)
 
 
@@ -379,9 +381,11 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
         )
     if codice == _errno.ENETUNREACH:
         return (
-            f"{prefisso}: rete non raggiungibile — probabilmente IPv6 non supportato "
-            "sul server. Il gestionale forza automaticamente IPv4; se l'errore persiste "
-            "verificare che la porta SMTP sia aperta (587 STARTTLS o 465 SSL)."
+            f"{prefisso}: server SMTP non raggiungibile via IPv4. "
+            "Cause comuni su Railway/cloud: (1) il provider SMTP blocca IP di hosting "
+            "per anti-spam — richiedere whitelist o usare relay cloud-friendly "
+            "(Brevo, SendGrid, Mailgun, Amazon SES); "
+            "(2) porta chiusa — verificare 587 STARTTLS o 465 SSL."
         )
     if codice == _errno.ECONNREFUSED:
         return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."

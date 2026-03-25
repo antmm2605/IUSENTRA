@@ -442,22 +442,28 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
             "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
             "Usare porta 587 (STARTTLS) o 465 (SSL diretto)."
         )}
+    # Risolvi IPv4 per info diagnostica — aiuta a capire se il timeout è DNS o firewall
+    try:
+        _infos = _socket_mod.getaddrinfo(cfg.host, cfg.port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+        _ip_tag = f" [{_infos[0][4][0]}:{cfg.port}]" if _infos else ""
+    except Exception:
+        _ip_tag = ""
     try:
         ctx = _ssl.create_default_context()
         if cfg.use_tls:
             # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
-            with _SMTPv4(cfg.host, cfg.port, timeout=10) as s:
+            with _SMTPv4(cfg.host, cfg.port, timeout=15) as s:
                 s.starttls(context=ctx)
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
         else:
             # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
-            with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=10) as s:
+            with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=15) as s:
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
-        return {"ok": True, "messaggio": "Connessione SMTP email riuscita."}
+        return {"ok": True, "messaggio": f"Connessione SMTP email riuscita{_ip_tag}."}
     except Exception as e:
-        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore SMTP email")}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, f"Errore SMTP email{_ip_tag}")}
 
 
 def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:

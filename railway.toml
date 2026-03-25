@@ -1,7 +1,7 @@
 # ============================================================
 #  Railway — Configurazione deploy
 #  Docs: https://docs.railway.app
-#  version: 2.35.3
+#  version: 2.34.0
 # ============================================================
 
 [build]
@@ -26,8 +26,6 @@ restartPolicyMaxRetries = 5
 #  PCT_STUDIO_NOME    = "Studio Legale Rossi & Associati"
 #  PCT_DOC_KEY        = <chiave per cifrare i documenti su disco>
 #  PCT_STUDIO_CONFIG  = /data/config/studio.json    ← config PEC/SMTP/firma (UI /impostazioni)
-#  PCT_BASE_URL       = https://mio-studio.up.railway.app  ← URL pubblico per feed iCal Google Calendar
-#                       (OBBLIGATORIO se Google Calendar non si sincronizza — elimina ambiguità HTTP/HTTPS)
 #
 #  NB: PEC, SMTP, WhatsApp si configurano dalla UI → /impostazioni
 #  Non serve impostare PCT_PEC_*, PCT_SMTP_*, PCT_TWILIO_* se usi la UI.

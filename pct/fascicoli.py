@@ -274,6 +274,9 @@ class EsitoDepositoPCT:
     note: str = ""
     registrato_da: str = ""
     registrato_il: str = field(default_factory=lambda: datetime.now().isoformat())
+    # ── Documenti inclusi nella busta ──────────────────────────────
+    documenti_ids: List[str] = field(default_factory=list)   # ID dei Documento inclusi
+    nome_atto_principale: str = ""                            # nome file atto principale
 
     def to_dict(self) -> dict:
         return {
@@ -291,6 +294,8 @@ class EsitoDepositoPCT:
             "note": self.note,
             "registrato_da": self.registrato_da,
             "registrato_il": self.registrato_il,
+            "documenti_ids": self.documenti_ids,
+            "nome_atto_principale": self.nome_atto_principale,
         }
 
     @classmethod
@@ -696,6 +701,8 @@ class GestioneFascicoli:
         ricevuta_cancelleria: str = "",
         note: str = "",
         registrato_da: str = "",
+        documenti_ids: Optional[List[str]] = None,
+        nome_atto_principale: str = "",
     ) -> EsitoDepositoPCT:
         """Registra nel fascicolo l'esito di un deposito telematico."""
         f = self._get_o_errore(id_fasc)
@@ -713,8 +720,15 @@ class GestioneFascicoli:
             ricevuta_cancelleria=ricevuta_cancelleria,
             note=note,
             registrato_da=registrato_da,
+            documenti_ids=list(documenti_ids) if documenti_ids else [],
+            nome_atto_principale=nome_atto_principale,
         )
         f.depositi_pct.append(esito)
+
+        # Marca i documenti inclusi con l'id del deposito
+        for doc in f.documenti:
+            if doc.id in esito.documenti_ids:
+                doc.id_deposito_pct = esito.id
         f.modificato_il = datetime.now().isoformat()
 
         # Auto-crea attività processuale collegata al deposito (PST: evento nel fascicolo)

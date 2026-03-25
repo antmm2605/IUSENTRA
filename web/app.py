@@ -4588,6 +4588,9 @@ def create_app(config: dict | None = None) -> Flask:
             from pct.fascicoli import (AttivitaProcessuale, EsitoAttivita,
                                        TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto)
             _msg_demo = "[DEMO] " if modalita_demo else ""
+            # Raccoglie ID e nome atto principale per il tracking
+            _atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
+            _tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             esito = EsitoDepositoPCT(
                 id=id_dep,
                 timestamp=ts,
@@ -4597,8 +4600,15 @@ def create_app(config: dict | None = None) -> Flask:
                 messaggio=f"{_msg_demo}Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id','')}",
                 note=("[SIMULAZIONE DEMO — nessun atto realmente inviato] " + note).strip() if modalita_demo else note,
                 registrato_da=u.username if u else "",
+                documenti_ids=_tutti_ids,
+                nome_atto_principale=_atto_doc.nome if _atto_doc else "",
             )
             fasc.depositi_pct.append(esito)
+
+            # Marca i documenti inclusi con l'id del deposito
+            for _doc in fasc.documenti:
+                if _doc.id in _tutti_ids:
+                    _doc.id_deposito_pct = id_dep
 
             # Auto-crea attività processuale collegata (PST: evento nel fascicolo informatico)
             _label = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)

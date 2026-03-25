@@ -37,6 +37,11 @@ services:
       # Dati persistenti montati dalla cartella ./data/ del progetto
       - ./data:/data
 
+   dns:
+    - 8.8.8.8
+    - 8.8.4.4
+   
+
     env_file:
       - .env
 

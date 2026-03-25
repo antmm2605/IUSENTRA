@@ -2288,14 +2288,18 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"ok": False, "messaggio": "Non autorizzato"}), 403
-        from pct.uffici_giudiziari import get_gestore
-        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-        gestore = get_gestore(cache_path)
-        url_personalizzato = request.json.get("url", "") if request.is_json else ""
-        ok, messaggio = gestore.aggiorna(url=url_personalizzato)
-        stato = gestore.stato()
-        audit("uffici.aggiorna", "sistema", None, dettagli=messaggio)
-        return jsonify({"ok": ok, "messaggio": messaggio, "stato": stato})
+        try:
+            from pct.uffici_giudiziari import get_gestore
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            gestore = get_gestore(cache_path)
+            url_personalizzato = request.json.get("url", "") if request.is_json else ""
+            ok, messaggio = gestore.aggiorna(url=url_personalizzato)
+            stato = gestore.stato()
+            audit("uffici.aggiorna", "sistema", None, dettagli=messaggio)
+            return jsonify({"ok": ok, "messaggio": messaggio, "stato": stato})
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_aggiorna: %s", e)
+            return jsonify({"ok": False, "messaggio": str(e)}), 200
 
     @app.route("/api/uffici/stato")
     def api_uffici_stato():

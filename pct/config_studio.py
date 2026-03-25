@@ -367,11 +367,17 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     import ssl as _ssl
     try:
         ctx = _ssl.create_default_context()
-        with smtplib.SMTP(cfg.host, cfg.port, timeout=10) as s:
-            if cfg.use_tls:
+        if cfg.use_tls:
+            # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
+            with smtplib.SMTP(cfg.host, cfg.port, timeout=10) as s:
                 s.starttls(context=ctx)
-            if cfg.username:
-                s.login(cfg.username, cfg.password)
+                if cfg.username:
+                    s.login(cfg.username, cfg.password)
+        else:
+            # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
+            with smtplib.SMTP_SSL(cfg.host, cfg.port, context=ctx, timeout=10) as s:
+                if cfg.username:
+                    s.login(cfg.username, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP email riuscita."}
     except Exception as e:
         return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore SMTP email")}

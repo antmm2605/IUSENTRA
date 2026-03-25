@@ -422,13 +422,16 @@ class GestioneMessaggi:
                     mime.attach(part)
 
             ctx = ssl.create_default_context()
+            _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
             if self.config.email.use_tls:
                 smtp = smtplib.SMTP(self.config.email.smtp_host,
-                                    self.config.email.smtp_port)
+                                    self.config.email.smtp_port,
+                                    source_address=_src)
                 smtp.starttls(context=ctx)
             else:
                 smtp = smtplib.SMTP_SSL(self.config.email.smtp_host,
-                                        self.config.email.smtp_port, context=ctx)
+                                        self.config.email.smtp_port,
+                                        context=ctx, source_address=_src)
 
             smtp.login(self.config.email.username, self.config.email.password)
             smtp.send_message(mime)

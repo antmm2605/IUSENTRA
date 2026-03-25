@@ -89,10 +89,13 @@ class ClientPEC:
         risultato = {"inviato": False, "message_id": None, "errore": None}
 
         try:
+            _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
             if self.config.use_ssl:
-                server = smtplib.SMTP_SSL(self.config.smtp_host, self.config.smtp_port)
+                server = smtplib.SMTP_SSL(self.config.smtp_host, self.config.smtp_port,
+                                          source_address=_src)
             else:
-                server = smtplib.SMTP(self.config.smtp_host, self.config.smtp_port)
+                server = smtplib.SMTP(self.config.smtp_host, self.config.smtp_port,
+                                      source_address=_src)
                 server.starttls()
 
             server.login(self.config.indirizzo, self.config.password)

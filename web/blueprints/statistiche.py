@@ -135,7 +135,7 @@ def api_appuntamenti_per_tipo():
     anno = date.today().year
     conteggio = defaultdict(int)
     for a in ag.tutti():
-        if a.data_ora.year == anno:
+        if a.data_ora_dt.year == anno:
             conteggio[a.tipo.value] += 1
     return jsonify({
         "labels": list(conteggio.keys()),

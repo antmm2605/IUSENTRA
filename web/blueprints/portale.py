@@ -58,7 +58,7 @@ def home(token: str):
         ag = get_agenda()
         appuntamenti = [
             a for a in ag.tutti()
-            if a.id_cliente == cliente.id and a.data_ora.date() >= date.today()
+            if a.id_cliente == cliente.id and a.data_ora_dt.date() >= date.today()
         ][:5]
 
     if p.permessi.vedi_scadenze:

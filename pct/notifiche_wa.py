@@ -244,7 +244,7 @@ def promemoria_appuntamenti_di_domani(
     domani = date.today() + timedelta(days=1)
     risultati = []
     for app in agenda.tutti():
-        if app.data_ora.date() != domani:
+        if app.data_ora_dt.date() != domani:
             continue
         if not app.id_cliente:
             continue

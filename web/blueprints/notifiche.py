@@ -86,7 +86,7 @@ def pannello():
     from datetime import timedelta
     domani_dt = date.today() + timedelta(days=1)
     ag = get_agenda()
-    app_domani = [a for a in ag.tutti() if a.data_ora.date() == domani_dt]
+    app_domani = [a for a in ag.tutti() if a.data_ora_dt.date() == domani_dt]
     app_domani_con_cell = []
     gc = get_clienti()
     for a in app_domani:

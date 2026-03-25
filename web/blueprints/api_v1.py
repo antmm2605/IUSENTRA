@@ -222,7 +222,7 @@ def lista_agenda():
 
     appuntamenti = [
         a for a in ag.tutti()
-        if data_inizio <= a.data_ora.date() <= data_fine
+        if data_inizio <= a.data_ora_dt.date() <= data_fine
     ]
 
     if tipo:

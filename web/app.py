@@ -210,6 +210,14 @@ def _accoda_ocr(percorso: str, hash_sha256: str, id_fasc: str, id_doc: str,
 
 def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
+
+    # ProxyFix: necessario su Railway/Render/Heroku e qualsiasi reverse proxy.
+    # Senza questo, request.scheme è sempre "http" (schema interno) →
+    # url_for() e request.host_url generano link http:// invece di https://,
+    # rompendo i feed iCal sottoscritti da Google Calendar (che richiede HTTPS).
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     app.secret_key = os.getenv("PCT_SECRET_KEY", "dev-secret-pct-2024")
     app.config["SECRET_KEY"] = app.secret_key
 

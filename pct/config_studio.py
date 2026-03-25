@@ -365,6 +365,8 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     """Testa la connessione SMTP email normale."""
     import smtplib
     import ssl as _ssl
+    if not cfg.host:
+        return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
     try:
         ctx = _ssl.create_default_context()
         if cfg.use_tls:

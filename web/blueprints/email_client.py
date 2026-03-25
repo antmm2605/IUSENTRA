@@ -24,6 +24,7 @@ from flask import (
     Blueprint, current_app, flash, g, jsonify,
     redirect, render_template, request, url_for,
 )
+from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 
 email_client = Blueprint("email_client", __name__, url_prefix="/email")
 
@@ -435,11 +436,10 @@ def _test_smtp(gs) -> "Response":
         return jsonify({"ok": False, "errore": "Compilare host, username e password."})
     try:
         ctx = _ssl.create_default_context()
-        _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
         if port == 465:
-            s = smtplib.SMTP_SSL(host, port, context=ctx, timeout=10, source_address=_src)
+            s = _SMTP_SSLv4(host, port, context=ctx, timeout=10)
         else:
-            s = smtplib.SMTP(host, port, timeout=10, source_address=_src)
+            s = _SMTPv4(host, port, timeout=10)
             if tls:
                 s.starttls(context=ctx)
         s.login(user, pwd)

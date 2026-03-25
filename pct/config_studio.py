@@ -310,6 +310,56 @@ class GestioneConfigStudio:
 
 # ──────────────────────────────────────────────────────────── test connessioni
 
+import smtplib as _smtplib
+import socket as _socket_mod
+
+
+class _SMTPv4(_smtplib.SMTP):
+    """SMTP con connessione forzata su IPv4.
+
+    Railway e ambienti cloud analoghi non hanno routing IPv6 outbound.
+    Python prova prima gli indirizzi IPv6 (AAAA) restituiti dal DNS → ENETUNREACH
+    o 'Address family not supported'. Questa subclass sovrascrive _get_socket
+    per risolvere l'hostname esclusivamente in IPv4, preservando l'hostname
+    originale in self._host per la validazione TLS/SNI in fase di STARTTLS.
+    """
+    def _get_socket(self, host, port, timeout):
+        try:
+            infos = _socket_mod.getaddrinfo(
+                host, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+            if infos:
+                ipv4_addr = infos[0][4][0]
+                sock = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+                sock.settimeout(timeout)
+                sock.connect((ipv4_addr, port))
+                return sock
+        except (_socket_mod.gaierror, OSError):
+            pass
+        return super()._get_socket(host, port, timeout)
+
+
+class _SMTP_SSLv4(_smtplib.SMTP_SSL):
+    """SMTP_SSL con connessione forzata su IPv4 (stesso razionale di _SMTPv4).
+
+    Risolve l'hostname in IPv4 e avvolge il socket con SSL usando l'hostname
+    originale come server_hostname per la corretta validazione del certificato.
+    """
+    def _get_socket(self, host, port, timeout):
+        try:
+            infos = _socket_mod.getaddrinfo(
+                host, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+            if infos:
+                ipv4_addr = infos[0][4][0]
+                raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+                raw.settimeout(timeout)
+                raw.connect((ipv4_addr, port))
+                # Avvolge con SSL usando l'hostname originale per SNI e verifica cert
+                return self._context.wrap_socket(raw, server_hostname=host)
+        except (_socket_mod.gaierror, OSError):
+            pass
+        return super()._get_socket(host, port, timeout)
+
+
 def _msg_errore_rete(e: Exception, prefisso: str) -> str:
     """Trasforma eccezioni di rete in messaggi leggibili per l'utente."""
     import errno as _errno
@@ -346,14 +396,11 @@ def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     import ssl as _ssl
     try:
         ctx = _ssl.create_default_context()
-        _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
         if cfg.use_ssl:
-            with smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port,
-                                   context=ctx, timeout=10, source_address=_src) as s:
+            with _SMTP_SSLv4(cfg.smtp_host, cfg.smtp_port, context=ctx, timeout=10) as s:
                 s.login(cfg.indirizzo, cfg.password)
         else:
-            with smtplib.SMTP(cfg.smtp_host, cfg.smtp_port,
-                               timeout=10, source_address=_src) as s:
+            with _SMTPv4(cfg.smtp_host, cfg.smtp_port, timeout=10) as s:
                 s.starttls(context=ctx)
                 s.login(cfg.indirizzo, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP PEC riuscita."}
@@ -383,17 +430,15 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
         return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
     try:
         ctx = _ssl.create_default_context()
-        _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
         if cfg.use_tls:
             # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
-            with smtplib.SMTP(cfg.host, cfg.port, timeout=10, source_address=_src) as s:
+            with _SMTPv4(cfg.host, cfg.port, timeout=10) as s:
                 s.starttls(context=ctx)
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
         else:
             # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
-            with smtplib.SMTP_SSL(cfg.host, cfg.port, context=ctx,
-                                   timeout=10, source_address=_src) as s:
+            with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=10) as s:
                 if cfg.username:
                     s.login(cfg.username, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP email riuscita."}

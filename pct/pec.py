@@ -5,6 +5,7 @@ Gestione invio PEC (Posta Elettronica Certificata) per il deposito PCT.
 import smtplib
 import email
 import imaplib
+from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -89,13 +90,10 @@ class ClientPEC:
         risultato = {"inviato": False, "message_id": None, "errore": None}
 
         try:
-            _src = ('0.0.0.0', 0)  # forza IPv4 — Railway non ha routing IPv6 outbound
             if self.config.use_ssl:
-                server = smtplib.SMTP_SSL(self.config.smtp_host, self.config.smtp_port,
-                                          source_address=_src)
+                server = _SMTP_SSLv4(self.config.smtp_host, self.config.smtp_port)
             else:
-                server = smtplib.SMTP(self.config.smtp_host, self.config.smtp_port,
-                                      source_address=_src)
+                server = _SMTPv4(self.config.smtp_host, self.config.smtp_port)
                 server.starttls()
 
             server.login(self.config.indirizzo, self.config.password)

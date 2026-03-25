@@ -12,7 +12,7 @@ services:
     name: studio-legale-pct
     env: docker
     dockerfilePath: ./Dockerfile
-    plan: free          # cambia in "starter" per avere il disco persistente
+    plan: starter         # cambia in "starter" per avere il disco persistente
     healthCheckPath: /login
 
     envVars:

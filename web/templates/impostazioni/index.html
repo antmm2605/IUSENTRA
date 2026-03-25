@@ -597,11 +597,13 @@ function switchFirmaFmt(fmt) {
             <strong><i class="bi bi-cloud-check me-1"></i>Brevo (ex Sendinblue) — istruzioni rapide:</strong>
             <ol class="mb-1 mt-1 ps-3">
               <li>Registrati su <strong>brevo.com</strong> (piano Free: 300 email/giorno gratuito)</li>
+              <li><strong>Verifica l'email</strong> di conferma — l'SMTP non funziona finché l'account non è attivato</li>
               <li>Vai su <em>SMTP &amp; API → SMTP</em> e copia le credenziali</li>
               <li><strong>Username</strong>: il tuo indirizzo email Brevo</li>
               <li><strong>Password</strong>: la <em>Master password SMTP</em> (non la password dell'account)</li>
             </ol>
-            Funziona da qualsiasi IP cloud (Railway, Render, AWS, ecc.) senza blocchi.
+            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+            <strong>Timeout?</strong> L'account potrebbe non essere ancora attivato oppure il dominio mittente non verificato. Accedi a brevo.com e controlla eventuali avvisi nella dashboard.
           </div>
         </div>
 

@@ -36,12 +36,38 @@ RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24
 
 
 # ─────────────────────────────────────────────────────────────
-#  Stage 2 — runtime: immagine finale senza gcc né librerie -dev
+#  Stage 2 — sass: scarica dart-sass e compila gli SCSS → CSS
+#  (nessun Node.js richiesto: dart-sass è un eseguibile standalone)
+# ─────────────────────────────────────────────────────────────
+FROM debian:bookworm-slim AS sass-builder
+
+ARG DART_SASS_VERSION=1.83.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && curl -fsSL \
+       "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" \
+       | tar -xzC /tmp \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /scss
+COPY web/static/scss .
+
+RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+      app.scss:/out/app.css \
+      design-system.scss:/out/design-system.css \
+      editor-word.scss:/out/editor-word.css \
+      mobile.scss:/out/mobile.css
+
+
+# ─────────────────────────────────────────────────────────────
+#  Stage 3 — runtime: immagine finale senza gcc né librerie -dev
 # ─────────────────────────────────────────────────────────────
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.31.0" \
+      org.opencontainers.image.version="2.32.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -65,6 +91,9 @@ WORKDIR /app
 
 # Copia tutto il sorgente (templates, static, blueprints, ecc.)
 COPY . .
+
+# Sovrascrive i CSS con quelli compilati da SCSS (dart-sass, stage sass-builder)
+COPY --from=sass-builder /out/ web/static/css/
 
 # PYTHONPATH → pct/ e web/ vengono importati dal sorgente in /app
 # (le dipendenze esterne arrivano dal /venv)

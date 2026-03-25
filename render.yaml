@@ -27,20 +27,18 @@ services:
         value: "true"
 
       # SMTP — opzionale, per invio email/PEC
-       - key: PCT_SMTP_HOST
-         value: smtp.gmail.com
-       - key: PCT_SMTP_PORT
-         value: "587"
-       - key: PCT_SMTP_USER
-         value: tuo@email.com
-       - key: PCT_SMTP_PASS
-         sync: false   # inserisci manualmente nel pannello Render
-      
-
+      # - key: PCT_SMTP_HOST
+      #   value: smtp.gmail.com
+      # - key: PCT_SMTP_PORT
+      #   value: "587"
+      # - key: PCT_SMTP_USER
+      #   value: tuo@email.com
+      # - key: PCT_SMTP_PASS
+      #   sync: false   # inserisci manualmente nel pannello Render
 
       # Cifratura documenti — opzionale
-       - key: PCT_DOC_KEY
-         sync: false   # inserisci manualmente nel pannello Render
+      # - key: PCT_DOC_KEY
+      #   sync: false   # inserisci manualmente nel pannello Render
 
       # Impostazioni studio persistenti (path del file config JSON)
       - key: PCT_STUDIO_CONFIG

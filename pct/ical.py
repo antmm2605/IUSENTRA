@@ -30,6 +30,23 @@ def _escape(s: str) -> str:
     )
 
 
+def _sequence(last_modified: Optional[datetime]) -> int:
+    """Restituisce il SEQUENCE come Unix timestamp di last_modified (o 0).
+
+    SEQUENCE è obbligatorio per la sincronizzazione con Google Calendar:
+    ad ogni modifica il valore cresce → il client rileva l'aggiornamento.
+    Usare il timestamp Unix di last_modified è conforme a RFC 5545 e
+    compatibile con Google Calendar, Apple Calendar, Outlook.
+    """
+    if last_modified is None:
+        return 0
+    dt = last_modified
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ROME)
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return int((dt.astimezone(timezone.utc) - epoch).total_seconds())
+
+
 def _dt(dt: datetime) -> str:
     """Datetime → stringa UTC iCal (YYYYMMDDTHHMMSSZ).
 
@@ -95,6 +112,9 @@ class ICalBuilder:
             f"DTSTAMP:{dtstamp}",
             f"DTSTART:{_dt(dtstart)}",
             f"DTEND:{_dt(dtend)}",
+            "STATUS:CONFIRMED",
+            f"SEQUENCE:{_sequence(last_modified)}",
+            "TRANSP:OPAQUE",
         ]
         if last_modified:
             lines.append(f"LAST-MODIFIED:{_dt(last_modified)}")
@@ -149,6 +169,9 @@ class ICalBuilder:
             f"DTSTAMP:{dtstamp}",
             f"DTSTART;VALUE=DATE:{_date_val(start_date)}",
             f"DTEND;VALUE=DATE:{_date_val(end_date)}",
+            "STATUS:CONFIRMED",
+            f"SEQUENCE:{_sequence(last_modified)}",
+            "TRANSP:TRANSPARENT",
         ]
         if last_modified:
             lines.append(f"LAST-MODIFIED:{_dt(last_modified)}")

@@ -189,10 +189,10 @@
 
 </div>{# /row #}
 
-<div class="d-flex justify-content-end gap-2 pt-2 border-top">
-  <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary">
-    Annulla
-  </a>
+<div class="d-flex justify-content-between align-items-center pt-2 border-top flex-wrap gap-2">
+  <button type="button" class="btn btn-outline-danger btn-sm" id="btnResetSmtp"
+          title="Azzera tutti i campi SMTP nel file di configurazione persistente">
+    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset configurazione SMTP
   <button type="submit" class="btn btn-primary fw-semibold px-4">
     <i class="bi bi-floppy me-1"></i>Salva impostazioni
   </button>

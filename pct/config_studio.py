@@ -391,9 +391,12 @@ def _msg_errore_rete(e: Exception, prefisso: str) -> str:
         return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
     if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
         return (
-            f"{prefisso}: timeout — il server non risponde entro 10 secondi. "
-            "Su Railway/cloud la causa più comune è la porta 25 bloccata da GCP: "
-            "usare porta 587 (STARTTLS) o 465 (SSL). Verificare anche host e porta nelle impostazioni."
+            f"{prefisso}: timeout di rete — il server non risponde entro il tempo limite. "
+            "Su Railway/cloud il problema più comune NON è la porta 25 (se stai già usando 587/465), "
+            "ma un blocco anti-spam dell'IP di hosting lato provider SMTP. "
+            "Verificare host/porta, provare 587 (STARTTLS) o 465 (SSL), "
+            "ed eventualmente usare un relay cloud-friendly (Brevo/SendGrid/Mailgun/SES) "
+            "o richiedere whitelist dell'IP."
         )
     return f"{prefisso}: {e}"
 

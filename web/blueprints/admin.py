@@ -519,14 +519,12 @@ def database_studio(slug: str):
                 or studio.database.host
                 or "localhost"
             ).strip(),
-
             porta=int(
                 request.form.get("porta")
                 or request.form.get("db_porta")
                 or studio.database.porta
                 or 0
             ),
-
             db_name=(
                 request.form.get("db_name")
                 or request.form.get("database")
@@ -534,7 +532,6 @@ def database_studio(slug: str):
                 or studio.database.db_name
                 or ""
             ).strip(),
-
             utente=(
                 request.form.get("db_utente")
                 or request.form.get("utente")
@@ -542,18 +539,15 @@ def database_studio(slug: str):
                 or studio.database.utente
                 or ""
             ).strip(),
-
             password=(
                 request.form.get("db_password")
                 or request.form.get("password")
                 or studio.database.password
                 or ""
             ).strip(),
-
             ssl=request.form.get("ssl") == "on",
             pool_size=int(request.form.get("pool_size", 5) or 5),
             pool_timeout=int(request.form.get("pool_timeout", 30) or 30),
-
             connessione_ok=studio.database.connessione_ok,
             ultimo_test=studio.database.ultimo_test,
             errore_connessione=studio.database.errore_connessione,
@@ -585,7 +579,6 @@ def testa_connessione_db(slug: str):
             "ok": False,
             "errore": str(e),
         }), 500
-
 
 # ============================================================= API JSON
 

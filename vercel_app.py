@@ -59,7 +59,7 @@ for env_var, filename in DB_FILES.items():
                 f.write("")
 
 # Creazione cartelle per upload/temp
-for folder in ['uploads_portale', 'pagamenti', 'ocr_temp']:
+for folder in ['uploads_portale', 'pagamenti', 'ocr_temp', 'documenti_fascicoli']:
     Path(f"/tmp/{folder}").mkdir(parents=True, exist_ok=True)
 
 # --- 3. MONKEY PATCHING DELLE CLASSI CORE ---

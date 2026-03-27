@@ -24,7 +24,6 @@
 </div>
 
 <div class="row g-4">
-  <!-- Selezione modalità -->
   <div class="col-12 col-lg-5">
     <div class="card h-100">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
@@ -33,7 +32,8 @@
       <div class="card-body">
         {% for mode_key, mode_info in db_mode_info.items() %}
         <div class="db-option-card mb-3 p-3 rounded-3 {{ 'border border-primary bg-primary bg-opacity-10' if db.mode == mode_key else 'border' }}"
-             id="option_{{ mode_key }}" style="cursor:pointer;transition:all .15s;"
+             id="option_{{ mode_key }}"
+             style="cursor:pointer;transition:all .15s;"
              onclick="selectMode('{{ mode_key }}')">
           <div class="d-flex align-items-center gap-2 mb-1">
             <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }} fs-5"></i>
@@ -45,11 +45,10 @@
             <i class="bi bi-check-circle-fill text-primary ms-1"></i>
             {% endif %}
           </div>
+
           <p class="text-muted small mb-0">{{ mode_info.desc }}</p>
 
-          {% if mode_key != 'LOCAL' %}
-          <!-- Stato connessione per questo driver -->
-          {% if db.mode == mode_key %}
+          {% if mode_key != 'LOCAL' and db.mode == mode_key %}
           <div class="mt-2">
             {% if db.connessione_ok %}
             <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Connessione OK</span>
@@ -58,6 +57,7 @@
             {% else %}
             <span class="badge bg-secondary">Non testata</span>
             {% endif %}
+
             {% if db.ultimo_test %}
             <span class="text-muted ms-1" style="font-size:.72rem">
               Ultimo test: {{ db.ultimo_test[:16].replace('T',' ') }}
@@ -65,19 +65,16 @@
             {% endif %}
           </div>
           {% endif %}
-          {% endif %}
         </div>
         {% endfor %}
       </div>
     </div>
   </div>
 
-  <!-- Parametri connessione -->
   <div class="col-12 col-lg-7">
     <form method="post" id="dbForm">
       <input type="hidden" name="db_mode" id="dbModeField" value="{{ db.mode }}">
 
-      <!-- Pannello LOCAL -->
       <div class="card mb-3 db-panel" id="panel_LOCAL"
            style="{{ 'display:none' if db.mode != 'LOCAL' else '' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-secondary">
@@ -88,9 +85,10 @@
             <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
             <div>
               <strong>Nessuna configurazione richiesta.</strong><br>
-              <span class="small">I dati sono salvati in
+              <span class="small">
+                I dati sono salvati in
                 <code>./data/tenants/{{ studio.slug }}/</code>
-                sul filesystem del server. Zero dipendenze esterne.
+                sul filesystem del server.
               </span>
             </div>
           </div>
@@ -101,7 +99,6 @@
         </div>
       </div>
 
-      <!-- Pannello MySQL -->
       <div class="card mb-3 db-panel" id="panel_MYSQL"
            style="{{ '' if db.mode == 'MYSQL' else 'display:none' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-warning">
@@ -112,7 +109,6 @@
         </div>
       </div>
 
-      <!-- Pannello PostgreSQL -->
       <div class="card mb-3 db-panel" id="panel_POSTGRESQL"
            style="{{ '' if db.mode == 'POSTGRESQL' else 'display:none' }}">
         <div class="card-header fw-semibold d-flex align-items-center gap-2 text-primary">
@@ -123,7 +119,6 @@
         </div>
       </div>
 
-      <!-- Pulsanti -->
       <div class="d-flex gap-2 align-items-center flex-wrap">
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-save me-1"></i>Salva configurazione
@@ -136,10 +131,8 @@
       </div>
     </form>
 
-    <!-- Risultato test connessione -->
     <div id="testResult" class="mt-3" style="display:none"></div>
 
-    <!-- Errore connessione precedente -->
     {% if db.errore_connessione and not db.connessione_ok and db.mode != 'LOCAL' %}
     <div class="alert alert-danger mt-3 small d-flex gap-2">
       <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
@@ -152,7 +145,6 @@
   </div>
 </div>
 
-<!-- Guida dipendenze -->
 <div class="card mt-4">
   <div class="card-header fw-semibold d-flex align-items-center gap-2">
     <i class="bi bi-terminal text-muted"></i> Requisiti di installazione
@@ -167,6 +159,7 @@
         </div>
         <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
       </div>
+
       <div class="col-12 col-md-4">
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="bi bi-database-fill text-warning"></i>
@@ -174,6 +167,7 @@
         </div>
         <code class="small">pip install sqlalchemy pymysql</code>
       </div>
+
       <div class="col-12 col-md-4">
         <div class="d-flex align-items-center gap-2 mb-1">
           <i class="bi bi-database-fill-gear text-primary"></i>
@@ -190,52 +184,124 @@
 <script>
 const TEST_URL = '{{ url_for("admin.testa_connessione_db", slug=studio.slug) }}';
 
+function setPanelInputsEnabled(panelId, enabled) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  panel.querySelectorAll('input, select, textarea, button').forEach(el => {
+    if (el.name && el.name !== 'db_mode') {
+      el.disabled = !enabled;
+    }
+  });
+}
+
+function updatePanels(mode) {
+  document.querySelectorAll('.db-panel').forEach(el => {
+    const visible = el.id === 'panel_' + mode;
+    el.style.display = visible ? '' : 'none';
+  });
+
+  setPanelInputsEnabled('panel_LOCAL', mode === 'LOCAL');
+  setPanelInputsEnabled('panel_MYSQL', mode === 'MYSQL');
+  setPanelInputsEnabled('panel_POSTGRESQL', mode === 'POSTGRESQL');
+}
+
 function selectMode(mode) {
   document.getElementById('dbModeField').value = mode;
-  // Aggiorna stile card opzioni
+
   document.querySelectorAll('.db-option-card').forEach(el => {
     const isSelected = el.id === 'option_' + mode;
     el.classList.toggle('border-primary', isSelected);
     el.classList.toggle('bg-primary', isSelected);
     el.classList.toggle('bg-opacity-10', isSelected);
   });
-  // Mostra/nascondi pannelli
-  document.querySelectorAll('.db-panel').forEach(el => {
-    el.style.display = el.id === 'panel_' + mode ? '' : 'none';
-  });
-  // Mostra/nascondi bottone test
-  const testBtn = document.getElementById('btnTestConn');
-  if (testBtn) testBtn.style.display = mode === 'LOCAL' ? 'none' : '';
+
+  updatePanels(mode);
+
+  let testBtn = document.getElementById('btnTestConn');
+
+  if (mode === 'LOCAL') {
+    if (testBtn) testBtn.style.display = 'none';
+  } else {
+    if (testBtn) testBtn.style.display = '';
+  }
 }
 
-// Testa connessione via AJAX
-document.getElementById('btnTestConn')?.addEventListener('click', async function() {
-  const btn = this;
+async function doTestConnection() {
+  const btn = document.getElementById('btnTestConn');
   const result = document.getElementById('testResult');
+  if (!btn || !result) return;
+
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso...';
   result.style.display = 'none';
 
   try {
-    const resp = await fetch(TEST_URL, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    const data = await resp.json();
-    result.style.display = '';
-    if (data.ok) {
-      result.innerHTML = `<div class="alert alert-success d-flex gap-2">
-        <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
-        <div><strong>Connessione riuscita!</strong> ${data.messaggio}</div></div>`;
-    } else {
-      result.innerHTML = `<div class="alert alert-danger d-flex gap-2">
-        <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
-        <div><strong>Connessione fallita</strong><br><code>${data.messaggio}</code></div></div>`;
-    }
-  } catch(e) {
-    result.style.display = '';
-    result.innerHTML = `<div class="alert alert-danger">Errore nella richiesta: ${e}</div>`;
-  }
+    const resp = await fetch(TEST_URL, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
 
-  btn.disabled = false;
-  btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
+    const raw = await resp.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      result.style.display = '';
+      result.innerHTML = `
+        <div class="alert alert-danger d-flex gap-2">
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Errore nella richiesta</strong><br>
+            <code>Il server non ha restituito JSON valido.</code><br>
+            <small>${raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</small>
+          </div>
+        </div>`;
+      return;
+    }
+
+    result.style.display = '';
+
+    if (data.ok) {
+      result.innerHTML = `
+        <div class="alert alert-success d-flex gap-2">
+          <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Connessione riuscita!</strong><br>
+            <span>${data.messaggio || 'Test completato con successo.'}</span>
+          </div>
+        </div>`;
+    } else {
+      result.innerHTML = `
+        <div class="alert alert-danger d-flex gap-2">
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Connessione fallita</strong><br>
+            <code>${data.errore || data.messaggio || 'Errore sconosciuto'}</code>
+          </div>
+        </div>`;
+    }
+  } catch (e) {
+    result.style.display = '';
+    result.innerHTML = `
+      <div class="alert alert-danger d-flex gap-2">
+        <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+        <div>
+          <strong>Errore nella richiesta</strong><br>
+          <code>${e}</code>
+        </div>
+      </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
+  }
+}
+
+document.getElementById('btnTestConn')?.addEventListener('click', doTestConnection);
+
+document.addEventListener('DOMContentLoaded', function () {
+  updatePanels(document.getElementById('dbModeField').value);
 });
 </script>
 {% endblock %}

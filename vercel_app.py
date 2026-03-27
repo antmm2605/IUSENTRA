@@ -1,11 +1,17 @@
 import os
-from web.app import create_app
+import sys
 
-# Forziamo una configurazione compatibile con Vercel
+# 1. Forza i percorsi in /tmp/ (l'unica cartella scrivibile su Vercel)
 os.environ['DATABASE_URL'] = 'sqlite:////tmp/hacs.db'
 os.environ['PCT_STUDIO_CONFIG'] = '/tmp/studio.json'
 
-app = create_app()
+# 2. Importa la tua app (assicurati che il percorso sia corretto)
+try:
+    from web.app import create_app
+    app = create_app()
+except Exception as e:
+    print(f"ERRORE CRITICO AVVIO: {e}")
+    raise e
 
-# Esportazione per Vercel
+# Indispensabile per Vercel
 app = app

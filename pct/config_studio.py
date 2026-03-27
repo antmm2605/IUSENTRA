@@ -314,50 +314,65 @@ import smtplib as _smtplib
 import socket as _socket_mod
 
 
-class _SMTPv4(_smtplib.SMTP):
-    """SMTP con connessione forzata su IPv4.
+def _resolve_ipv4(hostname: str, port: int) -> str | None:
+    """Risolve hostname in IPv4 usando DNS-over-HTTPS (Cloudflare) come primario.
 
-    Railway e ambienti cloud analoghi non hanno routing IPv6 outbound.
-    Python prova prima gli indirizzi IPv6 (AAAA) restituiti dal DNS → ENETUNREACH
-    o 'Address family not supported'. Questa subclass sovrascrive _get_socket
-    per risolvere l'hostname esclusivamente in IPv4, preservando l'hostname
-    originale in self._host per la validazione TLS/SNI in fase di STARTTLS.
+    Il resolver DNS di alcuni ambienti cloud (Railway, GCP) può restituire IP
+    errati per certi hostname (es. IP Asia-Pacific invece di server europei).
+    Interrogare direttamente Cloudflare 1.1.1.1 via DoH garantisce risposte
+    corrette indipendentemente dal resolver di sistema.
+
+    Fallback a socket.getaddrinfo (sistema) se DoH non è raggiungibile.
+    """
+    import urllib.request as _ur
+    import json as _js
+    # 1. Prova DNS-over-HTTPS Cloudflare
+    try:
+        req = _ur.Request(
+            f"https://cloudflare-dns.com/dns-query?name={hostname}&type=A",
+            headers={"Accept": "application/dns-json"},
+        )
+        with _ur.urlopen(req, timeout=5) as resp:
+            for ans in _js.loads(resp.read()).get("Answer", []):
+                if ans.get("type") == 1:  # record A
+                    return ans["data"]
+    except Exception:
+        pass
+    # 2. Fallback: resolver DNS di sistema
+    try:
+        infos = _socket_mod.getaddrinfo(hostname, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+        if infos:
+            return infos[0][4][0]
+    except _socket_mod.gaierror:
+        pass
+    return None
+
+
+class _SMTPv4(_smtplib.SMTP):
+    """SMTP con connessione forzata su IPv4 e risoluzione DNS via Cloudflare DoH.
+
+    Il DNS di Railway può restituire IP errati (es. IP Asia-Pacific invece di
+    server europei). Usa _resolve_ipv4() che interroga Cloudflare DoH prima del
+    resolver di sistema. Preserva l'hostname originale in self._host per SNI/TLS.
     """
     def _get_socket(self, host, port, timeout):
-        # Risolve SOLO in IPv4 — gaierror = hostname non ha record A, fallback al default
-        try:
-            infos = _socket_mod.getaddrinfo(
-                host, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-        except _socket_mod.gaierror:
-            infos = []
-        if infos:
-            ipv4_addr = infos[0][4][0]
+        ipv4_addr = _resolve_ipv4(host, port)
+        if ipv4_addr:
             sock = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
             sock.settimeout(timeout)
-            sock.connect((ipv4_addr, port))  # errori di connessione propagati direttamente
+            sock.connect((ipv4_addr, port))  # errori propagati direttamente
             return sock
-        # Nessun record A: lascia tentare il comportamento di default (IPv6 compreso)
         return super()._get_socket(host, port, timeout)
 
 
 class _SMTP_SSLv4(_smtplib.SMTP_SSL):
-    """SMTP_SSL con connessione forzata su IPv4 (stesso razionale di _SMTPv4).
-
-    Risolve l'hostname in IPv4 e avvolge il socket con SSL usando l'hostname
-    originale come server_hostname per la corretta validazione del certificato.
-    """
+    """SMTP_SSL con connessione forzata su IPv4 e risoluzione DNS via Cloudflare DoH."""
     def _get_socket(self, host, port, timeout):
-        try:
-            infos = _socket_mod.getaddrinfo(
-                host, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-        except _socket_mod.gaierror:
-            infos = []
-        if infos:
-            ipv4_addr = infos[0][4][0]
+        ipv4_addr = _resolve_ipv4(host, port)
+        if ipv4_addr:
             raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
             raw.settimeout(timeout)
-            raw.connect((ipv4_addr, port))  # errori di connessione propagati direttamente
-            # Avvolge con SSL usando l'hostname originale per SNI e verifica cert
+            raw.connect((ipv4_addr, port))
             return self._context.wrap_socket(raw, server_hostname=host)
         return super()._get_socket(host, port, timeout)
 

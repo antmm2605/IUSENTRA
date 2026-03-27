@@ -507,8 +507,6 @@ def database_studio(slug: str):
         abort(404)
 
     if request.method == "POST":
-        print("FORM DATABASE:", dict(request.form))
-
         mode = request.form.get("db_mode", DbMode.LOCAL)
 
         cfg = DatabaseConfig(

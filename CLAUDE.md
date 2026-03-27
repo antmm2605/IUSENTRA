@@ -252,8 +252,6 @@ python -m pytest tests/ -v
   - Questo risolve il caso in cui Railway (o qualsiasi server) abbia una cache salvata da sorgente remota (PST/URL esterno) con meno uffici di quanti ne ha il bundle aggiornato.
   - Il log mostra: `Auto-upgrade cache uffici: N (cache) < M (bundle) → rigenero`
   - **Non modificare questa logica**: è la salvaguardia principale contro dati incompleti su produzione.
-<<<<<<< HEAD
-=======
 
 - **Mobile — Modal visualizzatore documenti** (`fascicoli/dettaglio.html`, `#modalVisualizzatore`):
   - Il modal deve avere **sempre** `modal-fullscreen-sm-down` per occupare tutto lo schermo su mobile.
@@ -294,4 +292,3 @@ python -m pytest tests/ -v
   - I pulsanti (Visualizza, Scarica, Firma, Elimina) nelle card documento su mobile erano non cliccabili a causa di un overlay trasparente generato da un elemento parent con `pointer-events` errato.
   - Verificare sempre che i bottoni nelle card abbiano `position:relative;z-index` superiore a eventuali pseudo-elementi `::after` del container.
   - I titoli delle sezioni (es. "Atti") non devono sovrapporsi ai pulsanti: usare `d-flex align-items-center justify-content-between` per header sezione + pulsante "Aggiungi".
->>>>>>> 62e744dc5064f0e995063551f5be5b7c3c5acf0f

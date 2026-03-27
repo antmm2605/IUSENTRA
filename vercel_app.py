@@ -1,105 +1,109 @@
+# vercel_app.py
 import os
-import sys
 import json
 from pathlib import Path
 
-# --- 1. BYPASS PERMESSI (ANTI-CRASH VERCEL) ---
-# Sovrascriviamo i metodi di creazione cartelle per evitare il crash su Read-only FS
-original_mkdir = Path.mkdir
-def safe_mkdir(self, mode=0o777, parents=False, exist_ok=False):
-    try:
-        original_mkdir(self, mode, parents, exist_ok)
-    except OSError as e:
-        if e.errno == 30: pass 
-        else: raise e
-Path.mkdir = safe_mkdir
+BASE_TMP = Path("/tmp/hacs_data")
+BASE_TMP.mkdir(parents=True, exist_ok=True)
 
-original_makedirs = os.makedirs
-def safe_makedirs(name, mode=0o777, exist_ok=False):
-    try:
-        original_makedirs(name, mode, exist_ok)
-    except OSError as e:
-        if e.errno == 30: pass
-        else: raise e
-os.makedirs = safe_makedirs
+def ensure_parent(path_str: str):
+    p = Path(path_str)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    return p
 
-# --- 2. MAPPATURA PERCORSI SU /TMP ---
-# Inseriamo qui tutti i database che la tua tabella indicava come "Non trovati"
-DB_FILES = {
-    'AUTH_DB': 'utenti.json',
-    'AUDIT_DB': 'audit.json',
-    'AGENDA_DB_PATH': 'appuntamenti.json',
-    'AGENDA_DB': 'appuntamenti.json',
-    'SCADENZIARIO_DB': 'scadenze.json',
-    'FASCICOLI_DB': 'fascicoli.json',
-    'CLIENTI_DB': 'anagrafica.json',
-    'FATTURAZIONE_DB': 'parcelle.json',
-    'MESSAGGI_DB': 'storico_messaggi.json',
-    'EMAIL_CASELLA_DB': 'casella_email.json',
-    'TEMPLATE_ATTI_DB': 'templates.json',
-    'PORTALE_DB': 'portali.json',
-    'STUDIO_CONFIG': 'studio.json',
-    'PCT_STUDIO_CONFIG': 'studio.json',
-    'NOTIFICHE_LOG': 'log_notifiche.json',
-    'TENANTS_REGISTRY': 'tenants.json',
-    # Correzione per Search Index che cercava "search/index.db"
-    'SEARCH_INDEX_DB': 'index.db',
-    'SEARCH_DB': 'index.db'
-}
+def ensure_json_file(path_str: str, default=None):
+    if default is None:
+        default = {}
+    p = ensure_parent(path_str)
+    if not p.exists():
+        p.write_text(json.dumps(default, ensure_ascii=False, indent=2), encoding="utf-8")
+    return str(p)
 
-# Inizializziamo i file in /tmp così l'app li trova pronti
-for env_var, filename in DB_FILES.items():
-    full_path = Path("/tmp") / filename
-    os.environ[env_var] = str(full_path)
-    if not full_path.exists():
-        with open(full_path, 'w') as f:
-            if filename.endswith('.json'):
-                json.dump({}, f)
-            else:
-                f.write("")
+def ensure_text_file(path_str, default=""):
+    p = ensure_parent(path_str)
+    if not p.exists():
+        p.write_text(default, encoding="utf-8")
+    return str(p)
 
-# Creazione cartelle per upload/temp
-for folder in ['uploads_portale', 'pagamenti', 'ocr_temp']:
-    Path(f"/tmp/{folder}").mkdir(parents=True, exist_ok=True)
+def ensure_dir(path_str: str):
+    p = Path(path_str)
+    p.mkdir(parents=True, exist_ok=True)
+    return str(p)
 
-# --- 3. MONKEY PATCHING DELLE CLASSI CORE ---
-try:
-    import pct.auth
-    import pct.agenda
-    import pct.scadenziario
-    import pct.clienti
-    import pct.fascicoli
+# Segnala all'app che gira su Vercel/serverless
+os.environ["VERCEL"] = "1"
+os.environ["SERVERLESS"] = "1"
+os.environ["PCT_DISABLE_SCHEDULER"] = "1"
 
-    # Funzione per forzare il path a prescindere da cosa chiede il codice originale
-    def patch_class_path(cls, filename):
-        original_init = cls.__init__
-        def patched_init(self, *args, **kwargs):
-            # Ignora il db_path passato e forza /tmp
-            kwargs['db_path'] = f"/tmp/{filename}"
-            return original_init(self, *args, **kwargs)
-        cls.__init__ = patched_init
+# Root dati "finta" ma coerente per il progetto
+DATA_DIR = BASE_TMP / "data"
+CONFIG_DIR = BASE_TMP / "config"
+TENANTS_DIR = BASE_TMP / "tenants"
 
-    patch_class_path(pct.auth.GestioneUtenti, 'utenti.json')
-    patch_class_path(pct.agenda.Agenda, 'appuntamenti.json')
-    patch_class_path(pct.scadenziario.GestioneScadenziario, 'scadenze.json')
-    patch_class_path(pct.clienti.GestioneClienti, 'anagrafica.json')
-    patch_class_path(pct.fascicoli.GestioneFascicoli, 'fascicoli.json')
+ensure_dir(str(DATA_DIR))
+ensure_dir(str(CONFIG_DIR))
+ensure_dir(str(TENANTS_DIR))
 
-except Exception as e:
-    print(f"Avviso Patching: {e}")
+# File e cartelle base coerenti con il progetto
+os.environ["TENANTS_REGISTRY"] = ensure_json_file(str(DATA_DIR / "tenants.json"), {})
+os.environ["STUDIO_CONFIG"] = ensure_json_file(str(CONFIG_DIR / "studio.json"), {})
+os.environ["PCT_STUDIO_CONFIG"] = os.environ["STUDIO_CONFIG"]
 
-# --- 4. AVVIO APPLICAZIONE ---
-app = None
-try:
-    from web.app import create_app
-    app = create_app()
-    
-    # Sovrascriviamo la config di Flask per sicurezza estrema
-    for key, filename in DB_FILES.items():
-        app.config[key] = f"/tmp/{filename}"
-        
-except Exception as e:
-    print(f"ERRORE CRITICO AVVIO: {e}")
-    raise e
+os.environ["AUTH_DB"] = ensure_json_file(str(DATA_DIR / "auth" / "utenti.json"), {})
+os.environ["AUDIT_DB"] = ensure_json_file(str(DATA_DIR / "auth" / "audit.json"), [])
+os.environ["AGENDA_DB"] = ensure_json_file(str(DATA_DIR / "agenda" / "appuntamenti.json"), {})
+os.environ["AGENDA_DB_PATH"] = os.environ["AGENDA_DB"]
+os.environ["SCADENZIARIO_DB"] = ensure_json_file(str(DATA_DIR / "scadenziario" / "scadenze.json"), {})
+os.environ["CLIENTI_DB"] = ensure_json_file(str(DATA_DIR / "clienti" / "anagrafica.json"), {})
+os.environ["FASCICOLI_DB"] = ensure_json_file(str(DATA_DIR / "fascicoli" / "fascicoli.json"), {})
+os.environ["FATTURAZIONE_DB"] = ensure_json_file(str(DATA_DIR / "fatturazione" / "parcelle.json"), {})
+os.environ["MESSAGGI_DB"] = ensure_json_file(str(DATA_DIR / "messaggi" / "storico.json"), {})
+os.environ["EMAIL_CASELLA_DB"] = ensure_json_file(str(DATA_DIR / "email" / "casella_email.json"), {})
+os.environ["TEMPLATE_ATTI_DB"] = ensure_json_file(str(DATA_DIR / "template_atti" / "templates.json"), {})
+os.environ["PORTALE_DB"] = ensure_json_file(str(DATA_DIR / "portale" / "portali.json"), {})
+os.environ["NOTIFICHE_LOG"] = ensure_json_file(str(DATA_DIR / "notifiche" / "log.json"), [])
+os.environ["SEARCH_INDEX"] = ensure_text_file(str(DATA_DIR / "search" / "index.db"))
+os.environ["SEARCH_INDEX_DB"] = os.environ["SEARCH_INDEX"]
+os.environ["SEARCH_DB"] = os.environ["SEARCH_INDEX"]
 
-app = app
+os.environ["PORTALE_UPLOADS"] = ensure_dir(str(DATA_DIR / "portale" / "uploads"))
+os.environ["FASCICOLI_DOCS"] = ensure_dir(str(DATA_DIR / "fascicoli" / "documenti"))
+os.environ["FASCICOLI_ARCH"] = ensure_dir(str(DATA_DIR / "fascicoli" / "archivio"))
+os.environ["BACKUP_DIR"] = ensure_dir(str(DATA_DIR / "backup"))
+os.environ["PAGAMENTI_DIR"] = ensure_dir(str(DATA_DIR / "pagamenti"))
+ensure_dir(str(DATA_DIR / "ocr_temp"))
+
+# Import finale dell'app solo dopo aver preparato l'ambiente
+from web.app import create_app
+
+app = create_app()
+
+# Rafforza la config Flask
+app.config["TENANTS_REGISTRY"] = os.environ["TENANTS_REGISTRY"]
+app.config["STUDIO_CONFIG"] = os.environ["STUDIO_CONFIG"]
+app.config["PCT_STUDIO_CONFIG"] = os.environ["PCT_STUDIO_CONFIG"]
+
+for key in [
+    "AUTH_DB",
+    "AUDIT_DB",
+    "AGENDA_DB",
+    "AGENDA_DB_PATH",
+    "SCADENZIARIO_DB",
+    "CLIENTI_DB",
+    "FASCICOLI_DB",
+    "FATTURAZIONE_DB",
+    "MESSAGGI_DB",
+    "EMAIL_CASELLA_DB",
+    "TEMPLATE_ATTI_DB",
+    "PORTALE_DB",
+    "NOTIFICHE_LOG",
+    "SEARCH_INDEX",
+    "SEARCH_INDEX_DB",
+    "SEARCH_DB",
+    "PORTALE_UPLOADS",
+    "FASCICOLI_DOCS",
+    "FASCICOLI_ARCH",
+    "BACKUP_DIR",
+    "PAGAMENTI_DIR",
+]:
+    app.config[key] = os.environ[key]

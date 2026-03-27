@@ -315,30 +315,37 @@ import socket as _socket_mod
 
 
 def _resolve_ipv4(hostname: str, port: int) -> str | None:
-    """Risolve hostname in IPv4 usando DNS-over-HTTPS (Cloudflare) come primario.
+    """Risolve hostname in IPv4 usando DNS-over-HTTPS come primario.
 
     Il resolver DNS di alcuni ambienti cloud (Railway, GCP) può restituire IP
     errati per certi hostname (es. IP Asia-Pacific invece di server europei).
-    Interrogare direttamente Cloudflare 1.1.1.1 via DoH garantisce risposte
-    corrette indipendentemente dal resolver di sistema.
 
-    Fallback a socket.getaddrinfo (sistema) se DoH non è raggiungibile.
+    Usa l'IP diretto 1.1.1.1 (Cloudflare DoH) e 8.8.8.8 (Google DoH) per
+    bypassare completamente il resolver DNS di sistema — nessuna risoluzione
+    hostname necessaria per la richiesta DoH stessa.
+
+    Fallback a socket.getaddrinfo (sistema) se tutti i DoH falliscono.
     """
     import urllib.request as _ur
     import json as _js
-    # 1. Prova DNS-over-HTTPS Cloudflare
-    try:
-        req = _ur.Request(
-            f"https://cloudflare-dns.com/dns-query?name={hostname}&type=A",
-            headers={"Accept": "application/dns-json"},
-        )
-        with _ur.urlopen(req, timeout=5) as resp:
-            for ans in _js.loads(resp.read()).get("Answer", []):
-                if ans.get("type") == 1:  # record A
-                    return ans["data"]
-    except Exception:
-        pass
-    # 2. Fallback: resolver DNS di sistema
+    # 1. DoH via IP diretto (nessuna dipendenza dal DNS di sistema)
+    _doh_endpoints = [
+        "https://1.1.1.1/dns-query",          # Cloudflare — IP diretto, no DNS
+        "https://8.8.8.8/dns-query",           # Google — IP diretto, no DNS
+    ]
+    for doh_url in _doh_endpoints:
+        try:
+            req = _ur.Request(
+                f"{doh_url}?name={hostname}&type=A",
+                headers={"Accept": "application/dns-json"},
+            )
+            with _ur.urlopen(req, timeout=5) as resp:
+                for ans in _js.loads(resp.read()).get("Answer", []):
+                    if ans.get("type") == 1:  # record A
+                        return ans["data"]
+        except Exception:
+            continue
+    # 2. Fallback: resolver DNS di sistema (potenzialmente errato su Railway)
     try:
         infos = _socket_mod.getaddrinfo(hostname, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
         if infos:
@@ -457,12 +464,9 @@ def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
             "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
             "Usare porta 587 (STARTTLS) o 465 (SSL diretto)."
         )}
-    # Risolvi IPv4 per info diagnostica — aiuta a capire se il timeout è DNS o firewall
-    try:
-        _infos = _socket_mod.getaddrinfo(cfg.host, cfg.port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
-        _ip_tag = f" [{_infos[0][4][0]}:{cfg.port}]" if _infos else ""
-    except Exception:
-        _ip_tag = ""
+    # Risolvi IPv4 con lo stesso metodo usato dalla connessione (DoH → fallback sistema)
+    _resolved_ip = _resolve_ipv4(cfg.host, cfg.port)
+    _ip_tag = f" [{_resolved_ip}:{cfg.port}]" if _resolved_ip else ""
     try:
         ctx = _ssl.create_default_context()
         if cfg.use_tls:

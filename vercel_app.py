@@ -1,43 +1,45 @@
 import os
-import sys
 from pathlib import Path
 
 # --- 1. PREPARAZIONE AMBIENTE VERCEL ---
-# Forza i percorsi in /tmp (l'unico posto scrivibile)
 os.environ['PCT_STUDIO_CONFIG'] = '/tmp/studio.json'
 
-# AGGIUNTA IMPORTANTE: Configura il Database SQL (Fascicoli/Clienti)
-# Se non hai impostato DATABASE_URL su Vercel (Neon), usa un database temporaneo in /tmp
-if 'DATABASE_URL' not in os.environ:
-    os.environ['DATABASE_URL'] = 'sqlite:////tmp/hacs.db'
-
-# --- 2. IL "TRUCCO" (Monkey Patching) ---
+# --- 2. SUPER MONKEY PATCH (Intercettazione argomenti) ---
 import pct.auth
 import pct.agenda
 
-# Patch per pct/auth.py
-pct.auth.GestioneUtenti.__init__.__defaults__ = (
-    "/tmp/utenti.json", 
-    "/tmp/audit.json", 
-    os.environ.get("PCT_SECRET_KEY", "chiave-segreta-temporanea"), 
-    730, 
-    True
-)
+# Patch per GestioneUtenti: intercettiamo gli argomenti db_path e audit_path
+original_auth_init = pct.auth.GestioneUtenti.__init__
+def patched_auth_init(self, *args, **kwargs):
+    # Forza i percorsi in /tmp ignorando quello che arriva da web/app.py
+    kwargs['db_path'] = "/tmp/utenti.json"
+    kwargs['audit_path'] = "/tmp/audit.json"
+    return original_auth_init(self, *args, **kwargs)
 
-# Patch per pct/agenda.py
-pct.agenda.Agenda.__init__.__defaults__ = ("/tmp/appuntamenti.json",)
+pct.auth.GestioneUtenti.__init__ = patched_auth_init
 
-# AGGIUNTA: Se hai altre classi che scrivono file (es. Backup o Documenti),
-# assicurati di reindirizzare anche quelle se necessario.
+# Patch per Agenda: intercettiamo db_path
+original_agenda_init = pct.agenda.Agenda.__init__
+def patched_agenda_init(self, *args, **kwargs):
+    kwargs['db_path'] = "/tmp/appuntamenti.json"
+    return original_agenda_init(self, *args, **kwargs)
+
+pct.agenda.Agenda.__init__ = patched_agenda_init
 
 # --- 3. CARICAMENTO APPLICAZIONE ---
 try:
     from web.app import create_app
     app = create_app()
+    
+    # Sovrascriviamo anche la configurazione Flask per sicurezza
+    app.config.update(
+        AUTH_DB_PATH='/tmp/utenti.json',
+        AUTH_AUDIT_PATH='/tmp/audit.json',
+        AGENDA_DB_PATH='/tmp/appuntamenti.json'
+    )
 except Exception as e:
-    # Stampiamo l'errore completo nei log di Vercel se l'avvio fallisce
     print(f"ERRORE CRITICO AVVIO: {type(e).__name__}: {e}")
     raise e
 
-# Export per il server Vercel
+# Export per Vercel
 app = app

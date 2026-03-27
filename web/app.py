@@ -284,6 +284,9 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["FATTURAZIONE_DB"] = cfg.get(
         "FATTURAZIONE_DB", os.getenv("PCT_FATTURAZIONE_DB", "./fatturazione/parcelle.json")
     )
+    app.config["PREVENTIVI_DB"] = cfg.get(
+        "PREVENTIVI_DB", os.getenv("PCT_PREVENTIVI_DB", "./preventivi/preventivi.json")
+    )
     app.config["NOTIFICHE_LOG"] = cfg.get(
         "NOTIFICHE_LOG", os.getenv("PCT_NOTIFICHE_LOG", "./notifiche/log.json")
     )

@@ -1,8 +1,10 @@
-# vercel_app.py
+import os
 from web.app import create_app
 
-# NON usiamo gevent qui, lasciamo che Vercel gestisca l'esecuzione
+# Forziamo una configurazione compatibile con Vercel
+os.environ['PCT_STUDIO_CONFIG'] = '/tmp/studio.json' 
+
 app = create_app()
 
-# Vercel richiede che l'oggetto app sia accessibile
+# Esportazione per Vercel
 app = app

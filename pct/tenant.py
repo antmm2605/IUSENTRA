@@ -143,41 +143,46 @@ DB_MODE_INFO: Dict[str, Dict[str, Any]] = {
 }
 
 
+from dataclasses import dataclass, asdict
+
 @dataclass
 class DatabaseConfig:
     """
     Configurazione del database per un tenant.
     Per modalità LOCAL tutti i campi sono vuoti (non usati).
     """
-    mode:       str = DbMode.LOCAL
+    mode: str = DbMode.LOCAL
 
     # Connessione (MySQL / PostgreSQL)
-    host:       str = "localhost"
-    porta:      int = 0          # 0 = porta default del driver
-    db_name:    str = ""
-    utente:     str = ""
-    password:   str = ""         # NB: cifrata con AES in produzione
-    ssl:        bool = False
-    pool_size:  int = 5
+    host: str = "localhost"
+    porta: int = 0  # 0 = porta default del driver
+    db_name: str = ""
+    utente: str = ""
+    password: str = ""  # NB: cifrata con AES in produzione
+    ssl: bool = False
+    pool_size: int = 5
     pool_timeout: int = 30
 
     # Stato ultima verifica connessione
-    connessione_ok:   bool = False
-    ultimo_test:      str  = ""  # ISO timestamp
+    connessione_ok: bool = False
+    ultimo_test: str = ""  # ISO timestamp
     errore_connessione: str = ""
 
     @property
     def porta_effettiva(self) -> int:
         if self.porta:
             return self.porta
-        defaults = {DbMode.MYSQL: 3306, DbMode.POSTGRESQL: 5432}
+        defaults = {
+            DbMode.MYSQL: 3306,
+            DbMode.POSTGRESQL: 5432,
+        }
         return defaults.get(self.mode, 0)
 
     @property
     def connection_url(self) -> str:
         if self.mode == DbMode.LOCAL:
             return ""
-    
+
         if self.mode == DbMode.MYSQL:
             driver = "mysql+pymysql"
             ssl_suffix = "?ssl=true" if self.ssl else ""
@@ -186,22 +191,27 @@ class DatabaseConfig:
                 f"@{self.host}:{self.porta_effettiva}/{self.db_name}{ssl_suffix}"
             )
 
-    if self.mode == DbMode.POSTGRESQL:
-        driver = "postgresql+psycopg2"
-        ssl_suffix = "?sslmode=require" if self.ssl else ""
-        return (
-            f"{driver}://{self.utente}:{self.password}"
-            f"@{self.host}:{self.porta_effettiva}/{self.db_name}{ssl_suffix}"
-        )
+        if self.mode == DbMode.POSTGRESQL:
+            driver = "postgresql+psycopg2"
+            ssl_suffix = "?sslmode=require" if self.ssl else ""
+            return (
+                f"{driver}://{self.utente}:{self.password}"
+                f"@{self.host}:{self.porta_effettiva}/{self.db_name}{ssl_suffix}"
+            )
 
-    return ""
+        return ""
 
     @property
     def connection_url_safe(self) -> str:
         """URL senza password (per display)."""
         if self.mode == DbMode.LOCAL:
             return "filesystem://local"
-        driver = "mysql+pymysql" if self.mode == DbMode.MYSQL else "postgresql+psycopg2"
+
+        driver = (
+            "mysql+pymysql"
+            if self.mode == DbMode.MYSQL
+            else "postgresql+psycopg2"
+        )
         return f"{driver}://{self.utente}:***@{self.host}:{self.porta_effettiva}/{self.db_name}"
 
     def to_dict(self) -> dict:
@@ -222,7 +232,10 @@ class DatabaseConfig:
         d.setdefault("connessione_ok", False)
         d.setdefault("ultimo_test", "")
         d.setdefault("errore_connessione", "")
-        return DatabaseConfig(**{k: v for k, v in d.items() if k in DatabaseConfig.__dataclass_fields__})
+
+        return DatabaseConfig(
+            **{k: v for k, v in d.items() if k in DatabaseConfig.__dataclass_fields__}
+        )
 
 
 # ============================================================== Stato tenant

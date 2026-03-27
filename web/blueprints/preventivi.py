@@ -168,7 +168,7 @@ def nuovo_preventivo(id_cliente: str = ""):
         clienti=clienti,
         cliente_sel=cliente_sel,
         fascicoli=fascicoli,
-        oggi=date.today().isoformat(),
+        oggi=date.today(),
         scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
         from_page=from_page,
         id_fascicolo_pre=id_fascicolo_pre,
@@ -331,7 +331,7 @@ def nuovo_conferimento(id_cliente: str = ""):
         fascicoli=fascicoli,
         preventivo_pre=preventivo_pre,
         preventivi_cliente=preventivi_cliente,
-        oggi=date.today().isoformat(),
+        oggi=date.today(),
         from_page=from_page,
         id_fascicolo_pre=id_fascicolo_pre,
     )

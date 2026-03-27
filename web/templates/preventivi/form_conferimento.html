@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Nuovo Conferimento Incarico{% endblock %}
+{% block pct_modulo %}preventivi{% endblock %}
+
+{% block content %}
+
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-pen"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Nuovo Conferimento di Incarico</h1>
+    <p class="ds-ph-sub">Lettera di incarico professionale</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('preventivi.lista', tab='conferimenti') }}" class="ds-btn ds-btn-secondary">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Annulla</span>
+    </a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" id="formConferimento">
+  <input type="hidden" name="from_page" value="{{ from_page }}">
+  {% if preventivo_pre %}
+  <input type="hidden" name="id_preventivo" value="{{ preventivo_pre.id }}">
+  {% endif %}
+
+  <div class="row g-3">
+
+    {# ── Cliente ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-person me-2"></i>Cliente e pratica</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Cliente <span class="text-danger">*</span></label>
+              <select name="id_cliente" id="selectCliente" class="form-select" required
+                      onchange="onClienteChange(this.value)">
+                <option value="">— Seleziona cliente —</option>
+                {% for cl in clienti %}
+                <option value="{{ cl.id }}"
+                  {% if cliente_sel and cl.id == cliente_sel.id %}selected{% endif %}>
+                  {{ cl.nome_completo }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fascicolo (opzionale)</label>
+              <select name="id_fascicolo" id="selectFascicolo" class="form-select">
+                <option value="">— Nessun fascicolo —</option>
+                {% for f in fascicoli %}
+                <option value="{{ f.id }}"
+                  {% if id_fascicolo_pre == f.id %}selected{% endif %}>
+                  {{ f.titolo }}{% if f.numero_rg %} (RG {{ f.numero_rg }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% if not preventivo_pre %}
+            <div class="col-md-6">
+              <label class="form-label">Preventivo di riferimento (opzionale)</label>
+              <select name="id_preventivo" id="selectPreventivo" class="form-select">
+                <option value="">— Nessun preventivo —</option>
+                {% for prev in preventivi_cliente %}
+                <option value="{{ prev.id }}">{{ prev.numero }} — {{ prev.oggetto }} (€ {{ "%.2f"|format(prev.totale) }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% else %}
+            <div class="col-md-6">
+              <label class="form-label">Preventivo collegato</label>
+              <div class="form-control bg-light">
+                <span class="font-monospace">{{ preventivo_pre.numero }}</span> —
+                {{ preventivo_pre.oggetto }}
+                <span class="text-muted small">(€ {{ "%.2f"|format(preventivo_pre.totale) }})</span>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Dati incarico ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Dati incarico</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Oggetto dell'incarico <span class="text-danger">*</span></label>
+              <input type="text" name="oggetto" class="form-control" required
+                     value="{{ preventivo_pre.oggetto if preventivo_pre else '' }}"
+                     placeholder="Es. Assistenza e difesa nel procedimento civile RG 123/2025">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Avvocato referente <span class="text-danger">*</span></label>
+              <input type="text" name="avvocato_referente" class="form-control" required
+                     placeholder="Es. Mario Rossi">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Data incarico</label>
+              <input type="date" name="data_incarico" class="form-control" value="{{ oggi }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Compenso pattuito (€)</label>
+              <input type="number" name="compenso_pattuito" class="form-control text-end"
+                     step="0.01" min="0" placeholder="0.00"
+                     value="{{ preventivo_pre.totale if preventivo_pre and preventivo_pre.totale else '' }}">
+              <div class="form-text">Lascia vuoto per parametri DM 55/2014</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Note ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-chat-left-text me-2"></i>Note / Clausole aggiuntive</div>
+        <div class="card-body">
+          <textarea name="note" class="form-control" rows="4"
+                    placeholder="Eventuali condizioni particolari, esclusioni, clausole specifiche..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 d-flex gap-2 justify-content-end pb-4">
+      <a href="{{ url_for('preventivi.lista', tab='conferimenti') }}" class="btn btn-outline-secondary">Annulla</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Crea conferimento incarico
+      </button>
+    </div>
+
+  </div>
+</form>
+
+<script>
+function onClienteChange(idCliente) {
+  caricaFascicoli(idCliente);
+  caricaPreventivi(idCliente);
+}
+
+function caricaFascicoli(idCliente) {
+  const sel = document.getElementById('selectFascicolo');
+  sel.innerHTML = '<option value="">— Nessun fascicolo —</option>';
+  if (!idCliente) return;
+  fetch(`/preventivi/ajax/fascicoli/${idCliente}`)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.titolo + (f.numero_rg ? ` (RG ${f.numero_rg})` : '');
+        sel.appendChild(opt);
+      });
+    });
+}
+
+function caricaPreventivi(idCliente) {
+  const sel = document.getElementById('selectPreventivo');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Nessun preventivo —</option>';
+  if (!idCliente) return;
+  fetch(`/preventivi/ajax/preventivi/${idCliente}`)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.numero} — ${p.oggetto} (€ ${p.totale.toFixed(2)})`;
+        sel.appendChild(opt);
+      });
+    });
+}
+</script>
+
+{% endblock %}

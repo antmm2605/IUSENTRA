@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Nuovo Preventivo{% endblock %}
+{% block pct_modulo %}preventivi{% endblock %}
+
+{% block content %}
+
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-file-earmark-plus"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Nuovo Preventivo</h1>
+    <p class="ds-ph-sub">Compila le voci per il preventivo professionale</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('preventivi.lista') }}" class="ds-btn ds-btn-secondary">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Annulla</span>
+    </a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" id="formPreventivo">
+  <input type="hidden" name="from_page" value="{{ from_page }}">
+
+  <div class="row g-3">
+
+    {# ── Cliente ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-person me-2"></i>Cliente e pratica</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Cliente <span class="text-danger">*</span></label>
+              <select name="id_cliente" id="selectCliente" class="form-select" required
+                      onchange="caricaFascicoli(this.value)">
+                <option value="">— Seleziona cliente —</option>
+                {% for cl in clienti %}
+                <option value="{{ cl.id }}"
+                  {% if cliente_sel and cl.id == cliente_sel.id %}selected{% endif %}>
+                  {{ cl.nome_completo }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fascicolo (opzionale)</label>
+              <select name="id_fascicolo" id="selectFascicolo" class="form-select">
+                <option value="">— Nessun fascicolo —</option>
+                {% for f in fascicoli %}
+                <option value="{{ f.id }}"
+                  {% if id_fascicolo_pre == f.id %}selected{% endif %}>
+                  {{ f.titolo }}{% if f.numero_rg %} (RG {{ f.numero_rg }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Dati preventivo ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Dati preventivo</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Oggetto <span class="text-danger">*</span></label>
+              <input type="text" name="oggetto" class="form-control" required
+                     placeholder="Es. Assistenza legale procedimento civile RG 123/2025">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Data emissione</label>
+              <input type="date" name="data_emissione" class="form-control" value="{{ oggi }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Valido fino al</label>
+              <input type="date" name="data_scadenza" class="form-control" value="{{ scadenza_default }}">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Voci ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between fw-semibold">
+          <span><i class="bi bi-list-ul me-2"></i>Voci del preventivo</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="aggiungiVoce()">
+            <i class="bi bi-plus-lg me-1"></i>Aggiungi voce
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-borderless mb-0" id="tblVoci">
+            <thead class="table-light">
+              <tr>
+                <th>Descrizione</th>
+                <th style="width:160px">Tipo</th>
+                <th class="text-end" style="width:130px">Importo (€)</th>
+                <th style="width:40px"></th>
+              </tr>
+            </thead>
+            <tbody id="vociBody">
+              {# JS aggiunge righe dinamicamente #}
+            </tbody>
+            <tfoot>
+              <tr class="table-light">
+                <td colspan="2" class="text-end fw-semibold small">Imponibile</td>
+                <td class="text-end fw-semibold" id="lblImponibile">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr id="rowCassa" style="display:none">
+                <td colspan="2" class="text-end small">Cassa Forense (4%)</td>
+                <td class="text-end small" id="lblCassa">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr id="rowIva" style="display:none">
+                <td colspan="2" class="text-end small">IVA (22%)</td>
+                <td class="text-end small" id="lblIva">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr class="table-primary">
+                <td colspan="2" class="text-end fw-bold">TOTALE STIMATO</td>
+                <td class="text-end fw-bold" id="lblTotale">€ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {# ── Opzioni fiscali ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-percent me-2"></i>Opzioni fiscali</div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="applica_cassa"
+                     id="chkCassa" value="1" checked onchange="ricalcola()">
+              <label class="form-check-label" for="chkCassa">Cassa Forense 4%</label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="applica_iva"
+                     id="chkIva" value="1" checked onchange="ricalcola()">
+              <label class="form-check-label" for="chkIva">IVA 22%</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Note ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-chat-left-text me-2"></i>Note</div>
+        <div class="card-body">
+          <textarea name="note" class="form-control" rows="3"
+                    placeholder="Condizioni, modalità di pagamento, esclusioni, ecc."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 d-flex gap-2 justify-content-end pb-4">
+      <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Crea preventivo
+      </button>
+    </div>
+
+  </div>{# /row #}
+</form>
+
+<script>
+const TIPI = ['Onorario','Spesa forfettaria','Spesa viva'];
+
+function aggiungiVoce(desc='', imp=0, tipo='Onorario') {
+  const tbody = document.getElementById('vociBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" name="voce_descr[]" class="form-control form-control-sm"
+               placeholder="Descrizione prestazione" value="${desc}" required></td>
+    <td>
+      <select name="voce_tipo[]" class="form-select form-select-sm">
+        ${TIPI.map(t => `<option value="${t}" ${t===tipo?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </td>
+    <td>
+      <input type="number" name="voce_importo[]" class="form-control form-control-sm text-end"
+             step="0.01" min="0" value="${imp || ''}" placeholder="0.00" oninput="ricalcola()">
+    </td>
+    <td>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove();ricalcola()">
+        <i class="bi bi-trash"></i>
+      </button>
+    </td>`;
+  tbody.appendChild(tr);
+  ricalcola();
+}
+
+function ricalcola() {
+  let imp = 0;
+  document.querySelectorAll('input[name="voce_importo[]"]').forEach(el => {
+    imp += parseFloat(el.value || 0);
+  });
+  const cassa = document.getElementById('chkCassa').checked ? imp * 0.04 : 0;
+  const baseIva = imp + cassa;
+  const iva = document.getElementById('chkIva').checked ? baseIva * 0.22 : 0;
+  const totale = baseIva + iva;
+
+  const fmt = v => '€ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  document.getElementById('lblImponibile').textContent = fmt(imp);
+  document.getElementById('lblCassa').textContent = fmt(cassa);
+  document.getElementById('lblIva').textContent = fmt(iva);
+  document.getElementById('lblTotale').textContent = fmt(totale);
+  document.getElementById('rowCassa').style.display = cassa > 0 ? '' : 'none';
+  document.getElementById('rowIva').style.display = iva > 0 ? '' : 'none';
+}
+
+function caricaFascicoli(idCliente) {
+  const sel = document.getElementById('selectFascicolo');
+  sel.innerHTML = '<option value="">— Nessun fascicolo —</option>';
+  if (!idCliente) return;
+  fetch(`/preventivi/ajax/fascicoli/${idCliente}`)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.titolo + (f.numero_rg ? ` (RG ${f.numero_rg})` : '');
+        sel.appendChild(opt);
+      });
+    });
+}
+
+// Aggiungi 1 voce iniziale
+document.addEventListener('DOMContentLoaded', () => {
+  aggiungiVoce();
+});
+</script>
+
+{% endblock %}

@@ -6160,6 +6160,9 @@ def create_app(config: dict | None = None) -> Flask:
     from web.blueprints.assistente import assistente as assistente_bp  # Assistente PCT /api/assistente/*
     app.register_blueprint(assistente_bp)
 
+    from web.blueprints.preventivi import preventivi as preventivi_bp  # Preventivi e incarichi /preventivi/*
+    app.register_blueprint(preventivi_bp)
+
     # ----------------------------------------------------------------
     # iCal — download diretto (retrocompatibilità)
     # ----------------------------------------------------------------

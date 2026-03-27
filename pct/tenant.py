@@ -175,16 +175,26 @@ class DatabaseConfig:
 
     @property
     def connection_url(self) -> str:
-        """Genera la SQLAlchemy connection URL."""
         if self.mode == DbMode.LOCAL:
             return ""
-        driver = "mysql+pymysql" if self.mode == DbMode.MYSQL else "postgresql+psycopg2"
-        porta = self.porta_effettiva
-        ssl_suffix = "?ssl=true" if self.ssl else ""
+    
+        if self.mode == DbMode.MYSQL:
+            driver = "mysql+pymysql"
+            ssl_suffix = "?ssl=true" if self.ssl else ""
+            return (
+                f"{driver}://{self.utente}:{self.password}"
+                f"@{self.host}:{self.porta_effettiva}/{self.db_name}{ssl_suffix}"
+            )
+
+    if self.mode == DbMode.POSTGRESQL:
+        driver = "postgresql+psycopg2"
+        ssl_suffix = "?sslmode=require" if self.ssl else ""
         return (
             f"{driver}://{self.utente}:{self.password}"
-            f"@{self.host}:{porta}/{self.db_name}{ssl_suffix}"
+            f"@{self.host}:{self.porta_effettiva}/{self.db_name}{ssl_suffix}"
         )
+
+    return ""
 
     @property
     def connection_url_safe(self) -> str:

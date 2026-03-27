@@ -507,25 +507,58 @@ def database_studio(slug: str):
         abort(404)
 
     if request.method == "POST":
+        print("FORM DATABASE:", dict(request.form))
+
         mode = request.form.get("db_mode", DbMode.LOCAL)
 
         cfg = DatabaseConfig(
             mode=mode,
-            host=request.form.get("host", "localhost").strip(),
-            porta=int(request.form.get("porta", 0) or 0),
-            db_name=request.form.get("db_name", "").strip(),
-            utente=request.form.get("db_utente", "").strip(),
-            # Mantieni la password esistente se il campo è rimasto vuoto
-            password=request.form.get("db_password", "").strip()
-                     or studio.database.password,
+            host=(
+                request.form.get("host")
+                or request.form.get("db_host")
+                or studio.database.host
+                or "localhost"
+            ).strip(),
+
+            porta=int(
+                request.form.get("porta")
+                or request.form.get("db_porta")
+                or studio.database.porta
+                or 0
+            ),
+
+            db_name=(
+                request.form.get("db_name")
+                or request.form.get("database")
+                or request.form.get("nome_database")
+                or studio.database.db_name
+                or ""
+            ).strip(),
+
+            utente=(
+                request.form.get("db_utente")
+                or request.form.get("utente")
+                or request.form.get("username")
+                or studio.database.utente
+                or ""
+            ).strip(),
+
+            password=(
+                request.form.get("db_password")
+                or request.form.get("password")
+                or studio.database.password
+                or ""
+            ).strip(),
+
             ssl=request.form.get("ssl") == "on",
             pool_size=int(request.form.get("pool_size", 5) or 5),
             pool_timeout=int(request.form.get("pool_timeout", 30) or 30),
-            # Preserva lo stato dell'ultimo test
+
             connessione_ok=studio.database.connessione_ok,
             ultimo_test=studio.database.ultimo_test,
             errore_connessione=studio.database.errore_connessione,
         )
+
         tm.aggiorna_db_config(slug, cfg)
         flash("Configurazione database salvata.", "success")
         return redirect(url_for("admin.database_studio", slug=slug))
@@ -542,10 +575,16 @@ def database_studio(slug: str):
 @admin_bp.route("/studi/<slug>/database/test", methods=["POST"])
 @superadmin_required
 def testa_connessione_db(slug: str):
-    """Testa la connessione al DB del tenant e restituisce JSON."""
-    tm = _tenant_manager()
-    risultato = tm.testa_connessione(slug)
-    return jsonify(risultato)
+    try:
+        tm = _tenant_manager()
+        risultato = tm.testa_connessione(slug)
+        return jsonify(risultato)
+    except Exception as e:
+        current_app.logger.exception("Errore test connessione DB")
+        return jsonify({
+            "ok": False,
+            "errore": str(e),
+        }), 500
 
 
 # ============================================================= API JSON

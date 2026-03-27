@@ -542,10 +542,16 @@ def database_studio(slug: str):
 @admin_bp.route("/studi/<slug>/database/test", methods=["POST"])
 @superadmin_required
 def testa_connessione_db(slug: str):
-    """Testa la connessione al DB del tenant e restituisce JSON."""
-    tm = _tenant_manager()
-    risultato = tm.testa_connessione(slug)
-    return jsonify(risultato)
+    try:
+        tm = _tenant_manager()
+        risultato = tm.testa_connessione(slug)
+        return jsonify(risultato)
+    except Exception as e:
+        current_app.logger.exception("Errore test connessione DB")
+        return jsonify({
+            "ok": False,
+            "errore": str(e),
+        }), 500
 
 
 # ============================================================= API JSON

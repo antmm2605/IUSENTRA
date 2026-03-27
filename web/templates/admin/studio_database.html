@@ -184,6 +184,28 @@
 <script>
 const TEST_URL = '{{ url_for("admin.testa_connessione_db", slug=studio.slug) }}';
 
+function setPanelInputsEnabled(panelId, enabled) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  panel.querySelectorAll('input, select, textarea, button').forEach(el => {
+    if (el.name && el.name !== 'db_mode') {
+      el.disabled = !enabled;
+    }
+  });
+}
+
+function updatePanels(mode) {
+  document.querySelectorAll('.db-panel').forEach(el => {
+    const visible = el.id === 'panel_' + mode;
+    el.style.display = visible ? '' : 'none';
+  });
+
+  setPanelInputsEnabled('panel_LOCAL', mode === 'LOCAL');
+  setPanelInputsEnabled('panel_MYSQL', mode === 'MYSQL');
+  setPanelInputsEnabled('panel_POSTGRESQL', mode === 'POSTGRESQL');
+}
+
 function selectMode(mode) {
   document.getElementById('dbModeField').value = mode;
 
@@ -194,91 +216,37 @@ function selectMode(mode) {
     el.classList.toggle('bg-opacity-10', isSelected);
   });
 
-  document.querySelectorAll('.db-panel').forEach(el => {
-    el.style.display = el.id === 'panel_' + mode ? '' : 'none';
-  });
+  updatePanels(mode);
 
   let testBtn = document.getElementById('btnTestConn');
 
   if (mode === 'LOCAL') {
-    if (testBtn) {
-      testBtn.style.display = 'none';
-    }
+    if (testBtn) testBtn.style.display = 'none';
   } else {
-    if (!testBtn) {
-      const actions = document.querySelector('#dbForm .d-flex.gap-2.align-items-center.flex-wrap');
-      if (actions) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn btn-outline-info';
-        btn.id = 'btnTestConn';
-        btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
-        actions.appendChild(btn);
-        bindTestButton();
-      }
-    } else {
-      testBtn.style.display = '';
-    }
+    if (testBtn) testBtn.style.display = '';
   }
 }
 
-function bindTestButton() {
-  document.getElementById('btnTestConn')?.addEventListener('click', async function() {
-    const btn = this;
-    const result = document.getElementById('testResult');
+async function doTestConnection() {
+  const btn = document.getElementById('btnTestConn');
+  const result = document.getElementById('testResult');
+  if (!btn || !result) return;
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso...';
-    result.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso...';
+  result.style.display = 'none';
+
+  try {
+    const resp = await fetch(TEST_URL, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+
+    const raw = await resp.text();
+    let data;
 
     try {
-      const resp = await fetch(TEST_URL, {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      });
-
-      const raw = await resp.text();
-      let data;
-
-      try {
-        data = JSON.parse(raw);
-      } catch (e) {
-        result.style.display = '';
-        result.innerHTML = `
-          <div class="alert alert-danger d-flex gap-2">
-            <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
-            <div>
-              <strong>Errore nella richiesta</strong><br>
-              <code>Il server non ha restituito JSON valido.</code><br>
-              <small>${raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</small>
-            </div>
-          </div>`;
-        return;
-      }
-
-      result.style.display = '';
-
-      if (data.ok) {
-        result.innerHTML = `
-          <div class="alert alert-success d-flex gap-2">
-            <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
-            <div>
-              <strong>Connessione riuscita!</strong><br>
-              <span>${data.messaggio || 'Test completato con successo.'}</span>
-            </div>
-          </div>`;
-      } else {
-        result.innerHTML = `
-          <div class="alert alert-danger d-flex gap-2">
-            <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
-            <div>
-              <strong>Connessione fallita</strong><br>
-              <code>${data.errore || data.messaggio || 'Errore sconosciuto'}</code>
-            </div>
-          </div>`;
-      }
+      data = JSON.parse(raw);
     } catch (e) {
       result.style.display = '';
       result.innerHTML = `
@@ -286,16 +254,54 @@ function bindTestButton() {
           <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
           <div>
             <strong>Errore nella richiesta</strong><br>
-            <code>${e}</code>
+            <code>Il server non ha restituito JSON valido.</code><br>
+            <small>${raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</small>
           </div>
         </div>`;
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
+      return;
     }
-  });
+
+    result.style.display = '';
+
+    if (data.ok) {
+      result.innerHTML = `
+        <div class="alert alert-success d-flex gap-2">
+          <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Connessione riuscita!</strong><br>
+            <span>${data.messaggio || 'Test completato con successo.'}</span>
+          </div>
+        </div>`;
+    } else {
+      result.innerHTML = `
+        <div class="alert alert-danger d-flex gap-2">
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Connessione fallita</strong><br>
+            <code>${data.errore || data.messaggio || 'Errore sconosciuto'}</code>
+          </div>
+        </div>`;
+    }
+  } catch (e) {
+    result.style.display = '';
+    result.innerHTML = `
+      <div class="alert alert-danger d-flex gap-2">
+        <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+        <div>
+          <strong>Errore nella richiesta</strong><br>
+          <code>${e}</code>
+        </div>
+      </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
+  }
 }
 
-bindTestButton();
+document.getElementById('btnTestConn')?.addEventListener('click', doTestConnection);
+
+document.addEventListener('DOMContentLoaded', function () {
+  updatePanels(document.getElementById('dbModeField').value);
+});
 </script>
 {% endblock %}

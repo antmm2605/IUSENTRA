@@ -2,8 +2,8 @@
 <div class="row g-3">
   <div class="col-12 col-sm-8">
     <label class="form-label small fw-semibold">Host <span class="text-danger">*</span></label>
-    <input type="text" name="host" class="form-control" value="{{ db.host or 'localhost' }}"
-           placeholder="localhost o IP" required>
+    <input type="text" name="host" class="form-control" value="{{ db.host or '' }}"
+           placeholder="es. ep-sweet-brook-angc0s7y-pooler.c-6.us-east-1.aws.neon.tech" required>
   </div>
   <div class="col-12 col-sm-4">
     <label class="form-label small fw-semibold">
@@ -17,12 +17,12 @@
   <div class="col-12 col-sm-6">
     <label class="form-label small fw-semibold">Nome Database <span class="text-danger">*</span></label>
     <input type="text" name="db_name" class="form-control" value="{{ db.db_name }}"
-           placeholder="hacs_{{ studio.slug | replace('-', '_') }}" required>
+           placeholder="es. neondb" required>
   </div>
   <div class="col-12 col-sm-6">
     <label class="form-label small fw-semibold">Utente <span class="text-danger">*</span></label>
     <input type="text" name="db_utente" class="form-control" value="{{ db.utente }}"
-           placeholder="hacs_user" autocomplete="off" required>
+           placeholder="es. neondb_owner" autocomplete="off" required>
   </div>
   <div class="col-12">
     <label class="form-label small fw-semibold">

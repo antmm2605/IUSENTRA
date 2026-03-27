@@ -27,6 +27,19 @@ def safe_makedirs(name, mode=0o777, exist_ok=False):
             raise e
 os.makedirs = safe_makedirs
 
+# Questo forza l'agenda a guardare SEMPRE in /tmp anche se il blueprint non passa parametri
+    original_agenda_init = pct.agenda.Agenda.__init__
+    def patched_agenda_init(self, db_path=None, *args, **kwargs):
+        return original_agenda_init(self, db_path="/tmp/appuntamenti.json", *args, **kwargs)
+    pct.agenda.Agenda.__init__ = patched_agenda_init
+
+    original_scad_init = pct.scadenziario.GestioneScadenziario.__init__
+    def patched_scad_init(self, db_path=None, *args, **kwargs):
+        return original_scad_init(self, db_path="/tmp/scadenze.json", *args, **kwargs)
+    pct.scadenziario.GestioneScadenziario.__init__ = patched_scad_init
+except Exception as e:
+    print(f"Patching non riuscito: {e}")
+
 # --- 2. MAPPATURA PERCORSI SU /TMP ---
 DB_FILES = {
     'AUTH_DB': 'utenti.json',

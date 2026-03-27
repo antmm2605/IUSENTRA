@@ -1,32 +1,34 @@
 import os
+import sys
 from pathlib import Path
+
+# 1. FORZATURA IMMEDIATA (Monkey Patch)
+# Importiamo il modulo auth e cambiamo i percorsi di default 
+# prima che l'app Flask possa inizializzarli.
 import pct.auth
 
-# --- MONKEY PATCH PER VERCEL ---
-# Sovrascriviamo i percorsi della GestioneUtenti per puntare alla RAM (/tmp)
-# Questo evita l'errore "Read-only file system" senza toccare pct/auth.py
+# Definiamo i percorsi nella RAM (/tmp)
+PATH_UTENTI = "/tmp/utenti.json"
+PATH_AUDIT = "/tmp/audit.json"
 
+# Sovrascriviamo il comportamento di GestioneUtenti
 original_init = pct.auth.GestioneUtenti.__init__
 
 def patched_init(self, *args, **kwargs):
-    # Forziamo i file JSON degli utenti nella cartella scrivibile /tmp
-    kwargs['db_path'] = "/tmp/utenti.json"
-    kwargs['audit_path'] = "/tmp/audit.json"
+    # Ignora i parametri passati e forza quelli di Vercel
+    kwargs['db_path'] = PATH_UTENTI
+    kwargs['audit_path'] = PATH_AUDIT
     return original_init(self, *args, **kwargs)
 
-# Applichiamo la modifica al volo
+# Applichiamo la patch alla classe
 pct.auth.GestioneUtenti.__init__ = patched_init
 
-# --- CONFIGURAZIONE AMBIENTE ---
-# Forza il file studio.json in /tmp
+# 2. CONFIGURAZIONE AMBIENTE
 os.environ['PCT_STUDIO_CONFIG'] = '/tmp/studio.json'
-
-# Se hai configurato Neon, l'app userà quello per i dati legali
-# altrimenti userà un database SQLite temporaneo
 if 'DATABASE_URL' not in os.environ:
     os.environ['DATABASE_URL'] = 'sqlite:////tmp/hacs.db'
 
-# --- AVVIO APP ---
+# 3. CARICAMENTO APPLICAZIONE
 try:
     from web.app import create_app
     app = create_app()

@@ -2,33 +2,29 @@ import os
 import sys
 from pathlib import Path
 
-# 1. FORZATURA IMMEDIATA (Monkey Patch)
-# Importiamo il modulo auth e cambiamo i percorsi di default 
-# prima che l'app Flask possa inizializzarli.
+# 1. IMPORTIAMO IL MODULO AUTH PER PRIMO
 import pct.auth
 
-# Definiamo i percorsi nella RAM (/tmp)
-PATH_UTENTI = "/tmp/utenti.json"
-PATH_AUDIT = "/tmp/audit.json"
+# 2. CREIAMO UNA VERSIONE "VERCEL-FRIENDLY" DELLA CLASSE
+# Questa versione ignora i percorsi passati e usa sempre /tmp/
+class VercelGestioneUtenti(pct.auth.GestioneUtenti):
+    def __init__(self, *args, **kwargs):
+        # Forziamo i parametri db_path e audit_path
+        kwargs['db_path'] = "/tmp/utenti.json"
+        kwargs['audit_path'] = "/tmp/audit.json"
+        # Chiamiamo il costruttore originale con i nuovi percorsi
+        super().__init__(*args, **kwargs)
 
-# Sovrascriviamo il comportamento di GestioneUtenti
-original_init = pct.auth.GestioneUtenti.__init__
+# 3. SOSTITUIAMO LA CLASSE ORIGINALE CON QUELLA MODIFICATA
+# Da questo momento in poi, chiunque chiami GestioneUtenti userà la nostra versione
+pct.auth.GestioneUtenti = VercelGestioneUtenti
 
-def patched_init(self, *args, **kwargs):
-    # Ignora i parametri passati e forza quelli di Vercel
-    kwargs['db_path'] = PATH_UTENTI
-    kwargs['audit_path'] = PATH_AUDIT
-    return original_init(self, *args, **kwargs)
-
-# Applichiamo la patch alla classe
-pct.auth.GestioneUtenti.__init__ = patched_init
-
-# 2. CONFIGURAZIONE AMBIENTE
+# 4. CONFIGURAZIONE AMBIENTE
 os.environ['PCT_STUDIO_CONFIG'] = '/tmp/studio.json'
 if 'DATABASE_URL' not in os.environ:
     os.environ['DATABASE_URL'] = 'sqlite:////tmp/hacs.db'
 
-# 3. CARICAMENTO APPLICAZIONE
+# 5. ORA POSSIAMO CARICARE L'APP IN SICUREZZA
 try:
     from web.app import create_app
     app = create_app()
@@ -36,5 +32,4 @@ except Exception as e:
     print(f"ERRORE CRITICO AVVIO: {e}")
     raise e
 
-# Export per Vercel
 app = app

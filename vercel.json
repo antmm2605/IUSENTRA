@@ -11,5 +11,10 @@
       "src": "/(.*)",
       "dest": "vercel_app.py"
     }
-  ]
+  ],
+  "functions": {
+    "vercel_app.py": {
+      "maxDuration": 30
+    }
+  }
 }

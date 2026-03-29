@@ -84,6 +84,24 @@
       </div>
     </div>
 
+    {% if polisweb_sync_needed %}
+    <div class="alert alert-warning shadow-sm mb-3">
+      <div class="fw-semibold mb-1">
+        <i class="bi bi-arrow-repeat me-1"></i>Import PolisWeb da completare
+      </div>
+      <div class="small">
+        Questo fascicolo è stato importato quando il flusso PST non portava ancora dentro tutti i dati.
+        Apri PolisWeb, riesegui la ricerca della pratica e premi di nuovo <strong>Importa</strong>:
+        HACS completerà cliente, soggetti e attività sul fascicolo già esistente senza duplicarlo.
+      </div>
+      <div class="mt-2">
+        <a href="{{ url_for('polisWeb_home', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-warning">
+          <i class="bi bi-search me-1"></i>Completa da PolisWeb
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
     {# ---- Attività processuali ---- #}
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
@@ -1257,6 +1275,19 @@
               </div>
             </div>
             <div class="col-12">
+              <label class="form-label fw-semibold">Cartella tecnica locale del fascicolo</label>
+              <div class="input-group">
+                <input type="text" class="form-control font-monospace small" id="pstImportDirPath"
+                       value="{{ pst_import_dir }}" readonly>
+                <button type="button" class="btn btn-outline-secondary" id="btnCopiaPstImportDir">
+                  <i class="bi bi-clipboard me-1"></i>Copia
+                </button>
+              </div>
+              <div class="form-text">
+                Se preferisci, puoi copiare qui dentro i file scaricati dal portale ufficiale e poi avviare l'acquisizione lasciando vuoto il campo sopra.
+              </div>
+            </div>
+            <div class="col-12">
               {% if pst_import_pending %}
               <div class="alert alert-light border small mb-0">
                 Nell'inbox tecnica del fascicolo ci sono già <strong>{{ pst_import_pending }}</strong> file pronti.
@@ -1823,6 +1854,27 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
       return;
     }
     hint.textContent = "Selezionati " + count + " elementi pronti per l'acquisizione nel fascicolo.";
+  });
+})();
+
+(function () {
+  const btn = document.getElementById('btnCopiaPstImportDir');
+  const field = document.getElementById('pstImportDirPath');
+  if (!btn || !field || !navigator.clipboard) return;
+
+  btn.addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(field.value);
+      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiato';
+      window.setTimeout(function () {
+        btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia';
+      }, 1600);
+    } catch (err) {
+      btn.innerHTML = '<i class="bi bi-x-circle me-1"></i>Errore';
+      window.setTimeout(function () {
+        btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia';
+      }, 1600);
+    }
   });
 })();
 

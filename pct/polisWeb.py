@@ -744,6 +744,151 @@ def _sincronizza_parti_pst_su_fascicolo(
     return controparte, cf_controparte, avvisi
 
 
+def _titolo_fascicolo_polisweb(fascicolo_pw: FascicoloPolisWeb) -> str:
+    base = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}"
+    oggetto = (fascicolo_pw.oggetto or "").strip()
+    return f"{base} — {oggetto[:80]}" if oggetto else base
+
+
+def _titolo_generico_fascicolo_polisweb(titolo: str, fascicolo_pw: FascicoloPolisWeb) -> bool:
+    titolo = (titolo or "").strip()
+    base = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}"
+    if titolo in {"", base, f"{base} —", f"{base} –", f"{base} -", f"{base} ?"}:
+        return True
+    if not titolo.startswith(base):
+        return False
+    suffisso = titolo[len(base):].strip()
+    return not suffisso.strip("—–-? ")
+
+
+def _attivita_polisweb_presente(fascicolo_locale, tipo, data_attivita: str, titolo: str) -> bool:
+    titolo_norm = _nome_normalizzato(titolo)
+    return any(
+        att.tipo == tipo
+        and att.data == data_attivita
+        and _nome_normalizzato(att.titolo) == titolo_norm
+        for att in getattr(fascicolo_locale, "attivita", []) or []
+    )
+
+
+def _sincronizza_metadati_fascicolo_polisweb(
+    fascicolo_pw: FascicoloPolisWeb,
+    fascicolo_locale,
+    gestione_fascicoli,
+    gestione_clienti,
+    avvocato_referente: str = "",
+    gestione_soggetti=None,
+) -> RisultatoImportazione:
+    from pct.fascicoli import TipoAttivita
+
+    riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
+    avvisi: List[str] = []
+
+    id_cliente = fascicolo_locale.id_cliente or ""
+    nome_cliente = fascicolo_locale.nome_cliente or ""
+
+    if fascicolo_pw.parti or fascicolo_pw.parti_dettaglio:
+        id_cliente_sync, nome_cliente_sync, avvisi_clienti = _riconcilia_parti_dettaglio_polisweb(
+            fascicolo_pw=fascicolo_pw,
+            gestione_clienti=gestione_clienti,
+            riferimento=riferimento,
+            portale="PolisWeb",
+        )
+        avvisi.extend(avvisi_clienti)
+        if not id_cliente and id_cliente_sync:
+            id_cliente = id_cliente_sync
+        if not nome_cliente and nome_cliente_sync:
+            nome_cliente = nome_cliente_sync
+
+    campi_update: Dict[str, Any] = {}
+    if id_cliente and not fascicolo_locale.id_cliente:
+        campi_update["id_cliente"] = id_cliente
+    if nome_cliente and not fascicolo_locale.nome_cliente:
+        campi_update["nome_cliente"] = nome_cliente
+    if fascicolo_pw.nome_ufficio and not fascicolo_locale.tribunale:
+        campi_update["tribunale"] = fascicolo_pw.nome_ufficio
+    if fascicolo_pw.oggetto and not fascicolo_locale.oggetto:
+        campi_update["oggetto"] = fascicolo_pw.oggetto
+    if fascicolo_pw.sezione and not fascicolo_locale.sezione:
+        campi_update["sezione"] = fascicolo_pw.sezione
+    if fascicolo_pw.giudice and not fascicolo_locale.giudice:
+        campi_update["giudice"] = fascicolo_pw.giudice
+    if fascicolo_pw.data_iscrizione and not fascicolo_locale.data_apertura:
+        campi_update["data_apertura"] = fascicolo_pw.data_iscrizione
+    if _titolo_generico_fascicolo_polisweb(fascicolo_locale.titolo, fascicolo_pw):
+        campi_update["titolo"] = _titolo_fascicolo_polisweb(fascicolo_pw)
+
+    if campi_update:
+        fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_update)
+
+    if fascicolo_pw.data_iscrizione and not _attivita_polisweb_presente(
+        fascicolo_locale,
+        TipoAttivita.ISCRIZIONE_A_RUOLO,
+        fascicolo_pw.data_iscrizione,
+        "Iscrizione a ruolo (importata da PolisWeb)",
+    ):
+        gestione_fascicoli.aggiungi_attivita(
+            fascicolo_locale.id,
+            tipo=TipoAttivita.ISCRIZIONE_A_RUOLO,
+            data=fascicolo_pw.data_iscrizione,
+            titolo="Iscrizione a ruolo (importata da PolisWeb)",
+            descrizione=f"Pratica sincronizzata da PolisWeb - RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+            avvocato=avvocato_referente,
+        )
+        fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
+
+    if fascicolo_pw.data_udienza and not _attivita_polisweb_presente(
+        fascicolo_locale,
+        TipoAttivita.UDIENZA,
+        fascicolo_pw.data_udienza,
+        "Udienza (importata da PolisWeb)",
+    ):
+        gestione_fascicoli.aggiungi_attivita(
+            fascicolo_locale.id,
+            tipo=TipoAttivita.UDIENZA,
+            data=fascicolo_pw.data_udienza,
+            titolo="Udienza (importata da PolisWeb)",
+            descrizione=f"Udienza automaticamente sincronizzata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+            avvocato=avvocato_referente,
+        )
+        fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
+
+    try:
+        controparte, cf_controparte, avvisi_parti = _sincronizza_parti_pst_su_fascicolo(
+            fascicolo_pw=fascicolo_pw,
+            fascicolo_locale=fascicolo_locale,
+            gestione_clienti=gestione_clienti,
+            gestione_soggetti=gestione_soggetti,
+            id_cliente_principale=id_cliente,
+            riferimento=riferimento,
+            portale="PolisWeb",
+        )
+        avvisi.extend(avvisi_parti)
+        campi_parti: Dict[str, Any] = {}
+        if controparte and not fascicolo_locale.controparte:
+            campi_parti["controparte"] = controparte
+        if cf_controparte and not fascicolo_locale.cf_controparte:
+            campi_parti["cf_controparte"] = cf_controparte
+        if campi_parti:
+            fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_parti)
+    except Exception as e:
+        avvisi.append(f"Parti del procedimento non sincronizzate: {e}")
+
+    if not id_cliente:
+        avvisi.append(
+            "Nessun soggetto valido nelle parti della causa. "
+            "Assegnare il cliente manualmente."
+        )
+
+    return RisultatoImportazione(
+        successo=True,
+        id_fascicolo_locale=fascicolo_locale.id,
+        messaggio=f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} sincronizzata sul fascicolo esistente.",
+        fascicolo_polis=fascicolo_pw,
+        avvisi=avvisi,
+    )
+
+
 # ================================================================ Client PolisWeb
 
 class ClientPolisWeb:
@@ -983,7 +1128,7 @@ class ClientPolisWeb:
 
             # 3. Crea fascicolo
             fasc = gestione_fascicoli.nuovo(
-                titolo=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.oggetto[:80]}",
+                titolo=_titolo_fascicolo_polisweb(fascicolo_pw),
                 tipo=tipo_fascicolo,
                 id_cliente=id_cliente,
                 nome_cliente=nome_cliente,
@@ -1063,6 +1208,33 @@ class ClientPolisWeb:
             return RisultatoImportazione(
                 successo=False,
                 messaggio=f"Errore durante l'importazione: {e}",
+                fascicolo_polis=fascicolo_pw,
+            )
+
+    def sincronizza_fascicolo_esistente(
+        self,
+        fascicolo_pw: FascicoloPolisWeb,
+        fascicolo_locale,
+        gestione_fascicoli,
+        gestione_clienti,
+        avvocato_referente: str = "",
+        gestione_soggetti=None,
+    ) -> RisultatoImportazione:
+        """Completa un fascicolo già presente con i dati più ricchi provenienti da PolisWeb."""
+        try:
+            return _sincronizza_metadati_fascicolo_polisweb(
+                fascicolo_pw=fascicolo_pw,
+                fascicolo_locale=fascicolo_locale,
+                gestione_fascicoli=gestione_fascicoli,
+                gestione_clienti=gestione_clienti,
+                avvocato_referente=avvocato_referente,
+                gestione_soggetti=gestione_soggetti,
+            )
+        except Exception as e:
+            return RisultatoImportazione(
+                successo=False,
+                id_fascicolo_locale=getattr(fascicolo_locale, "id", None),
+                messaggio=f"Errore durante la sincronizzazione: {e}",
                 fascicolo_polis=fascicolo_pw,
             )
 

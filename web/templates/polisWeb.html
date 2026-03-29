@@ -434,8 +434,8 @@
             <i class="bi bi-download text-primary me-1"></i>Importazione pratiche
           </div>
           La funzione "Importa" crea automaticamente un nuovo fascicolo nel gestionale
-          con i dati RG, oggetto, giudice, sezione e la prossima udienza nell'agenda.
-          Il cliente va assegnato manualmente se non presente in anagrafica.
+          con i dati RG, oggetto, giudice, sezione, cliente, parti e prossima udienza.
+          Se il fascicolo esiste già, un nuovo "Importa" completa i dati mancanti invece di duplicarlo.
         </div>
         <div class="col-md-4">
           <div class="fw-semibold text-dark mb-1">
@@ -1983,6 +1983,7 @@ function verificaLocalSignerLegacy() {
 let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati
 let _wizCertSel = null;  // certificato selezionato
 let _wizPinConfermato = false;
+let _wizUltimiFascicoli = [];
 
 const _WIZ_STEPS = {
   0: { title: 'Configurazione',      sub: 'Avvia o installa il Local Signer', dot: null },
@@ -2408,10 +2409,10 @@ async function wizEseguiRicerca() {
     }
     const fascicoli = d.fascicoli || [];
     document.getElementById('wiz-count').textContent = fascicoli.length;
+    _wizUltimiFascicoli = Array.isArray(fascicoli) ? fascicoli : [];
     if (!fascicoli.length) { if (empty) empty.style.display = 'block'; return; }
     const tbody = document.getElementById('wiz-risultati-tbody');
-    const idFasc = '{{ id_fasc or "" }}';
-    tbody.innerHTML = fascicoli.map(f => `
+    tbody.innerHTML = fascicoli.map((f, idx) => `
       <tr>
         <td class="fw-semibold font-monospace text-nowrap">${f.numero_rg || '—'}/${f.anno_rg || '—'}</td>
         <td class="small">${f.oggetto || '—'}</td>
@@ -2420,7 +2421,7 @@ async function wizEseguiRicerca() {
         <td><span class="badge ${f.stato==='PENDENTE'?'bg-success':'bg-secondary'} small">${f.stato || '—'}</span></td>
         <td>
           <button type="button" class="btn btn-xs btn-outline-primary btn-sm"
-                  onclick="wizImporta('${f.numero_rg}','${f.anno_rg}','${(f.nome_ufficio||'').replace(/'/g,"\\'")}','${(f.codice_ufficio||'')}')">
+                  onclick="wizImporta(${idx})">
             <i class="bi bi-download me-1"></i>Importa
           </button>
         </td>
@@ -2477,14 +2478,29 @@ function wizTestConnessionePst() {
     });
 }
 
-function wizImporta(rg, anno, nomeUfficio, codiceUfficio) {
+function wizImporta(indice) {
   // Importa la pratica nel gestionale via POST standard
+  const fascicolo = _wizUltimiFascicoli[indice] || {};
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '{{ url_for("polisWeb_importa") }}';
-  [['numero_rg', rg], ['anno_rg', anno], ['nome_ufficio', nomeUfficio],
-   ['codice_ufficio', codiceUfficio], ['demo_mode', '0'],
-   ['id_fasc', '{{ id_fasc or "" }}']].forEach(([k,v]) => {
+  [
+    ['numero_rg', fascicolo.numero_rg || ''],
+    ['anno_rg', fascicolo.anno_rg || ''],
+    ['ruolo', fascicolo.ruolo || ''],
+    ['stato', fascicolo.stato || ''],
+    ['oggetto', fascicolo.oggetto || ''],
+    ['sezione', fascicolo.sezione || ''],
+    ['giudice', fascicolo.giudice || ''],
+    ['data_iscrizione', fascicolo.data_iscrizione || ''],
+    ['data_udienza', fascicolo.data_udienza || ''],
+    ['parti_json', JSON.stringify(fascicolo.parti || [])],
+    ['parti_dettaglio_json', JSON.stringify(fascicolo.parti_dettaglio || [])],
+    ['nome_ufficio', fascicolo.nome_ufficio || ''],
+    ['codice_ufficio', fascicolo.codice_ufficio || ''],
+    ['demo_mode', '0'],
+    ['id_fasc', '{{ id_fasc or "" }}'],
+  ].forEach(([k,v]) => {
     const i = document.createElement('input');
     i.type = 'hidden'; i.name = k; i.value = v;
     form.appendChild(i);

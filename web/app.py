@@ -235,6 +235,13 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["CLIENTI_DB"] = cfg.get(
         "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
     )
+    def _data_peer_path(base_path: str, folder: str, filename: str) -> str:
+        base = Path(base_path)
+        if base.parent.name.lower() == "clienti" and base.name.lower() == "anagrafica.json":
+            root = base.parent.parent
+        else:
+            root = base.parent
+        return str(root / folder / filename)
     app.config["CONDIVISIONI_DB"] = cfg.get(
         "CONDIVISIONI_DB", os.getenv("PCT_CONDIVISIONI_DB", "./clienti/condivisioni.json")
     )
@@ -299,10 +306,18 @@ def create_app(config: dict | None = None) -> Flask:
         "NOTIFICHE_LOG", os.getenv("PCT_NOTIFICHE_LOG", "./notifiche/log.json")
     )
     app.config["SOGGETTI_DB"] = cfg.get(
-        "SOGGETTI_DB", os.getenv("PCT_SOGGETTI_DB", "./soggetti/anagrafica.json")
+        "SOGGETTI_DB",
+        os.getenv(
+            "PCT_SOGGETTI_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "soggetti", "anagrafica.json"),
+        ),
     )
     app.config["SOGGETTI_PARTI_DB"] = cfg.get(
-        "SOGGETTI_PARTI_DB", os.getenv("PCT_SOGGETTI_PARTI_DB", "./soggetti/parti.json")
+        "SOGGETTI_PARTI_DB",
+        os.getenv(
+            "PCT_SOGGETTI_PARTI_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "soggetti", "parti.json"),
+        ),
     )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
@@ -2492,20 +2507,6 @@ read -r -p "Premi Invio per chiudere..." _
             anno_rg_imp   = int(f.get("anno_rg", 0) or 0)
             nome_ufficio_imp = f.get("nome_ufficio", "")
 
-            # Controllo duplicati: evita di importare lo stesso RG due volte
-            gf_dup = get_fascicoli()
-            for fc_esistente in gf_dup.tutti():
-                if (fc_esistente.numero_rg == numero_rg_imp
-                        and fc_esistente.anno_rg == anno_rg_imp
-                        and fc_esistente.tribunale == nome_ufficio_imp):
-                    flash(
-                        f"Il fascicolo RG {numero_rg_imp}/{anno_rg_imp} "
-                        f"({nome_ufficio_imp}) è già presente nel gestionale.",
-                        "warning",
-                    )
-                    return redirect(url_for("dettaglio_fascicolo",
-                                            id_fasc=fc_esistente.id))
-
             fascicolo_pw = FascicoloPolisWeb(
                 numero_rg=numero_rg_imp,
                 anno_rg=anno_rg_imp,
@@ -2522,21 +2523,61 @@ read -r -p "Premi Invio per chiudere..." _
                 nome_ufficio=nome_ufficio_imp,
             )
             client = crea_client(demo=demo_mode)
-            risultato = client.importa_fascicolo(
-                fascicolo_pw=fascicolo_pw,
-                gestione_fascicoli=get_fascicoli(),
-                gestione_clienti=get_clienti(),
-                avvocato_referente=u.username if u else "",
-                gestione_soggetti=get_soggetti(),
-            )
+            gf = get_fascicoli()
+            gc = get_clienti()
+            gs = get_soggetti()
+
+            fc_esistente = None
+            id_fasc_target = f.get("id_fasc", "").strip()
+            if id_fasc_target:
+                fascicolo_target = gf.get(id_fasc_target)
+                if (
+                    fascicolo_target
+                    and fascicolo_target.numero_rg == numero_rg_imp
+                    and fascicolo_target.anno_rg == anno_rg_imp
+                    and (not fascicolo_target.tribunale or fascicolo_target.tribunale == nome_ufficio_imp)
+                ):
+                    fc_esistente = fascicolo_target
+
+            if fc_esistente is None:
+                for fascicolo_esistente in gf.tutti():
+                    if (
+                        fascicolo_esistente.numero_rg == numero_rg_imp
+                        and fascicolo_esistente.anno_rg == anno_rg_imp
+                        and fascicolo_esistente.tribunale == nome_ufficio_imp
+                    ):
+                        fc_esistente = fascicolo_esistente
+                        break
+
+            if fc_esistente:
+                risultato = client.sincronizza_fascicolo_esistente(
+                    fascicolo_pw=fascicolo_pw,
+                    fascicolo_locale=fc_esistente,
+                    gestione_fascicoli=gf,
+                    gestione_clienti=gc,
+                    avvocato_referente=u.username if u else "",
+                    gestione_soggetti=gs,
+                )
+            else:
+                risultato = client.importa_fascicolo(
+                    fascicolo_pw=fascicolo_pw,
+                    gestione_fascicoli=gf,
+                    gestione_clienti=gc,
+                    avvocato_referente=u.username if u else "",
+                    gestione_soggetti=gs,
+                )
             if risultato.successo:
                 for avviso in risultato.avvisi:
                     # I messaggi di creazione automatica sono informativi, non warning bloccanti
                     livello = "info" if avviso.startswith(("Nuovo soggetto", "Nuova parte")) else "warning"
                     flash(avviso, livello)
                 flash(risultato.messaggio, "success")
-                audit("polisWeb.importa", "fascicolo", risultato.id_fascicolo_locale,
-                      dettagli=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}")
+                audit(
+                    "polisWeb.sincronizza" if fc_esistente else "polisWeb.importa",
+                    "fascicolo",
+                    risultato.id_fascicolo_locale,
+                    dettagli=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+                )
                 return redirect(url_for("dettaglio_fascicolo",
                                         id_fasc=risultato.id_fascicolo_locale))
             flash(risultato.messaggio, "danger")
@@ -4572,7 +4613,16 @@ read -r -p "Premi Invio per chiudere..." _
             pec_tribunale = uff.pec if uff else ""
         from pct.checklist_atti import TUTTI_I_TEMPLATE
         parti = get_soggetti().parti_fascicolo(id_fasc)
+        pst_import_dir = _pst_import_dir_for_fascicolo(fasc)
+        pst_import_dir.mkdir(parents=True, exist_ok=True)
         pst_import_pending = _pst_import_pending_count(fasc)
+        polisweb_importato = "Importato da PolisWeb" in (fasc.note or "")
+        polisweb_sync_needed = polisweb_importato and (
+            not fasc.id_cliente
+            or not parti
+            or not fasc.attivita
+            or not fasc.tribunale
+        )
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -4587,6 +4637,8 @@ read -r -p "Premi Invio per chiudere..." _
             RuoloSoggetto=RuoloSoggetto,
             pst_import_pending=pst_import_pending,
             pst_portale_label=_portale_ufficiale_label(fasc),
+            pst_import_dir=str(pst_import_dir),
+            polisweb_sync_needed=polisweb_sync_needed,
             oggi=date.today(),
         )
 

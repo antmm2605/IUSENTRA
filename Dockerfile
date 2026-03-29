@@ -68,7 +68,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.54.0" \
+      org.opencontainers.image.version="2.54.2" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -111,6 +111,8 @@ ENV PYTHONPATH=/app
 ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_CLIENTI_DB=/data/clienti/anagrafica.json \
     PCT_CONDIVISIONI_DB=/data/clienti/condivisioni.json \
+    PCT_SOGGETTI_DB=/data/soggetti/anagrafica.json \
+    PCT_SOGGETTI_PARTI_DB=/data/soggetti/parti.json \
     PCT_FASCICOLI_DB=/data/fascicoli/fascicoli.json \
     PCT_FASCICOLI_DOCS=/data/fascicoli/documenti \
     PCT_FASCICOLI_ARCH=/data/fascicoli/archivio \

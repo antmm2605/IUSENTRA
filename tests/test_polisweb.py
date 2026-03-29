@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 import sys
 from pathlib import Path
@@ -207,6 +208,92 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     assert "BANCA ALFA S.P.A." in nomi
 
 
+def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_path):
+    gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gestione_soggetti = GestioneSoggetti(
+        soggetti_path=str(tmp_path / "soggetti.json"),
+        parti_path=str(tmp_path / "parti.json"),
+    )
+
+    fascicolo_locale = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024 —",
+        tipo=TipoFascicolo.CIVILE,
+        numero_rg="1025",
+        anno_rg=2024,
+        note="Importato da PolisWeb il 2026-03-29",
+    )
+
+    fascicolo_pw = FascicoloPolisWeb(
+        numero_rg="1025",
+        anno_rg=2024,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PENDENTE",
+        oggetto="Vendita di cose immobili",
+        sezione="CIVILE",
+        giudice="GIOVANNELLA MARIA ELENA",
+        data_iscrizione="2026-03-29",
+        data_udienza="2026-05-10",
+        parti=["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."],
+        parti_dettaglio=[
+            {
+                "nome": "STILLITANO FRANCESCO",
+                "tipo": "ATTORE",
+                "codice_fiscale": "STLFNC45E26L063X",
+            },
+            {
+                "nome": "BANCA ALFA S.P.A.",
+                "tipo": "CONVENUTO",
+                "codice_fiscale": "12345678901",
+            },
+        ],
+        codice_ufficio="0800570094",
+        nome_ufficio="Tribunale di Palmi",
+    )
+
+    client = ClientPolisWebDemo()
+    risultato = client.sincronizza_fascicolo_esistente(
+        fascicolo_pw=fascicolo_pw,
+        fascicolo_locale=fascicolo_locale,
+        gestione_fascicoli=gestione_fascicoli,
+        gestione_clienti=gestione_clienti,
+        gestione_soggetti=gestione_soggetti,
+        avvocato_referente="admin",
+    )
+
+    assert risultato.successo is True
+    fascicolo = gestione_fascicoli.get(fascicolo_locale.id)
+    assert fascicolo is not None
+    assert fascicolo.id_cliente
+    assert fascicolo.nome_cliente == "Stillitano Francesco"
+    assert fascicolo.tribunale == "Tribunale di Palmi"
+    assert fascicolo.oggetto == "Vendita di cose immobili"
+    assert fascicolo.controparte == "BANCA ALFA S.P.A."
+    assert len(fascicolo.attivita) >= 2
+
+    soggetti = gestione_soggetti.tutti()
+    assert {s.nome_completo for s in soggetti} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
+
+
+def test_create_app_default_soggetti_paths_follow_clienti_root(tmp_path):
+    from web.app import create_app
+
+    cfg = {
+        "CLIENTI_DB": str(tmp_path / "data" / "clienti" / "anagrafica.json"),
+        "FASCICOLI_DB": str(tmp_path / "data" / "fascicoli" / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "data" / "fascicoli" / "documenti"),
+        "FASCICOLI_ARCH": str(tmp_path / "data" / "fascicoli" / "archivio"),
+    }
+    app = create_app(cfg)
+
+    assert app.config["SOGGETTI_DB"] == str(tmp_path / "data" / "soggetti" / "anagrafica.json")
+    assert app.config["SOGGETTI_PARTI_DB"] == str(tmp_path / "data" / "soggetti" / "parti.json")
+
+
 def test_route_importa_documenti_portale_salva_documenti_e_deposito(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -337,3 +424,137 @@ def test_route_importa_documenti_portale_usa_inbox_temporanea(tmp_path):
     assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PORTALE"
     assert archivio_inbox.exists()
     assert any(path.name.startswith(fascicolo.id + "_") for path in archivio_inbox.iterdir())
+
+
+def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}")
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Cartella tecnica locale del fascicolo" in body
+    assert "import_pst" in body
+    assert fascicolo.id in body
+
+
+def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024 —",
+        tipo=TipoFascicolo.CIVILE,
+        numero_rg="1025",
+        anno_rg=2024,
+        note="Importato da PolisWeb il 2026-03-29",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/polisWeb/importa",
+            data={
+                "id_fasc": fascicolo.id,
+                "demo_mode": "1",
+                "numero_rg": "1025",
+                "anno_rg": "2024",
+                "ruolo": "CIVILE_COGNIZIONE",
+                "stato": "PENDENTE",
+                "oggetto": "Vendita di cose immobili",
+                "sezione": "CIVILE",
+                "giudice": "GIOVANNELLA MARIA ELENA",
+                "data_iscrizione": "2026-03-29",
+                "data_udienza": "2026-05-10",
+                "parti_json": json.dumps(["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."]),
+                "parti_dettaglio_json": json.dumps(
+                    [
+                        {"nome": "STILLITANO FRANCESCO", "tipo": "ATTORE", "codice_fiscale": "STLFNC45E26L063X"},
+                        {"nome": "BANCA ALFA S.P.A.", "tipo": "CONVENUTO", "codice_fiscale": "12345678901"},
+                    ]
+                ),
+                "codice_ufficio": "0800570094",
+                "nome_ufficio": "Tribunale di Palmi",
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    gestione_clienti_reload = GestioneClienti(cfg["CLIENTI_DB"])
+    gestione_soggetti_reload = GestioneSoggetti(
+        soggetti_path=cfg["SOGGETTI_DB"],
+        parti_path=cfg["SOGGETTI_PARTI_DB"],
+    )
+
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.id_cliente
+    assert fascicolo_reload.nome_cliente == "Stillitano Francesco"
+    assert fascicolo_reload.tribunale == "Tribunale di Palmi"
+    assert fascicolo_reload.controparte == "BANCA ALFA S.P.A."
+    assert len(fascicolo_reload.attivita) >= 2
+    assert gestione_clienti_reload.get(fascicolo_reload.id_cliente) is not None
+    assert {s.nome_completo for s in gestione_soggetti_reload.tutti()} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}

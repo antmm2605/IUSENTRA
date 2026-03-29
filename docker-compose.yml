@@ -52,6 +52,8 @@ services:
       PCT_AGENDA_DB:        /data/agenda/appuntamenti.json
       PCT_CLIENTI_DB:       /data/clienti/anagrafica.json
       PCT_CONDIVISIONI_DB:  /data/clienti/condivisioni.json
+      PCT_SOGGETTI_DB:      /data/soggetti/anagrafica.json
+      PCT_SOGGETTI_PARTI_DB: /data/soggetti/parti.json
       PCT_FASCICOLI_DB:     /data/fascicoli/fascicoli.json
       PCT_FASCICOLI_DOCS:   /data/fascicoli/documenti
       PCT_FASCICOLI_ARCH:   /data/fascicoli/archivio

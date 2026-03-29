@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 
 
@@ -124,3 +125,55 @@ def test_trova_libreria_prefers_candidate_with_detected_token():
         module._lib_cache = orig_cache
         module._candidate_pkcs11_libs = orig_candidates
         module._score_pkcs11_lib = orig_score
+
+
+def _cfg_web(tmp_path):
+    base = tmp_path
+    backup_dir = str(base / "backup")
+    os.makedirs(backup_dir, exist_ok=True)
+    return {
+        "TESTING": True,
+        "SECRET_KEY": "test",
+        "AUTH_DB": str(base / "utenti.json"),
+        "AUDIT_DB": str(base / "audit.json"),
+        "CLIENTI_DB": str(base / "clienti.json"),
+        "CONDIVISIONI_DB": str(base / "condivisioni.json"),
+        "FASCICOLI_DB": str(base / "fascicoli.json"),
+        "AGENDA_DB": str(base / "agenda.json"),
+        "SCADENZIARIO_DB": str(base / "scadenze.json"),
+        "MESSAGGI_DB": str(base / "messaggi.json"),
+        "BACKUP_DIR": backup_dir,
+        "SEARCH_INDEX": str(base / "search.db"),
+        "FASCICOLI_DOCS": str(base / "docs"),
+        "FASCICOLI_ARCH": str(base / "arch"),
+    }
+
+
+def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/installa-windows")
+
+    assert r.status_code == 200
+    assert "attachment; filename=\"installa_local_signer.ps1\"" in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert "HACS Local Signer" in body
+    assert "Invoke-WebRequest" in body
+    assert "/polisWeb/local-signer/download" in body
+
+
+def test_download_local_signer_python_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/download")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert "local_signer.py" in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert "HACS Local Signer" in body
+    assert "def main()" in body

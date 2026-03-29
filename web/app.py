@@ -558,8 +558,19 @@ def create_app(config: dict | None = None) -> Flask:
             g.tenant = studio
             g.data_paths = tm.percorsi_dati(tenant_slug)
 
-    # Route pubbliche che non richiedono login
-    _ROUTE_PUBBLICHE = {"login", "login_2fa", "static", "logout", "admin.esci_impersonazione"}
+    # Route pubbliche che non richiedono login.
+    # Le route del Local Signer devono essere scaricabili senza sessione:
+    # - il browser può aprire il download in un contesto senza cookie;
+    # - lo script PowerShell scarica local_signer.py senza autenticarsi.
+    _ROUTE_PUBBLICHE = {
+        "login",
+        "login_2fa",
+        "static",
+        "logout",
+        "admin.esci_impersonazione",
+        "polis_local_signer_download",
+        "polis_local_signer_installa",
+    }
 
     @app.before_request
     def richiedi_login():
@@ -1824,13 +1835,13 @@ $vbsContent = @"
 ' HACS Local Signer — avvio invisibile
 Dim shell
 Set shell = CreateObject("WScript.Shell")
-shell.Run "python """ & "$py" & """", 0, False
+shell.Run "python " & Chr(34) & WScript.Arguments(0) & Chr(34), 0, False
 "@
 Set-Content -Path $vbs -Value $vbsContent -Encoding UTF8
 
 # 6. Registra nel Task Scheduler (avvio al logon utente corrente)
 Write-Host "  Registro nel Task Scheduler (avvio automatico al login)..."
-$action  = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$vbs`""
+$action  = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$vbs`" `"$py`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
 Register-ScheduledTask `

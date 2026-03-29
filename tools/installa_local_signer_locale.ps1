@@ -12,6 +12,8 @@ $toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $targetDir = Join-Path $env:APPDATA "HACS\LocalSigner"
 $venvDir = Join-Path $targetDir ".venv"
 $pythonScript = Join-Path $targetDir "local_signer.py"
+$dataDir = Join-Path $targetDir "data"
+$ufficiTarget = Join-Path $dataDir "uffici_ministero.json"
 $requirementsFile = Join-Path $targetDir "requirements_local_signer.txt"
 $pythonExe = Join-Path $venvDir "Scripts\python.exe"
 $pythonwExe = Join-Path $venvDir "Scripts\pythonw.exe"
@@ -48,10 +50,21 @@ if (-not $pythonCmd) {
 }
 
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
 Write-Step "Copio i file del Local Signer..."
 Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $requirementsFile -Force
+$ufficiSource = Join-Path $toolsDir "uffici_ministero.json"
+if (-not (Test-Path $ufficiSource)) {
+    $ufficiSource = Join-Path (Split-Path -Parent $toolsDir) "pct\data\uffici_ministero.json"
+}
+if (Test-Path $ufficiSource) {
+    Copy-Item $ufficiSource $ufficiTarget -Force
+    Write-Step "Registro uffici PST locale copiato."
+} else {
+    Write-Host "  AVVISO: registro uffici PST locale non trovato; il signer usera' solo la configurazione esplicita." -ForegroundColor Yellow
+}
 
 Write-Step "Preparo l'ambiente Python..."
 if (-not (Test-Path $pythonExe)) {
@@ -63,7 +76,17 @@ Write-Step "Aggiorno pip e installo le dipendenze..."
 & $pythonExe -m pip install --quiet -r $requirementsFile
 
 Write-Step "Registro l'avvio automatico al login..."
-& schtasks /Create /F /SC ONLOGON /RL LIMITED /TN $taskName /TR "`"$pythonwExe`" `"$pythonScript`"" | Out-Null
+$action = New-ScheduledTaskAction -Execute $pythonwExe -Argument "`"$pythonScript`""
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
+$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
+Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+Register-ScheduledTask `
+    -TaskName $taskName `
+    -Action $action `
+    -Trigger $trigger `
+    -Settings $settings `
+    -Description "HACS Local Signer - avvio automatico al login" `
+    -Force | Out-Null
 
 Write-Step "Avvio subito il servizio in background..."
 Get-Process pythonw -ErrorAction SilentlyContinue |

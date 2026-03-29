@@ -23,6 +23,7 @@ New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 Copy-Item (Join-Path $toolsDir "installa_local_signer_locale.ps1") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "local_signer.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
+Copy-Item (Join-Path (Split-Path -Parent $toolsDir) "pct\data\uffici_ministero.json") $buildDir -Force
 
 $escapedSource = $buildDir.Replace("\", "\\")
 $escapedTarget = $outputExe.Replace("\", "\\")
@@ -55,10 +56,12 @@ SourceFiles0=$escapedSource
 %FILE0%=
 %FILE1%=
 %FILE2%=
+%FILE3%=
 [Strings]
 FILE0=installa_local_signer_locale.ps1
 FILE1=local_signer.py
 FILE2=requirements_local_signer.txt
+FILE3=uffici_ministero.json
 "@
 
 Set-Content -Path $sedFile -Value $sed -Encoding ASCII

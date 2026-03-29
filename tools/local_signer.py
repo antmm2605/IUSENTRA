@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.3.0
+HACS Local Signer — v1.3.1
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -61,7 +61,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 
 logging.basicConfig(
@@ -75,6 +75,7 @@ _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
+_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP")
 
 # ── Librerie PKCS#11 candidate ─────────────────────────────────────────────────
 _DEFAULT_LIBS = [
@@ -109,6 +110,144 @@ _DEFAULT_LIBS = [
 
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
+_uffici_snapshot_cache: Optional[dict[str, dict]] = None
+
+
+def _snapshot_paths() -> list[Path]:
+    base_dir = Path(__file__).resolve().parent
+    return [
+        base_dir / "data" / "uffici_ministero.json",
+        base_dir / "uffici_ministero.json",
+        _REPO_ROOT / "pct" / "data" / "uffici_ministero.json",
+    ]
+
+
+def _carica_snapshot_uffici() -> dict[str, dict]:
+    global _uffici_snapshot_cache
+    if _uffici_snapshot_cache is not None:
+        return _uffici_snapshot_cache
+
+    for path in _snapshot_paths():
+        if not path.exists():
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            uffici = raw.get("uffici", raw) if isinstance(raw, dict) else {}
+            if not isinstance(uffici, dict):
+                continue
+            normalized: dict[str, dict] = {}
+            for codice, info in uffici.items():
+                if not isinstance(info, dict):
+                    continue
+                row = dict(info)
+                row.setdefault("codice", str(codice))
+                normalized[str(codice).strip()] = row
+            if normalized:
+                _uffici_snapshot_cache = normalized
+                log.info("Registro uffici locale caricato da %s (%s uffici)", path, len(normalized))
+                return normalized
+        except Exception as e:
+            log.warning("Impossibile caricare snapshot uffici da %s: %s", path, e)
+
+    _uffici_snapshot_cache = {}
+    return _uffici_snapshot_cache
+
+
+def _normalizza_testo_ufficio(valore: str) -> str:
+    import unicodedata
+
+    base = unicodedata.normalize("NFKD", (valore or "").strip().lower())
+    return "".join(ch for ch in base if not unicodedata.combining(ch)).replace("-", " ")
+
+
+def _risolvi_ufficio_da_snapshot(codice_o_nome: str) -> Optional[dict]:
+    chiave = (codice_o_nome or "").strip()
+    if not chiave:
+        return None
+
+    uffici = _carica_snapshot_uffici()
+    if not uffici:
+        return None
+
+    if chiave in uffici:
+        return uffici[chiave]
+
+    for ufficio in uffici.values():
+        if chiave == str(ufficio.get("codice_ministero") or "").strip():
+            return ufficio
+
+    chiave_norm = _normalizza_testo_ufficio(chiave)
+    for ufficio in uffici.values():
+        campi = (
+            ufficio.get("nome", ""),
+            ufficio.get("descrizione_ministero", ""),
+            ufficio.get("comune_ministero", ""),
+        )
+        for val in campi:
+            if _normalizza_testo_ufficio(str(val)) == chiave_norm:
+                return ufficio
+
+    for ufficio in uffici.values():
+        campi = (
+            ufficio.get("nome", ""),
+            ufficio.get("descrizione_ministero", ""),
+            ufficio.get("comune_ministero", ""),
+        )
+        for val in campi:
+            norm = _normalizza_testo_ufficio(str(val))
+            if chiave_norm and chiave_norm in norm:
+                return ufficio
+
+    return None
+
+
+def _supporto_auto_pst_disponibile() -> bool:
+    if _risolvi_base_pst_hacs is not None and _risolvi_codice_ministero_hacs is not None:
+        return True
+    return bool(_carica_snapshot_uffici())
+
+
+def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
+    ufficio = _risolvi_ufficio_da_snapshot(codice_o_nome)
+    if not ufficio:
+        raise ValueError(
+            "Impossibile determinare codice GL/servizio PST dell'ufficio selezionato. "
+            "Verificare il registro uffici locale o configurare PCT_PST_BASE_URL completo."
+        )
+
+    codice_gl = str(ufficio.get("codice_gl") or "").strip()
+    servizi = [
+        str(servizio).strip().upper()
+        for servizio in (ufficio.get("servizi_ministero") or [])
+        if str(servizio).strip()
+    ]
+    servizi_jpw = [servizio for servizio in servizi if servizio.startswith("JPW_")]
+    preferenze = []
+    env_pref = os.getenv("PCT_PST_SERVIZIO_DEFAULT", "").strip().upper()
+    if env_pref:
+        preferenze.append(env_pref)
+    servizio_default = str(ufficio.get("servizio_pst_predefinito") or "").strip().upper()
+    if servizio_default:
+        preferenze.append(servizio_default)
+    preferenze.extend(_PST_SERVIZI_DEFAULT)
+
+    servizio = next((candidate for candidate in preferenze if candidate in servizi_jpw), "")
+    if not servizio and servizi_jpw:
+        servizio = servizi_jpw[0]
+
+    if not codice_gl or not servizio:
+        raise ValueError(
+            "Impossibile determinare codice GL/servizio PST dell'ufficio selezionato. "
+            "Verificare il registro uffici locale o configurare PCT_PST_BASE_URL completo."
+        )
+
+    base_env = (os.getenv("PCT_PST_BASE_URL", "") or "").strip().rstrip("/")
+    if base_env and "/pda/pycons/" in base_env:
+        return base_env
+    root = base_env or os.getenv("PCT_PST_PROXY_ROOT", "").strip().rstrip("/") or _PST_PROXY_SH_URL
+    if root.startswith(_PST_LEGACY_BASE):
+        root = _PST_PROXY_SH_URL
+    return f"{root}/pda/pycons/{codice_gl}/{servizio}"
 
 
 def _cerca_lib_registro_windows() -> Optional[str]:
@@ -730,7 +869,7 @@ def _pst_host(url: str) -> str:
 def _pst_endpoint_configurato_e_legacy(url: Optional[str] = None) -> bool:
     candidate = (url or _PST_BASE).strip()
     env_base = os.getenv("PCT_PST_BASE_URL", "").strip()
-    if not env_base and _risolvi_base_pst_hacs is not None and candidate == _PST_BASE:
+    if not env_base and _supporto_auto_pst_disponibile() and candidate == _PST_BASE:
         return False
     return _pst_host(candidate).lower() == "wspa.giustizia.it"
 
@@ -760,17 +899,40 @@ def _pst_url_documenti(base_url: str) -> str:
 
 
 def _risolvi_codice_ufficio_pst(codice_o_nome: str) -> str:
-    if _risolvi_codice_ministero_hacs is None:
-        return codice_o_nome
-    return _risolvi_codice_ministero_hacs(codice_o_nome)
+    if _risolvi_codice_ministero_hacs is not None:
+        return _risolvi_codice_ministero_hacs(codice_o_nome)
+    ufficio = _risolvi_ufficio_da_snapshot(codice_o_nome)
+    if ufficio:
+        return str(ufficio.get("codice_ministero") or ufficio.get("codice") or codice_o_nome).strip()
+    return (codice_o_nome or "").strip()
 
 
 def _risolvi_base_pst_runtime(codice_o_nome: str) -> str:
-    if _risolvi_base_pst_hacs is None:
-        if _pst_endpoint_configurato_e_legacy():
-            raise RuntimeError(_messaggio_endpoint_pst_legacy())
-        return _PST_BASE
-    return _risolvi_base_pst_hacs(codice_o_nome, base_url=_PST_BASE)
+    if _risolvi_base_pst_hacs is not None:
+        return _risolvi_base_pst_hacs(codice_o_nome, base_url=_PST_BASE)
+    if _carica_snapshot_uffici():
+        return _risolvi_base_pst_da_snapshot(codice_o_nome)
+    if _pst_endpoint_configurato_e_legacy():
+        raise RuntimeError(_messaggio_endpoint_pst_legacy())
+    return _PST_BASE
+
+
+def _pst_base_diagnostico() -> str:
+    env_base = os.getenv("PCT_PST_BASE_URL", "").strip()
+    if env_base:
+        return env_base
+    if _supporto_auto_pst_disponibile():
+        return "AUTO (da registro uffici locale)"
+    return _PST_BASE
+
+
+def _pst_base_monitoraggio() -> str:
+    env_base = os.getenv("PCT_PST_BASE_URL", "").strip()
+    if env_base:
+        return env_base
+    if _supporto_auto_pst_disponibile():
+        return _PST_PROXY_SH_URL
+    return _PST_BASE
 
 
 def _curl_disponibile() -> bool:
@@ -1400,12 +1562,20 @@ class _Handler(BaseHTTPRequestHandler):
                 "Aggiungere System32 al PATH."
             )
 
-        risultati["pst_base"] = _PST_BASE
+        risultati["pst_base"] = _pst_base_diagnostico()
         risultati["pst_endpoint_legacy"] = _pst_endpoint_configurato_e_legacy()
         if risultati["pst_endpoint_legacy"]:
             risultati["problemi"].append(_messaggio_endpoint_pst_legacy())
         else:
-            risultati["info"].append(f"Endpoint PST configurato: {_PST_BASE}")
+            if os.getenv("PCT_PST_BASE_URL", "").strip():
+                risultati["info"].append(f"Endpoint PST configurato: {_pst_base_diagnostico()}")
+            elif _supporto_auto_pst_disponibile():
+                risultati["info"].append(
+                    "Endpoint PST: risoluzione automatica dal registro uffici locale "
+                    f"(proxy root {_PST_PROXY_SH_URL})"
+                )
+            else:
+                risultati["info"].append(f"Endpoint PST configurato: {_pst_base_diagnostico()}")
 
         self._send_json(risultati)
 
@@ -1500,7 +1670,7 @@ class _Handler(BaseHTTPRequestHandler):
             ("portale", _PST_PORTALE_URL),
             ("proxy_pda", _PST_PROXY_PDA_URL),
             ("proxy_sh", _PST_PROXY_SH_URL),
-            ("endpoint_configurato", _PST_BASE),
+            ("endpoint_configurato", _pst_base_monitoraggio()),
         ]:
             try:
                 r = subprocess.run(
@@ -1531,7 +1701,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         payload = {
             "ok": ok,
-            "pst_base": _PST_BASE,
+            "pst_base": _pst_base_diagnostico(),
             "pst_endpoint_legacy": _pst_endpoint_configurato_e_legacy(),
             **risultati,
         }
@@ -1770,6 +1940,9 @@ Esempi:
         print(f"  Proxy PST attesi : {_PST_PROXY_PDA_URL}")
         print(f"                     {_PST_PROXY_SH_URL}")
         print("  Configurare      : variabile PCT_PST_BASE_URL con il proxy completo")
+    elif _supporto_auto_pst_disponibile() and not os.getenv("PCT_PST_BASE_URL", "").strip():
+        print("  PST              : risoluzione automatica dal registro uffici locale")
+        print(f"  Proxy root       : {_PST_PROXY_SH_URL}")
 
     print("=" * 60)
     print(f"  Diagnostica: http://127.0.0.1:{args.port}/diagnosi")

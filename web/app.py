@@ -569,6 +569,7 @@ def create_app(config: dict | None = None) -> Flask:
         "logout",
         "admin.esci_impersonazione",
         "polis_local_signer_download",
+        "polis_local_signer_download_uffici",
         "polis_local_signer_installa",
         "polis_local_signer_setup_windows",
         "polis_local_signer_setup_windows_exe",
@@ -1778,6 +1779,9 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_signer_windows_exe_path() -> Path:
         return _local_signer_tools_dir() / "dist" / "SetupLocalSigner.exe"
 
+    def _local_signer_uffici_path() -> Path:
+        return Path(__file__).parent.parent / "pct" / "data" / "uffici_ministero.json"
+
     def _render_local_signer_windows_ps1(base_url: str) -> str:
         return f"""# HACS Local Signer - Installazione automatica Windows
 # Eseguire in PowerShell come utente normale (non richiede amministratore)
@@ -1786,15 +1790,20 @@ $ErrorActionPreference = 'Stop'
 $dir    = "$env:APPDATA\\HACS\\LocalSigner"
 $venv   = "$dir\\.venv"
 $py     = "$dir\\local_signer.py"
+$dataDir = "$dir\\data"
+$uffici = "$dataDir\\uffici_ministero.json"
 $pyExe  = "$venv\\Scripts\\python.exe"
 $pywExe = "$venv\\Scripts\\pythonw.exe"
 
 Write-Host "HACS Local Signer - Installazione..." -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
+New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
 Write-Host "  Scarico local_signer.py..."
 Invoke-WebRequest "{base_url}/polisWeb/local-signer/download" -OutFile $py -UseBasicParsing
+Write-Host "  Scarico registro uffici PST..."
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download/uffici" -OutFile $uffici -UseBasicParsing
 
 try {{
     $v = python --version 2>&1
@@ -1847,13 +1856,14 @@ set -euo pipefail
 
 BASE_URL="{base_url}"
 DIR="$HOME/Library/Application Support/HACS/LocalSigner"
+DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
 PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
 
 echo "HACS Local Signer - Installazione macOS"
 
-mkdir -p "$DIR" "$(dirname "$PLIST")"
+mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Python 3 non trovato. Installarlo prima da https://python.org"
@@ -1862,6 +1872,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
@@ -1905,6 +1916,7 @@ set -euo pipefail
 
 BASE_URL="{base_url}"
 DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/hacs/local-signer"
+DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python"
 SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
@@ -1912,7 +1924,7 @@ SERVICE="$SERVICE_DIR/hacs-local-signer.service"
 
 echo "HACS Local Signer - Installazione Linux"
 
-mkdir -p "$DIR" "$SERVICE_DIR"
+mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
 
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Python 3 non trovato. Installarlo prima con il gestore pacchetti della distribuzione."
@@ -1921,6 +1933,7 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
 "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
@@ -1965,6 +1978,23 @@ read -r -p "Premi Invio per chiudere..." _
                 mimetype="text/x-python",
             )
         except Exception as e:
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/download/uffici")
+    def polis_local_signer_download_uffici():
+        """Serve il registro uffici PST per l'uso standalone del Local Signer."""
+        try:
+            uffici_path = _local_signer_uffici_path()
+            if not uffici_path.exists():
+                return "Registro uffici non trovato", 404
+            return send_file(
+                uffici_path,
+                as_attachment=True,
+                download_name="uffici_ministero.json",
+                mimetype="application/json",
+            )
+        except Exception as e:
+            app.logger.exception("Errore download registro uffici Local Signer: %s", e)
             return str(e), 500
 
     @app.route("/polisWeb/local-signer/setup/windows-exe")

@@ -59,6 +59,29 @@ def test_local_signer_risolve_proxy_pst_dal_codice_hacs():
     assert module._risolvi_codice_ufficio_pst("0580010") == "0151460094"
 
 
+def test_local_signer_risolve_proxy_pst_da_snapshot_quando_pct_non_e_disponibile():
+    module = _load_local_signer()
+
+    orig_base = module._risolvi_base_pst_hacs
+    orig_code = module._risolvi_codice_ministero_hacs
+    orig_cache = module._uffici_snapshot_cache
+    try:
+        module._risolvi_base_pst_hacs = None
+        module._risolvi_codice_ministero_hacs = None
+        module._uffici_snapshot_cache = None
+
+        base = module._risolvi_base_pst_runtime("0910011")
+
+        assert base.endswith("/pda/pycons/GLRC/JPW_SICID")
+        assert module._risolvi_codice_ufficio_pst("0910011") == "0800570094"
+        assert not module._pst_endpoint_configurato_e_legacy()
+        assert module._pst_base_diagnostico().startswith("AUTO")
+    finally:
+        module._risolvi_base_pst_hacs = orig_base
+        module._risolvi_codice_ministero_hacs = orig_code
+        module._uffici_snapshot_cache = orig_cache
+
+
 def test_thumbprint_windows_viene_formattato_per_schannel():
     module = _load_local_signer()
 
@@ -177,6 +200,21 @@ def test_download_local_signer_python_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "HACS Local Signer" in body
     assert "def main()" in body
+
+
+def test_download_registro_uffici_local_signer_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/download/uffici")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert "uffici_ministero.json" in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert '"uffici"' in body
+    assert '"0530010"' in body
 
 
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):

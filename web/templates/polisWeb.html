@@ -693,6 +693,13 @@
                 <li>Quando Windows mostra la finestra del dispositivo, inserisci il <strong>PIN</strong> e conferma.</li>
               </ol>
 
+              <div class="alert alert-warning small py-2 mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Il PIN non si inserisce in questa schermata.</strong>
+                Dopo la selezione del certificato HACS apre la richiesta PIN di Windows.
+                Se non la vedi subito, controlla la barra delle applicazioni o una finestra del middleware aperta dietro al browser.
+              </div>
+
               <div id="wiz-cert-btn-area" class="mb-3">
                 <button type="button" class="btn btn-primary px-4 py-2"
                         id="btn-wiz-seleziona"
@@ -718,6 +725,7 @@
                     <strong>Richiesta PIN in corso</strong><br>
                     Se Windows mostra la finestra del dispositivo, inserisci adesso il PIN
                     della smart card o del token CNS/CIE e attendi la conferma.
+                    Se non compare nulla davanti al browser, controlla la barra di Windows.
                   </div>
                 </div>
               </div>
@@ -2029,7 +2037,7 @@ function _wizMostraStep(step) {
   }
   if (ftrInfo) {
     ftrInfo.textContent = step === 1 ? 'Selezionare ufficio e almeno un criterio di ricerca' :
-                           step === 2 ? 'Dopo il certificato, Windows richiedera il PIN del dispositivo' : '';
+                           step === 2 ? 'Il PIN si inserisce nella finestra di Windows, non in HACS' : '';
   }
 
   // Step 2: reset UI selezione cert
@@ -2118,7 +2126,7 @@ async function wizVerificaCertificatoPst() {
   if (btnSel) btnSel.disabled = true;
   if (btnAv) {
     btnAv.disabled = true;
-    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verifica PIN...';
+    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Attendo PIN Windows...';
   }
 
   try {
@@ -2138,7 +2146,7 @@ async function wizVerificaCertificatoPst() {
       btnAv.disabled = !_wizPinConfermato && !!_wizCertSel;
       btnAv.innerHTML = _wizPinConfermato
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
-        : 'Conferma PIN <i class="bi bi-shield-lock ms-1"></i>';
+        : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
   }
 }
@@ -2248,7 +2256,7 @@ function _wizMostraCertCard(cert) {
       btnAv.disabled = !_wizPinConfermato;
       btnAv.innerHTML = _wizPinConfermato
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
-        : 'Conferma PIN <i class="bi bi-shield-lock ms-1"></i>';
+        : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
     // Elimina modalità demo: il certificato è presente
     const bannerDemo = document.getElementById('banner-demo');
@@ -2332,6 +2340,7 @@ async function wizApriPicker() {
     _wizPinConfermato = false;
     _wizSetPinStatus(null);
     _wizMostraCertCard(_wizCertSel);
+    await wizVerificaCertificatoPst();
     return true;
   } catch (err) {
     if (loading) loading.style.display = 'none';

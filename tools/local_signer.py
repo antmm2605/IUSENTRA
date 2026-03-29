@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.3.2
+HACS Local Signer — v1.4.0
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -20,6 +20,7 @@ API:
     GET  /certificati            → elenca certificati Windows MY store
     GET  /seleziona-certificato  → apre dialog nativo Windows di selezione cert
     POST /firma                  → firma documento CAdES-BES
+    POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
     POST /pst/documenti          → documenti fascicolo PST (curl mTLS Windows)
     GET  /pst/status             → stato connettività PST
@@ -61,7 +62,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.3.2"
+VERSION = "1.4.0"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 
 logging.basicConfig(
@@ -445,7 +446,9 @@ def _require_certificato_pst(cert_thumbprint: Optional[str]) -> Optional[str]:
             "Per la ricerca PST reale serve prima selezionare il certificato CNS/CIE "
             "di autenticazione web.\n"
             "Aprire 'Seleziona certificato' dal wizard oppure usare il pulsante "
-            "'Cerca su PST', che adesso lo richiede automaticamente."
+            "'Cerca su PST', che adesso lo richiede automaticamente.\n"
+            "Dopo la selezione del certificato, Windows richiedera' anche il PIN "
+            "del dispositivo durante la connessione al PST."
         )
     return effective_thumbprint or None
 
@@ -1006,6 +1009,13 @@ def _curl_errore_leggibile(returncode: int, stderr: str, url: str = "") -> str:
     return msg
 
 
+def _hint_pin_windows() -> str:
+    return (
+        "Se Windows mostra la finestra del dispositivo, inserire adesso il PIN "
+        "della smart card o del token CNS/CIE e confermare."
+    )
+
+
 def _format_windows_cert_spec(cert_thumbprint: Optional[str]) -> str:
     """
     Formatta il certificato client per curl+Schannel.
@@ -1068,12 +1078,14 @@ def _http_errore_leggibile(status_code: int, body: str, url: str = "", content_t
         return (
             f"Il PST ha risposto HTTP 401 Unauthorized da {host}.\n"
             "Il certificato CNS/CIE selezionato non è stato presentato oppure non è stato accettato dal proxy.\n"
+            f"{_hint_pin_windows()}\n"
             "Verificare di avere selezionato il certificato corretto della smart card e riprovare."
             + suffix
         )
     if status_code == 403:
         return (
             f"Il PST ha risposto HTTP 403 Forbidden da {host}.\n"
+            f"{_hint_pin_windows()}\n"
             "L'accesso al servizio è stato negato: verificare il proxy PST configurato e i permessi del certificato selezionato."
             + suffix
         )
@@ -1211,6 +1223,103 @@ def _soap_call_curl(url: str, soap_body: str,
             pass
         try:
             os.unlink(header_file)
+        except OSError:
+            pass
+
+
+def _pst_preflight_auth_curl(url: str,
+                             cert_thumbprint: Optional[str] = None,
+                             pkcs11_uri: Optional[str] = None) -> dict:
+    """
+    Esegue una richiesta leggera verso il servizio PST per forzare la
+    presentazione del certificato client e l'eventuale prompt PIN di Windows.
+
+    Considera "autenticazione avviata correttamente" le risposte HTTP che
+    dimostrano handshake TLS riuscito e servizio raggiungibile, anche se il
+    metodo non e' quello atteso dal servizio SOAP.
+    """
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".hdr", delete=False, encoding="utf-8"
+    ) as f_hdr:
+        header_file = f_hdr.name
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".body", delete=False, encoding="utf-8"
+    ) as f_body:
+        body_file = f_body.name
+
+    accepted_statuses = {200, 204, 301, 302, 303, 307, 308, 400, 405, 415, 500}
+
+    try:
+        cmd = [
+            "curl", "-s", "-S",
+            "--max-time", "30",
+            "--connect-timeout", "10",
+            "--location",
+            "--dump-header", header_file,
+            "-o", body_file,
+            "-X", "GET",
+        ]
+
+        if sys.platform == "win32":
+            if cert_thumbprint:
+                cmd.extend(["--cert", _format_windows_cert_spec(cert_thumbprint)])
+            cmd.append("--ssl-no-revoke")
+        elif pkcs11_uri:
+            cmd.extend([
+                "--engine", "pkcs11",
+                "--key-type", "ENG",
+                "--key", pkcs11_uri,
+                "--cert-type", "ENG",
+                "--cert", pkcs11_uri,
+            ])
+
+        cmd.append(url)
+
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            timeout=35, encoding="utf-8", errors="replace"
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                _curl_errore_leggibile(result.returncode, result.stderr, url)
+                + "\n"
+                + _hint_pin_windows()
+            )
+
+        headers_text = Path(header_file).read_text(encoding="utf-8", errors="replace")
+        body_text = Path(body_file).read_text(encoding="utf-8", errors="replace")
+        status_code = _http_status_from_headers(headers_text)
+        content_type = _http_header_value(headers_text, "Content-Type")
+
+        if status_code in accepted_statuses:
+            return {
+                "ok": True,
+                "http_code": status_code,
+                "content_type": content_type or None,
+                "nota": (
+                    "Certificato selezionato e richiesta PIN gestita dal sistema."
+                ),
+            }
+
+        if status_code:
+            raise RuntimeError(
+                _http_errore_leggibile(status_code, body_text, url, content_type)
+            )
+
+        return {
+            "ok": True,
+            "http_code": None,
+            "content_type": content_type or None,
+            "nota": "Connessione PST avviata con certificato client.",
+        }
+    finally:
+        try:
+            os.unlink(header_file)
+        except OSError:
+            pass
+        try:
+            os.unlink(body_file)
         except OSError:
             pass
 
@@ -1435,6 +1544,8 @@ class _Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/firma":
             self._firma()
+        elif path == "/pst/preflight-auth":
+            self._pst_preflight_auth()
         elif path == "/pst/ricerca":
             self._pst_ricerca()
         elif path == "/pst/documenti":
@@ -1762,6 +1873,48 @@ class _Handler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             log.error("Errore firma: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pst_preflight_auth(self):
+        """
+        POST /pst/preflight-auth
+        Body: {tribunale, cert_thumbprint?}
+        Response: {ok, http_code, nota}
+        """
+        if not _curl_disponibile():
+            self._send_json({
+                "ok": False,
+                "errore": (
+                    "curl non disponibile. "
+                    "Su Windows 10+ e' incluso in sistema. "
+                    "Verificare che sia nel PATH."
+                ),
+            }, 400)
+            return
+
+        data = self._read_json()
+        tribunale = (data.get("tribunale") or data.get("codice_ufficio") or "").strip()
+        if not tribunale:
+            self._send_json({
+                "ok": False,
+                "errore": "Campo 'tribunale' obbligatorio per verificare certificato e PIN",
+            }, 400)
+            return
+
+        try:
+            base_url = _risolvi_base_pst_runtime(tribunale)
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            esito = _pst_preflight_auth_curl(
+                url=_pst_url_ricerca(base_url),
+                cert_thumbprint=cert_thumbprint,
+            )
+            self._send_json({
+                "ok": True,
+                "tribunale": tribunale,
+                **esito,
+            })
+        except Exception as e:
+            log.error("Errore PST preflight auth: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pst_ricerca(self):

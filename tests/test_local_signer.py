@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def _load_local_signer():
@@ -101,6 +102,7 @@ def test_http_401_pst_diventa_messaggio_operativo():
 
     assert "401 Unauthorized" in msg
     assert "certificato" in msg.lower()
+    assert "PIN" in msg
     assert "Content-Type risposta" in msg
 
 
@@ -121,6 +123,35 @@ def test_richiede_certificato_pst_se_nessuno_e_stato_selezionato():
 
     assert "Seleziona certificato" in msg
     assert "Cerca su PST" in msg
+    assert "PIN" in msg
+
+
+def test_preflight_auth_accetta_http_405_come_handshake_valido():
+    module = _load_local_signer()
+
+    orig_run = module.subprocess.run
+    try:
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+            header_file = cmd[cmd.index("--dump-header") + 1]
+            body_file = cmd[cmd.index("-o") + 1]
+            Path(header_file).write_text(
+                "HTTP/1.1 405 Method Not Allowed\r\n"
+                "Content-Type: text/html; charset=iso-8859-1\r\n\r\n",
+                encoding="utf-8",
+            )
+            Path(body_file).write_text("<html>405</html>", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        module.subprocess.run = _fake_run
+        esito = module._pst_preflight_auth_curl(
+            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module.subprocess.run = orig_run
+
+    assert esito["ok"] is True
+    assert esito["http_code"] == 405
 
 
 def test_server_locale_usa_threading_e_connessioni_close():

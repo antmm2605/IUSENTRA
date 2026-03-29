@@ -678,15 +678,21 @@
             </div>
 
             <div class="flex-grow-1">
-              <h6 class="fw-bold mb-1">Seleziona il certificato di autenticazione</h6>
+              <h6 class="fw-bold mb-1">Seleziona il certificato e conferma il PIN</h6>
               <p class="small text-muted mb-3">
-                Clicca <strong>Seleziona</strong> per aprire il selettore certificati di Windows.
-                Scegli il certificato di autenticazione web pubblicato dal middleware locale
-                della tua smart card o token CNS/CIE.
+                HACS guida adesso tutti i passaggi necessari prima della ricerca PST:
+                selezione del certificato, richiesta del PIN da parte di Windows e
+                verifica dell'autenticazione verso il servizio ministeriale.
                 Il PIN verrà richiesto da Windows durante la connessione al PST.
               </p>
 
               {# Pulsante seleziona — principale #}
+              <ol class="small text-muted ps-3 mb-3">
+                <li>Clicca <strong>Seleziona certificato</strong>.</li>
+                <li>Scegli il certificato di autenticazione web della tua CNS/CIE.</li>
+                <li>Quando Windows mostra la finestra del dispositivo, inserisci il <strong>PIN</strong> e conferma.</li>
+              </ol>
+
               <div id="wiz-cert-btn-area" class="mb-3">
                 <button type="button" class="btn btn-primary px-4 py-2"
                         id="btn-wiz-seleziona"
@@ -705,6 +711,28 @@
               </div>
 
               {# Certificato selezionato — card verde #}
+              <div id="wiz-pin-loading" class="alert alert-primary small mb-3" style="display:none">
+                <div class="d-flex align-items-start gap-2">
+                  <div class="spinner-border spinner-border-sm mt-1 flex-shrink-0"></div>
+                  <div>
+                    <strong>Richiesta PIN in corso</strong><br>
+                    Se Windows mostra la finestra del dispositivo, inserisci adesso il PIN
+                    della smart card o del token CNS/CIE e attendi la conferma.
+                  </div>
+                </div>
+              </div>
+
+              <div id="wiz-pin-ok" class="alert alert-success small mb-3" style="display:none">
+                <i class="bi bi-shield-check me-1"></i>
+                Certificato verificato e PIN confermato. Puoi proseguire con la ricerca PST.
+              </div>
+
+              <div id="wiz-pin-error" class="alert alert-danger small mb-3" style="display:none">
+                <strong>Autenticazione non completata</strong>
+                <pre id="wiz-pin-error-msg" class="mb-0 mt-1"
+                     style="white-space:pre-wrap;font-size:.8rem;font-family:inherit;background:none;border:none;padding:0"></pre>
+              </div>
+
               <div id="wiz-cert-selezionato" class="card border-success mb-3" style="display:none">
                 <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
                   <i class="bi bi-patch-check-fill text-success fs-4 flex-shrink-0"></i>
@@ -1749,6 +1777,10 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
   try {
     const cert = await _lsAssicuraCertificato();
     if (btn) {
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Richiesta PIN...';
+    }
+    await _lsPreflightAuthPst(tribunale, cert);
+    if (btn) {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso...';
     }
 
@@ -1845,8 +1877,8 @@ function _erroreConGuida(msg) {
   if (msg.includes('exit 28') || msg.includes('Timeout')) {
     return msg + '\n\nIl PST sta impiegando troppo. Verificare la connessione e riprovare.';
   }
-  if (msg.includes('exit 35') || msg.includes('SSL') || msg.includes('certificato')) {
-    return msg + '\n\nVerificare che il certificato del dispositivo sia valido e selezionato correttamente.';
+  if (msg.includes('exit 35') || msg.includes('SSL') || msg.includes('certificato') || msg.includes('401 Unauthorized')) {
+    return msg + '\n\nDopo la selezione del certificato, se Windows mostra la richiesta del dispositivo inserire il PIN e confermare. Verificare anche che il certificato del dispositivo sia valido e selezionato correttamente.';
   }
   return msg;
 }
@@ -1941,6 +1973,7 @@ function verificaLocalSignerLegacy() {
 // ── Wizard PST ───────────────────────────────────────────────────────────────
 let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati
 let _wizCertSel = null;  // certificato selezionato
+let _wizPinConfermato = false;
 
 const _WIZ_STEPS = {
   0: { title: 'Configurazione',      sub: 'Avvia o installa il Local Signer', dot: null },
@@ -1953,9 +1986,9 @@ async function apriWizardPst() {
   const stato = _lsDisponibile ? { running: true, tokenOk: true } : await _lsAssicuraAttivo();
   _wizStep = stato.running ? 1 : 0;
   _wizCertSel = _lsCertSel;
+  _wizPinConfermato = false;
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
-  document.getElementById('wiz-pin-input').value = '';
   new bootstrap.Modal(document.getElementById('modalWizardPst')).show();
 }
 
@@ -1996,7 +2029,7 @@ function _wizMostraStep(step) {
   }
   if (ftrInfo) {
     ftrInfo.textContent = step === 1 ? 'Selezionare ufficio e almeno un criterio di ricerca' :
-                           step === 2 ? 'Il PIN non viene mai inviato al server' : '';
+                           step === 2 ? 'Dopo il certificato, Windows richiedera il PIN del dispositivo' : '';
   }
 
   // Step 2: reset UI selezione cert
@@ -2013,7 +2046,7 @@ function _wizAggiornaDot() {
   });
 }
 
-function wizAvanti() {
+async function wizAvanti() {
   if (_wizStep === 1) {
     if (!document.getElementById('wiz-ufficio-value').value) {
       document.getElementById('wiz-ufficio-input').focus();
@@ -2021,17 +2054,93 @@ function wizAvanti() {
     }
     _wizStep = 2;
     _wizCertSel = null;
+    _wizPinConfermato = false;
   } else if (_wizStep === 2) {
     if (!_wizCertSel) {
       // Nessun certificato selezionato — apri il picker
-      wizApriPicker();
-      return;
+      const selezionato = await wizApriPicker();
+      if (!selezionato) return;
+    }
+    if (!_wizPinConfermato) {
+      const verificato = await wizVerificaCertificatoPst();
+      if (!verificato) return;
     }
     _wizStep = 3;
-    wizEseguiRicerca();
+    _wizAggiornaDot();
+    _wizMostraStep(_wizStep);
+    await wizEseguiRicerca();
+    return;
   }
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
+}
+
+function _wizSetPinStatus(stato, msg = '') {
+  ['wiz-pin-loading', 'wiz-pin-ok', 'wiz-pin-error'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  if (!stato) return;
+  const el = document.getElementById(`wiz-pin-${stato}`);
+  if (el) el.style.display = 'block';
+  if (stato === 'error') {
+    const out = document.getElementById('wiz-pin-error-msg');
+    if (out) out.textContent = msg || 'Errore sconosciuto';
+  }
+}
+
+async function _lsPreflightAuthPst(tribunale, cert) {
+  const resp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tribunale: tribunale,
+      cert_thumbprint: cert?.thumbprint || null,
+      slot_id: cert?.token_slot ?? null,
+    }),
+    signal: AbortSignal.timeout(40000),
+  });
+  const data = await resp.json();
+  if (!data.ok) {
+    throw new Error(data.errore || 'Impossibile verificare certificato e PIN');
+  }
+  return data;
+}
+
+async function wizVerificaCertificatoPst() {
+  const tribunale = document.getElementById('wiz-ufficio-value')?.value || '';
+  const btnSel  = document.getElementById('btn-wiz-seleziona');
+  const btnAv   = document.getElementById('wiz-btn-avanti');
+  if (!_wizCertSel || !tribunale) return false;
+
+  _wizPinConfermato = false;
+  _wizSetPinStatus('loading');
+  if (btnSel) btnSel.disabled = true;
+  if (btnAv) {
+    btnAv.disabled = true;
+    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verifica PIN...';
+  }
+
+  try {
+    await _lsPreflightAuthPst(tribunale, _wizCertSel);
+    _wizPinConfermato = true;
+    _wizSetPinStatus('ok');
+    _wizMostraCertCard(_wizCertSel);
+    return true;
+  } catch (err) {
+    _wizPinConfermato = false;
+    _wizSetPinStatus('error', _erroreConGuida(String(err)));
+    _wizMostraCertCard(_wizCertSel);
+    return false;
+  } finally {
+    if (btnSel) btnSel.disabled = false;
+    if (btnAv) {
+      btnAv.disabled = !_wizPinConfermato && !!_wizCertSel;
+      btnAv.innerHTML = _wizPinConfermato
+        ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
+        : 'Conferma PIN <i class="bi bi-shield-lock ms-1"></i>';
+    }
+  }
 }
 
 function wizIndietro() {
@@ -2123,6 +2232,7 @@ function _wizResetCertUI() {
   const notoken = document.getElementById('wiz-cert-notoken');
   if (loading) loading.style.display = 'none';
   if (notoken) notoken.style.display = 'none';
+  _wizSetPinStatus(null);
   _wizMostraCertCard(_wizCertSel);
 }
 
@@ -2134,13 +2244,21 @@ function _wizMostraCertCard(cert) {
     document.getElementById('wiz-cert-emittente').textContent = cert.emittente || '—';
     document.getElementById('wiz-cert-scadenza').textContent  = cert.scadenza  || '—';
     if (card) card.style.display = 'block';
-    if (btnAv) { btnAv.disabled = false; btnAv.innerHTML = 'Avanti <i class="bi bi-arrow-right ms-1"></i>'; }
+    if (btnAv) {
+      btnAv.disabled = !_wizPinConfermato;
+      btnAv.innerHTML = _wizPinConfermato
+        ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
+        : 'Conferma PIN <i class="bi bi-shield-lock ms-1"></i>';
+    }
     // Elimina modalità demo: il certificato è presente
     const bannerDemo = document.getElementById('banner-demo');
     if (bannerDemo) bannerDemo.style.display = 'none';
   } else {
     if (card) card.style.display = 'none';
-    if (btnAv) { btnAv.disabled = false; }
+    if (btnAv) {
+      btnAv.disabled = false;
+      btnAv.innerHTML = 'Avanti <i class="bi bi-arrow-right ms-1"></i>';
+    }
   }
 }
 
@@ -2191,7 +2309,7 @@ function wizApriPickerLegacy() {
     });
 }
 
-function wizApriPicker() {
+async function wizApriPicker() {
   const loading = document.getElementById('wiz-cert-loading');
   const notoken = document.getElementById('wiz-cert-notoken');
   const card    = document.getElementById('wiz-cert-selezionato');
@@ -2202,26 +2320,29 @@ function wizApriPicker() {
   if (card)    card.style.display    = 'none';
   if (btnSel)  btnSel.disabled = true;
 
-  _lsSelezionaCertificato()
-    .then(cert => {
-      if (loading) loading.style.display = 'none';
-      if (btnSel)  btnSel.disabled = false;
-      if (!cert) {
-        if (notoken) notoken.style.display = 'none';
-        return;
-      }
-      _wizCertSel = cert;
-      _wizMostraCertCard(_wizCertSel);
-    })
-    .catch(err => {
-      if (loading) loading.style.display = 'none';
-      if (btnSel)  btnSel.disabled = false;
-      if (notoken) notoken.style.display = 'block';
-      console.warn('wizApriPicker error:', err);
-    });
+  try {
+    const cert = await _lsSelezionaCertificato();
+    if (loading) loading.style.display = 'none';
+    if (btnSel)  btnSel.disabled = false;
+    if (!cert) {
+      if (notoken) notoken.style.display = 'none';
+      return false;
+    }
+    _wizCertSel = cert;
+    _wizPinConfermato = false;
+    _wizSetPinStatus(null);
+    _wizMostraCertCard(_wizCertSel);
+    return true;
+  } catch (err) {
+    if (loading) loading.style.display = 'none';
+    if (btnSel)  btnSel.disabled = false;
+    if (notoken) notoken.style.display = 'block';
+    console.warn('wizApriPicker error:', err);
+    return false;
+  }
 }
 
-function wizEseguiRicerca() {
+async function wizEseguiRicerca() {
   const progress = document.getElementById('wiz-ricerca-progress');
   const content  = document.getElementById('wiz-risultati-content');
   const empty    = document.getElementById('wiz-risultati-empty');
@@ -2236,6 +2357,14 @@ function wizEseguiRicerca() {
   const anno = document.getElementById('wiz-anno').value;
   const nome = document.getElementById('wiz-nome-parte').value;
   const cf   = document.getElementById('wiz-cf-parte').value;
+
+  if (!_wizPinConfermato) {
+    const verificato = await wizVerificaCertificatoPst();
+    if (!verificato) {
+      if (progress) progress.style.display = 'none';
+      return;
+    }
+  }
 
   // Usa il certificato selezionato (thumbprint Windows o slot PKCS#11 Linux)
   const certThumbprint = _wizCertSel?.thumbprint   || null;

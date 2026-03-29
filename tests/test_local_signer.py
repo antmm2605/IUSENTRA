@@ -154,6 +154,40 @@ def test_preflight_auth_accetta_http_405_come_handshake_valido():
     assert esito["http_code"] == 405
 
 
+def test_preflight_auth_timeout_non_blocca_la_ricerca_reale():
+    module = _load_local_signer()
+
+    orig_run = module.subprocess.run
+    try:
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+            return SimpleNamespace(returncode=28, stdout="", stderr="operation timed out")
+
+        module.subprocess.run = _fake_run
+        esito = module._pst_preflight_auth_curl(
+            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module.subprocess.run = orig_run
+
+    assert esito["ok"] is True
+    assert "non blocca la ricerca reale" in esito["warning"].lower()
+
+
+def test_messaggio_timeout_usa_il_timeout_reale_della_ricerca():
+    module = _load_local_signer()
+
+    msg = module._curl_errore_leggibile(
+        28,
+        "",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+        timeout_sec=90,
+    )
+
+    assert "90s" in msg
+    assert "ext.processotelematico.giustizia.it" in msg
+
+
 def test_server_locale_usa_threading_e_connessioni_close():
     module = _load_local_signer()
 

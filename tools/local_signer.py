@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.4.0
+HACS Local Signer — v1.4.1
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -62,8 +62,12 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.4.0"
+VERSION = "1.4.2"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
+PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
+PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
+PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
+PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -988,7 +992,12 @@ _CURL_EXIT_CODES = {
 }
 
 
-def _curl_errore_leggibile(returncode: int, stderr: str, url: str = "") -> str:
+def _curl_errore_leggibile(
+    returncode: int,
+    stderr: str,
+    url: str = "",
+    timeout_sec: int = 30,
+) -> str:
     """
     Traduce un returncode curl in un messaggio operativo.
     Estrae il nome host dall'URL per messaggi più contestuali.
@@ -1000,7 +1009,7 @@ def _curl_errore_leggibile(returncode: int, stderr: str, url: str = "") -> str:
 
     template = _CURL_EXIT_CODES.get(returncode)
     if template:
-        msg = template.format(host=host, timeout=30)
+        msg = template.format(host=host, timeout=timeout_sec)
     else:
         # Messaggio generico con stderr
         stderr_breve = (stderr or "").strip()[:200]
@@ -1013,6 +1022,15 @@ def _hint_pin_windows() -> str:
     return (
         "Se Windows mostra la finestra del dispositivo, inserire adesso il PIN "
         "della smart card o del token CNS/CIE e confermare."
+    )
+
+
+def _messaggio_timeout_preflight_non_bloccante(host: str) -> str:
+    return (
+        f"Il controllo preliminare del certificato verso {host} ha impiegato troppo tempo.\n"
+        "Questo controllo serve solo ad anticipare la richiesta PIN e non blocca la ricerca reale.\n"
+        f"{_hint_pin_windows()}\n"
+        "Proseguo comunque con la chiamata PST effettiva."
     )
 
 
@@ -1163,8 +1181,8 @@ def _soap_call_curl(url: str, soap_body: str,
     try:
         cmd = [
             "curl", "-s", "-S",
-            "--max-time", "30",
-            "--connect-timeout", "10",
+            "--max-time", str(PST_SOAP_MAX_TIME),
+            "--connect-timeout", str(PST_SOAP_CONNECT_TIMEOUT),
             "--location",
             "--dump-header", header_file,
             "-X", "POST",
@@ -1194,11 +1212,18 @@ def _soap_call_curl(url: str, soap_body: str,
 
         result = subprocess.run(
             cmd, capture_output=True, text=True,
-            timeout=35, encoding="utf-8", errors="replace"
+            timeout=PST_SOAP_MAX_TIME + 10, encoding="utf-8", errors="replace"
         )
 
         if result.returncode != 0:
-            raise RuntimeError(_curl_errore_leggibile(result.returncode, result.stderr, url))
+            raise RuntimeError(
+                _curl_errore_leggibile(
+                    result.returncode,
+                    result.stderr,
+                    url,
+                    timeout_sec=PST_SOAP_MAX_TIME,
+                )
+            )
 
         headers_text = Path(header_file).read_text(encoding="utf-8", errors="replace")
         status_code = _http_status_from_headers(headers_text)
@@ -1252,8 +1277,8 @@ def _pst_preflight_auth_curl(url: str,
     try:
         cmd = [
             "curl", "-s", "-S",
-            "--max-time", "30",
-            "--connect-timeout", "10",
+            "--max-time", str(PST_PREFLIGHT_MAX_TIME),
+            "--connect-timeout", str(PST_PREFLIGHT_CONNECT_TIMEOUT),
             "--location",
             "--dump-header", header_file,
             "-o", body_file,
@@ -1277,12 +1302,26 @@ def _pst_preflight_auth_curl(url: str,
 
         result = subprocess.run(
             cmd, capture_output=True, text=True,
-            timeout=35, encoding="utf-8", errors="replace"
+            timeout=PST_PREFLIGHT_MAX_TIME + 10, encoding="utf-8", errors="replace"
         )
+
+        if result.returncode == 28:
+            return {
+                "ok": True,
+                "http_code": None,
+                "content_type": None,
+                "warning": _messaggio_timeout_preflight_non_bloccante(_pst_host(url)),
+                "nota": "Preflight PST in timeout non bloccante; proseguo con la ricerca reale.",
+            }
 
         if result.returncode != 0:
             raise RuntimeError(
-                _curl_errore_leggibile(result.returncode, result.stderr, url)
+                _curl_errore_leggibile(
+                    result.returncode,
+                    result.stderr,
+                    url,
+                    timeout_sec=PST_PREFLIGHT_MAX_TIME,
+                )
                 + "\n"
                 + _hint_pin_windows()
             )
@@ -1677,6 +1716,9 @@ class _Handler(BaseHTTPRequestHandler):
         risultati["curl_disponibile"] = curl_ok
         if curl_ok:
             risultati["info"].append("curl: disponibile (PST abilitato)")
+            risultati["info"].append(
+                f"Timeout SOAP PST: {PST_SOAP_MAX_TIME}s (connessione {PST_SOAP_CONNECT_TIMEOUT}s)"
+            )
         else:
             risultati["problemi"].append(
                 "curl non trovato nel PATH. "

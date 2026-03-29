@@ -1804,7 +1804,7 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
         cert_thumbprint: cert?.thumbprint || null,
         slot_id: cert?.token_slot ?? null,
       }),
-      signal: AbortSignal.timeout(35000),
+      signal: AbortSignal.timeout(100000),
     });
     const data = await resp.json();
     if (data.ok && data.fascicoli) {
@@ -2106,7 +2106,7 @@ async function _lsPreflightAuthPst(tribunale, cert) {
       cert_thumbprint: cert?.thumbprint || null,
       slot_id: cert?.token_slot ?? null,
     }),
-    signal: AbortSignal.timeout(40000),
+    signal: AbortSignal.timeout(100000),
   });
   const data = await resp.json();
   if (!data.ok) {
@@ -2391,7 +2391,7 @@ async function wizEseguiRicerca() {
       cert_thumbprint:  certThumbprint,
       slot_id:          slotId,
     }),
-    signal: AbortSignal.timeout(40000),
+    signal: AbortSignal.timeout(100000),
   })
   .then(r => r.json())
   .then(d => {

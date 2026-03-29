@@ -6,6 +6,9 @@ __pycache__/
 dist/
 build/
 target/
+!tools/dist/
+tools/dist/*
+!tools/dist/SetupLocalSigner.exe
 
 # Dependencies
 .venv/

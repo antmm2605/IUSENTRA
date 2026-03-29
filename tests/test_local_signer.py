@@ -177,3 +177,59 @@ def test_download_local_signer_python_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "HACS Local Signer" in body
     assert "def main()" in body
+
+
+def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/setup/windows")
+
+    assert r.status_code == 200
+    disposition = r.headers.get("Content-Disposition", "")
+    assert "attachment;" in disposition
+    assert (
+        "SetupLocalSigner.exe" in disposition
+        or "installa_local_signer.ps1" in disposition
+    )
+
+
+def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/setup/windows-exe")
+
+    assert r.status_code in (200, 404)
+    if r.status_code == 200:
+        assert "SetupLocalSigner.exe" in r.headers.get("Content-Disposition", "")
+
+
+def test_installer_local_signer_macos_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/setup/macos")
+
+    assert r.status_code == 200
+    assert 'attachment; filename="InstallaLocalSigner.command"' in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert "LaunchAgents" in body
+    assert "/polisWeb/local-signer/download" in body
+
+
+def test_installer_local_signer_linux_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/setup/linux")
+
+    assert r.status_code == 200
+    assert 'attachment; filename="installa_local_signer.sh"' in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert "systemd/user" in body
+    assert "/polisWeb/local-signer/download" in body

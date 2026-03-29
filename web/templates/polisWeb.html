@@ -7,6 +7,15 @@
 
 {{ banner_fascicolo(portale_col='primary', portale_label='PolisWeb / PST') }}
 
+  <div id="ls-installer-config" class="d-none"
+       data-url-windows="{{ url_for('polis_local_signer_setup_windows') }}"
+       data-url-windows-exe="{{ url_for('polis_local_signer_setup_windows_exe') }}"
+       data-url-macos="{{ url_for('polis_local_signer_setup_macos') }}"
+       data-url-linux="{{ url_for('polis_local_signer_setup_linux') }}"
+       data-url-manual="{{ url_for('polis_local_signer_download') }}"
+       data-url-legacy="{{ url_for('polis_local_signer_installa') }}">
+  </div>
+
   <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
     <i class="bi bi-building-fill-check fs-4 text-primary"></i>
     <h4 class="mb-0 fw-bold">PolisWeb / PST</h4>
@@ -103,10 +112,13 @@
         <div id="ls-status-missing" style="display:none">
           <strong class="text-secondary"><i class="bi bi-pc-display-horizontal me-1"></i>Local Signer non attivo.</strong>
           Installa il servizio locale in avvio automatico oppure verifica che sia già in esecuzione sul PC.
+          <div class="mt-1 small text-muted" id="ls-install-summary">
+            Installer desktop consigliato per Windows, macOS e Linux.
+          </div>
           <div class="mt-1 d-flex gap-2 flex-wrap">
-            <a href="{{ url_for('polis_local_signer_installa') }}" download
-               class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-download me-1"></i>Installa servizio
+            <a href="{{ url_for('polis_local_signer_setup_windows') }}" download
+               class="btn btn-sm btn-outline-primary" id="ls-install-link">
+              <i class="bi bi-download me-1"></i><span id="ls-install-link-label">Scarica installer desktop</span>
             </a>
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="verificaLocalSigner()">
               <i class="bi bi-arrow-clockwise me-1"></i>Riprova
@@ -127,12 +139,12 @@
     Per accedere al PST reale configurare il certificato in
     <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
     oppure nel file <code>.env</code> — oppure installare il
-    <a href="{{ url_for('polis_local_signer_installa') }}" class="alert-link" download><strong>Local Signer automatico</strong></a>
+    <a href="{{ url_for('polis_local_signer_setup_windows') }}" class="alert-link" download id="ls-demo-install-link"><strong>Local Signer automatico</strong></a>
     come servizio locale in avvio automatico.
     <ul class="mb-0 mt-1">
       <li><strong>P12/PFX</strong>: <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
       <li><strong>PEM</strong>: <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code></li>
-      <li><strong>Local Signer</strong> (Windows): installazione automatica da <code>/polisWeb</code>, avvio al login</li>
+      <li id="ls-demo-install-note"><strong>Local Signer</strong>: installazione desktop automatica da <code>/polisWeb</code>, avvio al login</li>
     </ul>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
@@ -492,27 +504,39 @@
             <div class="col-md-6">
               <div class="card h-100 border-success">
                 <div class="card-body">
-                  <h6 class="fw-bold"><i class="bi bi-2-circle text-success me-2"></i>Installazione consigliata</h6>
-                  <p class="small text-muted mb-2">
-                    Scarica e apri lo script PowerShell: installa il Local Signer,
-                    le dipendenze e configura l'avvio automatico in background senza finestra.
+                  <h6 class="fw-bold">
+                    <i class="bi bi-2-circle text-success me-2"></i>
+                    <i class="bi bi-laptop text-success me-2" id="wiz-install-title-icon"></i>
+                    <span id="wiz-install-title-text">Installazione consigliata per desktop</span>
+                  </h6>
+                  <p class="small text-muted mb-2" id="wiz-install-desc">
+                    Scarica l'installer corretto per il tuo sistema: configura il Local Signer,
+                    le dipendenze e l'avvio automatico in background.
                   </p>
-                  <a href="{{ url_for('polis_local_signer_installa') }}"
-                     class="btn btn-success btn-sm w-100" download>
-                    <i class="bi bi-gear me-1"></i>Scarica installer PowerShell
+                  <a href="{{ url_for('polis_local_signer_setup_windows') }}"
+                     class="btn btn-success btn-sm w-100" download id="wiz-install-link">
+                    <i class="bi bi-download me-1"></i><span id="wiz-install-cta">Scarica installer desktop</span>
                   </a>
+                  <div class="small text-muted mt-2" id="wiz-install-support">
+                    Compatibile con middleware locali CNS/CIE: Aruba, Bit4id, Namirial, InfoCert e altri driver PKCS#11.
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="alert alert-light border small mb-3">
-            <strong>Come usare l'installer:</strong>
-            <ol class="mb-0 mt-1">
-              <li>Scarica <code>installa_local_signer.ps1</code></li>
-              <li>Clic destro → <em>Esegui con PowerShell</em></li>
-              <li>Attendere il messaggio "Installazione completata"</li>
-              <li>Tornare qui e cliccare <strong>Riverifica</strong></li>
+          <div class="alert alert-light border small mb-3" id="wiz-install-instructions">
+            <strong id="wiz-install-instructions-title">Come usare l'installer desktop:</strong>
+            <ol class="mb-0 mt-1" id="wiz-install-steps">
+              <li>Scarica il file consigliato per il tuo sistema</li>
+              <li>Apri l'installer e completa la procedura guidata</li>
+              <li>Inserisci smart card o token quando richiesto dal middleware</li>
+              <li>Torna qui e clicca <strong>Riverifica</strong></li>
             </ol>
+          </div>
+          <div class="alert alert-warning small mb-3 d-none" id="wiz-install-mobile-alert">
+            <i class="bi bi-phone me-1"></i>
+            Il Local Signer completo richiede un computer desktop o portatile con Windows, macOS o Linux.
+            Da smartphone o tablet puoi continuare la consultazione solo da un PC gia' configurato.
           </div>
           <div class="d-flex gap-2 justify-content-center">
             <button type="button" class="btn btn-outline-secondary btn-sm"
@@ -1303,9 +1327,162 @@ function eseguiVerificaVariazioni() {
 // ── Local Signer: verifica disponibilità e gestione PST ────────────────────
 // Gira SEMPRE (non condizionale lato server) — il server non sa della Aruba Key Windows
 const _LS_BASE_PW = 'http://127.0.0.1:27272';
+const _LS_INSTALLER_CFG = (() => {
+  const el = document.getElementById('ls-installer-config');
+  return el ? {
+    windows: el.dataset.urlWindows || '',
+    windowsExe: el.dataset.urlWindowsExe || '',
+    macos: el.dataset.urlMacos || '',
+    linux: el.dataset.urlLinux || '',
+    manual: el.dataset.urlManual || '',
+    legacy: el.dataset.urlLegacy || '',
+  } : {
+    windows: '',
+    windowsExe: '',
+    macos: '',
+    linux: '',
+    manual: '',
+    legacy: '',
+  };
+})();
 let _lsDisponibile = false;
 let _lsTokenInfo = null;
 let _lsCertSel = null;
+
+function _lsPiattaformaClient() {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const platform = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '').toLowerCase();
+  const mobile = /android|iphone|ipad|ipod|mobile/.test(ua);
+  if (mobile) return { key: 'mobile', label: 'mobile', icon: 'bi-phone' };
+  if (platform.includes('mac') || ua.includes('mac os')) return { key: 'macos', label: 'macOS', icon: 'bi-apple' };
+  if (platform.includes('win') || ua.includes('windows')) return { key: 'windows', label: 'Windows', icon: 'bi-windows' };
+  if (platform.includes('linux') || ua.includes('linux') || ua.includes('x11')) return { key: 'linux', label: 'Linux', icon: 'bi-terminal' };
+  return { key: 'desktop', label: 'desktop', icon: 'bi-laptop' };
+}
+
+function _lsInstallerMeta() {
+  const os = _lsPiattaformaClient();
+  if (os.key === 'mobile') {
+    return {
+      href: '',
+      summary: 'Il Local Signer completo richiede Windows, macOS o Linux.',
+      title: 'Installazione desktop richiesta',
+      desc: 'Per usare smart card e token CNS/CIE devi aprire HACS da un computer desktop o portatile.',
+      note: 'Da mobile puoi consultare il gestionale, ma il Local Signer richiede un sistema desktop.',
+      steps: [
+        'Apri HACS da un PC Windows, macOS o Linux',
+        'Scarica l installer del sistema operativo corretto',
+        'Completa la configurazione del middleware della smart card o del token',
+        'Torna nel wizard e clicca Riverifica'
+      ],
+      cta: 'Disponibile solo da desktop',
+      icon: 'bi-phone',
+      disabled: true,
+      demoNote: '<strong>Local Signer</strong>: disponibile da desktop Windows, macOS o Linux'
+    };
+  }
+  if (os.key === 'macos') {
+    return {
+      href: _LS_INSTALLER_CFG.macos,
+      summary: 'Installer rilevato per macOS con LaunchAgent in avvio automatico.',
+      title: 'Installazione consigliata per macOS',
+      desc: 'Scarica il pacchetto .command: configura il Local Signer, le dipendenze Python e l avvio automatico con LaunchAgent.',
+      note: 'Compatibile con middleware CNS/CIE e driver PKCS#11 disponibili sul Mac.',
+      steps: [
+        'Scarica InstallaLocalSigner.command',
+        'Apri il file e conferma l esecuzione dal Finder o dal Terminale',
+        'Attendi il messaggio di installazione completata e inserisci la smart card o il token',
+        'Torna qui e clicca Riverifica'
+      ],
+      cta: 'Scarica installer macOS',
+      icon: 'bi-apple',
+      disabled: false,
+      demoNote: '<strong>Local Signer</strong> (macOS): installazione automatica da <code>/polisWeb</code>, avvio al login'
+    };
+  }
+  if (os.key === 'linux') {
+    return {
+      href: _LS_INSTALLER_CFG.linux,
+      summary: 'Installer rilevato per Linux con servizio utente systemd.',
+      title: 'Installazione consigliata per Linux',
+      desc: 'Scarica lo script .sh: configura il Local Signer, le dipendenze Python e il servizio systemd --user in avvio automatico.',
+      note: 'Compatibile con OpenSC e altri middleware PKCS#11 installati sulla macchina locale.',
+      steps: [
+        'Scarica installa_local_signer.sh',
+        'Rendi eseguibile il file se necessario e avvialo dal Terminale',
+        'Attendi la configurazione del servizio utente e inserisci smart card o token',
+        'Torna qui e clicca Riverifica'
+      ],
+      cta: 'Scarica installer Linux',
+      icon: 'bi-terminal',
+      disabled: false,
+      demoNote: '<strong>Local Signer</strong> (Linux): installazione automatica da <code>/polisWeb</code>, servizio utente attivo al login'
+    };
+  }
+  return {
+    href: _LS_INSTALLER_CFG.windows,
+    summary: 'Installer rilevato per Windows: usa SetupLocalSigner.exe quando disponibile, altrimenti il PowerShell guidato.',
+    title: 'Installazione consigliata per Windows',
+    desc: 'Scarica l installer Windows: configura il Local Signer, le dipendenze e l avvio automatico senza dover aprire manualmente il batch.',
+    note: 'Compatibile con Aruba, Bit4id, Namirial, InfoCert e altri middleware CNS/CIE presenti nel PC.',
+    steps: [
+      'Scarica SetupLocalSigner.exe oppure l installer PowerShell proposto',
+      'Apri il file e completa la procedura guidata',
+      'Inserisci smart card o token quando richiesto dal middleware locale',
+      'Torna qui e clicca Riverifica'
+    ],
+    cta: 'Scarica installer Windows',
+    icon: 'bi-windows',
+    disabled: false,
+    demoNote: '<strong>Local Signer</strong> (Windows): installazione automatica da <code>/polisWeb</code>, avvio al login'
+  };
+}
+
+function _applicaInstallerLocalSigner() {
+  const meta = _lsInstallerMeta();
+  const setLink = (el, label) => {
+    if (!el) return;
+    if (meta.disabled || !meta.href) {
+      el.removeAttribute('href');
+      el.removeAttribute('download');
+      el.classList.add('disabled');
+      el.setAttribute('aria-disabled', 'true');
+    } else {
+      el.href = meta.href;
+      el.setAttribute('download', '');
+      el.classList.remove('disabled');
+      el.removeAttribute('aria-disabled');
+    }
+    if (label) label.textContent = meta.cta;
+  };
+
+  setLink(document.getElementById('ls-install-link'), document.getElementById('ls-install-link-label'));
+  setLink(document.getElementById('ls-demo-install-link'));
+  setLink(document.getElementById('wiz-install-link'), document.getElementById('wiz-install-cta'));
+
+  const summary = document.getElementById('ls-install-summary');
+  if (summary) summary.textContent = meta.summary;
+
+  const demoNote = document.getElementById('ls-demo-install-note');
+  if (demoNote) demoNote.innerHTML = meta.demoNote;
+
+  const titleIcon = document.getElementById('wiz-install-title-icon');
+  if (titleIcon) titleIcon.className = `bi ${meta.icon} text-success me-2`;
+  const titleText = document.getElementById('wiz-install-title-text');
+  if (titleText) titleText.textContent = meta.title;
+  const desc = document.getElementById('wiz-install-desc');
+  if (desc) desc.textContent = meta.desc;
+  const support = document.getElementById('wiz-install-support');
+  if (support) support.textContent = meta.note;
+
+  const steps = document.getElementById('wiz-install-steps');
+  if (steps) steps.innerHTML = meta.steps.map(step => `<li>${step}</li>`).join('');
+
+  const mobileAlert = document.getElementById('wiz-install-mobile-alert');
+  if (mobileAlert) {
+    mobileAlert.classList.toggle('d-none', _lsPiattaformaClient().key !== 'mobile');
+  }
+}
 
 function _aggiornaPulsantiCerca(lsAttivo) {
   const btnDemo = document.getElementById('btn-cerca-demo');
@@ -2037,7 +2214,10 @@ function wizImporta(rg, anno, nomeUfficio, codiceUfficio) {
   form.submit();
 }
 
-// Avvia verifica Local Signer ad ogni caricamento pagina
-document.addEventListener('DOMContentLoaded', verificaLocalSigner);
+// Avvia configurazione installer e verifica Local Signer ad ogni caricamento pagina
+document.addEventListener('DOMContentLoaded', () => {
+  _applicaInstallerLocalSigner();
+  verificaLocalSigner();
+});
 </script>
 {% endblock %}

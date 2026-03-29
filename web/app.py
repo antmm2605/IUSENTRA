@@ -570,6 +570,10 @@ def create_app(config: dict | None = None) -> Flask:
         "admin.esci_impersonazione",
         "polis_local_signer_download",
         "polis_local_signer_installa",
+        "polis_local_signer_setup_windows",
+        "polis_local_signer_setup_windows_exe",
+        "polis_local_signer_setup_macos",
+        "polis_local_signer_setup_linux",
     }
 
     @app.before_request
@@ -1768,6 +1772,184 @@ def create_app(config: dict | None = None) -> Flask:
         """True se non c'è un certificato P12/PEM per il SOAP mTLS (include modalità pkcs11)."""
         return _polis_auth_mode() != "reale"
 
+    def _local_signer_tools_dir() -> Path:
+        return Path(__file__).parent.parent / "tools"
+
+    def _local_signer_windows_exe_path() -> Path:
+        return _local_signer_tools_dir() / "dist" / "SetupLocalSigner.exe"
+
+    def _render_local_signer_windows_ps1(base_url: str) -> str:
+        return f"""# HACS Local Signer - Installazione automatica Windows
+# Eseguire in PowerShell come utente normale (non richiede amministratore)
+
+$ErrorActionPreference = 'Stop'
+$dir    = "$env:APPDATA\\HACS\\LocalSigner"
+$venv   = "$dir\\.venv"
+$py     = "$dir\\local_signer.py"
+$pyExe  = "$venv\\Scripts\\python.exe"
+$pywExe = "$venv\\Scripts\\pythonw.exe"
+
+Write-Host "HACS Local Signer - Installazione..." -ForegroundColor Cyan
+
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+
+Write-Host "  Scarico local_signer.py..."
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download" -OutFile $py -UseBasicParsing
+
+try {{
+    $v = python --version 2>&1
+    Write-Host "  Python trovato: $v"
+}} catch {{
+    Write-Host "ERRORE: Python non trovato. Scaricarlo da https://python.org" -ForegroundColor Red
+    Read-Host "Premere Invio per uscire"
+    exit 1
+}}
+
+Write-Host "  Creo ambiente virtuale..."
+python -m venv $venv
+
+Write-Host "  Aggiorno pip..."
+& $pyExe -m pip install --quiet --upgrade pip
+
+Write-Host "  Installo dipendenze Local Signer..."
+& $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography
+
+Write-Host "  Registro il servizio nel Task Scheduler..."
+$taskName = "HACS Local Signer"
+$action   = New-ScheduledTaskAction -Execute $pywExe -Argument "`"$py`""
+$trigger  = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
+$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
+Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+Register-ScheduledTask `
+    -TaskName $taskName `
+    -Action $action `
+    -Trigger $trigger `
+    -Settings $settings `
+    -Description "HACS Local Signer - firma documenti con smart card e token CNS/CIE" `
+    -Force | Out-Null
+
+Write-Host "  Avvio Local Signer..."
+Start-Process -FilePath $pywExe -ArgumentList "`"$py`"" -WindowStyle Hidden
+
+Start-Sleep 2
+Write-Host ""
+Write-Host "Installazione completata!" -ForegroundColor Green
+Write-Host "  Il Local Signer e' attivo su http://127.0.0.1:27272"
+Write-Host "  Si avviera' automaticamente ad ogni accesso Windows."
+Write-Host ""
+Write-Host "Tornare su HACS e cliccare 'Riverifica'." -ForegroundColor Cyan
+Read-Host "Premere Invio per chiudere"
+"""
+
+    def _render_local_signer_macos_command(base_url: str) -> str:
+        return f"""#!/bin/bash
+set -euo pipefail
+
+BASE_URL="{base_url}"
+DIR="$HOME/Library/Application Support/HACS/LocalSigner"
+VENV="$DIR/.venv"
+PY="$VENV/bin/python3"
+PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
+
+echo "HACS Local Signer - Installazione macOS"
+
+mkdir -p "$DIR" "$(dirname "$PLIST")"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Python 3 non trovato. Installarlo prima da https://python.org"
+  read -r -p "Premi Invio per uscire..." _
+  exit 1
+fi
+
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+python3 -m venv "$VENV"
+"$PY" -m pip install --quiet --upgrade pip
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+
+cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>it.hacs.local-signer</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$PY</string>
+    <string>$DIR/local_signer.py</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>WorkingDirectory</key>
+  <string>$DIR</string>
+</dict>
+</plist>
+EOF
+
+launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
+launchctl bootstrap "gui/$(id -u)" "$PLIST"
+launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
+
+echo
+echo "Installazione completata."
+echo "Local Signer attivo su http://127.0.0.1:27272"
+echo "Tornare su HACS e cliccare Riverifica."
+read -r -p "Premi Invio per chiudere..." _
+"""
+
+    def _render_local_signer_linux_sh(base_url: str) -> str:
+        return f"""#!/usr/bin/env bash
+set -euo pipefail
+
+BASE_URL="{base_url}"
+DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/hacs/local-signer"
+VENV="$DIR/.venv"
+PY="$VENV/bin/python"
+SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
+SERVICE="$SERVICE_DIR/hacs-local-signer.service"
+
+echo "HACS Local Signer - Installazione Linux"
+
+mkdir -p "$DIR" "$SERVICE_DIR"
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Python 3 non trovato. Installarlo prima con il gestore pacchetti della distribuzione."
+  read -r -p "Premi Invio per uscire..." _
+  exit 1
+fi
+
+curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
+python3 -m venv "$VENV"
+"$PY" -m pip install --quiet --upgrade pip
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+
+cat > "$SERVICE" <<EOF
+[Unit]
+Description=HACS Local Signer
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$DIR
+ExecStart=$PY $DIR/local_signer.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now hacs-local-signer.service
+
+echo
+echo "Installazione completata."
+echo "Local Signer attivo su http://127.0.0.1:27272"
+echo "Tornare su HACS e cliccare Riverifica."
+read -r -p "Premi Invio per chiudere..." _
+"""
+
     @app.route("/polisWeb/local-signer/download")
     def polis_local_signer_download():
         """Serve il file local_signer.py per il download diretto dal browser."""
@@ -1785,88 +1967,52 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception as e:
             return str(e), 500
 
+    @app.route("/polisWeb/local-signer/setup/windows-exe")
+    def polis_local_signer_setup_windows_exe():
+        """Serve l'installer Windows .exe quando presente nel repository."""
+        try:
+            exe_path = _local_signer_windows_exe_path()
+            if not exe_path.exists():
+                return (
+                    "Installer Windows .exe non ancora generato. "
+                    "Usare temporaneamente l'installer PowerShell.",
+                    404,
+                )
+            return send_file(
+                exe_path,
+                as_attachment=True,
+                download_name="SetupLocalSigner.exe",
+                mimetype="application/octet-stream",
+            )
+        except Exception as e:
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/setup/windows")
+    def polis_local_signer_setup_windows():
+        """Serve il miglior installer Windows disponibile: .exe, altrimenti PowerShell."""
+        exe_path = _local_signer_windows_exe_path()
+        if exe_path.exists():
+            return send_file(
+                exe_path,
+                as_attachment=True,
+                download_name="SetupLocalSigner.exe",
+                mimetype="application/octet-stream",
+            )
+        return Response(
+            _render_local_signer_windows_ps1(request.host_url.rstrip("/")),
+            mimetype="text/plain; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'},
+        )
+
     @app.route("/polisWeb/local-signer/installa-windows")
     def polis_local_signer_installa():
         """
-        Genera e serve uno script PowerShell che:
-        1. Crea %APPDATA%\\HACS\\LocalSigner\\
-        2. Scarica local_signer.py dal server HACS
-        3. Installa le dipendenze pip
-        4. Registra il servizio nel Task Scheduler (avvio al logon, senza finestra)
-        5. Avvia subito il signer
+        Genera e serve lo script PowerShell legacy/compatibile per Windows.
         """
         import traceback as _tb
         try:
-            base_url = request.host_url.rstrip("/")
-            script = f"""# HACS Local Signer — Installazione automatica Windows
-# Eseguire in PowerShell come utente normale (non richiede amministratore)
-
-$ErrorActionPreference = 'Stop'
-$dir = "$env:APPDATA\\HACS\\LocalSigner"
-$py  = "$dir\\local_signer.py"
-$vbs = "$dir\\avvia_nascosto.vbs"
-$log = "$dir\\local_signer.log"
-
-Write-Host "HACS Local Signer — Installazione..." -ForegroundColor Cyan
-
-# 1. Crea directory
-New-Item -ItemType Directory -Force -Path $dir | Out-Null
-
-# 2. Scarica local_signer.py dal server HACS
-Write-Host "  Scarico local_signer.py..."
-Invoke-WebRequest "{base_url}/polisWeb/local-signer/download" -OutFile $py -UseBasicParsing
-
-# 3. Verifica Python
-try {{
-    $v = python --version 2>&1
-    Write-Host "  Python trovato: $v"
-}} catch {{
-    Write-Host "ERRORE: Python non trovato. Scaricarlo da https://python.org" -ForegroundColor Red
-    Read-Host "Premere Invio per uscire"
-    exit 1
-}}
-
-# 4. Installa dipendenze pip (silenzioso)
-Write-Host "  Installo dipendenze Local Signer..."
-python -m pip install --quiet python-pkcs11 asn1crypto cryptography
-
-# 5. Crea VBScript launcher (avvio invisibile — nessuna finestra CMD)
-$vbsContent = @"
-' HACS Local Signer — avvio invisibile
-Dim shell
-Set shell = CreateObject("WScript.Shell")
-shell.Run "python " & Chr(34) & WScript.Arguments(0) & Chr(34), 0, False
-"@
-Set-Content -Path $vbs -Value $vbsContent -Encoding UTF8
-
-# 6. Registra nel Task Scheduler (avvio al logon utente corrente)
-Write-Host "  Registro nel Task Scheduler (avvio automatico al login)..."
-$action  = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$vbs`" `"$py`""
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
-$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
-Register-ScheduledTask `
-    -TaskName "HACS Local Signer" `
-    -Action $action `
-    -Trigger $trigger `
-    -Settings $settings `
-    -Description "HACS Local Signer — firma documenti con smart card e token CNS/CIE" `
-    -Force | Out-Null
-
-# 7. Avvia subito (senza attendere il prossimo login)
-Write-Host "  Avvio Local Signer..."
-Start-ScheduledTask -TaskName "HACS Local Signer"
-
-Start-Sleep 2
-Write-Host ""
-Write-Host "Installazione completata!" -ForegroundColor Green
-Write-Host "  Il Local Signer e' attivo su http://127.0.0.1:27272"
-Write-Host "  Si avviera' automaticamente ad ogni accesso Windows."
-Write-Host ""
-Write-Host "Tornare su HACS e cliccare 'Riverifica'." -ForegroundColor Cyan
-Read-Host "Premere Invio per chiudere"
-"""
             return Response(
-                script,
+                _render_local_signer_windows_ps1(request.host_url.rstrip("/")),
                 mimetype="text/plain; charset=utf-8",
                 headers={
                     "Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'
@@ -1874,6 +2020,32 @@ Read-Host "Premere Invio per chiudere"
             )
         except Exception as e:
             app.logger.exception("Errore generazione script installer: %s", e)
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/setup/macos")
+    def polis_local_signer_setup_macos():
+        """Serve l'installer macOS (.command) del Local Signer."""
+        try:
+            return Response(
+                _render_local_signer_macos_command(request.host_url.rstrip("/")),
+                mimetype="text/plain; charset=utf-8",
+                headers={"Content-Disposition": 'attachment; filename="InstallaLocalSigner.command"'},
+            )
+        except Exception as e:
+            app.logger.exception("Errore generazione installer macOS: %s", e)
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/setup/linux")
+    def polis_local_signer_setup_linux():
+        """Serve l'installer Linux (.sh) del Local Signer."""
+        try:
+            return Response(
+                _render_local_signer_linux_sh(request.host_url.rstrip("/")),
+                mimetype="text/plain; charset=utf-8",
+                headers={"Content-Disposition": 'attachment; filename="installa_local_signer.sh"'},
+            )
+        except Exception as e:
+            app.logger.exception("Errore generazione installer Linux: %s", e)
             return str(e), 500
 
     @app.route("/polisWeb", methods=["GET"])

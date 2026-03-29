@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.1.0
+HACS Local Signer — v1.3.0
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -61,7 +61,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 
 logging.basicConfig(

@@ -1,32 +1,44 @@
 @echo off
-:: HACS Local Signer — Avvio manuale tecnico (fallback)
-:: Usare solo se il servizio automatico non è già installato sul PC.
+setlocal
+:: HACS Local Signer - bootstrap locale intelligente
+:: - Se il servizio automatico e' gia' installato, lo riavvia.
+:: - Se manca, lancia l'installer locale Windows.
 
 title HACS Local Signer
 
-:: Verifica Python
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo.
-    echo  ERRORE: Python non trovato nel PATH.
-    echo  Installare Python da https://python.org e aggiungere al PATH.
+set "TASK_NAME=HACS Local Signer"
+set "INSTALLER_PS1=%~dp0installa_local_signer_locale.ps1"
+
+echo.
+echo HACS Local Signer - bootstrap locale
+echo.
+
+schtasks /Query /TN "%TASK_NAME%" >nul 2>&1
+if not errorlevel 1 (
+    echo Servizio gia' installato. Avvio in background...
+    schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
+    timeout /t 2 >nul
+    start "" "http://127.0.0.1:27272/diagnosi"
+    exit /b 0
+)
+
+if not exist "%INSTALLER_PS1%" (
+    echo ERRORE: installer locale non trovato.
+    echo Percorso atteso: %INSTALLER_PS1%
     echo.
     pause
     exit /b 1
 )
 
-:: Installa dipendenze se mancanti
-echo Verifica dipendenze Local Signer...
-pip show python-pkcs11 >nul 2>&1
+echo Installo il servizio locale e l'avvio automatico...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%INSTALLER_PS1%"
 if errorlevel 1 (
-    echo Installazione dipendenze...
-    pip install -r "%~dp0requirements_local_signer.txt"
+    echo.
+    echo Installazione non riuscita.
+    echo.
+    pause
+    exit /b 1
 )
 
-:: Avvia il signer
-echo.
-echo Avvio manuale HACS Local Signer...
-echo.
-python "%~dp0local_signer.py" %*
-
-pause
+timeout /t 2 >nul
+start "" "http://127.0.0.1:27272/diagnosi"

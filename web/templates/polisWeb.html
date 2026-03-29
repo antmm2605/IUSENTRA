@@ -23,7 +23,7 @@
       Portale Servizi Telematici — MinGiust
     </span>
     {% if demo_mode %}
-    <span class="badge bg-warning text-dark ms-2">
+    <span class="badge bg-warning text-dark ms-2" id="badge-demo-mode">
       <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
     </span>
     {% endif %}
@@ -111,14 +111,17 @@
         </div>
         <div id="ls-status-missing" style="display:none">
           <strong class="text-secondary"><i class="bi bi-pc-display-horizontal me-1"></i>Local Signer non attivo.</strong>
-          Installa il servizio locale in avvio automatico oppure verifica che sia già in esecuzione sul PC.
+          Se lo hai già installato non devi reinstallarlo: puoi avviarlo direttamente da qui e HACS proseguirà con riconoscimento certificato e ricerca PST.
           <div class="mt-1 small text-muted" id="ls-install-summary">
             Installer desktop consigliato per Windows, macOS e Linux.
           </div>
           <div class="mt-1 d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-primary" onclick="avviaLocalSigner()">
+              <i class="bi bi-play-circle me-1"></i>Avvia Local Signer
+            </button>
             <a href="{{ url_for('polis_local_signer_setup_windows') }}" download
                class="btn btn-sm btn-outline-primary" id="ls-install-link">
-              <i class="bi bi-download me-1"></i><span id="ls-install-link-label">Scarica installer desktop</span>
+              <i class="bi bi-download me-1"></i><span id="ls-install-link-label">Installa o aggiorna</span>
             </a>
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="verificaLocalSigner()">
               <i class="bi bi-arrow-clockwise me-1"></i>Riprova
@@ -134,8 +137,8 @@
   {% if demo_mode %}
   <div class="alert alert-warning alert-dismissible fade show small mb-3" id="banner-demo">
     <i class="bi bi-cone me-2"></i>
-    <strong>Certificato non configurato — modalità demo (offline).</strong>
-    I risultati mostrati sono dati di esempio.
+    <strong>Modalità demo solo come fallback offline.</strong>
+    I risultati mostrati qui sono dati di esempio e non sostituiscono la ricerca reale sul PST.
     Per accedere al PST reale configurare il certificato in
     <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
     oppure nel file <code>.env</code> — oppure installare il
@@ -257,15 +260,15 @@
           {# I pulsanti sono sempre nell'HTML; JS mostra/nasconde in base a Local Signer #}
           <div class="col-md-3 d-flex align-items-end flex-column gap-1">
             <button type="submit" id="btn-cerca-demo"
-                    class="btn btn-primary w-100"
+                    class="btn btn-outline-secondary w-100 d-none"
                     title="Cerca (demo offline)">
-              <i class="bi bi-search me-1"></i>Cerca
+              <i class="bi bi-search me-1"></i>Demo offline
             </button>
             <button type="button" id="btn-cerca-pst"
-                    class="btn btn-success w-100 d-none"
+                    class="btn btn-primary w-100"
                     onclick="cercaSuPst()"
-                    title="Cerca nel PST reale via Local Signer">
-              <i class="bi bi-usb-symbol me-1"></i>Cerca su PST
+                    title="Attiva il Local Signer e cerca nel PST reale">
+              <i class="bi bi-usb-symbol me-1"></i>Attiva Local Signer e cerca
             </button>
           </div>
           <div class="col-md-5">
@@ -1327,6 +1330,7 @@ function eseguiVerificaVariazioni() {
 // ── Local Signer: verifica disponibilità e gestione PST ────────────────────
 // Gira SEMPRE (non condizionale lato server) — il server non sa della Aruba Key Windows
 const _LS_BASE_PW = 'http://127.0.0.1:27272';
+const _LS_PROTOCOL_URI = 'hacs-local-signer://start';
 const _LS_INSTALLER_CFG = (() => {
   const el = document.getElementById('ls-installer-config');
   return el ? {
@@ -1421,7 +1425,7 @@ function _lsInstallerMeta() {
   }
   return {
     href: _LS_INSTALLER_CFG.windows,
-    summary: 'Installer rilevato per Windows: usa SetupLocalSigner.exe quando disponibile, altrimenti il PowerShell guidato.',
+    summary: 'Installer rilevato per Windows: basta installarlo una sola volta, poi HACS puo avviare il signer da solo.',
     title: 'Installazione consigliata per Windows',
     desc: 'Scarica l installer Windows: configura il Local Signer, le dipendenze e l avvio automatico senza dover aprire manualmente il batch.',
     note: 'Compatibile con Aruba, Bit4id, Namirial, InfoCert e altri middleware CNS/CIE presenti nel PC.',
@@ -1429,7 +1433,7 @@ function _lsInstallerMeta() {
       'Scarica SetupLocalSigner.exe oppure l installer PowerShell proposto',
       'Apri il file e completa la procedura guidata',
       'Inserisci smart card o token quando richiesto dal middleware locale',
-      'Torna qui e clicca Riverifica'
+      'Poi torna qui: da questo momento Cerca prova ad avviare il signer automaticamente'
     ],
     cta: 'Scarica installer Windows',
     icon: 'bi-windows',
@@ -1484,18 +1488,36 @@ function _applicaInstallerLocalSigner() {
   }
 }
 
+function _lsDesktopSupportato() {
+  return ['windows', 'macos', 'linux'].includes(_lsPiattaformaClient().key);
+}
+
+function _aggiornaVisibilitaDemo(mostraDemo) {
+  const bannerDemo = document.getElementById('banner-demo');
+  if (bannerDemo) bannerDemo.classList.toggle('d-none', !mostraDemo);
+  const badgeDemo = document.getElementById('badge-demo-mode');
+  if (badgeDemo) badgeDemo.classList.toggle('d-none', !mostraDemo);
+}
+
 function _aggiornaPulsantiCerca(lsAttivo) {
   const btnDemo = document.getElementById('btn-cerca-demo');
   const btnPst  = document.getElementById('btn-cerca-pst');
-  if (!btnDemo || !btnPst) return;
+  if (!btnPst) return;
+  const demoVisibile = !_lsDesktopSupportato();
   if (lsAttivo) {
-    // Sostituisce "Cerca" (demo) con "Cerca su PST" (reale)
-    btnDemo.classList.add('d-none');
-    btnPst.classList.remove('d-none');
+    btnPst.classList.remove('btn-primary');
+    btnPst.classList.add('btn-success');
+    btnPst.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
+    btnPst.title = 'Cerca nel PST reale via Local Signer';
   } else {
-    btnDemo.classList.remove('d-none');
-    btnPst.classList.add('d-none');
+    btnPst.classList.remove('btn-success');
+    btnPst.classList.add('btn-primary');
+    btnPst.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Attiva Local Signer e cerca';
+    btnPst.title = 'Avvia il Local Signer già installato e cerca nel PST reale';
   }
+  btnPst.classList.remove('d-none');
+  if (btnDemo) btnDemo.classList.toggle('d-none', !demoVisibile || lsAttivo);
+  _aggiornaVisibilitaDemo(demoVisibile && !lsAttivo);
 }
 
 function _mostraLsStatus(stato) {
@@ -1504,6 +1526,151 @@ function _mostraLsStatus(stato) {
     const el = document.getElementById(id);
     if (el) el.style.display = id === `ls-status-${stato}` ? '' : 'none';
   });
+}
+
+function _lsSetDetectingText(text) {
+  const detect = document.getElementById('ls-status-detecting');
+  if (!detect) return;
+  const spinner = detect.querySelector('.spinner-border');
+  detect.textContent = '';
+  if (spinner) detect.appendChild(spinner);
+  detect.insertAdjacentHTML('beforeend', ` <span>${text}</span>`);
+}
+
+async function _lsPing(timeoutMs = 3000) {
+  const resp = await fetch(_LS_BASE_PW + '/ping', { signal: AbortSignal.timeout(timeoutMs) });
+  return resp.json();
+}
+
+function _lsAggiornaUiDaPing(d) {
+  const tokenOk = !!(d?.ok && Array.isArray(d.token) && d.token.length > 0);
+  const lsAttivo = !!d?.ok;
+  const erroreToken = d?.errore_token || d?.errore_libreria || null;
+  const bar = document.getElementById('pst-wizard-bar');
+  const badge = document.getElementById('badge-ls-attivo');
+  const lblTok = document.getElementById('lbl-ls-token');
+  if (bar) bar.style.removeProperty('display');
+
+  if (lsAttivo) {
+    const bannerDemo = document.getElementById('banner-demo');
+    if (bannerDemo) bannerDemo.classList.add('d-none');
+    const badgeDemo = document.getElementById('badge-demo-mode');
+    if (badgeDemo) badgeDemo.classList.add('d-none');
+  }
+
+  if (tokenOk) {
+    _lsDisponibile = true;
+    _lsTokenInfo = d.token[0];
+    _mostraLsStatus('ok');
+    const tok = _lsTokenInfo;
+    const lbl = document.getElementById('ls-token-label');
+    if (lbl) lbl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
+    _aggiornaPulsantiCerca(true);
+    if (badge) badge.style.display = '';
+    if (lblTok) lblTok.textContent = `${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
+  } else if (lsAttivo) {
+    _lsDisponibile = false;
+    _lsTokenInfo = null;
+    _mostraLsStatus('notoken');
+    const errEl = document.getElementById('ls-errore-msg');
+    if (errEl) {
+      errEl.textContent = erroreToken
+        ? erroreToken.split('\n')[0]
+        : 'Inserire smart card o token e riprovare.';
+    }
+    if (badge) badge.style.display = 'none';
+    if (lblTok) lblTok.textContent = '';
+    _aggiornaPulsantiCerca(false);
+  } else {
+    _lsDisponibile = false;
+    _lsTokenInfo = null;
+    _mostraLsStatus('missing');
+    if (badge) badge.style.display = 'none';
+    if (lblTok) lblTok.textContent = '';
+    _aggiornaPulsantiCerca(false);
+  }
+
+  return {
+    raw: d,
+    running: lsAttivo,
+    tokenOk,
+    erroreToken,
+  };
+}
+
+async function verificaLocalSigner(opzioni = {}) {
+  const {
+    timeoutMs = 3000,
+    banner = true,
+    testo = 'Verifica Local Signer...'
+  } = opzioni;
+
+  const bannerLS = document.getElementById('banner-local-signer');
+  if (banner && bannerLS) bannerLS.classList.remove('d-none');
+  _lsSetDetectingText(testo);
+  _mostraLsStatus('detecting');
+
+  try {
+    const data = await _lsPing(timeoutMs);
+    return _lsAggiornaUiDaPing(data);
+  } catch (err) {
+    _lsDisponibile = false;
+    _mostraLsStatus('missing');
+    _aggiornaPulsantiCerca(false);
+    const bar = document.getElementById('pst-wizard-bar');
+    if (bar) bar.style.removeProperty('display');
+    return {
+      running: false,
+      tokenOk: false,
+      errore: String(err || ''),
+    };
+  }
+}
+
+function _lsTentaAvvioProtocollo() {
+  if (_lsPiattaformaClient().key !== 'windows') return false;
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = _LS_PROTOCOL_URI;
+    document.body.appendChild(iframe);
+    window.setTimeout(() => iframe.remove(), 1500);
+    return true;
+  } catch (err) {
+    console.warn('Avvio protocollo Local Signer fallito:', err);
+    return false;
+  }
+}
+
+async function _lsAttendiAvvio(timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => window.setTimeout(resolve, 1200));
+    const stato = await verificaLocalSigner({
+      timeoutMs: 2000,
+      testo: 'Attendo l avvio del Local Signer...'
+    });
+    if (stato.running) return stato;
+  }
+  return null;
+}
+
+async function _lsAssicuraAttivo() {
+  let stato = await verificaLocalSigner({ testo: 'Verifica Local Signer...' });
+  if (stato.running) return stato;
+  if (!_lsTentaAvvioProtocollo()) return stato;
+  _lsSetDetectingText('Avvio il Local Signer già installato...');
+  _mostraLsStatus('detecting');
+  stato = await _lsAttendiAvvio(15000);
+  return stato || { running: false, tokenOk: false };
+}
+
+async function avviaLocalSigner() {
+  const stato = await _lsAssicuraAttivo();
+  if (stato.running) return;
+  _mostraErroreLocalSigner(
+    'Local Signer non raggiungibile. Se lo hai già installato, verifica il protocollo locale e riprova; altrimenti usa "Installa o aggiorna".'
+  );
 }
 
 async function _lsSelezionaCertificato() {
@@ -1538,7 +1705,6 @@ async function _lsAssicuraCertificato() {
 }
 
 async function cercaSuPst() {
-  // Chiamato dal pulsante "Cerca su PST" (Local Signer)
   const tribunale = document.getElementById('ufficio-value')?.value || '';
   if (!tribunale) {
     document.getElementById('ufficio-input')?.focus();
@@ -1548,47 +1714,20 @@ async function cercaSuPst() {
   const anno = document.querySelector('input[name="anno_rg"]')?.value || '';
   const nomeParte = document.getElementById('nome-parte-input')?.value || '';
   const cf = document.querySelector('input[name="cf_parte"]')?.value || '';
-  await _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf);
-}
-
-function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
-  const btn = document.getElementById('btn-cerca-pst');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso…';
+  const stato = await _lsAssicuraAttivo();
+  if (!stato.running) {
+    _mostraErroreLocalSigner(
+      'Local Signer non attivo. Se è già installato, consenti l avvio locale dal browser e riprova; altrimenti installalo una sola volta.'
+    );
+    return;
   }
-
-  fetch(_LS_BASE_PW + '/pst/ricerca', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tribunale: tribunale,
-      numero_rg: rg || null,
-      anno_rg: anno ? parseInt(anno) : null,
-      nome_parte: nomeParte || null,
-      cf_parte: cf || null,
-    }),
-    signal: AbortSignal.timeout(35000),
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
-    }
-    if (d.ok && d.fascicoli) {
-      _mostraRisultatiLocalSigner(d.fascicoli);
-    } else {
-      _mostraErroreLocalSigner(d.errore || 'Nessun risultato dal PST');
-    }
-  })
-  .catch(e => {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
-    }
-    _mostraErroreLocalSigner(String(e));
-  });
+  if (!stato.tokenOk) {
+    _mostraErroreLocalSigner(
+      'Local Signer attivo ma token o certificato non ancora disponibili. Inserisci la smart card o il token CNS/CIE e riprova.'
+    );
+    return;
+  }
+  await _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf);
 }
 
 async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
@@ -1596,7 +1735,9 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
   const resetBtn = () => {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
+      btn.innerHTML = _lsDisponibile
+        ? '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST'
+        : '<i class="bi bi-usb-symbol me-1"></i>Attiva Local Signer e cerca';
     }
   };
 
@@ -1735,7 +1876,7 @@ function _mostraErroreLocalSigner(msg) {
 
 // ── Local Signer: verifica disponibilità (unica funzione) ──────────────────────
 
-function verificaLocalSigner() {
+function verificaLocalSignerLegacy() {
   const bannerLS = document.getElementById('banner-local-signer');
   if (bannerLS) bannerLS.classList.remove('d-none');
   _mostraLsStatus('detecting');
@@ -1802,14 +1943,15 @@ let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati
 let _wizCertSel = null;  // certificato selezionato
 
 const _WIZ_STEPS = {
-  0: { title: 'Configurazione',      sub: 'Installa il Local Signer',        dot: null },
+  0: { title: 'Configurazione',      sub: 'Avvia o installa il Local Signer', dot: null },
   1: { title: 'Passaggio 1',         sub: 'Parametri di ricerca',            dot: 1 },
   2: { title: 'Passaggio 2',         sub: 'Selezione certificato e PIN',     dot: 2 },
   3: { title: 'Passaggio 3',         sub: 'Risultati',                       dot: 3 },
 };
 
-function apriWizardPst() {
-  _wizStep = _lsDisponibile ? 1 : 0;
+async function apriWizardPst() {
+  const stato = _lsDisponibile ? { running: true, tokenOk: true } : await _lsAssicuraAttivo();
+  _wizStep = stato.running ? 1 : 0;
   _wizCertSel = _lsCertSel;
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
@@ -1898,15 +2040,13 @@ function wizIndietro() {
   _wizMostraStep(_wizStep);
 }
 
-function wizRiverifca() {
-  verificaLocalSigner();
-  setTimeout(() => {
-    if (_lsDisponibile) {
-      _wizStep = 1;
-      _wizAggiornaDot();
-      _wizMostraStep(1);
-    }
-  }, 2800);
+async function wizRiverifca() {
+  const stato = await _lsAssicuraAttivo();
+  if (stato.running) {
+    _wizStep = 1;
+    _wizAggiornaDot();
+    _wizMostraStep(1);
+  }
 }
 
 function wizClearUfficio() {
@@ -2004,7 +2144,7 @@ function _wizMostraCertCard(cert) {
   }
 }
 
-function wizApriPicker() {
+function wizApriPickerLegacy() {
   const loading = document.getElementById('wiz-cert-loading');
   const notoken = document.getElementById('wiz-cert-notoken');
   const card    = document.getElementById('wiz-cert-selezionato');
@@ -2217,6 +2357,7 @@ function wizImporta(rg, anno, nomeUfficio, codiceUfficio) {
 // Avvia configurazione installer e verifica Local Signer ad ogni caricamento pagina
 document.addEventListener('DOMContentLoaded', () => {
   _applicaInstallerLocalSigner();
+  _aggiornaPulsantiCerca(false);
   verificaLocalSigner();
 });
 </script>

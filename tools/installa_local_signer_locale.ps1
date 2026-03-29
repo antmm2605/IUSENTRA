@@ -14,6 +14,8 @@ $venvDir = Join-Path $targetDir ".venv"
 $pythonScript = Join-Path $targetDir "local_signer.py"
 $dataDir = Join-Path $targetDir "data"
 $ufficiTarget = Join-Path $dataDir "uffici_ministero.json"
+$starterCmd = Join-Path $targetDir "start_local_signer.cmd"
+$starterVbs = Join-Path $targetDir "start_local_signer.vbs"
 $requirementsFile = Join-Path $targetDir "requirements_local_signer.txt"
 $pythonExe = Join-Path $venvDir "Scripts\python.exe"
 $pythonwExe = Join-Path $venvDir "Scripts\pythonw.exe"
@@ -35,6 +37,66 @@ function Find-PythonCommand {
     return $null
 }
 
+function Wait-LocalSigner([int]$Attempts = 15) {
+    for ($i = 0; $i -lt $Attempts; $i++) {
+        try {
+            $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping" -UseBasicParsing -TimeoutSec 2
+            if ($resp.ok) {
+                return $true
+            }
+        } catch {
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $false
+}
+
+function Write-LocalSignerLaunchers {
+    $cmd = @'
+@echo off
+setlocal
+set "TASK_NAME=HACS Local Signer"
+set "DIR=%~dp0"
+set "PYW=%DIR%.venv\Scripts\pythonw.exe"
+set "PY=%DIR%local_signer.py"
+
+schtasks /Query /TN "%TASK_NAME%" >nul 2>&1
+if not errorlevel 1 (
+    schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
+) else (
+    if exist "%PYW%" if exist "%PY%" (
+        start "" "%PYW%" "%PY%"
+    ) else (
+        exit /b 1
+    )
+)
+
+if /I "%~1"=="--background" exit /b 0
+timeout /t 2 >nul
+start "" "http://127.0.0.1:27272/diagnosi"
+exit /b 0
+'@
+    Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
+
+    $vbs = @"
+Set shell = CreateObject("WScript.Shell")
+shell.Run Chr(34) & "$starterCmd" & Chr(34) & " --background", 0, False
+"@
+    Set-Content -Path $starterVbs -Value $vbs -Encoding ASCII
+}
+
+function Register-LocalSignerProtocol {
+    $protocolRoot = "HKCU:\Software\Classes\hacs-local-signer"
+    $commandKey = Join-Path $protocolRoot "shell\open\command"
+    $wscriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
+    $command = "`"$wscriptExe`" `"$starterVbs`" `"%1`""
+
+    New-Item -Path $commandKey -Force | Out-Null
+    Set-Item -Path $protocolRoot -Value "URL:HACS Local Signer Protocol"
+    New-ItemProperty -Path $protocolRoot -Name "URL Protocol" -Value "" -PropertyType String -Force | Out-Null
+    Set-Item -Path $commandKey -Value $command
+}
+
 Write-Host ""
 Write-Host "HACS Local Signer - Installazione Windows" -ForegroundColor Green
 Write-Host ""
@@ -51,6 +113,10 @@ if (-not $pythonCmd) {
 
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
+
+if (Test-Path $pythonScript) {
+    Write-Step "Aggiorno l'installazione locale gia' presente..."
+}
 
 Write-Step "Copio i file del Local Signer..."
 Copy-Item (Join-Path $toolsDir "local_signer.py") $pythonScript -Force
@@ -75,6 +141,12 @@ Write-Step "Aggiorno pip e installo le dipendenze..."
 & $pythonExe -m pip install --quiet --upgrade pip
 & $pythonExe -m pip install --quiet -r $requirementsFile
 
+Write-Step "Preparo l'avvio contestuale da HACS..."
+Write-LocalSignerLaunchers
+
+Write-Step "Registro il protocollo locale hacs-local-signer://..."
+Register-LocalSignerProtocol
+
 Write-Step "Registro l'avvio automatico al login..."
 $action = New-ScheduledTaskAction -Execute $pythonwExe -Argument "`"$pythonScript`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
@@ -94,17 +166,27 @@ Get-Process pythonw -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
 Start-Process -WindowStyle Hidden -FilePath $pythonwExe -ArgumentList @($pythonScript)
 
-Start-Sleep -Seconds 2
+Write-Step "Attendo che il servizio risponda su 127.0.0.1:27272..."
+$online = Wait-LocalSigner
+$exitCode = 0
+if (-not $online) {
+    $exitCode = 1
+}
 
 Write-Host ""
-Write-Host "Installazione completata." -ForegroundColor Green
-Write-Host "Diagnostica locale: http://127.0.0.1:27272/diagnosi" -ForegroundColor Cyan
-
-try {
-    Start-Process "http://127.0.0.1:27272/diagnosi" | Out-Null
-} catch {
+if ($online) {
+    Write-Host "Installazione completata." -ForegroundColor Green
+    Write-Host "Il Local Signer e' attivo e raggiungibile." -ForegroundColor Green
+    Write-Host "Da ora in poi HACS puo' avviarlo automaticamente quando clicchi Cerca." -ForegroundColor Cyan
+    Write-Host "Diagnostica locale: http://127.0.0.1:27272/diagnosi" -ForegroundColor Cyan
+} else {
+    Write-Host "Installazione completata con avviso." -ForegroundColor Yellow
+    Write-Host "Il servizio non ha ancora risposto su http://127.0.0.1:27272." -ForegroundColor Yellow
+    Write-Host "Apri HACS e usa 'Avvia Local Signer', oppure esegui di nuovo questo installer." -ForegroundColor Yellow
 }
 
 if (-not $Quiet) {
     Read-Host "Premere Invio per chiudere"
 }
+
+exit $exitCode

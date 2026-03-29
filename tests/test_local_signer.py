@@ -185,6 +185,8 @@ def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
     assert "HACS Local Signer" in body
     assert "Invoke-WebRequest" in body
     assert "/polisWeb/local-signer/download" in body
+    assert "hacs-local-signer" in body
+    assert "127.0.0.1:27272/ping" in body
 
 
 def test_download_local_signer_python_e_pubblico(tmp_path):
@@ -271,3 +273,15 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "systemd/user" in body
     assert "/polisWeb/local-signer/download" in body
+
+
+def test_installer_locale_windows_registra_protocollo_e_attesa_ping():
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "tools"
+        / "installa_local_signer_locale.ps1"
+    ).read_text(encoding="utf-8")
+
+    assert "hacs-local-signer" in script
+    assert "Wait-LocalSigner" in script
+    assert "start_local_signer.cmd" in script

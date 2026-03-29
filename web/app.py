@@ -1606,6 +1606,172 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("agenda_view"))
 
+    # ---------------------------------------------------------------- Importa calendario
+
+    @app.route("/agenda/importa", methods=["GET", "POST"])
+    def importa_calendario():
+        """
+        Importazione eventi da file .ics (Google Calendar, Outlook, Apple, ecc.).
+
+        Flusso in due fasi:
+          GET  /agenda/importa              → form selezione sorgente + upload
+          POST /agenda/importa fase=upload  → parse file, mostra preview
+          POST /agenda/importa fase=importa → importa eventi selezionati
+        """
+        import json as _json
+        from pct.ical_import import parse_ics, evento_to_dict, dict_to_evento
+        from pct.agenda import TipoAppuntamento, StatoAppuntamento
+
+        fase = request.form.get("fase", "")
+
+        # ── Fase 1: upload + parsing
+        if request.method == "POST" and fase == "upload":
+            sorgente = request.form.get("sorgente", "generico")
+            file = request.files.get("file_ics")
+            if not file or not file.filename:
+                flash("Nessun file selezionato.", "warning")
+                return render_template("importa_calendario.html",
+                                       fase="upload_form", sorgente=sorgente,
+                                       oggi=date.today())
+            # Leggi contenuto
+            raw = file.read()
+            # Rileva encoding (UTF-16 usato da alcune versioni Outlook/Apple)
+            try:
+                testo = raw.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                try:
+                    testo = raw.decode("utf-16")
+                except UnicodeDecodeError:
+                    testo = raw.decode("latin-1", errors="replace")
+
+            try:
+                eventi = parse_ics(testo)
+            except Exception as e:
+                app.logger.exception("Errore parsing ICS: %s", e)
+                flash(f"Errore nell'analisi del file: {e}", "danger")
+                return render_template("importa_calendario.html",
+                                       fase="upload_form", sorgente=sorgente,
+                                       oggi=date.today())
+
+            if not eventi:
+                flash("Il file non contiene eventi validi.", "warning")
+                return render_template("importa_calendario.html",
+                                       fase="upload_form", sorgente=sorgente,
+                                       oggi=date.today())
+
+            eventi_dict = [evento_to_dict(e) for e in eventi]
+            return render_template(
+                "importa_calendario.html",
+                fase="preview",
+                sorgente=sorgente,
+                eventi=eventi,
+                eventi_json=_json.dumps(eventi_dict, ensure_ascii=False),
+                oggi=date.today(),
+            )
+
+        # ── Fase 2: importa eventi selezionati
+        if request.method == "POST" and fase == "importa":
+            import json as _json
+            sorgente = request.form.get("sorgente", "generico")
+            # Gli indici degli eventi selezionati
+            selezionati_str = request.form.getlist("sel")
+            eventi_json_str = request.form.get("eventi_json", "[]")
+
+            try:
+                tutti_eventi_dict = _json.loads(eventi_json_str)
+            except Exception:
+                flash("Errore nei dati del form. Riprova.", "danger")
+                return redirect(url_for("importa_calendario"))
+
+            selezionati_idx = set()
+            for s in selezionati_str:
+                try:
+                    selezionati_idx.add(int(s))
+                except ValueError:
+                    pass
+
+            eventi_da_importare = [
+                dict_to_evento(tutti_eventi_dict[i])
+                for i in sorted(selezionati_idx)
+                if 0 <= i < len(tutti_eventi_dict)
+            ]
+
+            if not eventi_da_importare:
+                flash("Nessun evento selezionato.", "warning")
+                return redirect(url_for("importa_calendario"))
+
+            agenda = get_agenda()
+            importati   = 0
+            saltati     = 0
+            conflitti   = 0
+            titoli_err: list = []
+
+            for ev in eventi_da_importare:
+                # Gli eventi tutto-giorno diventano appuntamenti ALTRO alle 09:00
+                if ev.tutto_giorno:
+                    data_ora_str = f"{ev.data_ora}T09:00:00"
+                    durata = min(ev.durata_minuti, 1440)  # max 1 giorno
+                else:
+                    data_ora_str = ev.data_ora
+                    durata = ev.durata_minuti
+
+                # Mappa stato iCal → stato HACS
+                if ev.stato_ical == "CANCELLED":
+                    stato = StatoAppuntamento.ANNULLATO
+                elif ev.stato_ical == "TENTATIVE":
+                    stato = StatoAppuntamento.PROGRAMMATO
+                else:
+                    stato = StatoAppuntamento.PROGRAMMATO
+
+                # Note: aggiungi info sorgente
+                note_parts = []
+                if ev.descrizione:
+                    note_parts.append(ev.descrizione)
+                if ev.organizzatore:
+                    note_parts.append(f"Organizzatore: {ev.organizzatore}")
+                if ev.rrule:
+                    note_parts.append(f"[Evento ricorrente — importata solo la prima occorrenza]")
+                note_parts.append(f"Importato da: {sorgente.capitalize()}")
+                note = "\n".join(note_parts)
+
+                try:
+                    agenda.aggiungi(
+                        titolo=ev.titolo,
+                        tipo=TipoAppuntamento.ALTRO,
+                        data_ora=data_ora_str,
+                        durata_minuti=max(durata, 1),
+                        luogo=ev.luogo,
+                        stato=stato,
+                        note=note,
+                        reminder_minuti=60,
+                    )
+                    importati += 1
+                except ValueError as e:
+                    # Conflitto di orario
+                    conflitti += 1
+                    titoli_err.append(f"{ev.titolo} ({e})")
+                except Exception as e:
+                    saltati += 1
+                    app.logger.warning("Import evento '%s': %s", ev.titolo, e)
+
+            msg_parts = [f"{importati} eventi importati con successo."]
+            if conflitti:
+                msg_parts.append(f"{conflitti} con conflitto di orario (saltati).")
+            if saltati:
+                msg_parts.append(f"{saltati} non importati per errore.")
+            flash(" ".join(msg_parts), "success" if importati else "warning")
+
+            if titoli_err:
+                flash("Conflitti: " + "; ".join(titoli_err[:5]), "warning")
+
+            return redirect(url_for("agenda_view"))
+
+        # ── GET: mostra form iniziale
+        return render_template("importa_calendario.html",
+                               fase="upload_form",
+                               sorgente="generico",
+                               oggi=date.today())
+
     # ---------------------------------------------------------------- API JSON
 
     @app.route("/api/agenda/<id_app>/sposta", methods=["POST"])

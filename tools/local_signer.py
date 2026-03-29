@@ -39,6 +39,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -62,7 +63,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.4.2"
+VERSION = "1.5.0"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -81,6 +82,10 @@ _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
 _PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP")
+_PST_QBUILDER_NAMESPACES = {
+    "JPW_SICID": "urn:CONS-SICC-BE",
+}
+_CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 
 # ── Librerie PKCS#11 candidate ─────────────────────────────────────────────────
 _DEFAULT_LIBS = [
@@ -455,6 +460,40 @@ def _require_certificato_pst(cert_thumbprint: Optional[str]) -> Optional[str]:
             "del dispositivo durante la connessione al PST."
         )
     return effective_thumbprint or None
+
+
+def _estrai_codice_fiscale_testo(valore: str) -> str:
+    match = _CF_PATTERN.search((valore or "").upper())
+    return match.group(1) if match else ""
+
+
+def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:
+    thumbprint = _certificato_windows_effettivo(cert_thumbprint).replace(" ", "").upper()
+    cached = dict(_ultimo_certificato_windows or {})
+    cached_thumb = str(cached.get("thumbprint") or "").replace(" ", "").upper()
+    if thumbprint and cached_thumb == thumbprint:
+        return cached
+    if not thumbprint and cached:
+        return cached
+    if sys.platform != "win32":
+        return cached
+    for cert in _windows_lista_certificati():
+        cert_thumb = str(cert.get("thumbprint") or "").replace(" ", "").upper()
+        if cert_thumb == thumbprint:
+            return dict(cert)
+    return cached
+
+
+def _cf_avvocato_pst(cf_avvocato: str, cert_thumbprint: Optional[str] = None) -> str:
+    explicit = _estrai_codice_fiscale_testo(cf_avvocato)
+    if explicit:
+        return explicit
+    cert = _trova_certificato_windows(cert_thumbprint)
+    for campo in ("soggetto", "emittente"):
+        resolved = _estrai_codice_fiscale_testo(str(cert.get(campo) or ""))
+        if resolved:
+            return resolved
+    return ""
 
 
 # ── PKCS#11 helpers ────────────────────────────────────────────────────────────
@@ -897,11 +936,27 @@ def _messaggio_endpoint_pst_legacy() -> str:
     )
 
 
+def _pst_servizio_proxy(base_url: str) -> str:
+    return (base_url or "").rstrip("/").split("/")[-1].strip().upper()
+
+
+def _pst_namespace_qbuilder(base_url: str) -> str:
+    return _PST_QBUILDER_NAMESPACES.get(_pst_servizio_proxy(base_url), "")
+
+
+def _pst_usa_qbuilder(base_url: str) -> bool:
+    return bool(_pst_namespace_qbuilder(base_url))
+
+
 def _pst_url_ricerca(base_url: str) -> str:
+    if _pst_usa_qbuilder(base_url):
+        return base_url.rstrip("/")
     return f"{base_url.rstrip('/')}/RicercaFascicoliRegistroService"
 
 
 def _pst_url_documenti(base_url: str) -> str:
+    if _pst_usa_qbuilder(base_url):
+        return base_url.rstrip("/")
     return f"{base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService"
 
 
@@ -1155,7 +1210,8 @@ def _estrai_fault_soap(xml_str: str) -> str:
 
 def _soap_call_curl(url: str, soap_body: str,
                     cert_thumbprint: Optional[str] = None,
-                    pkcs11_uri: Optional[str] = None) -> str:
+                    pkcs11_uri: Optional[str] = None,
+                    extra_headers: Optional[list[str]] = None) -> str:
     """
     Esegue una chiamata SOAP usando curl.
 
@@ -1190,6 +1246,8 @@ def _soap_call_curl(url: str, soap_body: str,
             "-H", 'SOAPAction: ""',
             "--data", f"@{soap_file}",
         ]
+        for header in extra_headers or []:
+            cmd.extend(["-H", header])
 
         if sys.platform == "win32":
             # Windows: Schannel usa Windows cert store → Aruba Key via Bit4id CSP
@@ -1229,6 +1287,9 @@ def _soap_call_curl(url: str, soap_body: str,
         status_code = _http_status_from_headers(headers_text)
         content_type = _http_header_value(headers_text, "Content-Type")
         if status_code and status_code >= 400:
+            fault = _estrai_fault_soap(result.stdout)
+            if fault:
+                raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             raise RuntimeError(
                 _http_errore_leggibile(status_code, result.stdout, url, content_type)
             )
@@ -1363,12 +1424,115 @@ def _pst_preflight_auth_curl(url: str,
             pass
 
 
-def _soap_ricerca_fascicoli_body(codice_ufficio: str, numero_rg: Optional[str] = None,
+def _esc(v: str) -> str:
+    return (v.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+              .replace('"', "&quot;").replace("'", "&apos;"))
+
+
+def _strip_namespaces(root: ET.Element) -> ET.Element:
+    for el in root.iter():
+        if "}" in el.tag:
+            el.tag = el.tag.split("}", 1)[1]
+    return root
+
+
+def _soap_qbuilder_envelope(namespace: str, body_inner: str, *, role: str, group: str) -> str:
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+  <soapenv:Header>
+    <ws:InvocationDomain name="JPW" role="{_esc(role)}" group="{_esc(group)}"
+        soapenv:mustUnderstand="1"
+        soapenv:actor="http://schemas.xmlsoap.org/soap/actor/next"
+        xmlns:ws="http://www.netserv.it/anag/security"/>
+  </soapenv:Header>
+  <soapenv:Body>
+    {body_inner}
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+
+def _soap_qbuilder_execute_body(
+    namespace: str,
+    service_name: str,
+    values: list[tuple[str, str, str]],
+    *,
+    role: str,
+    group: str,
+    order_entries: Optional[list[tuple[str, str]]] = None,
+    empty_order: bool = False,
+) -> str:
+    values_xml = "".join(
+        f'<value name="{_esc(name)}" type="{_esc(value_type)}">{_esc(str(value))}</value>'
+        for name, value_type, value in values
+        if value not in ("", None)
+    )
+    order_xml = ""
+    if order_entries:
+        entries = "".join(
+            f'<entry property="{_esc(prop)}" mode="{_esc(mode)}"/>'
+            for prop, mode in order_entries
+        )
+        order_xml = f"<orderBy>{entries}</orderBy>"
+    elif empty_order:
+        order_xml = "<orderBy/>"
+    body_inner = (
+        f'<execute xmlns="{_esc(namespace)}">'
+        f"<name>{_esc(service_name)}</name>"
+        f"<valueSet>{values_xml}</valueSet>"
+        f"{order_xml}"
+        f"</execute>"
+    )
+    return _soap_qbuilder_envelope(namespace, body_inner, role=role, group=group)
+
+
+def _parte_ricerca_qbuilder(nome_parte: Optional[str], cf_parte: Optional[str]) -> str:
+    testo = " ".join((nome_parte or "").split()).strip()
+    if testo:
+        return testo.split()[0].upper()
+    cf_clean = _estrai_codice_fiscale_testo(cf_parte or "")
+    return cf_clean[:6] if cf_clean else ""
+
+
+def _soap_ricerca_fascicoli_body(base_url: str, codice_ufficio: str, numero_rg: Optional[str] = None,
                                   anno_rg: Optional[int] = None,
                                   nome_parte: Optional[str] = None,
                                   cf_parte: Optional[str] = None,
                                   cf_avvocato: str = "") -> str:
-    """Costruisce il body SOAP per RicercaFascicoliRegistro."""
+    """Costruisce il body SOAP per RicercaFascicoliRegistro o qbuilder SICID."""
+    namespace = _pst_namespace_qbuilder(base_url)
+    if namespace:
+        if numero_rg and anno_rg:
+            numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+            return _soap_qbuilder_execute_body(
+                namespace,
+                "RicercaInformazioniFascicoloPerTipo",
+                [
+                    ("idUfficio", "string", codice_ufficio),
+                    ("tipo", "string", "RGN"),
+                    ("numero", "integer", numero_value),
+                    ("anno", "string", str(anno_rg)),
+                ],
+                role="AVV",
+                group=codice_ufficio,
+                order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+            )
+        parte = _parte_ricerca_qbuilder(nome_parte, cf_parte)
+        if not parte:
+            raise RuntimeError(
+                "Per la ricerca per parte sul registro civile indicare almeno il cognome o il nome della parte."
+            )
+        return _soap_qbuilder_execute_body(
+            namespace,
+            "RicercaInformazioniFascicoloPerPartiGiudiceDate",
+            [
+                ("idUfficio", "string", codice_ufficio),
+                ("parte", "string", parte),
+            ],
+            role="AVV",
+            group=codice_ufficio,
+            order_entries=[("ANNORUOLO, NUMERORUOLO", "asc")],
+        )
+
     def tag(name, value):
         if value:
             return f"<{name}>{_esc(str(value))}</{name}>"
@@ -1395,9 +1559,28 @@ def _soap_ricerca_fascicoli_body(codice_ufficio: str, numero_rg: Optional[str] =
 </soapenv:Envelope>"""
 
 
-def _soap_documenti_body(codice_ufficio: str, numero_rg: str,
-                          anno_rg: int, cf_avvocato: str = "") -> str:
-    """Costruisce il body SOAP per ConsultazioneAvanzataDocumenti."""
+def _soap_documenti_body(base_url: str, codice_ufficio: str, numero_rg: str,
+                          anno_rg: int, cf_avvocato: str = "", sub_procedimento: str = "") -> str:
+    """Costruisce il body SOAP per ConsultazioneAvanzataDocumenti o qbuilder SICID."""
+    namespace = _pst_namespace_qbuilder(base_url)
+    if namespace:
+        numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+        values = [
+            ("idUfficio", "string", codice_ufficio),
+            ("anno", "string", str(anno_rg)),
+            ("numero", "string", numero_value),
+        ]
+        if sub_procedimento:
+            values.append(("subpro", "string", sub_procedimento))
+        return _soap_qbuilder_execute_body(
+            namespace,
+            "DocumentiFascicolo",
+            values,
+            role="AVV",
+            group=codice_ufficio,
+            order_entries=[("DATADEPOSITO", "desc")],
+        )
+
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
                   xmlns:pst="http://it.giustizia.pst.service">
@@ -1413,20 +1596,162 @@ def _soap_documenti_body(codice_ufficio: str, numero_rg: str,
 </soapenv:Envelope>"""
 
 
-def _esc(v: str) -> str:
-    return (v.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-              .replace('"', "&quot;").replace("'", "&apos;"))
+def _soap_profilo_fascicolo_body(base_url: str, codice_ufficio: str, numero_rg: str,
+                                 anno_rg: int, sub_procedimento: str = "") -> str:
+    namespace = _pst_namespace_qbuilder(base_url)
+    if not namespace:
+        return ""
+    numero_value = str(int(str(numero_rg).strip())) if str(numero_rg).strip().isdigit() else str(numero_rg).strip()
+    values = [
+        ("idUfficio", "string", codice_ufficio),
+        ("anno", "string", str(anno_rg)),
+        ("numero", "string", numero_value),
+        ("fascPrecedente", "boolean", "false"),
+        ("scadTermini", "boolean", "false"),
+    ]
+    if sub_procedimento:
+        values.append(("subpro", "string", sub_procedimento))
+    return _soap_qbuilder_execute_body(
+        namespace,
+        "ProfiloFascicolo",
+        values,
+        role="AVV",
+        group=codice_ufficio,
+        empty_order=True,
+    )
+
+
+def _parse_qbuilder_row(row_el: ET.Element) -> dict:
+    row: dict = {"__class": row_el.get("class", "")}
+    for prop in row_el.findall("property"):
+        nome = (prop.get("name") or "").strip()
+        if nome:
+            row[nome] = (prop.text or "").strip()
+    subrows: dict[str, list[dict]] = {}
+    for sub in row_el.findall("subRows"):
+        sub_class = (sub.get("class") or "").strip() or "row"
+        rows = [_parse_qbuilder_row(child) for child in sub.findall("row")]
+        if rows:
+            subrows[sub_class] = rows
+    if subrows:
+        row["__subrows"] = subrows
+    return row
+
+
+def _parse_qbuilder_row_list(xml_str: str) -> list[dict]:
+    root = _strip_namespaces(ET.fromstring(_normalizza_xml_pst(xml_str)))
+    ritorno = next(root.iter("return"), None)
+    if ritorno is None:
+        return []
+    return [_parse_qbuilder_row(child) for child in list(ritorno) if child.tag == "row"]
+
+
+def _qbuilder_numero_rg(valore: str) -> str:
+    testo = (valore or "").strip()
+    if not testo:
+        return ""
+    try:
+        return str(int(testo))
+    except ValueError:
+        return testo.lstrip("0") or testo
+
+
+def _qbuilder_tipo_documento(valore: str) -> str:
+    testo = (valore or "").strip()
+    if ":" in testo:
+        testo = testo.rsplit(":", 1)[-1]
+    if "}" in testo:
+        testo = testo.split("}", 1)[-1]
+    if testo in {"", "%", "*"}:
+        return "Documento"
+    return testo
+
+
+def _qbuilder_parti_dettaglio(row: dict) -> list[dict]:
+    dettaglio = []
+    for parte in (row.get("__subrows") or {}).get("InfoParte", []):
+        nome = " ".join(
+            chunk for chunk in [str(parte.get("COGNOME") or "").strip(), str(parte.get("NOME") or "").strip()]
+            if chunk
+        )
+        dettaglio.append({
+            "nome": nome,
+            "tipo": str(parte.get("TIPO") or "").strip(),
+            "codice_fiscale": str(parte.get("CODICEFISCALEPARTE") or "").strip(),
+            "avvocato": str(parte.get("AVVOCATO") or "").strip(),
+            "cf_avvocato": str(parte.get("CODICEFISCALEAVVOCATO") or "").strip(),
+        })
+    return dettaglio
+
+
+def _map_qbuilder_fascicolo(row: dict) -> dict:
+    parti_dettaglio = _qbuilder_parti_dettaglio(row)
+    codice_ufficio = str(row.get("IDUFFICIO") or "").strip()
+    ufficio = _risolvi_ufficio_da_snapshot(codice_ufficio)
+    return {
+        "id_fascicolo": str(row.get("IDFASCICOLO") or "").strip(),
+        "numero_rg": _qbuilder_numero_rg(str(row.get("NUMERORUOLO") or row.get("NUMERO") or "")),
+        "anno_rg": int(str(row.get("ANNORUOLO") or row.get("ANNO") or 0) or 0),
+        "ruolo": str(row.get("DESCRUOLO") or row.get("RITO") or "").strip(),
+        "stato": str(row.get("DESCSTATO") or row.get("STATO") or "").strip(),
+        "oggetto": str(row.get("DESCOGGETTO") or "").strip(),
+        "sezione": str(row.get("DESCSEZIONE") or row.get("SEZIONE") or "").strip(),
+        "giudice": str(row.get("GIUDICE") or "").strip(),
+        "data_iscrizione": str(row.get("DATAISCRIZIONE") or "").strip(),
+        "data_udienza": str(row.get("DATAUDIENZA") or row.get("DATAPRIMACOMPARIZIONE") or row.get("DATAULTIMAUDIENZA") or "").strip(),
+        "codice_ufficio": codice_ufficio,
+        "nome_ufficio": str((ufficio or {}).get("nome") or "").strip(),
+        "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        "parti": [parte["nome"] for parte in parti_dettaglio if parte.get("nome")],
+        "parti_dettaglio": parti_dettaglio,
+    }
+
+
+def _map_qbuilder_documento(row: dict) -> dict:
+    tipo = _qbuilder_tipo_documento(str(row.get("TIPO") or ""))
+    numero_doc = _qbuilder_numero_rg(str(row.get("NUMERODOCUMENTO") or row.get("IDDOCUMENTO") or ""))
+    id_deposito = str(row.get("IDDOCMITTENTE") or "").strip()
+    if id_deposito.startswith("#"):
+        id_deposito = ""
+    return {
+        "id_documento": str(row.get("IDDOCUMENTO") or "").strip(),
+        "nome": f"{tipo}_{numero_doc}.pdf" if numero_doc else tipo,
+        "tipo": tipo,
+        "data_deposito": str(row.get("DATADEPOSITO") or "").strip(),
+        "mittente": str(row.get("AUTORE") or "").strip(),
+        "dimensione_bytes": 0,
+        "id_deposito": id_deposito,
+        "tipo_atto": tipo,
+        "disponibile": str(row.get("STATO") or "").strip().lower() != "non_disponibile",
+        "stato": str(row.get("STATO") or "").strip(),
+        "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
+    }
+
+
+def _matches_parte_filters(fascicolo: dict, nome_parte: str = "", cf_parte: str = "") -> bool:
+    nome_tokens = [token for token in _normalizza_testo_ufficio(nome_parte).split() if token]
+    cf_clean = _estrai_codice_fiscale_testo(cf_parte or "")
+    if not nome_tokens and not cf_clean:
+        return True
+    for parte in fascicolo.get("parti_dettaglio", []):
+        parte_nome = _normalizza_testo_ufficio(str(parte.get("nome") or ""))
+        parte_cf = _estrai_codice_fiscale_testo(str(parte.get("codice_fiscale") or ""))
+        if cf_clean and parte_cf != cf_clean:
+            continue
+        if nome_tokens and not all(token in parte_nome for token in nome_tokens):
+            continue
+        return True
+    return False
 
 
 def _parse_fascicoli_xml(xml_str: str) -> list[dict]:
-    """Parsa la risposta SOAP RicercaFascicoliRegistro."""
+    """Parsa la risposta SOAP RicercaFascicoliRegistro o qbuilder."""
     try:
-        root = ET.fromstring(_normalizza_xml_pst(xml_str))
-        # Rimuovi namespace per semplicità
-        for el in root.iter():
-            if "}" in el.tag:
-                el.tag = el.tag.split("}")[1]
+        xml_clean = _normalizza_xml_pst(xml_str)
+        if "rowListType" in xml_clean or "InfoFascicoloExt" in xml_clean or "ProfiloFascicolo" in xml_clean:
+            return [_map_qbuilder_fascicolo(row) for row in _parse_qbuilder_row_list(xml_clean)]
 
+        root = _strip_namespaces(ET.fromstring(xml_clean))
         fascicoli = []
         for item in root.iter("fascicolo"):
             def _t(tag):
@@ -1454,13 +1779,13 @@ def _parse_fascicoli_xml(xml_str: str) -> list[dict]:
 
 
 def _parse_documenti_xml(xml_str: str) -> list[dict]:
-    """Parsa la risposta SOAP ConsultazioneAvanzataDocumenti."""
+    """Parsa la risposta SOAP ConsultazioneAvanzataDocumenti o qbuilder."""
     try:
-        root = ET.fromstring(_normalizza_xml_pst(xml_str))
-        for el in root.iter():
-            if "}" in el.tag:
-                el.tag = el.tag.split("}")[1]
+        xml_clean = _normalizza_xml_pst(xml_str)
+        if "rowListType" in xml_clean or "DocumentoFascicolo" in xml_clean:
+            return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_clean)]
 
+        root = _strip_namespaces(ET.fromstring(xml_clean))
         documenti = []
         for item in root.iter("documento"):
             def _t(tag):
@@ -1482,6 +1807,51 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
     except Exception as e:
         log.warning("_parse_documenti_xml: %s", e)
         return []
+
+
+def _arricchisci_fascicoli_con_profilo(
+    fascicoli: list[dict],
+    *,
+    base_url: str,
+    cert_thumbprint: Optional[str],
+    cf_avvocato: str,
+) -> list[dict]:
+    if not _pst_namespace_qbuilder(base_url):
+        return fascicoli
+    if not fascicoli or len(fascicoli) > 5:
+        return fascicoli
+    headers = [f"X-WASP-User: {cf_avvocato}"]
+    for fascicolo in fascicoli:
+        soap = _soap_profilo_fascicolo_body(
+            base_url=base_url,
+            codice_ufficio=str(fascicolo.get("codice_ufficio") or "").strip(),
+            numero_rg=str(fascicolo.get("numero_rg") or "").strip(),
+            anno_rg=int(fascicolo.get("anno_rg") or 0),
+            sub_procedimento=str(fascicolo.get("sub_procedimento") or "").strip(),
+        )
+        if not soap:
+            continue
+        try:
+            xml_resp = _soap_call_curl(
+                url=base_url.rstrip("/"),
+                soap_body=soap,
+                cert_thumbprint=cert_thumbprint,
+                extra_headers=headers,
+            )
+            profili = _parse_fascicoli_xml(xml_resp)
+            if not profili:
+                continue
+            profilo = profili[0]
+            for campo in ("ruolo", "stato", "oggetto", "sezione", "giudice", "data_iscrizione", "data_udienza"):
+                if profilo.get(campo):
+                    fascicolo[campo] = profilo[campo]
+            if profilo.get("parti"):
+                fascicolo["parti"] = profilo["parti"]
+                fascicolo["parti_dettaglio"] = profilo.get("parti_dettaglio", [])
+        except Exception as e:
+            log.debug("Arricchimento ProfiloFascicolo fallito per %s/%s: %s",
+                      fascicolo.get("numero_rg"), fascicolo.get("anno_rg"), e)
+    return fascicoli
 
 
 # ── HTTP Handler ────────────────────────────────────────────────────────────────
@@ -1984,32 +2354,56 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            url_ricerca = _pst_url_ricerca(_risolvi_base_pst_runtime(tribunale))
+            base_url = _risolvi_base_pst_runtime(tribunale)
+            url_ricerca = _pst_url_ricerca(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
         except Exception as e:
             self._send_json({"ok": False, "errore": str(e)}, 503)
             return
 
-        soap = _soap_ricerca_fascicoli_body(
-            codice_ufficio=codice_pst,
-            numero_rg=data.get("numero_rg") or None,
-            anno_rg=int(data.get("anno_rg") or 0) or None,
-            nome_parte=data.get("nome_parte") or None,
-            cf_parte=data.get("cf_parte") or None,
-            cf_avvocato=data.get("cf_avvocato", ""),
-        )
-
         try:
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            if _pst_namespace_qbuilder(base_url) and not cf_avvocato:
+                raise RuntimeError(
+                    "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
+                    "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
+                )
+            soap = _soap_ricerca_fascicoli_body(
+                base_url=base_url,
+                codice_ufficio=codice_pst,
+                numero_rg=data.get("numero_rg") or None,
+                anno_rg=int(data.get("anno_rg") or 0) or None,
+                nome_parte=data.get("nome_parte") or None,
+                cf_parte=data.get("cf_parte") or None,
+                cf_avvocato=cf_avvocato,
+            )
+            extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             xml_resp = _soap_call_curl(
                 url=url_ricerca,
                 soap_body=soap,
                 cert_thumbprint=cert_thumbprint,
+                extra_headers=extra_headers,
             )
             fault = _estrai_fault_soap(xml_resp)
             if fault:
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             fascicoli = _parse_fascicoli_xml(xml_resp)
+            if _pst_namespace_qbuilder(base_url) and not (data.get("numero_rg") and data.get("anno_rg")):
+                fascicoli = [
+                    fascicolo for fascicolo in fascicoli
+                    if _matches_parte_filters(
+                        fascicolo,
+                        nome_parte=data.get("nome_parte", ""),
+                        cf_parte=data.get("cf_parte", ""),
+                    )
+                ]
+            fascicoli = _arricchisci_fascicoli_con_profilo(
+                fascicoli,
+                base_url=base_url,
+                cert_thumbprint=cert_thumbprint,
+                cf_avvocato=cf_avvocato,
+            )
             self._send_json({
                 "ok": True,
                 "fascicoli": fascicoli,
@@ -2045,25 +2439,35 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            url_documenti = _pst_url_documenti(_risolvi_base_pst_runtime(codice))
+            base_url = _risolvi_base_pst_runtime(codice)
+            url_documenti = _pst_url_documenti(base_url)
             codice_pst = _risolvi_codice_ufficio_pst(codice)
         except Exception as e:
             self._send_json({"ok": False, "errore": str(e)}, 503)
             return
 
-        soap = _soap_documenti_body(
-            codice_ufficio=codice_pst,
-            numero_rg=rg,
-            anno_rg=anno,
-            cf_avvocato=data.get("cf_avvocato", ""),
-        )
-
         try:
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            if _pst_namespace_qbuilder(base_url) and not cf_avvocato:
+                raise RuntimeError(
+                    "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
+                    "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
+                )
+            soap = _soap_documenti_body(
+                base_url=base_url,
+                codice_ufficio=codice_pst,
+                numero_rg=rg,
+                anno_rg=anno,
+                cf_avvocato=cf_avvocato,
+                sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
+            )
+            extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
             xml_resp = _soap_call_curl(
                 url=url_documenti,
                 soap_body=soap,
                 cert_thumbprint=cert_thumbprint,
+                extra_headers=extra_headers,
             )
             fault = _estrai_fault_soap(xml_resp)
             if fault:

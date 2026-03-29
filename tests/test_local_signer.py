@@ -56,7 +56,7 @@ def test_local_signer_risolve_proxy_pst_dal_codice_hacs():
     url = module._pst_url_ricerca(base)
 
     assert base.endswith("/pda/pycons/GLMI/JPW_SICID")
-    assert url.endswith("/pda/pycons/GLMI/JPW_SICID/RicercaFascicoliRegistroService")
+    assert url == base
     assert module._risolvi_codice_ufficio_pst("0580010") == "0151460094"
 
 
@@ -96,7 +96,7 @@ def test_http_401_pst_diventa_messaggio_operativo():
     msg = module._http_errore_leggibile(
         401,
         "<html><title>401 Unauthorized</title></html>",
-        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
         "text/html; charset=iso-8859-1",
     )
 
@@ -144,7 +144,7 @@ def test_preflight_auth_accetta_http_405_come_handshake_valido():
 
         module.subprocess.run = _fake_run
         esito = module._pst_preflight_auth_curl(
-            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
             cert_thumbprint="AABBCC11",
         )
     finally:
@@ -164,7 +164,7 @@ def test_preflight_auth_timeout_non_blocca_la_ricerca_reale():
 
         module.subprocess.run = _fake_run
         esito = module._pst_preflight_auth_curl(
-            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+            "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
             cert_thumbprint="AABBCC11",
         )
     finally:
@@ -180,7 +180,7 @@ def test_messaggio_timeout_usa_il_timeout_reale_della_ricerca():
     msg = module._curl_errore_leggibile(
         28,
         "",
-        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID/RicercaFascicoliRegistroService",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
         timeout_sec=90,
     )
 
@@ -202,6 +202,86 @@ def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
 
     assert module._require_certificato_pst(None) == "AABBCC11"
     assert module._require_certificato_pst("FFEEDD22") == "FFEEDD22"
+
+
+def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
+    module = _load_local_signer()
+
+    base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+
+    assert module._pst_servizio_proxy(base) == "JPW_SICID"
+    assert module._pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
+    assert module._pst_url_documenti(base) == base
+
+
+def test_estrai_codice_fiscale_dal_certificato_windows():
+    module = _load_local_signer()
+
+    module._ultimo_certificato_windows = {
+        "thumbprint": "AABBCC11",
+        "soggetto": "MNTRRT64L01L063H/7430010029148677.255hHgKCPtfSkIn6w4MBTjOX0QQ=",
+    }
+
+    assert module._estrai_codice_fiscale_testo("MNTRRT64L01L063H/123") == "MNTRRT64L01L063H"
+    assert module._cf_avvocato_pst("", "AABBCC11") == "MNTRRT64L01L063H"
+
+
+def test_costruisce_body_qbuilder_ricerca_per_tipo():
+    module = _load_local_signer()
+
+    xml = module._soap_ricerca_fascicoli_body(
+        base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        codice_ufficio="0800570094",
+        numero_rg="1025",
+        anno_rg=2024,
+        cf_avvocato="MNTRRT64L01L063H",
+    )
+
+    assert 'InvocationDomain name="JPW" role="AVV" group="0800570094"' in xml
+    assert '<execute xmlns="urn:CONS-SICC-BE">' in xml
+    assert "<name>RicercaInformazioniFascicoloPerTipo</name>" in xml
+    assert '<value name="tipo" type="string">RGN</value>' in xml
+    assert '<entry property="ANNORUOLO, NUMERORUOLO" mode="asc"/>' in xml
+
+
+def test_parse_qbuilder_fascicoli_xml():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" time="2026-03-29 18:51:21" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="InfoFascicoloExt"><ns2:property name="IDFASCICOLO" type="string">172944</ns2:property><ns2:property name="IDUFFICIO" type="string">0800570094</ns2:property><ns2:property name="ANNORUOLO" type="long">2024</ns2:property><ns2:property name="NUMERORUOLO" type="string">00001025</ns2:property><ns2:property name="GIUDICE" type="string">GIOVANNELLA</ns2:property><ns2:property name="ATTOREPRINCIPALE" type="string">MONTAGNESE ELISABETTA</ns2:property><ns2:subRows class="InfoParte"><ns2:row><ns2:property name="COGNOME" type="string">STILLITANO</ns2:property><ns2:property name="NOME" type="string">FRANCESCO</ns2:property><ns2:property name="CODICEFISCALEPARTE" type="string">STLFNC45E26L063X</ns2:property></ns2:row></ns2:subRows></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicoli = module._parse_fascicoli_xml(xml)
+
+    assert len(fascicoli) == 1
+    assert fascicoli[0]["numero_rg"] == "1025"
+    assert fascicoli[0]["anno_rg"] == 2024
+    assert fascicoli[0]["codice_ufficio"] == "0800570094"
+    assert fascicoli[0]["parti"] == ["STILLITANO FRANCESCO"]
+    assert fascicoli[0]["parti_dettaglio"][0]["codice_fiscale"] == "STLFNC45E26L063X"
+
+
+def test_parse_qbuilder_documenti_xml():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" time="2026-03-29 18:52:17" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="DocumentoFascicolo"><ns2:property name="IDUFFICIO" type="string">0800570094</ns2:property><ns2:property name="IDDOCUMENTO" type="string">33581101</ns2:property><ns2:property name="IDDOCMITTENTE" type="string">#DOCIDMITTENTE</ns2:property><ns2:property name="TIPO" type="string">{http://schemi.processotelematico.giustizia.it/sicid/magistrato/Sentenza/v3}:SentenzaDefinitiva</ns2:property><ns2:property name="STATO" type="string">depositato</ns2:property><ns2:property name="AUTORE" type="string">GIOVANNELLA MARIA ELENA</ns2:property><ns2:property name="NUMERODOCUMENTO" type="string">33581101</ns2:property><ns2:property name="DATADEPOSITO" type="date">08/01/2026 18:55:28.000</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    documenti = module._parse_documenti_xml(xml)
+
+    assert len(documenti) == 1
+    assert documenti[0]["id_documento"] == "33581101"
+    assert documenti[0]["tipo"] == "SentenzaDefinitiva"
+    assert documenti[0]["tipo_atto"] == "SentenzaDefinitiva"
+    assert documenti[0]["id_deposito"] == ""
+    assert documenti[0]["mittente"] == "GIOVANNELLA MARIA ELENA"
 
 
 def test_trova_libreria_prefers_candidate_with_detected_token():

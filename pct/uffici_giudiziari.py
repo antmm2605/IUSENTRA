@@ -1045,8 +1045,9 @@ class GestoreUfficiGiudiziari:
 
         Auto-upgrade: se la cache su disco ha meno uffici del bundle interno
         (es. dopo un aggiornamento del codice che aggiunge nuovi uffici), oppure
-        se una cache generata dal bundle contiene dati non allineati al bundle
-        corrente, la cache viene automaticamente rigenerata dal bundle aggiornato.
+        se la cache è stata generata da una release precedente con un bundle hash
+        diverso dal corrente, la cache viene automaticamente rigenerata dal bundle
+        aggiornato.
         """
         if self._mem is not None:
             return self._mem
@@ -1054,19 +1055,23 @@ class GestoreUfficiGiudiziari:
         bundle = _build_bundle_completo()
         meta = self._leggi_meta() if da_file is not None else {}
         bundle_hash = _uffici_hash(bundle)
-        cache_bundle_non_allineata = (
+        cache_non_allineata_al_bundle = (
             da_file is not None
-            and meta.get("sorgente") == "bundle"
             and meta.get("bundle_hash") != bundle_hash
         )
-        if da_file and len(da_file) >= len(bundle) and not cache_bundle_non_allineata:
+        if da_file and len(da_file) >= len(bundle) and not cache_non_allineata_al_bundle:
             # La cache è completa o più aggiornata del bundle → usala
             self._mem = da_file
         else:
             # Cache assente o meno completa del bundle → rigenera
             if da_file is not None:
-                if cache_bundle_non_allineata:
-                    log.info("Auto-upgrade cache uffici: bundle_hash cambiato → rigenero")
+                if cache_non_allineata_al_bundle:
+                    log.info(
+                        "Auto-upgrade cache uffici: bundle_hash cache=%s bundle=%s sorgente=%s → rigenero",
+                        meta.get("bundle_hash", "—"),
+                        bundle_hash,
+                        meta.get("sorgente", "—"),
+                    )
                 else:
                     log.info(
                         "Auto-upgrade cache uffici: %d (cache) < %d (bundle) → rigenero",

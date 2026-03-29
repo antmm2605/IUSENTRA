@@ -68,7 +68,7 @@ def test_palmi_usa_il_distretto_reggio_calabria(client):
     ufficio = client.cerca_ufficio_giudiziario("PALMI")
     assert ufficio is not None
     assert ufficio.codice == "0910011"
-    assert ufficio.distretto == "Reggio Calabria"
+    assert ufficio.distretto == "Reggio di Calabria"
 
 
 def test_riferimenti_ministeriali_ufficio_milano():
@@ -115,5 +115,36 @@ def test_cache_bundle_legacy_viene_rigenerata_se_il_bundle_cambia(tmp_path):
     palmi = next(u for u in uffici if u.get("codice") == "0910011")
     reggio = next(u for u in uffici if u.get("codice") == "0910010")
 
-    assert palmi["distretto"] == "Reggio Calabria"
-    assert reggio["distretto"] == "Reggio Calabria"
+    assert palmi["distretto"] == "Reggio di Calabria"
+    assert reggio["distretto"] == "Reggio di Calabria"
+
+
+def test_cache_remota_legacy_viene_rigenerata_se_bundle_hash_diverso(tmp_path):
+    bundle = _build_bundle_completo()
+    cache_path = tmp_path / "uffici_giudiziari.json"
+    cache_legacy = []
+    for ufficio in bundle:
+        if ufficio.get("codice") == "0910011":
+            cache_legacy.append({**ufficio, "distretto": "Catanzaro"})
+        else:
+            cache_legacy.append(ufficio)
+    cache_path.write_text(
+        json.dumps(
+            {
+                "sorgente": "pst_public",
+                "aggiornato_il": "2026-03-01T09:00:00",
+                "n_uffici": len(cache_legacy),
+                "bundle_hash": "legacy-bundle-hash",
+                "uffici": cache_legacy,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    gestore = GestoreUfficiGiudiziari(str(cache_path))
+    uffici = gestore.carica()
+    palmi = next(u for u in uffici if u.get("codice") == "0910011")
+
+    assert palmi["distretto"] == "Reggio di Calabria"

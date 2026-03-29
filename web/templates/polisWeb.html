@@ -72,20 +72,67 @@
   </div>
   {% endif %}
 
+  {# ── Banner Local Signer (JS lo mostra/nasconde in base a localhost:27272) ── #}
+  {# Sempre presente nell'HTML, inizialmente nascosto. JS gestisce la visibilità. #}
+  <div class="alert alert-info alert-dismissible fade show small mb-3 d-none" id="banner-local-signer">
+    <div class="d-flex align-items-start gap-2">
+      <i class="bi bi-usb-symbol fs-5 flex-shrink-0 mt-1"></i>
+      <div class="flex-grow-1">
+        <div id="ls-status-detecting" style="display:none">
+          <div class="spinner-border spinner-border-sm text-info me-2"></div>
+          <span>Verifica Local Signer…</span>
+        </div>
+        <div id="ls-status-ok" style="display:none">
+          <strong class="text-success"><i class="bi bi-check-circle me-1"></i>Local Signer attivo</strong>
+          — Token o smart card CNS/CIE rilevati. La ricerca sarà eseguita dal tuo PC con autenticazione mTLS.
+          <div class="mt-1 small" id="ls-token-label"></div>
+        </div>
+        <div id="ls-status-notoken" style="display:none">
+          <strong class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Local Signer attivo — problema token.</strong>
+          <span id="ls-errore-msg" class="ms-1"></span>
+          <div class="mt-1 d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-warning" onclick="verificaLocalSigner()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Riprova
+            </button>
+            <a href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noopener"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-stethoscope me-1"></i>Diagnostica
+            </a>
+          </div>
+        </div>
+        <div id="ls-status-missing" style="display:none">
+          <strong class="text-secondary"><i class="bi bi-pc-display-horizontal me-1"></i>Local Signer non attivo.</strong>
+          Installa il servizio locale in avvio automatico oppure verifica che sia già in esecuzione sul PC.
+          <div class="mt-1 d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('polis_local_signer_installa') }}" download
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-download me-1"></i>Installa servizio
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="verificaLocalSigner()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Riprova
+            </button>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="alert"></button>
+    </div>
+  </div>
+
+  {# ── Banner demo (nascosto se Local Signer disponibile) ── #}
   {% if demo_mode %}
-  <div class="alert alert-warning alert-dismissible fade show small mb-3">
+  <div class="alert alert-warning alert-dismissible fade show small mb-3" id="banner-demo">
     <i class="bi bi-cone me-2"></i>
     <strong>Certificato non configurato — modalità demo (offline).</strong>
     I risultati mostrati sono dati di esempio.
     Per accedere al PST reale configurare il certificato in
     <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
-    oppure nel file <code>.env</code>.
-    <a href="{{ url_for('guida_firma_digitale') }}" class="alert-link ms-2">
-      <i class="bi bi-book me-1"></i>Leggi la guida completa
-    </a>
+    oppure nel file <code>.env</code> — oppure installare il
+    <a href="{{ url_for('polis_local_signer_installa') }}" class="alert-link" download><strong>Local Signer automatico</strong></a>
+    come servizio locale in avvio automatico.
     <ul class="mb-0 mt-1">
-      <li><strong>P12/PFX</strong> (file unico): <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
-      <li><strong>PEM</strong> (cert + chiave separati): <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code> [+ <code>PCT_FIRMA_KEY_PASSWORD</code>]</li>
+      <li><strong>P12/PFX</strong>: <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
+      <li><strong>PEM</strong>: <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code></li>
+      <li><strong>Local Signer</strong> (Windows): installazione automatica da <code>/polisWeb</code>, avvio al login</li>
     </ul>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
@@ -99,7 +146,19 @@
     {% endfor %}
   {% endwith %}
 
-  {# ---- Form ricerca ---- #}
+  {# ---- Pulsante wizard PST (sempre visibile, JS lo attiva quando LS disponibile) ---- #}
+  <div class="d-flex align-items-center gap-2 mb-3" id="pst-wizard-bar" style="display:none!important">
+    <button type="button" class="btn btn-primary"
+            id="btn-apri-wizard-pst" onclick="apriWizardPst()">
+      <i class="bi bi-usb-symbol me-2"></i>Importa pratiche dal PST
+    </button>
+    <span class="badge bg-success" id="badge-ls-attivo" style="display:none">
+      <i class="bi bi-check-circle me-1"></i>Local Signer attivo
+    </span>
+    <span class="text-muted small" id="lbl-ls-token"></span>
+  </div>
+
+  {# ---- Form ricerca (demo / P12 / PEM) ---- #}
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <i class="bi bi-search text-primary"></i>Ricerca pratiche nel registro del tribunale
@@ -183,9 +242,18 @@
                    min="2000" max="{{ oggi.year }}"
                    value="{{ anno_rg or '' }}">
           </div>
-          <div class="col-md-3 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">
+          {# I pulsanti sono sempre nell'HTML; JS mostra/nasconde in base a Local Signer #}
+          <div class="col-md-3 d-flex align-items-end flex-column gap-1">
+            <button type="submit" id="btn-cerca-demo"
+                    class="btn btn-primary w-100"
+                    title="Cerca (demo offline)">
               <i class="bi bi-search me-1"></i>Cerca
+            </button>
+            <button type="button" id="btn-cerca-pst"
+                    class="btn btn-success w-100 d-none"
+                    onclick="cercaSuPst()"
+                    title="Cerca nel PST reale via Local Signer">
+              <i class="bi bi-usb-symbol me-1"></i>Cerca su PST
             </button>
           </div>
           <div class="col-md-5">
@@ -365,6 +433,362 @@
       </div>
     </div>
   </div>
+
+{# ════════════════════════════════════════════════════════
+   MODAL WIZARD PST — "Importa pratiche dal PST"
+   4 step: Setup · Parametri · Certificato · Risultati
+════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="modalWizardPst" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content" style="min-height:520px;display:flex;flex-direction:column">
+
+      {# ── Header con step indicator ── #}
+      <div class="modal-header py-3" style="background:linear-gradient(135deg,#1a3a6b 0%,#2563eb 100%)">
+        <div class="d-flex align-items-center gap-3 w-100">
+          <div>
+            <div class="text-white fw-bold fs-6" id="wiz-step-title">Passaggio 1</div>
+            <div class="text-white-50 small" id="wiz-step-sub">Parametri di ricerca</div>
+          </div>
+          <div class="ms-auto d-flex gap-1">
+            <span class="badge rounded-pill px-2 py-1" id="wiz-dot-1"
+                  style="background:rgba(255,255,255,.9);color:#1a3a6b;font-size:.7rem">1</span>
+            <span class="badge rounded-pill px-2 py-1" id="wiz-dot-2"
+                  style="background:rgba(255,255,255,.3);color:#fff;font-size:.7rem">2</span>
+            <span class="badge rounded-pill px-2 py-1" id="wiz-dot-3"
+                  style="background:rgba(255,255,255,.3);color:#fff;font-size:.7rem">3</span>
+          </div>
+          <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"></button>
+        </div>
+      </div>
+
+      <div class="modal-body flex-grow-1 overflow-auto p-0">
+
+        {# ──────────────── STEP 0: Setup Local Signer (solo se non attivo) ──────────────── #}
+        <div id="wiz-step-setup" class="p-4" style="display:none">
+          <div class="text-center mb-4">
+            <i class="bi bi-usb-symbol text-primary" style="font-size:3rem"></i>
+            <h5 class="mt-2 fw-bold">Configura il Local Signer</h5>
+            <p class="text-muted small">
+              Per accedere al PST con la tua <strong>smart card o token CNS/CIE</strong> devi installare il
+              <em>Local Signer</em> — un piccolo programma che gira in background sul tuo PC
+              e usa il certificato pubblicato dal middleware locale per autenticarsi.
+            </p>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <div class="card h-100 border-primary">
+                <div class="card-body">
+                  <h6 class="fw-bold"><i class="bi bi-1-circle text-primary me-2"></i>Installazione tecnica manuale</h6>
+                  <p class="small text-muted mb-2">
+                    Fallback tecnico: scarica <code>local_signer.py</code> e avvialo manualmente solo se necessario.
+                  </p>
+                  <a href="{{ url_for('polis_local_signer_download') }}"
+                     class="btn btn-outline-primary btn-sm w-100" download>
+                    <i class="bi bi-download me-1"></i>Scarica local_signer.py
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card h-100 border-success">
+                <div class="card-body">
+                  <h6 class="fw-bold"><i class="bi bi-2-circle text-success me-2"></i>Installazione consigliata</h6>
+                  <p class="small text-muted mb-2">
+                    Scarica e apri lo script PowerShell: installa il Local Signer,
+                    le dipendenze e configura l'avvio automatico in background senza finestra.
+                  </p>
+                  <a href="{{ url_for('polis_local_signer_installa') }}"
+                     class="btn btn-success btn-sm w-100" download>
+                    <i class="bi bi-gear me-1"></i>Scarica installer PowerShell
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="alert alert-light border small mb-3">
+            <strong>Come usare l'installer:</strong>
+            <ol class="mb-0 mt-1">
+              <li>Scarica <code>installa_local_signer.ps1</code></li>
+              <li>Clic destro → <em>Esegui con PowerShell</em></li>
+              <li>Attendere il messaggio "Installazione completata"</li>
+              <li>Tornare qui e cliccare <strong>Riverifica</strong></li>
+            </ol>
+          </div>
+          <div class="d-flex gap-2 justify-content-center">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="wizRiverifca()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Riverifica
+            </button>
+          </div>
+        </div>
+
+        {# ──────────────── STEP 1: Parametri ricerca ──────────────── #}
+        <div id="wiz-step-1" class="p-4">
+          <div class="row g-3">
+            {# A — Ufficio giudiziario #}
+            <div class="col-12">
+              <label class="form-label fw-semibold small mb-1">
+                <span class="badge bg-primary rounded-pill me-1 fw-normal">A</span>
+                Seleziona l'Ufficio Giudiziario
+              </label>
+              <div class="d-flex gap-2 flex-wrap mb-1" id="wiz-uff-tabs">
+                <button type="button" class="btn btn-sm btn-outline-secondary active" data-wiz-tipo="">Tutti</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="TRIBUNALE">Tribunale</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CORTE_APPELLO">Corte d'App.</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="PROCURA">Procura</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="TAR">TAR</button>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="wiz-ufficio-input" class="form-control"
+                       placeholder="Cerca per città o nome…" autocomplete="off">
+                <button type="button" class="btn btn-outline-secondary" id="wiz-ufficio-clear"
+                        style="display:none" onclick="wizClearUfficio()">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div id="wiz-ufficio-dropdown"
+                   style="display:none;position:absolute;z-index:9999;background:#fff;
+                          border:1px solid #dee2e6;border-radius:8px;
+                          box-shadow:0 6px 20px rgba(0,0,0,.13);
+                          max-height:220px;overflow-y:auto;min-width:300px">
+              </div>
+              <input type="hidden" id="wiz-ufficio-value">
+              <div id="wiz-ufficio-badge" class="mt-1" style="display:none">
+                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle"
+                      id="wiz-ufficio-label"></span>
+              </div>
+            </div>
+
+            {# B — Qualifica + Anno #}
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small mb-1">
+                <span class="badge bg-primary rounded-pill me-1 fw-normal">B</span>
+                Qualifica
+              </label>
+              <select id="wiz-qualifica" class="form-select form-select-sm">
+                <option value="AVVOCATO" selected>Avvocato</option>
+                <option value="CONSULENTE">Consulente</option>
+                <option value="CURATORE">Curatore</option>
+                <option value="AUSILIARIO">Ausiliario</option>
+                <option value="PARTE">Parte</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small mb-1">
+                <span class="badge bg-primary rounded-pill me-1 fw-normal">Anno</span>
+                Anno RG
+              </label>
+              <select id="wiz-anno" class="form-select form-select-sm">
+                <option value="">Tutti</option>
+                {% for y in range(oggi.year, 1999, -1) %}
+                <option value="{{ y }}" {{ 'selected' if y == oggi.year }}>{{ y }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {# C — Registri #}
+            <div class="col-12">
+              <label class="form-label fw-semibold small mb-1">
+                <span class="badge bg-primary rounded-pill me-1 fw-normal">C</span>
+                Registri
+              </label>
+              <div class="d-flex flex-wrap gap-2">
+                {% for reg in [
+                  ('CIVILE', 'Contenzioso civile'),
+                  ('VOLONTARIA', 'Volontaria giurisdizione'),
+                  ('LAVORO', 'Diritto del lavoro'),
+                  ('ESECUZIONI', 'Esecuzioni'),
+                  ('FALLIMENTI', 'Fallimenti / Concordati'),
+                  ('PENALE', 'Penale'),
+                  ('MINORILE', 'Minorile'),
+                ] %}
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox"
+                         name="wiz-registro" value="{{ reg[0] }}"
+                         id="wreg-{{ reg[0] }}"
+                         {% if reg[0] == 'CIVILE' %}checked{% endif %}>
+                  <label class="form-check-label small" for="wreg-{{ reg[0] }}">{{ reg[1] }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            {# D — Filtri aggiuntivi #}
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small mb-1">
+                <span class="badge bg-primary rounded-pill me-1 fw-normal">D</span>
+                N. RG
+              </label>
+              <input type="text" id="wiz-numero-rg" class="form-control form-control-sm"
+                     placeholder="es. 12345">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small mb-1">&nbsp;</label>
+              <input type="text" id="wiz-nome-parte" class="form-control form-control-sm"
+                     placeholder="Nome parte (es. Rossi Mario)">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small mb-1">&nbsp;</label>
+              <input type="text" id="wiz-cf-parte" class="form-control form-control-sm"
+                     placeholder="C.F. parte" style="text-transform:uppercase">
+            </div>
+          </div>
+        </div>
+
+        {# ──────────────── STEP 2: Selezione certificato ──────────────── #}
+        <div id="wiz-step-2" class="p-4" style="display:none">
+          <div class="d-flex gap-4 align-items-start">
+            {# Icona smart card #}
+            <div class="flex-shrink-0 text-center" style="width:140px">
+              <div style="width:120px;height:80px;background:linear-gradient(135deg,#1a3a6b,#2563eb);
+                          border-radius:8px;display:flex;align-items:center;justify-content:center;
+                          margin:0 auto 8px">
+                <i class="bi bi-credit-card-2-front text-white" style="font-size:2.5rem"></i>
+              </div>
+              <div class="small text-muted fw-semibold">SMART CARD</div>
+              <div class="small text-muted mt-1" style="font-size:.7rem">CNS/CIE token</div>
+            </div>
+
+            <div class="flex-grow-1">
+              <h6 class="fw-bold mb-1">Seleziona il certificato di autenticazione</h6>
+              <p class="small text-muted mb-3">
+                Clicca <strong>Seleziona</strong> per aprire il selettore certificati di Windows.
+                Scegli il certificato di autenticazione web pubblicato dal middleware locale
+                della tua smart card o token CNS/CIE.
+                Il PIN verrà richiesto da Windows durante la connessione al PST.
+              </p>
+
+              {# Pulsante seleziona — principale #}
+              <div id="wiz-cert-btn-area" class="mb-3">
+                <button type="button" class="btn btn-primary px-4 py-2"
+                        id="btn-wiz-seleziona"
+                        onclick="wizApriPicker()">
+                  <i class="bi bi-credit-card-2-front me-2"></i>Seleziona certificato…
+                </button>
+                <span class="text-muted small ms-2">
+                  <i class="bi bi-windows me-1"></i>Selettore nativo Windows
+                </span>
+              </div>
+
+              {# Spinner durante l'apertura dialog #}
+              <div id="wiz-cert-loading" class="mb-3" style="display:none">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                <span class="small text-muted">In attesa della selezione…</span>
+              </div>
+
+              {# Certificato selezionato — card verde #}
+              <div id="wiz-cert-selezionato" class="card border-success mb-3" style="display:none">
+                <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
+                  <i class="bi bi-patch-check-fill text-success fs-4 flex-shrink-0"></i>
+                  <div class="flex-grow-1 small">
+                    <div class="fw-semibold" id="wiz-cert-soggetto">—</div>
+                    <div class="text-muted" id="wiz-cert-emittente">—</div>
+                    <div class="text-muted">
+                      Scadenza: <span id="wiz-cert-scadenza" class="font-monospace">—</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                          onclick="wizApriPicker()" title="Cambia certificato">
+                    <i class="bi bi-arrow-repeat"></i>
+                  </button>
+                </div>
+              </div>
+
+              {# Errore / token non trovato #}
+              <div id="wiz-cert-notoken" class="alert alert-warning small" style="display:none">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <strong>Nessun certificato trovato</strong> oppure selezione annullata.
+                Inserire smart card/token o collegare il lettore, quindi cliccare di nuovo <strong>Seleziona</strong>.
+              </div>
+
+              {# Info: il PIN è gestito da Windows #}
+              <div class="alert alert-light border small py-2 mt-2">
+                <i class="bi bi-shield-lock text-success me-1"></i>
+                Il PIN non viene mai inviato al server. Windows chiederà il PIN
+                direttamente quando si connette al PST con il certificato selezionato.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ──────────────── STEP 3: Risultati ──────────────── #}
+        <div id="wiz-step-3" style="display:none">
+          <div id="wiz-ricerca-progress" class="text-center py-5">
+            <div class="spinner-border text-primary mb-3"></div>
+            <div class="fw-semibold">Ricerca in corso nel registro del tribunale…</div>
+            <div class="text-muted small mt-1">Connessione al PST con certificato qualificato</div>
+          </div>
+          <div id="wiz-risultati-content" style="display:none">
+            <div class="d-flex align-items-center justify-content-between px-4 pt-3 pb-2 border-bottom">
+              <span class="fw-semibold small">
+                <i class="bi bi-list-ul me-1 text-primary"></i>
+                Pratiche trovate: <strong id="wiz-count">0</strong>
+              </span>
+              <span class="badge bg-success"><i class="bi bi-usb-symbol me-1"></i>PST Reale</span>
+            </div>
+            <div class="table-responsive" style="max-height:340px;overflow-y:auto">
+              <table class="table table-hover align-middle mb-0 small">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>RG / Anno</th>
+                    <th>Oggetto</th>
+                    <th>Ruolo</th>
+                    <th>Parti</th>
+                    <th>Stato</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="wiz-risultati-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="wiz-risultati-empty" class="text-center py-4 px-4" style="display:none">
+            <i class="bi bi-search text-muted" style="font-size:2.5rem"></i>
+            <div class="mt-2 text-muted">Nessuna pratica trovata con i criteri indicati.</div>
+          </div>
+          <div id="wiz-risultati-error" class="alert alert-danger small m-3" style="display:none">
+            <div class="d-flex align-items-start gap-2">
+              <i class="bi bi-x-circle flex-shrink-0 mt-1"></i>
+              <div class="flex-grow-1">
+                <strong>Errore PST</strong>
+                <pre id="wiz-error-msg" class="mb-1 mt-1"
+                     style="white-space:pre-wrap;font-size:.8rem;font-family:inherit;background:none;border:none;padding:0"></pre>
+                <div class="mt-2 d-flex gap-2 flex-wrap">
+                  <a href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noopener"
+                     class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-stethoscope me-1"></i>Diagnostica Local Signer
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-secondary"
+                          onclick="wizTestConnessionePst()">
+                    <i class="bi bi-wifi me-1"></i>Testa connessione PST
+                  </button>
+                </div>
+                <div id="wiz-pst-test-risultato" class="mt-2 small" style="display:none"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>{# /modal-body #}
+
+      <div class="modal-footer border-top py-2 gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="wiz-btn-indietro"
+                style="display:none" onclick="wizIndietro()">
+          <i class="bi bi-arrow-left me-1"></i>Indietro
+        </button>
+        <div class="me-auto small text-muted" id="wiz-footer-info"></div>
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+                data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-primary btn-sm" id="wiz-btn-avanti"
+                onclick="wizAvanti()">
+          Avanti <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 {% endblock %}
 
@@ -875,5 +1299,745 @@ function eseguiVerificaVariazioni() {
     clearBtn.style.display = 'inline-flex';
   }
 })();
+
+// ── Local Signer: verifica disponibilità e gestione PST ────────────────────
+// Gira SEMPRE (non condizionale lato server) — il server non sa della Aruba Key Windows
+const _LS_BASE_PW = 'http://127.0.0.1:27272';
+let _lsDisponibile = false;
+let _lsTokenInfo = null;
+let _lsCertSel = null;
+
+function _aggiornaPulsantiCerca(lsAttivo) {
+  const btnDemo = document.getElementById('btn-cerca-demo');
+  const btnPst  = document.getElementById('btn-cerca-pst');
+  if (!btnDemo || !btnPst) return;
+  if (lsAttivo) {
+    // Sostituisce "Cerca" (demo) con "Cerca su PST" (reale)
+    btnDemo.classList.add('d-none');
+    btnPst.classList.remove('d-none');
+  } else {
+    btnDemo.classList.remove('d-none');
+    btnPst.classList.add('d-none');
+  }
+}
+
+function _mostraLsStatus(stato) {
+  const ids = ['ls-status-detecting', 'ls-status-ok', 'ls-status-notoken', 'ls-status-missing'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === `ls-status-${stato}` ? '' : 'none';
+  });
+}
+
+async function _lsSelezionaCertificato() {
+  const resp = await fetch(_LS_BASE_PW + '/seleziona-certificato', {
+    signal: AbortSignal.timeout(120000),
+  });
+  const data = await resp.json();
+  if (!data.ok) {
+    if (data.annullato) return null;
+    throw new Error(data.errore || 'Impossibile selezionare il certificato');
+  }
+  _lsCertSel = {
+    thumbprint:  data.thumbprint || null,
+    soggetto:    data.soggetto   || '',
+    emittente:   data.emittente  || '',
+    scadenza:    data.scadenza   || '',
+    token_slot:  data.token_slot ?? null,
+    piattaforma: data.piattaforma || 'win32',
+  };
+  return _lsCertSel;
+}
+
+async function _lsAssicuraCertificato() {
+  if (_lsCertSel?.thumbprint || _lsCertSel?.token_slot !== null) {
+    return _lsCertSel;
+  }
+  const cert = await _lsSelezionaCertificato();
+  if (!cert) {
+    throw new Error('Selezione certificato annullata.');
+  }
+  return cert;
+}
+
+async function cercaSuPst() {
+  // Chiamato dal pulsante "Cerca su PST" (Local Signer)
+  const tribunale = document.getElementById('ufficio-value')?.value || '';
+  if (!tribunale) {
+    document.getElementById('ufficio-input')?.focus();
+    return;
+  }
+  const rg = document.querySelector('input[name="numero_rg"]')?.value || '';
+  const anno = document.querySelector('input[name="anno_rg"]')?.value || '';
+  const nomeParte = document.getElementById('nome-parte-input')?.value || '';
+  const cf = document.querySelector('input[name="cf_parte"]')?.value || '';
+  await _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf);
+}
+
+function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
+  const btn = document.getElementById('btn-cerca-pst');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso…';
+  }
+
+  fetch(_LS_BASE_PW + '/pst/ricerca', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tribunale: tribunale,
+      numero_rg: rg || null,
+      anno_rg: anno ? parseInt(anno) : null,
+      nome_parte: nomeParte || null,
+      cf_parte: cf || null,
+    }),
+    signal: AbortSignal.timeout(35000),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
+    }
+    if (d.ok && d.fascicoli) {
+      _mostraRisultatiLocalSigner(d.fascicoli);
+    } else {
+      _mostraErroreLocalSigner(d.errore || 'Nessun risultato dal PST');
+    }
+  })
+  .catch(e => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
+    }
+    _mostraErroreLocalSigner(String(e));
+  });
+}
+
+async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
+  const btn = document.getElementById('btn-cerca-pst');
+  const resetBtn = () => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-usb-symbol me-1"></i>Cerca su PST';
+    }
+  };
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Selezione certificato...';
+  }
+
+  try {
+    const cert = await _lsAssicuraCertificato();
+    if (btn) {
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso...';
+    }
+
+    const resp = await fetch(_LS_BASE_PW + '/pst/ricerca', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tribunale: tribunale,
+        numero_rg: rg || null,
+        anno_rg: anno ? parseInt(anno) : null,
+        nome_parte: nomeParte || null,
+        cf_parte: cf || null,
+        cert_thumbprint: cert?.thumbprint || null,
+        slot_id: cert?.token_slot ?? null,
+      }),
+      signal: AbortSignal.timeout(35000),
+    });
+    const data = await resp.json();
+    if (data.ok && data.fascicoli) {
+      _mostraRisultatiLocalSigner(data.fascicoli);
+    } else {
+      _mostraErroreLocalSigner(data.errore || 'Nessun risultato dal PST');
+    }
+  } catch (e) {
+    _mostraErroreLocalSigner(String(e));
+  } finally {
+    resetBtn();
+  }
+}
+
+function _mostraRisultatiLocalSigner(fascicoli) {
+  // Inietta i risultati in una card temporanea sotto il form
+  let panel = document.getElementById('ls-risultati-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'ls-risultati-panel';
+    panel.className = 'card shadow-sm mb-4';
+    // Inserisci dopo il form ricerca
+    const formCard = document.querySelector('.card.shadow-sm.mb-4');
+    if (formCard && formCard.parentNode) {
+      formCard.parentNode.insertBefore(panel, formCard.nextSibling);
+    } else {
+      document.body.appendChild(panel);
+    }
+  }
+  if (!fascicoli.length) {
+    panel.innerHTML = `<div class="card-body small text-muted">
+      <i class="bi bi-info-circle me-1"></i>Nessuna pratica trovata nel registro PST.
+    </div>`;
+    return;
+  }
+  const rows = fascicoli.map(f => `
+    <tr>
+      <td class="font-monospace">${f.numero_rg || '—'}/${f.anno_rg || '—'}</td>
+      <td>${f.oggetto || '—'}</td>
+      <td><span class="badge bg-secondary">${f.ruolo || '—'}</span></td>
+      <td>${(f.parti || []).join(', ') || '—'}</td>
+      <td>${f.stato || '—'}</td>
+    </tr>`).join('');
+  panel.innerHTML = `
+    <div class="card-header fw-semibold d-flex align-items-center gap-2 small">
+      <i class="bi bi-list-ul text-success me-1"></i>
+      Risultati PST (via Local Signer) — ${fascicoli.length} pratica/e
+      <span class="badge bg-success ms-auto">REALE</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr><th>RG</th><th>Oggetto</th><th>Ruolo</th><th>Parti</th><th>Stato</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function _erroreConGuida(msg) {
+  // Aggiunge guida operativa specifica per tipo di errore
+  if (!msg) return 'Errore sconosciuto.';
+  if (msg.includes('endpoint legacy') || msg.includes('wspa.giustizia.it')) {
+    return msg + '\n\nConfigurazione consigliata:\n'
+      + '  nslookup pda.processotelematico.giustizia.it 8.8.8.8\n'
+      + '  nslookup ext.processotelematico.giustizia.it 8.8.8.8\n'
+      + 'Se questi host rispondono, il problema non e il dispositivo di firma ma l\'endpoint PST legacy configurato in HACS.';
+  }
+  if (msg.includes('resolve host') || msg.includes('errore DNS') || msg.includes('wspa.giustizia')) {
+    return msg + '\n\n⚠️ wspa.giustizia.it non risponde dalla tua rete.\n'
+      + 'Apri il prompt dei comandi e digita:  nslookup wspa.giustizia.it\n'
+      + 'Se non risolve, il servizio PST potrebbe richiedere la rete del Ministero\n'
+      + 'della Giustizia o una VPN dedicata (non accessibile da reti domestiche/aziendali).';
+  }
+  if (msg.includes('exit 7') || msg.includes('rifiuta la connessione')) {
+    return msg + '\n\nIl server PST è irraggiungibile. Riprovare tra qualche minuto.';
+  }
+  if (msg.includes('exit 28') || msg.includes('Timeout')) {
+    return msg + '\n\nIl PST sta impiegando troppo. Verificare la connessione e riprovare.';
+  }
+  if (msg.includes('exit 35') || msg.includes('SSL') || msg.includes('certificato')) {
+    return msg + '\n\nVerificare che il certificato del dispositivo sia valido e selezionato correttamente.';
+  }
+  return msg;
+}
+
+function _mostraErroreLocalSigner(msg) {
+  msg = _erroreConGuida(msg);
+  let panel = document.getElementById('ls-risultati-panel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'ls-risultati-panel';
+    panel.className = 'card shadow-sm mb-4 border-danger';
+    const formCard = document.querySelector('.card.shadow-sm.mb-4');
+    if (formCard && formCard.parentNode)
+      formCard.parentNode.insertBefore(panel, formCard.nextSibling);
+  }
+  panel.innerHTML = `<div class="card-body small">
+    <div class="text-danger fw-semibold mb-1">
+      <i class="bi bi-x-circle me-1"></i>Errore ricerca PST
+    </div>
+    <pre class="text-danger mb-2" style="white-space:pre-wrap;font-size:.8rem;font-family:inherit;background:none;border:none;padding:0">${msg.replace(/</g,'&lt;')}</pre>
+    <a href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noopener"
+       class="btn btn-sm btn-outline-danger me-1">
+      <i class="bi bi-stethoscope me-1"></i>Diagnostica
+    </a>
+  </div>`;
+}
+
+// ── Local Signer: verifica disponibilità (unica funzione) ──────────────────────
+
+function verificaLocalSigner() {
+  const bannerLS = document.getElementById('banner-local-signer');
+  if (bannerLS) bannerLS.classList.remove('d-none');
+  _mostraLsStatus('detecting');
+
+  fetch(_LS_BASE_PW + '/ping', { signal: AbortSignal.timeout(3000) })
+    .then(r => r.json())
+    .then(d => {
+      // Determina lo stato: token presente, solo LS, o errore
+      const tokenOk = d.ok && d.token && d.token.length > 0;
+      const lsAttivo = d.ok;                  // LS risponde correttamente
+      const erroreToken = d.errore_token || d.errore_libreria || null;
+
+      if (tokenOk) {
+        // ✅ Local Signer attivo + token PKCS#11 rilevato
+        _lsDisponibile = true;
+        _lsTokenInfo = d.token[0];
+        _mostraLsStatus('ok');
+        const tok = _lsTokenInfo;
+        const lbl = document.getElementById('ls-token-label');
+        if (lbl) lbl.textContent =
+          `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
+        const bannerDemo = document.getElementById('banner-demo');
+        if (bannerDemo) bannerDemo.classList.add('d-none');
+        _aggiornaPulsantiCerca(true);
+        const bar = document.getElementById('pst-wizard-bar');
+        if (bar) bar.style.removeProperty('display');
+        const badge = document.getElementById('badge-ls-attivo');
+        if (badge) badge.style.display = '';
+        const lblTok = document.getElementById('lbl-ls-token');
+        if (lblTok) lblTok.textContent =
+          `${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
+      } else if (lsAttivo) {
+        // ⚠️ Local Signer attivo ma token/libreria con problema
+        _lsDisponibile = false;
+        _mostraLsStatus('notoken');
+        // Mostra messaggio errore specifico
+        const errEl = document.getElementById('ls-errore-msg');
+        if (errEl) errEl.textContent = erroreToken
+          ? erroreToken.split('\n')[0]   // prima riga del messaggio
+          : 'Inserire smart card/token o collegare il lettore.';
+        _aggiornaPulsantiCerca(false);
+        const bar = document.getElementById('pst-wizard-bar');
+        if (bar) bar.style.removeProperty('display');
+      } else {
+        // LS risponde ma non è utilizzabile → mostra installazione/azioni
+        _lsDisponibile = false;
+        _mostraLsStatus('missing');
+        _aggiornaPulsantiCerca(false);
+        const bar = document.getElementById('pst-wizard-bar');
+        if (bar) bar.style.removeProperty('display');
+      }
+    })
+    .catch(() => {
+      _lsDisponibile = false;
+      _mostraLsStatus('missing');
+      _aggiornaPulsantiCerca(false);
+      const bar = document.getElementById('pst-wizard-bar');
+      if (bar) bar.style.removeProperty('display');
+    });
+}
+
+// ── Wizard PST ───────────────────────────────────────────────────────────────
+let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati
+let _wizCertSel = null;  // certificato selezionato
+
+const _WIZ_STEPS = {
+  0: { title: 'Configurazione',      sub: 'Installa il Local Signer',        dot: null },
+  1: { title: 'Passaggio 1',         sub: 'Parametri di ricerca',            dot: 1 },
+  2: { title: 'Passaggio 2',         sub: 'Selezione certificato e PIN',     dot: 2 },
+  3: { title: 'Passaggio 3',         sub: 'Risultati',                       dot: 3 },
+};
+
+function apriWizardPst() {
+  _wizStep = _lsDisponibile ? 1 : 0;
+  _wizCertSel = _lsCertSel;
+  _wizAggiornaDot();
+  _wizMostraStep(_wizStep);
+  document.getElementById('wiz-pin-input').value = '';
+  new bootstrap.Modal(document.getElementById('modalWizardPst')).show();
+}
+
+function _wizMostraStep(step) {
+  ['wiz-step-setup','wiz-step-1','wiz-step-2','wiz-step-3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const stepId = step === 0 ? 'wiz-step-setup'
+               : step === 1 ? 'wiz-step-1'
+               : step === 2 ? 'wiz-step-2'
+               : 'wiz-step-3';
+  const el = document.getElementById(stepId);
+  if (el) el.style.display = 'block';
+
+  const info = _WIZ_STEPS[step] || {};
+  const t = document.getElementById('wiz-step-title');
+  const s = document.getElementById('wiz-step-sub');
+  if (t) t.textContent = info.title || '';
+  if (s) s.textContent = info.sub || '';
+
+  // Footer
+  const btnInd  = document.getElementById('wiz-btn-indietro');
+  const btnAv   = document.getElementById('wiz-btn-avanti');
+  const ftrInfo = document.getElementById('wiz-footer-info');
+  if (btnInd) btnInd.style.display = step > 1 ? '' : 'none';
+  if (btnAv) {
+    if (step === 0) {
+      btnAv.textContent = ''; btnAv.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Riverifica';
+      btnAv.onclick = wizRiverifca;
+    } else if (step === 3) {
+      btnAv.innerHTML = 'Chiudi <i class="bi bi-x ms-1"></i>';
+      btnAv.onclick = () => bootstrap.Modal.getInstance(document.getElementById('modalWizardPst'))?.hide();
+    } else {
+      btnAv.innerHTML = 'Avanti <i class="bi bi-arrow-right ms-1"></i>';
+      btnAv.onclick = wizAvanti;
+    }
+  }
+  if (ftrInfo) {
+    ftrInfo.textContent = step === 1 ? 'Selezionare ufficio e almeno un criterio di ricerca' :
+                           step === 2 ? 'Il PIN non viene mai inviato al server' : '';
+  }
+
+  // Step 2: reset UI selezione cert
+  if (step === 2) _wizResetCertUI();
+}
+
+function _wizAggiornaDot() {
+  [1,2,3].forEach(n => {
+    const el = document.getElementById('wiz-dot-' + n);
+    if (!el) return;
+    const attivo = n === _wizStep;
+    el.style.background = attivo ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.3)';
+    el.style.color = attivo ? '#1a3a6b' : '#fff';
+  });
+}
+
+function wizAvanti() {
+  if (_wizStep === 1) {
+    if (!document.getElementById('wiz-ufficio-value').value) {
+      document.getElementById('wiz-ufficio-input').focus();
+      return;
+    }
+    _wizStep = 2;
+    _wizCertSel = null;
+  } else if (_wizStep === 2) {
+    if (!_wizCertSel) {
+      // Nessun certificato selezionato — apri il picker
+      wizApriPicker();
+      return;
+    }
+    _wizStep = 3;
+    wizEseguiRicerca();
+  }
+  _wizAggiornaDot();
+  _wizMostraStep(_wizStep);
+}
+
+function wizIndietro() {
+  if (_wizStep > 1) { _wizStep--; }
+  _wizAggiornaDot();
+  _wizMostraStep(_wizStep);
+}
+
+function wizRiverifca() {
+  verificaLocalSigner();
+  setTimeout(() => {
+    if (_lsDisponibile) {
+      _wizStep = 1;
+      _wizAggiornaDot();
+      _wizMostraStep(1);
+    }
+  }, 2800);
+}
+
+function wizClearUfficio() {
+  document.getElementById('wiz-ufficio-input').value = '';
+  document.getElementById('wiz-ufficio-value').value = '';
+  document.getElementById('wiz-ufficio-badge').style.display = 'none';
+  document.getElementById('wiz-ufficio-clear').style.display = 'none';
+  document.getElementById('wiz-ufficio-input').focus();
+}
+
+// Autocomplete uffici nel wizard (riusa /api/uffici)
+(function() {
+  const inp    = document.getElementById('wiz-ufficio-input');
+  const hidden = document.getElementById('wiz-ufficio-value');
+  const dd     = document.getElementById('wiz-ufficio-dropdown');
+  const badge  = document.getElementById('wiz-ufficio-badge');
+  const clear  = document.getElementById('wiz-ufficio-clear');
+  const lbl    = document.getElementById('wiz-ufficio-label');
+  if (!inp) return;
+
+  let tipoFiltro = '';
+  document.getElementById('wiz-uff-tabs')?.querySelectorAll('[data-wiz-tipo]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-wiz-tipo]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      tipoFiltro = btn.dataset.wizTipo;
+      if (inp.value.length >= 2) cerca(inp.value);
+    });
+  });
+
+  inp.addEventListener('input', () => {
+    if (inp.value.length >= 2) cerca(inp.value); else dd.style.display = 'none';
+  });
+
+  function cerca(q) {
+    const url = `/api/uffici?q=${encodeURIComponent(q)}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}`;
+    fetch(url).then(r => r.json()).then(lista => {
+      dd.innerHTML = '';
+      if (!lista.length) { dd.style.display = 'none'; return; }
+      lista.slice(0, 8).forEach(u => {
+        const item = document.createElement('div');
+        item.className = 'px-3 py-2 small';
+        item.style.cssText = 'cursor:pointer;border-bottom:1px solid #f0f0f0';
+        item.textContent = u.nome + (u.distretto ? ` (${u.distretto})` : '');
+        item.onmouseenter = () => item.style.background = '#f0f4ff';
+        item.onmouseleave = () => item.style.background = '';
+        item.onclick = () => {
+          inp.value = u.nome;
+          hidden.value = u.codice;
+          lbl.textContent = u.nome;
+          badge.style.display = 'block';
+          clear.style.display = '';
+          dd.style.display = 'none';
+        };
+        dd.appendChild(item);
+      });
+      // Posiziona dropdown
+      const rect = inp.getBoundingClientRect();
+      dd.style.top = (rect.bottom + window.scrollY) + 'px';
+      dd.style.left = (rect.left + window.scrollX) + 'px';
+      dd.style.width = rect.width + 'px';
+      dd.style.display = 'block';
+    }).catch(() => { dd.style.display = 'none'; });
+  }
+
+  document.addEventListener('click', e => {
+    if (!inp.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+  });
+})();
+
+function _wizResetCertUI() {
+  // Mantieni il cert già selezionato se presente, altrimenti mostra solo il pulsante
+  const loading = document.getElementById('wiz-cert-loading');
+  const notoken = document.getElementById('wiz-cert-notoken');
+  if (loading) loading.style.display = 'none';
+  if (notoken) notoken.style.display = 'none';
+  _wizMostraCertCard(_wizCertSel);
+}
+
+function _wizMostraCertCard(cert) {
+  const card  = document.getElementById('wiz-cert-selezionato');
+  const btnAv = document.getElementById('wiz-btn-avanti');
+  if (cert && cert.soggetto) {
+    document.getElementById('wiz-cert-soggetto').textContent  = cert.soggetto || '—';
+    document.getElementById('wiz-cert-emittente').textContent = cert.emittente || '—';
+    document.getElementById('wiz-cert-scadenza').textContent  = cert.scadenza  || '—';
+    if (card) card.style.display = 'block';
+    if (btnAv) { btnAv.disabled = false; btnAv.innerHTML = 'Avanti <i class="bi bi-arrow-right ms-1"></i>'; }
+    // Elimina modalità demo: il certificato è presente
+    const bannerDemo = document.getElementById('banner-demo');
+    if (bannerDemo) bannerDemo.style.display = 'none';
+  } else {
+    if (card) card.style.display = 'none';
+    if (btnAv) { btnAv.disabled = false; }
+  }
+}
+
+function wizApriPicker() {
+  const loading = document.getElementById('wiz-cert-loading');
+  const notoken = document.getElementById('wiz-cert-notoken');
+  const card    = document.getElementById('wiz-cert-selezionato');
+  const btnSel  = document.getElementById('btn-wiz-seleziona');
+
+  if (loading) loading.style.display = 'block';
+  if (notoken) notoken.style.display = 'none';
+  if (card)    card.style.display    = 'none';
+  if (btnSel)  btnSel.disabled = true;
+
+  // Chiama il Local Signer — apre la dialog nativa Windows (bloccante lato server)
+  fetch(_LS_BASE_PW + '/seleziona-certificato', { signal: AbortSignal.timeout(120000) })
+    .then(r => r.json())
+    .then(d => {
+      if (loading) loading.style.display = 'none';
+      if (btnSel)  btnSel.disabled = false;
+
+      if (!d.ok) {
+        if (d.annullato) {
+          // Utente ha premuto Annulla nel dialog Windows — non è un errore
+          if (notoken) notoken.style.display = 'none';
+          return;
+        }
+        if (notoken) notoken.style.display = 'block';
+        return;
+      }
+
+      // Certificato selezionato con successo
+      _wizCertSel = {
+        thumbprint:  d.thumbprint || null,
+        soggetto:    d.soggetto   || '',
+        emittente:   d.emittente  || '',
+        scadenza:    d.scadenza   || '',
+        token_slot:  d.token_slot ?? null,
+        piattaforma: d.piattaforma || 'win32',
+      };
+      _wizMostraCertCard(_wizCertSel);
+    })
+    .catch(err => {
+      if (loading) loading.style.display = 'none';
+      if (btnSel)  btnSel.disabled = false;
+      if (notoken) notoken.style.display = 'block';
+      console.warn('wizApriPicker error:', err);
+    });
+}
+
+function wizApriPicker() {
+  const loading = document.getElementById('wiz-cert-loading');
+  const notoken = document.getElementById('wiz-cert-notoken');
+  const card    = document.getElementById('wiz-cert-selezionato');
+  const btnSel  = document.getElementById('btn-wiz-seleziona');
+
+  if (loading) loading.style.display = 'block';
+  if (notoken) notoken.style.display = 'none';
+  if (card)    card.style.display    = 'none';
+  if (btnSel)  btnSel.disabled = true;
+
+  _lsSelezionaCertificato()
+    .then(cert => {
+      if (loading) loading.style.display = 'none';
+      if (btnSel)  btnSel.disabled = false;
+      if (!cert) {
+        if (notoken) notoken.style.display = 'none';
+        return;
+      }
+      _wizCertSel = cert;
+      _wizMostraCertCard(_wizCertSel);
+    })
+    .catch(err => {
+      if (loading) loading.style.display = 'none';
+      if (btnSel)  btnSel.disabled = false;
+      if (notoken) notoken.style.display = 'block';
+      console.warn('wizApriPicker error:', err);
+    });
+}
+
+function wizEseguiRicerca() {
+  const progress = document.getElementById('wiz-ricerca-progress');
+  const content  = document.getElementById('wiz-risultati-content');
+  const empty    = document.getElementById('wiz-risultati-empty');
+  const errDiv   = document.getElementById('wiz-risultati-error');
+  if (progress) progress.style.display = 'block';
+  if (content)  content.style.display  = 'none';
+  if (empty)    empty.style.display    = 'none';
+  if (errDiv)   errDiv.style.display   = 'none';
+
+  const tribunale = document.getElementById('wiz-ufficio-value').value;
+  const rg   = document.getElementById('wiz-numero-rg').value;
+  const anno = document.getElementById('wiz-anno').value;
+  const nome = document.getElementById('wiz-nome-parte').value;
+  const cf   = document.getElementById('wiz-cf-parte').value;
+
+  // Usa il certificato selezionato (thumbprint Windows o slot PKCS#11 Linux)
+  const certThumbprint = _wizCertSel?.thumbprint   || null;
+  const slotId         = _wizCertSel?.token_slot   ?? null;
+
+  fetch(_LS_BASE_PW + '/pst/ricerca', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      tribunale:        tribunale,
+      numero_rg:        rg   || null,
+      anno_rg:          anno ? parseInt(anno) : null,
+      nome_parte:       nome || null,
+      cf_parte:         cf   || null,
+      cert_thumbprint:  certThumbprint,
+      slot_id:          slotId,
+    }),
+    signal: AbortSignal.timeout(40000),
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (progress) progress.style.display = 'none';
+    if (!d.ok) {
+      if (errDiv) {
+        errDiv.style.display = 'block';
+        const el = document.getElementById('wiz-error-msg');
+        if (el) el.textContent = _erroreConGuida(d.errore || 'Errore sconosciuto');
+        document.getElementById('wiz-pst-test-risultato').style.display = 'none';
+      }
+      return;
+    }
+    const fascicoli = d.fascicoli || [];
+    document.getElementById('wiz-count').textContent = fascicoli.length;
+    if (!fascicoli.length) { if (empty) empty.style.display = 'block'; return; }
+    const tbody = document.getElementById('wiz-risultati-tbody');
+    const idFasc = '{{ id_fasc or "" }}';
+    tbody.innerHTML = fascicoli.map(f => `
+      <tr>
+        <td class="fw-semibold font-monospace text-nowrap">${f.numero_rg || '—'}/${f.anno_rg || '—'}</td>
+        <td class="small">${f.oggetto || '—'}</td>
+        <td><span class="badge bg-secondary small">${f.ruolo || '—'}</span></td>
+        <td class="small">${(f.parti || []).join(', ') || '—'}</td>
+        <td><span class="badge ${f.stato==='PENDENTE'?'bg-success':'bg-secondary'} small">${f.stato || '—'}</span></td>
+        <td>
+          <button type="button" class="btn btn-xs btn-outline-primary btn-sm"
+                  onclick="wizImporta('${f.numero_rg}','${f.anno_rg}','${(f.nome_ufficio||'').replace(/'/g,"\\'")}','${(f.codice_ufficio||'')}')">
+            <i class="bi bi-download me-1"></i>Importa
+          </button>
+        </td>
+      </tr>`).join('');
+    if (content) content.style.display = 'block';
+  })
+  .catch(e => {
+    if (progress) progress.style.display = 'none';
+    if (errDiv) {
+      errDiv.style.display = 'block';
+      const el = document.getElementById('wiz-error-msg');
+      if (el) el.textContent = _erroreConGuida(String(e));
+    }
+  });
+}
+
+function wizTestConnessionePst() {
+  const out = document.getElementById('wiz-pst-test-risultato');
+  if (!out) return;
+  out.style.display = 'block';
+  out.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso…';
+
+  fetch(_LS_BASE_PW + '/pst/status', { signal: AbortSignal.timeout(20000) })
+    .then(r => r.json())
+    .then(d => {
+      const s = d.endpoint_configurato || d.soap || {};
+      const p = d.portale || {};
+      const pda = d.proxy_pda || {};
+      const sh = d.proxy_sh || {};
+      const legacy = !!d.pst_endpoint_legacy;
+      let html = '';
+      if (legacy) {
+        const pdaOk = pda.raggiungibile ? `Proxy PdA OK (HTTP ${pda.http_code || 'n/d'})` : 'Proxy PdA non raggiungibile';
+        const shOk = sh.raggiungibile ? `Proxy SH OK (HTTP ${sh.http_code || 'n/d'})` : 'Proxy SH non raggiungibile';
+        html = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>'
+          + `Endpoint legacy configurato in HACS.<br>${pdaOk}<br>${shOk}</span>`;
+      } else if (s.raggiungibile) {
+        html = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>'
+          + `Endpoint PST configurato raggiungibile (HTTP ${s.http_code})</span>`;
+      } else if (p.raggiungibile) {
+        html = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>'
+          + `pst.giustizia.it raggiungibile ma l'endpoint PST configurato no.<br>`
+          + `Errore SOAP: ${(s.errore||'').split('\n')[0]}</span>`;
+      } else {
+        const err = (s.errore || p.errore || pda.errore || sh.errore || 'sconosciuto').split('\n')[0];
+        html = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>'
+          + `PST non raggiungibile: ${err}</span>`;
+      }
+      out.innerHTML = html;
+    })
+    .catch(() => {
+      out.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>'
+        + 'Local Signer non risponde. Verificare che sia avviato.</span>';
+    });
+}
+
+function wizImporta(rg, anno, nomeUfficio, codiceUfficio) {
+  // Importa la pratica nel gestionale via POST standard
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{{ url_for("polisWeb_importa") }}';
+  [['numero_rg', rg], ['anno_rg', anno], ['nome_ufficio', nomeUfficio],
+   ['codice_ufficio', codiceUfficio], ['demo_mode', '0'],
+   ['id_fasc', '{{ id_fasc or "" }}']].forEach(([k,v]) => {
+    const i = document.createElement('input');
+    i.type = 'hidden'; i.name = k; i.value = v;
+    form.appendChild(i);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+
+// Avvia verifica Local Signer ad ogni caricamento pagina
+document.addEventListener('DOMContentLoaded', verificaLocalSigner);
 </script>
 {% endblock %}

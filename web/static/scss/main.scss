@@ -1,0 +1,11 @@
+// ================================================================
+//  HACS — Entry point SCSS
+//  Importa tutti i partial nell'ordine corretto.
+//  Compila → web/static/css/main.css  (non usato direttamente;
+//  i template caricano i file individuali)
+// ================================================================
+
+@use 'variables' as v;
+@use 'design-system';
+@use 'editor-word';
+@use 'mobile';

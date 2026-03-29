@@ -30,14 +30,37 @@ import tempfile
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
+
+from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, risolvi_ufficio
 
 # ---------------------------------------------------------------- PST endpoints
 # I web service del PST sono accessibili con autenticazione a certificato.
-# Gli endpoint possono variare per distretto; qui i principali nazionali.
-_WSP_BASE = os.getenv("PCT_PST_BASE_URL", "https://wspa.giustizia.it/wspa")
-_WSDL_RICERCA     = f"{_WSP_BASE}/RicercaFascicoliRegistroService?wsdl"
-_WSDL_CONSULTAZIONE = f"{_WSP_BASE}/ConsultazioneAvanzataDocumentiService?wsdl"
-_WSDL_REGINDE     = f"{_WSP_BASE}/ConsultazioneRegistroService?wsdl"
+# Dal 2026 l'endpoint storico wspa.giustizia.it risulta legacy: il gestionale
+# richiede quindi che l'eventuale proxy attivo venga configurato esplicitamente.
+_PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
+_WSP_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
+
+
+def _pst_endpoint_legacy(base_url: str) -> bool:
+    return base_url.startswith(_PST_LEGACY_BASE)
+
+
+def _pst_endpoint_legacy_message() -> str:
+    return (
+        "L'endpoint PST configurato in HACS punta ancora a wspa.giustizia.it, "
+        "host legacy non più pubblicato nel DNS pubblico. "
+        "Con il nuovo registro uffici HACS prova a comporre automaticamente il proxy corretto; "
+        "se l'ufficio non ha metadati PST configurare PCT_PST_BASE_URL completo o almeno il root proxy."
+    )
+
+
+def _wsdl_ricerca(base_url: str) -> str:
+    return f"{base_url.rstrip('/')}/RicercaFascicoliRegistroService?wsdl"
+
+
+def _wsdl_consultazione(base_url: str) -> str:
+    return f"{base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService?wsdl"
 
 
 # ================================================================ Dataclass risultati
@@ -87,6 +110,120 @@ class RisultatoImportazione:
     fascicolo_polis: Optional[FascicoloPolisWeb] = None
     documenti_importati: int = 0
     avvisi: List[str] = field(default_factory=list)
+
+
+# ================================================================ Helper: riconcilia soggetti
+
+def _is_persona_giuridica(nome: str) -> bool:
+    """Euristica: il nome contiene indicatori di forma giuridica o ente."""
+    indicatori = (
+        "SRL", "S.R.L", "SPA", "S.P.A", "SAS", "S.A.S", "SNC", "S.N.C",
+        "SRLS", "S.R.L.S", "SAP", "SOCIETA", "SOCIETÀ", "ASSOCIAZIONE",
+        "FONDAZIONE", "COOPERATIVA", "CONDOMINIO", "COMUNE DI", "MINISTERO",
+        "AGENZIA", "ISTITUTO", "ENTE ", "STUDIO LEGALE",
+    )
+    return any(ind in nome.upper() for ind in indicatori)
+
+
+def _split_nome_cognome(nome_completo: str) -> tuple[str, str]:
+    """
+    Divide un nominativo PST ('COGNOME NOME') in (cognome, nome).
+    Euristica: ultimo token = nome, resto = cognome.
+    """
+    parti = nome_completo.strip().split()
+    if not parti:
+        return "", ""
+    if len(parti) == 1:
+        return parti[0].title(), ""
+    cognome = " ".join(p.title() for p in parti[:-1])
+    nome    = parti[-1].title()
+    return cognome, nome
+
+
+def riconcilia_soggetti_pst(
+    nomi: List[str],
+    gestione_clienti,
+    riferimento: str,
+    portale: str = "PolisWeb",
+) -> tuple[str, str, List[str]]:
+    """
+    Riconcilia una lista di nominativi (parti/imputati/ricorrenti) con
+    l'anagrafica clienti del gestionale.
+
+    Per ogni nominativo:
+      - Se esiste un cliente con nome corrispondente → riutilizza
+      - Se non esiste → crea automaticamente un nuovo cliente POTENZIALE
+
+    Args:
+        nomi:             Lista di nominativi (stringhe) restituiti dal portale.
+        gestione_clienti: Istanza di GestioneClienti.
+        riferimento:      Stringa usata nelle note (es. "RG 123/2024 — Tribunale di Milano").
+        portale:          Nome del portale sorgente (PolisWeb/PDP/PAT).
+
+    Returns:
+        (id_cliente_principale, nome_cliente_principale, avvisi)
+        dove id_cliente_principale è il cliente corrispondente alla prima parte valida.
+    """
+    from pct.clienti import TipoCliente, StatoCliente
+
+    id_principale   = ""
+    nome_principale = ""
+    avvisi: List[str] = []
+    clienti_cache = gestione_clienti.tutti()
+
+    for i, nome_raw in enumerate(nomi):
+        nome_raw = (nome_raw or "").strip()
+        if not nome_raw:
+            continue
+
+        nome_up = nome_raw.upper()
+
+        # Cerca cliente esistente (match parziale bidirezionale, case-insensitive)
+        trovato = None
+        for c in clienti_cache:
+            nc_up = c.nome_completo.upper()
+            if nome_up in nc_up or nc_up in nome_up:
+                trovato = c
+                break
+
+        if trovato is None:
+            try:
+                nota_auto = (
+                    f"Inserito automaticamente da {portale} — {riferimento}"
+                )
+                if _is_persona_giuridica(nome_raw):
+                    trovato = gestione_clienti.nuovo(
+                        tipo=TipoCliente.PERSONA_GIURIDICA,
+                        ragione_sociale=nome_raw.title(),
+                        stato=StatoCliente.POTENZIALE,
+                        note=nota_auto,
+                    )
+                else:
+                    cognome, nome = _split_nome_cognome(nome_raw)
+                    trovato = gestione_clienti.nuovo(
+                        tipo=TipoCliente.PERSONA_FISICA,
+                        cognome=cognome,
+                        nome=nome,
+                        stato=StatoCliente.POTENZIALE,
+                        note=nota_auto,
+                    )
+                # Aggiorna cache locale per evitare duplicati nelle iterazioni successive
+                clienti_cache = gestione_clienti.tutti()
+                avvisi.append(
+                    f"Nuovo soggetto creato in anagrafica: "
+                    f"«{trovato.nome_completo}» (stato: Potenziale)."
+                )
+            except Exception as e_crea:
+                avvisi.append(
+                    f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
+                )
+
+        # Il primo soggetto elaborato con successo → cliente principale del fascicolo
+        if i == 0 and trovato:
+            id_principale   = trovato.id
+            nome_principale = trovato.nome_completo
+
+    return id_principale, nome_principale, avvisi
 
 
 # ================================================================ Client PolisWeb
@@ -166,7 +303,8 @@ class ClientPolisWeb:
             ConnectionError: se il PST non è raggiungibile.
             PermissionError: se il certificato non è valido / scaduto.
         """
-        client = self._get_client(_WSDL_RICERCA)
+        base_pst = self._risolvi_base_pst(tribunale)
+        client = self._get_client(_wsdl_ricerca(base_pst))
 
         # Costruzione request conforme al WSDL PST
         request_dict = {
@@ -209,11 +347,13 @@ class ClientPolisWeb:
         Returns:
             Lista di DocumentoPolisWeb.
         """
-        client = self._get_client(_WSDL_CONSULTAZIONE)
+        base_pst = self._risolvi_base_pst(codice_ufficio)
+        client = self._get_client(_wsdl_consultazione(base_pst))
+        codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
         try:
             risposta = client.service.consultazioneAvanzataDocumenti(
                 codiceFiscaleAvvocato=self.cf_avvocato,
-                codiceUfficio=codice_ufficio,
+                codiceUfficio=codice_pst,
                 numeroRG=numero_rg,
                 annoRG=anno_rg,
             )
@@ -276,18 +416,15 @@ class ClientPolisWeb:
                 fascicolo_pw.stato.upper(), StatoFascicolo.APERTO
             )
 
-            # 2. Trova o crea cliente (prima parte registrata)
-            id_cliente = ""
-            nome_cliente = ""
-            if fascicolo_pw.parti:
-                nome_parte = fascicolo_pw.parti[0]
-                # Cerca per nome
-                clienti_esistenti = gestione_clienti.tutti()
-                for c in clienti_esistenti:
-                    if nome_parte.upper() in c.nome_completo.upper():
-                        id_cliente = c.id
-                        nome_cliente = c.nome_completo
-                        break
+            # 2. Riconcilia tutte le parti con l'anagrafica clienti.
+            #    Cerca ogni soggetto; se non esiste lo crea come POTENZIALE.
+            rif = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
+            id_cliente, nome_cliente, avvisi = riconcilia_soggetti_pst(
+                nomi=fascicolo_pw.parti,
+                gestione_clienti=gestione_clienti,
+                riferimento=rif,
+                portale="PolisWeb",
+            )
 
             # 3. Crea fascicolo
             fasc = gestione_fascicoli.nuovo(
@@ -307,8 +444,6 @@ class ClientPolisWeb:
                 note=fascicolo_pw.note or f"Importato da PolisWeb il {date.today()}",
             )
 
-            avvisi = []
-
             # 4. Aggiungi prossima udienza come attività
             if fascicolo_pw.data_udienza:
                 try:
@@ -325,7 +460,7 @@ class ClientPolisWeb:
 
             if not id_cliente:
                 avvisi.append(
-                    "Nessun cliente trovato in anagrafica per le parti della causa. "
+                    "Nessun soggetto valido nelle parti della causa. "
                     "Assegnare il cliente manualmente."
                 )
 
@@ -365,8 +500,12 @@ class ClientPolisWeb:
         except ImportError:
             raise ImportError("Installa zeep: pip install zeep")
 
+        parsed = urlparse(wsdl_url)
+        pst_host = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _WSP_BASE
+        if _pst_endpoint_legacy(pst_host):
+            raise RuntimeError(_pst_endpoint_legacy_message())
+
         session = Session()
-        pst_host = "https://wspa.giustizia.it"
 
         # ── Selezione formato certificato ────────────────────────────────────
         usa_pem = (
@@ -427,12 +566,10 @@ class ClientPolisWeb:
 
     def _risolvi_codice_ufficio(self, nome_o_codice: str) -> str:
         """Risolve nome tribunale → codice ufficio MinGiust."""
-        from pct.reginde import ClientReGINde
-        if nome_o_codice.isdigit():
-            return nome_o_codice
-        reginde = ClientReGINde()
-        uff = reginde.cerca_ufficio_giudiziario(nome_o_codice)
-        return uff.codice if uff else nome_o_codice
+        return risolvi_codice_ministero(nome_o_codice)
+
+    def _risolvi_base_pst(self, nome_o_codice: str) -> str:
+        return risolvi_base_pst(nome_o_codice, base_url=_WSP_BASE)
 
     # ---------------------------------------------------------------- Parser risposte SOAP
 

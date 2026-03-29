@@ -126,32 +126,34 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error(f"[scheduler] Parcelle scadute fallito: {e}")
 
-    # ---- Verifica variazioni uffici giudiziari (ogni giorno alle 03:30) ----
-    @scheduler.scheduled_job(CronTrigger(hour=3, minute=30), id="verifica_uffici")
-    def _verifica_uffici():
+    # ---- Sync uffici giudiziari da fonti ufficiali (ogni giorno alle 03:30) ----
+    # Fonti: PST MinGiust, giustizia-amministrativa.it, giustiziatributaria.gov.it, IPA PEC
+    @scheduler.scheduled_job(CronTrigger(hour=3, minute=30), id="sync_uffici")
+    def _sync_uffici():
         with app.app_context():
             try:
-                from pct.uffici_giudiziari import get_gestore
+                from pct.sync_uffici import esegui_sync_completo
                 cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-                gestore = get_gestore(cache_path)
-                report = gestore.verifica_variazioni()
+                report = esegui_sync_completo(cache_path)
                 if report.get("ok"):
-                    n = report.get("n_variazioni", 0)
-                    if n:
-                        logger.warning(
-                            "[scheduler] Verifica uffici: %d variazioni rilevate "
-                            "(%d PEC cambiate, %d aggiunti, %d rimossi)",
-                            n,
-                            len(report.get("pec_modificate", [])),
-                            len(report.get("aggiunti", [])),
-                            len(report.get("rimossi", [])),
-                        )
-                    else:
-                        logger.info("[scheduler] Verifica uffici: nessuna variazione rilevata.")
+                    logger.info(
+                        "[scheduler] Sync uffici completato: %d totali, "
+                        "+%d nuovi, %d PEC aggiornate",
+                        report.get("n_totale_post", 0),
+                        report.get("n_nuovi", 0),
+                        report.get("n_pec_aggiornate", 0),
+                    )
+                    # Log warning per ogni fonte fallita
+                    for fonte, stato in report.get("fonti", {}).items():
+                        if not stato.get("ok"):
+                            logger.warning(
+                                "[scheduler] Sync uffici: fonte '%s' non disponibile (%s)",
+                                fonte, stato.get("motivo", "errore"),
+                            )
                 else:
-                    logger.warning("[scheduler] Verifica uffici non riuscita: %s", report.get("errore"))
+                    logger.error("[scheduler] Sync uffici fallito: %s", report.get("errore"))
             except Exception as e:
-                logger.error(f"[scheduler] Verifica uffici fallita: {e}")
+                logger.error(f"[scheduler] Sync uffici fallito: {e}")
 
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico

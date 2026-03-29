@@ -318,7 +318,10 @@
     {% set fmt = cfg.firma.formato_attivo %}
     <div class="alert alert-{{ 'success' if fmt != 'nessuno' else 'secondary' }} py-2 small mb-4">
       <i class="bi bi-{{ 'patch-check-fill' if fmt != 'nessuno' else 'exclamation-circle' }} me-2"></i>
-      {% if fmt == 'p12' %}
+      {% if fmt == 'pkcs11' %}
+        <strong>Formato attivo: Token PKCS#11</strong> — libreria trovata.
+        Inserisci Aruba Key e usa il PIN nella schermata di deposito.
+      {% elif fmt == 'p12' %}
         <strong>Formato attivo: P12/PFX</strong> — file trovato su disco.
       {% elif fmt == 'pem' %}
         <strong>Formato attivo: PEM</strong> — certificato + chiave trovati su disco.
@@ -336,14 +339,14 @@
           Formato certificato
           <button type="button" class="btn-help"
                   data-bs-toggle="popover"
-                  data-bs-title="P12/PFX vs PEM — quale scegliere?"
-                  data-bs-content="<ul><li><strong>P12/PFX</strong> — file unico che contiene certificato e chiave privata. È il formato rilasciato da Aruba, Infocert, Namirial, Poste. È quello più comune.</li><li><strong>PEM</strong> — due file separati: <code>.crt</code> (certificato) e <code>.key</code> (chiave privata). Da usare solo se il provider non rilascia P12.</li></ul>Se non sai quale hai, guarda l'estensione del file ricevuto.">?</button>
+                  data-bs-title="P12/PFX vs PEM vs Token USB — quale scegliere?"
+                  data-bs-content="<ul><li><strong>P12/PFX</strong> — file unico con certificato e chiave (il più comune — Aruba, Infocert, Namirial, Poste).</li><li><strong>PEM</strong> — due file separati .crt + .key.</li><li><strong>Token PKCS#11 (Aruba Key)</strong> — chiave sul dispositivo USB, NON estraibile. Firma in-device: la chiave non lascia mai il token.</li></ul>">?</button>
         </label>
         <div class="d-flex gap-3 flex-wrap">
           <div class="form-check">
             <input class="form-check-input" type="radio" name="firma_formato" id="fmt_p12"
                    value="p12" onchange="switchFirmaFmt('p12')"
-                   {{ 'checked' if fmt != 'pem' }}>
+                   {{ 'checked' if fmt not in ('pem', 'pkcs11') }}>
             <label class="form-check-label" for="fmt_p12">
               <strong>P12 / PFX</strong>
               <span class="text-muted small d-block">File unico .p12 o .pfx — il più comune</span>
@@ -358,11 +361,20 @@
               <span class="text-muted small d-block">Due file separati (.crt + .key) — alcuni provider non rilasciano P12</span>
             </label>
           </div>
+          <div class="form-check ms-4">
+            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pkcs11"
+                   value="pkcs11" onchange="switchFirmaFmt('pkcs11')"
+                   {{ 'checked' if fmt == 'pkcs11' }}>
+            <label class="form-check-label" for="fmt_pkcs11">
+              <strong>Token PKCS#11</strong>
+              <span class="text-muted small d-block">Aruba Key o altro token USB — chiave in-device, PIN richiesto al deposito</span>
+            </label>
+          </div>
         </div>
       </div>
 
       {# ── Sezione P12 ── #}
-      <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt == 'pem' }}">
+      <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt in ('pem', 'pkcs11') }}">
         <div class="col-12">
           <label class="form-label fw-semibold">
             Percorso file P12/PFX
@@ -446,7 +458,63 @@
         </div>
       </div>
 
-      {# ── Codice Fiscale (comune) ── #}
+      {# ── Sezione PKCS#11 (Token USB — Aruba Key) ── #}
+      <div id="sezione_pkcs11" class="row g-3 {{ '' if fmt == 'pkcs11' else 'd-none' }}">
+        <div class="col-12">
+          <div class="alert alert-primary py-2 small d-flex gap-2">
+            <i class="bi bi-usb-symbol flex-shrink-0 mt-1 fs-5"></i>
+            <div>
+              <strong>Firma in-device — chiave privata mai estratta dal token.</strong><br>
+              La firma avviene direttamente nell'Aruba Key (o altro token PKCS#11).
+              Il PIN viene chiesto all'utente ad ogni operazione di firma e non viene mai salvato.<br>
+              <span class="text-muted">
+                Requisiti: <code>apt install pcscd opensc</code> sul server/Docker host ·
+                <code>pip install python-pkcs11 asn1crypto</code> ·
+                montare <code>/run/pcscd/pcscd.comm</code> nel container.
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">
+            Libreria PKCS#11 (.so / .dll)
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="Percorso alla libreria PKCS#11"
+                    data-bs-content="<p>Lascia vuoto per auto-rilevamento (cerca opensc-pkcs11.so nelle posizioni standard).</p><p>Percorsi comuni Linux: <code>/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so</code></p><p>Docker: aggiungi nel compose <code>volumes: - /run/pcscd/pcscd.comm:/run/pcscd/pcscd.comm</code> e installa pcscd+opensc sul host.</p>">?</button>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-hdd-rack"></i></span>
+            <input type="text" name="pkcs11_library" class="form-control font-monospace"
+                   value="{{ cfg.firma.pkcs11_library }}"
+                   placeholder="/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so (auto se vuoto)">
+          </div>
+          <div class="form-text">Lascia vuoto per auto-rilevamento nelle posizioni standard (OpenSC).</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Slot ID <span class="text-muted fw-normal">(opzionale)</span></label>
+          <input type="number" name="pkcs11_slot" class="form-control font-monospace"
+                 value="{{ cfg.firma.pkcs11_slot }}" min="0"
+                 placeholder="0 (primo slot disponibile)">
+          <div class="form-text">Default: primo slot con token inserito.</div>
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Etichetta certificato <span class="text-muted fw-normal">(opzionale)</span></label>
+          <input type="text" name="pkcs11_label" class="form-control font-monospace"
+                 value="{{ cfg.firma.pkcs11_label }}"
+                 placeholder="es. 'Firma qualificata' — lascia vuoto per usare il primo certificato">
+          <div class="form-text">Utile se il token contiene più certificati (firma + autenticazione).</div>
+        </div>
+        <div class="col-12">
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestPkcs11"
+                  onclick="testaPkcs11()">
+            <i class="bi bi-usb-symbol me-1"></i>Verifica token collegato
+          </button>
+          <div id="pkcs11TestResult" class="mt-2 small"></div>
+        </div>
+      </div>
+
+      {# ── Codice Fiscale (comune a tutti i formati) ── #}
       <div class="row g-3 mt-1">
         <div class="col-md-6">
           <label class="form-label fw-semibold">
@@ -483,6 +551,34 @@
 function switchFirmaFmt(fmt) {
   document.getElementById('sezione_p12').classList.toggle('d-none', fmt !== 'p12');
   document.getElementById('sezione_pem').classList.toggle('d-none', fmt !== 'pem');
+  document.getElementById('sezione_pkcs11').classList.toggle('d-none', fmt !== 'pkcs11');
+}
+
+function testaPkcs11() {
+  const btn = document.getElementById('btnTestPkcs11');
+  const res = document.getElementById('pkcs11TestResult');
+  btn.disabled = true;
+  res.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Ricerca token in corso…</span>';
+  fetch('/api/firma/pkcs11/status')
+    .then(r => r.json())
+    .then(d => {
+      if (d.disponibile && d.token && d.token.length > 0) {
+        const tok = d.token[0];
+        res.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>
+          Token rilevato: <strong>${tok.label || tok.manufacturer}</strong>
+          (slot ${tok.slot_id}) · cert: ${tok.ha_cert ? 'sì' : 'no'}
+        </span>`;
+      } else if (d.disponibile) {
+        res.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>
+          Libreria PKCS#11 ok (${d.libreria}) ma nessun token inserito.
+          Inserire Aruba Key e riprovare.
+        </span>`;
+      } else {
+        res.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${d.messaggio}</span>`;
+      }
+    })
+    .catch(e => { res.innerHTML = `<span class="text-danger">Errore: ${e}</span>`; })
+    .finally(() => { btn.disabled = false; });
 }
 </script>
 {% endif %}
@@ -495,24 +591,30 @@ function switchFirmaFmt(fmt) {
     <p class="text-muted mb-4" style="font-size:.82rem;">
       Usata per promemoria, avvisi ai clienti, invio parcelle. <strong>Diversa dalla PEC</strong>
       (che è certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi provider SMTP.
+      Su Railway/cloud usa <strong>Brevo</strong> (piano gratuito, funziona sempre da hosting).
     </p>
 
     {# Provider quick-select #}
     <div class="row g-2 mb-4">
       {% set providers_smtp = [
-        ('Gmail', 'smtp.gmail.com', '587', '1'),
-        ('Outlook/Office365', 'smtp.office365.com', '587', '1'),
-        ('Aruba', 'smtps.aruba.it', '465', '1'),
-        ('IONOS', 'smtp.ionos.it', '587', '1'),
+        ('Brevo', 'smtp-relay.brevo.com', '587', '1', True),
+        ('Gmail', 'smtp.gmail.com', '587', '1', False),
+        ('Outlook/Office365', 'smtp.office365.com', '587', '1', False),
+        ('Aruba', 'smtps.aruba.it', '465', '1', False),
+        ('IONOS', 'smtp.ionos.it', '587', '1', False),
       ] %}
-      {% for nome, host, porta, tls in providers_smtp %}
-      <div class="col-6 col-md-3">
-        <div class="card border" style="border-radius:12px; cursor:pointer;"
+      {% for nome, host, porta, tls, cloud in providers_smtp %}
+      <div class="col-6 col-md-auto">
+        <div class="card h-100 {{ 'border-success' if cloud else 'border' }}"
+             style="border-radius:12px; cursor:pointer; {{ 'background:#f0fdf4;' if cloud else '' }}"
              onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}')"
              title="Precompila parametri {{ nome }}">
           <div class="card-body p-2 text-center">
-            <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
-            <div class="text-muted font-monospace" style="font-size:.68rem;">{{ host }}:{{ porta }}</div>
+            {% if cloud %}
+            <span class="badge bg-success mb-1" style="font-size:.6rem;">&#9729; Cloud-friendly</span><br>
+            {% endif %}
+            <div class="fw-semibold {{ 'text-success' if cloud else '' }}" style="font-size:.8rem;">{{ nome }}</div>
+            <div class="{{ 'text-success' if cloud else 'text-muted' }} font-monospace" style="font-size:.68rem;">{{ host }}:{{ porta }}</div>
           </div>
         </div>
       </div>
@@ -583,6 +685,22 @@ function switchFirmaFmt(fmt) {
           <label class="form-label fw-semibold">Nome mittente</label>
           <input type="text" name="smtp_from_name" class="form-control"
                  value="{{ cfg.smtp.from_name }}" placeholder="Studio Legale Rossi">
+        </div>
+
+        {# Guida Brevo — visibile solo quando l'host è smtp-relay.brevo.com #}
+        <div class="col-12" id="brevo-guide" style="display:none;">
+          <div class="alert alert-success py-2 mb-0" style="font-size:.82rem;">
+            <strong><i class="bi bi-cloud-check me-1"></i>Brevo (ex Sendinblue) — istruzioni rapide:</strong>
+            <ol class="mb-1 mt-1 ps-3">
+              <li>Registrati su <strong>brevo.com</strong> (piano Free: 300 email/giorno gratuito)</li>
+              <li><strong>Verifica l'email</strong> di conferma — l'SMTP non funziona finché l'account non è attivato</li>
+              <li>Vai su <em>SMTP &amp; API → SMTP</em> e copia le credenziali</li>
+              <li><strong>Username</strong>: il tuo indirizzo email Brevo</li>
+              <li><strong>Password</strong>: la <em>Master password SMTP</em> (non la password dell'account)</li>
+            </ol>
+            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+            <strong>Timeout?</strong> L'account potrebbe non essere ancora attivato oppure il dominio mittente non verificato. Accedi a brevo.com e controlla eventuali avvisi nella dashboard.
+          </div>
         </div>
 
         <div class="col-12">
@@ -851,7 +969,22 @@ function fillSMTP(host, port, tls) {
   set('smtp_host', host);
   set('smtp_port', port);
   chk('smtp_use_tls', tls);
+  _toggleBrevoGuide(host);
 }
+
+function _toggleBrevoGuide(host) {
+  const guide = document.getElementById('brevo-guide');
+  if (guide) guide.style.display = (host === 'smtp-relay.brevo.com') ? '' : 'none';
+}
+
+/* Mostra guida Brevo se già salvato come host */
+document.addEventListener('DOMContentLoaded', function() {
+  const smtpHostEl = document.getElementById('smtp_host');
+  if (smtpHostEl) {
+    _toggleBrevoGuide(smtpHostEl.value);
+    smtpHostEl.addEventListener('input', () => _toggleBrevoGuide(smtpHostEl.value));
+  }
+});
 
 /* ── AJAX connection test ── */
 async function testConn(tipo, btnId, resId) {

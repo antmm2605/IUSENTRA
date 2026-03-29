@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% block title %}Nuovo Preventivo{% endblock %}
+{% block pct_modulo %}preventivi{% endblock %}
+
+{% block content %}
+
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-file-earmark-plus"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Nuovo Preventivo</h1>
+    <p class="ds-ph-sub">Compila le voci per il preventivo professionale</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('preventivi.lista') }}" class="ds-btn ds-btn-secondary">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Annulla</span>
+    </a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+<form method="post" id="formPreventivo">
+  <input type="hidden" name="from_page" value="{{ from_page }}">
+
+  <div class="row g-3">
+
+    {# ── Cliente ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-person me-2"></i>Cliente e pratica</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Cliente <span class="text-danger">*</span></label>
+              <select name="id_cliente" id="selectCliente" class="form-select" required
+                      onchange="caricaFascicoli(this.value)">
+                <option value="">— Seleziona cliente —</option>
+                {% for cl in clienti %}
+                <option value="{{ cl.id }}"
+                  {% if cliente_sel and cl.id == cliente_sel.id %}selected{% endif %}>
+                  {{ cl.nome_completo }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fascicolo (opzionale)</label>
+              <select name="id_fascicolo" id="selectFascicolo" class="form-select">
+                <option value="">— Nessun fascicolo —</option>
+                {% for f in fascicoli %}
+                <option value="{{ f.id }}"
+                  {% if id_fascicolo_pre == f.id %}selected{% endif %}>
+                  {{ f.titolo }}{% if f.numero_rg %} (RG {{ f.numero_rg }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Dati preventivo ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Dati preventivo</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Oggetto <span class="text-danger">*</span></label>
+              <input type="text" name="oggetto" class="form-control" required
+                     placeholder="Es. Assistenza legale procedimento civile RG 123/2025">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Data emissione</label>
+              <input type="date" name="data_emissione" class="form-control" value="{{ oggi }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Valido fino al</label>
+              <input type="date" name="data_scadenza" class="form-control" value="{{ scadenza_default }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tipo di compenso <span class="text-danger">*</span>
+                <small class="text-muted fw-normal">(art. 13 L. 247/2012)</small></label>
+              <select name="tipo_compenso" id="selTipoCompenso" class="form-select" onchange="aggiornaUiCompenso()">
+                <option value="Compenso fisso">Compenso fisso</option>
+                <option value="Compenso orario">Compenso orario</option>
+                <option value="Per fasi processuali (D.M. 55/2014)">Per fasi processuali (D.M. 55/2014)</option>
+                <option value="Forfettario onnicomprensivo">Forfettario onnicomprensivo</option>
+                <option value="Misto (fisso + quota sul risultato)">Misto (fisso + quota sul risultato)</option>
+                <option value="A liquidazione (parametri D.M. 55/2014)">A liquidazione (parametri D.M. 55/2014)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tipo procedimento
+                <small class="text-muted fw-normal">(D.M. 55/2014)</small></label>
+              <select name="tipo_procedimento" id="selTipoProcedimento" class="form-select" onchange="aggiornaDM55()">
+                <option value="Civile — fase di cognizione">Civile — fase di cognizione</option>
+                <option value="Civile — fase esecutiva">Civile — fase esecutiva</option>
+                <option value="Penale">Penale</option>
+                <option value="Amministrativo (TAR/CdS)">Amministrativo (TAR/CdS)</option>
+                <option value="Stragiudiziale / Consulenza">Stragiudiziale / Consulenza</option>
+                <option value="Mediazione / Negoziazione assistita">Mediazione / Negoziazione assistita</option>
+                <option value="Arbitrato">Arbitrato</option>
+              </select>
+            </div>
+            <div class="col-md-4" id="rowValoreControversia">
+              <label class="form-label">Valore controversia (€)
+                <small class="text-muted fw-normal">0 = indeterminabile</small></label>
+              <input type="number" name="valore_controversia" id="inpValore" class="form-control"
+                     step="0.01" min="0" value="0" placeholder="0" oninput="aggiornaDM55()">
+            </div>
+            <div class="col-md-4" id="rowTariffaOraria" style="display:none">
+              <label class="form-label">Tariffa oraria (€/ora)</label>
+              <input type="number" name="tariffa_oraria" id="inpTarOraria" class="form-control"
+                     step="0.01" min="0" value="" placeholder="0.00">
+            </div>
+            <div class="col-md-4" id="rowOreStimate" style="display:none">
+              <label class="form-label">Ore stimate</label>
+              <input type="number" name="ore_stimate" id="inpOreStimate" class="form-control"
+                     step="0.5" min="0" value="" placeholder="0">
+            </div>
+            <div class="col-12" id="rowComplessita">
+              <label class="form-label">Complessità e informazioni sull'incarico
+                <small class="text-muted fw-normal">(art. 13 co. 5 L. 247/2012)</small></label>
+              <textarea name="complessita" class="form-control" rows="2"
+                        placeholder="Descrivere il grado di complessità stimato e gli oneri ipotizzabili dalla conclusione dell'incarico"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Calcolatore D.M. 55/2014 ── #}
+    <div class="col-12" id="cardDM55" style="display:none">
+      <div class="card border-primary">
+        <div class="card-header fw-semibold text-primary">
+          <i class="bi bi-calculator me-2"></i>Calcolatore parametri D.M. 55/2014
+          <small class="text-muted fw-normal ms-2">(valori di riferimento — agg. D.M. 147/2022)</small>
+        </div>
+        <div class="card-body">
+          <p class="small text-muted mb-2">Seleziona le fasi processuali da includere nel calcolo:</p>
+          <div class="d-flex flex-wrap gap-3 mb-3">
+            {% for fase in [('studio','Studio'), ('introduttiva','Fase introduttiva'),
+                            ('istruttoria','Fase istruttoria'), ('decisionale','Fase decisionale')] %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="fasi_incluse[]"
+                     value="{{ fase[0] }}" id="fase_{{ fase[0] }}" checked onchange="aggiornaDM55()">
+              <label class="form-check-label" for="fase_{{ fase[0] }}">{{ fase[1] }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          <div id="risultatoDM55" class="alert alert-light border small mb-0" style="display:none">
+            Calcolo in corso…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Voci ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between fw-semibold">
+          <span><i class="bi bi-list-ul me-2"></i>Voci del preventivo</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="aggiungiVoce()">
+            <i class="bi bi-plus-lg me-1"></i>Aggiungi voce
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-borderless mb-0" id="tblVoci">
+            <thead class="table-light">
+              <tr>
+                <th>Descrizione</th>
+                <th style="width:160px">Tipo</th>
+                <th class="text-end" style="width:130px">Importo (€)</th>
+                <th style="width:40px"></th>
+              </tr>
+            </thead>
+            <tbody id="vociBody">
+              {# JS aggiunge righe dinamicamente #}
+            </tbody>
+            <tfoot>
+              <tr class="table-light">
+                <td colspan="2" class="text-end fw-semibold small">Imponibile</td>
+                <td class="text-end fw-semibold" id="lblImponibile">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr id="rowCassa" style="display:none">
+                <td colspan="2" class="text-end small">Cassa Forense (4%)</td>
+                <td class="text-end small" id="lblCassa">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr id="rowIva" style="display:none">
+                <td colspan="2" class="text-end small">IVA (22%)</td>
+                <td class="text-end small" id="lblIva">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr id="rowAnticipazioniArt15" style="display:none">
+                <td colspan="2" class="text-end small text-muted">
+                  Anticipazioni Art. 15 <small>(esenti)</small>
+                </td>
+                <td class="text-end small text-muted" id="lblAnticipazioniArt15">€ 0,00</td>
+                <td></td>
+              </tr>
+              <tr class="table-primary">
+                <td colspan="2" class="text-end fw-bold">TOTALE STIMATO</td>
+                <td class="text-end fw-bold" id="lblTotale">€ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {# ── Opzioni fiscali + Anticipazioni Art. 15 ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-percent me-2"></i>Opzioni fiscali — Legge 124/2017</div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-3 mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="applica_cassa"
+                     id="chkCassa" value="1" checked onchange="ricalcola()">
+              <label class="form-check-label" for="chkCassa">Contributo Previdenziale (CPA) 4%
+                <small class="text-muted">(Cassa Forense)</small></label>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="applica_iva"
+                     id="chkIva" value="1" checked onchange="ricalcola()">
+              <label class="form-check-label" for="chkIva">IVA 22%</label>
+            </div>
+          </div>
+          <hr class="my-2">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold mb-1">
+                Anticipazioni in nome e per conto (€)
+                <small class="text-muted fw-normal d-block" style="font-size:.78rem">
+                  Art. 15 c.1 n.3 DPR 633/72 — esenti da CPA e IVA
+                  (contributo unificato, marche, notifiche, perizie, ecc.)
+                </small>
+              </label>
+              <input type="number" name="anticipazioni_art15" id="inpAnticipazioniArt15"
+                     class="form-control" step="0.01" min="0" value="0" placeholder="0.00"
+                     oninput="ricalcola()">
+            </div>
+            <div class="col-md-7 text-muted small">
+              <i class="bi bi-info-circle me-1"></i>
+              Le anticipazioni vengono sommate al totale senza applicazione di imposte
+              e devono essere documentate da ricevute/quietanze intestate al cliente.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Note ── #}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-chat-left-text me-2"></i>Note</div>
+        <div class="card-body">
+          <textarea name="note" class="form-control" rows="3"
+                    placeholder="Condizioni, modalità di pagamento, esclusioni, ecc."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 d-flex gap-2 justify-content-end pb-4">
+      <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Crea preventivo
+      </button>
+    </div>
+
+  </div>{# /row #}
+</form>
+
+<script>
+const TIPI = ['Onorario','Spesa forfettaria','Spesa viva'];
+
+function aggiungiVoce(desc='', imp=0, tipo='Onorario') {
+  const tbody = document.getElementById('vociBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" name="voce_descr[]" class="form-control form-control-sm"
+               placeholder="Descrizione prestazione" value="${desc}" required></td>
+    <td>
+      <select name="voce_tipo[]" class="form-select form-select-sm">
+        ${TIPI.map(t => `<option value="${t}" ${t===tipo?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </td>
+    <td>
+      <input type="number" name="voce_importo[]" class="form-control form-control-sm text-end"
+             step="0.01" min="0" value="${imp || ''}" placeholder="0.00" oninput="ricalcola()">
+    </td>
+    <td>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove();ricalcola()">
+        <i class="bi bi-trash"></i>
+      </button>
+    </td>`;
+  tbody.appendChild(tr);
+  ricalcola();
+}
+
+function ricalcola() {
+  let imp = 0;
+  document.querySelectorAll('input[name="voce_importo[]"]').forEach(el => {
+    imp += parseFloat(el.value || 0);
+  });
+  const cassa = document.getElementById('chkCassa').checked ? imp * 0.04 : 0;
+  const baseIva = imp + cassa;
+  const iva = document.getElementById('chkIva').checked ? baseIva * 0.22 : 0;
+  // Anticipazioni Art. 15: esenti da CPA e IVA, sommate al netto
+  const ant15 = parseFloat(document.getElementById('inpAnticipazioniArt15')?.value || 0);
+  const totale = baseIva + iva + ant15;
+
+  const fmt = v => '€ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  document.getElementById('lblImponibile').textContent = fmt(imp);
+  document.getElementById('lblCassa').textContent = fmt(cassa);
+  document.getElementById('lblIva').textContent = fmt(iva);
+  document.getElementById('lblAnticipazioniArt15').textContent = fmt(ant15);
+  document.getElementById('lblTotale').textContent = fmt(totale);
+  document.getElementById('rowCassa').style.display = cassa > 0 ? '' : 'none';
+  document.getElementById('rowIva').style.display = iva > 0 ? '' : 'none';
+  document.getElementById('rowAnticipazioniArt15').style.display = ant15 > 0 ? '' : 'none';
+}
+
+function caricaFascicoli(idCliente) {
+  const sel = document.getElementById('selectFascicolo');
+  sel.innerHTML = '<option value="">— Nessun fascicolo —</option>';
+  if (!idCliente) return;
+  fetch(`/preventivi/ajax/fascicoli/${idCliente}`)
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = f.titolo + (f.numero_rg ? ` (RG ${f.numero_rg})` : '');
+        sel.appendChild(opt);
+      });
+    });
+}
+
+function aggiornaUiCompenso() {
+  const tipo = document.getElementById('selTipoCompenso').value;
+  const isOrario = tipo === 'Compenso orario';
+  const isDM55 = tipo.includes('D.M. 55/2014') || tipo.includes('fasi');
+  document.getElementById('rowTariffaOraria').style.display = isOrario ? '' : 'none';
+  document.getElementById('rowOreStimate').style.display = isOrario ? '' : 'none';
+  document.getElementById('cardDM55').style.display = isDM55 ? '' : 'none';
+  aggiornaDM55();
+}
+
+let dm55Timer = null;
+function aggiornaDM55() {
+  const card = document.getElementById('cardDM55');
+  if (!card || card.style.display === 'none') return;
+  clearTimeout(dm55Timer);
+  dm55Timer = setTimeout(_calcolaDM55, 400);
+}
+
+function _calcolaDM55() {
+  const tipo = document.getElementById('selTipoProcedimento').value;
+  const valore = parseFloat(document.getElementById('inpValore').value || 0);
+  const fasi = [...document.querySelectorAll('input[name="fasi_incluse[]"]:checked')]
+                .map(el => el.value).join(',');
+  const res = document.getElementById('risultatoDM55');
+  if (!fasi) { res.style.display = 'none'; return; }
+  res.style.display = '';
+  res.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Calcolo…';
+  fetch(`/preventivi/ajax/parametri_dm55?tipo_procedimento=${encodeURIComponent(tipo)}&valore=${valore}&fasi=${encodeURIComponent(fasi)}`)
+    .then(r => r.json())
+    .then(d => {
+      if (d.errore) { res.innerHTML = `<span class="text-danger">${d.errore}</span>`; return; }
+      const fmt = v => '€ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      const righe = Object.entries(d.fasi)
+        .map(([f, v]) => `<span class="me-3"><b>${f.charAt(0).toUpperCase()+f.slice(1)}:</b> ${fmt(v)}</span>`)
+        .join('');
+      res.innerHTML = `
+        <div class="fw-semibold text-primary mb-1">Scaglione: ${d.scaglione}</div>
+        <div class="mb-1">${righe}</div>
+        <div class="fw-bold">Totale di riferimento: ${fmt(d.totale)}</div>
+        <div class="text-muted mt-1" style="font-size:.75rem">${d.nota}</div>`;
+    })
+    .catch(() => { res.innerHTML = '<span class="text-warning">Impossibile calcolare i parametri.</span>'; });
+}
+
+// Aggiungi 1 voce iniziale
+document.addEventListener('DOMContentLoaded', () => {
+  aggiungiVoce();
+  aggiornaUiCompenso();
+});
+</script>
+
+{% endblock %}

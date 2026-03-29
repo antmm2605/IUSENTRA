@@ -400,9 +400,213 @@
 </div>{# /col-lg-5 #}
 </div>{# /row #}
 
+{% endblock %}
+
+{% block modals %}
+
+{# ── Modal firma documento (auto-detect: PKCS#11 in-device / firma esterna) ── #}
+<div class="modal fade" id="modalFirmaPkcs11" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold" id="pkcs11ModalTitle">
+          <i class="bi bi-pen-fill me-2 text-warning"></i>Firma documento prima del deposito
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        {# ── Rilevamento automatico (spinner iniziale) ── #}
+        <div id="pkcs11Detecting" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-secondary mb-2"></div>
+          <div class="small text-muted" id="pkcs11DetectingTxt">Ricerca Local Signer…</div>
+        </div>
+
+        {# ── Avviso: documento non firmato ── #}
+        <div id="pkcs11Banner" class="alert alert-warning d-flex gap-2 small mb-3" style="display:none!important">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+          <div>
+            <strong id="pkcs11DocNome">—</strong> non è firmato digitalmente.
+            Il PST rifiuta la busta se l'atto principale non ha firma CAdES (.p7m).
+          </div>
+        </div>
+
+        {# ════════════ PATH L — Local Signer (Windows / Aruba Key in-device) ════════════ #}
+        {# Usa http://localhost:27272 — avviare tools/avvia_local_signer.bat #}
+        <div id="pathLocalSigner" style="display:none">
+
+          <div id="lsTokenInfo" class="alert alert-success small d-flex gap-2 mb-3">
+            <i class="bi bi-usb-symbol flex-shrink-0 mt-1"></i>
+            <span></span>
+          </div>
+
+          <label class="form-label fw-semibold small">PIN del dispositivo <span class="text-danger">*</span></label>
+          <div class="input-group mb-1">
+            <input type="password" id="lsPinInput" class="form-control"
+                   placeholder="PIN Aruba Key" autocomplete="off"
+                   onkeydown="if(event.key==='Enter') avviaFirmaLocalSigner()">
+            <button type="button" class="btn btn-outline-secondary"
+                    onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="form-text mb-3">
+            <i class="bi bi-shield-lock me-1 text-success"></i>
+            Il PIN non viene trasmesso al server — usato solo nel Local Signer sul tuo PC.
+          </div>
+
+          <div id="lsStep3" style="display:none">
+            <div id="lsProgress" class="text-center py-3">
+              <div class="spinner-border text-warning mb-2"></div>
+              <div class="small text-muted">Firma in corso nel token — attendere…</div>
+              <div class="small text-muted mt-1">La chiave privata non lascia il dispositivo.</div>
+            </div>
+            <div id="lsSuccess" class="alert alert-success small d-flex gap-2" style="display:none">
+              <i class="bi bi-patch-check-fill flex-shrink-0 mt-1"></i>
+              <div><strong>Documento firmato.</strong> <span id="lsSuccessMsg"></span></div>
+            </div>
+            <div id="lsError" class="alert alert-danger small" style="display:none">
+              <strong>Errore firma:</strong> <span id="lsErrorMsg"></span>
+              <div class="mt-1">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="resetLsStep()">
+                  Riprova
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>{# /pathLocalSigner #}
+
+        {# ════════════ PATH A — PKCS#11 server-side (Linux + pcscd) ════════════ #}
+        <div id="pathPkcs11" style="display:none">
+
+          {# Step 1 — Token rilevato, inserisci PIN #}
+          <div id="pkcs11Step2">
+            <div id="pkcs11TokenInfo" class="alert alert-success small d-flex gap-2 mb-3">
+              <i class="bi bi-usb-symbol flex-shrink-0 mt-1"></i>
+              <span></span>
+            </div>
+            <label class="form-label fw-semibold small">PIN del dispositivo <span class="text-danger">*</span></label>
+            <div class="input-group mb-1">
+              <input type="password" id="pkcs11PinInput" class="form-control"
+                     placeholder="PIN Aruba Key" autocomplete="off"
+                     onkeydown="if(event.key==='Enter') avviaFirmaPkcs11()">
+              <button type="button" class="btn btn-outline-secondary"
+                      onclick="this.previousElementSibling.type=this.previousElementSibling.type==='password'?'text':'password'">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="form-text mb-3">
+              <i class="bi bi-shield-lock me-1 text-success"></i>
+              Il PIN non viene salvato — usato solo per questa firma, poi scartato.
+            </div>
+          </div>
+
+          {# Step 2 — Firma in corso / esito #}
+          <div id="pkcs11Step3" style="display:none">
+            <div id="pkcs11Progress" class="text-center py-3">
+              <div class="spinner-border text-warning mb-2"></div>
+              <div class="small text-muted">Firma in corso nel token — attendere…</div>
+              <div class="small text-muted mt-1">La chiave privata non lascia il dispositivo.</div>
+            </div>
+            <div id="pkcs11Success" class="alert alert-success small d-flex gap-2" style="display:none">
+              <i class="bi bi-patch-check-fill flex-shrink-0 mt-1"></i>
+              <div><strong>Documento firmato.</strong> <span id="pkcs11SuccessMsg"></span></div>
+            </div>
+            <div id="pkcs11Error" class="alert alert-danger small" style="display:none">
+              <strong>Errore firma:</strong> <span id="pkcs11ErrorMsg"></span>
+              <div class="mt-1">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="resetPkcs11Step()">
+                  Riprova
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>{# /pathPkcs11 #}
+
+        {# ════════════ PATH B — Firma esterna (Windows / nessun token) ════════════ #}
+        <div id="pathEsterna" style="display:none">
+
+          <div class="alert alert-info small d-flex gap-2 mb-3">
+            <i class="bi bi-windows flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>Windows / token non rilevato</strong> — firma il documento con
+              <strong>ArubaSign</strong>, <strong>Dike</strong> o altro software, poi carica il
+              <code>.p7m</code> qui sotto.
+            </div>
+          </div>
+
+          {# Step 1: Scarica documento #}
+          <div class="mb-3">
+            <p class="small fw-semibold mb-1">
+              <span class="badge bg-primary rounded-pill me-1">1</span>
+              Scarica il documento da firmare
+            </p>
+            <a id="btnScaricaPerFirma" href="#" class="btn btn-outline-primary btn-sm" download>
+              <i class="bi bi-download me-1"></i>Scarica <span id="nomeDocScarica"></span>
+            </a>
+          </div>
+
+          {# Step 2: Istruzioni firma #}
+          <div class="mb-3">
+            <p class="small fw-semibold mb-1">
+              <span class="badge bg-primary rounded-pill me-1">2</span>
+              Firma con ArubaSign / Dike / altro software
+            </p>
+            <div class="small text-muted ps-3">
+              Apri il software di firma → seleziona il file scaricato → firma CAdES (.p7m) →
+              salva il risultato (es. <code>nomefile.pdf.p7m</code>).
+            </div>
+          </div>
+
+          {# Step 3: Carica .p7m firmato #}
+          <div class="mb-2">
+            <p class="small fw-semibold mb-1">
+              <span class="badge bg-primary rounded-pill me-1">3</span>
+              Carica il file <code>.p7m</code> firmato
+            </p>
+            <input type="file" id="p7mUploadInput" class="form-control form-control-sm"
+                   accept=".p7m,.sig,.pkcs7" onchange="caricaP7mFirmato(this)">
+          </div>
+
+          <div id="p7mUploadStatus" class="small mt-2" style="display:none"></div>
+
+        </div>{# /pathEsterna #}
+
+        {# ── Link per passare all'altro metodo ── #}
+        <div id="switchPath" class="mt-3" style="display:none">
+          <hr class="my-2">
+          <button type="button" class="btn btn-link btn-sm p-0 text-muted"
+                  onclick="switchFirmaPath()">
+            <i class="bi bi-arrow-left-right me-1"></i>
+            <span id="switchPathLabel">Passa alla firma esterna (Windows)</span>
+          </button>
+        </div>
+
+      </div>
+      <div class="modal-footer flex-column align-items-stretch gap-2">
+        <button type="button" class="btn btn-warning fw-semibold d-none" id="btnAvviaFirmaLS"
+                onclick="avviaFirmaLocalSigner()">
+          <i class="bi bi-usb-symbol me-2"></i>Firma con Aruba Key (Local Signer)
+        </button>
+        <button type="button" class="btn btn-warning fw-semibold d-none" id="btnAvviaFirmaPkcs11"
+                onclick="avviaFirmaPkcs11()">
+          <i class="bi bi-pen-fill me-2"></i>Firma con Aruba Key (in-device)
+        </button>
+        <button type="button" class="btn btn-success fw-semibold d-none" id="btnContinuaDopoFirma"
+                onclick="continuaDopoFirma()">
+          <i class="bi bi-send-fill me-2"></i>Continua con il deposito
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {# ── Modal conferma invio PEC (reale e demo) ─────────────────────────── #}
 <div class="modal fade" id="modalConfermaPec" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header" id="modalHeaderPec">
         <h6 class="modal-title fw-bold" id="modalTitlePec">
@@ -458,14 +662,506 @@
   <input type="hidden" name="demo_mode" id="gb_demo" value="1">
   <div id="gb_allegati"></div>
 </form>
-
-{% endblock %}
+{% endblock %}{# /modals #}
 
 {% block extra_scripts %}
 <script>
 let mainDocId = null;
 const allegatiSet = new Set();
 let _invioDemo = false;  // true = modalità demo, false = invio reale
+
+// ── Configurazione Local Signer ───────────────────────────────────────────────
+const _LS_PORT = 27272;
+const _LS_BASE = `http://127.0.0.1:${_LS_PORT}`;
+
+// ── Stato PKCS#11 / Local Signer ─────────────────────────────────────────────
+let _pkcs11PendingAction = null;  // 'pec' | 'demo' | 'busta' — azione da eseguire dopo firma
+let _pkcs11TokenSlot = null;       // slot_id del token rilevato (server-side)
+let _lsTokenSlot = null;           // slot_id del token nel Local Signer
+let _firmaViaLS = false;           // true = usiamo Local Signer
+
+// Mappa doc_id → firmato (aggiornata dinamicamente dopo firma PKCS#11)
+const _docFirmato = {};
+{% for doc in fascicolo.documenti %}
+_docFirmato['{{ doc.id }}'] = {{ 'true' if doc.firmato_digitalmente else 'false' }};
+{% endfor %}
+
+function _docMainFirmato() {
+  return mainDocId && _docFirmato[mainDocId] === true;
+}
+
+// ── Funzioni PKCS#11 ─────────────────────────────────────────────────────────
+
+function rilevaPkcs11Token() {
+  const statusEl = document.getElementById('pkcs11TokenStatus');
+  statusEl.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Ricerca token in corso…';
+  fetch('/api/firma/pkcs11/status')
+    .then(r => r.json())
+    .then(d => {
+      if (d.disponibile && d.token && d.token.length > 0) {
+        const tok = d.token[0];
+        _pkcs11TokenSlot = tok.slot_id;
+        statusEl.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>
+          Token rilevato: <strong>${tok.label || tok.manufacturer || 'Token'}</strong>
+          (slot ${tok.slot_id})</span>`;
+        // Passa a step 2
+        document.getElementById('pkcs11Step1').style.display = 'none';
+        const infoEl = document.querySelector('#pkcs11TokenInfo span');
+        if (infoEl) infoEl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
+        document.getElementById('pkcs11Step2').style.display = 'block';
+        document.getElementById('btnAvviaFirmaPkcs11').classList.remove('d-none');
+        document.getElementById('pkcs11PinInput').focus();
+      } else if (d.disponibile) {
+        statusEl.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>
+          Libreria PKCS#11 disponibile ma nessun token trovato.
+          Inserire Aruba Key e cliccare di nuovo <em>Rileva token</em>.</span>`;
+      } else {
+        statusEl.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${d.messaggio}</span>`;
+      }
+    })
+    .catch(e => {
+      statusEl.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Errore: ${e}</span>`;
+    });
+}
+
+function avviaFirmaPkcs11() {
+  const pin = document.getElementById('pkcs11PinInput').value;
+  if (!pin) { document.getElementById('pkcs11PinInput').focus(); return; }
+  if (!mainDocId) return;
+
+  // Mostra step firma in corso
+  document.getElementById('pkcs11Step2').style.display = 'none';
+  document.getElementById('pkcs11Step3').style.display = 'block';
+  document.getElementById('btnAvviaFirmaPkcs11').classList.add('d-none');
+  document.getElementById('pkcs11Progress').style.display = 'block';
+  document.getElementById('pkcs11Success').style.display = 'none';
+  document.getElementById('pkcs11Error').style.display = 'none';
+
+  fetch('/api/firma/pkcs11/firma-documento', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fascicolo_id: '{{ fascicolo.id }}',
+      documento_id: mainDocId,
+      pin: pin,
+      slot_id: _pkcs11TokenSlot,
+    }),
+  })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById('pkcs11Progress').style.display = 'none';
+    if (d.ok) {
+      // Aggiorna stato locale
+      _docFirmato[mainDocId] = true;
+      // Aggiorna badge nel documento card
+      _aggiornaBadgeFirmato(mainDocId, d.nome_firmato);
+
+      const msgParts = [`Firmato da <strong>${d.intestatario || 'token'}</strong>`];
+      if (d.scadenza) msgParts.push(`· certificato valido fino al ${d.scadenza}`);
+      if (d.avviso_scadenza) msgParts.push('· <span class="text-warning">certificato in scadenza!</span>');
+      document.getElementById('pkcs11SuccessMsg').innerHTML = msgParts.join(' ');
+      document.getElementById('pkcs11Success').style.display = '';
+      document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
+    } else {
+      document.getElementById('pkcs11Progress').style.display = 'none';
+      document.getElementById('pkcs11ErrorMsg').textContent = d.messaggio || 'Errore sconosciuto';
+      document.getElementById('pkcs11Error').style.display = '';
+    }
+  })
+  .catch(e => {
+    document.getElementById('pkcs11Progress').style.display = 'none';
+    document.getElementById('pkcs11ErrorMsg').textContent = String(e);
+    document.getElementById('pkcs11Error').style.display = '';
+  });
+}
+
+function continuaDopoFirma() {
+  // Chiudi modal e procedi con l'azione pendente
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalFirmaPkcs11'));
+  if (modal) modal.hide();
+  if (_pkcs11PendingAction === 'pec') {
+    _eseguiInvioPec();
+  } else if (_pkcs11PendingAction === 'demo') {
+    _eseguiInvioPec();  // con _invioDemo=true già impostato
+  } else if (_pkcs11PendingAction === 'busta') {
+    _eseguiGeneraBusta();
+  }
+  _pkcs11PendingAction = null;
+}
+
+function _aggiornaBadgeFirmato(docId, nomeFirmato) {
+  // Aggiorna l'icona e il badge "non firmato" → ".p7m" nella card del documento
+  const card = document.getElementById('dc_' + docId);
+  if (!card) return;
+  const iconEl = card.querySelector('i.bi-file-earmark-pdf, i.bi-patch-check-fill');
+  if (iconEl) {
+    iconEl.className = 'bi bi-patch-check-fill text-success flex-shrink-0';
+    iconEl.title = 'Firmato .p7m';
+  }
+  const badgeNonFirmato = card.querySelector('.badge.bg-warning');
+  if (badgeNonFirmato) {
+    badgeNonFirmato.className = 'badge bg-success bg-opacity-10 text-success border';
+    badgeNonFirmato.style.fontSize = '.68rem';
+    badgeNonFirmato.innerHTML = '<i class="bi bi-patch-check me-1"></i>.p7m';
+  }
+  if (nomeFirmato) {
+    const nomeEl = card.querySelector('.text-truncate');
+    if (nomeEl) nomeEl.textContent = nomeFirmato;
+    // Aggiorna riepilogo selezione
+    const lblMain = document.getElementById('lblMainDoc');
+    if (lblMain && mainDocId === docId) lblMain.textContent = nomeFirmato;
+  }
+}
+
+// ── Local Signer path ────────────────────────────────────────────────────────
+
+function _mostraPathLocalSigner(tok) {
+  _firmaPathAttivo = 'local';
+  document.getElementById('pkcs11Detecting').style.display = 'none';
+  document.getElementById('pkcs11Banner').style.removeProperty('display');
+  document.getElementById('pathLocalSigner').style.display = 'block';
+  document.getElementById('pathPkcs11').style.display = 'none';
+  document.getElementById('pathEsterna').style.display = 'none';
+  document.getElementById('btnAvviaFirmaLS').classList.remove('d-none');
+  document.getElementById('btnAvviaFirmaPkcs11').classList.add('d-none');
+  document.getElementById('btnContinuaDopoFirma').classList.add('d-none');
+  document.getElementById('switchPath').style.display = 'block';
+  document.getElementById('switchPathLabel').textContent = 'Firma esterna (ArubaSign / Dike)';
+  // Info token
+  const lbl = tok.label || tok.manufacturer || 'Token';
+  const infoEl = document.querySelector('#lsTokenInfo span');
+  if (infoEl) infoEl.textContent =
+    `Local Signer: ${lbl} (slot ${tok.slot_id}) — firma in-device`;
+  // Reset form PIN
+  document.getElementById('lsPinInput').value = '';
+  document.getElementById('lsStep3').style.display = 'none';
+  document.getElementById('lsError').style.display = 'none';
+  document.getElementById('lsSuccess').style.display = 'none';
+  setTimeout(() => document.getElementById('lsPinInput').focus(), 300);
+}
+
+function avviaFirmaLocalSigner() {
+  const pin = document.getElementById('lsPinInput').value;
+  if (!pin) { document.getElementById('lsPinInput').focus(); return; }
+  if (!mainDocId) return;
+
+  document.getElementById('lsStep3').style.display = 'block';
+  document.getElementById('btnAvviaFirmaLS').classList.add('d-none');
+  document.getElementById('lsProgress').style.display = 'block';
+  document.getElementById('lsSuccess').style.display = 'none';
+  document.getElementById('lsError').style.display = 'none';
+
+  // 1. Scarica il documento dal server (come blob)
+  fetch('/fascicoli/{{ fascicolo.id }}/documenti/' + mainDocId + '/scarica')
+    .then(r => {
+      if (!r.ok) throw new Error('Errore download documento: HTTP ' + r.status);
+      return r.blob();
+    })
+    .then(blob => blob.arrayBuffer())
+    .then(buf => {
+      // 2. Converti in base64
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      // 3. Invia al Local Signer per firma in-device
+      return fetch(_LS_BASE + '/firma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documento: b64,
+          pin: pin,
+          slot_id: _lsTokenSlot,
+        }),
+      });
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) throw new Error(d.errore || 'Errore firma');
+      // 4. Carica il .p7m firmato sul server
+      const firmataBytes = Uint8Array.from(atob(d.firmato_b64), c => c.charCodeAt(0));
+      // Determina il nome: aggiungi .p7m se non c'è già
+      const nomeEl = document.querySelector('#dc_' + mainDocId + ' .text-truncate');
+      const nomeOrig = nomeEl ? nomeEl.textContent.trim() : 'documento.pdf';
+      const nomeP7m = nomeOrig.endsWith('.p7m') ? nomeOrig : nomeOrig + '.p7m';
+      const blob = new Blob([firmataBytes], { type: 'application/pkcs7-mime' });
+      const fd = new FormData();
+      fd.append('file', new File([blob], nomeP7m));
+      return fetch('/fascicoli/{{ fascicolo.id }}/documenti/' + mainDocId + '/firma', {
+        method: 'POST', body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      }).then(r => {
+        if (!r.ok) throw new Error('Errore upload .p7m: HTTP ' + r.status);
+        return d;  // restituiamo d con info firma
+      });
+    })
+    .then(d => {
+      document.getElementById('lsProgress').style.display = 'none';
+      _docFirmato[mainDocId] = true;
+      const nomeP7mEl = document.querySelector('#dc_' + mainDocId + ' .text-truncate');
+      const nomeP7m = nomeP7mEl ? nomeP7mEl.textContent.trim() + '.p7m' : 'firmato.pdf.p7m';
+      _aggiornaBadgeFirmato(mainDocId, nomeP7m);
+      const msg = [];
+      if (d.intestatario) msg.push(`Firmato da <strong>${d.intestatario}</strong>`);
+      if (d.scadenza) msg.push(`· cert. valido fino al ${d.scadenza}`);
+      document.getElementById('lsSuccessMsg').innerHTML = msg.join(' ') || 'Firma completata.';
+      document.getElementById('lsSuccess').style.display = '';
+      document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
+    })
+    .catch(e => {
+      document.getElementById('lsProgress').style.display = 'none';
+      document.getElementById('lsErrorMsg').textContent = String(e);
+      document.getElementById('lsError').style.display = '';
+      document.getElementById('btnAvviaFirmaLS').classList.remove('d-none');
+    });
+}
+
+function resetLsStep() {
+  document.getElementById('lsStep3').style.display = 'none';
+  document.getElementById('btnAvviaFirmaLS').classList.remove('d-none');
+  document.getElementById('lsPinInput').value = '';
+  document.getElementById('lsPinInput').focus();
+}
+
+// ── Stato per il path attivo ─────────────────────────────────────────────────
+let _firmaPathAttivo = 'detecting';  // 'detecting' | 'local' | 'pkcs11' | 'esterna'
+
+function resetPkcs11Step() {
+  document.getElementById('pkcs11Step3').style.display = 'none';
+  document.getElementById('pkcs11Step2').style.display = 'block';
+  document.getElementById('btnAvviaFirmaPkcs11').classList.remove('d-none');
+  document.getElementById('pkcs11PinInput').value = '';
+  document.getElementById('pkcs11PinInput').focus();
+}
+
+function switchFirmaPath() {
+  if (_firmaPathAttivo === 'local' || _firmaPathAttivo === 'pkcs11') {
+    _mostraPathEsterna();
+  } else {
+    // Tenta di tornare al percorso nativo (Local Signer o PKCS#11)
+    if (_lsTokenSlot !== null && _firmaViaLS) {
+      _mostraPathLocalSigner({ slot_id: _lsTokenSlot, label: 'Token' });
+    } else if (_pkcs11TokenSlot !== null) {
+      _mostraPathPkcs11(_pkcs11TokenSlot);
+    } else {
+      // Nessun token precedentemente rilevato — ri-avvia detection
+      _apriFirmaPkcs11(_pkcs11PendingAction);
+    }
+  }
+}
+
+function _mostraPathPkcs11(slotId) {
+  _firmaPathAttivo = 'pkcs11';
+  _pkcs11TokenSlot = slotId;
+  document.getElementById('pkcs11Detecting').style.display = 'none';
+  document.getElementById('pkcs11Banner').style.removeProperty('display');
+  document.getElementById('pathPkcs11').style.display = 'block';
+  document.getElementById('pathEsterna').style.display = 'none';
+  document.getElementById('pkcs11Step2').style.display = 'block';
+  document.getElementById('pkcs11Step3').style.display = 'none';
+  document.getElementById('btnAvviaFirmaPkcs11').classList.remove('d-none');
+  document.getElementById('btnContinuaDopoFirma').classList.add('d-none');
+  document.getElementById('switchPath').style.display = 'block';
+  document.getElementById('switchPathLabel').textContent = 'Passa alla firma esterna (Windows / ArubaSign)';
+  document.getElementById('pkcs11PinInput').value = '';
+  setTimeout(() => document.getElementById('pkcs11PinInput').focus(), 300);
+}
+
+function _mostraPathEsterna() {
+  _firmaPathAttivo = 'esterna';
+  document.getElementById('pkcs11Detecting').style.display = 'none';
+  document.getElementById('pkcs11Banner').style.removeProperty('display');
+  document.getElementById('pathPkcs11').style.display = 'none';
+  document.getElementById('pathEsterna').style.display = 'block';
+  document.getElementById('btnAvviaFirmaPkcs11').classList.add('d-none');
+  document.getElementById('btnContinuaDopoFirma').classList.add('d-none');
+  document.getElementById('switchPath').style.display = 'block';
+  document.getElementById('switchPathLabel').textContent = 'Passa alla firma in-device (Linux / token USB)';
+  // Prepara link scarica documento
+  const nomeEl = document.querySelector('#dc_' + mainDocId + ' .text-truncate');
+  const nomeTxt = nomeEl ? nomeEl.textContent.trim() : 'documento';
+  document.getElementById('nomeDocScarica').textContent = nomeTxt;
+  document.getElementById('btnScaricaPerFirma').href =
+    '/fascicoli/{{ fascicolo.id }}/documenti/' + mainDocId + '/scarica';
+  document.getElementById('p7mUploadStatus').style.display = 'none';
+  document.getElementById('p7mUploadInput').value = '';
+}
+
+function caricaP7mFirmato(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('p7mUploadStatus');
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Caricamento in corso…</span>';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  fetch('/fascicoli/{{ fascicolo.id }}/documenti/' + mainDocId + '/firma', {
+    method: 'POST', body: fd,
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  })
+  .then(() => {
+    // Aggiorna stato locale
+    _docFirmato[mainDocId] = true;
+    const nomeP7m = file.name;
+    _aggiornaBadgeFirmato(mainDocId, nomeP7m);
+    statusEl.innerHTML = `<span class="text-success"><i class="bi bi-patch-check-fill me-1"></i>
+      <strong>${nomeP7m}</strong> caricato correttamente.</span>`;
+    document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
+  })
+  .catch(e => {
+    statusEl.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Errore: ${e}</span>`;
+  });
+}
+
+function _apriFirmaPkcs11(pendingAction) {
+  _pkcs11PendingAction = pendingAction;
+  _pkcs11TokenSlot = null;
+  _lsTokenSlot = null;
+  _firmaViaLS = false;
+  _firmaPathAttivo = 'detecting';
+
+  // Reset tutto
+  document.getElementById('pkcs11Detecting').style.display = 'block';
+  document.getElementById('pkcs11DetectingTxt').textContent = 'Ricerca Local Signer…';
+  document.getElementById('pkcs11Banner').style.display = 'none';
+  document.getElementById('pathLocalSigner').style.display = 'none';
+  document.getElementById('pathPkcs11').style.display = 'none';
+  document.getElementById('pathEsterna').style.display = 'none';
+  document.getElementById('switchPath').style.display = 'none';
+  document.getElementById('btnAvviaFirmaLS').classList.add('d-none');
+  document.getElementById('btnAvviaFirmaPkcs11').classList.add('d-none');
+  document.getElementById('btnContinuaDopoFirma').classList.add('d-none');
+
+  // Mostra nome documento nel banner
+  const nomeEl = document.querySelector('#dc_' + mainDocId + ' .text-truncate');
+  const nomeTxt = nomeEl ? nomeEl.textContent.trim() : mainDocId;
+  document.getElementById('pkcs11DocNome').textContent = nomeTxt;
+
+  new bootstrap.Modal(document.getElementById('modalFirmaPkcs11')).show();
+
+  // 1. Prova Local Signer (http://localhost:27272)
+  fetch(_LS_BASE + '/ping', { signal: AbortSignal.timeout(2000) })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok && d.token && d.token.length > 0) {
+        // Local Signer trovato + token presente → PATH L
+        const tok = d.token[0];
+        _lsTokenSlot = tok.slot_id;
+        _firmaViaLS = true;
+        _mostraPathLocalSigner(tok);
+      } else if (d.ok) {
+        // Local Signer trovato ma nessun token → avvisa e fallback
+        _mostraAvvisoLocalSignerNoToken();
+        _mostraPathEsterna();
+      } else {
+        // Local Signer non disponibile → fallback server PKCS#11
+        _cercaTokenServerSide();
+      }
+    })
+    .catch(() => {
+      // Local Signer non avviato → fallback server PKCS#11
+      _cercaTokenServerSide();
+    });
+}
+
+function _cercaTokenServerSide() {
+  // Fallback: cerca token lato server (richiede pcscd su Linux)
+  document.getElementById('pkcs11DetectingTxt').textContent = 'Ricerca token PKCS#11 server…';
+  fetch('/api/firma/pkcs11/status', { signal: AbortSignal.timeout(3000) })
+    .then(r => r.json())
+    .then(d => {
+      if (d.disponibile && d.token && d.token.length > 0) {
+        const tok = d.token[0];
+        const infoEl = document.querySelector('#pkcs11TokenInfo span');
+        if (infoEl) infoEl.textContent =
+          `Token: ${tok.label || tok.manufacturer || 'Token'} — slot ${tok.slot_id}`;
+        _mostraPathPkcs11(tok.slot_id);
+      } else {
+        _mostraPathEsterna();
+      }
+    })
+    .catch(() => _mostraPathEsterna());
+}
+
+function _mostraAvvisoLocalSignerNoToken() {
+  // Mostra avviso temporaneo "Local Signer attivo ma token non inserito"
+  const banner = document.getElementById('pkcs11Banner');
+  if (banner) {
+    banner.style.removeProperty('display');
+    const nomeEl = banner.querySelector('strong');
+    if (nomeEl) nomeEl.textContent = 'Token non rilevato dal Local Signer.';
+    banner.querySelector('div').innerHTML =
+      '<strong>Local Signer attivo</strong> ma nessun token trovato. ' +
+      'Inserire Aruba Key e riprovare.';
+  }
+}
+
+// ── Wrappers per avviaInvioPec e avviaGeneraBusta con controllo firma ────────
+
+function _eseguiInvioPec() {
+  // Esecuzione effettiva dell'invio PEC (senza controllo firma)
+  const d = _raccogliDati();
+  const pecReale = '{{ pec_tribunale or "" }}';
+  const bannerDemo  = document.getElementById('bannerDemo');
+  const titleEl     = document.getElementById('modalTitlePec');
+  const pecEl       = document.getElementById('pecDestinatario');
+  const headerEl    = document.getElementById('modalHeaderPec');
+  const btnLbl      = document.getElementById('lblBtnConferma');
+  const btnConf     = document.getElementById('btnConfermaInvio');
+  const progBar     = document.getElementById('invioProgressBar');
+  const progTxt     = document.getElementById('invioProgressTxt');
+  const warningEl   = document.getElementById('warningFirma');
+  const nomeMain    = document.querySelector('#dc_' + mainDocId + ' .text-truncate')?.textContent.trim() || mainDocId;
+
+  document.getElementById('riepilogoBusta').innerHTML =
+    `<strong>Atto:</strong> ${nomeMain}<br>` +
+    `<strong>Tipo:</strong> ${d.tipoAtto.replace(/_/g,' ')}<br>` +
+    `<strong>Allegati:</strong> ${allegatiSet.size}`;
+
+  if (_invioDemo) {
+    bannerDemo.style.removeProperty('display');
+    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Demo — Invio simulato';
+    headerEl.classList.add('bg-warning-subtle');
+    pecEl.textContent = pecReale || '{{ fascicolo.tribunale or "tribunale" }}'.toLowerCase().replace(/ /g,'.') + '@pec.demo';
+    pecEl.classList.replace('text-primary', 'text-warning');
+    btnLbl.textContent = 'Avvia simulazione Demo';
+    btnConf.className  = 'btn btn-warning fw-semibold';
+    progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-warning';
+    progTxt.textContent = 'Simulazione in corso — attendere…';
+    warningEl.style.display = 'none';
+  } else {
+    bannerDemo.style.display = 'none';
+    titleEl.innerHTML = '<i class="bi bi-send me-2 text-success"></i>Conferma invio via PEC';
+    headerEl.classList.remove('bg-warning-subtle');
+    pecEl.textContent = pecReale;
+    pecEl.classList.replace('text-warning', 'text-primary');
+    btnLbl.textContent = 'Conferma e invia';
+    btnConf.className  = 'btn btn-success fw-semibold';
+    progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-success';
+    progTxt.textContent = 'Invio in corso — attendere…';
+    warningEl.style.display = '';
+  }
+  new bootstrap.Modal(document.getElementById('modalConfermaPec')).show();
+}
+
+function _eseguiGeneraBusta() {
+  const d = _raccogliDati();
+  document.getElementById('gb_tipo').value = d.tipoAtto;
+  document.getElementById('gb_reg').value  = d.codReg;
+  document.getElementById('gb_ogg').value  = d.oggetto;
+  document.getElementById('gb_atto').value = mainDocId;
+  const gbAll = document.getElementById('gb_allegati');
+  gbAll.innerHTML = '';
+  allegatiSet.forEach(aid => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'allegati_ids'; inp.value = aid;
+    gbAll.appendChild(inp);
+  });
+  document.getElementById('formGeneraBusta').submit();
+}
 
 function setMainDoc(id) {
   if (allegatiSet.has(id)) { allegatiSet.delete(id); _resetAllBtn(id); }
@@ -539,48 +1235,13 @@ function _raccogliDati() {
 function avviaInvioPec(demo) {
   if (!_validaForm()) return;
   _invioDemo = !!demo;
-  const d = _raccogliDati();
-  const nomeMain = document.querySelector('#dc_' + mainDocId + ' .text-truncate')?.textContent.trim() || mainDocId;
-  document.getElementById('riepilogoBusta').innerHTML =
-    `<strong>Atto:</strong> ${nomeMain}<br>` +
-    `<strong>Tipo:</strong> ${d.tipoAtto.replace(/_/g,' ')}<br>` +
-    `<strong>Allegati:</strong> ${allegatiSet.size}`;
-
-  const pecReale = '{{ pec_tribunale or "" }}';
-  const bannerDemo  = document.getElementById('bannerDemo');
-  const titleEl     = document.getElementById('modalTitlePec');
-  const pecEl       = document.getElementById('pecDestinatario');
-  const headerEl    = document.getElementById('modalHeaderPec');
-  const btnLbl      = document.getElementById('lblBtnConferma');
-  const btnConf     = document.getElementById('btnConfermaInvio');
-  const progBar     = document.getElementById('invioProgressBar');
-  const progTxt     = document.getElementById('invioProgressTxt');
-  const warningEl   = document.getElementById('warningFirma');
-
-  if (_invioDemo) {
-    bannerDemo.style.removeProperty('display');
-    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Demo — Invio simulato';
-    headerEl.classList.add('bg-warning-subtle');
-    pecEl.textContent = pecReale || '{{ fascicolo.tribunale or "tribunale" }}'.toLowerCase().replace(/ /g,'.') + '@pec.demo';
-    pecEl.classList.replace('text-primary', 'text-warning');
-    btnLbl.textContent = 'Avvia simulazione Demo';
-    btnConf.className  = 'btn btn-warning fw-semibold';
-    progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-warning';
-    progTxt.textContent = 'Simulazione in corso — attendere…';
-    warningEl.style.display = 'none';
-  } else {
-    bannerDemo.style.display = 'none';
-    titleEl.innerHTML = '<i class="bi bi-send me-2 text-success"></i>Conferma invio via PEC';
-    headerEl.classList.remove('bg-warning-subtle');
-    pecEl.textContent = pecReale;
-    pecEl.classList.replace('text-warning', 'text-primary');
-    btnLbl.textContent = 'Conferma e invia';
-    btnConf.className  = 'btn btn-success fw-semibold';
-    progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-success';
-    progTxt.textContent = 'Invio in corso — attendere…';
-    warningEl.style.display = '';
+  // Controlla se l'atto principale è firmato
+  // (in demo mode si bypassa il controllo firma — l'invio è simulato)
+  if (!_invioDemo && !_docMainFirmato()) {
+    _apriFirmaPkcs11('pec');
+    return;
   }
-  new bootstrap.Modal(document.getElementById('modalConfermaPec')).show();
+  _eseguiInvioPec();
 }
 
 document.getElementById('btnConfermaInvio')?.addEventListener('click', function() {
@@ -620,19 +1281,12 @@ document.getElementById('btnConfermaInvio')?.addEventListener('click', function(
 
 function avviaGeneraBusta() {
   if (!_validaForm()) return;
-  const d = _raccogliDati();
-  document.getElementById('gb_tipo').value = d.tipoAtto;
-  document.getElementById('gb_reg').value  = d.codReg;
-  document.getElementById('gb_ogg').value  = d.oggetto;
-  document.getElementById('gb_atto').value = mainDocId;
-  const gbAll = document.getElementById('gb_allegati');
-  gbAll.innerHTML = '';
-  allegatiSet.forEach(aid => {
-    const inp = document.createElement('input');
-    inp.type = 'hidden'; inp.name = 'allegati_ids'; inp.value = aid;
-    gbAll.appendChild(inp);
-  });
-  document.getElementById('formGeneraBusta').submit();
+  // Controlla firma prima di generare la busta reale
+  if (!_docMainFirmato()) {
+    _apriFirmaPkcs11('busta');
+    return;
+  }
+  _eseguiGeneraBusta();
 }
 </script>
 {% endblock %}

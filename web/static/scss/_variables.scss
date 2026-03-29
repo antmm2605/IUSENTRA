@@ -1,0 +1,33 @@
+// ================================================================
+//  HACS — Variabili SCSS
+//  Fonte di verità per colori, dimensioni, font.
+//  Le CSS custom properties in :root (app.scss) derivano da queste.
+// ================================================================
+
+// ---- Palette principale ----
+$primary:        #1a3a5c;
+$accent:         #c8972b;
+$accent-light:   rgba(200, 151, 43, .18);
+
+// ---- Layout shell ----
+$sidebar-w:      240px;
+$topbar-h:       58px;
+$bottomnav-h:    62px;
+
+// ---- Sidebar gradient ----
+$sb-gradient-top: #1e3f66;
+$sb-gradient-bot: #0d2240;
+
+// ---- Glassmorphism ----
+$glass-bg:       rgba(255, 255, 255, .92);
+$glass-border:   rgba(226, 232, 240, .65);
+
+// ---- Font stack ----
+$font:           'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+// ---- Breakpoints (allineati a Bootstrap 5) ----
+$bp-sm:  576px;
+$bp-md:  768px;
+$bp-lg:  992px;
+$bp-xl:  1200px;
+$bp-xxl: 1400px;

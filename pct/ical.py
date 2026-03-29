@@ -13,6 +13,9 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
+from zoneinfo import ZoneInfo
+
+_ROME = ZoneInfo("Europe/Rome")
 
 
 # ──────────────────────────────────────────── helpers RFC 5545
@@ -27,11 +30,33 @@ def _escape(s: str) -> str:
     )
 
 
-def _dt(dt: datetime) -> str:
-    """Datetime → stringa UTC iCal (YYYYMMDDTHHMMSSZ)."""
+def _sequence(last_modified: Optional[datetime]) -> int:
+    """Restituisce il SEQUENCE come Unix timestamp di last_modified (o 0).
+
+    SEQUENCE è obbligatorio per la sincronizzazione con Google Calendar:
+    ad ogni modifica il valore cresce → il client rileva l'aggiornamento.
+    Usare il timestamp Unix di last_modified è conforme a RFC 5545 e
+    compatibile con Google Calendar, Apple Calendar, Outlook.
+    """
+    if last_modified is None:
+        return 0
+    dt = last_modified
     if dt.tzinfo is None:
-        # Tratta come ora locale (floating), senza conversione
-        return dt.strftime("%Y%m%dT%H%M%S")
+        dt = dt.replace(tzinfo=_ROME)
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return int((dt.astimezone(timezone.utc) - epoch).total_seconds())
+
+
+def _dt(dt: datetime) -> str:
+    """Datetime → stringa UTC iCal (YYYYMMDDTHHMMSSZ).
+
+    I datetime senza fuso orario (naive) vengono trattati come Europe/Rome
+    e convertiti in UTC prima dell'emissione. Questo evita che Google Calendar
+    interpreti gli orari come UTC (causando uno sfasamento di 1-2 ore).
+    """
+    if dt.tzinfo is None:
+        # Naive datetime: assume Europe/Rome (fuso orario italiano)
+        dt = dt.replace(tzinfo=_ROME)
     return dt.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
@@ -87,6 +112,9 @@ class ICalBuilder:
             f"DTSTAMP:{dtstamp}",
             f"DTSTART:{_dt(dtstart)}",
             f"DTEND:{_dt(dtend)}",
+            "STATUS:CONFIRMED",
+            f"SEQUENCE:{_sequence(last_modified)}",
+            "TRANSP:OPAQUE",
         ]
         if last_modified:
             lines.append(f"LAST-MODIFIED:{_dt(last_modified)}")
@@ -141,6 +169,9 @@ class ICalBuilder:
             f"DTSTAMP:{dtstamp}",
             f"DTSTART;VALUE=DATE:{_date_val(start_date)}",
             f"DTEND;VALUE=DATE:{_date_val(end_date)}",
+            "STATUS:CONFIRMED",
+            f"SEQUENCE:{_sequence(last_modified)}",
+            "TRANSP:TRANSPARENT",
         ]
         if last_modified:
             lines.append(f"LAST-MODIFIED:{_dt(last_modified)}")
@@ -172,10 +203,9 @@ class ICalBuilder:
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
             f"PRODID:{self._prod_id}",
+            "CALSCALE:GREGORIAN",
             f"X-WR-CALNAME:{_escape(self._cal_name)}",
             "X-WR-TIMEZONE:Europe/Rome",
-            "CALSCALE:GREGORIAN",
-            "METHOD:PUBLISH",
             "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
             "X-PUBLISHED-TTL:PT1H",
         ])

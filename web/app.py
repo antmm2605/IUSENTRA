@@ -210,6 +210,14 @@ def _accoda_ocr(percorso: str, hash_sha256: str, id_fasc: str, id_doc: str,
 
 def create_app(config: dict | None = None) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
+
+    # ProxyFix: necessario su Railway/Render/Heroku e qualsiasi reverse proxy.
+    # Senza questo, request.scheme è sempre "http" (schema interno) →
+    # url_for() e request.host_url generano link http:// invece di https://,
+    # rompendo i feed iCal sottoscritti da Google Calendar (che richiede HTTPS).
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     app.secret_key = os.getenv("PCT_SECRET_KEY", "dev-secret-pct-2024")
     app.config["SECRET_KEY"] = app.secret_key
 
@@ -276,6 +284,9 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["FATTURAZIONE_DB"] = cfg.get(
         "FATTURAZIONE_DB", os.getenv("PCT_FATTURAZIONE_DB", "./fatturazione/parcelle.json")
     )
+    app.config["PREVENTIVI_DB"] = cfg.get(
+        "PREVENTIVI_DB", os.getenv("PCT_PREVENTIVI_DB", "./preventivi/preventivi.json")
+    )
     app.config["NOTIFICHE_LOG"] = cfg.get(
         "NOTIFICHE_LOG", os.getenv("PCT_NOTIFICHE_LOG", "./notifiche/log.json")
     )
@@ -302,6 +313,9 @@ def create_app(config: dict | None = None) -> Flask:
     # Scheduler
     app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
     app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
+    # Assistente virtuale PCT (Ollama locale)
+    app.config["OLLAMA_URL"]       = os.getenv("PCT_OLLAMA_URL", "http://localhost:11434")
+    app.config["OLLAMA_MODEL"]     = os.getenv("PCT_OLLAMA_MODEL", "mistral")
     # Pagamenti digitali
     app.config["PAGAMENTI_DIR"] = cfg.get(
         "PAGAMENTI_DIR", os.getenv("PCT_PAGAMENTI_DIR", "./pagamenti")
@@ -1679,6 +1693,8 @@ def create_app(config: dict | None = None) -> Flask:
         grado_sel   = request.form.get("grado", "")
         valore_str  = request.form.get("valore", "0").replace(",", ".").strip()
         fasi_sel    = request.form.getlist("fasi")
+        bonus_tel   = request.form.get("bonus_telematico") == "1"
+        spese_gen   = request.form.get("spese_generali", "1") == "1"
 
         if request.method == "POST":
             try:
@@ -1688,7 +1704,9 @@ def create_app(config: dict | None = None) -> Flask:
                 fasi    = [Fase(f) for f in fasi_sel if f]
                 if not fasi:
                     fasi = list(Fase)
-                risultato = calcola_compenso(materia, grado, valore, fasi)
+                risultato = calcola_compenso(materia, grado, valore, fasi,
+                                             bonus_telematico=bonus_tel,
+                                             includi_spese_generali=spese_gen)
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
 
@@ -1702,37 +1720,162 @@ def create_app(config: dict | None = None) -> Flask:
             grado_sel=grado_sel,
             valore_str=valore_str,
             fasi_sel=fasi_sel,
+            bonus_tel=bonus_tel,
+            spese_gen=spese_gen,
+            oggi=date.today(),
         )
 
     # ---------------------------------------------------------------- PolisWeb — Consultazione e importazione fascicoli
 
-    def _polis_demo_mode() -> bool:
+    def _polis_auth_mode() -> str:
         """
-        True se nessun certificato è configurato (né P12 né PEM).
-        Controlla env vars + config studio per supportare entrambi i formati.
+        Restituisce la modalità di autenticazione PST:
+          'reale'  — certificato P12/PEM configurato, SOAP mTLS disponibile
+          'pkcs11' — token PKCS#11 locale, autenticazione gestita dal dispositivo
+          'demo'   — nessun certificato, modalità demo offline
         """
-        # Controllo variabili d'ambiente
+        # Controllo variabili d'ambiente (P12 / PEM)
         if os.getenv("PCT_FIRMA_P12"):
-            return False
+            return "reale"
         if os.getenv("PCT_FIRMA_CERT") and os.getenv("PCT_FIRMA_KEY"):
-            return False
+            return "reale"
         # Controllo config studio (impostazioni UI)
         try:
             cfg = get_config_studio().config.firma
-            if cfg.configurato:
-                return False
+            fmt = cfg.formato_attivo
+            if fmt == "pkcs11":
+                # Token USB: la chiave privata non è esportabile e non è accessibile
+                # dal container Linux su Windows → autenticazione PST solo via browser
+                return "pkcs11"
+            if fmt in ("p12", "pem"):
+                return "reale"
         except Exception:
             pass
-        return True
+        return "demo"
+
+    def _polis_demo_mode() -> bool:
+        """True se non c'è un certificato P12/PEM per il SOAP mTLS (include modalità pkcs11)."""
+        return _polis_auth_mode() != "reale"
+
+    @app.route("/polisWeb/local-signer/download")
+    def polis_local_signer_download():
+        """Serve il file local_signer.py per il download diretto dal browser."""
+        import traceback as _tb
+        try:
+            ls_path = Path(__file__).parent.parent / "tools" / "local_signer.py"
+            if not ls_path.exists():
+                return "File non trovato", 404
+            return send_file(
+                ls_path,
+                as_attachment=True,
+                download_name="local_signer.py",
+                mimetype="text/x-python",
+            )
+        except Exception as e:
+            return str(e), 500
+
+    @app.route("/polisWeb/local-signer/installa-windows")
+    def polis_local_signer_installa():
+        """
+        Genera e serve uno script PowerShell che:
+        1. Crea %APPDATA%\\HACS\\LocalSigner\\
+        2. Scarica local_signer.py dal server HACS
+        3. Installa le dipendenze pip
+        4. Registra il servizio nel Task Scheduler (avvio al logon, senza finestra)
+        5. Avvia subito il signer
+        """
+        import traceback as _tb
+        try:
+            base_url = request.host_url.rstrip("/")
+            script = f"""# HACS Local Signer — Installazione automatica Windows
+# Eseguire in PowerShell come utente normale (non richiede amministratore)
+
+$ErrorActionPreference = 'Stop'
+$dir = "$env:APPDATA\\HACS\\LocalSigner"
+$py  = "$dir\\local_signer.py"
+$vbs = "$dir\\avvia_nascosto.vbs"
+$log = "$dir\\local_signer.log"
+
+Write-Host "HACS Local Signer — Installazione..." -ForegroundColor Cyan
+
+# 1. Crea directory
+New-Item -ItemType Directory -Force -Path $dir | Out-Null
+
+# 2. Scarica local_signer.py dal server HACS
+Write-Host "  Scarico local_signer.py..."
+Invoke-WebRequest "{base_url}/polisWeb/local-signer/download" -OutFile $py -UseBasicParsing
+
+# 3. Verifica Python
+try {{
+    $v = python --version 2>&1
+    Write-Host "  Python trovato: $v"
+}} catch {{
+    Write-Host "ERRORE: Python non trovato. Scaricarlo da https://python.org" -ForegroundColor Red
+    Read-Host "Premere Invio per uscire"
+    exit 1
+}}
+
+# 4. Installa dipendenze pip (silenzioso)
+Write-Host "  Installo dipendenze Local Signer..."
+python -m pip install --quiet python-pkcs11 asn1crypto cryptography
+
+# 5. Crea VBScript launcher (avvio invisibile — nessuna finestra CMD)
+$vbsContent = @"
+' HACS Local Signer — avvio invisibile
+Dim shell
+Set shell = CreateObject("WScript.Shell")
+shell.Run "python """ & "$py" & """", 0, False
+"@
+Set-Content -Path $vbs -Value $vbsContent -Encoding UTF8
+
+# 6. Registra nel Task Scheduler (avvio al logon utente corrente)
+Write-Host "  Registro nel Task Scheduler (avvio automatico al login)..."
+$action  = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$vbs`""
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
+$settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
+Register-ScheduledTask `
+    -TaskName "HACS Local Signer" `
+    -Action $action `
+    -Trigger $trigger `
+    -Settings $settings `
+    -Description "HACS Local Signer — firma documenti con smart card e token CNS/CIE" `
+    -Force | Out-Null
+
+# 7. Avvia subito (senza attendere il prossimo login)
+Write-Host "  Avvio Local Signer..."
+Start-ScheduledTask -TaskName "HACS Local Signer"
+
+Start-Sleep 2
+Write-Host ""
+Write-Host "Installazione completata!" -ForegroundColor Green
+Write-Host "  Il Local Signer e' attivo su http://127.0.0.1:27272"
+Write-Host "  Si avviera' automaticamente ad ogni accesso Windows."
+Write-Host ""
+Write-Host "Tornare su HACS e cliccare 'Riverifica'." -ForegroundColor Cyan
+Read-Host "Premere Invio per chiudere"
+"""
+            return Response(
+                script,
+                mimetype="text/plain; charset=utf-8",
+                headers={
+                    "Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'
+                },
+            )
+        except Exception as e:
+            app.logger.exception("Errore generazione script installer: %s", e)
+            return str(e), 500
 
     @app.route("/polisWeb", methods=["GET"])
     def polisWeb_home():
         import traceback as _tb
         try:
-            demo_mode = _polis_demo_mode()
+            auth_mode = _polis_auth_mode()
+            demo_mode = auth_mode != "reale"
+            pkcs11_mode = auth_mode == "pkcs11"
             id_fasc = request.args.get("id_fasc", "")
             fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
             return render_template("polisWeb.html", demo_mode=demo_mode,
+                                   pkcs11_mode=pkcs11_mode,
                                    fascicolo=fascicolo_ctx, id_fasc=id_fasc)
         except Exception as e:
             tb = "".join(_tb.format_exception(type(e), e, e.__traceback__))
@@ -1743,7 +1886,9 @@ def create_app(config: dict | None = None) -> Flask:
     def polisWeb_ricerca():
         f = request.form
         tribunale  = f.get("tribunale", "").strip()
-        demo_mode  = f.get("demo_mode") == "1" or _polis_demo_mode()
+        auth_mode  = _polis_auth_mode()
+        demo_mode  = f.get("demo_mode") == "1" or auth_mode != "reale"
+        pkcs11_mode = auth_mode == "pkcs11"
 
         if not tribunale:
             flash("Seleziona un tribunale.", "danger")
@@ -1794,6 +1939,7 @@ def create_app(config: dict | None = None) -> Flask:
             nome_parte=nome_parte or "",
             cf_parte=cf_parte or "",
             demo_mode=demo_mode,
+            pkcs11_mode=pkcs11_mode,
             fascicolo=fascicolo_ctx,
             id_fasc=id_fasc,
         )
@@ -1802,7 +1948,8 @@ def create_app(config: dict | None = None) -> Flask:
     def polisWeb_documenti():
         codice_ufficio = request.args.get("codice_ufficio", "")
         numero_rg      = request.args.get("numero_rg", "")
-        demo_mode      = _polis_demo_mode()
+        auth_mode      = _polis_auth_mode()
+        demo_mode      = auth_mode != "reale"
         try:
             anno_rg = int(request.args.get("anno_rg", 0) or 0)
         except (ValueError, TypeError):
@@ -1907,7 +2054,9 @@ def create_app(config: dict | None = None) -> Flask:
             )
             if risultato.successo:
                 for avviso in risultato.avvisi:
-                    flash(avviso, "warning")
+                    # I messaggi "Nuovo soggetto creato" sono informativi, non avvisi
+                    livello = "info" if avviso.startswith("Nuovo soggetto") else "warning"
+                    flash(avviso, livello)
                 flash(risultato.messaggio, "success")
                 audit("polisWeb.importa", "fascicolo", risultato.id_fascicolo_locale,
                       dettagli=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}")
@@ -2243,6 +2392,144 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
         return redirect(url_for("pat_home"))
 
+    # ---------------------------------------------------------------- PTT Tributario / SIGIT
+
+    @app.route("/sigit", methods=["GET"])
+    def sigit_home():
+        demo_mode = _polis_demo_mode()
+        id_fasc = request.args.get("id_fasc", "")
+        fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
+        return render_template("sigit.html",
+                               demo_mode=demo_mode,
+                               id_fasc=id_fasc,
+                               fascicolo=fascicolo,
+                               commissione_sel=None,
+                               numero_rgt=None,
+                               anno_rgt=None,
+                               materia=None,
+                               nome_ricorrente=None,
+                               oggi=date.today())
+
+    @app.route("/sigit/ricerca", methods=["POST"])
+    def sigit_ricerca():
+        from pct.sigit import crea_client_sigit
+        f         = request.form
+        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
+        commissione   = f.get("commissione", "").strip()
+        numero_rgt    = f.get("numero_rgt", "").strip() or None
+        anno_rgt_str  = f.get("anno_rgt", "").strip()
+        anno_rgt      = int(anno_rgt_str) if anno_rgt_str.isdigit() else None
+        materia       = f.get("materia", "").strip() or None
+        nome_ricorrente = f.get("nome_ricorrente", "").strip() or None
+        id_fasc       = f.get("id_fasc", "")
+        fascicolo     = get_fascicoli().get(id_fasc) if id_fasc else None
+        fascicoli = []
+        try:
+            client    = crea_client_sigit(demo=demo_mode)
+            fascicoli = client.ricerca_fascicoli(
+                commissione=commissione,
+                numero_rgt=numero_rgt,
+                anno_rgt=anno_rgt,
+                nome_ricorrente=nome_ricorrente,
+                tipo=materia,
+            )
+        except Exception as e:
+            flash(str(e), "danger")
+        return render_template("sigit.html",
+                               demo_mode=demo_mode,
+                               id_fasc=id_fasc,
+                               fascicolo=fascicolo,
+                               commissione_sel=commissione,
+                               numero_rgt=numero_rgt or "",
+                               anno_rgt=anno_rgt or "",
+                               materia=materia or "",
+                               nome_ricorrente=nome_ricorrente or "",
+                               fascicoli=fascicoli,
+                               oggi=date.today())
+
+    @app.route("/sigit/documenti")
+    def sigit_documenti():
+        from pct.sigit import crea_client_sigit
+        demo_mode        = _polis_demo_mode()
+        codice_commissione = request.args.get("codice_commissione", "")
+        numero_rgt       = request.args.get("numero_rgt", "")
+        anno_rgt_str     = request.args.get("anno_rgt", "")
+        anno_rgt         = int(anno_rgt_str) if anno_rgt_str.isdigit() else 0
+        documenti = []
+        depositi  = []
+        nome_commissione = codice_commissione
+        try:
+            client    = crea_client_sigit(demo=demo_mode)
+            documenti = client.recupera_documenti(
+                commissione=codice_commissione,
+                numero_rgt=numero_rgt,
+                anno_rgt=anno_rgt,
+            )
+            # Raggruppa per id_deposito (regola buste CLAUDE.md)
+            from collections import OrderedDict
+            buste: dict = OrderedDict()
+            for doc in documenti:
+                chiave = doc.id_deposito if doc.id_deposito else f"__{doc.data_deposito}__{doc.mittente}"
+                if chiave not in buste:
+                    buste[chiave] = {
+                        "id_deposito":   doc.id_deposito,
+                        "tipo_atto":     doc.tipo_atto or doc.tipo,
+                        "data_deposito": doc.data_deposito,
+                        "mittente":      doc.mittente,
+                        "documenti":     [],
+                    }
+                buste[chiave]["documenti"].append(doc)
+            depositi = sorted(buste.values(), key=lambda b: b["data_deposito"] or "", reverse=True)
+        except Exception as e:
+            flash(str(e), "danger")
+        return render_template("sigit_documenti.html",
+                               demo_mode=demo_mode,
+                               codice_commissione=codice_commissione,
+                               nome_commissione=nome_commissione,
+                               numero_rgt=numero_rgt,
+                               anno_rgt=anno_rgt,
+                               documenti=documenti,
+                               depositi=depositi,
+                               oggi=date.today())
+
+    @app.route("/sigit/importa", methods=["POST"])
+    def sigit_importa():
+        from pct.sigit import crea_client_sigit, FascicoloSIGIT
+        import json
+        f         = request.form
+        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
+        try:
+            fascicolo = FascicoloSIGIT(
+                numero_rgt=f.get("numero_rgt", ""),
+                anno_rgt=int(f.get("anno_rgt", 0) or 0),
+                tipo=f.get("tipo", ""),
+                stato=f.get("stato", ""),
+                materia=f.get("materia", ""),
+                sezione=f.get("sezione", ""),
+                giudice_relatore=f.get("giudice_relatore", ""),
+                data_deposito=f.get("data_deposito", ""),
+                data_udienza=f.get("data_udienza", ""),
+                oggetto_controversia=f.get("oggetto_controversia", ""),
+                valore_controversia=float(f.get("valore_controversia") or 0),
+                ricorrenti=json.loads(f.get("ricorrenti_json", "[]")),
+                resistenti=json.loads(f.get("resistenti_json", "[]")),
+                codice_commissione=f.get("codice_commissione", ""),
+                nome_commissione=f.get("nome_commissione", ""),
+            )
+            client    = crea_client_sigit(demo=demo_mode)
+            avv       = g.utente_corrente.username if g.utente_corrente else ""
+            risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
+            for avviso in risultato.avvisi:
+                flash(avviso, "warning")
+            if risultato.successo and risultato.id_fascicolo_locale:
+                flash(risultato.messaggio, "success")
+                return redirect(url_for("dettaglio_fascicolo",
+                                        id_fasc=risultato.id_fascicolo_locale))
+            flash(risultato.messaggio, "danger")
+        except Exception as e:
+            flash(str(e), "danger")
+        return redirect(url_for("sigit_home"))
+
     # ---------------------------------------------------------------- Checklist deposito telematico
 
     @app.route("/deposito/checklist")
@@ -2277,14 +2564,18 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         if not u or not u.ha_permesso("utenti.leggi"):
             return jsonify({"ok": False, "messaggio": "Non autorizzato"}), 403
-        from pct.uffici_giudiziari import get_gestore
-        cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
-        gestore = get_gestore(cache_path)
-        url_personalizzato = request.json.get("url", "") if request.is_json else ""
-        ok, messaggio = gestore.aggiorna(url=url_personalizzato)
-        stato = gestore.stato()
-        audit("uffici.aggiorna", "sistema", None, dettagli=messaggio)
-        return jsonify({"ok": ok, "messaggio": messaggio, "stato": stato})
+        try:
+            from pct.uffici_giudiziari import get_gestore
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            gestore = get_gestore(cache_path)
+            url_personalizzato = request.json.get("url", "") if request.is_json else ""
+            ok, messaggio = gestore.aggiorna(url=url_personalizzato)
+            stato = gestore.stato()
+            audit("uffici.aggiorna", "sistema", None, dettagli=messaggio)
+            return jsonify({"ok": ok, "messaggio": messaggio, "stato": stato})
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_aggiorna: %s", e)
+            return jsonify({"ok": False, "messaggio": str(e)}), 200
 
     @app.route("/api/uffici/stato")
     def api_uffici_stato():
@@ -2332,6 +2623,42 @@ def create_app(config: dict | None = None) -> Flask:
             return jsonify(report)
         except Exception as e:
             app.logger.exception("Errore api_uffici_variazioni_esegui: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
+    @app.route("/api/uffici/sync/report")
+    def api_uffici_sync_report():
+        """Restituisce l'ultimo report di sync multi-sorgente (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"ok": False}), 403
+        try:
+            from pct.sync_uffici import carica_ultimo_report
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            report = carica_ultimo_report(cache_path)
+            if report is None:
+                return jsonify({"ok": False, "errore": "Nessun sync eseguito ancora"})
+            return jsonify(report)
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_sync_report: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
+    @app.route("/api/uffici/sync/esegui", methods=["POST"])
+    def api_uffici_sync_esegui():
+        """Avvia manualmente il sync multi-sorgente degli uffici (solo admin)."""
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"ok": False}), 403
+        try:
+            from pct.sync_uffici import esegui_sync_completo
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            report = esegui_sync_completo(cache_path)
+            audit("uffici.sync_eseguito", u.username, None,
+                  dettagli=f"n_totale={report.get('n_totale_post',0)} "
+                           f"nuovi={report.get('n_nuovi',0)} "
+                           f"pec={report.get('n_pec_aggiornate',0)}")
+            return jsonify(report)
+        except Exception as e:
+            app.logger.exception("Errore api_uffici_sync_esegui: %s", e)
             return jsonify({"ok": False, "errore": str(e)}), 200
 
     # ---------------------------------------------------------------- codice fiscale
@@ -2536,6 +2863,13 @@ def create_app(config: dict | None = None) -> Flask:
             gfatt = GestioneFatturazione(gfatt_path)
             parcelle_cliente = gfatt.per_cliente(id_cliente)
 
+            # Preventivi e conferimenti del cliente
+            from pct.preventivi import GestionePreventivi
+            gp_path = app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
+            gp = GestionePreventivi(gp_path)
+            preventivi_cliente = gp.preventivi_per_cliente(id_cliente)
+            conferimenti_cliente = gp.conferimenti_per_cliente(id_cliente)
+
             track_recente("cliente", id_cliente, c.nome_completo,
                           url_for("cartella_cliente", id_cliente=id_cliente),
                           "bi-folder2-open")
@@ -2551,6 +2885,8 @@ def create_app(config: dict | None = None) -> Flask:
                 appuntamenti_cliente=appuntamenti_cliente,
                 messaggi_cliente=messaggi_cliente,
                 parcelle_cliente=parcelle_cliente,
+                preventivi_cliente=preventivi_cliente,
+                conferimenti_cliente=conferimenti_cliente,
                 tipi_fascicolo=list(TipoFascicolo),
             )
         except Exception as e:
@@ -4013,6 +4349,35 @@ def create_app(config: dict | None = None) -> Flask:
             flash(str(e), "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
+    @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/converti-pdfa", methods=["POST"])
+    def converti_documento_pdfa(id_fasc, id_doc):
+        """Converte un documento PDF in PDF/A-2B tramite Ghostscript (D.M. 44/2011 art. 12)."""
+        from pct.validazione import converti_pdfa
+        gf = get_fascicoli()
+        try:
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                flash("Fascicolo non trovato.", "warning")
+                return redirect(url_for("lista_fascicoli"))
+            doc = next((d for d in fasc.documenti if d.id == id_doc), None)
+            if not doc:
+                flash("Documento non trovato.", "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            if not doc.nome.lower().endswith(".pdf"):
+                flash(f"La conversione PDF/A è disponibile solo per file PDF (file: {doc.nome}).", "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            percorso = gf.percorso_documento(id_fasc, id_doc)
+            esito = converti_pdfa(str(percorso))
+            if esito["ok"]:
+                flash(f"Documento convertito in PDF/A-2B con successo. {esito['messaggio']}", "success")
+                audit("documento.converti_pdfa", id_fasc=id_fasc, id_doc=id_doc, nome=doc.nome)
+            else:
+                flash(f"Conversione PDF/A non riuscita: {esito['messaggio']}", "danger")
+        except Exception as e:
+            app.logger.exception("Errore converti_documento_pdfa: %s", e)
+            flash(f"Errore durante la conversione: {e}", "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
     @app.route("/api/editor/<id_fasc>/<id_doc>/html")
     def api_editor_carica_html(id_fasc, id_doc):
         """Restituisce il contenuto HTML del documento per l'editor."""
@@ -4137,6 +4502,192 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception as e:
             app.logger.exception("Errore api_editor_docx: %s", e)
             return str(e), 500
+
+    # ── PKCS#11 — firma in-device (Aruba Key) ────────────────────────────────
+
+    @app.route("/api/firma/pkcs11/status", methods=["GET"])
+    def api_pkcs11_status():
+        """
+        Controlla la disponibilità della libreria PKCS#11 e lista i token connessi.
+        Non richiede PIN — usa solo operazioni pubbliche sul token.
+
+        Response JSON:
+          { disponibile, libreria, token: [{slot_id, label, manufacturer, ha_cert}] }
+        """
+        try:
+            from pct.firma_pkcs11 import libreria_disponibile, lista_token
+            cfg_studio = get_config_studio().config
+            firma_cfg  = cfg_studio.firma if cfg_studio else None
+
+            # Usa la libreria configurata o quella auto-rilevata
+            lib_path = (
+                getattr(firma_cfg, "pkcs11_library", "") or libreria_disponibile()
+                if firma_cfg else libreria_disponibile()
+            )
+
+            if not lib_path:
+                return jsonify({
+                    "disponibile": False,
+                    "libreria": None,
+                    "token": [],
+                    "messaggio": (
+                        "Nessuna libreria PKCS#11 trovata. "
+                        "Installare opensc (apt install opensc) e pcscd, oppure "
+                        "specificare il percorso in Impostazioni → Firma Digitale → Token PKCS#11."
+                    ),
+                })
+
+            token_list = lista_token(lib_path)
+            return jsonify({
+                "disponibile": True,
+                "libreria": lib_path,
+                "token": [t.as_dict() for t in token_list],
+                "messaggio": (
+                    f"{len(token_list)} token rilevato/i."
+                    if token_list else
+                    "Libreria PKCS#11 disponibile ma nessun token inserito. "
+                    "Inserire smart card/token o collegare il lettore."
+                ),
+            })
+        except Exception as e:
+            app.logger.exception("Errore api_pkcs11_status: %s", e)
+            return jsonify({"disponibile": False, "libreria": None, "token": [],
+                            "messaggio": str(e)})
+
+    @app.route("/api/firma/pkcs11/firma-documento", methods=["POST"])
+    def api_pkcs11_firma_documento():
+        """
+        Firma un documento del fascicolo tramite token PKCS#11 (in-device).
+
+        Request JSON:
+          { fascicolo_id, documento_id, pin, slot_id? }
+
+        Response JSON:
+          { ok, nome_firmato, intestatario, scadenza, messaggio }
+
+        Il PIN non viene mai salvato — viene usato una volta per la sessione e scartato.
+        """
+        try:
+            from pct.firma_pkcs11 import FirmaPKCS11, libreria_disponibile
+
+            data          = request.get_json(force=True) or {}
+            id_fasc       = data.get("fascicolo_id", "").strip()
+            id_doc        = data.get("documento_id", "").strip()
+            pin           = data.get("pin", "")
+            slot_raw      = data.get("slot_id")
+
+            if not id_fasc or not id_doc:
+                return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_id obbligatori."}), 400
+            if not pin:
+                return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma in-device."}), 400
+
+            u  = g.utente_corrente
+            gf = get_fascicoli()
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+
+            doc = next((d for d in fasc.documenti if d.id == id_doc), None)
+            if not doc:
+                return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
+
+            if doc.firmato_digitalmente:
+                return jsonify({
+                    "ok": True,
+                    "nome_firmato": doc.nome,
+                    "messaggio": "Documento già firmato digitalmente.",
+                })
+
+            # Percorso fisico del documento
+            doc_path = gf.percorso_documento(id_fasc, id_doc)
+            if not doc_path or not doc_path.exists():
+                return jsonify({"ok": False,
+                                "messaggio": "File documento non trovato su disco."}), 404
+
+            # Config PKCS#11
+            cfg_studio = get_config_studio().config
+            firma_cfg  = cfg_studio.firma if cfg_studio else None
+            lib_path   = (
+                getattr(firma_cfg, "pkcs11_library", "") or libreria_disponibile()
+                if firma_cfg else libreria_disponibile()
+            )
+            if not lib_path:
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "Libreria PKCS#11 non disponibile. Installare opensc.",
+                }), 500
+
+            slot = None
+            if slot_raw is not None:
+                try:
+                    slot = int(slot_raw)
+                except (ValueError, TypeError):
+                    pass
+            elif firma_cfg:
+                slot_cfg = getattr(firma_cfg, "pkcs11_slot", "")
+                if str(slot_cfg).strip().isdigit():
+                    slot = int(slot_cfg)
+
+            label = getattr(firma_cfg, "pkcs11_label", "") if firma_cfg else None
+
+            # Leggi il documento
+            with open(doc_path, "rb") as fh:
+                contenuto = fh.read()
+
+            # Firma in-device (PIN usato e scartato in questa funzione)
+            with FirmaPKCS11(library_path=lib_path, slot_id=slot,
+                             pin=pin, label=label or None) as firma:
+                stato_cert = firma.verifica_scadenza()
+                if stato_cert["scaduto"]:
+                    return jsonify({
+                        "ok": False,
+                        "messaggio": stato_cert["messaggio"],
+                    })
+
+                # Salva la versione firmata (aggiunge .p7m)
+                output_path = str(doc_path) + ".p7m"
+                firma.salva_documento_firmato(contenuto, str(doc_path), formato="cades")
+                # salva_documento_firmato aggiunge .p7m se non presente
+                firmato_path = output_path if output_path.endswith(".p7m") else str(doc_path) + ".p7m"
+
+                intestatario = firma.intestatario
+                scadenza_str = stato_cert["scadenza"]
+
+            # Aggiorna il record documento nel fascicolo
+            import os as _os
+            nome_firmato = doc.nome
+            if not nome_firmato.endswith(".p7m"):
+                nome_firmato = nome_firmato + ".p7m"
+            doc.nome = nome_firmato
+            doc.firmato_digitalmente = True
+            if _os.path.exists(firmato_path):
+                doc.dimensione_bytes = _os.path.getsize(firmato_path)
+
+            fasc.modificato_il = __import__("datetime").datetime.now().isoformat()
+            gf._salva()
+
+            audit("firma.pkcs11", "documento", id_doc,
+                  dettagli=f"Firmato via PKCS#11 da {intestatario} — {nome_firmato}")
+            _sync.pubblica("modifica", "fascicoli", id_fasc,
+                           utente=u.username if u else "")
+
+            return jsonify({
+                "ok": True,
+                "nome_firmato": nome_firmato,
+                "intestatario": intestatario,
+                "scadenza": scadenza_str,
+                "avviso_scadenza": stato_cert.get("avviso_imminente", False),
+                "messaggio": (
+                    f"Documento firmato con successo da {intestatario}. "
+                    + (stato_cert["messaggio"] if stato_cert.get("avviso_imminente") else "")
+                ),
+            })
+
+        except Exception as e:
+            app.logger.exception("Errore api_pkcs11_firma_documento: %s", e)
+            return jsonify({"ok": False, "messaggio": str(e)})
+
+    # ─────────────────────────────────────────────────────────────────────────
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["POST"])
     def firma_documento(id_fasc, id_doc):
@@ -4318,6 +4869,35 @@ def create_app(config: dict | None = None) -> Flask:
             )
             flash("Esito deposito registrato nel fascicolo.", "success")
             audit("fascicoli.deposito.aggiungi", "fascicolo", id_fasc)
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/depositi/<id_dep>/modifica", methods=["POST"])
+    def modifica_esito_deposito(id_fasc, id_dep):
+        """Modifica manualmente un esito di deposito telematico nel fascicolo."""
+        gf = get_fascicoli()
+        u = g.utente_corrente
+        f = request.form
+        try:
+            gf.modifica_esito_deposito(
+                id_fasc=id_fasc,
+                id_dep=id_dep,
+                tipo_atto=f.get("tipo_atto", "ATTO"),
+                pec_destinatario=f.get("pec_destinatario", ""),
+                stato=f.get("stato", "INVIATO"),
+                messaggio=f.get("messaggio", ""),
+                ricevuta_accettazione=f.get("ricevuta_accettazione", ""),
+                ricevuta_consegna=f.get("ricevuta_consegna", ""),
+                ricevuta_controlli_automatici=f.get("ricevuta_controlli_automatici", ""),
+                esito_controlli=f.get("esito_controlli", ""),
+                ricevuta_cancelleria=f.get("ricevuta_cancelleria", ""),
+                note=f.get("note", ""),
+                modificato_da=u.username if u else "",
+            )
+            flash("Deposito aggiornato.", "success")
+            audit("fascicoli.deposito.modifica", "fascicolo", id_fasc)
             _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
@@ -4564,7 +5144,7 @@ def create_app(config: dict | None = None) -> Flask:
                 client_pec = ClientPEC(config_pec)
                 oggetto_pec = (
                     f"DEPOSITO TELEMATICO - {tipo_atto} - RG {fasc.numero_rg}/{fasc.anno_rg}"
-                    if fasc.numero_rg else
+                    if fasc.numero_rg and fasc.anno_rg else
                     f"DEPOSITO TELEMATICO - {tipo_atto} - {fasc.tribunale}"
                 )
                 ris = client_pec.invia_busta(
@@ -4585,6 +5165,9 @@ def create_app(config: dict | None = None) -> Flask:
             from pct.fascicoli import (AttivitaProcessuale, EsitoAttivita,
                                        TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto)
             _msg_demo = "[DEMO] " if modalita_demo else ""
+            # Raccoglie ID e nome atto principale per il tracking
+            _atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
+            _tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             esito = EsitoDepositoPCT(
                 id=id_dep,
                 timestamp=ts,
@@ -4594,8 +5177,15 @@ def create_app(config: dict | None = None) -> Flask:
                 messaggio=f"{_msg_demo}Busta {id_dep} inviata via PEC a {pec_dest}. Message-ID: {ris.get('message_id','')}",
                 note=("[SIMULAZIONE DEMO — nessun atto realmente inviato] " + note).strip() if modalita_demo else note,
                 registrato_da=u.username if u else "",
+                documenti_ids=_tutti_ids,
+                nome_atto_principale=_atto_doc.nome if _atto_doc else "",
             )
             fasc.depositi_pct.append(esito)
+
+            # Marca i documenti inclusi con l'id del deposito
+            for _doc in fasc.documenti:
+                if _doc.id in _tutti_ids:
+                    _doc.id_deposito_pct = id_dep
 
             # Auto-crea attività processuale collegata (PST: evento nel fascicolo informatico)
             _label = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
@@ -5428,19 +6018,27 @@ def create_app(config: dict | None = None) -> Flask:
         testo = request.args.get("q", "").strip()
         stato_f = request.args.get("stato", "")
         tipo_f = request.args.get("tipo", "")
-        stato = StatoFascicolo(stato_f) if stato_f else None
-        tipo = TipoFascicolo(tipo_f) if tipo_f else None
-        fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
-        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
-        mese_label = date.today().strftime("%B %Y").capitalize()
-        titolo = f"Elenco Fascicoli — {mese_label}"
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            out = tmp.name
-        lista_fascicoli_pdf([f.to_dict() for f in fascicoli], out, titolo=titolo, studio_nome=studio_nome)
-        audit("fascicoli.export_pdf")
-        nome_file = f"fascicoli_{date.today().isoformat()}.pdf"
-        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+        try:
+            stato = StatoFascicolo(stato_f) if stato_f else None
+            tipo = TipoFascicolo(tipo_f) if tipo_f else None
+            fascicoli = gf.cerca(testo=testo, stato=stato, tipo=tipo) if testo else gf.tutti(stato=stato, tipo=tipo)
+            studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+            _mesi_it = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                        "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
+            _oggi = date.today()
+            mese_label = f"{_mesi_it[_oggi.month - 1]} {_oggi.year}"
+            titolo = f"Elenco Fascicoli — {mese_label}"
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                out = tmp.name
+            lista_fascicoli_pdf([f.to_dict() for f in fascicoli], out, titolo=titolo, studio_nome=studio_nome)
+            audit("fascicoli.export_pdf")
+            nome_file = f"fascicoli_{date.today().isoformat()}.pdf"
+            return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+        except Exception as e:
+            app.logger.exception("Errore export_fascicoli_pdf: %s", e)
+            flash(f"Impossibile generare il PDF: {e}", "danger")
+            return redirect(url_for("lista_fascicoli"))
 
     @app.route("/clienti/export.pdf")
     def export_clienti_pdf():
@@ -5449,19 +6047,27 @@ def create_app(config: dict | None = None) -> Flask:
         testo = request.args.get("q", "").strip()
         tipo_f = request.args.get("tipo")
         stato_f = request.args.get("stato", "ATTIVO")
-        tipo = TipoCliente(tipo_f) if tipo_f else None
-        stato = StatoCliente(stato_f) if stato_f else None
-        clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
-        studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
-        mese_label = date.today().strftime("%B %Y").capitalize()
-        titolo = f"Elenco Clienti — {mese_label}"
-        import tempfile
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            out = tmp.name
-        lista_clienti_pdf([c.to_dict() for c in clienti], out, titolo=titolo, studio_nome=studio_nome)
-        audit("clienti.export_pdf")
-        nome_file = f"clienti_{date.today().isoformat()}.pdf"
-        return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+        try:
+            tipo = TipoCliente(tipo_f) if tipo_f else None
+            stato = StatoCliente(stato_f) if stato_f else None
+            clienti = gc.cerca(testo=testo, tipo=tipo, stato=stato) if testo else gc.tutti(stato=stato, tipo=tipo)
+            studio_nome = os.getenv("PCT_STUDIO_NOME", "Studio Legale")
+            _mesi_it = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+                        "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
+            _oggi = date.today()
+            mese_label = f"{_mesi_it[_oggi.month - 1]} {_oggi.year}"
+            titolo = f"Elenco Clienti — {mese_label}"
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                out = tmp.name
+            lista_clienti_pdf([c.to_dict() for c in clienti], out, titolo=titolo, studio_nome=studio_nome)
+            audit("clienti.export_pdf")
+            nome_file = f"clienti_{date.today().isoformat()}.pdf"
+            return send_file(out, as_attachment=True, download_name=nome_file, mimetype="application/pdf")
+        except Exception as e:
+            app.logger.exception("Errore export_clienti_pdf: %s", e)
+            flash(f"Impossibile generare il PDF: {e}", "danger")
+            return redirect(url_for("lista_clienti"))
 
     @app.route("/scadenziario/export.csv")
     def export_scadenziario_csv():
@@ -6103,6 +6709,12 @@ def create_app(config: dict | None = None) -> Flask:
     from web.blueprints.email_client import email_client as email_client_bp  # Client email /email/*
     app.register_blueprint(email_client_bp)
 
+    from web.blueprints.assistente import assistente as assistente_bp  # Assistente PCT /api/assistente/*
+    app.register_blueprint(assistente_bp)
+
+    from web.blueprints.preventivi import preventivi as preventivi_bp  # Preventivi e incarichi /preventivi/*
+    app.register_blueprint(preventivi_bp)
+
     # ----------------------------------------------------------------
     # iCal — download diretto (retrocompatibilità)
     # ----------------------------------------------------------------
@@ -6112,7 +6724,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.ical import agenda_to_ical
         ag = get_agenda()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/")
+        base_url = request.host_url.rstrip("/").replace("http://", "https://", 1)
         ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Content-Disposition": "attachment; filename=agenda.ics"})
@@ -6144,6 +6756,30 @@ def create_app(config: dict | None = None) -> Flask:
         except Exception:
             return False
 
+    def _get_base_url() -> str:
+        """Restituisce la base URL pubblica (sempre HTTPS in produzione).
+
+        Priorità:
+        1. PCT_BASE_URL env var — impostare su Railway/Render per URL stabile
+           (es. https://mio-studio.up.railway.app)
+        2. request.host_url aggiornato da ProxyFix (funziona se X-Forwarded-Proto è impostato)
+        3. Fallback: forza https:// su qualunque schema rilevato
+
+        Imposta PCT_BASE_URL nelle variabili d'ambiente Railway per eliminare
+        qualsiasi ambiguità HTTP/HTTPS nei feed iCal.
+        """
+        # 1. URL esplicito configurato dall'amministratore
+        configured = os.getenv("PCT_BASE_URL", "").rstrip("/")
+        if configured:
+            return configured
+        # 2. Legge request.host_url (ProxyFix la aggiorna con X-Forwarded-Proto)
+        #    e come safety net forza sempre https:// se il deploy è in produzione
+        base = request.host_url.rstrip("/")
+        if base.startswith("http://"):
+            # ProxyFix non ha ricevuto X-Forwarded-Proto → forza https manualmente
+            base = "https://" + base[len("http://"):]
+        return base
+
     @app.route("/cal/<token>/agenda.ics")
     def cal_feed_agenda(token):
         if not _cal_token_valido(token):
@@ -6151,7 +6787,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.ical import agenda_to_ical
         ag = get_agenda()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/")
+        base_url = _get_base_url()
         ical_str = agenda_to_ical(ag.tutti(), studio_nome=studio_nome, base_url=base_url)
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Cache-Control": "no-cache, no-store"})
@@ -6175,7 +6811,7 @@ def create_app(config: dict | None = None) -> Flask:
         ag = get_agenda()
         gs = get_scadenziario()
         studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
-        base_url = request.host_url.rstrip("/")
+        base_url = _get_base_url()
         ical_str = agenda_scadenze_to_ical(
             ag.tutti(), gs.tutte(), studio_nome=studio_nome, base_url=base_url
         )
@@ -6191,13 +6827,13 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.cal_token import get_token
         token_data = get_token(_cal_token_dir())
         token = token_data["token"]
-        base = request.host_url.rstrip("/")
+        base = _get_base_url()
         feeds = {
             "agenda":   f"{base}/cal/{token}/agenda.ics",
             "scadenze": f"{base}/cal/{token}/scadenze.ics",
             "completo": f"{base}/cal/{token}/completo.ics",
         }
-        # Link Google Calendar (usa https:// direttamente)
+        # Link Google Calendar — forza sempre https:// (requisito Google)
         from urllib.parse import quote
         gcal_completo = (
             "https://calendar.google.com/calendar/r/settings/addbyurl"

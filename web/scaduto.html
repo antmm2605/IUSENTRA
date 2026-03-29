@@ -1,0 +1,961 @@
+{% extends "base.html" %}
+{% block title %}Impostazioni Studio{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-gear-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Impostazioni Studio</h1>
+    <p class="ds-ph-sub">Configurazione generale, PEC, firma digitale e notifiche</p>
+  </div>
+  <div class="ds-ph-actions">
+    <span class="ds-role ds-role-success">
+      <i class="bi bi-shield-check"></i>Dati salvati localmente
+    </span>
+  </div>
+</div>
+
+{# ── Flash messages ── #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+    <i class="bi bi-{{ 'check-circle-fill' if cat == 'success' else 'exclamation-triangle-fill' }}"></i>
+    <span>{{ msg }}</span>
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+{# ── Tab navigation ── #}
+<ul class="nav nav-pills mb-4 gap-1 flex-wrap" id="settings-tabs" role="tablist">
+  {% set tabs = [
+    ('studio',    'bi-building',         'Dati Studio'),
+    ('pec',       'bi-envelope-at-fill', 'PEC'),
+    ('firma',     'bi-pen-fill',         'Firma Digitale'),
+    ('smtp',      'bi-at',               'Email SMTP'),
+    ('whatsapp',  'bi-whatsapp',         'WhatsApp'),
+    ('scheduler', 'bi-clock-history',    'Scheduler'),
+  ] %}
+  {% for slug, icon, label in tabs %}
+  <li class="nav-item" role="presentation">
+    <a href="{{ url_for('impostazioni.index', tab=slug) }}"
+       class="nav-link px-3 py-2 {{ 'active' if tab_attivo == slug }}"
+       style="border-radius:10px; font-size:.85rem;">
+      <i class="bi {{ icon }} me-1"></i>{{ label }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+{# ════════════════════════════════════════ TAB: DATI STUDIO #}
+{% if tab_attivo == 'studio' %}
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-1"><i class="bi bi-building text-primary me-2"></i>Dati anagrafici dello studio</h6>
+    <p class="text-muted mb-4" style="font-size:.82rem;">
+      Usati in intestazioni PDF, parcelle, template atti e depositi telematici.
+    </p>
+    <form method="post">
+      <input type="hidden" name="_tab" value="studio">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Nome studio <span class="text-danger">*</span></label>
+          <input type="text" name="nome" class="form-control"
+                 value="{{ cfg.studio.nome }}" placeholder="Studio Legale Rossi & Associati" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Avvocato titolare</label>
+          <input type="text" name="avvocato" class="form-control"
+                 value="{{ cfg.studio.avvocato }}" placeholder="Avv. Mario Rossi">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Partita IVA</label>
+          <input type="text" name="piva" class="form-control font-monospace"
+                 value="{{ cfg.studio.piva }}" placeholder="01234567890" maxlength="11">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Codice Fiscale studio</label>
+          <input type="text" name="cf" class="form-control font-monospace"
+                 value="{{ cfg.studio.cf }}" placeholder="RSSMRA80A01H501Z" maxlength="16">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">
+            C.F. Avvocato (PCT)
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="C.F. Avvocato per i depositi PCT"
+                    data-bs-content="<p class='mb-1'>Diverso dal C.F. dello studio.</p><p class='mb-0'>Viene inserito nelle buste telematiche come identificativo del difensore. <strong>Deve corrispondere esattamente al C.F. nel certificato di firma digitale</strong>, altrimenti il deposito viene rifiutato dal sistema PST.</p>">?</button>
+          </label>
+          <input type="text" name="codice_fiscale_avvocato" class="form-control font-monospace"
+                 value="{{ cfg.studio.codice_fiscale_avvocato }}" placeholder="Usato nei depositi telematici">
+          <div class="form-text">Codice fiscale per i depositi PCT.</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Indirizzo</label>
+          <input type="text" name="indirizzo" class="form-control"
+                 value="{{ cfg.studio.indirizzo }}" placeholder="Via Roma 1, 20100 Milano (MI)">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Telefono</label>
+          <input type="tel" name="telefono" class="form-control"
+                 value="{{ cfg.studio.telefono }}" placeholder="+39 02 1234567">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Email</label>
+          <input type="email" name="email" class="form-control"
+                 value="{{ cfg.studio.email }}" placeholder="studio@esempio.it">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Sito web</label>
+          <input type="url" name="sito_web" class="form-control"
+                 value="{{ cfg.studio.sito_web }}" placeholder="https://www.studiorossi.it">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">
+            IBAN
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="A cosa serve l'IBAN"
+                    data-bs-content="Appare automaticamente nelle parcelle PDF generate dall'app, nella sezione pagamenti, con le istruzioni per il bonifico al cliente. Non viene usato per transazioni automatiche.">?</button>
+          </label>
+          <input type="text" name="iban" class="form-control font-monospace"
+                 value="{{ cfg.studio.iban }}" placeholder="IT60X0542811101000000123456">
+          <div class="form-text">Usato nelle parcelle e nelle istruzioni di bonifico.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Banca</label>
+          <input type="text" name="banca" class="form-control"
+                 value="{{ cfg.studio.banca }}" placeholder="Banca Intesa Sanpaolo">
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>Salva dati studio
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ════════════════════════════════════════ TAB: PEC #}
+{% if tab_attivo == 'pec' %}
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body p-4">
+    <div class="d-flex align-items-start justify-content-between mb-1 flex-wrap gap-2">
+      <div>
+        <h6 class="fw-bold mb-1"><i class="bi bi-envelope-at-fill text-primary me-2"></i>Posta Elettronica Certificata</h6>
+        <p class="text-muted mb-0" style="font-size:.82rem;">
+          Usata per i depositi telematici (PCT) e le notifiche via PEC.
+          Provider italiani: Aruba, Legalmail, Namirial, Infocert, Poste.
+        </p>
+      </div>
+      {% if cfg.pec.indirizzo %}
+      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Configurata</span>
+      {% else %}
+      <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Non configurata</span>
+      {% endif %}
+    </div>
+
+    {# Provider info cards #}
+    <div class="row g-2 my-3">
+      {% set providers_pec = [
+        ('Aruba PEC', 'smtp.pec.aruba.it', 'imaps.pec.aruba.it', '465', '993', 'https://www.aruba.it/servizi/posta_elettronica_certificata.aspx'),
+        ('Legalmail (InfoCert)', 'smtp.legalmail.it', 'imap.legalmail.it', '465', '993', 'https://www.legalmail.it'),
+        ('Namirial', 'smtp.pec.namirial.com', 'imap.pec.namirial.com', '465', '993', 'https://www.namirial.com'),
+        ('Poste Italiane', 'postassl.poste.it', 'imap.postemail.it', '465', '993', 'https://www.poste.it/prodotti/pec'),
+      ] %}
+      {% for nome, smtp, imap, sp, ip, link in providers_pec %}
+      <div class="col-6 col-md-3">
+        <div class="card border h-100" style="border-radius:12px; cursor:pointer;"
+             onclick="fillPEC('{{ smtp }}','{{ sp }}','{{ imap }}','{{ ip }}')"
+             title="Clicca per precompilare i parametri">
+          <div class="card-body p-2 text-center">
+            <div class="fw-semibold" style="font-size:.8rem;">{{ nome }}</div>
+            <div class="text-muted font-monospace" style="font-size:.68rem;">{{ smtp }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="text-muted mb-4" style="font-size:.75rem;">
+      <i class="bi bi-cursor me-1"></i>Clicca un provider per precompilare i parametri SMTP/IMAP.
+    </div>
+
+    <form method="post" id="form-pec">
+      <input type="hidden" name="_tab" value="pec">
+      <div class="row g-3">
+        <div class="col-md-7">
+          <label class="form-label fw-semibold">Indirizzo PEC <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope-at"></i></span>
+            <input type="email" name="pec_indirizzo" id="pec_indirizzo" class="form-control"
+                   value="{{ cfg.pec.indirizzo }}" placeholder="studiorossi@pec.aruba.it" required>
+          </div>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Password PEC</label>
+          <div class="input-group">
+            <input type="password" name="pec_password" id="pec_password" class="form-control font-monospace"
+                   placeholder="{{ '••••••••' if cfg.pec.password else 'Nessuna password salvata' }}"
+                   autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('pec_password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% if cfg.pec.password %}
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
+          {% endif %}
+        </div>
+
+        <div class="col-12"><hr class="my-1">
+          <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-send me-1 text-primary"></i>SMTP (invio)</span>
+          <button type="button" class="btn-help ms-1"
+                  data-bs-toggle="popover"
+                  data-bs-title="SMTP — protocollo di invio"
+                  data-bs-content="SMTP è il protocollo usato per <strong>inviare</strong> messaggi PEC. Serve per i depositi telematici e le notifiche. La porta standard per PEC con SSL è <code>465</code>.">?</button>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Host SMTP</label>
+          <input type="text" name="pec_smtp_host" id="pec_smtp_host" class="form-control font-monospace"
+                 value="{{ cfg.pec.smtp_host }}" placeholder="smtp.pec.aruba.it">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Porta SMTP</label>
+          <input type="number" name="pec_smtp_port" id="pec_smtp_port" class="form-control"
+                 value="{{ cfg.pec.smtp_port }}" min="1" max="65535">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="pec_use_ssl" id="pec_use_ssl" value="1"
+                   {{ 'checked' if cfg.pec.use_ssl }}>
+            <label class="form-check-label fw-semibold" for="pec_use_ssl">
+              SSL/TLS
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="SSL/TLS vs STARTTLS"
+                      data-bs-content="<ul><li><strong>SSL/TLS</strong> (porta 465): connessione cifrata fin dall'inizio. Usato dalla maggior parte dei provider PEC italiani.</li><li><strong>STARTTLS</strong> (porta 587): avvia in chiaro poi cifra. Meno comune per PEC, più usato per email ordinaria.</li></ul>Lascia attivo per Aruba, Legalmail, Namirial e Poste.">?</button>
+            </label>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <span class="fw-semibold" style="font-size:.82rem;"><i class="bi bi-inbox me-1 text-primary"></i>IMAP (ricezione / lettura ricevute)</span>
+          <button type="button" class="btn-help ms-1"
+                  data-bs-toggle="popover"
+                  data-bs-title="IMAP — lettura ricevute PEC"
+                  data-bs-content="IMAP è il protocollo usato per <strong>leggere</strong> la posta in arrivo. Serve per recuperare le ricevute di accettazione e consegna dei depositi telematici. La porta standard è <code>993</code> con SSL.">?</button>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Host IMAP</label>
+          <input type="text" name="pec_imap_host" id="pec_imap_host" class="form-control font-monospace"
+                 value="{{ cfg.pec.imap_host }}" placeholder="imaps.pec.aruba.it">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Porta IMAP</label>
+          <input type="number" name="pec_imap_port" id="pec_imap_port" class="form-control"
+                 value="{{ cfg.pec.imap_port }}" min="1" max="65535">
+        </div>
+
+        {# Test connection buttons #}
+        <div class="col-12">
+          <div class="d-flex gap-2 flex-wrap align-items-center mt-1">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-smtp"
+                    onclick="testConn('pec-smtp','btn-test-smtp','res-test-smtp')">
+              <i class="bi bi-send-check me-1"></i>Testa SMTP
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-imap"
+                    onclick="testConn('pec-imap','btn-test-imap','res-test-imap')">
+              <i class="bi bi-inbox-fill me-1"></i>Testa IMAP
+            </button>
+            <span id="res-test-smtp" class="test-result"></span>
+            <span id="res-test-imap" class="test-result"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>Salva configurazione PEC
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Info box sicurezza #}
+<div class="card border-0 mt-3" style="border-radius:14px; background:rgba(var(--bs-info-rgb),.06);">
+  <div class="card-body py-3 px-4">
+    <div class="d-flex gap-3 align-items-start">
+      <i class="bi bi-shield-lock-fill text-info fs-5 mt-1"></i>
+      <div style="font-size:.8rem;">
+        <strong>Sicurezza password:</strong> La password PEC è salvata cifrata nel file
+        <code>config/studio.json</code> sul tuo server privato. Non viene mai trasmessa a terzi.
+        Usa sempre una password dedicata per la casella PEC dello studio.
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ════════════════════════════════════════ TAB: FIRMA DIGITALE #}
+{% if tab_attivo == 'firma' %}
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-1"><i class="bi bi-pen-fill text-primary me-2"></i>Firma Digitale</h6>
+    <p class="text-muted mb-3" style="font-size:.82rem;">
+      Certificato per la firma CAdES degli atti e per l'autenticazione al PST (PolisWeb).
+      Rilasciato da: Infocert, Namirial, Aruba, Poste Italiane, Intesa.
+      <a href="{{ url_for('guida_firma_digitale') }}" class="ms-1">
+        <i class="bi bi-book me-1"></i>Guida completa — come ottenerlo e configurarlo
+      </a>
+    </p>
+
+    {# Stato attuale #}
+    {% set fmt = cfg.firma.formato_attivo %}
+    <div class="alert alert-{{ 'success' if fmt != 'nessuno' else 'secondary' }} py-2 small mb-4">
+      <i class="bi bi-{{ 'patch-check-fill' if fmt != 'nessuno' else 'exclamation-circle' }} me-2"></i>
+      {% if fmt == 'p12' %}
+        <strong>Formato attivo: P12/PFX</strong> — file trovato su disco.
+      {% elif fmt == 'pem' %}
+        <strong>Formato attivo: PEM</strong> — certificato + chiave trovati su disco.
+      {% else %}
+        <strong>Nessun certificato configurato</strong> — PolisWeb funziona in modalità demo.
+      {% endif %}
+    </div>
+
+    <form method="post">
+      <input type="hidden" name="_tab" value="firma">
+
+      {# ── Selezione formato ── #}
+      <div class="mb-4">
+        <label class="form-label fw-semibold">
+          Formato certificato
+          <button type="button" class="btn-help"
+                  data-bs-toggle="popover"
+                  data-bs-title="P12/PFX vs PEM — quale scegliere?"
+                  data-bs-content="<ul><li><strong>P12/PFX</strong> — file unico che contiene certificato e chiave privata. È il formato rilasciato da Aruba, Infocert, Namirial, Poste. È quello più comune.</li><li><strong>PEM</strong> — due file separati: <code>.crt</code> (certificato) e <code>.key</code> (chiave privata). Da usare solo se il provider non rilascia P12.</li></ul>Se non sai quale hai, guarda l'estensione del file ricevuto.">?</button>
+        </label>
+        <div class="d-flex gap-3 flex-wrap">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_p12"
+                   value="p12" onchange="switchFirmaFmt('p12')"
+                   {{ 'checked' if fmt != 'pem' }}>
+            <label class="form-check-label" for="fmt_p12">
+              <strong>P12 / PFX</strong>
+              <span class="text-muted small d-block">File unico .p12 o .pfx — il più comune</span>
+            </label>
+          </div>
+          <div class="form-check ms-4">
+            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pem"
+                   value="pem" onchange="switchFirmaFmt('pem')"
+                   {{ 'checked' if fmt == 'pem' }}>
+            <label class="form-check-label" for="fmt_pem">
+              <strong>PEM</strong>
+              <span class="text-muted small d-block">Due file separati (.crt + .key) — alcuni provider non rilasciano P12</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {# ── Sezione P12 ── #}
+      <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt == 'pem' }}">
+        <div class="col-12">
+          <label class="form-label fw-semibold">
+            Percorso file P12/PFX
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="Dove mettere il file P12"
+                    data-bs-content="<p class='mb-1'><strong>Con Docker:</strong> monta il file nel volume <code>/data/config/</code> aggiungendo nel <code>docker-compose.yml</code>:</p><code>volumes:<br>&nbsp;&nbsp;- ./firma.p12:/data/config/firma.p12</code><p class='mb-0 mt-1'>Poi inserisci qui il percorso <code>/data/config/firma.p12</code>.</p>">?</button>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-file-earmark-lock2"></i></span>
+            <input type="text" name="firma_p12_path" class="form-control font-monospace"
+                   value="{{ cfg.firma.p12_path }}"
+                   placeholder="/data/config/firma.p12">
+          </div>
+          <div class="form-text">
+            Percorso assoluto al file <code>.p12</code> o <code>.pfx</code> sul server.
+            Per Docker, monta il file nel volume <code>/data/config/</code>.
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Password P12</label>
+          <div class="input-group">
+            <input type="password" name="firma_password" id="firma_password" class="form-control font-monospace"
+                   placeholder="{{ '••••••••' if cfg.firma.password else 'Password non impostata' }}"
+                   autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% if cfg.firma.password %}
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Sezione PEM ── #}
+      <div id="sezione_pem" class="row g-3 {{ '' if fmt == 'pem' else 'd-none' }}">
+        <div class="col-12">
+          <div class="alert alert-info py-2 small">
+            <i class="bi bi-info-circle me-1"></i>
+            Usare questo formato se il tuo provider (es. Namirial, Aruba, InfoCert) rilascia
+            il certificato come due file separati <code>.crt</code> e <code>.key</code>
+            invece del classico file <code>.p12</code>.
+            Monta entrambi i file in <code>/data/config/</code>.
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Percorso certificato (.crt / .pem)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
+            <input type="text" name="firma_cert_pem_path" class="form-control font-monospace"
+                   value="{{ cfg.firma.cert_pem_path }}"
+                   placeholder="/data/config/firma.crt">
+          </div>
+          <div class="form-text">File che contiene il certificato pubblico (può includere la chain CA).</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Percorso chiave privata (.key / .pem)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
+            <input type="text" name="firma_key_pem_path" class="form-control font-monospace"
+                   value="{{ cfg.firma.key_pem_path }}"
+                   placeholder="/data/config/firma.key">
+          </div>
+          <div class="form-text">File con la chiave privata RSA/EC. Può essere in chiaro o cifrata.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Password chiave privata <span class="text-muted fw-normal">(se cifrata)</span></label>
+          <div class="input-group">
+            <input type="password" name="firma_key_pem_password" id="firma_key_pem_password"
+                   class="form-control font-monospace"
+                   placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Lascia vuoto se chiave non cifrata' }}"
+                   autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% if cfg.firma.key_pem_password %}
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Codice Fiscale (comune) ── #}
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">
+            Codice Fiscale Avvocato
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="CF nel certificato di firma"
+                    data-bs-content="<strong>Deve corrispondere esattamente</strong> al codice fiscale codificato nel certificato di firma digitale. Se non corrispondono, il PST rifiuta il deposito con errore di autenticazione.<br><br>Per verificare il CF nel tuo certificato, aprilo con un gestore certificati (es. Keychain su Mac, Gestore certificati su Windows) e controlla il campo <em>Subject</em>.">?</button>
+          </label>
+          <input type="text" name="firma_cf_avvocato" class="form-control font-monospace text-uppercase"
+                 value="{{ cfg.firma.cf_avvocato }}" placeholder="RSSMRA80A01H501Z" maxlength="16">
+          <div class="form-text">Deve corrispondere al CF nel certificato di firma.</div>
+        </div>
+      </div>
+
+      <div class="alert alert-warning mt-4 d-flex gap-2" style="border-radius:12px; font-size:.82rem;">
+        <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+        <div>
+          <strong>Rinnovo certificato:</strong> I certificati di firma digitale scadono ogni 3 anni.
+          Verifica la scadenza sul portale del tuo provider e rinnova prima del termine.
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>Salva configurazione firma
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function switchFirmaFmt(fmt) {
+  document.getElementById('sezione_p12').classList.toggle('d-none', fmt !== 'p12');
+  document.getElementById('sezione_pem').classList.toggle('d-none', fmt !== 'pem');
+}
+</script>
+{% endif %}
+
+{# ════════════════════════════════════════ TAB: EMAIL SMTP #}
+{% if tab_attivo == 'smtp' %}
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-1"><i class="bi bi-at text-primary me-2"></i>Email SMTP (email ordinaria)</h6>
+    <p class="text-muted mb-4" style="font-size:.82rem;">
+      Usata per promemoria, avvisi ai clienti, invio parcelle. <strong>Diversa dalla PEC</strong>
+      (che è certificata). Puoi usare Gmail, Outlook, Aruba, o qualsiasi provider SMTP.
+      Su Railway/cloud usa <strong>Brevo</strong> (piano gratuito, funziona sempre da hosting).
+    </p>
+
+    {# Provider quick-select #}
+    <div class="row g-2 mb-4">
+      {% set providers_smtp = [
+        ('Brevo', 'smtp-relay.brevo.com', '587', '1', True),
+        ('Gmail', 'smtp.gmail.com', '587', '1', False),
+        ('Outlook/Office365', 'smtp.office365.com', '587', '1', False),
+        ('Aruba', 'smtps.aruba.it', '465', '1', False),
+        ('IONOS', 'smtp.ionos.it', '587', '1', False),
+      ] %}
+      {% for nome, host, porta, tls, cloud in providers_smtp %}
+      <div class="col-6 col-md-auto">
+        <div class="card h-100 {{ 'border-success' if cloud else 'border' }}"
+             style="border-radius:12px; cursor:pointer; {{ 'background:#f0fdf4;' if cloud else '' }}"
+             onclick="fillSMTP('{{ host }}','{{ porta }}','{{ tls }}')"
+             title="Precompila parametri {{ nome }}">
+          <div class="card-body p-2 text-center">
+            {% if cloud %}
+            <span class="badge bg-success mb-1" style="font-size:.6rem;">&#9729; Cloud-friendly</span><br>
+            {% endif %}
+            <div class="fw-semibold {{ 'text-success' if cloud else '' }}" style="font-size:.8rem;">{{ nome }}</div>
+            <div class="{{ 'text-success' if cloud else 'text-muted' }} font-monospace" style="font-size:.68rem;">{{ host }}:{{ porta }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <form method="post" id="form-smtp">
+      <input type="hidden" name="_tab" value="smtp">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Host SMTP</label>
+          <input type="text" name="smtp_host" id="smtp_host" class="form-control font-monospace"
+                 value="{{ cfg.smtp.host }}" placeholder="smtp.gmail.com">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Porta</label>
+          <input type="number" name="smtp_port" id="smtp_port" class="form-control"
+                 value="{{ cfg.smtp.port }}" min="1" max="65535">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="smtp_use_tls" id="smtp_use_tls" value="1"
+                   {{ 'checked' if cfg.smtp.use_tls }}>
+            <label class="form-check-label fw-semibold" for="smtp_use_tls">
+              STARTTLS
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="STARTTLS"
+                      data-bs-content="Abilita se il provider usa STARTTLS su porta 587 (Gmail, Outlook, IONOS). Disabilita se usa SSL diretto su porta 465 (Aruba). Se la connessione di test fallisce, prova a invertire questa impostazione.">?</button>
+            </label>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Username / Email account</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input type="email" name="smtp_username" id="smtp_username" class="form-control"
+                   value="{{ cfg.smtp.username }}" placeholder="studio@gmail.com">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">
+            Password / App Password
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="App Password per Gmail e Outlook"
+                    data-bs-content="<strong>Gmail:</strong> non usare la password principale. Vai su <em>myaccount.google.com → Sicurezza → Password per le app</em> e genera una password dedicata per questa app (16 caratteri senza spazi).<br><br><strong>Outlook / Microsoft 365:</strong> se hai la 2FA attiva, genera un'App Password da <em>account.microsoft.com → Sicurezza</em>.">?</button>
+          </label>
+          <div class="input-group">
+            <input type="password" name="smtp_password" id="smtp_password" class="form-control font-monospace"
+                   placeholder="{{ '••••••••' if cfg.smtp.password else 'Nessuna password' }}"
+                   autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('smtp_password',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% if cfg.smtp.password %}
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Salvata · lascia vuoto per non cambiare</div>
+          {% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Indirizzo mittente (From)</label>
+          <input type="email" name="smtp_from_address" class="form-control"
+                 value="{{ cfg.smtp.from_address }}" placeholder="studio@esempio.it">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Nome mittente</label>
+          <input type="text" name="smtp_from_name" class="form-control"
+                 value="{{ cfg.smtp.from_name }}" placeholder="Studio Legale Rossi">
+        </div>
+
+        {# Guida Brevo — visibile solo quando l'host è smtp-relay.brevo.com #}
+        <div class="col-12" id="brevo-guide" style="display:none;">
+          <div class="alert alert-success py-2 mb-0" style="font-size:.82rem;">
+            <strong><i class="bi bi-cloud-check me-1"></i>Brevo (ex Sendinblue) — istruzioni rapide:</strong>
+            <ol class="mb-1 mt-1 ps-3">
+              <li>Registrati su <strong>brevo.com</strong> (piano Free: 300 email/giorno gratuito)</li>
+              <li><strong>Verifica l'email</strong> di conferma — l'SMTP non funziona finché l'account non è attivato</li>
+              <li>Vai su <em>SMTP &amp; API → SMTP</em> e copia le credenziali</li>
+              <li><strong>Username</strong>: il tuo indirizzo email Brevo</li>
+              <li><strong>Password</strong>: la <em>Master password SMTP</em> (non la password dell'account)</li>
+            </ol>
+            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+            <strong>Timeout?</strong> L'account potrebbe non essere ancora attivato oppure il dominio mittente non verificato. Accedi a brevo.com e controlla eventuali avvisi nella dashboard.
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-test-email"
+                    onclick="testConn('smtp','btn-test-email','res-test-email')">
+              <i class="bi bi-send-check me-1"></i>Testa connessione SMTP
+            </button>
+            <span id="res-test-email" class="test-result"></span>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="alert alert-info d-flex gap-2" style="border-radius:12px; font-size:.8rem;">
+            <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+            <div>
+              <strong>Gmail:</strong> usa una <a href="https://myaccount.google.com/apppasswords" target="_blank">App Password</a>
+              (non la password principale). Abilita l'accesso per app meno sicure o usa OAuth2.
+              <strong>Outlook:</strong> usa la password dell'account o un App Password se abilitata la 2FA.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>Salva configurazione email
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ════════════════════════════════════════ TAB: WHATSAPP #}
+{% if tab_attivo == 'whatsapp' %}
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-1"><i class="bi bi-whatsapp text-success me-2"></i>Notifiche WhatsApp</h6>
+    <p class="text-muted mb-4" style="font-size:.82rem;">
+      Invia promemoria appuntamenti, avvisi scadenze e link portale via WhatsApp.
+      Scegli il provider: <strong>Twilio</strong> (professionale, a pagamento) o
+      <strong>CallMeBot</strong> (gratuito, personale).
+    </p>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="card border h-100" style="border-radius:14px;">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary">PRO</span>
+              <strong>Twilio</strong>
+              <span class="text-muted" style="font-size:.75rem;">~€0.05/msg</span>
+            </div>
+            <ul class="mb-2 ps-3" style="font-size:.8rem;">
+              <li>Numero WhatsApp Business dedicato</li>
+              <li>API affidabile, SLA garantito</li>
+              <li>Dashboard analytics</li>
+            </ul>
+            <a href="https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn-more"
+               target="_blank" class="btn btn-sm btn-outline-primary w-100">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Configura Twilio
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card border h-100" style="border-radius:14px;">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-success">FREE</span>
+              <strong>CallMeBot</strong>
+              <span class="text-muted" style="font-size:.75rem;">Gratis</span>
+            </div>
+            <ul class="mb-2 ps-3" style="font-size:.8rem;">
+              <li>Semplice da configurare</li>
+              <li>Adatto per uso personale</li>
+              <li>Nessuna garanzia di consegna</li>
+            </ul>
+            <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/"
+               target="_blank" class="btn btn-sm btn-outline-success w-100">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Attiva CallMeBot
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post">
+      <input type="hidden" name="_tab" value="whatsapp">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="fw-semibold mb-2" style="font-size:.9rem;"><i class="bi bi-telephone-fill text-primary me-1"></i>Twilio</div>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Account SID</label>
+          <input type="text" name="twilio_sid" id="twilio_sid" class="form-control font-monospace"
+                 value="{{ cfg.whatsapp.twilio_sid }}" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Auth Token</label>
+          <div class="input-group">
+            <input type="password" name="twilio_token" id="twilio_token" class="form-control font-monospace"
+                   placeholder="{{ '••••••••' if cfg.whatsapp.twilio_token else 'Token non impostato' }}"
+                   autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('twilio_token',this)">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          {% if cfg.whatsapp.twilio_token %}
+          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Token salvato · lascia vuoto per non cambiare</div>
+          {% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">
+            Numero WhatsApp
+            <button type="button" class="btn-help"
+                    data-bs-toggle="popover"
+                    data-bs-title="Formato numero Twilio WhatsApp"
+                    data-bs-content="<p class='mb-1'>Il numero deve iniziare con il prefisso <code>whatsapp:</code> seguito dal numero internazionale.</p><p class='mb-1'><strong>Sandbox (test):</strong> <code>whatsapp:+14155238886</code></p><p class='mb-0'><strong>Numero Business:</strong> <code>whatsapp:+39XXXXXXXXXX</code><br>Lo trovi nel pannello Twilio → Messaging → Sender overview.</p>">?</button>
+          </label>
+          <input type="text" name="twilio_numero" id="twilio_numero" class="form-control font-monospace"
+                 value="{{ cfg.whatsapp.twilio_numero }}" placeholder="whatsapp:+14155238886">
+        </div>
+
+        <div class="col-12 mt-2">
+          <hr>
+          <div class="fw-semibold mb-2" style="font-size:.9rem;"><i class="bi bi-phone text-success me-1"></i>CallMeBot</div>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">API Key CallMeBot</label>
+          <input type="text" name="callmebot_key" id="callmebot_key" class="form-control font-monospace"
+                 value="{{ cfg.whatsapp.callmebot_key }}" placeholder="123456">
+          <div class="form-text">
+            Ottieni la tua API key su
+            <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">callmebot.com</a>.
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4 align-items-center flex-wrap">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>Salva configurazione WhatsApp
+        </button>
+        <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-wa"
+                onclick="testConn('whatsapp','btn-test-wa','res-test-wa')">
+          <i class="bi bi-whatsapp me-1"></i>Testa connessione WhatsApp
+        </button>
+        <span id="res-test-wa" class="test-result"></span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ════════════════════════════════════════ TAB: SCHEDULER #}
+{% if tab_attivo == 'scheduler' %}
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body p-4">
+    <h6 class="fw-bold mb-1"><i class="bi bi-clock-history text-primary me-2"></i>Scheduler — Job automatici</h6>
+    <p class="text-muted mb-4" style="font-size:.82rem;">
+      Configura i job automatici in background: backup notturno e promemoria WhatsApp.
+      Gli orari sono nel fuso orario del server.
+    </p>
+    <form method="post">
+      <input type="hidden" name="_tab" value="scheduler">
+      <div class="row g-4">
+
+        <div class="col-md-6">
+          <div class="card border h-100" style="border-radius:14px;">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-cloud-arrow-up me-2 text-primary"></i>Backup automatico</h6>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch"
+                         name="backup_abilitato" id="backup_ab" value="1"
+                         {{ 'checked' if cfg.scheduler.backup_abilitato }}>
+                </div>
+              </div>
+              <label class="form-label fw-semibold">Ora di esecuzione</label>
+              <input type="time" name="backup_ora" class="form-control"
+                     value="{{ cfg.scheduler.backup_ora }}">
+              <div class="form-text mt-2">
+                Backup completo giornaliero di tutti i dati.
+                I file vengono compressi in ZIP e salvati in <code>/data/backup/</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card border h-100" style="border-radius:14px;">
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="mb-0 fw-semibold"><i class="bi bi-whatsapp me-2 text-success"></i>Promemoria WA</h6>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch"
+                         name="wa_reminder_abilitato" id="wa_ab" value="1"
+                         {{ 'checked' if cfg.scheduler.wa_reminder_abilitato }}>
+                </div>
+              </div>
+              <label class="form-label fw-semibold">Ora di invio</label>
+              <input type="time" name="wa_reminder_ora" class="form-control"
+                     value="{{ cfg.scheduler.wa_reminder_ora }}">
+              <div class="form-text mt-2">
+                Invia promemoria WhatsApp ai clienti per gli appuntamenti del giorno successivo.
+                Richiede WhatsApp configurato nella tab precedente.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="alert alert-info mt-4 d-flex gap-2" style="border-radius:12px; font-size:.8rem;">
+        <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+        <div>
+          Le modifiche agli orari hanno effetto al prossimo riavvio del server.
+          Il processo scheduler è avviato automaticamente all'avvio dell'app Flask.
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-floppy me-2"></i>Salva impostazioni scheduler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{# ════════════════════════════════════════ JS ════════════════════════════════ #}
+<style>
+  .test-result { font-size:.82rem; }
+  .test-ok   { color: var(--bs-success); }
+  .test-fail { color: var(--bs-danger); }
+  .test-spin { color: var(--bs-secondary); }
+  .nav-pills .nav-link { color: var(--bs-body-color); }
+  .nav-pills .nav-link.active { background: var(--bs-primary); color:#fff; }
+</style>
+
+<script>
+/* ── toggle password visibility ── */
+function togglePwd(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const isText = inp.type === 'text';
+  inp.type = isText ? 'password' : 'text';
+  btn.querySelector('i').className = isText ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+/* ── PEC provider quick-fill ── */
+function fillPEC(smtpHost, smtpPort, imapHost, imapPort) {
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+  set('pec_smtp_host', smtpHost);
+  set('pec_smtp_port', smtpPort);
+  set('pec_imap_host', imapHost);
+  set('pec_imap_port', imapPort);
+}
+
+/* ── SMTP provider quick-fill ── */
+function fillSMTP(host, port, tls) {
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+  const chk = (id, val) => { const el = document.getElementById(id); if(el) el.checked = val === '1'; };
+  set('smtp_host', host);
+  set('smtp_port', port);
+  chk('smtp_use_tls', tls);
+  _toggleBrevoGuide(host);
+}
+
+function _toggleBrevoGuide(host) {
+  const guide = document.getElementById('brevo-guide');
+  if (guide) guide.style.display = (host === 'smtp-relay.brevo.com') ? '' : 'none';
+}
+
+/* Mostra guida Brevo se già salvato come host */
+document.addEventListener('DOMContentLoaded', function() {
+  const smtpHostEl = document.getElementById('smtp_host');
+  if (smtpHostEl) {
+    _toggleBrevoGuide(smtpHostEl.value);
+    smtpHostEl.addEventListener('input', () => _toggleBrevoGuide(smtpHostEl.value));
+  }
+});
+
+/* ── AJAX connection test ── */
+async function testConn(tipo, btnId, resId) {
+  const btn = document.getElementById(btnId);
+  const res = document.getElementById(resId);
+  if (!btn || !res) return;
+
+  btn.disabled = true;
+  res.className = 'test-result test-spin';
+  res.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i>Test in corso…';
+
+  let payload = {};
+  if (tipo === 'pec-smtp' || tipo === 'pec-imap') {
+    const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    payload = {
+      indirizzo: g('pec_indirizzo'),
+      password:  g('pec_password'),
+      smtp_host: g('pec_smtp_host'),
+      smtp_port: parseInt(g('pec_smtp_port')) || 465,
+      imap_host: g('pec_imap_host'),
+      imap_port: parseInt(g('pec_imap_port')) || 993,
+      use_ssl: document.getElementById('pec_use_ssl')?.checked ?? true,
+    };
+  } else if (tipo === 'smtp') {
+    const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    payload = {
+      host:     g('smtp_host'),
+      port:     parseInt(g('smtp_port')) || 587,
+      username: g('smtp_username'),
+      password: g('smtp_password'),
+      use_tls:  document.getElementById('smtp_use_tls')?.checked ?? true,
+    };
+  } else if (tipo === 'whatsapp') {
+    const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    payload = {
+      twilio_sid:    g('twilio_sid'),
+      twilio_token:  g('twilio_token'),
+      twilio_numero: g('twilio_numero'),
+      callmebot_key: g('callmebot_key'),
+    };
+  }
+
+  try {
+    const r = await fetch(`/impostazioni/test/${tipo}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      res.className = 'test-result test-ok';
+      res.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>${data.messaggio}`;
+    } else {
+      res.className = 'test-result test-fail';
+      res.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i>${data.messaggio}`;
+    }
+  } catch(e) {
+    res.className = 'test-result test-fail';
+    res.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i>Errore di rete.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { display:inline-block; animation: spin .8s linear infinite; }
+</style>
+{% endblock %}

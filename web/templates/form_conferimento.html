@@ -1,0 +1,54 @@
+{% extends "portale/base.html" %}
+{% block title %}Documenti inviati{% endblock %}
+{% set active_tab = "documenti" %}
+
+{% block content %}
+<div class="text-center py-3 mb-4">
+  {% if caricati %}
+  <i class="bi bi-check-circle-fill fs-1 text-success d-block mb-2"></i>
+  <h5 class="fw-bold mb-1">Documenti inviati!</h5>
+  <p class="text-muted" style="font-size:.85rem;">Il tuo avvocato riceverà una notifica.</p>
+  {% else %}
+  <i class="bi bi-exclamation-circle-fill fs-1 text-warning d-block mb-2"></i>
+  <h5 class="fw-bold mb-1">Nessun file inviato</h5>
+  {% endif %}
+</div>
+
+{% if caricati %}
+<div class="portale-card card mb-4">
+  <div class="card-header fw-semibold" style="font-size:.85rem;">
+    <i class="bi bi-check2-all me-1 text-success"></i>File inviati ({{ caricati|length }})
+  </div>
+  <ul class="list-group list-group-flush">
+    {% for nome in caricati %}
+    <li class="list-group-item d-flex align-items-center gap-2" style="font-size:.85rem;">
+      <i class="bi bi-file-earmark-check text-success"></i>
+      <span class="text-truncate">{{ nome }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if errori %}
+<div class="portale-card card mb-4 border-danger">
+  <div class="card-header fw-semibold text-danger" style="font-size:.85rem;">
+    <i class="bi bi-exclamation-triangle me-1"></i>Errori ({{ errori|length }})
+  </div>
+  <ul class="list-group list-group-flush">
+    {% for e in errori %}
+    <li class="list-group-item text-danger" style="font-size:.82rem;">{{ e }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="d-flex flex-column gap-2">
+  <a href="{{ url_for('portale.documenti', token=token) }}" class="btn btn-outline-primary">
+    <i class="bi bi-cloud-upload me-2"></i>Carica altri documenti
+  </a>
+  <a href="{{ url_for('portale.home', token=token) }}" class="btn btn-portale">
+    <i class="bi bi-house-fill me-2"></i>Torna alla home
+  </a>
+</div>
+{% endblock %}

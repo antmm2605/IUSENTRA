@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Email — {{ cartella|replace('INBOX','In arrivo')|replace('INVIATI','Inviati')|replace('CESTINO','Cestino') }}{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-envelope-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Email</h1>
+    <p class="ds-ph-sub">Casella di posta dello studio</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('email_client.scrivi') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-pencil-square"></i><span class="d-none d-sm-inline">Componi</span>
+    </a>
+    <button class="ds-btn ds-btn-outline" id="btnSync" title="Sincronizza IMAP">
+      <i class="bi bi-arrow-clockwise"></i><span class="d-none d-sm-inline">Aggiorna</span>
+    </button>
+    {% if stats.pst > 0 %}
+    <button class="ds-btn ds-btn-outline" id="btnAutoEsiti" title="Aggiorna esiti PCT">
+      <i class="bi bi-magic"></i><span class="d-none d-sm-inline">Auto-esiti</span>
+    </button>
+    {% endif %}
+    <a href="{{ url_for('email_client.impostazioni') }}" class="ds-btn ds-btn-outline" title="Impostazioni email">
+      <i class="bi bi-gear"></i>
+    </a>
+  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> totali
+  </span>
+  {% if stats.non_lette > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-circle-fill text-primary" style="font-size:.5rem"></i>
+    <span class="num">{{ stats.non_lette }}</span> non lette
+  </span>
+  {% endif %}
+  {% if stats.pst > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-shield-check text-primary"></i>
+    <span class="num">{{ stats.pst }}</span> PST
+  </span>
+  {% endif %}
+  {% if stats.cestino > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-trash text-muted"></i>
+    <span class="num">{{ stats.cestino }}</span> nel cestino
+  </span>
+  {% endif %}
+</div>
+
+{# ── Cartelle tabs ── #}
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for cid, label, icon in [('INBOX','In arrivo','inbox'), ('INVIATI','Inviati','send'), ('CESTINO','Cestino','trash')] %}
+  <a href="{{ url_for('email_client.casella', cartella=cid) }}"
+     class="btn btn-sm {{ 'btn-primary' if cartella == cid else 'btn-outline-secondary' }}">
+    <i class="bi bi-{{ icon }} me-1"></i>{{ label }}
+    {% if cid == 'INBOX' and stats.non_lette > 0 %}
+    <span class="badge bg-white text-primary ms-1" style="font-size:.68rem">{{ stats.non_lette }}</span>
+    {% elif cid == 'CESTINO' and stats.cestino > 0 %}
+    <span class="badge bg-white text-secondary ms-1" style="font-size:.68rem">{{ stats.cestino }}</span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{# ── Filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="hidden" name="cartella" value="{{ cartella }}">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca mittente, oggetto…"
+         value="{{ q }}" autocomplete="off">
+  {% if cartella == 'INBOX' %}
+  <a href="{{ url_for('email_client.casella', cartella=cartella, non_lette='1' if not solo_non_lette else '') }}"
+     class="ds-btn {{ 'ds-btn-primary' if solo_non_lette else 'ds-btn-outline' }}"
+     title="{{ 'Mostra tutte' if solo_non_lette else 'Solo non lette' }}">
+    <i class="bi bi-circle{{ '-fill' if solo_non_lette else '' }}"></i>
+    <span class="d-none d-sm-inline">Non lette</span>
+  </a>
+  {% endif %}
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-search"></i>Cerca
+  </button>
+  {% if q %}
+  <a href="{{ url_for('email_client.casella', cartella=cartella) }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Lista email ── #}
+{% if emails %}
+<div class="card shadow-sm">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <span class="fw-semibold text-muted small">
+      {{ emails|length }} email{% if solo_non_lette %} non lette{% endif %}
+    </span>
+    {% if cartella == 'CESTINO' %}
+    <form method="post" action="{{ url_for('email_client.svuota_cestino') }}"
+          onsubmit="return confirm('Svuotare definitivamente il cestino?')">
+      <button class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-trash3 me-1"></i>Svuota cestino
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:36px"></th>
+            <th>{{ 'A' if cartella == 'INVIATI' else 'Da' }}</th>
+            <th>Oggetto</th>
+            <th class="d-none d-md-table-cell">Data</th>
+            <th style="width:80px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for em in emails %}
+          {% set is_unread = em.stato == 'NON_LETTA' %}
+          {% set _name = em.mittente_nome or em.mittente or em.destinatari or '?' %}
+          {% set _palette = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'] %}
+          {% set _ci = (_name|lower|first)|int(default=0) % 8 %}
+          <tr class="{{ 'fw-semibold' if is_unread }}">
+            <td class="ps-3">
+              <div style="width:32px;height:32px;border-radius:50%;background:{{ _palette[_ci] }};
+                          display:flex;align-items:center;justify-content:center;
+                          font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0">
+                {{ _name|upper|first }}
+              </div>
+            </td>
+            <td class="small">
+              <div class="d-flex align-items-center gap-1">
+                {% if is_unread %}
+                <span style="width:7px;height:7px;border-radius:50%;background:#2563eb;
+                             flex-shrink:0;display:inline-block"></span>
+                {% endif %}
+                <span class="text-truncate" style="max-width:160px">
+                  {% if cartella == 'INVIATI' %}{{ em.destinatari }}{% else %}{{ _name }}{% endif %}
+                </span>
+              </div>
+            </td>
+            <td class="small">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-truncate {{ 'text-dark' if is_unread else 'text-muted' }}"
+                      style="max-width:320px">
+                  {{ em.oggetto or '(nessun oggetto)' }}
+                </span>
+                {% if em.e_pst %}
+                <span class="badge" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-size:.65rem;font-weight:700">
+                  <i class="bi bi-shield-check me-1"></i>PST
+                </span>
+                {% endif %}
+                {% if em.allegati %}
+                <span class="text-muted small"><i class="bi bi-paperclip"></i> {{ em.allegati|length }}</span>
+                {% endif %}
+              </div>
+              {% if em.anteprima %}
+              <div class="text-muted text-truncate" style="font-size:.76rem;max-width:400px">{{ em.anteprima }}</div>
+              {% endif %}
+            </td>
+            <td class="small text-nowrap text-muted d-none d-md-table-cell">
+              {% set ts = em.timestamp %}{% if ts %}
+                {% if ts[:10] == oggi.strftime('%Y-%m-%d') %}{{ ts[11:16] }}
+                {% elif ts[:4] == oggi.strftime('%Y') %}{{ ts[5:7] }}/{{ ts[8:10] }}
+                {% else %}{{ ts[2:10] }}{% endif %}
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-end pe-2">
+                <a href="{{ url_for('email_client.dettaglio', id_email=em.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Leggi">
+                  <i class="bi bi-eye"></i>
+                </a>
+                {% if cartella != 'CESTINO' %}
+                <form method="post" action="{{ url_for('email_client.cestino', id_email=em.id) }}">
+                  <input type="hidden" name="cartella" value="{{ cartella }}">
+                  <button class="btn btn-sm btn-outline-danger" title="Cestino">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% else %}
+                <form method="post" action="{{ url_for('email_client.ripristina', id_email=em.id) }}">
+                  <button class="btn btn-sm btn-outline-success" title="Ripristina">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-{{ 'search' if q else ('inbox' if cartella == 'INBOX' else ('send' if cartella == 'INVIATI' else 'trash')) }} ds-empty-icon"></i>
+  <div class="ds-empty-title">
+    {% if q %}Nessun risultato per «{{ q }}»
+    {% elif cartella == 'INBOX' %}Posta in arrivo vuota
+    {% elif cartella == 'INVIATI' %}Nessuna email inviata
+    {% else %}Cestino vuoto{% endif %}
+  </div>
+  <div class="ds-empty-sub">
+    {% if not q %}Usa "Aggiorna" per sincronizzare la casella IMAP.{% endif %}
+  </div>
+  {% if q %}
+  <a href="{{ url_for('email_client.casella', cartella=cartella) }}" class="ds-btn ds-btn-outline mt-3">
+    <i class="bi bi-x-circle"></i>Rimuovi filtro
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{# Toast area #}
+<div id="em-toast-area" class="position-fixed top-0 end-0 p-3" style="z-index:9999;pointer-events:none">
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Sync IMAP
+document.getElementById('btnSync')?.addEventListener('click', function () {
+  const btn = this;
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span><span class="d-none d-sm-inline">Sync…</span>';
+  fetch("{{ url_for('email_client.sincronizza') }}", { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        let msg = 'Sincronizzazione completata';
+        if (d.nuove > 0)            msg += ` · ${d.nuove} nuova/e`;
+        if (d.pst_trovate > 0)      msg += ` · ${d.pst_trovate} PST`;
+        if (d.esiti_aggiornati > 0) msg += ` · ${d.esiti_aggiornati} esiti`;
+        _toast('success', msg);
+        if (d.nuove > 0 || d.esiti_aggiornati > 0) setTimeout(() => location.reload(), 1800);
+      } else _toast('danger', d.errore || 'Errore sincronizzazione');
+    })
+    .catch(() => _toast('danger', 'Errore di rete'))
+    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
+});
+
+// ── Auto-esiti
+document.getElementById('btnAutoEsiti')?.addEventListener('click', function () {
+  const btn = this;
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+  fetch("{{ url_for('email_client.auto_esiti') }}", { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+    .then(r => r.json())
+    .then(d => _toast(d.ok ? 'success' : 'danger',
+      d.ok ? `${d.aggiornati} esiti PCT aggiornati automaticamente.` : 'Errore auto-esiti'))
+    .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
+});
+
+function _toast(tipo, msg) {
+  const area = document.getElementById('em-toast-area');
+  const id   = 'toast_' + Date.now();
+  const colors = { success: '#059669', danger: '#dc2626', warning: '#d97706', info: '#2563eb' };
+  const icons  = { success: 'check-circle-fill', danger: 'x-circle-fill', warning: 'exclamation-triangle-fill', info: 'info-circle-fill' };
+  area.style.pointerEvents = 'all';
+  area.insertAdjacentHTML('beforeend', `
+    <div id="${id}" class="toast align-items-center border-0 show mb-2"
+         style="background:#0f172a;color:#fff;border-radius:.625rem;min-width:280px;max-width:400px;box-shadow:0 8px 24px rgba(15,23,42,.25)">
+      <div class="d-flex">
+        <div class="toast-body d-flex gap-2 align-items-start py-3 px-3">
+          <i class="bi bi-${icons[tipo]||'info-circle-fill'} flex-shrink-0 mt-1" style="color:${colors[tipo]||'#fff'}"></i>
+          <span style="font-size:.85rem;line-height:1.5">${msg}</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"
+                onclick="document.getElementById('${id}').remove()"></button>
+      </div>
+    </div>`);
+  setTimeout(() => document.getElementById(id)?.remove(), 5500);
+}
+</script>
+{% endblock %}

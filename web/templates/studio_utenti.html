@@ -1,0 +1,280 @@
+{% extends "admin/base.html" %}
+{% block title %}Nuovo Studio{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
+<li class="breadcrumb-item active">Nuovo</li>
+{% endblock %}
+
+{% block content %}
+<div class="mt-3 mb-4">
+  <h4 class="mb-0 fw-bold">Nuovo Studio Legale</h4>
+  <p class="text-muted small">Compila i dati per creare un nuovo tenant sulla piattaforma.</p>
+</div>
+
+<!-- Step indicator -->
+<div class="d-flex align-items-center gap-2 mb-4 small fw-semibold">
+  <span class="badge bg-primary rounded-pill px-3 py-2">1 Dati studio</span>
+  <i class="bi bi-chevron-right text-muted"></i>
+  <span class="badge bg-primary rounded-pill px-3 py-2">2 Database</span>
+  <i class="bi bi-chevron-right text-muted"></i>
+  <span class="badge bg-secondary rounded-pill px-3 py-2">3 Piano</span>
+  <i class="bi bi-chevron-right text-muted"></i>
+  <span class="badge bg-secondary rounded-pill px-3 py-2">4 Admin</span>
+</div>
+
+<form method="post" class="row g-4">
+
+  <!-- Dati Studio -->
+  <div class="col-12 col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-building text-primary"></i> Dati Studio
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-sm-8">
+            <label class="form-label fw-semibold small">Nome Studio <span class="text-danger">*</span></label>
+            <input type="text" name="nome" class="form-control" value="{{ form.get('nome','') }}"
+                   placeholder="es. Studio Legale Rossi & Associati" required>
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">
+              Slug <span class="text-danger">*</span>
+              <i class="bi bi-info-circle text-muted" title="Identificatore URL unico. Solo lettere, cifre, trattini."></i>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text text-muted">/</span>
+              <input type="text" name="slug" id="slugInput" class="form-control"
+                     value="{{ form.get('slug','') }}"
+                     pattern="[a-z0-9][a-z0-9\-]{1,48}[a-z0-9]"
+                     placeholder="studio-rossi" required>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label fw-semibold small">Avvocato / Referente</label>
+            <input type="text" name="avvocato_ref" class="form-control" value="{{ form.get('avvocato_ref','') }}"
+                   placeholder="Avv. Mario Rossi">
+          </div>
+          <div class="col-12 col-sm-3">
+            <label class="form-label fw-semibold small">P.IVA</label>
+            <input type="text" name="piva" class="form-control" value="{{ form.get('piva','') }}"
+                   placeholder="12345678901" maxlength="11">
+          </div>
+          <div class="col-12 col-sm-3">
+            <label class="form-label fw-semibold small">Codice Fiscale</label>
+            <input type="text" name="cf" class="form-control" value="{{ form.get('cf','') }}"
+                   placeholder="RSSMRA80A01H501U">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Indirizzo</label>
+            <input type="text" name="indirizzo" class="form-control" value="{{ form.get('indirizzo','') }}"
+                   placeholder="Via Roma 1, 20100 Milano (MI)">
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Telefono</label>
+            <input type="tel" name="telefono" class="form-control" value="{{ form.get('telefono','') }}"
+                   placeholder="+39 02 12345678">
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ form.get('email','') }}"
+                   placeholder="info@studio.it">
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">PEC</label>
+            <input type="email" name="pec" class="form-control" value="{{ form.get('pec','') }}"
+                   placeholder="studio@pec.it">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Note interne (admin)</label>
+            <textarea name="note_admin" class="form-control" rows="2"
+                      placeholder="Note visibili solo dagli amministratori piattaforma…">{{ form.get('note_admin','') }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Utente amministratore -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-person-fill-gear text-success"></i> Utente Amministratore dello Studio
+        <span class="badge bg-success ms-auto">AMMINISTRATORE</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Questo account sarà l'amministratore principale dello studio.
+          Potrà creare ulteriori utenti e gestire tutte le impostazioni.
+        </p>
+        <div class="row g-3">
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
+            <input type="text" name="admin_username" class="form-control" value="{{ form.get('admin_username','admin') }}" required>
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="text" name="admin_password" id="adminPass" class="form-control"
+                     value="{{ form.get('admin_password','') }}" required autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" id="genPassBtn" title="Genera password">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Nome Completo</label>
+            <input type="text" name="admin_nome" class="form-control" value="{{ form.get('admin_nome','') }}"
+                   placeholder="Mario Rossi">
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label fw-semibold small">Email</label>
+            <input type="email" name="admin_email" class="form-control" value="{{ form.get('admin_email','') }}"
+                   placeholder="admin@studio.it">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Database -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-database-fill text-info"></i> Modalità Database
+        <span class="badge bg-info ms-auto">Configurabile dopo la creazione</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Scegli dove saranno archiviati i dati dello studio.
+          Potrai modificare questa impostazione in qualsiasi momento dal pannello database.
+        </p>
+        <div class="row g-2">
+          {% for mode_key, mode_info in db_mode_info.items() %}
+          <div class="col-12">
+            <label class="db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 cursor-pointer
+                          {% if form.get('db_mode', 'LOCAL') == mode_key %}selected{% endif %}"
+                   for="dbmode_{{ mode_key }}"
+                   style="border: 2px solid {% if form.get('db_mode','LOCAL') == mode_key %}var(--bs-primary){% else %}#e2e8f0{% endif %};
+                          background: {% if form.get('db_mode','LOCAL') == mode_key %}#eff6ff{% else %}transparent{% endif %};
+                          cursor: pointer; transition: all .15s;">
+              <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                     name="db_mode" id="dbmode_{{ mode_key }}" value="{{ mode_key }}"
+                     {% if form.get('db_mode', 'LOCAL') == mode_key %}checked{% endif %}>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }}"></i>
+                  <span class="fw-semibold small">{{ mode_info.nome }}</span>
+                  <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
+                    {{ mode_info.badge }}
+                  </span>
+                </div>
+                <p class="text-muted mb-0" style="font-size:.78rem">{{ mode_info.desc }}</p>
+                {% if mode_key != 'LOCAL' %}
+                <div class="mt-2 p-2 rounded-2 bg-{{ mode_info.colore }} bg-opacity-10" style="font-size:.72rem">
+                  <i class="bi bi-info-circle me-1 text-{{ mode_info.colore }}"></i>
+                  Porta default: <strong>{{ mode_info.porta }}</strong> —
+                  La connessione andrà configurata nel dettaglio studio dopo la creazione.
+                </div>
+                {% endif %}
+              </div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Piano -->
+  <div class="col-12 col-lg-4">
+    <div class="card mb-4">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-star-fill text-warning"></i> Piano di Sottoscrizione
+      </div>
+      <div class="card-body">
+        {% for pk, pv in piani.items() %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="radio" name="piano" id="piano_{{ pk }}" value="{{ pk }}"
+                 {% if form.get('piano', 'TRIAL') == pk %}checked{% endif %}>
+          <label class="form-check-label" for="piano_{{ pk }}">
+            <span class="badge bg-{{ pv.colore }} me-1">{{ pv.nome }}</span>
+            <span class="small text-muted">
+              {% if pv.max_utenti == 0 %}Utenti illimitati{% else %}Max {{ pv.max_utenti }} utenti{% endif %} —
+              {% if pv.max_storage_mb == 0 %}Storage illimitato{% else %}{{ (pv.max_storage_mb / 1000)|round(1) }} GB{% endif %}
+            </span>
+            <div class="text-muted" style="font-size:.72rem;margin-left:0">
+              {{ pv.moduli|length }} moduli — durata {{ pv.durata_gg }} giorni
+            </div>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Riepilogo moduli per piano selezionato -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-grid-3x3-gap-fill text-info"></i> Moduli inclusi nel piano
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">I moduli sono automaticamente assegnati in base al piano.
+           Potrai personalizzarli dopo la creazione.</p>
+        {% for pk, pv in piani.items() %}
+        <div class="piano-moduli" id="moduli_{{ pk }}" style="display:none">
+          {% for m in pv.moduli %}
+          <span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.72rem">
+            {{ m }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottoni -->
+  <div class="col-12">
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-building-add me-1"></i>Crea Studio
+      </button>
+      <a href="{{ url_for('admin.lista_studi') }}" class="btn btn-outline-secondary">Annulla</a>
+    </div>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-genera slug dal nome
+document.querySelector('[name="nome"]').addEventListener('input', function() {
+  const slug = document.getElementById('slugInput');
+  if (!slug.dataset.manual) {
+    slug.value = this.value.toLowerCase()
+      .replace(/[àáâã]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+      .replace(/[òóôõ]/g,'o').replace(/[ùúûü]/g,'u').replace(/[ñ]/g,'n')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+});
+document.getElementById('slugInput').addEventListener('input', function() {
+  this.dataset.manual = '1';
+});
+
+// Genera password casuale
+document.getElementById('genPassBtn').addEventListener('click', function() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let pwd = '';
+  for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('adminPass').value = pwd;
+});
+
+// Mostra/nascondi moduli in base al piano
+function aggiornaPianoModuli() {
+  document.querySelectorAll('.piano-moduli').forEach(el => el.style.display = 'none');
+  const sel = document.querySelector('[name="piano"]:checked');
+  if (sel) {
+    const el = document.getElementById('moduli_' + sel.value);
+    if (el) el.style.display = '';
+  }
+}
+document.querySelectorAll('[name="piano"]').forEach(r => r.addEventListener('change', aggiornaPianoModuli));
+aggiornaPianoModuli();
+</script>
+{% endblock %}

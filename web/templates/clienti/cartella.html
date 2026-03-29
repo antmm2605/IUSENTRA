@@ -123,6 +123,20 @@
             <i class="bi bi-receipt me-2 text-danger"></i>Nuova parcella
           </a>
         </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header"><i class="bi bi-file-earmark-text me-1"></i>Preventivi & Incarichi</h6></li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=cliente.id) }}?from_page=cliente">
+            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Nuovo preventivo
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id) }}?from_page=cliente">
+            <i class="bi bi-file-earmark-check me-2 text-success"></i>Nuovo conferimento incarico
+          </a>
+        </li>
       </ul>
     </div>
   </div>
@@ -271,6 +285,28 @@
       <span class="d-none d-sm-inline">Parcelle</span>
       {% if parcelle_cliente %}
         <span class="badge bg-danger rounded-pill ms-1">{{ parcelle_cliente|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-preventivi-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-preventivi"
+            type="button" role="tab">
+      <i class="bi bi-file-earmark-text me-1"></i>
+      <span class="d-none d-sm-inline">Preventivi</span>
+      {% if preventivi_cliente %}
+        <span class="badge bg-primary rounded-pill ms-1">{{ preventivi_cliente|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-conferimenti-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-conferimenti"
+            type="button" role="tab">
+      <i class="bi bi-file-earmark-check me-1"></i>
+      <span class="d-none d-sm-inline">Conferimenti</span>
+      {% if conferimenti_cliente %}
+        <span class="badge bg-success rounded-pill ms-1">{{ conferimenti_cliente|length }}</span>
       {% endif %}
     </button>
   </li>
@@ -784,6 +820,124 @@
     {% endif %}
   </div>
 
+  {# ════════════════════════════════════════════
+     TAB 7 — PREVENTIVI
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-preventivi" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2">
+      <span class="fw-semibold text-muted small">{{ preventivi_cliente|length }} preventivo/i</span>
+      <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=cliente.id) }}?from_page=cliente"
+         class="btn btn-sm btn-primary">
+        <i class="bi bi-file-earmark-plus me-1"></i>Nuovo preventivo
+      </a>
+    </div>
+    {% if preventivi_cliente %}
+      <div class="d-flex flex-column gap-2">
+      {% for p in preventivi_cliente %}
+        {% set stato_col = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'}[p.stato.value] %}
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0 text-center" style="min-width:48px">
+                <div class="fw-bold" style="font-size:.85rem">{{ p.numero }}</div>
+                <div class="text-muted small">{{ p.data_emissione|fmt_data }}</div>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <span class="badge bg-{{ stato_col }} rounded-pill">{{ p.stato.value }}</span>
+                  {% if p.data_scadenza %}
+                    <span class="badge bg-light text-muted border small">
+                      Scad. {{ p.data_scadenza|fmt_data }}
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="fw-semibold text-truncate">{{ p.oggetto }}</div>
+                <div class="fw-bold text-primary">€ {{ "%.2f"|format(p.totale) }}</div>
+                {% if p.note %}<div class="text-muted small mt-1">{{ p.note }}</div>{% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=p.id) }}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-file-earmark-text"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessun preventivo</p>
+        <p class="text-muted small">I preventivi emessi per questo cliente compariranno qui.</p>
+        <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=cliente.id) }}?from_page=cliente"
+           class="btn btn-primary mt-2">
+          <i class="bi bi-file-earmark-plus me-2"></i>Nuovo preventivo
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════════
+     TAB 8 — CONFERIMENTI INCARICO
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-conferimenti" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2">
+      <span class="fw-semibold text-muted small">{{ conferimenti_cliente|length }} conferimento/i</span>
+      <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id) }}?from_page=cliente"
+         class="btn btn-sm btn-success">
+        <i class="bi bi-file-earmark-check me-1"></i>Nuovo conferimento
+      </a>
+    </div>
+    {% if conferimenti_cliente %}
+      <div class="d-flex flex-column gap-2">
+      {% for c in conferimenti_cliente %}
+        {% set stato_col = {'ATTIVO':'success','REVOCATO':'danger','CONCLUSO':'secondary'}[c.stato.value] %}
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0 text-center" style="min-width:48px">
+                <div class="fw-bold" style="font-size:.85rem">{{ c.numero }}</div>
+                <div class="text-muted small">{{ c.data_incarico|fmt_data }}</div>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <span class="badge bg-{{ stato_col }} rounded-pill">{{ c.stato.value }}</span>
+                </div>
+                <div class="fw-semibold text-truncate">{{ c.oggetto }}</div>
+                {% if c.avvocato_referente %}
+                  <div class="text-muted small"><i class="bi bi-person-badge me-1"></i>{{ c.avvocato_referente }}</div>
+                {% endif %}
+                {% if c.compenso_pattuito %}
+                  <div class="fw-bold text-success">€ {{ "%.2f"|format(c.compenso_pattuito) }}</div>
+                {% endif %}
+                {% if c.note %}<div class="text-muted small mt-1">{{ c.note }}</div>{% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=c.id) }}"
+                   class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-file-earmark-check"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessun conferimento</p>
+        <p class="text-muted small">I conferimenti di incarico per questo cliente compariranno qui.</p>
+        <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id) }}?from_page=cliente"
+           class="btn btn-success mt-2">
+          <i class="bi bi-file-earmark-check me-2"></i>Nuovo conferimento
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
 </div>{# /tab-content #}
 
 {# ═══════════════════════════════════════════════
@@ -819,7 +973,19 @@
         </div>
         <div class="col-5">
           <label class="form-label fw-semibold">Controparte</label>
-          <input type="text" name="controparte" class="form-control" placeholder="Nome controparte">
+          <div class="ss-wrap" id="ss-crt-nuovo">
+            <div class="ss-input-group">
+              <i class="bi bi-search ss-icon"></i>
+              <input type="text" name="controparte" id="ss-crt-nuovo-input"
+                     class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
+              <button type="button" class="ss-btn-new"
+                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+            <div id="ss-crt-nuovo-dropdown" class="ss-dropdown"></div>
+            <div id="ss-crt-nuovo-chip" class="ss-chip mt-1" style="display:none"></div>
+          </div>
         </div>
       </div>
       <div class="mb-3">
@@ -919,7 +1085,19 @@
         </div>
         <div class="col-5">
           <label class="form-label fw-semibold">Controparte</label>
-          <input type="text" name="controparte" class="form-control">
+          <div class="ss-wrap" id="ss-crt-modifica">
+            <div class="ss-input-group">
+              <i class="bi bi-search ss-icon"></i>
+              <input type="text" name="controparte" id="ss-crt-modifica-input"
+                     class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
+              <button type="button" class="ss-btn-new"
+                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+            <div id="ss-crt-modifica-dropdown" class="ss-dropdown"></div>
+            <div id="ss-crt-modifica-chip" class="ss-chip mt-1" style="display:none"></div>
+          </div>
         </div>
       </div>
       <div class="mb-3">
@@ -983,38 +1161,6 @@
         <i class="bi bi-check-lg me-1"></i>Salva modifiche
       </button>
       <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Annulla</button>
-    </div>
-  </div>
-</div>
-
-{# ═══════════════════════════════════════════════
-   MODAL — SFOGLIA ARCHIVIO ZIP
-   ═══════════════════════════════════════════════ #}
-<div class="modal fade" id="modalSfoglia" tabindex="-1" aria-labelledby="sfoglia-label" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div>
-          <h5 class="modal-title mb-0" id="sfoglia-label">
-            <i class="bi bi-file-zip me-2 text-primary"></i>Archivio — <span id="sfoglia-titolo"></span>
-          </h5>
-          <small class="text-muted" id="sfoglia-sub">Contenuto compresso — i file vengono estratti al download</small>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-0" id="sfoglia-body">
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Caricamento…</span>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
-        <a id="sfoglia-scarica-zip" href="#" class="btn btn-primary">
-          <i class="bi bi-download me-1"></i>Scarica ZIP completo
-        </a>
-      </div>
     </div>
   </div>
 </div>
@@ -1174,4 +1320,45 @@ function attivaTab(btnId) {
 }
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initSoggettoSearch({ uid: 'crt-nuovo',    allowFreeText: true });
+  initSoggettoSearch({ uid: 'crt-modifica', allowFreeText: true });
+});
+</script>
 {% endblock %}
+
+{% block modals %}
+{# ═══════════════════════════════════════════════
+   MODAL — SFOGLIA ARCHIVIO ZIP
+   ═══════════════════════════════════════════════ #}
+<div class="modal fade" id="modalSfoglia" tabindex="-1" aria-labelledby="sfoglia-label" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="sfoglia-label">
+            <i class="bi bi-file-zip me-2 text-primary"></i>Archivio — <span id="sfoglia-titolo"></span>
+          </h5>
+          <small class="text-muted" id="sfoglia-sub">Contenuto compresso — i file vengono estratti al download</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" id="sfoglia-body">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento…</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+        <a id="sfoglia-scarica-zip" href="#" class="btn btn-primary">
+          <i class="bi bi-download me-1"></i>Scarica ZIP completo
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}{# /modals #}

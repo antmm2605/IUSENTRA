@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+{% block title %}Deposito — {{ fascicolo.numero }}{% endblock %}
+
+{% block extra_head %}
+<style>
+.doc-card {
+  border: 2px solid var(--bs-border-color);
+  border-radius: .5rem;
+  padding: .65rem .75rem;
+  cursor: default;
+  transition: border-color .15s, background .15s;
+}
+.doc-card.selected-principale { border-color: #0d6efd; background: #e7f0ff; }
+.doc-card.selected-allegato   { border-color: #198754; background: #e7f9ef; }
+.step-badge {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: .82rem;
+  flex-shrink: 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+{# ── Header ─────────────────────────────────────────────────────────── #}
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+     class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h5 class="mb-0 fw-bold">
+    <i class="bi bi-send me-2 text-success"></i>Deposito telematico PCT
+  </h5>
+  <span class="badge bg-light text-dark border font-monospace">{{ fascicolo.numero }}</span>
+  {% if fascicolo.tribunale %}
+  <span class="text-muted small"><i class="bi bi-building me-1"></i>{{ fascicolo.tribunale }}</span>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+
+{# ═══════════════════════════════════════════════════════════════
+   COLONNA SINISTRA — Step 1 (documenti) + Step 2 (metadati)
+═══════════════════════════════════════════════════════════════ #}
+<div class="col-lg-7">
+
+  {# ── Step 1: Scegli documenti ─────────────────────────────────── #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <span class="step-badge bg-primary text-white">1</span>
+      Documenti da includere nella busta
+    </div>
+    <div class="card-body">
+      {% if fascicolo.documenti %}
+      <p class="text-muted small mb-3">
+        Clicca <strong>Principale</strong> sull'atto da firmare e depositare,
+        poi <strong>+ Allegato</strong> su eventuali documenti aggiuntivi.
+      </p>
+      <div class="d-flex gap-3 mb-3 small flex-wrap">
+        <span><span class="badge bg-primary">A</span> Atto principale (obbligatorio)</span>
+        <span><span class="badge bg-success">+</span> Allegato (opzionale)</span>
+      </div>
+
+      <div class="d-flex flex-column gap-2" id="docList">
+        {% for doc in fascicolo.documenti %}
+        {% set ps = pdfa_stato.get(doc.id, {}) %}
+        <div class="doc-card" id="dc_{{ doc.id }}">
+          <div class="d-flex align-items-center gap-2">
+            {% if doc.firmato_digitalmente %}
+            <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato .p7m"></i>
+            {% else %}
+            <i class="bi bi-file-earmark-pdf text-secondary flex-shrink-0"></i>
+            {% endif %}
+
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold small text-truncate">{{ doc.nome }}</div>
+              <div class="d-flex gap-1 flex-wrap mt-1">
+                <span class="badge bg-light text-dark border" style="font-size:.68rem">
+                  {% if doc.dimensione_bytes >= 1048576 %}{{ (doc.dimensione_bytes / 1048576)|round(1) }} MB
+                  {% elif doc.dimensione_bytes >= 1024 %}{{ (doc.dimensione_bytes / 1024)|round(0)|int }} KB
+                  {% else %}{{ doc.dimensione_bytes }} B{% endif %}
+                </span>
+                {% if doc.firmato_digitalmente %}
+                <span class="badge bg-success bg-opacity-10 text-success border" style="font-size:.68rem">
+                  <i class="bi bi-patch-check me-1"></i>.p7m
+                </span>
+                {% else %}
+                <span class="badge bg-warning bg-opacity-10 text-warning border" style="font-size:.68rem">
+                  non firmato
+                </span>
+                {% endif %}
+                {% if ps %}
+                  {% if ps.conforme == true %}
+                  <span class="badge bg-success bg-opacity-10 text-success border" style="font-size:.68rem">
+                    PDF/A {{ ps.versione }}
+                  </span>
+                  {% elif ps.conforme == false %}
+                  <span class="badge bg-danger bg-opacity-10 text-danger border" style="font-size:.68rem"
+                        title="{{ ps.messaggio }}">Non PDF/A</span>
+                  {% elif ps.conforme is none %}
+                  <span class="badge bg-secondary bg-opacity-10 text-secondary border" style="font-size:.68rem">Firmato</span>
+                  {% endif %}
+                  {% if ps.cifrato %}
+                  <span class="badge bg-danger" style="font-size:.68rem">Cifrato</span>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="d-flex flex-column gap-1 flex-shrink-0">
+              <button type="button" class="btn btn-outline-primary btn-sm"
+                      style="font-size:.72rem;padding:.2rem .5rem"
+                      id="btn_main_{{ doc.id }}"
+                      onclick="setMainDoc('{{ doc.id }}')">Principale</button>
+              <button type="button" class="btn btn-outline-success btn-sm"
+                      style="font-size:.72rem;padding:.2rem .5rem"
+                      id="btn_all_{{ doc.id }}"
+                      onclick="toggleAllegato('{{ doc.id }}')">+ Allegato</button>
+            </div>
+          </div>
+
+          {% if ps and ps.conforme == false %}
+          <div class="mt-2 small text-danger">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Non PDF/A — riconverti con LibreOffice o Word prima di depositare.
+          </div>
+          {% endif %}
+          {% if ps and ps.cifrato %}
+          <div class="mt-2 small text-danger">
+            <i class="bi bi-lock me-1"></i>PDF cifrato — non ammesso dal PST.
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <input type="hidden" id="hAttoId" value="">
+      <div id="hAllegatiList"></div>
+
+      <div id="selRiepilogo" class="mt-3 p-2 bg-light rounded small" style="display:none">
+        <strong>Atto:</strong> <span id="lblMainDoc" class="text-primary fw-semibold">—</span><br>
+        <span id="lblAllegati" class="text-muted"></span>
+      </div>
+
+      {% else %}
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-exclamation-triangle fs-2 d-block mb-2 text-warning"></i>
+        Nessun documento. Caricane prima nel fascicolo.
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+           class="d-block mt-2 btn btn-sm btn-outline-primary">
+          <i class="bi bi-arrow-left me-1"></i>Torna al fascicolo
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Step 2: Metadati busta ────────────────────────────────────── #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <span class="step-badge bg-primary text-white">2</span>
+      Dati dell'atto
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-sm-6">
+          <label class="form-label small fw-semibold">Tipo atto <span class="text-danger">*</span></label>
+          <select class="form-select form-select-sm" id="fTipoAtto">
+            <option value="">— scegli —</option>
+            <option value="ATTO_DI_CITAZIONE">Atto di citazione</option>
+            <option value="RICORSO">Ricorso</option>
+            <option value="MEMORIA">Memoria</option>
+            <option value="COMPARSA_RISPOSTA">Comparsa di risposta</option>
+            <option value="APPELLO">Atto di appello</option>
+            <option value="RICORSO_CASSAZIONE">Ricorso per Cassazione</option>
+            <option value="CONTRORICORSO">Controricorso</option>
+            <option value="ISTANZA">Istanza</option>
+            <option value="PRECETTO">Precetto</option>
+            <option value="DECRETO_INGIUNTIVO">Ricorso decreto ingiuntivo</option>
+            <option value="ATTO_GENERICO">Atto generico</option>
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small fw-semibold">Registro</label>
+          <select class="form-select form-select-sm" id="fRegistro">
+            <option value="RG">RG — Ruolo Generale Contenzioso</option>
+            <option value="RGE">RGE — Esecuzioni</option>
+            <option value="RGL">RGL — Lavoro</option>
+            <option value="VG">VG — Volontaria Giurisdizione</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Oggetto</label>
+          <input type="text" id="fOggetto" class="form-control form-control-sm"
+                 value="{{ fascicolo.titolo }}" placeholder="{{ fascicolo.titolo }}">
+        </div>
+        {% if fascicolo.numero_rg %}
+        <div class="col-sm-6">
+          <label class="form-label small fw-semibold">N. RG</label>
+          <input type="text" id="fNumRG" class="form-control form-control-sm"
+                 value="{{ fascicolo.numero_rg }}">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small fw-semibold">Anno</label>
+          <input type="number" id="fAnnoRG" class="form-control form-control-sm"
+                 value="{{ fascicolo.anno_rg }}">
+        </div>
+        {% endif %}
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Note interne</label>
+          <textarea id="fNote" class="form-control form-control-sm" rows="2"
+                    placeholder="Annotazioni…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>{# /col-lg-7 #}
+
+{# ═══════════════════════════════════════════════════════════════
+   COLONNA DESTRA — Destinatario + Step 3 (azioni) + Step 4 (manuale)
+═══════════════════════════════════════════════════════════════ #}
+<div class="col-lg-5">
+
+  {# Info tribunale #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-building me-2 text-primary"></i>Destinatario
+    </div>
+    <div class="card-body">
+      {% if fascicolo.tribunale %}
+      <div class="fw-semibold mb-1">{{ fascicolo.tribunale }}</div>
+      {% if pec_tribunale %}
+      <div class="font-monospace small text-muted mb-2">{{ pec_tribunale }}</div>
+      <span class="badge bg-success bg-opacity-10 text-success border small">
+        <i class="bi bi-check-circle me-1"></i>PEC trovata — invio diretto disponibile
+      </span>
+      {% else %}
+      <span class="badge bg-warning text-dark small">
+        <i class="bi bi-exclamation-triangle me-1"></i>PEC tribunale non trovata
+      </span>
+      {% endif %}
+      {% else %}
+      <div class="text-muted small">
+        <i class="bi bi-exclamation-circle me-1"></i>
+        Nessun tribunale associato.
+        <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}">Modifica fascicolo →</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Step 3: Azioni ─────────────────────────────────────────────── #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <span class="step-badge bg-primary text-white">3</span>
+      Invia o scarica
+    </div>
+    <div class="card-body d-grid gap-3">
+
+      {# — Invio via PEC — sempre visibile; demo=true finché PEC non configurata — #}
+      {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
+      <div>
+        <button type="button" class="btn btn-success fw-semibold w-100" onclick="avviaInvioPec(true)">
+          <i class="bi bi-send-fill me-2"></i>Invia ora via PEC
+        </button>
+        <div class="form-text text-center mt-1">
+          {% if pec_tribunale %}
+          Firma + busta + PEC a <strong>{{ pec_tribunale }}</strong>
+          {% else %}
+          Busta + PEC — destinatario da configurare
+          {% endif %}
+        </div>
+      </div>
+      <div class="text-center text-muted small">— oppure —</div>
+
+      {% if pec_tribunale and not pec_configurata %}
+      {# PEC tribunale OK ma PEC studio non configurata #}
+      <div class="alert alert-warning small d-flex gap-2 align-items-start mb-0 py-2">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+        <div>
+          PEC mittente non configurata — l'invio diretto non è disponibile.<br>
+          <a href="{{ url_for('impostazioni.index') }}" class="fw-semibold">
+            Vai in Impostazioni → PEC
+          </a> per inserire le credenziali, oppure usa la modalità Demo qui sotto.
+        </div>
+      </div>
+      {% elif not pec_tribunale %}
+      {# Nessuna PEC tribunale trovata #}
+      <div class="alert alert-secondary small d-flex gap-2 align-items-start mb-0 py-2">
+        <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+        <div>
+          PEC del tribunale non trovata nel bundle uffici. Puoi comunque testare in Demo
+          o scaricare la busta <code>.enc</code> e inviarla manualmente.
+        </div>
+      </div>
+      {% endif %}
+
+      {# — Modalità Demo — sempre visibile — #}
+      <div>
+        <button type="button" class="btn btn-warning fw-semibold w-100" onclick="avviaInvioPec(true)">
+          <i class="bi bi-play-circle me-2"></i>Testa in Modalità Demo
+        </button>
+        <div class="form-text text-center mt-1">
+          Simula busta + invio PEC — nessuna connessione reale, nessun documento inviato
+        </div>
+      </div>
+
+      <div class="text-center text-muted small">— oppure —</div>
+
+      <div>
+        <button type="button" class="btn btn-outline-primary w-100" onclick="avviaGeneraBusta()">
+          <i class="bi bi-download me-2"></i>Scarica busta .enc
+        </button>
+        <div class="form-text text-center mt-1">
+          Usa con Consolle Avvocato, FileSafe o Lextel
+        </div>
+      </div>
+
+      <hr class="my-0">
+      <a href="https://pst.giustizia.it/" target="_blank" rel="noopener noreferrer"
+         class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-box-arrow-up-right me-1"></i>Portale Servizi Telematici (PST)
+      </a>
+    </div>
+  </div>
+
+  {# Conformità #}
+  <div class="card shadow-sm border-0 bg-light mb-4">
+    <div class="card-body py-3 small">
+      <p class="fw-semibold mb-2"><i class="bi bi-shield-check text-success me-1"></i>Conformità PST</p>
+      <ul class="list-unstyled mb-0 text-muted">
+        <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>
+          <strong>PDF/A</strong> — verifica automatica (Step 1)
+        </li>
+        <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>
+          <strong>Firma CAdES .p7m</strong> — obbligatoria sull'atto principale
+        </li>
+        <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>
+          <strong>Ricevuta PEC</strong> — valore legale equivalente al timestamp (D.M. 44/2011)
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  {# ── Step 4: Registra esito manuale ─────────────────────────────── #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <span class="step-badge bg-secondary text-white">4</span>
+      Registra esito (manuale)
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-3">
+        Hai già inviato da software esterno? Registra qui l'esito.
+      </p>
+      <form method="POST" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+        <div class="mb-2">
+          <input type="text" name="tipo_atto" class="form-control form-control-sm"
+                 placeholder="Tipo atto *" required>
+        </div>
+        <div class="mb-2">
+          <select name="stato" class="form-select form-select-sm">
+            <option value="INVIATO">INVIATO</option>
+            <option value="ACCETTATO_PEC">ACCETTATO_PEC</option>
+            <option value="CONSEGNATO" selected>CONSEGNATO</option>
+            <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA</option>
+            <option value="WARN_CONTROLLI">WARN_CONTROLLI</option>
+            <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI</option>
+            <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA</option>
+          </select>
+        </div>
+        {% if pec_tribunale %}
+        <input type="hidden" name="pec_destinatario" value="{{ pec_tribunale }}">
+        {% else %}
+        <div class="mb-2">
+          <input type="email" name="pec_destinatario" class="form-control form-control-sm"
+                 placeholder="PEC tribunale">
+        </div>
+        {% endif %}
+        <div class="mb-2">
+          <input type="text" name="messaggio" class="form-control form-control-sm"
+                 placeholder="N. protocollo / ID deposito">
+        </div>
+        <div class="mb-2">
+          <textarea name="note" class="form-control form-control-sm" rows="2"
+                    placeholder="Note…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+          <i class="bi bi-save me-1"></i>Salva esito manuale
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>{# /col-lg-5 #}
+</div>{# /row #}
+
+{# ── Modal conferma invio PEC (reale e demo) ─────────────────────────── #}
+<div class="modal fade" id="modalConfermaPec" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" id="modalHeaderPec">
+        <h6 class="modal-title fw-bold" id="modalTitlePec">
+          <i class="bi bi-send me-2 text-success"></i>Conferma invio via PEC
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {# Banner demo — visibile solo in demo mode #}
+        <div id="bannerDemo" class="alert alert-warning d-flex gap-2 align-items-start small mb-3" style="display:none!important">
+          <i class="bi bi-play-circle-fill flex-shrink-0 mt-1"></i>
+          <div>
+            <strong>Modalità Demo attiva</strong> — Nessun file verrà inviato. La busta è simulata
+            e l'invio PEC è fittizio. L'esito viene comunque salvato nel fascicolo con etichetta
+            <code>[DEMO]</code>.
+          </div>
+        </div>
+        <p class="mb-1 small text-muted">Destinatario PEC:</p>
+        <p class="mb-3">
+          <span class="font-monospace fw-bold text-primary" id="pecDestinatario">{{ pec_tribunale or "—" }}</span>
+        </p>
+        <div id="riepilogoBusta" class="alert alert-light border small mb-3"></div>
+        <div id="warningFirma" class="alert alert-warning small d-flex gap-2 align-items-start">
+          <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+          <div>L'atto principale deve essere <strong>firmato digitalmente (.p7m)</strong>
+            e in formato <strong>PDF/A</strong>.</div>
+        </div>
+      </div>
+      <div class="modal-footer flex-column align-items-stretch gap-2">
+        <button type="button" class="btn btn-success fw-semibold" id="btnConfermaInvio">
+          <i class="bi bi-send-fill me-2"></i><span id="lblBtnConferma">Conferma e invia</span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+        <div id="invioProgress" style="display:none">
+          <div class="progress mb-2" style="height:6px">
+            <div class="progress-bar progress-bar-striped progress-bar-animated w-100" id="invioProgressBar"></div>
+          </div>
+          <div class="text-center small text-muted" id="invioProgressTxt">Invio in corso — attendere…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Form nascosto per genera busta ─────────────────────────────────── #}
+<form id="formGeneraBusta" method="post"
+      action="{{ url_for('deposito_genera_busta', id_fasc=fascicolo.id) }}" style="display:none">
+  <input type="hidden" name="tipo_atto" id="gb_tipo">
+  <input type="hidden" name="codice_registro" id="gb_reg">
+  <input type="hidden" name="oggetto" id="gb_ogg">
+  <input type="hidden" name="atto_principale_id" id="gb_atto">
+  {# demo_mode=1 per prove; impostare 0 (o rimuovere) quando dati reali attivi #}
+  <input type="hidden" name="demo_mode" id="gb_demo" value="1">
+  <div id="gb_allegati"></div>
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let mainDocId = null;
+const allegatiSet = new Set();
+let _invioDemo = false;  // true = modalità demo, false = invio reale
+
+function setMainDoc(id) {
+  if (allegatiSet.has(id)) { allegatiSet.delete(id); _resetAllBtn(id); }
+  if (mainDocId && mainDocId !== id) {
+    document.getElementById('dc_' + mainDocId)?.classList.remove('selected-principale');
+    const old = document.getElementById('btn_main_' + mainDocId);
+    if (old) { old.classList.remove('btn-primary'); old.classList.add('btn-outline-primary'); }
+  }
+  mainDocId = id;
+  document.getElementById('dc_' + id)?.classList.remove('selected-allegato');
+  document.getElementById('dc_' + id)?.classList.add('selected-principale');
+  document.getElementById('hAttoId').value = id;
+  const btn = document.getElementById('btn_main_' + id);
+  if (btn) { btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary'); }
+  _aggiornaRiepilogo();
+}
+
+function toggleAllegato(id) {
+  if (id === mainDocId) return;
+  if (allegatiSet.has(id)) {
+    allegatiSet.delete(id);
+    document.getElementById('dc_' + id)?.classList.remove('selected-allegato');
+    _resetAllBtn(id);
+  } else {
+    allegatiSet.add(id);
+    document.getElementById('dc_' + id)?.classList.add('selected-allegato');
+    const btn = document.getElementById('btn_all_' + id);
+    if (btn) { btn.textContent = '✓ Allegato'; btn.classList.remove('btn-outline-success'); btn.classList.add('btn-success'); }
+  }
+  _aggiornaRiepilogo();
+}
+
+function _resetAllBtn(id) {
+  const btn = document.getElementById('btn_all_' + id);
+  if (btn) { btn.textContent = '+ Allegato'; btn.classList.remove('btn-success'); btn.classList.add('btn-outline-success'); }
+}
+
+function _aggiornaRiepilogo() {
+  const el = document.getElementById('selRiepilogo');
+  if (!mainDocId) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const nomeEl = document.querySelector('#dc_' + mainDocId + ' .text-truncate');
+  document.getElementById('lblMainDoc').textContent = nomeEl ? nomeEl.textContent.trim() : mainDocId;
+  const lblAll = document.getElementById('lblAllegati');
+  if (allegatiSet.size > 0) {
+    const nomi = Array.from(allegatiSet).map(aid => {
+      const el2 = document.querySelector('#dc_' + aid + ' .text-truncate');
+      return el2 ? el2.textContent.trim() : aid;
+    });
+    lblAll.innerHTML = `<strong>Allegati (${allegatiSet.size}):</strong> ${nomi.join(', ')}`;
+  } else { lblAll.textContent = ''; }
+}
+
+function _validaForm() {
+  if (!mainDocId) { alert('Seleziona l\'atto principale (clicca "Principale" su un documento).'); return false; }
+  if (!document.getElementById('fTipoAtto').value) { alert('Seleziona il tipo di atto (Step 2).'); return false; }
+  return true;
+}
+
+function _raccogliDati() {
+  return {
+    tipoAtto: document.getElementById('fTipoAtto').value,
+    codReg:   document.getElementById('fRegistro').value,
+    oggetto:  document.getElementById('fOggetto').value,
+    nRG:      document.getElementById('fNumRG')?.value || '',
+    aRG:      document.getElementById('fAnnoRG')?.value || '',
+    note:     document.getElementById('fNote').value,
+  };
+}
+
+function avviaInvioPec(demo) {
+  if (!_validaForm()) return;
+  _invioDemo = !!demo;
+  const d = _raccogliDati();
+  const nomeMain = document.querySelector('#dc_' + mainDocId + ' .text-truncate')?.textContent.trim() || mainDocId;
+  document.getElementById('riepilogoBusta').innerHTML =
+    `<strong>Atto:</strong> ${nomeMain}<br>` +
+    `<strong>Tipo:</strong> ${d.tipoAtto.replace(/_/g,' ')}<br>` +
+    `<strong>Allegati:</strong> ${allegatiSet.size}`;
+
+  const pecReale = '{{ pec_tribunale or "" }}';
+  const bannerDemo  = document.getElementById('bannerDemo');
+  const titleEl     = document.getElementById('modalTitlePec');
+  const pecEl       = document.getElementById('pecDestinatario');
+  const headerEl    = document.getElementById('modalHeaderPec');
+  const btnLbl      = document.getElementById('lblBtnConferma');
+  const btnConf     = document.getElementById('btnConfermaInvio');
+  const progBar     = document.getElementById('invioProgressBar');
+  const progTxt     = document.getElementById('invioProgressTxt');
+  const warningEl   = document.getElementById('warningFirma');
+
+  if (_invioDemo) {
+    bannerDemo.style.removeProperty('display');
+    titleEl.innerHTML = '<i class="bi bi-play-circle me-2 text-warning"></i>Demo — Invio simulato';
+    headerEl.classList.add('bg-warning-subtle');
+    pecEl.textContent = pecReale || '{{ fascicolo.tribunale or "tribunale" }}'.toLowerCase().replace(/ /g,'.') + '@pec.demo';
+    pecEl.classList.replace('text-primary', 'text-warning');
+    btnLbl.textContent = 'Avvia simulazione Demo';
+    btnConf.className  = 'btn btn-warning fw-semibold';
+    progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-warning';
+    progTxt.textContent = 'Simulazione in corso — attendere…';
+    warningEl.style.display = 'none';
+  } else {
+    bannerDemo.style.display = 'none';
+    titleEl.innerHTML = '<i class="bi bi-send me-2 text-success"></i>Conferma invio via PEC';
+    headerEl.classList.remove('bg-warning-subtle');
+    pecEl.textContent = pecReale;
+    pecEl.classList.replace('text-warning', 'text-primary');
+    btnLbl.textContent = 'Conferma e invia';
+    btnConf.className  = 'btn btn-success fw-semibold';
+    progBar.className  = 'progress-bar progress-bar-striped progress-bar-animated w-100 bg-success';
+    progTxt.textContent = 'Invio in corso — attendere…';
+    warningEl.style.display = '';
+  }
+  new bootstrap.Modal(document.getElementById('modalConfermaPec')).show();
+}
+
+document.getElementById('btnConfermaInvio')?.addEventListener('click', function() {
+  const btn = this;
+  const d = _raccogliDati();
+  btn.disabled = true;
+  document.getElementById('invioProgress').style.display = 'block';
+
+  const fd = new FormData();
+  fd.append('tipo_atto', d.tipoAtto);
+  fd.append('codice_registro', d.codReg);
+  fd.append('oggetto', d.oggetto);
+  fd.append('numero_rg', d.nRG);
+  fd.append('anno_rg', d.aRG);
+  fd.append('note', d.note);
+  fd.append('tribunale_nome', '{{ fascicolo.tribunale or "" }}');
+  fd.append('tribunale_pec', '{{ pec_tribunale or "" }}');
+  fd.append('codice_ufficio', '');
+  fd.append('atto_principale_id', mainDocId);
+  allegatiSet.forEach(aid => fd.append('allegati_ids', aid));
+  fd.append('demo_mode', _invioDemo ? '1' : '0');
+
+  fetch("{{ url_for('deposito_invia', id_fasc=fascicolo.id) }}", {
+    method: 'POST', body: fd,
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+  })
+  .then(r => {
+    if (r.redirected) { window.location = r.url; return; }
+    window.location = "{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}";
+  })
+  .catch(err => {
+    alert('Errore: ' + err);
+    btn.disabled = false;
+    document.getElementById('invioProgress').style.display = 'none';
+  });
+});
+
+function avviaGeneraBusta() {
+  if (!_validaForm()) return;
+  const d = _raccogliDati();
+  document.getElementById('gb_tipo').value = d.tipoAtto;
+  document.getElementById('gb_reg').value  = d.codReg;
+  document.getElementById('gb_ogg').value  = d.oggetto;
+  document.getElementById('gb_atto').value = mainDocId;
+  const gbAll = document.getElementById('gb_allegati');
+  gbAll.innerHTML = '';
+  allegatiSet.forEach(aid => {
+    const inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'allegati_ids'; inp.value = aid;
+    gbAll.appendChild(inp);
+  });
+  document.getElementById('formGeneraBusta').submit();
+}
+</script>
+{% endblock %}

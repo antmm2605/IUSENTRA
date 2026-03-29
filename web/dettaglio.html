@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Backup{% endblock %}
+{% block page_title %}Backup & Ripristino{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-cloud-upload"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Backup & Ripristino</h1>
+    <p class="ds-ph-sub">Gestione backup dei dati dello studio</p>
+  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> backup totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="num">{{ stats.ok }}</span> completati
+  </span>
+  {% if stats.falliti %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-x-circle text-danger"></i>
+    <span class="num">{{ stats.falliti }}</span> falliti
+  </span>
+  {% endif %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-hdd text-info"></i>
+    <span class="num">{{ stats.dimensione_totale_mb }} MB</span> spazio totale
+  </span>
+</div>
+
+{# Esegui backup #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-cloud-upload me-2 text-primary"></i>Esegui backup
+  </div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('esegui_backup') }}" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Tipo</label>
+        <select name="tipo" class="form-select">
+          {% for t in tipi %}
+          <option value="{{ t.value }}">{{ t.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Componenti</label>
+        <div class="d-flex flex-wrap gap-3 pt-1">
+          {% for comp in ['agenda','clienti','fascicoli','messaggi','documenti'] %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="componenti"
+                   value="{{ comp }}" id="comp_{{ comp }}" checked>
+            <label class="form-check-label" for="comp_{{ comp }}">{{ comp }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Nota</label>
+        <input type="text" name="nota" class="form-control" placeholder="Nota opzionale">
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-play-fill me-1"></i>Avvia backup
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Lista backup #}
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-archive me-2 text-secondary"></i>Storico backup — {{ backup_list|length }}
+  </div>
+  {% if backup_list %}
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Data</th><th>Tipo</th><th>File</th><th>Dimensione</th>
+            <th>Stato</th><th>Cifrato</th><th>Nota</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in backup_list %}
+          <tr>
+            <td class="small font-monospace text-nowrap">{{ r.timestamp[:16].replace('T',' ') }}</td>
+            <td>
+              <span class="badge {{ 'bg-primary' if r.tipo.value == 'COMPLETO' else 'bg-secondary' }}">
+                {{ r.tipo.value }}
+              </span>
+            </td>
+            <td class="small">{{ r.num_file }}</td>
+            <td class="small">{{ (r.dimensione_bytes / 1024 / 1024) | round(2) }} MB</td>
+            <td>
+              {% if r.stato.value == 'OK' %}
+                <span class="badge bg-success">OK</span>
+              {% elif r.stato.value == 'FALLITO' %}
+                <span class="badge bg-danger" title="{{ r.errore }}">FALLITO</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">CORROTTO</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if r.cifrato %}<i class="bi bi-lock-fill text-warning"></i>{% else %}—{% endif %}
+            </td>
+            <td class="small text-muted">{{ r.nota or '—' }}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                {% if r.stato.value == 'OK' %}
+                <a href="{{ url_for('scarica_backup', id_bk=r.id) }}"
+                   class="btn btn-outline-secondary" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" action="{{ url_for('verifica_backup', id_bk=r.id) }}">
+                  <button class="btn btn-outline-info" title="Verifica integrità">
+                    <i class="bi bi-shield-check"></i>
+                  </button>
+                </form>
+                <a href="{{ url_for('ripristina_backup', id_bk=r.id) }}"
+                   class="btn btn-outline-success" title="Ripristina">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+                {% endif %}
+                <form method="post"
+                      action="{{ url_for('elimina_backup', id_bk=r.id) }}"
+                      onsubmit="return confirm('Eliminare definitivamente questo backup?')">
+                  <button class="btn btn-outline-danger" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="ds-empty py-3">
+      <i class="bi bi-cloud-slash ds-empty-icon"></i>
+      <div class="ds-empty-title">Nessun backup eseguito</div>
+      <div class="ds-empty-sub">Esegui il primo backup per proteggere i dati dello studio.</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

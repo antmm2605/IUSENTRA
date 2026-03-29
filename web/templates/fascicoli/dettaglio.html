@@ -180,6 +180,53 @@
                 <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
               </a>
               {% endif %}
+              {% if doc.id_deposito_pct %}
+              {%- set _dep_obj = fascicolo.depositi_pct | selectattr('id','equalto',doc.id_deposito_pct) | first | default(None) %}
+              {%- if _dep_obj %}
+                {%- set _ds = _dep_obj.stato %}
+                {%- if _ds == 'ACCETTATO_CANCELLERIA' %}
+                  {%- set _dep_cls = 'bg-success text-white' %}
+                  {%- set _dep_icon = 'bi-check-circle-fill' %}
+                  {%- set _dep_lbl = 'Accettato' %}
+                {%- elif _ds in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
+                  {%- set _dep_cls = 'bg-danger text-white' %}
+                  {%- set _dep_icon = 'bi-x-circle-fill' %}
+                  {%- set _dep_lbl = 'Rifiutato' %}
+                {%- elif _ds in ('ERRORE_CONTROLLI','ERRORE') %}
+                  {%- set _dep_cls = 'bg-danger text-white' %}
+                  {%- set _dep_icon = 'bi-exclamation-triangle-fill' %}
+                  {%- set _dep_lbl = 'Errore' %}
+                {%- elif _ds == 'WARN_CONTROLLI' %}
+                  {%- set _dep_cls = 'bg-warning text-dark' %}
+                  {%- set _dep_icon = 'bi-exclamation-circle-fill' %}
+                  {%- set _dep_lbl = 'Anomalia' %}
+                {%- elif _ds == 'CONSEGNATO' %}
+                  {%- set _dep_cls = 'bg-primary text-white' %}
+                  {%- set _dep_icon = 'bi-send-check-fill' %}
+                  {%- set _dep_lbl = 'Consegnato' %}
+                {%- elif _ds == 'ACCETTATO_PEC' %}
+                  {%- set _dep_cls = 'bg-info text-dark' %}
+                  {%- set _dep_icon = 'bi-envelope-check-fill' %}
+                  {%- set _dep_lbl = 'Acc. PEC' %}
+                {%- else %}
+                  {%- set _dep_cls = 'bg-secondary text-white' %}
+                  {%- set _dep_icon = 'bi-send' %}
+                  {%- set _dep_lbl = 'Inviato' %}
+                {%- endif %}
+              {%- else %}
+                {%- set _dep_cls = 'bg-secondary text-white' %}
+                {%- set _dep_icon = 'bi-send' %}
+                {%- set _dep_lbl = 'Depositato' %}
+              {%- endif %}
+              <div class="mt-1">
+                <span class="badge {{ _dep_cls }}"
+                      style="font-size:.7rem"
+                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                  <i class="bi {{ _dep_icon }} me-1"></i>{{ _dep_lbl }}
+                  <span class="opacity-75 ms-1 font-monospace" style="font-size:.65rem">{{ doc.id_deposito_pct }}</span>
+                </span>
+              </div>
+              {% endif %}
               {% if doc.note %}
                 {% if '[wizard:' in doc.note %}
                   {% set step_raw = doc.note.split(':')[-1].split(']')[0] %}
@@ -211,12 +258,11 @@
           <td data-label="">
             {# TUTTI I BOTTONI INLINE #}
             <div class="d-flex gap-1 flex-wrap align-items-center">
-              {# Editor: ora è il primo bottone #}
+              {# Editor: primo bottone — testo sempre visibile #}
               {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                 class="btn btn-sm btn-primary" title="Apri nell'editor">
-                <i class="bi bi-pencil-square"></i>
-                <span class="d-none d-lg-inline">Editor</span>
+                <i class="bi bi-pencil-square me-1"></i>Editor
               </a>
               {% endif %}
               
@@ -248,6 +294,19 @@
               </button>
               {% endif %}
               
+              {# Converti PDF/A — D.M. 44/2011 art. 12 (solo PDF non firmati) #}
+              {% if ext == 'pdf' and not doc.firmato_digitalmente %}
+              {%- set _pdfa_esito = doc.note and 'pdfa:ok' in doc.note %}
+              <form method="post"
+                    action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?\nIl file originale verrà sostituito.')">
+                <button class="btn btn-outline-warning btn-sm"
+                        title="Converti in PDF/A-2B (D.M. 44/2011 art. 12)">
+                  <i class="bi bi-file-earmark-check"></i>
+                </button>
+              </form>
+              {% endif %}
+
               {# Attestazione conformità (solo PDF) #}
               {% if ext == 'pdf' %}
               <form method="post"
@@ -586,6 +645,48 @@
                 <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.note or dep.messaggio }}</div>
                 {% endif %}
 
+                {# ── Documenti inclusi nella busta ── #}
+                {%- set _dep_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto',dep.id) | list %}
+                {% if _dep_docs %}
+                <div class="mt-2">
+                  <button class="btn btn-link btn-sm p-0 text-muted text-decoration-none"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dep-docs-{{ dep.id }}"
+                          aria-expanded="false">
+                    <i class="bi bi-paperclip me-1"></i>
+                    {{ _dep_docs | length }} document{% if _dep_docs | length == 1 %}o{% else %}i{% endif %} nella busta
+                    <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
+                  </button>
+                  <div class="collapse mt-1" id="dep-docs-{{ dep.id }}">
+                    <ul class="list-unstyled mb-0 ps-2 border-start border-2 border-success-subtle">
+                      {% for ddoc in _dep_docs %}
+                      <li class="py-1 d-flex align-items-center gap-2" style="font-size:.8rem">
+                        {% if ddoc.nome == dep.nome_atto_principale %}
+                        <i class="bi bi-file-earmark-text text-primary flex-shrink-0" title="Atto principale"></i>
+                        {% else %}
+                        <i class="bi bi-paperclip text-muted flex-shrink-0" title="Allegato"></i>
+                        {% endif %}
+                        <span class="text-break">{{ ddoc.nome }}</span>
+                        {% if ddoc.firmato_digitalmente %}
+                        <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato"></i>
+                        {% endif %}
+                        <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                           class="btn btn-outline-secondary btn-sm py-0 px-1 flex-shrink-0 ms-auto"
+                           title="Scarica" style="font-size:.7rem">
+                          <i class="bi bi-download"></i>
+                        </a>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </div>
+                {% elif dep.nome_atto_principale %}
+                <div class="text-muted mt-1" style="font-size:.75rem">
+                  <i class="bi bi-file-earmark-text me-1"></i>{{ dep.nome_atto_principale }}
+                </div>
+                {% endif %}
+
                 {% if is_errore %}
                 <div class="alert alert-danger py-1 px-2 mt-2 small mb-0">
                   <i class="bi bi-exclamation-triangle me-1"></i>
@@ -604,8 +705,27 @@
                 {% endif %}
               </div>
 
-              {# Pulsante controlla #}
-              <div class="flex-shrink-0">
+              {# Pulsanti azione deposito #}
+              <div class="flex-shrink-0 d-flex flex-column gap-1">
+                {% set _dep_data = {
+                  'id': dep.id,
+                  'tipo_atto': dep.tipo_atto,
+                  'stato': dep.stato,
+                  'pec_destinatario': dep.pec_destinatario,
+                  'messaggio': dep.messaggio,
+                  'ricevuta_accettazione': dep.ricevuta_accettazione,
+                  'ricevuta_consegna': dep.ricevuta_consegna,
+                  'ricevuta_controlli_automatici': (dep.ricevuta_controlli_automatici or ''),
+                  'esito_controlli': (dep.esito_controlli or ''),
+                  'ricevuta_cancelleria': (dep.ricevuta_cancelleria or ''),
+                  'note': dep.note
+                } %}
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        title="Modifica deposito"
+                        data-dep="{{ _dep_data | tojson | forceescape }}"
+                        onclick="apriModificaDeposito(JSON.parse(this.dataset.dep))">
+                  <i class="bi bi-pencil"></i>
+                </button>
                 {% if not is_finale %}
                 <button type="button" class="btn btn-sm btn-outline-secondary"
                         title="Controlla ricevute PEC"
@@ -925,11 +1045,17 @@
   </div>
 </div>
 
-{# ================================================================ MODALS #}
+{% endblock %}
+
+{% block modals %}
+{# ================================================================ MODALS
+   Tutti i modal devono stare QUI (fuori da #main) per partecipare al root
+   stacking context — su mobile #main è position:fixed (bottom:62px) e i
+   modal al suo interno verrebbero tagliati dal bottom-nav. #}
 
 {# Modal: aggiungi attività #}
 <div class="modal fade" id="modalAttivita" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" action="{{ url_for('aggiungi_attivita', id_fasc=fascicolo.id) }}">
         <div class="modal-header">
@@ -998,7 +1124,7 @@
 
 {# Modal: carica documento #}
 <div class="modal fade" id="modalDocumento" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" enctype="multipart/form-data"
             action="{{ url_for('carica_documento', id_fasc=fascicolo.id) }}">
@@ -1064,11 +1190,12 @@
 
 {# Modal: registra esito deposito PCT #}
 <div class="modal fade" id="modalDeposito" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+      <form method="post" id="formDeposito" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+        <input type="hidden" name="id_deposito_modifica" id="idDepositoModifica" value="">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT</h5>
+          <h5 class="modal-title" id="modalDepositoTitolo"><i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -1146,7 +1273,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary" id="btnSubmitDeposito">
             <i class="bi bi-save me-1"></i>Registra
           </button>
         </div>
@@ -1181,7 +1308,7 @@
 
 {# Modal: firma per deposito PCT #}
 <div class="modal fade" id="modalFirma" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" enctype="multipart/form-data" id="firma-form">
         <div class="modal-header">
@@ -1353,7 +1480,7 @@
 
 {# Modal: aggiungi parte processuale #}
 <div class="modal fade" id="modalAggiungiParte" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" action="{{ url_for('aggiungi_parte_fascicolo', id_fasc=fascicolo.id) }}">
         <div class="modal-header">
@@ -1398,7 +1525,7 @@
   </div>
 </div>
 
-{% endblock %}
+{% endblock %}{# /modals #}
 
 {% block scripts %}
 <script>
@@ -1501,6 +1628,49 @@ function controllaRicevute(idFasc, idDep, btn) {
     btn.title = 'Errore di rete: ' + err;
   });
 }
+
+// ---- Modifica deposito PCT ----
+const _urlAggiungi = "{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}";
+const _urlModificaTpl = "{{ url_for('modifica_esito_deposito', id_fasc=fascicolo.id, id_dep='__ID__') }}";
+
+function apriModificaDeposito(dep) {
+  const form = document.getElementById('formDeposito');
+  form.action = _urlModificaTpl.replace('__ID__', dep.id);
+  document.getElementById('idDepositoModifica').value = dep.id;
+  document.getElementById('modalDepositoTitolo').innerHTML =
+    '<i class="bi bi-pencil me-2 text-primary"></i>Modifica deposito ' + dep.id;
+  document.getElementById('btnSubmitDeposito').innerHTML =
+    '<i class="bi bi-save me-1"></i>Salva modifiche';
+  // Popola i campi
+  form.querySelector('[name=tipo_atto]').value = dep.tipo_atto || '';
+  const statoSel = form.querySelector('[name=stato]');
+  if (statoSel) statoSel.value = dep.stato || 'INVIATO';
+  form.querySelector('[name=pec_destinatario]').value = dep.pec_destinatario || '';
+  form.querySelector('[name=messaggio]').value = dep.messaggio || '';
+  form.querySelector('[name=ricevuta_accettazione]').value = dep.ricevuta_accettazione || '';
+  form.querySelector('[name=ricevuta_consegna]').value = dep.ricevuta_consegna || '';
+  form.querySelector('[name=ricevuta_controlli_automatici]').value = dep.ricevuta_controlli_automatici || '';
+  const esitoCtrSel = form.querySelector('[name=esito_controlli]');
+  if (esitoCtrSel) esitoCtrSel.value = dep.esito_controlli || '';
+  form.querySelector('[name=ricevuta_cancelleria]').value = dep.ricevuta_cancelleria || '';
+  form.querySelector('[name=note]').value = dep.note || '';
+  new bootstrap.Modal(document.getElementById('modalDeposito')).show();
+}
+
+// Ripristina il modal in modalità "aggiungi" quando si apre dal pulsante +Registra
+document.getElementById('modalDeposito').addEventListener('show.bs.modal', function (e) {
+  // Se l'evento non proviene da apriModificaDeposito (nessun relatedTarget = pulsante standard)
+  if (e.relatedTarget) {
+    const form = document.getElementById('formDeposito');
+    form.action = _urlAggiungi;
+    document.getElementById('idDepositoModifica').value = '';
+    document.getElementById('modalDepositoTitolo').innerHTML =
+      '<i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT';
+    document.getElementById('btnSubmitDeposito').innerHTML =
+      '<i class="bi bi-save me-1"></i>Registra';
+    form.reset();
+  }
+});
 
 // ---- Drop-zone carica documento ----
 (function () {

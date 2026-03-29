@@ -1,0 +1,2015 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="pct-modulo" content="{% block pct_modulo %}{% endblock %}">
+  <title>{% block title %}Studio Legale PCT{% endblock %}</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#1a3a5c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PCT Studio">
+  <link rel="apple-touch-icon" href="/static/icons/icon.svg">
+  <!-- Anti-FOUC: applica il tema salvato PRIMA che il browser renderizzi -->
+  <script>(function(){var t=localStorage.getItem('pct-theme');if(t)document.documentElement.setAttribute('data-bs-theme',t);})();</script>
+  <!-- Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
+  <!-- htmx — aggiornamenti inline senza reload di pagina -->
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  {# Logo + toggle mobile + toggle mini (desktop) #}
+  <div class="sb-logo">
+    <div class="d-flex align-items-center gap-2">
+      <div style="width:32px;height:32px;background:rgba(200,151,43,.2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(200,151,43,.25)">
+        <i class="bi bi-briefcase-fill" style="color:var(--accent);font-size:.95rem"></i>
+      </div>
+      <div>
+        <div class="fw-bold" style="font-size:.9rem;letter-spacing:.2px;line-height:1.2">Studio Legale</div>
+        <div style="font-size:.64rem;opacity:.5;font-weight:500;letter-spacing:.6px;text-transform:uppercase">Portale PCT</div>
+      </div>
+    </div>
+    {# Bottone chiudi (mobile) + comprimi (desktop) #}
+    <div class="d-flex align-items-center gap-1">
+      <button id="sb-mini-toggle" title="Comprimi/espandi sidebar">
+        <i class="bi bi-layout-sidebar-reverse"></i>
+      </button>
+      <button id="sb-close" class="btn btn-sm p-0" title="Chiudi menu"
+              style="color:rgba(255,255,255,.5);font-size:1.1rem">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  {# Area scorrevole #}
+  <div class="sb-scroll" id="sb-scroll">
+
+    {# Dashboard e Ricerca - sempre visibili in cima #}
+    <a href="{{ url_for('dashboard') }}"
+       class="nav-link sb-link sb-top {% if request.endpoint == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i><span class="sb-txt">Dashboard</span>
+    </a>
+    <a href="{{ url_for('cerca') }}"
+       class="nav-link sb-link sb-top {% if request.endpoint == 'cerca' %}active{% endif %}">
+      <i class="bi bi-search"></i><span class="sb-txt">Ricerca globale</span>
+    </a>
+
+    {# Recenti (solo se presenti) #}
+    {% if recenti %}
+    <div class="sb-group-label" style="margin-top:.5rem">Recenti</div>
+    {% for r in recenti %}
+    <a href="{{ r.url }}" class="nav-link sb-link sb-recent" title="{{ r.titolo }}">
+      <i class="bi {{ r.icona }}" style="color:var(--accent);width:16px"></i>
+      <span class="sb-txt">{{ r.titolo }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
+
+    {# ---- Sezione: Agenda ---- #}
+    {% set _ag = request.endpoint in ('agenda_view','nuovo_appuntamento') %}
+    <button class="sb-toggle {% if _ag %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-agenda" aria-expanded="{{ 'true' if _ag else 'false' }}">
+      <span><i class="bi bi-calendar3"></i>Agenda</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _ag %}show{% endif %}" id="sb-agenda">
+      <a href="{{ url_for('agenda_view') }}?vista=settimana"
+         class="nav-link sb-link {% if request.endpoint == 'agenda_view' %}active{% endif %}">
+        <i class="bi bi-calendar-week"></i><span class="sb-txt">Calendario</span>
+      </a>
+      <a href="{{ url_for('nuovo_appuntamento') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_appuntamento' %}active{% endif %}">
+        <i class="bi bi-plus-circle"></i><span class="sb-txt">Nuovo Appuntamento</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Fascicoli ---- #}
+    {% set _fa = request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo','lista_archivio') %}
+    <button class="sb-toggle {% if _fa %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-fascicoli" aria-expanded="{{ 'true' if _fa else 'false' }}">
+      <span><i class="bi bi-folder2-open"></i>Fascicoli</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _fa %}show{% endif %}" id="sb-fascicoli">
+      <a href="{{ url_for('lista_fascicoli') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','modifica_fascicolo') %}active{% endif %}">
+        <i class="bi bi-folder2-open"></i><span class="sb-txt">Tutti i Fascicoli</span>
+      </a>
+      <a href="{{ url_for('nuovo_fascicolo') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_fascicolo' %}active{% endif %}">
+        <i class="bi bi-folder-plus"></i><span class="sb-txt">Nuovo Fascicolo</span>
+      </a>
+      <a href="{{ url_for('lista_archivio') }}"
+         class="nav-link sb-link {% if request.endpoint == 'lista_archivio' %}active{% endif %}">
+        <i class="bi bi-archive"></i><span class="sb-txt">Archivio</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Clienti ---- #}
+    {% set _cl = request.endpoint in ('lista_clienti','dettaglio_cliente','nuovo_cliente','modifica_cliente','cartelle_condivise','gestione_collaboratori') %}
+    <button class="sb-toggle {% if _cl %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-clienti" aria-expanded="{{ 'true' if _cl else 'false' }}">
+      <span><i class="bi bi-people"></i>Clienti</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _cl %}show{% endif %}" id="sb-clienti">
+      <a href="{{ url_for('lista_clienti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_clienti','dettaglio_cliente','modifica_cliente') %}active{% endif %}">
+        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+      </a>
+      <a href="{{ url_for('nuovo_cliente') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_cliente' %}active{% endif %}">
+        <i class="bi bi-person-plus"></i><span class="sb-txt">Nuovo Cliente</span>
+      </a>
+      <a href="{{ url_for('cartelle_condivise') }}"
+         class="nav-link sb-link {% if request.endpoint in ('cartelle_condivise','gestione_collaboratori') %}active{% endif %}">
+        <i class="bi bi-folder-symlink"></i><span class="sb-txt">Cartelle Condivise</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Soggetti ---- #}
+    {% set _so = request.endpoint in ('lista_soggetti','dettaglio_soggetto','nuovo_soggetto','modifica_soggetto') %}
+    <button class="sb-toggle {% if _so %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-soggetti" aria-expanded="{{ 'true' if _so else 'false' }}">
+      <span><i class="bi bi-person-badge"></i>Soggetti</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _so %}show{% endif %}" id="sb-soggetti">
+      <a href="{{ url_for('lista_soggetti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_soggetti','dettaglio_soggetto','modifica_soggetto') %}active{% endif %}">
+        <i class="bi bi-people"></i><span class="sb-txt">Anagrafica</span>
+      </a>
+      <a href="{{ url_for('nuovo_soggetto') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_soggetto' %}active{% endif %}">
+        <i class="bi bi-person-plus"></i><span class="sb-txt">Nuovo Soggetto</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Comunicazioni ---- #}
+    {% set _cm = request.endpoint in ('lista_messaggi','nuovo_messaggio','dettaglio_messaggio',
+                                      'email_client.casella','email_client.dettaglio',
+                                      'email_client.scrivi','email_client.impostazioni') %}
+    <button class="sb-toggle {% if _cm %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-comunicazioni" aria-expanded="{{ 'true' if _cm else 'false' }}">
+      <span><i class="bi bi-chat-dots"></i>Comunicazioni</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _cm %}show{% endif %}" id="sb-comunicazioni">
+      <a href="{{ url_for('email_client.casella') }}"
+         class="nav-link sb-link {% if request.endpoint and request.endpoint.startswith('email_client.') %}active{% endif %}">
+        <i class="bi bi-envelope"></i><span class="sb-txt">Email</span>
+        {# Badge non lette — caricato via JS per evitare query ad ogni render #}
+        <span class="badge bg-primary rounded-pill ms-auto d-none" id="badgeEmailNonLette"></span>
+      </a>
+      <a href="{{ url_for('lista_messaggi') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_messaggi','dettaglio_messaggio') %}active{% endif %}">
+        <i class="bi bi-chat-dots"></i><span class="sb-txt">Messaggi</span>
+      </a>
+      <a href="{{ url_for('nuovo_messaggio') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuovo_messaggio' %}active{% endif %}">
+        <i class="bi bi-send"></i><span class="sb-txt">Nuovo SMS/WA</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Scadenze ---- #}
+    {% set _sc = request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') %}
+    <button class="sb-toggle {% if _sc %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-scadenze" aria-expanded="{{ 'true' if _sc else 'false' }}">
+      <span><i class="bi bi-alarm"></i>Scadenze</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _sc %}show{% endif %}" id="sb-scadenze">
+      <a href="{{ url_for('scadenziario') }}"
+         class="nav-link sb-link {% if request.endpoint in ('scadenziario','dettaglio_scadenza','modifica_scadenza') %}active{% endif %}">
+        <i class="bi bi-calendar-event"></i><span class="sb-txt">Scadenziario</span>
+      </a>
+      <a href="{{ url_for('nuova_scadenza') }}"
+         class="nav-link sb-link {% if request.endpoint == 'nuova_scadenza' %}active{% endif %}">
+        <i class="bi bi-calendar-plus"></i><span class="sb-txt">Nuova Scadenza</span>
+      </a>
+    </div>
+
+    {# ---- Checklist Atti ---- #}
+    <a href="{{ url_for('checklist_atti') }}"
+       class="nav-link sb-link {% if request.endpoint in ('checklist_atti','checklist_dettaglio') %}active{% endif %}">
+      <i class="bi bi-card-checklist"></i><span class="sb-txt">Checklist Atti</span>
+    </a>
+
+    {# ---- Sezione: PCT / Telematico ---- #}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
+    <button class="sb-toggle {% if _pct %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
+      <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _pct %}show{% endif %}" id="sb-pct">
+      <a href="{{ url_for('polisWeb_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
+        <i class="bi bi-building-fill-check"></i><span class="sb-txt">PolisWeb / PST</span>
+      </a>
+      <a href="{{ url_for('pdp_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('pdp_home','pdp_ricerca','pdp_documenti','pdp_importa') %}active{% endif %}">
+        <i class="bi bi-shield-exclamation"></i><span class="sb-txt">PDP Penale</span>
+      </a>
+      <a href="{{ url_for('pat_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('pat_home','pat_ricerca','pat_documenti','pat_importa') %}active{% endif %}">
+        <i class="bi bi-building-check"></i><span class="sb-txt">PAT Amministrativo</span>
+      </a>
+      <a href="{{ url_for('tribunali') }}"
+         class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
+        <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
+      </a>
+      <a href="{{ url_for('deposito_checklist') }}"
+         class="nav-link sb-link {% if request.endpoint == 'deposito_checklist' %}active{% endif %}">
+        <i class="bi bi-list-check"></i><span class="sb-txt">Checklist deposito</span>
+      </a>
+      <a href="{{ url_for('guida_firma_digitale') }}"
+         class="nav-link sb-link {% if request.endpoint == 'guida_firma_digitale' %}active{% endif %}">
+        <i class="bi bi-book"></i><span class="sb-txt">Guida firma digitale</span>
+      </a>
+    </div>
+
+    {# ---- Sezione: Studio ---- #}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','notifiche','pagamenti','preventivi') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
+    <button class="sb-toggle {% if _st %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
+      <span><i class="bi bi-buildings"></i>Studio</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _st %}show{% endif %}" id="sb-studio">
+      <a href="{{ url_for('fatturazione.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
+        <i class="bi bi-receipt"></i><span class="sb-txt">Fatturazione</span>
+      </a>
+      <a href="{{ url_for('preventivi.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'preventivi' %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Preventivi</span>
+      </a>
+      <a href="{{ url_for('tariffario') }}"
+         class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
+        <i class="bi bi-calculator"></i><span class="sb-txt">Tariffario DM 55</span>
+      </a>
+      <a href="{{ url_for('template_atti.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'template_atti' %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Template Atti</span>
+      </a>
+      <a href="{{ url_for('statistiche.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'statistiche' %}active{% endif %}">
+        <i class="bi bi-bar-chart-line"></i><span class="sb-txt">Statistiche</span>
+      </a>
+      <a href="{{ url_for('notifiche.pannello') }}"
+         class="nav-link sb-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
+        <i class="bi bi-whatsapp"></i><span class="sb-txt">Notifiche WA</span>
+      </a>
+      <a href="{{ url_for('pagamenti.impostazioni_pagamenti') }}"
+         class="nav-link sb-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
+        <i class="bi bi-credit-card"></i><span class="sb-txt">Pagamenti</span>
+      </a>
+      <a href="{{ url_for('lista_backup') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">
+        <i class="bi bi-cloud-arrow-up"></i><span class="sb-txt">Backup</span>
+      </a>
+      <a href="{{ url_for('impostazioni.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'impostazioni' and request.endpoint != 'impostazioni_calendario' %}active{% endif %}">
+        <i class="bi bi-gear-fill"></i><span class="sb-txt">Impostazioni</span>
+      </a>
+      <a href="{{ url_for('impostazioni_calendario') }}"
+         class="nav-link sb-link {% if request.endpoint == 'impostazioni_calendario' %}active{% endif %}">
+        <i class="bi bi-calendar-check"></i><span class="sb-txt">Sync Calendario</span>
+      </a>
+    </div>
+
+    {# ---- Piattaforma (superadmin) ---- #}
+    {% if utente_corrente and utente_corrente.is_superadmin %}
+    {% set _adm = request.blueprint == 'admin' %}
+    <button class="sb-toggle sb-admin {% if _adm %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-piattaforma" aria-expanded="{{ 'true' if _adm else 'false' }}">
+      <span><i class="bi bi-building-gear"></i>Piattaforma</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _adm %}show{% endif %}" id="sb-piattaforma">
+      <a href="{{ url_for('admin.dashboard') }}"
+         class="nav-link sb-link {% if request.blueprint == 'admin' %}active{% endif %}">
+        <i class="bi bi-building-gear"></i><span class="sb-txt">Pannello Admin</span>
+      </a>
+    </div>
+    {% endif %}
+
+    {# ---- Admin (permesso utenti) ---- #}
+    {% if utente_corrente and utente_corrente.ha_permesso('utenti.leggi') %}
+    {% set _usr = request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente','profili','audit_log','admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export','registro_trattamenti','nuovo_trattamento') %}
+    <button class="sb-toggle sb-admin {% if _usr %}open{% endif %}"
+            data-bs-toggle="collapse" data-bs-target="#sb-admin" aria-expanded="{{ 'true' if _usr else 'false' }}">
+      <span><i class="bi bi-shield-lock"></i>Amministrazione</span>
+      <i class="bi bi-chevron-down sb-chev"></i>
+    </button>
+    <div class="collapse {% if _usr %}show{% endif %}" id="sb-admin">
+      <a href="{{ url_for('lista_utenti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('lista_utenti','nuovo_utente','modifica_utente') %}active{% endif %}">
+        <i class="bi bi-people-fill"></i><span class="sb-txt">Utenti</span>
+      </a>
+      <a href="{{ url_for('profili') }}"
+         class="nav-link sb-link {% if request.endpoint == 'profili' %}active{% endif %}">
+        <i class="bi bi-grid-3x3"></i><span class="sb-txt">Profili e Permessi</span>
+      </a>
+      <a href="{{ url_for('audit_log') }}"
+         class="nav-link sb-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
+        <i class="bi bi-journal-text"></i><span class="sb-txt">Audit Log</span>
+      </a>
+      <a href="{{ url_for('admin_database') }}"
+         class="nav-link sb-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">
+        <i class="bi bi-database-gear"></i><span class="sb-txt">Database</span>
+      </a>
+      <a href="{{ url_for('registro_trattamenti') }}"
+         class="nav-link sb-link {% if request.endpoint in ('registro_trattamenti','nuovo_trattamento') %}active{% endif %}">
+        <i class="bi bi-file-earmark-medical"></i><span class="sb-txt">Registro GDPR</span>
+      </a>
+    </div>
+    {% endif %}
+
+  </div>{# /sb-scroll #}
+
+  {# Utente corrente + logout — fisso in fondo #}
+  {% if utente_corrente %}
+  <div class="sb-user">
+    <div class="sb-avatar">{{ utente_corrente.username[0].upper() }}</div>
+    <div class="sb-userinfo">
+      <div class="fw-semibold">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
+      <div style="opacity:.55;font-size:.68rem">{{ utente_corrente.ruolo.value }}</div>
+    </div>
+    <div class="d-flex gap-1 ms-auto">
+      <a href="{{ url_for('profilo') }}" class="btn btn-sm btn-outline-light p-1" title="Profilo" style="font-size:.8rem">
+        <i class="bi bi-person"></i>
+      </a>
+      <form method="post" action="{{ url_for('logout') }}">
+        <button class="btn btn-sm btn-outline-light p-1" title="Esci" style="font-size:.8rem">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="sb-user" style="opacity:.4;font-size:.72rem;justify-content:center">
+    PCT Studio v{{ app_version }}
+  </div>
+  {% endif %}
+</nav>
+
+{# Overlay mobile #}
+<div id="sb-overlay"></div>
+
+<!-- ============================================================
+     App Body: pannello destro (topbar + contenuto scrollabile)
+     Su desktop: margin-left uguale alla sidebar, flexbox column
+     Su mobile:  margin-left:0, si adatta al viewport bloccato
+     ============================================================ -->
+<div id="app-body">
+
+<!-- Topbar: primo elemento del flex column — sempre visibile -->
+<div class="topbar">
+  <button id="sb-open" class="btn btn-sm btn-outline-secondary me-2" title="Menu">
+    <i class="bi bi-list" style="font-size:1.1rem"></i>
+  </button>
+  <h1>{% block page_title %}{% endblock %}</h1>
+  <div class="d-flex align-items-center gap-2 topbar-actions">
+    {# ---- Ricerca globale ---- #}
+    <div id="search-wrap">
+      <form action="{{ url_for('cerca') }}" method="get" class="d-flex" autocomplete="off">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="search-input" name="q"
+                 class="form-control border-start-0 ps-0"
+                 placeholder="Cerca fascicoli, clienti…"
+                 value="{{ request.args.get('q','') }}">
+        </div>
+      </form>
+      <div id="search-dropdown"></div>
+    </div>
+    <span class="topbar-date d-none d-md-inline">
+      <i class="bi bi-calendar3"></i>{{ oggi.strftime('%d/%m/%Y') }}
+    </span>
+    <a href="{{ url_for('scadenziario') }}" class="btn btn-sm btn-outline-danger position-relative"
+       title="Scadenziario — scadenze entro 7 giorni" id="btn-scadenziario-nav">
+      <i class="bi bi-calendar-event"></i>
+      <span id="badge-scadenze-nav"
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+            style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+    </a>
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning"
+       title="Nuovo appuntamento">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
+    </a>
+    <div id="htmx-loader" title="Caricamento…"></div>
+    {# ── Indicatore stato worker OCR ── #}
+    <span id="ocr-pill" title="Worker OCR — elaborazione documenti in corso" style="display:none">
+      <span class="spinner-border ocr-pill-spinner" role="status" aria-hidden="true"></span>
+      <i class="bi bi-check2-all ocr-pill-check" style="display:none"></i>
+      <span id="ocr-pill-txt">OCR</span>
+    </span>
+    {% if utente_corrente %}
+    {# ── Centro notifiche in-app ─────────────────────────────────── #}
+    <span id="notifiche-center" class="d-inline-block" style="position:relative">
+      <button class="btn btn-sm btn-outline-secondary position-relative"
+              id="btn-notifiche-inbox"
+              type="button"
+              title="Notifiche"
+              aria-label="Centro notifiche"
+              aria-expanded="false"
+              onclick="pctNotifPanel.toggle(this)">
+        <i class="bi bi-bell" id="icon-bell-inbox"></i>
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              id="badge-notifiche"
+              style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
+      </button>
+    </span>
+    {# Pulsante legacy nascosto — mantenuto per push.js #}
+    <button id="btn-notifiche" style="display:none"
+            onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
+    {% endif %}
+    <button class="btn btn-sm btn-outline-secondary" id="btn-tema"
+            onclick="toggleTema()" title="Tema chiaro / scuro">
+      <i class="bi bi-moon-fill" id="icon-tema"></i>
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+            data-bs-target="#modalScorciatoie" title="Scorciatoie da tastiera (?)">
+      <i class="bi bi-keyboard"></i>
+    </button>
+    {# ---- Avatar utente mobile (visibile solo su mobile) ---- #}
+    {% if utente_corrente %}
+    <div class="topbar-user-mobile dropdown">
+      <button class="topbar-user-btn dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              data-bs-strategy="fixed"
+              aria-expanded="false"
+              title="{{ utente_corrente.nome_completo or utente_corrente.username }}">
+        {{ utente_corrente.username[0].upper() }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end dropdown-menu-user-mobile">
+        <li>
+          <div class="user-info">
+            <div class="fw-semibold" style="font-size:.85rem">{{ utente_corrente.nome_completo or utente_corrente.username }}</div>
+            <div class="text-muted" style="font-size:.73rem">{{ utente_corrente.ruolo.value }}</div>
+          </div>
+        </li>
+        <li><a class="dropdown-item py-2" href="{{ url_for('profilo') }}">
+          <i class="bi bi-person me-2 text-primary"></i>Profilo
+        </a></li>
+        <li>
+          <form method="post" action="{{ url_for('logout') }}" class="m-0">
+            <button type="submit" class="dropdown-item py-2 text-danger">
+              <i class="bi bi-box-arrow-right me-2"></i>Esci
+            </button>
+          </form>
+        </li>
+      </ul>
+    </div>
+    {% endif %}
+    {% if utente_corrente %}
+    <span id="sync-operatori" title="Operatori connessi in questo momento">
+      <span class="dot"></span>
+      <span id="sync-count">{{ n_operatori_connessi }}</span>
+      <i class="bi bi-people"></i>
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Main: area di contenuto scrollabile (flex: 1) -->
+<div id="main">
+  {# ---- Banner dati non aggiornati ---- #}
+  <div id="sync-stale-banner">
+    <i class="bi bi-arrow-clockwise"></i>
+    <span id="sync-stale-msg">I dati di questa pagina sono stati aggiornati da un altro operatore.</span>
+    <button class="btn btn-sm btn-warning ms-auto" onclick="location.reload()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Ricarica
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('sync-stale-banner').classList.remove('show')">
+      <i class="bi bi-x"></i>
+    </button>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>{# /main #}
+
+</div>{# /app-body #}
+
+{# ---- Modals: fuori da #main per evitare conflitto z-index con backdrop Bootstrap ---- #}
+{# Su mobile #main è position:fixed (stacking context z-index:auto) → tutto al suo interno
+   è sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
+   garantisce che partecipino al root stacking context e i loro z-index:1055 battano il backdrop. #}
+{% block modals %}{% endblock %}
+
+{# ── Pannello notifiche in-app — figlio diretto del body per sfuggire
+   agli overflow/stacking context del topbar (backdrop-filter crea
+   containing block per position:fixed; overflow-x:auto su topbar-actions
+   forza overflow-y:auto che clippa i dropdown assolutamente posizionati) ── #}
+{% if utente_corrente %}
+<div id="notifiche-dropdown"
+     role="dialog"
+     aria-label="Centro notifiche"
+     style="display:none;position:fixed;z-index:10050;width:360px;max-width:calc(100vw - 1rem);
+            border-radius:12px;overflow:hidden;
+            box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);
+            border:1px solid rgba(0,0,0,.1);
+            background:var(--bs-body-bg,#fff)">
+  {# Header #}
+  <div class="d-flex align-items-center justify-content-between px-3 py-2"
+       style="background:var(--bs-primary);color:#fff">
+    <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
+    <button class="btn btn-sm p-0 text-white opacity-75"
+            id="btn-tutte-lette"
+            style="font-size:.72rem;background:none;border:none"
+            title="Segna tutte come lette">
+      <i class="bi bi-check2-all me-1"></i>Tutte lette
+    </button>
+  </div>
+  {# Lista notifiche (popolata da JS) #}
+  <div id="notifiche-lista" style="max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div class="text-center text-muted py-4 small" id="notif-placeholder">
+      <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
+      Nessuna notifica
+    </div>
+  </div>
+  {# Footer #}
+  <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
+       style="font-size:.75rem">
+    <a href="/scadenziario" class="text-decoration-none text-muted">
+      <i class="bi bi-list-check me-1"></i>Scadenziario
+    </a>
+    <button id="btn-abilita-push"
+            class="btn btn-link p-0 text-muted"
+            style="font-size:.75rem;display:none"
+            onclick="PCT_NOTIFICHE.richiediPermesso()">
+      <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{# ---- Toast container notifiche sync ---- #}
+<div id="sync-toast-container"></div>
+
+{# ---- Handle nascondi/mostra bottom nav (mobile) ---- #}
+<div id="bn-handle" title="Nascondi/mostra navigazione">
+  <span class="bn-handle-pill"></span>
+</div>
+
+{# ---- Bottom Navigation (mobile/tablet) ---- #}
+<nav id="bottom-nav" aria-label="Navigazione principale">
+  <a href="{{ url_for('dashboard') }}"
+     class="bn-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+    <i class="bi bi-speedometer2"></i>
+    <span>Dashboard</span>
+  </a>
+  <a href="{{ url_for('lista_clienti') }}"
+     class="bn-item {% if request.endpoint in ('lista_clienti','dettaglio_cliente','nuovo_cliente','modifica_cliente') %}active{% endif %}">
+    <i class="bi bi-people"></i>
+    <span>Clienti</span>
+  </a>
+  <a href="{{ url_for('lista_fascicoli') }}"
+     class="bn-item {% if request.endpoint in ('lista_fascicoli','dettaglio_fascicolo','nuovo_fascicolo','modifica_fascicolo') %}active{% endif %}">
+    <i class="bi bi-folder2-open"></i>
+    <span>Fascicoli</span>
+  </a>
+  <a href="{{ url_for('agenda_view') }}"
+     class="bn-item {% if request.endpoint == 'agenda_view' %}active{% endif %}">
+    <i class="bi bi-calendar-week"></i>
+    <span>Agenda</span>
+  </a>
+  <a href="{{ url_for('scadenziario') }}"
+     class="bn-item {% if request.endpoint in ('scadenziario','nuova_scadenza','dettaglio_scadenza','modifica_scadenza') %}active{% endif %}">
+    <i class="bi bi-calendar-event"></i>
+    <span>Scadenze</span>
+  </a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+/* ---- Sistema aiuto contestuale — inizializza tutti i .btn-help / popover ---- */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+    new bootstrap.Popover(el, {
+      trigger: 'click',
+      html: true,
+      sanitize: false,
+      placement: 'auto',
+      customClass: 'popover-help',
+    });
+  });
+  // Click fuori chiude tutti i popover aperti
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-bs-toggle="popover"]')) {
+      document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+        var pop = bootstrap.Popover.getInstance(el);
+        if (pop) pop.hide();
+      });
+    }
+  });
+});
+</script>
+<script>
+/* ---- Paginazione tabelle ---- */
+function initPagination(tableId, selectId) {
+  const tbl = document.getElementById(tableId);
+  const sel = document.getElementById(selectId);
+  if (!tbl || !sel) return;
+
+  function applyPage() {
+    const size = parseInt(sel.value);
+    const rows = tbl.querySelectorAll('tbody tr');
+    rows.forEach((r, i) => {
+      r.style.display = (size === 0 || i < size) ? '' : 'none';
+    });
+    // Update or create pagination info
+    let info = document.getElementById(tableId + '-info');
+    if (!info) {
+      info = document.createElement('div');
+      info.id = tableId + '-info';
+      info.className = 'text-muted small px-3 py-2 border-top';
+      tbl.closest('.card').appendChild(info);
+    }
+    const visible = size === 0 ? rows.length : Math.min(size, rows.length);
+    info.textContent = visible === rows.length
+      ? `${rows.length} righe`
+      : `Mostrando ${visible} di ${rows.length} righe`;
+  }
+
+  sel.addEventListener('change', applyPage);
+  applyPage();
+}
+</script>
+<script>
+(function () {
+  const input = document.getElementById('search-input');
+  const dropdown = document.getElementById('search-dropdown');
+  if (!input || !dropdown) return;
+
+  const TIPO_LABELS = {
+    fascicolo: 'Fascicoli',
+    cliente: 'Clienti',
+    appuntamento: 'Appuntamenti',
+    scadenza: 'Scadenze',
+  };
+
+  let timer = null;
+
+  function renderResults(data) {
+    if (!data.length) {
+      dropdown.innerHTML = '<div class="search-group-label py-2 text-center">Nessun risultato</div>';
+      dropdown.classList.add('show');
+      return;
+    }
+    // Raggruppa per tipo
+    const groups = {};
+    data.forEach(r => { (groups[r.tipo] = groups[r.tipo] || []).push(r); });
+
+    let html = '';
+    Object.entries(groups).forEach(([tipo, items]) => {
+      html += `<div class="search-group-label">${TIPO_LABELS[tipo] || tipo}</div>`;
+      items.forEach(r => {
+        const snip = r.snippet ? `<div class="search-item-snip">${r.snippet}</div>` : '';
+        html += `<a href="${r.url}" class="search-item">
+          <i class="bi ${r.icona} search-item-icon"></i>
+          <div class="search-item-body">
+            <div class="search-item-title">${r.titolo}</div>
+            <div class="search-item-sub">${r.sottotitolo}</div>
+            ${snip}
+          </div>
+        </a>`;
+      });
+    });
+    dropdown.innerHTML = html;
+    dropdown.classList.add('show');
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { dropdown.classList.remove('show'); return; }
+    timer = setTimeout(() => {
+      fetch(`/api/cerca?q=${encodeURIComponent(q)}&limit=15`)
+        .then(r => r.json())
+        .then(renderResults)
+        .catch(() => dropdown.classList.remove('show'));
+    }, 220);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!document.getElementById('search-wrap').contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') dropdown.classList.remove('show');
+  });
+})();
+</script>
+{% block scripts %}{% endblock %}
+<script src="/static/js/ufficio_picker.js"></script>
+{% block extra_scripts %}{% endblock %}
+<script>
+/* ---- Loading state globale sui form: disabilita submit e mostra spinner ---- */
+(function () {
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (form.dataset.noLoading) return;
+    form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (btn) {
+      var orig = btn.innerHTML || btn.value;
+      btn.disabled = true;
+      if (btn.tagName === 'BUTTON') {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + (btn.dataset.loadingText || orig);
+      }
+      /* sicurezza: riabilita dopo 15s nel caso di errore server */
+      setTimeout(function () { btn.disabled = false; btn.innerHTML = orig; }, 15000);
+    });
+  });
+})();
+</script>
+<script>
+// Badge email non lette nella sidebar
+(function() {
+  const badge = document.getElementById('badgeEmailNonLette');
+  if (!badge) return;
+  fetch('/email/api/stats').then(r => r.json()).then(d => {
+    if (d.non_lette > 0) {
+      badge.textContent = d.non_lette;
+      badge.classList.remove('d-none');
+    }
+  }).catch(() => {});
+})();
+</script>
+
+{# ================================================================ SCORCIATOIE TASTIERA #}
+<div class="modal fade" id="modalScorciatoie" tabindex="-1" aria-label="Scorciatoie da tastiera">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-keyboard me-2"></i>Scorciatoie da tastiera</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><td><kbd>/</kbd></td><td>Cerca</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Questa guida</td></tr>
+            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Naviga — <kbd>g</kbd> poi:</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>d</kbd></td><td>Dashboard</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>c</kbd></td><td>Clienti</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>f</kbd></td><td>Fascicoli</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>a</kbd></td><td>Agenda</td></tr>
+            <tr><td><kbd>g</kbd> <kbd>s</kbd></td><td>Scadenze</td></tr>
+            <tr class="table-light"><td colspan="2" class="fw-semibold small px-3 py-1 text-muted">Crea — <kbd>n</kbd> poi:</td></tr>
+            <tr><td><kbd>n</kbd> <kbd>c</kbd></td><td>Nuovo cliente</td></tr>
+            <tr><td><kbd>n</kbd> <kbd>f</kbd></td><td>Nuovo fascicolo</td></tr>
+            <tr><td><kbd>n</kbd> <kbd>a</kbd></td><td>Nuovo appuntamento</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer py-2">
+        <small class="text-muted">Le scorciatoie sono disattivate nei campi di testo.</small>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  'use strict';
+  function inInput() {
+    const t = (document.activeElement || {}).tagName;
+    return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT'
+        || (document.activeElement || {}).isContentEditable;
+  }
+  const NAV = {
+    d: '{{ url_for("dashboard") }}',
+    c: '{{ url_for("lista_clienti") }}',
+    f: '{{ url_for("lista_fascicoli") }}',
+    a: '{{ url_for("agenda_view") }}',
+    s: '{{ url_for("scadenziario") }}',
+  };
+  const NEW = {
+    c: '{{ url_for("nuovo_cliente") }}',
+    f: '{{ url_for("nuovo_fascicolo") }}',
+    a: '{{ url_for("nuovo_appuntamento") }}',
+  };
+  let chord = null;
+  let chordTimer = null;
+
+  document.addEventListener('keydown', function (e) {
+    if (inInput() || e.ctrlKey || e.altKey || e.metaKey) return;
+    const k = e.key.toLowerCase();
+
+    if (k === '/') {
+      e.preventDefault();
+      const si = document.getElementById('search-input');
+      if (si) { si.focus(); si.select(); }
+      return;
+    }
+    if (k === '?') {
+      const el = document.getElementById('modalScorciatoie');
+      if (el) bootstrap.Modal.getOrCreate(el).show();
+      return;
+    }
+    if (chord === 'g' && NAV[k]) {
+      clearTimeout(chordTimer); chord = null;
+      location.href = NAV[k]; return;
+    }
+    if (chord === 'n' && NEW[k]) {
+      clearTimeout(chordTimer); chord = null;
+      location.href = NEW[k]; return;
+    }
+    if (k === 'g' || k === 'n') {
+      clearTimeout(chordTimer);
+      chord = k;
+      chordTimer = setTimeout(function () { chord = null; }, 1500);
+      return;
+    }
+    chord = null;
+  });
+})();
+</script>
+
+{# ================================================================ SINCRONIZZAZIONE REAL-TIME #}
+{% if utente_corrente %}
+<script>
+(function () {
+  'use strict';
+
+  // Modulo della pagina corrente (definito dal blocco pct_modulo)
+  const pctModulo = (document.querySelector('meta[name="pct-modulo"]') || {}).content || '';
+
+  // ---- Toast ----
+  const toastContainer = document.getElementById('sync-toast-container');
+  const LABEL_MODULO = {
+    clienti: 'Clienti', fascicoli: 'Fascicoli', scadenze: 'Scadenziario',
+    agenda: 'Agenda', messaggi: 'Messaggi', auth: 'Utenti', sistema: 'Sistema',
+  };
+  const LABEL_TIPO = { crea: 'Nuovo', modifica: 'Modificato', elimina: 'Eliminato', info: 'Info', connesso: null };
+
+  function mostraToast(ev) {
+    if (!ev.tipo || ev.tipo === 'connesso') return;
+    const tipo = ev.tipo || 'info';
+    const modulo = LABEL_MODULO[ev.modulo] || ev.modulo || '';
+    const labelTipo = LABEL_TIPO[tipo] || tipo;
+    const utente = ev.utente ? `<em>${ev.utente}</em>` : '';
+    const messaggio = ev.messaggio || '';
+
+    const t = document.createElement('div');
+    t.className = `sync-toast ${tipo}`;
+    t.innerHTML = `<i class="bi bi-arrow-repeat"></i>
+      <span class="sync-tipo">${labelTipo}</span>
+      <span>${modulo}${utente ? ' — ' + utente : ''}${messaggio ? ': ' + messaggio : ''}</span>`;
+    toastContainer.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('visible'));
+    setTimeout(() => {
+      t.classList.remove('visible');
+      setTimeout(() => t.remove(), 300);
+    }, 4500);
+  }
+
+  // ---- Banner dati stale ----
+  const staleBanner = document.getElementById('sync-stale-banner');
+  const staleMsg = document.getElementById('sync-stale-msg');
+  function mostraBanner(ev) {
+    const modulo = LABEL_MODULO[ev.modulo] || ev.modulo;
+    staleMsg.textContent = `"${modulo}" è stato aggiornato da ${ev.utente || 'un altro operatore'}. Ricarica per vedere le ultime modifiche.`;
+    staleBanner.classList.add('show');
+  }
+
+  // ---- Contatore operatori ----
+  const syncWidget = document.getElementById('sync-operatori');
+  const syncCount = document.getElementById('sync-count');
+
+  function aggiornaContatore() {
+    fetch('{{ url_for("api_sync_stato") }}')
+      .then(r => r.json())
+      .then(d => {
+        if (syncCount) syncCount.textContent = d.connessi;
+        if (syncWidget) syncWidget.classList.toggle('attivo', d.connessi > 1);
+      })
+      .catch(() => {});
+  }
+
+  // ---- SSE ----
+  if (!window.EventSource) return;
+
+  let es;
+  let reconnectDelay = 2000;
+  const MAX_DELAY = 30000;
+
+  function connetti() {
+    es = new EventSource('{{ url_for("api_eventi") }}');
+
+    es.onopen = function () {
+      reconnectDelay = 2000;
+    };
+
+    es.onmessage = function (e) {
+      if (!e.data || e.data === '{}') return;
+      let ev;
+      try { ev = JSON.parse(e.data); } catch { return; }
+
+      if (ev.tipo === 'connesso') {
+        // Il conteggio arriva direttamente nell'evento SSE, nessun fetch necessario
+        if (typeof ev.n_connessi === 'number') {
+          if (syncCount) syncCount.textContent = ev.n_connessi;
+          if (syncWidget) syncWidget.classList.toggle('attivo', ev.n_connessi > 1);
+        } else {
+          aggiornaContatore();
+        }
+        return;
+      }
+
+      // Mostra toast a tutti
+      mostraToast(ev);
+
+      // Se la pagina corrente mostra lo stesso modulo, segnala dati stale
+      if (pctModulo && pctModulo === ev.modulo && ev.tipo !== 'info') {
+        mostraBanner(ev);
+      }
+
+      // Propaga l'evento SSE come CustomEvent per push.js
+      document.dispatchEvent(new CustomEvent('pct:sync', { detail: ev }));
+
+      // Aggiorna contatore periodicamente
+      aggiornaContatore();
+    };
+
+    es.onerror = function () {
+      if (syncWidget) syncWidget.classList.remove('attivo');
+      es.close();
+      // Riconnessione esponenziale
+      setTimeout(connetti, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, MAX_DELAY);
+    };
+  }
+
+  connetti();
+
+  // Aggiorna contatore ogni 30s indipendentemente dagli eventi
+  setInterval(aggiornaContatore, 30000);
+})();
+</script>
+{% endif %}
+
+{# ---- Browser Notification API ---- #}
+{% if utente_corrente %}
+<script src="/static/js/push.js" defer></script>
+<script src="/static/js/mobile-gestures.js" defer></script>
+{% endif %}
+
+{# ---- Centro notifiche in-app ---- #}
+{% if utente_corrente %}
+<script>
+(function () {
+  const LETTE_KEY = 'pct_notif_lette_{{ utente_corrente.username | default("") }}';
+  const BADGE_EL  = document.getElementById('badge-notifiche');
+  const LISTA_EL  = document.getElementById('notifiche-lista');
+  const PLACEHOLDER = document.getElementById('notif-placeholder');
+  const BTN_LETTE = document.getElementById('btn-tutte-lette');
+  const BTN_PUSH  = document.getElementById('btn-abilita-push');
+
+  let _cache = [];
+
+  function getLette() {
+    try { return new Set(JSON.parse(localStorage.getItem(LETTE_KEY) || '[]')); }
+    catch (_) { return new Set(); }
+  }
+  function addLetta(id) {
+    const s = getLette(); s.add(id);
+    localStorage.setItem(LETTE_KEY, JSON.stringify([...s]));
+  }
+  function addTutteLette(ids) {
+    const s = getLette(); ids.forEach(id => s.add(id));
+    localStorage.setItem(LETTE_KEY, JSON.stringify([...s]));
+  }
+
+  function aggiornaIconaBell(non_lette) {
+    const icon = document.getElementById('icon-bell-inbox');
+    if (!icon) return;
+    icon.className = non_lette > 0 ? 'bi bi-bell-fill' : 'bi bi-bell';
+  }
+
+  function aggiornaBadge(alerts) {
+    const lette = getLette();
+    const n = alerts.filter(a => !lette.has(a.id)).length;
+    if (!BADGE_EL) return;
+    if (n > 0) {
+      BADGE_EL.textContent = n > 9 ? '9+' : n;
+      BADGE_EL.style.display = '';
+    } else {
+      BADGE_EL.style.display = 'none';
+    }
+    aggiornaIconaBell(n);
+  }
+
+  const COLORI = {danger:'#dc3545',warning:'#fd7e14',primary:'#0d6efd',info:'#0dcaf0',success:'#198754'};
+  const ICONE_COLORE = {danger:'text-danger',warning:'text-warning',primary:'text-primary',info:'text-info',success:'text-success'};
+
+  function renderLista(alerts) {
+    if (!LISTA_EL) return;
+    if (!alerts.length) {
+      LISTA_EL.innerHTML = '<div class="text-center text-muted py-4 small"><i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>Nessuna notifica</div>';
+      return;
+    }
+    const lette = getLette();
+    LISTA_EL.innerHTML = alerts.map(a => {
+      const non_letta = !lette.has(a.id);
+      return `<a href="${a.url}" class="d-block text-decoration-none border-bottom notif-item"
+                 data-id="${a.id}"
+                 style="padding:.65rem 1rem;background:${non_letta ? 'rgba(13,110,253,.04)' : ''}">
+        <div class="d-flex align-items-start gap-2">
+          <div class="flex-shrink-0 mt-1">
+            <i class="bi bi-${a.icona} ${ICONE_COLORE[a.tipo] || 'text-secondary'}" style="font-size:1rem"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold small ${ICONE_COLORE[a.tipo] || ''}">${a.titolo}</div>
+            <div class="text-muted" style="font-size:.73rem">${a.corpo}</div>
+          </div>
+          ${non_letta ? `<span class="flex-shrink-0 badge rounded-pill bg-${a.tipo}" style="width:7px;height:7px;padding:0;margin-top:.35rem" title="Non letta"></span>` : ''}
+        </div>
+      </a>`;
+    }).join('');
+
+    // Click → segna letta + naviga
+    LISTA_EL.querySelectorAll('.notif-item').forEach(el => {
+      el.addEventListener('click', function (e) {
+        const id = this.dataset.id;
+        addLetta(id);
+        aggiornaBadge(_cache);
+        // non preventDefault: lasciamo navigare normalmente
+      });
+    });
+  }
+
+  async function carica() {
+    try {
+      const resp = await fetch('/api/notifiche/inbox');
+      if (!resp.ok) return;
+      _cache = await resp.json();
+      aggiornaBadge(_cache);
+      renderLista(_cache);
+      // Mostra "Abilita notifiche desktop" se non ancora abilitato
+      if (BTN_PUSH && 'Notification' in window && Notification.permission === 'default') {
+        BTN_PUSH.style.display = '';
+      }
+    } catch (_) {}
+  }
+
+  // ── Pannello notifiche custom (fuori dal topbar, position:fixed su body) ─────
+  const PANEL    = document.getElementById('notifiche-dropdown');
+  const BTN_BELL = document.getElementById('btn-notifiche-inbox');
+
+  function _posizionaPanel() {
+    if (!BTN_BELL || !PANEL) return;
+    const r = BTN_BELL.getBoundingClientRect();
+    const panW = Math.min(360, window.innerWidth - 16);
+    let left = r.right - panW;
+    if (left < 8) left = 8;
+    PANEL.style.width = panW + 'px';
+    PANEL.style.top   = (r.bottom + 4) + 'px';
+    PANEL.style.left  = left + 'px';
+  }
+
+  function _apriPanel() {
+    if (!PANEL) return;
+    _posizionaPanel();
+    PANEL.style.display = 'block';
+    if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'true');
+    carica();
+  }
+
+  function _chiudiPanel() {
+    if (!PANEL) return;
+    PANEL.style.display = 'none';
+    if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'false');
+  }
+
+  // API pubblica usata dall'attributo onclick del button
+  window.pctNotifPanel = {
+    toggle: function (btn) {
+      if (PANEL && PANEL.style.display === 'block') {
+        _chiudiPanel();
+      } else {
+        _apriPanel();
+      }
+    }
+  };
+
+  // Chiudi al click fuori dal pannello
+  document.addEventListener('click', function (e) {
+    if (!PANEL || PANEL.style.display !== 'block') return;
+    if (PANEL.contains(e.target)) return;
+    if (BTN_BELL && BTN_BELL.contains(e.target)) return;
+    _chiudiPanel();
+  }, true);
+
+  // Riposiziona se il viewport cambia (orientamento mobile)
+  window.addEventListener('resize', function () {
+    if (PANEL && PANEL.style.display === 'block') _posizionaPanel();
+  });
+
+  // Segna tutte lette
+  if (BTN_LETTE) {
+    BTN_LETTE.addEventListener('click', function () {
+      addTutteLette(_cache.map(a => a.id));
+      aggiornaBadge(_cache);
+      renderLista(_cache);
+    });
+  }
+
+  // Init: carica badge al caricamento pagina
+  document.addEventListener('DOMContentLoaded', function () {
+    carica();
+    // Aggiorna ogni 5 minuti in background
+    setInterval(carica, 5 * 60 * 1000);
+  });
+})();
+</script>
+{% endif %}
+
+{# ---- Badge scadenze urgenti (entro 7 giorni) ---- #}
+{% if utente_corrente %}
+<script>
+(function() {
+  var badge = document.getElementById('badge-scadenze-nav');
+  if (!badge) return;
+  function aggiornaScadenze() {
+    fetch('/api/scadenze/urgenti')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) {
+        if (!d) return;
+        if (d.n > 0) {
+          badge.textContent = d.n > 9 ? '9+' : d.n;
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }).catch(function() {});
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    aggiornaScadenze();
+    setInterval(aggiornaScadenze, 10 * 60 * 1000); // ogni 10 min
+  });
+})();
+</script>
+{% endif %}
+
+{# ---- Dark mode toggle ---- #}
+<script>
+function toggleTema() {
+  const html = document.documentElement;
+  const next = (html.getAttribute('data-bs-theme') || 'light') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-bs-theme', next);
+  localStorage.setItem('pct-theme', next);
+  document.getElementById('icon-tema').className = next === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+}
+// Sincronizza icona con il tema corrente al caricamento
+(function() {
+  const t = localStorage.getItem('pct-theme') || 'light';
+  const icon = document.getElementById('icon-tema');
+  if (icon) icon.className = t === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+})();
+</script>
+
+{# ---- Service Worker — PWA ---- #}
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .catch(() => {}); // silenzioso: non blocca l'app
+  });
+}
+</script>
+<script>
+/* ---- Bottom nav hide/show ---- */
+(function(){
+  var bn    = document.getElementById('bottom-nav');
+  var bnh   = document.getElementById('bn-handle');
+  var main  = document.getElementById('main');
+  var toast = document.getElementById('sync-toast-container');
+  if (!bn || !bnh) return;
+  var hidden = localStorage.getItem('pct-bn-hidden') === '1';
+  function applyState(animate) {
+    if (animate) { bn.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1)'; }
+    bn.classList.toggle('bn-hidden', hidden);
+    bnh.classList.toggle('bn-hidden', hidden);
+    if (main)  main.classList.toggle('bn-hidden', hidden);
+    if (toast) toast.classList.toggle('bn-hidden', hidden);
+    bnh.querySelector('.bn-handle-pill').style.transform = hidden ? 'rotate(180deg) scaleX(0.7)' : '';
+  }
+  applyState(false);
+  bnh.addEventListener('click', function(){
+    hidden = !hidden;
+    localStorage.setItem('pct-bn-hidden', hidden ? '1' : '');
+    applyState(true);
+  });
+})();
+
+/* ---- Sidebar mobile toggle + desktop mini ---- */
+(function(){
+  var sb      = document.getElementById('sidebar');
+  var ab      = document.getElementById('app-body');
+  var ov      = document.getElementById('sb-overlay');
+  var btnOpen = document.getElementById('sb-open');      // hamburger topbar
+  var btnCls  = document.getElementById('sb-close');     // X nel logo (mobile)
+  var btnMini = document.getElementById('sb-mini-toggle'); // << freccia (desktop)
+
+  var MOBILE_BP = 768; // px
+
+  function isMobile() { return window.innerWidth <= MOBILE_BP; }
+
+  /* ── Mobile overlay ── */
+  var bn = document.getElementById('bottom-nav');
+  var bnh = document.getElementById('bn-handle');
+  function openDrawer() {
+    sb.classList.add('sb-open'); ov.classList.add('sb-open');
+    if (isMobile() && bn)  { bn.classList.add('bn-hidden');  }
+    if (isMobile() && bnh) { bnh.classList.add('bn-hidden'); }
+  }
+  function closeDrawer() {
+    sb.classList.remove('sb-open'); ov.classList.remove('sb-open');
+    if (isMobile() && bn  && localStorage.getItem('pct-bn-hidden') !== '1') { bn.classList.remove('bn-hidden');  }
+    if (isMobile() && bnh && localStorage.getItem('pct-bn-hidden') !== '1') { bnh.classList.remove('bn-hidden'); }
+  }
+
+  /* ── Desktop mini ── */
+  function setMini(mini) {
+    sb.classList.toggle('sb-mini', mini);
+    ab.classList.toggle('sb-mini', mini);
+    localStorage.setItem('pct-sb-mini', mini ? '1' : '');
+  }
+  function toggleMini() { setMini(!sb.classList.contains('sb-mini')); }
+
+  /* Ripristina stato mini al caricamento (solo desktop) */
+  if (!isMobile() && localStorage.getItem('pct-sb-mini') === '1') {
+    sb.classList.add('sb-mini');
+    ab.classList.add('sb-mini');
+  }
+
+  /* Il bottone hamburger (topbar): su mobile apre il drawer, su desktop fa mini */
+  if (btnOpen) btnOpen.addEventListener('click', function(){
+    if (isMobile()) {
+      sb.classList.contains('sb-open') ? closeDrawer() : openDrawer();
+    } else {
+      toggleMini();
+    }
+  });
+
+  /* X nel logo: chiude il drawer su mobile */
+  if (btnCls) btnCls.addEventListener('click', function(){
+    if (isMobile()) closeDrawer(); else toggleMini();
+  });
+
+  /* Freccia mini/expand nel logo (desktop) */
+  if (btnMini) btnMini.addEventListener('click', toggleMini);
+
+  if (ov) ov.addEventListener('click', closeDrawer);
+})();
+
+/* ================================================================
+   PCT SWIPE — Swipe-to-dismiss per righe tabella (mobile)
+   Attiva su: tr[data-swipe-delete]
+   Se data-swipe-delete ha un URL, chiama DELETE; altrimenti solo UI.
+   ================================================================ */
+(function() {
+  'use strict';
+
+  var THRESHOLD = 0.42; // 42% larghezza riga per confermare
+
+  function initSwipe(root) {
+    root = root || document;
+    root.querySelectorAll('tr[data-swipe-delete]').forEach(attachSwipe);
+  }
+
+  function attachSwipe(row) {
+    var startX, startY, deltaX = 0, isTracking = false, underlay = null;
+
+    function mkUnderlay() {
+      underlay = document.createElement('div');
+      underlay.className = 'pct-swipe-underlay';
+      underlay.innerHTML = '<i class="bi bi-trash3-fill" style="font-size:1.15rem;transition:transform .15s"></i>';
+      document.body.appendChild(underlay);
+    }
+    function positionUnderlay() {
+      if (!underlay) return;
+      var r = row.getBoundingClientRect();
+      underlay.style.cssText += ';top:' + r.top + 'px;left:' + r.left + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
+    }
+    function removeUnderlay() {
+      if (underlay) { underlay.remove(); underlay = null; }
+    }
+
+    row.addEventListener('touchstart', function(e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      deltaX = 0; isTracking = false;
+    }, { passive: true });
+
+    row.addEventListener('touchmove', function(e) {
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (!isTracking) {
+        if (Math.abs(dy) > Math.abs(dx) + 4) return; // scroll verticale
+        if (dx > 8) return;                           // swipe destra
+        isTracking = true;
+        mkUnderlay();
+      }
+      if (!isTracking) return;
+      if (e.cancelable) e.preventDefault();
+      deltaX = Math.min(0, dx);
+      var progress = Math.min(1, Math.abs(deltaX) / row.offsetWidth);
+      row.style.transform = 'translateX(' + deltaX + 'px)';
+      row.style.transition = 'none';
+      // Colora le celle in rosso progressivamente
+      row.querySelectorAll('td').forEach(function(td) {
+        td.style.background = 'rgba(220,53,69,' + (progress * 0.28) + ')';
+      });
+      positionUnderlay();
+      underlay.classList.toggle('visible', progress > 0.12);
+      underlay.querySelector('i').style.transform = 'scale(' + (0.75 + progress * 0.45) + ')';
+    }, { passive: false });
+
+    row.addEventListener('touchend', function() {
+      if (!isTracking) return;
+      removeUnderlay();
+      if (Math.abs(deltaX) >= row.offsetWidth * THRESHOLD) {
+        if (window.pctVibrate) window.pctVibrate(18); // haptic confirm
+        dismissRow(row);
+      } else {
+        snapBack(row);
+      }
+      isTracking = false;
+    });
+
+    row.addEventListener('touchcancel', function() {
+      if (isTracking) { snapBack(row); removeUnderlay(); isTracking = false; }
+    });
+  }
+
+  function snapBack(row) {
+    row.style.transition = 'transform .3s cubic-bezier(.4,0,.2,1)';
+    row.style.transform = 'translateX(0)';
+    row.querySelectorAll('td').forEach(function(td) { td.style.background = ''; });
+    setTimeout(function() { row.style.transition = ''; }, 320);
+  }
+
+  function dismissRow(row) {
+    // 1. Slide out
+    row.style.transition = 'transform .24s ease, opacity .24s ease';
+    row.style.transform = 'translateX(-110%)';
+    row.style.opacity = '0';
+    // 2. Collassa l'altezza delle celle
+    setTimeout(function() {
+      row.querySelectorAll('td').forEach(function(td) {
+        td.style.transition = 'padding .22s ease, height .22s ease, font-size .22s ease, line-height .22s ease, border-width .22s ease';
+        td.style.paddingTop    = '0';
+        td.style.paddingBottom = '0';
+        td.style.height        = '0';
+        td.style.fontSize      = '0';
+        td.style.lineHeight    = '0';
+        td.style.overflow      = 'hidden';
+        td.style.borderTopWidth = '0';
+        td.style.borderBottomWidth = '0';
+      });
+      // 3. Rimuovi dal DOM + chiama API se configurata
+      setTimeout(function() {
+        var deleteUrl = row.dataset.swipeDelete;
+        if (deleteUrl && deleteUrl !== 'true' && deleteUrl !== '1') {
+          fetch(deleteUrl, { method: 'DELETE',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .catch(function() {});
+        }
+        row.remove();
+        showSwipeToast('Elemento rimosso');
+      }, 240);
+    }, 240);
+  }
+
+  function showSwipeToast(msg) {
+    var t = document.createElement('div');
+    t.className = 'pct-swipe-toast';
+    t.innerHTML = '<i class="bi bi-check-circle me-2"></i>' + msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function() { t.classList.add('visible'); });
+    setTimeout(function() {
+      t.classList.remove('visible');
+      setTimeout(function() { t.remove(); }, 300);
+    }, 3200);
+  }
+
+  window.PCT_SWIPE = { init: initSwipe };
+  document.addEventListener('DOMContentLoaded', function() { initSwipe(document); });
+})();
+</script>
+<!-- Mobile enhancements: tabelle scrollabili + modal bottom sheet -->
+<script>
+(function() {
+  'use strict';
+  function initMobileEnhancements() {
+    // 1. Rileva tabelle che traboccano → aggiunge classe .scrollable per fade-out
+    document.querySelectorAll('.ds-table-wrap').forEach(function(wrap) {
+      function checkScroll() {
+        wrap.classList.toggle('scrollable', wrap.scrollWidth > wrap.clientWidth + 4);
+      }
+      checkScroll();
+      var ro = new ResizeObserver(checkScroll);
+      ro.observe(wrap);
+      wrap.addEventListener('scroll', function() {
+        // Rimuovi fade quando si arriva in fondo
+        var atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 8;
+        wrap.classList.toggle('scrollable', !atEnd);
+      }, { passive: true });
+    });
+
+    // 2. Bottomsheet: modale con classe .modal-bottom → animazione slide-up
+    document.querySelectorAll('.modal.modal-bottom').forEach(function(modal) {
+      modal.addEventListener('show.bs.modal', function() {
+        var dialog = modal.querySelector('.modal-dialog');
+        if (dialog) dialog.style.transform = '';
+      });
+    });
+
+    // 3. Bottoni form footer sticky: aggiusta z-index per safe area
+    document.querySelectorAll('.form-footer-actions').forEach(function(el) {
+      // già gestito da CSS; nessuna azione JS necessaria
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileEnhancements);
+  } else {
+    initMobileEnhancements();
+  }
+  // Ri-esegui dopo caricamenti htmx
+  document.addEventListener('htmx:afterSettle', initMobileEnhancements);
+})();
+</script>
+<script>
+/* ---- OCR status pill — polling /api/ocr/stato ogni 15s ---- */
+(function () {
+  var pill    = document.getElementById('ocr-pill');
+  var txt     = document.getElementById('ocr-pill-txt');
+  if (!pill || !txt) return;
+  var spinner = pill.querySelector('.ocr-pill-spinner');
+  var check   = pill.querySelector('.ocr-pill-check');
+  var _doneTimer = null;
+  var _wasActive = false;
+  function aggiorna() {
+    fetch('/api/ocr/stato')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        clearTimeout(_doneTimer);
+        if (d.in_coda > 0) {
+          _wasActive = true;
+          txt.textContent = 'OCR \u00b7 ' + d.in_coda;
+          pill.classList.remove('ocr-done');
+          pill.style.display = 'inline-flex';
+          if (spinner) spinner.style.display = '';
+          if (check)   check.style.display   = 'none';
+        } else if (_wasActive) {
+          _wasActive = false;
+          txt.textContent = 'OCR';
+          pill.classList.add('ocr-done');
+          pill.style.display = 'inline-flex';
+          if (spinner) spinner.style.display = 'none';
+          if (check)   check.style.display   = '';
+          _doneTimer = setTimeout(function () {
+            pill.style.display = 'none';
+            pill.classList.remove('ocr-done');
+            if (spinner) spinner.style.display = '';
+            if (check)   check.style.display   = 'none';
+          }, 3000);
+        }
+      })
+      .catch(function () {});
+  }
+  aggiorna();
+  setInterval(aggiorna, 15000);
+})();
+
+/* Fix dropdown clippati da overflow:hidden su mobile (#main è position:fixed overflow-x:hidden).
+   I dropdown all'interno di #main usano position:fixed via Popper strategy per non essere tagliati. */
+(function() {
+  function initFixedDropdowns(root) {
+    var main = document.getElementById('main');
+    if (!main) return;
+    (root || main).querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(el) {
+      // Inizializza solo se non già inizializzato
+      if (bootstrap.Dropdown.getInstance(el)) return;
+      new bootstrap.Dropdown(el, {
+        popperConfig: { strategy: 'fixed' }
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { initFixedDropdowns(); });
+  } else {
+    initFixedDropdowns();
+  }
+  document.addEventListener('htmx:afterSettle', function() { initFixedDropdowns(); });
+})();
+</script>
+
+{# ================================================================
+   SOGGETTO SEARCH WIDGET — funzione globale riutilizzabile
+   Chiama: initSoggettoSearch({ uid, inputId, allow_free_text })
+   Dove:
+     uid           = prefisso univoco per ID elementi DOM
+     inputId       = ID dell'<input type="text" name="controparte">
+     allowFreeText = true → l'utente può lasciare testo libero
+                     false → richiede selezione da lista (default)
+   ================================================================ #}
+<script>
+(function() {
+  // Debounce utility
+  function debounce(fn, ms) {
+    var t; return function() { var a = arguments, ctx = this; clearTimeout(t); t = setTimeout(function(){ fn.apply(ctx, a); }, ms); };
+  }
+
+  /**
+   * Inizializza il widget Soggetto Search su un <input type="text">.
+   * L'input deve trovarsi dentro un .ss-wrap con .ss-dropdown al suo interno.
+   *
+   * HTML previsto:
+   *   <div class="ss-wrap" id="ss-{uid}">
+   *     <div class="ss-input-group">
+   *       <i class="bi bi-search ss-icon"></i>
+   *       <input type="text" id="ss-{uid}-input" class="ss-input" ...>
+   *       <button type="button" class="ss-btn-new" onclick="...">+ Nuovo</button>
+   *     </div>
+   *     <div class="ss-dropdown" id="ss-{uid}-dropdown"></div>
+   *   </div>
+   *
+   * Il campo form effettivo è l'<input type="text"> stesso (se allowFreeText)
+   * oppure un hidden affiancato (se !allowFreeText).
+   */
+  window.initSoggettoSearch = function(opts) {
+    var uid          = opts.uid;
+    var allowFree    = opts.allowFreeText !== false;  // default true
+    var apiUrl       = opts.apiUrl || '/api/soggetti';
+    var createUrl    = opts.createUrl || '/soggetti/nuovo';
+    var createLabel  = opts.createLabel || 'Crea nuovo soggetto';
+    var minChars     = opts.minChars || 2;
+
+    var wrap  = document.getElementById('ss-' + uid);
+    var input = document.getElementById('ss-' + uid + '-input');
+    var drop  = document.getElementById('ss-' + uid + '-dropdown');
+    var chip  = document.getElementById('ss-' + uid + '-chip');
+
+    if (!wrap || !input || !drop) return;
+
+    var selected = null;   // oggetto soggetto selezionato
+    var results  = [];
+
+    // ── Renderizza i risultati
+    function renderResults(items) {
+      results = items;
+      if (!items.length) {
+        var q = input.value.trim();
+        drop.innerHTML =
+          '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q ? '?cognome=' + encodeURIComponent(q) : '')) + '')">' +
+            '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
+            createLabel + (q ? ' "' + _esc(q) + '"' : '') +
+          '</div>';
+        drop.classList.add('is-open');
+        return;
+      }
+      var html = items.map(function(s, i) {
+        var siglaClass = s.sigla === 'PG' ? 'ss-sigla pg' : 'ss-sigla';
+        var qualBadge  = s.qualifica ? '<span class="ss-item-qualifica">' + _esc(s.qualifica) + '</span>' : '';
+        var sub = [];
+        if (s.identificativo) sub.push(s.identificativo);
+        return '<div class="ss-item" data-idx="' + i + '" onclick="soggettoSearchSelect('' + uid + '',' + i + ', null)">' +
+          '<div class="' + siglaClass + '">' + _esc(s.sigla) + '</div>' +
+          '<div class="ss-item-body">' +
+            '<div class="ss-item-name">' + _esc(s.nome) + '</div>' +
+            (sub.length ? '<div class="ss-item-sub">' + _esc(sub.join(' · ')) + '</div>' : '') +
+          '</div>' +
+          qualBadge +
+        '</div>';
+      }).join('');
+      var q2 = input.value.trim();
+      html += '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q2 ? '?cognome=' + encodeURIComponent(q2) : '')) + '')">' +
+        '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
+        createLabel +
+      '</div>';
+      drop.innerHTML = html;
+      drop.classList.add('is-open');
+    }
+
+    // ── Ricerca API
+    var doSearch = debounce(function(q) {
+      if (q.length < minChars) { drop.classList.remove('is-open'); return; }
+      fetch(apiUrl + '?q=' + encodeURIComponent(q))
+        .then(function(r){ return r.json(); })
+        .then(function(data){ renderResults(data); })
+        .catch(function(){ drop.classList.remove('is-open'); });
+    }, 280);
+
+    // ── Event listeners input
+    input.addEventListener('input', function() {
+      if (selected && allowFree) { selected = null; _updateChip(); }
+      doSearch(this.value.trim());
+    });
+    input.addEventListener('focus', function() {
+      if (this.value.trim().length >= minChars) doSearch(this.value.trim());
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { drop.classList.remove('is-open'); }
+    });
+
+    // Chiudi su click esterno
+    document.addEventListener('click', function(e) {
+      if (!wrap.contains(e.target)) drop.classList.remove('is-open');
+    }, true);
+
+    // ── Selezione soggetto
+    window.soggettoSearchSelect = window.soggettoSearchSelect || {};
+    window['_ssSelect_' + uid] = function(idx, url) {
+      drop.classList.remove('is-open');
+      if (url) {
+        // "Crea nuovo" → apre in nuova scheda
+        window.open(decodeURIComponent(url), '_blank');
+        return;
+      }
+      if (idx === null || idx === undefined) return;
+      var s = results[idx];
+      if (!s) return;
+      selected = s;
+      input.value = s.nome;
+      _updateChip();
+    };
+
+    function _updateChip() {
+      if (!chip) return;
+      if (!selected) { chip.style.display = 'none'; return; }
+      chip.style.display = 'flex';
+      var siglaClass = selected.sigla === 'PG' ? 'ss-chip-sigla pg' : 'ss-chip-sigla';
+      chip.innerHTML =
+        '<div class="' + siglaClass + '">' + _esc(selected.sigla) + '</div>' +
+        '<span class="ss-chip-name">' + _esc(selected.nome) + '</span>' +
+        (selected.identificativo ? '<span class="ss-chip-name" style="font-weight:400;opacity:.7;font-size:.75rem">&nbsp;· ' + _esc(selected.identificativo) + '</span>' : '') +
+        '<button type="button" class="ss-chip-clear" onclick="_ssClear_' + uid + '()" title="Deseleziona">×</button>';
+    }
+
+    window['_ssClear_' + uid] = function() {
+      selected = null;
+      input.value = '';
+      if (chip) chip.style.display = 'none';
+      input.focus();
+    };
+
+    // ── Espone la funzione di selezione globale (onclick="soggettoSearchSelect(uid, idx, url)")
+    if (!window.soggettoSearchSelect || typeof window.soggettoSearchSelect !== 'function') {
+      window.soggettoSearchSelect = function(uid, idx, url) {
+        var fn = window['_ssSelect_' + uid];
+        if (fn) fn(idx, url);
+      };
+    }
+  };
+
+  function _esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Ri-espone globalmente (per onclick inline)
+  window.soggettoSearchSelect = function(uid, idx, url) {
+    var fn = window['_ssSelect_' + uid];
+    if (fn) fn(idx, url);
+  };
+
+})();
+</script>
+
+{# ═══════════════════════════════════════════════════════════════
+   Assistente virtuale PCT — Lex
+   Floating chat widget (visibile solo agli utenti autenticati)
+   ═══════════════════════════════════════════════════════════════ #}
+{% if g.utente_corrente %}
+<!-- Pulsante FAB -->
+<button id="pct-ai-fab" class="pct-ai-fab" title="Assistente PCT — Lex"
+        onclick="pctAI.toggle()" aria-label="Apri assistente virtuale">
+  <i class="bi bi-robot fs-5"></i>
+</button>
+
+<!-- Pannello chat -->
+<div id="pct-ai-panel" class="pct-ai-panel" style="display:none" role="dialog" aria-label="Assistente PCT">
+
+  <!-- Header -->
+  <div class="pct-ai-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-robot"></i>
+      <strong>Lex</strong>
+      <span class="text-white-50" style="font-size:.75rem;font-weight:400">Assistente PCT</span>
+      <span id="pct-ai-model-badge" class="badge"
+            style="background:rgba(255,255,255,.15);font-size:.6rem;font-weight:500"></span>
+    </div>
+    <div class="d-flex gap-1">
+      <button class="pct-ai-hbtn" onclick="pctAI.clearHistory()" title="Nuova conversazione">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+      <button class="pct-ai-hbtn" onclick="pctAI.toggle()" title="Chiudi">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contesto fascicolo attivo -->
+  <div id="pct-ai-ctx" class="pct-ai-ctx" style="display:none">
+    <i class="bi bi-folder2-open"></i>
+    <span id="pct-ai-ctx-label"></span>
+  </div>
+
+  <!-- Area messaggi -->
+  <div id="pct-ai-messages" class="pct-ai-messages">
+    <div class="pct-ai-msg pct-ai-msg--assistant">
+      <div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-robot"></i></div>
+      <div class="pct-ai-bubble">
+        <p>Ciao! Sono <strong>Lex</strong>, il tuo assistente per il deposito telematico.</p>
+        <p>Posso aiutarti con:</p>
+        <ul>
+          <li>Preparazione buste e invio depositi (PST, PDP, PAT)</li>
+          <li>Interpretazione errori e stati del deposito</li>
+          <li>Firma digitale, PEC, PDF/A</li>
+          <li>Normativa D.M. 44/2011 e procedure</li>
+        </ul>
+        <p class="mb-0">Come posso aiutarti?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer input -->
+  <div class="pct-ai-footer">
+    <div class="pct-ai-input-wrap">
+      <textarea id="pct-ai-input" class="pct-ai-input"
+                placeholder="Scrivi una domanda…"
+                rows="1"
+                onkeydown="pctAI.onKeydown(event)"
+                oninput="pctAI.autoResize(this)"></textarea>
+      <button id="pct-ai-send" class="pct-ai-send-btn" onclick="pctAI.send()" title="Invia">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+    <div id="pct-ai-status" class="pct-ai-status-bar"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ── Stato interno ────────────────────────────────────────────────────────────
+var _open      = false;
+var _streaming = false;
+var _history   = [];          // [{role, content}] — ultimi 20 messaggi
+var _fascId    = null;        // ID fascicolo attivo (dall'URL o da window.pctAiFascicoloId)
+var _currentBubble = null;    // elemento bubble corrente durante lo streaming
+
+// ── Esposto globalmente ──────────────────────────────────────────────────────
+window.pctAI = {
+
+  init: function () {
+    // Rileva fascicolo dall'URL (es. /fascicoli/abc123/...)
+    var m = location.pathname.match(/\/fascicoli\/([^/]+)/);
+    _fascId = (m && m[1]) || window.pctAiFascicoloId || null;
+    if (_fascId) {
+      var ctx = document.getElementById('pct-ai-ctx');
+      var lbl = document.getElementById('pct-ai-ctx-label');
+      if (ctx && lbl) {
+        lbl.textContent = 'Contesto fascicolo attivo';
+        ctx.style.display = 'flex';
+      }
+    }
+    _checkStatus();
+  },
+
+  toggle: function () {
+    _open = !_open;
+    var panel = document.getElementById('pct-ai-panel');
+    var fab   = document.getElementById('pct-ai-fab');
+    panel.style.display = _open ? 'flex' : 'none';
+    if (fab) fab.classList.toggle('pct-ai-fab--active', _open);
+    if (_open) {
+      setTimeout(function () {
+        var inp = document.getElementById('pct-ai-input');
+        if (inp) inp.focus();
+        _scrollBottom();
+      }, 80);
+    }
+  },
+
+  onKeydown: function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      window.pctAI.send();
+    }
+  },
+
+  autoResize: function (el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  },
+
+  send: function () {
+    if (_streaming) return;
+    var inp  = document.getElementById('pct-ai-input');
+    var text = inp ? inp.value.trim() : '';
+    if (!text) return;
+
+    inp.value = '';
+    inp.style.height = 'auto';
+
+    _history.push({ role: 'user', content: text });
+    _appendMsg('user', text);
+
+    _streaming = true;
+    _setStatus('Lex sta scrivendo…');
+    document.getElementById('pct-ai-send').disabled = true;
+
+    _currentBubble = _appendMsg('assistant', '');
+
+    var payload = {
+      messages: _history.slice(-20),
+      fascicolo_id: _fascId || ''
+    };
+
+    fetch('/api/assistente/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (resp) {
+      var reader  = resp.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer  = '';
+      var full    = '';
+
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) {
+            _history.push({ role: 'assistant', content: full });
+            _finalize();
+            return;
+          }
+          buffer += decoder.decode(res.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            if (!line.startsWith('data: ')) continue;
+            var raw = line.slice(6).trim();
+            if (raw === '[DONE]') {
+              _history.push({ role: 'assistant', content: full });
+              _finalize();
+              return;
+            }
+            try {
+              var d = JSON.parse(raw);
+              if (d.errore) {
+                _setBubble(_currentBubble, '⚠️ ' + d.errore);
+                _history.push({ role: 'assistant', content: d.errore });
+                _finalize();
+                return;
+              }
+              if (d.token) {
+                full += d.token;
+                _setBubble(_currentBubble, full);
+                _scrollBottom();
+              }
+            } catch (_) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function (err) {
+      if (_currentBubble) _setBubble(_currentBubble, '⚠️ Errore di connessione: ' + err.message);
+      _finalize();
+    });
+  },
+
+  clearHistory: function () {
+    _history = [];
+    var container = document.getElementById('pct-ai-messages');
+    if (container) {
+      container.innerHTML =
+        '<div class="pct-ai-msg pct-ai-msg--assistant">' +
+          '<div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-robot"></i></div>' +
+          '<div class="pct-ai-bubble"><p class="mb-0">Conversazione resettata. Come posso aiutarti?</p></div>' +
+        '</div>';
+    }
+  }
+};
+
+// ── Funzioni interne ─────────────────────────────────────────────────────────
+
+function _checkStatus() {
+  fetch('/api/assistente/stato')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var badge = document.getElementById('pct-ai-model-badge');
+      if (badge) badge.textContent = data.ok ? data.modello_attivo : '⚠ offline';
+    })
+    .catch(function () {});
+}
+
+function _appendMsg(role, content) {
+  var container = document.getElementById('pct-ai-messages');
+  var wrap = document.createElement('div');
+  wrap.className = 'pct-ai-msg pct-ai-msg--' + role;
+
+  var avatarIcon = role === 'user' ? 'person-fill' : 'robot';
+  var avatarCls  = role === 'user' ? 'pct-ai-avatar--user' : 'pct-ai-avatar--ai';
+  wrap.innerHTML =
+    '<div class="pct-ai-avatar ' + avatarCls + '"><i class="bi bi-' + avatarIcon + '"></i></div>' +
+    '<div class="pct-ai-bubble">' + (content ? _renderMd(content) : '<span class="pct-ai-cursor">▋</span>') + '</div>';
+
+  container.appendChild(wrap);
+  _scrollBottom();
+  return wrap.querySelector('.pct-ai-bubble');
+}
+
+function _setBubble(el, content) {
+  if (el) el.innerHTML = content ? _renderMd(content) : '<span class="pct-ai-cursor">▋</span>';
+}
+
+function _renderMd(text) {
+  if (!text) return '';
+  // 1. Escape HTML
+  var html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // 2. Code blocks (```...```)
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  // 3. Inline code
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // 4. Bold
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // 5. Bullet lists (•, -, ☐, ☑)
+  html = html.replace(/^([•\-☐☑✓✗]\s.+)$/gm, '<li>$1</li>');
+  html = html.replace(/^(\d+\.\s.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*<li>[\s\S]*?<\/li>)*/g, '<ul>$&</ul>');
+  // 6. Paragraphs from double newlines
+  var paras = html.split(/\n\n+/);
+  html = paras.map(function (p) {
+    p = p.trim();
+    if (!p) return '';
+    if (p.startsWith('<ul>') || p.startsWith('<pre>')) return p;
+    return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+  return html || text;
+}
+
+function _scrollBottom() {
+  var el = document.getElementById('pct-ai-messages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function _setStatus(msg) {
+  var el = document.getElementById('pct-ai-status');
+  if (el) el.textContent = msg;
+}
+
+function _finalize() {
+  _streaming = false;
+  _setStatus('');
+  var btn = document.getElementById('pct-ai-send');
+  if (btn) btn.disabled = false;
+  _scrollBottom();
+}
+
+// ── Avvio ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () { window.pctAI.init(); });
+
+})();
+</script>
+{% endif %}
+</body>
+</html>

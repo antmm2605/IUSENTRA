@@ -12,6 +12,9 @@ Mantiene un registro aggiornato di tutti gli uffici giudiziari italiani:
   • 100+ Uffici del Giudice di Pace (capoluoghi + principali)
   • 20+ TAR (Tribunali Amministrativi Regionali) + Consiglio di Stato
   • Corte Suprema di Cassazione
+  • 21  CGT (Corti di Giustizia Tributaria di Secondo Grado, ex CTR)
+  • 107 CPT (Corti di Giustizia Tributaria di Primo Grado, ex CTP)
+  • 1   CGARS (Consiglio di Giustizia Amministrativa Regione Siciliana)
 
 Fonti per l'aggiornamento (priorità decrescente):
   1. PCT_UFFICI_URL         — endpoint JSON personalizzato
@@ -25,12 +28,15 @@ Cache:
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import unicodedata
 from datetime import datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +47,11 @@ _TTL_GIORNI   = int(os.getenv("PCT_UFFICI_TTL_GIORNI", "7"))
 _REMOTO_URL   = os.getenv("PCT_UFFICI_URL", "")          # URL JSON esterno facoltativo
 _PST_UFFICI   = "https://pst.giustizia.it/PST/resources/rest/ricercaUfficiGiudiziari"
 _PST_TIMEOUT  = 12  # secondi
+_RIFERIMENTI_MINISTERO_PATH = Path(__file__).resolve().parent / "data" / "uffici_ministero.json"
+_PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
+_PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
+_PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
+_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASS")
 
 # ---------------------------------------------------------------- tipi
 
@@ -56,6 +67,9 @@ TIPI_UFFICIO = {
     "GDP":               ("bi-person-badge",        "Giudice di Pace"),
     "TAR":               ("bi-building-check",      "TAR"),
     "CDS":               ("bi-columns-gap",         "Consiglio di Stato"),
+    "CGARS":             ("bi-shield-half",          "CGARS"),
+    "CGT":               ("bi-receipt-cutoff",       "CGT — Secondo grado"),
+    "CPT":               ("bi-receipt",              "CPT — Primo grado"),
 }
 
 
@@ -65,6 +79,79 @@ def _n(testo: str) -> str:
     """Normalizza slug (rimuove accenti, lowercase, senza spazi)."""
     nfkd = unicodedata.normalize("NFKD", testo)
     return "".join(c for c in nfkd if not unicodedata.combining(c)).lower().replace(" ", "")
+
+
+def _uffici_hash(uffici: list[dict]) -> str:
+    """Restituisce un hash stabile del contenuto logico del bundle/cache."""
+    canonici = [
+        {
+            "codice": u.get("codice", ""),
+            "nome": u.get("nome", ""),
+            "distretto": u.get("distretto", ""),
+            "pec": u.get("pec", ""),
+            "tipo": u.get("tipo", ""),
+            "codice_ministero": u.get("codice_ministero", ""),
+            "codice_gl": u.get("codice_gl", ""),
+            "servizio_pst_predefinito": u.get("servizio_pst_predefinito", ""),
+        }
+        for u in uffici
+    ]
+    canonici.sort(key=lambda u: (u["codice"], u["nome"], u["tipo"]))
+    payload = json.dumps(canonici, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+@lru_cache(maxsize=1)
+def _carica_riferimenti_ministero() -> dict[str, dict]:
+    """Carica la mappatura interna → metadata ministeriali generata da ListaUfficiGiudiziari.xml."""
+    if not _RIFERIMENTI_MINISTERO_PATH.exists():
+        return {}
+    try:
+        raw = json.loads(_RIFERIMENTI_MINISTERO_PATH.read_text(encoding="utf-8"))
+        mapping = raw.get("uffici", {}) if isinstance(raw, dict) else {}
+        return mapping if isinstance(mapping, dict) else {}
+    except Exception as exc:
+        log.warning("Lettura snapshot ministeriale uffici fallita: %s", exc)
+        return {}
+
+
+def _applica_riferimenti_ministero(uffici: list[dict]) -> list[dict]:
+    """Sovrascrive distretto/PEC con il riferimento ministeriale e aggiunge metadati PST."""
+    riferimenti = _carica_riferimenti_ministero()
+    if not riferimenti:
+        return uffici
+    arricchiti: list[dict] = []
+    for ufficio in uffici:
+        ref = riferimenti.get(ufficio.get("codice", ""))
+        if not ref:
+            arricchiti.append(ufficio)
+            continue
+        merged = dict(ufficio)
+        distretto = ref.get("distretto_ministero") or ""
+        pec = (ref.get("pec_ministero") or "").strip().lower()
+        if distretto:
+            merged["distretto"] = distretto
+        if pec:
+            merged["pec"] = pec
+        for chiave in (
+            "codice_ministero",
+            "codice_gl",
+            "descrizione_ministero",
+            "tipo_ministero",
+            "tipo_ministero_descrizione",
+            "comune_ministero",
+            "distretto_ministero",
+            "distretto_gl",
+            "regione_ministero",
+            "provincia_ministero",
+            "pec_ministero",
+            "servizi_ministero",
+            "servizio_pst_predefinito",
+        ):
+            if chiave in ref:
+                merged[chiave] = ref[chiave]
+        arricchiti.append(merged)
+    return arricchiti
 
 
 def _t(cod, nome, dist, slug):
@@ -110,6 +197,19 @@ def _gdp(cod, nome, dist, slug):
 def _tar(cod, nome, regione, slug):
     return {"codice": cod, "nome": f"TAR {nome}", "distretto": regione,
             "pec": f"tar-{slug}@pec.giustizia-amministrativa.it", "tipo": "TAR"}
+
+
+def _cgars(cod, nome, distretto, slug):
+    return {"codice": cod, "nome": nome, "distretto": distretto,
+            "pec": f"{slug}@pec.giustizia-amministrativa.it", "tipo": "CGARS"}
+
+def _cgt(cod, nome_regione, citta, slug):
+    return {"codice": cod, "nome": f"CGT {nome_regione}", "distretto": citta,
+            "pec": f"cgt.{slug}@pec.mef.gov.it", "tipo": "CGT"}
+
+def _cpt(cod, citta, slug, distretto):
+    return {"codice": cod, "nome": f"CPT {citta}", "distretto": distretto,
+            "pec": f"cpt.{slug}@pec.mef.gov.it", "tipo": "CPT"}
 
 
 # Registro completo — aggiornato al 2025
@@ -262,11 +362,13 @@ _BUNDLE_RAW: list[dict] = [
     _t("0900010","Cosenza",        "Catanzaro", "cosenza"),
     _t("0890011","Crotone",        "Catanzaro", "crotone"),
     _t("0890012","Lamezia Terme",  "Catanzaro", "lamezia"),
-    _t("0910011","Palmi",          "Catanzaro", "palmi"),
     _t("0900011","Paola",          "Catanzaro", "paola"),
     _t("0900012","Rossano",        "Catanzaro", "rossano"),
-    _t("0910010","Reggio Calabria","Catanzaro", "reggiocalabria"),
     _t("0890013","Vibo Valentia",  "Catanzaro", "vibovalentia"),
+
+    # — Reggio Calabria
+    _t("0910011","Palmi",          "Reggio Calabria", "palmi"),
+    _t("0910010","Reggio Calabria","Reggio Calabria", "reggiocalabria"),
 
     # — Palermo
     _t("0920010","Palermo",        "Palermo",   "palermo"),
@@ -372,7 +474,7 @@ _BUNDLE_RAW: list[dict] = [
     _tm("0860100","Salerno",         "Napoli",    "salerno"),
     _tm("0870100","Potenza",         "Potenza",   "potenza"),
     _tm("0890100","Catanzaro",       "Catanzaro", "catanzaro"),
-    _tm("0910100","Reggio Calabria", "Catanzaro", "reggiocalabria"),
+    _tm("0910100","Reggio Calabria", "Reggio Calabria", "reggiocalabria"),
     _tm("0920100","Palermo",         "Palermo",   "palermo"),
     _tm("0940100","Messina",         "Messina",   "messina"),
     _tm("0950100","Catania",         "Catania",   "catania"),
@@ -400,7 +502,7 @@ _BUNDLE_RAW: list[dict] = [
     _ts("0860200","Salerno",         "Napoli",    "salerno"),
     _ts("0870200","Potenza",         "Potenza",   "potenza"),
     _ts("0890200","Catanzaro",       "Catanzaro", "catanzaro"),
-    _ts("0910200","Reggio Calabria", "Catanzaro", "reggiocalabria"),
+    _ts("0910200","Reggio Calabria", "Reggio Calabria", "reggiocalabria"),
     _ts("0920200","Palermo",         "Palermo",   "palermo"),
     _ts("0940200","Messina",         "Messina",   "messina"),
     _ts("0950200","Catania",         "Catania",   "catania"),
@@ -490,7 +592,7 @@ _BUNDLE_RAW: list[dict] = [
     _assise("0880300","Matera",          "Potenza",   "matera"),
     _assise("0890300","Catanzaro",       "Catanzaro", "catanzaro"),
     _assise("0900300","Cosenza",         "Catanzaro", "cosenza"),
-    _assise("0910300","Reggio Calabria", "Catanzaro", "reggiocalabria"),
+    _assise("0910300","Reggio Calabria", "Reggio Calabria", "reggiocalabria"),
     _assise("0920300","Palermo",         "Palermo",   "palermo"),
     _assise("0920301","Agrigento",       "Palermo",   "agrigento"),
     _assise("0920302","Trapani",         "Palermo",   "trapani"),
@@ -638,8 +740,8 @@ _BUNDLE_RAW: list[dict] = [
     _gdp("0900400","Cosenza",         "Catanzaro", "cosenza"),
     _gdp("0900401","Paola",           "Catanzaro", "paola"),
     _gdp("0900402","Rossano",         "Catanzaro", "rossano"),
-    _gdp("0910400","Reggio Calabria", "Catanzaro", "reggiocalabria"),
-    _gdp("0910401","Palmi",           "Catanzaro", "palmi"),
+    _gdp("0910400","Reggio Calabria", "Reggio Calabria", "reggiocalabria"),
+    _gdp("0910401","Palmi",           "Reggio Calabria", "palmi"),
     # ── Sicilia
     _gdp("0920400","Palermo",         "Palermo",   "palermo"),
     _gdp("0920401","Agrigento",       "Palermo",   "agrigento"),
@@ -681,7 +783,6 @@ _BUNDLE_RAW: list[dict] = [
     _tar("T020000","Valle d'Aosta",       "Valle d'Aosta",     "vda"),
     _tar("T030000","Lombardia",           "Lombardia",         "lombardia"),
     _tar("T030001","Lombardia - Brescia", "Lombardia",         "lombardia-bs"),
-    _tar("T030002","Lombardia - Milano",  "Lombardia",         "lombardia-mi"),
     _tar("T040000","Liguria",             "Liguria",           "liguria"),
     _tar("T050000","Trentino-A.A.",       "Trentino-A.A.",     "trento"),
     _tar("T050001","Trentino-A.A. Bolzano","Trentino-A.A.",    "bolzano"),
@@ -694,6 +795,7 @@ _BUNDLE_RAW: list[dict] = [
     _tar("T110000","Marche",              "Marche",            "ancona"),
     _tar("T120000","Lazio",               "Lazio",             "roma"),
     _tar("T120001","Lazio - sez. I bis",  "Lazio",             "roma-sez1bis"),
+    _tar("T120002","Lazio - Latina",      "Lazio",             "latina"),
     _tar("T130000","Abruzzo",             "Abruzzo",           "laquila"),
     _tar("T130001","Abruzzo - Pescara",   "Abruzzo",           "pescara"),
     _tar("T140000","Molise",              "Molise",            "campobasso"),
@@ -708,6 +810,10 @@ _BUNDLE_RAW: list[dict] = [
     _tar("T200000","Puglia",              "Puglia",            "bari"),
     _tar("T200001","Puglia - Lecce",      "Puglia",            "lecce"),
 
+    # ── CGARS — Consiglio di Giustizia Amministrativa per la Regione Siciliana
+    _cgars("CGARS0000", "Consiglio di Giustizia Amministrativa per la Regione Siciliana",
+           "Palermo", "cgars"),
+
     # ── Consiglio di Stato
     {
         "codice": "CDS000000",
@@ -716,6 +822,160 @@ _BUNDLE_RAW: list[dict] = [
         "pec":    "cds@pec.giustizia-amministrativa.it",
         "tipo":   "CDS",
     },
+
+    # ================================================================ CGT — Corti di Giustizia Tributaria di Secondo Grado
+    # (D.Lgs. 546/1992 art. 1 — ex Commissioni Tributarie Regionali → CGT con D.Lgs. 130/2022)
+    _cgt("CGT010000", "Piemonte",         "Torino",      "piemonte"),
+    _cgt("CGT020000", "Valle d'Aosta",    "Aosta",       "vda"),
+    _cgt("CGT030000", "Lombardia",        "Milano",      "lombardia"),
+    _cgt("CGT040000", "Trentino-A.A.",    "Trento",      "trento"),
+    _cgt("CGT040001", "Bolzano",          "Bolzano",     "bolzano"),
+    _cgt("CGT050000", "Veneto",           "Venezia",     "veneto"),
+    _cgt("CGT060000", "Friuli-V.G.",      "Trieste",     "fvg"),
+    _cgt("CGT070000", "Liguria",          "Genova",      "liguria"),
+    _cgt("CGT080000", "Emilia-Romagna",   "Bologna",     "emilia-romagna"),
+    _cgt("CGT090000", "Toscana",          "Firenze",     "toscana"),
+    _cgt("CGT100000", "Umbria",           "Perugia",     "umbria"),
+    _cgt("CGT110000", "Marche",           "Ancona",      "marche"),
+    _cgt("CGT120000", "Lazio",            "Roma",        "lazio"),
+    _cgt("CGT130000", "Abruzzo",          "L'Aquila",    "abruzzo"),
+    _cgt("CGT140000", "Molise",           "Campobasso",  "molise"),
+    _cgt("CGT150000", "Campania",         "Napoli",      "campania"),
+    _cgt("CGT160000", "Puglia",           "Bari",        "puglia"),
+    _cgt("CGT170000", "Basilicata",       "Potenza",     "basilicata"),
+    _cgt("CGT180000", "Calabria",         "Catanzaro",   "calabria"),
+    _cgt("CGT190000", "Sicilia",          "Palermo",     "sicilia"),
+    _cgt("CGT200000", "Sardegna",         "Cagliari",    "sardegna"),
+
+    # ================================================================ CPT — Corti di Giustizia Tributaria di Primo Grado
+    # (D.Lgs. 546/1992 — ex Commissioni Tributarie Provinciali → CPT con D.Lgs. 130/2022)
+    # ── Piemonte ──
+    _cpt("CPT010000", "Torino",       "torino",     "Torino"),
+    _cpt("CPT010001", "Alessandria",  "alessandria","Torino"),
+    _cpt("CPT010002", "Asti",         "asti",       "Torino"),
+    _cpt("CPT010003", "Biella",       "biella",     "Torino"),
+    _cpt("CPT010004", "Cuneo",        "cuneo",      "Torino"),
+    _cpt("CPT010005", "Novara",       "novara",     "Torino"),
+    _cpt("CPT010006", "Verbania",     "verbania",   "Torino"),
+    _cpt("CPT010007", "Vercelli",     "vercelli",   "Torino"),
+    # ── Valle d'Aosta ──
+    _cpt("CPT020000", "Aosta",        "aosta",      "Aosta"),
+    # ── Lombardia ──
+    _cpt("CPT030000", "Milano",       "milano",     "Milano"),
+    _cpt("CPT030001", "Bergamo",      "bergamo",    "Milano"),
+    _cpt("CPT030002", "Brescia",      "brescia",    "Milano"),
+    _cpt("CPT030003", "Como",         "como",       "Milano"),
+    _cpt("CPT030004", "Cremona",      "cremona",    "Milano"),
+    _cpt("CPT030005", "Lecco",        "lecco",      "Milano"),
+    _cpt("CPT030006", "Lodi",         "lodi",       "Milano"),
+    _cpt("CPT030007", "Mantova",      "mantova",    "Milano"),
+    _cpt("CPT030008", "Monza",        "monza",      "Milano"),
+    _cpt("CPT030009", "Pavia",        "pavia",      "Milano"),
+    _cpt("CPT030010", "Sondrio",      "sondrio",    "Milano"),
+    _cpt("CPT030011", "Varese",       "varese",     "Milano"),
+    # ── Trentino-A.A. ──
+    _cpt("CPT040000", "Trento",       "trento",     "Trento"),
+    _cpt("CPT040001", "Bolzano",      "bolzano",    "Bolzano"),
+    # ── Veneto ──
+    _cpt("CPT050000", "Venezia",      "venezia",    "Venezia"),
+    _cpt("CPT050001", "Belluno",      "belluno",    "Venezia"),
+    _cpt("CPT050002", "Padova",       "padova",     "Venezia"),
+    _cpt("CPT050003", "Rovigo",       "rovigo",     "Venezia"),
+    _cpt("CPT050004", "Treviso",      "treviso",    "Venezia"),
+    _cpt("CPT050005", "Verona",       "verona",     "Venezia"),
+    _cpt("CPT050006", "Vicenza",      "vicenza",    "Venezia"),
+    # ── Friuli-V.G. ──
+    _cpt("CPT060000", "Trieste",      "trieste",    "Trieste"),
+    _cpt("CPT060001", "Gorizia",      "gorizia",    "Trieste"),
+    _cpt("CPT060002", "Pordenone",    "pordenone",  "Trieste"),
+    _cpt("CPT060003", "Udine",        "udine",      "Trieste"),
+    # ── Liguria ──
+    _cpt("CPT070000", "Genova",       "genova",     "Genova"),
+    _cpt("CPT070001", "Imperia",      "imperia",    "Genova"),
+    _cpt("CPT070002", "La Spezia",    "la-spezia",  "Genova"),
+    _cpt("CPT070003", "Savona",       "savona",     "Genova"),
+    # ── Emilia-Romagna ──
+    _cpt("CPT080000", "Bologna",      "bologna",    "Bologna"),
+    _cpt("CPT080001", "Ferrara",      "ferrara",    "Bologna"),
+    _cpt("CPT080002", "Forlì",        "forli",      "Bologna"),
+    _cpt("CPT080003", "Modena",       "modena",     "Bologna"),
+    _cpt("CPT080004", "Parma",        "parma",      "Bologna"),
+    _cpt("CPT080005", "Piacenza",     "piacenza",   "Bologna"),
+    _cpt("CPT080006", "Ravenna",      "ravenna",    "Bologna"),
+    _cpt("CPT080007", "Reggio Emilia","reggio-emilia","Bologna"),
+    _cpt("CPT080008", "Rimini",       "rimini",     "Bologna"),
+    # ── Toscana ──
+    _cpt("CPT090000", "Firenze",      "firenze",    "Firenze"),
+    _cpt("CPT090001", "Arezzo",       "arezzo",     "Firenze"),
+    _cpt("CPT090002", "Grosseto",     "grosseto",   "Firenze"),
+    _cpt("CPT090003", "Livorno",      "livorno",    "Firenze"),
+    _cpt("CPT090004", "Lucca",        "lucca",      "Firenze"),
+    _cpt("CPT090005", "Massa",        "massa",      "Firenze"),
+    _cpt("CPT090006", "Pisa",         "pisa",       "Firenze"),
+    _cpt("CPT090007", "Pistoia",      "pistoia",    "Firenze"),
+    _cpt("CPT090008", "Prato",        "prato",      "Firenze"),
+    _cpt("CPT090009", "Siena",        "siena",      "Firenze"),
+    # ── Umbria ──
+    _cpt("CPT100000", "Perugia",      "perugia",    "Perugia"),
+    _cpt("CPT100001", "Terni",        "terni",      "Perugia"),
+    # ── Marche ──
+    _cpt("CPT110000", "Ancona",       "ancona",     "Ancona"),
+    _cpt("CPT110001", "Ascoli Piceno","ascoli",     "Ancona"),
+    _cpt("CPT110002", "Fermo",        "fermo",      "Ancona"),
+    _cpt("CPT110003", "Macerata",     "macerata",   "Ancona"),
+    _cpt("CPT110004", "Pesaro",       "pesaro",     "Ancona"),
+    # ── Lazio ──
+    _cpt("CPT120000", "Roma",         "roma",       "Roma"),
+    _cpt("CPT120001", "Frosinone",    "frosinone",  "Roma"),
+    _cpt("CPT120002", "Latina",       "latina",     "Roma"),
+    _cpt("CPT120003", "Rieti",        "rieti",      "Roma"),
+    _cpt("CPT120004", "Viterbo",      "viterbo",    "Roma"),
+    # ── Abruzzo ──
+    _cpt("CPT130000", "L'Aquila",     "laquila",    "L'Aquila"),
+    _cpt("CPT130001", "Chieti",       "chieti",     "L'Aquila"),
+    _cpt("CPT130002", "Pescara",      "pescara",    "L'Aquila"),
+    _cpt("CPT130003", "Teramo",       "teramo",     "L'Aquila"),
+    # ── Molise ──
+    _cpt("CPT140000", "Campobasso",   "campobasso", "Campobasso"),
+    _cpt("CPT140001", "Isernia",      "isernia",    "Campobasso"),
+    # ── Campania ──
+    _cpt("CPT150000", "Napoli",       "napoli",     "Napoli"),
+    _cpt("CPT150001", "Avellino",     "avellino",   "Napoli"),
+    _cpt("CPT150002", "Benevento",    "benevento",  "Napoli"),
+    _cpt("CPT150003", "Caserta",      "caserta",    "Napoli"),
+    _cpt("CPT150004", "Salerno",      "salerno",    "Napoli"),
+    # ── Puglia ──
+    _cpt("CPT160000", "Bari",         "bari",       "Bari"),
+    _cpt("CPT160001", "BAT",          "bat",        "Bari"),
+    _cpt("CPT160002", "Brindisi",     "brindisi",   "Bari"),
+    _cpt("CPT160003", "Foggia",       "foggia",     "Bari"),
+    _cpt("CPT160004", "Lecce",        "lecce",      "Bari"),
+    _cpt("CPT160005", "Taranto",      "taranto",    "Bari"),
+    # ── Basilicata ──
+    _cpt("CPT170000", "Potenza",      "potenza",    "Potenza"),
+    _cpt("CPT170001", "Matera",       "matera",     "Potenza"),
+    # ── Calabria ──
+    _cpt("CPT180000", "Catanzaro",    "catanzaro",  "Catanzaro"),
+    _cpt("CPT180001", "Cosenza",      "cosenza",    "Catanzaro"),
+    _cpt("CPT180002", "Crotone",      "crotone",    "Catanzaro"),
+    _cpt("CPT180003", "Reggio Calabria","reggio-calabria","Catanzaro"),
+    _cpt("CPT180004", "Vibo Valentia","vibo",       "Catanzaro"),
+    # ── Sicilia ──
+    _cpt("CPT190000", "Palermo",      "palermo",    "Palermo"),
+    _cpt("CPT190001", "Agrigento",    "agrigento",  "Palermo"),
+    _cpt("CPT190002", "Caltanissetta","caltanissetta","Palermo"),
+    _cpt("CPT190003", "Catania",      "catania",    "Palermo"),
+    _cpt("CPT190004", "Enna",         "enna",       "Palermo"),
+    _cpt("CPT190005", "Messina",      "messina",    "Palermo"),
+    _cpt("CPT190006", "Ragusa",       "ragusa",     "Palermo"),
+    _cpt("CPT190007", "Siracusa",     "siracusa",   "Palermo"),
+    _cpt("CPT190008", "Trapani",      "trapani",    "Palermo"),
+    # ── Sardegna ──
+    _cpt("CPT200000", "Cagliari",     "cagliari",   "Cagliari"),
+    _cpt("CPT200001", "Nuoro",        "nuoro",      "Cagliari"),
+    _cpt("CPT200002", "Oristano",     "oristano",   "Cagliari"),
+    _cpt("CPT200003", "Sassari",      "sassari",    "Cagliari"),
+    _cpt("CPT200004", "Sud Sardegna", "sudsardegna","Cagliari"),
 ]
 
 
@@ -757,7 +1017,7 @@ def _genera_procure() -> list[dict]:
 def _build_bundle_completo() -> list[dict]:
     base = list(_BUNDLE_RAW)
     base.extend(_genera_procure())
-    return base
+    return _applica_riferimenti_ministero(base)
 
 
 # ================================================================ GestoreUfficiGiudiziari
@@ -784,23 +1044,34 @@ class GestoreUfficiGiudiziari:
         """Restituisce la lista degli uffici (da cache o bundle).
 
         Auto-upgrade: se la cache su disco ha meno uffici del bundle interno
-        (es. dopo un aggiornamento del codice che aggiunge nuovi uffici), la
-        cache viene automaticamente rigenerata dal bundle aggiornato.
+        (es. dopo un aggiornamento del codice che aggiunge nuovi uffici), oppure
+        se una cache generata dal bundle contiene dati non allineati al bundle
+        corrente, la cache viene automaticamente rigenerata dal bundle aggiornato.
         """
         if self._mem is not None:
             return self._mem
         da_file = self._da_file()
-        bundle  = _build_bundle_completo()
-        if da_file and len(da_file) >= len(bundle):
+        bundle = _build_bundle_completo()
+        meta = self._leggi_meta() if da_file is not None else {}
+        bundle_hash = _uffici_hash(bundle)
+        cache_bundle_non_allineata = (
+            da_file is not None
+            and meta.get("sorgente") == "bundle"
+            and meta.get("bundle_hash") != bundle_hash
+        )
+        if da_file and len(da_file) >= len(bundle) and not cache_bundle_non_allineata:
             # La cache è completa o più aggiornata del bundle → usala
             self._mem = da_file
         else:
             # Cache assente o meno completa del bundle → rigenera
             if da_file is not None:
-                log.info(
-                    "Auto-upgrade cache uffici: %d (cache) < %d (bundle) → rigenero",
-                    len(da_file), len(bundle),
-                )
+                if cache_bundle_non_allineata:
+                    log.info("Auto-upgrade cache uffici: bundle_hash cambiato → rigenero")
+                else:
+                    log.info(
+                        "Auto-upgrade cache uffici: %d (cache) < %d (bundle) → rigenero",
+                        len(da_file), len(bundle),
+                    )
             self._mem = bundle
             self._salva(bundle, sorgente="bundle")
         return self._mem
@@ -1080,6 +1351,7 @@ class GestoreUfficiGiudiziari:
                 "sorgente":      sorgente,
                 "aggiornato_il": datetime.now().isoformat(timespec="seconds"),
                 "n_uffici":      len(uffici),
+                "bundle_hash":   _uffici_hash(_build_bundle_completo()),
                 "uffici":        uffici,
             }
             self.cache_path.write_text(
@@ -1116,6 +1388,177 @@ class GestoreUfficiGiudiziari:
                     result.append(uff)
             return result
         return []
+
+
+# ================================================================ helper pubblici PST / ministero
+
+def risolvi_ufficio(
+    codice_o_nome: str,
+    *,
+    tipo: str | None = None,
+    cache_path: str = _CACHE_PATH,
+) -> dict | None:
+    """
+    Risolve un ufficio dal codice HACS, dal codice ministeriale o dal nome.
+    """
+    chiave = (codice_o_nome or "").strip()
+    if not chiave:
+        return None
+
+    uffici = get_gestore(cache_path).carica()
+    tipo_norm = (tipo or "").strip().upper()
+
+    def _ok_tipo(ufficio: dict) -> bool:
+        return not tipo_norm or (ufficio.get("tipo") or "").upper() == tipo_norm
+
+    for ufficio in uffici:
+        if _ok_tipo(ufficio) and chiave == ufficio.get("codice"):
+            return ufficio
+
+    for ufficio in uffici:
+        if _ok_tipo(ufficio) and chiave == ufficio.get("codice_ministero"):
+            return ufficio
+
+    chiave_norm = _n(chiave.replace("-", " "))
+    for ufficio in uffici:
+        if not _ok_tipo(ufficio):
+            continue
+        campi = (
+            ufficio.get("nome", ""),
+            ufficio.get("descrizione_ministero", ""),
+            ufficio.get("comune_ministero", ""),
+        )
+        if any(_n(str(val).replace("-", " ")) == chiave_norm for val in campi if val):
+            return ufficio
+
+    for ufficio in uffici:
+        if not _ok_tipo(ufficio):
+            continue
+        campi = (
+            ufficio.get("nome", ""),
+            ufficio.get("descrizione_ministero", ""),
+            ufficio.get("comune_ministero", ""),
+        )
+        if any(chiave_norm in _n(str(val).replace("-", " ")) for val in campi if val):
+            return ufficio
+
+    return None
+
+
+def risolvi_codice_ministero(
+    codice_o_nome: str,
+    *,
+    tipo: str | None = None,
+    cache_path: str = _CACHE_PATH,
+) -> str:
+    """
+    Restituisce il codice ministeriale dell'ufficio quando disponibile,
+    altrimenti mantiene il codice/nome originale.
+    """
+    ufficio = risolvi_ufficio(codice_o_nome, tipo=tipo, cache_path=cache_path)
+    if not ufficio:
+        return (codice_o_nome or "").strip()
+    return (ufficio.get("codice_ministero") or ufficio.get("codice") or codice_o_nome).strip()
+
+
+def risolvi_servizio_pst(
+    codice_o_nome: str,
+    *,
+    preferito: str = "",
+    tipo: str | None = None,
+    cache_path: str = _CACHE_PATH,
+) -> str:
+    """
+    Restituisce il servizio JPW più adatto per l'ufficio selezionato.
+    """
+    ufficio = risolvi_ufficio(codice_o_nome, tipo=tipo, cache_path=cache_path)
+    if not ufficio:
+        return ""
+
+    servizi = [
+        str(s).strip().upper()
+        for s in (ufficio.get("servizi_ministero") or [])
+        if str(s).strip()
+    ]
+    jpw = [servizio for servizio in servizi if servizio.startswith("JPW_")]
+
+    preferenze: list[str] = []
+    if preferito:
+        preferenze.append(preferito.strip().upper())
+    env_pref = os.getenv("PCT_PST_SERVIZIO_DEFAULT", "").strip().upper()
+    if env_pref:
+        preferenze.append(env_pref)
+    servizio_ufficio = str(ufficio.get("servizio_pst_predefinito") or "").strip().upper()
+    if servizio_ufficio:
+        preferenze.append(servizio_ufficio)
+    preferenze.extend(_PST_SERVIZI_DEFAULT)
+
+    if jpw:
+        for candidato in preferenze:
+            if candidato and candidato in jpw:
+                return candidato
+        return jpw[0]
+
+    if ufficio.get("tipo") == "CORTE_CASSAZIONE":
+        return "JPW_CASS"
+    return next((servizio for servizio in preferenze if servizio), "")
+
+
+def _normalizza_base_pst(base_url: str) -> tuple[str, bool]:
+    base = (base_url or "").strip().rstrip("/")
+    if not base:
+        return "", False
+    if base.startswith(_PST_LEGACY_BASE):
+        return base, False
+    if "/pda/pycons/" in base:
+        return base, True
+    parsed = urlparse(base)
+    path = parsed.path.rstrip("/")
+    if parsed.scheme and parsed.netloc and path not in ("", "/"):
+        return base, True
+    return base, False
+
+
+def risolvi_base_pst(
+    codice_o_nome: str,
+    *,
+    base_url: str = "",
+    preferito: str = "",
+    tipo: str | None = None,
+    cache_path: str = _CACHE_PATH,
+) -> str:
+    """
+    Costruisce il base URL PST per un ufficio usando i metadati GL/JPW del ministero.
+
+    Supporta sia:
+      - URL completi già configurati in `PCT_PST_BASE_URL`
+      - root proxy (`https://ext.processotelematico.giustizia.it`)
+      - fallback automatico al proxy `ext.processotelematico.giustizia.it`
+    """
+    candidate_base = base_url or os.getenv("PCT_PST_BASE_URL", "")
+    normalized_base, is_full = _normalizza_base_pst(candidate_base)
+    if is_full:
+        return normalized_base
+
+    ufficio = risolvi_ufficio(codice_o_nome, tipo=tipo, cache_path=cache_path)
+    codice_gl = (ufficio or {}).get("codice_gl", "").strip()
+    servizio = risolvi_servizio_pst(
+        codice_o_nome,
+        preferito=preferito,
+        tipo=tipo,
+        cache_path=cache_path,
+    )
+
+    if not codice_gl or not servizio:
+        raise ValueError(
+            "Impossibile determinare codice GL/servizio PST dell'ufficio selezionato. "
+            "Verificare il registro uffici o configurare PCT_PST_BASE_URL completo."
+        )
+
+    root = normalized_base
+    if not root or root.startswith(_PST_LEGACY_BASE):
+        root = (os.getenv("PCT_PST_PROXY_ROOT", "") or _PST_PROXY_SH_URL).strip().rstrip("/")
+    return f"{root}/pda/pycons/{codice_gl}/{servizio}"
 
 
 # ================================================================ singleton

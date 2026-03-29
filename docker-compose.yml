@@ -36,6 +36,11 @@ services:
     volumes:
       # Dati persistenti montati dalla cartella ./data/ del progetto
       - ./data:/data
+      # PKCS#11 / Aruba Key: condivide il socket del demone pcscd dell'host
+      # con il container, così opensc-pkcs11.so vede i token USB collegati.
+      # Prerequisiti HOST: apt install pcscd opensc && systemctl start pcscd
+      # Se non usi firma PKCS#11 puoi commentare questa riga.
+      - /run/pcscd:/run/pcscd
 
     env_file:
       - .env
@@ -66,6 +71,8 @@ services:
       PCT_TENANTS_REGISTRY: /data/tenants.json
       PCT_STUDIO_CONFIG:    /data/config/studio.json
       PCT_MULTI_TENANT:     "1"
+      # PKCS#11 — percorso libreria OpenSC nel container (auto-rilevato se non impostato)
+      PCT_PKCS11_LIBRARY:   /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
 
     healthcheck:
       test: ["CMD", "python", "-c",

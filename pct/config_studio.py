@@ -124,19 +124,47 @@ class ConfigFirma:
     key_pem_path:  str = ""     # percorso al file .key / .pem (chiave privata)
     key_pem_password: str = ""  # password chiave privata cifrata (lasciare vuoto se non cifrata)
 
-    # ── Comune ai due formati ────────────────────────────────────────────────
+    # ── Formato PKCS#11 (token USB — Aruba Key, Namirial, ecc.) ─────────────
+    # La chiave privata non lascia mai il dispositivo (in-device signing).
+    # Richiede: apt install pcscd opensc   +   pip install python-pkcs11 asn1crypto
+    # Docker: montare /run/pcscd/pcscd.comm:/run/pcscd/pcscd.comm
+    pkcs11_library: str = ""    # percorso alla .so/.dll (es. /usr/lib/.../opensc-pkcs11.so)
+    pkcs11_slot:    str = ""    # slot ID (lasciare vuoto = primo slot disponibile)
+    pkcs11_label:   str = ""    # etichetta certificato nel token (opzionale)
+    # NOTA: il PIN NON viene salvato qui per sicurezza — viene chiesto all'utente
+    # ogni volta nella UI di deposito (modal "Firma con Aruba Key").
+
+    # ── Comune a tutti i formati ─────────────────────────────────────────────
     cf_avvocato: str = ""
 
     @property
     def formato_attivo(self) -> str:
-        """Restituisce il formato rilevato: 'p12', 'pem' o 'nessuno'."""
+        """Restituisce il formato rilevato: 'pkcs11', 'p12', 'pem' o 'nessuno'."""
         import os as _os
+        from pct.firma_pkcs11 import libreria_disponibile as _lib_disp
+        # PKCS#11: configurato se libreria specificata o auto-rilevata
+        if self.pkcs11_library and _os.path.exists(self.pkcs11_library):
+            return "pkcs11"
+        if not self.pkcs11_library and _lib_disp():
+            # Libreria auto-rilevata e almeno uno degli altri campi pkcs11 impostati
+            # (anche solo library auto-detected è sufficiente per offrire il formato)
+            pass  # non attivare pkcs11 automaticamente senza configurazione esplicita
         if self.p12_path and _os.path.exists(self.p12_path):
             return "p12"
         if self.cert_pem_path and self.key_pem_path and \
            _os.path.exists(self.cert_pem_path) and _os.path.exists(self.key_pem_path):
             return "pem"
         return "nessuno"
+
+    @property
+    def pkcs11_configurato(self) -> bool:
+        """True se il formato PKCS#11 è disponibile (libreria presente + configurazione esplicita)."""
+        import os as _os
+        from pct.firma_pkcs11 import libreria_disponibile as _lib_disp
+        if self.pkcs11_library:
+            return _os.path.exists(self.pkcs11_library)
+        # Se non specificata ma rilevabile automaticamente, considera configurato
+        return _lib_disp() is not None
 
     @property
     def configurato(self) -> bool:
@@ -310,6 +338,119 @@ class GestioneConfigStudio:
 
 # ──────────────────────────────────────────────────────────── test connessioni
 
+import smtplib as _smtplib
+import socket as _socket_mod
+
+
+def _resolve_ipv4(hostname: str, port: int) -> str | None:
+    """Risolve hostname in IPv4 usando DNS-over-HTTPS come primario.
+
+    Il resolver DNS di alcuni ambienti cloud (Railway, GCP) può restituire IP
+    errati per certi hostname (es. IP Asia-Pacific invece di server europei).
+
+    Usa l'IP diretto 1.1.1.1 (Cloudflare DoH) e 8.8.8.8 (Google DoH) per
+    bypassare completamente il resolver DNS di sistema — nessuna risoluzione
+    hostname necessaria per la richiesta DoH stessa.
+
+    Fallback a socket.getaddrinfo (sistema) se tutti i DoH falliscono.
+    """
+    import urllib.request as _ur
+    import json as _js
+    # 1. DoH via IP diretto (nessuna dipendenza dal DNS di sistema)
+    _doh_endpoints = [
+        "https://1.1.1.1/dns-query",          # Cloudflare — IP diretto, no DNS
+        "https://8.8.8.8/dns-query",           # Google — IP diretto, no DNS
+    ]
+    for doh_url in _doh_endpoints:
+        try:
+            req = _ur.Request(
+                f"{doh_url}?name={hostname}&type=A",
+                headers={"Accept": "application/dns-json"},
+            )
+            with _ur.urlopen(req, timeout=5) as resp:
+                for ans in _js.loads(resp.read()).get("Answer", []):
+                    if ans.get("type") == 1:  # record A
+                        return ans["data"]
+        except Exception:
+            continue
+    # 2. Fallback: resolver DNS di sistema (potenzialmente errato su Railway)
+    try:
+        infos = _socket_mod.getaddrinfo(hostname, port, _socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+        if infos:
+            return infos[0][4][0]
+    except _socket_mod.gaierror:
+        pass
+    return None
+
+
+class _SMTPv4(_smtplib.SMTP):
+    """SMTP con connessione forzata su IPv4 e risoluzione DNS via Cloudflare DoH.
+
+    Il DNS di Railway può restituire IP errati (es. IP Asia-Pacific invece di
+    server europei). Usa _resolve_ipv4() che interroga Cloudflare DoH prima del
+    resolver di sistema. Preserva l'hostname originale in self._host per SNI/TLS.
+    """
+    def _get_socket(self, host, port, timeout):
+        ipv4_addr = _resolve_ipv4(host, port)
+        if ipv4_addr:
+            sock = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+            sock.settimeout(timeout)
+            sock.connect((ipv4_addr, port))  # errori propagati direttamente
+            return sock
+        return super()._get_socket(host, port, timeout)
+
+
+class _SMTP_SSLv4(_smtplib.SMTP_SSL):
+    """SMTP_SSL con connessione forzata su IPv4 e risoluzione DNS via Cloudflare DoH."""
+    def _get_socket(self, host, port, timeout):
+        ipv4_addr = _resolve_ipv4(host, port)
+        if ipv4_addr:
+            raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
+            raw.settimeout(timeout)
+            raw.connect((ipv4_addr, port))
+            return self._context.wrap_socket(raw, server_hostname=host)
+        return super()._get_socket(host, port, timeout)
+
+
+def _msg_errore_rete(e: Exception, prefisso: str) -> str:
+    """Trasforma eccezioni di rete in messaggi leggibili per l'utente."""
+    import errno as _errno
+    import socket
+    codice = getattr(e, "errno", None)
+    # DNS failure: hostname non trovato o non risolvibile
+    if isinstance(e, socket.gaierror):
+        host_info = ""
+        args = getattr(e, "args", ())
+        if len(args) >= 2:
+            host_info = f" ({args[1]})"
+        return (
+            f"{prefisso}: hostname non trovato{host_info} — "
+            "verificare che l'indirizzo del server sia corretto (es. smtp.gmail.com, "
+            "smtp.office365.com). Se il problema persiste in Docker, "
+            "aggiungere 'dns: [8.8.8.8, 8.8.4.4]' al servizio nel docker-compose.yml."
+        )
+    if codice == _errno.ENETUNREACH:
+        return (
+            f"{prefisso}: server SMTP non raggiungibile via IPv4. "
+            "Cause comuni su Railway/cloud: (1) il provider SMTP blocca IP di hosting "
+            "per anti-spam — richiedere whitelist o usare relay cloud-friendly "
+            "(Brevo, SendGrid, Mailgun, Amazon SES); "
+            "(2) porta chiusa — verificare 587 STARTTLS o 465 SSL."
+        )
+    if codice == _errno.ECONNREFUSED:
+        return f"{prefisso}: connessione rifiutata — host o porta errati, o il server non è in ascolto."
+    if codice == _errno.ETIMEDOUT or isinstance(e, TimeoutError):
+        return (
+            f"{prefisso}: timeout di rete — il server non risponde entro il tempo limite. "
+            "Su Railway/cloud il problema più comune NON è la porta 25 (se stai già usando 587/465), "
+            "ma un blocco anti-spam dell'IP di hosting lato provider SMTP. "
+            "Verificare host/porta, provare 587 (STARTTLS) o 465 (SSL), "
+            "ed eventualmente usare un relay cloud-friendly (Brevo/SendGrid/Mailgun/SES) "
+            "o richiedere whitelist dell'IP."
+        )
+    return f"{prefisso}: {e}"
+
+
 def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     """Testa la connessione SMTP PEC. Restituisce {'ok': bool, 'messaggio': str}."""
     import smtplib
@@ -317,16 +458,15 @@ def test_pec_smtp(cfg: ConfigPEC) -> Dict[str, Any]:
     try:
         ctx = _ssl.create_default_context()
         if cfg.use_ssl:
-            with smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port,
-                                   context=ctx, timeout=10) as s:
+            with _SMTP_SSLv4(cfg.smtp_host, cfg.smtp_port, context=ctx, timeout=10) as s:
                 s.login(cfg.indirizzo, cfg.password)
         else:
-            with smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=10) as s:
+            with _SMTPv4(cfg.smtp_host, cfg.smtp_port, timeout=10) as s:
                 s.starttls(context=ctx)
                 s.login(cfg.indirizzo, cfg.password)
         return {"ok": True, "messaggio": "Connessione SMTP PEC riuscita."}
     except Exception as e:
-        return {"ok": False, "messaggio": f"Errore SMTP: {e}"}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore SMTP PEC")}
 
 
 def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
@@ -340,23 +480,40 @@ def test_pec_imap(cfg: ConfigPEC) -> Dict[str, Any]:
             m.login(cfg.indirizzo, cfg.password)
         return {"ok": True, "messaggio": "Connessione IMAP PEC riuscita."}
     except Exception as e:
-        return {"ok": False, "messaggio": f"Errore IMAP: {e}"}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, "Errore IMAP PEC")}
 
 
 def test_smtp_email(cfg: ConfigSMTP) -> Dict[str, Any]:
     """Testa la connessione SMTP email normale."""
     import smtplib
     import ssl as _ssl
+    if not cfg.host:
+        return {"ok": False, "messaggio": "Host SMTP non configurato. Vai in Impostazioni → Email SMTP e inserisci l'indirizzo del server (es. smtp.gmail.com)."}
+    # Porta 25 è bloccata da GCP/Railway/AWS outbound (anti-spam) → timeout garantito
+    if cfg.port == 25:
+        return {"ok": False, "messaggio": (
+            "Porta 25 bloccata: Railway/GCP blocca outbound porta 25 per prevenire spam. "
+            "Usare porta 587 (STARTTLS) o 465 (SSL diretto)."
+        )}
+    # Risolvi IPv4 con lo stesso metodo usato dalla connessione (DoH → fallback sistema)
+    _resolved_ip = _resolve_ipv4(cfg.host, cfg.port)
+    _ip_tag = f" [{_resolved_ip}:{cfg.port}]" if _resolved_ip else ""
     try:
         ctx = _ssl.create_default_context()
-        with smtplib.SMTP(cfg.host, cfg.port, timeout=10) as s:
-            if cfg.use_tls:
+        if cfg.use_tls:
+            # STARTTLS (porta 587 — Gmail, Outlook, IONOS…)
+            with _SMTPv4(cfg.host, cfg.port, timeout=15) as s:
                 s.starttls(context=ctx)
-            if cfg.username:
-                s.login(cfg.username, cfg.password)
-        return {"ok": True, "messaggio": "Connessione SMTP email riuscita."}
+                if cfg.username:
+                    s.login(cfg.username, cfg.password)
+        else:
+            # SSL diretto (porta 465 — Aruba, altri provider con SSL nativo)
+            with _SMTP_SSLv4(cfg.host, cfg.port, context=ctx, timeout=15) as s:
+                if cfg.username:
+                    s.login(cfg.username, cfg.password)
+        return {"ok": True, "messaggio": f"Connessione SMTP email riuscita{_ip_tag}."}
     except Exception as e:
-        return {"ok": False, "messaggio": f"Errore SMTP email: {e}"}
+        return {"ok": False, "messaggio": _msg_errore_rete(e, f"Errore SMTP email{_ip_tag}")}
 
 
 def test_whatsapp(cfg: ConfigWhatsApp) -> Dict[str, Any]:

@@ -274,6 +274,9 @@ class EsitoDepositoPCT:
     note: str = ""
     registrato_da: str = ""
     registrato_il: str = field(default_factory=lambda: datetime.now().isoformat())
+    # ── Documenti inclusi nella busta ──────────────────────────────
+    documenti_ids: List[str] = field(default_factory=list)   # ID dei Documento inclusi
+    nome_atto_principale: str = ""                            # nome file atto principale
 
     def to_dict(self) -> dict:
         return {
@@ -291,6 +294,8 @@ class EsitoDepositoPCT:
             "note": self.note,
             "registrato_da": self.registrato_da,
             "registrato_il": self.registrato_il,
+            "documenti_ids": self.documenti_ids,
+            "nome_atto_principale": self.nome_atto_principale,
         }
 
     @classmethod
@@ -696,6 +701,8 @@ class GestioneFascicoli:
         ricevuta_cancelleria: str = "",
         note: str = "",
         registrato_da: str = "",
+        documenti_ids: Optional[List[str]] = None,
+        nome_atto_principale: str = "",
     ) -> EsitoDepositoPCT:
         """Registra nel fascicolo l'esito di un deposito telematico."""
         f = self._get_o_errore(id_fasc)
@@ -713,8 +720,15 @@ class GestioneFascicoli:
             ricevuta_cancelleria=ricevuta_cancelleria,
             note=note,
             registrato_da=registrato_da,
+            documenti_ids=list(documenti_ids) if documenti_ids else [],
+            nome_atto_principale=nome_atto_principale,
         )
         f.depositi_pct.append(esito)
+
+        # Marca i documenti inclusi con l'id del deposito
+        for doc in f.documenti:
+            if doc.id in esito.documenti_ids:
+                doc.id_deposito_pct = esito.id
         f.modificato_il = datetime.now().isoformat()
 
         # Auto-crea attività processuale collegata al deposito (PST: evento nel fascicolo)
@@ -735,6 +749,41 @@ class GestioneFascicoli:
 
         self._salva()
         return esito
+
+    def modifica_esito_deposito(
+        self,
+        id_fasc: str,
+        id_dep: str,
+        tipo_atto: str,
+        pec_destinatario: str,
+        stato: str = "INVIATO",
+        messaggio: str = "",
+        ricevuta_accettazione: str = "",
+        ricevuta_consegna: str = "",
+        ricevuta_controlli_automatici: str = "",
+        esito_controlli: str = "",
+        ricevuta_cancelleria: str = "",
+        note: str = "",
+        modificato_da: str = "",
+    ) -> EsitoDepositoPCT:
+        """Modifica i dati di un deposito telematico già registrato nel fascicolo."""
+        f = self._get_o_errore(id_fasc)
+        dep = next((d for d in f.depositi_pct if d.id == id_dep), None)
+        if not dep:
+            raise KeyError(f"Deposito '{id_dep}' non trovato nel fascicolo.")
+        dep.tipo_atto = tipo_atto
+        dep.pec_destinatario = pec_destinatario
+        dep.stato = stato
+        dep.messaggio = messaggio
+        dep.ricevuta_accettazione = ricevuta_accettazione
+        dep.ricevuta_consegna = ricevuta_consegna
+        dep.ricevuta_controlli_automatici = ricevuta_controlli_automatici
+        dep.esito_controlli = esito_controlli
+        dep.ricevuta_cancelleria = ricevuta_cancelleria
+        dep.note = note
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return dep
 
     def segna_firmato(self, id_fasc: str, id_doc: str) -> "Documento":
         """Marca un documento come firmato digitalmente."""

@@ -4,15 +4,20 @@
 {% block page_title %}Collaboratori cartella{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb" class="mb-3">
-  <ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="{{ url_for('lista_clienti') }}">Clienti</a></li>
-    <li class="breadcrumb-item">
-      <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}">{{ cliente.nome_completo }}</a>
-    </li>
-    <li class="breadcrumb-item active">Collaboratori</li>
-  </ol>
-</nav>
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <nav aria-label="breadcrumb" class="mb-0">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('lista_clienti') }}">Clienti</a></li>
+      <li class="breadcrumb-item">
+        <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}">{{ cliente.nome_completo }}</a>
+      </li>
+      <li class="breadcrumb-item active">Collaboratori</li>
+    </ol>
+  </nav>
+</div>
 
 {# ── Nuovo link copiabile (mostrato solo dopo la creazione) ── #}
 {% if nuovo_link_url %}
@@ -118,52 +123,6 @@
                 </div>
               </td>
             </tr>
-
-            {# Modal modifica ruolo/scadenza/tag #}
-            <div class="modal fade" id="modal-mod-{{ loop.index }}" tabindex="-1">
-              <div class="modal-dialog">
-                <div class="modal-content">
-                  <form method="post">
-                    <input type="hidden" name="azione" value="condividi">
-                    <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
-                    <div class="modal-header">
-                      <h6 class="modal-title">Modifica accesso — {{ ac.username }}</h6>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body row g-3">
-                      <div class="col-12">
-                        <label class="form-label small fw-bold">Ruolo</label>
-                        <select name="ruolo" class="form-select form-select-sm">
-                          {% for r in ruoli_condivisione %}
-                          <option value="{{ r.value }}" {% if r == ac.ruolo %}selected{% endif %}>{{ r.value }}</option>
-                          {% endfor %}
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Scadenza accesso</label>
-                        <input type="date" name="data_scadenza" class="form-control form-control-sm"
-                               value="{{ ac.data_scadenza }}">
-                        <small class="text-muted">Vuoto = nessuna scadenza</small>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small fw-bold">Tag <span class="fw-normal text-muted">(virgola)</span></label>
-                        <input type="text" name="tags" class="form-control form-control-sm"
-                               value="{{ ac.tags | join(', ') }}" placeholder="es. urgente, contenzioso">
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label small fw-bold">Note</label>
-                        <input type="text" name="note" class="form-control form-control-sm"
-                               value="{{ ac.note }}" placeholder="Opzionale">
-                      </div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                      <button type="submit" class="btn btn-sm btn-primary">Salva</button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
             {% endfor %}
           </tbody>
         </table>
@@ -325,6 +284,56 @@
   </div>
 </div>
 {% endblock %}
+
+{% block modals %}
+{# Modal modifica ruolo/scadenza/tag — uno per ogni collaboratore #}
+{% for ac in collaboratori %}
+<div class="modal fade" id="modal-mod-{{ loop.index }}" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post">
+        <input type="hidden" name="azione" value="condividi">
+        <input type="hidden" name="id_utente" value="{{ ac.id_utente }}">
+        <div class="modal-header">
+          <h6 class="modal-title">Modifica accesso — {{ ac.username }}</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-bold">Ruolo</label>
+            <select name="ruolo" class="form-select form-select-sm">
+              {% for r in ruoli_condivisione %}
+              <option value="{{ r.value }}" {% if r == ac.ruolo %}selected{% endif %}>{{ r.value }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Scadenza accesso</label>
+            <input type="date" name="data_scadenza" class="form-control form-control-sm"
+                   value="{{ ac.data_scadenza }}">
+            <small class="text-muted">Vuoto = nessuna scadenza</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Tag <span class="fw-normal text-muted">(virgola)</span></label>
+            <input type="text" name="tags" class="form-control form-control-sm"
+                   value="{{ ac.tags | join(', ') }}" placeholder="es. urgente, contenzioso">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-bold">Note</label>
+            <input type="text" name="note" class="form-control form-control-sm"
+                   value="{{ ac.note }}" placeholder="Opzionale">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-sm btn-primary">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}{# /modals #}
 
 {% block scripts %}
 <style>.btn-xs { padding:.15rem .45rem; font-size:.75rem; line-height:1.3; }</style>

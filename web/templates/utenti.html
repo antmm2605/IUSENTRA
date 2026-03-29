@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Profilo — {{ utente.username }}{% endblock %}
+{% block page_title %}Il mio profilo{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-person-circle me-2 text-primary"></i>Dati personali
+    <span class="badge bg-{{ 'danger' if utente.ruolo.value == 'AMMINISTRATORE' else ('primary' if utente.ruolo.value == 'AVVOCATO' else 'secondary') }} ms-2">
+      {{ utente.ruolo.value }}
+    </span>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="azione" value="aggiorna">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Username</label>
+          <input type="text" class="form-control" value="{{ utente.username }}" disabled>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Email</label>
+          <input type="email" name="email" class="form-control"
+                 value="{{ utente.email }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Nome completo</label>
+          <input type="text" name="nome_completo" class="form-control"
+                 value="{{ utente.nome_completo }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Ultimo accesso</label>
+          <input type="text" class="form-control"
+                 value="{{ utente.ultimo_accesso[:19].replace('T',' ') if utente.ultimo_accesso else '—' }}"
+                 disabled>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-3">
+        <i class="bi bi-check-lg me-1"></i>Salva
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-lock me-2 text-warning"></i>Cambio password
+  </div>
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="azione" value="password">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Password attuale</label>
+          <input type="password" name="password_old" class="form-control" required
+                 placeholder="••••••••">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Nuova password</label>
+          <input type="password" name="password_new" class="form-control" required
+                 minlength="8" placeholder="min. 8 caratteri">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-warning mt-3">
+        <i class="bi bi-key me-1"></i>Cambia password
+      </button>
+    </form>
+  </div>
+</div>
+
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar 2FA + info ── #}
+<div class="col-lg-4">
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-shield-lock me-2 text-success"></i>Autenticazione 2FA</span>
+    {% if utente.totp_attivato %}
+      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Attiva</span>
+    {% else %}
+      <span class="badge bg-secondary">Non attiva</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if utente.totp_attivato %}
+      <p class="text-muted small mb-3">
+        La verifica in due passaggi è attiva. Per disattivarla, conferma la tua password.
+      </p>
+      <form method="post">
+        <input type="hidden" name="azione" value="2fa_disattiva">
+        <div class="d-flex flex-column gap-2">
+          <div>
+            <label class="form-label fw-semibold">Password</label>
+            <input type="password" name="pwd_disattiva" class="form-control"
+                   placeholder="Conferma password" required>
+          </div>
+          <button type="submit" class="btn btn-outline-danger btn-sm"
+                  onclick="return confirm('Disattivare il 2FA?')">
+            <i class="bi bi-shield-x me-1"></i>Disattiva 2FA
+          </button>
+        </div>
+      </form>
+    {% elif totp_temp_secret %}
+      <p class="small text-muted mb-2">
+        <strong>Passo 1</strong> — Scansiona il QR code con la tua app
+        (Google Authenticator, Aegis, Bitwarden…)
+      </p>
+      <div class="text-center my-3">
+        <canvas id="qr-canvas"></canvas>
+      </div>
+      <p class="small text-muted text-center mb-1">
+        Oppure inserisci manualmente il codice:
+        <code class="user-select-all">{{ totp_temp_secret }}</code>
+      </p>
+      <hr>
+      <p class="small text-muted mb-2">
+        <strong>Passo 2</strong> — Inserisci il codice a 6 cifre dall'app per confermare
+      </p>
+      <form method="post">
+        <input type="hidden" name="azione" value="2fa_conferma">
+        <div class="d-flex flex-column gap-2">
+          <div>
+            <label class="form-label fw-semibold">Codice verifica</label>
+            <input type="text" name="codice_2fa" class="form-control"
+                   inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                   placeholder="123456" required
+                   style="font-family:monospace;font-size:1.2rem;letter-spacing:.3rem">
+          </div>
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="bi bi-shield-check me-1"></i>Conferma e attiva
+          </button>
+        </div>
+      </form>
+    {% else %}
+      <p class="text-muted small mb-3">
+        La verifica in due passaggi aggiunge un ulteriore livello di sicurezza.
+        Ti verrà chiesto un codice dall'app di autenticazione ad ogni accesso.
+      </p>
+      <form method="post">
+        <input type="hidden" name="azione" value="2fa_genera">
+        <button type="submit" class="btn btn-outline-success btn-sm w-100">
+          <i class="bi bi-shield-plus me-1"></i>Configura 2FA
+        </button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
+{% endblock %}
+
+{% block scripts %}
+{% if totp_uri_qr %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+QRCode.toCanvas(document.getElementById('qr-canvas'),
+  {{ totp_uri_qr | tojson }},
+  { width: 200, margin: 2 },
+  function(err) { if (err) console.error(err); }
+);
+</script>
+{% endif %}
+{% endblock %}

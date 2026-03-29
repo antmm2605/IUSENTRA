@@ -393,13 +393,16 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
 {# ════════════════════════════════════════════════════════
    MODAL SCANNER DOCUMENTO
    ════════════════════════════════════════════════════════ #}
 <div class="modal fade" id="modalScanner" tabindex="-1"
      aria-labelledby="scannerLabel" aria-hidden="true"
      data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down modal-dialog-centered">
     <div class="modal-content">
 
       <div class="modal-header">
@@ -1466,7 +1469,7 @@ document.getElementById('modalScanner').addEventListener('hidden.bs.modal', ferm
 
 })(); // fine IIFE
 </script>
-{% endblock %}
+{% endblock %}{# /modals #}
 
 {% block scripts %}
 <script>

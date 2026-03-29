@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% block title %}Impostazioni Pagamenti{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <h4 class="mb-0 fw-bold"><i class="bi bi-credit-card me-2 text-primary"></i>Impostazioni Pagamenti</h4>
+  <div class="d-flex gap-2 flex-wrap">
+    {% for p in provider_attivi %}
+    <span class="badge bg-success">{{ p|title }} attivo</span>
+    {% endfor %}
+    {% if not provider_attivi %}
+    <span class="badge bg-warning text-dark">Nessun provider attivo</span>
+    {% endif %}
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+<!-- RACCOMANDAZIONI -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius:16px; border-left:4px solid #c8972b!important;">
+  <div class="card-body">
+    <h6 class="fw-semibold mb-3"><i class="bi bi-star-fill text-warning me-2"></i>Consigli per uno studio legale italiano</h6>
+    <div class="row g-3" style="font-size:.82rem;">
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <span class="badge bg-success align-self-start mt-1">★★★★★</span>
+          <div><strong>Stripe</strong> — Migliore per tutto. Carte, SEPA, Apple Pay, Bancomat. Commissione: 1,5% + 0,25€. <a href="https://dashboard.stripe.com/register" target="_blank">Registrati →</a></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <span class="badge bg-success align-self-start mt-1">★★★★★</span>
+          <div><strong>Satispay</strong> — Consigliato per clienti italiani. 0% sotto 10€, 1% sopra. Molto diffuso in Italia. <a href="https://business.satispay.com/it/registrati" target="_blank">Registrati →</a></div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex gap-2">
+          <span class="badge bg-primary align-self-start mt-1">★★★★</span>
+          <div><strong>Bonifico SEPA</strong> — Nessuna commissione. Ideale per parcelle grandi (>500€). Zero configurazione.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="post" id="form-pagamenti">
+  <div class="accordion" id="acc-provider">
+
+    <!-- ======================== STRIPE -->
+    <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:16px!important; overflow:hidden;">
+      <h2 class="accordion-header">
+        <button class="accordion-button {{ '' if cfg.stripe.abilitato else 'collapsed' }}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#acc-stripe">
+          <div class="d-flex align-items-center gap-3 w-100">
+            <img src="https://cdn.brandfetch.io/idxAg10C0L/w/400/h/400/theme/dark/icon.png?c=1dxbfHSJFAPEwi6mRFH" alt="Stripe" style="width:24px;height:24px;object-fit:contain;" onerror="this.style.display='none'">
+            <span class="fw-semibold">Stripe</span>
+            <span class="badge {% if cfg.stripe.abilitato %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+              {{ 'Attivo' if cfg.stripe.abilitato else 'Non attivo' }}
+            </span>
+            <span class="text-muted ms-auto me-3" style="font-size:.75rem;">1,5% + 0,25€ · Carte, SEPA, Apple Pay</span>
+          </div>
+        </button>
+      </h2>
+      <div id="acc-stripe" class="accordion-collapse collapse {{ 'show' if cfg.stripe.abilitato }}">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="stripe_abilitato" id="stripe_ab" value="1"
+                       {{ 'checked' if cfg.stripe.abilitato }}>
+                <label class="form-check-label fw-semibold" for="stripe_ab">Abilita Stripe</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Modalità</label>
+              <select name="stripe_modo" class="form-select form-select-sm">
+                <option value="test" {{ 'selected' if cfg.stripe.modo == 'test' }}>Test (sandbox)</option>
+                <option value="live" {{ 'selected' if cfg.stripe.modo == 'live' }}>Live (produzione)</option>
+              </select>
+            </div>
+            <div class="col-12"><hr class="my-1"><small class="text-muted">Chiavi TEST (da dashboard.stripe.com → Sviluppatori → Chiavi API)</small></div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Publishable key test (pk_test_...)</label>
+              <input type="text" name="stripe_pk_test" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.stripe.pk_test }}" placeholder="pk_test_...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Secret key test (sk_test_...)</label>
+              <input type="password" name="stripe_sk_test" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.stripe.sk_test }}" placeholder="sk_test_...">
+            </div>
+            <div class="col-12"><small class="text-muted">Chiavi LIVE (usa solo in produzione)</small></div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Publishable key live (pk_live_...)</label>
+              <input type="text" name="stripe_pk_live" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.stripe.pk_live }}" placeholder="pk_live_...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Secret key live (sk_live_...)</label>
+              <input type="password" name="stripe_sk_live" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.stripe.sk_live }}" placeholder="sk_live_...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Webhook Secret (whsec_...)</label>
+              <input type="password" name="stripe_webhook_secret" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.stripe.webhook_secret }}" placeholder="whsec_...">
+              <div class="form-text">URL webhook da configurare su Stripe: <code>{{ request.host_url }}webhooks/stripe</code></div>
+            </div>
+            <div class="col-12">
+              <a href="https://dashboard.stripe.com/register" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Crea account Stripe
+              </a>
+              <a href="https://dashboard.stripe.com/apikeys" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-key me-1"></i>Ottieni le chiavi API
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== PAYPAL -->
+    <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:16px!important; overflow:hidden;">
+      <h2 class="accordion-header">
+        <button class="accordion-button {{ '' if cfg.paypal.abilitato else 'collapsed' }}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#acc-paypal">
+          <div class="d-flex align-items-center gap-3 w-100">
+            <i class="bi bi-paypal text-primary fs-5"></i>
+            <span class="fw-semibold">PayPal</span>
+            <span class="badge {% if cfg.paypal.abilitato %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+              {{ 'Attivo' if cfg.paypal.abilitato else 'Non attivo' }}
+            </span>
+            <span class="text-muted ms-auto me-3" style="font-size:.75rem;">3,4% + 0,35€ · Conto PayPal + carte</span>
+          </div>
+        </button>
+      </h2>
+      <div id="acc-paypal" class="accordion-collapse collapse {{ 'show' if cfg.paypal.abilitato }}">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="paypal_abilitato" id="paypal_ab" value="1"
+                       {{ 'checked' if cfg.paypal.abilitato }}>
+                <label class="form-check-label fw-semibold" for="paypal_ab">Abilita PayPal</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Modalità</label>
+              <select name="paypal_modo" class="form-select form-select-sm">
+                <option value="sandbox" {{ 'selected' if cfg.paypal.modo == 'sandbox' }}>Sandbox (test)</option>
+                <option value="live" {{ 'selected' if cfg.paypal.modo == 'live' }}>Live (produzione)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Client ID</label>
+              <input type="text" name="paypal_client_id" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.paypal.client_id }}" placeholder="AaBb...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Client Secret</label>
+              <input type="password" name="paypal_client_secret" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.paypal.client_secret }}" placeholder="Eeff...">
+            </div>
+            <div class="col-12">
+              <a href="https://developer.paypal.com/dashboard/applications" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Dashboard Developer PayPal
+              </a>
+              <a href="https://www.paypal.com/it/webapps/mpp/merchant" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-shop me-1"></i>Account Business PayPal
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== SATISPAY -->
+    <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:16px!important; overflow:hidden;">
+      <h2 class="accordion-header">
+        <button class="accordion-button {{ '' if cfg.satispay.abilitato else 'collapsed' }}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#acc-satispay">
+          <div class="d-flex align-items-center gap-3 w-100">
+            <i class="bi bi-phone-fill text-danger fs-5"></i>
+            <span class="fw-semibold">Satispay</span>
+            <span class="badge bg-warning text-dark ms-1" style="font-size:.6rem;">CONSIGLIATO IT</span>
+            <span class="badge {% if cfg.satispay.abilitato %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+              {{ 'Attivo' if cfg.satispay.abilitato else 'Non attivo' }}
+            </span>
+            <span class="text-muted ms-auto me-3" style="font-size:.75rem;">0% &lt;10€ · 1% &gt;10€ · Solo Italia</span>
+          </div>
+        </button>
+      </h2>
+      <div id="acc-satispay" class="accordion-collapse collapse {{ 'show' if cfg.satispay.abilitato }}">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="satispay_abilitato" id="satispay_ab" value="1"
+                       {{ 'checked' if cfg.satispay.abilitato }}>
+                <label class="form-check-label fw-semibold" for="satispay_ab">Abilita Satispay</label>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Modalità</label>
+              <select name="satispay_modo" class="form-select form-select-sm">
+                <option value="sandbox" {{ 'selected' if cfg.satispay.modo == 'sandbox' }}>Sandbox</option>
+                <option value="production" {{ 'selected' if cfg.satispay.modo == 'production' }}>Produzione</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Key ID</label>
+              <input type="text" name="satispay_key_id" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.satispay.key_id }}" placeholder="ldg-xxxxxxxx">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Chiave privata RSA (PEM)</label>
+              <textarea name="satispay_private_key" class="form-control form-control-sm font-monospace" rows="4"
+                        placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----">{{ cfg.satispay.private_key_pem }}</textarea>
+            </div>
+            <div class="col-12">
+              <a href="https://business.satispay.com/it/registrati" target="_blank" class="btn btn-sm btn-outline-danger me-2">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Registra account business Satispay
+              </a>
+              <a href="https://developers.satispay.com/docs/authentication" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-book me-1"></i>Documentazione API
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== SUMUP -->
+    <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:16px!important; overflow:hidden;">
+      <h2 class="accordion-header">
+        <button class="accordion-button {{ '' if cfg.sumup.abilitato else 'collapsed' }}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#acc-sumup">
+          <div class="d-flex align-items-center gap-3 w-100">
+            <i class="bi bi-cash-coin text-success fs-5"></i>
+            <span class="fw-semibold">SumUp</span>
+            <span class="badge {% if cfg.sumup.abilitato %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+              {{ 'Attivo' if cfg.sumup.abilitato else 'Non attivo' }}
+            </span>
+            <span class="text-muted ms-auto me-3" style="font-size:.75rem;">1,69% · Carte + POS fisico</span>
+          </div>
+        </button>
+      </h2>
+      <div id="acc-sumup" class="accordion-collapse collapse {{ 'show' if cfg.sumup.abilitato }}">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="sumup_abilitato" id="sumup_ab" value="1"
+                       {{ 'checked' if cfg.sumup.abilitato }}>
+                <label class="form-check-label fw-semibold" for="sumup_ab">Abilita SumUp</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">API Key (Bearer token)</label>
+              <input type="password" name="sumup_api_key" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.sumup.api_key }}" placeholder="sup_sk_...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Merchant Code</label>
+              <input type="text" name="sumup_merchant_code" class="form-control form-control-sm"
+                     value="{{ cfg.sumup.merchant_code }}" placeholder="MXXXXXXXX">
+            </div>
+            <div class="col-12">
+              <a href="https://me.sumup.com/it-it/register" target="_blank" class="btn btn-sm btn-outline-success me-2">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Registra account SumUp
+              </a>
+              <a href="https://developer.sumup.com/api" target="_blank" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-book me-1"></i>API Developer SumUp
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== BONIFICO SEPA -->
+    <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:16px!important; overflow:hidden;">
+      <h2 class="accordion-header">
+        <button class="accordion-button {{ '' if cfg.bonifico.abilitato else 'collapsed' }}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#acc-bonifico">
+          <div class="d-flex align-items-center gap-3 w-100">
+            <i class="bi bi-bank fs-5 text-secondary"></i>
+            <span class="fw-semibold">Bonifico SEPA</span>
+            <span class="badge {% if cfg.bonifico.abilitato %}bg-success{% else %}bg-secondary{% endif %} ms-2">
+              {{ 'Attivo' if cfg.bonifico.abilitato else 'Non attivo' }}
+            </span>
+            <span class="text-muted ms-auto me-3" style="font-size:.75rem;">0% commissioni · Manuale</span>
+          </div>
+        </button>
+      </h2>
+      <div id="acc-bonifico" class="accordion-collapse collapse {{ 'show' if cfg.bonifico.abilitato }}">
+        <div class="accordion-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="bonifico_abilitato" id="bonifico_ab" value="1"
+                       {{ 'checked' if cfg.bonifico.abilitato }}>
+                <label class="form-check-label fw-semibold" for="bonifico_ab">Mostra istruzioni bonifico</label>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">IBAN</label>
+              <input type="text" name="bonifico_iban" class="form-control form-control-sm font-monospace"
+                     value="{{ cfg.bonifico.iban }}" placeholder="IT60X0542811101000000123456">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Intestazione conto</label>
+              <input type="text" name="bonifico_intestazione" class="form-control form-control-sm"
+                     value="{{ cfg.bonifico.intestazione }}" placeholder="Avv. Mario Rossi">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Banca</label>
+              <input type="text" name="bonifico_banca" class="form-control form-control-sm"
+                     value="{{ cfg.bonifico.banca }}" placeholder="Banca XYZ">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" style="font-size:.82rem;">Note aggiuntive</label>
+              <input type="text" name="bonifico_note" class="form-control form-control-sm"
+                     value="{{ cfg.bonifico.note_aggiuntive }}" placeholder="Indicare sempre il numero parcella in causale">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /accordion -->
+
+  <div class="d-flex gap-2 mt-2">
+    <button type="submit" class="btn btn-primary btn-lg">
+      <i class="bi bi-floppy me-2"></i>Salva impostazioni
+    </button>
+    <a href="{{ url_for('fatturazione.lista') }}" class="btn btn-outline-secondary">Annulla</a>
+  </div>
+</form>
+
+<!-- Ultimi link di pagamento -->
+{% if link_recenti %}
+<hr class="my-4">
+<h6 class="fw-semibold mb-3"><i class="bi bi-link-45deg me-2"></i>Link di pagamento recenti</h6>
+<div class="table-responsive">
+  <table class="table table-sm align-middle" style="font-size:.82rem;">
+    <thead class="table-light">
+      <tr>
+        <th>Parcella</th><th>Importo</th><th>Creato</th><th>Scade</th><th>Stato</th><th>Provider</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lp in link_recenti %}
+      <tr>
+        <td class="font-monospace" style="font-size:.75rem;">{{ lp.id_parcella[:8] }}...</td>
+        <td class="fw-semibold">€ {{ "%.2f"|format(lp.importo) }}</td>
+        <td class="text-muted">{{ lp.creato_il[:10] }}</td>
+        <td class="text-muted">{{ lp.scade_il[:10] if lp.scade_il else '—' }}</td>
+        <td>
+          <span class="badge
+            {% if lp.stato == 'PAGATO' %}bg-success
+            {% elif lp.stato == 'ATTESO' %}bg-primary
+            {% elif lp.stato == 'SCADUTO' %}bg-secondary
+            {% else %}bg-danger{% endif %}">
+            {{ lp.stato }}
+          </span>
+        </td>
+        <td>{{ lp.provider_usato or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

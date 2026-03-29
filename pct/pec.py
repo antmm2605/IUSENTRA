@@ -5,6 +5,7 @@ Gestione invio PEC (Posta Elettronica Certificata) per il deposito PCT.
 import smtplib
 import email
 import imaplib
+from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -90,9 +91,9 @@ class ClientPEC:
 
         try:
             if self.config.use_ssl:
-                server = smtplib.SMTP_SSL(self.config.smtp_host, self.config.smtp_port)
+                server = _SMTP_SSLv4(self.config.smtp_host, self.config.smtp_port, timeout=30.0)
             else:
-                server = smtplib.SMTP(self.config.smtp_host, self.config.smtp_port)
+                server = _SMTPv4(self.config.smtp_host, self.config.smtp_port, timeout=30.0)
                 server.starttls()
 
             server.login(self.config.indirizzo, self.config.password)
@@ -129,6 +130,23 @@ class ClientPEC:
         if not self.config.imap_host:
             return ricevute
 
+        # Filtro data: cerca solo messaggi da oggi per evitare match su ricevute vecchie
+        from email.utils import formatdate as _fmtdate
+        _oggi = time.strftime("%d-%b-%Y", time.localtime()).upper()
+
+        # Pattern alternativi per provider PEC italiani:
+        # Aruba:    "Ricevuta di accettazione del messaggio" / "Ricevuta di consegna"
+        # InfoCert: "ACCETTAZIONE" / "CONSEGNA"
+        # Namirial: "accettazione" / "consegna"
+        # Il criterio IMAP SUBJECT è case-insensitive (RFC 3501) ma
+        # alcune implementazioni sono case-sensitive → usiamo OR su varianti.
+        _CRITERI_ACC = (
+            'OR OR SUBJECT "accettazione" SUBJECT "ACCETTAZIONE" SUBJECT "Accettazione"'
+        )
+        _CRITERI_CONS = (
+            'OR OR SUBJECT "consegna" SUBJECT "CONSEGNA" SUBJECT "Consegna"'
+        )
+
         inizio = time.time()
         try:
             mail = imaplib.IMAP4_SSL(self.config.imap_host, self.config.imap_port)
@@ -136,13 +154,26 @@ class ClientPEC:
             mail.select("INBOX")
 
             while time.time() - inizio < timeout:
-                _, messages = mail.search(None, 'SUBJECT "ACCETTAZIONE"')
-                if messages[0]:
-                    ricevute["accettazione"] = messages[0].decode()
+                try:
+                    _, messages = mail.search(
+                        None, f'SINCE {_oggi} {_CRITERI_ACC}'
+                    )
+                    if messages[0]:
+                        ricevute["accettazione"] = messages[0].decode()
 
-                _, messages = mail.search(None, 'SUBJECT "CONSEGNA"')
-                if messages[0]:
-                    ricevute["consegna"] = messages[0].decode()
+                    _, messages = mail.search(
+                        None, f'SINCE {_oggi} {_CRITERI_CONS}'
+                    )
+                    if messages[0]:
+                        ricevute["consegna"] = messages[0].decode()
+                except imaplib.IMAP4.error:
+                    # Alcuni server non supportano OR — fallback senza filtro data
+                    _, messages = mail.search(None, 'SUBJECT "accettazione"')
+                    if messages[0]:
+                        ricevute["accettazione"] = messages[0].decode()
+                    _, messages = mail.search(None, 'SUBJECT "consegna"')
+                    if messages[0]:
+                        ricevute["consegna"] = messages[0].decode()
 
                 if ricevute["accettazione"] and ricevute["consegna"]:
                     ricevute["completato"] = True
@@ -153,6 +184,10 @@ class ClientPEC:
             mail.logout()
         except imaplib.IMAP4.error as e:
             ricevute["errore"] = str(e)
+        except OSError as e:
+            ricevute["errore"] = f"Connessione IMAP fallita: {e}"
+        except Exception as e:
+            ricevute["errore"] = f"Errore attesa ricevute: {e}"
 
         return ricevute
 

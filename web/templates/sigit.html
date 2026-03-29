@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block title %}PTT Tributario — SIGIT{% endblock %}
+{% block pct_modulo %}sigit{% endblock %}
+
+{% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
+{% block content %}
+
+{{ banner_fascicolo(portale_col='warning', portale_label='PTT Tributario') }}
+
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <i class="bi bi-receipt-cutoff fs-4 text-warning"></i>
+    <h4 class="mb-0 fw-bold">PTT Tributario</h4>
+    <span class="badge bg-light text-dark border ms-1" style="font-size:.72rem">
+      Processo Tributario Telematico — SIGIT / MEF
+    </span>
+    {% if demo_mode %}
+    <span class="badge bg-warning text-dark ms-2">
+      <i class="bi bi-cone me-1"></i>MODALITÀ DEMO
+    </span>
+    {% endif %}
+  </div>
+
+  {% if demo_mode %}
+  <div class="alert alert-warning alert-dismissible fade show small mb-3">
+    <i class="bi bi-cone me-2"></i>
+    <strong>Certificato non configurato — modalità demo (offline).</strong>
+    I risultati mostrati sono dati di esempio.
+    Per accedere al PTT reale configurare il certificato CNS in
+    <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>.
+    <ul class="mb-0 mt-1">
+      <li><strong>P12/PFX:</strong> <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
+      <li><strong>PEM:</strong> <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code></li>
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else ('warning' if cat == 'warning' else 'danger') }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  {# ---- Form ricerca ---- #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex align-items-center gap-2">
+      <i class="bi bi-search text-warning"></i>Ricerca ricorsi tributari
+      <button type="button" class="btn-help ms-1"
+              data-bs-toggle="popover"
+              data-bs-title="Come funziona la ricerca PTT"
+              data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>SIGIT (Sistema Informativo della Giustizia Tributaria)</strong> tramite web service PTT del MEF.</p><ul><li>Seleziona la Commissione Tributaria (CPT o CGT) e inserisci almeno il numero RGT oppure il nome del ricorrente.</li><li>In <strong>modalità demo</strong> vengono mostrati dati di esempio.</li></ul>">?</button>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('sigit_ricerca') }}">
+        <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
+        <div class="row g-3">
+
+          {# ---- Commissione tributaria ---- #}
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">
+              Commissione Tributaria <span class="text-danger">*</span>
+            </label>
+            <div class="uff-tabs mb-1" id="commissione-tabs" role="tablist">
+              <button type="button" class="uff-tab active" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT — Primo grado</button>
+              <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT — Secondo grado</button>
+            </div>
+            <div class="position-relative">
+              <input type="text" name="commissione" id="commissione-input" class="form-control"
+                     placeholder="es. Commissione Tributaria Milano…"
+                     autocomplete="off"
+                     value="{{ commissione_sel or '' }}"
+                     required>
+            </div>
+          </div>
+
+          {# ---- Numero RGT ---- #}
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">N. RGT</label>
+            <input type="text" name="numero_rgt" class="form-control"
+                   placeholder="es. 1234"
+                   value="{{ numero_rgt or '' }}">
+          </div>
+
+          {# ---- Anno ---- #}
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Anno</label>
+            <input type="number" name="anno_rgt" class="form-control"
+                   placeholder="{{ oggi.year }}"
+                   min="1990" max="{{ oggi.year }}"
+                   value="{{ anno_rgt or '' }}">
+          </div>
+
+          {# ---- Materia ---- #}
+          <div class="col-md-3 d-flex align-items-end">
+            <div class="w-100">
+              <label class="form-label fw-semibold">Materia</label>
+              <select name="materia" class="form-select">
+                <option value="">Tutte</option>
+                <option value="IVA"       {% if materia == 'IVA'       %}selected{% endif %}>IVA</option>
+                <option value="IRPEF"     {% if materia == 'IRPEF'     %}selected{% endif %}>IRPEF / IRES</option>
+                <option value="IRAP"      {% if materia == 'IRAP'      %}selected{% endif %}>IRAP</option>
+                <option value="IMU"       {% if materia == 'IMU'       %}selected{% endif %}>IMU / TARI / TASI</option>
+                <option value="REGISTRO"  {% if materia == 'REGISTRO'  %}selected{% endif %}>Imposta di registro</option>
+                <option value="ACCISA"    {% if materia == 'ACCISA'    %}selected{% endif %}>Accisa / doganale</option>
+                <option value="ALTRO"     {% if materia == 'ALTRO'     %}selected{% endif %}>Altro tributo</option>
+              </select>
+            </div>
+          </div>
+
+          {# ---- Nome ricorrente ---- #}
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">
+              Nome ricorrente
+              <button type="button" class="btn-help"
+                      data-bs-toggle="popover"
+                      data-bs-title="Ricerca per nome ricorrente"
+                      data-bs-content="Digita almeno 2 caratteri per cercare tra i clienti in anagrafica. Puoi anche inserire un nome o ragione sociale manualmente.">?</button>
+            </label>
+            <div class="position-relative" id="nome-parte-wrap">
+              <input type="text" name="nome_ricorrente" id="nome-parte-input" class="form-control"
+                     placeholder="es. Rossi Mario o Alfa S.r.l. — cerca nei tuoi clienti"
+                     autocomplete="off"
+                     value="{{ nome_ricorrente or (fascicolo.nome_cliente if fascicolo else '') }}">
+              <div id="nome-parte-dropdown"
+                   style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9998;
+                          background:#fff;border:1px solid #dee2e6;border-radius:8px;
+                          box-shadow:0 6px 20px rgba(0,0,0,.13);max-height:240px;overflow-y:auto;margin-top:2px">
+              </div>
+            </div>
+          </div>
+
+          {# ---- Cerca ---- #}
+          <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-warning w-100">
+              <i class="bi bi-search me-1"></i>Cerca nel SIGIT
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ---- Risultati ricerca ---- #}
+  {% if fascicoli is defined %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+      <span>
+        <i class="bi bi-list-ul me-2 text-warning"></i>
+        Risultati — {{ fascicoli|length }} ricorso/i trovati
+      </span>
+    </div>
+    {% if fascicoli %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small mob-cards">
+        <thead class="table-light">
+          <tr>
+            <th>N. RGT</th>
+            <th>Tipo</th>
+            <th>Oggetto / Materia</th>
+            <th>Ricorrente</th>
+            <th>Resistente</th>
+            <th>Udienza</th>
+            <th>Stato</th>
+            <th class="text-end">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli %}
+          <tr>
+            <td data-label="RGT" class="text-nowrap fw-semibold">
+              {{ f.numero_rgt }}/{{ f.anno_rgt }}
+              {% if f.sezione %}<br><small class="text-muted">{{ f.sezione }}</small>{% endif %}
+            </td>
+            <td data-label="Tipo" data-mob-hide>
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                {{ f.tipo }}
+              </span>
+            </td>
+            <td data-label="Oggetto">
+              {{ f.oggetto_controversia or f.materia or '—' }}
+              {% if f.giudice_relatore %}<br><small class="text-muted">Rel. {{ f.giudice_relatore }}</small>{% endif %}
+              {% if f.valore_controversia %}
+              <br><small class="text-muted">€ {{ "%.2f"|format(f.valore_controversia) }}</small>
+              {% endif %}
+            </td>
+            <td data-label="Ricorrente" class="small text-muted" data-mob-hide>
+              {% for r in f.ricorrenti[:2] %}{{ r }}<br>{% endfor %}
+              {% if f.ricorrenti|length > 2 %}<em>+{{ f.ricorrenti|length - 2 }} altri</em>{% endif %}
+              {% if not f.ricorrenti %}—{% endif %}
+            </td>
+            <td data-label="Resistente" class="small text-muted" data-mob-hide>
+              {% for r in f.resistenti[:2] %}{{ r }}<br>{% endfor %}
+              {% if f.resistenti|length > 2 %}<em>+{{ f.resistenti|length - 2 }} altri</em>{% endif %}
+              {% if not f.resistenti %}—{% endif %}
+            </td>
+            <td data-label="Udienza" class="text-nowrap">
+              {% if f.data_udienza %}
+                <span class="badge bg-info text-dark">{{ f.data_udienza }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td data-label="Stato">
+              <span class="badge rounded-pill
+                {% if f.stato == 'PENDENTE' %}bg-primary
+                {% elif f.stato == 'DEFINITO' %}bg-success
+                {% elif f.stato == 'ESTINTO' %}bg-success
+                {% elif f.stato == 'SOSPESO' %}bg-warning text-dark
+                {% elif f.stato == 'RINVIATO' %}bg-secondary
+                {% else %}bg-secondary{% endif %}">
+                {{ f.stato }}
+              </span>
+            </td>
+            <td data-label="" class="text-end text-nowrap">
+              <a href="{{ url_for('sigit_documenti',
+                          codice_commissione=f.codice_commissione,
+                          numero_rgt=f.numero_rgt,
+                          anno_rgt=f.anno_rgt) }}"
+                 class="btn btn-sm btn-outline-secondary"
+                 title="Visualizza documenti nel fascicolo tributario">
+                <i class="bi bi-files"></i>
+              </a>
+              <form method="post" action="{{ url_for('sigit_importa') }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Importare RGT {{ f.numero_rgt }}/{{ f.anno_rgt }} come nuovo fascicolo tributario?')">
+                <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+                <input type="hidden" name="numero_rgt" value="{{ f.numero_rgt }}">
+                <input type="hidden" name="anno_rgt" value="{{ f.anno_rgt }}">
+                <input type="hidden" name="tipo" value="{{ f.tipo }}">
+                <input type="hidden" name="stato" value="{{ f.stato }}">
+                <input type="hidden" name="materia" value="{{ f.materia }}">
+                <input type="hidden" name="sezione" value="{{ f.sezione }}">
+                <input type="hidden" name="giudice_relatore" value="{{ f.giudice_relatore }}">
+                <input type="hidden" name="data_deposito" value="{{ f.data_deposito }}">
+                <input type="hidden" name="data_udienza" value="{{ f.data_udienza }}">
+                <input type="hidden" name="oggetto_controversia" value="{{ f.oggetto_controversia }}">
+                <input type="hidden" name="valore_controversia" value="{{ f.valore_controversia }}">
+                <input type="hidden" name="ricorrenti_json" value="{{ f.ricorrenti | tojson }}">
+                <input type="hidden" name="resistenti_json" value="{{ f.resistenti | tojson }}">
+                <input type="hidden" name="codice_commissione" value="{{ f.codice_commissione }}">
+                <input type="hidden" name="nome_commissione" value="{{ f.nome_commissione }}">
+                <button type="submit" class="btn btn-sm btn-warning"
+                        title="Importa come nuovo fascicolo tributario">
+                  <i class="bi bi-download me-1"></i>Importa
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted small">
+      <i class="bi bi-search fs-4 d-block mb-2"></i>
+      Nessun ricorso tributario trovato con i criteri specificati.
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ---- Info tecnica ---- #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold small">
+      <i class="bi bi-info-circle me-2 text-warning"></i>Come funziona l'integrazione PTT / SIGIT
+    </div>
+    <div class="card-body small text-muted">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-receipt-cutoff text-warning me-1"></i>SIGIT — Sistema Informativo
+          </div>
+          Il <strong>Processo Tributario Telematico</strong> è il sistema di giustizia digitale
+          per le Corti di Giustizia Tributaria (D.M. 163/2013 e D.Lgs. 546/1992 art. 16-bis).
+          Consente deposito e consultazione ricorsi tributari con autenticazione CNS/SPID.
+        </div>
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-download text-warning me-1"></i>Importazione pratiche
+          </div>
+          La funzione "Importa" crea automaticamente un nuovo fascicolo di tipo
+          <strong>Tributario</strong> con i dati del ricorso, la materia fiscale,
+          il giudice relatore e la prossima udienza nell'agenda.
+        </div>
+        <div class="col-md-4">
+          <div class="fw-semibold text-dark mb-1">
+            <i class="bi bi-key text-warning me-1"></i>Accesso
+          </div>
+          Usa le stesse credenziali CNS del PCT civile oppure accedi direttamente al
+          <a href="https://www.ptt.mef.gov.it" target="_blank" rel="noopener">portale PTT (ptt.mef.gov.it)</a>
+          con SPID/CIE per il download degli atti.
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ---------------------------------------------------------------- Autocomplete nome ricorrente
+(function () {
+  const inp  = document.getElementById('nome-parte-input');
+  const drop = document.getElementById('nome-parte-dropdown');
+  if (!inp || !drop) return;
+  let timer = null;
+  function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function mostra(clienti) {
+    if (!clienti.length) { drop.style.display = 'none'; return; }
+    drop.innerHTML = clienti.map(c => {
+      const sub = [c.tipo, c.codice_fiscale || c.cf || ''].filter(Boolean).join(' · ');
+      return `<div class="uff-item" data-nome="${escH(c.nome_completo || c.nome || '')}" style="cursor:pointer">
+        <i class="bi bi-person text-warning uff-icon"></i>
+        <div class="uff-body">
+          <div class="uff-nome">${escH(c.nome_completo || c.nome || '')}</div>
+          ${sub ? `<div class="uff-sub">${escH(sub)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    drop.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); inp.value = el.dataset.nome; drop.style.display = 'none'; });
+    });
+    drop.style.display = 'block';
+  }
+  inp.addEventListener('input', function () {
+    clearTimeout(timer); const q = this.value.trim();
+    if (q.length < 2) { drop.style.display = 'none'; return; }
+    timer = setTimeout(() => {
+      fetch('/api/clienti?q=' + encodeURIComponent(q))
+        .then(r => r.json()).then(mostra).catch(() => { drop.style.display = 'none'; });
+    }, 200);
+  });
+  document.addEventListener('click', e => {
+    if (!document.getElementById('nome-parte-wrap')?.contains(e.target)) drop.style.display = 'none';
+  });
+})();
+
+// ---------------------------------------------------------------- Tipo commissione tabs
+(function () {
+  const tabs  = document.getElementById('commissione-tabs');
+  const input = document.getElementById('commissione-input');
+  if (!tabs || !input) return;
+  const PH = { CPT: 'Commissione Prov. Tributaria (es. Milano)…', CGT: 'Corte di Giustizia Tributaria II grado…' };
+  tabs.querySelectorAll('.uff-tab').forEach(tab => {
+    tab.addEventListener('click', e => {
+      e.stopPropagation();
+      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      input.placeholder = PH[tab.dataset.tipo] || 'Cerca commissione…';
+      input.focus();
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -209,7 +209,7 @@
     </a>
 
     {# ---- Sezione: PCT / Telematico ---- #}
-    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','sigit_home','sigit_ricerca','sigit_documenti','sigit_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
       <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
@@ -228,6 +228,10 @@
          class="nav-link sb-link {% if request.endpoint in ('pat_home','pat_ricerca','pat_documenti','pat_importa') %}active{% endif %}">
         <i class="bi bi-building-check"></i><span class="sb-txt">PAT Amministrativo</span>
       </a>
+      <a href="{{ url_for('sigit_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('sigit_home','sigit_ricerca','sigit_documenti','sigit_importa') %}active{% endif %}">
+        <i class="bi bi-receipt-cutoff"></i><span class="sb-txt">PTT Tributario</span>
+      </a>
       <a href="{{ url_for('tribunali') }}"
          class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
         <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
@@ -243,7 +247,7 @@
     </div>
 
     {# ---- Sezione: Studio ---- #}
-    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','notifiche','pagamenti') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','notifiche','pagamenti','preventivi') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
     <button class="sb-toggle {% if _st %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
       <span><i class="bi bi-buildings"></i>Studio</span>
@@ -253,6 +257,10 @@
       <a href="{{ url_for('fatturazione.lista') }}"
          class="nav-link sb-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
         <i class="bi bi-receipt"></i><span class="sb-txt">Fatturazione</span>
+      </a>
+      <a href="{{ url_for('preventivi.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'preventivi' %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Preventivi</span>
       </a>
       <a href="{{ url_for('tariffario') }}"
          class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">
@@ -417,55 +425,20 @@
     </span>
     {% if utente_corrente %}
     {# ── Centro notifiche in-app ─────────────────────────────────── #}
-    <div class="dropdown d-inline-block" id="notifiche-center">
+    <span id="notifiche-center" class="d-inline-block" style="position:relative">
       <button class="btn btn-sm btn-outline-secondary position-relative"
               id="btn-notifiche-inbox"
-              data-bs-toggle="dropdown"
-              data-bs-auto-close="outside"
-              data-bs-placement="bottom-end"
+              type="button"
               title="Notifiche"
-              aria-label="Centro notifiche">
+              aria-label="Centro notifiche"
+              aria-expanded="false"
+              onclick="pctNotifPanel.toggle(this)">
         <i class="bi bi-bell" id="icon-bell-inbox"></i>
         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
               id="badge-notifiche"
               style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
       </button>
-      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0"
-           id="notifiche-dropdown"
-           style="width:360px;max-width:95vw;border-radius:12px;overflow:hidden">
-        {# Header #}
-        <div class="d-flex align-items-center justify-content-between px-3 py-2"
-             style="background:var(--bs-primary);color:#fff">
-          <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
-          <button class="btn btn-sm p-0 text-white opacity-75"
-                  id="btn-tutte-lette"
-                  style="font-size:.72rem;background:none;border:none"
-                  title="Segna tutte come lette">
-            <i class="bi bi-check2-all me-1"></i>Tutte lette
-          </button>
-        </div>
-        {# Lista notifiche (popolata da JS) #}
-        <div id="notifiche-lista" style="max-height:360px;overflow-y:auto">
-          <div class="text-center text-muted py-4 small" id="notif-placeholder">
-            <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
-            Nessuna notifica
-          </div>
-        </div>
-        {# Footer #}
-        <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
-             style="font-size:.75rem">
-          <a href="/scadenziario" class="text-decoration-none text-muted">
-            <i class="bi bi-list-check me-1"></i>Scadenziario
-          </a>
-          <button id="btn-abilita-push"
-                  class="btn btn-link p-0 text-muted"
-                  style="font-size:.75rem;display:none"
-                  onclick="PCT_NOTIFICHE.richiediPermesso()">
-            <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
-          </button>
-        </div>
-      </div>
-    </div>
+    </span>
     {# Pulsante legacy nascosto — mantenuto per push.js #}
     <button id="btn-notifiche" style="display:none"
             onclick="PCT_NOTIFICHE.richiediPermesso()"></button>
@@ -552,6 +525,53 @@
    è sotto il backdrop Bootstrap (z-index:1040 nel root context). Mettere i modal qui
    garantisce che partecipino al root stacking context e i loro z-index:1055 battano il backdrop. #}
 {% block modals %}{% endblock %}
+
+{# ── Pannello notifiche in-app — figlio diretto del body per sfuggire
+   agli overflow/stacking context del topbar (backdrop-filter crea
+   containing block per position:fixed; overflow-x:auto su topbar-actions
+   forza overflow-y:auto che clippa i dropdown assolutamente posizionati) ── #}
+{% if utente_corrente %}
+<div id="notifiche-dropdown"
+     role="dialog"
+     aria-label="Centro notifiche"
+     style="display:none;position:fixed;z-index:10050;width:360px;max-width:calc(100vw - 1rem);
+            border-radius:12px;overflow:hidden;
+            box-shadow:0 8px 32px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1);
+            border:1px solid rgba(0,0,0,.1);
+            background:var(--bs-body-bg,#fff)">
+  {# Header #}
+  <div class="d-flex align-items-center justify-content-between px-3 py-2"
+       style="background:var(--bs-primary);color:#fff">
+    <span class="fw-semibold small"><i class="bi bi-bell-fill me-1"></i>Notifiche</span>
+    <button class="btn btn-sm p-0 text-white opacity-75"
+            id="btn-tutte-lette"
+            style="font-size:.72rem;background:none;border:none"
+            title="Segna tutte come lette">
+      <i class="bi bi-check2-all me-1"></i>Tutte lette
+    </button>
+  </div>
+  {# Lista notifiche (popolata da JS) #}
+  <div id="notifiche-lista" style="max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div class="text-center text-muted py-4 small" id="notif-placeholder">
+      <i class="bi bi-bell-slash d-block mb-2 opacity-25 fs-3"></i>
+      Nessuna notifica
+    </div>
+  </div>
+  {# Footer #}
+  <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top"
+       style="font-size:.75rem">
+    <a href="/scadenziario" class="text-decoration-none text-muted">
+      <i class="bi bi-list-check me-1"></i>Scadenziario
+    </a>
+    <button id="btn-abilita-push"
+            class="btn btn-link p-0 text-muted"
+            style="font-size:.75rem;display:none"
+            onclick="PCT_NOTIFICHE.richiediPermesso()">
+      <i class="bi bi-bell-slash me-1"></i>Abilita notifiche desktop
+    </button>
+  </div>
+</div>
+{% endif %}
 
 {# ---- Toast container notifiche sync ---- #}
 <div id="sync-toast-container"></div>
@@ -1063,11 +1083,58 @@ function initPagination(tableId, selectId) {
     } catch (_) {}
   }
 
-  // Carica al click sul dropdown
-  const dropEl = document.getElementById('notifiche-center');
-  if (dropEl) {
-    dropEl.addEventListener('show.bs.dropdown', carica);
+  // ── Pannello notifiche custom (fuori dal topbar, position:fixed su body) ─────
+  const PANEL    = document.getElementById('notifiche-dropdown');
+  const BTN_BELL = document.getElementById('btn-notifiche-inbox');
+
+  function _posizionaPanel() {
+    if (!BTN_BELL || !PANEL) return;
+    const r = BTN_BELL.getBoundingClientRect();
+    const panW = Math.min(360, window.innerWidth - 16);
+    let left = r.right - panW;
+    if (left < 8) left = 8;
+    PANEL.style.width = panW + 'px';
+    PANEL.style.top   = (r.bottom + 4) + 'px';
+    PANEL.style.left  = left + 'px';
   }
+
+  function _apriPanel() {
+    if (!PANEL) return;
+    _posizionaPanel();
+    PANEL.style.display = 'block';
+    if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'true');
+    carica();
+  }
+
+  function _chiudiPanel() {
+    if (!PANEL) return;
+    PANEL.style.display = 'none';
+    if (BTN_BELL) BTN_BELL.setAttribute('aria-expanded', 'false');
+  }
+
+  // API pubblica usata dall'attributo onclick del button
+  window.pctNotifPanel = {
+    toggle: function (btn) {
+      if (PANEL && PANEL.style.display === 'block') {
+        _chiudiPanel();
+      } else {
+        _apriPanel();
+      }
+    }
+  };
+
+  // Chiudi al click fuori dal pannello
+  document.addEventListener('click', function (e) {
+    if (!PANEL || PANEL.style.display !== 'block') return;
+    if (PANEL.contains(e.target)) return;
+    if (BTN_BELL && BTN_BELL.contains(e.target)) return;
+    _chiudiPanel();
+  }, true);
+
+  // Riposiziona se il viewport cambia (orientamento mobile)
+  window.addEventListener('resize', function () {
+    if (PANEL && PANEL.style.display === 'block') _posizionaPanel();
+  });
 
   // Segna tutte lette
   if (BTN_LETTE) {
@@ -1469,5 +1536,482 @@ if ('serviceWorker' in navigator) {
   document.addEventListener('htmx:afterSettle', function() { initFixedDropdowns(); });
 })();
 </script>
+
+{# ================================================================
+   SOGGETTO SEARCH WIDGET — funzione globale riutilizzabile
+   Chiama: initSoggettoSearch({ uid, inputId, allow_free_text })
+   Dove:
+     uid           = prefisso univoco per ID elementi DOM
+     inputId       = ID dell'<input type="text" name="controparte">
+     allowFreeText = true → l'utente può lasciare testo libero
+                     false → richiede selezione da lista (default)
+   ================================================================ #}
+<script>
+(function() {
+  // Debounce utility
+  function debounce(fn, ms) {
+    var t; return function() { var a = arguments, ctx = this; clearTimeout(t); t = setTimeout(function(){ fn.apply(ctx, a); }, ms); };
+  }
+
+  /**
+   * Inizializza il widget Soggetto Search su un <input type="text">.
+   * L'input deve trovarsi dentro un .ss-wrap con .ss-dropdown al suo interno.
+   *
+   * HTML previsto:
+   *   <div class="ss-wrap" id="ss-{uid}">
+   *     <div class="ss-input-group">
+   *       <i class="bi bi-search ss-icon"></i>
+   *       <input type="text" id="ss-{uid}-input" class="ss-input" ...>
+   *       <button type="button" class="ss-btn-new" onclick="...">+ Nuovo</button>
+   *     </div>
+   *     <div class="ss-dropdown" id="ss-{uid}-dropdown"></div>
+   *   </div>
+   *
+   * Il campo form effettivo è l'<input type="text"> stesso (se allowFreeText)
+   * oppure un hidden affiancato (se !allowFreeText).
+   */
+  window.initSoggettoSearch = function(opts) {
+    var uid          = opts.uid;
+    var allowFree    = opts.allowFreeText !== false;  // default true
+    var apiUrl       = opts.apiUrl || '/api/soggetti';
+    var createUrl    = opts.createUrl || '/soggetti/nuovo';
+    var createLabel  = opts.createLabel || 'Crea nuovo soggetto';
+    var minChars     = opts.minChars || 2;
+
+    var wrap  = document.getElementById('ss-' + uid);
+    var input = document.getElementById('ss-' + uid + '-input');
+    var drop  = document.getElementById('ss-' + uid + '-dropdown');
+    var chip  = document.getElementById('ss-' + uid + '-chip');
+
+    if (!wrap || !input || !drop) return;
+
+    var selected = null;   // oggetto soggetto selezionato
+    var results  = [];
+
+    // ── Renderizza i risultati
+    function renderResults(items) {
+      results = items;
+      if (!items.length) {
+        var q = input.value.trim();
+        drop.innerHTML =
+          '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q ? '?cognome=' + encodeURIComponent(q) : '')) + '')">' +
+            '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
+            createLabel + (q ? ' "' + _esc(q) + '"' : '') +
+          '</div>';
+        drop.classList.add('is-open');
+        return;
+      }
+      var html = items.map(function(s, i) {
+        var siglaClass = s.sigla === 'PG' ? 'ss-sigla pg' : 'ss-sigla';
+        var qualBadge  = s.qualifica ? '<span class="ss-item-qualifica">' + _esc(s.qualifica) + '</span>' : '';
+        var sub = [];
+        if (s.identificativo) sub.push(s.identificativo);
+        return '<div class="ss-item" data-idx="' + i + '" onclick="soggettoSearchSelect('' + uid + '',' + i + ', null)">' +
+          '<div class="' + siglaClass + '">' + _esc(s.sigla) + '</div>' +
+          '<div class="ss-item-body">' +
+            '<div class="ss-item-name">' + _esc(s.nome) + '</div>' +
+            (sub.length ? '<div class="ss-item-sub">' + _esc(sub.join(' · ')) + '</div>' : '') +
+          '</div>' +
+          qualBadge +
+        '</div>';
+      }).join('');
+      var q2 = input.value.trim();
+      html += '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q2 ? '?cognome=' + encodeURIComponent(q2) : '')) + '')">' +
+        '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
+        createLabel +
+      '</div>';
+      drop.innerHTML = html;
+      drop.classList.add('is-open');
+    }
+
+    // ── Ricerca API
+    var doSearch = debounce(function(q) {
+      if (q.length < minChars) { drop.classList.remove('is-open'); return; }
+      fetch(apiUrl + '?q=' + encodeURIComponent(q))
+        .then(function(r){ return r.json(); })
+        .then(function(data){ renderResults(data); })
+        .catch(function(){ drop.classList.remove('is-open'); });
+    }, 280);
+
+    // ── Event listeners input
+    input.addEventListener('input', function() {
+      if (selected && allowFree) { selected = null; _updateChip(); }
+      doSearch(this.value.trim());
+    });
+    input.addEventListener('focus', function() {
+      if (this.value.trim().length >= minChars) doSearch(this.value.trim());
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { drop.classList.remove('is-open'); }
+    });
+
+    // Chiudi su click esterno
+    document.addEventListener('click', function(e) {
+      if (!wrap.contains(e.target)) drop.classList.remove('is-open');
+    }, true);
+
+    // ── Selezione soggetto
+    window.soggettoSearchSelect = window.soggettoSearchSelect || {};
+    window['_ssSelect_' + uid] = function(idx, url) {
+      drop.classList.remove('is-open');
+      if (url) {
+        // "Crea nuovo" → apre in nuova scheda
+        window.open(decodeURIComponent(url), '_blank');
+        return;
+      }
+      if (idx === null || idx === undefined) return;
+      var s = results[idx];
+      if (!s) return;
+      selected = s;
+      input.value = s.nome;
+      _updateChip();
+    };
+
+    function _updateChip() {
+      if (!chip) return;
+      if (!selected) { chip.style.display = 'none'; return; }
+      chip.style.display = 'flex';
+      var siglaClass = selected.sigla === 'PG' ? 'ss-chip-sigla pg' : 'ss-chip-sigla';
+      chip.innerHTML =
+        '<div class="' + siglaClass + '">' + _esc(selected.sigla) + '</div>' +
+        '<span class="ss-chip-name">' + _esc(selected.nome) + '</span>' +
+        (selected.identificativo ? '<span class="ss-chip-name" style="font-weight:400;opacity:.7;font-size:.75rem">&nbsp;· ' + _esc(selected.identificativo) + '</span>' : '') +
+        '<button type="button" class="ss-chip-clear" onclick="_ssClear_' + uid + '()" title="Deseleziona">×</button>';
+    }
+
+    window['_ssClear_' + uid] = function() {
+      selected = null;
+      input.value = '';
+      if (chip) chip.style.display = 'none';
+      input.focus();
+    };
+
+    // ── Espone la funzione di selezione globale (onclick="soggettoSearchSelect(uid, idx, url)")
+    if (!window.soggettoSearchSelect || typeof window.soggettoSearchSelect !== 'function') {
+      window.soggettoSearchSelect = function(uid, idx, url) {
+        var fn = window['_ssSelect_' + uid];
+        if (fn) fn(idx, url);
+      };
+    }
+  };
+
+  function _esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Ri-espone globalmente (per onclick inline)
+  window.soggettoSearchSelect = function(uid, idx, url) {
+    var fn = window['_ssSelect_' + uid];
+    if (fn) fn(idx, url);
+  };
+
+})();
+</script>
+
+{# ═══════════════════════════════════════════════════════════════
+   Assistente virtuale PCT — Lex
+   Floating chat widget (visibile solo agli utenti autenticati)
+   ═══════════════════════════════════════════════════════════════ #}
+{% if g.utente_corrente %}
+<!-- Pulsante FAB -->
+<button id="pct-ai-fab" class="pct-ai-fab" title="Assistente PCT — Lex"
+        onclick="pctAI.toggle()" aria-label="Apri assistente virtuale">
+  <i class="bi bi-robot fs-5"></i>
+</button>
+
+<!-- Pannello chat -->
+<div id="pct-ai-panel" class="pct-ai-panel" style="display:none" role="dialog" aria-label="Assistente PCT">
+
+  <!-- Header -->
+  <div class="pct-ai-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-robot"></i>
+      <strong>Lex</strong>
+      <span class="text-white-50" style="font-size:.75rem;font-weight:400">Assistente PCT</span>
+      <span id="pct-ai-model-badge" class="badge"
+            style="background:rgba(255,255,255,.15);font-size:.6rem;font-weight:500"></span>
+    </div>
+    <div class="d-flex gap-1">
+      <button class="pct-ai-hbtn" onclick="pctAI.clearHistory()" title="Nuova conversazione">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+      <button class="pct-ai-hbtn" onclick="pctAI.toggle()" title="Chiudi">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Contesto fascicolo attivo -->
+  <div id="pct-ai-ctx" class="pct-ai-ctx" style="display:none">
+    <i class="bi bi-folder2-open"></i>
+    <span id="pct-ai-ctx-label"></span>
+  </div>
+
+  <!-- Area messaggi -->
+  <div id="pct-ai-messages" class="pct-ai-messages">
+    <div class="pct-ai-msg pct-ai-msg--assistant">
+      <div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-robot"></i></div>
+      <div class="pct-ai-bubble">
+        <p>Ciao! Sono <strong>Lex</strong>, il tuo assistente per il deposito telematico.</p>
+        <p>Posso aiutarti con:</p>
+        <ul>
+          <li>Preparazione buste e invio depositi (PST, PDP, PAT)</li>
+          <li>Interpretazione errori e stati del deposito</li>
+          <li>Firma digitale, PEC, PDF/A</li>
+          <li>Normativa D.M. 44/2011 e procedure</li>
+        </ul>
+        <p class="mb-0">Come posso aiutarti?</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer input -->
+  <div class="pct-ai-footer">
+    <div class="pct-ai-input-wrap">
+      <textarea id="pct-ai-input" class="pct-ai-input"
+                placeholder="Scrivi una domanda…"
+                rows="1"
+                onkeydown="pctAI.onKeydown(event)"
+                oninput="pctAI.autoResize(this)"></textarea>
+      <button id="pct-ai-send" class="pct-ai-send-btn" onclick="pctAI.send()" title="Invia">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </div>
+    <div id="pct-ai-status" class="pct-ai-status-bar"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ── Stato interno ────────────────────────────────────────────────────────────
+var _open      = false;
+var _streaming = false;
+var _history   = [];          // [{role, content}] — ultimi 20 messaggi
+var _fascId    = null;        // ID fascicolo attivo (dall'URL o da window.pctAiFascicoloId)
+var _currentBubble = null;    // elemento bubble corrente durante lo streaming
+
+// ── Esposto globalmente ──────────────────────────────────────────────────────
+window.pctAI = {
+
+  init: function () {
+    // Rileva fascicolo dall'URL (es. /fascicoli/abc123/...)
+    var m = location.pathname.match(/\/fascicoli\/([^/]+)/);
+    _fascId = (m && m[1]) || window.pctAiFascicoloId || null;
+    if (_fascId) {
+      var ctx = document.getElementById('pct-ai-ctx');
+      var lbl = document.getElementById('pct-ai-ctx-label');
+      if (ctx && lbl) {
+        lbl.textContent = 'Contesto fascicolo attivo';
+        ctx.style.display = 'flex';
+      }
+    }
+    _checkStatus();
+  },
+
+  toggle: function () {
+    _open = !_open;
+    var panel = document.getElementById('pct-ai-panel');
+    var fab   = document.getElementById('pct-ai-fab');
+    panel.style.display = _open ? 'flex' : 'none';
+    if (fab) fab.classList.toggle('pct-ai-fab--active', _open);
+    if (_open) {
+      setTimeout(function () {
+        var inp = document.getElementById('pct-ai-input');
+        if (inp) inp.focus();
+        _scrollBottom();
+      }, 80);
+    }
+  },
+
+  onKeydown: function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      window.pctAI.send();
+    }
+  },
+
+  autoResize: function (el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  },
+
+  send: function () {
+    if (_streaming) return;
+    var inp  = document.getElementById('pct-ai-input');
+    var text = inp ? inp.value.trim() : '';
+    if (!text) return;
+
+    inp.value = '';
+    inp.style.height = 'auto';
+
+    _history.push({ role: 'user', content: text });
+    _appendMsg('user', text);
+
+    _streaming = true;
+    _setStatus('Lex sta scrivendo…');
+    document.getElementById('pct-ai-send').disabled = true;
+
+    _currentBubble = _appendMsg('assistant', '');
+
+    var payload = {
+      messages: _history.slice(-20),
+      fascicolo_id: _fascId || ''
+    };
+
+    fetch('/api/assistente/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (resp) {
+      var reader  = resp.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer  = '';
+      var full    = '';
+
+      function pump() {
+        return reader.read().then(function (res) {
+          if (res.done) {
+            _history.push({ role: 'assistant', content: full });
+            _finalize();
+            return;
+          }
+          buffer += decoder.decode(res.value, { stream: true });
+          var lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            if (!line.startsWith('data: ')) continue;
+            var raw = line.slice(6).trim();
+            if (raw === '[DONE]') {
+              _history.push({ role: 'assistant', content: full });
+              _finalize();
+              return;
+            }
+            try {
+              var d = JSON.parse(raw);
+              if (d.errore) {
+                _setBubble(_currentBubble, '⚠️ ' + d.errore);
+                _history.push({ role: 'assistant', content: d.errore });
+                _finalize();
+                return;
+              }
+              if (d.token) {
+                full += d.token;
+                _setBubble(_currentBubble, full);
+                _scrollBottom();
+              }
+            } catch (_) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function (err) {
+      if (_currentBubble) _setBubble(_currentBubble, '⚠️ Errore di connessione: ' + err.message);
+      _finalize();
+    });
+  },
+
+  clearHistory: function () {
+    _history = [];
+    var container = document.getElementById('pct-ai-messages');
+    if (container) {
+      container.innerHTML =
+        '<div class="pct-ai-msg pct-ai-msg--assistant">' +
+          '<div class="pct-ai-avatar pct-ai-avatar--ai"><i class="bi bi-robot"></i></div>' +
+          '<div class="pct-ai-bubble"><p class="mb-0">Conversazione resettata. Come posso aiutarti?</p></div>' +
+        '</div>';
+    }
+  }
+};
+
+// ── Funzioni interne ─────────────────────────────────────────────────────────
+
+function _checkStatus() {
+  fetch('/api/assistente/stato')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var badge = document.getElementById('pct-ai-model-badge');
+      if (badge) badge.textContent = data.ok ? data.modello_attivo : '⚠ offline';
+    })
+    .catch(function () {});
+}
+
+function _appendMsg(role, content) {
+  var container = document.getElementById('pct-ai-messages');
+  var wrap = document.createElement('div');
+  wrap.className = 'pct-ai-msg pct-ai-msg--' + role;
+
+  var avatarIcon = role === 'user' ? 'person-fill' : 'robot';
+  var avatarCls  = role === 'user' ? 'pct-ai-avatar--user' : 'pct-ai-avatar--ai';
+  wrap.innerHTML =
+    '<div class="pct-ai-avatar ' + avatarCls + '"><i class="bi bi-' + avatarIcon + '"></i></div>' +
+    '<div class="pct-ai-bubble">' + (content ? _renderMd(content) : '<span class="pct-ai-cursor">▋</span>') + '</div>';
+
+  container.appendChild(wrap);
+  _scrollBottom();
+  return wrap.querySelector('.pct-ai-bubble');
+}
+
+function _setBubble(el, content) {
+  if (el) el.innerHTML = content ? _renderMd(content) : '<span class="pct-ai-cursor">▋</span>';
+}
+
+function _renderMd(text) {
+  if (!text) return '';
+  // 1. Escape HTML
+  var html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  // 2. Code blocks (```...```)
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  // 3. Inline code
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // 4. Bold
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // 5. Bullet lists (•, -, ☐, ☑)
+  html = html.replace(/^([•\-☐☑✓✗]\s.+)$/gm, '<li>$1</li>');
+  html = html.replace(/^(\d+\.\s.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*<li>[\s\S]*?<\/li>)*/g, '<ul>$&</ul>');
+  // 6. Paragraphs from double newlines
+  var paras = html.split(/\n\n+/);
+  html = paras.map(function (p) {
+    p = p.trim();
+    if (!p) return '';
+    if (p.startsWith('<ul>') || p.startsWith('<pre>')) return p;
+    return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
+  }).join('');
+  return html || text;
+}
+
+function _scrollBottom() {
+  var el = document.getElementById('pct-ai-messages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function _setStatus(msg) {
+  var el = document.getElementById('pct-ai-status');
+  if (el) el.textContent = msg;
+}
+
+function _finalize() {
+  _streaming = false;
+  _setStatus('');
+  var btn = document.getElementById('pct-ai-send');
+  if (btn) btn.disabled = false;
+  _scrollBottom();
+}
+
+// ── Avvio ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () { window.pctAI.init(); });
+
+})();
+</script>
+{% endif %}
 </body>
 </html>

@@ -202,6 +202,15 @@ def _build_styles() -> dict:
         alignment=TA_LEFT,
         spaceAfter=4,
     )
+    styles["nota"] = ParagraphStyle(
+        "nota",
+        fontSize=7,
+        fontName="Helvetica",
+        textColor=GRIGIO_TESTO,
+        alignment=TA_LEFT,
+        wordWrap="CJK",
+        leading=9,
+    )
 
     return styles
 
@@ -1032,8 +1041,8 @@ def lista_fascicoli_pdf(
             Paragraph(str(f.get("titolo") or f.get("oggetto") or "—")[:60], styles["nota"]),
             Paragraph(str(f.get("nome_cliente") or "—")[:40], styles["nota"]),
             Paragraph(str(f.get("tribunale") or "—")[:35], styles["nota"]),
-            Paragraph(str(f.get("tipo") or "—"), styles["nota"]),
-            Paragraph(str(f.get("stato") or "—"), styles["nota"]),
+            Paragraph((f.get("tipo") or "—").replace("_", " ").title(), styles["nota"]),
+            Paragraph((f.get("stato") or "—").replace("_", " ").title(), styles["nota"]),
         ])
     tbl = Table(rows, colWidths=col_w, repeatRows=1)
     tbl.setStyle(TableStyle([
@@ -1100,9 +1109,19 @@ def lista_clienti_pdf(
     for c in clienti:
         rec = c.get("recapiti") or {}
         doc_str = "⚠ scaduto" if (c.get("documento") or {}).get("scaduto") else ""
+        # nome_completo non è nel dict (è @property) — ricostruisco
+        nome = (
+            c.get("nome_completo")
+            or c.get("ragione_sociale")
+            or f"{c.get('cognome', '')} {c.get('nome', '')}".strip()
+            or "—"
+        )
+        # tipo: PERSONA_FISICA → Persona Fisica
+        tipo_raw = c.get("tipo") or ""
+        tipo_fmt = tipo_raw.replace("_", " ").title() if tipo_raw else "—"
         rows.append([
-            Paragraph(str(c.get("nome_completo") or "—")[:50], styles["nota"]),
-            Paragraph(str(c.get("tipo") or "—"), styles["nota"]),
+            Paragraph(nome[:50], styles["nota"]),
+            Paragraph(tipo_fmt, styles["nota"]),
             Paragraph(str(rec.get("email") or rec.get("pec") or "—")[:35], styles["nota"]),
             Paragraph(str(rec.get("telefono") or rec.get("cellulare") or "—"), styles["nota"]),
             Paragraph(str(c.get("stato") or "—"), styles["nota"]),

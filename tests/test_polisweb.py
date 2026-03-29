@@ -96,6 +96,26 @@ def test_polisweb_parse_qbuilder_fascicoli_xml():
     assert getattr(fascicoli[0], "parti_dettaglio")[0]["codice_fiscale"] == "STLFNC45E26L063X"
 
 
+def test_polisweb_parse_qbuilder_fascicoli_normalizza_date_e_codiceufficio():
+    client = _client()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" time="2026-03-29 18:51:21" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="InfoFascicoloExt"><ns2:property name="IDFASCICOLO" type="string">172944</ns2:property><ns2:property name="CODICEUFFICIO" type="string">0800570094</ns2:property><ns2:property name="ANNORUOLO" type="long">2024</ns2:property><ns2:property name="NUMERORUOLO" type="string">00001025</ns2:property><ns2:property name="DATAISCRIZIONERUOLO" type="date">05/09/2024 00:00:00.000</ns2:property><ns2:property name="DATAPROSSIMAUDIENZA" type="date">12/12/2024 00:00:00.000</ns2:property><ns2:property name="DESCRIZIONESEZIONE" type="string">CIVILE</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicoli = client._parse_fascicoli_qbuilder_xml(xml)
+
+    assert len(fascicoli) == 1
+    assert fascicoli[0].codice_ufficio == "0800570094"
+    assert fascicoli[0].nome_ufficio == "Tribunale di Palmi"
+    assert fascicoli[0].data_iscrizione == "2024-09-05"
+    assert fascicoli[0].data_udienza == "2024-12-12"
+    assert fascicoli[0].sezione == "CIVILE"
+
+
 def test_polisweb_parse_qbuilder_documenti_xml():
     client = _client()
 
@@ -225,6 +245,7 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
         tipo=TipoFascicolo.CIVILE,
         numero_rg="1025",
         anno_rg=2024,
+        data_apertura="2026-03-29",
         note="Importato da PolisWeb il 2026-03-29",
     )
 
@@ -236,8 +257,8 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
         oggetto="Vendita di cose immobili",
         sezione="CIVILE",
         giudice="GIOVANNELLA MARIA ELENA",
-        data_iscrizione="2026-03-29",
-        data_udienza="2026-05-10",
+        data_iscrizione="05/09/2024 00:00:00.000",
+        data_udienza="12/12/2024 00:00:00.000",
         parti=["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."],
         parti_dettaglio=[
             {
@@ -271,6 +292,9 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
     assert fascicolo.id_cliente
     assert fascicolo.nome_cliente == "Stillitano Francesco"
     assert fascicolo.tribunale == "Tribunale di Palmi"
+    assert fascicolo.data_apertura == "2024-09-05"
+    assert fascicolo.data_prima_udienza == "2024-12-12"
+    assert fascicolo.data_prossima_udienza == ""
     assert fascicolo.oggetto == "Vendita di cose immobili"
     assert fascicolo.controparte == "BANCA ALFA S.P.A."
     assert len(fascicolo.attivita) >= 2
@@ -499,6 +523,7 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
         tipo=TipoFascicolo.CIVILE,
         numero_rg="1025",
         anno_rg=2024,
+        data_apertura="2026-03-29",
         note="Importato da PolisWeb il 2026-03-29",
     )
 
@@ -521,8 +546,8 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
                 "oggetto": "Vendita di cose immobili",
                 "sezione": "CIVILE",
                 "giudice": "GIOVANNELLA MARIA ELENA",
-                "data_iscrizione": "2026-03-29",
-                "data_udienza": "2026-05-10",
+                "data_iscrizione": "05/09/2024 00:00:00.000",
+                "data_udienza": "12/12/2024 00:00:00.000",
                 "parti_json": json.dumps(["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."]),
                 "parti_dettaglio_json": json.dumps(
                     [
@@ -531,7 +556,7 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
                     ]
                 ),
                 "codice_ufficio": "0800570094",
-                "nome_ufficio": "Tribunale di Palmi",
+                "nome_ufficio": "",
             },
             follow_redirects=True,
         )
@@ -554,6 +579,8 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
     assert fascicolo_reload.id_cliente
     assert fascicolo_reload.nome_cliente == "Stillitano Francesco"
     assert fascicolo_reload.tribunale == "Tribunale di Palmi"
+    assert fascicolo_reload.data_apertura == "2024-09-05"
+    assert fascicolo_reload.data_prima_udienza == "2024-12-12"
     assert fascicolo_reload.controparte == "BANCA ALFA S.P.A."
     assert len(fascicolo_reload.attivita) >= 2
     assert gestione_clienti_reload.get(fascicolo_reload.id_cliente) is not None

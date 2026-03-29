@@ -313,6 +313,26 @@ def test_parse_qbuilder_fascicoli_xml():
     assert fascicoli[0]["parti_dettaglio"][0]["codice_fiscale"] == "STLFNC45E26L063X"
 
 
+def test_parse_qbuilder_fascicoli_xml_supporta_codiceufficio_e_date_estese():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE"><return available="1" time="2026-03-29 18:51:21" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType"><ns2:row class="InfoFascicoloExt"><ns2:property name="IDFASCICOLO" type="string">172944</ns2:property><ns2:property name="CODICEUFFICIO" type="string">0800570094</ns2:property><ns2:property name="ANNORUOLO" type="long">2024</ns2:property><ns2:property name="NUMERORUOLO" type="string">00001025</ns2:property><ns2:property name="DATAISCRIZIONERUOLO" type="date">05/09/2024 00:00:00.000</ns2:property><ns2:property name="DATAPROSSIMAUDIENZA" type="date">12/12/2024 00:00:00.000</ns2:property><ns2:property name="DESCRIZIONESEZIONE" type="string">CIVILE</ns2:property></ns2:row></return></ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    fascicoli = module._parse_fascicoli_xml(xml)
+
+    assert len(fascicoli) == 1
+    assert fascicoli[0]["codice_ufficio"] == "0800570094"
+    assert fascicoli[0]["nome_ufficio"] == "Tribunale di Palmi"
+    assert fascicoli[0]["data_iscrizione"] == "2024-09-05"
+    assert fascicoli[0]["data_udienza"] == "2024-12-12"
+    assert fascicoli[0]["sezione"] == "CIVILE"
+
+
 def test_parse_qbuilder_documenti_xml():
     module = _load_local_signer()
 

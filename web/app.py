@@ -2521,7 +2521,8 @@ read -r -p "Premi Invio per chiudere..." _
     def polisWeb_importa():
         """Importa una pratica PolisWeb come nuovo fascicolo nel gestionale."""
         import json as _json
-        from pct.polisWeb import crea_client, FascicoloPolisWeb
+        from pct.polisWeb import crea_client, FascicoloPolisWeb, _parse_data
+        from pct.uffici_giudiziari import risolvi_ufficio
         f = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         u = g.utente_corrente
@@ -2529,6 +2530,11 @@ read -r -p "Premi Invio per chiudere..." _
             numero_rg_imp = f.get("numero_rg", "")
             anno_rg_imp   = int(f.get("anno_rg", 0) or 0)
             nome_ufficio_imp = f.get("nome_ufficio", "")
+            codice_ufficio_imp = f.get("codice_ufficio", "")
+            if not nome_ufficio_imp and codice_ufficio_imp:
+                ufficio = risolvi_ufficio(codice_ufficio_imp)
+                if isinstance(ufficio, dict):
+                    nome_ufficio_imp = str(ufficio.get("nome") or "").strip()
 
             fascicolo_pw = FascicoloPolisWeb(
                 numero_rg=numero_rg_imp,
@@ -2538,11 +2544,11 @@ read -r -p "Premi Invio per chiudere..." _
                 oggetto=f.get("oggetto", ""),
                 sezione=f.get("sezione", ""),
                 giudice=f.get("giudice", ""),
-                data_iscrizione=f.get("data_iscrizione", ""),
-                data_udienza=f.get("data_udienza", ""),
+                data_iscrizione=_parse_data(f.get("data_iscrizione", "")),
+                data_udienza=_parse_data(f.get("data_udienza", "")),
                 parti=_json.loads(f.get("parti_json", "[]") or "[]"),
                 parti_dettaglio=_json.loads(f.get("parti_dettaglio_json", "[]") or "[]"),
-                codice_ufficio=f.get("codice_ufficio", ""),
+                codice_ufficio=codice_ufficio_imp,
                 nome_ufficio=nome_ufficio_imp,
             )
             client = crea_client(demo=demo_mode)
@@ -4640,11 +4646,17 @@ read -r -p "Premi Invio per chiudere..." _
         pst_import_dir.mkdir(parents=True, exist_ok=True)
         pst_import_pending = _pst_import_pending_count(fasc)
         polisweb_importato = "Importato da PolisWeb" in (fasc.note or "")
+        ha_udienza_importata = any(
+            getattr(att.tipo, "value", att.tipo) == "UDIENZA"
+            for att in (fasc.attivita or [])
+        )
         polisweb_sync_needed = polisweb_importato and (
             not fasc.id_cliente
             or not parti
             or not fasc.attivita
             or not fasc.tribunale
+            or not fasc.data_apertura
+            or (ha_udienza_importata and not fasc.data_prima_udienza)
         )
         return render_template(
             "fascicoli/dettaglio.html",

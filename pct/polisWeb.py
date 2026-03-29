@@ -205,8 +205,8 @@ def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
         oggetto=(row.get("OGGETTOFASCICOLO") or row.get("OGGETTO") or "").strip(),
         sezione=(row.get("SEZIONE") or row.get("DESCRIZIONESEZIONE") or "").strip(),
         giudice=(row.get("GIUDICE") or row.get("MAGISTRATO") or "").strip(),
-        data_iscrizione=(row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip(),
-        data_udienza=(row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or "").strip(),
+        data_iscrizione=_parse_data((row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip()),
+        data_udienza=_parse_data((row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or "").strip()),
         parti=parti,
         parti_dettaglio=parti_dettaglio,
         codice_ufficio=codice_ufficio,
@@ -761,11 +761,24 @@ def _titolo_generico_fascicolo_polisweb(titolo: str, fascicolo_pw: FascicoloPoli
     return not suffisso.strip("—–-? ")
 
 
+def _data_apertura_generica_polisweb(fascicolo_locale) -> bool:
+    data_apertura = _parse_data(getattr(fascicolo_locale, "data_apertura", ""))
+    if not data_apertura:
+        return True
+    creato_il = _parse_data(getattr(fascicolo_locale, "creato_il", ""))
+    if creato_il and data_apertura == creato_il:
+        return True
+    note = getattr(fascicolo_locale, "note", "") or ""
+    match = re.search(r"Importato da PolisWeb il (\d{4}-\d{2}-\d{2})", note)
+    return bool(match and data_apertura == match.group(1))
+
+
 def _attivita_polisweb_presente(fascicolo_locale, tipo, data_attivita: str, titolo: str) -> bool:
     titolo_norm = _nome_normalizzato(titolo)
+    data_norm = _parse_data(data_attivita)
     return any(
         att.tipo == tipo
-        and att.data == data_attivita
+        and _parse_data(att.data) == data_norm
         and _nome_normalizzato(att.titolo) == titolo_norm
         for att in getattr(fascicolo_locale, "attivita", []) or []
     )
@@ -783,6 +796,9 @@ def _sincronizza_metadati_fascicolo_polisweb(
 
     riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
     avvisi: List[str] = []
+    oggi_iso = date.today().isoformat()
+    data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione)
+    data_udienza = _parse_data(fascicolo_pw.data_udienza)
 
     id_cliente = fascicolo_locale.id_cliente or ""
     nome_cliente = fascicolo_locale.nome_cliente or ""
@@ -813,40 +829,52 @@ def _sincronizza_metadati_fascicolo_polisweb(
         campi_update["sezione"] = fascicolo_pw.sezione
     if fascicolo_pw.giudice and not fascicolo_locale.giudice:
         campi_update["giudice"] = fascicolo_pw.giudice
-    if fascicolo_pw.data_iscrizione and not fascicolo_locale.data_apertura:
-        campi_update["data_apertura"] = fascicolo_pw.data_iscrizione
+    if data_iscrizione and (
+        not _parse_data(fascicolo_locale.data_apertura)
+        or _data_apertura_generica_polisweb(fascicolo_locale)
+    ):
+        campi_update["data_apertura"] = data_iscrizione
+    if data_udienza:
+        data_prima_attuale = _parse_data(fascicolo_locale.data_prima_udienza)
+        data_prossima_attuale = _parse_data(fascicolo_locale.data_prossima_udienza)
+        if not data_prima_attuale or data_udienza < data_prima_attuale:
+            campi_update["data_prima_udienza"] = data_udienza
+        if data_udienza >= oggi_iso and (
+            not data_prossima_attuale or data_udienza < data_prossima_attuale
+        ):
+            campi_update["data_prossima_udienza"] = data_udienza
     if _titolo_generico_fascicolo_polisweb(fascicolo_locale.titolo, fascicolo_pw):
         campi_update["titolo"] = _titolo_fascicolo_polisweb(fascicolo_pw)
 
     if campi_update:
         fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_update)
 
-    if fascicolo_pw.data_iscrizione and not _attivita_polisweb_presente(
+    if data_iscrizione and not _attivita_polisweb_presente(
         fascicolo_locale,
         TipoAttivita.ISCRIZIONE_A_RUOLO,
-        fascicolo_pw.data_iscrizione,
+        data_iscrizione,
         "Iscrizione a ruolo (importata da PolisWeb)",
     ):
         gestione_fascicoli.aggiungi_attivita(
             fascicolo_locale.id,
             tipo=TipoAttivita.ISCRIZIONE_A_RUOLO,
-            data=fascicolo_pw.data_iscrizione,
+            data=data_iscrizione,
             titolo="Iscrizione a ruolo (importata da PolisWeb)",
             descrizione=f"Pratica sincronizzata da PolisWeb - RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
             avvocato=avvocato_referente,
         )
         fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
 
-    if fascicolo_pw.data_udienza and not _attivita_polisweb_presente(
+    if data_udienza and not _attivita_polisweb_presente(
         fascicolo_locale,
         TipoAttivita.UDIENZA,
-        fascicolo_pw.data_udienza,
+        data_udienza,
         "Udienza (importata da PolisWeb)",
     ):
         gestione_fascicoli.aggiungi_attivita(
             fascicolo_locale.id,
             tipo=TipoAttivita.UDIENZA,
-            data=fascicolo_pw.data_udienza,
+            data=data_udienza,
             titolo="Udienza (importata da PolisWeb)",
             descrizione=f"Udienza automaticamente sincronizzata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
             avvocato=avvocato_referente,
@@ -1093,6 +1121,10 @@ class ClientPolisWeb:
         try:
             from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita
 
+            data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione) or date.today().isoformat()
+            data_udienza = _parse_data(fascicolo_pw.data_udienza)
+            data_prossima_udienza = data_udienza if data_udienza and data_udienza >= date.today().isoformat() else ""
+
             # 1. Mappa il tipo ruolo → TipoFascicolo
             tipo_map = {
                 "CIVILE_COGNIZIONE":   TipoFascicolo.CIVILE,
@@ -1140,7 +1172,9 @@ class ClientPolisWeb:
                 oggetto=fascicolo_pw.oggetto,
                 stato=stato,
                 avvocato_referente=avvocato_referente,
-                data_apertura=fascicolo_pw.data_iscrizione or date.today().isoformat(),
+                data_apertura=data_iscrizione,
+                data_prima_udienza=data_udienza or "",
+                data_prossima_udienza=data_prossima_udienza,
                 note=fascicolo_pw.note or f"Importato da PolisWeb il {date.today()}",
             )
 
@@ -1149,7 +1183,7 @@ class ClientPolisWeb:
                 gestione_fascicoli.aggiungi_attivita(
                     fasc.id,
                     tipo=TipoAttivita.ISCRIZIONE_A_RUOLO,
-                    data=fascicolo_pw.data_iscrizione or date.today().isoformat(),
+                    data=data_iscrizione,
                     titolo="Iscrizione a ruolo (importata da PolisWeb)",
                     descrizione=f"Pratica importata da PolisWeb - RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
                     avvocato=avvocato_referente,
@@ -1157,12 +1191,12 @@ class ClientPolisWeb:
             except Exception as e:
                 avvisi.append(f"Iscrizione a ruolo non registrata: {e}")
 
-            if fascicolo_pw.data_udienza:
+            if data_udienza:
                 try:
                     gestione_fascicoli.aggiungi_attivita(
                         fasc.id,
                         tipo=TipoAttivita.UDIENZA,
-                        data=fascicolo_pw.data_udienza,
+                        data=data_udienza,
                         titolo="Udienza (importata da PolisWeb)",
                         descrizione=f"Udienza automaticamente importata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
                         avvocato=avvocato_referente,
@@ -1697,7 +1731,17 @@ def _parse_data(valore: Any) -> str:
         return ""
     if isinstance(valore, (datetime, date)):
         return valore.strftime("%Y-%m-%d")
-    return str(valore)[:10]
+    testo = str(valore).strip()
+    candidati = [testo]
+    if len(testo) >= 10:
+        candidati.append(testo[:10])
+    for candidato in candidati:
+        for formato in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+            try:
+                return datetime.strptime(candidato, formato).strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+    return testo[:10]
 
 
 def _parse_parti(valore: Any) -> List[str]:

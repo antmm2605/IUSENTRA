@@ -137,6 +137,35 @@ def _snapshot_paths() -> list[Path]:
     ]
 
 
+def _nome_ufficio_snapshot(row: dict) -> str:
+    nome = str(row.get("nome") or "").strip()
+    if nome:
+        return nome
+
+    comune = str(row.get("comune_ministero") or "").strip()
+    descrizione = str(row.get("descrizione_ministero") or "").strip()
+    tipo = str(row.get("tipo_ministero_descrizione") or "").strip().lower()
+
+    if not comune and " - " in descrizione:
+        _, _, maybe_comune = descrizione.partition(" - ")
+        comune = maybe_comune.strip()
+
+    mapping = {
+        "tribunale ordinario": "Tribunale di {comune}",
+        "procura della repubblica": "Procura della Repubblica di {comune}",
+        "procura generale": "Procura Generale di {comune}",
+        "corte di appello": "Corte d'Appello di {comune}",
+        "tribunale per i minorenni": "Tribunale per i Minorenni di {comune}",
+        "tribunale di sorveglianza": "Tribunale di Sorveglianza di {comune}",
+        "corte di assise": "Corte d'Assise di {comune}",
+        "ufficio del giudice di pace": "Ufficio del Giudice di Pace di {comune}",
+    }
+    template = mapping.get(tipo)
+    if template and comune:
+        return template.format(comune=comune)
+    return descrizione or comune
+
+
 def _carica_snapshot_uffici() -> dict[str, dict]:
     global _uffici_snapshot_cache
     if _uffici_snapshot_cache is not None:
@@ -156,6 +185,7 @@ def _carica_snapshot_uffici() -> dict[str, dict]:
                     continue
                 row = dict(info)
                 row.setdefault("codice", str(codice))
+                row.setdefault("nome", _nome_ufficio_snapshot(row))
                 normalized[str(codice).strip()] = row
             if normalized:
                 _uffici_snapshot_cache = normalized
@@ -1729,21 +1759,40 @@ def _qbuilder_parti_dettaglio(row: dict) -> list[dict]:
     return dettaglio
 
 
+def _normalizza_data_pst(valore: str) -> str:
+    raw = str(valore or "").strip()
+    if not raw:
+        return ""
+    candidati = [raw, raw[:10]]
+    for candidato in candidati:
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+            try:
+                return datetime.strptime(candidato, fmt).strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+    return raw
+
+
 def _map_qbuilder_fascicolo(row: dict) -> dict:
     parti_dettaglio = _qbuilder_parti_dettaglio(row)
-    codice_ufficio = str(row.get("IDUFFICIO") or "").strip()
+    codice_ufficio = str(
+        row.get("IDUFFICIO")
+        or row.get("CODICEUFFICIO")
+        or row.get("UFFICIO")
+        or ""
+    ).strip()
     ufficio = _risolvi_ufficio_da_snapshot(codice_ufficio)
     return {
         "id_fascicolo": str(row.get("IDFASCICOLO") or "").strip(),
         "numero_rg": _qbuilder_numero_rg(str(row.get("NUMERORUOLO") or row.get("NUMERO") or "")),
         "anno_rg": int(str(row.get("ANNORUOLO") or row.get("ANNO") or 0) or 0),
-        "ruolo": str(row.get("DESCRUOLO") or row.get("RITO") or "").strip(),
-        "stato": str(row.get("DESCSTATO") or row.get("STATO") or "").strip(),
-        "oggetto": str(row.get("DESCOGGETTO") or "").strip(),
-        "sezione": str(row.get("DESCSEZIONE") or row.get("SEZIONE") or "").strip(),
-        "giudice": str(row.get("GIUDICE") or "").strip(),
-        "data_iscrizione": str(row.get("DATAISCRIZIONE") or "").strip(),
-        "data_udienza": str(row.get("DATAUDIENZA") or row.get("DATAPRIMACOMPARIZIONE") or row.get("DATAULTIMAUDIENZA") or "").strip(),
+        "ruolo": str(row.get("RUOLODESCRIZIONE") or row.get("RUOLO") or row.get("DESCRUOLO") or row.get("RITO") or "").strip(),
+        "stato": str(row.get("STATOFASCICOLODESCRIZIONE") or row.get("STATOFASCICOLO") or row.get("DESCSTATO") or row.get("STATO") or "").strip(),
+        "oggetto": str(row.get("OGGETTOFASCICOLO") or row.get("OGGETTO") or row.get("DESCOGGETTO") or "").strip(),
+        "sezione": str(row.get("SEZIONE") or row.get("DESCRIZIONESEZIONE") or row.get("DESCSEZIONE") or "").strip(),
+        "giudice": str(row.get("GIUDICE") or row.get("MAGISTRATO") or "").strip(),
+        "data_iscrizione": _normalizza_data_pst(str(row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip()),
+        "data_udienza": _normalizza_data_pst(str(row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or row.get("DATAPRIMACOMPARIZIONE") or row.get("DATAULTIMAUDIENZA") or "").strip()),
         "codice_ufficio": codice_ufficio,
         "nome_ufficio": str((ufficio or {}).get("nome") or "").strip(),
         "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
@@ -1811,8 +1860,8 @@ def _parse_fascicoli_xml(xml_str: str) -> list[dict]:
                 "oggetto": _t("oggetto") or _t("descOggetto"),
                 "sezione": _t("sezione"),
                 "giudice": _t("giudice") or _t("nomeGiudice"),
-                "data_iscrizione": _t("dataIscrizione"),
-                "data_udienza": _t("dataUdienza") or _t("dataProssimaUdienza"),
+                "data_iscrizione": _normalizza_data_pst(_t("dataIscrizione")),
+                "data_udienza": _normalizza_data_pst(_t("dataUdienza") or _t("dataProssimaUdienza")),
                 "codice_ufficio": _t("codiceUfficio"),
                 "nome_ufficio": _t("nomeUfficio") or _t("denominazioneUfficio"),
                 "parti": [p.text.strip() for p in item.findall(".//parte") if p.text],

@@ -378,7 +378,7 @@
               </a>
               {# Form importazione #}
               <form method="post" action="{{ url_for('polisWeb_importa') }}"
-                    class="d-inline"
+                    class="d-inline js-polisweb-importa-form"
                     onsubmit="return confirm('Importare RG {{ f.numero_rg }}/{{ f.anno_rg }} come nuovo fascicolo?')">
                 <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
                 <input type="hidden" name="numero_rg" value="{{ f.numero_rg }}">
@@ -394,6 +394,7 @@
                 <input type="hidden" name="parti_dettaglio_json" value='{{ f.parti_dettaglio | default([], true) | tojson }}'>
                 <input type="hidden" name="codice_ufficio" value="{{ f.codice_ufficio }}">
                 <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
+                <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
                 <button type="submit" class="btn btn-sm btn-primary"
                         title="Importa come nuovo fascicolo nel gestionale">
                   <i class="bi bi-download me-1"></i>Importa
@@ -2491,8 +2492,109 @@ function wizTestConnessionePst() {
     });
 }
 
-function wizImporta(indice) {
-  // Importa la pratica nel gestionale via POST standard
+function _fascicoloImportDataFromForm(form) {
+  const get = (name) => form.querySelector(`[name="${name}"]`)?.value || '';
+  return {
+    numero_rg: get('numero_rg'),
+    anno_rg: get('anno_rg'),
+    ruolo: get('ruolo'),
+    stato: get('stato'),
+    oggetto: get('oggetto'),
+    sezione: get('sezione'),
+    giudice: get('giudice'),
+    data_iscrizione: get('data_iscrizione'),
+    data_udienza: get('data_udienza'),
+    parti_json: get('parti_json'),
+    parti_dettaglio_json: get('parti_dettaglio_json'),
+    nome_ufficio: get('nome_ufficio'),
+    codice_ufficio: get('codice_ufficio'),
+    demo_mode: get('demo_mode'),
+    id_fasc: get('id_fasc'),
+  };
+}
+
+function _appendHiddenToForm(form, name, value) {
+  let input = form.querySelector(`input[name="${name}"]`);
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    form.appendChild(input);
+  }
+  input.value = value;
+  return input;
+}
+
+function _setImportButtonLoading(button, loadingText) {
+  if (!button) return;
+  if (!button.dataset.originalHtml) {
+    button.dataset.originalHtml = button.innerHTML;
+  }
+  button.disabled = true;
+  button.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>${loadingText}`;
+}
+
+function _restoreImportButtonLoading(button) {
+  if (!button) return;
+  button.disabled = false;
+  if (button.dataset.originalHtml) {
+    button.innerHTML = button.dataset.originalHtml;
+  }
+}
+
+async function _lsDocumentiPerImportazione(fascicolo, cert) {
+  const payload = {
+    codice_ufficio: fascicolo.codice_ufficio || '',
+    numero_rg: fascicolo.numero_rg || '',
+    anno_rg: fascicolo.anno_rg ? parseInt(fascicolo.anno_rg, 10) : null,
+    cert_thumbprint: cert?.thumbprint || null,
+    slot_id: cert?.token_slot ?? null,
+  };
+  const resp = await fetch(_LS_BASE_PW + '/pst/documenti', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(100000),
+  });
+  const data = await resp.json();
+  if (!data.ok) {
+    throw new Error(data.errore || 'Impossibile acquisire i documenti del fascicolo dal PST');
+  }
+  return Array.isArray(data.documenti) ? data.documenti : [];
+}
+
+async function _precaricaDocumentiImportazione(form, fascicolo, cert = null) {
+  form.querySelectorAll('input[name="documenti_json"], input[name="documenti_prefetch_error"]').forEach(el => el.remove());
+  if ((fascicolo.demo_mode || '') === '1') {
+    return;
+  }
+  if (!_lsDisponibile && !_lsCertSel && !cert && !_wizCertSel) {
+    return;
+  }
+  try {
+    const certificato = cert || _wizCertSel || _lsCertSel || await _lsAssicuraCertificato();
+    const documenti = await _lsDocumentiPerImportazione(fascicolo, certificato);
+    _appendHiddenToForm(form, 'documenti_json', JSON.stringify(documenti || []));
+  } catch (err) {
+    _appendHiddenToForm(
+      form,
+      'documenti_prefetch_error',
+      `Metadati documentali PST non preimportati: ${String(err)}`,
+    );
+  }
+}
+
+async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = null) {
+  _setImportButtonLoading(button, 'Preimportazione completa...');
+  try {
+    await _precaricaDocumentiImportazione(form, fascicolo, cert);
+  } finally {
+    _restoreImportButtonLoading(button);
+  }
+  form.submit();
+}
+
+async function wizImporta(indice) {
   const fascicolo = _wizUltimiFascicoli[indice] || {};
   const form = document.createElement('form');
   form.method = 'POST';
@@ -2513,13 +2615,9 @@ function wizImporta(indice) {
     ['codice_ufficio', fascicolo.codice_ufficio || ''],
     ['demo_mode', '0'],
     ['id_fasc', '{{ id_fasc or "" }}'],
-  ].forEach(([k,v]) => {
-    const i = document.createElement('input');
-    i.type = 'hidden'; i.name = k; i.value = v;
-    form.appendChild(i);
-  });
+  ].forEach(([k, v]) => _appendHiddenToForm(form, k, v));
   document.body.appendChild(form);
-  form.submit();
+  await _submitImportaPolisWeb(form, _fascicoloImportDataFromForm(form), null, _wizCertSel || _lsCertSel || null);
 }
 
 // Avvia configurazione installer e verifica Local Signer ad ogni caricamento pagina
@@ -2527,6 +2625,13 @@ document.addEventListener('DOMContentLoaded', () => {
   _applicaInstallerLocalSigner();
   _aggiornaPulsantiCerca(false);
   verificaLocalSigner();
+  document.querySelectorAll('.js-polisweb-importa-form').forEach(form => {
+    form.addEventListener('submit', async ev => {
+      ev.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      await _submitImportaPolisWeb(form, _fascicoloImportDataFromForm(form), button, _lsCertSel || null);
+    });
+  });
 });
 </script>
 {% endblock %}

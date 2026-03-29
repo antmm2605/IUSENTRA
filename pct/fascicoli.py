@@ -277,6 +277,9 @@ class EsitoDepositoPCT:
     # ── Documenti inclusi nella busta ──────────────────────────────
     documenti_ids: List[str] = field(default_factory=list)   # ID dei Documento inclusi
     nome_atto_principale: str = ""                            # nome file atto principale
+    id_deposito_esterno: str = ""                             # id busta/registro del portale ufficiale
+    documenti_portale: List[dict] = field(default_factory=list)  # metadati documenti ufficiali
+    fonte_portale: str = ""                                   # PolisWeb / PDP / PAT
 
     def to_dict(self) -> dict:
         return {
@@ -296,6 +299,9 @@ class EsitoDepositoPCT:
             "registrato_il": self.registrato_il,
             "documenti_ids": self.documenti_ids,
             "nome_atto_principale": self.nome_atto_principale,
+            "id_deposito_esterno": self.id_deposito_esterno,
+            "documenti_portale": self.documenti_portale,
+            "fonte_portale": self.fonte_portale,
         }
 
     @classmethod
@@ -808,6 +814,157 @@ class GestioneFascicoli:
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return esito
+
+    def sincronizza_deposito_portale(
+        self,
+        id_fasc: str,
+        *,
+        fonte: str,
+        id_deposito_esterno: str,
+        tipo_atto: str = "",
+        data_deposito: str = "",
+        mittente: str = "",
+        documenti_portale: Optional[List[dict]] = None,
+        registrato_da: str = "",
+        note: str = "",
+        nome_atto_principale: str = "",
+        stato: str = "IMPORTATO_DA_PST",
+    ) -> EsitoDepositoPCT:
+        """
+        Registra o aggiorna nel fascicolo un deposito già visibile sul portale ufficiale.
+
+        Non scarica file binari: salva solo i metadati ufficiali della busta
+        e dei documenti esposti dal canale ministeriale.
+        """
+        f = self._get_o_errore(id_fasc)
+        chiave_portale = (id_deposito_esterno or "").strip()
+        if not chiave_portale:
+            raise ValueError("Identificativo del deposito portale mancante.")
+
+        def _bool_portale(value: object) -> bool:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return bool(value)
+            text = str(value or "").strip().lower()
+            if text in {"1", "true", "yes", "si", "s", "ok"}:
+                return True
+            if text in {"0", "false", "no", "n", "", "none", "null"}:
+                return False
+            return bool(value)
+
+        def _normalizza_doc_portale(item: dict) -> dict:
+            row = dict(item or {})
+            return {
+                "id_documento": str(row.get("id_documento") or "").strip(),
+                "nome": str(row.get("nome") or "").strip(),
+                "tipo": str(row.get("tipo") or "").strip(),
+                "data_deposito": str(row.get("data_deposito") or "").strip(),
+                "mittente": str(row.get("mittente") or "").strip(),
+                "dimensione_bytes": int(row.get("dimensione_bytes") or 0),
+                "disponibile": _bool_portale(row.get("disponibile", True)),
+                "id_deposito": str(row.get("id_deposito") or chiave_portale).strip(),
+                "tipo_atto": str(row.get("tipo_atto") or tipo_atto or "").strip(),
+            }
+
+        def _merge_documenti_portale(*liste: List[dict]) -> List[dict]:
+            merged: List[dict] = []
+            visti: set[tuple[str, str, str]] = set()
+            for lista in liste:
+                for item in lista or []:
+                    row = _normalizza_doc_portale(item)
+                    chiave = (
+                        row.get("id_documento") or "",
+                        (row.get("nome") or "").upper(),
+                        row.get("data_deposito") or "",
+                    )
+                    if chiave in visti:
+                        continue
+                    visti.add(chiave)
+                    merged.append(row)
+            merged.sort(
+                key=lambda item: (
+                    item.get("data_deposito") or "",
+                    item.get("nome") or "",
+                    item.get("id_documento") or "",
+                ),
+                reverse=True,
+            )
+            return merged
+
+        def _timestamp_portale(data_iso: str) -> str:
+            data_iso = (data_iso or "").strip()
+            return f"{data_iso}T00:00:00" if data_iso else datetime.now().isoformat()
+
+        def _tipo_attivita_portale(tipo_atto_portale: str, docs: List[dict]) -> TipoAttivita:
+            testo = (tipo_atto_portale or "").upper()
+            tipi_doc = " ".join(str(doc.get("tipo") or "").upper() for doc in docs)
+            if any(token in testo or token in tipi_doc for token in ("PROVVED", "SENTENZA", "ORDINANZA", "DECRETO")):
+                return TipoAttivita.PROVVEDIMENTO
+            if "UDIENZA" in testo or "VERBALE" in tipi_doc:
+                return TipoAttivita.UDIENZA
+            return TipoAttivita.DEPOSITO_ATTI
+
+        documenti_norm = _merge_documenti_portale(documenti_portale or [])
+        descrizione = note.strip() or f"Metadati del deposito acquisiti da {fonte}."
+        timestamp = _timestamp_portale(data_deposito)
+        dep = next(
+            (
+                d for d in f.depositi_pct
+                if (getattr(d, "id_deposito_esterno", "") or "").strip() == chiave_portale
+            ),
+            None,
+        )
+
+        if dep:
+            dep.stato = stato or dep.stato
+            dep.timestamp = timestamp or dep.timestamp
+            dep.tipo_atto = tipo_atto or dep.tipo_atto
+            dep.pec_destinatario = mittente or dep.pec_destinatario or fonte
+            dep.messaggio = f"Metadati importati da {fonte}"
+            dep.note = descrizione
+            dep.registrato_da = registrato_da or dep.registrato_da
+            dep.nome_atto_principale = nome_atto_principale or dep.nome_atto_principale
+            dep.id_deposito_esterno = chiave_portale
+            dep.fonte_portale = fonte or dep.fonte_portale
+            dep.documenti_portale = _merge_documenti_portale(dep.documenti_portale, documenti_norm)
+            f.modificato_il = datetime.now().isoformat()
+            self._salva()
+            return dep
+
+        dep = EsitoDepositoPCT(
+            id=uuid.uuid4().hex[:8].upper(),
+            timestamp=timestamp,
+            stato=stato,
+            tipo_atto=tipo_atto or "Deposito visibile su portale",
+            pec_destinatario=mittente or fonte,
+            messaggio=f"Metadati importati da {fonte}",
+            note=descrizione,
+            registrato_da=registrato_da,
+            nome_atto_principale=nome_atto_principale,
+            id_deposito_esterno=chiave_portale,
+            documenti_portale=documenti_norm,
+            fonte_portale=fonte,
+        )
+        f.depositi_pct.append(dep)
+
+        att = AttivitaProcessuale(
+            id=uuid.uuid4().hex[:8].upper(),
+            tipo=_tipo_attivita_portale(dep.tipo_atto, documenti_norm),
+            data=(data_deposito or date.today().isoformat()),
+            titolo=f"Deposito da portale — {dep.tipo_atto}",
+            descrizione=(
+                f"{len(documenti_norm)} documenti censiti da {fonte}."
+                + (f" Mittente: {mittente}." if mittente else "")
+            ).strip(),
+            esito=EsitoAttivita.NON_APPLICABILE,
+            id_deposito_pct=dep.id,
+            avvocato=registrato_da,
+        )
+        f.attivita.append(att)
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return dep
 
     def modifica_esito_deposito(
         self,

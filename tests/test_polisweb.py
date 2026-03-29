@@ -212,6 +212,11 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     assert fascicolo.data_prima_udienza == "2026-05-10"
     assert fascicolo.data_prossima_udienza == "2026-05-10"
     assert len(fascicolo.attivita) >= 2
+    assert risultato.depositi_importati >= 1
+    assert risultato.documenti_importati >= 1
+    assert len(fascicolo.depositi_pct) >= 1
+    assert fascicolo.depositi_pct[0].stato == "IMPORTATO_DA_PST"
+    assert fascicolo.depositi_pct[0].documenti_portale
 
     cliente = gestione_clienti.get(fascicolo.id_cliente)
     assert cliente is not None
@@ -298,6 +303,11 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
     assert fascicolo.oggetto == "Vendita di cose immobili"
     assert fascicolo.controparte == "BANCA ALFA S.P.A."
     assert len(fascicolo.attivita) >= 2
+    assert risultato.depositi_importati >= 1
+    assert risultato.documenti_importati >= 1
+    assert len(fascicolo.depositi_pct) >= 1
+    assert fascicolo.depositi_pct[0].stato == "IMPORTATO_DA_PST"
+    assert fascicolo.depositi_pct[0].documenti_portale
 
     soggetti = gestione_soggetti.tutti()
     assert {s.nome_completo for s in soggetti} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
@@ -583,5 +593,78 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
     assert fascicolo_reload.data_prima_udienza == "2024-12-12"
     assert fascicolo_reload.controparte == "BANCA ALFA S.P.A."
     assert len(fascicolo_reload.attivita) >= 2
+    assert len(fascicolo_reload.depositi_pct) >= 1
+    assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PST"
+    assert fascicolo_reload.depositi_pct[0].documenti_portale
     assert gestione_clienti_reload.get(fascicolo_reload.id_cliente) is not None
     assert {s.nome_completo for s in gestione_soggetti_reload.tutti()} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
+
+
+def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        note="Importato da PolisWeb il 2026-03-29",
+    )
+    gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-001",
+        tipo_atto="Memoria conclusionale",
+        data_deposito="2026-03-29",
+        mittente="avv.demo@pec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-001",
+                "nome": "memoria_conclusionale.pdf.p7m",
+                "tipo": "ATTO",
+                "data_deposito": "2026-03-29",
+                "mittente": "avv.demo@pec.it",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-001",
+                "tipo_atto": "Memoria conclusionale",
+            }
+        ],
+        registrato_da="admin",
+        nome_atto_principale="memoria_conclusionale.pdf.p7m",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}")
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Metadati PST" in body
+    assert "memoria_conclusionale.pdf.p7m" in body
+    assert "ID portale BUSTA-PST-001" in body

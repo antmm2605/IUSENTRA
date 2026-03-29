@@ -322,7 +322,141 @@ class RisultatoImportazione:
     messaggio: str = ""
     fascicolo_polis: Optional[FascicoloPolisWeb] = None
     documenti_importati: int = 0
+    depositi_importati: int = 0
     avvisi: List[str] = field(default_factory=list)
+
+
+def _chiave_deposito_polisweb(documento: DocumentoPolisWeb) -> str:
+    data = _parse_data(documento.data_deposito)
+    mittente = (documento.mittente or "").strip()
+    return (documento.id_deposito or f"__{data}__{mittente}").strip()
+
+
+def _documento_polisweb_principale(documento: DocumentoPolisWeb) -> bool:
+    tipo = (documento.tipo or "").upper()
+    nome = (documento.nome or "").upper()
+    return any(
+        token in tipo or token in nome
+        for token in (
+            "ATTO",
+            "RICORSO",
+            "CITAZIONE",
+            "COMPARSA",
+            "MEMORIA",
+            "OPPOSIZIONE",
+            "PROVVEDIMENTO",
+            "SENTENZA",
+            "ORDINANZA",
+            "DECRETO",
+        )
+    )
+
+
+def _tipo_atto_gruppo_polisweb(documenti: List[DocumentoPolisWeb]) -> str:
+    for doc in documenti:
+        label = (doc.tipo_atto or "").strip()
+        if label:
+            return label
+    for doc in documenti:
+        label = (doc.tipo or "").strip()
+        if label:
+            return label.replace("_", " ").strip()
+    return "Deposito telematico"
+
+
+def _nome_atto_principale_gruppo_polisweb(documenti: List[DocumentoPolisWeb]) -> str:
+    for doc in documenti:
+        if _documento_polisweb_principale(doc) and (doc.nome or "").strip():
+            return doc.nome.strip()
+    for doc in documenti:
+        if (doc.nome or "").strip():
+            return doc.nome.strip()
+    return ""
+
+
+def _documento_polisweb_to_dict(documento: DocumentoPolisWeb) -> Dict[str, Any]:
+    return {
+        "id_documento": (documento.id_documento or "").strip(),
+        "nome": (documento.nome or "").strip(),
+        "tipo": (documento.tipo or "").strip(),
+        "data_deposito": _parse_data(documento.data_deposito),
+        "mittente": (documento.mittente or "").strip(),
+        "dimensione_bytes": int(documento.dimensione_bytes or 0),
+        "disponibile": bool(documento.disponibile),
+        "id_deposito": _chiave_deposito_polisweb(documento),
+        "tipo_atto": (documento.tipo_atto or _tipo_atto_gruppo_polisweb([documento])).strip(),
+    }
+
+
+def _gruppa_documenti_polisweb_per_deposito(documenti_pw: Optional[List[DocumentoPolisWeb]]) -> List[Dict[str, Any]]:
+    gruppi: Dict[str, Dict[str, Any]] = {}
+    for doc in sorted(
+        documenti_pw or [],
+        key=lambda item: (
+            _parse_data(item.data_deposito),
+            _chiave_deposito_polisweb(item),
+            (item.nome or "").strip(),
+        ),
+        reverse=True,
+    ):
+        chiave = _chiave_deposito_polisweb(doc)
+        if chiave not in gruppi:
+            gruppi[chiave] = {
+                "id_deposito": chiave,
+                "tipo_atto": "",
+                "data_deposito": _parse_data(doc.data_deposito),
+                "mittente": (doc.mittente or "").strip(),
+                "documenti": [],
+                "nome_atto_principale": "",
+            }
+        gruppi[chiave]["documenti"].append(doc)
+
+    depositi: List[Dict[str, Any]] = []
+    for gruppo in gruppi.values():
+        docs = gruppo["documenti"]
+        gruppo["tipo_atto"] = _tipo_atto_gruppo_polisweb(docs)
+        gruppo["nome_atto_principale"] = _nome_atto_principale_gruppo_polisweb(docs)
+        gruppo["documenti_portale"] = [_documento_polisweb_to_dict(doc) for doc in docs]
+        depositi.append(gruppo)
+
+    depositi.sort(
+        key=lambda gruppo: (gruppo.get("data_deposito") or "", gruppo.get("id_deposito") or ""),
+        reverse=True,
+    )
+    return depositi
+
+
+def _sincronizza_depositi_documentali_polisweb(
+    *,
+    fascicolo_locale,
+    gestione_fascicoli,
+    documenti_pw: Optional[List[DocumentoPolisWeb]],
+    avvocato_referente: str = "",
+    fonte: str = "PolisWeb / PST",
+) -> tuple[Any, int, int]:
+    gruppi = _gruppa_documenti_polisweb_per_deposito(documenti_pw)
+    if not gruppi:
+        return fascicolo_locale, 0, 0
+
+    for gruppo in gruppi:
+        descrizione = (
+            f"{len(gruppo['documenti_portale'])} documenti ufficiali censiti da {fonte}."
+        )
+        gestione_fascicoli.sincronizza_deposito_portale(
+            fascicolo_locale.id,
+            fonte=fonte,
+            id_deposito_esterno=gruppo["id_deposito"],
+            tipo_atto=gruppo["tipo_atto"],
+            data_deposito=gruppo["data_deposito"],
+            mittente=gruppo["mittente"],
+            documenti_portale=gruppo["documenti_portale"],
+            registrato_da=avvocato_referente,
+            note=descrizione,
+            nome_atto_principale=gruppo["nome_atto_principale"],
+            stato="IMPORTATO_DA_PST",
+        )
+    fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
+    return fascicolo_locale, len(gruppi), sum(len(gruppo["documenti_portale"]) for gruppo in gruppi)
 
 
 # ================================================================ Helper: riconcilia soggetti
@@ -791,6 +925,7 @@ def _sincronizza_metadati_fascicolo_polisweb(
     gestione_clienti,
     avvocato_referente: str = "",
     gestione_soggetti=None,
+    documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
 ) -> RisultatoImportazione:
     from pct.fascicoli import TipoAttivita
 
@@ -908,11 +1043,37 @@ def _sincronizza_metadati_fascicolo_polisweb(
             "Assegnare il cliente manualmente."
         )
 
+    depositi_importati = 0
+    documenti_importati = 0
+    if documenti_pw:
+        try:
+            fascicolo_locale, depositi_importati, documenti_importati = _sincronizza_depositi_documentali_polisweb(
+                fascicolo_locale=fascicolo_locale,
+                gestione_fascicoli=gestione_fascicoli,
+                documenti_pw=documenti_pw,
+                avvocato_referente=avvocato_referente,
+                fonte="PolisWeb / PST",
+            )
+        except Exception as e:
+            avvisi.append(f"Metadati depositi/documenti PolisWeb non sincronizzati: {e}")
+
+    messaggio = (
+        f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} "
+        "sincronizzata sul fascicolo esistente."
+    )
+    if depositi_importati or documenti_importati:
+        messaggio += (
+            f" Censiti {depositi_importati} depositi e "
+            f"{documenti_importati} documenti ufficiali da PolisWeb."
+        )
+
     return RisultatoImportazione(
         successo=True,
         id_fascicolo_locale=fascicolo_locale.id,
-        messaggio=f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} sincronizzata sul fascicolo esistente.",
+        messaggio=messaggio,
         fascicolo_polis=fascicolo_pw,
+        documenti_importati=documenti_importati,
+        depositi_importati=depositi_importati,
         avvisi=avvisi,
     )
 
@@ -1090,6 +1251,27 @@ class ClientPolisWeb:
 
         return self._parse_documenti(risposta)
 
+    def _precarica_documenti_importazione(
+        self,
+        fascicolo_pw: FascicoloPolisWeb,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
+    ) -> tuple[List[DocumentoPolisWeb], List[str]]:
+        if documenti_pw is not None:
+            return list(documenti_pw), []
+
+        if not (fascicolo_pw.codice_ufficio and fascicolo_pw.numero_rg and fascicolo_pw.anno_rg):
+            return [], []
+
+        try:
+            documenti = self.consulta_documenti(
+                fascicolo_pw.codice_ufficio,
+                fascicolo_pw.numero_rg,
+                fascicolo_pw.anno_rg,
+            )
+            return list(documenti or []), []
+        except Exception as e:
+            return [], [f"Metadati depositi/documenti PolisWeb non acquisiti: {e}"]
+
     # ---------------------------------------------------------------- Import pratica
 
     def importa_fascicolo(
@@ -1099,6 +1281,7 @@ class ClientPolisWeb:
         gestione_clienti,          # GestioneClienti instance
         avvocato_referente: str = "",
         gestione_soggetti=None,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
     ) -> RisultatoImportazione:
         """
         Importa una pratica PolisWeb come nuovo Fascicolo nel gestionale.
@@ -1157,6 +1340,12 @@ class ClientPolisWeb:
                 riferimento=rif,
                 portale="PolisWeb",
             )
+
+            documenti_pw_effettivi, avvisi_documenti = self._precarica_documenti_importazione(
+                fascicolo_pw,
+                documenti_pw=documenti_pw,
+            )
+            avvisi.extend(avvisi_documenti)
 
             # 3. Crea fascicolo
             fasc = gestione_fascicoli.nuovo(
@@ -1230,11 +1419,34 @@ class ClientPolisWeb:
                     "Assegnare il cliente manualmente."
                 )
 
+            depositi_importati = 0
+            documenti_importati = 0
+            if documenti_pw_effettivi:
+                try:
+                    fasc, depositi_importati, documenti_importati = _sincronizza_depositi_documentali_polisweb(
+                        fascicolo_locale=fasc,
+                        gestione_fascicoli=gestione_fascicoli,
+                        documenti_pw=documenti_pw_effettivi,
+                        avvocato_referente=avvocato_referente,
+                        fonte="PolisWeb / PST",
+                    )
+                except Exception as e:
+                    avvisi.append(f"Metadati depositi/documenti PolisWeb non sincronizzati: {e}")
+
+            messaggio = f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} importata."
+            if depositi_importati or documenti_importati:
+                messaggio += (
+                    f" Censiti {depositi_importati} depositi e "
+                    f"{documenti_importati} documenti ufficiali da PolisWeb."
+                )
+
             return RisultatoImportazione(
                 successo=True,
                 id_fascicolo_locale=fasc.id,
-                messaggio=f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} importata.",
+                messaggio=messaggio,
                 fascicolo_polis=fascicolo_pw,
+                documenti_importati=documenti_importati,
+                depositi_importati=depositi_importati,
                 avvisi=avvisi,
             )
 
@@ -1253,17 +1465,25 @@ class ClientPolisWeb:
         gestione_clienti,
         avvocato_referente: str = "",
         gestione_soggetti=None,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
     ) -> RisultatoImportazione:
         """Completa un fascicolo già presente con i dati più ricchi provenienti da PolisWeb."""
         try:
-            return _sincronizza_metadati_fascicolo_polisweb(
+            documenti_pw_effettivi, avvisi_documenti = self._precarica_documenti_importazione(
+                fascicolo_pw,
+                documenti_pw=documenti_pw,
+            )
+            risultato = _sincronizza_metadati_fascicolo_polisweb(
                 fascicolo_pw=fascicolo_pw,
                 fascicolo_locale=fascicolo_locale,
                 gestione_fascicoli=gestione_fascicoli,
                 gestione_clienti=gestione_clienti,
                 avvocato_referente=avvocato_referente,
                 gestione_soggetti=gestione_soggetti,
+                documenti_pw=documenti_pw_effettivi,
             )
+            risultato.avvisi.extend(avvisi_documenti)
+            return risultato
         except Exception as e:
             return RisultatoImportazione(
                 successo=False,

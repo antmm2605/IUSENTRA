@@ -2521,16 +2521,29 @@ read -r -p "Premi Invio per chiudere..." _
     def polisWeb_importa():
         """Importa una pratica PolisWeb come nuovo fascicolo nel gestionale."""
         import json as _json
-        from pct.polisWeb import crea_client, FascicoloPolisWeb, _parse_data
+        from pct.polisWeb import crea_client, FascicoloPolisWeb, DocumentoPolisWeb, _parse_data
         from pct.uffici_giudiziari import risolvi_ufficio
         f = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         u = g.utente_corrente
         try:
+            def _as_bool(value):
+                if isinstance(value, bool):
+                    return value
+                if isinstance(value, (int, float)):
+                    return bool(value)
+                text = str(value or "").strip().lower()
+                if text in {"1", "true", "yes", "si", "s", "ok"}:
+                    return True
+                if text in {"0", "false", "no", "n", "", "none", "null"}:
+                    return False
+                return bool(value)
+
             numero_rg_imp = f.get("numero_rg", "")
             anno_rg_imp   = int(f.get("anno_rg", 0) or 0)
             nome_ufficio_imp = f.get("nome_ufficio", "")
             codice_ufficio_imp = f.get("codice_ufficio", "")
+            documenti_prefetch_error = f.get("documenti_prefetch_error", "").strip()
             if not nome_ufficio_imp and codice_ufficio_imp:
                 ufficio = risolvi_ufficio(codice_ufficio_imp)
                 if isinstance(ufficio, dict):
@@ -2551,6 +2564,25 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=codice_ufficio_imp,
                 nome_ufficio=nome_ufficio_imp,
             )
+            documenti_json_raw = f.get("documenti_json", "").strip()
+            documenti_pw = None
+            if documenti_json_raw:
+                documenti_pw = []
+                for row in _json.loads(documenti_json_raw or "[]"):
+                    row = dict(row or {})
+                    documenti_pw.append(
+                        DocumentoPolisWeb(
+                            id_documento=str(row.get("id_documento") or "").strip(),
+                            nome=str(row.get("nome") or "").strip(),
+                            tipo=str(row.get("tipo") or "").strip(),
+                            data_deposito=_parse_data(str(row.get("data_deposito") or "").strip()),
+                            mittente=str(row.get("mittente") or "").strip(),
+                            dimensione_bytes=int(row.get("dimensione_bytes") or 0),
+                            disponibile=_as_bool(row.get("disponibile", True)),
+                            id_deposito=str(row.get("id_deposito") or "").strip(),
+                            tipo_atto=str(row.get("tipo_atto") or "").strip(),
+                        )
+                    )
             client = crea_client(demo=demo_mode)
             gf = get_fascicoli()
             gc = get_clienti()
@@ -2586,6 +2618,7 @@ read -r -p "Premi Invio per chiudere..." _
                     gestione_clienti=gc,
                     avvocato_referente=u.username if u else "",
                     gestione_soggetti=gs,
+                    documenti_pw=documenti_pw,
                 )
             else:
                 risultato = client.importa_fascicolo(
@@ -2594,12 +2627,15 @@ read -r -p "Premi Invio per chiudere..." _
                     gestione_clienti=gc,
                     avvocato_referente=u.username if u else "",
                     gestione_soggetti=gs,
+                    documenti_pw=documenti_pw,
                 )
             if risultato.successo:
                 for avviso in risultato.avvisi:
                     # I messaggi di creazione automatica sono informativi, non warning bloccanti
                     livello = "info" if avviso.startswith(("Nuovo soggetto", "Nuova parte")) else "warning"
                     flash(avviso, livello)
+                if documenti_prefetch_error and not (risultato.depositi_importati or risultato.documenti_importati):
+                    flash(documenti_prefetch_error, "warning")
                 flash(risultato.messaggio, "success")
                 audit(
                     "polisWeb.sincronizza" if fc_esistente else "polisWeb.importa",
@@ -4650,6 +4686,10 @@ read -r -p "Premi Invio per chiudere..." _
             getattr(att.tipo, "value", att.tipo) == "UDIENZA"
             for att in (fasc.attivita or [])
         )
+        ha_metadati_portale = any(
+            getattr(dep, "documenti_portale", None)
+            for dep in (fasc.depositi_pct or [])
+        )
         polisweb_sync_needed = polisweb_importato and (
             not fasc.id_cliente
             or not parti
@@ -4657,6 +4697,7 @@ read -r -p "Premi Invio per chiudere..." _
             or not fasc.tribunale
             or not fasc.data_apertura
             or (ha_udienza_importata and not fasc.data_prima_udienza)
+            or not ha_metadati_portale
         )
         return render_template(
             "fascicoli/dettaglio.html",

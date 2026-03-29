@@ -1825,26 +1825,51 @@ Write-Host "  Aggiorno pip..."
 Write-Host "  Installo dipendenze Local Signer..."
 & $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography
 
+function Test-LocalSignerOnline {{
+    try {{
+        $resp = Invoke-RestMethod "http://127.0.0.1:27272/ping" -UseBasicParsing -TimeoutSec 2
+        return [bool]$resp.ok
+    }} catch {{
+        return $false
+    }}
+}}
+
+function Stop-LocalSignerProcesses {{
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {{
+            $_.Name -in @("python.exe", "pythonw.exe") -and
+            $_.CommandLine -and
+            $_.CommandLine -like "*$py*"
+        }} |
+        ForEach-Object {{
+            try {{
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
+            }} catch {{
+            }}
+        }}
+}}
+
 Write-Host "  Preparo l'avvio contestuale da HACS..."
 $cmd = @'
 @echo off
 setlocal
-set "TASK_NAME=HACS Local Signer"
 set "DIR=%~dp0"
 set "PYW=%DIR%.venv\\Scripts\\pythonw.exe"
 set "PY=%DIR%local_signer.py"
+set "TARGET=%DIR%local_signer.py"
 
-schtasks /Query /TN "%TASK_NAME%" >nul 2>&1
-if not errorlevel 1 (
-    schtasks /Run /TN "%TASK_NAME%" >nul 2>&1
+powershell -NoProfile -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
+if not errorlevel 1 goto :online
+
+powershell -NoProfile -Command "$target = [regex]::Escape($env:TARGET); Get-CimInstance Win32_Process | Where-Object {{ $_.Name -in @('python.exe','pythonw.exe') -and $_.CommandLine -and $_.CommandLine -match $target }} | ForEach-Object {{ try {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop }} catch {{}} }}" >nul 2>&1
+
+if exist "%PYW%" if exist "%PY%" (
+    start "" "%PYW%" "%PY%"
 ) else (
-    if exist "%PYW%" if exist "%PY%" (
-        start "" "%PYW%" "%PY%"
-    ) else (
-        exit /b 1
-    )
+    exit /b 1
 )
 
+:online
 if /I "%~1"=="--background" exit /b 0
 timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"
@@ -1869,7 +1894,8 @@ Set-Item -Path $commandKey -Value $command
 
 Write-Host "  Registro il servizio nel Task Scheduler..."
 $taskName = "HACS Local Signer"
-$action   = New-ScheduledTaskAction -Execute $pywExe -Argument "`"$py`""
+$cmdExe   = Join-Path $env:SystemRoot "System32\\cmd.exe"
+$action   = New-ScheduledTaskAction -Execute $cmdExe -Argument "/c `"$starterCmd`" --background"
 $trigger  = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERNAME"
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0 -RestartCount 3
 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
@@ -1882,7 +1908,9 @@ Register-ScheduledTask `
     -Force | Out-Null
 
 Write-Host "  Avvio Local Signer..."
-Start-Process -FilePath $pywExe -ArgumentList "`"$py`"" -WindowStyle Hidden
+Stop-LocalSignerProcesses
+Start-Sleep -Milliseconds 500
+Start-Process -FilePath $starterCmd -ArgumentList "--background" -WindowStyle Hidden
 
 Write-Host "  Attendo che il servizio risponda su 127.0.0.1:27272..."
 $online = $false

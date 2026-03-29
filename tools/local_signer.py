@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.3.1
+HACS Local Signer — v1.3.2
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -43,7 +43,7 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
@@ -61,7 +61,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 
 logging.basicConfig(
@@ -1338,9 +1338,15 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
 
 # ── HTTP Handler ────────────────────────────────────────────────────────────────
 
+class _ThreadingLocalSignerServer(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+
 class _Handler(BaseHTTPRequestHandler):
     server_version = f"HACSSigner/{VERSION}"
-    protocol_version = "HTTP/1.1"
+    # Chiude ogni risposta: evita keep-alive pendenti dal browser.
+    protocol_version = "HTTP/1.0"
 
     def log_message(self, fmt, *args):  # noqa: override
         log.debug("[%s] %s", self.address_string(), fmt % args)
@@ -1376,12 +1382,15 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
         self._add_cors()
         self.end_headers()
         try:
             self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError) as e:
             log.debug("Client disconnesso durante la risposta %s: %s", self.path, e)
+        finally:
+            self.close_connection = True
 
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", 0))
@@ -1397,7 +1406,9 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self._add_cors()
         self.send_header("Content-Length", "0")
+        self.send_header("Connection", "close")
         self.end_headers()
+        self.close_connection = True
 
     def do_GET(self):  # noqa: N802
         if not self._cors_ok():
@@ -1900,7 +1911,7 @@ Esempi:
         os.environ["PCT_PKCS11_LIBRARY"] = args.lib
         _trova_libreria(args.lib)
 
-    server = HTTPServer(("127.0.0.1", args.port), _Handler)
+    server = _ThreadingLocalSignerServer(("127.0.0.1", args.port), _Handler)
 
     print("=" * 60)
     print(f"  HACS Local Signer v{VERSION}")

@@ -123,6 +123,13 @@ def test_richiede_certificato_pst_se_nessuno_e_stato_selezionato():
     assert "Cerca su PST" in msg
 
 
+def test_server_locale_usa_threading_e_connessioni_close():
+    module = _load_local_signer()
+
+    assert issubclass(module._ThreadingLocalSignerServer, module.ThreadingHTTPServer)
+    assert module._Handler.protocol_version == "HTTP/1.0"
+
+
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     module = _load_local_signer()
 
@@ -285,3 +292,5 @@ def test_installer_locale_windows_registra_protocollo_e_attesa_ping():
     assert "hacs-local-signer" in script
     assert "Wait-LocalSigner" in script
     assert "start_local_signer.cmd" in script
+    assert "Stop-LocalSignerProcesses" in script
+    assert "Test-LocalSignerOnline" in script

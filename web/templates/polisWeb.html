@@ -391,6 +391,7 @@
                 <input type="hidden" name="data_iscrizione" value="{{ f.data_iscrizione }}">
                 <input type="hidden" name="data_udienza" value="{{ f.data_udienza }}">
                 <input type="hidden" name="parti_json" value='{{ f.parti | tojson }}'>
+                <input type="hidden" name="parti_dettaglio_json" value='{{ f.parti_dettaglio | default([], true) | tojson }}'>
                 <input type="hidden" name="codice_ufficio" value="{{ f.codice_ufficio }}">
                 <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
                 <button type="submit" class="btn btn-sm btn-primary"

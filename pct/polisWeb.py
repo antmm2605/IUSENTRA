@@ -208,6 +208,7 @@ def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
         data_iscrizione=(row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip(),
         data_udienza=(row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or "").strip(),
         parti=parti,
+        parti_dettaglio=parti_dettaglio,
         codice_ufficio=codice_ufficio,
         nome_ufficio=(ufficio or {}).get("nome", "") if isinstance(ufficio, dict) else "",
         note="",
@@ -292,6 +293,7 @@ class FascicoloPolisWeb:
     data_iscrizione: str = ""   # YYYY-MM-DD
     data_udienza: str = ""      # prossima udienza
     parti: List[str] = field(default_factory=list)
+    parti_dettaglio: List[Dict[str, str]] = field(default_factory=list)
     note: str = ""
     codice_ufficio: str = ""    # codice MinGiust del tribunale
     nome_ufficio: str = ""
@@ -349,6 +351,189 @@ def _split_nome_cognome(nome_completo: str) -> tuple[str, str]:
     cognome = " ".join(p.title() for p in parti[:-1])
     nome    = parti[-1].title()
     return cognome, nome
+
+
+def _nome_normalizzato(nome: str) -> str:
+    return re.sub(r"\s+", " ", (nome or "").strip()).upper()
+
+
+def _iter_parti_pst(
+    nomi: List[str],
+    dettagli: Optional[List[Dict[str, str]]] = None,
+) -> List[Dict[str, str]]:
+    parti: List[Dict[str, str]] = []
+    visti: set[tuple[str, str]] = set()
+
+    for dettaglio in dettagli or []:
+        nome = re.sub(r"\s+", " ", (dettaglio.get("nome") or "").strip())
+        cf = (dettaglio.get("codice_fiscale") or "").strip().upper()
+        if not nome:
+            continue
+        chiave = (_nome_normalizzato(nome), cf)
+        if chiave in visti:
+            continue
+        visti.add(chiave)
+        parti.append(
+            {
+                "nome": nome,
+                "codice_fiscale": cf,
+                "tipo": (dettaglio.get("tipo") or "").strip(),
+                "avvocato": (dettaglio.get("avvocato") or "").strip(),
+                "cf_avvocato": (dettaglio.get("cf_avvocato") or "").strip().upper(),
+            }
+        )
+
+    for nome_raw in nomi or []:
+        nome = re.sub(r"\s+", " ", (nome_raw or "").strip())
+        if not nome:
+            continue
+        chiave = (_nome_normalizzato(nome), "")
+        if chiave in visti:
+            continue
+        visti.add(chiave)
+        parti.append(
+            {
+                "nome": nome,
+                "codice_fiscale": "",
+                "tipo": "",
+                "avvocato": "",
+                "cf_avvocato": "",
+            }
+        )
+
+    return parti
+
+
+def _cerca_cliente_pst(gestione_clienti, nome: str, codice_fiscale: str = ""):
+    nome_norm = _nome_normalizzato(nome)
+    cf = (codice_fiscale or "").strip().upper()
+
+    for cliente in gestione_clienti.tutti():
+        identificativo = (getattr(cliente, "identificativo_fiscale", "") or "").strip().upper()
+        if cf and identificativo == cf:
+            return cliente
+
+    for cliente in gestione_clienti.tutti():
+        nome_cliente = _nome_normalizzato(cliente.nome_completo)
+        if nome_norm and (nome_norm == nome_cliente or nome_norm in nome_cliente or nome_cliente in nome_norm):
+            return cliente
+
+    return None
+
+
+def _crea_cliente_pst(
+    gestione_clienti,
+    nome: str,
+    codice_fiscale: str,
+    riferimento: str,
+    portale: str,
+):
+    from pct.clienti import StatoCliente, TipoCliente
+
+    nota_auto = f"Inserito automaticamente da {portale} — {riferimento}"
+    nome = re.sub(r"\s+", " ", (nome or "").strip())
+    codice_fiscale = (codice_fiscale or "").strip().upper()
+
+    if _is_persona_giuridica(nome):
+        return gestione_clienti.nuovo(
+            tipo=TipoCliente.PERSONA_GIURIDICA,
+            ragione_sociale=nome,
+            codice_fiscale=codice_fiscale,
+            stato=StatoCliente.POTENZIALE,
+            note=nota_auto,
+        )
+
+    cognome, nome_pf = _split_nome_cognome(nome)
+    return gestione_clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        cognome=cognome,
+        nome=nome_pf,
+        codice_fiscale=codice_fiscale,
+        stato=StatoCliente.POTENZIALE,
+        note=nota_auto,
+    )
+
+
+def _cerca_soggetto_pst(
+    gestione_soggetti,
+    nome: str,
+    codice_fiscale: str = "",
+    id_cliente: str = "",
+):
+    nome_norm = _nome_normalizzato(nome)
+    cf = (codice_fiscale or "").strip().upper()
+
+    for soggetto in gestione_soggetti.tutti():
+        if id_cliente and soggetto.id_cliente == id_cliente and _nome_normalizzato(soggetto.nome_completo) == nome_norm:
+            return soggetto
+
+    for soggetto in gestione_soggetti.tutti():
+        identificativo = (getattr(soggetto, "identificativo", "") or "").strip().upper()
+        if cf and identificativo == cf:
+            return soggetto
+
+    for soggetto in gestione_soggetti.tutti():
+        nome_soggetto = _nome_normalizzato(soggetto.nome_completo)
+        if nome_norm and (nome_norm == nome_soggetto or nome_norm in nome_soggetto or nome_soggetto in nome_norm):
+            return soggetto
+
+    return None
+
+
+def _crea_soggetto_pst(
+    gestione_soggetti,
+    nome: str,
+    codice_fiscale: str = "",
+    id_cliente: str = "",
+    note: str = "",
+):
+    from pct.soggetti import TipoSoggetto
+
+    nome = re.sub(r"\s+", " ", (nome or "").strip())
+    codice_fiscale = (codice_fiscale or "").strip().upper()
+
+    if _is_persona_giuridica(nome):
+        return gestione_soggetti.crea(
+            TipoSoggetto.PERSONA_GIURIDICA,
+            ragione_sociale=nome,
+            codice_fiscale=codice_fiscale,
+            id_cliente=id_cliente,
+            note=note,
+        )
+
+    cognome, nome_pf = _split_nome_cognome(nome)
+    return gestione_soggetti.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        cognome=cognome,
+        nome=nome_pf,
+        codice_fiscale=codice_fiscale,
+        id_cliente=id_cliente,
+        note=note,
+    )
+
+
+def _ruolo_parte_pst(idx: int, parte: Dict[str, str], id_cliente_principale: str, soggetto):
+    from pct.soggetti import RuoloSoggetto
+
+    tipo = _nome_normalizzato(parte.get("tipo", ""))
+    if id_cliente_principale and getattr(soggetto, "id_cliente", "") == id_cliente_principale:
+        return RuoloSoggetto.ASSISTITO
+
+    parole_controparte = (
+        "CONVENUT",
+        "RESISTENT",
+        "APPELLAT",
+        "OPPOST",
+        "ESECUTAT",
+        "DEBITOR",
+        "INTIMAT",
+        "CONTROPARTE",
+        "IMPUTAT",
+    )
+    if any(p in tipo for p in parole_controparte):
+        return RuoloSoggetto.CONTROPARTE
+
+    return RuoloSoggetto.ASSISTITO if idx == 0 else RuoloSoggetto.CONTROPARTE
 
 
 def riconcilia_soggetti_pst(
@@ -435,6 +620,128 @@ def riconcilia_soggetti_pst(
             nome_principale = trovato.nome_completo
 
     return id_principale, nome_principale, avvisi
+
+
+def _riconcilia_parti_dettaglio_polisweb(
+    fascicolo_pw: FascicoloPolisWeb,
+    gestione_clienti,
+    riferimento: str,
+    portale: str = "PolisWeb",
+) -> tuple[str, str, List[str]]:
+    id_principale = ""
+    nome_principale = ""
+    avvisi: List[str] = []
+
+    for idx, parte in enumerate(_iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)):
+        nome_raw = parte["nome"]
+        codice_fiscale = parte.get("codice_fiscale", "")
+        trovato = _cerca_cliente_pst(gestione_clienti, nome_raw, codice_fiscale)
+
+        if trovato is None:
+            try:
+                trovato = _crea_cliente_pst(
+                    gestione_clienti=gestione_clienti,
+                    nome=nome_raw,
+                    codice_fiscale=codice_fiscale,
+                    riferimento=riferimento,
+                    portale=portale,
+                )
+                avvisi.append(
+                    f"Nuovo soggetto creato in anagrafica: "
+                    f"«{trovato.nome_completo}» (stato: Potenziale)."
+                )
+            except Exception as e_crea:
+                avvisi.append(
+                    f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
+                )
+
+        if idx == 0 and trovato:
+            id_principale = trovato.id
+            nome_principale = trovato.nome_completo
+
+    return id_principale, nome_principale, avvisi
+
+
+def _sincronizza_parti_pst_su_fascicolo(
+    fascicolo_pw: FascicoloPolisWeb,
+    fascicolo_locale,
+    gestione_clienti,
+    gestione_soggetti,
+    id_cliente_principale: str,
+    riferimento: str,
+    portale: str = "PolisWeb",
+) -> tuple[str, str, List[str]]:
+    from pct.clienti import RiferimentoProcedimento
+
+    avvisi: List[str] = []
+    controparte = ""
+    cf_controparte = ""
+
+    if not gestione_soggetti:
+        return controparte, cf_controparte, avvisi
+
+    for idx, parte in enumerate(_iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)):
+        nome = parte["nome"]
+        codice_fiscale = parte.get("codice_fiscale", "")
+        cliente = _cerca_cliente_pst(gestione_clienti, nome, codice_fiscale)
+        id_cliente_assoc = cliente.id if cliente else (id_cliente_principale if idx == 0 else "")
+        soggetto = _cerca_soggetto_pst(
+            gestione_soggetti=gestione_soggetti,
+            nome=nome,
+            codice_fiscale=codice_fiscale,
+            id_cliente=id_cliente_assoc,
+        )
+
+        if soggetto is None:
+            tipo_parte = (parte.get("tipo") or "").strip()
+            nota = f"Importato automaticamente da {portale} — {riferimento}"
+            if tipo_parte:
+                nota = f"{nota} (parte PST: {tipo_parte})"
+            soggetto = _crea_soggetto_pst(
+                gestione_soggetti=gestione_soggetti,
+                nome=nome,
+                codice_fiscale=codice_fiscale,
+                id_cliente=id_cliente_assoc,
+                note=nota,
+            )
+            avvisi.append(f"Nuova parte creata nel database soggetti: «{soggetto.nome_completo}».")
+
+        ruolo = _ruolo_parte_pst(idx, parte, id_cliente_principale, soggetto)
+        note_parte = "Importato da PolisWeb"
+        if parte.get("tipo"):
+            note_parte = f"{note_parte} — tipo PST: {parte['tipo']}"
+        gestione_soggetti.aggiungi_parte(
+            fascicolo_locale.id,
+            soggetto.id,
+            ruolo=ruolo,
+            note=note_parte,
+        )
+
+        if ruolo.value == "CONTROPARTE" and not controparte:
+            controparte = soggetto.nome_completo
+            cf_controparte = codice_fiscale
+
+    if id_cliente_principale:
+        cliente_principale = gestione_clienti.get(id_cliente_principale)
+        if cliente_principale and not any(
+            p.numero_rg == fascicolo_pw.numero_rg
+            and p.anno == fascicolo_pw.anno_rg
+            and p.tribunale == fascicolo_pw.nome_ufficio
+            for p in cliente_principale.procedimenti
+        ):
+            gestione_clienti.aggiungi_procedimento(
+                id_cliente_principale,
+                RiferimentoProcedimento(
+                    numero_rg=fascicolo_pw.numero_rg,
+                    anno=fascicolo_pw.anno_rg,
+                    tribunale=fascicolo_pw.nome_ufficio,
+                    descrizione=fascicolo_pw.oggetto,
+                    data_apertura=fascicolo_pw.data_iscrizione or fascicolo_locale.data_apertura,
+                    attivo=fascicolo_locale.stato.value not in {"DEFINITO", "ARCHIVIATO"},
+                ),
+            )
+
+    return controparte, cf_controparte, avvisi
 
 
 # ================================================================ Client PolisWeb
@@ -618,6 +925,7 @@ class ClientPolisWeb:
         gestione_fascicoli,        # GestioneFascicoli instance
         gestione_clienti,          # GestioneClienti instance
         avvocato_referente: str = "",
+        gestione_soggetti=None,
     ) -> RisultatoImportazione:
         """
         Importa una pratica PolisWeb come nuovo Fascicolo nel gestionale.
@@ -638,8 +946,7 @@ class ClientPolisWeb:
             RisultatoImportazione con id_fascicolo_locale se successo.
         """
         try:
-            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita, EsitoAttivita
-            from pct.clienti import TipoCliente
+            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita
 
             # 1. Mappa il tipo ruolo → TipoFascicolo
             tipo_map = {
@@ -667,8 +974,8 @@ class ClientPolisWeb:
             # 2. Riconcilia tutte le parti con l'anagrafica clienti.
             #    Cerca ogni soggetto; se non esiste lo crea come POTENZIALE.
             rif = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
-            id_cliente, nome_cliente, avvisi = riconcilia_soggetti_pst(
-                nomi=fascicolo_pw.parti,
+            id_cliente, nome_cliente, avvisi = _riconcilia_parti_dettaglio_polisweb(
+                fascicolo_pw=fascicolo_pw,
                 gestione_clienti=gestione_clienti,
                 riferimento=rif,
                 portale="PolisWeb",
@@ -693,6 +1000,18 @@ class ClientPolisWeb:
             )
 
             # 4. Aggiungi prossima udienza come attività
+            try:
+                gestione_fascicoli.aggiungi_attivita(
+                    fasc.id,
+                    tipo=TipoAttivita.ISCRIZIONE_A_RUOLO,
+                    data=fascicolo_pw.data_iscrizione or date.today().isoformat(),
+                    titolo="Iscrizione a ruolo (importata da PolisWeb)",
+                    descrizione=f"Pratica importata da PolisWeb - RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+                    avvocato=avvocato_referente,
+                )
+            except Exception as e:
+                avvisi.append(f"Iscrizione a ruolo non registrata: {e}")
+
             if fascicolo_pw.data_udienza:
                 try:
                     gestione_fascicoli.aggiungi_attivita(
@@ -705,6 +1024,26 @@ class ClientPolisWeb:
                     )
                 except Exception as e:
                     avvisi.append(f"Udienza non importata: {e}")
+
+            try:
+                controparte, cf_controparte, avvisi_parti = _sincronizza_parti_pst_su_fascicolo(
+                    fascicolo_pw=fascicolo_pw,
+                    fascicolo_locale=fasc,
+                    gestione_clienti=gestione_clienti,
+                    gestione_soggetti=gestione_soggetti,
+                    id_cliente_principale=id_cliente,
+                    riferimento=rif,
+                    portale="PolisWeb",
+                )
+                avvisi.extend(avvisi_parti)
+                if controparte or cf_controparte:
+                    fasc = gestione_fascicoli.aggiorna(
+                        fasc.id,
+                        controparte=controparte,
+                        cf_controparte=cf_controparte,
+                    )
+            except Exception as e:
+                avvisi.append(f"Parti del procedimento non sincronizzate: {e}")
 
             if not id_cliente:
                 avvisi.append(

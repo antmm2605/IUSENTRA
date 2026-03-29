@@ -429,7 +429,15 @@
         {% endif %}
 
         {% else %}
-        <div class="text-muted text-center py-4 small">Nessun documento caricato</div>
+        <div class="text-muted text-center py-4 small">
+          <div>Nessun documento caricato</div>
+          {% if 'Importato da PolisWeb' in (fascicolo.note or '') %}
+          <div class="mt-2">
+            I documenti ufficiali restano consultabili dal portale ministeriale:
+            <a href="{{ url_for('polisWeb_home', id_fasc=fascicolo.id) }}" class="text-decoration-none">Consulta su PolisWeb</a>.
+          </div>
+          {% endif %}
+        </div>
         {% endif %}
       </div>
     </div>
@@ -744,6 +752,11 @@
           <i class="bi {{ dep_icon }} fs-2 text-{{ dep_col }} opacity-25 d-block mb-2"></i>
           <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
           <div class="text-muted" style="font-size:.78rem">{{ dep_hint }}</div>
+          {% if 'Importato da PolisWeb' in (fascicolo.note or '') and ftipo == 'CIVILE' %}
+          <div class="text-muted mt-2" style="font-size:.78rem">
+            L'importazione da PolisWeb popola anagrafica e attività iniziali, ma non scarica automaticamente gli atti dal PST.
+          </div>
+          {% endif %}
         </div>
         {% endif %}
       </div>

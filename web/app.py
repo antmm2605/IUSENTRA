@@ -2347,6 +2347,7 @@ read -r -p "Premi Invio per chiudere..." _
                 data_iscrizione=f.get("data_iscrizione", ""),
                 data_udienza=f.get("data_udienza", ""),
                 parti=_json.loads(f.get("parti_json", "[]") or "[]"),
+                parti_dettaglio=_json.loads(f.get("parti_dettaglio_json", "[]") or "[]"),
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=nome_ufficio_imp,
             )
@@ -2356,11 +2357,12 @@ read -r -p "Premi Invio per chiudere..." _
                 gestione_fascicoli=get_fascicoli(),
                 gestione_clienti=get_clienti(),
                 avvocato_referente=u.username if u else "",
+                gestione_soggetti=get_soggetti(),
             )
             if risultato.successo:
                 for avviso in risultato.avvisi:
-                    # I messaggi "Nuovo soggetto creato" sono informativi, non avvisi
-                    livello = "info" if avviso.startswith("Nuovo soggetto") else "warning"
+                    # I messaggi di creazione automatica sono informativi, non warning bloccanti
+                    livello = "info" if avviso.startswith(("Nuovo soggetto", "Nuova parte")) else "warning"
                     flash(avviso, livello)
                 flash(risultato.messaggio, "success")
                 audit("polisWeb.importa", "fascicolo", risultato.id_fascicolo_locale,

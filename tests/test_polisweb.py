@@ -5,7 +5,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pct.polisWeb import ClientPolisWeb, _matches_parte_filters, _pst_namespace_qbuilder
+from pct.clienti import GestioneClienti
+from pct.fascicoli import GestioneFascicoli
+from pct.polisWeb import (
+    ClientPolisWeb,
+    ClientPolisWebDemo,
+    FascicoloPolisWeb,
+    _matches_parte_filters,
+    _pst_namespace_qbuilder,
+)
+from pct.soggetti import GestioneSoggetti
 
 
 def _client() -> ClientPolisWeb:
@@ -94,3 +103,81 @@ def test_polisweb_filtro_parti_qbuilder_per_cf():
 
     assert _matches_parte_filters(fascicolo, None, "STLFNC45E26L063X")
     assert not _matches_parte_filters(fascicolo, None, "AAAAAA00A00A000A")
+
+
+def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
+    gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gestione_soggetti = GestioneSoggetti(
+        soggetti_path=str(tmp_path / "soggetti.json"),
+        parti_path=str(tmp_path / "parti.json"),
+    )
+
+    fascicolo_pw = FascicoloPolisWeb(
+        numero_rg="1025",
+        anno_rg=2024,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PENDENTE",
+        oggetto="Vendita di cose immobili",
+        sezione="CIVILE",
+        giudice="GIOVANNELLA MARIA ELENA",
+        data_iscrizione="2026-03-29",
+        data_udienza="2026-05-10",
+        parti=["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."],
+        parti_dettaglio=[
+            {
+                "nome": "STILLITANO FRANCESCO",
+                "tipo": "ATTORE",
+                "codice_fiscale": "STLFNC45E26L063X",
+                "avvocato": "",
+                "cf_avvocato": "",
+            },
+            {
+                "nome": "BANCA ALFA S.P.A.",
+                "tipo": "CONVENUTO",
+                "codice_fiscale": "12345678901",
+                "avvocato": "",
+                "cf_avvocato": "",
+            },
+        ],
+        codice_ufficio="0800570094",
+        nome_ufficio="Tribunale di Palmi",
+    )
+
+    client = ClientPolisWebDemo()
+    risultato = client.importa_fascicolo(
+        fascicolo_pw=fascicolo_pw,
+        gestione_fascicoli=gestione_fascicoli,
+        gestione_clienti=gestione_clienti,
+        gestione_soggetti=gestione_soggetti,
+        avvocato_referente="admin",
+    )
+
+    assert risultato.successo is True
+    fascicolo = gestione_fascicoli.get(risultato.id_fascicolo_locale)
+    assert fascicolo is not None
+    assert fascicolo.id_cliente
+    assert fascicolo.nome_cliente == "Stillitano Francesco"
+    assert fascicolo.controparte == "BANCA ALFA S.P.A."
+    assert fascicolo.cf_controparte == "12345678901"
+    assert fascicolo.data_prima_udienza == "2026-05-10"
+    assert fascicolo.data_prossima_udienza == "2026-05-10"
+    assert len(fascicolo.attivita) >= 2
+
+    cliente = gestione_clienti.get(fascicolo.id_cliente)
+    assert cliente is not None
+    assert cliente.codice_fiscale == "STLFNC45E26L063X"
+    assert any(p.numero_rg == "1025" and p.anno == 2024 for p in cliente.procedimenti)
+
+    parti = gestione_soggetti.parti_fascicolo(fascicolo.id)
+    ruoli = {parte.ruolo.value for parte, _ in parti}
+    nomi = {soggetto.nome_completo for _, soggetto in parti}
+
+    assert "ASSISTITO" in ruoli
+    assert "CONTROPARTE" in ruoli
+    assert "Stillitano Francesco" in nomi
+    assert "BANCA ALFA S.P.A." in nomi

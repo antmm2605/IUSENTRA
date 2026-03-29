@@ -25,8 +25,10 @@ Riferimenti:
 from __future__ import annotations
 
 import os
+import re
 import ssl
 import tempfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
@@ -40,6 +42,10 @@ from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, ri
 # richiede quindi che l'eventuale proxy attivo venga configurato esplicitamente.
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
 _WSP_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
+_PST_QBUILDER_NAMESPACES = {
+    "JPW_SICID": "urn:CONS-SICC-BE",
+}
+_CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 
 
 def _pst_endpoint_legacy(base_url: str) -> bool:
@@ -61,6 +67,211 @@ def _wsdl_ricerca(base_url: str) -> str:
 
 def _wsdl_consultazione(base_url: str) -> str:
     return f"{base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService?wsdl"
+
+
+def _pst_servizio_proxy(base_url: str) -> str:
+    parti = [p for p in (base_url or "").rstrip("/").split("/") if p]
+    return (parti[-1] if parti else "").upper()
+
+
+def _pst_namespace_qbuilder(base_url: str) -> str:
+    return _PST_QBUILDER_NAMESPACES.get(_pst_servizio_proxy(base_url), "")
+
+
+def _pst_usa_qbuilder(base_url: str) -> bool:
+    return bool(_pst_namespace_qbuilder(base_url))
+
+
+def _strip_namespaces(root: ET.Element) -> ET.Element:
+    for el in root.iter():
+        if "}" in el.tag:
+            el.tag = el.tag.split("}", 1)[1]
+    return root
+
+
+def _parse_qbuilder_row(row_el: ET.Element) -> Dict[str, Any]:
+    row: Dict[str, Any] = {}
+    sub_rows: Dict[str, List[Dict[str, Any]]] = {}
+
+    for child in list(row_el):
+        tag = child.tag.split("}")[-1]
+        if tag == "property":
+            key = (child.attrib.get("name") or "").strip()
+            if key:
+                row[key] = (child.text or "").strip()
+        elif tag == "subRows":
+            cls_name = (child.attrib.get("class") or "subRows").strip()
+            rows: List[Dict[str, Any]] = []
+            for sub in list(child):
+                sub_tag = sub.tag.split("}")[-1]
+                if sub_tag != "row":
+                    continue
+                rows.append(_parse_qbuilder_row(sub))
+            sub_rows.setdefault(cls_name, []).extend(rows)
+
+    if sub_rows:
+        row["_sub_rows"] = sub_rows
+    return row
+
+
+def _parse_qbuilder_row_list(xml_text: str) -> List[Dict[str, Any]]:
+    try:
+        root = _strip_namespaces(ET.fromstring(xml_text))
+    except ET.ParseError:
+        return []
+
+    righe: List[Dict[str, Any]] = []
+    for ret in root.findall(".//return"):
+        for child in list(ret):
+            tag = child.tag.split("}")[-1]
+            if tag == "row":
+                righe.append(_parse_qbuilder_row(child))
+    return righe
+
+
+def _qbuilder_numero_rg(row: Dict[str, Any]) -> str:
+    valore = (
+        row.get("NUMERORUOLO")
+        or row.get("N_R_G")
+        or row.get("NUMERORG")
+        or row.get("NUMERORUOLOGENERALE")
+        or ""
+    )
+    valore = str(valore).strip()
+    if not valore:
+        return ""
+    if valore.isdigit():
+        return str(int(valore))
+    return valore
+
+
+def _qbuilder_tipo_documento(tipo: str) -> str:
+    valore = (tipo or "").strip()
+    if not valore or valore in {"%", "*"}:
+        return "Documento"
+    if "}" in valore:
+        valore = valore.rsplit("}", 1)[-1]
+    if ":" in valore:
+        valore = valore.rsplit(":", 1)[-1]
+    return valore or "Documento"
+
+
+def _qbuilder_parti_dettaglio(row: Dict[str, Any]) -> List[Dict[str, str]]:
+    dettagli: List[Dict[str, str]] = []
+    sub_rows = row.get("_sub_rows") or {}
+    for gruppo, righe in sub_rows.items():
+        if gruppo not in {"InfoParte", "Parte", "ParteProcessuale"}:
+            continue
+        for parte in righe:
+            cognome = (parte.get("COGNOME") or parte.get("COGNOMENOME") or "").strip()
+            nome = (parte.get("NOME") or "").strip()
+            full_name = (parte.get("NOMINATIVO") or f"{cognome} {nome}").strip()
+            if not full_name:
+                continue
+            dettagli.append(
+                {
+                    "nome": re.sub(r"\s+", " ", full_name),
+                    "tipo": (parte.get("TIPOPARTE") or parte.get("PARTE") or "").strip(),
+                    "codice_fiscale": (parte.get("CODICEFISCALEPARTE") or parte.get("CODICEFISCALE") or "").strip(),
+                    "avvocato": (parte.get("AVVOCATO") or parte.get("NOMEAVVOCATO") or "").strip(),
+                    "cf_avvocato": (parte.get("CODICEFISCALEAVVOCATO") or parte.get("CFAVVOCATO") or "").strip(),
+                }
+            )
+    return dettagli
+
+
+def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
+    codice_ufficio = (
+        row.get("IDUFFICIO")
+        or row.get("CODICEUFFICIO")
+        or row.get("UFFICIO")
+        or ""
+    ).strip()
+    ufficio = risolvi_ufficio(codice_ufficio) if codice_ufficio else None
+    parti_dettaglio = _qbuilder_parti_dettaglio(row)
+    parti = [p["nome"] for p in parti_dettaglio if p.get("nome")]
+
+    if not parti:
+        for key in ("ATTOREPRINCIPALE", "CONVENUTOPRINCIPALE", "PARTEPRINCIPALE"):
+            valore = (row.get(key) or "").strip()
+            if valore:
+                parti.append(valore)
+
+    return FascicoloPolisWeb(
+        numero_rg=_qbuilder_numero_rg(row),
+        anno_rg=int((row.get("ANNORUOLO") or row.get("ANNORG") or 0) or 0),
+        ruolo=(row.get("RUOLODESCRIZIONE") or row.get("RUOLO") or "").strip(),
+        stato=(row.get("STATOFASCICOLODESCRIZIONE") or row.get("STATOFASCICOLO") or "").strip(),
+        oggetto=(row.get("OGGETTOFASCICOLO") or row.get("OGGETTO") or "").strip(),
+        sezione=(row.get("SEZIONE") or row.get("DESCRIZIONESEZIONE") or "").strip(),
+        giudice=(row.get("GIUDICE") or row.get("MAGISTRATO") or "").strip(),
+        data_iscrizione=(row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip(),
+        data_udienza=(row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or "").strip(),
+        parti=parti,
+        codice_ufficio=codice_ufficio,
+        nome_ufficio=(ufficio or {}).get("nome", "") if isinstance(ufficio, dict) else "",
+        note="",
+    )
+
+
+def _map_qbuilder_documento(row: Dict[str, Any]) -> DocumentoPolisWeb:
+    id_documento = (
+        row.get("IDDOCUMENTO")
+        or row.get("NUMERODOCUMENTO")
+        or row.get("IDDOCMITTENTE")
+        or ""
+    ).strip()
+    tipo = _qbuilder_tipo_documento(row.get("TIPO") or row.get("TIPODOCUMENTO") or "")
+    nome = (row.get("NOMEFILE") or row.get("NOME") or "").strip()
+    if not nome:
+        nome = f"Documento_{id_documento}.pdf" if id_documento else "Documento.pdf"
+    return DocumentoPolisWeb(
+        id_documento=id_documento,
+        nome=nome,
+        tipo=tipo,
+        data_deposito=(row.get("DATADEPOSITO") or row.get("DATACREAZIONE") or "").strip(),
+        mittente=(row.get("AUTORE") or row.get("MITTENTE") or "").strip(),
+        dimensione_bytes=int((row.get("DIMENSIONE") or 0) or 0),
+        disponibile=(row.get("STATO") or "").strip().lower() != "non disponibile",
+        id_deposito=(row.get("IDBUSTA") or row.get("IDDEPOSITO") or "").strip(),
+        tipo_atto=tipo,
+    )
+
+
+def _matches_parte_filters(fascicolo: FascicoloPolisWeb, nome_parte: Optional[str], codice_fiscale_parte: Optional[str]) -> bool:
+    nome = (nome_parte or "").strip().upper()
+    cf = (codice_fiscale_parte or "").strip().upper()
+    if not nome and not cf:
+        return True
+
+    for parte in fascicolo.parti:
+        if nome and nome in (parte or "").upper():
+            return True
+
+    for parte in getattr(fascicolo, "parti_dettaglio", []) or []:
+        nome_full = (parte.get("nome") or "").upper()
+        cf_full = (parte.get("codice_fiscale") or "").upper()
+        if nome and nome in nome_full:
+            return True
+        if cf and cf == cf_full:
+            return True
+
+    return False
+
+
+def _soap_fault_message(xml_text: str) -> str:
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return ""
+
+    for node in root.iter():
+        tag = node.tag.split("}")[-1].lower()
+        if tag in {"faultstring", "reason", "text"}:
+            text = (node.text or "").strip()
+            if text:
+                return text
+    return ""
 
 
 # ================================================================ Dataclass risultati
@@ -272,6 +483,7 @@ class ClientPolisWeb:
         self.cf_avvocato      = codice_fiscale_avvocato.upper()
         self.timeout          = timeout
         self._zeep_cache: Dict[str, Any] = {}
+        self._session_cache: Dict[str, Any] = {}
 
     # ---------------------------------------------------------------- Ricerca fascicoli
 
@@ -304,12 +516,35 @@ class ClientPolisWeb:
             PermissionError: se il certificato non è valido / scaduto.
         """
         base_pst = self._risolvi_base_pst(tribunale)
+        codice_pst = self._risolvi_codice_ufficio(tribunale)
+
+        if _pst_usa_qbuilder(base_pst):
+            xml = self._execute_qbuilder(
+                base_pst,
+                self._soap_ricerca_fascicoli_qbuilder(
+                    base_pst=base_pst,
+                    codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                    nome_parte=nome_parte,
+                    codice_fiscale_parte=codice_fiscale_parte,
+                ),
+            )
+            fascicoli = self._parse_fascicoli_qbuilder_xml(xml)
+            if fascicoli and len(fascicoli) <= min(max_risultati, 10):
+                fascicoli = self._arricchisci_fascicoli_con_profilo(base_pst, fascicoli)
+            if not (numero_rg and anno_rg) and (nome_parte or codice_fiscale_parte):
+                fascicoli = [
+                    f for f in fascicoli
+                    if _matches_parte_filters(f, nome_parte, codice_fiscale_parte)
+                ]
+            return fascicoli[:max_risultati]
+
         client = self._get_client(_wsdl_ricerca(base_pst))
 
-        # Costruzione request conforme al WSDL PST
         request_dict = {
             "codiceFiscaleAvvocato": self.cf_avvocato,
-            "codiceUfficio": self._risolvi_codice_ufficio(tribunale),
+            "codiceUfficio": codice_pst,
             "maxRisultati": max_risultati,
         }
         if numero_rg:
@@ -348,8 +583,21 @@ class ClientPolisWeb:
             Lista di DocumentoPolisWeb.
         """
         base_pst = self._risolvi_base_pst(codice_ufficio)
-        client = self._get_client(_wsdl_consultazione(base_pst))
         codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
+
+        if _pst_usa_qbuilder(base_pst):
+            xml = self._execute_qbuilder(
+                base_pst,
+                self._soap_documenti_qbuilder(
+                    base_pst=base_pst,
+                    codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                ),
+            )
+            return self._parse_documenti_qbuilder_xml(xml)
+
+        client = self._get_client(_wsdl_consultazione(base_pst))
         try:
             risposta = client.service.consultazioneAvanzataDocumenti(
                 codiceFiscaleAvvocato=self.cf_avvocato,
@@ -485,10 +733,6 @@ class ClientPolisWeb:
         """
         Crea (e memorizza in cache) un client zeep con autenticazione
         tramite certificato client.
-
-        Supporta due formati:
-          - P12/PFX: usa requests-pkcs12 (Pkcs12Adapter)
-          - PEM:     usa requests nativo con session.cert = (cert_path, key_path)
         """
         if wsdl_url in self._zeep_cache:
             return self._zeep_cache[wsdl_url]
@@ -496,18 +740,24 @@ class ClientPolisWeb:
         try:
             import zeep
             import zeep.transports
-            from requests import Session
         except ImportError:
             raise ImportError("Installa zeep: pip install zeep")
 
         parsed = urlparse(wsdl_url)
         pst_host = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _WSP_BASE
+        session = self._build_requests_session(pst_host)
+        transport = zeep.transports.Transport(session=session, timeout=self.timeout)
+        client = zeep.Client(wsdl=wsdl_url, transport=transport)
+        self._zeep_cache[wsdl_url] = client
+        return client
+
+    def _build_requests_session(self, pst_host: str):
+        from requests import Session
+
         if _pst_endpoint_legacy(pst_host):
             raise RuntimeError(_pst_endpoint_legacy_message())
 
         session = Session()
-
-        # ── Selezione formato certificato ────────────────────────────────────
         usa_pem = (
             self.cert_pem_path and self.key_pem_path
             and os.path.exists(self.cert_pem_path)
@@ -515,13 +765,9 @@ class ClientPolisWeb:
         )
 
         if usa_pem:
-            # PEM: requests supporta nativamente il mutual TLS con (cert, key)
             if self.key_pem_password:
-                # Se la chiave è cifrata, la esportiamo temporaneamente in chiaro
-                # perché requests non supporta chiavi PEM protette da password
-                import tempfile
-                from cryptography.hazmat.primitives import serialization
                 from cryptography.hazmat.backends import default_backend
+                from cryptography.hazmat.primitives import serialization
                 with open(self.key_pem_path, "rb") as f:
                     key_data = f.read()
                 private_key = serialization.load_pem_private_key(
@@ -538,34 +784,163 @@ class ClientPolisWeb:
                 session.cert = (self.cert_pem_path, tmp.name)
             else:
                 session.cert = (self.cert_pem_path, self.key_pem_path)
-
         elif self.p12_path and os.path.exists(self.p12_path):
-            # P12: usa requests-pkcs12
             try:
                 from requests_pkcs12 import Pkcs12Adapter
             except ImportError:
-                raise ImportError(
-                    "Installa requests-pkcs12: pip install requests-pkcs12"
-                )
+                raise ImportError("Installa requests-pkcs12: pip install requests-pkcs12")
             adapter = Pkcs12Adapter(
                 pkcs12_filename=self.p12_path,
                 pkcs12_password=self.p12_password,
             )
             session.mount(pst_host, adapter)
-
         else:
             raise FileNotFoundError(
                 "Nessun certificato disponibile per l'autenticazione al PST. "
                 "Configurare P12 (PCT_FIRMA_P12) oppure PEM (PCT_FIRMA_CERT + PCT_FIRMA_KEY)."
             )
 
-        transport = zeep.transports.Transport(session=session, timeout=self.timeout)
-        client = zeep.Client(wsdl=wsdl_url, transport=transport)
-        self._zeep_cache[wsdl_url] = client
-        return client
+        return session
+
+    def _get_session(self, base_url: str):
+        cache_key = base_url.rstrip("/")
+        if cache_key in self._session_cache:
+            return self._session_cache[cache_key]
+
+        parsed = urlparse(cache_key)
+        pst_host = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _WSP_BASE
+        session = self._build_requests_session(pst_host)
+        self._session_cache[cache_key] = session
+        return session
+
+    def _execute_qbuilder(self, base_url: str, body: str) -> str:
+        if not self.cf_avvocato:
+            raise ValueError("Configurare il codice fiscale dell'avvocato (PCT_CF_AVVOCATO) per il PST.")
+
+        session = self._get_session(base_url)
+        try:
+            response = session.post(
+                base_url.rstrip("/"),
+                data=body.encode("utf-8"),
+                headers={
+                    "Content-Type": "text/xml; charset=utf-8",
+                    "SOAPAction": "",
+                    "X-WASP-User": self.cf_avvocato,
+                },
+                timeout=self.timeout,
+            )
+        except Exception as e:
+            raise ConnectionError(f"Errore chiamata PST: {e}") from e
+
+        text_resp = response.text or ""
+        fault = _soap_fault_message(text_resp)
+        if response.status_code >= 400:
+            raise ConnectionError(
+                f"Errore chiamata PST: HTTP {response.status_code} {response.reason or ''}".strip()
+            )
+        if fault:
+            raise ConnectionError(f"Errore chiamata PST: {fault}")
+        return text_resp
+
+    def _soap_qbuilder_envelope(self, body_inner: str) -> str:
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
+            '<SOAP-ENV:Header/>'
+            f'<SOAP-ENV:Body>{body_inner}</SOAP-ENV:Body>'
+            '</SOAP-ENV:Envelope>'
+        )
+
+    def _soap_qbuilder_execute_body(
+        self,
+        base_pst: str,
+        codice_ufficio: str,
+        name: str,
+        values: List[tuple[str, str, Any]],
+        order_by: str = "",
+    ) -> str:
+        ns = _pst_namespace_qbuilder(base_pst)
+        valori = ''.join(
+            f'<value name="{k}" type="{tipo}">{"" if v is None else v}</value>'
+            for k, tipo, v in values
+        )
+        order_xml = f'<orderBy><entry property="{order_by}" mode="asc"/></orderBy>' if order_by else '<orderBy/>'
+        body = (
+            f'<execute xmlns="{ns}">'
+            f'<domain><InvocationDomain name="JPW" role="AVV" group="{codice_ufficio}"/></domain>'
+            f'<name>{name}</name>'
+            f'<valueSet>{valori}</valueSet>'
+            f'{order_xml}'
+            '</execute>'
+        )
+        return self._soap_qbuilder_envelope(body)
+
+    def _soap_ricerca_fascicoli_qbuilder(
+        self,
+        base_pst: str,
+        codice_ufficio: str,
+        numero_rg: Optional[str],
+        anno_rg: Optional[int],
+        nome_parte: Optional[str],
+        codice_fiscale_parte: Optional[str],
+    ) -> str:
+        if numero_rg and anno_rg:
+            return self._soap_qbuilder_execute_body(
+                base_pst,
+                codice_ufficio,
+                'RicercaInformazioniFascicoloPerTipo',
+                [
+                    ('tipo', 'string', 'RGN'),
+                    ('idUfficio', 'string', codice_ufficio),
+                    ('annoRuolo', 'long', anno_rg),
+                    ('numeroRuolo', 'string', numero_rg),
+                ],
+                order_by='ANNORUOLO, NUMERORUOLO',
+            )
+
+        return self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_ufficio,
+            'RicercaInformazioniFascicoloPerPartiGiudiceDate',
+            [
+                ('idUfficio', 'string', codice_ufficio),
+                ('cognomeNome', 'string', nome_parte or ''),
+                ('codiceFiscale', 'string', (codice_fiscale_parte or '').upper()),
+                ('giudice', 'string', ''),
+                ('dataRuoloDa', 'string', ''),
+                ('dataRuoloA', 'string', ''),
+            ],
+            order_by='ANNORUOLO, NUMERORUOLO',
+        )
+
+    def _soap_documenti_qbuilder(self, base_pst: str, codice_ufficio: str, numero_rg: str, anno_rg: int) -> str:
+        return self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_ufficio,
+            'DocumentiFascicolo',
+            [
+                ('idUfficio', 'string', codice_ufficio),
+                ('annoRuolo', 'long', anno_rg),
+                ('numeroRuolo', 'string', numero_rg),
+                ('subProc', 'string', ''),
+            ],
+        )
+
+    def _soap_profilo_fascicolo_qbuilder(self, base_pst: str, codice_ufficio: str, fascicolo: FascicoloPolisWeb) -> str:
+        return self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_ufficio,
+            'ProfiloFascicolo',
+            [
+                ('idUfficio', 'string', codice_ufficio),
+                ('annoRuolo', 'long', fascicolo.anno_rg),
+                ('numeroRuolo', 'string', fascicolo.numero_rg),
+                ('subProc', 'string', ''),
+            ],
+        )
 
     def _risolvi_codice_ufficio(self, nome_o_codice: str) -> str:
-        """Risolve nome tribunale → codice ufficio MinGiust."""
+        """Risolve nome tribunale -> codice ufficio MinGiust."""
         return risolvi_codice_ministero(nome_o_codice)
 
     def _risolvi_base_pst(self, nome_o_codice: str) -> str:
@@ -582,22 +957,30 @@ class ClientPolisWeb:
                 items = [items]
             for item in items:
                 f = FascicoloPolisWeb(
-                    numero_rg=str(getattr(item, "numeroRG", "") or ""),
-                    anno_rg=int(getattr(item, "annoRG", 0) or 0),
-                    ruolo=str(getattr(item, "ruolo", "CIVILE_COGNIZIONE") or ""),
-                    stato=str(getattr(item, "stato", "PENDENTE") or ""),
-                    oggetto=str(getattr(item, "oggetto", "") or ""),
-                    sezione=str(getattr(item, "sezione", "") or ""),
-                    giudice=str(getattr(item, "giudice", "") or ""),
-                    data_iscrizione=_parse_data(getattr(item, "dataIscrizione", None)),
-                    data_udienza=_parse_data(getattr(item, "dataUdienza", None)),
-                    parti=_parse_parti(getattr(item, "parti", None)),
-                    codice_ufficio=str(getattr(item, "codiceUfficio", "") or ""),
-                    nome_ufficio=str(getattr(item, "nomeUfficio", "") or ""),
+                    numero_rg=str(getattr(item, 'numeroRG', '') or ''),
+                    anno_rg=int(getattr(item, 'annoRG', 0) or 0),
+                    ruolo=str(getattr(item, 'ruolo', 'CIVILE_COGNIZIONE') or ''),
+                    stato=str(getattr(item, 'stato', 'PENDENTE') or ''),
+                    oggetto=str(getattr(item, 'oggetto', '') or ''),
+                    sezione=str(getattr(item, 'sezione', '') or ''),
+                    giudice=str(getattr(item, 'giudice', '') or ''),
+                    data_iscrizione=_parse_data(getattr(item, 'dataIscrizione', None)),
+                    data_udienza=_parse_data(getattr(item, 'dataUdienza', None)),
+                    parti=_parse_parti(getattr(item, 'parti', None)),
+                    codice_ufficio=str(getattr(item, 'codiceUfficio', '') or ''),
+                    nome_ufficio=str(getattr(item, 'nomeUfficio', '') or ''),
                 )
                 fascicoli.append(f)
         except (AttributeError, TypeError, ValueError):
             pass
+        return fascicoli
+
+    def _parse_fascicoli_qbuilder_xml(self, xml_text: str) -> List[FascicoloPolisWeb]:
+        fascicoli: List[FascicoloPolisWeb] = []
+        for row in _parse_qbuilder_row_list(xml_text):
+            fascicolo = _map_qbuilder_fascicolo(row)
+            setattr(fascicolo, 'parti_dettaglio', _qbuilder_parti_dettaglio(row))
+            fascicoli.append(fascicolo)
         return fascicoli
 
     def _parse_documenti(self, risposta: Any) -> List[DocumentoPolisWeb]:
@@ -609,21 +992,52 @@ class ClientPolisWeb:
                 items = [items]
             for item in items:
                 d = DocumentoPolisWeb(
-                    id_documento=str(getattr(item, "idDocumento", "") or ""),
-                    nome=str(getattr(item, "nomeFile", "") or ""),
-                    tipo=str(getattr(item, "tipoDocumento", "ATTO") or ""),
-                    data_deposito=_parse_data(getattr(item, "dataDeposito", None)),
-                    mittente=str(getattr(item, "mittente", "") or ""),
-                    dimensione_bytes=int(getattr(item, "dimensione", 0) or 0),
-                    disponibile=bool(getattr(item, "disponibile", True)),
-                    id_deposito=str(getattr(item, "idBusta", getattr(item, "idDeposito", "")) or ""),
-                    tipo_atto=str(getattr(item, "tipoAtto", getattr(item, "tipoAtta", "")) or ""),
+                    id_documento=str(getattr(item, 'idDocumento', '') or ''),
+                    nome=str(getattr(item, 'nomeFile', '') or ''),
+                    tipo=str(getattr(item, 'tipoDocumento', 'ATTO') or ''),
+                    data_deposito=_parse_data(getattr(item, 'dataDeposito', None)),
+                    mittente=str(getattr(item, 'mittente', '') or ''),
+                    dimensione_bytes=int(getattr(item, 'dimensione', 0) or 0),
+                    disponibile=bool(getattr(item, 'disponibile', True)),
+                    id_deposito=str(getattr(item, 'idBusta', getattr(item, 'idDeposito', '')) or ''),
+                    tipo_atto=str(getattr(item, 'tipoAtto', getattr(item, 'tipoAtta', '')) or ''),
                 )
                 documenti.append(d)
         except (AttributeError, TypeError, ValueError):
             pass
         return documenti
 
+    def _parse_documenti_qbuilder_xml(self, xml_text: str) -> List[DocumentoPolisWeb]:
+        return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_text)]
+
+    def _arricchisci_fascicoli_con_profilo(self, base_pst: str, fascicoli: List[FascicoloPolisWeb]) -> List[FascicoloPolisWeb]:
+        arricchiti: List[FascicoloPolisWeb] = []
+        for fascicolo in fascicoli:
+            codice_ufficio = fascicolo.codice_ufficio or self._risolvi_codice_ufficio(fascicolo.nome_ufficio)
+            if not codice_ufficio:
+                arricchiti.append(fascicolo)
+                continue
+            try:
+                xml = self._execute_qbuilder(
+                    base_pst,
+                    self._soap_profilo_fascicolo_qbuilder(base_pst, codice_ufficio, fascicolo),
+                )
+                profili = self._parse_fascicoli_qbuilder_xml(xml)
+            except Exception:
+                arricchiti.append(fascicolo)
+                continue
+            if not profili:
+                arricchiti.append(fascicolo)
+                continue
+            profilo = profili[0]
+            for attr in ('ruolo', 'stato', 'oggetto', 'sezione', 'giudice', 'data_iscrizione', 'data_udienza', 'nome_ufficio'):
+                valore = getattr(profilo, attr, '') or getattr(fascicolo, attr, '')
+                setattr(fascicolo, attr, valore)
+            if getattr(profilo, 'parti', None):
+                fascicolo.parti = profilo.parti
+                setattr(fascicolo, 'parti_dettaglio', getattr(profilo, 'parti_dettaglio', []))
+            arricchiti.append(fascicolo)
+        return arricchiti
 
 # ================================================================ Demo / offline
 
@@ -650,6 +1064,7 @@ class ClientPolisWebDemo(ClientPolisWeb):
         self.cf_avvocato = "DEMO"
         self.timeout = 5
         self._zeep_cache = {}
+        self._session_cache = {}
 
     def ricerca_fascicoli(self, tribunale: str, numero_rg=None,
                           anno_rg=None, nome_parte=None,

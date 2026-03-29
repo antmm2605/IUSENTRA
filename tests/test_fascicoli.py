@@ -195,6 +195,42 @@ def test_zip_include_documenti(gf, fascicolo_base):
     assert any("sentenza.pdf" in n for n in nomi)
 
 
+def test_registra_import_documenti_portale_collega_documenti_e_attivita(gf, fascicolo_base):
+    doc1 = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "sentenza.pdf",
+        TipoDocumento.SENTENZA,
+        b"sentenza",
+    )
+    doc2 = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "verbale.pdf",
+        TipoDocumento.VERBALE,
+        b"verbale",
+    )
+
+    esito = gf.registra_import_documenti_portale(
+        id_fasc=fascicolo_base.id,
+        fonte="PolisWeb / PST",
+        documenti_ids=[doc1.id, doc2.id],
+        tipo_atto="Acquisizione documenti PolisWeb",
+        note="Fascicolo ufficiale acquisito dal portale",
+        registrato_da="admin",
+        pec_destinatario="tribunale.milano@giustiziapec.it",
+        nome_atto_principale=doc1.nome,
+    )
+
+    fascicolo = gf.get(fascicolo_base.id)
+    assert esito.stato == "IMPORTATO_DA_PORTALE"
+    assert len(fascicolo.depositi_pct) == 1
+    assert fascicolo.documenti[0].id_deposito_pct == esito.id
+    assert fascicolo.documenti[1].id_deposito_pct == esito.id
+    assert any(
+        att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == esito.id
+        for att in fascicolo.attivita
+    )
+
+
 # ------------------------------------------------------------------ Attività
 
 def test_aggiungi_attivita(gf, fascicolo_base):

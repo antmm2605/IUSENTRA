@@ -750,6 +750,65 @@ class GestioneFascicoli:
         self._salva()
         return esito
 
+    def registra_import_documenti_portale(
+        self,
+        id_fasc: str,
+        fonte: str,
+        documenti_ids: List[str],
+        tipo_atto: str = "DOCUMENTI_UFFICIALI",
+        note: str = "",
+        registrato_da: str = "",
+        pec_destinatario: str = "",
+        nome_atto_principale: str = "",
+    ) -> EsitoDepositoPCT:
+        """
+        Registra l'acquisizione di file già scaricati dal portale ufficiale.
+
+        Non rappresenta un invio telematico, ma un lotto di consultazione/import
+        da fascicolo telematico ufficiale (PST / PDP / PAT).
+        """
+        f = self._get_o_errore(id_fasc)
+        if not documenti_ids:
+            raise ValueError("Nessun documento selezionato per l'importazione dal portale.")
+
+        doc_ids = set(documenti_ids)
+        if not any(doc.id in doc_ids for doc in f.documenti):
+            raise ValueError("I documenti indicati non appartengono al fascicolo.")
+
+        descrizione = note.strip() or f"File ufficiali acquisiti da {fonte}."
+        esito = EsitoDepositoPCT(
+            id=uuid.uuid4().hex[:8].upper(),
+            timestamp=datetime.now().isoformat(),
+            stato="IMPORTATO_DA_PORTALE",
+            tipo_atto=tipo_atto,
+            pec_destinatario=pec_destinatario or fonte,
+            messaggio=f"Acquisizione da {fonte}",
+            note=descrizione,
+            registrato_da=registrato_da,
+            documenti_ids=list(documenti_ids),
+            nome_atto_principale=nome_atto_principale,
+        )
+        f.depositi_pct.append(esito)
+
+        for doc in f.documenti:
+            if doc.id in doc_ids:
+                doc.id_deposito_pct = esito.id
+
+        att = AttivitaProcessuale(
+            id=uuid.uuid4().hex[:8].upper(),
+            tipo=TipoAttivita.CONSULTAZIONE,
+            data=date.today().isoformat(),
+            titolo=f"Acquisizione file ufficiali — {fonte}",
+            descrizione=f"{len(documenti_ids)} documenti importati. {descrizione}",
+            esito=EsitoAttivita.NON_APPLICABILE,
+            id_deposito_pct=esito.id,
+            avvocato=registrato_da,
+        )
+        f.attivita.append(att)
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return esito
+
     def modifica_esito_deposito(
         self,
         id_fasc: str,

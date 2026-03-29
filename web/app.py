@@ -11,6 +11,7 @@ import io
 import os
 import json
 import queue
+import shutil
 import threading
 import zipfile as _zipfile
 from datetime import date, datetime, timedelta
@@ -249,6 +250,13 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["FASCICOLI_ARCH"] = cfg.get(
         "FASCICOLI_ARCH", os.getenv("PCT_FASCICOLI_ARCH", "./fascicoli/archivio")
     )
+    app.config["PST_IMPORT_DIR"] = cfg.get(
+        "PST_IMPORT_DIR",
+        os.getenv(
+            "PCT_PST_IMPORT_DIR",
+            str(Path(app.config["FASCICOLI_DOCS"]).parent / "import_pst"),
+        ),
+    )
     app.config["MESSAGGI_DB"] = cfg.get(
         "MESSAGGI_DB", os.getenv("PCT_MESSAGGI_DB", "./messaggi/storico.json")
     )
@@ -389,6 +397,168 @@ def create_app(config: dict | None = None) -> Flask:
                 archive_dir=app.config["FASCICOLI_ARCH"],
             )
         return g._fascicoli
+
+    def _portale_ufficiale_label(fasc: Fascicolo) -> str:
+        if fasc.tipo == TipoFascicolo.PENALE:
+            return "PDP"
+        if fasc.tipo == TipoFascicolo.AMMINISTRATIVO:
+            return "PAT"
+        return "PolisWeb / PST"
+
+    def _tipo_lotto_portale(fasc: Fascicolo) -> str:
+        if fasc.tipo == TipoFascicolo.PENALE:
+            return "Acquisizione documenti PDP"
+        if fasc.tipo == TipoFascicolo.AMMINISTRATIVO:
+            return "Acquisizione documenti PAT"
+        return "Acquisizione documenti PolisWeb"
+
+    def _pst_import_dir_for_fascicolo(fasc: Fascicolo) -> Path:
+        return Path(app.config["PST_IMPORT_DIR"]) / fasc.id
+
+    def _pst_import_pending_count(fasc: Fascicolo) -> int:
+        cartella = _pst_import_dir_for_fascicolo(fasc)
+        if not cartella.exists():
+            return 0
+        return sum(1 for path in cartella.rglob("*") if path.is_file())
+
+    def _tipo_documento_da_nome_portale(nome_file: str) -> TipoDocumento:
+        nome = Path(nome_file).name.lower()
+        checks = [
+            (("sentenza",), TipoDocumento.SENTENZA),
+            (("ordinanza",), TipoDocumento.ORDINANZA),
+            (("decreto",), TipoDocumento.DECRETO),
+            (("verbale", "udienza"), TipoDocumento.VERBALE),
+            (("memoria",), TipoDocumento.MEMORIA),
+            (("ricorso",), TipoDocumento.RICORSO),
+            (("citazione",), TipoDocumento.CITAZIONE),
+            (("comparsa",), TipoDocumento.COMPARSA),
+            (("procura",), TipoDocumento.PROCURA),
+            (("notifica",), TipoDocumento.NOTIFICA),
+            (("ricevuta", "accettazione", "consegna", "esito", ".eml", ".msg", ".xml", ".html", ".htm"), TipoDocumento.COMUNICAZIONE),
+            (("busta", ".enc", "deposito"), TipoDocumento.DEPOSITO_PCT),
+        ]
+        for needles, tipo in checks:
+            if any(needle in nome for needle in needles):
+                return tipo
+        if nome.endswith((".pdf", ".p7m")):
+            return TipoDocumento.ATTO_GIUDIZIARIO
+        return TipoDocumento.ALLEGATO
+
+    def _espandi_file_importato_portale(
+        nome_file: str,
+        contenuto: bytes,
+        data_documento: str = "",
+        origine: str = "",
+    ) -> list[dict]:
+        nome_sicuro = Path(nome_file).name or "documento"
+        data_fallback = data_documento or date.today().isoformat()
+        if nome_sicuro.lower().endswith(".zip"):
+            try:
+                with _zipfile.ZipFile(io.BytesIO(contenuto)) as archivio:
+                    estratti = []
+                    for info in archivio.infolist():
+                        if info.is_dir():
+                            continue
+                        if info.filename.startswith("__MACOSX/"):
+                            continue
+                        nome_interno = Path(info.filename).name
+                        if not nome_interno or nome_interno.lower() in {".ds_store", "thumbs.db"}:
+                            continue
+                        payload = archivio.read(info)
+                        if not payload:
+                            continue
+                        data_info = data_fallback
+                        try:
+                            anno, mese, giorno = info.date_time[:3]
+                            if anno >= 1980:
+                                data_info = date(anno, mese, giorno).isoformat()
+                        except Exception:
+                            pass
+                        estratti.append({
+                            "nome": nome_interno,
+                            "contenuto": payload,
+                            "data_documento": data_info,
+                            "origine": f"{origine or nome_sicuro}:{info.filename}",
+                        })
+                    if estratti:
+                        return estratti
+            except (_zipfile.BadZipFile, RuntimeError, ValueError):
+                pass
+        return [{
+            "nome": nome_sicuro,
+            "contenuto": contenuto,
+            "data_documento": data_fallback,
+            "origine": origine or nome_sicuro,
+        }]
+
+    def _salva_documento_fascicolo(
+        gf: GestioneFascicoli,
+        id_fasc: str,
+        nome_file: str,
+        raw: bytes,
+        tipo_doc: TipoDocumento,
+        note: str = "",
+        data_documento: str = "",
+        firmato: bool = False,
+        caricato_da: str = "",
+    ) -> Documento:
+        contenuto = _encrypt_doc(raw)
+        doc = gf.aggiungi_documento(
+            id_fasc,
+            nome_file=nome_file,
+            tipo=tipo_doc,
+            contenuto=contenuto,
+            note=note,
+            data_documento=data_documento,
+            firmato=firmato,
+            caricato_da=caricato_da,
+        )
+        _accoda_ocr(
+            percorso=str(gf.percorso_documento(id_fasc, doc.id)),
+            hash_sha256=doc.hash_sha256,
+            id_fasc=id_fasc,
+            id_doc=doc.id,
+            nome_doc=nome_file,
+            tipo_doc=tipo_doc.value,
+            index_path=app.config["SEARCH_INDEX"],
+        )
+        return doc
+
+    def _leggi_staging_documenti_portale(fasc: Fascicolo) -> tuple[list[dict], Path]:
+        cartella = _pst_import_dir_for_fascicolo(fasc)
+        items: list[dict] = []
+        if not cartella.exists():
+            return items, cartella
+        for path in sorted(cartella.rglob("*")):
+            if not path.is_file():
+                continue
+            if path.name.lower() in {".ds_store", "thumbs.db"}:
+                continue
+            payload = path.read_bytes()
+            if not payload:
+                continue
+            data_doc = date.fromtimestamp(path.stat().st_mtime).isoformat()
+            origine = str(path.relative_to(cartella)).replace("\\", "/")
+            items.extend(_espandi_file_importato_portale(
+                nome_file=path.name,
+                contenuto=payload,
+                data_documento=data_doc,
+                origine=origine,
+            ))
+        return items, cartella
+
+    def _archivia_staging_documenti_portale(cartella: Path) -> str:
+        if not cartella.exists():
+            return ""
+        has_files = any(path.is_file() for path in cartella.rglob("*"))
+        if not has_files:
+            return ""
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        destinazione = cartella.parent / "_importati" / f"{cartella.name}_{stamp}"
+        destinazione.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(cartella), str(destinazione))
+        cartella.mkdir(parents=True, exist_ok=True)
+        return str(destinazione)
 
     def get_config_studio():
         from pct.config_studio import GestioneConfigStudio
@@ -4402,6 +4572,7 @@ read -r -p "Premi Invio per chiudere..." _
             pec_tribunale = uff.pec if uff else ""
         from pct.checklist_atti import TUTTI_I_TEMPLATE
         parti = get_soggetti().parti_fascicolo(id_fasc)
+        pst_import_pending = _pst_import_pending_count(fasc)
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -4414,6 +4585,9 @@ read -r -p "Premi Invio per chiudere..." _
             checklist_templates=TUTTI_I_TEMPLATE,
             parti=parti,
             RuoloSoggetto=RuoloSoggetto,
+            pst_import_pending=pst_import_pending,
+            pst_portale_label=_portale_ufficiale_label(fasc),
+            oggi=date.today(),
         )
 
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
@@ -4553,33 +4727,164 @@ read -r -p "Premi Invio per chiudere..." _
         u = g.utente_corrente
         try:
             raw = file.read()
-            contenuto = _encrypt_doc(raw)
             tipo_doc = TipoDocumento(f.get("tipo_doc", "ALTRO"))
-            doc = gf.aggiungi_documento(
-                id_fasc,
+            doc = _salva_documento_fascicolo(
+                gf=gf,
+                id_fasc=id_fasc,
                 nome_file=file.filename,
-                tipo=tipo_doc,
-                contenuto=contenuto,
+                raw=raw,
+                tipo_doc=tipo_doc,
                 note=f.get("note", ""),
                 data_documento=f.get("data_documento", ""),
                 firmato=f.get("firmato") == "1",
                 caricato_da=u.username if u else "",
-            )
-            # Accoda OCR asincrono (non blocca la risposta HTTP)
-            _accoda_ocr(
-                percorso=str(gf.percorso_documento(id_fasc, doc.id)),
-                hash_sha256=doc.hash_sha256,
-                id_fasc=id_fasc,
-                id_doc=doc.id,
-                nome_doc=file.filename,
-                tipo_doc=tipo_doc.value,
-                index_path=app.config["SEARCH_INDEX"],
             )
             flash(f"Documento '{file.filename}' caricato.", "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc,
                   dettagli=f"file: {file.filename}")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
+    def importa_documenti_portale(id_fasc):
+        gf = get_fascicoli()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "warning")
+            return redirect(url_for("lista_fascicoli"))
+
+        u = g.utente_corrente
+        fonte = _portale_ufficiale_label(fasc)
+        note_importazione = (request.form.get("note_importazione", "") or "").strip()
+        uploaded_items: list[dict] = []
+
+        for storage in request.files.getlist("files"):
+            if not storage or not storage.filename:
+                continue
+            payload = storage.read()
+            if not payload:
+                continue
+            uploaded_items.extend(
+                _espandi_file_importato_portale(
+                    nome_file=storage.filename,
+                    contenuto=payload,
+                    data_documento=date.today().isoformat(),
+                    origine=f"upload:{storage.filename}",
+                )
+            )
+
+        staging_items: list[dict] = []
+        staging_dir = _pst_import_dir_for_fascicolo(fasc)
+        usa_staging = not uploaded_items
+        if usa_staging:
+            staging_items, staging_dir = _leggi_staging_documenti_portale(fasc)
+
+        items = uploaded_items or staging_items
+        if not items:
+            flash(
+                f"Nessun file ufficiale trovato. Seleziona i download del {fonte} oppure riprova dopo averli copiati nella inbox tecnica del fascicolo.",
+                "warning",
+            )
+            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+        try:
+            documenti_creati: list[Documento] = []
+            for item in items:
+                nome = item.get("nome", "").strip()
+                payload = item.get("contenuto", b"")
+                if not nome or not payload:
+                    continue
+                tipo_doc = _tipo_documento_da_nome_portale(nome)
+                note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
+                if note_importazione:
+                    note_doc.append(note_importazione)
+                origine = (item.get("origine", "") or "").strip()
+                if origine and origine != nome:
+                    note_doc.append(f"Origine: {origine}")
+                documenti_creati.append(
+                    _salva_documento_fascicolo(
+                        gf=gf,
+                        id_fasc=id_fasc,
+                        nome_file=nome,
+                        raw=payload,
+                        tipo_doc=tipo_doc,
+                        note=" | ".join(note_doc),
+                        data_documento=item.get("data_documento", "") or date.today().isoformat(),
+                        firmato=nome.lower().endswith(".p7m"),
+                        caricato_da=u.username if u else "",
+                    )
+                )
+
+            if not documenti_creati:
+                flash("I file selezionati non contengono documenti importabili.", "warning")
+                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+            pec_tribunale = ""
+            if fasc.tribunale:
+                try:
+                    uff = ClientReGINde().cerca_ufficio_giudiziario(fasc.tribunale)
+                    pec_tribunale = uff.pec if uff else ""
+                except Exception:
+                    pec_tribunale = ""
+
+            tipo_atto = _tipo_lotto_portale(fasc)
+            principale = next(
+                (
+                    doc.nome
+                    for doc in documenti_creati
+                    if doc.tipo
+                    in {
+                        TipoDocumento.ATTO_GIUDIZIARIO,
+                        TipoDocumento.RICORSO,
+                        TipoDocumento.CITAZIONE,
+                        TipoDocumento.COMPARSA,
+                        TipoDocumento.MEMORIA,
+                        TipoDocumento.SENTENZA,
+                        TipoDocumento.ORDINANZA,
+                        TipoDocumento.DECRETO,
+                    }
+                ),
+                documenti_creati[0].nome,
+            )
+            descrizione_lotto = (
+                f"{len(documenti_creati)} documenti ufficiali acquisiti da {fonte}."
+                + (f" {note_importazione}" if note_importazione else "")
+            ).strip()
+            deposito = gf.registra_import_documenti_portale(
+                id_fasc=id_fasc,
+                fonte=fonte,
+                documenti_ids=[doc.id for doc in documenti_creati],
+                tipo_atto=tipo_atto,
+                note=descrizione_lotto,
+                registrato_da=u.username if u else "",
+                pec_destinatario=pec_tribunale,
+                nome_atto_principale=principale,
+            )
+
+            staging_archived = ""
+            if usa_staging:
+                staging_archived = _archivia_staging_documenti_portale(staging_dir)
+
+            audit(
+                "fascicoli.documento.importa_portale",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"{fonte}: {len(documenti_creati)} file — lotto {deposito.id}",
+            )
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+            if staging_archived:
+                flash(
+                    f"Importati {len(documenti_creati)} file ufficiali da {fonte}. Inbox temporanea archiviata.",
+                    "success",
+                )
+            else:
+                flash(f"Importati {len(documenti_creati)} file ufficiali da {fonte}.", "success")
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        except Exception as e:
+            app.logger.exception("Errore importa_documenti_portale %s: %s", id_fasc, e)
+            flash(f"Errore importazione file ufficiali: {e}", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/scarica")

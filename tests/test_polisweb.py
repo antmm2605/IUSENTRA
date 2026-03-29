@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import io
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.clienti import GestioneClienti
-from pct.fascicoli import GestioneFascicoli
+from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.polisWeb import (
     ClientPolisWeb,
     ClientPolisWebDemo,
@@ -23,6 +25,28 @@ def _client() -> ClientPolisWeb:
         key_pem_path="key.pem",
         codice_fiscale_avvocato="MNTRRT64L01L063H",
     )
+
+
+def _cfg_web(tmp_path: Path) -> dict:
+    os.makedirs(str(tmp_path / "backup"), exist_ok=True)
+    return {
+        "TESTING": True,
+        "AUTH_DB": str(tmp_path / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "docs"),
+        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "BACKUP_DIR": str(tmp_path / "backup"),
+        "SEARCH_INDEX": str(tmp_path / "search.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+    }
 
 
 def test_polisweb_qbuilder_namespace_sicid():
@@ -181,3 +205,135 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     assert "CONTROPARTE" in ruoli
     assert "Stillitano Francesco" in nomi
     assert "BANCA ALFA S.P.A." in nomi
+
+
+def test_route_importa_documenti_portale_salva_documenti_e_deposito(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/importa-portale",
+            data={
+                "note_importazione": "fascicolo completo scaricato dal portale",
+                "files": [
+                    (io.BytesIO(b"sentenza definitiva"), "Sentenza definitiva.txt"),
+                    (io.BytesIO(b"verbale udienza"), "Verbale udienza.txt"),
+                ],
+            },
+            content_type="multipart/form-data",
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 2
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PORTALE"
+    assert fascicolo_reload.depositi_pct[0].tipo_atto == "Acquisizione documenti PolisWeb"
+    assert len(fascicolo_reload.depositi_pct[0].documenti_ids) == 2
+    assert any(att.tipo.value == "CONSULTAZIONE" for att in fascicolo_reload.attivita)
+
+
+def test_route_importa_documenti_portale_usa_inbox_temporanea(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 204/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="204",
+        anno_rg=2025,
+    )
+
+    staging_dir = Path(cfg["PST_IMPORT_DIR"]) / fascicolo.id
+    staging_dir.mkdir(parents=True, exist_ok=True)
+    (staging_dir / "Memoria 183.txt").write_bytes(b"memoria 183")
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/importa-portale",
+            data={"note_importazione": "import da inbox"},
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    archivio_inbox = Path(cfg["PST_IMPORT_DIR"]) / "_importati"
+
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 1
+    assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PORTALE"
+    assert archivio_inbox.exists()
+    assert any(path.name.startswith(fascicolo.id + "_") for path in archivio_inbox.iterdir())

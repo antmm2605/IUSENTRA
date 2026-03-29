@@ -195,6 +195,55 @@ def test_server_locale_usa_threading_e_connessioni_close():
     assert module._Handler.protocol_version == "HTTP/1.0"
 
 
+def test_cors_consentito_per_loopback_locale():
+    module = _load_local_signer()
+
+    assert module._origin_cors_consentita("http://localhost:8080")
+    assert module._origin_cors_consentita("https://127.0.0.1:27272")
+    assert module._origin_cors_consentita("http://[::1]:5000")
+
+
+def test_cors_consentito_per_origine_hacs_configurata():
+    module = _load_local_signer()
+
+    orig = module.LOCAL_SIGNER_ALLOWED_ORIGINS
+    try:
+        module.LOCAL_SIGNER_ALLOWED_ORIGINS = (
+            "https://studio-legale-pct-production.up.railway.app, "
+            "https://antmm2605-hacs.vercel.app/"
+        )
+        assert module._origin_cors_consentita("https://studio-legale-pct-production.up.railway.app")
+        assert module._origin_cors_consentita("https://antmm2605-hacs.vercel.app")
+        assert not module._origin_cors_consentita("https://evil.example.com")
+    finally:
+        module.LOCAL_SIGNER_ALLOWED_ORIGINS = orig
+
+
+def test_cors_preflight_private_network_risponde_header_atteso():
+    module = _load_local_signer()
+
+    captured = []
+
+    class _FakeHandler:
+        headers = {
+            "Origin": "https://studio-legale-pct-production.up.railway.app",
+            "Access-Control-Request-Private-Network": "true",
+        }
+
+        def send_header(self, key, value):
+            captured.append((key, value))
+
+    orig = module.LOCAL_SIGNER_ALLOWED_ORIGINS
+    try:
+        module.LOCAL_SIGNER_ALLOWED_ORIGINS = "https://studio-legale-pct-production.up.railway.app"
+        module._Handler._add_cors(_FakeHandler())
+    finally:
+        module.LOCAL_SIGNER_ALLOWED_ORIGINS = orig
+
+    assert ("Access-Control-Allow-Origin", "https://studio-legale-pct-production.up.railway.app") in captured
+    assert ("Access-Control-Allow-Private-Network", "true") in captured
+
+
 def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     module = _load_local_signer()
 

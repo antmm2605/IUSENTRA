@@ -63,12 +63,16 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.0"
+VERSION = "1.5.1"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
 PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
 PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
+LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
+    "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS",
+    os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
+)
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -121,6 +125,7 @@ _DEFAULT_LIBS = [
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
 _uffici_snapshot_cache: Optional[dict[str, dict]] = None
+_LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 
 def _snapshot_paths() -> list[Path]:
@@ -215,6 +220,46 @@ def _supporto_auto_pst_disponibile() -> bool:
     if _risolvi_base_pst_hacs is not None and _risolvi_codice_ministero_hacs is not None:
         return True
     return bool(_carica_snapshot_uffici())
+
+
+def _normalizza_origin(origin: str) -> str:
+    """Restituisce un'origin canonicale per i controlli CORS."""
+    origin = (origin or "").strip().rstrip("/")
+    if not origin:
+        return ""
+    parsed = urlparse(origin)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return ""
+    host = parsed.hostname.lower()
+    port = parsed.port
+    default_port = 80 if parsed.scheme == "http" else 443
+    if port and port != default_port:
+        return f"{parsed.scheme}://{host}:{port}"
+    return f"{parsed.scheme}://{host}"
+
+
+def _origin_loopback(origin: str) -> bool:
+    parsed = urlparse((origin or "").strip())
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    return parsed.hostname.lower() in _LOCALHOST_ORIGIN_HOSTS
+
+
+def _origini_hacs_consentite() -> set[str]:
+    origini: set[str] = set()
+    for chunk in re.split(r"[,\s;]+", LOCAL_SIGNER_ALLOWED_ORIGINS or ""):
+        origin = _normalizza_origin(chunk)
+        if origin:
+            origini.add(origin)
+    return origini
+
+
+def _origin_cors_consentita(origin: str) -> bool:
+    if not origin:
+        return True
+    if _origin_loopback(origin):
+        return True
+    return _normalizza_origin(origin) in _origini_hacs_consentite()
 
 
 def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
@@ -1870,23 +1915,22 @@ class _Handler(BaseHTTPRequestHandler):
         log.debug("[%s] %s", self.address_string(), fmt % args)
 
     def _cors_ok(self) -> bool:
-        """Verifica che l'origine sia localhost."""
+        """Verifica che l'origine sia localhost o una origin HACS esplicitamente fidata."""
         origin = self.headers.get("Origin", "")
-        if not origin:
-            return True  # chiamata diretta (non cross-origin)
-        return any(
-            origin.startswith(pfx)
-            for pfx in (
-                "http://localhost", "https://localhost",
-                "http://127.0.0.1", "https://127.0.0.1",
-            )
-        )
+        return _origin_cors_consentita(origin)
 
     def _add_cors(self):
         origin = self.headers.get("Origin", "")
+        allowed_origin = "*"
+        if origin:
+            allowed_origin = (
+                _normalizza_origin(origin)
+                if _origin_cors_consentita(origin)
+                else "null"
+            )
         self.send_header(
             "Access-Control-Allow-Origin",
-            origin if origin else "*"
+            allowed_origin
         )
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header(
@@ -1894,6 +1938,9 @@ class _Handler(BaseHTTPRequestHandler):
             "Content-Type, X-Signer-Token"
         )
         self.send_header("Access-Control-Max-Age", "86400")
+        self.send_header("Vary", "Origin")
+        if origin or self.headers.get("Access-Control-Request-Private-Network"):
+            self.send_header("Access-Control-Allow-Private-Network", "true")
 
     def _send_json(self, data: dict, status: int = 200):
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")

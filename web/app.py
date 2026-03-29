@@ -1967,7 +1967,16 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_signer_uffici_path() -> Path:
         return Path(__file__).parent.parent / "pct" / "data" / "uffici_ministero.json"
 
+    def _local_signer_allowed_origins(base_url: str) -> str:
+        origini = {base_url.rstrip("/")}
+        configured = os.getenv("PCT_BASE_URL", "").rstrip("/")
+        if configured:
+            origini.add(configured)
+        origini.add("https://studio-legale-pct-production.up.railway.app")
+        return ",".join(sorted(o for o in origini if o))
+
     def _render_local_signer_windows_ps1(base_url: str) -> str:
+        allowed_origins = _local_signer_allowed_origins(base_url)
         return f"""# HACS Local Signer - Installazione automatica Windows
 # Eseguire in PowerShell come utente normale (non richiede amministratore)
 
@@ -1981,6 +1990,7 @@ $starterCmd = "$dir\\\\start_local_signer.cmd"
 $starterVbs = "$dir\\\\start_local_signer.vbs"
 $pyExe  = "$venv\\\\Scripts\\\\python.exe"
 $pywExe = "$venv\\\\Scripts\\\\pythonw.exe"
+$allowedOrigins = "{allowed_origins}"
 
 Write-Host "HACS Local Signer - Installazione..." -ForegroundColor Cyan
 
@@ -2042,6 +2052,7 @@ set "DIR=%~dp0"
 set "PYW=%DIR%.venv\\Scripts\\pythonw.exe"
 set "PY=%DIR%local_signer.py"
 set "TARGET=%DIR%local_signer.py"
+set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
 
 powershell -NoProfile -Command "try {{ $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) {{ exit 0 }} }} catch {{}}; exit 1" >nul 2>&1
 if not errorlevel 1 goto :online
@@ -2060,6 +2071,7 @@ timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"
 exit /b 0
 '@
+$cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
 Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
 $vbs = @"
 Set shell = CreateObject("WScript.Shell")
@@ -2128,10 +2140,12 @@ Read-Host "Premere Invio per chiudere"
 """
 
     def _render_local_signer_macos_command(base_url: str) -> str:
+        allowed_origins = _local_signer_allowed_origins(base_url)
         return f"""#!/bin/bash
 set -euo pipefail
 
 BASE_URL="{base_url}"
+ALLOWED_ORIGINS="{allowed_origins}"
 DIR="$HOME/Library/Application Support/HACS/LocalSigner"
 DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
@@ -2166,6 +2180,11 @@ cat > "$PLIST" <<EOF
     <string>$PY</string>
     <string>$DIR/local_signer.py</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PCT_LOCAL_SIGNER_ALLOWED_ORIGINS</key>
+    <string>$ALLOWED_ORIGINS</string>
+  </dict>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
@@ -2188,10 +2207,12 @@ read -r -p "Premi Invio per chiudere..." _
 """
 
     def _render_local_signer_linux_sh(base_url: str) -> str:
+        allowed_origins = _local_signer_allowed_origins(base_url)
         return f"""#!/usr/bin/env bash
 set -euo pipefail
 
 BASE_URL="{base_url}"
+ALLOWED_ORIGINS="{allowed_origins}"
 DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/hacs/local-signer"
 DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
@@ -2223,6 +2244,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=$DIR
+Environment=PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 ExecStart=$PY $DIR/local_signer.py
 Restart=on-failure
 
@@ -2298,6 +2320,7 @@ read -r -p "Premi Invio per chiudere..." _
     def polis_local_signer_setup_windows():
         """Serve il miglior installer Windows disponibile: .exe, altrimenti PowerShell."""
         exe_path = _local_signer_windows_exe_path()
+        base_url = _get_base_url()
         if exe_path.exists():
             return send_file(
                 exe_path,
@@ -2306,7 +2329,7 @@ read -r -p "Premi Invio per chiudere..." _
                 mimetype="application/octet-stream",
             )
         return Response(
-            _render_local_signer_windows_ps1(request.host_url.rstrip("/")),
+            _render_local_signer_windows_ps1(base_url),
             mimetype="text/plain; charset=utf-8",
             headers={"Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'},
         )
@@ -2319,7 +2342,7 @@ read -r -p "Premi Invio per chiudere..." _
         import traceback as _tb
         try:
             return Response(
-                _render_local_signer_windows_ps1(request.host_url.rstrip("/")),
+                _render_local_signer_windows_ps1(_get_base_url()),
                 mimetype="text/plain; charset=utf-8",
                 headers={
                     "Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'
@@ -2334,7 +2357,7 @@ read -r -p "Premi Invio per chiudere..." _
         """Serve l'installer macOS (.command) del Local Signer."""
         try:
             return Response(
-                _render_local_signer_macos_command(request.host_url.rstrip("/")),
+                _render_local_signer_macos_command(_get_base_url()),
                 mimetype="text/plain; charset=utf-8",
                 headers={"Content-Disposition": 'attachment; filename="InstallaLocalSigner.command"'},
             )
@@ -2347,7 +2370,7 @@ read -r -p "Premi Invio per chiudere..." _
         """Serve l'installer Linux (.sh) del Local Signer."""
         try:
             return Response(
-                _render_local_signer_linux_sh(request.host_url.rstrip("/")),
+                _render_local_signer_linux_sh(_get_base_url()),
                 mimetype="text/plain; charset=utf-8",
                 headers={"Content-Disposition": 'attachment; filename="installa_local_signer.sh"'},
             )

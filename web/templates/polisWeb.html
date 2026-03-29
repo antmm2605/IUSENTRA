@@ -1529,6 +1529,17 @@ function _lsDesktopSupportato() {
   return ['windows', 'macos', 'linux'].includes(_lsPiattaformaClient().key);
 }
 
+function _lsAppOrigineLocale() {
+  const host = (window.location.hostname || '').toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+}
+
+function _lsNotaOrigineRemota() {
+  if (_lsAppOrigineLocale()) return '';
+  const host = window.location.hostname || 'istanza remota';
+  return `Stai usando HACS da ${host}: il Local Signer deve essere attivo sul tuo PC locale, non sul server remoto.`;
+}
+
 function _aggiornaVisibilitaDemo(mostraDemo) {
   const bannerDemo = document.getElementById('banner-demo');
   if (bannerDemo) bannerDemo.classList.toggle('d-none', !mostraDemo);
@@ -1894,6 +1905,7 @@ function _erroreConGuida(msg) {
 
 function _mostraErroreLocalSigner(msg) {
   msg = _erroreConGuida(msg);
+  const notaRemota = _lsNotaOrigineRemota();
   let panel = document.getElementById('ls-risultati-panel');
   if (!panel) {
     panel = document.createElement('div');
@@ -1907,6 +1919,7 @@ function _mostraErroreLocalSigner(msg) {
     <div class="text-danger fw-semibold mb-1">
       <i class="bi bi-x-circle me-1"></i>Errore ricerca PST
     </div>
+    ${notaRemota ? `<div class="text-muted mb-2">${notaRemota}</div>` : ''}
     <pre class="text-danger mb-2" style="white-space:pre-wrap;font-size:.8rem;font-family:inherit;background:none;border:none;padding:0">${msg.replace(/</g,'&lt;')}</pre>
     <a href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noopener"
        class="btn btn-sm btn-outline-danger me-1">

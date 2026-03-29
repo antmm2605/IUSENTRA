@@ -19,6 +19,7 @@ $starterVbs = Join-Path $targetDir "start_local_signer.vbs"
 $requirementsFile = Join-Path $targetDir "requirements_local_signer.txt"
 $pythonExe = Join-Path $venvDir "Scripts\python.exe"
 $pythonwExe = Join-Path $venvDir "Scripts\pythonw.exe"
+$defaultAllowedOrigins = "https://studio-legale-pct-production.up.railway.app"
 
 function Write-Step([string]$Message) {
     Write-Host "  $Message" -ForegroundColor Cyan
@@ -77,6 +78,7 @@ function Stop-LocalSignerProcesses {
 }
 
 function Write-LocalSignerLaunchers {
+    $allowedOrigins = $defaultAllowedOrigins
     $cmd = @'
 @echo off
 setlocal
@@ -84,6 +86,7 @@ set "DIR=%~dp0"
 set "PYW=%DIR%.venv\Scripts\pythonw.exe"
 set "PY=%DIR%local_signer.py"
 set "TARGET=%DIR%local_signer.py"
+set "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS=__ALLOWED_ORIGINS__"
 
 powershell -NoProfile -Command "try { $r = Invoke-RestMethod 'http://127.0.0.1:27272/ping' -UseBasicParsing -TimeoutSec 2; if ($r.ok) { exit 0 } } catch {}; exit 1" >nul 2>&1
 if not errorlevel 1 goto :online
@@ -102,6 +105,7 @@ timeout /t 2 >nul
 start "" "http://127.0.0.1:27272/diagnosi"
 exit /b 0
 '@
+    $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
     Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
 
     $vbs = @"

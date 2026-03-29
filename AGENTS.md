@@ -122,6 +122,16 @@ python -m pytest tests/ -v
 
 **La versione web è automaticamente sincronizzata** — `web/app.py` importa `pct.__version__` come `APP_VERSION` (riga 102) e la espone nel template `base.html` tramite `{{ app_version }}`. Non esiste una versione web separata.
 
+**Sincronizzazione obbligatoria locale / GitHub / Railway:**
+- Dopo ogni modifica completata, la copia locale deve coincidere con il branch GitHub di lavoro e con la release destinata a Railway.
+- Non lasciare mai commit solo in locale: eseguire sempre `git push` del branch di lavoro.
+- Se Railway è collegato a un branch remoto diverso dal branch locale corrente, riallineare anche quel branch remoto allo stesso commit della copia locale.
+- Considerare il lavoro concluso solo quando risultano allineati:
+  - file locali
+  - branch GitHub di lavoro
+  - branch remoto usato da Railway
+  - `railway.toml` con la stessa versione del codice locale
+
 **Schema SemVer:**
 - `MAJOR.MINOR.PATCH`
 - Patch (+0.0.1): bug fix, correzioni dati, aggiornamenti documentazione

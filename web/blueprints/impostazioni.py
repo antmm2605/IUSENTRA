@@ -141,6 +141,10 @@ def index():
                 cert_pem_path=f.get("firma_cert_pem_path", "").strip(),
                 key_pem_path=f.get("firma_key_pem_path", "").strip(),
                 key_pem_password=key_pwd if key_pwd else cfg.firma.key_pem_password,
+                # PKCS#11 (token USB — Aruba Key)
+                pkcs11_library=f.get("pkcs11_library", "").strip(),
+                pkcs11_slot=f.get("pkcs11_slot", "").strip(),
+                pkcs11_label=f.get("pkcs11_label", "").strip(),
                 # Comune
                 cf_avvocato=f.get("firma_cf_avvocato", "").strip(),
             )

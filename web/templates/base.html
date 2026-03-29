@@ -209,7 +209,7 @@
     </a>
 
     {# ---- Sezione: PCT / Telematico ---- #}
-    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
+    {% set _pct = request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa','pdp_home','pdp_ricerca','pdp_documenti','pdp_importa','pat_home','pat_ricerca','pat_documenti','pat_importa','sigit_home','sigit_ricerca','sigit_documenti','sigit_importa','tribunali','deposito_checklist','guida_firma_digitale') %}
     <button class="sb-toggle {% if _pct %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-pct" aria-expanded="{{ 'true' if _pct else 'false' }}">
       <span><i class="bi bi-send-exclamation"></i>PCT / Telematico</span>
@@ -228,6 +228,10 @@
          class="nav-link sb-link {% if request.endpoint in ('pat_home','pat_ricerca','pat_documenti','pat_importa') %}active{% endif %}">
         <i class="bi bi-building-check"></i><span class="sb-txt">PAT Amministrativo</span>
       </a>
+      <a href="{{ url_for('sigit_home') }}"
+         class="nav-link sb-link {% if request.endpoint in ('sigit_home','sigit_ricerca','sigit_documenti','sigit_importa') %}active{% endif %}">
+        <i class="bi bi-receipt-cutoff"></i><span class="sb-txt">PTT Tributario</span>
+      </a>
       <a href="{{ url_for('tribunali') }}"
          class="nav-link sb-link {% if request.endpoint == 'tribunali' %}active{% endif %}">
         <i class="bi bi-bank"></i><span class="sb-txt">Tribunali / PEC</span>
@@ -243,7 +247,7 @@
     </div>
 
     {# ---- Sezione: Studio ---- #}
-    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','notifiche','pagamenti') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','notifiche','pagamenti','preventivi') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
     <button class="sb-toggle {% if _st %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
       <span><i class="bi bi-buildings"></i>Studio</span>
@@ -253,6 +257,10 @@
       <a href="{{ url_for('fatturazione.lista') }}"
          class="nav-link sb-link {% if request.blueprint == 'fatturazione' %}active{% endif %}">
         <i class="bi bi-receipt"></i><span class="sb-txt">Fatturazione</span>
+      </a>
+      <a href="{{ url_for('preventivi.lista') }}"
+         class="nav-link sb-link {% if request.blueprint == 'preventivi' %}active{% endif %}">
+        <i class="bi bi-file-earmark-text"></i><span class="sb-txt">Preventivi</span>
       </a>
       <a href="{{ url_for('tariffario') }}"
          class="nav-link sb-link {% if request.endpoint == 'tariffario' %}active{% endif %}">

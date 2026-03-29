@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Nuovo Messaggio{% endblock %}
+{% block page_title %}Nuovo Messaggio{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+{# ── Colonna form ── #}
+<div class="col-lg-8">
+<form method="post">
+  <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+
+  {% if from_cliente %}
+  <div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Stai inviando un messaggio dalla cartella cliente.
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="fw-semibold">Torna alla cartella</a></span>
+  </div>
+  {% endif %}
+
+  {% if wa_link %}
+  <div class="alert alert-success border-0 mb-3" id="wa-link-alert">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-whatsapp fs-4 text-success flex-shrink-0 mt-1"></i>
+      <div class="flex-grow-1">
+        <div class="fw-semibold mb-1">Messaggio salvato — apri WhatsApp Web per inviarlo</div>
+        <p class="mb-2 small text-muted">
+          Twilio non è configurato. Il testo è già precompilato nel link qui sotto:
+          aprilo su mobile (avvia l'app WhatsApp) o su desktop (WhatsApp Web).
+        </p>
+        <a href="{{ wa_link }}" target="_blank" rel="noopener"
+           class="btn btn-success btn-sm">
+          <i class="bi bi-whatsapp me-1"></i>Apri WhatsApp Web
+        </a>
+        {% if from_cliente %}
+        <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+           class="btn btn-outline-secondary btn-sm ms-2">Torna alla cartella</a>
+        {% else %}
+        <a href="{{ url_for('lista_messaggi') }}"
+           class="btn btn-outline-secondary btn-sm ms-2">Vai ai messaggi</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-chat-dots me-2 text-primary"></i>Composizione messaggio
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Canale <span class="text-danger">*</span></label>
+        <select name="canale" id="canale" class="form-select" required onchange="aggiornaForm()">
+          {% for c in canali %}
+          <option value="{{ c.value }}"
+            {{ 'selected' if c.value == canale_default }}>{{ c.value }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label fw-semibold" id="lbl-destinatario">
+          Destinatario <span class="text-danger">*</span>
+        </label>
+        <input type="text" name="destinatario" id="destinatario" class="form-control" required
+               value="{{ cliente_presel.recapiti.email if (cliente_presel and canale_default == 'EMAIL') else (cliente_presel.recapiti.cellulare if cliente_presel else '') }}"
+               placeholder="email@esempio.it | +39 333 1234567">
+        <div class="form-text" id="hint-destinatario">Email per EMAIL, telefono E.164 per SMS/WhatsApp</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Cliente</label>
+        {% if cliente_presel %}
+        <input type="text" class="form-control bg-light text-muted"
+               value="{{ cliente_presel.nome_completo }}" readonly>
+        <input type="hidden" name="id_cliente" value="{{ cliente_presel.id }}">
+        {% else %}
+        <select name="id_cliente" id="sel-cliente" class="form-select" onchange="onClienteChange()">
+          <option value="">— Nessun cliente —</option>
+          {% for c in clienti %}
+          <option value="{{ c.id }}"
+                  data-email="{{ c.recapiti.email or '' }}"
+                  data-telefono="{{ c.recapiti.cellulare or c.recapiti.telefono or '' }}"
+                  {{ 'selected' if c.id == id_cliente }}>{{ c.nome_completo }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+      </div>
+
+      <div id="riga-oggetto" class="col-12">
+        <label class="form-label fw-semibold">Oggetto</label>
+        <input type="text" name="oggetto" class="form-control"
+               placeholder="Oggetto del messaggio">
+      </div>
+
+      <div class="col-12">
+        <label class="form-label fw-semibold">Testo <span class="text-danger">*</span></label>
+        <textarea name="testo" class="form-control" rows="6" required
+                  placeholder="Testo del messaggio…"></textarea>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-send me-1"></i>Invia
+  </button>
+  {% if from_cliente %}
+  <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+     class="btn btn-outline-secondary">Annulla</a>
+  {% else %}
+  <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary">Annulla</a>
+  {% endif %}
+</div>
+
+</form>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Canali disponibili
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>EMAIL</strong>: invio via SMTP configurato nelle impostazioni. Supporta oggetto e corpo HTML.</p>
+      <p class="mb-2"><strong>SMS</strong>: numero in formato E.164 (es. <code>+39 333 1234567</code>).</p>
+      <p class="mb-0"><strong>WHATSAPP</strong>:
+        {% if ha_wa_api %}
+          invio tramite API Twilio configurata.
+        {% else %}
+          <span class="text-success fw-semibold">Twilio non configurato</span> —
+          viene generato un link <strong>WhatsApp Web</strong> con il testo precompilato
+          da aprire nel browser o sull'app mobile.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
+
+<script>
+// Dati clienti per auto-fill destinatario
+const CLIENTI_MAP = {};
+{% for c in clienti %}
+CLIENTI_MAP["{{ c.id }}"] = {
+  email: "{{ c.recapiti.email or '' }}",
+  telefono: "{{ c.recapiti.cellulare or c.recapiti.telefono or '' }}"
+};
+{% endfor %}
+
+function aggiornaForm() {
+  const canale = document.getElementById('canale').value;
+  const rigaOggetto = document.getElementById('riga-oggetto');
+  rigaOggetto.style.display = canale === 'EMAIL' ? '' : 'none';
+  const lbl = document.getElementById('lbl-destinatario');
+  if (canale === 'EMAIL') {
+    lbl.innerHTML = 'Email destinatario <span class="text-danger">*</span>';
+    document.getElementById('hint-destinatario').textContent = 'Indirizzo email del destinatario';
+  } else {
+    lbl.innerHTML = 'Telefono destinatario <span class="text-danger">*</span>';
+    document.getElementById('hint-destinatario').textContent = 'Numero in formato E.164 es. +39 333 1234567';
+  }
+  // Se c'è un cliente selezionato, aggiorna il destinatario
+  const selCliente = document.getElementById('sel-cliente');
+  if (selCliente && selCliente.value) onClienteChange();
+}
+
+function onClienteChange() {
+  const selCliente = document.getElementById('sel-cliente');
+  if (!selCliente) return;
+  const cid = selCliente.value;
+  if (!cid) return;
+  const dati = CLIENTI_MAP[cid];
+  if (!dati) return;
+  const canale = document.getElementById('canale').value;
+  const dest = document.getElementById('destinatario');
+  if (canale === 'EMAIL' && dati.email) {
+    dest.value = dati.email;
+  } else if ((canale === 'SMS' || canale === 'WHATSAPP') && dati.telefono) {
+    dest.value = dati.telefono;
+  }
+}
+
+aggiornaForm();
+</script>
+{% endblock %}

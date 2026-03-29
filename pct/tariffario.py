@@ -1,83 +1,85 @@
 """
-pct/tariffario.py — Tariffario forense ex DM 55/2014 e s.m.i.
+pct/tariffario.py - Calcolo compensi forensi DM 55/2014 aggiornato al DM 147/2022.
 
-Implementa le tabelle degli onorari per le prestazioni legali secondo
-il Decreto Ministeriale 10 marzo 2014, n. 55 (aggiornato dal DM 37/2018).
-
-Struttura:
-  - Scaglioni di valore della controversia
-  - Fasi: STUDIO, INTRODUTTIVA, ISTRUTTORIA, DECISIONALE, ESECUTIVA
-  - Per ognuna: importo minimo, base, massimo
-  - Grado di giudizio: GIUDICE_DI_PACE, TRIBUNALE, CORTE_APPELLO, CASSAZIONE
-  - Materie: CIVILE_COGN, LAVORO, PREVIDENZA, ESEC_IMMO, ESEC_MOB, VOLONTARIA, PENALE
+I valori tabellari ufficiali vengono letti dallo snapshot interno
+`pct/data/tariffario_dm147_2022.json`, generato dal riferimento QuickOrganizer
+`DM_147_2022.mdb`. Dove l'attuale UI di HACS non distingue ancora tutte le
+tabelle ministeriali, il modulo mantiene un fallback esplicito e lo segnala
+nelle note del risultato.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from functools import lru_cache
+from pathlib import Path
+from typing import Dict, List, Tuple
 
-
-# ================================================================ Enumerazioni
 
 class Materia(str, Enum):
-    CIVILE_COGN  = "Civile di cognizione"
-    LAVORO       = "Controversie di lavoro"
-    PREVIDENZA   = "Previdenza e assistenza"
-    ESEC_IMMO    = "Esecuzione immobiliare"
-    ESEC_MOB     = "Esecuzione mobiliare"
-    VOLONTARIA   = "Volontaria giurisdizione"
-    PENALE       = "Penale"
-    STRAGIUD     = "Stragiudiziale / Consulenza"
+    CIVILE_COGN = "Civile di cognizione"
+    LAVORO = "Controversie di lavoro"
+    PREVIDENZA = "Previdenza e assistenza"
+    ESEC_IMMO = "Esecuzione immobiliare"
+    ESEC_MOB = "Esecuzione mobiliare"
+    VOLONTARIA = "Volontaria giurisdizione"
+    PENALE = "Penale"
+    AMMINISTRATIVO = "Amministrativo / TAR-CdS"
+    TRIBUTARIO = "Tributario / CGT"
+    STRAGIUD = "Stragiudiziale / Consulenza"
 
 
 class Grado(str, Enum):
     GIUDICE_DI_PACE = "Giudice di Pace"
-    TRIBUNALE       = "Tribunale"
-    CORTE_APPELLO   = "Corte d'Appello"
-    CASSAZIONE      = "Corte di Cassazione"
+    TRIBUNALE = "Tribunale"
+    CORTE_APPELLO = "Corte d'Appello"
+    CASSAZIONE = "Corte di Cassazione"
 
 
 class Fase(str, Enum):
-    STUDIO       = "Studio"
+    STUDIO = "Studio"
     INTRODUTTIVA = "Introduttiva"
-    ISTRUTTORIA  = "Istruttoria / Istruzione"
-    DECISIONALE  = "Decisionale"
-    ESECUTIVA    = "Esecutiva"
+    ISTRUTTORIA = "Istruttoria / Istruzione"
+    DECISIONALE = "Decisionale"
+    ESECUTIVA = "Esecutiva"
 
-
-# ================================================================ Strutture dati
 
 @dataclass
 class ScaglioneFase:
-    """Importi (min, base, max) per una singola fase di uno scaglione."""
-    minimo: float
-    base:   float
-    massimo: float
+    base: float
+
+    @property
+    def minimo(self) -> float:
+        return round(self.base * 0.50, 2)
+
+    @property
+    def massimo(self) -> float:
+        return round(self.base * 1.50, 2)
 
 
 @dataclass
 class Scaglione:
-    """Scaglione di valore con importi per le cinque fasi."""
-    valore_da:   float          # incluso (0 = senza limite inferiore)
-    valore_a:    float          # incluso (float('inf') = senza limite)
-    label:       str
-    fasi: Dict[Fase, ScaglioneFase] = field(default_factory=dict)
+    valore_da: float
+    valore_a: float
+    label: str
+    fasi: Dict[str, ScaglioneFase] = field(default_factory=dict)
 
 
 @dataclass
 class RisultatoCalcolo:
-    """Risultato del calcolo del compenso."""
     materia: str
     grado: str
     valore_controversia: float
     scaglione: str
     fasi_selezionate: List[str]
-    # Per ogni fase: (min, base, max)
     dettaglio: Dict[str, Tuple[float, float, float]]
     totale_minimo: float
     totale_base: float
     totale_massimo: float
+    spese_generali: float = 0.0
+    bonus_telematico: float = 0.0
+    totale_con_spese: float = 0.0
     note: str = ""
 
     def to_dict(self) -> dict:
@@ -91,177 +93,343 @@ class RisultatoCalcolo:
             "totale_minimo": self.totale_minimo,
             "totale_base": self.totale_base,
             "totale_massimo": self.totale_massimo,
+            "spese_generali": self.spese_generali,
+            "bonus_telematico": self.bonus_telematico,
+            "totale_con_spese": self.totale_con_spese,
             "note": self.note,
         }
 
 
-# ================================================================ Tabelle DM 55/2014
-# Fonte: Allegato n. 2 — D.M. 10 marzo 2014, n. 55 (mod. D.M. 37/2018)
+_SNAPSHOT_PATH = Path(__file__).resolve().parent / "data" / "tariffario_dm147_2022.json"
+_LABELS_3 = [
+    (0, 1100, "Fino a EUR 1.100"),
+    (1100, 5200, "Da EUR 1.100 a EUR 5.200"),
+    (5200, float("inf"), "Da EUR 5.200 a EUR 26.000 (limite GdP)"),
+]
+_LABELS_7 = [
+    (0, 1100, "Fino a EUR 1.100 (o indeterminabile)"),
+    (1100, 5200, "Da EUR 1.100 a EUR 5.200"),
+    (5200, 26000, "Da EUR 5.200 a EUR 26.000"),
+    (26000, 52000, "Da EUR 26.000 a EUR 52.000"),
+    (52000, 260000, "Da EUR 52.000 a EUR 260.000"),
+    (260000, 520000, "Da EUR 260.000 a EUR 520.000"),
+    (520000, float("inf"), "Oltre EUR 520.000"),
+]
+_PHASE_LABELS = {
+    "Studio": Fase.STUDIO.value,
+    "Introduttiva": Fase.INTRODUTTIVA.value,
+    "Istruttoria": Fase.ISTRUTTORIA.value,
+    "Decisoria": Fase.DECISIONALE.value,
+    "Cautelare": "Cautelare",
+    "Unica": "Compenso unico",
+}
+_GRADO_COEFF_APPROSSIMATI = {
+    Grado.GIUDICE_DI_PACE: 1.0,
+    Grado.TRIBUNALE: 1.0,
+    Grado.CORTE_APPELLO: 1.30,
+    Grado.CASSAZIONE: 1.60,
+}
 
-def _scaglioni_civile_tribunale() -> List[Scaglione]:
-    """Tabella per cause civili di cognizione — Tribunale (art. 4 DM 55/2014)."""
-    F = Fase
-    S = ScaglioneFase
+
+def _sc(valore: float) -> ScaglioneFase:
+    return ScaglioneFase(base=float(valore))
+
+
+@lru_cache(maxsize=1)
+def _carica_snapshot() -> dict[str, dict[str, list[float | None]]]:
+    try:
+        raw = json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8-sig"))
+        tabelle = raw.get("tabelle", {}) if isinstance(raw, dict) else {}
+        return tabelle if isinstance(tabelle, dict) else {}
+    except Exception:
+        return {}
+
+
+@lru_cache(maxsize=64)
+def _tabella_snapshot(codice: str) -> list[Scaglione]:
+    raw = _carica_snapshot().get(codice, {})
+    if not raw:
+        return []
+    max_count = max(
+        (sum(1 for value in valori if value is not None) for valori in raw.values()),
+        default=0,
+    )
+    labels = _LABELS_3 if max_count <= 3 else _LABELS_7
+    scaglioni: list[Scaglione] = []
+    for idx, (valore_da, valore_a, label) in enumerate(labels):
+        fasi: Dict[str, ScaglioneFase] = {}
+        for fase_raw, valori in raw.items():
+            if idx >= len(valori):
+                continue
+            valore = valori[idx]
+            if valore is None:
+                continue
+            fasi[_PHASE_LABELS.get(fase_raw, fase_raw)] = _sc(float(valore))
+        if fasi:
+            scaglioni.append(Scaglione(valore_da, valore_a, label, fasi))
+    return scaglioni
+
+
+def _fallback_gdp() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
-            F.STUDIO:       S(200,  350,   525),
-            F.INTRODUTTIVA: S(200,  350,   525),
-            F.ISTRUTTORIA:  S(275,  500,   750),
-            F.DECISIONALE:  S(275,  500,   750),
-            F.ESECUTIVA:    S(200,  350,   525),
+        Scaglione(0, 1100, "Fino a EUR 1.100", {
+            Fase.STUDIO.value: _sc(68),
+            Fase.INTRODUTTIVA.value: _sc(68),
+            Fase.ISTRUTTORIA.value: _sc(68),
+            Fase.DECISIONALE.value: _sc(142),
         }),
-        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {
-            F.STUDIO:       S(300,  550,   825),
-            F.INTRODUTTIVA: S(300,  550,   825),
-            F.ISTRUTTORIA:  S(450,  800,  1200),
-            F.DECISIONALE:  S(450,  800,  1200),
-            F.ESECUTIVA:    S(300,  550,   825),
+        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+            Fase.STUDIO.value: _sc(236),
+            Fase.INTRODUTTIVA.value: _sc(252),
+            Fase.ISTRUTTORIA.value: _sc(352),
+            Fase.DECISIONALE.value: _sc(425),
         }),
-        Scaglione(5200, 26000, "Da € 5.200 a € 26.000", {
-            F.STUDIO:       S(700,  1300,  1950),
-            F.INTRODUTTIVA: S(700,  1300,  1950),
-            F.ISTRUTTORIA:  S(1000, 1800,  2700),
-            F.DECISIONALE:  S(1000, 1800,  2700),
-            F.ESECUTIVA:    S(700,  1300,  1950),
-        }),
-        Scaglione(26000, 52000, "Da € 26.000 a € 52.000", {
-            F.STUDIO:       S(1000, 2000,  3000),
-            F.INTRODUTTIVA: S(1000, 2000,  3000),
-            F.ISTRUTTORIA:  S(1500, 3000,  4500),
-            F.DECISIONALE:  S(1500, 3000,  4500),
-            F.ESECUTIVA:    S(1000, 2000,  3000),
-        }),
-        Scaglione(52000, 260000, "Da € 52.000 a € 260.000", {
-            F.STUDIO:       S(2000, 4000,  6000),
-            F.INTRODUTTIVA: S(2000, 4000,  6000),
-            F.ISTRUTTORIA:  S(3000, 5500,  8250),
-            F.DECISIONALE:  S(3000, 5500,  8250),
-            F.ESECUTIVA:    S(2000, 4000,  6000),
-        }),
-        Scaglione(260000, 520000, "Da € 260.000 a € 520.000", {
-            F.STUDIO:       S(4000, 7000,  10500),
-            F.INTRODUTTIVA: S(4000, 7000,  10500),
-            F.ISTRUTTORIA:  S(5000, 9000,  13500),
-            F.DECISIONALE:  S(5000, 9000,  13500),
-            F.ESECUTIVA:    S(4000, 7000,  10500),
-        }),
-        Scaglione(520000, float("inf"), "Oltre € 520.000", {
-            F.STUDIO:       S(8000,  14000, 21000),
-            F.INTRODUTTIVA: S(8000,  14000, 21000),
-            F.ISTRUTTORIA:  S(9000,  16000, 24000),
-            F.DECISIONALE:  S(9000,  16000, 24000),
-            F.ESECUTIVA:    S(8000,  14000, 21000),
+        Scaglione(5200, float("inf"), "Da EUR 5.200 a EUR 26.000 (limite GdP)", {
+            Fase.STUDIO.value: _sc(425),
+            Fase.INTRODUTTIVA.value: _sc(352),
+            Fase.ISTRUTTORIA.value: _sc(567),
+            Fase.DECISIONALE.value: _sc(746),
         }),
     ]
 
 
-def _scaglioni_lavoro() -> List[Scaglione]:
-    """Controversie di lavoro — coefficienti ridotti (art. 5 DM 55/2014)."""
-    # Valori approssimativi: ~80% del civile
-    F = Fase
-    S = ScaglioneFase
+def _fallback_civile() -> list[Scaglione]:
     return [
-        Scaglione(0, 1100, "Fino a € 1.100 (o indeterminabile)", {
-            F.STUDIO:       S(165,  280,   420),
-            F.INTRODUTTIVA: S(165,  280,   420),
-            F.ISTRUTTORIA:  S(220,  400,   600),
-            F.DECISIONALE:  S(220,  400,   600),
-            F.ESECUTIVA:    S(165,  280,   420),
+        Scaglione(0, 1100, "Fino a EUR 1.100 (o indeterminabile)", {
+            Fase.STUDIO.value: _sc(131),
+            Fase.INTRODUTTIVA.value: _sc(196),
+            Fase.ISTRUTTORIA.value: _sc(295),
+            Fase.DECISIONALE.value: _sc(413),
         }),
-        Scaglione(1100, 5200, "Da € 1.100 a € 5.200", {
-            F.STUDIO:       S(240,  440,   660),
-            F.INTRODUTTIVA: S(240,  440,   660),
-            F.ISTRUTTORIA:  S(360,  640,   960),
-            F.DECISIONALE:  S(360,  640,   960),
-            F.ESECUTIVA:    S(240,  440,   660),
+        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+            Fase.STUDIO.value: _sc(425),
+            Fase.INTRODUTTIVA.value: _sc(637),
+            Fase.ISTRUTTORIA.value: _sc(1063),
+            Fase.DECISIONALE.value: _sc(1276),
         }),
-        Scaglione(5200, 26000, "Da € 5.200 a € 26.000", {
-            F.STUDIO:       S(560,  1040,  1560),
-            F.INTRODUTTIVA: S(560,  1040,  1560),
-            F.ISTRUTTORIA:  S(800,  1440,  2160),
-            F.DECISIONALE:  S(800,  1440,  2160),
-            F.ESECUTIVA:    S(560,  1040,  1560),
+        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {
+            Fase.STUDIO.value: _sc(919),
+            Fase.INTRODUTTIVA.value: _sc(1378),
+            Fase.ISTRUTTORIA.value: _sc(1837),
+            Fase.DECISIONALE.value: _sc(2756),
         }),
-        Scaglione(26000, 52000, "Da € 26.000 a € 52.000", {
-            F.STUDIO:       S(800,  1600,  2400),
-            F.INTRODUTTIVA: S(800,  1600,  2400),
-            F.ISTRUTTORIA:  S(1200, 2400,  3600),
-            F.DECISIONALE:  S(1200, 2400,  3600),
-            F.ESECUTIVA:    S(800,  1600,  2400),
+        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {
+            Fase.STUDIO.value: _sc(1701),
+            Fase.INTRODUTTIVA.value: _sc(2551),
+            Fase.ISTRUTTORIA.value: _sc(3826),
+            Fase.DECISIONALE.value: _sc(5103),
         }),
-        Scaglione(52000, float("inf"), "Oltre € 52.000", {
-            F.STUDIO:       S(1600, 3200,  4800),
-            F.INTRODUTTIVA: S(1600, 3200,  4800),
-            F.ISTRUTTORIA:  S(2400, 4400,  6600),
-            F.DECISIONALE:  S(2400, 4400,  6600),
-            F.ESECUTIVA:    S(1600, 3200,  4800),
+        Scaglione(52000, 260000, "Da EUR 52.000 a EUR 260.000", {
+            Fase.STUDIO.value: _sc(2835),
+            Fase.INTRODUTTIVA.value: _sc(4252),
+            Fase.ISTRUTTORIA.value: _sc(7088),
+            Fase.DECISIONALE.value: _sc(8505),
+        }),
+        Scaglione(260000, float("inf"), "Oltre EUR 260.000", {
+            Fase.STUDIO.value: _sc(5670),
+            Fase.INTRODUTTIVA.value: _sc(8505),
+            Fase.ISTRUTTORIA.value: _sc(14175),
+            Fase.DECISIONALE.value: _sc(17010),
         }),
     ]
 
 
-def _scaglioni_penale() -> List[Scaglione]:
-    """Procedimenti penali — Tabella B DM 55/2014 (semplificata)."""
-    # Il penale ha fasi diverse: indagini, udienza preliminare, dibattimento, impugnazione
-    # Qui usiamo la struttura a 5 fasi per uniformità
-    F = Fase
-    S = ScaglioneFase
+def _fallback_lavoro() -> list[Scaglione]:
+    return [
+        Scaglione(0, 1100, "Fino a EUR 1.100 (o indeterminabile)", {
+            Fase.STUDIO.value: _sc(105),
+            Fase.INTRODUTTIVA.value: _sc(157),
+            Fase.ISTRUTTORIA.value: _sc(236),
+            Fase.DECISIONALE.value: _sc(331),
+        }),
+        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+            Fase.STUDIO.value: _sc(340),
+            Fase.INTRODUTTIVA.value: _sc(510),
+            Fase.ISTRUTTORIA.value: _sc(851),
+            Fase.DECISIONALE.value: _sc(1021),
+        }),
+        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {
+            Fase.STUDIO.value: _sc(735),
+            Fase.INTRODUTTIVA.value: _sc(1102),
+            Fase.ISTRUTTORIA.value: _sc(1470),
+            Fase.DECISIONALE.value: _sc(2205),
+        }),
+        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {
+            Fase.STUDIO.value: _sc(1361),
+            Fase.INTRODUTTIVA.value: _sc(2041),
+            Fase.ISTRUTTORIA.value: _sc(3061),
+            Fase.DECISIONALE.value: _sc(4082),
+        }),
+        Scaglione(52000, float("inf"), "Oltre EUR 52.000", {
+            Fase.STUDIO.value: _sc(2268),
+            Fase.INTRODUTTIVA.value: _sc(3402),
+            Fase.ISTRUTTORIA.value: _sc(5670),
+            Fase.DECISIONALE.value: _sc(6804),
+        }),
+    ]
+
+
+def _fallback_penale() -> list[Scaglione]:
     return [
         Scaglione(0, float("inf"), "Penale (valore non applicabile)", {
-            F.STUDIO:       S(350,  600,   900),      # Indagini preliminari
-            F.INTRODUTTIVA: S(350,  600,   900),      # Udienza preliminare / GIP
-            F.ISTRUTTORIA:  S(500,  900,  1350),      # Dibattimento
-            F.DECISIONALE:  S(500,  900,  1350),      # Sentenza / Discussione
-            F.ESECUTIVA:    S(350,  600,   900),      # Esecuzione / Impugnazione
+            Fase.STUDIO.value: _sc(630),
+            Fase.INTRODUTTIVA.value: _sc(630),
+            Fase.ISTRUTTORIA.value: _sc(945),
+            Fase.DECISIONALE.value: _sc(945),
+            Fase.ESECUTIVA.value: _sc(630),
         }),
     ]
 
 
-# Coefficienti per grado di giudizio rispetto al Tribunale
-_COEFF_GRADO = {
-    Grado.GIUDICE_DI_PACE: 0.50,
-    Grado.TRIBUNALE:       1.00,
-    Grado.CORTE_APPELLO:   1.30,
-    Grado.CASSAZIONE:      1.60,
-}
+def _fallback_amministrativo() -> list[Scaglione]:
+    return [
+        Scaglione(0, 1100, "Fino a EUR 1.100 (o indeterminabile)", {
+            Fase.STUDIO.value: _sc(140),
+            Fase.INTRODUTTIVA.value: _sc(210),
+            Fase.ISTRUTTORIA.value: _sc(315),
+            Fase.DECISIONALE.value: _sc(441),
+        }),
+        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {
+            Fase.STUDIO.value: _sc(453),
+            Fase.INTRODUTTIVA.value: _sc(680),
+            Fase.ISTRUTTORIA.value: _sc(1134),
+            Fase.DECISIONALE.value: _sc(1361),
+        }),
+        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {
+            Fase.STUDIO.value: _sc(980),
+            Fase.INTRODUTTIVA.value: _sc(1470),
+            Fase.ISTRUTTORIA.value: _sc(1960),
+            Fase.DECISIONALE.value: _sc(2940),
+        }),
+        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {
+            Fase.STUDIO.value: _sc(1815),
+            Fase.INTRODUTTIVA.value: _sc(2722),
+            Fase.ISTRUTTORIA.value: _sc(4083),
+            Fase.DECISIONALE.value: _sc(5445),
+        }),
+        Scaglione(52000, 260000, "Da EUR 52.000 a EUR 260.000", {
+            Fase.STUDIO.value: _sc(3024),
+            Fase.INTRODUTTIVA.value: _sc(4536),
+            Fase.ISTRUTTORIA.value: _sc(7560),
+            Fase.DECISIONALE.value: _sc(9072),
+        }),
+        Scaglione(260000, float("inf"), "Oltre EUR 260.000", {
+            Fase.STUDIO.value: _sc(6048),
+            Fase.INTRODUTTIVA.value: _sc(9072),
+            Fase.ISTRUTTORIA.value: _sc(15120),
+            Fase.DECISIONALE.value: _sc(18144),
+        }),
+    ]
 
-# Tabelle per materia
-_TABELLE: Dict[Materia, List[Scaglione]] = {
-    Materia.CIVILE_COGN:  _scaglioni_civile_tribunale(),
-    Materia.LAVORO:       _scaglioni_lavoro(),
-    Materia.PREVIDENZA:   _scaglioni_lavoro(),      # stessa tabella lavoro
-    Materia.ESEC_IMMO:    _scaglioni_civile_tribunale(),
-    Materia.ESEC_MOB:     _scaglioni_civile_tribunale(),
-    Materia.VOLONTARIA:   _scaglioni_civile_tribunale(),
-    Materia.PENALE:       _scaglioni_penale(),
-    Materia.STRAGIUD:     _scaglioni_civile_tribunale(),
-}
+
+def _fallback_tributario() -> list[Scaglione]:
+    return _fallback_civile()
 
 
-# ================================================================ Calcolatore
+def _fallback_stragiudiziale() -> list[Scaglione]:
+    return [
+        Scaglione(0, 1100, "Fino a EUR 1.100", {"Compenso unico": _sc(216)}),
+        Scaglione(1100, 5200, "Da EUR 1.100 a EUR 5.200", {"Compenso unico": _sc(756)}),
+        Scaglione(5200, 26000, "Da EUR 5.200 a EUR 26.000", {"Compenso unico": _sc(1836)}),
+        Scaglione(26000, 52000, "Da EUR 26.000 a EUR 52.000", {"Compenso unico": _sc(3402)}),
+        Scaglione(52000, 260000, "Da EUR 52.000 a EUR 260.000", {"Compenso unico": _sc(5940)}),
+        Scaglione(260000, 520000, "Da EUR 260.000 a EUR 520.000", {"Compenso unico": _sc(11340)}),
+        Scaglione(520000, float("inf"), "Oltre EUR 520.000", {"Compenso unico": _sc(0)}),
+    ]
+
+
+def _exact_or_fallback(codice: str, fallback_fn) -> tuple[list[Scaglione], bool]:
+    exact = _tabella_snapshot(codice)
+    if exact:
+        return exact, True
+    return fallback_fn(), False
+
+
+def _tabella_per_calcolo(
+    materia: Materia,
+    grado: Grado,
+) -> tuple[list[Scaglione], float, str, bool, list[str]]:
+    note: list[str] = []
+
+    if grado == Grado.GIUDICE_DI_PACE:
+        tabella, exact = _exact_or_fallback("A1", _fallback_gdp)
+        note.append("Tabella 1 (Giudice di Pace).")
+        return tabella, 1.0, "A1", exact, note
+
+    if materia == Materia.PENALE:
+        note.append("Penale: HACS mantiene una tabella sintetica per assenza di scaglioni di valore nella UI attuale.")
+        return _fallback_penale(), 1.0, "PENALE", False, note
+
+    if materia == Materia.AMMINISTRATIVO:
+        codice = "A21" if grado == Grado.TRIBUNALE else "A22"
+        tabella, exact = _exact_or_fallback(codice, _fallback_amministrativo)
+        note.append(f"Tabella {codice[1:]} per giustizia amministrativa.")
+        return tabella, 1.0, codice, exact, note
+
+    if materia == Materia.TRIBUTARIO:
+        codice = "A23" if grado == Grado.TRIBUNALE else "A24"
+        tabella, exact = _exact_or_fallback(codice, _fallback_tributario)
+        note.append(f"Tabella {codice[1:]} per giustizia tributaria.")
+        return tabella, 1.0, codice, exact, note
+
+    if materia == Materia.STRAGIUD:
+        tabella, exact = _exact_or_fallback("A25", _fallback_stragiudiziale)
+        note.append("Tabella 25 per prestazioni stragiudiziali.")
+        return tabella, 1.0, "A25", exact, note
+
+    if materia == Materia.LAVORO:
+        tabella, exact = _exact_or_fallback("A3", _fallback_lavoro)
+        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI[grado]
+        if coeff != 1.0:
+            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} su tabella lavoro di primo grado.")
+        else:
+            note.append("Tabella 3 per controversie di lavoro.")
+        return tabella, coeff, "A3", exact and coeff == 1.0, note
+
+    if materia == Materia.PREVIDENZA:
+        tabella, exact = _exact_or_fallback("A4", _fallback_lavoro)
+        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI[grado]
+        if coeff != 1.0:
+            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} su tabella previdenza di primo grado.")
+        else:
+            note.append("Tabella 4 per previdenza e assistenza.")
+        return tabella, coeff, "A4", exact and coeff == 1.0, note
+
+    civile = {Materia.CIVILE_COGN, Materia.ESEC_IMMO, Materia.ESEC_MOB, Materia.VOLONTARIA}
+    if materia in civile:
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI[grado]
+        if materia == Materia.CIVILE_COGN and coeff == 1.0:
+            note.append("Tabella 2 per giudizi civili ordinari di primo grado.")
+            return tabella, coeff, "A2", exact, note
+        if materia == Materia.CIVILE_COGN:
+            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} applicato alla tabella civile di primo grado.")
+        else:
+            note.append(f"Materia {materia.value}: la UI HACS la ricondduce ancora al profilo civile ordinario.")
+            if coeff != 1.0:
+                note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f}.")
+        return tabella, coeff, "A2", False, note
+
+    tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+    return tabella, 1.0, "A2", exact, note
+
 
 def calcola_compenso(
     materia: Materia,
     grado: Grado,
     valore: float,
     fasi: List[Fase],
+    bonus_telematico: bool = False,
+    includi_spese_generali: bool = True,
 ) -> RisultatoCalcolo:
-    """
-    Calcola il compenso secondo DM 55/2014.
+    tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado)
 
-    Args:
-        materia:  Tipo di causa/attività.
-        grado:    Grado di giudizio.
-        valore:   Valore della controversia in euro (0 = indeterminabile).
-        fasi:     Elenco delle fasi da considerare nel calcolo.
+    if materia == Materia.STRAGIUD:
+        fasi_richieste = ["Compenso unico"]
+    else:
+        fasi_richieste = [fase.value for fase in fasi]
 
-    Returns:
-        RisultatoCalcolo con importi minimi, base e massimi.
-    """
-    tabella = _TABELLE.get(materia, _scaglioni_civile_tribunale())
-    coeff = _COEFF_GRADO.get(grado, 1.0)
-
-    # Trova scaglione
-    sc = tabella[0]
+    sc = tabella[-1]
     for scaglione in tabella:
         if valore <= scaglione.valore_a:
             sc = scaglione
@@ -269,38 +437,58 @@ def calcola_compenso(
 
     dettaglio: Dict[str, Tuple[float, float, float]] = {}
     tot_min = tot_base = tot_max = 0.0
+    fasi_mancanti: list[str] = []
 
-    for fase in fasi:
-        sf = sc.fasi.get(fase)
-        if not sf:
+    for fase in fasi_richieste:
+        fase_data = sc.fasi.get(fase)
+        if not fase_data:
+            fasi_mancanti.append(fase)
             continue
-        vmin  = round(sf.minimo  * coeff, 2)
-        vbase = round(sf.base    * coeff, 2)
-        vmax  = round(sf.massimo * coeff, 2)
-        dettaglio[fase.value] = (vmin, vbase, vmax)
-        tot_min  += vmin
+        vmin = round(fase_data.minimo * coeff, 2)
+        vbase = round(fase_data.base * coeff, 2)
+        vmax = round(fase_data.massimo * coeff, 2)
+        dettaglio[fase] = (vmin, vbase, vmax)
+        tot_min += vmin
         tot_base += vbase
-        tot_max  += vmax
+        tot_max += vmax
 
-    note = ""
+    bonus_tel_importo = round(tot_base * 0.30, 2) if bonus_telematico else 0.0
+    if bonus_telematico:
+        tot_base = round(tot_base + bonus_tel_importo, 2)
+
+    spese_gen = round(tot_base * 0.15, 2) if includi_spese_generali else 0.0
+    totale_con_spese = round(tot_base + spese_gen, 2)
+
+    if fasi_mancanti:
+        note_parts.append("Fasi non presenti nella tabella selezionata: " + ", ".join(fasi_mancanti) + ".")
+    if bonus_telematico:
+        note_parts.append("Bonus telematico +30% applicato sul compenso base.")
     if materia == Materia.PENALE:
-        note = ("Valori indicativi. Il penale non ha scaglioni di valore; "
-                "adeguare alle specificità del caso concreto.")
-    elif grado != Grado.TRIBUNALE:
-        note = (f"Valori calcolati applicando il coefficiente {coeff:.2f} "
-                f"per il grado '{grado.value}' rispetto alla tabella Tribunale.")
+        note_parts.append("Valore di controversia non applicato al penale.")
+    if materia == Materia.STRAGIUD:
+        note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
+    if esatto:
+        note_parts.append(
+            f"Valori tabellari ufficiali letti dal riferimento DM 147/2022 (snapshot QuickOrganizer, tabella {tabella_codice[1:] if tabella_codice.startswith('A') else tabella_codice})."
+        )
+    else:
+        note_parts.append("Valori non completamente distinguibili con l'attuale UI HACS: applicata ricostruzione esplicita e tracciata nelle note.")
+    note_parts.append("DM 147/2022: variazione +/-50% tassativa.")
 
     return RisultatoCalcolo(
         materia=materia.value,
         grado=grado.value,
         valore_controversia=valore,
         scaglione=sc.label,
-        fasi_selezionate=[f.value for f in fasi],
+        fasi_selezionate=list(dettaglio.keys()),
         dettaglio=dettaglio,
         totale_minimo=round(tot_min, 2),
         totale_base=round(tot_base, 2),
         totale_massimo=round(tot_max, 2),
-        note=note,
+        spese_generali=spese_gen,
+        bonus_telematico=bonus_tel_importo,
+        totale_con_spese=totale_con_spese,
+        note=" ".join(note_parts),
     )
 
 
@@ -313,4 +501,10 @@ def tutti_i_gradi() -> List[Grado]:
 
 
 def tutte_le_fasi() -> List[Fase]:
-    return list(Fase)
+    return [
+        Fase.STUDIO,
+        Fase.INTRODUTTIVA,
+        Fase.ISTRUTTORIA,
+        Fase.DECISIONALE,
+        Fase.ESECUTIVA,
+    ]

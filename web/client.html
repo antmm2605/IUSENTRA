@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block pct_modulo %}clienti{% endblock %}
+{% block title %}Clienti — Studio Legale PCT{% endblock %}
+{% block page_title %}Anagrafica Clienti{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-people-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Anagrafica Clienti</h1>
+    <p class="ds-ph-sub">Persone fisiche e giuridiche assistite dallo studio</p>
+  </div>
+  <div class="ds-ph-actions">
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-outline dropdown-toggle" data-bs-toggle="dropdown" title="Esporta">
+        <i class="bi bi-download"></i><span class="d-none d-sm-inline">Esporta</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_clienti_pdf') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}">
+            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF lista
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_clienti_csv') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}">
+            <i class="bi bi-filetype-csv me-2 text-success"></i>CSV
+          </a>
+        </li>
+      </ul>
+    </div>
+    <a href="{{ url_for('nuovo_cliente') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-person-plus-fill"></i><span class="d-none d-sm-inline">Nuovo cliente</span>
+    </a>
+  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-person-check text-success"></i>
+    <span class="num">{{ stats.per_stato.ATTIVO }}</span> attivi
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-file-earmark-text text-primary"></i>
+    <span class="num">{{ stats.con_procedimenti_attivi }}</span> con procedimenti
+  </span>
+  {% if stats.documenti_scaduti %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <span class="num">{{ stats.documenti_scaduti }}</span> doc. scaduti
+  </span>
+  {% endif %}
+</div>
+
+{# ── Barra ricerca + filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca per nome, CF, P.IVA, email, telefono…"
+         value="{{ q }}" autocomplete="off">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:160px">
+    <option value="">Tutti i tipi</option>
+    {% for t in tipi %}
+    <option value="{{ t.value }}" {{ 'selected' if tipo_filtro == t.value }}>
+      {{ t.value.replace('_',' ') }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm" style="max-width:160px">
+    <option value="">Tutti gli stati</option>
+    {% for s in stati %}
+    <option value="{{ s.value }}" {{ 'selected' if stato_filtro == s.value }}>
+      {{ s.value }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
+  {% if q or tipo_filtro or stato_filtro %}
+  <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Tabella clienti ── #}
+{% if clienti %}
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-muted small">
+      {{ clienti|length }} client{% if clienti|length != 1 %}i{% else %}e{% endif %}
+    </span>
+    <select id="page-size-clienti" class="form-select form-select-sm" style="width:auto">
+      <option value="25">25 per pagina</option>
+      <option value="50">50 per pagina</option>
+      <option value="100">100 per pagina</option>
+      <option value="0">Tutti</option>
+    </select>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-clienti" data-paginate="page-size-clienti">
+        <thead class="table-light">
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>CF / P.IVA</th>
+            <th>Contatti</th>
+            <th>Avv. referente</th>
+            <th>Procedimenti</th>
+            <th>Stato</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clienti %}
+          {% set sc = {'ATTIVO':'success','INATTIVO':'secondary','POTENZIALE':'warning','ARCHIVIATO':'dark'} %}
+          <tr data-swipe-delete="1" title="{{ c.nome_completo }}">
+            <td data-label="Cliente">
+              <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
+                 class="fw-semibold text-decoration-none text-dark">
+                {{ c.nome_completo }}
+              </a>
+              {% if c.tipo == TipoCliente.PERSONA_FISICA and c.eta %}
+                <span class="text-muted small ms-1">({{ c.eta }} anni)</span>
+              {% endif %}
+              {% if c.documento.scaduto %}
+                <i class="bi bi-exclamation-triangle-fill text-warning ms-1"
+                   title="Documento scaduto"></i>
+              {% endif %}
+            </td>
+            <td data-label="Tipo">
+              {% if c.tipo == TipoCliente.PERSONA_FISICA %}
+                <span class="badge bg-info-subtle text-info-emphasis rounded-pill">
+                  <i class="bi bi-person me-1"></i>Persona fisica
+                </span>
+              {% else %}
+                <span class="badge rounded-pill"
+                      style="background:#ede7f6;color:#4a148c">
+                  <i class="bi bi-building me-1"></i>{{ c.forma_giuridica or 'Società' }}
+                </span>
+              {% endif %}
+            </td>
+            <td data-label="CF / P.IVA" class="font-monospace small">
+              {{ c.codice_fiscale or c.partita_iva or '—' }}
+            </td>
+            <td data-label="Contatti" class="small">
+              {% if c.recapiti.cellulare %}
+                <div><i class="bi bi-phone me-1 text-muted"></i>{{ c.recapiti.cellulare }}</div>
+              {% elif c.recapiti.telefono %}
+                <div><i class="bi bi-telephone me-1 text-muted"></i>{{ c.recapiti.telefono }}</div>
+              {% endif %}
+              {% if c.recapiti.email %}
+                <div><i class="bi bi-envelope me-1 text-muted"></i>
+                  <a href="mailto:{{ c.recapiti.email }}" class="text-muted">{{ c.recapiti.email }}</a>
+                </div>
+              {% endif %}
+            </td>
+            <td data-label="Avv." class="small" data-mob-hide>{{ c.avvocato_referente or '—' }}</td>
+            <td data-label="Pratiche" class="text-center">
+              {% set n_proc = c.procedimenti_attivi|length %}
+              {% if n_proc %}
+                <span class="badge bg-primary rounded-pill">{{ n_proc }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td data-label="Stato">
+              <span class="badge bg-{{ sc[c.stato.value] }}">{{ c.stato.value }}</span>
+            </td>
+            <td data-label="" class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('faldone_cliente', id_cliente=c.id) }}"
+                   class="btn btn-warning" title="Faldone digitale">
+                  <i class="bi bi-folder2-open"></i>
+                </a>
+                <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"
+                   class="btn btn-primary" title="Apri cartella">
+                  <i class="bi bi-folders"></i>
+                </a>
+                <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
+                   class="btn btn-outline-secondary" title="Dettaglio">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('modifica_cliente', id_cliente=c.id) }}"
+                   class="btn btn-outline-primary" title="Modifica">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-people ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessun cliente trovato</div>
+  <div class="ds-empty-sub">
+    {% if q or tipo_filtro or stato_filtro %}
+      Nessun risultato per i filtri selezionati.
+    {% else %}
+      Aggiungi il primo cliente per iniziare a gestire l'anagrafica.
+    {% endif %}
+  </div>
+  {% if not q and not tipo_filtro and not stato_filtro %}
+  <a href="{{ url_for('nuovo_cliente') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-person-plus-fill"></i>Nuovo cliente
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+initPagination('tbl-clienti', 'page-size-clienti');
+</script>
+{% endblock %}

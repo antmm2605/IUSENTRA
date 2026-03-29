@@ -181,15 +181,16 @@ class ClientPDP:
             }
             stato = stato_map.get(fascicolo_pdp.stato.upper(), StatoFascicolo.APERTO)
 
-            id_cliente = ""
-            nome_cliente = ""
-            if fascicolo_pdp.imputati:
-                nome = fascicolo_pdp.imputati[0]
-                for c in gestione_clienti.tutti():
-                    if nome.upper() in c.nome_completo.upper():
-                        id_cliente   = c.id
-                        nome_cliente = c.nome_completo
-                        break
+            # Riconcilia imputati e parti offese con l'anagrafica
+            from pct.polisWeb import riconcilia_soggetti_pst
+            tutti_soggetti = list(fascicolo_pdp.imputati or []) + list(fascicolo_pdp.parti_offese or [])
+            rif = f"RG {fascicolo_pdp.numero_rg}/{fascicolo_pdp.anno_rg} — {fascicolo_pdp.nome_ufficio}"
+            id_cliente, nome_cliente, avvisi = riconcilia_soggetti_pst(
+                nomi=tutti_soggetti,
+                gestione_clienti=gestione_clienti,
+                riferimento=rif,
+                portale="PDP",
+            )
 
             reato_breve = (fascicolo_pdp.reato[:80]
                            if fascicolo_pdp.reato
@@ -211,7 +212,6 @@ class ClientPDP:
                 note=fascicolo_pdp.note or f"Importato da PDP il {date.today()}",
             )
 
-            avvisi = []
             if fascicolo_pdp.data_udienza:
                 try:
                     gestione_fascicoli.aggiungi_attivita(
@@ -226,7 +226,7 @@ class ClientPDP:
 
             if not id_cliente:
                 avvisi.append(
-                    "Nessun cliente trovato in anagrafica per l'imputato. "
+                    "Nessun soggetto valido tra imputati/parti offese. "
                     "Assegnare il cliente manualmente."
                 )
 

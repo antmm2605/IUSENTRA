@@ -1943,6 +1943,19 @@ tr[data-swipe-delete] {
     bottom: calc(var(--bottomnav-h, 62px) + env(safe-area-inset-bottom, 0px) + .5rem) !important;
   }
 
+  /* ---- Modal: il footer fixed non copre l'ultimo campo ---- */
+  /* Sicurezza: se un modal viene reso accidentalmente dentro #main, il
+     padding-bottom garantisce che l'area scrollabile non finisca sotto
+     il bottom-nav. I modal fuori da #main non ne risentono. */
+  .modal-body {
+    padding-bottom: calc(var(--bottomnav-h, 62px) + env(safe-area-inset-bottom, 0px) + .5rem);
+  }
+  /* Ma i modal fullscreen già si espandono a tutto schermo: il padding-bottom
+     va solo sul body interno, non serve aggiustamento ulteriore. */
+  .modal-fullscreen-sm-down .modal-footer {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem);
+  }
+
   /* ---- Tabella attività/documenti dentro card: mob-cards auto ---- */
   .mob-cards-auto thead { display: none; }
   .mob-cards-auto,

@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block pct_modulo %}fascicoli{% endblock %}
+{% block title %}Fascicoli — Studio Legale PCT{% endblock %}
+{% block page_title %}Fascicoli{% endblock %}
+
+{% set STATO_COLOR = {
+  'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning',
+  'DEFINITO':'info','ARCHIVIATO':'secondary'
+} %}
+{% set TIPO_ICON = {
+  'CIVILE':'bi-bank','PENALE':'bi-shield-exclamation',
+  'AMMINISTRATIVO':'bi-building-gear','STRAGIUDIZIALE':'bi-handshake',
+  'CONSULENZA':'bi-chat-dots','LAVORO':'bi-person-workspace',
+  'FAMIGLIA':'bi-house-heart','SUCCESSIONI':'bi-file-earmark-medical','ALTRO':'bi-folder'
+} %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-folder2-open"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Fascicoli</h1>
+    <p class="ds-ph-sub">Procedimenti civili, penali e amministrativi dello studio</p>
+  </div>
+  <div class="ds-ph-actions">
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-outline dropdown-toggle" data-bs-toggle="dropdown" title="Esporta">
+        <i class="bi bi-download"></i><span class="d-none d-sm-inline">Esporta</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_fascicoli_pdf') }}?q={{ q }}&stato={{ stato_filtro }}&tipo={{ tipo_filtro }}">
+            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF lista
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_fascicoli_csv') }}?q={{ q }}&stato={{ stato_filtro }}&tipo={{ tipo_filtro }}">
+            <i class="bi bi-filetype-csv me-2 text-success"></i>CSV
+          </a>
+        </li>
+      </ul>
+    </div>
+    <a href="{{ url_for('lista_archivio') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-archive"></i><span class="d-none d-sm-inline">Archivio</span>
+    </a>
+    <a href="{{ url_for('nuovo_fascicolo') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-folder-plus"></i><span class="d-none d-sm-inline">Nuovo fascicolo</span>
+    </a>
+  </div>
+</div>
+
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <i class="bi bi-folder2-open text-primary"></i>
+    <span class="num">{{ stats.attivi }}</span> attivi
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-play-circle text-success"></i>
+    <span class="num">{{ stats.per_stato.IN_CORSO }}</span> in corso
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-inbox-fill text-warning"></i>
+    <span class="num">{{ stats.definiti }}</span> da archiviare
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-archive text-secondary"></i>
+    <span class="num">{{ stats.archiviati }}</span> archiviati
+  </span>
+</div>
+
+{# ── Scadenze imminenti ── #}
+{% if scadenze %}
+<div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+  <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0 mt-1"></i>
+  <div>
+    <strong>Scadenze entro 7 giorni</strong>
+    <ul class="mb-0 mt-1">
+      {% for item in scadenze %}
+      <li>
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=item.fascicolo.id) }}"
+           class="text-decoration-none fw-semibold">{{ item.fascicolo.numero }}</a>
+        — {{ item.scadenza.titolo }}
+        <span class="badge bg-warning text-dark ms-1">{{ item.scadenza.data }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{# ── Barra ricerca ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca per numero, titolo, cliente, RG…"
+         value="{{ q }}" autocomplete="off">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:160px">
+    <option value="">Tutti i tipi</option>
+    {% for t in tipi %}
+    <option value="{{ t.value }}" {{ 'selected' if tipo_filtro == t.value }}>
+      {{ t.value.replace('_',' ') }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm" style="max-width:130px">
+    <option value="">Tutti gli stati</option>
+    {% for s in stati %}
+    <option value="{{ s.value }}" {{ 'selected' if stato_filtro == s.value }}>
+      {{ s.value.replace('_',' ') }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
+  {% if q or tipo_filtro or stato_filtro %}
+  <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Tabella fascicoli ── #}
+{% if fascicoli %}
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-muted small">
+      {{ fascicoli|length }} fascicol{% if fascicoli|length != 1 %}i{% else %}o{% endif %}
+    </span>
+    <select id="page-size-fascicoli" class="form-select form-select-sm" style="width:auto">
+      <option value="25">25 per pagina</option>
+      <option value="50">50 per pagina</option>
+      <option value="100">100 per pagina</option>
+      <option value="0">Tutti</option>
+    </select>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-fascicoli" data-paginate="page-size-fascicoli">
+        <thead class="table-light">
+          <tr>
+            <th>N°</th><th>Titolo / Oggetto</th><th>Tipo</th>
+            <th>Cliente</th><th>RG</th><th>Prossima scad.</th>
+            <th>Stato</th><th>Docs</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in fascicoli %}
+          <tr data-swipe-delete="1" title="{{ f.titolo }}">
+            <td data-label="N°" class="font-monospace fw-semibold">{{ f.numero }}</td>
+            <td data-label="Fascicolo">
+              <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                 class="text-decoration-none fw-semibold text-dark">
+                <i class="bi {{ TIPO_ICON.get(f.tipo.value, 'bi-folder') }} me-1 text-muted"></i>
+                {{ f.titolo }}
+              </a>
+              {% if f.oggetto %}
+                <div class="small text-muted">{{ f.oggetto|truncate(60) }}</div>
+              {% endif %}
+            </td>
+            <td data-label="Tipo" data-mob-hide>
+              <span class="badge bg-light text-dark border small">
+                {{ f.tipo.value.replace('_',' ') }}
+              </span>
+            </td>
+            <td data-label="Cliente" class="small">{{ f.nome_cliente or '—' }}</td>
+            <td data-label="RG" class="font-monospace small">{{ f.rg_completo or '—' }}</td>
+            <td data-label="Scadenza" class="small">
+              {% set sc = f.prossima_scadenza %}
+              {% if sc %}
+                <span class="badge {% if sc.data <= oggi.isoformat() %}bg-danger{% else %}bg-light text-dark border{% endif %}">
+                  {{ sc.data }}
+                </span>
+                <div class="text-muted" style="font-size:.7rem">{{ sc.titolo|truncate(20) }}</div>
+              {% else %}—{% endif %}
+            </td>
+            <td data-label="Stato">
+              <span class="badge bg-{{ STATO_COLOR.get(f.stato.value,'secondary') }}">
+                {{ f.stato.value.replace('_',' ') }}
+              </span>
+            </td>
+            <td data-label="Docs" class="text-center" data-mob-hide>
+              <span class="badge bg-light text-dark border">{{ f.documenti_count }}</span>
+            </td>
+            <td data-label="">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                <a href="{{ url_for('modifica_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-outline-primary"><i class="bi bi-pencil"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-folder-x ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessun fascicolo trovato</div>
+  <div class="ds-empty-sub">
+    {% if q or tipo_filtro or stato_filtro %}
+      Nessun risultato per i filtri selezionati.
+    {% else %}
+      Crea il primo fascicolo per iniziare a gestire i procedimenti.
+    {% endif %}
+  </div>
+  {% if not q and not tipo_filtro and not stato_filtro %}
+  <a href="{{ url_for('nuovo_fascicolo') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-folder-plus"></i>Nuovo fascicolo
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+initPagination('tbl-fascicoli', 'page-size-fascicoli');
+</script>
+{% endblock %}

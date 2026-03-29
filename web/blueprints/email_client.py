@@ -24,6 +24,7 @@ from flask import (
     Blueprint, current_app, flash, g, jsonify,
     redirect, render_template, request, url_for,
 )
+from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 
 email_client = Blueprint("email_client", __name__, url_prefix="/email")
 
@@ -382,12 +383,36 @@ def impostazioni():
 
 # ─────────────────────────────────────────────────────────── API stats
 
-@email_client.route("/api/stats")
+@email_client.route("/impostazioni/reset-smtp", methods=["POST"])
 @_login_required
-def api_stats():
-    ge = _get_gestore()
-    _sync_inviati(ge)
-    return jsonify(ge.statistiche())
+def reset_smtp():
+    """Azzera la configurazione SMTP e salva i valori di default."""
+    from pct.config_studio import GestioneConfigStudio, ConfigSMTP
+    cfg_path = current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
+    gs = GestioneConfigStudio(config_path=cfg_path)
+    cfg = gs.config
+
+    # Recupera il nome dello studio per usarlo come from_name di default
+    studio_nome = getattr(getattr(cfg, "studio", None), "nome", "Studio Legale")
+
+    cfg.smtp = ConfigSMTP(
+        host="",
+        port=587,
+        username="",
+        password="",
+        from_address="",
+        from_name=studio_nome,
+        use_tls=True,
+    )
+
+    try:
+        gs.aggiorna(cfg)
+        _audit("email.smtp_reset", "Configurazione SMTP azzerata dall'interfaccia web")
+        return jsonify({"ok": True, "messaggio": "Configurazione SMTP azzerata. Inserisci le nuove credenziali e salva."})
+    except Exception as exc:
+        return jsonify({"ok": False, "errore": f"Errore durante il reset: {exc}"})
+
+
 
 
 # ─────────────────────────────────────────────────────────── Privati
@@ -436,9 +461,9 @@ def _test_smtp(gs) -> "Response":
     try:
         ctx = _ssl.create_default_context()
         if port == 465:
-            s = smtplib.SMTP_SSL(host, port, context=ctx, timeout=10)
+            s = _SMTP_SSLv4(host, port, context=ctx, timeout=10)
         else:
-            s = smtplib.SMTP(host, port, timeout=10)
+            s = _SMTPv4(host, port, timeout=10)
             if tls:
                 s.starttls(context=ctx)
         s.login(user, pwd)

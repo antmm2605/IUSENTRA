@@ -20,6 +20,7 @@ import uuid
 import re
 import smtplib
 import ssl
+from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -423,12 +424,11 @@ class GestioneMessaggi:
 
             ctx = ssl.create_default_context()
             if self.config.email.use_tls:
-                smtp = smtplib.SMTP(self.config.email.smtp_host,
-                                    self.config.email.smtp_port)
+                smtp = _SMTPv4(self.config.email.smtp_host, self.config.email.smtp_port)
                 smtp.starttls(context=ctx)
             else:
-                smtp = smtplib.SMTP_SSL(self.config.email.smtp_host,
-                                        self.config.email.smtp_port, context=ctx)
+                smtp = _SMTP_SSLv4(self.config.email.smtp_host,
+                                   self.config.email.smtp_port, context=ctx)
 
             smtp.login(self.config.email.username, self.config.email.password)
             smtp.send_message(mime)

@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libffi-dev \
         libxml2-dev \
         libxslt1-dev \
+        libpcsclite-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -32,14 +33,14 @@ ENV PATH="/venv/bin:$PATH"
 # Layer cache: ricalcola solo se setup.py cambia
 COPY setup.py .
 COPY pct/__init__.py pct/__init__.py
-RUN pip install --no-cache-dir ".[pdf,pades]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
+RUN pip install --no-cache-dir ".[pdf,pades,pkcs11]" "gunicorn>=23.0.0,<24" "gevent>=24.2.0,<25"
 
 
 # ─────────────────────────────────────────────────────────────
 #  Stage 2 — sass: scarica dart-sass e compila gli SCSS → CSS
 #  (nessun Node.js richiesto: dart-sass è un eseguibile standalone)
 # ─────────────────────────────────────────────────────────────
-FROM python:3.12-slim AS sass-builder
+FROM debian:bookworm-slim AS sass-builder
 
 ARG DART_SASS_VERSION=1.83.0
 
@@ -67,11 +68,13 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.36.0" \
+      org.opencontainers.image.version="2.55.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
 # Solo le librerie runtime strettamente necessarie
+# libpcsclite1 + opensc: firma PKCS#11 in-device (Aruba Key) — il demone pcscd
+# gira sul HOST; il container lo raggiunge via socket montato in docker-compose
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libffi8 \
         libxml2 \
@@ -79,8 +82,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr \
         tesseract-ocr-ita \
         poppler-utils \
+        ghostscript \
         libjpeg62-turbo \
         libpng16-16 \
+        libpcsclite1 \
+        opensc \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia il venv compilato dallo stage builder
@@ -105,6 +111,8 @@ ENV PYTHONPATH=/app
 ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_CLIENTI_DB=/data/clienti/anagrafica.json \
     PCT_CONDIVISIONI_DB=/data/clienti/condivisioni.json \
+    PCT_SOGGETTI_DB=/data/soggetti/anagrafica.json \
+    PCT_SOGGETTI_PARTI_DB=/data/soggetti/parti.json \
     PCT_FASCICOLI_DB=/data/fascicoli/fascicoli.json \
     PCT_FASCICOLI_DOCS=/data/fascicoli/documenti \
     PCT_FASCICOLI_ARCH=/data/fascicoli/archivio \
@@ -146,4 +154,3 @@ CMD gunicorn \
     --access-logfile - \
     --error-logfile - \
     wsgi:app
-

@@ -4,6 +4,13 @@
 
 {% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
 {% set EC = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+{% set ns_portale = namespace(documenti=0, depositi=0) %}
+{% for dep_meta in fascicolo.depositi_pct or [] %}
+  {% if dep_meta.documenti_portale %}
+    {% set ns_portale.documenti = ns_portale.documenti + (dep_meta.documenti_portale|length) %}
+    {% set ns_portale.depositi = ns_portale.depositi + 1 %}
+  {% endif %}
+{% endfor %}
 
 {% block content %}
 
@@ -84,6 +91,24 @@
       </div>
     </div>
 
+    {% if polisweb_sync_needed %}
+    <div class="alert alert-warning shadow-sm mb-3">
+      <div class="fw-semibold mb-1">
+        <i class="bi bi-arrow-repeat me-1"></i>Import PolisWeb da completare
+      </div>
+      <div class="small">
+        Questo fascicolo è stato importato quando il flusso PST non portava ancora dentro tutti i dati.
+        Apri PolisWeb, riesegui la ricerca della pratica e premi di nuovo <strong>Importa</strong>:
+        HACS completerà cliente, soggetti e attività sul fascicolo già esistente senza duplicarlo.
+      </div>
+      <div class="mt-2">
+        <a href="{{ url_for('polisWeb_home', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-warning">
+          <i class="bi bi-search me-1"></i>Completa da PolisWeb
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
     {# ---- Attività processuali ---- #}
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
@@ -151,10 +176,19 @@
           Documenti
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
         </span>
-        <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
-                data-bs-target="#modalDocumento">
-          <i class="bi bi-upload me-1"></i>Carica
-        </button>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-outline-info flex-shrink-0" data-bs-toggle="modal"
+                  data-bs-target="#modalImportaPortale">
+            <i class="bi bi-inbox me-1"></i>Acquisisci portale
+            {% if pst_import_pending %}
+            <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
+            {% endif %}
+          </button>
+          <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
+                  data-bs-target="#modalDocumento">
+            <i class="bi bi-upload me-1"></i>Carica
+          </button>
+        </div>
       </div>
       <div class="card-body p-0">
         {% if fascicolo.documenti %}
@@ -182,11 +216,48 @@
               {% endif %}
               {% if doc.id_deposito_pct %}
               {%- set _dep_obj = fascicolo.depositi_pct | selectattr('id','equalto',doc.id_deposito_pct) | first | default(None) %}
+              {%- if _dep_obj %}
+                {%- set _ds = _dep_obj.stato %}
+                {%- if _ds == 'ACCETTATO_CANCELLERIA' %}
+                  {%- set _dep_cls = 'bg-success text-white' %}
+                  {%- set _dep_icon = 'bi-check-circle-fill' %}
+                  {%- set _dep_lbl = 'Accettato' %}
+                {%- elif _ds in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
+                  {%- set _dep_cls = 'bg-danger text-white' %}
+                  {%- set _dep_icon = 'bi-x-circle-fill' %}
+                  {%- set _dep_lbl = 'Rifiutato' %}
+                {%- elif _ds in ('ERRORE_CONTROLLI','ERRORE') %}
+                  {%- set _dep_cls = 'bg-danger text-white' %}
+                  {%- set _dep_icon = 'bi-exclamation-triangle-fill' %}
+                  {%- set _dep_lbl = 'Errore' %}
+                {%- elif _ds == 'WARN_CONTROLLI' %}
+                  {%- set _dep_cls = 'bg-warning text-dark' %}
+                  {%- set _dep_icon = 'bi-exclamation-circle-fill' %}
+                  {%- set _dep_lbl = 'Anomalia' %}
+                {%- elif _ds == 'CONSEGNATO' %}
+                  {%- set _dep_cls = 'bg-primary text-white' %}
+                  {%- set _dep_icon = 'bi-send-check-fill' %}
+                  {%- set _dep_lbl = 'Consegnato' %}
+                {%- elif _ds == 'ACCETTATO_PEC' %}
+                  {%- set _dep_cls = 'bg-info text-dark' %}
+                  {%- set _dep_icon = 'bi-envelope-check-fill' %}
+                  {%- set _dep_lbl = 'Acc. PEC' %}
+                {%- else %}
+                  {%- set _dep_cls = 'bg-secondary text-white' %}
+                  {%- set _dep_icon = 'bi-send' %}
+                  {%- set _dep_lbl = 'Inviato' %}
+                {%- endif %}
+              {%- else %}
+                {%- set _dep_cls = 'bg-secondary text-white' %}
+                {%- set _dep_icon = 'bi-send' %}
+                {%- set _dep_lbl = 'Depositato' %}
+              {%- endif %}
               <div class="mt-1">
-                <span class="badge bg-success-subtle text-success border border-success-subtle"
-                      style="font-size:.68rem"
-                      title="Incluso nel deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
-                  <i class="bi bi-send-check me-1"></i>Dep. {{ doc.id_deposito_pct }}{% if _dep_obj %} · {{ _dep_obj.timestamp[:10] }}{% endif %}
+                <span class="badge {{ _dep_cls }}"
+                      style="font-size:.7rem"
+                      title="Deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} — {{ _dep_obj.stato }} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                  <i class="bi {{ _dep_icon }} me-1"></i>{{ _dep_lbl }}
+                  <span class="opacity-75 ms-1 font-monospace" style="font-size:.65rem">{{ doc.id_deposito_pct }}</span>
                 </span>
               </div>
               {% endif %}
@@ -221,12 +292,11 @@
           <td data-label="">
             {# TUTTI I BOTTONI INLINE #}
             <div class="d-flex gap-1 flex-wrap align-items-center">
-              {# Editor: ora è il primo bottone #}
+              {# Editor: primo bottone — testo sempre visibile #}
               {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
               <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                 class="btn btn-sm btn-primary" title="Apri nell'editor">
-                <i class="bi bi-pencil-square"></i>
-                <span class="d-none d-lg-inline">Editor</span>
+                <i class="bi bi-pencil-square me-1"></i>Editor
               </a>
               {% endif %}
               
@@ -258,6 +328,19 @@
               </button>
               {% endif %}
               
+              {# Converti PDF/A — D.M. 44/2011 art. 12 (solo PDF non firmati) #}
+              {% if ext == 'pdf' and not doc.firmato_digitalmente %}
+              {%- set _pdfa_esito = doc.note and 'pdfa:ok' in doc.note %}
+              <form method="post"
+                    action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?\nIl file originale verrà sostituito.')">
+                <button class="btn btn-outline-warning btn-sm"
+                        title="Converti in PDF/A-2B (D.M. 44/2011 art. 12)">
+                  <i class="bi bi-file-earmark-check"></i>
+                </button>
+              </form>
+              {% endif %}
+
               {# Attestazione conformità (solo PDF) #}
               {% if ext == 'pdf' %}
               <form method="post"
@@ -380,7 +463,36 @@
         {% endif %}
 
         {% else %}
-        <div class="text-muted text-center py-4 small">Nessun documento caricato</div>
+        <div class="text-muted text-center py-4 small">
+          <div>Nessun documento caricato</div>
+          {% if ns_portale.documenti %}
+          <div class="mt-2">
+            Sono gia' censiti <strong>{{ ns_portale.documenti }}</strong> documenti ufficiali
+            in <strong>{{ ns_portale.depositi }}</strong> deposit{% if ns_portale.depositi == 1 %}o{% else %}i{% endif %}
+            nella sezione <strong>{{ dep_label if dep_label is defined else 'Depositi telematici PCT' }}</strong>.
+          </div>
+          <div class="mt-1">
+            Qui compariranno i file locali solo dopo l'acquisizione dei documenti gia' scaricati dal portale ufficiale.
+          </div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                    data-bs-target="#modalImportaPortale">
+              <i class="bi bi-inbox me-1"></i>Acquisisci i file ufficiali gia' scaricati
+            </button>
+          </div>
+          {% elif 'Importato da PolisWeb' in (fascicolo.note or '') %}
+          <div class="mt-2">
+            I documenti ufficiali restano consultabili dal portale ministeriale:
+            <a href="{{ url_for('polisWeb_home', id_fasc=fascicolo.id) }}" class="text-decoration-none">Consulta su PolisWeb</a>.
+          </div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                    data-bs-target="#modalImportaPortale">
+              <i class="bi bi-inbox me-1"></i>Acquisisci i file ufficiali già scaricati
+            </button>
+          </div>
+          {% endif %}
+        </div>
         {% endif %}
       </div>
     </div>
@@ -473,6 +585,14 @@
             <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">{{ dep_portale_label }}</span><span class="d-sm-none">Portale</span>
           </a>
 
+          <button class="btn btn-sm btn-outline-info fw-semibold" data-bs-toggle="modal"
+                  data-bs-target="#modalImportaPortale">
+            <i class="bi bi-inbox me-1"></i><span class="d-none d-sm-inline">Acquisisci</span>
+            {% if pst_import_pending %}
+            <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
+            {% endif %}
+          </button>
+
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                   data-bs-target="#modalDeposito">
             <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Registra</span>
@@ -493,14 +613,21 @@
           {% set is_accettato = dep.stato == 'ACCETTATO_CANCELLERIA' %}
           {% set is_rifiutato = dep.stato in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
           {% set is_errore = dep.stato in ('ERRORE_CONTROLLI','ERRORE') %}
-          {% set is_finale = is_accettato or is_rifiutato or is_errore %}
+          {% set is_import_pst = dep.stato == 'IMPORTATO_DA_PST' %}
+          {% set is_import_portale = dep.stato == 'IMPORTATO_DA_PORTALE' %}
+          {% set is_importazione = is_import_pst or is_import_portale %}
+          {% set is_finale = is_accettato or is_rifiutato or is_errore or is_importazione %}
 
           <div class="list-group-item px-3 py-3" id="dep-row-{{ dep.id }}">
             <div class="d-flex align-items-start gap-3 flex-wrap">
 
               {# Icona esito globale #}
               <div class="flex-shrink-0 mt-1">
-                {% if is_accettato %}
+                {% if is_import_pst %}
+                  <i class="bi bi-collection-fill text-info fs-4" title="Deposito ufficiale censito dal PST"></i>
+                {% elif is_import_portale %}
+                  <i class="bi bi-inbox-fill text-info fs-4" title="File ufficiali acquisiti dal portale"></i>
+                {% elif is_accettato %}
                   <i class="bi bi-check-circle-fill text-success fs-4" title="Accettato dalla cancelleria"></i>
                 {% elif is_rifiutato %}
                   <i class="bi bi-x-circle-fill text-danger fs-4" title="Rifiutato"></i>
@@ -520,22 +647,51 @@
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                   <strong class="small">{{ dep.tipo_atto }}</strong>
                   <span class="badge rounded-pill dep-stato-{{ dep.id }}
-                    {% if is_accettato %}bg-success
+                    {% if is_importazione %}bg-info text-dark
+                    {% elif is_accettato %}bg-success
                     {% elif is_rifiutato or is_errore %}bg-danger
                     {% elif f6_warn %}bg-warning text-dark
                     {% elif f5_ok %}bg-primary
                     {% elif f4_ok %}bg-info text-dark
                     {% else %}bg-secondary{% endif %}"
                     style="font-size:.7rem">
-                    {{ dep.stato }}
+                    {% if is_import_pst %}Metadati PST
+                    {% elif is_import_portale %}File acquisiti
+                    {% else %}{{ dep.stato }}{% endif %}
                   </span>
                   <span class="text-muted small font-monospace">{{ dep.id }}</span>
                   <span class="text-muted small">{{ dep.timestamp[:10] }}</span>
                 </div>
 
-                <div class="text-muted small mb-2">{{ dep.pec_destinatario }}</div>
+                <div class="text-muted small mb-2">
+                  {% if is_import_pst %}
+                    {{ dep.fonte_portale or 'PolisWeb / PST' }}
+                  {% else %}
+                    {{ dep.pec_destinatario }}
+                  {% endif %}
+                  {% if dep.id_deposito_esterno %}
+                  <span class="font-monospace ms-2">ID portale {{ dep.id_deposito_esterno }}</span>
+                  {% endif %}
+                </div>
 
                 {# ── Tracker 4 fasi ── #}
+                {% if is_importazione %}
+                <div class="d-flex align-items-center gap-1 flex-wrap dep-tracker-{{ dep.id }}">
+                  <span class="badge px-2 py-1 bg-light text-dark border" style="font-size:.72rem">
+                    <i class="bi bi-box-seam me-1"></i>Busta ufficiale
+                  </span>
+                  {% if dep.documenti_portale %}
+                  <span class="badge px-2 py-1 bg-light text-dark border" style="font-size:.72rem">
+                    <i class="bi bi-files me-1"></i>{{ dep.documenti_portale|length }} metadati documento{% if dep.documenti_portale|length != 1 %}i{% endif %}
+                  </span>
+                  {% endif %}
+                  {% if dep.nome_atto_principale %}
+                  <span class="badge px-2 py-1 bg-light text-dark border" style="font-size:.72rem">
+                    <i class="bi bi-file-earmark-text me-1"></i>Atto principale censito
+                  </span>
+                  {% endif %}
+                </div>
+                {% else %}
                 <div class="d-flex align-items-center gap-1 flex-wrap dep-tracker-{{ dep.id }}">
 
                   {# Fase 4: Accettazione PEC #}
@@ -591,6 +747,7 @@
                     ④ Canc.
                   </span>
                 </div>
+                {% endif %}
 
                 {% if dep.note or dep.messaggio %}
                 <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.note or dep.messaggio }}</div>
@@ -638,7 +795,68 @@
                 </div>
                 {% endif %}
 
-                {% if is_errore %}
+                {% if dep.documenti_portale %}
+                <div class="mt-2">
+                  <button class="btn btn-link btn-sm p-0 text-muted text-decoration-none"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dep-portale-docs-{{ dep.id }}"
+                          aria-expanded="false">
+                    <i class="bi bi-journal-text me-1"></i>
+                    {{ dep.documenti_portale | length }} metadati document{% if dep.documenti_portale | length == 1 %}o ufficiale{% else %}i ufficiali{% endif %}
+                    <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
+                  </button>
+                  <div class="collapse mt-1" id="dep-portale-docs-{{ dep.id }}">
+                    <ul class="list-unstyled mb-0 ps-2 border-start border-2 border-info-subtle">
+                      {% for pdoc in dep.documenti_portale %}
+                      <li class="py-1" style="font-size:.8rem">
+                        <div class="d-flex align-items-start gap-2">
+                          {% if pdoc.nome == dep.nome_atto_principale %}
+                          <i class="bi bi-file-earmark-text text-primary flex-shrink-0 mt-1" title="Atto principale"></i>
+                          {% else %}
+                          <i class="bi bi-file-earmark text-muted flex-shrink-0 mt-1" title="Documento ufficiale"></i>
+                          {% endif %}
+                          <div class="flex-grow-1">
+                            <div class="fw-semibold text-break">{{ pdoc.nome or 'Documento ufficiale' }}</div>
+                            <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
+                              <span class="badge bg-light text-dark border" style="font-size:.68rem">
+                                {{ pdoc.tipo or 'Documento' }}
+                              </span>
+                              <span class="badge {% if pdoc.disponibile %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:.68rem">
+                                {% if pdoc.disponibile %}Disponibile{% else %}Non disponibile{% endif %}
+                              </span>
+                              {% if pdoc.dimensione_bytes %}
+                              <span class="badge bg-light text-dark border" style="font-size:.68rem">
+                                {% if pdoc.dimensione_bytes < 1024 %}{{ pdoc.dimensione_bytes }} B
+                                {% elif pdoc.dimensione_bytes < 1048576 %}{{ (pdoc.dimensione_bytes/1024)|int }} KB
+                                {% else %}{{ "%.1f"|format(pdoc.dimensione_bytes/1048576) }} MB{% endif %}
+                              </span>
+                              {% endif %}
+                            </div>
+                            <div class="text-muted mt-1" style="font-size:.74rem">
+                              {{ pdoc.data_deposito|fmt_data if pdoc.data_deposito else 'Data non indicata' }}
+                              {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </div>
+                {% endif %}
+
+                {% if is_import_pst %}
+                <div class="alert alert-info py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Metadati ufficiali importati da PolisWeb. I file binari restano scaricabili solo dal portale ministeriale e possono poi essere acquisiti nel fascicolo.
+                </div>
+                {% elif is_import_portale %}
+                <div class="alert alert-info py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-inbox me-1"></i>
+                  Questo lotto contiene file ufficiali gia' scaricati dal portale e acquisiti nel database locale del fascicolo.
+                </div>
+                {% elif is_errore %}
                 <div class="alert alert-danger py-1 px-2 mt-2 small mb-0">
                   <i class="bi bi-exclamation-triangle me-1"></i>
                   Errore nei controlli automatici. Contatta il fornitore del software redattore atti.
@@ -658,21 +876,23 @@
 
               {# Pulsanti azione deposito #}
               <div class="flex-shrink-0 d-flex flex-column gap-1">
+                {% set _dep_data = {
+                  'id': dep.id,
+                  'tipo_atto': dep.tipo_atto,
+                  'stato': dep.stato,
+                  'pec_destinatario': dep.pec_destinatario,
+                  'messaggio': dep.messaggio,
+                  'ricevuta_accettazione': dep.ricevuta_accettazione,
+                  'ricevuta_consegna': dep.ricevuta_consegna,
+                  'ricevuta_controlli_automatici': (dep.ricevuta_controlli_automatici or ''),
+                  'esito_controlli': (dep.esito_controlli or ''),
+                  'ricevuta_cancelleria': (dep.ricevuta_cancelleria or ''),
+                  'note': dep.note
+                } %}
                 <button type="button" class="btn btn-sm btn-outline-primary"
                         title="Modifica deposito"
-                        onclick="apriModificaDeposito({
-                          id:'{{ dep.id }}',
-                          tipo_atto:{{ dep.tipo_atto | tojson }},
-                          stato:{{ dep.stato | tojson }},
-                          pec_destinatario:{{ dep.pec_destinatario | tojson }},
-                          messaggio:{{ dep.messaggio | tojson }},
-                          ricevuta_accettazione:{{ dep.ricevuta_accettazione | tojson }},
-                          ricevuta_consegna:{{ dep.ricevuta_consegna | tojson }},
-                          ricevuta_controlli_automatici:{{ (dep.ricevuta_controlli_automatici or '') | tojson }},
-                          esito_controlli:{{ (dep.esito_controlli or '') | tojson }},
-                          ricevuta_cancelleria:{{ (dep.ricevuta_cancelleria or '') | tojson }},
-                          note:{{ dep.note | tojson }}
-                        })">
+                        data-dep="{{ _dep_data | tojson | forceescape }}"
+                        onclick="apriModificaDeposito(JSON.parse(this.dataset.dep))">
                   <i class="bi bi-pencil"></i>
                 </button>
                 {% if not is_finale %}
@@ -693,6 +913,17 @@
           <i class="bi {{ dep_icon }} fs-2 text-{{ dep_col }} opacity-25 d-block mb-2"></i>
           <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
           <div class="text-muted" style="font-size:.78rem">{{ dep_hint }}</div>
+          {% if 'Importato da PolisWeb' in (fascicolo.note or '') and ftipo == 'CIVILE' %}
+          <div class="text-muted mt-2" style="font-size:.78rem">
+            L'importazione da PolisWeb popola anagrafica e attività iniziali, ma non scarica automaticamente gli atti dal PST.
+          </div>
+          <div class="mt-3">
+            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                    data-bs-target="#modalImportaPortale">
+              <i class="bi bi-inbox me-1"></i>Acquisisci file ufficiali
+            </button>
+          </div>
+          {% endif %}
         </div>
         {% endif %}
       </div>
@@ -994,11 +1225,17 @@
   </div>
 </div>
 
-{# ================================================================ MODALS #}
+{% endblock %}
+
+{% block modals %}
+{# ================================================================ MODALS
+   Tutti i modal devono stare QUI (fuori da #main) per partecipare al root
+   stacking context — su mobile #main è position:fixed (bottom:62px) e i
+   modal al suo interno verrebbero tagliati dal bottom-nav. #}
 
 {# Modal: aggiungi attività #}
 <div class="modal fade" id="modalAttivita" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" action="{{ url_for('aggiungi_attivita', id_fasc=fascicolo.id) }}">
         <div class="modal-header">
@@ -1067,7 +1304,7 @@
 
 {# Modal: carica documento #}
 <div class="modal fade" id="modalDocumento" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" enctype="multipart/form-data"
             action="{{ url_for('carica_documento', id_fasc=fascicolo.id) }}">
@@ -1131,9 +1368,78 @@
   </div>
 </div>
 
+{# Modal: acquisizione file ufficiali dal portale #}
+<div class="modal fade" id="modalImportaPortale" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data"
+            action="{{ url_for('importa_documenti_portale', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-inbox me-2 text-info"></i>Acquisisci file ufficiali
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info small">
+            Scarica prima i documenti dal canale ufficiale autenticato <strong>{{ pst_portale_label }}</strong>.
+            HACS non esegue download autonomi: importa solo file già ottenuti dal portale ministeriale.
+          </div>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">File o cartella già scaricati</label>
+              <input type="file" name="files" id="pstImportInput" class="form-control"
+                     multiple webkitdirectory directory>
+              <div class="form-text" id="pstImportHint">
+                Puoi selezionare più file insieme oppure un'intera cartella del fascicolo già scaricata dal portale.
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Cartella tecnica locale del fascicolo</label>
+              <div class="input-group">
+                <input type="text" class="form-control font-monospace small" id="pstImportDirPath"
+                       value="{{ pst_import_dir }}" readonly>
+                <button type="button" class="btn btn-outline-secondary" id="btnCopiaPstImportDir">
+                  <i class="bi bi-clipboard me-1"></i>Copia
+                </button>
+              </div>
+              <div class="form-text">
+                Se preferisci, puoi copiare qui dentro i file scaricati dal portale ufficiale e poi avviare l'acquisizione lasciando vuoto il campo sopra.
+              </div>
+            </div>
+            <div class="col-12">
+              {% if pst_import_pending %}
+              <div class="alert alert-light border small mb-0">
+                Nell'inbox tecnica del fascicolo ci sono già <strong>{{ pst_import_pending }}</strong> file pronti.
+                Se lasci il campo sopra vuoto, HACS importerà quelli.
+              </div>
+              {% else %}
+              <div class="alert alert-light border small mb-0">
+                Se lasci il campo vuoto, HACS proverà a leggere l'inbox tecnica del fascicolo già predisposta in locale.
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note importazione</label>
+              <input type="text" name="note_importazione" class="form-control"
+                     placeholder="Es. fascicolo completo scaricato dal portale ufficiale">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-info text-white">
+            <i class="bi bi-database-add me-1"></i>Importa nel fascicolo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {# Modal: registra esito deposito PCT #}
 <div class="modal fade" id="modalDeposito" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" id="formDeposito" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
         <input type="hidden" name="id_deposito_modifica" id="idDepositoModifica" value="">
@@ -1251,7 +1557,7 @@
 
 {# Modal: firma per deposito PCT #}
 <div class="modal fade" id="modalFirma" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" enctype="multipart/form-data" id="firma-form">
         <div class="modal-header">
@@ -1423,7 +1729,7 @@
 
 {# Modal: aggiungi parte processuale #}
 <div class="modal fade" id="modalAggiungiParte" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" action="{{ url_for('aggiungi_parte_fascicolo', id_fasc=fascicolo.id) }}">
         <div class="modal-header">
@@ -1468,7 +1774,7 @@
   </div>
 </div>
 
-{% endblock %}
+{% endblock %}{# /modals #}
 
 {% block scripts %}
 <script>
@@ -1648,6 +1954,46 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
     if (input.files[0]) {
       label.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><strong>' +
         input.files[0].name + '</strong> (' + (input.files[0].size / 1024).toFixed(0) + '\u00a0KB)';
+    }
+  });
+})();
+
+(function () {
+  const input = document.getElementById('pstImportInput');
+  const hint = document.getElementById('pstImportHint');
+  if (!input || !hint) return;
+
+  input.addEventListener('change', function () {
+    const count = input.files ? input.files.length : 0;
+    if (!count) {
+      hint.textContent = "Puoi selezionare più file insieme oppure un'intera cartella del fascicolo già scaricata dal portale.";
+      return;
+    }
+    if (count === 1) {
+      hint.textContent = 'Selezionato: ' + input.files[0].name;
+      return;
+    }
+    hint.textContent = "Selezionati " + count + " elementi pronti per l'acquisizione nel fascicolo.";
+  });
+})();
+
+(function () {
+  const btn = document.getElementById('btnCopiaPstImportDir');
+  const field = document.getElementById('pstImportDirPath');
+  if (!btn || !field || !navigator.clipboard) return;
+
+  btn.addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(field.value);
+      btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Copiato';
+      window.setTimeout(function () {
+        btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia';
+      }, 1600);
+    } catch (err) {
+      btn.innerHTML = '<i class="bi bi-x-circle me-1"></i>Errore';
+      window.setTimeout(function () {
+        btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia';
+      }, 1600);
     }
   });
 })();

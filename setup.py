@@ -2,9 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="pct-studio-legale",
-    version="2.36.0",
+    version="2.55.0",
     description="Sistema invio telematico per studi legali (PCT - Processo Civile Telematico)",
     packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        "pct": ["data/*.json"],
+    },
     python_requires=">=3.9",
     install_requires=[
         "cryptography>=41.0.0",
@@ -27,6 +31,7 @@ setup(
     extras_require={
         "pades": ["pyhanko>=0.20.0", "pyhanko-certvalidator>=0.26.0"],
         "pdf": ["reportlab>=4.0.0", "pdfplumber>=0.10.0"],
+        "pkcs11": ["python-pkcs11>=0.7.0", "asn1crypto>=1.5.0"],
     },
     entry_points={
         "console_scripts": [

@@ -4,15 +4,20 @@
 {% block page_title %}Collaboratori fascicolo{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb" class="mb-3">
-  <ol class="breadcrumb small">
-    <li class="breadcrumb-item"><a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a></li>
-    <li class="breadcrumb-item">
-      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }} — {{ fascicolo.titolo }}</a>
-    </li>
-    <li class="breadcrumb-item active">Collaboratori</li>
-  </ol>
-</nav>
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <nav aria-label="breadcrumb" class="mb-0">
+    <ol class="breadcrumb small mb-0">
+      <li class="breadcrumb-item"><a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a></li>
+      <li class="breadcrumb-item">
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }} — {{ fascicolo.titolo }}</a>
+      </li>
+      <li class="breadcrumb-item active">Collaboratori</li>
+    </ol>
+  </nav>
+</div>
 
 <div class="row g-4">
 

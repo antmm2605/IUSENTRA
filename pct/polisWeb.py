@@ -25,19 +25,254 @@ Riferimenti:
 from __future__ import annotations
 
 import os
+import re
 import ssl
 import tempfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
+
+from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, risolvi_ufficio
 
 # ---------------------------------------------------------------- PST endpoints
 # I web service del PST sono accessibili con autenticazione a certificato.
-# Gli endpoint possono variare per distretto; qui i principali nazionali.
-_WSP_BASE = os.getenv("PCT_PST_BASE_URL", "https://wspa.giustizia.it/wspa")
-_WSDL_RICERCA     = f"{_WSP_BASE}/RicercaFascicoliRegistroService?wsdl"
-_WSDL_CONSULTAZIONE = f"{_WSP_BASE}/ConsultazioneAvanzataDocumentiService?wsdl"
-_WSDL_REGINDE     = f"{_WSP_BASE}/ConsultazioneRegistroService?wsdl"
+# Dal 2026 l'endpoint storico wspa.giustizia.it risulta legacy: il gestionale
+# richiede quindi che l'eventuale proxy attivo venga configurato esplicitamente.
+_PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
+_WSP_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
+_PST_QBUILDER_NAMESPACES = {
+    "JPW_SICID": "urn:CONS-SICC-BE",
+}
+_CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
+
+
+def _pst_endpoint_legacy(base_url: str) -> bool:
+    return base_url.startswith(_PST_LEGACY_BASE)
+
+
+def _pst_endpoint_legacy_message() -> str:
+    return (
+        "L'endpoint PST configurato in HACS punta ancora a wspa.giustizia.it, "
+        "host legacy non più pubblicato nel DNS pubblico. "
+        "Con il nuovo registro uffici HACS prova a comporre automaticamente il proxy corretto; "
+        "se l'ufficio non ha metadati PST configurare PCT_PST_BASE_URL completo o almeno il root proxy."
+    )
+
+
+def _wsdl_ricerca(base_url: str) -> str:
+    return f"{base_url.rstrip('/')}/RicercaFascicoliRegistroService?wsdl"
+
+
+def _wsdl_consultazione(base_url: str) -> str:
+    return f"{base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService?wsdl"
+
+
+def _pst_servizio_proxy(base_url: str) -> str:
+    parti = [p for p in (base_url or "").rstrip("/").split("/") if p]
+    return (parti[-1] if parti else "").upper()
+
+
+def _pst_namespace_qbuilder(base_url: str) -> str:
+    return _PST_QBUILDER_NAMESPACES.get(_pst_servizio_proxy(base_url), "")
+
+
+def _pst_usa_qbuilder(base_url: str) -> bool:
+    return bool(_pst_namespace_qbuilder(base_url))
+
+
+def _strip_namespaces(root: ET.Element) -> ET.Element:
+    for el in root.iter():
+        if "}" in el.tag:
+            el.tag = el.tag.split("}", 1)[1]
+    return root
+
+
+def _parse_qbuilder_row(row_el: ET.Element) -> Dict[str, Any]:
+    row: Dict[str, Any] = {}
+    sub_rows: Dict[str, List[Dict[str, Any]]] = {}
+
+    for child in list(row_el):
+        tag = child.tag.split("}")[-1]
+        if tag == "property":
+            key = (child.attrib.get("name") or "").strip()
+            if key:
+                row[key] = (child.text or "").strip()
+        elif tag == "subRows":
+            cls_name = (child.attrib.get("class") or "subRows").strip()
+            rows: List[Dict[str, Any]] = []
+            for sub in list(child):
+                sub_tag = sub.tag.split("}")[-1]
+                if sub_tag != "row":
+                    continue
+                rows.append(_parse_qbuilder_row(sub))
+            sub_rows.setdefault(cls_name, []).extend(rows)
+
+    if sub_rows:
+        row["_sub_rows"] = sub_rows
+    return row
+
+
+def _parse_qbuilder_row_list(xml_text: str) -> List[Dict[str, Any]]:
+    try:
+        root = _strip_namespaces(ET.fromstring(xml_text))
+    except ET.ParseError:
+        return []
+
+    righe: List[Dict[str, Any]] = []
+    for ret in root.findall(".//return"):
+        for child in list(ret):
+            tag = child.tag.split("}")[-1]
+            if tag == "row":
+                righe.append(_parse_qbuilder_row(child))
+    return righe
+
+
+def _qbuilder_numero_rg(row: Dict[str, Any]) -> str:
+    valore = (
+        row.get("NUMERORUOLO")
+        or row.get("N_R_G")
+        or row.get("NUMERORG")
+        or row.get("NUMERORUOLOGENERALE")
+        or ""
+    )
+    valore = str(valore).strip()
+    if not valore:
+        return ""
+    if valore.isdigit():
+        return str(int(valore))
+    return valore
+
+
+def _qbuilder_tipo_documento(tipo: str) -> str:
+    valore = (tipo or "").strip()
+    if not valore or valore in {"%", "*"}:
+        return "Documento"
+    if "}" in valore:
+        valore = valore.rsplit("}", 1)[-1]
+    if ":" in valore:
+        valore = valore.rsplit(":", 1)[-1]
+    return valore or "Documento"
+
+
+def _qbuilder_parti_dettaglio(row: Dict[str, Any]) -> List[Dict[str, str]]:
+    dettagli: List[Dict[str, str]] = []
+    sub_rows = row.get("_sub_rows") or {}
+    for gruppo, righe in sub_rows.items():
+        if gruppo not in {"InfoParte", "Parte", "ParteProcessuale"}:
+            continue
+        for parte in righe:
+            cognome = (parte.get("COGNOME") or parte.get("COGNOMENOME") or "").strip()
+            nome = (parte.get("NOME") or "").strip()
+            full_name = (parte.get("NOMINATIVO") or f"{cognome} {nome}").strip()
+            if not full_name:
+                continue
+            dettagli.append(
+                {
+                    "nome": re.sub(r"\s+", " ", full_name),
+                    "tipo": (parte.get("TIPOPARTE") or parte.get("PARTE") or "").strip(),
+                    "codice_fiscale": (parte.get("CODICEFISCALEPARTE") or parte.get("CODICEFISCALE") or "").strip(),
+                    "avvocato": (parte.get("AVVOCATO") or parte.get("NOMEAVVOCATO") or "").strip(),
+                    "cf_avvocato": (parte.get("CODICEFISCALEAVVOCATO") or parte.get("CFAVVOCATO") or "").strip(),
+                }
+            )
+    return dettagli
+
+
+def _map_qbuilder_fascicolo(row: Dict[str, Any]) -> FascicoloPolisWeb:
+    codice_ufficio = (
+        row.get("IDUFFICIO")
+        or row.get("CODICEUFFICIO")
+        or row.get("UFFICIO")
+        or ""
+    ).strip()
+    ufficio = risolvi_ufficio(codice_ufficio) if codice_ufficio else None
+    parti_dettaglio = _qbuilder_parti_dettaglio(row)
+    parti = [p["nome"] for p in parti_dettaglio if p.get("nome")]
+
+    if not parti:
+        for key in ("ATTOREPRINCIPALE", "CONVENUTOPRINCIPALE", "PARTEPRINCIPALE"):
+            valore = (row.get(key) or "").strip()
+            if valore:
+                parti.append(valore)
+
+    return FascicoloPolisWeb(
+        numero_rg=_qbuilder_numero_rg(row),
+        anno_rg=int((row.get("ANNORUOLO") or row.get("ANNORG") or 0) or 0),
+        ruolo=(row.get("RUOLODESCRIZIONE") or row.get("RUOLO") or "").strip(),
+        stato=(row.get("STATOFASCICOLODESCRIZIONE") or row.get("STATOFASCICOLO") or "").strip(),
+        oggetto=(row.get("OGGETTOFASCICOLO") or row.get("OGGETTO") or "").strip(),
+        sezione=(row.get("SEZIONE") or row.get("DESCRIZIONESEZIONE") or "").strip(),
+        giudice=(row.get("GIUDICE") or row.get("MAGISTRATO") or "").strip(),
+        data_iscrizione=_parse_data((row.get("DATAISCRIZIONERUOLO") or row.get("DATAISCRIZIONE") or "").strip()),
+        data_udienza=_parse_data((row.get("DATAPROSSIMAUDIENZA") or row.get("DATAUDIENZA") or "").strip()),
+        parti=parti,
+        parti_dettaglio=parti_dettaglio,
+        codice_ufficio=codice_ufficio,
+        nome_ufficio=(ufficio or {}).get("nome", "") if isinstance(ufficio, dict) else "",
+        note="",
+    )
+
+
+def _map_qbuilder_documento(row: Dict[str, Any]) -> DocumentoPolisWeb:
+    id_documento = (
+        row.get("IDDOCUMENTO")
+        or row.get("NUMERODOCUMENTO")
+        or row.get("IDDOCMITTENTE")
+        or ""
+    ).strip()
+    tipo = _qbuilder_tipo_documento(row.get("TIPO") or row.get("TIPODOCUMENTO") or "")
+    nome = (row.get("NOMEFILE") or row.get("NOME") or "").strip()
+    if not nome:
+        nome = f"Documento_{id_documento}.pdf" if id_documento else "Documento.pdf"
+    return DocumentoPolisWeb(
+        id_documento=id_documento,
+        nome=nome,
+        tipo=tipo,
+        data_deposito=(row.get("DATADEPOSITO") or row.get("DATACREAZIONE") or "").strip(),
+        mittente=(row.get("AUTORE") or row.get("MITTENTE") or "").strip(),
+        dimensione_bytes=int((row.get("DIMENSIONE") or 0) or 0),
+        disponibile=(row.get("STATO") or "").strip().lower() != "non disponibile",
+        id_deposito=(row.get("IDBUSTA") or row.get("IDDEPOSITO") or "").strip(),
+        tipo_atto=tipo,
+    )
+
+
+def _matches_parte_filters(fascicolo: FascicoloPolisWeb, nome_parte: Optional[str], codice_fiscale_parte: Optional[str]) -> bool:
+    nome = (nome_parte or "").strip().upper()
+    cf = (codice_fiscale_parte or "").strip().upper()
+    if not nome and not cf:
+        return True
+
+    for parte in fascicolo.parti:
+        if nome and nome in (parte or "").upper():
+            return True
+
+    for parte in getattr(fascicolo, "parti_dettaglio", []) or []:
+        nome_full = (parte.get("nome") or "").upper()
+        cf_full = (parte.get("codice_fiscale") or "").upper()
+        if nome and nome in nome_full:
+            return True
+        if cf and cf == cf_full:
+            return True
+
+    return False
+
+
+def _soap_fault_message(xml_text: str) -> str:
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return ""
+
+    for node in root.iter():
+        tag = node.tag.split("}")[-1].lower()
+        if tag in {"faultstring", "reason", "text"}:
+            text = (node.text or "").strip()
+            if text:
+                return text
+    return ""
 
 
 # ================================================================ Dataclass risultati
@@ -58,6 +293,7 @@ class FascicoloPolisWeb:
     data_iscrizione: str = ""   # YYYY-MM-DD
     data_udienza: str = ""      # prossima udienza
     parti: List[str] = field(default_factory=list)
+    parti_dettaglio: List[Dict[str, str]] = field(default_factory=list)
     note: str = ""
     codice_ufficio: str = ""    # codice MinGiust del tribunale
     nome_ufficio: str = ""
@@ -86,7 +322,760 @@ class RisultatoImportazione:
     messaggio: str = ""
     fascicolo_polis: Optional[FascicoloPolisWeb] = None
     documenti_importati: int = 0
+    depositi_importati: int = 0
     avvisi: List[str] = field(default_factory=list)
+
+
+def _chiave_deposito_polisweb(documento: DocumentoPolisWeb) -> str:
+    data = _parse_data(documento.data_deposito)
+    mittente = (documento.mittente or "").strip()
+    return (documento.id_deposito or f"__{data}__{mittente}").strip()
+
+
+def _documento_polisweb_principale(documento: DocumentoPolisWeb) -> bool:
+    tipo = (documento.tipo or "").upper()
+    nome = (documento.nome or "").upper()
+    return any(
+        token in tipo or token in nome
+        for token in (
+            "ATTO",
+            "RICORSO",
+            "CITAZIONE",
+            "COMPARSA",
+            "MEMORIA",
+            "OPPOSIZIONE",
+            "PROVVEDIMENTO",
+            "SENTENZA",
+            "ORDINANZA",
+            "DECRETO",
+        )
+    )
+
+
+def _tipo_atto_gruppo_polisweb(documenti: List[DocumentoPolisWeb]) -> str:
+    for doc in documenti:
+        label = (doc.tipo_atto or "").strip()
+        if label:
+            return label
+    for doc in documenti:
+        label = (doc.tipo or "").strip()
+        if label:
+            return label.replace("_", " ").strip()
+    return "Deposito telematico"
+
+
+def _nome_atto_principale_gruppo_polisweb(documenti: List[DocumentoPolisWeb]) -> str:
+    for doc in documenti:
+        if _documento_polisweb_principale(doc) and (doc.nome or "").strip():
+            return doc.nome.strip()
+    for doc in documenti:
+        if (doc.nome or "").strip():
+            return doc.nome.strip()
+    return ""
+
+
+def _documento_polisweb_to_dict(documento: DocumentoPolisWeb) -> Dict[str, Any]:
+    return {
+        "id_documento": (documento.id_documento or "").strip(),
+        "nome": (documento.nome or "").strip(),
+        "tipo": (documento.tipo or "").strip(),
+        "data_deposito": _parse_data(documento.data_deposito),
+        "mittente": (documento.mittente or "").strip(),
+        "dimensione_bytes": int(documento.dimensione_bytes or 0),
+        "disponibile": bool(documento.disponibile),
+        "id_deposito": _chiave_deposito_polisweb(documento),
+        "tipo_atto": (documento.tipo_atto or _tipo_atto_gruppo_polisweb([documento])).strip(),
+    }
+
+
+def _gruppa_documenti_polisweb_per_deposito(documenti_pw: Optional[List[DocumentoPolisWeb]]) -> List[Dict[str, Any]]:
+    gruppi: Dict[str, Dict[str, Any]] = {}
+    for doc in sorted(
+        documenti_pw or [],
+        key=lambda item: (
+            _parse_data(item.data_deposito),
+            _chiave_deposito_polisweb(item),
+            (item.nome or "").strip(),
+        ),
+        reverse=True,
+    ):
+        chiave = _chiave_deposito_polisweb(doc)
+        if chiave not in gruppi:
+            gruppi[chiave] = {
+                "id_deposito": chiave,
+                "tipo_atto": "",
+                "data_deposito": _parse_data(doc.data_deposito),
+                "mittente": (doc.mittente or "").strip(),
+                "documenti": [],
+                "nome_atto_principale": "",
+            }
+        gruppi[chiave]["documenti"].append(doc)
+
+    depositi: List[Dict[str, Any]] = []
+    for gruppo in gruppi.values():
+        docs = gruppo["documenti"]
+        gruppo["tipo_atto"] = _tipo_atto_gruppo_polisweb(docs)
+        gruppo["nome_atto_principale"] = _nome_atto_principale_gruppo_polisweb(docs)
+        gruppo["documenti_portale"] = [_documento_polisweb_to_dict(doc) for doc in docs]
+        depositi.append(gruppo)
+
+    depositi.sort(
+        key=lambda gruppo: (gruppo.get("data_deposito") or "", gruppo.get("id_deposito") or ""),
+        reverse=True,
+    )
+    return depositi
+
+
+def _sincronizza_depositi_documentali_polisweb(
+    *,
+    fascicolo_locale,
+    gestione_fascicoli,
+    documenti_pw: Optional[List[DocumentoPolisWeb]],
+    avvocato_referente: str = "",
+    fonte: str = "PolisWeb / PST",
+) -> tuple[Any, int, int]:
+    gruppi = _gruppa_documenti_polisweb_per_deposito(documenti_pw)
+    if not gruppi:
+        return fascicolo_locale, 0, 0
+
+    for gruppo in gruppi:
+        descrizione = (
+            f"{len(gruppo['documenti_portale'])} documenti ufficiali censiti da {fonte}."
+        )
+        gestione_fascicoli.sincronizza_deposito_portale(
+            fascicolo_locale.id,
+            fonte=fonte,
+            id_deposito_esterno=gruppo["id_deposito"],
+            tipo_atto=gruppo["tipo_atto"],
+            data_deposito=gruppo["data_deposito"],
+            mittente=gruppo["mittente"],
+            documenti_portale=gruppo["documenti_portale"],
+            registrato_da=avvocato_referente,
+            note=descrizione,
+            nome_atto_principale=gruppo["nome_atto_principale"],
+            stato="IMPORTATO_DA_PST",
+        )
+    fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
+    return fascicolo_locale, len(gruppi), sum(len(gruppo["documenti_portale"]) for gruppo in gruppi)
+
+
+# ================================================================ Helper: riconcilia soggetti
+
+def _is_persona_giuridica(nome: str) -> bool:
+    """Euristica: il nome contiene indicatori di forma giuridica o ente."""
+    indicatori = (
+        "SRL", "S.R.L", "SPA", "S.P.A", "SAS", "S.A.S", "SNC", "S.N.C",
+        "SRLS", "S.R.L.S", "SAP", "SOCIETA", "SOCIETÀ", "ASSOCIAZIONE",
+        "FONDAZIONE", "COOPERATIVA", "CONDOMINIO", "COMUNE DI", "MINISTERO",
+        "AGENZIA", "ISTITUTO", "ENTE ", "STUDIO LEGALE",
+    )
+    return any(ind in nome.upper() for ind in indicatori)
+
+
+def _split_nome_cognome(nome_completo: str) -> tuple[str, str]:
+    """
+    Divide un nominativo PST ('COGNOME NOME') in (cognome, nome).
+    Euristica: ultimo token = nome, resto = cognome.
+    """
+    parti = nome_completo.strip().split()
+    if not parti:
+        return "", ""
+    if len(parti) == 1:
+        return parti[0].title(), ""
+    cognome = " ".join(p.title() for p in parti[:-1])
+    nome    = parti[-1].title()
+    return cognome, nome
+
+
+def _nome_normalizzato(nome: str) -> str:
+    return re.sub(r"\s+", " ", (nome or "").strip()).upper()
+
+
+def _iter_parti_pst(
+    nomi: List[str],
+    dettagli: Optional[List[Dict[str, str]]] = None,
+) -> List[Dict[str, str]]:
+    parti: List[Dict[str, str]] = []
+    visti: set[tuple[str, str]] = set()
+
+    for dettaglio in dettagli or []:
+        nome = re.sub(r"\s+", " ", (dettaglio.get("nome") or "").strip())
+        cf = (dettaglio.get("codice_fiscale") or "").strip().upper()
+        if not nome:
+            continue
+        chiave = (_nome_normalizzato(nome), cf)
+        if chiave in visti:
+            continue
+        visti.add(chiave)
+        parti.append(
+            {
+                "nome": nome,
+                "codice_fiscale": cf,
+                "tipo": (dettaglio.get("tipo") or "").strip(),
+                "avvocato": (dettaglio.get("avvocato") or "").strip(),
+                "cf_avvocato": (dettaglio.get("cf_avvocato") or "").strip().upper(),
+            }
+        )
+
+    for nome_raw in nomi or []:
+        nome = re.sub(r"\s+", " ", (nome_raw or "").strip())
+        if not nome:
+            continue
+        chiave = (_nome_normalizzato(nome), "")
+        if chiave in visti:
+            continue
+        visti.add(chiave)
+        parti.append(
+            {
+                "nome": nome,
+                "codice_fiscale": "",
+                "tipo": "",
+                "avvocato": "",
+                "cf_avvocato": "",
+            }
+        )
+
+    return parti
+
+
+def _cerca_cliente_pst(gestione_clienti, nome: str, codice_fiscale: str = ""):
+    nome_norm = _nome_normalizzato(nome)
+    cf = (codice_fiscale or "").strip().upper()
+
+    for cliente in gestione_clienti.tutti():
+        identificativo = (getattr(cliente, "identificativo_fiscale", "") or "").strip().upper()
+        if cf and identificativo == cf:
+            return cliente
+
+    for cliente in gestione_clienti.tutti():
+        nome_cliente = _nome_normalizzato(cliente.nome_completo)
+        if nome_norm and (nome_norm == nome_cliente or nome_norm in nome_cliente or nome_cliente in nome_norm):
+            return cliente
+
+    return None
+
+
+def _crea_cliente_pst(
+    gestione_clienti,
+    nome: str,
+    codice_fiscale: str,
+    riferimento: str,
+    portale: str,
+):
+    from pct.clienti import StatoCliente, TipoCliente
+
+    nota_auto = f"Inserito automaticamente da {portale} — {riferimento}"
+    nome = re.sub(r"\s+", " ", (nome or "").strip())
+    codice_fiscale = (codice_fiscale or "").strip().upper()
+
+    if _is_persona_giuridica(nome):
+        return gestione_clienti.nuovo(
+            tipo=TipoCliente.PERSONA_GIURIDICA,
+            ragione_sociale=nome,
+            codice_fiscale=codice_fiscale,
+            stato=StatoCliente.POTENZIALE,
+            note=nota_auto,
+        )
+
+    cognome, nome_pf = _split_nome_cognome(nome)
+    return gestione_clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        cognome=cognome,
+        nome=nome_pf,
+        codice_fiscale=codice_fiscale,
+        stato=StatoCliente.POTENZIALE,
+        note=nota_auto,
+    )
+
+
+def _cerca_soggetto_pst(
+    gestione_soggetti,
+    nome: str,
+    codice_fiscale: str = "",
+    id_cliente: str = "",
+):
+    nome_norm = _nome_normalizzato(nome)
+    cf = (codice_fiscale or "").strip().upper()
+
+    for soggetto in gestione_soggetti.tutti():
+        if id_cliente and soggetto.id_cliente == id_cliente and _nome_normalizzato(soggetto.nome_completo) == nome_norm:
+            return soggetto
+
+    for soggetto in gestione_soggetti.tutti():
+        identificativo = (getattr(soggetto, "identificativo", "") or "").strip().upper()
+        if cf and identificativo == cf:
+            return soggetto
+
+    for soggetto in gestione_soggetti.tutti():
+        nome_soggetto = _nome_normalizzato(soggetto.nome_completo)
+        if nome_norm and (nome_norm == nome_soggetto or nome_norm in nome_soggetto or nome_soggetto in nome_norm):
+            return soggetto
+
+    return None
+
+
+def _crea_soggetto_pst(
+    gestione_soggetti,
+    nome: str,
+    codice_fiscale: str = "",
+    id_cliente: str = "",
+    note: str = "",
+):
+    from pct.soggetti import TipoSoggetto
+
+    nome = re.sub(r"\s+", " ", (nome or "").strip())
+    codice_fiscale = (codice_fiscale or "").strip().upper()
+
+    if _is_persona_giuridica(nome):
+        return gestione_soggetti.crea(
+            TipoSoggetto.PERSONA_GIURIDICA,
+            ragione_sociale=nome,
+            codice_fiscale=codice_fiscale,
+            id_cliente=id_cliente,
+            note=note,
+        )
+
+    cognome, nome_pf = _split_nome_cognome(nome)
+    return gestione_soggetti.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        cognome=cognome,
+        nome=nome_pf,
+        codice_fiscale=codice_fiscale,
+        id_cliente=id_cliente,
+        note=note,
+    )
+
+
+def _ruolo_parte_pst(idx: int, parte: Dict[str, str], id_cliente_principale: str, soggetto):
+    from pct.soggetti import RuoloSoggetto
+
+    tipo = _nome_normalizzato(parte.get("tipo", ""))
+    if id_cliente_principale and getattr(soggetto, "id_cliente", "") == id_cliente_principale:
+        return RuoloSoggetto.ASSISTITO
+
+    parole_controparte = (
+        "CONVENUT",
+        "RESISTENT",
+        "APPELLAT",
+        "OPPOST",
+        "ESECUTAT",
+        "DEBITOR",
+        "INTIMAT",
+        "CONTROPARTE",
+        "IMPUTAT",
+    )
+    if any(p in tipo for p in parole_controparte):
+        return RuoloSoggetto.CONTROPARTE
+
+    return RuoloSoggetto.ASSISTITO if idx == 0 else RuoloSoggetto.CONTROPARTE
+
+
+def riconcilia_soggetti_pst(
+    nomi: List[str],
+    gestione_clienti,
+    riferimento: str,
+    portale: str = "PolisWeb",
+) -> tuple[str, str, List[str]]:
+    """
+    Riconcilia una lista di nominativi (parti/imputati/ricorrenti) con
+    l'anagrafica clienti del gestionale.
+
+    Per ogni nominativo:
+      - Se esiste un cliente con nome corrispondente → riutilizza
+      - Se non esiste → crea automaticamente un nuovo cliente POTENZIALE
+
+    Args:
+        nomi:             Lista di nominativi (stringhe) restituiti dal portale.
+        gestione_clienti: Istanza di GestioneClienti.
+        riferimento:      Stringa usata nelle note (es. "RG 123/2024 — Tribunale di Milano").
+        portale:          Nome del portale sorgente (PolisWeb/PDP/PAT).
+
+    Returns:
+        (id_cliente_principale, nome_cliente_principale, avvisi)
+        dove id_cliente_principale è il cliente corrispondente alla prima parte valida.
+    """
+    from pct.clienti import TipoCliente, StatoCliente
+
+    id_principale   = ""
+    nome_principale = ""
+    avvisi: List[str] = []
+    clienti_cache = gestione_clienti.tutti()
+
+    for i, nome_raw in enumerate(nomi):
+        nome_raw = (nome_raw or "").strip()
+        if not nome_raw:
+            continue
+
+        nome_up = nome_raw.upper()
+
+        # Cerca cliente esistente (match parziale bidirezionale, case-insensitive)
+        trovato = None
+        for c in clienti_cache:
+            nc_up = c.nome_completo.upper()
+            if nome_up in nc_up or nc_up in nome_up:
+                trovato = c
+                break
+
+        if trovato is None:
+            try:
+                nota_auto = (
+                    f"Inserito automaticamente da {portale} — {riferimento}"
+                )
+                if _is_persona_giuridica(nome_raw):
+                    trovato = gestione_clienti.nuovo(
+                        tipo=TipoCliente.PERSONA_GIURIDICA,
+                        ragione_sociale=nome_raw.title(),
+                        stato=StatoCliente.POTENZIALE,
+                        note=nota_auto,
+                    )
+                else:
+                    cognome, nome = _split_nome_cognome(nome_raw)
+                    trovato = gestione_clienti.nuovo(
+                        tipo=TipoCliente.PERSONA_FISICA,
+                        cognome=cognome,
+                        nome=nome,
+                        stato=StatoCliente.POTENZIALE,
+                        note=nota_auto,
+                    )
+                # Aggiorna cache locale per evitare duplicati nelle iterazioni successive
+                clienti_cache = gestione_clienti.tutti()
+                avvisi.append(
+                    f"Nuovo soggetto creato in anagrafica: "
+                    f"«{trovato.nome_completo}» (stato: Potenziale)."
+                )
+            except Exception as e_crea:
+                avvisi.append(
+                    f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
+                )
+
+        # Il primo soggetto elaborato con successo → cliente principale del fascicolo
+        if i == 0 and trovato:
+            id_principale   = trovato.id
+            nome_principale = trovato.nome_completo
+
+    return id_principale, nome_principale, avvisi
+
+
+def _riconcilia_parti_dettaglio_polisweb(
+    fascicolo_pw: FascicoloPolisWeb,
+    gestione_clienti,
+    riferimento: str,
+    portale: str = "PolisWeb",
+) -> tuple[str, str, List[str]]:
+    id_principale = ""
+    nome_principale = ""
+    avvisi: List[str] = []
+
+    for idx, parte in enumerate(_iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)):
+        nome_raw = parte["nome"]
+        codice_fiscale = parte.get("codice_fiscale", "")
+        trovato = _cerca_cliente_pst(gestione_clienti, nome_raw, codice_fiscale)
+
+        if trovato is None:
+            try:
+                trovato = _crea_cliente_pst(
+                    gestione_clienti=gestione_clienti,
+                    nome=nome_raw,
+                    codice_fiscale=codice_fiscale,
+                    riferimento=riferimento,
+                    portale=portale,
+                )
+                avvisi.append(
+                    f"Nuovo soggetto creato in anagrafica: "
+                    f"«{trovato.nome_completo}» (stato: Potenziale)."
+                )
+            except Exception as e_crea:
+                avvisi.append(
+                    f"Impossibile creare il soggetto «{nome_raw}»: {e_crea}"
+                )
+
+        if idx == 0 and trovato:
+            id_principale = trovato.id
+            nome_principale = trovato.nome_completo
+
+    return id_principale, nome_principale, avvisi
+
+
+def _sincronizza_parti_pst_su_fascicolo(
+    fascicolo_pw: FascicoloPolisWeb,
+    fascicolo_locale,
+    gestione_clienti,
+    gestione_soggetti,
+    id_cliente_principale: str,
+    riferimento: str,
+    portale: str = "PolisWeb",
+) -> tuple[str, str, List[str]]:
+    from pct.clienti import RiferimentoProcedimento
+
+    avvisi: List[str] = []
+    controparte = ""
+    cf_controparte = ""
+
+    if not gestione_soggetti:
+        return controparte, cf_controparte, avvisi
+
+    for idx, parte in enumerate(_iter_parti_pst(fascicolo_pw.parti, fascicolo_pw.parti_dettaglio)):
+        nome = parte["nome"]
+        codice_fiscale = parte.get("codice_fiscale", "")
+        cliente = _cerca_cliente_pst(gestione_clienti, nome, codice_fiscale)
+        id_cliente_assoc = cliente.id if cliente else (id_cliente_principale if idx == 0 else "")
+        soggetto = _cerca_soggetto_pst(
+            gestione_soggetti=gestione_soggetti,
+            nome=nome,
+            codice_fiscale=codice_fiscale,
+            id_cliente=id_cliente_assoc,
+        )
+
+        if soggetto is None:
+            tipo_parte = (parte.get("tipo") or "").strip()
+            nota = f"Importato automaticamente da {portale} — {riferimento}"
+            if tipo_parte:
+                nota = f"{nota} (parte PST: {tipo_parte})"
+            soggetto = _crea_soggetto_pst(
+                gestione_soggetti=gestione_soggetti,
+                nome=nome,
+                codice_fiscale=codice_fiscale,
+                id_cliente=id_cliente_assoc,
+                note=nota,
+            )
+            avvisi.append(f"Nuova parte creata nel database soggetti: «{soggetto.nome_completo}».")
+
+        ruolo = _ruolo_parte_pst(idx, parte, id_cliente_principale, soggetto)
+        note_parte = "Importato da PolisWeb"
+        if parte.get("tipo"):
+            note_parte = f"{note_parte} — tipo PST: {parte['tipo']}"
+        gestione_soggetti.aggiungi_parte(
+            fascicolo_locale.id,
+            soggetto.id,
+            ruolo=ruolo,
+            note=note_parte,
+        )
+
+        if ruolo.value == "CONTROPARTE" and not controparte:
+            controparte = soggetto.nome_completo
+            cf_controparte = codice_fiscale
+
+    if id_cliente_principale:
+        cliente_principale = gestione_clienti.get(id_cliente_principale)
+        if cliente_principale and not any(
+            p.numero_rg == fascicolo_pw.numero_rg
+            and p.anno == fascicolo_pw.anno_rg
+            and p.tribunale == fascicolo_pw.nome_ufficio
+            for p in cliente_principale.procedimenti
+        ):
+            gestione_clienti.aggiungi_procedimento(
+                id_cliente_principale,
+                RiferimentoProcedimento(
+                    numero_rg=fascicolo_pw.numero_rg,
+                    anno=fascicolo_pw.anno_rg,
+                    tribunale=fascicolo_pw.nome_ufficio,
+                    descrizione=fascicolo_pw.oggetto,
+                    data_apertura=fascicolo_pw.data_iscrizione or fascicolo_locale.data_apertura,
+                    attivo=fascicolo_locale.stato.value not in {"DEFINITO", "ARCHIVIATO"},
+                ),
+            )
+
+    return controparte, cf_controparte, avvisi
+
+
+def _titolo_fascicolo_polisweb(fascicolo_pw: FascicoloPolisWeb) -> str:
+    base = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}"
+    oggetto = (fascicolo_pw.oggetto or "").strip()
+    return f"{base} — {oggetto[:80]}" if oggetto else base
+
+
+def _titolo_generico_fascicolo_polisweb(titolo: str, fascicolo_pw: FascicoloPolisWeb) -> bool:
+    titolo = (titolo or "").strip()
+    base = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}"
+    if titolo in {"", base, f"{base} —", f"{base} –", f"{base} -", f"{base} ?"}:
+        return True
+    if not titolo.startswith(base):
+        return False
+    suffisso = titolo[len(base):].strip()
+    return not suffisso.strip("—–-? ")
+
+
+def _data_apertura_generica_polisweb(fascicolo_locale) -> bool:
+    data_apertura = _parse_data(getattr(fascicolo_locale, "data_apertura", ""))
+    if not data_apertura:
+        return True
+    creato_il = _parse_data(getattr(fascicolo_locale, "creato_il", ""))
+    if creato_il and data_apertura == creato_il:
+        return True
+    note = getattr(fascicolo_locale, "note", "") or ""
+    match = re.search(r"Importato da PolisWeb il (\d{4}-\d{2}-\d{2})", note)
+    return bool(match and data_apertura == match.group(1))
+
+
+def _attivita_polisweb_presente(fascicolo_locale, tipo, data_attivita: str, titolo: str) -> bool:
+    titolo_norm = _nome_normalizzato(titolo)
+    data_norm = _parse_data(data_attivita)
+    return any(
+        att.tipo == tipo
+        and _parse_data(att.data) == data_norm
+        and _nome_normalizzato(att.titolo) == titolo_norm
+        for att in getattr(fascicolo_locale, "attivita", []) or []
+    )
+
+
+def _sincronizza_metadati_fascicolo_polisweb(
+    fascicolo_pw: FascicoloPolisWeb,
+    fascicolo_locale,
+    gestione_fascicoli,
+    gestione_clienti,
+    avvocato_referente: str = "",
+    gestione_soggetti=None,
+    documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
+) -> RisultatoImportazione:
+    from pct.fascicoli import TipoAttivita
+
+    riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
+    avvisi: List[str] = []
+    oggi_iso = date.today().isoformat()
+    data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione)
+    data_udienza = _parse_data(fascicolo_pw.data_udienza)
+
+    id_cliente = fascicolo_locale.id_cliente or ""
+    nome_cliente = fascicolo_locale.nome_cliente or ""
+
+    if fascicolo_pw.parti or fascicolo_pw.parti_dettaglio:
+        id_cliente_sync, nome_cliente_sync, avvisi_clienti = _riconcilia_parti_dettaglio_polisweb(
+            fascicolo_pw=fascicolo_pw,
+            gestione_clienti=gestione_clienti,
+            riferimento=riferimento,
+            portale="PolisWeb",
+        )
+        avvisi.extend(avvisi_clienti)
+        if not id_cliente and id_cliente_sync:
+            id_cliente = id_cliente_sync
+        if not nome_cliente and nome_cliente_sync:
+            nome_cliente = nome_cliente_sync
+
+    campi_update: Dict[str, Any] = {}
+    if id_cliente and not fascicolo_locale.id_cliente:
+        campi_update["id_cliente"] = id_cliente
+    if nome_cliente and not fascicolo_locale.nome_cliente:
+        campi_update["nome_cliente"] = nome_cliente
+    if fascicolo_pw.nome_ufficio and not fascicolo_locale.tribunale:
+        campi_update["tribunale"] = fascicolo_pw.nome_ufficio
+    if fascicolo_pw.oggetto and not fascicolo_locale.oggetto:
+        campi_update["oggetto"] = fascicolo_pw.oggetto
+    if fascicolo_pw.sezione and not fascicolo_locale.sezione:
+        campi_update["sezione"] = fascicolo_pw.sezione
+    if fascicolo_pw.giudice and not fascicolo_locale.giudice:
+        campi_update["giudice"] = fascicolo_pw.giudice
+    if data_iscrizione and (
+        not _parse_data(fascicolo_locale.data_apertura)
+        or _data_apertura_generica_polisweb(fascicolo_locale)
+    ):
+        campi_update["data_apertura"] = data_iscrizione
+    if data_udienza:
+        data_prima_attuale = _parse_data(fascicolo_locale.data_prima_udienza)
+        data_prossima_attuale = _parse_data(fascicolo_locale.data_prossima_udienza)
+        if not data_prima_attuale or data_udienza < data_prima_attuale:
+            campi_update["data_prima_udienza"] = data_udienza
+        if data_udienza >= oggi_iso and (
+            not data_prossima_attuale or data_udienza < data_prossima_attuale
+        ):
+            campi_update["data_prossima_udienza"] = data_udienza
+    if _titolo_generico_fascicolo_polisweb(fascicolo_locale.titolo, fascicolo_pw):
+        campi_update["titolo"] = _titolo_fascicolo_polisweb(fascicolo_pw)
+
+    if campi_update:
+        fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_update)
+
+    if data_iscrizione and not _attivita_polisweb_presente(
+        fascicolo_locale,
+        TipoAttivita.ISCRIZIONE_A_RUOLO,
+        data_iscrizione,
+        "Iscrizione a ruolo (importata da PolisWeb)",
+    ):
+        gestione_fascicoli.aggiungi_attivita(
+            fascicolo_locale.id,
+            tipo=TipoAttivita.ISCRIZIONE_A_RUOLO,
+            data=data_iscrizione,
+            titolo="Iscrizione a ruolo (importata da PolisWeb)",
+            descrizione=f"Pratica sincronizzata da PolisWeb - RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+            avvocato=avvocato_referente,
+        )
+        fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
+
+    if data_udienza and not _attivita_polisweb_presente(
+        fascicolo_locale,
+        TipoAttivita.UDIENZA,
+        data_udienza,
+        "Udienza (importata da PolisWeb)",
+    ):
+        gestione_fascicoli.aggiungi_attivita(
+            fascicolo_locale.id,
+            tipo=TipoAttivita.UDIENZA,
+            data=data_udienza,
+            titolo="Udienza (importata da PolisWeb)",
+            descrizione=f"Udienza automaticamente sincronizzata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+            avvocato=avvocato_referente,
+        )
+        fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
+
+    try:
+        controparte, cf_controparte, avvisi_parti = _sincronizza_parti_pst_su_fascicolo(
+            fascicolo_pw=fascicolo_pw,
+            fascicolo_locale=fascicolo_locale,
+            gestione_clienti=gestione_clienti,
+            gestione_soggetti=gestione_soggetti,
+            id_cliente_principale=id_cliente,
+            riferimento=riferimento,
+            portale="PolisWeb",
+        )
+        avvisi.extend(avvisi_parti)
+        campi_parti: Dict[str, Any] = {}
+        if controparte and not fascicolo_locale.controparte:
+            campi_parti["controparte"] = controparte
+        if cf_controparte and not fascicolo_locale.cf_controparte:
+            campi_parti["cf_controparte"] = cf_controparte
+        if campi_parti:
+            fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_parti)
+    except Exception as e:
+        avvisi.append(f"Parti del procedimento non sincronizzate: {e}")
+
+    if not id_cliente:
+        avvisi.append(
+            "Nessun soggetto valido nelle parti della causa. "
+            "Assegnare il cliente manualmente."
+        )
+
+    depositi_importati = 0
+    documenti_importati = 0
+    if documenti_pw:
+        try:
+            fascicolo_locale, depositi_importati, documenti_importati = _sincronizza_depositi_documentali_polisweb(
+                fascicolo_locale=fascicolo_locale,
+                gestione_fascicoli=gestione_fascicoli,
+                documenti_pw=documenti_pw,
+                avvocato_referente=avvocato_referente,
+                fonte="PolisWeb / PST",
+            )
+        except Exception as e:
+            avvisi.append(f"Metadati depositi/documenti PolisWeb non sincronizzati: {e}")
+
+    messaggio = (
+        f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} "
+        "sincronizzata sul fascicolo esistente."
+    )
+    if depositi_importati or documenti_importati:
+        messaggio += (
+            f" Censiti {depositi_importati} depositi e "
+            f"{documenti_importati} documenti ufficiali da PolisWeb."
+        )
+
+    return RisultatoImportazione(
+        successo=True,
+        id_fascicolo_locale=fascicolo_locale.id,
+        messaggio=messaggio,
+        fascicolo_polis=fascicolo_pw,
+        documenti_importati=documenti_importati,
+        depositi_importati=depositi_importati,
+        avvisi=avvisi,
+    )
 
 
 # ================================================================ Client PolisWeb
@@ -135,6 +1124,7 @@ class ClientPolisWeb:
         self.cf_avvocato      = codice_fiscale_avvocato.upper()
         self.timeout          = timeout
         self._zeep_cache: Dict[str, Any] = {}
+        self._session_cache: Dict[str, Any] = {}
 
     # ---------------------------------------------------------------- Ricerca fascicoli
 
@@ -166,12 +1156,36 @@ class ClientPolisWeb:
             ConnectionError: se il PST non è raggiungibile.
             PermissionError: se il certificato non è valido / scaduto.
         """
-        client = self._get_client(_WSDL_RICERCA)
+        base_pst = self._risolvi_base_pst(tribunale)
+        codice_pst = self._risolvi_codice_ufficio(tribunale)
 
-        # Costruzione request conforme al WSDL PST
+        if _pst_usa_qbuilder(base_pst):
+            xml = self._execute_qbuilder(
+                base_pst,
+                self._soap_ricerca_fascicoli_qbuilder(
+                    base_pst=base_pst,
+                    codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                    nome_parte=nome_parte,
+                    codice_fiscale_parte=codice_fiscale_parte,
+                ),
+            )
+            fascicoli = self._parse_fascicoli_qbuilder_xml(xml)
+            if fascicoli and len(fascicoli) <= min(max_risultati, 10):
+                fascicoli = self._arricchisci_fascicoli_con_profilo(base_pst, fascicoli)
+            if not (numero_rg and anno_rg) and (nome_parte or codice_fiscale_parte):
+                fascicoli = [
+                    f for f in fascicoli
+                    if _matches_parte_filters(f, nome_parte, codice_fiscale_parte)
+                ]
+            return fascicoli[:max_risultati]
+
+        client = self._get_client(_wsdl_ricerca(base_pst))
+
         request_dict = {
             "codiceFiscaleAvvocato": self.cf_avvocato,
-            "codiceUfficio": self._risolvi_codice_ufficio(tribunale),
+            "codiceUfficio": codice_pst,
             "maxRisultati": max_risultati,
         }
         if numero_rg:
@@ -209,11 +1223,26 @@ class ClientPolisWeb:
         Returns:
             Lista di DocumentoPolisWeb.
         """
-        client = self._get_client(_WSDL_CONSULTAZIONE)
+        base_pst = self._risolvi_base_pst(codice_ufficio)
+        codice_pst = self._risolvi_codice_ufficio(codice_ufficio)
+
+        if _pst_usa_qbuilder(base_pst):
+            xml = self._execute_qbuilder(
+                base_pst,
+                self._soap_documenti_qbuilder(
+                    base_pst=base_pst,
+                    codice_ufficio=codice_pst,
+                    numero_rg=numero_rg,
+                    anno_rg=anno_rg,
+                ),
+            )
+            return self._parse_documenti_qbuilder_xml(xml)
+
+        client = self._get_client(_wsdl_consultazione(base_pst))
         try:
             risposta = client.service.consultazioneAvanzataDocumenti(
                 codiceFiscaleAvvocato=self.cf_avvocato,
-                codiceUfficio=codice_ufficio,
+                codiceUfficio=codice_pst,
                 numeroRG=numero_rg,
                 annoRG=anno_rg,
             )
@@ -221,6 +1250,27 @@ class ClientPolisWeb:
             raise ConnectionError(f"Errore consultazione PST: {e}") from e
 
         return self._parse_documenti(risposta)
+
+    def _precarica_documenti_importazione(
+        self,
+        fascicolo_pw: FascicoloPolisWeb,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
+    ) -> tuple[List[DocumentoPolisWeb], List[str]]:
+        if documenti_pw is not None:
+            return list(documenti_pw), []
+
+        if not (fascicolo_pw.codice_ufficio and fascicolo_pw.numero_rg and fascicolo_pw.anno_rg):
+            return [], []
+
+        try:
+            documenti = self.consulta_documenti(
+                fascicolo_pw.codice_ufficio,
+                fascicolo_pw.numero_rg,
+                fascicolo_pw.anno_rg,
+            )
+            return list(documenti or []), []
+        except Exception as e:
+            return [], [f"Metadati depositi/documenti PolisWeb non acquisiti: {e}"]
 
     # ---------------------------------------------------------------- Import pratica
 
@@ -230,6 +1280,8 @@ class ClientPolisWeb:
         gestione_fascicoli,        # GestioneFascicoli instance
         gestione_clienti,          # GestioneClienti instance
         avvocato_referente: str = "",
+        gestione_soggetti=None,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
     ) -> RisultatoImportazione:
         """
         Importa una pratica PolisWeb come nuovo Fascicolo nel gestionale.
@@ -250,8 +1302,11 @@ class ClientPolisWeb:
             RisultatoImportazione con id_fascicolo_locale se successo.
         """
         try:
-            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita, EsitoAttivita
-            from pct.clienti import TipoCliente
+            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita
+
+            data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione) or date.today().isoformat()
+            data_udienza = _parse_data(fascicolo_pw.data_udienza)
+            data_prossima_udienza = data_udienza if data_udienza and data_udienza >= date.today().isoformat() else ""
 
             # 1. Mappa il tipo ruolo → TipoFascicolo
             tipo_map = {
@@ -276,22 +1331,25 @@ class ClientPolisWeb:
                 fascicolo_pw.stato.upper(), StatoFascicolo.APERTO
             )
 
-            # 2. Trova o crea cliente (prima parte registrata)
-            id_cliente = ""
-            nome_cliente = ""
-            if fascicolo_pw.parti:
-                nome_parte = fascicolo_pw.parti[0]
-                # Cerca per nome
-                clienti_esistenti = gestione_clienti.tutti()
-                for c in clienti_esistenti:
-                    if nome_parte.upper() in c.nome_completo.upper():
-                        id_cliente = c.id
-                        nome_cliente = c.nome_completo
-                        break
+            # 2. Riconcilia tutte le parti con l'anagrafica clienti.
+            #    Cerca ogni soggetto; se non esiste lo crea come POTENZIALE.
+            rif = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
+            id_cliente, nome_cliente, avvisi = _riconcilia_parti_dettaglio_polisweb(
+                fascicolo_pw=fascicolo_pw,
+                gestione_clienti=gestione_clienti,
+                riferimento=rif,
+                portale="PolisWeb",
+            )
+
+            documenti_pw_effettivi, avvisi_documenti = self._precarica_documenti_importazione(
+                fascicolo_pw,
+                documenti_pw=documenti_pw,
+            )
+            avvisi.extend(avvisi_documenti)
 
             # 3. Crea fascicolo
             fasc = gestione_fascicoli.nuovo(
-                titolo=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.oggetto[:80]}",
+                titolo=_titolo_fascicolo_polisweb(fascicolo_pw),
                 tipo=tipo_fascicolo,
                 id_cliente=id_cliente,
                 nome_cliente=nome_cliente,
@@ -303,19 +1361,31 @@ class ClientPolisWeb:
                 oggetto=fascicolo_pw.oggetto,
                 stato=stato,
                 avvocato_referente=avvocato_referente,
-                data_apertura=fascicolo_pw.data_iscrizione or date.today().isoformat(),
+                data_apertura=data_iscrizione,
+                data_prima_udienza=data_udienza or "",
+                data_prossima_udienza=data_prossima_udienza,
                 note=fascicolo_pw.note or f"Importato da PolisWeb il {date.today()}",
             )
 
-            avvisi = []
-
             # 4. Aggiungi prossima udienza come attività
-            if fascicolo_pw.data_udienza:
+            try:
+                gestione_fascicoli.aggiungi_attivita(
+                    fasc.id,
+                    tipo=TipoAttivita.ISCRIZIONE_A_RUOLO,
+                    data=data_iscrizione,
+                    titolo="Iscrizione a ruolo (importata da PolisWeb)",
+                    descrizione=f"Pratica importata da PolisWeb - RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
+                    avvocato=avvocato_referente,
+                )
+            except Exception as e:
+                avvisi.append(f"Iscrizione a ruolo non registrata: {e}")
+
+            if data_udienza:
                 try:
                     gestione_fascicoli.aggiungi_attivita(
                         fasc.id,
                         tipo=TipoAttivita.UDIENZA,
-                        data=fascicolo_pw.data_udienza,
+                        data=data_udienza,
                         titolo="Udienza (importata da PolisWeb)",
                         descrizione=f"Udienza automaticamente importata da PolisWeb — RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
                         avvocato=avvocato_referente,
@@ -323,17 +1393,60 @@ class ClientPolisWeb:
                 except Exception as e:
                     avvisi.append(f"Udienza non importata: {e}")
 
+            try:
+                controparte, cf_controparte, avvisi_parti = _sincronizza_parti_pst_su_fascicolo(
+                    fascicolo_pw=fascicolo_pw,
+                    fascicolo_locale=fasc,
+                    gestione_clienti=gestione_clienti,
+                    gestione_soggetti=gestione_soggetti,
+                    id_cliente_principale=id_cliente,
+                    riferimento=rif,
+                    portale="PolisWeb",
+                )
+                avvisi.extend(avvisi_parti)
+                if controparte or cf_controparte:
+                    fasc = gestione_fascicoli.aggiorna(
+                        fasc.id,
+                        controparte=controparte,
+                        cf_controparte=cf_controparte,
+                    )
+            except Exception as e:
+                avvisi.append(f"Parti del procedimento non sincronizzate: {e}")
+
             if not id_cliente:
                 avvisi.append(
-                    "Nessun cliente trovato in anagrafica per le parti della causa. "
+                    "Nessun soggetto valido nelle parti della causa. "
                     "Assegnare il cliente manualmente."
+                )
+
+            depositi_importati = 0
+            documenti_importati = 0
+            if documenti_pw_effettivi:
+                try:
+                    fasc, depositi_importati, documenti_importati = _sincronizza_depositi_documentali_polisweb(
+                        fascicolo_locale=fasc,
+                        gestione_fascicoli=gestione_fascicoli,
+                        documenti_pw=documenti_pw_effettivi,
+                        avvocato_referente=avvocato_referente,
+                        fonte="PolisWeb / PST",
+                    )
+                except Exception as e:
+                    avvisi.append(f"Metadati depositi/documenti PolisWeb non sincronizzati: {e}")
+
+            messaggio = f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} importata."
+            if depositi_importati or documenti_importati:
+                messaggio += (
+                    f" Censiti {depositi_importati} depositi e "
+                    f"{documenti_importati} documenti ufficiali da PolisWeb."
                 )
 
             return RisultatoImportazione(
                 successo=True,
                 id_fascicolo_locale=fasc.id,
-                messaggio=f"Pratica RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} importata.",
+                messaggio=messaggio,
                 fascicolo_polis=fascicolo_pw,
+                documenti_importati=documenti_importati,
+                depositi_importati=depositi_importati,
                 avvisi=avvisi,
             )
 
@@ -344,16 +1457,47 @@ class ClientPolisWeb:
                 fascicolo_polis=fascicolo_pw,
             )
 
+    def sincronizza_fascicolo_esistente(
+        self,
+        fascicolo_pw: FascicoloPolisWeb,
+        fascicolo_locale,
+        gestione_fascicoli,
+        gestione_clienti,
+        avvocato_referente: str = "",
+        gestione_soggetti=None,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
+    ) -> RisultatoImportazione:
+        """Completa un fascicolo già presente con i dati più ricchi provenienti da PolisWeb."""
+        try:
+            documenti_pw_effettivi, avvisi_documenti = self._precarica_documenti_importazione(
+                fascicolo_pw,
+                documenti_pw=documenti_pw,
+            )
+            risultato = _sincronizza_metadati_fascicolo_polisweb(
+                fascicolo_pw=fascicolo_pw,
+                fascicolo_locale=fascicolo_locale,
+                gestione_fascicoli=gestione_fascicoli,
+                gestione_clienti=gestione_clienti,
+                avvocato_referente=avvocato_referente,
+                gestione_soggetti=gestione_soggetti,
+                documenti_pw=documenti_pw_effettivi,
+            )
+            risultato.avvisi.extend(avvisi_documenti)
+            return risultato
+        except Exception as e:
+            return RisultatoImportazione(
+                successo=False,
+                id_fascicolo_locale=getattr(fascicolo_locale, "id", None),
+                messaggio=f"Errore durante la sincronizzazione: {e}",
+                fascicolo_polis=fascicolo_pw,
+            )
+
     # ---------------------------------------------------------------- SOAP helpers
 
     def _get_client(self, wsdl_url: str):
         """
         Crea (e memorizza in cache) un client zeep con autenticazione
         tramite certificato client.
-
-        Supporta due formati:
-          - P12/PFX: usa requests-pkcs12 (Pkcs12Adapter)
-          - PEM:     usa requests nativo con session.cert = (cert_path, key_path)
         """
         if wsdl_url in self._zeep_cache:
             return self._zeep_cache[wsdl_url]
@@ -361,14 +1505,24 @@ class ClientPolisWeb:
         try:
             import zeep
             import zeep.transports
-            from requests import Session
         except ImportError:
             raise ImportError("Installa zeep: pip install zeep")
 
-        session = Session()
-        pst_host = "https://wspa.giustizia.it"
+        parsed = urlparse(wsdl_url)
+        pst_host = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _WSP_BASE
+        session = self._build_requests_session(pst_host)
+        transport = zeep.transports.Transport(session=session, timeout=self.timeout)
+        client = zeep.Client(wsdl=wsdl_url, transport=transport)
+        self._zeep_cache[wsdl_url] = client
+        return client
 
-        # ── Selezione formato certificato ────────────────────────────────────
+    def _build_requests_session(self, pst_host: str):
+        from requests import Session
+
+        if _pst_endpoint_legacy(pst_host):
+            raise RuntimeError(_pst_endpoint_legacy_message())
+
+        session = Session()
         usa_pem = (
             self.cert_pem_path and self.key_pem_path
             and os.path.exists(self.cert_pem_path)
@@ -376,13 +1530,9 @@ class ClientPolisWeb:
         )
 
         if usa_pem:
-            # PEM: requests supporta nativamente il mutual TLS con (cert, key)
             if self.key_pem_password:
-                # Se la chiave è cifrata, la esportiamo temporaneamente in chiaro
-                # perché requests non supporta chiavi PEM protette da password
-                import tempfile
-                from cryptography.hazmat.primitives import serialization
                 from cryptography.hazmat.backends import default_backend
+                from cryptography.hazmat.primitives import serialization
                 with open(self.key_pem_path, "rb") as f:
                     key_data = f.read()
                 private_key = serialization.load_pem_private_key(
@@ -399,40 +1549,167 @@ class ClientPolisWeb:
                 session.cert = (self.cert_pem_path, tmp.name)
             else:
                 session.cert = (self.cert_pem_path, self.key_pem_path)
-
         elif self.p12_path and os.path.exists(self.p12_path):
-            # P12: usa requests-pkcs12
             try:
                 from requests_pkcs12 import Pkcs12Adapter
             except ImportError:
-                raise ImportError(
-                    "Installa requests-pkcs12: pip install requests-pkcs12"
-                )
+                raise ImportError("Installa requests-pkcs12: pip install requests-pkcs12")
             adapter = Pkcs12Adapter(
                 pkcs12_filename=self.p12_path,
                 pkcs12_password=self.p12_password,
             )
             session.mount(pst_host, adapter)
-
         else:
             raise FileNotFoundError(
                 "Nessun certificato disponibile per l'autenticazione al PST. "
                 "Configurare P12 (PCT_FIRMA_P12) oppure PEM (PCT_FIRMA_CERT + PCT_FIRMA_KEY)."
             )
 
-        transport = zeep.transports.Transport(session=session, timeout=self.timeout)
-        client = zeep.Client(wsdl=wsdl_url, transport=transport)
-        self._zeep_cache[wsdl_url] = client
-        return client
+        return session
+
+    def _get_session(self, base_url: str):
+        cache_key = base_url.rstrip("/")
+        if cache_key in self._session_cache:
+            return self._session_cache[cache_key]
+
+        parsed = urlparse(cache_key)
+        pst_host = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else _WSP_BASE
+        session = self._build_requests_session(pst_host)
+        self._session_cache[cache_key] = session
+        return session
+
+    def _execute_qbuilder(self, base_url: str, body: str) -> str:
+        if not self.cf_avvocato:
+            raise ValueError("Configurare il codice fiscale dell'avvocato (PCT_CF_AVVOCATO) per il PST.")
+
+        session = self._get_session(base_url)
+        try:
+            response = session.post(
+                base_url.rstrip("/"),
+                data=body.encode("utf-8"),
+                headers={
+                    "Content-Type": "text/xml; charset=utf-8",
+                    "SOAPAction": "",
+                    "X-WASP-User": self.cf_avvocato,
+                },
+                timeout=self.timeout,
+            )
+        except Exception as e:
+            raise ConnectionError(f"Errore chiamata PST: {e}") from e
+
+        text_resp = response.text or ""
+        fault = _soap_fault_message(text_resp)
+        if response.status_code >= 400:
+            raise ConnectionError(
+                f"Errore chiamata PST: HTTP {response.status_code} {response.reason or ''}".strip()
+            )
+        if fault:
+            raise ConnectionError(f"Errore chiamata PST: {fault}")
+        return text_resp
+
+    def _soap_qbuilder_envelope(self, body_inner: str) -> str:
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
+            '<SOAP-ENV:Header/>'
+            f'<SOAP-ENV:Body>{body_inner}</SOAP-ENV:Body>'
+            '</SOAP-ENV:Envelope>'
+        )
+
+    def _soap_qbuilder_execute_body(
+        self,
+        base_pst: str,
+        codice_ufficio: str,
+        name: str,
+        values: List[tuple[str, str, Any]],
+        order_by: str = "",
+    ) -> str:
+        ns = _pst_namespace_qbuilder(base_pst)
+        valori = ''.join(
+            f'<value name="{k}" type="{tipo}">{"" if v is None else v}</value>'
+            for k, tipo, v in values
+        )
+        order_xml = f'<orderBy><entry property="{order_by}" mode="asc"/></orderBy>' if order_by else '<orderBy/>'
+        body = (
+            f'<execute xmlns="{ns}">'
+            f'<domain><InvocationDomain name="JPW" role="AVV" group="{codice_ufficio}"/></domain>'
+            f'<name>{name}</name>'
+            f'<valueSet>{valori}</valueSet>'
+            f'{order_xml}'
+            '</execute>'
+        )
+        return self._soap_qbuilder_envelope(body)
+
+    def _soap_ricerca_fascicoli_qbuilder(
+        self,
+        base_pst: str,
+        codice_ufficio: str,
+        numero_rg: Optional[str],
+        anno_rg: Optional[int],
+        nome_parte: Optional[str],
+        codice_fiscale_parte: Optional[str],
+    ) -> str:
+        if numero_rg and anno_rg:
+            return self._soap_qbuilder_execute_body(
+                base_pst,
+                codice_ufficio,
+                'RicercaInformazioniFascicoloPerTipo',
+                [
+                    ('tipo', 'string', 'RGN'),
+                    ('idUfficio', 'string', codice_ufficio),
+                    ('annoRuolo', 'long', anno_rg),
+                    ('numeroRuolo', 'string', numero_rg),
+                ],
+                order_by='ANNORUOLO, NUMERORUOLO',
+            )
+
+        return self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_ufficio,
+            'RicercaInformazioniFascicoloPerPartiGiudiceDate',
+            [
+                ('idUfficio', 'string', codice_ufficio),
+                ('cognomeNome', 'string', nome_parte or ''),
+                ('codiceFiscale', 'string', (codice_fiscale_parte or '').upper()),
+                ('giudice', 'string', ''),
+                ('dataRuoloDa', 'string', ''),
+                ('dataRuoloA', 'string', ''),
+            ],
+            order_by='ANNORUOLO, NUMERORUOLO',
+        )
+
+    def _soap_documenti_qbuilder(self, base_pst: str, codice_ufficio: str, numero_rg: str, anno_rg: int) -> str:
+        return self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_ufficio,
+            'DocumentiFascicolo',
+            [
+                ('idUfficio', 'string', codice_ufficio),
+                ('annoRuolo', 'long', anno_rg),
+                ('numeroRuolo', 'string', numero_rg),
+                ('subProc', 'string', ''),
+            ],
+        )
+
+    def _soap_profilo_fascicolo_qbuilder(self, base_pst: str, codice_ufficio: str, fascicolo: FascicoloPolisWeb) -> str:
+        return self._soap_qbuilder_execute_body(
+            base_pst,
+            codice_ufficio,
+            'ProfiloFascicolo',
+            [
+                ('idUfficio', 'string', codice_ufficio),
+                ('annoRuolo', 'long', fascicolo.anno_rg),
+                ('numeroRuolo', 'string', fascicolo.numero_rg),
+                ('subProc', 'string', ''),
+            ],
+        )
 
     def _risolvi_codice_ufficio(self, nome_o_codice: str) -> str:
-        """Risolve nome tribunale → codice ufficio MinGiust."""
-        from pct.reginde import ClientReGINde
-        if nome_o_codice.isdigit():
-            return nome_o_codice
-        reginde = ClientReGINde()
-        uff = reginde.cerca_ufficio_giudiziario(nome_o_codice)
-        return uff.codice if uff else nome_o_codice
+        """Risolve nome tribunale -> codice ufficio MinGiust."""
+        return risolvi_codice_ministero(nome_o_codice)
+
+    def _risolvi_base_pst(self, nome_o_codice: str) -> str:
+        return risolvi_base_pst(nome_o_codice, base_url=_WSP_BASE)
 
     # ---------------------------------------------------------------- Parser risposte SOAP
 
@@ -445,22 +1722,30 @@ class ClientPolisWeb:
                 items = [items]
             for item in items:
                 f = FascicoloPolisWeb(
-                    numero_rg=str(getattr(item, "numeroRG", "") or ""),
-                    anno_rg=int(getattr(item, "annoRG", 0) or 0),
-                    ruolo=str(getattr(item, "ruolo", "CIVILE_COGNIZIONE") or ""),
-                    stato=str(getattr(item, "stato", "PENDENTE") or ""),
-                    oggetto=str(getattr(item, "oggetto", "") or ""),
-                    sezione=str(getattr(item, "sezione", "") or ""),
-                    giudice=str(getattr(item, "giudice", "") or ""),
-                    data_iscrizione=_parse_data(getattr(item, "dataIscrizione", None)),
-                    data_udienza=_parse_data(getattr(item, "dataUdienza", None)),
-                    parti=_parse_parti(getattr(item, "parti", None)),
-                    codice_ufficio=str(getattr(item, "codiceUfficio", "") or ""),
-                    nome_ufficio=str(getattr(item, "nomeUfficio", "") or ""),
+                    numero_rg=str(getattr(item, 'numeroRG', '') or ''),
+                    anno_rg=int(getattr(item, 'annoRG', 0) or 0),
+                    ruolo=str(getattr(item, 'ruolo', 'CIVILE_COGNIZIONE') or ''),
+                    stato=str(getattr(item, 'stato', 'PENDENTE') or ''),
+                    oggetto=str(getattr(item, 'oggetto', '') or ''),
+                    sezione=str(getattr(item, 'sezione', '') or ''),
+                    giudice=str(getattr(item, 'giudice', '') or ''),
+                    data_iscrizione=_parse_data(getattr(item, 'dataIscrizione', None)),
+                    data_udienza=_parse_data(getattr(item, 'dataUdienza', None)),
+                    parti=_parse_parti(getattr(item, 'parti', None)),
+                    codice_ufficio=str(getattr(item, 'codiceUfficio', '') or ''),
+                    nome_ufficio=str(getattr(item, 'nomeUfficio', '') or ''),
                 )
                 fascicoli.append(f)
         except (AttributeError, TypeError, ValueError):
             pass
+        return fascicoli
+
+    def _parse_fascicoli_qbuilder_xml(self, xml_text: str) -> List[FascicoloPolisWeb]:
+        fascicoli: List[FascicoloPolisWeb] = []
+        for row in _parse_qbuilder_row_list(xml_text):
+            fascicolo = _map_qbuilder_fascicolo(row)
+            setattr(fascicolo, 'parti_dettaglio', _qbuilder_parti_dettaglio(row))
+            fascicoli.append(fascicolo)
         return fascicoli
 
     def _parse_documenti(self, risposta: Any) -> List[DocumentoPolisWeb]:
@@ -472,21 +1757,52 @@ class ClientPolisWeb:
                 items = [items]
             for item in items:
                 d = DocumentoPolisWeb(
-                    id_documento=str(getattr(item, "idDocumento", "") or ""),
-                    nome=str(getattr(item, "nomeFile", "") or ""),
-                    tipo=str(getattr(item, "tipoDocumento", "ATTO") or ""),
-                    data_deposito=_parse_data(getattr(item, "dataDeposito", None)),
-                    mittente=str(getattr(item, "mittente", "") or ""),
-                    dimensione_bytes=int(getattr(item, "dimensione", 0) or 0),
-                    disponibile=bool(getattr(item, "disponibile", True)),
-                    id_deposito=str(getattr(item, "idBusta", getattr(item, "idDeposito", "")) or ""),
-                    tipo_atto=str(getattr(item, "tipoAtto", getattr(item, "tipoAtta", "")) or ""),
+                    id_documento=str(getattr(item, 'idDocumento', '') or ''),
+                    nome=str(getattr(item, 'nomeFile', '') or ''),
+                    tipo=str(getattr(item, 'tipoDocumento', 'ATTO') or ''),
+                    data_deposito=_parse_data(getattr(item, 'dataDeposito', None)),
+                    mittente=str(getattr(item, 'mittente', '') or ''),
+                    dimensione_bytes=int(getattr(item, 'dimensione', 0) or 0),
+                    disponibile=bool(getattr(item, 'disponibile', True)),
+                    id_deposito=str(getattr(item, 'idBusta', getattr(item, 'idDeposito', '')) or ''),
+                    tipo_atto=str(getattr(item, 'tipoAtto', getattr(item, 'tipoAtta', '')) or ''),
                 )
                 documenti.append(d)
         except (AttributeError, TypeError, ValueError):
             pass
         return documenti
 
+    def _parse_documenti_qbuilder_xml(self, xml_text: str) -> List[DocumentoPolisWeb]:
+        return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_text)]
+
+    def _arricchisci_fascicoli_con_profilo(self, base_pst: str, fascicoli: List[FascicoloPolisWeb]) -> List[FascicoloPolisWeb]:
+        arricchiti: List[FascicoloPolisWeb] = []
+        for fascicolo in fascicoli:
+            codice_ufficio = fascicolo.codice_ufficio or self._risolvi_codice_ufficio(fascicolo.nome_ufficio)
+            if not codice_ufficio:
+                arricchiti.append(fascicolo)
+                continue
+            try:
+                xml = self._execute_qbuilder(
+                    base_pst,
+                    self._soap_profilo_fascicolo_qbuilder(base_pst, codice_ufficio, fascicolo),
+                )
+                profili = self._parse_fascicoli_qbuilder_xml(xml)
+            except Exception:
+                arricchiti.append(fascicolo)
+                continue
+            if not profili:
+                arricchiti.append(fascicolo)
+                continue
+            profilo = profili[0]
+            for attr in ('ruolo', 'stato', 'oggetto', 'sezione', 'giudice', 'data_iscrizione', 'data_udienza', 'nome_ufficio'):
+                valore = getattr(profilo, attr, '') or getattr(fascicolo, attr, '')
+                setattr(fascicolo, attr, valore)
+            if getattr(profilo, 'parti', None):
+                fascicolo.parti = profilo.parti
+                setattr(fascicolo, 'parti_dettaglio', getattr(profilo, 'parti_dettaglio', []))
+            arricchiti.append(fascicolo)
+        return arricchiti
 
 # ================================================================ Demo / offline
 
@@ -513,6 +1829,7 @@ class ClientPolisWebDemo(ClientPolisWeb):
         self.cf_avvocato = "DEMO"
         self.timeout = 5
         self._zeep_cache = {}
+        self._session_cache = {}
 
     def ricerca_fascicoli(self, tribunale: str, numero_rg=None,
                           anno_rg=None, nome_parte=None,
@@ -634,7 +1951,17 @@ def _parse_data(valore: Any) -> str:
         return ""
     if isinstance(valore, (datetime, date)):
         return valore.strftime("%Y-%m-%d")
-    return str(valore)[:10]
+    testo = str(valore).strip()
+    candidati = [testo]
+    if len(testo) >= 10:
+        candidati.append(testo[:10])
+    for candidato in candidati:
+        for formato in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+            try:
+                return datetime.strptime(candidato, formato).strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+    return testo[:10]
 
 
 def _parse_parti(valore: Any) -> List[str]:

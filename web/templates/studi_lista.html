@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}Gestione Database — Studio Legale PCT{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="mb-1"><i class="bi bi-database-gear me-2"></i>Gestione Database</h2>
+    <p class="text-muted mb-0">Statistiche, integrità, ottimizzazione ed export di tutti i moduli dati</p>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-outline-primary btn-sm" onclick="aggiornaStatistiche()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Aggiorna
+    </button>
+    <a href="{{ url_for('admin_database_export') }}" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-download me-1"></i>Export ZIP
+    </a>
+  </div>
+</div>
+
+<!-- ── Riepilogo globale ───────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-primary">{{ statistiche.moduli | length }}</div>
+        <div class="small text-muted">Moduli attivi</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-success">{{ statistiche.totale_record }}</div>
+        <div class="small text-muted">Record totali</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-info">{{ statistiche.totale_dimensione }}</div>
+        <div class="small text-muted">Dimensione totale</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center h-100 border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-warning">
+          {% if sqlite_info and sqlite_info.esiste %}
+            {{ sqlite_info.frammentazione_pct }}%
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        <div class="small text-muted">Framm. SQLite</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Moduli dati ───────────────────────────────────────────────────── -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-folder2-open me-2"></i>Moduli Dati</h5>
+    <button class="btn btn-sm btn-outline-warning" onclick="ottimizza()" id="btn-ottimizza">
+      <i class="bi bi-lightning-charge me-1"></i>Ottimizza tutti
+    </button>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0" id="tbl-moduli">
+      <thead class="table-light">
+        <tr>
+          <th>Modulo</th>
+          <th>Percorso</th>
+          <th class="text-end">Record</th>
+          <th class="text-end">Dimensione</th>
+          <th class="text-center">Stato</th>
+          <th>Ultima modifica</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in statistiche.moduli %}
+        <tr>
+          <td><strong>{{ m.nome | capitalize }}</strong></td>
+          <td><code class="small text-muted">{{ m.percorso }}</code></td>
+          <td class="text-end">{{ m.record_totali }}</td>
+          <td class="text-end">{{ m.dimensione_leggibile }}</td>
+          <td class="text-center">
+            {% if m.stato == "OK" %}
+              <span class="badge bg-success">OK</span>
+            {% elif m.stato == "VUOTO" %}
+              <span class="badge bg-secondary">Vuoto</span>
+            {% elif m.stato == "NON_TROVATO" %}
+              <span class="badge bg-warning text-dark">Non trovato</span>
+            {% else %}
+              <span class="badge bg-danger" title="{{ m.errore }}">Errore</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">{{ m.ultima_modifica }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Verifica integrità + Migrazione SQLite ─────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-md-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Integrità Referenziale</h5>
+        <button class="btn btn-sm btn-outline-primary" onclick="verificaIntegrita()" id="btn-verifica">
+          <i class="bi bi-search me-1"></i>Verifica ora
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="verifica-spinner" class="text-center py-3 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted">Analisi in corso…</p>
+        </div>
+        <div id="verifica-risultati" class="d-none">
+          <div id="verifica-riepilogo" class="mb-3"></div>
+          <div id="verifica-lista" style="max-height:320px; overflow-y:auto;"></div>
+        </div>
+        <p class="text-muted small mb-0" id="verifica-placeholder">
+          Clicca <em>Verifica ora</em> per controllare l'integrità referenziale di tutti i moduli.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-database-up me-2"></i>Migrazione SQLite</h5>
+      </div>
+      <div class="card-body">
+        {% if sqlite_info and sqlite_info.esiste %}
+          <div class="alert alert-success py-2 mb-3">
+            <i class="bi bi-check-circle me-1"></i> Database SQLite già presente
+          </div>
+          <table class="table table-sm small mb-3">
+            <tbody>
+              <tr><td>Dimensione</td><td class="fw-bold">{{ sqlite_info.dimensione }}</td></tr>
+              <tr><td>Pagine totali</td><td>{{ sqlite_info.pagine_totali }}</td></tr>
+              <tr><td>Pagine libere</td><td>{{ sqlite_info.pagine_libere }}</td></tr>
+              <tr><td>Frammentazione</td><td>{{ sqlite_info.frammentazione_pct }}%</td></tr>
+              {% for tab, cnt in (sqlite_info.tabelle or {}).items() %}
+              <tr><td>{{ tab }}</td><td>{{ cnt }} record</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="alert alert-info py-2 mb-3">
+            <i class="bi bi-info-circle me-1"></i> Database SQLite non trovato
+          </div>
+          <p class="small text-muted">
+            La migrazione consolida tutti i file JSON in un unico database SQLite con
+            vincoli di integrità referenziale, indici ottimizzati e modalità WAL.
+          </p>
+        {% endif %}
+        <button class="btn btn-primary w-100" onclick="migraSQL()" id="btn-migra">
+          <i class="bi bi-arrow-right-circle me-1"></i>
+          {% if sqlite_info and sqlite_info.esiste %}Ri-esegui migrazione{% else %}Avvia migrazione{% endif %}
+        </button>
+        <div id="migra-risultato" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Analisi utilizzo ───────────────────────────────────────────── -->
+{% if uso %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header">
+    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Analisi Utilizzo (Audit Log)</h5>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <h6 class="text-muted mb-2">Azioni più frequenti</h6>
+        <ul class="list-unstyled mb-0">
+          {% for azione, cnt in (uso.azioni_frequenti or []) %}
+          <li class="d-flex justify-content-between border-bottom py-1">
+            <span class="text-truncate me-2"><code class="small">{{ azione }}</code></span>
+            <span class="badge bg-primary rounded-pill">{{ cnt }}</span>
+          </li>
+          {% else %}
+          <li class="text-muted small">Nessun dato</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h6 class="text-muted mb-2">Utenti più attivi</h6>
+        <ul class="list-unstyled mb-0">
+          {% for utente, cnt in (uso.utenti_attivi or []) %}
+          <li class="d-flex justify-content-between border-bottom py-1">
+            <span class="text-truncate me-2"><i class="bi bi-person me-1"></i>{{ utente }}</span>
+            <span class="badge bg-success rounded-pill">{{ cnt }}</span>
+          </li>
+          {% else %}
+          <li class="text-muted small">Nessun dato</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <h6 class="text-muted mb-2">Statistiche generali</h6>
+        <table class="table table-sm small">
+          <tbody>
+            <tr>
+              <td>Totale operazioni</td>
+              <td class="fw-bold">{{ uso.totale_eventi | default(0) }}</td>
+            </tr>
+            <tr>
+              <td>Ora di punta</td>
+              <td>{% if uso.ora_punta is not none %}{{ uso.ora_punta }}:00{% else %}—{% endif %}</td>
+            </tr>
+            <tr>
+              <td>Tasso errori</td>
+              <td>
+                {% set te = uso.tasso_errori | default(0) %}
+                <span class="badge {% if te > 10 %}bg-danger{% elif te > 3 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                  {{ te }}%
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Area risultati ottimizzazione ────────────────────────────────── -->
+<div id="ottimizza-area" class="d-none mb-4">
+  <div class="card shadow-sm border-warning">
+    <div class="card-header bg-warning bg-opacity-10">
+      <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Risultati Ottimizzazione</h5>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm mb-0" id="tbl-ottimizza">
+        <thead class="table-light">
+          <tr>
+            <th>Modulo</th><th>Operazione</th>
+            <th class="text-end">Prima</th><th class="text-end">Dopo</th>
+            <th class="text-end">Risparmio</th><th>Esito</th>
+          </tr>
+        </thead>
+        <tbody id="ottimizza-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fmtBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
+}
+
+async function verificaIntegrita() {
+  const btn = document.getElementById('btn-verifica');
+  const spinner = document.getElementById('verifica-spinner');
+  const risultati = document.getElementById('verifica-risultati');
+  const placeholder = document.getElementById('verifica-placeholder');
+
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+  risultati.classList.add('d-none');
+  placeholder.classList.add('d-none');
+
+  try {
+    const r = await fetch('{{ url_for("admin_database_verifica") }}');
+    const data = await r.json();
+    spinner.classList.add('d-none');
+    risultati.classList.remove('d-none');
+
+    const riepilogo = document.getElementById('verifica-riepilogo');
+    const lista = document.getElementById('verifica-lista');
+
+    if (data.n_problemi === 0) {
+      riepilogo.innerHTML = '<div class="alert alert-success py-2 mb-0"><i class="bi bi-check-circle me-1"></i> Nessun problema trovato — integrità verificata.</div>';
+      lista.innerHTML = '';
+    } else {
+      const critici = data.problemi.filter(p => p.livello === 'CRITICO').length;
+      const avvisi = data.problemi.filter(p => p.livello === 'AVVISO').length;
+      const info = data.problemi.filter(p => p.livello === 'INFO').length;
+      riepilogo.innerHTML = `<div class="d-flex gap-2 mb-2">
+        ${critici ? `<span class="badge bg-danger">${critici} Critici</span>` : ''}
+        ${avvisi ? `<span class="badge bg-warning text-dark">${avvisi} Avvisi</span>` : ''}
+        ${info ? `<span class="badge bg-info text-dark">${info} Info</span>` : ''}
+      </div>`;
+
+      lista.innerHTML = data.problemi.map(p => {
+        const cl = p.livello === 'CRITICO' ? 'danger' : p.livello === 'AVVISO' ? 'warning' : 'info';
+        return `<div class="alert alert-${cl} py-2 mb-2 small">
+          <strong>${p.modulo}</strong> — ${p.descrizione}
+          ${p.dettagli ? `<br><span class="text-muted">${p.dettagli}</span>` : ''}
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    spinner.classList.add('d-none');
+    placeholder.innerHTML = '<span class="text-danger">Errore durante la verifica.</span>';
+    placeholder.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function ottimizza() {
+  const btn = document.getElementById('btn-ottimizza');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ottimizzazione…';
+
+  try {
+    const r = await fetch('{{ url_for("admin_database_ottimizza") }}', {method: 'POST'});
+    const data = await r.json();
+
+    const area = document.getElementById('ottimizza-area');
+    const tbody = document.getElementById('ottimizza-body');
+    area.classList.remove('d-none');
+
+    tbody.innerHTML = data.risultati.map(res => {
+      const risparmio = res.risparmio_bytes > 0
+        ? `<span class="text-success">-${fmtBytes(res.risparmio_bytes)} (${res.risparmio_pct}%)</span>`
+        : '<span class="text-muted">—</span>';
+      const esito = res.ok
+        ? '<span class="badge bg-success">OK</span>'
+        : `<span class="badge bg-danger" title="${res.messaggio}">Errore</span>`;
+      return `<tr>
+        <td>${res.modulo}</td>
+        <td>${res.operazione}</td>
+        <td class="text-end">${fmtBytes(res.bytes_prima)}</td>
+        <td class="text-end">${fmtBytes(res.bytes_dopo)}</td>
+        <td class="text-end">${risparmio}</td>
+        <td>${esito}</td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) {
+    alert('Errore durante l\'ottimizzazione.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-lightning-charge me-1"></i>Ottimizza tutti';
+  }
+}
+
+async function migraSQL() {
+  const btn = document.getElementById('btn-migra');
+  const out = document.getElementById('migra-risultato');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Migrazione…';
+  out.innerHTML = '';
+
+  try {
+    const r = await fetch('{{ url_for("admin_database_migra") }}', {method: 'POST'});
+    const data = await r.json();
+    if (data.ok) {
+      out.innerHTML = `<div class="alert alert-success py-2 small mt-2">
+        <i class="bi bi-check-circle me-1"></i>
+        Migrati <strong>${data.record_migrati}</strong> record in ${data.durata_secondi}s.<br>
+        <code>${data.percorso_db}</code>
+      </div>`;
+      setTimeout(() => location.reload(), 2000);
+    } else {
+      out.innerHTML = `<div class="alert alert-danger py-2 small mt-2">
+        <i class="bi bi-exclamation-circle me-1"></i>${data.messaggio}
+        ${data.errori.length ? '<ul class="mb-0 mt-1">' + data.errori.map(e=>`<li>${e}</li>`).join('') + '</ul>' : ''}
+      </div>`;
+    }
+  } catch(e) {
+    out.innerHTML = '<div class="alert alert-danger py-2 small">Errore di connessione.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-right-circle me-1"></i>Avvia migrazione';
+  }
+}
+
+function aggiornaStatistiche() {
+  location.reload();
+}
+</script>
+{% endblock %}

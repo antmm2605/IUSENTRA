@@ -73,11 +73,12 @@ class BustaTelematica:
         etree.SubElement(ufficio, "CodiceUfficio").text = self.dati.codice_ufficio
         etree.SubElement(ufficio, "CodiceRegistro").text = self.dati.codice_registro
 
-        # Riferimento procedimento
-        if self.dati.numero_rg:
+        # Riferimento procedimento — emesso solo se entrambi numero_rg e anno_rg sono
+        # valorizzati; anno_rg=0/None produrrebbe <AnnoRG/> malformato (D.M. 44/2011)
+        if self.dati.numero_rg and self.dati.anno_rg:
             proc = etree.SubElement(root, "RiferimentoProcedimento")
             etree.SubElement(proc, "NumeroRG").text = self.dati.numero_rg
-            etree.SubElement(proc, "AnnoRG").text = str(self.dati.anno_rg or "")
+            etree.SubElement(proc, "AnnoRG").text = str(self.dati.anno_rg)
 
         # Dati atto
         atto = etree.SubElement(root, "Atto")

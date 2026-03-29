@@ -1,0 +1,1210 @@
+{% extends "base.html" %}
+{% block title %}Cartella — {{ cliente.nome_completo }}{% endblock %}
+{% block page_title %}Cartella Cliente{% endblock %}
+
+{# ── Mappe colore / icona per stato e tipo ── #}
+{% set SC      = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
+{% set SC_ICON = {'APERTO':'bi-folder2-open','IN_CORSO':'bi-folder-check','SOSPESO':'bi-pause-circle','DEFINITO':'bi-check2-circle','ARCHIVIATO':'bi-archive'} %}
+{% set TC_COL  = {'CIVILE':'primary','PENALE':'danger','AMMINISTRATIVO':'warning','STRAGIUDIZIALE':'info','CONSULENZA':'success','LAVORO':'purple','FAMIGLIA':'pink','SUCCESSIONI':'orange','ALTRO':'secondary'} %}
+{% set EC      = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+{% set ESITO_ICON = {'favorevole':'bi-trophy-fill text-success','sfavorevole':'bi-x-circle-fill text-danger','parziale':'bi-dash-circle-fill text-warning'} %}
+
+{% block content %}
+
+{# ═══════════════════════════════════════════════
+   HEADER CLIENTE
+   ═══════════════════════════════════════════════ #}
+<div class="card border-0 shadow-sm mb-3 cd-header overflow-hidden">
+  <div class="card-body p-0">
+    <div class="cd-header-bg d-flex align-items-center gap-3 p-3">
+
+      {# Avatar #}
+      <div class="cd-avatar flex-shrink-0">
+        <i class="bi bi-{% if cliente.tipo.value == 'PERSONA_FISICA' %}person-fill{% else %}building-fill{% endif %}"></i>
+      </div>
+
+      {# Info principali #}
+      <div class="flex-grow-1 text-white min-w-0">
+        <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+          <h5 class="fw-bold mb-0 text-white">{{ cliente.nome_completo }}</h5>
+          <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-30">
+            {{ cliente.stato.value }}
+          </span>
+        </div>
+        <div class="d-flex flex-wrap gap-x-3 gap-y-1 small text-white-50">
+          {% if cliente.codice_fiscale %}<span><i class="bi bi-person-vcard me-1"></i>{{ cliente.codice_fiscale }}</span>{% endif %}
+          {% if cliente.recapiti.email %}<span class="d-none d-md-inline"><i class="bi bi-envelope me-1"></i>{{ cliente.recapiti.email }}</span>{% endif %}
+          {% if cliente.recapiti.cellulare %}<span><i class="bi bi-phone me-1"></i>{{ cliente.recapiti.cellulare }}</span>{% endif %}
+          {% if cliente.avvocato_referente %}<span><i class="bi bi-person-badge me-1"></i>{{ cliente.avvocato_referente }}</span>{% endif %}
+        </div>
+      </div>
+
+      {# Azioni header — solo navigazione #}
+      <div class="d-flex gap-2 flex-shrink-0 align-items-center flex-wrap justify-content-end">
+        <a href="{{ url_for('faldone_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-warning d-none d-md-inline-flex align-items-center gap-1" title="Faldone digitale">
+          <i class="bi bi-folder2-open"></i><span>Faldone</span>
+        </a>
+        <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"
+           class="btn btn-sm btn-light d-none d-md-inline-flex align-items-center gap-1">
+          <i class="bi bi-person-vcard"></i><span>Scheda</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════
+   BARRA AZIONI RAPIDE
+   ═══════════════════════════════════════════════ #}
+<div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+  <span class="text-muted small">
+    <i class="bi bi-grid-1x2 me-1"></i>Panoramica cartella
+  </span>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    {# Azioni contestuali veloci #}
+    <button class="btn btn-sm btn-outline-primary"
+            type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#offcNuovoFasc">
+      <i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline">Nuova pratica</span>
+    </button>
+    {# Dropdown Aggiungi — azione principale #}
+    <div class="dropdown">
+      <button class="btn btn-primary dropdown-toggle fw-semibold" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-plus-circle me-1"></i>Aggiungi
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li><h6 class="dropdown-header"><i class="bi bi-folder2-open me-1"></i>Pratiche</h6></li>
+        <li>
+          <a class="dropdown-item" href="#" data-bs-toggle="offcanvas" data-bs-target="#offcNuovoFasc">
+            <i class="bi bi-folder-plus me-2 text-primary"></i>Nuova pratica
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header"><i class="bi bi-calendar3 me-1"></i>Agenda & Scadenze</h6></li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('nuovo_appuntamento') }}?id_cliente={{ cliente.id }}&from_cliente={{ cliente.id }}">
+            <i class="bi bi-calendar-plus me-2 text-success"></i>Nuovo appuntamento
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('nuova_scadenza') }}?id_cliente={{ cliente.id }}&from_cliente={{ cliente.id }}">
+            <i class="bi bi-alarm me-2 text-warning"></i>Nuova scadenza
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header"><i class="bi bi-chat-dots me-1"></i>Comunicazioni</h6></li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('nuovo_messaggio') }}?id_cliente={{ cliente.id }}&canale=EMAIL&from_cliente={{ cliente.id }}">
+            <i class="bi bi-envelope me-2 text-info"></i>Invia Email
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('nuovo_messaggio') }}?id_cliente={{ cliente.id }}&canale=SMS&from_cliente={{ cliente.id }}">
+            <i class="bi bi-phone me-2 text-secondary"></i>Invia SMS
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('nuovo_messaggio') }}?id_cliente={{ cliente.id }}&canale=WHATSAPP&from_cliente={{ cliente.id }}">
+            <i class="bi bi-whatsapp me-2 text-success"></i>Invia WhatsApp
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header"><i class="bi bi-receipt me-1"></i>Fatturazione</h6></li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('fatturazione.nuova', id_cliente=cliente.id) }}?from_cliente={{ cliente.id }}">
+            <i class="bi bi-receipt me-2 text-danger"></i>Nuova parcella
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════
+   STAT CARDS
+   ═══════════════════════════════════════════════ #}
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-blue cd-stat-clickable"
+         role="button" title="Vai alle pratiche attive"
+         onclick="attivaTab('tab-attivi-btn')">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-folder2-open"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ fascicoli_attivi|length }}</div>
+          <div class="cd-stat-label">Pratiche attive <i class="bi bi-arrow-right ms-1 opacity-50 small"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-purple cd-stat-clickable"
+         role="button" title="Vai all'archivio"
+         onclick="attivaTab('tab-archivio-btn')">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-archive-fill"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ fascicoli_archiviati|length }}</div>
+          <div class="cd-stat-label">Archiviate <i class="bi bi-arrow-right ms-1 opacity-50 small"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 cd-stat cd-stat-green cd-stat-clickable"
+         role="button" title="Apri faldone digitale"
+         onclick="window.location.href='{{ url_for('faldone_cliente', id_cliente=cliente.id) }}'">
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-file-earmark-fill"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ n_documenti }}</div>
+          <div class="cd-stat-label">Documenti <i class="bi bi-box-arrow-up-right ms-1 opacity-50 small"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100 cd-stat {% if scadenze_imminenti %}cd-stat-orange cd-stat-clickable{% else %}cd-stat-gray{% endif %}"
+         {% if scadenze_imminenti %}role="button" title="Vai all'agenda" onclick="attivaTab('tab-agenda-btn')"{% endif %}>
+      <div class="card-body p-3 d-flex align-items-center gap-3">
+        <div class="cd-stat-icon"><i class="bi bi-alarm-fill"></i></div>
+        <div>
+          <div class="cd-stat-num">{{ scadenze_imminenti|length }}</div>
+          <div class="cd-stat-label">Scad. imminenti{% if scadenze_imminenti %} <i class="bi bi-arrow-right ms-1 opacity-50 small"></i>{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════
+   ALERT SCADENZE
+   ═══════════════════════════════════════════════ #}
+{% if scadenze_imminenti %}
+<div class="alert alert-warning border-0 shadow-sm mb-3 d-flex gap-2" role="alert">
+  <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <div class="fw-semibold mb-1">Scadenze entro 7 giorni</div>
+    <ul class="mb-0 ps-3 small">
+      {% for fasc, att in scadenze_imminenti %}
+      <li>
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}"
+           class="fw-semibold text-decoration-none">{{ fasc.numero }}</a>
+        — {{ att.titolo }}
+        <span class="badge bg-warning text-dark ms-1">{{ att.data|fmt_data }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{# ═══════════════════════════════════════════════
+   TABS NAVIGAZIONE
+   ═══════════════════════════════════════════════ #}
+<ul class="nav nav-tabs mb-0 cd-tabs" id="cartellaTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-attivi-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-attivi"
+            type="button" role="tab">
+      <i class="bi bi-folder2-open me-1"></i>
+      <span>Pratiche attive</span>
+      {% if fascicoli_attivi %}
+        <span class="badge bg-primary rounded-pill ms-1">{{ fascicoli_attivi|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-archivio-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-archivio"
+            type="button" role="tab">
+      <i class="bi bi-archive me-1"></i>
+      <span>Archivio</span>
+      {% if fascicoli_archiviati %}
+        <span class="badge bg-secondary rounded-pill ms-1">{{ fascicoli_archiviati|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-timeline-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-timeline"
+            type="button" role="tab">
+      <i class="bi bi-clock-history me-1"></i>
+      <span class="d-none d-sm-inline">Timeline</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-agenda-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-agenda"
+            type="button" role="tab">
+      <i class="bi bi-calendar-event me-1"></i>
+      <span class="d-none d-sm-inline">Agenda</span>
+      {% if appuntamenti_cliente %}
+        <span class="badge bg-success rounded-pill ms-1">{{ appuntamenti_cliente|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-comunicazioni-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-comunicazioni"
+            type="button" role="tab">
+      <i class="bi bi-chat-dots me-1"></i>
+      <span class="d-none d-sm-inline">Comunicazioni</span>
+      {% if messaggi_cliente %}
+        <span class="badge bg-info rounded-pill ms-1">{{ messaggi_cliente|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-parcelle-btn"
+            data-bs-toggle="tab" data-bs-target="#tab-parcelle"
+            type="button" role="tab">
+      <i class="bi bi-receipt me-1"></i>
+      <span class="d-none d-sm-inline">Parcelle</span>
+      {% if parcelle_cliente %}
+        <span class="badge bg-danger rounded-pill ms-1">{{ parcelle_cliente|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content cd-tab-body">
+
+  {# ════════════════════════════════════════════
+     TAB 1 — PRATICHE ATTIVE
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade show active" id="tab-attivi" role="tabpanel">
+    {% if fascicoli_attivi %}
+      <div class="d-flex flex-column gap-3 pt-3">
+      {% for f in fascicoli_attivi %}
+        {% set ps = f.prossima_scadenza %}
+        <div class="card border-0 shadow-sm cd-pratica-card cd-pratica-{{ SC[f.stato.value] }} cd-card-clickable"
+             role="button"
+             data-href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+             onclick="navigaCard(event, this)">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+
+              {# Icona stato #}
+              <div class="cd-stato-icon cd-stato-{{ SC[f.stato.value] }} flex-shrink-0">
+                <i class="bi {{ SC_ICON[f.stato.value] }}"></i>
+              </div>
+
+              {# Corpo #}
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <code class="text-muted small">{{ f.numero }}</code>
+                  <span class="badge bg-{{ SC[f.stato.value] }} rounded-pill">
+                    {{ f.stato.value.replace('_',' ') }}
+                  </span>
+                  <span class="badge bg-light text-dark border small">
+                    {{ f.tipo.value.replace('_',' ') }}
+                  </span>
+                </div>
+
+                <h6 class="fw-bold mb-1 text-truncate-2">
+                  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                     class="text-decoration-none text-dark stretched-link-off">{{ f.titolo }}</a>
+                </h6>
+                {% if f.oggetto %}
+                  <p class="text-muted small mb-2 mb-0-last">{{ f.oggetto }}</p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-x-3 gap-y-1 small text-muted mt-2">
+                  {% if f.tribunale %}<span><i class="bi bi-building-columns me-1"></i>{{ f.tribunale }}</span>{% endif %}
+                  {% if f.numero_rg %}<span><i class="bi bi-hash me-1"></i>RG {{ f.numero_rg }}/{{ f.anno_rg }}</span>{% endif %}
+                  {% if f.controparte %}<span><i class="bi bi-people me-1"></i>c/ {{ f.controparte }}</span>{% endif %}
+                  <span><i class="bi bi-file-earmark me-1"></i>{{ f.documenti_count }} doc</span>
+                  <span><i class="bi bi-activity me-1"></i>{{ f.attivita_count }} att.</span>
+                  {% if f.data_apertura %}<span class="d-none d-md-inline">
+                    <i class="bi bi-calendar3 me-1"></i>{{ f.data_apertura|fmt_data }}
+                  </span>{% endif %}
+                </div>
+
+                {% if ps %}
+                <div class="mt-2">
+                  <span class="badge bg-warning text-dark">
+                    <i class="bi bi-alarm me-1"></i>{{ ps.titolo }} — {{ ps.data|fmt_data }}
+                  </span>
+                </div>
+                {% endif %}
+              </div>
+
+              {# Azioni #}
+              <div class="cd-pratica-actions flex-shrink-0">
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-sm btn-primary">
+                  <i class="bi bi-folder2-open me-1"></i><span class="d-none d-sm-inline">Apri</span>
+                </a>
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary apri-modifica-fasc"
+                        title="Modifica pratica"
+                        data-bs-toggle="offcanvas" data-bs-target="#offcModificaFasc"
+                        data-id="{{ f.id }}"
+                        data-titolo="{{ f.titolo|e }}"
+                        data-tipo="{{ f.tipo.value }}"
+                        data-oggetto="{{ f.oggetto|e if f.oggetto else '' }}"
+                        data-controparte="{{ f.controparte|e if f.controparte else '' }}"
+                        data-tribunale="{{ f.tribunale|e if f.tribunale else '' }}"
+                        data-numero-rg="{{ f.numero_rg|e if f.numero_rg else '' }}"
+                        data-anno-rg="{{ f.anno_rg if f.anno_rg else oggi.year }}"
+                        data-sezione="{{ f.sezione|e if f.sezione else '' }}"
+                        data-giudice="{{ f.giudice|e if f.giudice else '' }}"
+                        data-valore-causa="{{ f.valore_causa if f.valore_causa else '' }}"
+                        data-avvocato-referente="{{ f.avvocato_referente|e if f.avvocato_referente else '' }}"
+                        data-avvocato-dominus="{{ f.avvocato_dominus|e if f.avvocato_dominus else '' }}"
+                        data-note="{{ f.note|e if f.note else '' }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-folder2-open"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessuna pratica attiva</p>
+        <p class="text-muted small">Le pratiche in corso per questo cliente appariranno qui.</p>
+        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
+           class="btn btn-primary mt-2">
+          <i class="bi bi-folder-plus me-2"></i>Nuova pratica
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════════
+     TAB 2 — ARCHIVIO DIGITALE
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-archivio" role="tabpanel">
+    {% if fascicoli_archiviati %}
+      <div class="d-flex flex-column gap-3 pt-3">
+      {% for f in fascicoli_archiviati %}
+        {% set ha_zip = f.archivio and f.archivio.percorso_zip %}
+        {% set is_def = f.stato.value == 'DEFINITO' %}
+        <div class="card border-0 shadow-sm cd-archivio-card">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+
+              {# Icona ZIP #}
+              <div class="cd-zip-icon flex-shrink-0 {% if ha_zip %}cd-zip-ok{% else %}cd-zip-no{% endif %}">
+                <i class="bi bi-{% if ha_zip %}file-zip-fill{% else %}archive{% endif %}"></i>
+              </div>
+
+              {# Corpo #}
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <code class="text-muted small">{{ f.numero }}</code>
+
+                  {# Badge stato #}
+                  {% if is_def %}
+                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                      <i class="bi bi-check2-circle me-1"></i>Definita
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                      <i class="bi bi-archive me-1"></i>Archiviata
+                    </span>
+                  {% endif %}
+
+                  {# Esito finale #}
+                  {% if f.archivio and f.archivio.esito_finale %}
+                    {% set ef = f.archivio.esito_finale %}
+                    <span class="badge {% if ef == 'favorevole' %}bg-success{% elif ef == 'sfavorevole' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                      <i class="bi {{ ESITO_ICON.get(ef, 'bi-dash') }} me-1"></i>{{ ef|capitalize }}
+                    </span>
+                  {% endif %}
+
+                  {# Badge compresso #}
+                  {% if ha_zip %}
+                    <span class="badge bg-light text-muted border small">
+                      <i class="bi bi-file-zip me-1"></i>Compresso
+                      {% if f.archivio.dimensione_zip %}
+                        · {{ (f.archivio.dimensione_zip / 1024 / 1024)|round(1) }} MB
+                      {% endif %}
+                    </span>
+                  {% endif %}
+                </div>
+
+                <h6 class="fw-semibold mb-1">{{ f.titolo }}</h6>
+                {% if f.oggetto %}
+                  <p class="text-muted small mb-2">{{ f.oggetto }}</p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-x-3 gap-y-1 small text-muted">
+                  {% if f.tribunale %}<span><i class="bi bi-building-columns me-1"></i>{{ f.tribunale }}</span>{% endif %}
+                  {% if f.numero_rg %}<span><i class="bi bi-hash me-1"></i>RG {{ f.numero_rg }}/{{ f.anno_rg }}</span>{% endif %}
+                  {% if f.controparte %}<span><i class="bi bi-people me-1"></i>c/ {{ f.controparte }}</span>{% endif %}
+                  <span><i class="bi bi-file-earmark me-1"></i>{{ f.documenti_count }} doc</span>
+                  {% if f.archivio and f.archivio.data_archiviazione %}
+                    <span><i class="bi bi-calendar-check me-1"></i>{{ f.archivio.data_archiviazione|fmt_data }}</span>
+                  {% endif %}
+                </div>
+
+                {# Hash integrità — visibile solo su desktop #}
+                {% if ha_zip and f.archivio.hash_zip %}
+                <div class="mt-2 d-none d-md-block">
+                  <span class="cd-hash-badge" title="SHA-256: {{ f.archivio.hash_zip }}">
+                    <i class="bi bi-shield-check me-1 text-success"></i>
+                    <span class="font-monospace small text-muted">{{ f.archivio.hash_zip[:16] }}…</span>
+                  </span>
+                </div>
+                {% endif %}
+              </div>
+
+              {# Azioni archivio #}
+              <div class="cd-archivio-actions flex-shrink-0">
+                {% if ha_zip %}
+                  <button type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          onclick="sfogliaArchivio('{{ f.id }}', '{{ f.titolo|e }}')"
+                          title="Sfoglia contenuto ZIP">
+                    <i class="bi bi-folder-symlink me-1"></i><span class="d-none d-lg-inline">Sfoglia</span>
+                  </button>
+                  <a href="{{ url_for('scarica_archivio', id_fasc=f.id) }}"
+                     class="btn btn-sm btn-outline-secondary" title="Scarica ZIP">
+                    <i class="bi bi-download me-1"></i><span class="d-none d-lg-inline">ZIP</span>
+                  </a>
+                {% endif %}
+                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Visualizza fascicolo">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <form method="post"
+                      action="{{ url_for('ripristina_fascicolo', id_fasc=f.id) }}"
+                      onsubmit="return confirm('Ripristinare la pratica in lavorazione?\nVerrà rimossa dall\'archivio.')"
+                      class="d-inline">
+                  <button class="btn btn-sm btn-outline-success" title="Ripristina pratica">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-archive"></i>
+        <p class="fw-semibold mt-3 mb-1">Archivio vuoto</p>
+        <p class="text-muted small">Le pratiche definite o archiviate appariranno qui,<br>
+           compresse e pronte per la consultazione.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════════
+     TAB 3 — TIMELINE ATTIVITÀ
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-timeline" role="tabpanel">
+    {% if timeline %}
+      <div class="cd-timeline pt-3">
+        {# Linea verticale #}
+        <div class="cd-timeline-line"></div>
+
+        {% set cur_month = namespace(val='') %}
+        {% for fasc, att in timeline %}
+          {% set mese_anno = att.data[:7] if att.data else '' %}
+          {% if mese_anno != cur_month.val %}
+            {% set cur_month.val = mese_anno %}
+            <div class="cd-timeline-month">
+              <i class="bi bi-calendar3 me-1"></i>
+              {% if att.data %}{{ att.data[5:7] }}/{{ att.data[:4] }}{% endif %}
+            </div>
+          {% endif %}
+
+          {% set ec = EC.get(att.esito.value, 'secondary') %}
+          <div class="cd-timeline-entry">
+            <div class="cd-tl-dot cd-tl-dot-{{ ec }}"></div>
+            <div class="card border-0 shadow-sm flex-grow-1">
+              <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                      <span class="small text-muted">{{ att.data|fmt_data }}</span>
+                      <span class="badge bg-light text-dark border small">{{ att.tipo.value.replace('_',' ') }}</span>
+                      <span class="badge bg-{{ ec }} small">{{ att.esito.value.replace('_',' ') }}</span>
+                    </div>
+                    <div class="fw-semibold small">{{ att.titolo }}</div>
+                    {% if att.descrizione %}
+                      <div class="text-muted small mt-1">{{ att.descrizione }}</div>
+                    {% endif %}
+                    {% if att.luogo %}
+                      <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ att.luogo }}</div>
+                    {% endif %}
+                  </div>
+                  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fasc.id) }}"
+                     class="btn btn-sm btn-link text-muted p-0 text-nowrap flex-shrink-0"
+                     title="{{ fasc.titolo }}">
+                    <i class="bi bi-folder2-open me-1"></i>
+                    <span class="d-none d-md-inline">{{ fasc.numero }}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+
+        {% if timeline|length >= 30 %}
+          <div class="text-center small text-muted pt-3 pb-2">
+            <i class="bi bi-three-dots"></i> Mostrate le ultime 30 attività.
+            <a href="{{ url_for('lista_fascicoli') }}?q={{ cliente.nome_completo|urlencode }}">Vedi tutti i fascicoli</a>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-clock-history"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessuna attività registrata</p>
+        <p class="text-muted small">Udienze, depositi e notifiche compariranno qui.</p>
+      </div>
+    {% endif %}
+  </div>
+
+
+  {# ════════════════════════════════════════════
+     TAB 4 — AGENDA APPUNTAMENTI
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-agenda" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2">
+      <span class="fw-semibold text-muted small">{{ appuntamenti_cliente|length }} appuntamento/i</span>
+      <a href="{{ url_for('nuovo_appuntamento') }}?id_cliente={{ cliente.id }}&from_cliente={{ cliente.id }}"
+         class="btn btn-sm btn-success">
+        <i class="bi bi-calendar-plus me-1"></i>Nuovo appuntamento
+      </a>
+    </div>
+    {% if appuntamenti_cliente %}
+      <div class="d-flex flex-column gap-2">
+      {% for ap in appuntamenti_cliente %}
+        {% set stato_col = {'PROGRAMMATO':'primary','CONFERMATO':'success','COMPLETATO':'secondary','ANNULLATO':'danger','RINVIATO':'warning'}[ap.stato.value] %}
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0 text-center" style="min-width:48px">
+                <div class="fw-bold text-primary" style="font-size:1.1rem">{{ ap.data_ora_dt.strftime('%d') }}</div>
+                <div class="text-muted small text-uppercase">{{ ap.data_ora_dt.strftime('%b') }}</div>
+                <div class="text-muted small">{{ ap.data_ora_dt.strftime('%H:%M') }}</div>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <span class="badge bg-{{ stato_col }} rounded-pill">{{ ap.stato.value }}</span>
+                  <span class="badge bg-light text-dark border small">{{ ap.tipo.value.replace('_',' ') }}</span>
+                </div>
+                <div class="fw-semibold">{{ ap.titolo }}</div>
+                <div class="d-flex flex-wrap gap-x-3 gap-y-0 small text-muted mt-1">
+                  {% if ap.luogo %}<span><i class="bi bi-geo-alt me-1"></i>{{ ap.luogo }}</span>{% endif %}
+                  {% if ap.procedimento %}<span><i class="bi bi-hash me-1"></i>{{ ap.procedimento }}</span>{% endif %}
+                  {% if ap.avvocato %}<span><i class="bi bi-person-badge me-1"></i>{{ ap.avvocato }}</span>{% endif %}
+                </div>
+                {% if ap.note %}<div class="text-muted small mt-1">{{ ap.note }}</div>{% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                <a href="{{ url_for('dettaglio_appuntamento', id_app=ap.id) }}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-calendar-event"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessun appuntamento</p>
+        <p class="text-muted small">Gli appuntamenti per questo cliente compariranno qui.</p>
+        <a href="{{ url_for('nuovo_appuntamento') }}?id_cliente={{ cliente.id }}&from_cliente={{ cliente.id }}"
+           class="btn btn-success mt-2">
+          <i class="bi bi-calendar-plus me-2"></i>Nuovo appuntamento
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════════
+     TAB 5 — COMUNICAZIONI (EMAIL / SMS / WA)
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-comunicazioni" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 flex-wrap gap-2">
+      <span class="fw-semibold text-muted small">{{ messaggi_cliente|length }} comunicazione/i</span>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('nuovo_messaggio') }}?id_cliente={{ cliente.id }}&canale=EMAIL&from_cliente={{ cliente.id }}"
+           class="btn btn-sm btn-outline-info">
+          <i class="bi bi-envelope me-1"></i><span class="d-none d-sm-inline">Email</span>
+        </a>
+        <a href="{{ url_for('nuovo_messaggio') }}?id_cliente={{ cliente.id }}&canale=SMS&from_cliente={{ cliente.id }}"
+           class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-phone me-1"></i><span class="d-none d-sm-inline">SMS</span>
+        </a>
+        <a href="{{ url_for('nuovo_messaggio') }}?id_cliente={{ cliente.id }}&canale=WHATSAPP&from_cliente={{ cliente.id }}"
+           class="btn btn-sm btn-outline-success">
+          <i class="bi bi-whatsapp me-1"></i><span class="d-none d-sm-inline">WhatsApp</span>
+        </a>
+      </div>
+    </div>
+    {% if messaggi_cliente %}
+      <div class="d-flex flex-column gap-2">
+      {% for msg in messaggi_cliente %}
+        {% set canale_icon = {'EMAIL':'envelope','SMS':'phone','WHATSAPP':'whatsapp'}[msg.canale.value] %}
+        {% set canale_col = {'EMAIL':'info','SMS':'secondary','WHATSAPP':'success'}[msg.canale.value] %}
+        {% set stato_col_m = {'IN_CODA':'warning','INVIATO':'primary','CONSEGNATO':'success','LETTO':'success','FALLITO':'danger','ANNULLATO':'secondary'}[msg.stato.value] %}
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0">
+                <span class="badge bg-{{ canale_col }}-subtle text-{{ canale_col }} border border-{{ canale_col }}-subtle p-2 fs-5">
+                  <i class="bi bi-{{ canale_icon }}"></i>
+                </span>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <span class="badge bg-{{ canale_col }} rounded-pill small">{{ msg.canale.value }}</span>
+                  <span class="badge bg-{{ stato_col_m }} rounded-pill small">{{ msg.stato.value.replace('_',' ') }}</span>
+                  {% if msg.creato_il %}
+                  <span class="text-muted small ms-auto">{{ msg.creato_il[:10]|fmt_data }}</span>
+                  {% endif %}
+                </div>
+                {% if msg.oggetto %}
+                  <div class="fw-semibold small">{{ msg.oggetto }}</div>
+                {% endif %}
+                <div class="text-muted small mt-1 text-truncate">{{ msg.corpo[:120] }}{% if msg.corpo|length > 120 %}…{% endif %}</div>
+                {% if msg.email_destinatario or msg.telefono_destinatario %}
+                <div class="text-muted small mt-1">
+                  <i class="bi bi-send me-1"></i>
+                  {{ msg.email_destinatario or msg.telefono_destinatario }}
+                </div>
+                {% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                <a href="{{ url_for('dettaglio_messaggio', id_msg=msg.id) }}"
+                   class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-chat-dots"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessuna comunicazione</p>
+        <p class="text-muted small">Email, SMS e messaggi WhatsApp inviati a questo cliente compariranno qui.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ════════════════════════════════════════════
+     TAB 6 — PARCELLE
+     ════════════════════════════════════════════ #}
+  <div class="tab-pane fade" id="tab-parcelle" role="tabpanel">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2">
+      <span class="fw-semibold text-muted small">{{ parcelle_cliente|length }} parcella/e</span>
+      <a href="{{ url_for('fatturazione.nuova', id_cliente=cliente.id) }}?from_cliente={{ cliente.id }}"
+         class="btn btn-sm btn-danger">
+        <i class="bi bi-receipt me-1"></i>Nuova parcella
+      </a>
+    </div>
+    {% if parcelle_cliente %}
+      {% set totale_non_pagate = namespace(val=0) %}
+      {% for p in parcelle_cliente %}
+        {% if p.stato.value not in ('PAGATA','ANNULLATA') %}
+          {% set totale_non_pagate.val = totale_non_pagate.val + p.totale %}
+        {% endif %}
+      {% endfor %}
+      {% if totale_non_pagate.val > 0 %}
+      <div class="alert alert-warning border-0 d-flex gap-2 py-2 mb-3">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+        <span>Importo totale da incassare:
+          <strong>€ {{ "%.2f"|format(totale_non_pagate.val) }}</strong></span>
+      </div>
+      {% endif %}
+      <div class="d-flex flex-column gap-2">
+      {% for p in parcelle_cliente %}
+        {% set stato_p = {'BOZZA':'secondary','EMESSA':'primary','PAGATA':'success','SCADUTA':'danger','ANNULLATA':'dark'}[p.stato.value] %}
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0 text-center" style="min-width:48px">
+                <div class="fw-bold" style="font-size:.85rem">{{ p.numero }}</div>
+                <div class="text-muted small">{{ p.data_emissione|fmt_data }}</div>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center flex-wrap gap-1 mb-1">
+                  <span class="badge bg-{{ stato_p }} rounded-pill">{{ p.stato.value }}</span>
+                  {% if p.data_scadenza and p.stato.value == 'EMESSA' %}
+                    <span class="badge bg-light text-muted border small">
+                      Scad. {{ p.data_scadenza|fmt_data }}
+                    </span>
+                  {% endif %}
+                </div>
+                <div class="fw-bold text-primary">€ {{ "%.2f"|format(p.totale) }}</div>
+                {% if p.note %}<div class="text-muted small mt-1">{{ p.note }}</div>{% endif %}
+                {% if p.data_pagamento %}
+                  <div class="text-success small mt-1">
+                    <i class="bi bi-check-circle me-1"></i>Pagata il {{ p.data_pagamento|fmt_data }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="flex-shrink-0">
+                <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
+                   class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}
+      <div class="cd-empty-state">
+        <i class="bi bi-receipt"></i>
+        <p class="fw-semibold mt-3 mb-1">Nessuna parcella</p>
+        <p class="text-muted small">Le parcelle emesse per questo cliente compariranno qui.</p>
+        <a href="{{ url_for('fatturazione.nuova', id_cliente=cliente.id) }}?from_cliente={{ cliente.id }}"
+           class="btn btn-danger mt-2">
+          <i class="bi bi-receipt me-2"></i>Nuova parcella
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+</div>{# /tab-content #}
+
+{# ═══════════════════════════════════════════════
+   OFFCANVAS — NUOVO FASCICOLO
+   ═══════════════════════════════════════════════ #}
+{% from "includes/_ufficio_picker.html" import ufficio_picker %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcNuovoFasc"
+     aria-labelledby="offcNuovoFascLabel" style="width:min(100vw,560px)">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title fw-bold" id="offcNuovoFascLabel">
+      <i class="bi bi-folder-plus me-2 text-primary"></i>Nuova pratica
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="formNuovoFasc" method="post" action="{{ url_for('nuovo_fascicolo') }}">
+      <input type="hidden" name="id_cliente" value="{{ cliente.id }}">
+
+      {# Dati principali #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+        <input type="text" name="titolo" class="form-control" required
+               placeholder="es. Rossi c/ Bianchi — Inadempimento contrattuale">
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+          <select name="tipo" class="form-select" required>
+            {% for t in tipi_fascicolo %}
+            <option value="{{ t.value }}">{{ t.value.replace('_',' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold">Controparte</label>
+          <div class="ss-wrap" id="ss-crt-nuovo">
+            <div class="ss-input-group">
+              <i class="bi bi-search ss-icon"></i>
+              <input type="text" name="controparte" id="ss-crt-nuovo-input"
+                     class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
+              <button type="button" class="ss-btn-new"
+                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+            <div id="ss-crt-nuovo-dropdown" class="ss-dropdown"></div>
+            <div id="ss-crt-nuovo-chip" class="ss-chip mt-1" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
+        <textarea name="oggetto" class="form-control" rows="2"
+                  placeholder="Breve descrizione della causa…"></textarea>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-bank me-1"></i>Dati processuali</p>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Tribunale</label>
+        {{ ufficio_picker("tribunale", uid="uffp-nuovo-fasc-trib", mostra_tabs=false) }}
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Numero RG</label>
+          <input type="text" name="numero_rg" class="form-control font-monospace" placeholder="1234">
+        </div>
+        <div class="col-4">
+          <label class="form-label fw-semibold small">Anno RG</label>
+          <input type="number" name="anno_rg" class="form-control"
+                 value="{{ oggi.year }}" min="2000" max="2099">
+        </div>
+        <div class="col-3">
+          <label class="form-label fw-semibold small">Sezione</label>
+          <input type="text" name="sezione" class="form-control" placeholder="I">
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold small">Giudice</label>
+          <input type="text" name="giudice" class="form-control" placeholder="Dott. …">
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Valore causa (€)</label>
+          <input type="number" name="valore_causa" class="form-control" step="0.01" min="0" placeholder="0.00">
+        </div>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-briefcase me-1"></i>Avvocati responsabili</p>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato referente</label>
+          <input type="text" name="avvocato_referente" class="form-control" placeholder="Avv. …">
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato dominus</label>
+          <input type="text" name="avvocato_dominus" class="form-control" placeholder="Avv. …">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold small">Note</label>
+        <textarea name="note" class="form-control" rows="2"></textarea>
+      </div>
+    </form>
+  </div>
+  <div class="border-top p-3 bg-body" style="flex-shrink:0">
+    <div class="d-flex gap-2">
+      <button type="submit" form="formNuovoFasc" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-check-lg me-1"></i>Crea pratica
+      </button>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Annulla</button>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════
+   OFFCANVAS — MODIFICA FASCICOLO
+   ═══════════════════════════════════════════════ #}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcModificaFasc"
+     aria-labelledby="offcModificaFascLabel" style="width:min(100vw,560px)">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title fw-bold" id="offcModificaFascLabel">
+      <i class="bi bi-pencil-square me-2 text-warning"></i>Modifica pratica
+      <span class="offc-fasc-num badge bg-light text-muted border ms-1 fw-normal small"></span>
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form id="formModificaFasc" method="post" action="">
+      {# Dati principali #}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+        <input type="text" name="titolo" class="form-control" required>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+          <select name="tipo" class="form-select" required>
+            {% for t in tipi_fascicolo %}
+            <option value="{{ t.value }}">{{ t.value.replace('_',' ') }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold">Controparte</label>
+          <div class="ss-wrap" id="ss-crt-modifica">
+            <div class="ss-input-group">
+              <i class="bi bi-search ss-icon"></i>
+              <input type="text" name="controparte" id="ss-crt-modifica-input"
+                     class="ss-input" placeholder="Cerca o digita…" autocomplete="off">
+              <button type="button" class="ss-btn-new"
+                      onclick="window.open('/soggetti/nuovo','_blank')" title="Crea nuovo soggetto">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </div>
+            <div id="ss-crt-modifica-dropdown" class="ss-dropdown"></div>
+            <div id="ss-crt-modifica-chip" class="ss-chip mt-1" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
+        <textarea name="oggetto" class="form-control" rows="2"></textarea>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-bank me-1"></i>Dati processuali</p>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small">Tribunale</label>
+        {{ ufficio_picker("tribunale", uid="uffp-modifica-fasc-trib", mostra_tabs=false) }}
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Numero RG</label>
+          <input type="text" name="numero_rg" class="form-control font-monospace">
+        </div>
+        <div class="col-4">
+          <label class="form-label fw-semibold small">Anno RG</label>
+          <input type="number" name="anno_rg" class="form-control" min="2000" max="2099">
+        </div>
+        <div class="col-3">
+          <label class="form-label fw-semibold small">Sezione</label>
+          <input type="text" name="sezione" class="form-control">
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-7">
+          <label class="form-label fw-semibold small">Giudice</label>
+          <input type="text" name="giudice" class="form-control">
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold small">Valore causa (€)</label>
+          <input type="number" name="valore_causa" class="form-control" step="0.01" min="0">
+        </div>
+      </div>
+
+      <hr class="my-3">
+      <p class="small fw-semibold text-muted mb-2"><i class="bi bi-briefcase me-1"></i>Avvocati responsabili</p>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato referente</label>
+          <input type="text" name="avvocato_referente" class="form-control">
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold small">Avvocato dominus</label>
+          <input type="text" name="avvocato_dominus" class="form-control">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label fw-semibold small">Note</label>
+        <textarea name="note" class="form-control" rows="2"></textarea>
+      </div>
+    </form>
+  </div>
+  <div class="border-top p-3 bg-body" style="flex-shrink:0">
+    <div class="d-flex gap-2">
+      <button type="submit" form="formModificaFasc" class="btn btn-warning flex-grow-1">
+        <i class="bi bi-check-lg me-1"></i>Salva modifiche
+      </button>
+      <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Annulla</button>
+    </div>
+  </div>
+</div>
+
+{# stili cd-* definiti in app.css — nessuno stile inline necessario #}
+
+{# ═══════════════════════════════════════════════
+   SCRIPT — sfogliaArchivio
+   ═══════════════════════════════════════════════ #}
+<script>
+(function () {
+  const EXT_ICON = {
+    '.pdf':  'bi-file-pdf-fill text-danger',
+    '.doc':  'bi-file-word-fill text-primary',
+    '.docx': 'bi-file-word-fill text-primary',
+    '.xls':  'bi-file-excel-fill text-success',
+    '.xlsx': 'bi-file-excel-fill text-success',
+    '.png':  'bi-file-image-fill text-info',
+    '.jpg':  'bi-file-image-fill text-info',
+    '.jpeg': 'bi-file-image-fill text-info',
+    '.zip':  'bi-file-zip-fill text-warning',
+    '.json': 'bi-filetype-json text-secondary',
+    '.txt':  'bi-file-text-fill text-muted',
+    '.p7m':  'bi-file-earmark-lock-fill text-success',
+  };
+
+  function fmtBytes(b) {
+    if (!b) return '—';
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1024 / 1024).toFixed(2) + ' MB';
+  }
+
+  window.sfogliaArchivio = function (idFasc, titolo) {
+    document.getElementById('sfoglia-titolo').textContent = titolo;
+    document.getElementById('sfoglia-scarica-zip').href =
+      '/fascicoli/' + idFasc + '/archivio/scarica';
+
+    const body = document.getElementById('sfoglia-body');
+    body.innerHTML =
+      '<div class="text-center py-5"><div class="spinner-border text-primary" role="status">' +
+      '<span class="visually-hidden">Caricamento…</span></div></div>';
+
+    const modal = new bootstrap.Modal(document.getElementById('modalSfoglia'));
+    modal.show();
+
+    fetch('/fascicoli/' + idFasc + '/archivio/contenuto')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!Array.isArray(data)) {
+          body.innerHTML = '<div class="alert alert-warning m-3">' +
+            (data.errore || 'Archivio non disponibile.') + '</div>';
+          return;
+        }
+        if (!data.length) {
+          body.innerHTML = '<div class="text-center py-4 text-muted">' +
+            '<i class="bi bi-archive" style="font-size:2rem"></i><p class="mt-2">Archivio vuoto</p></div>';
+          return;
+        }
+
+        var rows = data.map(function (f) {
+          var nomeBrev = f.nome.split('/').pop();
+          var icona = EXT_ICON[f.estensione] || 'bi-file-earmark text-muted';
+          var dim = fmtBytes(f.dimensione);
+          var href = '/fascicoli/' + idFasc + '/archivio/file/' +
+                     f.nome.split('/').map(encodeURIComponent).join('/');
+          return '<tr class="sfoglia-row">' +
+            '<td><i class="bi ' + icona + ' sf-icon me-2"></i>' +
+            '<span class="sf-name">' + nomeBrev + '</span></td>' +
+            '<td class="sf-size">' + dim + '</td>' +
+            '<td class="text-end">' +
+            '<a href="' + href + '" class="btn btn-sm btn-outline-primary" download title="Scarica">' +
+            '<i class="bi bi-download"></i></a></td></tr>';
+        });
+
+        body.innerHTML =
+          '<div class="table-responsive">' +
+          '<table class="table table-sm table-hover mb-0">' +
+          '<thead class="table-light"><tr>' +
+          '<th>File</th><th style="width:80px">Dim.</th><th style="width:48px"></th>' +
+          '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+      })
+      .catch(function () {
+        body.innerHTML = '<div class="alert alert-danger m-3">Errore nel caricamento del contenuto.</div>';
+      });
+  };
+}());
+
+/* ---- Offcanvas Modifica Fascicolo — popola campi da data-* ---- */
+document.querySelectorAll('.apri-modifica-fasc').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var d = btn.dataset;
+    var oc = document.getElementById('offcModificaFasc');
+
+    /* action form */
+    oc.querySelector('form').action = '/fascicoli/' + d.id + '/modifica';
+
+    /* titolo offcanvas */
+    oc.querySelector('.offc-fasc-num').textContent = d.id;
+
+    /* campi semplici */
+    oc.querySelector('[name="titolo"]').value         = d.titolo       || '';
+    oc.querySelector('[name="oggetto"]').value        = d.oggetto      || '';
+    oc.querySelector('[name="controparte"]').value    = d.controparte  || '';
+    oc.querySelector('[name="numero_rg"]').value      = d.numeroRg     || '';
+    oc.querySelector('[name="anno_rg"]').value        = d.annoRg       || '';
+    oc.querySelector('[name="sezione"]').value        = d.sezione      || '';
+    oc.querySelector('[name="giudice"]').value        = d.giudice      || '';
+    oc.querySelector('[name="valore_causa"]').value   = d.valoreCausa  || '';
+    oc.querySelector('[name="avvocato_referente"]').value = d.avvocatoReferente || '';
+    oc.querySelector('[name="avvocato_dominus"]').value   = d.avvocatoDominus   || '';
+    oc.querySelector('[name="note"]').value           = d.note         || '';
+
+    /* tipo select */
+    var selTipo = oc.querySelector('[name="tipo"]');
+    selTipo.value = d.tipo || '';
+
+    /* ufficio picker */
+    var tribunale = d.tribunale || '';
+    var root = oc.querySelector('.uffp-root');
+    if (root) {
+      root.querySelector('[data-uffp-input]').value  = tribunale;
+      root.querySelector('[data-uffp-value]').value  = tribunale;
+      var badge     = root.querySelector('[data-uffp-badge]');
+      var badgeLbl  = root.querySelector('[data-uffp-badge-label]');
+      if (tribunale) {
+        badgeLbl.textContent   = tribunale;
+        badge.style.display    = 'block';
+        root.querySelector('[data-uffp-icon] i').className = 'bi bi-building-columns text-primary';
+        var clearBtn = root.querySelector('[data-uffp-clear]');
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+      } else {
+        badge.style.display = 'none';
+        root.querySelector('[data-uffp-icon] i').className = 'bi bi-search text-muted';
+        var clearBtn2 = root.querySelector('[data-uffp-clear]');
+        if (clearBtn2) clearBtn2.style.display = 'none';
+      }
+    }
+  });
+});
+
+/* ---- Navigazione card pratiche ---- */
+function navigaCard(e, card) {
+  /* ignora click su link, bottoni e form interni */
+  if (e.target.closest('a,button,form')) return;
+  var href = card.dataset.href;
+  if (href) window.location.href = href;
+}
+
+/* ---- Attiva tab dal click su stat card ---- */
+function attivaTab(btnId) {
+  var btn = document.getElementById(btnId);
+  if (btn) {
+    btn.click();
+    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initSoggettoSearch({ uid: 'crt-nuovo',    allowFreeText: true });
+  initSoggettoSearch({ uid: 'crt-modifica', allowFreeText: true });
+});
+</script>
+{% endblock %}
+
+{% block modals %}
+{# ═══════════════════════════════════════════════
+   MODAL — SFOGLIA ARCHIVIO ZIP
+   ═══════════════════════════════════════════════ #}
+<div class="modal fade" id="modalSfoglia" tabindex="-1" aria-labelledby="sfoglia-label" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title mb-0" id="sfoglia-label">
+            <i class="bi bi-file-zip me-2 text-primary"></i>Archivio — <span id="sfoglia-titolo"></span>
+          </h5>
+          <small class="text-muted" id="sfoglia-sub">Contenuto compresso — i file vengono estratti al download</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0" id="sfoglia-body">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Caricamento…</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Chiudi</button>
+        <a id="sfoglia-scarica-zip" href="#" class="btn btn-primary">
+          <i class="bi bi-download me-1"></i>Scarica ZIP completo
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}{# /modals #}

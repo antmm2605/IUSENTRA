@@ -182,15 +182,16 @@ class ClientPAT:
             }
             stato = stato_map.get(fascicolo_pat.stato.upper(), StatoFascicolo.APERTO)
 
-            id_cliente = ""
-            nome_cliente = ""
-            if fascicolo_pat.ricorrenti:
-                nome = fascicolo_pat.ricorrenti[0]
-                for c in gestione_clienti.tutti():
-                    if nome.upper() in c.nome_completo.upper():
-                        id_cliente   = c.id
-                        nome_cliente = c.nome_completo
-                        break
+            # Riconcilia ricorrenti e resistenti con l'anagrafica
+            from pct.polisWeb import riconcilia_soggetti_pst
+            tutti_soggetti = list(fascicolo_pat.ricorrenti or []) + list(fascicolo_pat.resistenti or [])
+            rif = f"N.RG {fascicolo_pat.numero_ricorso}/{fascicolo_pat.anno} — {fascicolo_pat.nome_ufficio}"
+            id_cliente, nome_cliente, avvisi = riconcilia_soggetti_pst(
+                nomi=tutti_soggetti,
+                gestione_clienti=gestione_clienti,
+                riferimento=rif,
+                portale="PAT",
+            )
 
             oggetto_breve = fascicolo_pat.oggetto[:80] if fascicolo_pat.oggetto else (
                 fascicolo_pat.materia or f"Ricorso {fascicolo_pat.tipo}"
@@ -212,7 +213,6 @@ class ClientPAT:
                 note=fascicolo_pat.note or f"Importato da PAT il {date.today()}",
             )
 
-            avvisi = []
             if fascicolo_pat.data_udienza:
                 try:
                     gestione_fascicoli.aggiungi_attivita(
@@ -227,7 +227,7 @@ class ClientPAT:
 
             if not id_cliente:
                 avvisi.append(
-                    "Nessun cliente trovato in anagrafica per il ricorrente. "
+                    "Nessun soggetto valido tra ricorrenti/resistenti. "
                     "Assegnare il cliente manualmente."
                 )
 

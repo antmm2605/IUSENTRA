@@ -140,7 +140,13 @@ class DepositoCivile:
 
         # 4. Invia via PEC
         # Oggetto conforme D.M. 44/2011 art. 14 c.3: "DEPOSITO TELEMATICO - {TipoAtto}"
-        rg_str = f" - RG {dati.numero_rg}/{dati.anno_rg}" if dati.numero_rg else ""
+        # Includi RG solo se entrambi numero_rg e anno_rg sono valorizzati
+        # (anno_rg=0 o None produrrebbe "RG 1234/None" — non conforme)
+        rg_str = (
+            f" - RG {dati.numero_rg}/{dati.anno_rg}"
+            if dati.numero_rg and dati.anno_rg
+            else ""
+        )
         oggetto_pec = f"DEPOSITO TELEMATICO - {dati.tipo_atto}{rg_str}"
         esito_invio = self.pec.invia_busta(
             destinatario_pec=ufficio.pec,
@@ -216,46 +222,50 @@ class DepositoCivile:
 
 class DepositoPenale:
     """
-    Gestisce il deposito telematico nel processo penale tramite PDP
-    (Portale Deposito Atti Penali del Ministero della Giustizia).
+    Deposito telematico nel processo penale tramite PDP REST
+    (Portale Deposito Atti Penali — D.Lgs. 150/2022 + D.M. 217/2023).
 
-    Tipi di atti supportati:
-    - Denuncia/Querela
-    - Memoria difensiva
-    - Opposizione a decreto penale
-    - Richiesta di riesame
+    NOTA: Questa classe è mantenuta per compatibilità con pct/cli.py.
+    Per il deposito dalla UI web usare ClientPDP (pct/pdp.py) che implementa
+    correttamente mTLS con certificato CNS/P12 come richiesto dal D.M. 217/2023.
+
+    Autenticazione: mTLS con certificato CNS/CIE — NON username/password.
+    URL endpoint: https://appweb.giustizia.it/snt/depositi
     """
 
-    PDP_BASE_URL = "https://pdp.giustizia.it"
+    # Endpoint reale PDP REST (D.Lgs. 150/2022 + D.M. 217/2023)
+    PDP_BASE_URL = "https://appweb.giustizia.it/snt"
 
     def __init__(self, credenziali: dict):
         """
         Args:
-            credenziali: Dict con 'username' e 'password' per il PST
+            credenziali: Dict con 'p12_path' e 'p12_password' per mTLS,
+                         oppure 'cert_pem_path' e 'key_pem_path'.
+                         I campi 'username'/'password' non sono supportati
+                         dall'endpoint PDP reale (richiede mTLS).
         """
         self.credenziali = credenziali
         self._session_token = None
 
     def autentica(self) -> bool:
         """
-        Autentica al Portale dei Servizi Telematici (PST).
+        Verifica che il certificato mTLS sia disponibile e leggibile.
+        L'autenticazione al PDP avviene tramite mTLS a livello TLS,
+        non tramite token Bearer (D.M. 217/2023).
 
         Returns:
-            True se autenticazione riuscita
+            True se il certificato è configurato e accessibile
         """
-        import requests
-
-        try:
-            resp = requests.post(
-                f"{self.PDP_BASE_URL}/auth/login",
-                json=self.credenziali,
-                timeout=15,
-            )
-            resp.raise_for_status()
-            self._session_token = resp.json().get("token")
-            return bool(self._session_token)
-        except requests.RequestException:
-            return False
+        p12 = self.credenziali.get("p12_path", "")
+        cert = self.credenziali.get("cert_pem_path", "")
+        key = self.credenziali.get("key_pem_path", "")
+        if p12 and Path(p12).exists():
+            self._session_token = "mtls_p12"
+            return True
+        if cert and key and Path(cert).exists() and Path(key).exists():
+            self._session_token = "mtls_pem"
+            return True
+        return False
 
     def deposita_querela(
         self,
@@ -265,36 +275,53 @@ class DepositoPenale:
         dati_querelato: dict,
     ) -> dict:
         """
-        Deposita una denuncia/querela tramite PDP.
+        Deposita una denuncia/querela tramite PDP REST con mTLS.
 
         Args:
             atto_path: Percorso alla querela firmata digitalmente (.pdf.p7m)
-            procura: Nome della Procura della Repubblica competente
+            procura: Codice ufficio della Procura della Repubblica competente
             dati_querelante: Dati del querelante (nome, cf, ecc.)
             dati_querelato: Dati del querelato
 
         Returns:
-            Esito del deposito con numero di protocollo
+            Esito del deposito con codiceEsito, idDeposito, dataDeposito, stato
         """
         import requests
+        from requests import Session
 
         if not self._session_token:
-            raise RuntimeError("Autenticazione richiesta. Chiamare autentica() prima.")
+            raise RuntimeError(
+                "Certificato mTLS non configurato. Chiamare autentica() prima."
+            )
 
-        headers = {"Authorization": f"Bearer {self._session_token}"}
+        session = Session()
+        p12 = self.credenziali.get("p12_path", "")
+        cert = self.credenziali.get("cert_pem_path", "")
+        key  = self.credenziali.get("key_pem_path", "")
+        if p12 and Path(p12).exists():
+            try:
+                from requests_pkcs12 import Pkcs12Adapter
+                pwd = self.credenziali.get("p12_password", b"")
+                session.mount(self.PDP_BASE_URL, Pkcs12Adapter(
+                    pkcs12_filename=p12,
+                    pkcs12_password=pwd if isinstance(pwd, bytes) else pwd.encode(),
+                ))
+            except ImportError:
+                raise ImportError("Installa requests-pkcs12: pip install requests-pkcs12")
+        elif cert and key:
+            session.cert = (cert, key)
 
         with open(atto_path, "rb") as f:
             files = {"atto": (Path(atto_path).name, f, "application/octet-stream")}
             payload = {
-                "tipo_atto": "QUERELA",
-                "procura": procura,
-                "querelante": json.dumps(dati_querelante),
-                "querelato": json.dumps(dati_querelato),
+                "tipoAtto": "QUERELA",
+                "codiceUfficio": procura,
+                "codiceFiscaleAvvocato": self.credenziali.get("cf_avvocato", ""),
+                "oggetto": dati_querelante.get("oggetto", "Denuncia/Querela"),
             }
             try:
-                resp = requests.post(
-                    f"{self.PDP_BASE_URL}/deposito/querela",
-                    headers=headers,
+                resp = session.post(
+                    f"{self.PDP_BASE_URL}/depositi",
                     files=files,
                     data=payload,
                     timeout=30,
@@ -302,4 +329,8 @@ class DepositoPenale:
                 resp.raise_for_status()
                 return resp.json()
             except requests.RequestException as e:
-                return {"esito": "ERRORE", "messaggio": str(e)}
+                return {
+                    "codiceEsito": "E_CONN",
+                    "descrizioneEsito": str(e),
+                    "stato": "ERRORE",
+                }

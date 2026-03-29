@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% from "includes/_ufficio_picker.html" import ufficio_picker %}
+{% block title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
+{% block page_title %}{{ 'Modifica' if app else 'Nuovo' }} Appuntamento{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon">
+    <i class="bi bi-{% if app %}pencil{% else %}calendar-plus{% endif %}"></i>
+  </div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">{{ 'Modifica appuntamento' if app else 'Nuovo appuntamento' }}</h1>
+    <p class="ds-ph-sub">Data, ora, luogo e dettagli dell'appuntamento</p>
+  </div>
+  <div class="ds-ph-actions">
+    {% if app %}
+    <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Dettaglio</span>
+    </a>
+    {% else %}
+    <a href="{{ url_for('agenda_view') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Agenda</span>
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+
+{# ── Colonna form ── #}
+<div class="col-lg-8">
+<div class="card shadow-sm">
+<div class="card-body">
+
+<form method="post">
+  <input type="hidden" name="id_cliente" value="{{ id_cliente or (app.id_cliente if app else '') }}">
+  <input type="hidden" name="from_cliente" value="{{ from_cliente or '' }}">
+
+  {% if from_cliente %}
+  <div class="alert alert-info border-0 d-flex align-items-center gap-2 py-2 mb-3">
+    <i class="bi bi-info-circle-fill"></i>
+    <span>Stai aggiungendo un appuntamento dalla cartella cliente.
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="fw-semibold">Torna alla cartella</a></span>
+  </div>
+  {% endif %}
+
+  <div class="row g-3">
+
+    {# Titolo #}
+    <div class="col-12">
+      <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+      <input type="text" name="titolo" class="form-control"
+             value="{{ app.titolo if app else '' }}" required
+             placeholder="es. Udienza RG 1234/2024 – Rossi c/ Bianchi">
+    </div>
+
+    {# Tipo + Stato (solo modifica) #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+      <select name="tipo" class="form-select" required>
+        {% for t in tipi %}
+        <option value="{{ t.value }}" {{ 'selected' if app and app.tipo == t }}>{{ t.value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# Data e Ora #}
+    <div class="col-md-3">
+      <label class="form-label fw-semibold">Data <span class="text-danger">*</span></label>
+      <input type="date" name="data" class="form-control"
+             value="{{ app.data_ora_dt.strftime('%Y-%m-%d') if app else (data_default or '') }}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label fw-semibold">Ora <span class="text-danger">*</span></label>
+      <input type="time" name="ora" class="form-control"
+             value="{{ app.data_ora_dt.strftime('%H:%M') if app else '09:00' }}" required>
+    </div>
+
+    {# Durata + Reminder #}
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Durata (minuti)</label>
+      <input type="number" name="durata" class="form-control" min="5" step="5"
+             value="{{ app.durata_minuti if app else 60 }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Reminder (min prima)</label>
+      <input type="number" name="reminder" class="form-control" min="0"
+             value="{{ app.reminder_minuti if app else 60 }}">
+    </div>
+
+    {# Luogo #}
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Luogo / Aula</label>
+      <input type="text" name="luogo" class="form-control"
+             value="{{ app.luogo if app else '' }}" placeholder="es. Aula 3 - Piano 2">
+    </div>
+
+    <hr class="col-12 my-1">
+
+    {# Cliente con autocomplete #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Cliente</label>
+      {% if cliente_presel and not app %}
+        <input type="text" class="form-control bg-light text-muted"
+               value="{{ cliente_presel.nome_completo }}" readonly>
+        <input type="hidden" name="cliente" value="{{ cliente_presel.nome_completo }}">
+      {% else %}
+      <div class="position-relative">
+        <input type="text" id="input-cliente" name="cliente" class="form-control"
+               value="{{ app.cliente if app else '' }}" placeholder="Digita per cercare..."
+               autocomplete="off">
+        <div id="clienti-dropdown" class="dropdown-menu w-100 shadow-sm"
+             style="display:none; max-height:220px; overflow-y:auto; position:absolute; z-index:1055; top:100%; left:0;"></div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Codice fiscale cliente</label>
+      <input type="text" id="input-cf" name="cf_cliente" class="form-control"
+             value="{{ app.cf_cliente if app else (cliente_presel.codice_fiscale if cliente_presel else '') }}"
+             placeholder="RSSMRA80A01H501Z" maxlength="16"
+             style="text-transform:uppercase"
+             {{ 'readonly' if cliente_presel and not app }}>
+    </div>
+
+    {# Procedimento + Tribunale #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Numero procedimento</label>
+      <input type="text" name="procedimento" class="form-control"
+             value="{{ app.procedimento if app else '' }}" placeholder="RG 1234/2024">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Tribunale</label>
+      {{ ufficio_picker("tribunale",
+          current_value = app.tribunale if app else "",
+          usa_nome = true,
+          uid = "uffp-app-tribunale") }}
+    </div>
+
+    {# Avvocato #}
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Avvocato responsabile</label>
+      <input type="text" name="avvocato" class="form-control"
+             value="{{ app.avvocato if app else '' }}" placeholder="Avv. Mario Rossi">
+    </div>
+
+    {# Note #}
+    <div class="col-12">
+      <label class="form-label fw-semibold">Note</label>
+      <textarea name="note" class="form-control" rows="3"
+                placeholder="Note libere...">{{ app.note if app else '' }}</textarea>
+    </div>
+
+  </div>{# /row #}
+
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if app else 'Aggiungi' }}
+    </button>
+    {% if app %}
+    <a href="{{ url_for('dettaglio_appuntamento', id_app=app.id) }}"
+       class="btn btn-outline-secondary">Annulla</a>
+    {% elif from_cliente %}
+    <a href="{{ url_for('cartella_cliente', id_cliente=from_cliente) }}"
+       class="btn btn-outline-secondary">Annulla</a>
+    {% else %}
+    <a href="{{ url_for('agenda_view') }}" class="btn btn-outline-secondary">Annulla</a>
+    {% endif %}
+  </div>
+
+</form>
+</div>
+</div>
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar info ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-info-circle me-2 text-primary"></i>Tipi di appuntamento
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2"><strong>UDIENZA</strong>: comparizione in aula, include il tribunale di riferimento.</p>
+      <p class="mb-2"><strong>CONSULTAZIONE</strong>: incontro con il cliente in studio o da remoto.</p>
+      <p class="mb-2"><strong>RIUNIONE</strong>: meeting interno o con controparte.</p>
+      <p class="mb-0"><strong>Reminder</strong>: l'avviso viene inviato X minuti prima dell'appuntamento (default 60 min).</p>
+    </div>
+  </div>
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-calendar-check me-2 text-muted"></i>Sincronizzazione
+    </div>
+    <div class="card-body small text-muted">
+      Gli appuntamenti sono inclusi nei feed WebCal e nei file iCal scaricabili dall'agenda. Abilita la sincronizzazione nelle <a href="{{ url_for('impostazioni_calendario') }}" class="text-decoration-none">impostazioni calendario</a>.
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const inputCliente = document.getElementById('input-cliente');
+  const inputCF      = document.getElementById('input-cf');
+  const dropdown     = document.getElementById('clienti-dropdown');
+  let timer = null;
+
+  inputCliente.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { dropdown.style.display = 'none'; return; }
+    timer = setTimeout(() => cercaClienti(q), 220);
+  });
+
+  inputCliente.addEventListener('blur', function () {
+    setTimeout(() => { dropdown.style.display = 'none'; }, 200);
+  });
+
+  function cercaClienti(q) {
+    fetch('/api/clienti?q=' + encodeURIComponent(q))
+      .then(r => r.json())
+      .then(data => {
+        dropdown.innerHTML = '';
+        if (!data.length) {
+          dropdown.innerHTML = '<span class="dropdown-item text-muted">Nessun cliente trovato</span>';
+          dropdown.style.display = 'block';
+          return;
+        }
+        data.slice(0, 10).forEach(c => {
+          const nome = c.nome_completo || (c.nome + ' ' + (c.cognome || '')).trim() || c.ragione_sociale || '';
+          const cf   = c.codice_fiscale || '';
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'dropdown-item d-flex flex-column py-2';
+          item.innerHTML = '<span class="fw-semibold">' + escHtml(nome) + '</span>'
+                         + (cf ? '<small class="text-muted">' + escHtml(cf) + '</small>' : '');
+          item.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            inputCliente.value = nome;
+            if (cf) inputCF.value = cf.toUpperCase();
+            dropdown.style.display = 'none';
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+      })
+      .catch(() => { dropdown.style.display = 'none'; });
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+})();
+</script>
+{% endblock %}

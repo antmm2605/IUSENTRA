@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#1a3a5c"/>
+  <!-- Valigetta legale - Bootstrap Icons bi-briefcase-fill scalata -->
+  <g transform="translate(96,112)">
+    <path fill="#c8972b" d="
+      M130 0 C95.8 0 68 27.8 68 62
+      L68 80
+      L16 80
+      C7.2 80 0 87.2 0 96
+      L0 288
+      C0 296.8 7.2 304 16 304
+      L304 304
+      C312.8 304 320 296.8 320 288
+      L320 96
+      C320 87.2 312.8 80 304 80
+      L252 80
+      L252 62
+      C252 27.8 224.2 0 190 0
+      Z
+      M130 40
+      L190 40
+      C202 40 212 50 212 62
+      L212 80
+      L108 80
+      L108 62
+      C108 50 118 40 130 40
+      Z
+    "/>
+  </g>
+  <!-- Iniziali SL -->
+  <text x="256" y="400"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-weight="bold"
+        font-size="90"
+        text-anchor="middle"
+        fill="#ffffff"
+        opacity="0.9">Studio Legale</text>
+</svg>

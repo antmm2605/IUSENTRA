@@ -71,6 +71,9 @@ class FirmaDigitale:
           1. P12 (se p12_path esiste su disco)
           2. PEM (se cert_pem_path + key_pem_path esistono su disco)
 
+        Per PKCS#11 (Aruba Key) usare FirmaPKCS11.da_config(cfg, pin=...) oppure
+        FirmaDigitale.da_config(cfg, pin=...) che reindirizza automaticamente.
+
         Raises:
             FileNotFoundError: se nessun formato è configurato/disponibile.
         """
@@ -91,8 +94,14 @@ class FirmaDigitale:
             )
         raise FileNotFoundError(
             "Nessun certificato di firma configurato. "
-            "Configurare P12 (PCT_FIRMA_P12) oppure PEM (PCT_FIRMA_CERT + PCT_FIRMA_KEY)."
+            "Configurare P12 (PCT_FIRMA_P12) oppure PEM (PCT_FIRMA_CERT + PCT_FIRMA_KEY) "
+            "oppure token PKCS#11 (Aruba Key) nel pannello Impostazioni → Firma Digitale."
         )
+
+    @classmethod
+    def da_config(cls, cfg) -> "FirmaDigitale":
+        """Alias italiano di from_config() — compatibilità con web/app.py."""
+        return cls.from_config(cfg)
 
     # ---------------------------------------------------------------- caricamento interno
 

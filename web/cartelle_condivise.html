@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Ricerca — Studio Legale PCT{% endblock %}
+{% block page_title %}Risultati ricerca{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col-md-8 col-lg-6">
+    <form action="{{ url_for('cerca') }}" method="get" autocomplete="off">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control"
+               placeholder="Cerca fascicoli, clienti, appuntamenti, scadenze…"
+               value="{{ q }}" autofocus>
+        <button class="btn btn-primary" type="submit">Cerca</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if q and not risultati %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-2"></i>Nessun risultato per <strong>{{ q }}</strong>.
+</div>
+{% endif %}
+
+{% set tipo_meta = {
+  'fascicolo':    ('bi-folder2-open', 'primary',   'Fascicoli'),
+  'cliente':      ('bi-person',       'success',   'Clienti'),
+  'appuntamento': ('bi-calendar-event','warning',  'Appuntamenti'),
+  'scadenza':     ('bi-alarm',        'danger',    'Scadenze'),
+} %}
+
+{% for tipo, items in risultati.items() %}
+{% set icona, colore, label = tipo_meta.get(tipo, ('bi-search', 'secondary', tipo)) %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi {{ icona }} text-{{ colore }} me-2"></i>{{ label }}
+    <span class="badge bg-{{ colore }} ms-1">{{ items|length }}</span>
+  </div>
+  <div class="list-group list-group-flush">
+    {% for r in items %}
+    <a href="{{ r.url }}" class="list-group-item list-group-item-action">
+      <div class="d-flex align-items-start gap-2">
+        <i class="bi {{ r.icona }} text-{{ colore }} mt-1 flex-shrink-0"></i>
+        <div class="flex-grow-1 min-w-0">
+          <div class="fw-semibold">{{ r.titolo }}</div>
+          {% if r.sottotitolo %}<div class="small text-muted">{{ r.sottotitolo }}</div>{% endif %}
+          {% if r.snippet %}<div class="small text-secondary mt-1">{{ r.snippet|safe }}</div>{% endif %}
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+
+{% if not q %}
+<div class="text-center text-muted py-5">
+  <i class="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
+  <p>Inserisci un termine di ricerca per trovare fascicoli, clienti, appuntamenti e scadenze.</p>
+</div>
+{% endif %}
+{% endblock %}

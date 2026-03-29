@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Componi — Email{% endblock %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-pencil-square"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Componi email</h1>
+    <p class="ds-ph-sub">Il messaggio verrà inviato tramite l'account SMTP configurato</p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('email_client.casella') }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Casella</span>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+<div class="col-lg-8">
+
+{# ── Composer card ultra-moderna ── #}
+<div class="card shadow-sm" style="border-radius:16px;border:1.5px solid rgba(0,0,0,.07);overflow:visible">
+  {# Header gradient #}
+  <div class="card-header d-flex align-items-center gap-2"
+       style="background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);
+              border-radius:14px 14px 0 0;border:none;padding:.9rem 1.25rem">
+    <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.18);
+                display:flex;align-items:center;justify-content:center">
+      <i class="bi bi-envelope-paper-fill text-white" style="font-size:1rem"></i>
+    </div>
+    <div>
+      <div class="fw-bold text-white" style="font-size:.95rem">Nuovo messaggio</div>
+      <div class="text-white opacity-75" style="font-size:.72rem">Email · SMTP</div>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    <form method="post" action="{{ url_for('email_client.scrivi') }}" id="form-email">
+
+      {# ── Campo A: con client picker ───────────────────────────────── #}
+      <div class="px-3 pt-3 pb-2 border-bottom">
+
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge rounded-pill"
+                style="background:rgba(99,102,241,.12);color:#4f46e5;
+                       font-size:.68rem;font-weight:700;letter-spacing:.05em;
+                       padding:.25rem .6rem">A</span>
+          <span class="text-muted small">Destinatario</span>
+        </div>
+
+        {# Client picker #}
+        <div class="cp-wrap" id="cp-wrap">
+          {# Chip cliente selezionato #}
+          <div id="cp-chip" class="cp-chip mb-2" style="display:none">
+            <div class="cp-chip-avatar pf" id="cp-chip-avatar">MR</div>
+            <div class="cp-chip-info">
+              <div class="cp-chip-name" id="cp-chip-name"></div>
+              <div class="cp-chip-email" id="cp-chip-email-txt"></div>
+            </div>
+            <button type="button" class="cp-chip-clear" onclick="cpClear()">
+              <i class="bi bi-x"></i> Cambia
+            </button>
+          </div>
+
+          {# Input email + bottone cerca #}
+          <div id="cp-input-row" class="d-flex align-items-center gap-2">
+            <div class="flex-grow-1" style="position:relative">
+              <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0"
+                      style="border-radius:10px 0 0 10px;border-color:#dee2e6">
+                  <i class="bi bi-at text-muted" style="font-size:.9rem"></i>
+                </span>
+                <input type="email" name="a" id="inp-email"
+                       value="{{ a }}"
+                       class="form-control border-start-0 ps-0"
+                       style="border-radius:0 10px 10px 0;border-color:#dee2e6"
+                       placeholder="destinatario@email.com"
+                       required autocomplete="email">
+              </div>
+            </div>
+            <button type="button"
+                    id="btn-cp-toggle"
+                    class="btn btn-sm flex-shrink-0"
+                    style="background:linear-gradient(135deg,#6366f1,#4f46e5);
+                           color:#fff;border-radius:10px;
+                           padding:.42rem .85rem;white-space:nowrap;
+                           box-shadow:0 2px 8px rgba(99,102,241,.3)"
+                    onclick="cpToggle()">
+              <i class="bi bi-person-lines-fill me-1"></i>
+              <span class="d-none d-sm-inline">Clienti</span>
+            </button>
+          </div>
+
+          {# Pannello ricerca clienti #}
+          <div id="cp-panel"
+               style="display:none;margin-top:.5rem;
+                      border:1.5px solid rgba(99,102,241,.2);
+                      border-radius:12px;overflow:hidden;
+                      box-shadow:0 4px 20px rgba(99,102,241,.12)">
+
+            <div style="padding:.65rem .85rem;
+                        background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(79,70,229,.04));
+                        border-bottom:1px solid rgba(99,102,241,.1)">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-transparent border-end-0"
+                      style="border-color:rgba(99,102,241,.3);border-radius:8px 0 0 8px">
+                  <i class="bi bi-search text-primary" style="font-size:.78rem"></i>
+                </span>
+                <input type="text" id="cp-search"
+                       class="form-control border-start-0 ps-1"
+                       style="border-color:rgba(99,102,241,.3);border-radius:0 8px 8px 0;font-size:.85rem"
+                       placeholder="Cerca per nome, email, C.F.…"
+                       autocomplete="off"
+                       oninput="cpSearch(this.value)">
+              </div>
+              <div class="text-muted mt-1" style="font-size:.7rem">
+                <i class="bi bi-lightbulb me-1"></i>Digita almeno 2 caratteri per cercare
+              </div>
+            </div>
+
+            <div id="cp-results"
+                 style="max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch">
+              <div class="cp-state">
+                <i class="bi bi-people"></i>
+                Cerca tra i clienti dello studio
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="id_cliente" id="inp-id-cliente" value="">
+      </div>
+
+      {# ── Oggetto ── #}
+      <div class="d-flex align-items-center gap-2 px-3 py-2 border-bottom">
+        <span class="text-muted small fw-semibold text-uppercase"
+              style="min-width:60px;letter-spacing:.05em;font-size:.72rem">Oggetto</span>
+        <input type="text" name="oggetto" value="{{ oggetto }}"
+               class="form-control border-0 shadow-none ps-0"
+               placeholder="Oggetto del messaggio" required>
+      </div>
+
+      {# ── Corpo ── #}
+      <div class="border-bottom">
+        <textarea name="corpo" rows="14"
+                  class="form-control border-0 shadow-none rounded-0"
+                  placeholder="Scrivi il messaggio…"
+                  style="resize:vertical;min-height:280px;font-size:.9rem;line-height:1.75"></textarea>
+      </div>
+
+      {# ── Footer ── #}
+      <div class="d-flex align-items-center justify-content-between gap-2 px-3 py-3"
+           style="background:rgba(99,102,241,.03)">
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary px-4"
+                  style="background:linear-gradient(135deg,#6366f1,#4f46e5);
+                         border:none;border-radius:10px;
+                         box-shadow:0 2px 10px rgba(99,102,241,.35);font-weight:600">
+            <i class="bi bi-send-fill me-1"></i>Invia
+          </button>
+          <a href="{{ url_for('email_client.casella') }}"
+             class="btn btn-outline-secondary" style="border-radius:10px">
+            <i class="bi bi-x me-1"></i>Annulla
+          </a>
+        </div>
+        <span class="text-muted small d-none d-sm-flex align-items-center gap-1">
+          <i class="bi bi-shield-check text-success"></i>Invio sicuro via SMTP
+        </span>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar ── #}
+<div class="col-lg-4">
+
+  <div class="card shadow-sm mb-3" style="border-radius:14px;border:1.5px solid rgba(0,0,0,.07)">
+    <div class="card-header d-flex align-items-center gap-2 fw-semibold"
+         style="border-radius:12px 12px 0 0">
+      <i class="bi bi-info-circle text-primary"></i>Informazioni
+    </div>
+    <div class="card-body small text-muted">
+      <p class="mb-2">L'email viene inviata tramite il server SMTP configurato in
+        <a href="{{ url_for('email_client.impostazioni') }}">Impostazioni email</a>.</p>
+      <p class="mb-0">Le risposte ai clienti vengono registrate automaticamente nello storico.</p>
+    </div>
+  </div>
+
+  <div class="card border-0 mb-3"
+       style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(79,70,229,.05));
+              border-radius:14px">
+    <div class="card-body small">
+      <div class="d-flex align-items-start gap-2">
+        <i class="bi bi-lightbulb-fill text-warning mt-1 flex-shrink-0"></i>
+        <div>
+          <div class="fw-semibold mb-1" style="color:#4f46e5">Cerca i clienti</div>
+          <div class="text-muted">
+            Clicca <strong>Clienti</strong> nel campo "A" per cercare
+            tra i tuoi clienti con auto-completamento su nome, email e codice fiscale.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>{# /row #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var _debTimer;
+  function debounce(fn, ms) { clearTimeout(_debTimer); _debTimer = setTimeout(fn, ms); }
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function initials(n) { return (n||'').split(/\s+/).map(function(w){return w[0]||'';}).slice(0,2).join('').toUpperCase()||'?'; }
+  function nomeCompleto(c) {
+    if (c.tipo === 'PERSONA_GIURIDICA') return c.ragione_sociale || '';
+    return ((c.cognome||'')+' '+(c.nome||'')).trim();
+  }
+  function emailC(c) { return (c.recapiti && c.recapiti.email) ? c.recapiti.email : (c.email||''); }
+  function telC(c)   { return (c.recapiti) ? (c.recapiti.cellulare||c.recapiti.telefono||'') : ''; }
+  function avClass(c){ return c.tipo === 'PERSONA_GIURIDICA' ? 'pg' : 'pf'; }
+  function statoClass(s){ return (s==='ATTIVO') ? 'attivo' : 'inattivo'; }
+
+  var panelOpen = false;
+  var _cache = null;
+
+  window.cpToggle = function() {
+    var panel = document.getElementById('cp-panel');
+    if (!panel) return;
+    panelOpen = !panelOpen;
+    panel.style.display = panelOpen ? 'block' : 'none';
+    if (panelOpen) {
+      var si = document.getElementById('cp-search');
+      if (si) { si.focus(); if (si.value.trim().length >= 2) cpSearch(si.value); }
+    }
+  };
+
+  window.cpSearch = function(q) {
+    q = (q||'').trim();
+    var res = document.getElementById('cp-results');
+    if (!res) return;
+    if (q.length < 2) {
+      res.innerHTML = '<div class="cp-state"><i class="bi bi-people"></i>Digita almeno 2 caratteri</div>';
+      return;
+    }
+    res.innerHTML = '<div class="cp-state"><div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div><br>Ricerca…</div>';
+    debounce(function() {
+      fetch('/api/clienti?q='+encodeURIComponent(q))
+        .then(function(r){ return r.json(); })
+        .then(function(data){ _render(res, data, q); })
+        .catch(function(){ res.innerHTML='<div class="cp-state text-danger"><i class="bi bi-exclamation-circle"></i>Errore</div>'; });
+    }, 300);
+  };
+
+  function _render(container, items, q) {
+    items = (items||[]).filter(function(c){ return !!emailC(c); }).slice(0,20);
+    if (!items.length) {
+      container.innerHTML =
+        '<div class="cp-state"><i class="bi bi-person-x"></i>Nessun cliente con email per "'+esc(q)+'"</div>'+
+        '<a href="/clienti/nuovo" target="_blank" class="ss-create">'+
+          '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>Crea nuovo cliente</a>';
+      container._data = [];
+      return;
+    }
+    container._data = items;
+    container.innerHTML = items.map(function(c,i){
+      var nome=nomeCompleto(c), em=emailC(c), tel=telC(c), av=avClass(c), sc=statoClass(c.stato);
+      var cf=(c.tipo==='PERSONA_GIURIDICA'?c.partita_iva:c.codice_fiscale)||'';
+      return '<div class="cp-result-card" onclick="cpSelect('+i+')">'+
+        '<div class="cp-avatar '+av+'">'+esc(initials(nome))+'</div>'+
+        '<div class="cp-body">'+
+          '<div class="cp-name">'+esc(nome)+'</div>'+
+          '<div class="cp-email"><i class="bi bi-envelope me-1 opacity-50"></i>'+esc(em)+'</div>'+
+          (tel?'<div class="cp-phone"><i class="bi bi-phone me-1 opacity-40"></i>'+esc(tel)+'</div>':'')+
+        '</div>'+
+        '<div class="cp-meta">'+
+          '<span class="cp-stato-badge '+sc+'">'+esc(c.stato||'')+'</span>'+
+          (cf?'<span style="font-size:.65rem;color:#94a3b8">'+esc(cf)+'</span>':'')+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  window.cpSelect = function(idx) {
+    var res = document.getElementById('cp-results');
+    if (!res || !res._data) return;
+    var c = res._data[idx]; if (!c) return;
+    var nome=nomeCompleto(c), em=emailC(c), av=avClass(c);
+
+    // Popola email + id_cliente
+    var ie=document.getElementById('inp-email'); if(ie) ie.value=em;
+    var ii=document.getElementById('inp-id-cliente'); if(ii) ii.value=c.id||'';
+
+    // Mostra chip
+    var chip=document.getElementById('cp-chip');
+    if (chip) {
+      chip.style.display='flex';
+      var ca=document.getElementById('cp-chip-avatar');
+      var cn=document.getElementById('cp-chip-name');
+      var ce=document.getElementById('cp-chip-email-txt');
+      if(ca){ ca.textContent=initials(nome); ca.className='cp-chip-avatar '+av; }
+      if(cn) cn.textContent=nome;
+      if(ce) ce.textContent=em;
+    }
+
+    // Chiudi pannello
+    var panel=document.getElementById('cp-panel');
+    if(panel) panel.style.display='none';
+    panelOpen=false;
+
+    // Focus oggetto
+    var io=document.querySelector('[name="oggetto"]');
+    if(io) setTimeout(function(){ io.focus(); }, 60);
+  };
+
+  window.cpClear = function() {
+    var chip=document.getElementById('cp-chip'); if(chip) chip.style.display='none';
+    var ie=document.getElementById('inp-email'); if(ie){ ie.value=''; ie.focus(); }
+    var ii=document.getElementById('inp-id-cliente'); if(ii) ii.value='';
+  };
+
+  document.addEventListener('click', function(e) {
+    if (!panelOpen) return;
+    var wrap=document.getElementById('cp-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      var panel=document.getElementById('cp-panel');
+      if(panel) panel.style.display='none';
+      panelOpen=false;
+    }
+  }, true);
+
+})();
+</script>
+{% endblock %}

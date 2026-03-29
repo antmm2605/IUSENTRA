@@ -3,6 +3,7 @@ Validazione conformità documenti per il Processo Civile Telematico.
 
 - PDF/A:  verifica i marcatori XMP (pdfaid:part / pdfaid:conformance) e lo stato
           di cifratura nel file PDF — senza dipendenze aggiuntive (solo lettura raw bytes).
+- Conversione PDF/A: usa Ghostscript (gs) per convertire PDF standard in PDF/A-2B.
 - Dimensione busta: verifica che l'allegato non superi 30 MB (limite PST).
 
 Norma di riferimento:
@@ -12,6 +13,9 @@ Norma di riferimento:
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -175,6 +179,106 @@ def verifica_pdfa(percorso: str) -> dict:
         "cifrato": cifrato,
         "messaggio": msg,
         "avvisi": avvisi,
+    }
+
+
+# ---------------------------------------------------------------------------
+#  PDF/A Conversion via Ghostscript
+# ---------------------------------------------------------------------------
+
+def converti_pdfa(percorso_input: str, percorso_output: str | None = None) -> dict:
+    """
+    Converte un PDF in PDF/A-2B usando Ghostscript.
+
+    Ghostscript è lo strumento standard per la conversione PDF/A conforme
+    a ISO 19005-2 (PDF/A-2B) — usato da LibreOffice, Acrobat e altri tool.
+
+    Args:
+        percorso_input:  percorso del PDF sorgente
+        percorso_output: percorso del PDF/A risultante (se None → sovrascrive input)
+
+    Returns:
+        dict con chiavi:
+          ok          (bool)   — True se conversione riuscita
+          percorso    (str)    — percorso file output (se ok=True)
+          messaggio   (str)    — descrizione risultato
+          ghostscript (bool)   — True se Ghostscript era disponibile
+    """
+    path_in = Path(percorso_input)
+    if not path_in.exists():
+        return {"ok": False, "percorso": "", "messaggio": "File sorgente non trovato.", "ghostscript": False}
+
+    # Verifica disponibilità Ghostscript
+    gs_bin = shutil.which("gs") or shutil.which("gswin64c") or shutil.which("gswin32c")
+    if not gs_bin:
+        return {
+            "ok": False,
+            "percorso": "",
+            "messaggio": (
+                "Ghostscript non disponibile. "
+                "Convertire manualmente il file in PDF/A con LibreOffice "
+                "(Esporta → PDF/A-2) o con PDF24 / iLovePDF."
+            ),
+            "ghostscript": False,
+        }
+
+    # Output: sovrascrive in place usando un file temporaneo intermedio
+    overwrite = percorso_output is None
+    if overwrite:
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".pdf", dir=path_in.parent)
+        import os; os.close(tmp_fd)
+        out_path = tmp_path
+    else:
+        out_path = percorso_output
+
+    # Ghostscript: converti a PDF/A-2B
+    # -dPDFA=2         → PDF/A-2B (ISO 19005-2, compatibile con la maggior parte dei portali)
+    # -dPDFACompatibilityPolicy=1 → gestisce elementi non PDF/A senza errore fatale
+    # -dCompressFonts=true → riduce dimensione file
+    cmd = [
+        gs_bin,
+        "-dBATCH", "-dNOPAUSE", "-dQUIET",
+        "-sDEVICE=pdfwrite",
+        "-dCompatibilityLevel=1.7",
+        "-dPDFA=2",
+        "-dPDFACompatibilityPolicy=1",
+        "-dCompressFonts=true",
+        "-dEmbedAllFonts=true",
+        f"-sOutputFile={out_path}",
+        str(path_in),
+    ]
+
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=120
+        )
+    except subprocess.TimeoutExpired:
+        if overwrite and Path(out_path).exists():
+            Path(out_path).unlink(missing_ok=True)
+        return {"ok": False, "percorso": "", "messaggio": "Timeout conversione PDF/A (>120s).", "ghostscript": True}
+    except Exception as exc:
+        return {"ok": False, "percorso": "", "messaggio": f"Errore Ghostscript: {exc}", "ghostscript": True}
+
+    if result.returncode != 0:
+        if overwrite and Path(out_path).exists():
+            Path(out_path).unlink(missing_ok=True)
+        stderr = (result.stderr or "")[:400]
+        return {"ok": False, "percorso": "", "messaggio": f"Ghostscript errore ({result.returncode}): {stderr}", "ghostscript": True}
+
+    # Rimpiazza il file originale (in-place)
+    if overwrite:
+        import os
+        os.replace(out_path, str(path_in))
+        out_path = str(path_in)
+
+    # Verifica post-conversione
+    esito = verifica_pdfa(out_path)
+
+    return {
+        "ok": True,
+        "percorso": out_path,
+        "messaggio": f"Conversione completata. {esito.get('messaggio', '')}",
+        "ghostscript": True,
     }
 
 

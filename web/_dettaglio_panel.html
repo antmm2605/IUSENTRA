@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Accesso Temporaneo — {{ cliente.nome_completo }}{% endblock %}
+{% block page_title %}Accesso temporaneo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    {# Intestazione #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div style="width:56px;height:56px;border-radius:50%;background:#fff3cd;
+                    display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0">
+          <i class="bi bi-link-45deg text-warning"></i>
+        </div>
+        <div>
+          <h4 class="fw-bold mb-1">{{ cliente.nome_completo }}</h4>
+          <div class="d-flex flex-wrap gap-2">
+            {% if ruolo.value == 'LETTURA' %}
+              <span class="badge bg-info text-dark"><i class="bi bi-eye me-1"></i>Accesso in sola lettura</span>
+            {% elif ruolo.value == 'SCRITTURA' %}
+              <span class="badge bg-primary"><i class="bi bi-pencil me-1"></i>Accesso in lettura/scrittura</span>
+            {% endif %}
+            {% if link.scade_il %}
+              <span class="badge bg-secondary">
+                <i class="bi bi-clock me-1"></i>Valido fino al {{ link.scade_il[:10] }}
+              </span>
+            {% endif %}
+            {% if link.monouso %}
+              <span class="badge bg-warning text-dark">Accesso monouso</span>
+            {% endif %}
+          </div>
+          {% if link.descrizione %}
+          <div class="mt-1 text-muted small">Destinatario: {{ link.descrizione }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Dati cliente #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-person me-2"></i>Dati anagrafici
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-sm-4">Tipo</dt>
+          <dd class="col-sm-8">{{ cliente.tipo.value | replace('_', ' ') | title }}</dd>
+          <dt class="col-sm-4">Codice fiscale / P.IVA</dt>
+          <dd class="col-sm-8">{{ cliente.identificativo_fiscale or '—' }}</dd>
+          {% if cliente.recapiti %}
+          <dt class="col-sm-4">Email</dt>
+          <dd class="col-sm-8">{{ cliente.recapiti.email or '—' }}</dd>
+          <dt class="col-sm-4">Telefono</dt>
+          <dd class="col-sm-8">{{ cliente.recapiti.telefono or cliente.recapiti.cellulare or '—' }}</dd>
+          {% endif %}
+          {% if cliente.avvocato_referente %}
+          <dt class="col-sm-4">Avvocato referente</dt>
+          <dd class="col-sm-8">{{ cliente.avvocato_referente }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {# Fascicolo specifico (se presente) #}
+    {% if fascicolo %}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-folder2-open me-2"></i>Fascicolo: {{ fascicolo.titolo }}
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-sm-4">Numero</dt>
+          <dd class="col-sm-8">{{ fascicolo.numero }}</dd>
+          <dt class="col-sm-4">Tipo</dt>
+          <dd class="col-sm-8">{{ fascicolo.tipo.value | replace('_', ' ') | title }}</dd>
+          <dt class="col-sm-4">Stato</dt>
+          <dd class="col-sm-8">{{ fascicolo.stato.value }}</dd>
+          <dt class="col-sm-4">Oggetto</dt>
+          <dd class="col-sm-8">{{ fascicolo.oggetto or '—' }}</dd>
+          {% if fascicolo.numero_rg %}
+          <dt class="col-sm-4">N. RG</dt>
+          <dd class="col-sm-8">{{ fascicolo.numero_rg }}/{{ fascicolo.anno_rg }}</dd>
+          {% endif %}
+          <dt class="col-sm-4">Prossima udienza</dt>
+          <dd class="col-sm-8">{{ fascicolo.data_prossima_udienza or '—' }}</dd>
+        </dl>
+
+        {% if fascicolo.documenti %}
+        <hr>
+        <h6 class="fw-semibold"><i class="bi bi-paperclip me-2"></i>Documenti</h6>
+        <ul class="list-group list-group-flush">
+          {% for doc in fascicolo.documenti %}
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+            <span><i class="bi bi-file-earmark me-2 text-muted"></i>{{ doc.nome }}</span>
+            <span class="text-muted small">{{ (doc.dimensione_bytes / 1024) | round(1) }} KB</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="alert alert-warning d-flex gap-2 align-items-start">
+      <i class="bi bi-shield-lock-fill fs-5 mt-1"></i>
+      <div>
+        <strong>Accesso riservato.</strong>
+        Questo link è stato generato esclusivamente per te. Non condividerlo con terzi.
+        {% if link.monouso %}Il link è già stato utilizzato e non è più valido.{% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

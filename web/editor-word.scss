@@ -1,0 +1,40 @@
+{
+  "name": "Studio Legale PCT",
+  "short_name": "PCT Studio",
+  "description": "Gestione fascicoli, clienti, agenda e PCT per studi legali",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1a3a5c",
+  "background_color": "#1a3a5c",
+  "lang": "it",
+  "categories": ["productivity", "business"],
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuova Scadenza",
+      "short_name": "Scadenza",
+      "url": "/scadenziario/nuovo",
+      "icons": [{ "src": "/static/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Nuovo Appuntamento",
+      "short_name": "Appuntamento",
+      "url": "/agenda/nuovo",
+      "icons": [{ "src": "/static/icons/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Nuovo Fascicolo",
+      "short_name": "Fascicolo",
+      "url": "/fascicoli/nuovo",
+      "icons": [{ "src": "/static/icons/icon.svg", "sizes": "any" }]
+    }
+  ]
+}

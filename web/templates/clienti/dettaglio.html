@@ -411,9 +411,12 @@
   </div>{# /col-lg-4 #}
 </div>
 
+{% endblock %}
+
+{% block modals %}
 {# ---- Modal Nuovo Procedimento ---- #}
 <div class="modal fade" id="modalProcedimento" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post"
             action="{{ url_for('aggiungi_procedimento', id_cliente=cliente.id) }}">
@@ -463,8 +466,7 @@
     </div>
   </div>
 </div>
-
-{% endblock %}
+{% endblock %}{# /modals #}
 
 {# ---- macro helper ---- #}
 {% macro campo(label, val, mono=False) %}

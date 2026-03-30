@@ -697,7 +697,7 @@ body {
     -webkit-backdrop-filter: blur(20px) saturate(160%);
     border-top: 1px solid rgba(255,255,255,.07);
     box-shadow: 0 -2px 32px rgba(0,0,0,.32), 0 -1px 0 rgba(255,255,255,.04);
-    z-index: 1000;
+    z-index: 1030;
     transition: transform .3s cubic-bezier(.4,0,.2,1);
   }
   #bottom-nav.bn-hidden {

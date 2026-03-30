@@ -92,6 +92,14 @@ class Preventivo:
     creato_da:       str = ""
     creato_il:       str = field(default_factory=lambda: datetime.now().isoformat())
 
+    # Parametri incarico (art. 13 L. 247/2012 + D.M. 55/2014)
+    tipo_compenso:        str   = ""    # es. "Compenso fisso", "Per fasi processuali (D.M. 55/2014)"
+    tipo_procedimento:    str   = ""    # es. "Civile — fase di cognizione"
+    valore_controversia:  float = 0.0  # €, 0 = indeterminabile
+    tariffa_oraria:       float = 0.0  # €/ora (solo se compenso orario)
+    ore_stimate:          float = 0.0  # ore stimate (solo se compenso orario)
+    complessita:          str   = ""   # art. 13 co. 5 L. 247/2012
+
     # Dati studio per PDF
     studio_piva:      str = ""
     studio_cf:        str = ""
@@ -155,6 +163,19 @@ class ConferimentoIncarico:
     stato:               StatoConferimento = StatoConferimento.ATTIVO
     creato_da:           str = ""
     creato_il:           str = field(default_factory=lambda: datetime.now().isoformat())
+
+    # Dati avvocato e modalità compenso
+    numero_iscrizione_albo: str   = ""
+    ordine_avvocati:        str   = ""
+    tipo_compenso:          str   = ""
+    tipo_procedimento:      str   = ""
+    tariffa_oraria:         float = 0.0
+    patto_palmario:         bool  = False
+    quota_palmario_pct:     float = 0.0   # % sul risultato (es. 10.0)
+
+    # Obblighi informativi art. 13 L. 247/2012
+    informativa_art13_resa: bool = False
+    clausola_adr_resa:      bool = False
 
     # Dati studio per PDF
     studio_piva:      str = ""
@@ -257,7 +278,14 @@ class GestionePreventivi:
                         data_scadenza:  Optional[str] = None,
                         applica_cassa:  bool = True,
                         applica_iva:    bool = True,
+                        anticipazioni_art15: float = 0.0,
                         note:           str = "",
+                        tipo_compenso:       str   = "",
+                        tipo_procedimento:   str   = "",
+                        valore_controversia: float = 0.0,
+                        tariffa_oraria:      float = 0.0,
+                        ore_stimate:         float = 0.0,
+                        complessita:         str   = "",
                         studio_piva:    str = "",
                         studio_cf:      str = "",
                         studio_indirizzo: str = "") -> Preventivo:
@@ -273,7 +301,14 @@ class GestionePreventivi:
             stato=StatoPreventivo.BOZZA,
             applica_cassa=applica_cassa,
             applica_iva=applica_iva,
+            anticipazioni_art15=anticipazioni_art15,
             note=note,
+            tipo_compenso=tipo_compenso,
+            tipo_procedimento=tipo_procedimento,
+            valore_controversia=valore_controversia,
+            tariffa_oraria=tariffa_oraria,
+            ore_stimate=ore_stimate,
+            complessita=complessita,
             creato_da=creato_da,
             studio_piva=studio_piva,
             studio_cf=studio_cf,
@@ -336,6 +371,15 @@ class GestionePreventivi:
                           data_incarico:      Optional[str] = None,
                           compenso_pattuito:  float = 0.0,
                           note:               str = "",
+                          numero_iscrizione_albo: str   = "",
+                          ordine_avvocati:        str   = "",
+                          tipo_compenso:          str   = "",
+                          tipo_procedimento:      str   = "",
+                          tariffa_oraria:         float = 0.0,
+                          patto_palmario:         bool  = False,
+                          quota_palmario_pct:     float = 0.0,
+                          informativa_art13_resa: bool  = False,
+                          clausola_adr_resa:      bool  = False,
                           studio_piva:        str = "",
                           studio_cf:          str = "",
                           studio_indirizzo:   str = "") -> ConferimentoIncarico:
@@ -352,6 +396,15 @@ class GestionePreventivi:
             note=note,
             stato=StatoConferimento.ATTIVO,
             creato_da=creato_da,
+            numero_iscrizione_albo=numero_iscrizione_albo,
+            ordine_avvocati=ordine_avvocati,
+            tipo_compenso=tipo_compenso,
+            tipo_procedimento=tipo_procedimento,
+            tariffa_oraria=tariffa_oraria,
+            patto_palmario=patto_palmario,
+            quota_palmario_pct=quota_palmario_pct,
+            informativa_art13_resa=informativa_art13_resa,
+            clausola_adr_resa=clausola_adr_resa,
             studio_piva=studio_piva,
             studio_cf=studio_cf,
             studio_indirizzo=studio_indirizzo,

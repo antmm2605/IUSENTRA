@@ -129,6 +129,19 @@ def nuovo_preventivo(id_cliente: str = ""):
             flash("Aggiungi almeno una voce.", "danger")
             return redirect(request.url)
 
+        try:
+            valore_controversia = float(f.get("valore_controversia") or 0)
+        except (ValueError, TypeError):
+            valore_controversia = 0.0
+        try:
+            tariffa_oraria = float(f.get("tariffa_oraria") or 0)
+        except (ValueError, TypeError):
+            tariffa_oraria = 0.0
+        try:
+            ore_stimate = float(f.get("ore_stimate") or 0)
+        except (ValueError, TypeError):
+            ore_stimate = 0.0
+
         cfg = current_app.config
         p = gp.crea_preventivo(
             id_cliente=id_cliente,
@@ -142,6 +155,12 @@ def nuovo_preventivo(id_cliente: str = ""):
             applica_iva=bool(f.get("applica_iva")),
             anticipazioni_art15=float(f.get("anticipazioni_art15") or 0),
             note=f.get("note", "").strip(),
+            tipo_compenso=f.get("tipo_compenso", "").strip(),
+            tipo_procedimento=f.get("tipo_procedimento", "").strip(),
+            valore_controversia=valore_controversia,
+            tariffa_oraria=tariffa_oraria,
+            ore_stimate=ore_stimate,
+            complessita=f.get("complessita", "").strip(),
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
@@ -282,6 +301,14 @@ def nuovo_conferimento(id_cliente: str = ""):
             compenso = float(f.get("compenso_pattuito", 0) or 0)
         except (ValueError, TypeError):
             compenso = 0.0
+        try:
+            tariffa_oraria_c = float(f.get("tariffa_oraria") or 0)
+        except (ValueError, TypeError):
+            tariffa_oraria_c = 0.0
+        try:
+            quota_palmario = float(f.get("quota_palmario_pct") or 0)
+        except (ValueError, TypeError):
+            quota_palmario = 0.0
 
         cfg = current_app.config
         c = gp.crea_conferimento(
@@ -294,6 +321,15 @@ def nuovo_conferimento(id_cliente: str = ""):
             data_incarico=f.get("data_incarico") or date.today().isoformat(),
             compenso_pattuito=compenso,
             note=f.get("note", "").strip(),
+            numero_iscrizione_albo=f.get("numero_iscrizione_albo", "").strip(),
+            ordine_avvocati=f.get("ordine_avvocati", "").strip(),
+            tipo_compenso=f.get("tipo_compenso", "").strip(),
+            tipo_procedimento=f.get("tipo_procedimento", "").strip(),
+            tariffa_oraria=tariffa_oraria_c,
+            patto_palmario=bool(f.get("patto_palmario")),
+            quota_palmario_pct=quota_palmario,
+            informativa_art13_resa=bool(f.get("informativa_art13_resa")),
+            clausola_adr_resa=bool(f.get("clausola_adr_resa")),
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
@@ -435,6 +471,68 @@ def ajax_preventivi(id_cliente: str):
                      "oggetto": p.oggetto, "totale": p.totale} for p in prev])
 
 
+@preventivi.route("/ajax/parametri_dm55")
+@_richiedi_login
+def ajax_parametri_dm55():
+    """Calcola i parametri di riferimento D.M. 55/2014 (agg. D.M. 147/2022)."""
+    from flask import jsonify
+    from pct.tariffario import calcola_compenso, Materia, Grado, Fase
+
+    tipo_proc  = request.args.get("tipo_procedimento", "")
+    valore     = float(request.args.get("valore", 0) or 0)
+    fasi_raw   = request.args.get("fasi", "")
+
+    # Mappa tipo_procedimento → Materia
+    _mappa_materia = {
+        "Civile — fase di cognizione":       Materia.CIVILE_COGN,
+        "Civile — fase esecutiva":           Materia.ESEC_MOB,
+        "Penale":                            Materia.PENALE,
+        "Amministrativo (TAR/CdS)":          Materia.AMMINISTRATIVO,
+        "Stragiudiziale / Consulenza":       Materia.STRAGIUD,
+        "Mediazione / Negoziazione assistita": Materia.STRAGIUD,
+        "Arbitrato":                         Materia.STRAGIUD,
+    }
+    materia = _mappa_materia.get(tipo_proc, Materia.CIVILE_COGN)
+
+    # Mappa chiavi checkbox → Fase
+    _mappa_fase = {
+        "studio":       Fase.STUDIO,
+        "introduttiva": Fase.INTRODUTTIVA,
+        "istruttoria":  Fase.ISTRUTTORIA,
+        "decisionale":  Fase.DECISIONALE,
+    }
+    fasi_selezionate = [
+        _mappa_fase[k] for k in fasi_raw.split(",")
+        if k.strip() in _mappa_fase
+    ]
+    if not fasi_selezionate:
+        fasi_selezionate = [Fase.STUDIO, Fase.INTRODUTTIVA,
+                            Fase.ISTRUTTORIA, Fase.DECISIONALE]
+
+    try:
+        ris = calcola_compenso(
+            materia=materia,
+            grado=Grado.TRIBUNALE,
+            valore=valore,
+            fasi=fasi_selezionate,
+            bonus_telematico=False,
+            includi_spese_generali=False,
+        )
+        fasi_out = {
+            fase: round(vals[1], 2)  # valore base
+            for fase, vals in ris.dettaglio.items()
+        }
+        return jsonify({
+            "scaglione": ris.scaglione,
+            "fasi":      fasi_out,
+            "totale":    ris.totale_base,
+            "nota":      ris.note,
+        })
+    except Exception as e:
+        current_app.logger.exception("Errore calcolo DM55: %s", e)
+        return jsonify({"errore": str(e)}), 200
+
+
 # ================================================================ Generazione PDF preventivo
 
 def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
@@ -521,7 +619,38 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
 
     # Oggetto
     story.append(Paragraph(f"<b>Oggetto:</b> {p.oggetto}", style_body))
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 4*mm))
+
+    # Parametri incarico (se presenti)
+    params = []
+    if p.tipo_compenso:
+        params.append(("Tipo di compenso", p.tipo_compenso))
+    if p.tipo_procedimento:
+        params.append(("Tipo procedimento", p.tipo_procedimento))
+    if p.valore_controversia:
+        params.append(("Valore controversia", f"€ {p.valore_controversia:,.2f}"))
+    if p.tariffa_oraria:
+        ore_txt = f" × {p.ore_stimate:.1f} ore = € {p.tariffa_oraria * p.ore_stimate:,.2f}" if p.ore_stimate else ""
+        params.append(("Tariffa oraria", f"€ {p.tariffa_oraria:,.2f}/ora{ore_txt}"))
+    if params:
+        params_data = [[Paragraph(f"<b>{k}</b>", style_small),
+                        Paragraph(v, style_small)] for k, v in params]
+        pt = Table(params_data, colWidths=["40%", "60%"])
+        pt.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), LIGHT_BG),
+            ("TOPPADDING",    (0, 0), (-1, -1), 3),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+        ]))
+        story.append(pt)
+        story.append(Spacer(1, 2*mm))
+    if p.complessita:
+        story.append(Paragraph(
+            f"<i>Complessità stimata (art. 13 co. 5 L. 247/2012):</i> {p.complessita}",
+            style_small))
+        story.append(Spacer(1, 2*mm))
+    story.append(Spacer(1, 4*mm))
 
     # Voci
     story.append(Paragraph("Voci del preventivo", style_h2))
@@ -696,9 +825,15 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
     story.append(Paragraph(f"<b>Oggetto:</b> Conferimento incarico professionale — {c.oggetto}", style_bold))
     story.append(Spacer(1, 5*mm))
 
+    # Dati avvocato (iscrizione albo)
+    albo_txt = ""
+    if c.numero_iscrizione_albo:
+        albo_txt = f", iscritto all'Albo degli Avvocati n. {c.numero_iscrizione_albo}"
+        if c.ordine_avvocati:
+            albo_txt += f" dell'Ordine di {c.ordine_avvocati}"
     story.append(Paragraph(
         f"Con la presente il/la sottoscritto/a <b>{nome_cliente}</b> conferisce incarico professionale "
-        f"all'<b>Avv. {c.avvocato_referente}</b> dello {studio_nome} per la trattazione della seguente questione:",
+        f"all'<b>Avv. {c.avvocato_referente}</b>{albo_txt} dello {studio_nome} per la trattazione della seguente questione:",
         style_just))
     story.append(Spacer(1, 3*mm))
 
@@ -722,17 +857,43 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
             style_just))
         story.append(Spacer(1, 3*mm))
 
+    # Tipo compenso + procedimento
+    if c.tipo_compenso or c.tipo_procedimento:
+        info_parts = []
+        if c.tipo_compenso:
+            info_parts.append(f"Modalità di compenso: <b>{c.tipo_compenso}</b>")
+        if c.tipo_procedimento:
+            info_parts.append(f"Tipo di procedimento: <b>{c.tipo_procedimento}</b>")
+        story.append(Paragraph(" — ".join(info_parts) + ".", style_body))
+        story.append(Spacer(1, 3*mm))
+
     # Compenso
     if c.compenso_pattuito > 0:
-        story.append(Paragraph(
-            f"Il compenso professionale concordato per la prestazione è pari a "
-            f"<b>€ {c.compenso_pattuito:,.2f}</b> (oltre Cassa Forense 4% ed IVA 22%), "
-            f"salvo adeguamento in ragione della complessità e dello sviluppo della pratica.",
-            style_just))
+        if c.tipo_compenso and "orari" in c.tipo_compenso.lower() and c.tariffa_oraria > 0:
+            story.append(Paragraph(
+                f"Il compenso professionale concordato è a <b>tariffa oraria di € {c.tariffa_oraria:,.2f}/ora</b> "
+                f"(oltre Cassa Forense 4% ed IVA 22%), con importo base indicativo di "
+                f"<b>€ {c.compenso_pattuito:,.2f}</b>.",
+                style_just))
+        else:
+            story.append(Paragraph(
+                f"Il compenso professionale concordato per la prestazione è pari a "
+                f"<b>€ {c.compenso_pattuito:,.2f}</b> (oltre Cassa Forense 4% ed IVA 22%), "
+                f"salvo adeguamento in ragione della complessità e dello sviluppo della pratica.",
+                style_just))
     else:
         story.append(Paragraph(
             "Il compenso professionale sarà determinato al termine dell'incarico in conformità ai "
             "parametri forensi di cui al D.M. 55/2014 e successive modifiche, salvo preventivo concordato separatamente.",
+            style_just))
+
+    # Patto di palmario
+    if c.patto_palmario and c.quota_palmario_pct:
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph(
+            f"Le parti convengono altresì un patto di palmario pari al "
+            f"<b>{c.quota_palmario_pct:.1f}% del risultato utile conseguito</b>, "
+            f"ai sensi dell'art. 13 co. 3 L. 247/2012.",
             style_just))
 
     story.append(Spacer(1, 3*mm))
@@ -749,6 +910,23 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
         story.append(Spacer(1, 2*mm))
         story.append(Paragraph(c.note, style_just))
         story.append(Spacer(1, 3*mm))
+
+    # Obblighi informativi art. 13 L. 247/2012
+    obbl = []
+    if c.informativa_art13_resa:
+        obbl.append("✓ Il professionista ha reso l'informativa di cui all'art. 13 co. 5 L. 247/2012 "
+                    "(grado di complessità, oneri ipotizzabili, dati polizza RC).")
+    if c.clausola_adr_resa:
+        obbl.append("✓ Il professionista ha informato il cliente della possibilità di ricorrere "
+                    "a procedure di mediazione / negoziazione assistita (art. 5 D.Lgs. 28/2010).")
+    if obbl:
+        story.append(Spacer(1, 4*mm))
+        story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph("<b>Obblighi informativi</b>", style_bold))
+        story.append(Spacer(1, 2*mm))
+        for o in obbl:
+            story.append(Paragraph(o, style_small))
 
     story.append(Spacer(1, 8*mm))
 

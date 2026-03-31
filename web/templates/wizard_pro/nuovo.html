@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Avvia Wizard Pro{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Wizard Pro</a></li>
+    <li class="breadcrumb-item active">Avvia</li>
+  </ol>
+</nav>
+
+{# ── Header ── #}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{{ url_for('wizard_pro.index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div>
+    <h5 class="mb-0 fw-bold">
+      <i class="bi bi-stars me-2 text-primary"></i>Avvia Wizard Pro
+    </h5>
+    <p class="text-muted small mb-0">Seleziona il fascicolo per preparare l'udienza</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <form method="POST" action="{{ url_for('wizard_pro.nuovo') }}">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+
+          {# Fascicolo #}
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-folder2-open me-1 text-primary"></i>Fascicolo
+              <span class="text-danger">*</span>
+            </label>
+            <select name="id_fascicolo" id="selFascicolo" class="form-select" required>
+              <option value="">— Seleziona fascicolo —</option>
+              {% for fasc in fascicoli %}
+              <option value="{{ fasc.id }}"
+                      data-titolo="{{ fasc.titolo }}"
+                      data-rg="{{ fasc.rg_completo or fasc.numero_rg or '' }}"
+                      data-tribunale="{{ fasc.tribunale or '' }}"
+                      {% if fasc.id == id_fascicolo_pre %}selected{% endif %}>
+                {{ fasc.numero }} — {{ fasc.titolo }}
+                {% if fasc.tribunale %} ({{ fasc.tribunale }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Info fascicolo selezionato #}
+          <div id="infFascicolo" class="alert alert-light border mb-4 d-none">
+            <div class="small">
+              <strong id="infFascicoloTitolo"></strong><br>
+              <span class="text-muted" id="infFascicoloDettagli"></span>
+            </div>
+          </div>
+
+          {# Appuntamento #}
+          {% if appuntamenti_udienza %}
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-calendar-event me-1 text-info"></i>Collega ad un'udienza in agenda
+              <span class="text-muted fw-normal">(facoltativo)</span>
+            </label>
+            <select name="id_appuntamento" class="form-select">
+              <option value="">— Nessun appuntamento —</option>
+              {% for app in appuntamenti_udienza %}
+              <option value="{{ app.id }}"
+                      {% if app.id == id_appuntamento_pre %}selected{% endif %}>
+                {{ app.data_ora[:10] if app.data_ora else 'n.d.' }}
+                {% if app.data_ora|length > 10 %}{{ app.data_ora[11:16] }}{% endif %}
+                — {{ app.titolo }}
+                {% if app.tribunale %} ({{ app.tribunale }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Collega il wizard a un appuntamento per accedere alle informazioni sull'udienza.</div>
+          </div>
+          {% else %}
+          <input type="hidden" name="id_appuntamento" value="">
+          {% endif %}
+
+          {# Titolo personalizzato #}
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-tag me-1 text-secondary"></i>Titolo sessione
+              <span class="text-muted fw-normal">(generato automaticamente se vuoto)</span>
+            </label>
+            <input type="text" name="titolo" class="form-control"
+                   placeholder="es. Udienza RG 1234/2024 — Rossi c/ Bianchi">
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-stars me-2"></i>Avvia Wizard Pro
+            </button>
+            <a href="{{ url_for('wizard_pro.index') }}" class="btn btn-outline-secondary">
+              Annulla
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {# Sidebar info ── #}
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm mb-3"
+         style="background:linear-gradient(135deg,#f0f4ff,#e8f0fe)">
+      <div class="card-body p-4">
+        <h6 class="fw-bold mb-3">
+          <i class="bi bi-info-circle me-1 text-primary"></i>Come funziona il Wizard Pro
+        </h6>
+        <div class="d-flex flex-column gap-3">
+          {% set steps_info = [
+            ('bi-search','1. Briefing','Riepilogo del caso, del cliente e dell\'udienza.'),
+            ('bi-clipboard-check','2. Documenti','Checklist interattiva dei documenti da portare.'),
+            ('bi-pencil-square','3. Preparazione','Note, argomenti da trattare e richieste al giudice.'),
+            ('bi-suitcase-lg','4. Pre-partenza','Verifica finale prima di uscire dallo studio.'),
+            ('bi-balance-scale','5. Esito','Registra il risultato e aggiorna il fascicolo.'),
+          ] %}
+          {% for icon, label, desc in steps_info %}
+          <div class="d-flex gap-2 align-items-start">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 bg-primary text-white"
+                 style="width:1.8rem;height:1.8rem;font-size:.7rem">
+              <i class="{{ icon }}"></i>
+            </div>
+            <div>
+              <div class="fw-semibold small">{{ label }}</div>
+              <div class="text-muted" style="font-size:.72rem">{{ desc }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% if appuntamenti_udienza %}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="small fw-semibold">
+          <i class="bi bi-calendar-event me-1 text-info"></i>Prossime udienze
+        </span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for app in appuntamenti_udienza[:5] %}
+        <li class="list-group-item px-3 py-2">
+          <div class="small fw-semibold">{{ app.titolo }}</div>
+          <div class="text-muted" style="font-size:.7rem">
+            <i class="bi bi-calendar me-1"></i>{{ app.data_ora[:10] if app.data_ora else 'n.d.' }}
+            {% if app.luogo %} · <i class="bi bi-geo-alt me-1"></i>{{ app.luogo }}{% endif %}
+            {% if app.tribunale %} · {{ app.tribunale }}{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const sel = document.getElementById('selFascicolo');
+  const inf = document.getElementById('infFascicolo');
+  const infTit = document.getElementById('infFascicoloTitolo');
+  const infDet = document.getElementById('infFascicoloDettagli');
+
+  function aggiorna() {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) {
+      inf.classList.add('d-none');
+      return;
+    }
+    const titolo = opt.dataset.titolo || '';
+    const rg = opt.dataset.rg || '';
+    const tribunale = opt.dataset.tribunale || '';
+    infTit.textContent = titolo;
+    const parts = [];
+    if (rg) parts.push('RG ' + rg);
+    if (tribunale) parts.push(tribunale);
+    infDet.textContent = parts.join(' · ');
+    inf.classList.remove('d-none');
+  }
+
+  sel.addEventListener('change', aggiorna);
+  aggiorna(); // init
+})();
+</script>
+{% endblock %}

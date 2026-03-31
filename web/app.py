@@ -319,6 +319,12 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "soggetti", "parti.json"),
         ),
     )
+    app.config["WIZARD_PRO_DB"] = cfg.get(
+        "WIZARD_PRO_DB", os.getenv(
+            "PCT_WIZARD_PRO_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "wizard_pro", "sessioni.json"),
+        )
+    )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
     app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")
@@ -7620,6 +7626,9 @@ read -r -p "Premi Invio per chiudere..." _
 
     from web.blueprints.preventivi import preventivi as preventivi_bp  # Preventivi e incarichi /preventivi/*
     app.register_blueprint(preventivi_bp)
+
+    from web.blueprints.wizard_pro import wizard_pro_bp  # Wizard Pro /wizard-pro/*
+    app.register_blueprint(wizard_pro_bp)
 
     # ----------------------------------------------------------------
     # iCal — download diretto (retrocompatibilità)

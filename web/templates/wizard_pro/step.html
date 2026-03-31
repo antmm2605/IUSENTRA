@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+{% block title %}Wizard Pro — {{ step_labels[step_n] }} — Step {{ step_n }}/{{ n_step }}{% endblock %}
+
+{% block content %}
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{{ url_for('wizard_pro.index') }}">Wizard Pro</a></li>
+    <li class="breadcrumb-item active text-truncate" style="max-width:18rem">{{ sessione.titolo }}</li>
+  </ol>
+</nav>
+
+{# ── Header ── #}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{{ url_for('wizard_pro.index') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div class="flex-grow-1 min-width-0">
+    <h5 class="mb-0 fw-bold text-truncate">
+      <i class="bi bi-stars me-2 text-primary"></i>{{ sessione.titolo }}
+    </h5>
+    {% if fascicolo %}
+    <div class="text-muted small mt-1">
+      <i class="bi bi-folder2 me-1"></i>{{ fascicolo.numero }}
+      {% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}
+      {% if fascicolo.rg_completo %} · RG {{ fascicolo.rg_completo }}{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="text-end flex-shrink-0">
+    <span class="badge bg-primary fs-6">{{ step_n }}/{{ n_step }}</span>
+  </div>
+</div>
+
+{# ══ PROGRESS STEPPER ══════════════════════════════════════════════════════ #}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body py-3 px-3">
+    <div class="d-flex align-items-center justify-content-between">
+      {% for st in steps_stato %}
+      {# Step circle #}
+      <div class="d-flex flex-column align-items-center flex-grow-1" style="position:relative">
+        {% if not loop.first %}
+        <div style="position:absolute;top:.85rem;right:50%;left:-50%;height:2px;z-index:0;
+                    background:{% if steps_stato[loop.index0-1].confermato %}#198754{% else %}#dee2e6{% endif %}"></div>
+        {% endif %}
+        <a href="{{ url_for('wizard_pro.step', id_sessione=sessione.id, n=st.n) }}"
+           class="text-decoration-none" style="position:relative;z-index:1"
+           title="{{ st.label }}">
+          <div class="rounded-circle d-flex align-items-center justify-content-center
+                      {% if st.n == step_n %}bg-primary text-white shadow
+                      {% elif st.confermato %}bg-success text-white
+                      {% else %}bg-light border text-muted{% endif %}"
+               style="width:2rem;height:2rem;font-size:.82rem;transition:all .2s">
+            {% if st.confermato and st.n != step_n %}
+              <i class="bi bi-check-lg"></i>
+            {% else %}
+              <i class="{{ st.icon }}" style="font-size:.75rem"></i>
+            {% endif %}
+          </div>
+        </a>
+        <div class="mt-1 text-center d-none d-md-block"
+             style="font-size:.62rem;font-weight:{% if st.n == step_n %}700{% else %}400{% endif %};
+                    color:{% if st.n == step_n %}#2563eb{% elif st.confermato %}#198754{% else %}#adb5bd{% endif %}">
+          {{ st.label }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {# Progress bar #}
+    <div class="progress mt-3" style="height:4px;border-radius:2px">
+      <div class="progress-bar bg-success" style="width:{{ sessione.percentuale_completamento }}%;transition:width .4s"></div>
+    </div>
+    <div class="text-muted mt-1" style="font-size:.68rem">
+      {{ sessione.percentuale_completamento }}% completato
+    </div>
+  </div>
+</div>
+
+{# ══ LAYOUT PRINCIPALE ════════════════════════════════════════════════════ #}
+<div class="row g-4">
+
+  {# ── COLONNA SINISTRA: FORM STEP ── #}
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+
+      {# Card header step #}
+      <div class="card-header bg-white border-bottom py-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0
+                      {% if steps_stato[step_n-1].confermato %}bg-success{% else %}bg-primary{% endif %} text-white"
+               style="width:2.4rem;height:2.4rem">
+            <i class="{{ step_icons[step_n] }}"></i>
+          </div>
+          <div>
+            <div class="fw-bold">{{ step_labels[step_n] }}</div>
+            <div class="text-muted small">Step {{ step_n }} di {{ n_step }}</div>
+          </div>
+          {% if steps_stato[step_n-1].confermato %}
+          <span class="badge bg-success ms-auto">
+            <i class="bi bi-check-lg me-1"></i>Confermato
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="POST"
+              action="{{ url_for('wizard_pro.step', id_sessione=sessione.id, n=step_n) }}"
+              id="formStep">
+
+          {# ═══════════════════════════════════════════════ STEP 1 — BRIEFING #}
+          {% if step_n == 1 %}
+
+          {% if fascicolo %}
+          {# Riepilogo fascicolo #}
+          <div class="p-3 rounded-3 mb-4 border" style="background:#f8faff">
+            <div class="row g-2">
+              {% set campi = [
+                ('Fascicolo', fascicolo.numero),
+                ('Titolo', fascicolo.titolo),
+                ('Tipo', fascicolo.tipo.value if fascicolo.tipo else ''),
+                ('Cliente', fascicolo.nome_cliente or ''),
+                ('Controparte', fascicolo.controparte or ''),
+                ('Tribunale', fascicolo.tribunale or ''),
+                ('RG', fascicolo.rg_completo or fascicolo.numero_rg or ''),
+                ('Giudice', fascicolo.giudice or ''),
+                ('Sezione', fascicolo.sezione or ''),
+              ] %}
+              {% for label, val in campi %}
+              {% if val %}
+              <div class="col-sm-6">
+                <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.4px;color:#8b9cb0">{{ label }}</div>
+                <div class="fw-semibold small">{{ val }}</div>
+              </div>
+              {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if appuntamento %}
+          {# Riepilogo appuntamento #}
+          <div class="alert alert-info d-flex gap-3 align-items-start mb-4">
+            <i class="bi bi-calendar-event fs-5 mt-1 flex-shrink-0"></i>
+            <div>
+              <div class="fw-bold small">{{ appuntamento.titolo }}</div>
+              <div class="small">
+                {% if appuntamento.data_ora %}
+                <i class="bi bi-clock me-1"></i>{{ appuntamento.data_ora[:10] }}
+                {% if appuntamento.data_ora|length > 10 %}
+                alle {{ appuntamento.data_ora[11:16] }}
+                {% endif %}
+                {% endif %}
+                {% if appuntamento.luogo %}
+                &nbsp;·&nbsp;<i class="bi bi-geo-alt me-1"></i>{{ appuntamento.luogo }}
+                {% endif %}
+                {% if appuntamento.tribunale and appuntamento.tribunale != fascicolo.tribunale %}
+                &nbsp;·&nbsp;{{ appuntamento.tribunale }}
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-journal-text me-1 text-muted"></i>Note personali per questa udienza
+            </label>
+            <textarea name="step1_note" class="form-control" rows="4"
+                      placeholder="Appunti preliminari, cose da ricordare, contesto specifico...">{{ sessione.step1_note }}</textarea>
+          </div>
+
+          {# ═════════════════════════════════════════════ STEP 2 — DOCUMENTI #}
+          {% elif step_n == 2 %}
+
+          <p class="text-muted small mb-3">
+            Seleziona lo stato di ogni documento. Potrai aggiungere documenti extra non presenti nel fascicolo.
+          </p>
+
+          {% if docs_checklist %}
+          <div class="mb-4">
+            {# Summary badge #}
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-success">{{ sessione.docs_pronti }} pronti</span>
+              <span class="badge bg-light text-muted border">{{ sessione.docs_totali }} totali</span>
+              {% if sessione.docs_totali > 0 %}
+              <div class="progress flex-grow-1" style="height:6px">
+                <div class="progress-bar bg-success"
+                     style="width:{{ (sessione.docs_pronti / sessione.docs_totali * 100)|int if sessione.docs_totali else 0 }}%"></div>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="list-group list-group-flush border rounded-3 overflow-hidden">
+              {% for doc in docs_checklist %}
+              {% set safe_id = doc.id_documento or doc.label | replace(' ', '_') | replace('.', '_') | truncate(40, False, '') %}
+              <div class="list-group-item px-3 py-2">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  {# Icona tipo file #}
+                  <i class="bi bi-file-earmark-text text-muted flex-shrink-0"></i>
+                  <div class="flex-grow-1 small fw-semibold text-truncate">
+                    {{ doc.label }}
+                    {% if doc.firmato %}
+                    <i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente"></i>
+                    {% endif %}
+                  </div>
+                  {# Stato select #}
+                  <select name="doc_stato_{{ safe_id }}"
+                          class="form-select form-select-sm flex-shrink-0"
+                          style="width:auto;min-width:9rem"
+                          onchange="aggiornaDocRow(this)">
+                    <option value="da_portare" {% if doc.stato == 'da_portare' %}selected{% endif %}>
+                      Da portare
+                    </option>
+                    <option value="pronto" {% if doc.stato == 'pronto' %}selected{% endif %}>
+                      ✓ Pronto
+                    </option>
+                    <option value="non_necessario" {% if doc.stato == 'non_necessario' %}selected{% endif %}>
+                      — Non necessario
+                    </option>
+                  </select>
+                </div>
+                <div class="ps-4">
+                  <input type="text" name="doc_note_{{ safe_id }}"
+                         class="form-control form-control-sm"
+                         placeholder="Note documento (opzionale)..."
+                         value="{{ doc.note }}">
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="alert alert-light border mb-4">
+            <i class="bi bi-info-circle me-2 text-muted"></i>
+            Nessun documento nel fascicolo. Aggiungine uno sotto.
+          </div>
+          {% endif %}
+
+          {# Aggiungi documento extra #}
+          <div class="border rounded-3 p-3 bg-light mb-2">
+            <div class="small fw-semibold mb-2">
+              <i class="bi bi-plus-circle me-1 text-primary"></i>Aggiungi documento extra
+            </div>
+            <input type="text" name="doc_extra_label" class="form-control form-control-sm"
+                   placeholder="es. Cartella clinica, Perizia tecnica...">
+          </div>
+
+          {# ══════════════════════════════════════════ STEP 3 — PREPARAZIONE #}
+          {% elif step_n == 3 %}
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-journal-text me-1"></i>Note di preparazione generali
+            </label>
+            <textarea name="note_preparazione" class="form-control" rows="4"
+                      placeholder="Sintesi del caso, punti chiave, storia processuale...">{{ sessione.note_preparazione }}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-list-stars me-1"></i>Argomenti principali da trattare
+            </label>
+            <textarea name="argomenti_principali" class="form-control" rows="3"
+                      placeholder="1. Nullità del contratto per vizio del consenso&#10;2. Inadempimento ex art. 1453 c.c.&#10;...">{{ sessione.argomenti_principali }}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-chat-square-quote me-1"></i>Richieste al giudice
+            </label>
+            <textarea name="richieste_giudice" class="form-control" rows="3"
+                      placeholder="Richiesta di rinvio per... / CTU nominanda / ...">{{ sessione.richieste_giudice }}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-exclamation-triangle me-1 text-warning"></i>Eccezioni da sollevare
+            </label>
+            <textarea name="eccezioni_da_sollevare" class="form-control" rows="3"
+                      placeholder="Eccezione di prescrizione / Incompetenza per territorio / ...">{{ sessione.eccezioni_da_sollevare }}</textarea>
+          </div>
+
+          {# ══════════════════════════════════════════ STEP 4 — PRE-PARTENZA #}
+          {% elif step_n == 4 %}
+
+          <p class="text-muted small mb-4">
+            Verifica che tutto sia in ordine prima di partire per l'udienza.
+          </p>
+
+          {# Checklist pre-partenza #}
+          {% set checks = [
+            ('precheck_firma_ok', 'bi-patch-check-fill', 'text-success', 'Firma digitale valida', 'Certificato non scaduto e smart card/token funzionante'),
+            ('precheck_docs_pronti', 'bi-folder-check', 'text-primary', 'Documenti pronti', 'Tutti i documenti da portare sono preparati e accessibili'),
+            ('precheck_cliente_notificato', 'bi-person-check', 'text-info', 'Cliente avvisato', 'Il cliente è informato dell\'orario e della sede dell\'udienza'),
+            ('precheck_trasporto_ok', 'bi-car-front', 'text-secondary', 'Trasporto organizzato', 'Sai come raggiungere il tribunale in tempo'),
+          ] %}
+
+          <div class="d-flex flex-column gap-3 mb-4">
+            {% for name, icon, color, label, desc in checks %}
+            {% set val = sessione[name] if sessione is mapping else sessione | attr(name) %}
+            <div class="p-3 rounded-3 border d-flex align-items-start gap-3 precheck-item
+                        {% if val %}border-success bg-success bg-opacity-10{% endif %}"
+                 id="row_{{ name }}" style="cursor:pointer" onclick="toggleCheck('{{ name }}')">
+              <div class="form-check m-0 flex-shrink-0">
+                <input class="form-check-input precheck-cb" type="checkbox"
+                       name="{{ name }}" id="{{ name }}" value="1"
+                       {% if val %}checked{% endif %}
+                       onchange="aggiornaPrecheck(this)">
+              </div>
+              <div class="flex-grow-1">
+                <label class="form-check-label fw-semibold small" for="{{ name }}" style="cursor:pointer">
+                  <i class="{{ icon }} {{ color }} me-1"></i>{{ label }}
+                </label>
+                <div class="text-muted" style="font-size:.72rem">{{ desc }}</div>
+              </div>
+              <i class="bi bi-check-circle-fill text-success flex-shrink-0 check-ok d-none" style="font-size:1.3rem"></i>
+            </div>
+            {% endfor %}
+          </div>
+
+          {# Progress pre-partenza #}
+          <div class="d-flex align-items-center gap-2 mb-4">
+            <div class="progress flex-grow-1" style="height:8px;border-radius:4px">
+              <div class="progress-bar bg-success" id="precheckBar"
+                   style="width:{{ sessione.precheck_n_ok * 25 }}%;transition:width .3s"></div>
+            </div>
+            <span class="badge bg-success" id="precheckCount">{{ sessione.precheck_n_ok }}/4</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-chat-dots me-1"></i>Note aggiuntive pre-partenza
+            </label>
+            <textarea name="precheck_note" class="form-control" rows="2"
+                      placeholder="Parcheggio disponibile / Cancelleria aperta fino alle 12...">{{ sessione.precheck_note }}</textarea>
+          </div>
+
+          {# ═══════════════════════════════════════════════ STEP 5 — ESITO #}
+          {% elif step_n == 5 %}
+
+          <p class="text-muted small mb-4">
+            Registra il risultato dell'udienza e le azioni successive. Il fascicolo verrà aggiornato automaticamente.
+          </p>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-balance-scale me-1 text-primary"></i>Esito dell'udienza
+            </label>
+            <div class="row g-2">
+              {% for val, label in esiti %}
+              <div class="col-6">
+                <input type="radio" class="btn-check" name="esito" id="esito_{{ val }}"
+                       value="{{ val }}" {% if sessione.esito == val %}checked{% endif %}
+                       onchange="mostraRinvio(this.value)">
+                <label class="btn btn-outline-secondary w-100 text-start py-2 px-3" for="esito_{{ val }}"
+                       style="font-size:.82rem">
+                  {% if val == 'favorevole' %}<i class="bi bi-hand-thumbs-up-fill text-success me-2"></i>
+                  {% elif val == 'parziale' %}<i class="bi bi-dash-circle-fill text-warning me-2"></i>
+                  {% elif val == 'sfavorevole' %}<i class="bi bi-hand-thumbs-down-fill text-danger me-2"></i>
+                  {% elif val == 'rinvio' %}<i class="bi bi-arrow-repeat text-info me-2"></i>
+                  {% elif val == 'sospeso' %}<i class="bi bi-pause-circle-fill text-secondary me-2"></i>
+                  {% endif %}
+                  {{ label }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          {# Data rinvio (visibile solo se esito=rinvio) #}
+          <div id="rinvioDateBox" class="mb-4 {% if sessione.esito != 'rinvio' %}d-none{% endif %}">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-calendar-plus me-1 text-info"></i>Data prossima udienza (rinvio)
+            </label>
+            <input type="date" name="esito_rinvio_data" class="form-control"
+                   value="{{ sessione.esito_rinvio_data }}" min="{{ oggi }}">
+            <div class="form-text">Verrà aggiornata nel fascicolo come data prossima udienza.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-journal me-1"></i>Note dal verbale
+            </label>
+            <textarea name="esito_note_verbale" class="form-control" rows="4"
+                      placeholder="Cosa è successo in udienza, dichiarazioni rilevanti, ordinanze emesse...">{{ sessione.esito_note_verbale }}</textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold small">
+              <i class="bi bi-list-task me-1"></i>Azioni successive
+            </label>
+            <textarea name="esito_azioni" class="form-control" rows="3"
+                      placeholder="Depositare memoria entro il... / Contattare il cliente / Predisporre ricorso...">{{ sessione.esito_azioni }}</textarea>
+          </div>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="cbAggiornaFascicolo"
+                   name="esito_aggiorna_fascicolo" value="1"
+                   {% if sessione.esito_aggiorna_fascicolo %}checked{% endif %}>
+            <label class="form-check-label small" for="cbAggiornaFascicolo">
+              <i class="bi bi-folder2-open me-1 text-primary"></i>
+              Aggiorna automaticamente il fascicolo (aggiungi attività + data prossima udienza)
+            </label>
+          </div>
+
+          {% endif %}
+          {# ── Fine switch step ── #}
+
+          {# ── Pulsanti navigazione ── #}
+          <div class="d-flex gap-2 flex-wrap mt-4 pt-3 border-top">
+            {% if step_n == 5 %}
+            <button type="submit" class="btn btn-success fw-semibold px-4">
+              <i class="bi bi-check-circle-fill me-2"></i>Completa Wizard Pro
+            </button>
+            {% else %}
+            <button type="submit" class="btn btn-primary fw-semibold px-4">
+              <i class="bi bi-arrow-right-circle me-2"></i>
+              {% if step_n == 4 %}Parto per l'udienza
+              {% else %}Salva e continua{% endif %}
+            </button>
+            {% endif %}
+
+            {% if step_n > 1 %}
+            <a href="{{ url_for('wizard_pro.step', id_sessione=sessione.id, n=step_n - 1) }}"
+               class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>Precedente
+            </a>
+            {% endif %}
+
+            <a href="{{ url_for('wizard_pro.index') }}"
+               class="btn btn-link text-muted ms-auto">
+              <i class="bi bi-x-circle me-1"></i>Sospendi
+            </a>
+          </div>
+
+        </form>
+      </div>{# /card-body #}
+    </div>{# /card #}
+  </div>{# /col-lg-7 #}
+
+  {# ── COLONNA DESTRA: SIDEBAR INFO ── #}
+  <div class="col-lg-5">
+
+    {% if fascicolo %}
+    {# Card riepilogo fascicolo #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-folder2-open text-primary"></i>
+        <span class="small fw-semibold">Fascicolo</span>
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+           class="ms-auto btn btn-sm btn-link p-0 text-muted" target="_blank" title="Apri fascicolo">
+          <i class="bi bi-box-arrow-up-right" style="font-size:.75rem"></i>
+        </a>
+      </div>
+      <div class="card-body py-2 px-3">
+        <div class="mb-1">
+          <span class="fw-bold small">{{ fascicolo.numero }}</span>
+          <span class="badge bg-light text-muted border ms-1 small">
+            {{ fascicolo.tipo.value if fascicolo.tipo else '' }}
+          </span>
+        </div>
+        <div class="text-muted small mb-2">{{ fascicolo.titolo }}</div>
+        {% if fascicolo.nome_cliente %}
+        <div class="small"><i class="bi bi-person me-1 text-muted"></i>{{ fascicolo.nome_cliente }}</div>
+        {% endif %}
+        {% if fascicolo.controparte %}
+        <div class="small text-muted"><i class="bi bi-arrow-left-right me-1"></i>c/ {{ fascicolo.controparte }}</div>
+        {% endif %}
+        {% if fascicolo.tribunale %}
+        <div class="small mt-1"><i class="bi bi-bank me-1 text-muted"></i>{{ fascicolo.tribunale }}</div>
+        {% endif %}
+        {% if fascicolo.giudice %}
+        <div class="small text-muted"><i class="bi bi-person-badge me-1"></i>{{ fascicolo.giudice }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if appuntamento %}
+    {# Card appuntamento #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <i class="bi bi-calendar-event text-info me-1"></i>
+        <span class="small fw-semibold">Udienza</span>
+      </div>
+      <div class="card-body py-2 px-3">
+        <div class="fw-semibold small">{{ appuntamento.titolo }}</div>
+        {% if appuntamento.data_ora %}
+        <div class="small text-muted mt-1">
+          <i class="bi bi-clock me-1"></i>
+          {{ appuntamento.data_ora[:10] }}
+          {% if appuntamento.data_ora|length > 10 %}
+            alle {{ appuntamento.data_ora[11:16] }}
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if appuntamento.luogo %}
+        <div class="small text-muted">
+          <i class="bi bi-geo-alt me-1"></i>{{ appuntamento.luogo }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Step notes — mostra contenuti step precedenti completati #}
+    {% if step_n >= 3 and sessione.step1_confermato and sessione.step1_note %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <i class="bi bi-journal-text text-muted me-1"></i>
+        <span class="small fw-semibold text-muted">Note briefing</span>
+      </div>
+      <div class="card-body py-2 px-3">
+        <p class="small text-muted mb-0" style="white-space:pre-wrap">{{ sessione.step1_note }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if step_n >= 4 and sessione.step3_confermato and sessione.argomenti_principali %}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-bottom py-2">
+        <i class="bi bi-list-stars text-muted me-1"></i>
+        <span class="small fw-semibold text-muted">Argomenti</span>
+      </div>
+      <div class="card-body py-2 px-3">
+        <p class="small text-muted mb-0" style="white-space:pre-wrap">{{ sessione.argomenti_principali }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if step_n == 5 and sessione.step2_confermato %}
+    {# Step 5: mostra riepilogo documenti #}
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-bottom py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard-check text-success me-1"></i>
+        <span class="small fw-semibold text-muted">Documenti portati</span>
+        <span class="badge bg-success ms-auto">{{ sessione.docs_pronti }}/{{ sessione.docs_totali }}</span>
+      </div>
+      <ul class="list-group list-group-flush" style="max-height:14rem;overflow-y:auto">
+        {% for doc in docs_checklist %}
+        {% if doc.stato != 'non_necessario' %}
+        <li class="list-group-item px-3 py-1 d-flex align-items-center gap-2">
+          <i class="bi {% if doc.stato == 'pronto' %}bi-check-circle-fill text-success{% else %}bi-circle text-muted{% endif %}"
+             style="font-size:.75rem;flex-shrink:0"></i>
+          <span class="small text-truncate">{{ doc.label }}</span>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# Step summary progress #}
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-2">
+        <span class="small fw-semibold text-muted">Progresso complessivo</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for st in steps_stato %}
+        <li class="list-group-item px-3 py-2 d-flex align-items-center gap-2
+                   {% if st.n == step_n %}list-group-item-primary{% endif %}">
+          <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0
+                        {% if st.confermato %}bg-success{% elif st.n == step_n %}bg-primary{% else %}bg-light border{% endif %}"
+                style="width:1.5rem;height:1.5rem;font-size:.6rem;
+                       {% if not st.confermato and st.n != step_n %}color:#adb5bd{% else %}color:white{% endif %}">
+            {% if st.confermato %}<i class="bi bi-check" style="font-size:.6rem"></i>
+            {% else %}{{ st.n }}{% endif %}
+          </span>
+          <span class="small {% if st.n == step_n %}fw-bold{% elif st.confermato %}text-success{% else %}text-muted{% endif %}">
+            {{ st.label }}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div>{# /col-lg-5 #}
+</div>{# /row #}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Step 2: aggiornamento visivo riga documento
+function aggiornaDocRow(sel) {
+  const row = sel.closest('.list-group-item');
+  row.classList.remove('list-group-item-success', 'list-group-item-secondary');
+  if (sel.value === 'pronto')          row.classList.add('list-group-item-success');
+  else if (sel.value === 'non_necessario') row.classList.add('list-group-item-secondary');
+}
+// Init on load
+document.querySelectorAll('.list-group select').forEach(aggiornaDocRow);
+
+// ── Step 4: toggle checkbox pre-partenza
+function toggleCheck(name) {
+  const cb = document.getElementById(name);
+  if (cb) { cb.checked = !cb.checked; aggiornaPrecheck(cb); }
+}
+function aggiornaPrecheck(cb) {
+  const row = document.getElementById('row_' + cb.name);
+  const icon = row ? row.querySelector('.check-ok') : null;
+  if (cb.checked) {
+    row && row.classList.add('border-success', 'bg-success', 'bg-opacity-10');
+    icon && icon.classList.remove('d-none');
+  } else {
+    row && row.classList.remove('border-success', 'bg-success', 'bg-opacity-10');
+    icon && icon.classList.add('d-none');
+  }
+  // Aggiorna barra progresso
+  const cbs = document.querySelectorAll('.precheck-cb');
+  const n = Array.from(cbs).filter(c => c.checked).length;
+  const bar = document.getElementById('precheckBar');
+  const cnt = document.getElementById('precheckCount');
+  if (bar) bar.style.width = (n * 25) + '%';
+  if (cnt) cnt.textContent = n + '/4';
+}
+// Init state
+document.querySelectorAll('.precheck-cb').forEach(function(cb) {
+  const row = document.getElementById('row_' + cb.name);
+  const icon = row ? row.querySelector('.check-ok') : null;
+  if (cb.checked) {
+    row && row.classList.add('border-success', 'bg-success', 'bg-opacity-10');
+    icon && icon.classList.remove('d-none');
+  }
+});
+
+// ── Step 5: mostra/nascondi data rinvio
+function mostraRinvio(val) {
+  const box = document.getElementById('rinvioDateBox');
+  if (box) box.classList.toggle('d-none', val !== 'rinvio');
+}
+</script>
+{% endblock %}

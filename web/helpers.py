@@ -19,6 +19,7 @@ from pct.fascicoli import GestioneFascicoli
 from pct.scadenziario import GestioneScadenziario
 from pct.auth import GestioneUtenti
 from pct.search_index import IndiceRicerca
+from pct.wizard_pro import GestioneWizardPro
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -67,6 +68,10 @@ def get_utenti() -> GestioneUtenti:
 
 def get_indice() -> IndiceRicerca:
     return IndiceRicerca(index_path=_cfg("SEARCH_INDEX"))
+
+
+def get_wizard_pro() -> GestioneWizardPro:
+    return GestioneWizardPro(db_path=_cfg("WIZARD_PRO_DB"))
 
 
 # ---------------------------------------------------------------- tenant corrente

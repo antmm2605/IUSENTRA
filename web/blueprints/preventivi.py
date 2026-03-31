@@ -474,63 +474,386 @@ def ajax_preventivi(id_cliente: str):
 @preventivi.route("/ajax/parametri_dm55")
 @_richiedi_login
 def ajax_parametri_dm55():
-    """Calcola i parametri di riferimento D.M. 55/2014 (agg. D.M. 147/2022)."""
+    """Calcola i parametri di riferimento D.M. 147/2022.
+
+    Parametri query string:
+      tipo_procedimento   — stringa tipo procedimento
+      tipo_mediazione     — "mediazione" | "negoziazione" (solo se tipo è ADR)
+      valore              — valore controversia in €
+      fasi                — fasi separate da virgola (per procedure ordinarie)
+      grado               — "Giudice di Pace"|"Tribunale"|"Corte d'Appello"|"Corte di Cassazione"
+      bonus_telematico    — "1" | "0"
+      spese_generali      — "1" | "0"
+      perc_spese_generali — float es. "15" → 0.15
+      var_<nome_fase>     — variazione % per fase (es. var_attivazione=110 → +10%)
+    """
     from flask import jsonify
     from pct.tariffario import calcola_compenso, Materia, Grado, Fase
 
-    tipo_proc  = request.args.get("tipo_procedimento", "")
-    valore     = float(request.args.get("valore", 0) or 0)
-    fasi_raw   = request.args.get("fasi", "")
+    tipo_proc        = request.args.get("tipo_procedimento", "")
+    tipo_mediazione  = request.args.get("tipo_mediazione", "mediazione")
+    valore           = float(request.args.get("valore", 0) or 0)
+    fasi_raw         = request.args.get("fasi", "")
+    grado_raw        = request.args.get("grado", "Tribunale")
+    bonus_tel        = request.args.get("bonus_telematico", "0") == "1"
+    incl_spese       = request.args.get("spese_generali", "0") == "1"
+    try:
+        perc_sg = float(request.args.get("perc_spese_generali", "15") or "15") / 100.0
+    except (ValueError, TypeError):
+        perc_sg = 0.15
 
     # Mappa tipo_procedimento → Materia
     _mappa_materia = {
         "Civile — fase di cognizione":       Materia.CIVILE_COGN,
         "Civile — fase esecutiva":           Materia.ESEC_MOB,
         "Penale":                            Materia.PENALE,
+        "Lavoro":                            Materia.LAVORO,
+        "Previdenza / Assistenza":           Materia.PREVIDENZA,
         "Amministrativo (TAR/CdS)":          Materia.AMMINISTRATIVO,
+        "Tributario / CGT":                  Materia.TRIBUTARIO,
         "Stragiudiziale / Consulenza":       Materia.STRAGIUD,
-        "Mediazione / Negoziazione assistita": Materia.STRAGIUD,
         "Arbitrato":                         Materia.STRAGIUD,
     }
-    materia = _mappa_materia.get(tipo_proc, Materia.CIVILE_COGN)
+    # Per mediazione/negoziazione: sceglie in base a tipo_mediazione
+    if tipo_proc == "Mediazione / Negoziazione assistita":
+        materia = Materia.NEGOZIAZIONE_ASSISTITA if tipo_mediazione == "negoziazione" else Materia.MEDIAZIONE
+    else:
+        materia = _mappa_materia.get(tipo_proc, Materia.CIVILE_COGN)
 
-    # Mappa chiavi checkbox → Fase
+    # Mappa grado
+    _mappa_grado = {
+        "Giudice di Pace":   Grado.GIUDICE_DI_PACE,
+        "Tribunale":         Grado.TRIBUNALE,
+        "Corte d'Appello":   Grado.CORTE_APPELLO,
+        "Corte di Cassazione": Grado.CASSAZIONE,
+    }
+    grado = _mappa_grado.get(grado_raw, Grado.TRIBUNALE)
+
+    # Mappa chiavi checkbox → Fase (procedure ordinarie)
     _mappa_fase = {
         "studio":       Fase.STUDIO,
         "introduttiva": Fase.INTRODUTTIVA,
         "istruttoria":  Fase.ISTRUTTORIA,
         "decisionale":  Fase.DECISIONALE,
+        "esecutiva":    Fase.ESECUTIVA,
     }
     fasi_selezionate = [
         _mappa_fase[k] for k in fasi_raw.split(",")
         if k.strip() in _mappa_fase
     ]
-    if not fasi_selezionate:
+    if not fasi_selezionate and materia not in {Materia.MEDIAZIONE, Materia.NEGOZIAZIONE_ASSISTITA, Materia.STRAGIUD}:
         fasi_selezionate = [Fase.STUDIO, Fase.INTRODUTTIVA,
                             Fase.ISTRUTTORIA, Fase.DECISIONALE]
+
+    # Raccogli variazioni per fase (var_attivazione, var_rivitalizzazione, ecc.)
+    _mappa_var_fasi = {
+        "attivazione":      Fase.ATTIVAZIONE.value,
+        "rivitalizzazione": Fase.RIVITALIZZAZIONE.value,
+        "negoziazione":     Fase.NEGOZIAZIONE_TRATTAZIONE.value,
+        "conciliazione":    Fase.CONCILIAZIONE.value,
+        "studio":           Fase.STUDIO.value,
+        "introduttiva":     Fase.INTRODUTTIVA.value,
+        "istruttoria":      Fase.ISTRUTTORIA.value,
+        "decisionale":      Fase.DECISIONALE.value,
+        "esecutiva":        Fase.ESECUTIVA.value,
+    }
+    variazioni_fasi: dict = {}
+    for k, fase_label in _mappa_var_fasi.items():
+        raw_val = request.args.get(f"var_{k}")
+        if raw_val is not None:
+            try:
+                variazioni_fasi[fase_label] = float(raw_val) / 100.0
+            except (ValueError, TypeError):
+                pass
 
     try:
         ris = calcola_compenso(
             materia=materia,
-            grado=Grado.TRIBUNALE,
+            grado=grado,
             valore=valore,
             fasi=fasi_selezionate,
-            bonus_telematico=False,
-            includi_spese_generali=False,
+            bonus_telematico=bonus_tel,
+            includi_spese_generali=incl_spese,
+            perc_spese_generali=perc_sg,
+            variazioni_fasi=variazioni_fasi or None,
         )
-        fasi_out = {
-            fase: round(vals[1], 2)  # valore base
-            for fase, vals in ris.dettaglio.items()
-        }
+        # Costruisce la risposta con dettaglio min/base/max per fase
+        fasi_out = {}
+        for fase, (vmin, vbase, vmax) in ris.dettaglio.items():
+            fasi_out[fase] = {"min": vmin, "base": vbase, "max": vmax}
         return jsonify({
-            "scaglione": ris.scaglione,
-            "fasi":      fasi_out,
-            "totale":    ris.totale_base,
-            "nota":      ris.note,
+            "materia":           ris.materia,
+            "scaglione":         ris.scaglione,
+            "fasi":              fasi_out,
+            # Totali
+            "totale_minimo":     ris.totale_minimo,
+            "totale_base":       ris.totale_base,
+            "totale_massimo":    ris.totale_massimo,
+            "bonus_telematico":  ris.bonus_telematico,
+            "spese_generali":    ris.spese_generali,
+            "perc_spese_generali": int(round(ris.perc_spese_generali * 100)),
+            "totale_con_spese":  ris.totale_con_spese,
+            # Compat
+            "totale":            ris.totale_con_spese if incl_spese else ris.totale_base,
+            "nota":              ris.note,
         })
     except Exception as e:
-        current_app.logger.exception("Errore calcolo DM55: %s", e)
+        current_app.logger.exception("Errore calcolo DM147: %s", e)
         return jsonify({"errore": str(e)}), 200
+
+
+# ================================================================ WIZARD MOTORE PREVENTIVO
+
+@preventivi.route("/wizard", methods=["GET"])
+@_richiedi_login
+def wizard():
+    """Wizard step-by-step per la costruzione guidata del preventivo."""
+    from pct.motore_preventivo import catalogo_per_area, AREE
+    gc = get_clienti()
+    return render_template(
+        "preventivi/wizard.html",
+        catalogo_per_area=catalogo_per_area(),
+        aree=AREE,
+        clienti=gc.tutti(),
+        oggi=date.today(),
+        scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
+    )
+
+
+@preventivi.route("/wizard/calcola", methods=["GET"])
+@_richiedi_login
+def wizard_calcola():
+    """AJAX — calcola compenso dal motore preventivo.
+
+    Parametri query string:
+      id_pratica, valore, grado, fasi (comma-sep), bonus_telematico,
+      spese_generali, perc_spese_generali, applica_cpa, applica_iva,
+      anticipazioni, variazioni per fase (var_studio, var_introduttiva, ecc.)
+    """
+    from flask import jsonify
+    from pct.motore_preventivo import motore_calcola, get_tipo_pratica
+    from pct.tariffario import Grado, Fase
+
+    try:
+        id_pratica      = request.args.get("id_pratica", "")
+        valore          = float(request.args.get("valore", 0) or 0)
+        grado_raw       = request.args.get("grado", "")
+        fasi_raw        = request.args.get("fasi", "")
+        bonus_tel       = request.args.get("bonus_telematico", "0") == "1"
+        incl_spese      = request.args.get("spese_generali", "1") == "1"
+        try:
+            perc_sg = float(request.args.get("perc_spese_generali", "15") or "15") / 100.0
+        except (ValueError, TypeError):
+            perc_sg = 0.15
+        applica_cpa     = request.args.get("applica_cpa", "1") == "1"
+        applica_iva     = request.args.get("applica_iva", "1") == "1"
+        anticipazioni   = float(request.args.get("anticipazioni", 0) or 0)
+
+        if not id_pratica:
+            return jsonify({"errore": "id_pratica mancante"}), 200
+
+        tp = get_tipo_pratica(id_pratica)
+        if not tp:
+            return jsonify({"errore": f"Tipologia non trovata: {id_pratica}"}), 200
+
+        # Grado
+        _mappa_grado = {
+            "Giudice di Pace":      Grado.GIUDICE_DI_PACE,
+            "Tribunale":            Grado.TRIBUNALE,
+            "Corte d'Appello":      Grado.CORTE_APPELLO,
+            "Corte di Cassazione":  Grado.CASSAZIONE,
+        }
+        grado = _mappa_grado.get(grado_raw) if grado_raw else None
+
+        # Fasi
+        _mappa_fase = {
+            "studio":               Fase.STUDIO,
+            "introduttiva":         Fase.INTRODUTTIVA,
+            "istruttoria":          Fase.ISTRUTTORIA,
+            "decisionale":          Fase.DECISIONALE,
+            "esecutiva":            Fase.ESECUTIVA,
+            "attivazione":          Fase.ATTIVAZIONE,
+            "rivitalizzazione":     Fase.RIVITALIZZAZIONE,
+            "negoziazione":         Fase.NEGOZIAZIONE_TRATTAZIONE,
+            "conciliazione":        Fase.CONCILIAZIONE,
+        }
+        fasi = [_mappa_fase[k] for k in fasi_raw.split(",") if k.strip() in _mappa_fase] or None
+
+        # Variazioni per fase
+        _mappa_var_fasi = {
+            "attivazione":      Fase.ATTIVAZIONE.value,
+            "rivitalizzazione": Fase.RIVITALIZZAZIONE.value,
+            "negoziazione":     Fase.NEGOZIAZIONE_TRATTAZIONE.value,
+            "conciliazione":    Fase.CONCILIAZIONE.value,
+            "studio":           Fase.STUDIO.value,
+            "introduttiva":     Fase.INTRODUTTIVA.value,
+            "istruttoria":      Fase.ISTRUTTORIA.value,
+            "decisionale":      Fase.DECISIONALE.value,
+            "esecutiva":        Fase.ESECUTIVA.value,
+        }
+        variazioni_fasi: dict = {}
+        for k, fase_label in _mappa_var_fasi.items():
+            raw_val = request.args.get(f"var_{k}")
+            if raw_val is not None:
+                try:
+                    variazioni_fasi[fase_label] = float(raw_val) / 100.0
+                except (ValueError, TypeError):
+                    pass
+
+        ris = motore_calcola(
+            id_pratica=id_pratica,
+            valore_controversia=valore,
+            grado=grado,
+            fasi=fasi,
+            bonus_telematico=bonus_tel,
+            includi_spese_generali=incl_spese,
+            perc_spese_generali=perc_sg,
+            variazioni_fasi=variazioni_fasi or None,
+            applica_cpa=applica_cpa,
+            applica_iva=applica_iva,
+            anticipazioni=anticipazioni,
+        )
+
+        dm = ris.calcolo_dm55
+        fasi_out = {fase: {"min": v[0], "base": v[1], "max": v[2]}
+                    for fase, v in dm.dettaglio.items()}
+
+        return jsonify({
+            "tipo_pratica":          tp.to_dict(),
+            "materia":               dm.materia,
+            "scaglione":             dm.scaglione,
+            "fasi":                  fasi_out,
+            "totale_minimo":         dm.totale_minimo,
+            "totale_base":           dm.totale_base,
+            "totale_massimo":        dm.totale_massimo,
+            "bonus_telematico":      dm.bonus_telematico,
+            "spese_generali":        dm.spese_generali,
+            "perc_spese_generali":   int(round(dm.perc_spese_generali * 100)),
+            "onorario_base":         ris.onorario_base,
+            "cpa":                   ris.cpa,
+            "base_iva":              ris.base_iva,
+            "iva":                   ris.iva,
+            "anticipazioni":         ris.anticipazioni,
+            "totale":                ris.totale,
+            "applica_cpa":           ris.applica_cpa,
+            "applica_iva":           ris.applica_iva,
+            "nota":                  dm.note,
+            "base_normativa":        tp.base_normativa,
+        })
+    except Exception as e:
+        current_app.logger.exception("Errore wizard_calcola: %s", e)
+        return jsonify({"errore": str(e)}), 200
+
+
+@preventivi.route("/wizard/genera", methods=["POST"])
+@_richiedi_login
+def wizard_genera():
+    """Genera preventivo (e opzionalmente conferimento) dai dati del wizard."""
+    from pct.preventivi import VocePreventivo, TipoVoce
+    f = request.form
+    gp = _get_gp()
+
+    id_cliente = f.get("id_cliente", "").strip()
+    if not id_cliente:
+        flash("Seleziona un cliente.", "danger")
+        return redirect(url_for("preventivi.wizard"))
+
+    oggetto = f.get("oggetto", "").strip()
+    if not oggetto:
+        flash("Inserisci l'oggetto del preventivo.", "danger")
+        return redirect(url_for("preventivi.wizard"))
+
+    # Voci dal wizard
+    descrizioni = f.getlist("voce_descr[]")
+    importi     = f.getlist("voce_importo[]")
+    tipi        = f.getlist("voce_tipo[]")
+    voci = []
+    for desc, imp, tipo in zip(descrizioni, importi, tipi):
+        desc = desc.strip()
+        if not desc:
+            continue
+        try:
+            voci.append(VocePreventivo(
+                descrizione=desc,
+                importo=float(imp or 0),
+                tipo=TipoVoce(tipo) if tipo else TipoVoce.ONORARIO,
+            ))
+        except (ValueError, TypeError):
+            pass
+
+    if not voci:
+        flash("Aggiungi almeno una voce al preventivo.", "danger")
+        return redirect(url_for("preventivi.wizard"))
+
+    try:
+        valore_controversia = float(f.get("valore_controversia") or 0)
+    except (ValueError, TypeError):
+        valore_controversia = 0.0
+    try:
+        tariffa_oraria = float(f.get("tariffa_oraria") or 0)
+    except (ValueError, TypeError):
+        tariffa_oraria = 0.0
+    try:
+        ore_stimate = float(f.get("ore_stimate") or 0)
+    except (ValueError, TypeError):
+        ore_stimate = 0.0
+    try:
+        anticipazioni = float(f.get("anticipazioni_art15") or 0)
+    except (ValueError, TypeError):
+        anticipazioni = 0.0
+
+    cfg = current_app.config
+    p = gp.crea_preventivo(
+        id_cliente=id_cliente,
+        oggetto=oggetto,
+        voci=voci,
+        creato_da=g.utente_corrente.username if g.utente_corrente else "",
+        id_fascicolo=f.get("id_fascicolo", "").strip() or None,
+        data_emissione=f.get("data_emissione") or date.today().isoformat(),
+        data_scadenza=f.get("data_scadenza", "").strip() or None,
+        applica_cassa=bool(f.get("applica_cassa")),
+        applica_iva=bool(f.get("applica_iva")),
+        anticipazioni_art15=anticipazioni,
+        note=f.get("note", "").strip(),
+        tipo_compenso=f.get("tipo_compenso", "").strip(),
+        tipo_procedimento=f.get("tipo_procedimento", "").strip(),
+        valore_controversia=valore_controversia,
+        tariffa_oraria=tariffa_oraria,
+        ore_stimate=ore_stimate,
+        complessita=f.get("complessita", "").strip(),
+        studio_piva=cfg.get("STUDIO_PIVA", ""),
+        studio_cf=cfg.get("STUDIO_CF", ""),
+        studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
+    )
+
+    # Conferimento immediato?
+    if f.get("genera_conferimento"):
+        avvocato = f.get("avvocato_referente", "").strip() or cfg.get("STUDIO_NOME", "Studio Legale")
+        try:
+            compenso_pattuito = float(f.get("compenso_pattuito") or p.totale)
+        except (ValueError, TypeError):
+            compenso_pattuito = p.totale
+        gp.crea_conferimento(
+            id_cliente=id_cliente,
+            oggetto=oggetto,
+            avvocato_referente=avvocato,
+            creato_da=g.utente_corrente.username if g.utente_corrente else "",
+            id_preventivo=p.id,
+            id_fascicolo=f.get("id_fascicolo", "").strip() or None,
+            compenso_pattuito=compenso_pattuito,
+            tipo_compenso=f.get("tipo_compenso", "").strip(),
+            tipo_procedimento=f.get("tipo_procedimento", "").strip(),
+            informativa_art13_resa=bool(f.get("informativa_art13_resa")),
+            clausola_adr_resa=bool(f.get("clausola_adr_resa")),
+            studio_piva=cfg.get("STUDIO_PIVA", ""),
+            studio_cf=cfg.get("STUDIO_CF", ""),
+            studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
+        )
+        flash(f"Preventivo {p.numero} e conferimento incarico creati.", "success")
+    else:
+        flash(f"Preventivo {p.numero} creato.", "success")
+
+    return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=p.id))
 
 
 # ================================================================ Generazione PDF preventivo

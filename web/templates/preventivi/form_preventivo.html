@@ -99,12 +99,16 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Tipo procedimento
-                <small class="text-muted fw-normal">(D.M. 55/2014)</small></label>
-              <select name="tipo_procedimento" id="selTipoProcedimento" class="form-select" onchange="aggiornaDM55()">
+                <small class="text-muted fw-normal">(D.M. 147/2022)</small></label>
+              <select name="tipo_procedimento" id="selTipoProcedimento" class="form-select"
+                      onchange="aggiornaSezioneProcedimento(); aggiornaDM55()">
                 <option value="Civile — fase di cognizione">Civile — fase di cognizione</option>
                 <option value="Civile — fase esecutiva">Civile — fase esecutiva</option>
+                <option value="Lavoro">Lavoro / Previdenza</option>
+                <option value="Previdenza / Assistenza">Previdenza e Assistenza</option>
                 <option value="Penale">Penale</option>
                 <option value="Amministrativo (TAR/CdS)">Amministrativo (TAR/CdS)</option>
+                <option value="Tributario / CGT">Tributario / CGT</option>
                 <option value="Stragiudiziale / Consulenza">Stragiudiziale / Consulenza</option>
                 <option value="Mediazione / Negoziazione assistita">Mediazione / Negoziazione assistita</option>
                 <option value="Arbitrato">Arbitrato</option>
@@ -137,28 +141,124 @@
       </div>
     </div>
 
-    {# ── Calcolatore D.M. 55/2014 ── #}
+    {# ── Calcolatore D.M. 147/2022 ── #}
     <div class="col-12" id="cardDM55" style="display:none">
       <div class="card border-primary">
-        <div class="card-header fw-semibold text-primary">
-          <i class="bi bi-calculator me-2"></i>Calcolatore parametri D.M. 55/2014
-          <small class="text-muted fw-normal ms-2">(valori di riferimento — agg. D.M. 147/2022)</small>
+        <div class="card-header fw-semibold text-primary d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-calculator me-2"></i>Calcolatore parametri D.M. 147/2022</span>
+          <small class="text-muted fw-normal">Compensi forensi — D.M. 55/2014 agg. D.M. 147/2022</small>
         </div>
         <div class="card-body">
-          <p class="small text-muted mb-2">Seleziona le fasi processuali da includere nel calcolo:</p>
-          <div class="d-flex flex-wrap gap-3 mb-3">
-            {% for fase in [('studio','Studio'), ('introduttiva','Fase introduttiva'),
-                            ('istruttoria','Fase istruttoria'), ('decisionale','Fase decisionale')] %}
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" name="fasi_incluse[]"
-                     value="{{ fase[0] }}" id="fase_{{ fase[0] }}" checked onchange="aggiornaDM55()">
-              <label class="form-check-label" for="fase_{{ fase[0] }}">{{ fase[1] }}</label>
+
+          {# ── Grado di giudizio ── #}
+          <div class="row g-2 mb-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold mb-1">Grado di giudizio</label>
+              <select id="selGrado" class="form-select form-select-sm" onchange="aggiornaDM55()">
+                <option value="Tribunale">Tribunale (1° grado)</option>
+                <option value="Giudice di Pace">Giudice di Pace</option>
+                <option value="Corte d'Appello">Corte d'Appello (2° grado)</option>
+                <option value="Corte di Cassazione">Corte di Cassazione</option>
+              </select>
             </div>
-            {% endfor %}
           </div>
-          <div id="risultatoDM55" class="alert alert-light border small mb-0" style="display:none">
-            Calcolo in corso…
+
+          {# ── Fasi ordinarie (nascoste per mediazione/negoziazione) ── #}
+          <div id="sectFasiOrdinarie">
+            <p class="small text-muted mb-2 fw-semibold">Fasi processuali da includere:</p>
+            <div class="d-flex flex-wrap gap-3 mb-3">
+              {% for fase in [('studio','Studio'), ('introduttiva','Fase introduttiva'),
+                              ('istruttoria','Fase istruttoria'), ('decisionale','Fase decisionale'),
+                              ('esecutiva','Fase esecutiva')] %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="fasi_incluse[]"
+                       value="{{ fase[0] }}" id="fase_{{ fase[0] }}"
+                       {% if fase[0] != 'esecutiva' %}checked{% endif %}
+                       onchange="aggiornaDM55()">
+                <label class="form-check-label" for="fase_{{ fase[0] }}">{{ fase[1] }}</label>
+              </div>
+              {% endfor %}
+            </div>
           </div>
+
+          {# ── Fasi mediazione / negoziazione assistita ── #}
+          <div id="sectFasiMediazione" style="display:none">
+            <p class="small text-muted mb-2 fw-semibold">
+              Tipo ADR:
+              <span class="ms-2">
+                <input type="radio" class="form-check-input" name="tipoMediazione" id="rdMediazione"
+                       value="mediazione" checked onchange="aggiornaDM55()">
+                <label class="form-check-label me-3" for="rdMediazione">Mediazione (D.Lgs. 28/2010)</label>
+                <input type="radio" class="form-check-input" name="tipoMediazione" id="rdNegoziazione"
+                       value="negoziazione" onchange="aggiornaDM55()">
+                <label class="form-check-label" for="rdNegoziazione">Negoziazione Assistita (D.L. 132/2014)</label>
+              </span>
+            </p>
+            <p class="small text-muted mb-2">
+              Regola percentuale per fase <span class="badge bg-secondary">DM 147/2022 ±50%</span>
+              — trascina il cursore o digita il valore (50%–150%):
+            </p>
+            <div class="row g-3" id="rowFasiADR">
+              {# JS popola questo blocco in base al tipo mediazione #}
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          {# ── Bonus telematico + Spese generali ── #}
+          <div class="row g-2 align-items-end mb-3">
+            <div class="col-md-5">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkBonusTelematico"
+                       value="1" onchange="aggiornaDM55()">
+                <label class="form-check-label" for="chkBonusTelematico">
+                  Bonus telematico +30%
+                  <small class="text-muted">(deposito con ricerca testuale — art. DM 147/2022)</small>
+                </label>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <div class="form-check form-switch d-inline-block me-2">
+                <input class="form-check-input" type="checkbox" id="chkSpeseGenerali"
+                       value="1" onchange="aggiornaSpeseGenerali()" checked>
+                <label class="form-check-label" for="chkSpeseGenerali">
+                  Spese generali art. 2 D.M. 55/2014
+                </label>
+              </div>
+              <div class="d-inline-flex align-items-center gap-1">
+                <input type="number" id="inpPercSpese" class="form-control form-control-sm"
+                       style="width:70px" min="0" max="50" step="1" value="15"
+                       oninput="aggiornaDM55()">
+                <span class="small text-muted">%</span>
+              </div>
+            </div>
+          </div>
+
+          {# ── Risultato DM 147/2022 ── #}
+          <div id="risultatoDM55" style="display:none">
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Fase</th>
+                    <th class="text-end">Minimo</th>
+                    <th class="text-end text-primary fw-bold">Valore base</th>
+                    <th class="text-end">Massimo</th>
+                    <th class="text-end text-muted" style="width:60px">Var%</th>
+                  </tr>
+                </thead>
+                <tbody id="tblFasiDM55"></tbody>
+                <tfoot id="tfootDM55"></tfoot>
+              </table>
+            </div>
+            <div class="text-muted mt-2" style="font-size:.75rem" id="notaDM55"></div>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="importaDM55()">
+                <i class="bi bi-download me-1"></i>Importa come voce nel preventivo
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -285,6 +385,9 @@
 <script>
 const TIPI = ['Onorario','Spesa forfettaria','Spesa viva'];
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Voci preventivo
+// ──────────────────────────────────────────────────────────────────────────────
 function aggiungiVoce(desc='', imp=0, tipo='Onorario') {
   const tbody = document.getElementById('vociBody');
   const tr = document.createElement('tr');
@@ -317,12 +420,10 @@ function ricalcola() {
   const cassa = document.getElementById('chkCassa').checked ? imp * 0.04 : 0;
   const baseIva = imp + cassa;
   const iva = document.getElementById('chkIva').checked ? baseIva * 0.22 : 0;
-  // Anticipazioni Art. 15: esenti da CPA e IVA, sommate al netto
   const ant15 = parseFloat(document.getElementById('inpAnticipazioniArt15')?.value || 0);
   const totale = baseIva + iva + ant15;
 
   const fmt = v => '€ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
   document.getElementById('lblImponibile').textContent = fmt(imp);
   document.getElementById('lblCassa').textContent = fmt(cassa);
   document.getElementById('lblIva').textContent = fmt(iva);
@@ -333,6 +434,9 @@ function ricalcola() {
   document.getElementById('rowAnticipazioniArt15').style.display = ant15 > 0 ? '' : 'none';
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Fascicoli
+// ──────────────────────────────────────────────────────────────────────────────
 function caricaFascicoli(idCliente) {
   const sel = document.getElementById('selectFascicolo');
   sel.innerHTML = '<option value="">— Nessun fascicolo —</option>';
@@ -349,6 +453,9 @@ function caricaFascicoli(idCliente) {
     });
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// UI compenso
+// ──────────────────────────────────────────────────────────────────────────────
 function aggiornaUiCompenso() {
   const tipo = document.getElementById('selTipoCompenso').value;
   const isOrario = tipo === 'Compenso orario';
@@ -356,47 +463,221 @@ function aggiornaUiCompenso() {
   document.getElementById('rowTariffaOraria').style.display = isOrario ? '' : 'none';
   document.getElementById('rowOreStimate').style.display = isOrario ? '' : 'none';
   document.getElementById('cardDM55').style.display = isDM55 ? '' : 'none';
+  aggiornaSezioneProcedimento();
   aggiornaDM55();
 }
 
+function _isMediazione() {
+  return document.getElementById('selTipoProcedimento').value === 'Mediazione / Negoziazione assistita';
+}
+
+function aggiornaSezioneProcedimento() {
+  const isMed = _isMediazione();
+  document.getElementById('sectFasiOrdinarie').style.display = isMed ? 'none' : '';
+  document.getElementById('sectFasiMediazione').style.display = isMed ? '' : 'none';
+  if (isMed) costruisciFasiADR();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Fasi ADR (mediazione / negoziazione assistita)
+// ──────────────────────────────────────────────────────────────────────────────
+const FASI_MEDIAZIONE = [
+  { chiave: 'attivazione',      label: 'Fase di attivazione',      pct: 100, note: '40% del tabellare (D.Lgs. 28/2010)' },
+  { chiave: 'rivitalizzazione', label: 'Fase di rivitalizzazione',  pct: 100, note: '35% del tabellare' },
+  { chiave: 'conciliazione',    label: 'Fase di conciliazione',     pct: 100, note: '25% se accordo raggiunto' },
+];
+const FASI_NEGOZIAZIONE = [
+  { chiave: 'attivazione',   label: 'Fase di attivazione',    pct: 100, note: '40% del tabellare (D.L. 132/2014)' },
+  { chiave: 'negoziazione',  label: 'Fase di negoziazione',   pct: 100, note: '35% del tabellare' },
+  { chiave: 'conciliazione', label: 'Fase di conciliazione',  pct: 100, note: '25% se accordo' },
+];
+
+function costruisciFasiADR() {
+  const tipoMed = document.querySelector('input[name="tipoMediazione"]:checked')?.value || 'mediazione';
+  const fasi = tipoMed === 'negoziazione' ? FASI_NEGOZIAZIONE : FASI_MEDIAZIONE;
+  const row = document.getElementById('rowFasiADR');
+  row.innerHTML = '';
+  fasi.forEach(f => {
+    const colDiv = document.createElement('div');
+    colDiv.className = 'col-md-4';
+    colDiv.innerHTML = `
+      <div class="card h-100 border-secondary">
+        <div class="card-body py-2 px-3">
+          <div class="fw-semibold small mb-1">${f.label}</div>
+          <div class="text-muted" style="font-size:.72rem">${f.note}</div>
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                    onclick="cambiaPercFase('${f.chiave}', -5)" style="font-size:.8rem">−5%</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                    onclick="cambiaPercFase('${f.chiave}', -10)" style="font-size:.8rem">−10%</button>
+            <input type="number" id="pct_${f.chiave}" class="form-control form-control-sm text-center"
+                   style="width:70px" min="50" max="150" step="5" value="${f.pct}"
+                   oninput="clampPct('${f.chiave}'); aggiornaDM55()">
+            <span class="small text-muted">%</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                    onclick="cambiaPercFase('${f.chiave}', 10)" style="font-size:.8rem">+10%</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                    onclick="cambiaPercFase('${f.chiave}', 5)" style="font-size:.8rem">+5%</button>
+          </div>
+        </div>
+      </div>`;
+    row.appendChild(colDiv);
+  });
+}
+
+function cambiaPercFase(chiave, delta) {
+  const inp = document.getElementById(`pct_${chiave}`);
+  if (!inp) return;
+  let v = parseInt(inp.value || '100') + delta;
+  v = Math.max(50, Math.min(150, v));
+  inp.value = v;
+  aggiornaDM55();
+}
+
+function clampPct(chiave) {
+  const inp = document.getElementById(`pct_${chiave}`);
+  if (!inp) return;
+  let v = parseInt(inp.value || '100');
+  if (isNaN(v)) v = 100;
+  inp.value = Math.max(50, Math.min(150, v));
+}
+
+function aggiornaSpeseGenerali() {
+  const chk = document.getElementById('chkSpeseGenerali');
+  const inp = document.getElementById('inpPercSpese');
+  if (inp) inp.disabled = !chk.checked;
+  aggiornaDM55();
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Calcolatore DM 147/2022
+// ──────────────────────────────────────────────────────────────────────────────
 let dm55Timer = null;
 function aggiornaDM55() {
   const card = document.getElementById('cardDM55');
   if (!card || card.style.display === 'none') return;
   clearTimeout(dm55Timer);
-  dm55Timer = setTimeout(_calcolaDM55, 400);
+  dm55Timer = setTimeout(_calcolaDM55, 500);
 }
+
+// Stato ultimo risultato (usato da importaDM55)
+let _ultimoRis = null;
 
 function _calcolaDM55() {
-  const tipo = document.getElementById('selTipoProcedimento').value;
+  const tipo   = document.getElementById('selTipoProcedimento').value;
   const valore = parseFloat(document.getElementById('inpValore').value || 0);
-  const fasi = [...document.querySelectorAll('input[name="fasi_incluse[]"]:checked')]
-                .map(el => el.value).join(',');
+  const grado  = document.getElementById('selGrado')?.value || 'Tribunale';
+  const isMed  = _isMediazione();
+
+  const bonusTel = document.getElementById('chkBonusTelematico')?.checked ? '1' : '0';
+  const inclSpese = document.getElementById('chkSpeseGenerali')?.checked ? '1' : '0';
+  const percSpese = document.getElementById('inpPercSpese')?.value || '15';
+
+  let params = new URLSearchParams({
+    tipo_procedimento: tipo,
+    valore: valore,
+    grado:  grado,
+    bonus_telematico: bonusTel,
+    spese_generali: inclSpese,
+    perc_spese_generali: percSpese,
+  });
+
+  if (isMed) {
+    const tipoMed = document.querySelector('input[name="tipoMediazione"]:checked')?.value || 'mediazione';
+    params.set('tipo_mediazione', tipoMed);
+    const fasi = tipoMed === 'negoziazione' ? FASI_NEGOZIAZIONE : FASI_MEDIAZIONE;
+    fasi.forEach(f => {
+      const inp = document.getElementById(`pct_${f.chiave}`);
+      if (inp) params.set(`var_${f.chiave}`, inp.value);
+    });
+  } else {
+    const fasi = [...document.querySelectorAll('input[name="fasi_incluse[]"]:checked')]
+                  .map(el => el.value).join(',');
+    if (!fasi) { document.getElementById('risultatoDM55').style.display = 'none'; return; }
+    params.set('fasi', fasi);
+  }
+
   const res = document.getElementById('risultatoDM55');
-  if (!fasi) { res.style.display = 'none'; return; }
   res.style.display = '';
-  res.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Calcolo…';
-  fetch(`/preventivi/ajax/parametri_dm55?tipo_procedimento=${encodeURIComponent(tipo)}&valore=${valore}&fasi=${encodeURIComponent(fasi)}`)
+  document.getElementById('tblFasiDM55').innerHTML =
+    '<tr><td colspan="5" class="text-center text-muted py-2"><span class="spinner-border spinner-border-sm me-1"></span> Calcolo in corso…</td></tr>';
+  document.getElementById('tfootDM55').innerHTML = '';
+  document.getElementById('notaDM55').textContent = '';
+
+  fetch(`/preventivi/ajax/parametri_dm55?${params.toString()}`)
     .then(r => r.json())
     .then(d => {
-      if (d.errore) { res.innerHTML = `<span class="text-danger">${d.errore}</span>`; return; }
-      const fmt = v => '€ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-      const righe = Object.entries(d.fasi)
-        .map(([f, v]) => `<span class="me-3"><b>${f.charAt(0).toUpperCase()+f.slice(1)}:</b> ${fmt(v)}</span>`)
-        .join('');
-      res.innerHTML = `
-        <div class="fw-semibold text-primary mb-1">Scaglione: ${d.scaglione}</div>
-        <div class="mb-1">${righe}</div>
-        <div class="fw-bold">Totale di riferimento: ${fmt(d.totale)}</div>
-        <div class="text-muted mt-1" style="font-size:.75rem">${d.nota}</div>`;
+      if (d.errore) {
+        document.getElementById('tblFasiDM55').innerHTML =
+          `<tr><td colspan="5" class="text-danger">${d.errore}</td></tr>`;
+        return;
+      }
+      _ultimoRis = d;
+      const fmt = v => '€ ' + parseFloat(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+      // Righe per fase
+      let html = '';
+      for (const [fase, vals] of Object.entries(d.fasi)) {
+        const varPct = d.variazioni_fasi?.[fase];
+        const varBadge = varPct != null && varPct !== 1.0
+          ? `<span class="badge ${varPct>1?'bg-success':'bg-warning text-dark'}">${Math.round(varPct*100)}%</span>`
+          : '<span class="text-muted small">100%</span>';
+        html += `<tr>
+          <td>${fase}</td>
+          <td class="text-end text-muted">${fmt(vals.min)}</td>
+          <td class="text-end fw-bold text-primary">${fmt(vals.base)}</td>
+          <td class="text-end text-muted">${fmt(vals.max)}</td>
+          <td class="text-end">${varBadge}</td>
+        </tr>`;
+      }
+      document.getElementById('tblFasiDM55').innerHTML = html;
+
+      // Tfoot totali
+      let tfHtml = `
+        <tr class="table-secondary">
+          <th>Scaglione: <em class="fw-normal">${d.scaglione}</em></th>
+          <td class="text-end text-muted">${fmt(d.totale_minimo)}</td>
+          <td class="text-end fw-bold">${fmt(d.totale_base)}</td>
+          <td class="text-end text-muted">${fmt(d.totale_massimo)}</td>
+          <td></td>
+        </tr>`;
+      if (d.bonus_telematico > 0) {
+        tfHtml += `<tr class="table-success"><td colspan="2" class="text-end small">Bonus telematico +30%</td>
+          <td class="text-end small">${fmt(d.bonus_telematico)}</td><td colspan="2"></td></tr>`;
+      }
+      if (d.spese_generali > 0) {
+        tfHtml += `<tr><td colspan="2" class="text-end small text-muted">
+          Spese generali art. 2 DM 55/2014 (${d.perc_spese_generali}%)</td>
+          <td class="text-end small">${fmt(d.spese_generali)}</td><td colspan="2"></td></tr>`;
+      }
+      tfHtml += `<tr class="table-primary fw-bold">
+        <td colspan="2" class="text-end">TOTALE DI RIFERIMENTO</td>
+        <td class="text-end">${fmt(d.totale_con_spese || d.totale_base)}</td><td colspan="2"></td>
+      </tr>`;
+      document.getElementById('tfootDM55').innerHTML = tfHtml;
+      document.getElementById('notaDM55').textContent = d.nota || '';
     })
-    .catch(() => { res.innerHTML = '<span class="text-warning">Impossibile calcolare i parametri.</span>'; });
+    .catch(() => {
+      document.getElementById('tblFasiDM55').innerHTML =
+        '<tr><td colspan="5" class="text-warning">Impossibile calcolare i parametri.</td></tr>';
+    });
 }
 
-// Aggiungi 1 voce iniziale
+function importaDM55() {
+  if (!_ultimoRis) return;
+  const tipo = document.getElementById('selTipoProcedimento').value;
+  const totale = _ultimoRis.totale_con_spese || _ultimoRis.totale_base || 0;
+  const desc = `Compenso art. DM 147/2022 — ${tipo} — Scaglione: ${_ultimoRis.scaglione}`;
+  aggiungiVoce(desc, totale.toFixed(2), 'Onorario');
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   aggiungiVoce();
   aggiornaUiCompenso();
+  aggiornaSpeseGenerali();
 });
 </script>
 

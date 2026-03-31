@@ -28,6 +28,8 @@ class Materia(str, Enum):
     AMMINISTRATIVO = "Amministrativo / TAR-CdS"
     TRIBUTARIO = "Tributario / CGT"
     STRAGIUD = "Stragiudiziale / Consulenza"
+    MEDIAZIONE = "Mediazione (D.Lgs. 28/2010)"
+    NEGOZIAZIONE_ASSISTITA = "Negoziazione Assistita (D.L. 132/2014)"
 
 
 class Grado(str, Enum):
@@ -43,6 +45,11 @@ class Fase(str, Enum):
     ISTRUTTORIA = "Istruttoria / Istruzione"
     DECISIONALE = "Decisionale"
     ESECUTIVA = "Esecutiva"
+    # Fasi specifiche mediazione / negoziazione assistita (DM 147/2022)
+    ATTIVAZIONE = "Fase di attivazione"
+    RIVITALIZZAZIONE = "Fase di rivitalizzazione"
+    NEGOZIAZIONE_TRATTAZIONE = "Fase di negoziazione"
+    CONCILIAZIONE = "Fase di conciliazione"
 
 
 @dataclass
@@ -73,14 +80,18 @@ class RisultatoCalcolo:
     valore_controversia: float
     scaglione: str
     fasi_selezionate: List[str]
+    # dettaglio: fase → (minimo, base, massimo)
     dettaglio: Dict[str, Tuple[float, float, float]]
     totale_minimo: float
     totale_base: float
     totale_massimo: float
     spese_generali: float = 0.0
+    perc_spese_generali: float = 0.15
     bonus_telematico: float = 0.0
     totale_con_spese: float = 0.0
     note: str = ""
+    # variazioni percentuali applicate per fase (es. {"Fase di attivazione": 1.10})
+    variazioni_fasi: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -94,9 +105,11 @@ class RisultatoCalcolo:
             "totale_base": self.totale_base,
             "totale_massimo": self.totale_massimo,
             "spese_generali": self.spese_generali,
+            "perc_spese_generali": self.perc_spese_generali,
             "bonus_telematico": self.bonus_telematico,
             "totale_con_spese": self.totale_con_spese,
             "note": self.note,
+            "variazioni_fasi": self.variazioni_fasi,
         }
 
 
@@ -338,6 +351,57 @@ def _fallback_stragiudiziale() -> list[Scaglione]:
     ]
 
 
+def _mediazione_scaglioni_snapshot() -> list[float]:
+    """Valori 'Unica' A25 da snapshot DM 147/2022 per 7 scaglioni."""
+    raw = _carica_snapshot().get("A25", {})
+    vals = raw.get("Unica", [])
+    # 7 valori attesi; usa fallback se non disponibili
+    if len(vals) >= 7 and any(v for v in vals if v):
+        return [float(v or 0) for v in vals[:7]]
+    # fallback DM 55/2014 originale
+    return [216, 756, 1836, 3402, 5940, 11340, 0]
+
+
+def _fallback_mediazione() -> list[Scaglione]:
+    """Tabella mediazione (D.Lgs. 28/2010) — 3 fasi da A25 DM 147/2022.
+
+    Ripartizione percentuale fasi (orientamento CNF):
+      Fase di attivazione:      40 %
+      Fase di rivitalizzazione: 35 %
+      Fase di conciliazione:    25 %  (solo se accordo raggiunto)
+    """
+    vals = _mediazione_scaglioni_snapshot()
+    labels = _LABELS_7
+    scaglioni = []
+    for idx, (vda, va, label) in enumerate(labels):
+        base = vals[idx] if idx < len(vals) else 0.0
+        scaglioni.append(Scaglione(vda, va, label, {
+            Fase.ATTIVAZIONE.value:    _sc(round(base * 0.40, 2)),
+            Fase.RIVITALIZZAZIONE.value: _sc(round(base * 0.35, 2)),
+            Fase.CONCILIAZIONE.value:  _sc(round(base * 0.25, 2)),
+        }))
+    return scaglioni
+
+
+def _fallback_negoziazione_assistita() -> list[Scaglione]:
+    """Tabella negoziazione assistita (D.L. 132/2014) — 3 fasi da A25 DM 147/2022.
+
+    Stesse percentuali della mediazione ma fase intermedia denominata
+    'Fase di negoziazione' anziché 'Fase di rivitalizzazione'.
+    """
+    vals = _mediazione_scaglioni_snapshot()
+    labels = _LABELS_7
+    scaglioni = []
+    for idx, (vda, va, label) in enumerate(labels):
+        base = vals[idx] if idx < len(vals) else 0.0
+        scaglioni.append(Scaglione(vda, va, label, {
+            Fase.ATTIVAZIONE.value:             _sc(round(base * 0.40, 2)),
+            Fase.NEGOZIAZIONE_TRATTAZIONE.value: _sc(round(base * 0.35, 2)),
+            Fase.CONCILIAZIONE.value:            _sc(round(base * 0.25, 2)),
+        }))
+    return scaglioni
+
+
 def _exact_or_fallback(codice: str, fallback_fn) -> tuple[list[Scaglione], bool]:
     exact = _tabella_snapshot(codice)
     if exact:
@@ -376,6 +440,16 @@ def _tabella_per_calcolo(
         tabella, exact = _exact_or_fallback("A25", _fallback_stragiudiziale)
         note.append("Tabella 25 per prestazioni stragiudiziali.")
         return tabella, 1.0, "A25", exact, note
+
+    if materia == Materia.MEDIAZIONE:
+        note.append("Tabella 25 (A25) — mediazione D.Lgs. 28/2010: ripartita in Attivazione (40%), Rivitalizzazione (35%), Conciliazione (25%).")
+        note.append("DM 147/2022: variazione +/-50% tassativa per fase.")
+        return _fallback_mediazione(), 1.0, "A25-MEDIAZIONE", False, note
+
+    if materia == Materia.NEGOZIAZIONE_ASSISTITA:
+        note.append("Tabella 25 (A25) — negoziazione assistita D.L. 132/2014: ripartita in Attivazione (40%), Negoziazione (35%), Conciliazione (25%).")
+        note.append("DM 147/2022: variazione +/-50% tassativa per fase.")
+        return _fallback_negoziazione_assistita(), 1.0, "A25-NEGOZIAZIONE", False, note
 
     if materia == Materia.LAVORO:
         tabella, exact = _exact_or_fallback("A3", _fallback_lavoro)
@@ -421,11 +495,25 @@ def calcola_compenso(
     fasi: List[Fase],
     bonus_telematico: bool = False,
     includi_spese_generali: bool = True,
+    perc_spese_generali: float = 0.15,
+    variazioni_fasi: Optional[Dict[str, float]] = None,
 ) -> RisultatoCalcolo:
-    tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado)
+    """Calcola il compenso forense secondo DM 147/2022.
 
+    Args:
+        variazioni_fasi: dict fase_label → moltiplicatore (es. 1.20 = +20%).
+            Consentito nell'intervallo [0.50, 1.50] per DM 147/2022 (±50%).
+        perc_spese_generali: percentuale spese generali art. 2 DM 55/2014 (default 0.15 = 15%).
+    """
+    tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado)
+    _variazioni = variazioni_fasi or {}
+
+    _mediaz = {Materia.MEDIAZIONE, Materia.NEGOZIAZIONE_ASSISTITA}
     if materia == Materia.STRAGIUD:
         fasi_richieste = ["Compenso unico"]
+    elif materia in _mediaz:
+        # Per mediazione/negoziazione usa tutte le fasi della tabella nell'ordine
+        fasi_richieste = list(tabella[0].fasi.keys()) if tabella else []
     else:
         fasi_richieste = [fase.value for fase in fasi]
 
@@ -444,19 +532,24 @@ def calcola_compenso(
         if not fase_data:
             fasi_mancanti.append(fase)
             continue
+        # Applica variazione per fase (clamp ±50%)
+        var = float(_variazioni.get(fase, 1.0))
+        var = max(0.50, min(1.50, var))
+        vbase_raw = round(fase_data.base * coeff * var, 2)
         vmin = round(fase_data.minimo * coeff, 2)
-        vbase = round(fase_data.base * coeff, 2)
         vmax = round(fase_data.massimo * coeff, 2)
-        dettaglio[fase] = (vmin, vbase, vmax)
+        # Il base varia, min/max rimangono quelli tabellari (DM ±50% sul tabellare)
+        dettaglio[fase] = (vmin, vbase_raw, vmax)
         tot_min += vmin
-        tot_base += vbase
+        tot_base += vbase_raw
         tot_max += vmax
 
     bonus_tel_importo = round(tot_base * 0.30, 2) if bonus_telematico else 0.0
     if bonus_telematico:
         tot_base = round(tot_base + bonus_tel_importo, 2)
 
-    spese_gen = round(tot_base * 0.15, 2) if includi_spese_generali else 0.0
+    perc_sg = max(0.0, float(perc_spese_generali))
+    spese_gen = round(tot_base * perc_sg, 2) if includi_spese_generali else 0.0
     totale_con_spese = round(tot_base + spese_gen, 2)
 
     if fasi_mancanti:
@@ -467,6 +560,10 @@ def calcola_compenso(
         note_parts.append("Valore di controversia non applicato al penale.")
     if materia == Materia.STRAGIUD:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
+    if _variazioni:
+        note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")
+    if includi_spese_generali and perc_sg > 0:
+        note_parts.append(f"Spese generali art. 2 DM 55/2014: {int(perc_sg*100)}% sul compenso base.")
     if esatto:
         note_parts.append(
             f"Valori tabellari ufficiali letti dal riferimento DM 147/2022 (snapshot QuickOrganizer, tabella {tabella_codice[1:] if tabella_codice.startswith('A') else tabella_codice})."
@@ -486,9 +583,11 @@ def calcola_compenso(
         totale_base=round(tot_base, 2),
         totale_massimo=round(tot_max, 2),
         spese_generali=spese_gen,
+        perc_spese_generali=perc_sg,
         bonus_telematico=bonus_tel_importo,
         totale_con_spese=totale_con_spese,
         note=" ".join(note_parts),
+        variazioni_fasi=dict(_variazioni),
     )
 
 
@@ -508,3 +607,13 @@ def tutte_le_fasi() -> List[Fase]:
         Fase.DECISIONALE,
         Fase.ESECUTIVA,
     ]
+
+
+def fasi_mediazione() -> List[Fase]:
+    """Fasi per mediazione (D.Lgs. 28/2010)."""
+    return [Fase.ATTIVAZIONE, Fase.RIVITALIZZAZIONE, Fase.CONCILIAZIONE]
+
+
+def fasi_negoziazione_assistita() -> List[Fase]:
+    """Fasi per negoziazione assistita (D.L. 132/2014)."""
+    return [Fase.ATTIVAZIONE, Fase.NEGOZIAZIONE_TRATTAZIONE, Fase.CONCILIAZIONE]

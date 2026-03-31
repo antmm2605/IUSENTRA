@@ -57,6 +57,9 @@ class TipoPratica:
     tipo_compenso_default: str = "Per fasi processuali (D.M. 55/2014)"
     valore_suggerito: float = 0.0       # suggerimento valore controversia
 
+    # Esborsi tipici per la tipologia (importi orientativi Art. 15 DPR 633/72)
+    esborsi_tipici: List[Dict] = field(default_factory=list)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -69,6 +72,7 @@ class TipoPratica:
             "richiede_valore": self.richiede_valore,
             "tipo_compenso_default": self.tipo_compenso_default,
             "valore_suggerito": self.valore_suggerito,
+            "esborsi_tipici": self.esborsi_tipici,
         }
 
 
@@ -670,8 +674,244 @@ CATALOGO: List[TipoPratica] = [
 _IDX: Dict[str, TipoPratica] = {tp.id: tp for tp in CATALOGO}
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Esborsi tipici per tipologia (importi orientativi — Art. 15 DPR 633/72)
+# ──────────────────────────────────────────────────────────────────────────────
+
+_ESBORSI_TIPICI: Dict[str, List[Dict]] = {
+    # ── CIVILE ──
+    "consulenza_civile": [
+        {"descrizione": "Ricerca giurisprudenziale / banche dati", "importo": 30.0},
+    ],
+    "diffida": [
+        {"descrizione": "Raccomandata A/R o notifica", "importo": 10.0},
+        {"descrizione": "PEC (se invio telematico)", "importo": 5.0},
+    ],
+    "recupero_crediti": [
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (indicativo)", "importo": 98.0},
+        {"descrizione": "Notifica tramite Ufficiale Giudiziario", "importo": 25.0},
+    ],
+    "decreto_ingiuntivo": [
+        {"descrizione": "Marca da bollo ricorso D.I.", "importo": 27.0},
+        {"descrizione": "Contributo Unificato", "importo": 98.0},
+        {"descrizione": "Notifica D.I. tramite U.G.", "importo": 25.0},
+        {"descrizione": "Diritti U.G. notifica", "importo": 12.0},
+    ],
+    "opposizione_di": [
+        {"descrizione": "Contributo Unificato opposizione", "importo": 196.0},
+        {"descrizione": "Notifica atto di citazione", "importo": 25.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "atto_citazione": [
+        {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
+        {"descrizione": "Notifica atto citazione tramite U.G.", "importo": 25.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "comparsa_risposta": [
+        {"descrizione": "Marca da bollo comparsa", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (se non già versato)", "importo": 196.0},
+    ],
+    "appello_civile": [
+        {"descrizione": "Contributo Unificato appello", "importo": 392.0},
+        {"descrizione": "Notifica atto di appello", "importo": 25.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "cassazione_civile": [
+        {"descrizione": "Contributo Unificato Cassazione", "importo": 784.0},
+        {"descrizione": "Notifica ricorso Cassazione", "importo": 30.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "precetto": [
+        {"descrizione": "Notifica precetto tramite U.G.", "importo": 25.0},
+        {"descrizione": "Diritti U.G. notifica precetto", "importo": 12.0},
+        {"descrizione": "Copia autentica titolo esecutivo", "importo": 15.0},
+    ],
+    "pignoramento": [
+        {"descrizione": "Diritti U.G. pignoramento mobiliare", "importo": 50.0},
+        {"descrizione": "Iscrizione a ruolo procedura esecutiva", "importo": 43.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "esecuzione_mobiliare": [
+        {"descrizione": "Diritti U.G.", "importo": 50.0},
+        {"descrizione": "Iscrizione a ruolo", "importo": 43.0},
+        {"descrizione": "Perizia beni mobili (CTP)", "importo": 150.0},
+    ],
+    "esecuzione_immobiliare": [
+        {"descrizione": "Iscrizione a ruolo esecuzione immobiliare", "importo": 278.0},
+        {"descrizione": "Perizia estimativa CTU immobile", "importo": 500.0},
+        {"descrizione": "Estratti catastali / visure ipotecarie", "importo": 30.0},
+        {"descrizione": "Notifiche U.G.", "importo": 25.0},
+    ],
+    "esecuzione_terzi": [
+        {"descrizione": "Iscrizione a ruolo pignoramento c/terzi", "importo": 43.0},
+        {"descrizione": "Notifica U.G.", "importo": 25.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "opposizione_esecutiva": [
+        {"descrizione": "Contributo Unificato opposizione esec.", "importo": 196.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "separazione_consensuale": [
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Bollo verbale udienza", "importo": 16.0},
+    ],
+    "separazione_giudiziale": [
+        {"descrizione": "Contributo Unificato", "importo": 196.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Notifica atto citazione", "importo": 25.0},
+    ],
+    "divorzio_congiunto": [
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Bollo verbale udienza", "importo": 16.0},
+    ],
+    "divorzio_giudiziale": [
+        {"descrizione": "Contributo Unificato", "importo": 196.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Notifica atto di citazione", "importo": 25.0},
+    ],
+    "procedimenti_famiglia": [
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
+    ],
+    # ── LAVORO ──
+    "controversia_lavoro": [
+        {"descrizione": "Marca da bollo ricorso lavoro", "importo": 27.0},
+        {"descrizione": "Contributo Unificato lavoro", "importo": 18.0},
+        {"descrizione": "Notifica (se richiesta)", "importo": 15.0},
+    ],
+    "licenziamento": [
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Contributo Unificato", "importo": 18.0},
+    ],
+    "differenze_retributive": [
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Contributo Unificato", "importo": 18.0},
+        {"descrizione": "Estratti busta paga / documenti", "importo": 20.0},
+    ],
+    "appello_lavoro": [
+        {"descrizione": "Contributo Unificato appello lavoro", "importo": 36.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "previdenza": [
+        {"descrizione": "Marca da bollo ricorso previdenziale", "importo": 27.0},
+        {"descrizione": "Contributo Unificato previdenziale", "importo": 9.0},
+    ],
+    "assistenza_previdenziale": [
+        {"descrizione": "Spedizione raccomandata / PEC", "importo": 10.0},
+        {"descrizione": "Bollo istanza amministrativa", "importo": 16.0},
+    ],
+    # ── PENALE ──
+    "consulenza_penale": [
+        {"descrizione": "Accesso atti / copie fascicolo", "importo": 30.0},
+    ],
+    "denuncia_querela": [
+        {"descrizione": "Bollo querela (se dovuto)", "importo": 16.0},
+        {"descrizione": "Raccomandata / notifica", "importo": 10.0},
+    ],
+    "indagini_preliminari": [
+        {"descrizione": "Accesso atti RGNR", "importo": 20.0},
+        {"descrizione": "Copie atti procedimento", "importo": 30.0},
+    ],
+    "udienza_preliminare": [
+        {"descrizione": "Copie atti udienza", "importo": 20.0},
+    ],
+    "dibattimento_penale": [
+        {"descrizione": "Copie fascicolo dibattimentale", "importo": 50.0},
+        {"descrizione": "CTP (consulente tecnico di parte)", "importo": 300.0},
+        {"descrizione": "Accesso atti", "importo": 20.0},
+    ],
+    "impugnazioni_penali": [
+        {"descrizione": "Estratto sentenza", "importo": 20.0},
+        {"descrizione": "Copie atti per appello", "importo": 30.0},
+    ],
+    "cassazione_penale": [
+        {"descrizione": "Estratto sentenza appellata", "importo": 20.0},
+        {"descrizione": "Copie atti per Cassazione", "importo": 40.0},
+    ],
+    "parte_civile": [
+        {"descrizione": "Costituzione parte civile (deposito)", "importo": 15.0},
+        {"descrizione": "Copie atti dibattimento", "importo": 30.0},
+    ],
+    # ── AMMINISTRATIVO ──
+    "ricorso_tar": [
+        {"descrizione": "Contributo Unificato TAR (base)", "importo": 650.0},
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Notifica ricorso (atti da notificare)", "importo": 30.0},
+    ],
+    "cautelare_sospensiva": [
+        {"descrizione": "Contributo Unificato TAR (+ misura cautelare)", "importo": 650.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Notifica motivi aggiunti/cautelare", "importo": 25.0},
+    ],
+    "motivi_aggiunti": [
+        {"descrizione": "Contributo Unificato motivi aggiunti", "importo": 650.0},
+        {"descrizione": "Notifica motivi aggiunti", "importo": 25.0},
+    ],
+    "appello_cds": [
+        {"descrizione": "Contributo Unificato CdS", "importo": 1300.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Notifica appello", "importo": 30.0},
+    ],
+    "ottemperanza": [
+        {"descrizione": "Contributo Unificato ottemperanza", "importo": 650.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    # ── TRIBUTARIO ──
+    "ricorso_tributario": [
+        {"descrizione": "Contributo Unificato CGT (base)", "importo": 30.0},
+        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Notifica ricorso", "importo": 15.0},
+    ],
+    "appello_tributario": [
+        {"descrizione": "Contributo Unificato CGT appello", "importo": 60.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "cassazione_tributaria": [
+        {"descrizione": "Contributo Unificato Cassazione trib.", "importo": 784.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+    ],
+    "autotutela": [
+        {"descrizione": "Raccomandata / PEC istanza", "importo": 10.0},
+        {"descrizione": "Bollo istanza (se dovuto)", "importo": 16.0},
+    ],
+    "accertamento_adesione": [
+        {"descrizione": "Raccomandata / PEC domanda adesione", "importo": 10.0},
+        {"descrizione": "Bollo richiesta accertamento adesione", "importo": 16.0},
+    ],
+    # ── STRAGIUDIZIALE ──
+    "mediazione": [
+        {"descrizione": "Indennità organismo di mediazione (indicativa)", "importo": 100.0},
+        {"descrizione": "Spese postali / PEC organismo", "importo": 15.0},
+    ],
+    "negoziazione_assistita": [
+        {"descrizione": "Spese notarili accordo (se richiesto)", "importo": 50.0},
+        {"descrizione": "Raccomandate / PEC", "importo": 15.0},
+    ],
+    "transazione": [
+        {"descrizione": "Bollo atto transazione (€ 16 ogni 4 facciate)", "importo": 32.0},
+        {"descrizione": "Raccomandata / PEC", "importo": 10.0},
+    ],
+    "recupero_crediti_stragiud": [
+        {"descrizione": "Raccomandate A/R diffida", "importo": 10.0},
+        {"descrizione": "PEC diffida", "importo": 5.0},
+    ],
+    # ── SPECIALI ──
+    "arbitrato": [
+        {"descrizione": "Diritti Camera Arbitrale (indicativo)", "importo": 250.0},
+        {"descrizione": "Compenso arbitri (anticipo)", "importo": 500.0},
+        {"descrizione": "Spese di segreteria", "importo": 50.0},
+    ],
+}
+
+
 def get_tipo_pratica(id_pratica: str) -> Optional[TipoPratica]:
     return _IDX.get(id_pratica)
+
+
+def get_esborsi_tipici(id_pratica: str) -> List[Dict]:
+    """Restituisce la lista di esborsi tipici per la tipologia di pratica."""
+    return _ESBORSI_TIPICI.get(id_pratica, [])
 
 
 def catalogo_per_area() -> Dict[str, List[TipoPratica]]:

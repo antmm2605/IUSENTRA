@@ -27,17 +27,76 @@ class TipoVoce(str, Enum):
 
 
 class StatoPreventivo(str, Enum):
-    BOZZA     = "BOZZA"
-    INVIATO   = "INVIATO"
-    ACCETTATO = "ACCETTATO"
-    RIFIUTATO = "RIFIUTATO"
-    SCADUTO   = "SCADUTO"
+    BOZZA         = "BOZZA"
+    IN_CALCOLO    = "IN_CALCOLO"    # wizard in corso
+    GENERATO      = "GENERATO"      # documento prodotto, non ancora inviato
+    VERIFICATO    = "VERIFICATO"    # verificato dall'avvocato prima dell'invio
+    INVIATO       = "INVIATO"       # inviato al cliente
+    APERTO        = "APERTO"        # aperto dal cliente sul portale
+    ACCETTATO     = "ACCETTATO"     # accettato dal cliente
+    RIFIUTATO     = "RIFIUTATO"     # rifiutato dal cliente
+    SCADUTO       = "SCADUTO"       # scaduto senza risposta
+    REVISIONATO   = "REVISIONATO"   # nuova versione emessa
+    CONVERTITO    = "CONVERTITO"    # convertito in incarico attivo
+
+    @classmethod
+    def stati_attivi(cls) -> List["StatoPreventivo"]:
+        return [cls.BOZZA, cls.IN_CALCOLO, cls.GENERATO, cls.VERIFICATO,
+                cls.INVIATO, cls.APERTO]
+
+    @classmethod
+    def badge_color(cls, stato: "StatoPreventivo") -> str:
+        _map = {
+            cls.BOZZA:       "secondary",
+            cls.IN_CALCOLO:  "info",
+            cls.GENERATO:    "primary",
+            cls.VERIFICATO:  "info",
+            cls.INVIATO:     "primary",
+            cls.APERTO:      "warning",
+            cls.ACCETTATO:   "success",
+            cls.RIFIUTATO:   "danger",
+            cls.SCADUTO:     "warning",
+            cls.REVISIONATO: "secondary",
+            cls.CONVERTITO:  "success",
+        }
+        return _map.get(stato, "secondary")
 
 
 class StatoConferimento(str, Enum):
     ATTIVO   = "ATTIVO"
     DEFINITO = "DEFINITO"
     REVOCATO = "REVOCATO"
+
+
+# ================================================================ Piano pagamenti
+
+@dataclass
+class VoceScadenza:
+    """Singola rata del piano di pagamento."""
+    descrizione: str
+    importo:     float
+    scadenza:    str            # ISO date
+    pagato:      bool  = False
+    data_pagamento: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "descrizione": self.descrizione,
+            "importo":     self.importo,
+            "scadenza":    self.scadenza,
+            "pagato":      self.pagato,
+            "data_pagamento": self.data_pagamento,
+        }
+
+    @staticmethod
+    def from_dict(d: Dict[str, Any]) -> "VoceScadenza":
+        return VoceScadenza(
+            descrizione=d.get("descrizione", ""),
+            importo=float(d.get("importo", 0)),
+            scadenza=d.get("scadenza", ""),
+            pagato=bool(d.get("pagato", False)),
+            data_pagamento=d.get("data_pagamento"),
+        )
 
 
 # ================================================================ VocePreventivo
@@ -100,6 +159,24 @@ class Preventivo:
     ore_stimate:          float = 0.0  # ore stimate (solo se compenso orario)
     complessita:          str   = ""   # art. 13 co. 5 L. 247/2012
 
+    # Piano di pagamento / acconti / rate
+    piano_pagamenti: List[VoceScadenza] = field(default_factory=list)
+
+    # Log calcolo normativo (JSON serializzato del RisultatoMotore)
+    log_calcolo: Optional[str] = None  # JSON string
+
+    # Token portale cliente (accesso pubblico read-only)
+    token_portale: Optional[str] = None
+    token_portale_il: Optional[str] = None  # ISO datetime generazione
+    portale_aperto_il: Optional[str] = None  # ISO datetime prima apertura
+
+    # Versione/revisione
+    versione: int = 1
+    id_preventivo_precedente: Optional[str] = None  # se revisione
+
+    # Più assistiti (nomi aggiuntivi oltre al cliente principale)
+    co_assistiti: List[str] = field(default_factory=list)
+
     # Dati studio per PDF
     studio_piva:      str = ""
     studio_cf:        str = ""
@@ -134,15 +211,28 @@ class Preventivo:
         d = asdict(self)
         d["stato"] = self.stato.value
         d["voci"]  = [v.to_dict() for v in self.voci]
+        d["piano_pagamenti"] = [r.to_dict() for r in self.piano_pagamenti]
         return d
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "Preventivo":
         d = dict(d)
-        d["stato"] = StatoPreventivo(d.get("stato", "BOZZA"))
-        d["voci"]  = [VocePreventivo.from_dict(v) for v in d.get("voci", [])]
+        stato_raw = d.get("stato", "BOZZA")
+        # Retrocompatibilità: stati vecchi rimangono validi
+        try:
+            d["stato"] = StatoPreventivo(stato_raw)
+        except ValueError:
+            d["stato"] = StatoPreventivo.BOZZA
+        d["voci"] = [VocePreventivo.from_dict(v) for v in d.get("voci", [])]
+        d["piano_pagamenti"] = [VoceScadenza.from_dict(r) for r in d.get("piano_pagamenti", [])]
         campi = set(Preventivo.__dataclass_fields__)
         return Preventivo(**{k: v for k, v in d.items() if k in campi})
+
+    def genera_token_portale(self) -> str:
+        """Genera (o rigenera) il token di accesso al portale cliente."""
+        self.token_portale = str(uuid.uuid4()).replace("-", "")
+        self.token_portale_il = datetime.now().isoformat()
+        return self.token_portale
 
 
 # ================================================================ ConferimentoIncarico
@@ -349,15 +439,51 @@ class GestionePreventivi:
             self._salva_preventivi()
 
     def aggiorna_scaduti(self):
-        """Marca come SCADUTO i preventivi INVIATI con data_scadenza passata."""
+        """Marca come SCADUTO i preventivi INVIATI/APERTI con data_scadenza passata."""
         oggi = date.today().isoformat()
         modificato = False
+        stati_inviati = {StatoPreventivo.INVIATO, StatoPreventivo.APERTO}
         for p in self._preventivi.values():
-            if p.stato == StatoPreventivo.INVIATO and p.data_scadenza and p.data_scadenza < oggi:
+            if p.stato in stati_inviati and p.data_scadenza and p.data_scadenza < oggi:
                 p.stato = StatoPreventivo.SCADUTO
                 modificato = True
         if modificato:
             self._salva_preventivi()
+
+    def get_preventivo_by_token(self, token: str) -> Optional[Preventivo]:
+        """Cerca un preventivo per token portale cliente."""
+        for p in self._preventivi.values():
+            if p.token_portale and p.token_portale == token:
+                return p
+        return None
+
+    def aggiorna_piano_pagamenti(self, id_preventivo: str, rate: List[VoceScadenza]):
+        """Aggiorna il piano di pagamento del preventivo."""
+        p = self._preventivi[id_preventivo]
+        p.piano_pagamenti = rate
+        self._salva_preventivi()
+
+    def crea_revisione(self, id_preventivo: str) -> "Preventivo":
+        """Crea una nuova revisione del preventivo, marcando il precedente come REVISIONATO."""
+        p_old = self._preventivi.get(id_preventivo)
+        if not p_old:
+            raise KeyError(id_preventivo)
+        import copy
+        p_new = copy.deepcopy(p_old)
+        p_new.id = str(uuid.uuid4())
+        p_new.numero = self._prossimo_numero_preventivo()
+        p_new.versione = p_old.versione + 1
+        p_new.id_preventivo_precedente = id_preventivo
+        p_new.stato = StatoPreventivo.BOZZA
+        p_new.token_portale = None
+        p_new.token_portale_il = None
+        p_new.portale_aperto_il = None
+        p_new.creato_il = datetime.now().isoformat()
+        # Marca il precedente come revisionato
+        p_old.stato = StatoPreventivo.REVISIONATO
+        self._preventivi[p_new.id] = p_new
+        self._salva_preventivi()
+        return p_new
 
     # ================================================================ CRUD Conferimenti
 

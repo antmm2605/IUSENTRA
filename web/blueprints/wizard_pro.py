@@ -124,7 +124,7 @@ def index():
     def _arricchisci(sessioni):
         result = []
         for s in sessioni:
-            fasc = gf.carica(s.id_fascicolo) if s.id_fascicolo else None
+            fasc = gf.get(s.id_fascicolo) if s.id_fascicolo else None
             result.append({"sessione": s, "fascicolo": fasc})
         return result
 
@@ -155,7 +155,7 @@ def nuovo():
             flash("Seleziona un fascicolo.", "warning")
             return redirect(url_for("wizard_pro.nuovo"))
 
-        fasc = gf.carica(id_fascicolo)
+        fasc = gf.get(id_fascicolo)
         if not fasc:
             flash("Fascicolo non trovato.", "danger")
             return redirect(url_for("wizard_pro.nuovo"))
@@ -190,7 +190,7 @@ def nuovo():
 
     # GET — form selezione fascicolo
     fascicoli = sorted(
-        gf.lista_attivi() if hasattr(gf, "lista_attivi") else gf.lista(),
+        gf.tutti(),
         key=lambda f: (f.data_prossima_udienza or f.modificato_il or f.data_apertura or ""),
         reverse=True,
     )
@@ -202,7 +202,7 @@ def nuovo():
     # Appuntamenti UDIENZA prossimi
     from pct.agenda import TipoAppuntamento
     appuntamenti_udienza = [
-        a for a in ga.lista()
+        a for a in ga.tutti()
         if getattr(a, "tipo", None) == TipoAppuntamento.UDIENZA
         and (a.data_ora or "") >= datetime.now().strftime("%Y-%m-%d")
     ]
@@ -231,13 +231,13 @@ def step(id_sessione: str, n: int):
         return redirect(url_for("wizard_pro.index"))
 
     gf = get_fascicoli()
-    fascicolo = gf.carica(sessione.id_fascicolo) if sessione.id_fascicolo else None
+    fascicolo = gf.get(sessione.id_fascicolo) if sessione.id_fascicolo else None
 
     appuntamento = None
     if sessione.id_appuntamento:
         try:
             ga = get_agenda()
-            appuntamento = ga.carica(sessione.id_appuntamento)
+            appuntamento = ga.get(sessione.id_appuntamento)
         except Exception:
             pass
 
@@ -346,13 +346,13 @@ def completo(id_sessione: str):
         return redirect(url_for("wizard_pro.index"))
 
     gf = get_fascicoli()
-    fascicolo = gf.carica(sessione.id_fascicolo) if sessione.id_fascicolo else None
+    fascicolo = gf.get(sessione.id_fascicolo) if sessione.id_fascicolo else None
 
     appuntamento = None
     if sessione.id_appuntamento:
         try:
             ga = get_agenda()
-            appuntamento = ga.carica(sessione.id_appuntamento)
+            appuntamento = ga.get(sessione.id_appuntamento)
         except Exception:
             pass
 
@@ -427,12 +427,11 @@ def _safe_key(s: str) -> str:
 def _aggiorna_fascicolo_da_esito(
     sessione: SessioneWizardPro,
     fascicolo,
-    gf: "GestioneFascicoli",
+    gf,
 ) -> None:
     """Aggiunge AttivitaProcessuale e aggiorna dati udienza nel fascicolo."""
     try:
-        from pct.fascicoli import AttivitaProcessuale, TipoAttivita, EsitoAttivita
-        import uuid as _uuid
+        from pct.fascicoli import TipoAttivita, EsitoAttivita
 
         # Mappa esito → EsitoAttivita
         esito_map = {
@@ -444,32 +443,27 @@ def _aggiorna_fascicolo_da_esito(
         }
         esito_att = esito_map.get(sessione.esito, EsitoAttivita.IN_ATTESA)
 
-        attivita = AttivitaProcessuale(
-            id=str(_uuid.uuid4()),
+        descrizione = (
+            f"Esito: {sessione.label_esito}.\n"
+            + (f"Note verbale: {sessione.esito_note_verbale}\n" if sessione.esito_note_verbale else "")
+            + (f"Azioni: {sessione.esito_azioni}" if sessione.esito_azioni else "")
+        ).strip()
+
+        gf.aggiungi_attivita(
+            fascicolo.id,
             tipo=TipoAttivita.UDIENZA,
             data=datetime.now().strftime("%Y-%m-%d"),
             titolo=sessione.titolo,
-            descrizione=(
-                f"Esito: {sessione.label_esito}.\n"
-                + (f"Note verbale: {sessione.esito_note_verbale}\n" if sessione.esito_note_verbale else "")
-                + (f"Azioni: {sessione.esito_azioni}" if sessione.esito_azioni else "")
-            ).strip(),
+            descrizione=descrizione,
             esito=esito_att,
-            luogo="",
             note=f"[Wizard Pro: {sessione.id}]",
             id_appuntamento=sessione.id_appuntamento,
             avvocato=sessione.avvocato,
         )
 
-        if not hasattr(fascicolo, "attivita") or fascicolo.attivita is None:
-            fascicolo.attivita = []
-        fascicolo.attivita.append(attivita)
-
         # Aggiorna data prossima udienza se rinvio
         if sessione.esito == "rinvio" and sessione.esito_rinvio_data:
-            fascicolo.data_prossima_udienza = sessione.esito_rinvio_data
-
-        gf.salva(fascicolo)
+            gf.aggiorna(fascicolo.id, data_prossima_udienza=sessione.esito_rinvio_data)
 
     except Exception as e:
         current_app.logger.warning("Wizard Pro: impossibile aggiornare fascicolo: %s", e)

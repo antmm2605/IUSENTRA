@@ -108,13 +108,9 @@ def _checklist_da_fascicolo(fascicolo) -> list:
 def index():
     wiz = get_wizard_pro()
     tutte = wiz.lista()
-    # Ordina: in_corso prima, poi completato, poi archiviato; per data discendente
-    tutte.sort(
-        key=lambda s: (
-            {"in_corso": 0, "completato": 1, "archiviato": 2}.get(s.stato, 9),
-            -(s.modificato_il or s.creato_il or ""),
-        )
-    )
+    # Ordina: in_corso prima, poi completato, poi archiviato; per data decrescente
+    tutte.sort(key=lambda s: s.modificato_il or s.creato_il or "", reverse=True)
+    tutte.sort(key=lambda s: {"in_corso": 0, "completato": 1, "archiviato": 2}.get(s.stato, 9))
     attive = [s for s in tutte if s.stato == "in_corso"]
     completate = [s for s in tutte if s.stato == "completato"]
     archiviate = [s for s in tutte if s.stato == "archiviato"]
@@ -253,13 +249,12 @@ def step(id_sessione: str, n: int):
             sessione.step_corrente = max(sessione.step_corrente, 2)
 
         elif n == 2:
-            # Aggiorna stati documenti checklist
+            # Aggiorna stati documenti checklist (chiave = indice posizionale)
             nuova_checklist = []
-            for doc_dict in sessione.checklist_documenti:
+            for i, doc_dict in enumerate(sessione.checklist_documenti):
                 doc = DocumentoChecklist.from_dict(doc_dict)
-                doc_id = doc.id_documento or doc.label
-                doc.stato = f.get(f"doc_stato_{_safe_key(doc_id)}", doc.stato)
-                doc.note = f.get(f"doc_note_{_safe_key(doc_id)}", doc.note)
+                doc.stato = f.get(f"doc_stato_{i}", doc.stato)
+                doc.note = f.get(f"doc_note_{i}", doc.note)
                 nuova_checklist.append(doc.to_dict())
 
             # Documenti aggiuntivi (virtuali) aggiunti manualmente

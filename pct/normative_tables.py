@@ -9,6 +9,14 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
+from pct.tariffario_catalogo import (
+    tariffario_fatturazione_rows,
+    tariffario_option_rows,
+    tariffario_profile_rows,
+    tariffario_reference_rows,
+    tariffario_scaglioni_rows,
+)
+
 MAX_SYNC_RUNS = 200
 SEED_REVISION = "2026-04-01"
 
@@ -138,6 +146,72 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://eur-lex.europa.eu/",
         note="Fonte primaria per normativa e giurisprudenza dell'Unione europea.",
     ),
+    "legge_forense_247_2012": FonteOperativa(
+        code="legge_forense_247_2012",
+        title="L. 247/2012 - legge professionale forense",
+        url="https://www.gazzettaufficiale.it/eli/id/2013/01/18/13G00018/sg",
+        note="Fonte primaria per incarico, informativa sul compenso e principi della professione forense.",
+    ),
+    "dm_55_2014_parametri": FonteOperativa(
+        code="dm_55_2014_parametri",
+        title="D.M. 55/2014 - parametri forensi",
+        url=(
+            "https://www.normattiva.it/atto/caricaDettaglioAtto?"
+            "atto.codiceRedazionale=14G00067&atto.dataPubblicazioneGazzetta=2014-04-02"
+            "&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=01%2F04%2F2026"
+        ),
+        note="Fonte primaria per parametri forensi, fasi e criteri di liquidazione.",
+    ),
+    "dm_147_2022_parametri": FonteOperativa(
+        code="dm_147_2022_parametri",
+        title="D.M. 147/2022 - aggiornamento parametri forensi",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+            "atto.codiceRedazionale=22G00157&atto.dataPubblicazioneGazzetta=2022-10-08"
+            "&atto.tipoProvvedimento=DECRETO"
+        ),
+        note="Aggiornamento ufficiale dei parametri forensi e del bonus telematico.",
+    ),
+    "equo_compenso_49_2023": FonteOperativa(
+        code="equo_compenso_49_2023",
+        title="L. 49/2023 - equo compenso",
+        url=(
+            "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+            "atto.codiceRedazionale=23G00051&atto.dataPubblicazioneGazzetta=2023-05-05"
+            "&atto.tipoProvvedimento=LEGGE"
+        ),
+        note="Fonte primaria per il presidio dell'equo compenso.",
+    ),
+    "cassa_forense_art11": FonteOperativa(
+        code="cassa_forense_art11",
+        title="L. 576/1980 - contributo integrativo Cassa Forense",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1980-09-20%3B576",
+        note="Base normativa del contributo integrativo Cassa Forense addebitabile al cliente.",
+    ),
+    "dpr_633_1972_art15": FonteOperativa(
+        code="dpr_633_1972_art15",
+        title="D.P.R. 633/1972 - art. 15",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A1972-10-26%3B633",
+        note="Fonte primaria per anticipazioni e spese vive escluse da imponibile IVA.",
+    ),
+    "dlgs_127_2015_fatturazione": FonteOperativa(
+        code="dlgs_127_2015_fatturazione",
+        title="D.Lgs. 127/2015 - fatturazione elettronica",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2015-08-05%3B127",
+        note="Base normativa per fatturazione elettronica e Sistema di Interscambio.",
+    ),
+    "agenzia_entrate_fec": FonteOperativa(
+        code="agenzia_entrate_fec",
+        title="Agenzia delle Entrate - Fatture e Corrispettivi",
+        url="https://www1.agenziaentrate.gov.it/web_app_entrate/fatturazione_elettronica.html",
+        note="Portale ufficiale per predisposizione, trasmissione e consultazione delle fatture elettroniche.",
+    ),
+    "fatturapa_specifiche": FonteOperativa(
+        code="fatturapa_specifiche",
+        title="FatturaPA - tracciato XML ufficiale",
+        url="https://www.fatturapa.gov.it/export/documenti/fatturapa/v1.2.2/Rappresentazione_Tabellare_FattOrdinaria_V1.2.2.pdf",
+        note="Specifiche ufficiali del tracciato XML FPR12/FPA12 e controlli extra-schema.",
+    ),
     "dpr_115_2002": FonteOperativa(
         code="dpr_115_2002",
         title="D.P.R. 115/2002 - art. 13 (Normattiva)",
@@ -251,6 +325,9 @@ def _watch_source_ids_for_url(url: str) -> List[str]:
         ("cortedicassazione.it", "cassazione"),
         ("cortecostituzionale.it", "corte_costituzionale"),
         ("eur-lex.europa.eu", "eur_lex"),
+        ("fatturapa.gov.it", "fatturapa"),
+        ("agenziaentrate.gov.it", "agenzia_entrate"),
+        ("www1.agenziaentrate.gov.it", "agenzia_entrate"),
         ("inps.it", "gazzetta_ufficiale"),
     )
     for needle, source_id in mapping:
@@ -270,6 +347,8 @@ def _source_codes_for_watch_ids(source_ids: Iterable[str]) -> List[str]:
         "cassazione": "cassazione_portale",
         "corte_costituzionale": "corte_costituzionale_portale",
         "eur_lex": "eur_lex_portale",
+        "agenzia_entrate": "agenzia_entrate_fec",
+        "fatturapa": "fatturapa_specifiche",
     }
     rows: List[str] = []
     for source_id in source_ids or []:
@@ -535,6 +614,82 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             },
             "published_at": "2026-03-04",
             "effective_from": "2026-03-04",
+        },
+        "tariffario_forense_scaglioni": {
+            "id": "tariffario_forense_scaglioni",
+            "title": "Tariffario forense - scaglioni e tabelle",
+            "category": "tariffario_forense",
+            "description": "Scaglioni tabellari DM 55/2014 aggiornati dal DM 147/2022, distinti per tabella e fase.",
+            "strategy": "seed_mirror",
+            "source_codes": ["dm_55_2014_parametri", "dm_147_2022_parametri"],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale"],
+            "rows": tariffario_scaglioni_rows(),
+            "published_at": "2022-10-08",
+            "effective_from": "2022-10-23",
+        },
+        "tariffario_forense_profili": {
+            "id": "tariffario_forense_profili",
+            "title": "Tariffario forense - profili di calcolo",
+            "category": "tariffario_forense",
+            "description": "Profili operativi per materia, grado, fasi, coefficiente e pratica suggerita.",
+            "strategy": "seed_mirror",
+            "source_codes": ["dm_55_2014_parametri", "dm_147_2022_parametri", "legge_forense_247_2012", "equo_compenso_49_2023"],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale"],
+            "rows": tariffario_profile_rows(),
+            "published_at": "2022-10-08",
+            "effective_from": "2022-10-23",
+        },
+        "tariffario_forense_opzioni": {
+            "id": "tariffario_forense_opzioni",
+            "title": "Tariffario forense - opzioni compenso",
+            "category": "tariffario_forense",
+            "description": "Opzioni compenso e componenti fiscali riusabili in tariffario, preventivi e parcelle.",
+            "strategy": "seed_mirror",
+            "source_codes": [
+                "dm_55_2014_parametri",
+                "dm_147_2022_parametri",
+                "cassa_forense_art11",
+                "dpr_633_1972_art15",
+                "equo_compenso_49_2023",
+            ],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale"],
+            "rows": tariffario_option_rows(),
+            "published_at": "2022-10-08",
+            "effective_from": "2022-10-23",
+        },
+        "tariffario_forense_riferimenti": {
+            "id": "tariffario_forense_riferimenti",
+            "title": "Tariffario forense - riferimenti ufficiali",
+            "category": "tariffario_forense",
+            "description": "Catalogo dei riferimenti normativi ufficiali utilizzati dal tariffario e dal flusso economico.",
+            "strategy": "seed_mirror",
+            "source_codes": [
+                "legge_forense_247_2012",
+                "dm_55_2014_parametri",
+                "dm_147_2022_parametri",
+                "equo_compenso_49_2023",
+                "cassa_forense_art11",
+                "dpr_633_1972_art15",
+                "dlgs_127_2015_fatturazione",
+                "agenzia_entrate_fec",
+                "fatturapa_specifiche",
+            ],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale", "agenzia_entrate", "fatturapa"],
+            "rows": tariffario_reference_rows(),
+            "published_at": "2026-04-01",
+            "effective_from": "2026-04-01",
+        },
+        "tariffario_forense_fatturazione": {
+            "id": "tariffario_forense_fatturazione",
+            "title": "Tariffario forense - canali fatturazione",
+            "category": "tariffario_forense",
+            "description": "Canali operativi che collegano il tariffario a preventivi, parcelle e fatturazione elettronica.",
+            "strategy": "seed_mirror",
+            "source_codes": ["legge_forense_247_2012", "dlgs_127_2015_fatturazione", "agenzia_entrate_fec", "fatturapa_specifiche"],
+            "watch_source_ids": ["normattiva", "agenzia_entrate", "fatturapa"],
+            "rows": tariffario_fatturazione_rows(),
+            "published_at": "2026-04-01",
+            "effective_from": "2026-04-01",
         },
     }
     reference_definition = canonical_reference_catalog_definition()
@@ -871,6 +1026,21 @@ class GestioneTabelleNormative:
             "tabelle": catalogo,
             "recent_sync_runs": list(reversed(self._data.get("sync_runs", [])[-8:])),
         }
+
+    def tariffario_scaglioni(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_scaglioni")
+
+    def tariffario_profili(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_profili")
+
+    def tariffario_opzioni(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_opzioni")
+
+    def tariffario_riferimenti(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_riferimenti")
+
+    def tariffario_fatturazione(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_fatturazione")
 
     def interest_periods(self, mode: str) -> List[InterestPeriod]:
         table_id = "interesse_legale" if mode == "legali" else "mora_commerciale"

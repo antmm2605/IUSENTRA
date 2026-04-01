@@ -145,17 +145,38 @@ def nuova(id_cliente: str = ""):
 
     # GET
     from_cliente_get = request.args.get("from_cliente", "")
+    id_cliente_query = request.args.get("id_cliente", "").strip()
+    if not id_cliente and id_cliente_query:
+        id_cliente = id_cliente_query
+    id_fascicolo_pre = request.args.get("id_fascicolo", "").strip()
+    fascicolo_pre = get_fascicoli().get(id_fascicolo_pre) if id_fascicolo_pre else None
+    if fascicolo_pre and not id_cliente:
+        id_cliente = fascicolo_pre.id_cliente or ""
     clienti = gc.tutti()
     cliente_sel = gc.get(id_cliente) if id_cliente else None
     fascicoli = []
     if cliente_sel:
         fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
+    prefill = {
+        "origine": request.args.get("origine", "").strip(),
+        "descrizione": request.args.get("descrizione", "").strip(),
+        "quantita": request.args.get("quantita", "1").strip() or "1",
+        "importo": request.args.get("importo", "").strip(),
+        "note": request.args.get("note", "").strip(),
+        "applica_cassa": request.args.get("applica_cassa", "1") != "0",
+        "applica_iva": request.args.get("applica_iva", "1") != "0",
+        "applica_ritenuta": request.args.get("applica_ritenuta", "0") == "1",
+        "applica_bollo": request.args.get("applica_bollo", "0") == "1",
+    }
 
     return render_template(
         "fatturazione/form.html",
         clienti=clienti,
         cliente_sel=cliente_sel,
         fascicoli=fascicoli,
+        id_fascicolo_pre=id_fascicolo_pre,
+        fascicolo_pre=fascicolo_pre,
+        prefill=prefill,
         oggi=date.today(),
         scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
         from_cliente=from_cliente_get,

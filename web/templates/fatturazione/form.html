@@ -21,6 +21,19 @@
   </div>
   {% endif %}
 
+  {% if prefill.origine == 'tariffario' %}
+  <div class="alert alert-primary border-0 shadow-sm d-flex align-items-start gap-2 py-3 mb-4">
+    <i class="bi bi-receipt-cutoff fs-5"></i>
+    <div>
+      <div class="fw-semibold">Prefill dal tariffario forense</div>
+      <div class="small">
+        La parcella nasce gia dal calcolo tariffario e resta pronta per l'export XML FatturaPA,
+        il caricamento su Agenzia delle Entrate o l'invio tramite provider cloud compatibili.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row g-4">
     <!-- Colonna sinistra -->
     <div class="col-lg-8">
@@ -46,7 +59,7 @@
               <select name="id_fascicolo" id="sel-fascicolo" class="form-select form-select-sm">
                 <option value="">— Nessuna pratica —</option>
                 {% for f in fascicoli %}
-                <option value="{{ f.id }}">{{ f.titolo }}</option>
+                <option value="{{ f.id }}" {{ 'selected' if id_fascicolo_pre and id_fascicolo_pre == f.id }}>{{ f.titolo }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -75,17 +88,17 @@
             <div class="voce-row row g-2 mb-2 align-items-center">
               <div class="col-md-6">
                 <input type="text" name="voce_descr[]" class="form-control form-control-sm"
-                       placeholder="Descrizione prestazione..." required>
+                       placeholder="Descrizione prestazione..." value="{{ prefill.descrizione or '' }}" required>
               </div>
               <div class="col-md-2">
                 <input type="number" name="voce_qty[]" class="form-control form-control-sm voce-qty"
-                       placeholder="Q.tà" value="1" min="0.01" step="0.01">
+                       placeholder="Q.tà" value="{{ prefill.quantita or '1' }}" min="0.01" step="0.01">
               </div>
               <div class="col-md-3">
                 <div class="input-group input-group-sm">
                   <span class="input-group-text">€</span>
                   <input type="number" name="voce_prezzo[]" class="form-control voce-prezzo"
-                         placeholder="Importo" step="0.01" min="0">
+                         placeholder="Importo" step="0.01" min="0" value="{{ prefill.importo or '' }}">
                 </div>
               </div>
               <div class="col-md-1 text-end">
@@ -120,7 +133,7 @@
         <div class="card-body">
           <h6 class="fw-semibold mb-2"><i class="bi bi-chat-left-text me-2"></i>Note / Causale</h6>
           <textarea name="note" class="form-control form-control-sm" rows="3"
-                    placeholder="Es. Compenso per assistenza stragiudiziale nella pratica..."></textarea>
+                    placeholder="Es. Compenso per assistenza stragiudiziale nella pratica...">{{ prefill.note or '' }}</textarea>
         </div>
       </div>
 
@@ -153,7 +166,7 @@
           <div class="d-flex flex-column gap-2">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch"
-                     name="applica_cassa" id="chk-cassa" value="1" checked>
+                     name="applica_cassa" id="chk-cassa" value="1" {{ 'checked' if prefill.applica_cassa else '' }}>
               <label class="form-check-label" for="chk-cassa" style="font-size:.85rem;">
                 Cassa Forense 4 %
                 <button type="button" class="btn-help"
@@ -164,7 +177,7 @@
             </div>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch"
-                     name="applica_iva" id="chk-iva" value="1" checked>
+                     name="applica_iva" id="chk-iva" value="1" {{ 'checked' if prefill.applica_iva else '' }}>
               <label class="form-check-label" for="chk-iva" style="font-size:.85rem;">
                 IVA 22 %
                 <button type="button" class="btn-help"
@@ -175,7 +188,7 @@
             </div>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch"
-                     name="applica_ritenuta" id="chk-ritenuta" value="1">
+                     name="applica_ritenuta" id="chk-ritenuta" value="1" {{ 'checked' if prefill.applica_ritenuta else '' }}>
               <label class="form-check-label" for="chk-ritenuta" style="font-size:.85rem;">
                 Ritenuta d'acconto 20 %
                 <button type="button" class="btn-help"
@@ -186,7 +199,7 @@
             </div>
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch"
-                     name="applica_bollo" id="chk-bollo" value="1">
+                     name="applica_bollo" id="chk-bollo" value="1" {{ 'checked' if prefill.applica_bollo else '' }}>
               <label class="form-check-label" for="chk-bollo" style="font-size:.85rem;">
                 Marca da bollo € 2,00
                 <button type="button" class="btn-help"
@@ -248,6 +261,8 @@
 
 {% block extra_scripts %}
 <script>
+const ID_FASCICOLO_PRE = {{ id_fascicolo_pre|tojson }};
+
 // Template voce
 const vociContainer = document.getElementById('voci-container');
 
@@ -346,6 +361,9 @@ document.getElementById('sel-cliente').addEventListener('change', function() {
         const opt = document.createElement('option');
         opt.value = f.id;
         opt.textContent = f.titolo + (f.numero_rg ? ` · RG ${f.numero_rg}` : '');
+        if (ID_FASCICOLO_PRE && ID_FASCICOLO_PRE === f.id) {
+          opt.selected = true;
+        }
         sel.appendChild(opt);
       });
     });

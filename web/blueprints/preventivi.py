@@ -804,6 +804,44 @@ def wizard():
     if fascicolo_pre and not id_cliente:
         id_cliente = fascicolo_pre.id_cliente or ""
     cliente_sel = gc.get(id_cliente) if id_cliente else None
+    area_raw = request.args.get("area", "").strip()
+    area_prefill = {
+        "CIVILE_COGN": "Civile",
+        "ESEC_MOB": "Civile",
+        "ESEC_IMMO": "Civile",
+        "VOLONTARIA": "Civile",
+        "LAVORO": "Civile",
+        "PREVIDENZA": "Civile",
+        "PENALE": "Penale",
+        "AMMINISTRATIVO": "Amministrativo",
+        "TRIBUTARIO": "Tributario",
+        "STRAGIUD": "Stragiudiziale",
+        "MEDIAZIONE": "Stragiudiziale",
+        "NEGOZIAZIONE_ASSISTITA": "Stragiudiziale",
+    }.get(area_raw.upper(), area_raw)
+    fasi_prefill = [
+        item.strip()
+        for item in (request.args.get("fasi", "") or "").split(",")
+        if item.strip()
+    ]
+    wizard_prefill = {
+        "id_pratica": request.args.get("id_pratica", "").strip(),
+        "area": area_prefill,
+        "valore": request.args.get("valore", "").strip(),
+        "grado": request.args.get("grado", "").strip(),
+        "fasi": fasi_prefill,
+        "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
+        "spese_generali": request.args.get("spese_generali", "1") == "1",
+        "perc_spese_generali": request.args.get("perc_spese_generali", "15").strip() or "15",
+        "applica_cpa": request.args.get("applica_cpa", "1") == "1",
+        "applica_iva": request.args.get("applica_iva", "1") == "1",
+        "anticipazioni": request.args.get("anticipazioni", "").strip(),
+        "tariffa_oraria": request.args.get("tariffa_oraria", "").strip(),
+        "ore_stimate": request.args.get("ore_stimate", "").strip(),
+        "oggetto": request.args.get("oggetto", "").strip(),
+        "note": request.args.get("note", "").strip(),
+        "auto_calcola": request.args.get("auto_calcola", "").strip() == "1",
+    }
     return render_template(
         "preventivi/wizard.html",
         catalogo_per_area=catalogo_wizard(),
@@ -813,6 +851,7 @@ def wizard():
         id_cliente_pre=id_cliente,
         id_fascicolo_pre=id_fascicolo_pre,
         fascicolo_pre_context=_contesto_fascicolo_wizard(fascicolo_pre) if fascicolo_pre else None,
+        wizard_prefill=wizard_prefill,
         from_page=request.args.get("from_page", "").strip(),
         entry_mode=request.args.get("entry", "").strip(),
         oggi=date.today(),

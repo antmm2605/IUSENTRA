@@ -6,12 +6,17 @@ def test_catalogo_normativo_seeded(tmp_path):
 
     snapshot = gestore.snapshot()
 
-    assert snapshot["totali"] >= 11
-    assert snapshot["sincronizzate"] >= 11
+    assert snapshot["totali"] >= 16
+    assert snapshot["sincronizzate"] >= 16
     assert any(row["id"] == "interesse_legale" for row in snapshot["tabelle"])
     assert any(row["id"] == "riferimenti_normativi_catalogo" for row in snapshot["tabelle"])
     assert any(row["id"] == "registro_organismi_mediazione" for row in snapshot["tabelle"])
     assert any(row["id"] == "organismi_mediazione_elenco" for row in snapshot["tabelle"])
+    assert any(row["id"] == "tariffario_forense_scaglioni" for row in snapshot["tabelle"])
+    assert any(row["id"] == "tariffario_forense_profili" for row in snapshot["tabelle"])
+    assert any(row["id"] == "tariffario_forense_opzioni" for row in snapshot["tabelle"])
+    assert any(row["id"] == "tariffario_forense_riferimenti" for row in snapshot["tabelle"])
+    assert any(row["id"] == "tariffario_forense_fatturazione" for row in snapshot["tabelle"])
     assert snapshot["riferimenti_normativi_totali"] >= 8
 
 
@@ -109,3 +114,19 @@ def test_update_table_rows_crea_versione_dinamica_su_elenco_mediazione(tmp_path)
     assert result["updated"] is True
     assert table["sync_status"] == "sincronizzata"
     assert table["active_version"]["rows"][0]["name"] == "Camera Arbitrale Demo"
+
+
+def test_tariffario_forense_tables_espongono_profili_opzioni_e_fatturazione(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    scaglioni = gestore.tariffario_scaglioni()
+    profili = gestore.tariffario_profili()
+    opzioni = gestore.tariffario_opzioni()
+    riferimenti = gestore.tariffario_riferimenti()
+    fatturazione = gestore.tariffario_fatturazione()
+
+    assert any(row["table_code"] == "A2" for row in scaglioni)
+    assert any(row["profile_code"] == "civile_tribunale" for row in profili)
+    assert any(row["option_code"] == "spese_generali_15" for row in opzioni)
+    assert any(row["reference_code"] == "dlgs127_fattura_elettronica" for row in riferimenti)
+    assert any(row["channel_code"] == "fatturapa_xml" for row in fatturazione)

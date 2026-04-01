@@ -332,6 +332,7 @@ const CATALOGO = {{ catalogo_per_area|tojson }};
 const AREE = {{ aree|tojson }};
 const ID_FASCICOLO_PRE = {{ id_fascicolo_pre|tojson }};
 const FASCICOLO_PRE = {% if fascicolo_pre_context %}{{ fascicolo_pre_context|tojson }}{% else %}null{% endif %};
+const WIZARD_PREFILL = {{ wizard_prefill|tojson }};
 
 const TIPI_VOCE = ['Onorario', 'Spesa forfettaria', 'Spesa viva'];
 const catalogoFlat = Object.values(CATALOGO).flat();
@@ -343,6 +344,7 @@ let oggettoToccato = false;
 let noteToccate = false;
 let fascicoliCliente = [];
 let fascicoloCorrente = FASCICOLO_PRE;
+let prefillApplicato = false;
 
 function money(value) {
   const num = Number(value || 0);
@@ -752,6 +754,76 @@ function syncClienteRapidoUi() {
   syncWorkflowChecks();
 }
 
+function applyWizardPrefill() {
+  if (prefillApplicato) return;
+  const hasPrefill = Object.values(WIZARD_PREFILL || {}).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'boolean') return value;
+    return String(value || '').trim() !== '';
+  });
+  if (!hasPrefill) {
+    prefillApplicato = true;
+    return;
+  }
+
+  if (WIZARD_PREFILL.area && (CATALOGO[WIZARD_PREFILL.area] || []).length) {
+    impostaAreaPratica(WIZARD_PREFILL.area, { preferFirst: true });
+  }
+  if (WIZARD_PREFILL.id_pratica && getTipologiaById(WIZARD_PREFILL.id_pratica)) {
+    selezionaTipologia(WIZARD_PREFILL.id_pratica);
+  }
+
+  if (WIZARD_PREFILL.valore) {
+    document.getElementById('inpValore').value = WIZARD_PREFILL.valore;
+  }
+  if (WIZARD_PREFILL.grado) {
+    document.getElementById('selGrado').value = WIZARD_PREFILL.grado;
+  }
+  if (WIZARD_PREFILL.tariffa_oraria) {
+    document.getElementById('inpTariffaOraria').value = WIZARD_PREFILL.tariffa_oraria;
+  }
+  if (WIZARD_PREFILL.ore_stimate) {
+    document.getElementById('inpOreStimate').value = WIZARD_PREFILL.ore_stimate;
+  }
+  if (WIZARD_PREFILL.anticipazioni) {
+    document.getElementById('inpAnticipazioni').value = WIZARD_PREFILL.anticipazioni;
+  }
+  document.getElementById('chkBonusTelematico').checked = !!WIZARD_PREFILL.bonus_telematico;
+  document.getElementById('chkSpeseGenerali').checked = WIZARD_PREFILL.spese_generali !== false;
+  if (WIZARD_PREFILL.perc_spese_generali) {
+    document.getElementById('inpPercSpese').value = WIZARD_PREFILL.perc_spese_generali;
+  }
+  document.getElementById('chkCassa').checked = WIZARD_PREFILL.applica_cpa !== false;
+  document.getElementById('chkIva').checked = WIZARD_PREFILL.applica_iva !== false;
+
+  if (Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length) {
+    const checkedSet = new Set(WIZARD_PREFILL.fasi);
+    document.querySelectorAll('.fase-check').forEach((node) => {
+      node.checked = checkedSet.has(node.value);
+    });
+  }
+
+  if (WIZARD_PREFILL.oggetto) {
+    const oggetto = document.getElementById('inpOggetto');
+    oggetto.value = WIZARD_PREFILL.oggetto;
+    oggettoToccato = true;
+  }
+  if (WIZARD_PREFILL.note) {
+    const note = document.getElementById('inpNote');
+    note.value = WIZARD_PREFILL.note;
+    noteToccate = true;
+  }
+
+  prefillApplicato = true;
+  recalcTotals();
+
+  if (WIZARD_PREFILL.auto_calcola && tipologiaCorrente) {
+    window.setTimeout(() => {
+      calcolaPreventivo();
+    }, 0);
+  }
+}
+
 function syncWorkflowChecks() {
   const chkConf = document.getElementById('chkGeneraConferimento');
   const chkFasc = document.getElementById('chkApriFascicoloGuidato');
@@ -989,7 +1061,7 @@ async function caricaFascicoli(idCliente) {
   syncWorkflowChecks();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const clienteSelect = document.getElementById('selectCliente');
   const chkClienteRapido = document.getElementById('chkClienteRapido');
   const selClienteRapidoTipo = document.getElementById('selClienteRapidoTipo');
@@ -999,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
   aggiornaEmptyState();
   recalcTotals();
   if (clienteSelect.value) {
-    caricaFascicoli(clienteSelect.value);
+    await caricaFascicoli(clienteSelect.value);
   } else if (FASCICOLO_PRE) {
     applicaContestoFascicolo(FASCICOLO_PRE);
   }
@@ -1031,6 +1103,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   syncClienteRapidoUi();
   syncWorkflowChecks();
+  applyWizardPrefill();
   document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
     if (!tipologiaCorrente) {
       event.preventDefault();

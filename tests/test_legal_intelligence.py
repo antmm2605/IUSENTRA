@@ -183,6 +183,24 @@ def test_dashboard_snapshot_include_registro_mediazione(tmp_path):
     assert "mediazione" in row["nome"].lower()
 
 
+def test_dashboard_snapshot_include_fonti_tariffario_e_fatturazione(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    snapshot = gestore.build_dashboard_snapshot(
+        fascicoli=[],
+        clienti=[],
+        appuntamenti=[],
+        scadenze=[],
+        portali=[],
+    )
+
+    source_ids = {row["id"] for row in snapshot["source_rows"]}
+
+    assert "agenzia_entrate" in source_ids
+    assert "fatturapa" in source_ids
+
+
 def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):
     db_path = tmp_path / "intelligence.json"
     normative_path = tmp_path / "tabelle_normative.json"

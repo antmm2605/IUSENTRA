@@ -2290,43 +2290,119 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/tariffario", methods=["GET", "POST"])
     def tariffario():
-        from pct.tariffario import (calcola_compenso, tutte_le_materie,
-                                    tutti_i_gradi, tutte_le_fasi,
-                                    Materia, Grado, Fase)
+        from pct.tariffario import calcola_compenso, Materia, Grado, Fase
+        from pct.tariffario_catalogo import (
+            first_profile_for_materia,
+            grade_catalog_by_materia,
+            phase_catalog_by_materia,
+            profile_lookup_by_labels,
+        )
+        from web.helpers import get_normative_tables
         risultato = None
-        materia_sel = request.form.get("materia", "")
-        grado_sel   = request.form.get("grado", "")
+        materie = [m.value for m in Materia]
+        phase_catalog = phase_catalog_by_materia()
+        grade_catalog = grade_catalog_by_materia()
+        materia_sel = request.form.get("materia", "") or (materie[0] if materie else "")
+        grade_defaults = grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value]
+        grado_sel   = request.form.get("grado", "") or grade_defaults[0]
         valore_str  = request.form.get("valore", "0").replace(",", ".").strip()
         fasi_sel    = request.form.getlist("fasi")
         bonus_tel   = request.form.get("bonus_telematico") == "1"
         spese_gen   = request.form.get("spese_generali", "1") == "1"
+        try:
+            perc_spese = float(request.form.get("perc_spese_generali", "15") or "15")
+        except (ValueError, TypeError):
+            perc_spese = 15.0
+
+        fasi_valide = phase_catalog.get(materia_sel) or []
+        if not fasi_sel:
+            fasi_sel = [item["value"] for item in fasi_valide]
+        profilo_attivo = profile_lookup_by_labels(materia_sel, grado_sel) or first_profile_for_materia(materia_sel)
 
         if request.method == "POST":
             try:
                 materia = Materia(materia_sel)
-                grado   = Grado(grado_sel)
+                if grado_sel not in (grade_catalog.get(materia_sel) or []):
+                    grado_sel = (grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value])[0]
+                grado = Grado(grado_sel)
                 valore  = float(valore_str) if valore_str else 0.0
-                fasi    = [Fase(f) for f in fasi_sel if f]
+                fasi = []
+                for fase_val in fasi_sel:
+                    try:
+                        fasi.append(Fase(fase_val))
+                    except ValueError:
+                        continue
                 if not fasi:
-                    fasi = list(Fase)
+                    fasi = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE]
                 risultato = calcola_compenso(materia, grado, valore, fasi,
                                              bonus_telematico=bonus_tel,
-                                             includi_spese_generali=spese_gen)
+                                             includi_spese_generali=spese_gen,
+                                             perc_spese_generali=max(0.0, perc_spese / 100.0))
+                profilo_attivo = profile_lookup_by_labels(materia_sel, grado_sel) or first_profile_for_materia(materia_sel)
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
 
+        tabelle_normative = get_normative_tables()
+        tariffario_tables = [
+            row for row in tabelle_normative.catalogo_tabelle()
+            if row["id"].startswith("tariffario_forense_")
+        ]
+        tariffario_profili = tabelle_normative.tariffario_profili()
+        opzioni_tariffario = tabelle_normative.tariffario_opzioni()
+        riferimenti_tariffario = tabelle_normative.tariffario_riferimenti()
+        canali_fatturazione = tabelle_normative.tariffario_fatturazione()
+
+        url_wizard_precompilato = ""
+        url_parcella_precompilata = ""
+        if risultato and profilo_attivo:
+            url_wizard_precompilato = url_for(
+                "preventivi.wizard",
+                id_pratica=profilo_attivo.get("suggested_practice_id", ""),
+                area=profilo_attivo.get("area_scope", ""),
+                valore=valore_str or "0",
+                grado=grado_sel,
+                fasi=",".join(fasi_sel),
+                bonus_telematico="1" if bonus_tel else "0",
+                spese_generali="1" if spese_gen else "0",
+                perc_spese_generali=str(int(round(perc_spese))),
+                applica_cpa="1",
+                applica_iva="1",
+                anticipazioni="0",
+                auto_calcola="1",
+                entry="tariffario",
+            )
+            url_parcella_precompilata = url_for(
+                "fatturazione.nuova",
+                descrizione=f"Compenso professionale per {profilo_attivo.get('table_label', materia_sel)} - {risultato.scaglione}",
+                quantita="1",
+                importo=f"{risultato.totale_con_spese:.2f}",
+                note=risultato.note,
+                applica_cassa="1",
+                applica_iva="1",
+                origine="tariffario",
+            )
+
         return render_template(
             "tariffario.html",
-            materie=tutte_le_materie(),
-            gradi=tutti_i_gradi(),
-            fasi=tutte_le_fasi(),
+            materie=materie,
+            grade_catalog=grade_catalog,
+            phase_catalog=phase_catalog,
             risultato=risultato,
+            profilo_attivo=profilo_attivo,
+            tariffario_tables=tariffario_tables,
+            tariffario_profili=tariffario_profili,
+            opzioni_tariffario=opzioni_tariffario,
+            riferimenti_tariffario=riferimenti_tariffario,
+            canali_fatturazione=canali_fatturazione,
             materia_sel=materia_sel,
             grado_sel=grado_sel,
             valore_str=valore_str,
             fasi_sel=fasi_sel,
             bonus_tel=bonus_tel,
             spese_gen=spese_gen,
+            perc_spese=perc_spese,
+            url_wizard_precompilato=url_wizard_precompilato,
+            url_parcella_precompilata=url_parcella_precompilata,
             oggi=date.today(),
         )
 

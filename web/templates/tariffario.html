@@ -1,218 +1,402 @@
 {% extends "base.html" %}
-{% block title %}Tariffario DM 55/2014 — Studio Legale{% endblock %}
+{% block title %}Tariffario Forense{% endblock %}
 {% block pct_modulo %}tariffario{% endblock %}
 
 {% block content %}
-
-{# ── Page Header ── #}
-<div class="ds-ph">
+<div class="ds-ph mb-4">
   <div class="ds-ph-icon"><i class="bi bi-calculator"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Tariffario Forense</h1>
-    <p class="ds-ph-sub">Calcolo compensi — DM 55/2014 aggiornato al <strong>DM 147/2022</strong> (in vigore dal 23/10/2022)</p>
+    <p class="ds-ph-sub">
+      Parametri per materia, grado, fasi e opzioni compenso con collegamento diretto
+      a preventivi, parcelle e XML FatturaPA.
+    </p>
   </div>
 </div>
 
-<div class="card shadow-sm mb-4">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-sliders me-2 text-primary"></i>Parametri del calcolo
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Profili tariffari</div>
+        <div class="fs-3 fw-bold">{{ tariffario_profili|length }}</div>
+        <div class="small text-muted">Materia, grado e fasi operative</div>
+      </div>
+    </div>
   </div>
-  <div class="card-body">
-    <form method="post">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Materia</label>
-          <select name="materia" class="form-select" required>
-            <option value="">— Seleziona —</option>
-            {% for m in materie %}
-            <option value="{{ m.value }}" {{ 'selected' if m.value == materia_sel }}>{{ m.value }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Grado di giudizio</label>
-          <select name="grado" class="form-select" required>
-            <option value="">— Seleziona —</option>
-            {% for g in gradi %}
-            <option value="{{ g.value }}" {{ 'selected' if g.value == grado_sel }}>{{ g.value }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Valore controversia (€)</label>
-          <input type="number" name="valore" class="form-control"
-                 placeholder="0 = indeterminabile"
-                 min="0" step="100"
-                 value="{{ valore_str }}">
-          <div class="form-text">0 = valore indeterminabile (scaglione minimo)</div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Fasi da includere</label>
-          <div class="d-flex flex-wrap gap-3">
-            {% for f in fasi %}
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input"
-                     name="fasi" id="fase_{{ loop.index }}"
-                     value="{{ f.value }}"
-                     {{ 'checked' if not fasi_sel or f.value in fasi_sel }}>
-              <label class="form-check-label" for="fase_{{ loop.index }}">{{ f.value }}</label>
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Opzioni compenso</div>
+        <div class="fs-3 fw-bold">{{ opzioni_tariffario|length }}</div>
+        <div class="small text-muted">Spese generali, bonus, CPA, IVA e controlli</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Tabelle normative</div>
+        <div class="fs-3 fw-bold">{{ tariffario_tables|length }}</div>
+        <div class="small text-muted">Sincronizzate nel database normativo</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Canali fatturazione</div>
+        <div class="fs-3 fw-bold">{{ canali_fatturazione|length }}</div>
+        <div class="small text-muted">Preventivo, parcella, XML e upload</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-sliders me-2 text-primary"></i>Parametri del calcolo
+      </div>
+      <div class="card-body">
+        <form method="post" id="tariffarioForm">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Materia</label>
+              <select id="selMateria" name="materia" class="form-select" required>
+                {% for materia in materie %}
+                <option value="{{ materia }}" {{ 'selected' if materia == materia_sel else '' }}>{{ materia }}</option>
+                {% endfor %}
+              </select>
             </div>
-            {% endfor %}
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Grado di giudizio</label>
+              <select id="selGrado" name="grado" class="form-select" required></select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Valore controversia (EUR)</label>
+              <input type="number" id="inpValore" name="valore" class="form-control"
+                     min="0" step="0.01" value="{{ valore_str }}" placeholder="0.00">
+              <div class="form-text">Usa 0 per valore indeterminabile o per i profili senza scaglione economico.</div>
+            </div>
+
+            <div class="col-lg-7">
+              <label class="form-label fw-semibold">Fasi da includere</label>
+              <div id="phaseBox" class="row g-2"></div>
+            </div>
+            <div class="col-lg-5">
+              <label class="form-label fw-semibold">Opzioni compenso</label>
+              <div class="border rounded-3 p-3 bg-light h-100">
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
+                         id="chkSpese" {{ 'checked' if spese_gen else '' }}>
+                  <label class="form-check-label" for="chkSpese">Spese generali 15%</label>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small text-muted mb-1">Percentuale spese generali</label>
+                  <input type="number" name="perc_spese_generali" id="inpPercSpese" class="form-control"
+                         min="0" max="30" step="1" value="{{ perc_spese|int }}">
+                </div>
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" name="bonus_telematico" value="1"
+                         id="chkBonus" {{ 'checked' if bonus_tel else '' }}>
+                  <label class="form-check-label" for="chkBonus">Bonus telematico 30%</label>
+                </div>
+                <div class="small text-muted">
+                  Il motore applica anche i riferimenti su variazione per fase, CPA, IVA,
+                  anticipazioni ex art. 15 e compenso orario.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 d-flex gap-2 flex-wrap">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-calculator me-1"></i>Calcola compenso
+              </button>
+              <a href="{{ url_for('tariffario') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+              </a>
+            </div>
           </div>
+        </form>
+      </div>
+    </div>
+
+    {% if risultato %}
+    <div class="card shadow-sm border-primary mb-4">
+      <div class="card-header bg-primary text-white fw-semibold">
+        <i class="bi bi-cash-stack me-2"></i>Risultato del calcolo
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
+          <div><strong>Materia:</strong> {{ risultato.materia }}</div>
+          <div><strong>Grado:</strong> {{ risultato.grado }}</div>
+          <div><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
         </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Opzioni compenso</label>
-          <div class="d-flex flex-wrap gap-3">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
-                     id="sw_spese" {{ 'checked' if spese_gen }}>
-              <label class="form-check-label" for="sw_spese">
-                Spese generali forfettarie +15% <span class="text-muted">(art. 2 DM 55/2014)</span>
-              </label>
-            </div>
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" name="bonus_telematico" value="1"
-                     id="sw_tel" {{ 'checked' if bonus_tel }}>
-              <label class="form-check-label" for="sw_tel">
-                Bonus atti telematici +30% <span class="text-muted">(DM 147/2022 — atti con ricerca testuale)</span>
-              </label>
-            </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle small">
+            <thead class="table-light">
+              <tr>
+                <th>Fase</th>
+                <th class="text-end">Minimo</th>
+                <th class="text-end">Base</th>
+                <th class="text-end">Massimo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
+              <tr>
+                <td class="fw-semibold">{{ fase }}</td>
+                <td class="text-end">EUR {{ "%.2f"|format(vmin) }}</td>
+                <td class="text-end fw-semibold">EUR {{ "%.2f"|format(vbase) }}</td>
+                <td class="text-end">EUR {{ "%.2f"|format(vmax) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="table-light">
+                <th>Subtotale onorari</th>
+                <th class="text-end">EUR {{ "%.2f"|format(risultato.totale_minimo) }}</th>
+                <th class="text-end">EUR {{ "%.2f"|format(risultato.totale_base - risultato.bonus_telematico) }}</th>
+                <th class="text-end">EUR {{ "%.2f"|format(risultato.totale_massimo) }}</th>
+              </tr>
+              {% if risultato.bonus_telematico %}
+              <tr class="table-success">
+                <td colspan="2">Bonus telematico 30%</td>
+                <td class="text-end fw-semibold">+ EUR {{ "%.2f"|format(risultato.bonus_telematico) }}</td>
+                <td></td>
+              </tr>
+              {% endif %}
+              {% if risultato.spese_generali %}
+              <tr class="table-warning">
+                <td colspan="2">Spese generali</td>
+                <td class="text-end fw-semibold">+ EUR {{ "%.2f"|format(risultato.spese_generali) }}</td>
+                <td></td>
+              </tr>
+              {% endif %}
+              <tr class="table-primary">
+                <th colspan="2">Totale compenso</th>
+                <th class="text-end fw-bold">EUR {{ "%.2f"|format(risultato.totale_con_spese) }}</th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {% if risultato.note %}
+        <div class="alert alert-info small mb-3">
+          <i class="bi bi-info-circle me-1"></i>{{ risultato.note }}
+        </div>
+        {% endif %}
+
+        <div class="rounded-3 border bg-light p-3 small">
+          {% set imponibile = risultato.totale_con_spese %}
+          {% set cassa = imponibile * 0.04 %}
+          {% set base_iva = imponibile + cassa %}
+          {% set iva = base_iva * 0.22 %}
+          {% set totale_fattura = base_iva + iva %}
+          <div class="fw-semibold mb-2">Riepilogo economico collegato</div>
+          <div class="row g-1">
+            <div class="col-8">Compenso</div>
+            <div class="col-4 text-end">EUR {{ "%.2f"|format(imponibile) }}</div>
+            <div class="col-8 text-muted">CPA 4%</div>
+            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(cassa) }}</div>
+            <div class="col-8 text-muted">IVA 22%</div>
+            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(iva) }}</div>
+            <div class="col-8 fw-bold border-top pt-1">Totale fattura teorico</div>
+            <div class="col-4 text-end fw-bold border-top pt-1 text-primary">EUR {{ "%.2f"|format(totale_fattura) }}</div>
           </div>
-        </div>
-        <div class="col-12">
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-calculator me-1"></i>Calcola compenso
-          </button>
         </div>
       </div>
-    </form>
-  </div>
-</div>
-
-{% if risultato %}
-<div class="card shadow-sm mb-4 border-primary">
-  <div class="card-header bg-primary text-white fw-semibold">
-    <i class="bi bi-cash-coin me-2"></i>Risultato del calcolo
-  </div>
-  <div class="card-body">
-    <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
-      <div><strong>Materia:</strong> {{ risultato.materia }}</div>
-      <div>·</div>
-      <div><strong>Grado:</strong> {{ risultato.grado }}</div>
-      <div>·</div>
-      <div><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
-    </div>
-
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover align-middle mb-0 small">
-        <thead class="table-light">
-          <tr>
-            <th>Fase</th>
-            <th class="text-end">Minimo <span class="text-muted fw-normal">(-50%)</span></th>
-            <th class="text-end fw-bold">Base <span class="text-muted fw-normal">(tabellare)</span></th>
-            <th class="text-end">Massimo <span class="text-muted fw-normal">(+50%)</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
-          <tr>
-            <td class="fw-semibold">{{ fase }}</td>
-            <td class="text-end text-muted">€ {{ "%.2f"|format(vmin) }}</td>
-            <td class="text-end fw-semibold">€ {{ "%.2f"|format(vbase) }}</td>
-            <td class="text-end text-muted">€ {{ "%.2f"|format(vmax) }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-        <tfoot>
-          <tr class="table-light">
-            <th>Subtotale onorari</th>
-            <th class="text-end">€ {{ "%.2f"|format(risultato.totale_minimo) }}</th>
-            <th class="text-end fw-bold">€ {{ "%.2f"|format(risultato.totale_base - risultato.bonus_telematico) }}</th>
-            <th class="text-end">€ {{ "%.2f"|format(risultato.totale_massimo) }}</th>
-          </tr>
-          {% if risultato.bonus_telematico %}
-          <tr class="table-success">
-            <td colspan="2" class="small text-success"><i class="bi bi-laptop me-1"></i>Bonus atti telematici (+30%)</td>
-            <td class="text-end fw-semibold text-success">+ € {{ "%.2f"|format(risultato.bonus_telematico) }}</td>
-            <td></td>
-          </tr>
-          {% endif %}
-          {% if risultato.spese_generali %}
-          <tr class="table-warning">
-            <td colspan="2" class="small text-warning-emphasis"><i class="bi bi-receipt me-1"></i>Spese generali forfettarie 15%</td>
-            <td class="text-end fw-semibold">+ € {{ "%.2f"|format(risultato.spese_generali) }}</td>
-            <td></td>
-          </tr>
-          {% endif %}
-          <tr class="table-primary">
-            <th colspan="2">TOTALE ONORARI{% if risultato.spese_generali %} (con spese generali){% endif %}</th>
-            <th class="text-end fw-bold fs-6">€ {{ "%.2f"|format(risultato.totale_con_spese) }}</th>
-            <th></th>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    {% if risultato.note %}
-    <div class="alert alert-info small mt-3 mb-2">
-      <i class="bi bi-info-circle me-1"></i>{{ risultato.note }}
+      <div class="card-footer d-flex gap-2 flex-wrap">
+        {% if url_wizard_precompilato %}
+        <a href="{{ url_wizard_precompilato }}" class="btn btn-primary">
+          <i class="bi bi-magic me-1"></i>Crea preventivo guidato
+        </a>
+        {% endif %}
+        {% if url_parcella_precompilata %}
+        <a href="{{ url_parcella_precompilata }}" class="btn btn-outline-primary">
+          <i class="bi bi-receipt me-1"></i>Crea parcella precompilata
+        </a>
+        {% endif %}
+      </div>
     </div>
     {% endif %}
+  </div>
 
-    {# Riepilogo fiscale #}
-    <div class="mt-3 p-3 bg-light rounded small">
-      <div class="fw-semibold mb-2"><i class="bi bi-calculator me-1"></i>Riepilogo fiscale — parcella al cliente:</div>
-      {% set imp = risultato.totale_con_spese %}
-      {% set cassa = imp * 0.04 %}
-      {% set base_iva = imp + cassa %}
-      {% set iva = base_iva * 0.22 %}
-      {% set totale_fattura = base_iva + iva %}
-      <div class="row g-1">
-        <div class="col-8">Onorari{{ ' + spese generali 15%' if risultato.spese_generali }}</div>
-        <div class="col-4 text-end">€ {{ "%.2f"|format(imp) }}</div>
-        <div class="col-8 text-muted">Contributo Cassa Forense 4% (a carico cliente)</div>
-        <div class="col-4 text-end text-muted">€ {{ "%.2f"|format(cassa) }}</div>
-        <div class="col-8 text-muted">IVA 22% su € {{ "%.2f"|format(base_iva) }}</div>
-        <div class="col-4 text-end text-muted">€ {{ "%.2f"|format(iva) }}</div>
-        <div class="col-8 fw-bold border-top pt-1">Totale parcella con IVA</div>
-        <div class="col-4 text-end fw-bold border-top pt-1 text-primary">€ {{ "%.2f"|format(totale_fattura) }}</div>
+  <div class="col-xl-4">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-diagram-3 me-2 text-primary"></i>Profilo attivo
       </div>
-      <div class="text-muted mt-1" style="font-size:.75rem">+ marca da bollo €2,00 se dovuta · Ritenuta d'acconto 20% se soggetto con P.IVA</div>
+      <div class="card-body">
+        <div id="profileBox">
+          {% if profilo_attivo %}
+          <div class="mb-2">
+            <span class="badge bg-primary-subtle text-primary-emphasis">{{ profilo_attivo.table_label }}</span>
+            {% if profilo_attivo.exact_snapshot %}
+            <span class="badge bg-success-subtle text-success-emphasis">snapshot ufficiale</span>
+            {% else %}
+            <span class="badge bg-warning-subtle text-warning-emphasis">profilo ricostruttivo</span>
+            {% endif %}
+          </div>
+          <div class="fw-semibold mb-1">{{ profilo_attivo.summary }}</div>
+          <div class="small text-muted mb-3">{{ profilo_attivo.base_note }}</div>
+          <div class="small"><strong>Pratica suggerita:</strong> {{ profilo_attivo.suggested_practice_id }}</div>
+          <div class="small"><strong>Grado operativo:</strong> {{ profilo_attivo.grado_label }}</div>
+          {% else %}
+          <div class="text-muted small">Seleziona materia e grado per vedere il profilo tariffario collegato.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-shield-check me-2 text-primary"></i>Tabelle normative sincronizzate
+      </div>
+      <div class="card-body">
+        <div class="list-group list-group-flush">
+          {% for row in tariffario_tables %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="fw-semibold">{{ row.title }}</div>
+                <div class="small text-muted">{{ row.description }}</div>
+              </div>
+              <span class="badge {% if row.sync_status == 'sincronizzata' %}text-bg-success{% elif row.sync_status == 'verifica_richiesta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ row.sync_status }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-link-45deg me-2 text-primary"></i>Canali fatturazione e operativita
+      </div>
+      <div class="card-body">
+        {% for row in canali_fatturazione %}
+        <div class="border rounded-3 p-3 mb-3">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+            <div class="fw-semibold">{{ row.label }}</div>
+            <span class="badge {% if row.status == 'operativo' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ row.status }}</span>
+          </div>
+          <div class="small text-muted mb-2">{{ row.description }}</div>
+          {% if row.reference %}
+          <a href="{{ row.reference.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
     </div>
   </div>
-  <div class="card-footer d-flex gap-2 flex-wrap">
-    <a href="{{ url_for('fatturazione.nuova') }}?importo={{ risultato.totale_con_spese }}"
-       class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-receipt me-1"></i>Usa come base per nuova parcella
-    </a>
-  </div>
 </div>
-{% endif %}
 
 <div class="card shadow-sm">
-  <div class="card-header fw-semibold small">
-    <i class="bi bi-info-circle me-2 text-primary"></i>Riferimenti normativi — DM 55/2014 aggiornato DM 147/2022
+  <div class="card-header fw-semibold">
+    <i class="bi bi-book me-2 text-primary"></i>Riferimenti normativi ufficiali
   </div>
-  <div class="card-body small text-muted">
+  <div class="card-body">
     <div class="row g-3">
-      <div class="col-md-6">
-        <ul class="mb-0">
-          <li><strong>DM 10 marzo 2014, n. 55</strong> — Regolamento parametri compensi avvocati</li>
-          <li><strong>DM 13 agosto 2022, n. 147</strong> (GU n. 236 del 08/10/2022, in vigore dal 23/10/2022) — Aggiornamento valori +5% e nuove norme</li>
-          <li>Art. 2: spese generali forfettarie <strong>15%</strong> sul compenso</li>
-          <li>Art. 4 co. 1: variazione <strong>±50%</strong> tassativa (non più ±80%)</li>
-        </ul>
+      {% for ref in riferimenti_tariffario %}
+      <div class="col-lg-4 col-md-6">
+        <div class="border rounded-3 h-100 p-3">
+          <div class="fw-semibold">{{ ref.title }}</div>
+          <div class="small">{{ ref.article }}</div>
+          <div class="small text-muted mb-2">{{ ref.description }}</div>
+          <a href="{{ ref.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
+        </div>
       </div>
-      <div class="col-md-6">
-        <ul class="mb-0">
-          <li>Art. 4 co. 1-bis: bonus atti telematici con ricerca testuale <strong>+30%</strong></li>
-          <li>Art. 22-bis (novità 2022): tariffa oraria <strong>€200–500/ora</strong></li>
-          <li>Valore indeterminabile: trattato come primo scaglione (€0–1.100) salvo deroga</li>
-          <li>Cause > €500.000: non vi sono limiti di sinteticità (D.M. 110/2023)</li>
-        </ul>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
+<script>
+const GRADE_CATALOG = {{ grade_catalog|tojson }};
+const PHASE_CATALOG = {{ phase_catalog|tojson }};
+const PROFILE_ROWS = {{ tariffario_profili|tojson }};
+const MATERIA_SEL = {{ materia_sel|tojson }};
+const GRADO_SEL = {{ grado_sel|tojson }};
+const FASI_SEL = {{ fasi_sel|tojson }};
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderGradi() {
+  const materia = document.getElementById('selMateria').value;
+  const select = document.getElementById('selGrado');
+  const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
+  const selected = gradi.includes(select.dataset.selected || '') ? select.dataset.selected : (gradi.includes(GRADO_SEL) ? GRADO_SEL : gradi[0]);
+  select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');
+  select.value = selected;
+}
+
+function renderFasi() {
+  const materia = document.getElementById('selMateria').value;
+  const box = document.getElementById('phaseBox');
+  const fasi = PHASE_CATALOG[materia] || [];
+  const selected = new Set(FASI_SEL);
+  box.innerHTML = fasi.map((fase) => `
+    <div class="col-md-6">
+      <label class="border rounded-3 p-2 d-flex align-items-center gap-2 h-100">
+        <input class="form-check-input mt-0" type="checkbox" name="fasi" value="${escapeHtml(fase.value)}" ${selected.has(fase.value) ? 'checked' : ''}>
+        <span>${escapeHtml(fase.label)}</span>
+      </label>
+    </div>
+  `).join('');
+}
+
+function renderProfilo() {
+  const materia = document.getElementById('selMateria').value;
+  const grado = document.getElementById('selGrado').value;
+  const target = document.getElementById('profileBox');
+  const row = PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
+    || PROFILE_ROWS.find((item) => item.materia_label === materia);
+  if (!row) {
+    target.innerHTML = '<div class="text-muted small">Nessun profilo disponibile per questa combinazione.</div>';
+    return;
+  }
+  target.innerHTML = `
+    <div class="mb-2">
+      <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(row.table_label)}</span>
+      <span class="badge ${row.exact_snapshot ? 'bg-success-subtle text-success-emphasis' : 'bg-warning-subtle text-warning-emphasis'}">
+        ${row.exact_snapshot ? 'snapshot ufficiale' : 'profilo ricostruttivo'}
+      </span>
+    </div>
+    <div class="fw-semibold mb-1">${escapeHtml(row.summary || '')}</div>
+    <div class="small text-muted mb-3">${escapeHtml(row.base_note || '')}</div>
+    <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(row.suggested_practice_id || '')}</div>
+    <div class="small"><strong>Grado operativo:</strong> ${escapeHtml(row.grado_label || grado)}</div>
+  `;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const selMateria = document.getElementById('selMateria');
+  const selGrado = document.getElementById('selGrado');
+  selGrado.dataset.selected = GRADO_SEL;
+  renderGradi();
+  renderFasi();
+  renderProfilo();
+  selMateria.addEventListener('change', () => {
+    selGrado.dataset.selected = '';
+    renderGradi();
+    renderFasi();
+    renderProfilo();
+  });
+  selGrado.addEventListener('change', renderProfilo);
+});
+</script>
 {% endblock %}

@@ -67,6 +67,7 @@
             <div class="uff-tabs mb-1" id="ufficio-tabs" role="tablist">
               <button type="button" class="uff-tab active" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
               <button type="button" class="uff-tab" data-tipo="CDS"><i class="bi bi-columns-gap me-1"></i>Consiglio di Stato</button>
+              <button type="button" class="uff-tab" data-tipo="CGARS"><i class="bi bi-shield-half me-1"></i>CGARS</button>
             </div>
             <div class="position-relative" id="ufficio-wrap">
               <div class="input-group">
@@ -361,9 +362,9 @@
   const tipoIcon = document.getElementById('ufficio-tipo-icon');
   if (!input) return;
 
-  const TIPO_ICONS  = { TAR: 'bi-building-check', CDS: 'bi-columns-gap' };
-  const TIPO_LABEL  = { TAR: 'TAR', CDS: 'Consiglio di Stato' };
-  const TIPO_PH     = { TAR: 'TAR per regione (es. Lombardia)…', CDS: 'Consiglio di Stato…' };
+  const TIPO_ICONS  = { TAR: 'bi-building-check', CDS: 'bi-columns-gap', CGARS: 'bi-shield-half' };
+  const TIPO_LABEL  = { TAR: 'TAR', CDS: 'Consiglio di Stato', CGARS: 'CGARS' };
+  const TIPO_PH     = { TAR: 'TAR per regione (es. Lombardia)...', CDS: 'Consiglio di Stato...', CGARS: 'CGARS Sicilia...' };
 
   // Default: TAR
   let tipoFiltro = 'TAR', items = [], focusIdx = -1, timer = null;

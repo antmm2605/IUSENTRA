@@ -69,10 +69,16 @@
               <button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
               <button type="button" class="uff-tab" data-tipo="PROCURA_GENERALE"><i class="bi bi-shield-fill me-1"></i>Proc.Gen.</button>
               <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_CASSAZIONE"><i class="bi bi-star-fill me-1"></i>Cassazione</button>
               <button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>
               <button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>
               <button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>
               <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>
+              <button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
+              <button type="button" class="uff-tab" data-tipo="CDS"><i class="bi bi-columns-gap me-1"></i>CdS</button>
+              <button type="button" class="uff-tab" data-tipo="CGARS"><i class="bi bi-shield-half me-1"></i>CGARS</button>
+              <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT</button>
+              <button type="button" class="uff-tab" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT</button>
             </div>
             <div class="position-relative" id="ufficio-wrap">
               <div class="input-group">
@@ -372,16 +378,37 @@
   const TIPO_ICONS = {
     TRIBUNALE: 'bi-building', PROCURA: 'bi-shield-exclamation',
     PROCURA_GENERALE: 'bi-shield-fill', CORTE_APPELLO: 'bi-bank2',
+    CORTE_CASSAZIONE: 'bi-star-fill',
     CORTE_ASSISE: 'bi-hammer', GDP: 'bi-person-badge',
     TM: 'bi-people-fill', SORVEGLIANZA: 'bi-eye-fill',
+    TAR: 'bi-building-check', CDS: 'bi-columns-gap',
+    CGARS: 'bi-shield-half', CGT: 'bi-receipt-cutoff', CPT: 'bi-receipt',
   };
   const TIPO_LABEL = {
     TRIBUNALE: 'Tribunale', PROCURA: 'Procura della Repubblica',
     PROCURA_GENERALE: 'Procura Generale', CORTE_ASSISE: "Corte d'Assise",
     GDP: 'Giudice di Pace', TM: 'Trib. Minorenni', SORVEGLIANZA: 'Trib. Sorveglianza',
-    CORTE_APPELLO: "Corte d'Appello",
+    CORTE_APPELLO: "Corte d'Appello", CORTE_CASSAZIONE: 'Cassazione',
+    TAR: 'TAR', CDS: 'Consiglio di Stato', CGARS: 'CGARS',
+    CGT: 'CGT - Secondo grado', CPT: 'CPT - Primo grado',
   };
-  const GRUPPI_ORDER = ['CORTE_APPELLO', 'PROCURA_GENERALE', 'TRIBUNALE', 'PROCURA', 'CORTE_ASSISE', 'GDP', 'TM', 'SORVEGLIANZA'];
+  const TIPO_PLACEHOLDER = {
+    TRIBUNALE: 'tribunale per citta (es. Milano)...',
+    PROCURA: 'procura per citta (es. Napoli)...',
+    PROCURA_GENERALE: 'procura generale (es. Torino)...',
+    CORTE_APPELLO: "corte d'appello (es. Roma)...",
+    CORTE_CASSAZIONE: 'corte di cassazione...',
+    CORTE_ASSISE: "corte d'assise per citta...",
+    GDP: 'giudice di pace per citta...',
+    TM: 'tribunale minorenni per citta...',
+    SORVEGLIANZA: 'tribunale sorveglianza per citta...',
+    TAR: 'TAR per regione (es. Lombardia)...',
+    CDS: 'consiglio di stato...',
+    CGARS: 'cgars sicilia...',
+    CGT: 'corte giustizia tributaria di secondo grado...',
+    CPT: 'corte giustizia tributaria di primo grado...',
+  };
+  const GRUPPI_ORDER = ['CORTE_CASSAZIONE', 'CDS', 'CGARS', 'CORTE_APPELLO', 'PROCURA_GENERALE', 'TRIBUNALE', 'PROCURA', 'CORTE_ASSISE', 'GDP', 'TM', 'SORVEGLIANZA', 'TAR', 'CGT', 'CPT'];
 
   let tipoFiltro = '', items = [], focusIdx = -1, timer = null;
 
@@ -400,6 +427,8 @@
       tab.classList.add('active');
       tipoFiltro = tab.dataset.tipo;
       tipoIcon.innerHTML = `<i class="bi ${tipoFiltro ? (TIPO_ICONS[tipoFiltro] || 'bi-search') : 'bi-search'} text-muted"></i>`;
+      input.placeholder = tipoFiltro
+        ? `Cerca ${TIPO_PLACEHOLDER[tipoFiltro] || tipoFiltro.toLowerCase() + '...'}` : 'Cerca per citta o nome...';
       if (input.value.trim().length >= 2) cerca(input.value.trim()); else chiudi();
       input.focus();
     });

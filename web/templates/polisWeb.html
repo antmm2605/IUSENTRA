@@ -199,11 +199,16 @@
               <button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
               <button type="button" class="uff-tab" data-tipo="PROCURA_GENERALE"><i class="bi bi-shield-fill me-1"></i>Proc.Gen.</button>
               <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
+              <button type="button" class="uff-tab" data-tipo="CORTE_CASSAZIONE"><i class="bi bi-star-fill me-1"></i>Cassazione</button>
               <button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>
               <button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>
               <button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>
               <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>
               <button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
+              <button type="button" class="uff-tab" data-tipo="CDS"><i class="bi bi-columns-gap me-1"></i>CdS</button>
+              <button type="button" class="uff-tab" data-tipo="CGARS"><i class="bi bi-shield-half me-1"></i>CGARS</button>
+              <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT</button>
+              <button type="button" class="uff-tab" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT</button>
             </div>
 
             {# — Campo ricerca testo — #}
@@ -563,9 +568,19 @@
               <div class="d-flex gap-2 flex-wrap mb-1" id="wiz-uff-tabs">
                 <button type="button" class="btn btn-sm btn-outline-secondary active" data-wiz-tipo="">Tutti</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="TRIBUNALE">Tribunale</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CORTE_APPELLO">Corte d'App.</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="PROCURA">Procura</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="PROCURA_GENERALE">Proc.Gen.</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CORTE_APPELLO">Corte d'App.</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CORTE_CASSAZIONE">Cassazione</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CORTE_ASSISE">Assise</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="GDP">G.d.P.</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="TM">Minorile</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="SORVEGLIANZA">Sorv.</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="TAR">TAR</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CDS">CdS</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CGARS">CGARS</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CGT">CGT</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CPT">CPT</button>
               </div>
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
@@ -925,15 +940,17 @@ document.querySelectorAll('input[name="cf_parte"]').forEach(el => {
 
 // ---------------------------------------------------------------- Stato registro uffici (admin)
 const TIPO_LABEL = {
-  TRIBUNALE: "Tribunale", CORTE_APPELLO: "Corte d'Appello", PROCURA: "Procura",
-  CORTE_CASSAZIONE: "Cassazione", TM: "Trib. Minorenni", SORVEGLIANZA: "Trib. Sorveglianza",
+  TRIBUNALE: "Tribunale", PROCURA: "Procura", PROCURA_GENERALE: "Proc. Gen.",
+  CORTE_APPELLO: "Corte d'Appello", CORTE_CASSAZIONE: "Cassazione",
+  CORTE_ASSISE: "Assise", GDP: "G.d.P.", TM: "Minorile", SORVEGLIANZA: "Sorv.",
+  TAR: "TAR", CDS: "CdS", CGARS: "CGARS", CGT: "CGT", CPT: "CPT",
 };
 
 const _TIPO_LABEL = {
   TRIBUNALE: 'Tribunali', PROCURA: 'Procure', PROCURA_GENERALE: 'Proc. Generali',
   CORTE_APPELLO: 'Corti d\'App.', CORTE_ASSISE: 'Assise', GDP: 'G.d.P.',
-  TM: 'Trib. Minorenni', SORVEGLIANZA: 'Sorveglianza', TAR: 'TAR',
-  CONSIGLIO_DI_STATO: 'Cons. Stato',
+  CORTE_CASSAZIONE: 'Cassazione', TM: 'Minorile', SORVEGLIANZA: 'Sorv.',
+  TAR: 'TAR', CDS: 'CdS', CGARS: 'CGARS', CGT: 'CGT', CPT: 'CPT',
 };
 
 function caricaStatoUffici() {
@@ -1147,6 +1164,9 @@ function eseguiVerificaVariazioni() {
     GDP:                'bi-person-badge',
     TAR:                'bi-building-check',
     CDS:                'bi-columns-gap',
+    CGARS:              'bi-shield-half',
+    CGT:                'bi-receipt-cutoff',
+    CPT:                'bi-receipt',
   };
   const TIPO_LABEL = {
     TRIBUNALE:          'Tribunale',
@@ -1160,21 +1180,28 @@ function eseguiVerificaVariazioni() {
     GDP:                'Giudice di Pace',
     TAR:                'TAR',
     CDS:                'Consiglio di Stato',
+    CGARS:              'CGARS',
+    CGT:                'CGT - Secondo grado',
+    CPT:                'CPT - Primo grado',
   };
   const TIPO_PLACEHOLDER = {
-    TRIBUNALE:          'tribunale per città (es. Milano)…',
-    CORTE_APPELLO:      "corte d'appello (es. Roma)…",
-    PROCURA:            'procura per città (es. Napoli)…',
-    PROCURA_GENERALE:   'procura generale (es. Torino)…',
-    CORTE_ASSISE:       "corte d'assise per città…",
-    GDP:                'giudice di pace per città…',
-    TM:                 'tribunale minorenni per città…',
-    SORVEGLIANZA:       'tribunale sorveglianza per città…',
-    TAR:                'TAR per regione (es. Lombardia)…',
+    TRIBUNALE:          'tribunale per citta (es. Milano)...',
+    CORTE_APPELLO:      "corte d'appello (es. Roma)...",
+    PROCURA:            'procura per citta (es. Napoli)...',
+    PROCURA_GENERALE:   'procura generale (es. Torino)...',
+    CORTE_ASSISE:       "corte d'assise per citta...",
+    GDP:                'giudice di pace per citta...',
+    TM:                 'tribunale minorenni per citta...',
+    SORVEGLIANZA:       'tribunale sorveglianza per citta...',
+    TAR:                'TAR per regione (es. Lombardia)...',
+    CDS:                'consiglio di stato...',
+    CGARS:              'cgars sicilia...',
+    CGT:                'corte giustizia tributaria di secondo grado...',
+    CPT:                'corte giustizia tributaria di primo grado...',
   };
   // Ordine gruppi nel dropdown (quando tipo=Tutti)
-  const GRUPPI_ORDER = ['CORTE_CASSAZIONE','CDS','CORTE_APPELLO','PROCURA_GENERALE',
-                         'TRIBUNALE','PROCURA','CORTE_ASSISE','GDP','TM','SORVEGLIANZA','TAR'];
+  const GRUPPI_ORDER = ['CORTE_CASSAZIONE','CDS','CGARS','CORTE_APPELLO','PROCURA_GENERALE',
+                         'TRIBUNALE','PROCURA','CORTE_ASSISE','GDP','TM','SORVEGLIANZA','TAR','CGT','CPT'];
 
   let tipoFiltro  = '';   // tipo attivo (vuoto = Tutti)
   let items       = [];   // uffici nella lista aperta

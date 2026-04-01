@@ -64,8 +64,9 @@
               Commissione Tributaria <span class="text-danger">*</span>
             </label>
             <div class="uff-tabs mb-1" id="commissione-tabs" role="tablist">
-              <button type="button" class="uff-tab active" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT — Primo grado</button>
-              <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT — Secondo grado</button>
+              <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
+              <button type="button" class="uff-tab" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT - Primo grado</button>
+              <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT - Secondo grado</button>
             </div>
             <div class="position-relative">
               <input type="text" name="commissione" id="commissione-input" class="form-control"
@@ -342,7 +343,11 @@
   const tabs  = document.getElementById('commissione-tabs');
   const input = document.getElementById('commissione-input');
   if (!tabs || !input) return;
-  const PH = { CPT: 'Commissione Prov. Tributaria (es. Milano)…', CGT: 'Corte di Giustizia Tributaria II grado…' };
+  const PH = {
+    '': 'Cerca corte di giustizia tributaria...',
+    CPT: 'Commissione Prov. Tributaria (es. Milano)...',
+    CGT: 'Corte di Giustizia Tributaria II grado...',
+  };
   tabs.querySelectorAll('.uff-tab').forEach(tab => {
     tab.addEventListener('click', e => {
       e.stopPropagation();

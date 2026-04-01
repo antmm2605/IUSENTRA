@@ -176,3 +176,12 @@ def test_gestore_cerca_supporta_corti_tributarie():
 
     assert risultati
     assert all(item["tipo"] == "CGT" for item in risultati)
+
+
+def test_gestore_cerca_supporta_cgarsi():
+    gestore = GestoreUfficiGiudiziari()
+
+    risultati = gestore.cerca("sicilia", tipo="CGARS", limit=3)
+
+    assert risultati
+    assert all(item["tipo"] == "CGARS" for item in risultati)

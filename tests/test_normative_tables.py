@@ -6,11 +6,12 @@ def test_catalogo_normativo_seeded(tmp_path):
 
     snapshot = gestore.snapshot()
 
-    assert snapshot["totali"] >= 10
-    assert snapshot["sincronizzate"] >= 10
+    assert snapshot["totali"] >= 11
+    assert snapshot["sincronizzate"] >= 11
     assert any(row["id"] == "interesse_legale" for row in snapshot["tabelle"])
     assert any(row["id"] == "riferimenti_normativi_catalogo" for row in snapshot["tabelle"])
     assert any(row["id"] == "registro_organismi_mediazione" for row in snapshot["tabelle"])
+    assert any(row["id"] == "organismi_mediazione_elenco" for row in snapshot["tabelle"])
     assert snapshot["riferimenti_normativi_totali"] >= 8
 
 
@@ -77,8 +78,34 @@ def test_tabella_registro_mediazione_usa_fonte_ufficiale_ministeriale(tmp_path):
 
     snapshot = gestore.snapshot()
     row = next(item for item in snapshot["tabelle"] if item["id"] == "registro_organismi_mediazione")
-    catalogo = gestore._data["tables"]["registro_organismi_mediazione"]["rows"]
+    catalogo = gestore.rows("registro_organismi_mediazione")
 
     assert row["category"] == "registri_ministeriali"
     assert catalogo[0]["official_info_url"].endswith("mg_3_4_15.page")
     assert "mediazione.giustizia.it" in catalogo[0]["official_registry_url"]
+
+
+def test_update_table_rows_crea_versione_dinamica_su_elenco_mediazione(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    result = gestore.update_table_rows(
+        "organismi_mediazione_elenco",
+        [
+            {
+                "record_id": "abc123",
+                "registration_number": "101",
+                "name": "Camera Arbitrale Demo",
+                "type": "Pubblico",
+                "city": "Roma",
+                "pec": "demo@pec.example.test",
+            }
+        ],
+        label="Sync demo",
+        effective_from="2026-04-01",
+        published_at="2026-04-01",
+    )
+    table = gestore.get_table("organismi_mediazione_elenco")
+
+    assert result["updated"] is True
+    assert table["sync_status"] == "sincronizzata"
+    assert table["active_version"]["rows"][0]["name"] == "Camera Arbitrale Demo"

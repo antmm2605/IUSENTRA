@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from functools import wraps
 
-from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.portale import GestionePortale
 from web.helpers import (
@@ -59,6 +59,22 @@ def index():
     )
 
 
+@legal_intelligence.route("/mediazione", methods=["GET"])
+@_richiedi_login
+def registro_mediazione():
+    return render_template(
+        "legal_intelligence/mediazione.html",
+        snapshot=_snapshot(),
+        registro=get_legal_intelligence().mediazione_registry_snapshot(
+            q=request.args.get("q", ""),
+            city=request.args.get("city", ""),
+            registry_number=request.args.get("registry_number", ""),
+            organismo_type=request.args.get("organismo_type", ""),
+        ),
+        oggi=date.today(),
+    )
+
+
 @legal_intelligence.route("/monitor/esegui", methods=["POST"])
 @_richiedi_login
 def esegui_monitor():
@@ -91,6 +107,25 @@ def esegui_sync_normativo():
             "success",
         )
     return redirect(url_for("legal_intelligence.index"))
+
+
+@legal_intelligence.route("/mediazione/sync", methods=["POST"])
+@_richiedi_login
+def esegui_sync_registro_mediazione():
+    report = get_legal_intelligence().sync_normative_tables(source_ids=["registro_mediazione"])
+    mediazione = dict(report.get("mediazione_registry") or {})
+    if mediazione.get("ok"):
+        flash(
+            f"Registro mediazione sincronizzato: {mediazione.get('rows', 0)} organismi disponibili nel gestionale.",
+            "success",
+        )
+    else:
+        flash(
+            "Registro mediazione non aggiornato automaticamente. "
+            + str(mediazione.get("warning") or "Verificare la fonte ministeriale ufficiale."),
+            "warning",
+        )
+    return redirect(url_for("legal_intelligence.registro_mediazione"))
 
 
 @legal_intelligence.route("/api/snapshot", methods=["GET"])

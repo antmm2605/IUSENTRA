@@ -183,6 +183,78 @@ def test_dashboard_snapshot_include_registro_mediazione(tmp_path):
     assert "mediazione" in row["nome"].lower()
 
 
+def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    html = b"""
+    <html><body>
+      <table>
+        <tr>
+          <th>N. iscrizione</th>
+          <th>Organismo</th>
+          <th>Tipo</th>
+          <th>Sede</th>
+          <th>PEC</th>
+        </tr>
+        <tr>
+          <td>101</td>
+          <td>Camera Arbitrale Demo</td>
+          <td>Pubblico</td>
+          <td>Roma</td>
+          <td>demo1@pec.example.test</td>
+        </tr>
+        <tr>
+          <td>202</td>
+          <td>Organismo Privato Demo</td>
+          <td>Privato</td>
+          <td>Milano</td>
+          <td>demo2@pec.example.test</td>
+        </tr>
+      </table>
+    </body></html>
+    """
+
+    result = gestore.sync_registro_mediazione_elenco(
+        request_get=lambda *args, **kwargs: DummyResponse(html, url="https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"),
+    )
+    snapshot = gestore.mediazione_registry_snapshot(city="Milano")
+
+    assert result["ok"] is True
+    assert result["rows"] == 2
+    assert snapshot["total_rows"] == 2
+    assert snapshot["filtered_rows"] == 1
+    assert snapshot["rows"][0]["name"] == "Organismo Privato Demo"
+
+
+def test_sync_normative_tables_include_registro_mediazione_snapshot(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    html = b"""
+    <html><body>
+      <table>
+        <tr><th>N. iscrizione</th><th>Organismo</th><th>Tipo</th><th>Sede</th></tr>
+        <tr><td>301</td><td>Organismo Test</td><td>Pubblico</td><td>Napoli</td></tr>
+      </table>
+    </body></html>
+    """
+
+    report = gestore.sync_normative_tables(
+        source_ids=["registro_mediazione"],
+        request_get=lambda url, **kwargs: DummyResponse(
+            html if "ALBOORGANISMIMEDIAZIONE" in url else b"pagina-info",
+            url=url,
+        ),
+    )
+
+    assert "mediazione_registry" in report
+    assert report["mediazione_registry"]["ok"] is True
+    assert report["mediazione_registry"]["rows"] == 1
+
+
 def test_fonti_per_query_mediazione_risolvono_la_fonte_ufficiale():
     assert "registro_mediazione" in fonti_per_query("verifica organismo di mediazione iscritto")
 

@@ -97,6 +97,17 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
             "mediazione.giustizia.it e indicazioni ufficiali di consultazione."
         ),
     ),
+    "registro_mediazione_diretto": FonteOperativa(
+        code="registro_mediazione_diretto",
+        title="Registro organismi di mediazione - consultazione diretta",
+        url="https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+        note=(
+            "Consultazione diretta del registro ministeriale degli organismi di mediazione. "
+            "La scheda ministeriale segnala che la consultazione puo richiedere Microsoft Edge "
+            "in modalita compatibilita con Internet Explorer."
+        ),
+        change_detection="availability_only",
+    ),
     "pst_portale": FonteOperativa(
         code="pst_portale",
         title="PST Giustizia - portale ufficiale",
@@ -482,7 +493,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "utili per verifiche operative, checklist ADR e preventivi."
             ),
             "strategy": "seed_mirror",
-            "source_codes": ["registro_mediazione_portale"],
+            "source_codes": ["registro_mediazione_portale", "registro_mediazione_diretto"],
             "watch_source_ids": ["registro_mediazione"],
             "rows": [
                 {
@@ -500,6 +511,28 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 }
             ],
             "defaults": {"registry_kind": "organismi_mediazione"},
+            "published_at": "2026-03-04",
+            "effective_from": "2026-03-04",
+        },
+        "organismi_mediazione_elenco": {
+            "id": "organismi_mediazione_elenco",
+            "title": "Elenco organismi di mediazione italiani",
+            "category": "registri_ministeriali",
+            "description": (
+                "Elenco consultabile degli organismi di mediazione italiani, sincronizzato quando "
+                "il registro ministeriale diretto e disponibile."
+            ),
+            "strategy": "live_registry",
+            "source_codes": ["registro_mediazione_portale", "registro_mediazione_diretto"],
+            "watch_source_ids": ["registro_mediazione"],
+            "rows": [],
+            "defaults": {
+                "registry_kind": "organismi_mediazione",
+                "official_info_url": "https://www.giustizia.it/giustizia/it/mg_3_4_15.page",
+                "official_registry_url": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                "consultation_mode": "Microsoft Edge in modalita compatibilita con Internet Explorer",
+                "row_count": 0,
+            },
             "published_at": "2026-03-04",
             "effective_from": "2026-03-04",
         },
@@ -588,6 +621,35 @@ class GestioneTabelleNormative:
             "notes": list(definition.get("notes") or []),
         }
 
+    def _build_dynamic_version_payload(
+        self,
+        *,
+        table_id: str,
+        rows: Iterable[Mapping[str, Any]],
+        now: datetime,
+        label: str = "",
+        effective_from: str = "",
+        published_at: str = "",
+        notes: Optional[Iterable[str]] = None,
+        origin: str = "sync",
+    ) -> Dict[str, Any]:
+        normalized_rows = [dict(row) for row in rows or []]
+        data_hash = _json_hash(normalized_rows)
+        return {
+            "id": f"{table_id}:{(effective_from or now.date().isoformat())}:{data_hash[:12]}",
+            "label": label or f"Aggiornamento {now.date().isoformat()}",
+            "created_at": _now_iso(now),
+            "effective_from": effective_from or now.date().isoformat(),
+            "effective_to": "",
+            "published_at": published_at,
+            "acquired_at": _now_iso(now),
+            "status": "active",
+            "origin": origin,
+            "data_hash": data_hash,
+            "rows": normalized_rows,
+            "notes": list(notes or []),
+        }
+
     def _build_table_payload(
         self,
         definition: Mapping[str, Any],
@@ -595,6 +657,7 @@ class GestioneTabelleNormative:
         *,
         created: bool = False,
     ) -> Dict[str, Any]:
+        version = self._build_version_payload(definition, now, origin="bootstrap" if created else "sync")
         return {
             "id": definition["id"],
             "title": definition["title"],
@@ -608,7 +671,8 @@ class GestioneTabelleNormative:
             "last_synced_at": _now_iso(now),
             "last_source_change_at": "",
             "last_warning": "",
-            "versions": [self._build_version_payload(definition, now, origin="bootstrap" if created else "sync")],
+            "rows": list(version.get("rows") or []),
+            "versions": [version],
         }
 
     def _active_version(self, table: Mapping[str, Any], on_date: Optional[date] = None) -> Optional[Dict[str, Any]]:
@@ -668,6 +732,100 @@ class GestioneTabelleNormative:
     def rows(self, table_id: str, on_date: Optional[date] = None) -> List[Dict[str, Any]]:
         table = self.get_table(table_id, on_date=on_date)
         return list((table.get("active_version") or {}).get("rows") or [])
+
+    def update_table_rows(
+        self,
+        table_id: str,
+        rows: Iterable[Mapping[str, Any]],
+        *,
+        now: Optional[datetime] = None,
+        published_at: str = "",
+        effective_from: str = "",
+        label: str = "",
+        notes: Optional[Iterable[str]] = None,
+        defaults: Optional[Mapping[str, Any]] = None,
+        sync_status: str = "sincronizzata",
+        warning: str = "",
+        origin: str = "sync",
+        source_changed: bool = False,
+    ) -> Dict[str, Any]:
+        current_time = now or datetime.now()
+        definitions = canonical_table_definitions()
+        definition = definitions.get(table_id)
+        table = self._data.setdefault("tables", {}).get(table_id)
+        if table is None:
+            if definition is None:
+                raise KeyError(f"Tabella normativa non trovata: {table_id}")
+            table = self._build_table_payload(definition, current_time, created=True)
+            self._data["tables"][table_id] = table
+
+        normalized_rows = [dict(row) for row in rows or []]
+        new_version = self._build_dynamic_version_payload(
+            table_id=table_id,
+            rows=normalized_rows,
+            now=current_time,
+            label=label,
+            effective_from=effective_from,
+            published_at=published_at,
+            notes=notes,
+            origin=origin,
+        )
+        active = self._active_version(table)
+        changed = not active or active.get("data_hash") != new_version.get("data_hash")
+        if changed:
+            for version in table.get("versions") or []:
+                if version.get("status") == "active":
+                    version["status"] = "superseded"
+                    version["effective_to"] = effective_from or current_time.date().isoformat()
+            table.setdefault("versions", []).append(new_version)
+
+        if defaults is not None:
+            table["defaults"] = dict(defaults)
+        elif table.get("defaults") is None:
+            table["defaults"] = {}
+        table["rows"] = normalized_rows
+        table["sync_status"] = sync_status
+        table["last_warning"] = warning
+        table["last_synced_at"] = _now_iso(current_time)
+        if source_changed:
+            table["last_source_change_at"] = _now_iso(current_time)
+        self._save()
+        return {
+            "table_id": table_id,
+            "updated": changed,
+            "rows": len(normalized_rows),
+            "sync_status": sync_status,
+            "warning": warning,
+        }
+
+    def set_table_sync_status(
+        self,
+        table_id: str,
+        *,
+        sync_status: str,
+        warning: str = "",
+        now: Optional[datetime] = None,
+        source_changed: bool = False,
+    ) -> Dict[str, Any]:
+        current_time = now or datetime.now()
+        table = self._data.setdefault("tables", {}).get(table_id)
+        if table is None:
+            definition = canonical_table_definitions().get(table_id)
+            if definition is None:
+                raise KeyError(f"Tabella normativa non trovata: {table_id}")
+            table = self._build_table_payload(definition, current_time, created=True)
+            self._data["tables"][table_id] = table
+        table["sync_status"] = sync_status
+        table["last_warning"] = warning
+        table["last_synced_at"] = _now_iso(current_time)
+        if source_changed:
+            table["last_source_change_at"] = _now_iso(current_time)
+        self._save()
+        return {
+            "table_id": table_id,
+            "sync_status": sync_status,
+            "warning": warning,
+        }
 
     def catalogo_riferimenti_normativi(self) -> List[Dict[str, Any]]:
         try:
@@ -828,9 +986,13 @@ class GestioneTabelleNormative:
                         if version.get("status") == "active":
                             version["status"] = "superseded"
                             version["effective_to"] = current_time.date().isoformat()
-                    table.setdefault("versions", []).append(self._build_version_payload(definition, current_time, origin="sync"))
+                    version = self._build_version_payload(definition, current_time, origin="sync")
+                    table.setdefault("versions", []).append(version)
+                    table["rows"] = list(version.get("rows") or [])
                     updated += 1
                     table_changed = True
+                elif "rows" not in table:
+                    table["rows"] = list(active_version.get("rows") or [])
 
             relevant_runs = {
                 source_id: source_runs[source_id]

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Registro Mediazione{% endblock %}
+
+{% block content %}
+<div class="ds-ph mb-4">
+  <div class="ds-ph-icon"><i class="bi bi-building-check"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Elenco Organismi di Mediazione Italiani</h1>
+    <p class="ds-ph-sub">Consultazione interna del registro ministeriale con cache persistente, filtri operativi e stato del sincronismo.</p>
+  </div>
+  <div class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Motori Legali
+    </a>
+    <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_registro_mediazione') }}">
+      <button class="btn btn-primary">
+        <i class="bi bi-arrow-repeat me-2"></i>Sincronizza registro
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Organismi in cache</div>
+        <div class="fw-bold fs-3">{{ registro.total_rows }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Risultati filtrati</div>
+        <div class="fw-bold fs-3 text-primary">{{ registro.filtered_rows }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Stato sync</div>
+        <div class="fw-bold fs-5 {% if registro.table.sync_status == 'sincronizzata' %}text-success{% elif registro.table.sync_status == 'fonte_non_raggiungibile' %}text-danger{% else %}text-warning{% endif %}">
+          {{ registro.table.sync_status|replace('_', ' ') }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Ultimo aggiornamento</div>
+        <div class="fw-semibold">{{ registro.table.last_synced_at[:16]|replace('T', ' ') if registro.table.last_synced_at else 'n/d' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>Fonte ufficiale e note operative</div>
+        <div class="small text-muted mb-3">
+          {{ registro.metadata.notes or 'Registro ministeriale degli organismi di mediazione vigilato dal Ministero della Giustizia.' }}
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted mb-1">Pagina informativa ufficiale</div>
+              <a href="{{ registro.metadata.official_info_url or registro.table.defaults.official_info_url }}" target="_blank" rel="noopener" class="fw-semibold text-decoration-none">
+                Ministero della Giustizia
+              </a>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted mb-1">Registro diretto</div>
+              <a href="{{ registro.metadata.official_registry_url or registro.table.defaults.official_registry_url }}" target="_blank" rel="noopener" class="fw-semibold text-decoration-none">
+                mediazione.giustizia.it
+              </a>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted mb-1">Consultazione</div>
+              <div class="fw-semibold">{{ registro.metadata.consultation_mode or registro.official_notice }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted mb-1">Assistenza / ufficio</div>
+              <div class="fw-semibold">{{ registro.metadata.support_email or 'assistenza.mediazione.dgcivile.dag@giustizia.it' }}</div>
+              <div class="small text-muted mt-1">{{ registro.metadata.responsible_office }}</div>
+            </div>
+          </div>
+        </div>
+        {% if registro.table.last_warning %}
+        <div class="alert alert-warning rounded-4 mt-3 mb-0">
+          <div class="fw-semibold mb-1">Avviso sincronizzazione</div>
+          <div class="small">{{ registro.table.last_warning }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3"><i class="bi bi-funnel me-2 text-primary"></i>Filtri</div>
+        <form method="get" class="d-flex flex-column gap-3">
+          <div>
+            <label class="form-label small text-muted">Ricerca libera</label>
+            <input type="text" name="q" value="{{ registro.filters.q }}" class="form-control" placeholder="Organismo, PEC, citta">
+          </div>
+          <div>
+            <label class="form-label small text-muted">Citta / sede</label>
+            <input type="text" name="city" value="{{ registro.filters.city }}" class="form-control" list="lista-citta-mediazione" placeholder="Es. Milano">
+            <datalist id="lista-citta-mediazione">
+              {% for city in registro.city_options %}
+              <option value="{{ city }}"></option>
+              {% endfor %}
+            </datalist>
+          </div>
+          <div>
+            <label class="form-label small text-muted">Numero iscrizione</label>
+            <input type="text" name="registry_number" value="{{ registro.filters.registry_number }}" class="form-control" placeholder="Es. 123">
+          </div>
+          <div>
+            <label class="form-label small text-muted">Tipo organismo</label>
+            <select name="organismo_type" class="form-select">
+              <option value="">Tutti</option>
+              {% for option in registro.type_options %}
+              <option value="{{ option }}" {% if registro.filters.organismo_type == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary flex-fill">
+              <i class="bi bi-search me-2"></i>Filtra
+            </button>
+            <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">Reset</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="fw-semibold"><i class="bi bi-table me-2 text-primary"></i>Elenco consultabile</div>
+      <span class="badge text-bg-light">{{ registro.filtered_rows }} risultati{% if registro.filtered_rows != registro.total_rows %} su {{ registro.total_rows }}{% endif %}</span>
+    </div>
+    {% if registro.rows %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>N. iscrizione</th>
+            <th>Organismo</th>
+            <th>Tipo</th>
+            <th>Sede</th>
+            <th>Contatti</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in registro.rows %}
+          <tr>
+            <td class="fw-semibold">{{ row.registration_number or 'n/d' }}</td>
+            <td>
+              <div class="fw-semibold">{{ row.name }}</div>
+              {% if row.address %}
+              <div class="small text-muted">{{ row.address }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.type %}
+              <span class="badge text-bg-light">{{ row.type }}</span>
+              {% else %}
+              <span class="small text-muted">n/d</span>
+              {% endif %}
+            </td>
+            <td>
+              <div>{{ row.city or 'n/d' }}{% if row.province %} ({{ row.province }}){% endif %}</div>
+              {% if row.registration_date %}
+              <div class="small text-muted">Iscrizione: {{ row.registration_date }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.pec %}
+              <div><a href="mailto:{{ row.pec }}" class="text-decoration-none">{{ row.pec }}</a></div>
+              {% endif %}
+              {% if row.email and row.email != row.pec %}
+              <div class="small"><a href="mailto:{{ row.email }}" class="text-decoration-none">{{ row.email }}</a></div>
+              {% endif %}
+              {% if row.phone %}
+              <div class="small text-muted">{{ row.phone }}</div>
+              {% endif %}
+              {% if row.website %}
+              <div class="small"><a href="{{ row.website }}" target="_blank" rel="noopener" class="text-decoration-none">{{ row.website }}</a></div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-light border rounded-4 mb-0">
+      <div class="fw-semibold mb-1">Elenco non ancora disponibile nel gestionale</div>
+      <div class="small text-muted">
+        Il registro diretto ministeriale non ha restituito un elenco strutturato durante l'ultimo controllo. Il sistema conserva comunque la fonte ufficiale e puoi rilanciare la sincronizzazione quando il portale torna disponibile.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

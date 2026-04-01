@@ -5,6 +5,7 @@ import json
 import re
 import uuid
 import warnings
+import unicodedata
 from urllib.parse import urlparse
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import requests
+from lxml import html as lxml_html
 from urllib3.exceptions import InsecureRequestWarning
 
 from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
@@ -21,6 +23,13 @@ MAX_MONITOR_BYTES = 512_000
 MAX_MONITOR_RUNS = 600
 MAX_ALERTS = 400
 MAX_AUDIT_TRACES = 500
+REGISTRO_MEDIAZIONE_INFO_URL = "https://www.giustizia.it/giustizia/it/mg_3_4_15.page"
+REGISTRO_MEDIAZIONE_DIRECT_URL = "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+REGISTRO_MEDIAZIONE_TABLE_ID = "organismi_mediazione_elenco"
+REGISTRO_MEDIAZIONE_NOTICE = (
+    "Il Ministero della Giustizia segnala che la consultazione del registro diretto puo richiedere "
+    "Microsoft Edge in modalita compatibilita con Internet Explorer."
+)
 
 
 def _now_iso(now: Optional[datetime] = None) -> str:
@@ -105,6 +114,27 @@ def _requires_tls_fallback(url: str) -> bool:
 
 def _severity_rank(level: str) -> int:
     return {"critica": 4, "alta": 3, "media": 2, "bassa": 1, "info": 0}.get((level or "").lower(), 0)
+
+
+def _normalize_label(value: str) -> str:
+    cleaned = unicodedata.normalize("NFKD", value or "")
+    cleaned = "".join(ch for ch in cleaned if not unicodedata.combining(ch))
+    cleaned = cleaned.lower()
+    cleaned = re.sub(r"[^a-z0-9]+", " ", cleaned)
+    return _clean_spaces(cleaned)
+
+
+def _normalize_registry_kind(value: str) -> str:
+    normalized = _normalize_label(value)
+    if "pubblic" in normalized:
+        return "Pubblico"
+    if "privat" in normalized:
+        return "Privato"
+    if "camera" in normalized or "camera di commercio" in normalized:
+        return "Camera di commercio"
+    if "ordine" in normalized:
+        return "Ordine professionale"
+    return value or ""
 
 
 @dataclass(frozen=True)
@@ -651,6 +681,155 @@ class GestioneLegalIntelligence:
                 warnings.simplefilter("ignore", InsecureRequestWarning)
                 return _call(verify=False), True
 
+    def _fetch_html_document(
+        self,
+        url: str,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> Dict[str, Any]:
+        response, used_tls_fallback = self._fetch_response(request_get or requests.get, url)
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        final_url = str(getattr(response, "url", url) or url)
+        content = bytes(getattr(response, "content", b"") or b"")[:MAX_MONITOR_BYTES]
+        content_type = str((getattr(response, "headers", {}) or {}).get("content-type", "") or "")
+        text = content.decode("utf-8", errors="ignore")
+        return {
+            "status_code": status_code,
+            "final_url": final_url,
+            "content_type": content_type,
+            "content": content,
+            "text": text,
+            "used_tls_fallback": used_tls_fallback,
+            "protection_page": _detect_protection_page(final_url, content),
+        }
+
+    def _registry_cell_text(self, node: Any) -> str:
+        return _clean_spaces(" ".join(node.xpath(".//text()")))
+
+    def _registry_header_role(self, header: str) -> str:
+        normalized = _normalize_label(header)
+        if not normalized:
+            return ""
+        if "pec" in normalized:
+            return "pec"
+        if "email" in normalized or "e mail" in normalized:
+            return "email"
+        if "telefono" in normalized or normalized == "tel" or " fax" in normalized:
+            return "phone"
+        if "sito" in normalized or "web" in normalized:
+            return "website"
+        if "indirizzo" in normalized or "via" in normalized or "piazza" in normalized:
+            return "address"
+        if "provincia" in normalized or normalized.endswith(" prov"):
+            return "province"
+        if "comune" in normalized or "sede" in normalized or "citta" in normalized:
+            return "city"
+        if "tipo" in normalized or "natura" in normalized or "pubblic" in normalized or "privat" in normalized:
+            return "type"
+        if "provvedimento" in normalized or ("data" in normalized and "iscriz" in normalized):
+            return "registration_date"
+        if "numero" in normalized or normalized.startswith("n ") or "iscriz" in normalized or "registro" in normalized:
+            return "registration_number"
+        if "organismo" in normalized or "denominazione" in normalized or normalized == "nome":
+            return "name"
+        return ""
+
+    def _pick_registry_table(self, document: Any) -> tuple[List[str], List[Any]]:
+        best_headers: List[str] = []
+        best_rows: List[Any] = []
+        best_score = -1
+        for table in document.xpath("//table"):
+            header_nodes = table.xpath(".//tr[th][1]/th")
+            if not header_nodes:
+                first_row = table.xpath(".//tr[1]/td")
+                header_nodes = list(first_row or [])
+            if not header_nodes:
+                continue
+            headers = [self._registry_cell_text(node) for node in header_nodes]
+            roles = [self._registry_header_role(header) for header in headers]
+            score = len([role for role in roles if role])
+            data_rows = [row for row in table.xpath(".//tr[td]") if any(self._registry_cell_text(cell) for cell in row.xpath("./td"))]
+            if data_rows and headers:
+                first_cells = [self._registry_cell_text(node) for node in data_rows[0].xpath("./td")]
+                if first_cells == headers:
+                    data_rows = data_rows[1:]
+            if score > best_score and data_rows:
+                best_score = score
+                best_headers = headers
+                best_rows = data_rows
+        return best_headers, best_rows
+
+    def _parse_registro_mediazione_rows(self, html_text: str) -> List[Dict[str, Any]]:
+        if not html_text.strip():
+            return []
+        document = lxml_html.fromstring(html_text)
+        headers, rows = self._pick_registry_table(document)
+        if not headers or not rows:
+            return []
+        roles = [self._registry_header_role(header) for header in headers]
+        organisms: List[Dict[str, Any]] = []
+        seen_ids = set()
+        for row in rows:
+            cells = [self._registry_cell_text(node) for node in row.xpath("./th|./td")]
+            if not cells or len(cells) < 2:
+                continue
+            payload: Dict[str, Any] = {
+                "registration_number": "",
+                "name": "",
+                "type": "",
+                "city": "",
+                "province": "",
+                "address": "",
+                "pec": "",
+                "email": "",
+                "phone": "",
+                "website": "",
+                "registration_date": "",
+            }
+            extra_columns: Dict[str, Any] = {}
+            for index, cell in enumerate(cells):
+                if not cell:
+                    continue
+                role = roles[index] if index < len(roles) else ""
+                if role:
+                    payload[role] = cell
+                else:
+                    extra_columns[f"column_{index + 1}"] = cell
+            if not payload["name"]:
+                payload["name"] = cells[1] if len(cells) > 1 else cells[0]
+            registration_number = payload["registration_number"]
+            if registration_number:
+                match = re.search(r"\d+", registration_number)
+                payload["registration_number"] = match.group(0) if match else registration_number
+            payload["type"] = _normalize_registry_kind(payload["type"])
+            payload["official_registry_url"] = REGISTRO_MEDIAZIONE_DIRECT_URL
+            payload["official_info_url"] = REGISTRO_MEDIAZIONE_INFO_URL
+            if extra_columns:
+                payload["extra_columns"] = extra_columns
+            record_base = payload["registration_number"] or f"{payload['name']}|{payload['city']}|{payload['pec']}"
+            record_id = hashlib.sha1(record_base.encode("utf-8")).hexdigest()[:16]
+            if record_id in seen_ids:
+                continue
+            seen_ids.add(record_id)
+            payload["record_id"] = record_id
+            payload["search_text"] = _clean_spaces(
+                " ".join(
+                    [
+                        payload["registration_number"],
+                        payload["name"],
+                        payload["type"],
+                        payload["city"],
+                        payload["province"],
+                        payload["address"],
+                        payload["pec"],
+                        payload["email"],
+                    ]
+                )
+            ).lower()
+            organisms.append(payload)
+        organisms.sort(key=lambda item: (item.get("name", ""), item.get("city", ""), item.get("registration_number", "")))
+        return organisms
+
     def _fetch_state(
         self,
         *,
@@ -951,6 +1130,147 @@ class GestioneLegalIntelligence:
             "normative_sync": sync_report,
         }
 
+    def sync_registro_mediazione_elenco(
+        self,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        current_time = now or datetime.now()
+        defaults = dict(self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID).get("defaults") or {})
+        defaults.update(
+            {
+                "official_info_url": REGISTRO_MEDIAZIONE_INFO_URL,
+                "official_registry_url": REGISTRO_MEDIAZIONE_DIRECT_URL,
+                "consultation_mode": "Microsoft Edge in modalita compatibilita con Internet Explorer",
+            }
+        )
+        try:
+            document = self._fetch_html_document(
+                REGISTRO_MEDIAZIONE_DIRECT_URL,
+                request_get=request_get,
+            )
+            if document["status_code"] >= 400:
+                raise RuntimeError(f"HTTP {document['status_code']}")
+            if document["protection_page"]:
+                raise RuntimeError("La consultazione diretta del registro e protetta o richiede browser compatibile.")
+
+            rows = self._parse_registro_mediazione_rows(document["text"])
+            if not rows:
+                raise RuntimeError("Il registro diretto non ha restituito un elenco strutturato leggibile.")
+
+            defaults.update(
+                {
+                    "row_count": len(rows),
+                    "last_registry_fetch_url": document["final_url"],
+                    "last_registry_hash": _sha256(document["content"]),
+                    "registry_notice": REGISTRO_MEDIAZIONE_NOTICE,
+                }
+            )
+            update = self.normative_tables.update_table_rows(
+                REGISTRO_MEDIAZIONE_TABLE_ID,
+                rows,
+                now=current_time,
+                published_at=current_time.date().isoformat(),
+                effective_from=current_time.date().isoformat(),
+                label=f"Sync registro mediazione {current_time.date().isoformat()}",
+                notes=[REGISTRO_MEDIAZIONE_NOTICE],
+                defaults=defaults,
+                sync_status="sincronizzata",
+                warning="",
+                origin="live_registry",
+                source_changed=True,
+            )
+            return {
+                "ok": True,
+                "updated": update.get("updated", False),
+                "rows": len(rows),
+                "warning": "",
+                "final_url": document["final_url"],
+            }
+        except Exception as exc:
+            warning = _truncate(str(exc), 300)
+            defaults.update({"registry_notice": REGISTRO_MEDIAZIONE_NOTICE})
+            self.normative_tables.update_table_rows(
+                REGISTRO_MEDIAZIONE_TABLE_ID,
+                self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID),
+                now=current_time,
+                defaults=defaults,
+                sync_status="fonte_non_raggiungibile",
+                warning=warning,
+                origin="live_registry",
+                source_changed=True,
+            )
+            return {
+                "ok": False,
+                "updated": False,
+                "rows": len(self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID)),
+                "warning": warning,
+                "final_url": REGISTRO_MEDIAZIONE_DIRECT_URL,
+            }
+
+    def mediazione_registry_snapshot(
+        self,
+        *,
+        q: str = "",
+        city: str = "",
+        registry_number: str = "",
+        organismo_type: str = "",
+    ) -> Dict[str, Any]:
+        metadata_rows = self.normative_tables.rows("registro_organismi_mediazione")
+        metadata = dict(metadata_rows[0]) if metadata_rows else {}
+        table = self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID)
+        rows = [dict(row) for row in self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID)]
+
+        q_norm = _normalize_label(q)
+        city_norm = _normalize_label(city)
+        reg_norm = _normalize_label(registry_number)
+        type_norm = _normalize_label(organismo_type)
+
+        filtered: List[Dict[str, Any]] = []
+        for row in rows:
+            search_text = _normalize_label(row.get("search_text", "")) or _normalize_label(
+                " ".join(
+                    [
+                        str(row.get("registration_number", "")),
+                        str(row.get("name", "")),
+                        str(row.get("type", "")),
+                        str(row.get("city", "")),
+                        str(row.get("province", "")),
+                        str(row.get("pec", "")),
+                    ]
+                )
+            )
+            if q_norm and q_norm not in search_text:
+                continue
+            if city_norm and city_norm not in _normalize_label(f"{row.get('city', '')} {row.get('province', '')}"):
+                continue
+            if reg_norm and reg_norm not in _normalize_label(str(row.get("registration_number", ""))):
+                continue
+            if type_norm and type_norm not in _normalize_label(str(row.get("type", ""))):
+                continue
+            filtered.append(row)
+
+        type_options = sorted({row.get("type", "") for row in rows if row.get("type")})
+        city_options = sorted({row.get("city", "") for row in rows if row.get("city")})[:200]
+        return {
+            "metadata": metadata,
+            "table": table,
+            "filters": {
+                "q": q,
+                "city": city,
+                "registry_number": registry_number,
+                "organismo_type": organismo_type,
+            },
+            "rows": filtered[:400],
+            "total_rows": len(rows),
+            "filtered_rows": len(filtered),
+            "type_options": type_options,
+            "city_options": city_options,
+            "has_cached_rows": bool(rows),
+            "official_notice": metadata.get("consultation_mode") or REGISTRO_MEDIAZIONE_NOTICE,
+        }
+
     def sync_normative_tables(
         self,
         source_ids: Optional[List[str]] = None,
@@ -1005,6 +1325,13 @@ class GestioneLegalIntelligence:
             source_ids=source_ids,
             now=now,
         )
+        mediazione_sync = None
+        watched = set(source_ids or [])
+        if not watched or "registro_mediazione" in watched:
+            mediazione_sync = self.sync_registro_mediazione_elenco(
+                request_get=request_get,
+                now=current_time,
+            )
         alerts: List[Dict[str, Any]] = []
         for table in report.get("tables", []):
             if table.get("updated"):
@@ -1035,6 +1362,37 @@ class GestioneLegalIntelligence:
                         now=current_time,
                     ).to_dict()
                 )
+        if mediazione_sync:
+            if mediazione_sync.get("ok"):
+                alerts.append(
+                    self._create_alert(
+                        source_id="registro_mediazione",
+                        motore_id="fonti_ufficiali",
+                        alert_type="registro_mediazione_sincronizzato",
+                        severity="media",
+                        title="Registro organismi di mediazione sincronizzato",
+                        details=f"Elenco interno aggiornato con {mediazione_sync.get('rows', 0)} organismi.",
+                        related_entity_type="normative_table",
+                        related_entity_id=REGISTRO_MEDIAZIONE_TABLE_ID,
+                        official_url=REGISTRO_MEDIAZIONE_INFO_URL,
+                        now=current_time,
+                    ).to_dict()
+                )
+            else:
+                alerts.append(
+                    self._create_alert(
+                        source_id="registro_mediazione",
+                        motore_id="monitoraggio_alert",
+                        alert_type="registro_mediazione_da_verificare",
+                        severity="alta",
+                        title="Registro organismi di mediazione da verificare",
+                        details=mediazione_sync.get("warning", REGISTRO_MEDIAZIONE_NOTICE),
+                        related_entity_type="normative_table",
+                        related_entity_id=REGISTRO_MEDIAZIONE_TABLE_ID,
+                        official_url=REGISTRO_MEDIAZIONE_INFO_URL,
+                        now=current_time,
+                    ).to_dict()
+                )
         if alerts:
             self._save()
         self.registra_trace_risposta(
@@ -1051,6 +1409,8 @@ class GestioneLegalIntelligence:
             now=current_time,
         )
         report["alerts"] = alerts
+        if mediazione_sync is not None:
+            report["mediazione_registry"] = mediazione_sync
         return report
 
     def _alert_is_resolved(self, alert: IntelligenceAlert, latest_runs: Dict[str, MonitorRun]) -> bool:
@@ -1263,6 +1623,7 @@ class GestioneLegalIntelligence:
         stored_alerts = self.recent_alerts(limit=8)
         derived_alerts = self._derived_alerts(fascicoli=fascicoli, scadenze=scadenze, portali=portali)
         normative_snapshot = self.normative_tables.snapshot()
+        mediazione_snapshot = self.mediazione_registry_snapshot()
         return {
             "headline": {
                 "motori_attivi": len(MOTORI_LEGALI),
@@ -1286,4 +1647,5 @@ class GestioneLegalIntelligence:
             "competitive_advantages": self._competitive_advantages(fascicoli, portali),
             "trackers": costruisci_tracker_fascicoli(fascicoli),
             "normative_tables": normative_snapshot,
+            "mediazione_registry": mediazione_snapshot,
         }

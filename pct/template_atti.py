@@ -15,8 +15,12 @@ Template built-in inclusi:
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
+from pathlib import Path
+import subprocess
+import tempfile
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
@@ -33,6 +37,121 @@ CATEGORIE = [
     "GDPR / Privacy",
     "Altro",
 ]
+
+EDITOR_FONT_CATALOG: Dict[str, Dict[str, str]] = {
+    "source_serif": {
+        "label": "Source Serif 4",
+        "css_stack": "'Source Serif 4', Georgia, 'Times New Roman', serif",
+        "pdf_family": "times",
+        "tone": "serif",
+    },
+    "libre_baskerville": {
+        "label": "Libre Baskerville",
+        "css_stack": "'Libre Baskerville', Georgia, 'Times New Roman', serif",
+        "pdf_family": "times",
+        "tone": "serif",
+    },
+    "spectral": {
+        "label": "Spectral",
+        "css_stack": "'Spectral', Georgia, 'Times New Roman', serif",
+        "pdf_family": "times",
+        "tone": "serif",
+    },
+    "crimson_text": {
+        "label": "Crimson Text",
+        "css_stack": "'Crimson Text', Georgia, 'Times New Roman', serif",
+        "pdf_family": "times",
+        "tone": "serif",
+    },
+    "inter": {
+        "label": "Inter",
+        "css_stack": "'Inter', Arial, Helvetica, sans-serif",
+        "pdf_family": "helvetica",
+        "tone": "sans",
+    },
+    "manrope": {
+        "label": "Manrope",
+        "css_stack": "'Manrope', Arial, Helvetica, sans-serif",
+        "pdf_family": "helvetica",
+        "tone": "sans",
+    },
+    "ibm_plex_mono": {
+        "label": "IBM Plex Mono",
+        "css_stack": "'IBM Plex Mono', 'Courier New', monospace",
+        "pdf_family": "courier",
+        "tone": "mono",
+    },
+}
+
+DEFAULT_EDITOR_LAYOUT: Dict[str, Any] = {
+    "font_family": "source_serif",
+    "font_size_pt": 12,
+    "line_height": 1.9,
+    "text_align": "justify",
+    "margin_top_mm": 25,
+    "margin_right_mm": 22,
+    "margin_bottom_mm": 25,
+    "margin_left_mm": 32,
+    "paragraph_spacing_pt": 8,
+}
+
+
+def catalogo_font_editor() -> list[dict[str, str]]:
+    return [{"key": key, **meta} for key, meta in EDITOR_FONT_CATALOG.items()]
+
+
+def font_editor(key: str) -> dict[str, str]:
+    return EDITOR_FONT_CATALOG.get(key, EDITOR_FONT_CATALOG[DEFAULT_EDITOR_LAYOUT["font_family"]])
+
+
+def _clamp_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    try:
+        coerced = int(float(value))
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, coerced))
+
+
+def _clamp_float(value: Any, default: float, minimum: float, maximum: float) -> float:
+    try:
+        coerced = float(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, coerced))
+
+
+def normalizza_editor_layout(layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    raw = layout or {}
+    font_key = raw.get("font_family", DEFAULT_EDITOR_LAYOUT["font_family"])
+    if font_key not in EDITOR_FONT_CATALOG:
+        font_key = DEFAULT_EDITOR_LAYOUT["font_family"]
+    text_align = str(raw.get("text_align", DEFAULT_EDITOR_LAYOUT["text_align"]) or "").lower()
+    if text_align not in {"justify", "left", "center", "right"}:
+        text_align = DEFAULT_EDITOR_LAYOUT["text_align"]
+    return {
+        "font_family": font_key,
+        "font_size_pt": _clamp_int(raw.get("font_size_pt"), DEFAULT_EDITOR_LAYOUT["font_size_pt"], 9, 18),
+        "line_height": round(
+            _clamp_float(raw.get("line_height"), DEFAULT_EDITOR_LAYOUT["line_height"], 1.2, 2.6),
+            2,
+        ),
+        "text_align": text_align,
+        "margin_top_mm": _clamp_int(raw.get("margin_top_mm"), DEFAULT_EDITOR_LAYOUT["margin_top_mm"], 10, 45),
+        "margin_right_mm": _clamp_int(raw.get("margin_right_mm"), DEFAULT_EDITOR_LAYOUT["margin_right_mm"], 10, 40),
+        "margin_bottom_mm": _clamp_int(raw.get("margin_bottom_mm"), DEFAULT_EDITOR_LAYOUT["margin_bottom_mm"], 10, 45),
+        "margin_left_mm": _clamp_int(raw.get("margin_left_mm"), DEFAULT_EDITOR_LAYOUT["margin_left_mm"], 15, 50),
+        "paragraph_spacing_pt": _clamp_int(
+            raw.get("paragraph_spacing_pt"),
+            DEFAULT_EDITOR_LAYOUT["paragraph_spacing_pt"],
+            0,
+            18,
+        ),
+    }
+
+
+def percorso_preferenze_editor(db_path: str) -> str:
+    base = Path(db_path).resolve().parent
+    return str(base / "editor_layout.json")
 
 # ================================================================ Modello
 
@@ -346,3 +465,97 @@ class GestioneTemplateAtti:
         env = Environment(undefined=Undefined)
         tmpl = env.from_string(t.corpo)
         return tmpl.render(**variabili)
+
+
+class GestionePreferenzeTemplateAtti:
+
+    def __init__(self, prefs_path: str = "./template_atti/editor_layout.json"):
+        self.prefs_path = prefs_path
+
+    def carica(self) -> Dict[str, Any]:
+        if os.path.exists(self.prefs_path):
+            try:
+                with open(self.prefs_path, encoding="utf-8") as f:
+                    raw = json.load(f)
+                if isinstance(raw, dict) and "editor_layout" in raw:
+                    raw = raw["editor_layout"]
+                return normalizza_editor_layout(raw)
+            except Exception:
+                pass
+        return normalizza_editor_layout(DEFAULT_EDITOR_LAYOUT)
+
+    def salva(self, layout: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        normalizzato = normalizza_editor_layout(layout)
+        os.makedirs(os.path.dirname(self.prefs_path) or ".", exist_ok=True)
+        payload = {
+            "editor_layout": normalizzato,
+            "updated_at": datetime.now().isoformat(),
+        }
+        with open(self.prefs_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        return normalizzato
+
+    def reset(self) -> Dict[str, Any]:
+        return self.salva(DEFAULT_EDITOR_LAYOUT)
+
+
+def acquisisci_da_scanner_windows(timeout: int = 120) -> Dict[str, Any]:
+    """
+    Tenta una scansione desktop tramite WIA su Windows.
+
+    Restituisce un data URL PNG pronto per l'inserimento nell'editor.
+    """
+    if os.name != "nt":
+        raise RuntimeError("Scanner desktop diretto disponibile solo su installazioni Windows locali.")
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="hacs-scan-"))
+    bmp_path = temp_dir / "scan.bmp"
+    jpg_path = temp_dir / "scan.jpg"
+    ps_script = f"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Drawing
+$dialog = New-Object -ComObject WIA.CommonDialog
+$image = $dialog.ShowAcquireImage()
+if ($null -eq $image) {{
+  throw 'Acquisizione annullata o scanner non disponibile.'
+}}
+$bmp = '{str(bmp_path).replace("'", "''")}'
+$jpg = '{str(jpg_path).replace("'", "''")}'
+$image.SaveFile($bmp)
+$bitmap = [System.Drawing.Image]::FromFile($bmp)
+try {{
+  $bitmap.Save($jpg, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+}} finally {{
+  $bitmap.Dispose()
+}}
+Remove-Item -LiteralPath $bmp -Force -ErrorAction SilentlyContinue
+Write-Output $jpg
+"""
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError("PowerShell non disponibile: impossibile usare lo scanner desktop.") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Timeout durante l'acquisizione scanner desktop.") from exc
+
+    if result.returncode != 0:
+        stderr = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(stderr or "Scanner desktop non disponibile o acquisizione annullata.")
+
+    if not jpg_path.exists():
+        raise RuntimeError("Nessuna immagine acquisita dallo scanner desktop.")
+
+    data = jpg_path.read_bytes()
+    data_url = "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii")
+    return {
+        "filename": jpg_path.name,
+        "mime_type": "image/jpeg",
+        "bytes": len(data),
+        "data_url": data_url,
+    }

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "template_atti/_editor_macros.html" import professional_editor %}
+{% from "template_atti/_editor_macros.html" import professional_editor with context %}
 {% block title %}{{ 'Modifica' if t else 'Nuovo' }} Template{% endblock %}
 
 {% block content %}
@@ -43,13 +43,14 @@
               form.get('corpo', ''),
               editor_id='template-body-editor',
               placeholder="Scrivi il template dell'atto e inserisci le variabili disponibili",
-              min_height='560px'
+              min_height='560px',
+              layout=editor_preferences
             ) }}
 
             <div class="form-text mt-2">
               <i class="bi bi-info-circle me-1"></i>
               Usa la toolbar per formattare e dare al template una struttura piu vicina a un vero atto professionale.
-              Le variabili {{ '{{' }}...{{ '}}' }} saranno preservate in anteprima e nel PDF.
+              Le variabili {{ '{{' }}...{{ '}}' }} saranno preservate in anteprima e nel PDF, e dalla sezione "Impaginazione" puoi salvare il tuo layout predefinito.
             </div>
           </div>
 

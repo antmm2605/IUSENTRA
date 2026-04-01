@@ -6,12 +6,13 @@ URL base: /template-atti/
 from __future__ import annotations
 
 import io
+import json
 import re
 from datetime import date
 from html import escape
 
-from flask import (Blueprint, abort, flash, g, redirect, render_template,
-                   request, send_file, url_for, current_app)
+from flask import (Blueprint, abort, current_app, flash, g, jsonify,
+                   redirect, render_template, request, send_file, url_for)
 
 from web.helpers import get_clienti, get_fascicoli, get_utenti
 
@@ -23,6 +24,28 @@ def _get_gt():
     return GestioneTemplateAtti(
         db_path=current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )
+
+
+def _get_gp():
+    from pct.template_atti import GestionePreferenzeTemplateAtti, percorso_preferenze_editor
+
+    prefs_path = current_app.config.get("TEMPLATE_ATTI_PREFS_DB")
+    if not prefs_path:
+        prefs_path = percorso_preferenze_editor(
+            current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+        )
+    return GestionePreferenzeTemplateAtti(prefs_path=prefs_path)
+
+
+@template_atti.context_processor
+def _inject_editor_preferences():
+    from pct.template_atti import DEFAULT_EDITOR_LAYOUT, catalogo_font_editor
+
+    return {
+        "editor_preferences": _get_gp().carica(),
+        "editor_default_preferences": DEFAULT_EDITOR_LAYOUT,
+        "editor_font_choices": catalogo_font_editor(),
+    }
 
 
 def _richiedi_login(f):
@@ -350,6 +373,45 @@ def compila(model_code: str):
     )
 
 
+@template_atti.route("/api/editor-layout", methods=["POST"])
+@_richiedi_login
+def salva_editor_layout():
+    try:
+        from pct.template_atti import normalizza_editor_layout
+
+        payload = request.get_json(silent=True) or {}
+        layout = payload.get("layout", payload)
+        salvato = _get_gp().salva(normalizza_editor_layout(layout))
+        return jsonify({"ok": True, "layout": salvato}), 200
+    except Exception as e:
+        current_app.logger.exception("Errore salvataggio layout editor template atti: %s", e)
+        return jsonify({"ok": False, "errore": str(e)}), 200
+
+
+@template_atti.route("/api/editor-layout/reset", methods=["POST"])
+@_richiedi_login
+def reset_editor_layout():
+    try:
+        ripristinato = _get_gp().reset()
+        return jsonify({"ok": True, "layout": ripristinato}), 200
+    except Exception as e:
+        current_app.logger.exception("Errore reset layout editor template atti: %s", e)
+        return jsonify({"ok": False, "errore": str(e)}), 200
+
+
+@template_atti.route("/api/scanner/windows-scan", methods=["POST"])
+@_richiedi_login
+def scanner_windows_scan():
+    try:
+        from pct.template_atti import acquisisci_da_scanner_windows
+
+        scan = acquisisci_da_scanner_windows()
+        return jsonify({"ok": True, "scan": scan}), 200
+    except Exception as e:
+        current_app.logger.exception("Errore scanner desktop template atti: %s", e)
+        return jsonify({"ok": False, "errore": str(e)}), 200
+
+
 # ================================================================ PDF
 
 @template_atti.route("/<id_template>/pdf", methods=["POST"])
@@ -361,7 +423,8 @@ def pdf(id_template: str):
         abort(404)
     testo = request.form.get("testo_generato", "")
     titolo = t.titolo
-    buf = _genera_pdf(titolo, testo, current_app.config)
+    layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
+    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout)
     nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
@@ -376,7 +439,8 @@ def compila_pdf(model_code: str):
         abort(404)
     testo = request.form.get("testo_generato", "")
     titolo = request.form.get("title", "") or model["name"]
-    buf = _genera_pdf(titolo, testo, current_app.config)
+    layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
+    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout)
     nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
@@ -393,6 +457,20 @@ def _variabili_safe(v: dict) -> dict:
     return safe
 
 
+def _parse_editor_layout(raw: str | None) -> dict | None:
+    if not raw:
+        return None
+    try:
+        from pct.template_atti import normalizza_editor_layout
+
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            return None
+        return normalizza_editor_layout(parsed)
+    except Exception:
+        return None
+
+
 def _to_editor_html(content: str) -> str:
     text = (content or "").strip()
     if not text:
@@ -406,7 +484,7 @@ def _looks_like_html(content: str) -> bool:
     lowered = (content or "").strip().lower()
     return any(
         tag in lowered
-        for tag in ("<p", "<div", "<h1", "<h2", "<h3", "<ul", "<ol", "<li", "<table", "<blockquote", "<br", "<hr")
+        for tag in ("<p", "<div", "<h1", "<h2", "<h3", "<ul", "<ol", "<li", "<table", "<blockquote", "<br", "<hr", "<img", "<figure")
     )
 
 
@@ -522,12 +600,12 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict) -> io.BytesIO
         return buf
 
 
-def _genera_pdf(titolo: str, testo: str, config: dict) -> io.BytesIO:
+def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = None) -> io.BytesIO:
     html = _to_editor_html(testo)
     try:
         from pct.editor import html_to_pdf
 
-        pdf_bytes = html_to_pdf(html, titolo)
+        pdf_bytes = html_to_pdf(html, titolo, layout=layout)
         buf = io.BytesIO(pdf_bytes)
         buf.seek(0)
         return buf

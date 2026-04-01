@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "template_atti/_editor_macros.html" import professional_editor %}
+{% from "template_atti/_editor_macros.html" import professional_editor with context %}
 {% block title %}Anteprima - {{ t.titolo }}{% endblock %}
 
 {% block content %}
@@ -32,7 +32,7 @@
       <div class="small text-uppercase text-primary fw-bold mb-1">Revisione finale</div>
       <h5 class="mb-2 fw-bold">{{ t.titolo }}</h5>
       <p class="text-muted mb-0" style="max-width:820px;">
-        Qui puoi rifinire il testo definitivo in un ambiente piu vicino all'impaginazione reale dell'atto. Il PDF terra conto della formattazione inserita nell'editor.
+        Qui puoi rifinire il testo definitivo in un ambiente piu vicino all'impaginazione reale dell'atto. Il PDF terra conto della formattazione inserita nell'editor, puoi salvare il layout come nuovo predefinito e acquisire immagini da scanner o fotocamera.
       </p>
     </div>
     <button type="button" id="btn-copia" class="btn btn-sm btn-outline-secondary">
@@ -47,7 +47,9 @@
     editor_html,
     editor_id='template-preview-editor',
     placeholder='Il contenuto del template comparira qui',
-    min_height='840px'
+    min_height='840px',
+    layout=editor_preferences,
+    enable_acquisition=true
   ) }}
 
   <div class="d-flex gap-2 mt-3 flex-wrap">

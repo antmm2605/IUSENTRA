@@ -1,4 +1,6 @@
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Manrope:wght@500;600;700&family=Source+Serif+4:wght@400;600;700&family=Spectral:wght@400;600;700&display=swap');
+
 .legal-editor-shell {
   background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
   border-radius: 18px;
@@ -38,6 +40,10 @@
   border-color: rgba(37, 99, 235, .28);
 }
 
+.legal-editor-action {
+  border-radius: 10px;
+}
+
 .legal-editor-select {
   min-width: 150px;
   border-radius: 10px;
@@ -49,6 +55,12 @@
   background: rgba(15, 23, 42, .08);
 }
 
+.legal-editor-layout-panel {
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(239, 246, 255, .88), rgba(255, 255, 255, .95));
+  border-bottom: 1px solid rgba(148, 163, 184, .18);
+}
+
 .legal-editor-stage {
   padding: 1.5rem;
   background:
@@ -57,19 +69,23 @@
 }
 
 .legal-editor-page {
-  width: 100%;
-  max-width: 860px;
+  width: min(100%, 210mm);
   margin: 0 auto;
-  padding: 52px 58px;
+  padding-top: var(--legal-margin-top, 25mm);
+  padding-right: var(--legal-margin-right, 22mm);
+  padding-bottom: var(--legal-margin-bottom, 25mm);
+  padding-left: var(--legal-margin-left, 32mm);
   background: #fff;
   border: 1px solid rgba(148, 163, 184, .28);
   border-radius: 16px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.03rem;
-  line-height: 1.9;
+  font-family: var(--legal-font-family, "Source Serif 4", Georgia, serif);
+  font-size: var(--legal-font-size, 12pt);
+  line-height: var(--legal-line-height, 1.9);
+  text-align: var(--legal-text-align, justify);
   color: #1f2937;
   outline: none;
+  overflow-wrap: break-word;
 }
 
 .legal-editor-page:empty::before {
@@ -81,7 +97,7 @@
 .legal-editor-page h2,
 .legal-editor-page h3,
 .legal-editor-page h4 {
-  font-family: "Times New Roman", Georgia, serif;
+  font-family: var(--legal-font-family, "Source Serif 4", Georgia, serif);
   color: #0f172a;
   margin: 1.2rem 0 .55rem;
   font-weight: 700;
@@ -91,21 +107,25 @@
   text-align: center;
   text-transform: uppercase;
   letter-spacing: .03em;
-  font-size: 1.2rem;
+  font-size: calc(var(--legal-font-size, 12pt) * 1.45);
 }
 
 .legal-editor-page h2 {
   text-transform: uppercase;
-  font-size: 1.02rem;
+  font-size: calc(var(--legal-font-size, 12pt) * 1.2);
   letter-spacing: .04em;
 }
 
 .legal-editor-page h3 {
-  font-size: .98rem;
+  font-size: calc(var(--legal-font-size, 12pt) * 1.08);
+}
+
+.legal-editor-page h4 {
+  font-size: calc(var(--legal-font-size, 12pt) * 1.02);
 }
 
 .legal-editor-page p {
-  margin: 0 0 .85rem;
+  margin: 0 0 var(--legal-paragraph-spacing, 8pt);
 }
 
 .legal-editor-page blockquote {
@@ -131,6 +151,25 @@
   margin-bottom: .35rem;
 }
 
+.legal-editor-page img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: .75rem auto;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .12);
+}
+
+.legal-editor-page figure {
+  margin: 1rem 0 1.4rem;
+}
+
+.legal-editor-page figcaption {
+  font-size: .8em;
+  text-align: center;
+  color: #64748b;
+}
+
 .legal-doc-kicker {
   text-align: center;
   text-transform: uppercase;
@@ -148,15 +187,61 @@
   margin-bottom: 1rem;
 }
 
+.template-scan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .75rem;
+}
+
+.template-scan-method {
+  width: 100%;
+  padding: .9rem 1rem;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, .08);
+  background: #fff;
+}
+
+.template-scan-method i {
+  font-size: 1.1rem;
+  color: #1d4ed8;
+}
+
+.template-scan-method small {
+  display: block;
+  color: #64748b;
+}
+
+.template-scan-preview {
+  display: block;
+  width: 100%;
+  max-height: 58vh;
+  object-fit: contain;
+  background: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, .22);
+  border-radius: 14px;
+}
+
+.template-scan-webcam {
+  width: 100%;
+  max-height: 58vh;
+  object-fit: cover;
+  background: #020617;
+  border-radius: 14px;
+}
+
 @media (max-width: 768px) {
   .legal-editor-stage {
     padding: .75rem;
   }
 
   .legal-editor-page {
-    padding: 28px 20px;
     border-radius: 12px;
     min-height: 70vh;
+    padding-top: max(18mm, var(--legal-margin-top, 25mm));
+    padding-right: max(14mm, var(--legal-margin-right, 22mm));
+    padding-bottom: max(18mm, var(--legal-margin-bottom, 25mm));
+    padding-left: max(14mm, var(--legal-margin-left, 32mm));
   }
 
   .legal-editor-toolbar {
@@ -165,13 +250,85 @@
 }
 </style>
 
+<div class="modal fade" id="template-act-acquisition-modal" tabindex="-1" aria-labelledby="template-act-acquisition-title" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-fullscreen-sm-down modal-dialog-centered">
+    <div class="modal-content" style="display:flex;flex-direction:column;">
+      <div class="modal-header py-2">
+        <div>
+          <h5 class="modal-title mb-0" id="template-act-acquisition-title">
+            <i class="bi bi-camera me-2 text-primary"></i>Acquisizione documento
+          </h5>
+          <small class="text-muted">Usa scanner desktop, webcam o fotocamera del dispositivo e inserisci l'immagine nell'atto.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body" style="overflow:auto;">
+        <div class="alert alert-light border small mb-3" data-acquisition-feedback>
+          Scegli il metodo di acquisizione piu comodo.
+        </div>
+
+        <div data-acquisition-source>
+          <div class="template-scan-grid">
+            <button type="button" class="template-scan-method" data-acquisition-action="desktop-scan">
+              <div class="fw-semibold"><i class="bi bi-upc-scan me-2"></i>Scanner desktop</div>
+              <small>Integrazione locale Windows con WIA quando disponibile.</small>
+            </button>
+            <button type="button" class="template-scan-method" data-acquisition-action="webcam">
+              <div class="fw-semibold"><i class="bi bi-webcam me-2"></i>Webcam desktop</div>
+              <small>Acquisisci da webcam o fotocamera del notebook.</small>
+            </button>
+            <button type="button" class="template-scan-method" data-acquisition-action="camera">
+              <div class="fw-semibold"><i class="bi bi-phone me-2"></i>Tablet / mobile</div>
+              <small>Apre la fotocamera posteriore del dispositivo.</small>
+            </button>
+            <button type="button" class="template-scan-method" data-acquisition-action="file">
+              <div class="fw-semibold"><i class="bi bi-file-image me-2"></i>Carica immagine</div>
+              <small>Importa JPG, PNG o altra immagine gia acquisita.</small>
+            </button>
+          </div>
+        </div>
+
+        <div class="d-none" data-acquisition-webcam-wrap>
+          <video class="template-scan-webcam" autoplay playsinline data-acquisition-webcam></video>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button type="button" class="btn btn-primary" data-acquisition-capture>
+              <i class="bi bi-camera-fill me-1"></i>Scatta
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-acquisition-back>
+              Torna ai metodi
+            </button>
+          </div>
+        </div>
+
+        <div class="d-none" data-acquisition-preview-wrap>
+          <img src="" alt="Anteprima acquisizione" class="template-scan-preview" data-acquisition-preview>
+          <div class="small text-muted mt-2" data-acquisition-preview-label></div>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button type="button" class="btn btn-primary" data-acquisition-insert>
+              <i class="bi bi-box-arrow-in-down-right me-1"></i>Inserisci nell'atto
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-acquisition-repeat>
+              Ripeti
+            </button>
+          </div>
+        </div>
+
+        <input type="file" accept="image/*" capture="environment" class="d-none" data-acquisition-camera-input>
+        <input type="file" accept="image/*" class="d-none" data-acquisition-file-input>
+        <canvas class="d-none" data-acquisition-canvas></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 window.TemplateActEditors = window.TemplateActEditors || (() => {
   const editors = new Map();
+  let acquisition = null;
 
   function looksLikeHtml(value) {
     const text = (value || '').trim().toLowerCase();
-    return ['<p', '<div', '<h1', '<h2', '<h3', '<ul', '<ol', '<table', '<blockquote', '<hr', '<br']
+    return ['<p', '<div', '<h1', '<h2', '<h3', '<ul', '<ol', '<table', '<blockquote', '<hr', '<br', '<img', '<figure']
       .some((tag) => text.includes(tag));
   }
 
@@ -179,6 +336,14 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     const div = document.createElement('div');
     div.textContent = value;
     return div.innerHTML;
+  }
+
+  function escapeAttribute(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   function plainTextToHtml(value) {
@@ -229,10 +394,105 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     }
   }
 
+  function parseJson(raw, fallback) {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function clampNumber(value, fallback, min, max, precision = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    const clamped = Math.max(min, Math.min(max, parsed));
+    return precision > 0 ? Number(clamped.toFixed(precision)) : Math.round(clamped);
+  }
+
+  function normalizeLayout(layout, defaults = {}) {
+    const fallback = defaults && Object.keys(defaults).length ? defaults : {
+      font_family: 'source_serif',
+      font_size_pt: 12,
+      line_height: 1.9,
+      text_align: 'justify',
+      margin_top_mm: 25,
+      margin_right_mm: 22,
+      margin_bottom_mm: 25,
+      margin_left_mm: 32,
+      paragraph_spacing_pt: 8,
+    };
+    const normalized = { ...fallback, ...(layout || {}) };
+    const allowedAlign = new Set(['justify', 'left', 'center', 'right']);
+    if (!allowedAlign.has(normalized.text_align)) {
+      normalized.text_align = fallback.text_align;
+    }
+    const allowedFonts = new Set(['source_serif', 'libre_baskerville', 'spectral', 'crimson_text', 'inter', 'manrope', 'ibm_plex_mono']);
+    if (!allowedFonts.has(normalized.font_family)) {
+      normalized.font_family = fallback.font_family;
+    }
+    normalized.font_size_pt = clampNumber(normalized.font_size_pt, fallback.font_size_pt, 9, 18, 0);
+    normalized.line_height = clampNumber(normalized.line_height, fallback.line_height, 1.2, 2.6, 2);
+    normalized.margin_top_mm = clampNumber(normalized.margin_top_mm, fallback.margin_top_mm, 10, 45, 0);
+    normalized.margin_right_mm = clampNumber(normalized.margin_right_mm, fallback.margin_right_mm, 10, 40, 0);
+    normalized.margin_bottom_mm = clampNumber(normalized.margin_bottom_mm, fallback.margin_bottom_mm, 10, 45, 0);
+    normalized.margin_left_mm = clampNumber(normalized.margin_left_mm, fallback.margin_left_mm, 15, 50, 0);
+    normalized.paragraph_spacing_pt = clampNumber(normalized.paragraph_spacing_pt, fallback.paragraph_spacing_pt, 0, 18, 0);
+    return normalized;
+  }
+
+  function getFontStack(state, fontKey) {
+    const option = state.root.querySelector(`[data-layout-field="font_family"] option[value="${fontKey}"]`);
+    if (option?.dataset.fontStack) {
+      return option.dataset.fontStack;
+    }
+    return '"Source Serif 4", Georgia, serif';
+  }
+
+  function setLayoutStatus(state, message, tone = 'muted') {
+    const target = state.root.querySelector('[data-editor-layout-status]');
+    if (!target) return;
+    target.className = `small text-${tone}`;
+    target.textContent = message;
+  }
+
+  function writeLayoutInput(state) {
+    if (state.layoutInput) {
+      state.layoutInput.value = JSON.stringify(state.layout);
+    }
+  }
+
+  function updateLayoutControls(state) {
+    state.root.querySelectorAll('[data-layout-field]').forEach((control) => {
+      const field = control.dataset.layoutField;
+      if (!field || !(field in state.layout)) return;
+      control.value = state.layout[field];
+    });
+  }
+
+  function applyLayout(editorId, layout) {
+    const state = editors.get(editorId);
+    if (!state) return;
+    state.layout = normalizeLayout(layout, state.defaultLayout);
+    const fontStack = getFontStack(state, state.layout.font_family);
+    state.surface.style.setProperty('--legal-font-family', fontStack);
+    state.surface.style.setProperty('--legal-font-size', `${state.layout.font_size_pt}pt`);
+    state.surface.style.setProperty('--legal-line-height', `${state.layout.line_height}`);
+    state.surface.style.setProperty('--legal-text-align', state.layout.text_align);
+    state.surface.style.setProperty('--legal-margin-top', `${state.layout.margin_top_mm}mm`);
+    state.surface.style.setProperty('--legal-margin-right', `${state.layout.margin_right_mm}mm`);
+    state.surface.style.setProperty('--legal-margin-bottom', `${state.layout.margin_bottom_mm}mm`);
+    state.surface.style.setProperty('--legal-margin-left', `${state.layout.margin_left_mm}mm`);
+    state.surface.style.setProperty('--legal-paragraph-spacing', `${state.layout.paragraph_spacing_pt}pt`);
+    writeLayoutInput(state);
+    updateLayoutControls(state);
+  }
+
   function sync(editorId) {
     const state = editors.get(editorId);
     if (!state) return;
+    ensureParagraph(state.surface);
     state.source.value = state.surface.innerHTML.trim();
+    writeLayoutInput(state);
   }
 
   function syncAll() {
@@ -256,13 +516,66 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     sync(editorId);
   }
 
+  function insertHtml(editorId, html) {
+    const state = editors.get(editorId);
+    if (!state) return;
+    state.surface.focus();
+    document.execCommand('insertHTML', false, html);
+    sync(editorId);
+  }
+
+  function insertImage(editorId, dataUrl, alt = 'Documento acquisito') {
+    const caption = escapeHtml(alt);
+    const safeAlt = escapeAttribute(alt);
+    insertHtml(
+      editorId,
+      `<figure><img src="${dataUrl}" alt="${safeAlt}"><figcaption>${caption}</figcaption></figure><p></p>`
+    );
+  }
+
   function getPlainText(editorId) {
     const state = editors.get(editorId);
     if (!state) return '';
     return state.surface.innerText || '';
   }
 
+  function readLayoutControls(state) {
+    const nextLayout = { ...state.layout };
+    state.root.querySelectorAll('[data-layout-field]').forEach((control) => {
+      const field = control.dataset.layoutField;
+      if (!field) return;
+      nextLayout[field] = control.value;
+    });
+    return normalizeLayout(nextLayout, state.defaultLayout);
+  }
+
+  async function persistLayout(state, reset = false) {
+    const url = reset ? state.root.dataset.layoutResetUrl : state.root.dataset.layoutSaveUrl;
+    const payload = reset ? {} : { layout: state.layout };
+    setLayoutStatus(state, reset ? 'Ripristino in corso...' : 'Salvataggio in corso...', 'muted');
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!data?.ok) {
+        throw new Error(data?.errore || 'Operazione non riuscita');
+      }
+      editors.forEach((editorState, editorId) => {
+        applyLayout(editorId, data.layout);
+      });
+      setLayoutStatus(state, reset ? 'Layout ripristinato.' : 'Layout salvato come predefinito.', 'success');
+    } catch (error) {
+      setLayoutStatus(state, error.message || 'Errore durante il salvataggio.', 'danger');
+    }
+  }
+
   function bindToolbar(root, editorId) {
+    const state = editors.get(editorId);
+    if (!state) return;
+
     root.querySelectorAll('[data-command]').forEach((button) => {
       button.addEventListener('click', () => {
         exec(editorId, button.dataset.command);
@@ -272,6 +585,32 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     const blockSelect = root.querySelector('[data-editor-block]');
     blockSelect?.addEventListener('change', () => {
       exec(editorId, 'formatBlock', blockSelect.value);
+    });
+
+    const layoutPanel = root.querySelector('[data-editor-layout-panel]');
+    root.querySelector('[data-editor-toggle-layout]')?.addEventListener('click', () => {
+      layoutPanel?.classList.toggle('d-none');
+    });
+
+    root.querySelectorAll('[data-layout-field]').forEach((control) => {
+      const eventName = control.tagName === 'SELECT' ? 'change' : 'input';
+      control.addEventListener(eventName, () => {
+        applyLayout(editorId, readLayoutControls(state));
+        setLayoutStatus(state, 'Anteprima layout aggiornata.', 'muted');
+      });
+    });
+
+    root.querySelector('[data-editor-save-layout]')?.addEventListener('click', () => {
+      state.layout = readLayoutControls(state);
+      persistLayout(state, false);
+    });
+
+    root.querySelector('[data-editor-reset-layout]')?.addEventListener('click', () => {
+      persistLayout(state, true);
+    });
+
+    root.querySelector('[data-editor-open-acquisition]')?.addEventListener('click', () => {
+      openAcquisition(editorId);
     });
   }
 
@@ -283,17 +622,29 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
 
     const source = root.querySelector('[data-editor-source]');
     const surface = root.querySelector('[data-editor-surface]');
+    const layoutInput = root.querySelector('[data-editor-layout-input]');
     if (!source || !surface) {
       return;
     }
 
+    const defaultLayout = normalizeLayout(parseJson(root.dataset.editorDefaultLayout, {}));
+    const currentLayout = normalizeLayout(parseJson(root.dataset.editorLayout, {}), defaultLayout);
     const initial = source.value || '';
     surface.dataset.placeholder = root.dataset.placeholder || '';
     surface.innerHTML = looksLikeHtml(initial) ? initial : plainTextToHtml(initial);
     ensureParagraph(surface);
 
-    editors.set(editorId, { root, source, surface });
+    editors.set(editorId, {
+      root,
+      source,
+      surface,
+      layoutInput,
+      defaultLayout,
+      layout: currentLayout,
+    });
+
     bindToolbar(root, editorId);
+    applyLayout(editorId, currentLayout);
 
     surface.addEventListener('input', () => sync(editorId));
     surface.addEventListener('blur', () => sync(editorId));
@@ -313,14 +664,204 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     });
   }
 
+  function ensureAcquisition() {
+    if (acquisition) return acquisition;
+    const modalEl = document.getElementById('template-act-acquisition-modal');
+    acquisition = {
+      modalEl,
+      modal: new bootstrap.Modal(modalEl),
+      feedback: modalEl.querySelector('[data-acquisition-feedback]'),
+      source: modalEl.querySelector('[data-acquisition-source]'),
+      webcamWrap: modalEl.querySelector('[data-acquisition-webcam-wrap]'),
+      webcam: modalEl.querySelector('[data-acquisition-webcam]'),
+      captureBtn: modalEl.querySelector('[data-acquisition-capture]'),
+      previewWrap: modalEl.querySelector('[data-acquisition-preview-wrap]'),
+      preview: modalEl.querySelector('[data-acquisition-preview]'),
+      previewLabel: modalEl.querySelector('[data-acquisition-preview-label]'),
+      cameraInput: modalEl.querySelector('[data-acquisition-camera-input]'),
+      fileInput: modalEl.querySelector('[data-acquisition-file-input]'),
+      canvas: modalEl.querySelector('[data-acquisition-canvas]'),
+      currentEditorId: null,
+      currentDataUrl: '',
+      currentLabel: '',
+      stream: null,
+    };
+
+    function setFeedback(message, tone = 'light') {
+      acquisition.feedback.className = `alert alert-${tone} border small mb-3`;
+      acquisition.feedback.textContent = message;
+    }
+
+    function stopWebcam() {
+      if (acquisition.stream) {
+        acquisition.stream.getTracks().forEach((track) => track.stop());
+        acquisition.stream = null;
+      }
+      acquisition.webcam.srcObject = null;
+    }
+
+    function showSource() {
+      stopWebcam();
+      acquisition.currentDataUrl = '';
+      acquisition.currentLabel = '';
+      acquisition.source.classList.remove('d-none');
+      acquisition.webcamWrap.classList.add('d-none');
+      acquisition.previewWrap.classList.add('d-none');
+      acquisition.preview.src = '';
+      acquisition.previewLabel.textContent = '';
+      setFeedback('Scegli il metodo di acquisizione piu comodo.', 'light');
+    }
+
+    function showPreview(dataUrl, label) {
+      stopWebcam();
+      acquisition.currentDataUrl = dataUrl;
+      acquisition.currentLabel = label;
+      acquisition.source.classList.add('d-none');
+      acquisition.webcamWrap.classList.add('d-none');
+      acquisition.previewWrap.classList.remove('d-none');
+      acquisition.preview.src = dataUrl;
+      acquisition.previewLabel.textContent = label;
+      setFeedback('Anteprima pronta: puoi inserirla direttamente nel documento.', 'success');
+    }
+
+    function readImageFile(file) {
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        setFeedback('Formato non supportato: carica un file immagine.', 'warning');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const rawDataUrl = event.target?.result || '';
+          const jpegDataUrl = await dataUrlToJpeg(rawDataUrl);
+          showPreview(jpegDataUrl, `Acquisizione: ${file.name}`);
+        } catch (_) {
+          showPreview(event.target?.result || '', `Acquisizione: ${file.name}`);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function dataUrlToJpeg(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = image.naturalWidth || image.width;
+          canvas.height = image.naturalHeight || image.height;
+          const context = canvas.getContext('2d');
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        image.onerror = reject;
+        image.src = dataUrl;
+      });
+    }
+
+    async function startWebcam() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setFeedback('Webcam non disponibile in questo browser.', 'warning');
+        return;
+      }
+      try {
+        acquisition.stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        });
+        acquisition.source.classList.add('d-none');
+        acquisition.previewWrap.classList.add('d-none');
+        acquisition.webcamWrap.classList.remove('d-none');
+        acquisition.webcam.srcObject = acquisition.stream;
+        setFeedback('Inquadra il documento e scatta quando l'immagine e nitida.', 'info');
+      } catch (error) {
+        setFeedback(`Webcam non disponibile: ${error.message}`, 'warning');
+      }
+    }
+
+    async function scanDesktop() {
+      const editorState = editors.get(acquisition.currentEditorId);
+      if (!editorState) return;
+      setFeedback('Avvio scanner desktop in corso...', 'info');
+      try {
+        const response = await fetch(editorState.root.dataset.scannerUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const data = await response.json();
+        if (!data?.ok || !data?.scan?.data_url) {
+          throw new Error(data?.errore || 'Scanner desktop non disponibile.');
+        }
+        showPreview(data.scan.data_url, 'Acquisizione scanner desktop');
+      } catch (error) {
+        setFeedback(error.message || 'Errore scanner desktop.', 'warning');
+      }
+    }
+
+    modalEl.querySelector('[data-acquisition-action="desktop-scan"]')?.addEventListener('click', scanDesktop);
+    modalEl.querySelector('[data-acquisition-action="webcam"]')?.addEventListener('click', startWebcam);
+    modalEl.querySelector('[data-acquisition-action="camera"]')?.addEventListener('click', () => acquisition.cameraInput.click());
+    modalEl.querySelector('[data-acquisition-action="file"]')?.addEventListener('click', () => acquisition.fileInput.click());
+    acquisition.captureBtn?.addEventListener('click', () => {
+      const video = acquisition.webcam;
+      const canvas = acquisition.canvas;
+      if (!video.videoWidth || !video.videoHeight) {
+        setFeedback('La webcam non e ancora pronta.', 'warning');
+        return;
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      showPreview(canvas.toDataURL('image/jpeg', 0.92), 'Acquisizione webcam');
+    });
+    modalEl.querySelector('[data-acquisition-back]')?.addEventListener('click', showSource);
+    modalEl.querySelector('[data-acquisition-repeat]')?.addEventListener('click', showSource);
+    modalEl.querySelector('[data-acquisition-insert]')?.addEventListener('click', () => {
+      if (!acquisition.currentEditorId || !acquisition.currentDataUrl) return;
+      insertImage(acquisition.currentEditorId, acquisition.currentDataUrl, acquisition.currentLabel || 'Documento acquisito');
+      acquisition.modal.hide();
+    });
+    acquisition.cameraInput?.addEventListener('change', (event) => {
+      readImageFile(event.target.files?.[0]);
+      event.target.value = '';
+    });
+    acquisition.fileInput?.addEventListener('change', (event) => {
+      readImageFile(event.target.files?.[0]);
+      event.target.value = '';
+    });
+    modalEl.addEventListener('hidden.bs.modal', () => {
+      stopWebcam();
+      showSource();
+    });
+    acquisition.showSource = showSource;
+    return acquisition;
+  }
+
+  function openAcquisition(editorId) {
+    const acq = ensureAcquisition();
+    acq.currentEditorId = editorId;
+    acq.showSource();
+    acq.modal.show();
+  }
+
   document.addEventListener('DOMContentLoaded', () => initAll());
 
   return {
     initAll,
     sync,
     syncAll,
+    applyLayout,
     insertText,
+    insertImage,
     getPlainText,
+    openAcquisition,
   };
 })();
 </script>

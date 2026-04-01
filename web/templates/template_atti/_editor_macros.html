@@ -1,6 +1,31 @@
-{% macro professional_editor(name, value='', editor_id='professional-editor', placeholder="Scrivi qui il contenuto dell'atto", min_height='720px') -%}
-<div class="legal-editor-root" id="{{ editor_id }}-root" data-editor-root data-editor-id="{{ editor_id }}" data-placeholder="{{ placeholder }}">
+{% macro professional_editor(
+  name,
+  value='',
+  editor_id='professional-editor',
+  placeholder="Scrivi qui il contenuto dell'atto",
+  min_height='720px',
+  layout=None,
+  enable_layout_controls=true,
+  enable_acquisition=false
+) -%}
+{% set resolved_layout = layout or editor_preferences or editor_default_preferences %}
+<div
+  class="legal-editor-root"
+  id="{{ editor_id }}-root"
+  data-editor-root
+  data-editor-id="{{ editor_id }}"
+  data-placeholder="{{ placeholder }}"
+  data-editor-layout='{{ resolved_layout|tojson|safe }}'
+  data-editor-default-layout='{{ editor_default_preferences|tojson|safe }}'
+  data-layout-save-url="{{ url_for('template_atti.salva_editor_layout') }}"
+  data-layout-reset-url="{{ url_for('template_atti.reset_editor_layout') }}"
+  data-scanner-url="{{ url_for('template_atti.scanner_windows_scan') }}"
+  data-enable-layout-controls="{{ 'true' if enable_layout_controls else 'false' }}"
+  data-enable-acquisition="{{ 'true' if enable_acquisition else 'false' }}"
+>
   <textarea name="{{ name }}" id="{{ editor_id }}-source" data-editor-source class="d-none">{{ value }}</textarea>
+  <input type="hidden" name="{{ name }}__editor_layout" id="{{ editor_id }}-layout" data-editor-layout-input value='{{ resolved_layout|tojson|safe }}'>
+
   <div class="legal-editor-shell border-0 shadow-sm">
     <div class="legal-editor-toolbar" data-editor-toolbar>
       <div class="legal-editor-toolbar-group">
@@ -62,7 +87,87 @@
           <i class="bi bi-arrow-clockwise"></i>
         </button>
       </div>
+      {% if enable_layout_controls %}
+      <div class="legal-editor-divider"></div>
+      <div class="legal-editor-toolbar-group ms-auto">
+        <button type="button" class="btn btn-sm btn-outline-primary legal-editor-action" data-editor-toggle-layout>
+          <i class="bi bi-sliders2 me-1"></i>Impaginazione
+        </button>
+      </div>
+      {% endif %}
+      {% if enable_acquisition %}
+      <div class="legal-editor-toolbar-group">
+        <button type="button" class="btn btn-sm btn-outline-secondary legal-editor-action" data-editor-open-acquisition>
+          <i class="bi bi-camera me-1"></i>Scanner / fotocamera
+        </button>
+      </div>
+      {% endif %}
     </div>
+
+    {% if enable_layout_controls %}
+    <div class="legal-editor-layout-panel d-none" data-editor-layout-panel>
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Font</label>
+          <select class="form-select form-select-sm" data-layout-field="font_family">
+            {% for font in editor_font_choices %}
+            <option value="{{ font.key }}" data-font-stack="{{ font.css_stack }}" {{ 'selected' if resolved_layout.font_family == font.key else '' }}>
+              {{ font.label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Corpo</label>
+          <input type="number" class="form-control form-control-sm" min="9" max="18" step="1" value="{{ resolved_layout.font_size_pt }}" data-layout-field="font_size_pt">
+        </div>
+        <div class="col-sm-6 col-lg-2">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Interlinea</label>
+          <input type="number" class="form-control form-control-sm" min="1.2" max="2.6" step="0.05" value="{{ resolved_layout.line_height }}" data-layout-field="line_height">
+        </div>
+        <div class="col-sm-6 col-lg-2">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Paragrafo</label>
+          <input type="number" class="form-control form-control-sm" min="0" max="18" step="1" value="{{ resolved_layout.paragraph_spacing_pt }}" data-layout-field="paragraph_spacing_pt">
+        </div>
+        <div class="col-sm-6 col-lg-2">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Allineamento</label>
+          <select class="form-select form-select-sm" data-layout-field="text_align">
+            <option value="justify" {{ 'selected' if resolved_layout.text_align == 'justify' else '' }}>Giustificato</option>
+            <option value="left" {{ 'selected' if resolved_layout.text_align == 'left' else '' }}>Sinistra</option>
+            <option value="center" {{ 'selected' if resolved_layout.text_align == 'center' else '' }}>Centrato</option>
+            <option value="right" {{ 'selected' if resolved_layout.text_align == 'right' else '' }}>Destra</option>
+          </select>
+        </div>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-sm-6 col-lg-3">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Margine alto (mm)</label>
+          <input type="number" class="form-control form-control-sm" min="10" max="45" step="1" value="{{ resolved_layout.margin_top_mm }}" data-layout-field="margin_top_mm">
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Margine destro (mm)</label>
+          <input type="number" class="form-control form-control-sm" min="10" max="40" step="1" value="{{ resolved_layout.margin_right_mm }}" data-layout-field="margin_right_mm">
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Margine basso (mm)</label>
+          <input type="number" class="form-control form-control-sm" min="10" max="45" step="1" value="{{ resolved_layout.margin_bottom_mm }}" data-layout-field="margin_bottom_mm">
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <label class="form-label small text-muted text-uppercase fw-semibold mb-1">Margine sinistro (mm)</label>
+          <input type="number" class="form-control form-control-sm" min="15" max="50" step="1" value="{{ resolved_layout.margin_left_mm }}" data-layout-field="margin_left_mm">
+        </div>
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap mt-3">
+        <button type="button" class="btn btn-sm btn-primary" data-editor-save-layout>
+          <i class="bi bi-floppy me-1"></i>Salva come predefinito
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-editor-reset-layout>
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+        </button>
+        <span class="small text-muted" data-editor-layout-status></span>
+      </div>
+    </div>
+    {% endif %}
 
     <div class="legal-editor-stage">
       <div class="legal-editor-page" data-editor-surface contenteditable="true" spellcheck="true" style="min-height: {{ min_height }};"></div>

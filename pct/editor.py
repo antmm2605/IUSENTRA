@@ -20,6 +20,7 @@ Nota sul supporto PDF:
 """
 from __future__ import annotations
 
+import base64
 import io
 import re
 from pathlib import Path
@@ -542,12 +543,15 @@ def html_to_docx(html: str, titolo: str = "Documento") -> bytes:
 # ─────────────────────────────────────────────── HTML → PDF
 # Usa reportlab (già in requirements) — nessuna dipendenza di sistema aggiuntiva
 
-def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
+def html_to_pdf(html: str, titolo: str = "Documento", layout: Optional[dict] = None) -> bytes:
     """
     Converte HTML in PDF tramite reportlab (già installato).
 
     Gestisce: paragrafi, H1-H4, grassetto, corsivo, liste,
-    tabelle di base, linee orizzontali.
+    tabelle di base, linee orizzontali e immagini base64.
+
+    Il parametro opzionale ``layout`` permette di allineare font,
+    interlinea e margini al preset dell'editor atti.
 
     Returns:
         bytes del file PDF
@@ -557,7 +561,7 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
     try:
         from reportlab.platypus import (
             SimpleDocTemplate, Paragraph, Spacer,
-            Table, TableStyle, HRFlowable, ListFlowable, ListItem,
+            Table, TableStyle, HRFlowable, ListFlowable, ListItem, Image as RLImage,
         )
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.pagesizes import A4
@@ -572,31 +576,86 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
     except ImportError:
         raise ImportError("lxml non installato")
 
+    try:
+        from pct.template_atti import font_editor, normalizza_editor_layout
+        layout_cfg = normalizza_editor_layout(layout or {})
+        font_meta = font_editor(layout_cfg["font_family"])
+    except Exception:
+        layout_cfg = {
+            "font_size_pt": 12,
+            "line_height": 1.9,
+            "text_align": "justify",
+            "margin_top_mm": 25,
+            "margin_right_mm": 22,
+            "margin_bottom_mm": 25,
+            "margin_left_mm": 32,
+            "paragraph_spacing_pt": 8,
+        }
+        font_meta = {"pdf_family": "times"}
+
+    pdf_family = (font_meta.get("pdf_family") or "times").lower()
+    font_bundle = {
+        "times": {
+            "normal": "Times-Roman",
+            "bold": "Times-Bold",
+            "italic": "Times-Italic",
+            "bold_italic": "Times-BoldItalic",
+        },
+        "helvetica": {
+            "normal": "Helvetica",
+            "bold": "Helvetica-Bold",
+            "italic": "Helvetica-Oblique",
+            "bold_italic": "Helvetica-BoldOblique",
+        },
+        "courier": {
+            "normal": "Courier",
+            "bold": "Courier-Bold",
+            "italic": "Courier-Oblique",
+            "bold_italic": "Courier-BoldOblique",
+        },
+    }.get(pdf_family, {
+        "normal": "Times-Roman",
+        "bold": "Times-Bold",
+        "italic": "Times-Italic",
+        "bold_italic": "Times-BoldItalic",
+    })
+
+    font_size = layout_cfg["font_size_pt"]
+    leading = round(font_size * layout_cfg["line_height"], 1)
+    paragraph_spacing = layout_cfg["paragraph_spacing_pt"]
+    alignment = {
+        "justify": TA_JUSTIFY,
+        "left": TA_LEFT,
+        "center": TA_CENTER,
+        "right": TA_RIGHT,
+    }.get(layout_cfg["text_align"], TA_JUSTIFY)
+
     # ── Stili ────────────────────────────────────────────────
     base = getSampleStyleSheet()
     st_normal = ParagraphStyle(
         "LegalNormal", parent=base["Normal"],
-        fontName="Times-Roman", fontSize=12, leading=18,
-        spaceAfter=6, alignment=TA_JUSTIFY,
+        fontName=font_bundle["normal"], fontSize=font_size, leading=leading,
+        spaceAfter=paragraph_spacing, alignment=alignment,
     )
     st_h1 = ParagraphStyle(
         "LegalH1", parent=base["Heading1"],
-        fontName="Times-Bold", fontSize=16, leading=20,
+        fontName=font_bundle["bold"], fontSize=round(font_size * 1.45, 1), leading=round(leading * 1.15, 1),
         spaceBefore=12, spaceAfter=6,
+        alignment=TA_CENTER,
     )
     st_h2 = ParagraphStyle(
         "LegalH2", parent=base["Heading2"],
-        fontName="Times-Bold", fontSize=14, leading=18,
+        fontName=font_bundle["bold"], fontSize=round(font_size * 1.2, 1), leading=round(leading * 1.08, 1),
         spaceBefore=10, spaceAfter=4,
     )
     st_h3 = ParagraphStyle(
         "LegalH3", parent=base["Heading3"],
-        fontName="Times-Bold", fontSize=13, leading=16,
+        fontName=font_bundle["bold"], fontSize=round(font_size * 1.08, 1), leading=round(leading * 1.02, 1),
         spaceBefore=8, spaceAfter=4,
     )
     st_h4 = ParagraphStyle(
         "LegalH4", parent=base["Normal"],
-        fontName="Times-Bold", fontSize=12, leading=16,
+        fontName=font_bundle["bold"], fontSize=round(font_size * 1.02, 1), leading=round(leading, 1),
         spaceBefore=6, spaceAfter=4,
         underlineWidth=0.5,
     )
@@ -607,7 +666,12 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
     st_quote = ParagraphStyle(
         "LegalQuote", parent=st_normal,
         leftIndent=36, rightIndent=18,
-        fontName="Times-Italic", textColor=colors.HexColor("#555555"),
+        fontName=font_bundle["italic"], textColor=colors.HexColor("#555555"),
+    )
+    st_caption = ParagraphStyle(
+        "LegalCaption", parent=base["Normal"],
+        fontName=font_bundle["italic"], fontSize=max(font_size - 2, 8), leading=max(leading - 2, 10),
+        alignment=TA_CENTER, textColor=colors.HexColor("#64748b"), spaceAfter=6,
     )
 
     # Mappa tag → stile
@@ -620,7 +684,9 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
             html_clean.encode("utf-8"),
             parser=etree.HTMLParser(encoding="utf-8"),
         )
-        body = root.find(".//body") or root
+        body = root.find(".//body")
+        if body is None:
+            body = root
     except Exception:
         body = None
 
@@ -645,6 +711,27 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
                 parts.append(child.tail)
         return "".join(parts)
 
+    def _image_flowable_from_src(src: str):
+        if not src:
+            return None
+        match = re.match(r"^data:image/[^;]+;base64,(.+)$", src, flags=re.I | re.S)
+        if not match:
+            return None
+        try:
+            image_bytes = base64.b64decode(match.group(1))
+        except Exception:
+            return None
+        try:
+            img = RLImage(io.BytesIO(image_bytes))
+            usable_width = A4[0] - ((layout_cfg["margin_left_mm"] + layout_cfg["margin_right_mm"]) / 10.0 * cm)
+            if img.drawWidth > usable_width:
+                ratio = usable_width / float(img.drawWidth)
+                img.drawWidth = usable_width
+                img.drawHeight = img.drawHeight * ratio
+            return img
+        except Exception:
+            return None
+
     # ── Costruisce flowables ──────────────────────────────────
     story = []
 
@@ -657,7 +744,12 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
             return
 
         if tag in ("p", "div"):
+            child_tags = [(child.tag or "").lower().split("}")[-1] for child in el]
             rich = _node_to_rich(el)
+            if any(child_tag in ("img", "figure") for child_tag in child_tags) and not rich.strip():
+                for child in el:
+                    _process(child)
+                return
             if rich.strip():
                 story.append(Paragraph(rich, st_normal))
             else:
@@ -684,6 +776,25 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
             story.append(Paragraph(rich, st_quote))
             return
 
+        if tag == "figure":
+            for child in el:
+                _process(child)
+            story.append(Spacer(1, 0.15 * cm))
+            return
+
+        if tag == "figcaption":
+            rich = _node_to_rich(el)
+            if rich.strip():
+                story.append(Paragraph(rich, st_caption))
+            return
+
+        if tag == "img":
+            image = _image_flowable_from_src(el.get("src", ""))
+            if image:
+                story.append(image)
+                story.append(Spacer(1, 0.2 * cm))
+            return
+
         if tag == "table":
             rows_data = []
             for tr in el.findall(".//tr"):
@@ -702,8 +813,8 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
                 tbl.setStyle(TableStyle([
                     ("GRID",      (0, 0), (-1, -1), 0.5, colors.HexColor("#999999")),
                     ("BACKGROUND",(0, 0), (-1, 0),  colors.HexColor("#f0f0f0")),
-                    ("FONTNAME",  (0, 0), (-1, 0),  "Times-Bold"),
-                    ("FONTSIZE",  (0, 0), (-1, -1), 10),
+                    ("FONTNAME",  (0, 0), (-1, 0),  font_bundle["bold"]),
+                    ("FONTSIZE",  (0, 0), (-1, -1), max(font_size - 1, 9)),
                     ("TOPPADDING",(0, 0), (-1, -1), 4),
                     ("BOTTOMPADDING",(0, 0), (-1, -1), 4),
                 ]))
@@ -735,10 +846,10 @@ def html_to_pdf(html: str, titolo: str = "Documento") -> bytes:
     doc = SimpleDocTemplate(
         buf,
         pagesize=A4,
-        rightMargin=2.5 * cm,
-        leftMargin=4.0 * cm,   # margine sinistro legale italiano
-        topMargin=3.0 * cm,
-        bottomMargin=2.5 * cm,
+        rightMargin=(layout_cfg["margin_right_mm"] / 10.0) * cm,
+        leftMargin=(layout_cfg["margin_left_mm"] / 10.0) * cm,
+        topMargin=(layout_cfg["margin_top_mm"] / 10.0) * cm,
+        bottomMargin=(layout_cfg["margin_bottom_mm"] / 10.0) * cm,
         title=titolo,
         author="HACS - Studio Legale PCT",
     )

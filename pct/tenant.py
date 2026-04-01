@@ -652,6 +652,7 @@ class GestioneTenant:
             "NOTIFICHE_LOG":     f"{base}/notifiche/log.json",
             "PAGAMENTI_DIR":     f"{base}/pagamenti",
             "TEMPLATE_ATTI_DB":  f"{base}/template_atti/templates.json",
+            "TEMPLATE_ATTI_PREFS_DB": f"{base}/template_atti/editor_layout.json",
         }
 
     # ---- Helper

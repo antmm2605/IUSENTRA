@@ -177,7 +177,8 @@
     <div class="card-body py-4">
       <form method="post" enctype="multipart/form-data" id="form-upload">
         <input type="hidden" name="fase" value="upload">
-        <input type="hidden" name="sorgente" id="input-sorgente" value="generico">
+        <input type="hidden" name="modalita_import" value="file">
+        <input type="hidden" name="sorgente" id="input-sorgente-file" value="generico">
 
         {# Drop zone #}
         <div id="drop-zone" class="drop-zone mb-4"
@@ -195,6 +196,24 @@
         <input type="file" id="file_ics" name="file_ics" accept=".ics,.ical"
                class="d-none" required>
 
+        <div class="row g-3 mb-4">
+          <div class="col-md-7">
+            <label class="form-label small text-muted">Tipo predefinito</label>
+            <select class="form-select" name="default_tipo">
+              <option value="ALTRO">Altro</option>
+              <option value="UDIENZA">Udienza</option>
+              <option value="CONSULTAZIONE">Consultazione</option>
+              <option value="RIUNIONE">Riunione</option>
+              <option value="SCADENZA">Scadenza</option>
+              <option value="DEPOSITO">Deposito</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small text-muted">Promemoria (min)</label>
+            <input type="number" class="form-control" name="default_reminder_minuti" value="60" min="0" step="5">
+          </div>
+        </div>
+
         <div class="d-flex gap-2 justify-content-end">
           <a href="{{ url_for('agenda_view') }}" class="ds-btn ds-btn-ghost">Annulla</a>
           <button type="submit" class="ds-btn ds-btn-primary" id="btn-analizza" disabled>
@@ -211,6 +230,69 @@
     Il file viene elaborato localmente sul server — nessun dato viene inviato a servizi esterni.
   </p>
 
+  <div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-transparent border-bottom py-3">
+      <h6 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-link-45deg text-success"></i>
+        Collega calendario remoto (ICS / WebCal)
+      </h6>
+    </div>
+    <div class="card-body py-4">
+      <form method="post" id="form-url-sync">
+        <input type="hidden" name="fase" value="upload">
+        <input type="hidden" name="modalita_import" value="url">
+        <input type="hidden" name="sorgente" id="input-sorgente-url" value="generico">
+
+        <div class="mb-3">
+          <label class="form-label">URL calendario</label>
+          <input type="url" class="form-control font-monospace" name="source_url"
+                 placeholder="https://... oppure webcal://..." required>
+          <div class="form-text">Il gestionale legge il feed ICS, mostra l’anteprima e può salvarlo come sincronizzazione interna.</div>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" value="1" id="salva-profilo" name="salva_profilo" checked>
+          <label class="form-check-label" for="salva-profilo">Salva anche come profilo di sincronizzazione</label>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Nome profilo</label>
+          <input type="text" class="form-control" name="profile_name" placeholder="Es. Agenda personale Google">
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-7">
+            <label class="form-label small text-muted">Tipo predefinito</label>
+            <select class="form-select" name="default_tipo">
+              <option value="ALTRO">Altro</option>
+              <option value="UDIENZA">Udienza</option>
+              <option value="CONSULTAZIONE">Consultazione</option>
+              <option value="RIUNIONE">Riunione</option>
+              <option value="SCADENZA">Scadenza</option>
+              <option value="DEPOSITO">Deposito</option>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small text-muted">Promemoria (min)</label>
+            <input type="number" class="form-control" name="default_reminder_minuti" value="60" min="0" step="5">
+          </div>
+        </div>
+
+        <div class="alert border-0 small mb-4" style="background:rgba(25,135,84,.08);color:#146c43">
+          <i class="bi bi-shield-check me-1"></i>
+          Ideale per Google, Outlook, Apple e agende esterne che pubblicano un link ICS/WebCal.
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end">
+          <a href="{{ url_for('agenda_view') }}" class="ds-btn ds-btn-ghost">Annulla</a>
+          <button type="submit" class="ds-btn ds-btn-primary">
+            <i class="bi bi-search me-1"></i>Analizza URL
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>{# /col #}
 </div>{# /row #}
 
@@ -221,6 +303,7 @@
   <input type="hidden" name="fase" value="importa">
   <input type="hidden" name="sorgente" value="{{ sorgente }}">
   <input type="hidden" name="eventi_json" value="{{ eventi_json }}">
+  <input type="hidden" name="import_metadata_json" value="{{ import_metadata_json }}">
 
   <div class="row g-3 mb-3 align-items-center">
     <div class="col">
@@ -244,6 +327,11 @@
         <a href="{{ url_for('importa_calendario') }}" class="small text-muted">
           <i class="bi bi-arrow-counterclockwise me-1"></i>Importa un altro file
         </a>
+        {% if source_url %}
+        <span class="text-muted small">
+          <i class="bi bi-link-45deg me-1"></i>{{ source_url }}
+        </span>
+        {% endif %}
       </div>
     </div>
     <div class="col-auto d-flex gap-2">
@@ -486,7 +574,8 @@ document.querySelectorAll('.sorgente-card').forEach(card => {
     document.querySelectorAll('.sorgente-card').forEach(c => c.classList.remove('sorgente-selezionata'));
     this.classList.add('sorgente-selezionata');
     const s = this.dataset.sorgente;
-    document.getElementById('input-sorgente').value = s;
+    document.getElementById('input-sorgente-file').value = s;
+    document.getElementById('input-sorgente-url').value = s;
     document.getElementById('istr-testo').innerHTML = ISTRUZIONI[s] || ISTRUZIONI.generico;
   });
 });
@@ -534,6 +623,12 @@ dropZone.addEventListener('drop', function(e) {
 document.getElementById('form-upload').addEventListener('submit', function() {
   btnAnalizza.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analisi in corso…';
   btnAnalizza.disabled = true;
+});
+
+document.getElementById('form-url-sync').addEventListener('submit', function() {
+  const btn = this.querySelector('button[type="submit"]');
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analisi in corso…';
+  btn.disabled = true;
 });
 
 {% elif fase == "preview" %}

@@ -202,6 +202,58 @@ def start_scheduler(app):
     def _legal_monitor_pst():
         _run_legal_monitor(["pst_giustizia"], "pst")
 
+    def _calendar_sync_targets():
+        if app.config.get("MULTI_TENANT"):
+            try:
+                from pct.tenant import GestioneTenant, StatoTenant
+
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                found = False
+                for studio in tm.lista():
+                    if studio.stato == StatoTenant.SOSPESO:
+                        continue
+                    paths = tm.percorsi_dati(studio.slug)
+                    found = True
+                    yield studio.slug, paths["AGENDA_DB"], paths["CALENDAR_SYNC_DB"]
+                if found:
+                    return
+            except Exception as e:
+                logger.warning("[scheduler] Calendar sync multi-tenant non disponibile: %s", e)
+        yield "default", app.config["AGENDA_DB"], app.config.get("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json")
+
+    @scheduler.scheduled_job(CronTrigger(minute=12), id="calendar_sync_hourly")
+    def _calendar_sync_hourly():
+        with app.app_context():
+            try:
+                from pct.agenda import Agenda
+                from pct.calendar_sync import GestioneCalendarSync
+
+                processed_targets = 0
+                synced_profiles = 0
+                failed_profiles = 0
+                for label, agenda_db, sync_db in _calendar_sync_targets():
+                    gestore = GestioneCalendarSync(db_path=sync_db)
+                    if not gestore.list_profiles():
+                        continue
+                    report = gestore.sync_enabled_profiles(agenda=Agenda(db_path=agenda_db))
+                    processed_targets += 1
+                    synced_profiles += report.get("successful", 0)
+                    failed_profiles += report.get("failed", 0)
+                    logger.info(
+                        "[scheduler] Calendar sync %s: %d ok / %d fallite",
+                        label,
+                        report.get("successful", 0),
+                        report.get("failed", 0),
+                    )
+                if processed_targets:
+                    logger.info(
+                        "[scheduler] Calendar sync completato: %d profili ok / %d falliti",
+                        synced_profiles,
+                        failed_profiles,
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Calendar sync fallito: %s", e)
+
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler

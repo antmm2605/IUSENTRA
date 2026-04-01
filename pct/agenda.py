@@ -8,9 +8,11 @@ import json
 import uuid
 from datetime import datetime, date, timedelta
 from pathlib import Path
-from typing import Optional, List
+from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, asdict, field
 from enum import Enum
+
+from pct.ical_import import EventoImportato
 
 
 class TipoAppuntamento(str, Enum):
@@ -49,6 +51,14 @@ class Appuntamento:
     tribunale: str = ""
     avvocato: str = ""
     reminder_minuti: int = 60            # reminder N minuti prima
+    external_uid: str = ""               # UID RFC 5545 per sync esterne
+    external_provider: str = ""          # google/outlook/apple/webcal/...
+    external_source_url: str = ""        # URL ICS/WebCal sorgente
+    external_profile_id: str = ""        # profilo sync interno
+    external_organizer: str = ""         # organizzatore originario
+    external_rrule: str = ""             # ricorrenza sorgente
+    external_hash: str = ""              # impronta semplificata ultimo contenuto
+    external_last_sync: str = ""         # ultimo sync riuscito
     creato_il: str = field(default_factory=lambda: datetime.now().isoformat())
     modificato_il: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -185,6 +195,36 @@ class Agenda:
     def get(self, id_app: str) -> Optional[Appuntamento]:
         return self._appuntamenti.get(id_app)
 
+    def trova_per_uid_esterno(
+        self,
+        uid: str,
+        *,
+        provider: str = "",
+        profile_id: str = "",
+    ) -> Optional[Appuntamento]:
+        uid = (uid or "").strip()
+        if not uid:
+            return None
+        candidati = [
+            app for app in self._appuntamenti.values()
+            if (app.external_uid or "").strip() == uid
+        ]
+        if profile_id:
+            match = next(
+                (app for app in candidati if (app.external_profile_id or "") == profile_id),
+                None,
+            )
+            if match:
+                return match
+        if provider:
+            match = next(
+                (app for app in candidati if (app.external_provider or "") == provider),
+                None,
+            )
+            if match:
+                return match
+        return candidati[0] if candidati else None
+
     def tutti(self) -> List[Appuntamento]:
         return sorted(self._appuntamenti.values(), key=lambda a: a.data_ora)
 
@@ -287,7 +327,7 @@ class Agenda:
         return app
 
     def _controlla_sovrapposizioni(
-        self, data_ora: str, durata_minuti: int
+        self, data_ora: str, durata_minuti: int, exclude_id: str = ""
     ) -> List[Appuntamento]:
         """Restituisce appuntamenti che si sovrappongono con la finestra data."""
         nuovo_inizio = datetime.fromisoformat(data_ora)
@@ -295,11 +335,196 @@ class Agenda:
 
         sovrapposti = []
         for a in self._appuntamenti.values():
+            if exclude_id and a.id == exclude_id:
+                continue
             if a.stato in (StatoAppuntamento.ANNULLATO, StatoAppuntamento.COMPLETATO):
                 continue
             if a.data_ora_dt < nuovo_fine and a.fine_dt > nuovo_inizio:
                 sovrapposti.append(a)
         return sovrapposti
+
+    def _normalizza_tipo_importato(self, tipo: TipoAppuntamento | str | None) -> TipoAppuntamento:
+        if isinstance(tipo, TipoAppuntamento):
+            return tipo
+        try:
+            return TipoAppuntamento(str(tipo or TipoAppuntamento.ALTRO.value))
+        except ValueError:
+            return TipoAppuntamento.ALTRO
+
+    def _note_da_evento_importato(
+        self,
+        evento: EventoImportato,
+        *,
+        provider: str = "",
+        source_url: str = "",
+    ) -> str:
+        parts: List[str] = []
+        if evento.descrizione:
+            parts.append(evento.descrizione.strip())
+        if evento.organizzatore:
+            parts.append(f"Organizzatore: {evento.organizzatore.strip()}")
+        if evento.rrule:
+            parts.append("Evento ricorrente: il gestionale sincronizza l'occorrenza presente nel feed.")
+        provider_label = (provider or "Calendario esterno").replace("_", " ").replace("-", " ").strip().title()
+        parts.append(f"Sincronizzato da: {provider_label}")
+        if source_url:
+            parts.append(f"Sorgente: {source_url}")
+        if evento.uid:
+            parts.append(f"UID esterno: {evento.uid}")
+        return "\n".join(part for part in parts if part)
+
+    def _payload_da_evento_importato(
+        self,
+        evento: EventoImportato,
+        *,
+        provider: str = "",
+        source_url: str = "",
+        profile_id: str = "",
+        default_tipo: TipoAppuntamento | str | None = None,
+        reminder_minuti: int = 60,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        current_time = now or datetime.now()
+        event_uid = (evento.uid or "").strip()
+        if evento.tutto_giorno:
+            data_ora = f"{evento.data_ora}T09:00:00"
+            durata = min(max(int(evento.durata_minuti or 1440), 60), 1440)
+        else:
+            data_ora = evento.data_ora
+            durata = max(int(evento.durata_minuti or 60), 1)
+        if not event_uid:
+            event_uid = "|".join(
+                [
+                    (provider or "").strip(),
+                    (profile_id or "").strip(),
+                    (evento.titolo or "").strip(),
+                    data_ora,
+                    (evento.luogo or "").strip(),
+                ]
+            )
+
+        stato = StatoAppuntamento.ANNULLATO if evento.stato_ical == "CANCELLED" else StatoAppuntamento.PROGRAMMATO
+        external_hash = "|".join(
+            [
+                evento.titolo or "",
+                data_ora,
+                str(durata),
+                evento.luogo or "",
+                evento.descrizione or "",
+                evento.stato_ical or "",
+                evento.organizzatore or "",
+                evento.rrule or "",
+            ]
+        )
+        return {
+            "titolo": (evento.titolo or "Evento calendario").strip(),
+            "tipo": self._normalizza_tipo_importato(default_tipo),
+            "data_ora": data_ora,
+            "durata_minuti": durata,
+            "luogo": (evento.luogo or "").strip(),
+            "stato": stato,
+            "note": self._note_da_evento_importato(evento, provider=provider, source_url=source_url),
+            "reminder_minuti": max(int(reminder_minuti or 60), 0),
+            "external_uid": event_uid,
+            "external_provider": (provider or "").strip(),
+            "external_source_url": (source_url or "").strip(),
+            "external_profile_id": (profile_id or "").strip(),
+            "external_organizer": (evento.organizzatore or "").strip(),
+            "external_rrule": (evento.rrule or "").strip(),
+            "external_hash": external_hash,
+            "external_last_sync": current_time.isoformat(),
+        }
+
+    def upsert_da_evento_importato(
+        self,
+        evento: EventoImportato,
+        *,
+        provider: str = "",
+        source_url: str = "",
+        profile_id: str = "",
+        default_tipo: TipoAppuntamento | str | None = None,
+        reminder_minuti: int = 60,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        payload = self._payload_da_evento_importato(
+            evento,
+            provider=provider,
+            source_url=source_url,
+            profile_id=profile_id,
+            default_tipo=default_tipo,
+            reminder_minuti=reminder_minuti,
+            now=now,
+        )
+        esistente = self.trova_per_uid_esterno(
+            evento.uid,
+            provider=provider,
+            profile_id=profile_id,
+        )
+
+        if esistente:
+            conflitti = self._controlla_sovrapposizioni(
+                payload["data_ora"],
+                int(payload["durata_minuti"]),
+                exclude_id=esistente.id,
+            )
+            if conflitti:
+                return {
+                    "outcome": "conflict",
+                    "appuntamento": esistente,
+                    "message": ", ".join(a.titolo for a in conflitti),
+                }
+            campi_verifica = (
+                "titolo",
+                "tipo",
+                "data_ora",
+                "durata_minuti",
+                "luogo",
+                "stato",
+                "note",
+                "reminder_minuti",
+                "external_source_url",
+                "external_profile_id",
+                "external_organizer",
+                "external_rrule",
+                "external_hash",
+            )
+            if all(getattr(esistente, key) == payload[key] for key in campi_verifica):
+                return {
+                    "outcome": "skipped",
+                    "appuntamento": esistente,
+                    "message": "Evento gia allineato.",
+                }
+            aggiornato = self.modifica(esistente.id, **payload)
+            return {
+                "outcome": "updated",
+                "appuntamento": aggiornato,
+                "message": "Evento esterno aggiornato.",
+            }
+
+        conflitti = self._controlla_sovrapposizioni(
+            payload["data_ora"],
+            int(payload["durata_minuti"]),
+        )
+        if conflitti:
+            return {
+                "outcome": "conflict",
+                "appuntamento": None,
+                "message": ", ".join(a.titolo for a in conflitti),
+            }
+
+        creato = self.aggiungi(
+            titolo=payload.pop("titolo"),
+            tipo=payload.pop("tipo"),
+            data_ora=payload.pop("data_ora"),
+            durata_minuti=payload.pop("durata_minuti"),
+            luogo=payload.pop("luogo"),
+            **payload,
+        )
+        return {
+            "outcome": "created",
+            "appuntamento": creato,
+            "message": "Evento esterno creato.",
+        }
 
     def statistiche(self) -> dict:
         """Riepilogo statistiche agenda."""

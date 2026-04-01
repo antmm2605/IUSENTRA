@@ -232,6 +232,13 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
     )
+    app.config["CALENDAR_SYNC_DB"] = cfg.get(
+        "CALENDAR_SYNC_DB",
+        os.getenv(
+            "PCT_CALENDAR_SYNC_DB",
+            str(Path(app.config["AGENDA_DB"]).parent / "calendar_sync.json"),
+        ),
+    )
     app.config["CLIENTI_DB"] = cfg.get(
         "CLIENTI_DB", os.getenv("PCT_CLIENTI_DB", "./clienti/anagrafica.json")
     )
@@ -421,22 +428,32 @@ def create_app(config: dict | None = None) -> Flask:
         app.config.setdefault("SMTP_FROM_NAME", app.config.get("STUDIO_NOME", "Studio Legale"))
         app.config.setdefault("SMTP_USE_TLS",   True)
 
+    def _cfg_data_path(key: str) -> str:
+        paths = getattr(g, "data_paths", {}) or {}
+        return paths.get(key, app.config[key])
+
     def get_agenda() -> Agenda:
         if not hasattr(g, "_agenda"):
-            g._agenda = Agenda(db_path=app.config["AGENDA_DB"])
+            g._agenda = Agenda(db_path=_cfg_data_path("AGENDA_DB"))
         return g._agenda
+
+    def get_calendar_sync():
+        if not hasattr(g, "_calendar_sync"):
+            from pct.calendar_sync import GestioneCalendarSync
+            g._calendar_sync = GestioneCalendarSync(db_path=_cfg_data_path("CALENDAR_SYNC_DB"))
+        return g._calendar_sync
 
     def get_clienti() -> GestioneClienti:
         if not hasattr(g, "_clienti"):
-            g._clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+            g._clienti = GestioneClienti(db_path=_cfg_data_path("CLIENTI_DB"))
         return g._clienti
 
     def get_fascicoli() -> GestioneFascicoli:
         if not hasattr(g, "_fascicoli"):
             g._fascicoli = GestioneFascicoli(
-                db_path=app.config["FASCICOLI_DB"],
-                documents_dir=app.config["FASCICOLI_DOCS"],
-                archive_dir=app.config["FASCICOLI_ARCH"],
+                db_path=_cfg_data_path("FASCICOLI_DB"),
+                documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
+                archive_dir=_cfg_data_path("FASCICOLI_ARCH"),
             )
         return g._fascicoli
 
@@ -656,7 +673,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_scadenziario() -> GestioneScadenziario:
         if not hasattr(g, "_scadenziario"):
-            g._scadenziario = GestioneScadenziario(db_path=app.config["SCADENZIARIO_DB"])
+            g._scadenziario = GestioneScadenziario(db_path=_cfg_data_path("SCADENZIARIO_DB"))
         return g._scadenziario
 
     def get_soggetti() -> GestioneSoggetti:
@@ -1863,16 +1880,98 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.agenda import TipoAppuntamento, StatoAppuntamento
 
         fase = request.form.get("fase", "")
+        calendar_sync = get_calendar_sync()
+
+        def _render_upload_form(**extra):
+            context = {
+                "fase": "upload_form",
+                "sorgente": "generico",
+                "profili_sync": calendar_sync.list_profiles(),
+                "oggi": date.today(),
+            }
+            context.update(extra)
+            return render_template("importa_calendario.html", **context)
+
+        def _render_preview(*, sorgente, eventi, import_metadata, source_url="", content_type=""):
+            return render_template(
+                "importa_calendario.html",
+                fase="preview",
+                sorgente=sorgente,
+                eventi=eventi,
+                eventi_json=_json.dumps([evento_to_dict(e) for e in eventi], ensure_ascii=False),
+                import_metadata_json=_json.dumps(import_metadata, ensure_ascii=False),
+                source_url=source_url,
+                content_type=content_type,
+                profili_sync=calendar_sync.list_profiles(),
+                oggi=date.today(),
+            )
+
+        if request.method == "GET":
+            return _render_upload_form()
 
         # ── Fase 1: upload + parsing
         if request.method == "POST" and fase == "upload":
+            import hashlib as _hashlib
+
+            modalita_import = request.form.get("modalita_import", "file")
             sorgente = request.form.get("sorgente", "generico")
+            default_tipo = request.form.get("default_tipo", TipoAppuntamento.ALTRO.value)
+            reminder_raw = request.form.get("default_reminder_minuti", "60")
+            try:
+                default_reminder_minuti = max(int(reminder_raw or 60), 0)
+            except (TypeError, ValueError):
+                default_reminder_minuti = 60
+
+            if modalita_import == "url":
+                source_url = request.form.get("source_url", "").strip()
+                save_profile = request.form.get("salva_profilo") == "1"
+                profile_name = (request.form.get("profile_name", "") or "").strip()
+                if not source_url:
+                    flash("Inserisci l'URL del calendario remoto.", "warning")
+                    return _render_upload_form(
+                        sorgente=sorgente,
+                        modalita_import=modalita_import,
+                        source_url=source_url,
+                    )
+                try:
+                    preview = calendar_sync.preview_remote_calendar(source_url)
+                    eventi = preview["events"]
+                except Exception as e:
+                    app.logger.exception("Errore preview calendario remoto: %s", e)
+                    flash(f"Impossibile leggere il calendario remoto: {e}", "danger")
+                    return _render_upload_form(
+                        sorgente=sorgente,
+                        modalita_import=modalita_import,
+                        source_url=source_url,
+                    )
+                if not eventi:
+                    flash("Il calendario remoto non contiene eventi validi.", "warning")
+                    return _render_upload_form(
+                        sorgente=sorgente,
+                        modalita_import=modalita_import,
+                        source_url=source_url,
+                    )
+                import_metadata = {
+                    "modalita_import": "url",
+                    "provider": sorgente or "webcal",
+                    "source_url": preview["source_url"],
+                    "source_hash": preview["source_hash"],
+                    "save_profile": save_profile,
+                    "profile_name": profile_name or "Calendario esterno",
+                    "default_tipo": default_tipo,
+                    "default_reminder_minuti": default_reminder_minuti,
+                }
+                return _render_preview(
+                    sorgente=sorgente,
+                    eventi=eventi,
+                    import_metadata=import_metadata,
+                    source_url=preview["source_url"],
+                    content_type=preview.get("content_type", ""),
+                )
             file = request.files.get("file_ics")
             if not file or not file.filename:
                 flash("Nessun file selezionato.", "warning")
-                return render_template("importa_calendario.html",
-                                       fase="upload_form", sorgente=sorgente,
-                                       oggi=date.today())
+                return _render_upload_form(sorgente=sorgente, modalita_import=modalita_import)
             # Leggi contenuto
             raw = file.read()
             # Rileva encoding (UTF-16 usato da alcune versioni Outlook/Apple)
@@ -1889,36 +1988,40 @@ def create_app(config: dict | None = None) -> Flask:
             except Exception as e:
                 app.logger.exception("Errore parsing ICS: %s", e)
                 flash(f"Errore nell'analisi del file: {e}", "danger")
-                return render_template("importa_calendario.html",
-                                       fase="upload_form", sorgente=sorgente,
-                                       oggi=date.today())
+                return _render_upload_form(sorgente=sorgente, modalita_import=modalita_import)
 
             if not eventi:
                 flash("Il file non contiene eventi validi.", "warning")
-                return render_template("importa_calendario.html",
-                                       fase="upload_form", sorgente=sorgente,
-                                       oggi=date.today())
+                return _render_upload_form(sorgente=sorgente, modalita_import=modalita_import)
 
-            eventi_dict = [evento_to_dict(e) for e in eventi]
-            return render_template(
-                "importa_calendario.html",
-                fase="preview",
+            import_metadata = {
+                "modalita_import": "file",
+                "provider": f"manual_{sorgente}",
+                "source_url": "",
+                "source_hash": _hashlib.sha256(raw).hexdigest(),
+                "filename": file.filename,
+                "save_profile": False,
+                "profile_name": "",
+                "default_tipo": default_tipo,
+                "default_reminder_minuti": default_reminder_minuti,
+            }
+            return _render_preview(
                 sorgente=sorgente,
                 eventi=eventi,
-                eventi_json=_json.dumps(eventi_dict, ensure_ascii=False),
-                oggi=date.today(),
+                import_metadata=import_metadata,
             )
 
         # ── Fase 2: importa eventi selezionati
         if request.method == "POST" and fase == "importa":
-            import json as _json
             sorgente = request.form.get("sorgente", "generico")
             # Gli indici degli eventi selezionati
             selezionati_str = request.form.getlist("sel")
             eventi_json_str = request.form.get("eventi_json", "[]")
+            import_metadata_str = request.form.get("import_metadata_json", "{}")
 
             try:
                 tutti_eventi_dict = _json.loads(eventi_json_str)
+                import_metadata = _json.loads(import_metadata_str or "{}")
             except Exception:
                 flash("Errore nei dati del form. Riprova.", "danger")
                 return redirect(url_for("importa_calendario"))
@@ -1941,6 +2044,105 @@ def create_app(config: dict | None = None) -> Flask:
                 return redirect(url_for("importa_calendario"))
 
             agenda = get_agenda()
+            provider = import_metadata.get("provider") or f"manual_{sorgente}"
+            source_url = import_metadata.get("source_url", "")
+            default_tipo = import_metadata.get("default_tipo", TipoAppuntamento.ALTRO.value)
+            reminder_minuti = int(import_metadata.get("default_reminder_minuti", 60) or 60)
+            profile_id = ""
+            if import_metadata.get("save_profile") and source_url:
+                profile_name = (import_metadata.get("profile_name", "") or "").strip() or "Calendario esterno"
+                profilo_esistente = next(
+                    (
+                        profilo for profilo in calendar_sync.list_profiles()
+                        if (profilo.get("source_url") or "").strip() == source_url
+                        and (profilo.get("provider") or "").strip() == provider
+                    ),
+                    None,
+                )
+                if profilo_esistente:
+                    profilo = calendar_sync.update_profile(
+                        profilo_esistente["id"],
+                        nome=profile_name,
+                        enabled=True,
+                        default_tipo=default_tipo,
+                        default_reminder_minuti=reminder_minuti,
+                        source_url=source_url,
+                    )
+                else:
+                    profilo = calendar_sync.create_profile(
+                        nome=profile_name,
+                        provider=provider,
+                        source_url=source_url,
+                        default_tipo=default_tipo,
+                        default_reminder_minuti=reminder_minuti,
+                        enabled=True,
+                    )
+                profile_id = profilo["id"]
+
+            importati = 0
+            aggiornati = 0
+            saltati = 0
+            conflitti = 0
+            titoli_err: list = []
+
+            for ev in eventi_da_importare:
+                try:
+                    report = agenda.upsert_da_evento_importato(
+                        ev,
+                        provider=provider,
+                        source_url=source_url,
+                        profile_id=profile_id,
+                        default_tipo=default_tipo,
+                        reminder_minuti=reminder_minuti,
+                    )
+                    outcome = report.get("outcome")
+                    if outcome == "created":
+                        importati += 1
+                    elif outcome == "updated":
+                        aggiornati += 1
+                    elif outcome == "conflict":
+                        conflitti += 1
+                        titoli_err.append(f"{ev.titolo} ({report.get('message', 'conflitto')})")
+                    else:
+                        saltati += 1
+                except ValueError as e:
+                    conflitti += 1
+                    titoli_err.append(f"{ev.titolo} ({e})")
+                except Exception as e:
+                    saltati += 1
+                    app.logger.warning("Import evento '%s': %s", ev.titolo, e)
+
+            msg_parts = []
+            if importati:
+                msg_parts.append(f"{importati} eventi creati.")
+            if aggiornati:
+                msg_parts.append(f"{aggiornati} eventi aggiornati.")
+            if conflitti:
+                msg_parts.append(f"{conflitti} con conflitto di orario (saltati).")
+            if saltati:
+                msg_parts.append(f"{saltati} gia allineati o non importati.")
+            if not msg_parts:
+                msg_parts.append("Nessun cambiamento da importare.")
+            flash(" ".join(msg_parts), "success" if (importati or aggiornati) else "warning")
+
+            if titoli_err:
+                flash("Conflitti: " + "; ".join(titoli_err[:5]), "warning")
+
+            if profile_id and source_url:
+                calendar_sync.update_profile(
+                    profile_id,
+                    last_sync_at=datetime.now().replace(microsecond=0).isoformat(),
+                    last_status="ok",
+                    last_message="Import iniziale completato dal wizard agenda.",
+                    last_created=importati,
+                    last_updated=aggiornati,
+                    last_skipped=saltati,
+                    last_conflicts=conflitti,
+                    last_source_hash=import_metadata.get("source_hash", ""),
+                )
+                flash("Profilo sincronizzazione salvato nelle impostazioni calendario.", "success")
+
+            return redirect(url_for("agenda_view"))
             importati   = 0
             saltati     = 0
             conflitti   = 0
@@ -7772,6 +7974,25 @@ read -r -p "Premi Invio per chiudere..." _
         return Response(ical_str, mimetype="text/calendar; charset=utf-8",
                         headers={"Content-Disposition": "attachment; filename=scadenze.ics"})
 
+    @app.route("/calendario/completo/export.ics")
+    def calendario_completo_ical():
+        from pct.ical import agenda_scadenze_to_ical
+        ag = get_agenda()
+        gs = get_scadenziario()
+        studio_nome = app.config.get("STUDIO_NOME", "Studio Legale PCT")
+        base_url = _get_base_url()
+        ical_str = agenda_scadenze_to_ical(
+            ag.tutti(),
+            gs.tutte(),
+            studio_nome=studio_nome,
+            base_url=base_url,
+        )
+        return Response(
+            ical_str,
+            mimetype="text/calendar; charset=utf-8",
+            headers={"Content-Disposition": "attachment; filename=calendario-completo.ics"},
+        )
+
     # ----------------------------------------------------------------
     # WebCal — feed live per subscription automatica
     # URL: /cal/<token>/agenda.ics  (webcal:// o https://)
@@ -7780,7 +8001,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     def _cal_token_dir() -> str:
         """Directory dove viene salvato il token (accanto all'agenda DB)."""
-        agenda_db = app.config.get("AGENDA_DB", "./agenda/appuntamenti.json")
+        agenda_db = _cfg_data_path("AGENDA_DB")
         return os.path.dirname(os.path.abspath(agenda_db))
 
     def _cal_token_valido(token: str) -> bool:
@@ -7862,6 +8083,8 @@ read -r -p "Premi Invio per chiudere..." _
         token_data = get_token(_cal_token_dir())
         token = token_data["token"]
         base = _get_base_url()
+        calendar_sync = get_calendar_sync()
+        agenda = get_agenda()
         feeds = {
             "agenda":   f"{base}/cal/{token}/agenda.ics",
             "scadenze": f"{base}/cal/{token}/scadenze.ics",
@@ -7879,6 +8102,9 @@ read -r -p "Premi Invio per chiudere..." _
             token_creato=token_data.get("creato_il", ""),
             feeds=feeds,
             gcal_url=gcal_completo,
+            profili_sync=calendar_sync.list_profiles(),
+            profili_attivi=sum(1 for p in calendar_sync.list_profiles() if p.get("enabled", True)),
+            eventi_agenda=len(agenda.tutti()),
         )
 
     @app.route("/impostazioni/calendario/rigenera", methods=["POST"])
@@ -7886,6 +8112,84 @@ read -r -p "Premi Invio per chiudere..." _
         from pct.cal_token import rigenera_token
         rigenera_token(_cal_token_dir())
         flash("Token calendario rigenerato. Aggiorna i link nei tuoi calendari.", "success")
+        return redirect(url_for("impostazioni_calendario"))
+
+    @app.route("/impostazioni/calendario/profili", methods=["POST"])
+    def crea_profilo_calendario():
+        calendar_sync = get_calendar_sync()
+        nome = (request.form.get("nome", "") or "").strip() or "Calendario esterno"
+        source_url = (request.form.get("source_url", "") or "").strip()
+        provider = (request.form.get("provider", "") or "").strip() or "webcal"
+        default_tipo = request.form.get("default_tipo", TipoAppuntamento.ALTRO.value)
+        reminder_raw = request.form.get("default_reminder_minuti", "60")
+        try:
+            reminder = max(int(reminder_raw or 60), 0)
+        except (TypeError, ValueError):
+            reminder = 60
+        if not source_url:
+            flash("Inserisci l'URL del calendario remoto.", "warning")
+            return redirect(url_for("impostazioni_calendario"))
+        try:
+            preview = calendar_sync.preview_remote_calendar(source_url)
+            profile = calendar_sync.create_profile(
+                nome=nome,
+                provider=provider,
+                source_url=preview["source_url"],
+                default_tipo=default_tipo,
+                default_reminder_minuti=reminder,
+                enabled=True,
+            )
+            flash(f"Profilo calendario '{profile['nome']}' creato.", "success")
+        except Exception as e:
+            app.logger.exception("Errore crea profilo calendario: %s", e)
+            flash(f"Impossibile creare il profilo calendario: {e}", "danger")
+        return redirect(url_for("impostazioni_calendario"))
+
+    @app.route("/impostazioni/calendario/profili/<profile_id>/sync", methods=["POST"])
+    def sync_profilo_calendario(profile_id):
+        calendar_sync = get_calendar_sync()
+        agenda = get_agenda()
+        try:
+            report = calendar_sync.sync_profile(profile_id, agenda=agenda)
+            flash(
+                "Sincronizzazione completata: "
+                f"{report['created']} creati, {report['updated']} aggiornati, "
+                f"{report['skipped']} saltati, {report['conflicts']} conflitti.",
+                "success",
+            )
+        except Exception as e:
+            app.logger.exception("Errore sync profilo calendario %s: %s", profile_id, e)
+            try:
+                calendar_sync.mark_sync_error(profile_id, str(e))
+            except Exception:
+                pass
+            flash(f"Sincronizzazione non riuscita: {e}", "danger")
+        return redirect(url_for("impostazioni_calendario"))
+
+    @app.route("/impostazioni/calendario/profili/<profile_id>/toggle", methods=["POST"])
+    def toggle_profilo_calendario(profile_id):
+        calendar_sync = get_calendar_sync()
+        try:
+            profilo = calendar_sync.get_profile(profile_id)
+            if not profilo:
+                flash("Profilo calendario non trovato.", "warning")
+                return redirect(url_for("impostazioni_calendario"))
+            calendar_sync.update_profile(profile_id, enabled=not bool(profilo.get("enabled", True)))
+            flash("Profilo calendario aggiornato.", "success")
+        except Exception as e:
+            app.logger.exception("Errore toggle profilo calendario %s: %s", profile_id, e)
+            flash(f"Impossibile aggiornare il profilo: {e}", "danger")
+        return redirect(url_for("impostazioni_calendario"))
+
+    @app.route("/impostazioni/calendario/profili/<profile_id>/elimina", methods=["POST"])
+    def elimina_profilo_calendario(profile_id):
+        calendar_sync = get_calendar_sync()
+        try:
+            calendar_sync.delete_profile(profile_id)
+            flash("Profilo calendario eliminato.", "success")
+        except Exception as e:
+            app.logger.exception("Errore elimina profilo calendario %s: %s", profile_id, e)
+            flash(f"Impossibile eliminare il profilo: {e}", "danger")
         return redirect(url_for("impostazioni_calendario"))
 
     # ----------------------------------------------------------------

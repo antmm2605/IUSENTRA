@@ -635,6 +635,7 @@ class GestioneTenant:
         base = str(self._data_dir(slug))
         return {
             "AGENDA_DB":         f"{base}/agenda/appuntamenti.json",
+            "CALENDAR_SYNC_DB":  f"{base}/agenda/calendar_sync.json",
             "CLIENTI_DB":        f"{base}/clienti/anagrafica.json",
             "CONDIVISIONI_DB":   f"{base}/clienti/condivisioni.json",
             "FASCICOLI_DB":      f"{base}/fascicoli/fascicoli.json",

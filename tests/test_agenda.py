@@ -4,6 +4,7 @@ import pytest
 from datetime import date, datetime, timedelta
 
 from pct.agenda import Agenda, Appuntamento, TipoAppuntamento, StatoAppuntamento
+from pct.ical_import import EventoImportato
 
 
 @pytest.fixture
@@ -217,3 +218,75 @@ def test_serializzazione_roundtrip(agenda):
     assert ricostruito.tipo == app.tipo
     assert ricostruito.stato == app.stato
     assert ricostruito.note == app.note
+
+
+def test_upsert_evento_esterno_crea_e_aggiorna(agenda):
+    evento = EventoImportato(
+        uid="evt-123",
+        titolo="Call cliente",
+        data_ora=_domani_ore("10:00"),
+        durata_minuti=45,
+        luogo="Teams",
+        descrizione="Prima versione",
+        organizzatore="calendar@example.com",
+    )
+    creato = agenda.upsert_da_evento_importato(
+        evento,
+        provider="google",
+        source_url="https://calendar.example.com/feed.ics",
+        profile_id="prof1",
+        default_tipo=TipoAppuntamento.RIUNIONE,
+        reminder_minuti=30,
+    )
+    assert creato["outcome"] == "created"
+    assert len(agenda.tutti()) == 1
+    app = agenda.tutti()[0]
+    assert app.external_uid == "evt-123"
+    assert app.tipo == TipoAppuntamento.RIUNIONE
+    assert app.reminder_minuti == 30
+
+    evento_aggiornato = EventoImportato(
+        uid="evt-123",
+        titolo="Call cliente aggiornata",
+        data_ora=_domani_ore("11:00"),
+        durata_minuti=60,
+        luogo="Studio",
+        descrizione="Seconda versione",
+        organizzatore="calendar@example.com",
+    )
+    aggiornato = agenda.upsert_da_evento_importato(
+        evento_aggiornato,
+        provider="google",
+        source_url="https://calendar.example.com/feed.ics",
+        profile_id="prof1",
+        default_tipo=TipoAppuntamento.RIUNIONE,
+        reminder_minuti=30,
+    )
+    assert aggiornato["outcome"] == "updated"
+    assert len(agenda.tutti()) == 1
+    app_finale = agenda.tutti()[0]
+    assert app_finale.titolo == "Call cliente aggiornata"
+    assert app_finale.data_ora.endswith("11:00:00")
+
+
+def test_upsert_evento_esterno_skippa_se_gia_allineato(agenda):
+    evento = EventoImportato(
+        uid="evt-456",
+        titolo="Evento stabile",
+        data_ora=_domani_ore("12:00"),
+        durata_minuti=30,
+    )
+    agenda.upsert_da_evento_importato(
+        evento,
+        provider="outlook",
+        source_url="https://outlook.example.com/calendar.ics",
+        profile_id="prof2",
+    )
+    report = agenda.upsert_da_evento_importato(
+        evento,
+        provider="outlook",
+        source_url="https://outlook.example.com/calendar.ics",
+        profile_id="prof2",
+    )
+    assert report["outcome"] == "skipped"
+    assert len(agenda.tutti()) == 1

@@ -97,7 +97,10 @@ def _detect_protection_page(final_url: str, content: bytes) -> bool:
 
 def _requires_tls_fallback(url: str) -> bool:
     host = (urlparse(url or "").hostname or "").lower()
-    return host.endswith("giustizia-amministrativa.it")
+    return (
+        host.endswith("giustizia-amministrativa.it")
+        or host.endswith("giustizia.it")
+    )
 
 
 def _severity_rank(level: str) -> int:
@@ -631,68 +634,95 @@ class GestioneLegalIntelligence:
         label: str,
         official_url: str,
         monitor_url: str,
+        monitor_urls: Optional[List[str]] = None,
         latest_hash: str = "",
         fetch: Optional[Callable[..., Any]] = None,
         now: Optional[datetime] = None,
+        change_detection: str = "content_hash",
     ) -> Dict[str, Any]:
+        candidates = []
+        for candidate in [monitor_url, *(monitor_urls or [])]:
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+
         current_time = now or datetime.now()
-        response, used_tls_fallback = self._fetch_response(fetch or requests.get, monitor_url)
-        content = bytes(getattr(response, "content", b"") or b"")[:MAX_MONITOR_BYTES]
-        status_code = int(getattr(response, "status_code", 0) or 0)
-        headers = getattr(response, "headers", {}) or {}
-        content_type = str(headers.get("content-type", "") or "")
-        final_url = str(getattr(response, "url", monitor_url) or monitor_url)
-        status = "ok" if status_code < 400 else "errore"
-        comparison_mode = "raw"
-        warning = ""
-        changed = False
+        last_payload: Optional[Dict[str, Any]] = None
 
-        if status == "ok" and _detect_protection_page(final_url, content):
-            comparison_mode = "challenge_guard"
-            content_hash = latest_hash or _sha256(b"challenge_guard")
-            warning = "Controllo limitato da pagina di protezione applicativa."
-        else:
-            normalized = _normalize_textual_payload(content, content_type, final_url)
-            comparison_mode = "normalized_text" if normalized != content else "raw"
-            content_hash = _sha256(normalized)
-            changed = bool(status == "ok" and latest_hash and latest_hash != content_hash)
-            if status != "ok":
-                warning = f"HTTP {status_code}"
+        for index, candidate in enumerate(candidates):
+            response, used_tls_fallback = self._fetch_response(fetch or requests.get, candidate)
+            content = bytes(getattr(response, "content", b"") or b"")[:MAX_MONITOR_BYTES]
+            status_code = int(getattr(response, "status_code", 0) or 0)
+            headers = getattr(response, "headers", {}) or {}
+            content_type = str(headers.get("content-type", "") or "")
+            final_url = str(getattr(response, "url", candidate) or candidate)
+            status = "ok" if status_code < 400 else "errore"
+            comparison_mode = "raw"
+            warning = ""
+            changed = False
 
-        if used_tls_fallback:
-            extra = "Verifica TLS ridotta per compatibilita del certificato remoto."
-            warning = f"{warning} {extra}".strip()
+            if status == "ok" and _detect_protection_page(final_url, content):
+                comparison_mode = "challenge_guard"
+                content_hash = latest_hash or _sha256(b"challenge_guard")
+                warning = "Controllo limitato da pagina di protezione applicativa."
+            elif change_detection == "availability_only" and status == "ok":
+                comparison_mode = "availability_only"
+                content_hash = latest_hash or _sha256((official_url or final_url or label).encode("utf-8"))
+                changed = False
+            else:
+                normalized = _normalize_textual_payload(content, content_type, final_url)
+                comparison_mode = "normalized_text" if normalized != content else "raw"
+                content_hash = _sha256(normalized)
+                changed = bool(status == "ok" and latest_hash and latest_hash != content_hash)
+                if status != "ok":
+                    warning = f"HTTP {status_code}"
 
-        notes: List[str] = []
-        if comparison_mode == "normalized_text":
-            notes.append("confronto testo stabile")
-        elif comparison_mode == "challenge_guard":
-            notes.append("pagina protetta")
-        if used_tls_fallback:
-            notes.append("retry TLS compatibile")
-        if changed:
-            notes.append("contenuto modificato")
-        summary = f"{label}: HTTP {status_code or 'n/d'} - hash {content_hash[:12]}"
-        if notes:
-            summary += " - " + " - ".join(notes)
+            if used_tls_fallback:
+                extra = "Verifica TLS ridotta per compatibilita del certificato remoto."
+                warning = f"{warning} {extra}".strip()
 
-        return {
-            "id": uuid.uuid4().hex,
-            "checked_at": _now_iso(current_time),
-            "acquired_at": _now_iso(current_time),
-            "official_url": official_url,
-            "monitor_url": monitor_url,
-            "final_url": final_url,
-            "status": status,
-            "status_code": status_code,
-            "content_hash": content_hash,
-            "content_type": content_type,
-            "size_bytes": len(content),
-            "changed": changed,
-            "comparison_mode": comparison_mode,
-            "summary": summary,
-            "warning": warning,
-        }
+            notes: List[str] = []
+            if comparison_mode == "normalized_text":
+                notes.append("confronto testo stabile")
+            elif comparison_mode == "challenge_guard":
+                notes.append("pagina protetta")
+            elif comparison_mode == "availability_only":
+                notes.append("controllo disponibilita")
+            if used_tls_fallback:
+                notes.append("retry TLS compatibile")
+            if changed:
+                notes.append("contenuto modificato")
+            if index > 0 and status == "ok":
+                notes.append("fonte alternativa ufficiale")
+                extra = "Monitoraggio continuato tramite fonte alternativa ufficiale."
+                warning = f"{warning} {extra}".strip()
+            summary = f"{label}: HTTP {status_code or 'n/d'} - hash {content_hash[:12]}"
+            if notes:
+                summary += " - " + " - ".join(notes)
+
+            payload = {
+                "id": uuid.uuid4().hex,
+                "checked_at": _now_iso(current_time),
+                "acquired_at": _now_iso(current_time),
+                "official_url": official_url,
+                "monitor_url": candidate,
+                "final_url": final_url,
+                "status": status,
+                "status_code": status_code,
+                "content_hash": content_hash,
+                "content_type": content_type,
+                "size_bytes": len(content),
+                "changed": changed,
+                "comparison_mode": comparison_mode,
+                "summary": summary,
+                "warning": warning,
+            }
+            last_payload = payload
+            if status == "ok":
+                return payload
+
+        if last_payload is None:
+            raise RuntimeError(f"Impossibile controllare la fonte {label}.")
+        return last_payload
 
     def _freshness_status(self, source: FonteUfficiale, run: Optional[MonitorRun]) -> str:
         if run is None:
@@ -922,9 +952,11 @@ class GestioneLegalIntelligence:
                     label=source.title,
                     official_url=source.url,
                     monitor_url=source.url,
+                    monitor_urls=list(getattr(source, "monitor_urls", []) or []),
                     latest_hash=str((source_checks.get(code) or {}).get("content_hash", "") or ""),
                     fetch=request_get,
                     now=current_time,
+                    change_detection=str(getattr(source, "change_detection", "content_hash") or "content_hash"),
                 )
             except Exception as exc:
                 source_code_runs[code] = {

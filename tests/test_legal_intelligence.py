@@ -5,6 +5,7 @@ from pct.legal_intelligence import (
     GestioneLegalIntelligence,
     costruisci_tracker_fascicolo,
 )
+from pct.normative_tables import FONTI_OPERATIVE, FonteOperativa
 
 
 class DummyResponse:
@@ -110,6 +111,40 @@ def test_recent_alerts_escludono_fonti_risolte(tmp_path):
         alert["source_id"] == "normattiva" and alert["alert_type"] == "fonte_non_raggiungibile"
         for alert in alerts
     )
+
+
+def test_sync_normativo_usa_fallback_per_fonte_operativa(tmp_path):
+    originale = FONTI_OPERATIVE["cu_viterbo"]
+    FONTI_OPERATIVE["cu_viterbo"] = FonteOperativa(
+        code=originale.code,
+        title=originale.title,
+        url="https://primary.example.test/cu",
+        note=originale.note,
+        monitor_urls=["https://backup.example.test/cu"],
+        change_detection="availability_only",
+    )
+    try:
+        db_path = tmp_path / "intelligence.json"
+        normative_path = tmp_path / "tabelle_normative.json"
+        gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+        def fake_get(url, **kwargs):
+            if "primary.example.test" in url:
+                return DummyResponse(b"ko", status_code=503, url=url)
+            return DummyResponse(b"ok", status_code=200, url=url)
+
+        report = gestore.sync_normative_tables(
+            source_ids=["normattiva", "gazzetta_ufficiale"],
+            request_get=fake_get,
+        )
+        checks = gestore.normative_tables.source_checks()
+
+        assert report["processed_tables"] >= 1
+        assert checks["cu_viterbo"]["status"] == "ok"
+        assert checks["cu_viterbo"]["final_url"] == "https://backup.example.test/cu"
+        assert checks["cu_viterbo"]["comparison_mode"] == "availability_only"
+    finally:
+        FONTI_OPERATIVE["cu_viterbo"] = originale
 
 
 def test_dashboard_snapshot_espone_contatore_riferimenti_normativi(tmp_path):

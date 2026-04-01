@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
@@ -51,6 +51,8 @@ class FonteOperativa:
     title: str
     url: str
     note: str = ""
+    monitor_urls: List[str] = field(default_factory=list)
+    change_detection: str = "content_hash"
 
     def to_dict(self) -> Dict[str, str]:
         return asdict(self)
@@ -124,15 +126,21 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "cu_viterbo": FonteOperativa(
         code="cu_viterbo",
-        title="Tribunale di Viterbo - tabelle contributo unificato",
-        url="https://www.tribunale.viterbo.giustizia.it/it/Content/Index/58499",
-        note="Tabella pratica per iscrizione a ruolo civile e decreti ingiuntivi.",
+        title="Portali uffici giudiziari - tabella contributo unificato civile",
+        url="https://tribunale-matera.giustizia.it/it/contributo_unificato.page",
+        note=(
+            "Fonte pratica ufficiale di supporto per iscrizione a ruolo civile e decreti ingiuntivi, "
+            "con mirror su portali uffici giudiziari."
+        ),
+        monitor_urls=["https://www.tribunale.viterbo.giustizia.it/it/Content/Index/58499"],
+        change_detection="availability_only",
     ),
     "cu_admin": FonteOperativa(
         code="cu_admin",
         title="Giustizia Amministrativa - Carta dei servizi TAR Calabria",
         url="https://www.giustizia-amministrativa.it/documents/20142/17127638/T.A.R.%2BCalabria_sede%2Bdi%2BCatanzaro%2B-%2BCarta%2Bdei%2Bservizi%2B2022_QRcode.pdf/86de0520-27bb-2db2-733b-a58ac97df323?t=1671443142000",
         note="Importi ufficiali pubblicati per ricorsi ordinari, rito abbreviato, appalti e ottemperanza.",
+        change_detection="availability_only",
     ),
     "interesse_legale_2024": FonteOperativa(
         code="interesse_legale_2024",

@@ -2326,8 +2326,21 @@ def create_app(config: dict | None = None) -> Flask:
             return mapping.get(fase_value, fase_value)
 
         def _preferred_grade(gradi: list[str]) -> str:
-            if "Tribunale" in gradi:
-                return "Tribunale"
+            ordine = [
+                "Tribunale",
+                "Fuori giudizio",
+                "Procedura ADR",
+                "TAR",
+                "CGT di primo grado",
+                "Giudice di Pace",
+                "Corte d'Appello",
+                "Corte di Cassazione",
+                "Consiglio di Stato",
+                "CGT di secondo grado",
+            ]
+            for voce in ordine:
+                if voce in gradi:
+                    return voce
             return gradi[0] if gradi else Grado.TRIBUNALE.value
 
         def _esborsi_catalogo(tp, accessori_ids: list[str]) -> list[dict]:

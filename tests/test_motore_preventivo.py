@@ -41,6 +41,7 @@ def test_mediazione_riporta_anche_il_regolamento_spese_post_cartabia():
     scheda = redattore_preventivo_iniziale("mediazione")
     titles = {ref["title"] for ref in scheda["normative_references"]}
     assert "D.M. 24 ottobre 2023, n. 150" in titles
+    assert "Ministero della Giustizia" in titles
 
 
 def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():

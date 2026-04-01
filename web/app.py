@@ -3336,9 +3336,13 @@ read -r -p "Premi Invio per chiudere..." _
             from pct.uffici_giudiziari import get_gestore
             q    = request.args.get("q", "").strip()
             tipo = request.args.get("tipo", "")
+            try:
+                limit = int(request.args.get("limit", "20") or "20")
+            except ValueError:
+                limit = 20
             cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
             gestore = get_gestore(cache_path)
-            return jsonify(gestore.cerca(q, tipo))
+            return jsonify(gestore.cerca(q, tipo, limit=limit))
         except Exception as e:
             app.logger.exception("Errore api_uffici: %s", e)
             return jsonify([]), 200  # restituisce lista vuota per non bloccare l'autocomplete

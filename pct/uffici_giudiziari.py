@@ -1081,24 +1081,36 @@ class GestoreUfficiGiudiziari:
             self._salva(bundle, sorgente="bundle")
         return self._mem
 
-    def cerca(self, q: str, tipo: str = "") -> list[dict]:
-        """Ricerca full-text + filtro tipo. Restituisce max 20 risultati."""
+    def cerca(self, q: str, tipo: str = "", limit: int = 20) -> list[dict]:
+        """Ricerca full-text + filtro tipo. Restituisce un numero limitato di risultati."""
         q = q.strip()
         if len(q) < 2:
             return []
         slug_q = _n(q)
         q_up   = q.upper()
         tipo_u = tipo.upper() if tipo else ""
+        limit = max(1, min(int(limit or 20), 50))
         out: list[dict] = []
         for u in self.carica():
             if tipo_u and u.get("tipo") != tipo_u:
                 continue
-            if (slug_q in _n(u["nome"]) or
-                    slug_q in _n(u.get("distretto", "")) or
-                    q_up in u["nome"].upper() or
-                    q_up in u.get("distretto", "").upper()):
+            campi = (
+                u.get("nome", ""),
+                u.get("distretto", ""),
+                u.get("descrizione_ministero", ""),
+                u.get("comune_ministero", ""),
+                u.get("tipo_ministero_descrizione", ""),
+                u.get("regione_ministero", ""),
+                u.get("provincia_ministero", ""),
+                u.get("codice_ministero", ""),
+            )
+            if any(
+                slug_q in _n(str(val)) or q_up in str(val).upper()
+                for val in campi
+                if val
+            ):
                 out.append(u)
-            if len(out) >= 20:
+            if len(out) >= limit:
                 break
         return out
 

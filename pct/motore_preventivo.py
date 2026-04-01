@@ -994,6 +994,7 @@ _URL_CPP = (
 _URL_CPA = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-07-02%3B104"
 _URL_TRIBUTARIO = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A1992-12-31%3B546"
 _URL_MEDIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-03-04%3B28"
+_URL_REGISTRO_MEDIAZIONE_INFO = "https://www.giustizia.it/giustizia/it/mg_3_4_15.page"
 _URL_NEGOZIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legge%3A2014-09-12%3B132"
 _URL_DM150_MEDIAZIONE = (
     "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
@@ -1016,6 +1017,12 @@ _RIF_MEDIAZIONE_LOCAZIONE = [
         "article": "spese e indennita di mediazione",
         "description": "Disciplina delle spese, indennita e maggiorazioni applicabili nella procedura di mediazione dopo la riforma Cartabia.",
         "url": _URL_DM150_MEDIAZIONE,
+    },
+    {
+        "title": "Ministero della Giustizia",
+        "article": "registro organismi di mediazione",
+        "description": "Scheda ministeriale per verificare il registro ufficiale degli organismi di mediazione e le modalita tecniche di consultazione del portale dedicato.",
+        "url": _URL_REGISTRO_MEDIAZIONE_INFO,
     },
 ]
 
@@ -1263,6 +1270,18 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "article": "spese e indennita di mediazione",
                 "description": "Criteri di iscrizione, indennita e spese degli organismi di mediazione dopo la riforma Cartabia.",
                 "url": _URL_DM150_MEDIAZIONE,
+            }
+        )
+        refs.append(
+            {
+                "title": "Ministero della Giustizia",
+                "article": "registro organismi di mediazione",
+                "description": (
+                    "La scheda ministeriale del registro, aggiornata al 4 marzo 2026, rinvia al portale "
+                    "ufficiale degli organismi di mediazione e segnala l'uso di Microsoft Edge in "
+                    "modalita compatibilita con Internet Explorer per la consultazione."
+                ),
+                "url": _URL_REGISTRO_MEDIAZIONE_INFO,
             }
         )
     if tp.id == "negoziazione_assistita":

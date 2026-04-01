@@ -88,6 +88,15 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://www.consiglionazionaleforense.it/",
         note="Fonte primaria per professione forense, codice deontologico e riferimenti professionali.",
     ),
+    "registro_mediazione_portale": FonteOperativa(
+        code="registro_mediazione_portale",
+        title="Ministero della Giustizia - Registro organismi di mediazione",
+        url="https://www.giustizia.it/giustizia/it/mg_3_4_15.page",
+        note=(
+            "Scheda ministeriale del registro organismi di mediazione, con rinvio al portale "
+            "mediazione.giustizia.it e indicazioni ufficiali di consultazione."
+        ),
+    ),
     "pst_portale": FonteOperativa(
         code="pst_portale",
         title="PST Giustizia - portale ufficiale",
@@ -223,6 +232,9 @@ def _watch_source_ids_for_url(url: str) -> List[str]:
         ("normattiva.it", "normattiva"),
         ("gazzettaufficiale.it", "gazzetta_ufficiale"),
         ("consiglionazionaleforense.it", "cnf"),
+        ("mediazione.giustizia.it", "registro_mediazione"),
+        ("mg_3_4_15.page", "registro_mediazione"),
+        ("registro_organismi_mediazione", "registro_mediazione"),
         ("pst.giustizia.it", "pst_giustizia"),
         ("giustizia-amministrativa.it", "giustizia_amministrativa"),
         ("cortedicassazione.it", "cassazione"),
@@ -241,6 +253,7 @@ def _source_codes_for_watch_ids(source_ids: Iterable[str]) -> List[str]:
         "normattiva": "normattiva_portale",
         "gazzetta_ufficiale": "gazzetta_ufficiale_portale",
         "cnf": "cnf_portale",
+        "registro_mediazione": "registro_mediazione_portale",
         "pst_giustizia": "pst_portale",
         "giustizia_amministrativa": "giustizia_amministrativa_portale",
         "cassazione": "cassazione_portale",
@@ -459,6 +472,36 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             ],
             "published_at": "2002-08-05",
             "effective_from": "2002-08-05",
+        },
+        "registro_organismi_mediazione": {
+            "id": "registro_organismi_mediazione",
+            "title": "Registro organismi di mediazione",
+            "category": "registri_ministeriali",
+            "description": (
+                "Metadata ufficiali del registro ministeriale degli organismi di mediazione, "
+                "utili per verifiche operative, checklist ADR e preventivi."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["registro_mediazione_portale"],
+            "watch_source_ids": ["registro_mediazione"],
+            "rows": [
+                {
+                    "registry_code": "rom",
+                    "title": "Registro degli organismi di mediazione",
+                    "official_info_url": "https://www.giustizia.it/giustizia/it/mg_3_4_15.page",
+                    "official_registry_url": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                    "consultation_mode": "Microsoft Edge in modalita compatibilita con Internet Explorer",
+                    "responsible_office": "Dipartimento per gli affari di giustizia - Reparto IV - Registri e Albi",
+                    "support_email": "assistenza.mediazione.dgcivile.dag@giustizia.it",
+                    "notes": (
+                        "Scheda ministeriale aggiornata al 4 marzo 2026; il portale albi, registri ed elenchi "
+                        "risulta aggiornato al 30 marzo 2026."
+                    ),
+                }
+            ],
+            "defaults": {"registry_kind": "organismi_mediazione"},
+            "published_at": "2026-03-04",
+            "effective_from": "2026-03-04",
         },
     }
     reference_definition = canonical_reference_catalog_definition()

@@ -270,6 +270,23 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         capability="Codice deontologico, normativa professionale e parametri forensi.",
         notes="Riferimento per preventivi, incarichi ed alert deontologici.",
     ),
+    "registro_mediazione": FonteUfficiale(
+        id="registro_mediazione",
+        nome="Registro organismi di mediazione",
+        motore="fonti_ufficiali",
+        area="ADR / mediazione civile",
+        official_url="https://www.giustizia.it/giustizia/it/mg_3_4_15.page",
+        monitor_url="https://www.giustizia.it/giustizia/it/mg_3_4_15.page",
+        connector_kind="portal-info",
+        cadence="giornaliera",
+        formats=["HTML"],
+        capability="Registro ufficiale degli organismi di mediazione e istruzioni ministeriali per la consultazione.",
+        notes=(
+            "La scheda ministeriale del 4 marzo 2026 rinvia al registro online "
+            "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX "
+            "e segnala l'uso di Microsoft Edge in modalita compatibilita con Internet Explorer."
+        ),
+    ),
     "cassazione": FonteUfficiale(
         id="cassazione",
         nome="Corte di Cassazione",
@@ -333,7 +350,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Raccoglie, verifica e indicizza solo fonti istituzionali con URL, hash e data di acquisizione.",
         output="Catalogo fonti, hash, data pubblicazione, data acquisizione.",
         value="Evita fonti non ufficiali e rende verificabile ogni contenuto monitorato.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
     ),
     "vigenza_versionamento": MotoreLegale(
         id="vigenza_versionamento",
@@ -378,7 +395,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Schedula controlli distinti per fonte e genera alert utili, non solo notizie generiche.",
         output="Alert su contenuto modificato, nuovi documenti e nuove note tecniche.",
         value="Trasforma il gestionale in un assistente proattivo invece che in un archivio passivo.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
     ),
     "audit_affidabilita": MotoreLegale(
         id="audit_affidabilita",
@@ -387,7 +404,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Registra query, fonti, versioni, warning e modello AI per ogni risposta assistita.",
         output="Tracce di audit consultabili e storicizzate.",
         value="Aumenta fiducia interna, debugging e responsabilita operativa.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
     ),
 }
 
@@ -408,6 +425,9 @@ KEYWORD_TO_ENGINE: Dict[str, List[str]] = {
     "compens": ["professione_forense"],
     "preventiv": ["professione_forense"],
     "cnf": ["professione_forense"],
+    "mediazione": ["fonti_ufficiali", "monitoraggio_alert"],
+    "organismi di mediazione": ["fonti_ufficiali", "monitoraggio_alert"],
+    "adr": ["fonti_ufficiali", "monitoraggio_alert"],
     "cassazione": ["giurisprudenza_orientamenti"],
     "corte costituzionale": ["giurisprudenza_orientamenti"],
     "tar": ["giurisprudenza_orientamenti"],
@@ -430,6 +450,9 @@ KEYWORD_TO_SOURCE: Dict[str, List[str]] = {
     "reginde": ["pst_giustizia"],
     "cnf": ["cnf"],
     "deontolog": ["cnf"],
+    "mediazione": ["registro_mediazione"],
+    "organismi di mediazione": ["registro_mediazione"],
+    "organismo di mediazione": ["registro_mediazione"],
     "cassazione": ["cassazione"],
     "corte costituzionale": ["corte_costituzionale"],
     "tar": ["giustizia_amministrativa"],

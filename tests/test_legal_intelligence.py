@@ -4,6 +4,7 @@ from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 from pct.legal_intelligence import (
     GestioneLegalIntelligence,
     costruisci_tracker_fascicolo,
+    fonti_per_query,
 )
 from pct.normative_tables import FONTI_OPERATIVE, FonteOperativa
 
@@ -162,6 +163,28 @@ def test_dashboard_snapshot_espone_contatore_riferimenti_normativi(tmp_path):
 
     assert snapshot["headline"]["riferimenti_normativi"] >= 8
     assert snapshot["normative_tables"]["riferimenti_normativi"]
+
+
+def test_dashboard_snapshot_include_registro_mediazione(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    snapshot = gestore.build_dashboard_snapshot(
+        fascicoli=[],
+        clienti=[],
+        appuntamenti=[],
+        scadenze=[],
+        portali=[],
+    )
+
+    row = next(item for item in snapshot["source_rows"] if item["id"] == "registro_mediazione")
+
+    assert row["official_url"].endswith("mg_3_4_15.page")
+    assert "mediazione" in row["nome"].lower()
+
+
+def test_fonti_per_query_mediazione_risolvono_la_fonte_ufficiale():
+    assert "registro_mediazione" in fonti_per_query("verifica organismo di mediazione iscritto")
 
 
 def test_tracker_fascicolo_mostra_avanzamento_e_chiusura(tmp_path):

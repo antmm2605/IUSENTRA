@@ -38,11 +38,13 @@
   {% if mostra_tabs %}
   <div class="uff-tabs mb-1" data-uffp-tabs>
     <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
-    {% if "TRIBUNALE" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Trib.</button>{% endif %}
+    {% if "TRIBUNALE" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Tribunale</button>{% endif %}
     {% if "PROCURA" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>{% endif %}
-    {% if "CORTE_APPELLO" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>C.App.</button>{% endif %}
+    {% if "PROCURA_GENERALE" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="PROCURA_GENERALE"><i class="bi bi-shield-fill me-1"></i>Proc.Gen.</button>{% endif %}
+    {% if "CORTE_APPELLO" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>{% endif %}
+    {% if "CORTE_ASSISE" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>{% endif %}
     {% if "GDP" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>{% endif %}
-    {% if "TM" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Min.</button>{% endif %}
+    {% if "TM" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>{% endif %}
     {% if "SORVEGLIANZA" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>{% endif %}
     {% if "TAR" not in tipi_nascosti %}<button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>{% endif %}
   </div>

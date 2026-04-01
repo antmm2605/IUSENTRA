@@ -6,10 +6,11 @@ def test_catalogo_normativo_seeded(tmp_path):
 
     snapshot = gestore.snapshot()
 
-    assert snapshot["totali"] >= 9
-    assert snapshot["sincronizzate"] >= 9
+    assert snapshot["totali"] >= 10
+    assert snapshot["sincronizzate"] >= 10
     assert any(row["id"] == "interesse_legale" for row in snapshot["tabelle"])
     assert any(row["id"] == "riferimenti_normativi_catalogo" for row in snapshot["tabelle"])
+    assert any(row["id"] == "registro_organismi_mediazione" for row in snapshot["tabelle"])
     assert snapshot["riferimenti_normativi_totali"] >= 8
 
 
@@ -69,3 +70,15 @@ def test_sync_normativo_con_source_codes_isola_la_tabella_corretta(tmp_path):
     assert "interesse_legale" in flagged
     assert "mora_commerciale" not in flagged
     assert "contributo_unificato_civile" not in flagged
+
+
+def test_tabella_registro_mediazione_usa_fonte_ufficiale_ministeriale(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    snapshot = gestore.snapshot()
+    row = next(item for item in snapshot["tabelle"] if item["id"] == "registro_organismi_mediazione")
+    catalogo = gestore._data["tables"]["registro_organismi_mediazione"]["rows"]
+
+    assert row["category"] == "registri_ministeriali"
+    assert catalogo[0]["official_info_url"].endswith("mg_3_4_15.page")
+    assert "mediazione.giustizia.it" in catalogo[0]["official_registry_url"]

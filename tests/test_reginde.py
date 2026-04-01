@@ -148,3 +148,22 @@ def test_cache_remota_legacy_viene_rigenerata_se_bundle_hash_diverso(tmp_path):
     palmi = next(u for u in uffici if u.get("codice") == "0910011")
 
     assert palmi["distretto"] == "Reggio di Calabria"
+
+
+def test_gestore_cerca_supporta_filtri_procura_generale_e_limite():
+    gestore = GestoreUfficiGiudiziari()
+
+    risultati = gestore.cerca("roma", tipo="PROCURA_GENERALE", limit=1)
+
+    assert len(risultati) == 1
+    assert risultati[0]["tipo"] == "PROCURA_GENERALE"
+    assert "Roma" in risultati[0]["nome"]
+
+
+def test_gestore_cerca_usa_anche_metadati_ministeriali():
+    gestore = GestoreUfficiGiudiziari()
+
+    risultati = gestore.cerca("tribunale ordinario", tipo="TRIBUNALE", limit=5)
+
+    assert risultati
+    assert all(item["tipo"] == "TRIBUNALE" for item in risultati)

@@ -11,6 +11,7 @@ from web.helpers import (
     get_clienti,
     get_fascicoli,
     get_legal_intelligence,
+    get_normative_tables,
     get_scadenziario,
 )
 
@@ -75,6 +76,23 @@ def esegui_monitor():
     return redirect(url_for("legal_intelligence.index"))
 
 
+@legal_intelligence.route("/sync/esegui", methods=["POST"])
+@_richiedi_login
+def esegui_sync_normativo():
+    report = get_legal_intelligence().sync_normative_tables()
+    if report.get("review_required"):
+        flash(
+            f"Sync completato: {report.get('updated', 0)} tabelle aggiornate, {report.get('review_required', 0)} da verificare.",
+            "warning",
+        )
+    else:
+        flash(
+            f"Sync completato: {report.get('updated', 0)} tabelle aggiornate e archivio normativo riallineato.",
+            "success",
+        )
+    return redirect(url_for("legal_intelligence.index"))
+
+
 @legal_intelligence.route("/api/snapshot", methods=["GET"])
 @_richiedi_login
 def api_snapshot():
@@ -82,4 +100,14 @@ def api_snapshot():
         return jsonify({"ok": True, "snapshot": _snapshot()})
     except Exception as exc:
         current_app.logger.exception("Errore legal_intelligence.api_snapshot: %s", exc)
+        return jsonify({"ok": False, "errore": str(exc)}), 200
+
+
+@legal_intelligence.route("/api/tabelle-normative", methods=["GET"])
+@_richiedi_login
+def api_tabelle_normative():
+    try:
+        return jsonify({"ok": True, "snapshot": get_normative_tables().snapshot()})
+    except Exception as exc:
+        current_app.logger.exception("Errore legal_intelligence.api_tabelle_normative: %s", exc)
         return jsonify({"ok": False, "errore": str(exc)}), 200

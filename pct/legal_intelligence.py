@@ -11,6 +11,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import requests
 
+from pct.normative_tables import GestioneTabelleNormative
+
 USER_AGENT = "HACS-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
 MAX_MONITOR_BYTES = 512_000
 MAX_MONITOR_RUNS = 600
@@ -474,9 +476,16 @@ def costruisci_tracker_fascicoli(fascicoli: Iterable[Any]) -> Dict[str, Dict[str
 
 
 class GestioneLegalIntelligence:
-    def __init__(self, db_path: str = "./intelligence/legal_intelligence.json", timeout: int = 15):
+    def __init__(
+        self,
+        db_path: str = "./intelligence/legal_intelligence.json",
+        timeout: int = 15,
+        normative_db_path: Optional[str] = None,
+    ):
         self.db_path = db_path
         self.timeout = timeout
+        self.normative_db_path = normative_db_path or str(Path(db_path).with_name("tabelle_normative.json"))
+        self.normative_tables = GestioneTabelleNormative(self.normative_db_path)
         self._data: Dict[str, Any] = {"monitor_runs": [], "alerts": [], "audit_traces": []}
         self._load()
 
@@ -705,13 +714,67 @@ class GestioneLegalIntelligence:
             results.append(result)
             if result.get("ok"):
                 ok_count += 1
+        sync_report = self.sync_normative_tables(source_ids=ids, now=now)
         return {
             "ok": ok_count == len(ids),
             "checked": len(ids),
             "successful": ok_count,
             "failed": len(ids) - ok_count,
             "results": results,
+            "normative_sync": sync_report,
         }
+
+    def sync_normative_tables(
+        self,
+        source_ids: Optional[List[str]] = None,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        latest_runs = self._latest_runs()
+        source_runs = {
+            source_id: run.to_dict()
+            for source_id, run in latest_runs.items()
+            if not source_ids or source_id in source_ids
+        }
+        report = self.normative_tables.sync_from_canonical(
+            source_runs=source_runs,
+            source_ids=source_ids,
+            now=now,
+        )
+        current_time = now or datetime.now()
+        alerts: List[Dict[str, Any]] = []
+        for table in report.get("tables", []):
+            if table.get("updated"):
+                alerts.append(
+                    self._create_alert(
+                        source_id="normattiva",
+                        motore_id="vigenza_versionamento",
+                        alert_type="tabella_normativa_aggiornata",
+                        severity="media",
+                        title=f"Tabella normativa sincronizzata: {table.get('title', table.get('id', ''))}",
+                        details="Le tabelle normative del gestionale sono state riallineate al catalogo ufficiale interno.",
+                        related_entity_type="normative_table",
+                        related_entity_id=table.get("id", ""),
+                        now=current_time,
+                    ).to_dict()
+                )
+            elif table.get("sync_status") == "verifica_richiesta":
+                alerts.append(
+                    self._create_alert(
+                        source_id="gazzetta_ufficiale",
+                        motore_id="monitoraggio_alert",
+                        alert_type="tabella_normativa_da_validare",
+                        severity="alta",
+                        title=f"Verifica richiesta: {table.get('title', table.get('id', ''))}",
+                        details="La fonte ufficiale e cambiata, ma la tabella normativa non ha ancora una variazione strutturata automatica.",
+                        related_entity_type="normative_table",
+                        related_entity_id=table.get("id", ""),
+                        now=current_time,
+                    ).to_dict()
+                )
+        if alerts:
+            self._save()
+        report["alerts"] = alerts
+        return report
 
     def registra_trace_risposta(
         self,
@@ -888,6 +951,7 @@ class GestioneLegalIntelligence:
         source_rows = self._source_status_rows()
         stored_alerts = self.recent_alerts(limit=8)
         derived_alerts = self._derived_alerts(fascicoli=fascicoli, scadenze=scadenze, portali=portali)
+        normative_snapshot = self.normative_tables.snapshot()
         return {
             "headline": {
                 "motori_attivi": len(MOTORI_LEGALI),
@@ -896,6 +960,8 @@ class GestioneLegalIntelligence:
                 "fonti_da_rivedere": sum(1 for row in source_rows if row["freshness"] != "aggiornata"),
                 "alert_totali": len(stored_alerts) + len(derived_alerts),
                 "audit_recenti": len(self.recent_audit_traces(limit=8)),
+                "tabelle_normative": normative_snapshot["totali"],
+                "tabelle_da_validare": normative_snapshot["verifica_richiesta"],
                 "fascicoli": len(fascicoli),
                 "clienti": len(clienti),
                 "appuntamenti": len(appuntamenti),
@@ -907,4 +973,5 @@ class GestioneLegalIntelligence:
             "recent_audits": self.recent_audit_traces(limit=8),
             "competitive_advantages": self._competitive_advantages(fascicoli, portali),
             "trackers": costruisci_tracker_fascicoli(fascicoli),
+            "normative_tables": normative_snapshot,
         }

@@ -21,6 +21,7 @@ from pct.auth import GestioneUtenti
 from pct.search_index import IndiceRicerca
 from pct.wizard_pro import GestioneWizardPro
 from pct.legal_intelligence import GestioneLegalIntelligence
+from pct.normative_tables import GestioneTabelleNormative
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -76,7 +77,14 @@ def get_wizard_pro() -> GestioneWizardPro:
 
 
 def get_legal_intelligence() -> GestioneLegalIntelligence:
-    return GestioneLegalIntelligence(db_path=_cfg("LEGAL_INTELLIGENCE_DB"))
+    return GestioneLegalIntelligence(
+        db_path=_cfg("LEGAL_INTELLIGENCE_DB"),
+        normative_db_path=_cfg("NORMATIVE_TABLES_DB"),
+    )
+
+
+def get_normative_tables() -> GestioneTabelleNormative:
+    return GestioneTabelleNormative(db_path=_cfg("NORMATIVE_TABLES_DB"))
 
 
 # ---------------------------------------------------------------- tenant corrente

@@ -332,6 +332,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "motori.json"),
         ),
     )
+    app.config["NORMATIVE_TABLES_DB"] = cfg.get(
+        "NORMATIVE_TABLES_DB",
+        os.getenv(
+            "PCT_NORMATIVE_TABLES_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "tabelle_normative.json"),
+        ),
+    )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
     app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")

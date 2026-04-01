@@ -8,11 +8,18 @@
     <h1 class="ds-ph-title">Motori Legali</h1>
     <p class="ds-ph-sub">Fonti ufficiali, monitoraggio, audit e vantaggio competitivo integrati nel gestionale.</p>
   </div>
-  <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}" class="ms-auto">
-    <button class="btn btn-primary">
-      <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo fonti
-    </button>
-  </form>
+  <div class="ms-auto d-flex gap-2">
+    <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
+      <button class="btn btn-outline-primary">
+        <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}">
+      <button class="btn btn-primary">
+        <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo fonti
+      </button>
+    </form>
+  </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -45,6 +52,24 @@
       <div class="card-body">
         <div class="text-muted small mb-1">Audit recenti</div>
         <div class="fw-bold fs-3 text-primary">{{ snapshot.headline.audit_recenti }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Tabelle normative</div>
+        <div class="fw-bold fs-3">{{ snapshot.headline.tabelle_normative }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Da verificare</div>
+        <div class="fw-bold fs-3 {% if snapshot.headline.tabelle_da_validare %}text-warning{% else %}text-success{% endif %}">
+          {{ snapshot.headline.tabelle_da_validare }}
+        </div>
       </div>
     </div>
   </div>
@@ -193,6 +218,56 @@
             <td class="text-end">
               <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
             </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="fw-semibold"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
+      <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Tabella</th>
+            <th>Categoria</th>
+            <th>Stato</th>
+            <th>Ultimo sync</th>
+            <th>Warning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in snapshot.normative_tables.tabelle %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ row.title }}</div>
+              <div class="small text-muted">{{ row.id }}</div>
+            </td>
+            <td class="small">{{ row.category }}</td>
+            <td>
+              <span class="badge {% if row.sync_status == 'sincronizzata' %}text-bg-success{% elif row.sync_status == 'verifica_richiesta' %}text-bg-warning{% else %}text-bg-danger{% endif %}">
+                {{ row.sync_status|replace('_', ' ') }}
+              </span>
+            </td>
+            <td class="small">
+              {% if row.last_synced_at %}
+              {{ row.last_synced_at[:16]|replace('T', ' ') }}
+              {% else %}
+              <span class="text-muted">mai</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ row.last_warning or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="small text-muted">Nessuna tabella normativa caricata.</td>
           </tr>
           {% endfor %}
         </tbody>

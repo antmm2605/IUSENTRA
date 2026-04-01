@@ -54,6 +54,20 @@ def test_registra_trace_usa_snapshot_ultima_fonte(tmp_path):
     assert trace["source_snapshots"][0]["content_hash"]
 
 
+def test_monitor_cycle_integra_sync_tabelle_normative(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    report = gestore.run_monitor_cycle(
+        source_ids=["gazzetta_ufficiale"],
+        request_get=lambda *args, **kwargs: DummyResponse(b"gazzetta-v1"),
+    )
+
+    assert report["normative_sync"]["processed_tables"] >= 1
+    assert "alerts" in report["normative_sync"]
+
+
 def test_tracker_fascicolo_mostra_avanzamento_e_chiusura(tmp_path):
     gestore = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),

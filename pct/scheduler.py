@@ -161,21 +161,24 @@ def start_scheduler(app):
                 from pct.legal_intelligence import GestioneLegalIntelligence
 
                 gestore = GestioneLegalIntelligence(
-                    db_path=app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json")
+                    db_path=app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json"),
+                    normative_db_path=app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"),
                 )
                 report = gestore.run_monitor_cycle(source_ids=source_ids)
                 if report.get("ok"):
                     logger.info(
-                        "[scheduler] Legal intelligence %s: %d fonti aggiornate",
+                        "[scheduler] Legal intelligence %s: %d fonti aggiornate, %d tabelle sincronizzate",
                         label,
                         report.get("successful", 0),
+                        report.get("normative_sync", {}).get("processed_tables", 0),
                     )
                 else:
                     logger.warning(
-                        "[scheduler] Legal intelligence %s: %d ok / %d fallite",
+                        "[scheduler] Legal intelligence %s: %d ok / %d fallite / %d tabelle in sync",
                         label,
                         report.get("successful", 0),
                         report.get("failed", 0),
+                        report.get("normative_sync", {}).get("processed_tables", 0),
                     )
             except Exception as e:
                 logger.error("[scheduler] Legal intelligence %s fallito: %s", label, e)

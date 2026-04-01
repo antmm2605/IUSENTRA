@@ -625,7 +625,8 @@ class GestioneTenant:
             "auth", "clienti", "fascicoli", "fascicoli/documenti", "fascicoli/archivio",
             "agenda", "scadenziario", "fatturazione", "messaggi", "backup",
             "notifiche", "pagamenti", "portale", "portale/uploads",
-            "privacy", "condivisioni", "template_atti", "search",
+            "privacy", "condivisioni", "template_atti", "wizard_pro",
+            "intelligence", "search",
         ]:
             (base / subdir).mkdir(parents=True, exist_ok=True)
 
@@ -653,6 +654,9 @@ class GestioneTenant:
             "PAGAMENTI_DIR":     f"{base}/pagamenti",
             "TEMPLATE_ATTI_DB":  f"{base}/template_atti/templates.json",
             "TEMPLATE_ATTI_PREFS_DB": f"{base}/template_atti/editor_layout.json",
+            "WIZARD_PRO_DB":     f"{base}/wizard_pro/sessioni.json",
+            "LEGAL_INTELLIGENCE_DB": f"{base}/intelligence/motori.json",
+            "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
         }
 
     # ---- Helper

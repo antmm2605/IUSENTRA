@@ -1,8 +1,12 @@
 from pct.strumenti_legali import GestioneStrumentiLegali
 
 
-def test_contributo_unificato_civile_appello():
-    gestore = GestioneStrumentiLegali()
+def _gestore(tmp_path):
+    return GestioneStrumentiLegali(normative_db_path=str(tmp_path / "tabelle_normative.json"))
+
+
+def test_contributo_unificato_civile_appello(tmp_path):
+    gestore = _gestore(tmp_path)
     result = gestore.calcola_contributo_unificato(
         {
             "cu_categoria": "civile_ordinario",
@@ -17,8 +21,8 @@ def test_contributo_unificato_civile_appello():
     assert result["totale"] == 382.5
 
 
-def test_interessi_legali_2025_su_anno_intero():
-    gestore = GestioneStrumentiLegali()
+def test_interessi_legali_2025_su_anno_intero(tmp_path):
+    gestore = _gestore(tmp_path)
     result = gestore.calcola_interessi(
         {
             "int_tipo": "legali",
@@ -33,8 +37,8 @@ def test_interessi_legali_2025_su_anno_intero():
     assert len(result["segments"]) == 1
 
 
-def test_interessi_mora_commerciale_2026_primo_semestre():
-    gestore = GestioneStrumentiLegali()
+def test_interessi_mora_commerciale_2026_primo_semestre(tmp_path):
+    gestore = _gestore(tmp_path)
     result = gestore.calcola_interessi(
         {
             "int_tipo": "mora_commerciale",
@@ -49,8 +53,8 @@ def test_interessi_mora_commerciale_2026_primo_semestre():
     assert result["total_interest"] == 50.33
 
 
-def test_nota_precisazione_credito_generata_con_residuo():
-    gestore = GestioneStrumentiLegali()
+def test_nota_precisazione_credito_generata_con_residuo(tmp_path):
+    gestore = _gestore(tmp_path)
     result = gestore.genera_nota_precisazione_credito(
         {
             "note_creditore": "Mario Rossi",
@@ -75,8 +79,8 @@ def test_nota_precisazione_credito_generata_con_residuo():
     assert "NOTA DI PRECISAZIONE DEL CREDITO" in result["rendered_text"]
 
 
-def test_pignoramento_pensione_ordinario_usa_minimo_vitale_2026():
-    gestore = GestioneStrumentiLegali()
+def test_pignoramento_pensione_ordinario_usa_minimo_vitale_2026(tmp_path):
+    gestore = _gestore(tmp_path)
     result = gestore.simula_pignoramento(
         {
             "pig_tipo_reddito": "pensione",
@@ -90,8 +94,8 @@ def test_pignoramento_pensione_ordinario_usa_minimo_vitale_2026():
     assert result["quota_massima"] == 136.13
 
 
-def test_ctu_vacazioni_calcola_prima_e_successive():
-    gestore = GestioneStrumentiLegali()
+def test_ctu_vacazioni_calcola_prima_e_successive(tmp_path):
+    gestore = _gestore(tmp_path)
     result = gestore.calcola_ctu(
         {
             "ctu_modalita": "vacazioni",

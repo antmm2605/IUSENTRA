@@ -34,6 +34,12 @@ def _studio_context() -> dict:
     }
 
 
+def _gestore_strumenti() -> GestioneStrumentiLegali:
+    return GestioneStrumentiLegali(
+        normative_db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
+    )
+
+
 def _resolve_context():
     fascicoli = sorted(get_fascicoli().tutti(archiviati=True), key=lambda f: ((f.data_apertura or ""), f.numero), reverse=True)
     clienti_map = {c.id: c for c in get_clienti().tutti()}
@@ -44,7 +50,7 @@ def _resolve_context():
 
 
 def _json_result(fn_name: str):
-    gestore = GestioneStrumentiLegali()
+    gestore = _gestore_strumenti()
     payload = request.get_json(silent=True) or request.form.to_dict()
     try:
         fn = getattr(gestore, fn_name)
@@ -57,7 +63,7 @@ def _json_result(fn_name: str):
 @strumenti_legali.route("/", methods=["GET", "POST"])
 @_richiedi_login
 def index():
-    gestore = GestioneStrumentiLegali()
+    gestore = _gestore_strumenti()
     fascicoli, clienti_map, fascicolo_sel, cliente_sel = _resolve_context()
     studio = _studio_context()
     prefill = gestore.build_prefill(
@@ -115,7 +121,7 @@ def api_prefill(id_fascicolo: str):
         if not fascicolo:
             return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
         cliente = get_clienti().get(fascicolo.id_cliente) if fascicolo.id_cliente else None
-        prefill = GestioneStrumentiLegali().build_prefill(
+        prefill = _gestore_strumenti().build_prefill(
             fascicolo=fascicolo,
             cliente=cliente,
             studio=_studio_context(),

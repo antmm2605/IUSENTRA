@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import html
 import math
-from dataclasses import dataclass
 from datetime import date
 from textwrap import dedent
 from typing import Any, Dict, List, Mapping, Optional
+
+from pct.normative_tables import (
+    FONTI_OPERATIVE,
+    GestioneTabelleNormative,
+    InterestPeriod,
+)
 
 
 def _today() -> date:
@@ -62,160 +67,21 @@ def _year_denominator(day: date) -> int:
     return 366 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365
 
 
-@dataclass(frozen=True)
-class FonteOperativa:
-    code: str
-    title: str
-    url: str
-    note: str = ""
-
-    def to_dict(self) -> Dict[str, str]:
-        return {
-            "code": self.code,
-            "title": self.title,
-            "url": self.url,
-            "note": self.note,
-        }
-
-
-@dataclass(frozen=True)
-class InterestPeriod:
-    start: date
-    end: date
-    rate: float
-    label: str
-    source: FonteOperativa
-    mode: str
-    reference_rate: Optional[float] = None
-
-
-FONTI: Dict[str, FonteOperativa] = {
-    "dpr_115_2002": FonteOperativa(
-        code="dpr_115_2002",
-        title="D.P.R. 115/2002 - art. 13 (Normattiva)",
-        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A2002-05-30%3B115~art130=",
-        note="Base normativa del contributo unificato nei processi civile, amministrativo e tributario.",
-    ),
-    "cu_viterbo": FonteOperativa(
-        code="cu_viterbo",
-        title="Tribunale di Viterbo - tabelle contributo unificato",
-        url="https://www.tribunale.viterbo.giustizia.it/it/Content/Index/58499",
-        note="Tabella pratica per iscrizione a ruolo civile e decreti ingiuntivi.",
-    ),
-    "cu_admin": FonteOperativa(
-        code="cu_admin",
-        title="Giustizia Amministrativa - Carta dei servizi TAR Calabria",
-        url="https://www.giustizia-amministrativa.it/documents/20142/17127638/T.A.R.%2BCalabria_sede%2Bdi%2BCatanzaro%2B-%2BCarta%2Bdei%2Bservizi%2B2022_QRcode.pdf/86de0520-27bb-2db2-733b-a58ac97df323?t=1671443142000",
-        note="Importi ufficiali pubblicati per ricorsi ordinari, rito abbreviato, appalti e ottemperanza.",
-    ),
-    "interesse_legale_2024": FonteOperativa(
-        code="interesse_legale_2024",
-        title="G.U. - saggio interessi legali 2024",
-        url="https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?art.codiceRedazionale=23A00141&art.dataPubblicazioneGazzetta=2023-01-16&art.flagTipoArticolo=0&art.idArticolo=1&art.idGruppo=1&art.idSottoArticolo=1&art.idSottoArticolo1=10&art.progressivo=16&art.versione=1",
-        note="Misura del saggio legale pari al 2,50% dal 1 gennaio 2024.",
-    ),
-    "interesse_legale_2025": FonteOperativa(
-        code="interesse_legale_2025",
-        title="G.U. - saggio interessi legali 2025",
-        url="https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticolo?art.codiceRedazionale=012G0252&art.dataPubblicazioneGazzetta=2012-12-29&art.flagTipoArticolo=0&art.idArticolo=1&art.idGruppo=0&art.idSottoArticolo=1&art.idSottoArticolo1=10&art.progressivo=20&art.versione=1",
-        note="Dal 1 gennaio 2025 il saggio legale e pari al 2,00%.",
-    ),
-    "interesse_legale_2026": FonteOperativa(
-        code="interesse_legale_2026",
-        title="G.U. - saggio interessi legali 2026",
-        url="https://www.gazzettaufficiale.it/atto/serie_generale/caricaArticoloDefault/originario?atto.codiceRedazionale=25A07054&atto.dataPubblicazioneGazzetta=2025-12-31&atto.tipoProvvedimento=DECRETO",
-        note="Dal 1 gennaio 2026 il saggio legale e pari all'1,60%.",
-    ),
-    "mora_231_2025_h1": FonteOperativa(
-        code="mora_231_2025_h1",
-        title="G.U. - tasso di riferimento 1 gennaio / 30 giugno 2025",
-        url="https://www.gazzettaufficiale.it/do/gazzetta/downloadPdf?dataPubblicazioneGazzetta=20250317&edizione=0&estensione=pdf&home=true&numeroGazzetta=63&numeroSupplemento=0&progressivo=0&tipoSerie=SG&tipoSupplemento=GU",
-        note="Comunicazione ex art. 5 D.Lgs. 231/2002: tasso di riferimento 3,15%.",
-    ),
-    "mora_231_2025_h2": FonteOperativa(
-        code="mora_231_2025_h2",
-        title="G.U. - tasso di riferimento 1 luglio / 31 dicembre 2025",
-        url="https://www.gazzettaufficiale.it/do/gazzetta/downloadPdf?dataPubblicazioneGazzetta=20250714&edizione=0&estensione=pdf&home=true&numeroGazzetta=161&numeroSupplemento=0&progressivo=0&tipoSerie=SG&tipoSupplemento=GU",
-        note="Comunicazione ex art. 5 D.Lgs. 231/2002: tasso di riferimento 2,15%.",
-    ),
-    "mora_231_2026_h1": FonteOperativa(
-        code="mora_231_2026_h1",
-        title="G.U. - tasso di riferimento 1 gennaio / 30 giugno 2026",
-        url="https://www.gazzettaufficiale.it/atto/vediMenuHTML?atto.codiceRedazionale=26A00172&atto.dataPubblicazioneGazzetta=2026-01-20&tipoSerie=serie_generale&tipoVigenza=originario",
-        note="Comunicazione ex art. 5 D.Lgs. 231/2002: tasso di riferimento 2,15%.",
-    ),
-    "art_545_cpc": FonteOperativa(
-        code="art_545_cpc",
-        title="Codice di procedura civile - art. 545 (Normattiva)",
-        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1940-10-28%3B1443%21vig=",
-        note="Pignorabilita di stipendi, salari, pensioni e altre indennita.",
-    ),
-    "dpr_602_1973": FonteOperativa(
-        code="dpr_602_1973",
-        title="D.P.R. 602/1973 - art. 72-ter (Normattiva)",
-        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A1973-09-29%3B602%21vig=",
-        note="Limiti di pignoramento per riscossione esattoriale.",
-    ),
-    "assegno_sociale_2026": FonteOperativa(
-        code="assegno_sociale_2026",
-        title="INPS - Allegato perequazione 2026",
-        url="https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2025/12/Circolare_15109/Allegati/16486_Circolare-numero-153-del-19-12-2025_Allegato-n-2.pdf",
-        note="Assegno sociale 2026: EUR 546,24 mensili.",
-    ),
-    "l_319_1980": FonteOperativa(
-        code="l_319_1980",
-        title="L. 319/1980 - onorari a vacazione",
-        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1980-07-08%3B319%21vig=",
-        note="Disciplina generale di periti, consulenti tecnici, interpreti e traduttori.",
-    ),
-    "dm_30_05_2002": FonteOperativa(
-        code="dm_30_05_2002",
-        title="D.M. 30 maggio 2002 - adeguamento vacazioni",
-        url="https://www.gazzettaufficiale.it/eli/gu/2002/08/05/182/sg/pdf",
-        note="Importi vigenti delle vacazioni: EUR 14,68 la prima e EUR 8,15 le successive.",
-    ),
-}
-
-
-LEGAL_INTEREST_PERIODS: List[InterestPeriod] = [
-    InterestPeriod(date(2024, 1, 1), date(2024, 12, 31), 2.50, "Interesse legale 2024", FONTI["interesse_legale_2024"], "legali"),
-    InterestPeriod(date(2025, 1, 1), date(2025, 12, 31), 2.00, "Interesse legale 2025", FONTI["interesse_legale_2025"], "legali"),
-    InterestPeriod(date(2026, 1, 1), date(2026, 12, 31), 1.60, "Interesse legale 2026", FONTI["interesse_legale_2026"], "legali"),
-]
-
-
-COMMERCIAL_MORA_PERIODS: List[InterestPeriod] = [
-    InterestPeriod(date(2025, 1, 1), date(2025, 6, 30), 11.15, "Mora commerciale 1 semestre 2025", FONTI["mora_231_2025_h1"], "mora_commerciale", 3.15),
-    InterestPeriod(date(2025, 7, 1), date(2025, 12, 31), 10.15, "Mora commerciale 2 semestre 2025", FONTI["mora_231_2025_h2"], "mora_commerciale", 2.15),
-    InterestPeriod(date(2026, 1, 1), date(2026, 6, 30), 10.15, "Mora commerciale 1 semestre 2026", FONTI["mora_231_2026_h1"], "mora_commerciale", 2.15),
-]
-
-
-CONTRIBUTO_CIVILE_TIERS = [
-    (1100.00, 43.00),
-    (5200.00, 98.00),
-    (26000.00, 237.00),
-    (52000.00, 518.00),
-    (260000.00, 759.00),
-    (520000.00, 1214.00),
-    (float("inf"), 1686.00),
-]
-
-CONTRIBUTO_TRIBUTARIO_TIERS = [
-    (2582.28, 30.00),
-    (5000.00, 60.00),
-    (25000.00, 120.00),
-    (75000.00, 250.00),
-    (200000.00, 500.00),
-    (float("inf"), 1500.00),
-]
-
-ASSEGNO_SOCIALE_2026 = 546.24
-VACAZIONE_PRIMA = 14.68
-VACAZIONE_SUCCESSIVA = 8.15
-
-
 class GestioneStrumentiLegali:
+    def __init__(self, normative_db_path: str = "./intelligence/tabelle_normative.json"):
+        self.norme = GestioneTabelleNormative(db_path=normative_db_path)
+
+    def _source(self, code: str) -> Dict[str, str]:
+        return FONTI_OPERATIVE[code].to_dict()
+
+    def _sources_for_codes(self, *codes: str) -> List[Dict[str, str]]:
+        unique: Dict[str, Dict[str, str]] = {}
+        for code in codes:
+            if code and code in FONTI_OPERATIVE:
+                source = FONTI_OPERATIVE[code].to_dict()
+                unique[source["url"]] = source
+        return list(unique.values())
+
     def catalogo_moduli(self) -> List[Dict[str, str]]:
         return [
             {"id": "contributo_unificato", "title": "Contributo unificato", "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.", "icon": "bi-bank"},
@@ -354,7 +220,7 @@ class GestioneStrumentiLegali:
         base = 0.0
         warnings: List[str] = []
         notes: List[str] = []
-        sources: List[FonteOperativa] = [FONTI["dpr_115_2002"]]
+        sources = self._sources_for_codes("dpr_115_2002")
         categoria_label = next((row["label"] for row in self.opzioni_contributo_unificato() if row["value"] == categoria), categoria)
         grado_label = {
             "primo_grado": "Primo grado",
@@ -364,40 +230,35 @@ class GestioneStrumentiLegali:
 
         if categoria == "civile_ordinario":
             base = self._contributo_civile(valore)
-            sources.append(FONTI["cu_viterbo"])
+            sources.extend(self._sources_for_codes("cu_viterbo"))
             if valore <= 0:
                 notes.append("Valore non indicato: applicato il contributo previsto per causa di valore indeterminabile.")
         elif categoria == "decreto_ingiuntivo":
             base = round(self._contributo_civile(valore) / 2.0, 2)
-            sources.append(FONTI["cu_viterbo"])
+            sources.extend(self._sources_for_codes("cu_viterbo"))
             notes.append("Per il decreto ingiuntivo il contributo e ridotto alla meta.")
         elif categoria == "volontaria_giurisdizione":
-            base = 98.0
+            base = self.norme.contributo_speciale("volontaria_giurisdizione", valore)
             notes.append("Importo fisso per volontaria giurisdizione, salvo ipotesi speciali o esenzioni.")
         elif categoria == "separazione_consensuale":
-            base = 43.0
+            base = self.norme.contributo_speciale("separazione_consensuale", valore)
             notes.append("Importo fisso per separazione consensuale o scioglimento congiunto, salvo casi esenti.")
         elif categoria == "tributario":
             base = self._contributo_tributario(valore)
             notes.append("Importo determinato per scaglione di valore del ricorso tributario.")
         elif categoria == "amministrativo_ordinario":
-            base = 650.0
-            sources.append(FONTI["cu_admin"])
+            base = self.norme.contributo_speciale("amministrativo_ordinario", valore)
+            sources.extend(self._sources_for_codes("cu_admin"))
             notes.append("Ricorso amministrativo ordinario e risarcitorio per equivalente.")
         elif categoria == "amministrativo_rito_abbreviato":
-            base = 1800.0
-            sources.append(FONTI["cu_admin"])
+            base = self.norme.contributo_speciale("amministrativo_rito_abbreviato", valore)
+            sources.extend(self._sources_for_codes("cu_admin"))
         elif categoria == "amministrativo_appalti":
-            sources.append(FONTI["cu_admin"])
-            if valore <= 200000:
-                base = 2000.0
-            elif valore <= 1000000:
-                base = 4000.0
-            else:
-                base = 6000.0
+            sources.extend(self._sources_for_codes("cu_admin"))
+            base = self.norme.contributo_speciale("amministrativo_appalti", valore)
         elif categoria == "amministrativo_ottemperanza":
-            base = 300.0
-            sources.append(FONTI["cu_admin"])
+            base = self.norme.contributo_speciale("amministrativo_ottemperanza", valore)
+            sources.extend(self._sources_for_codes("cu_admin"))
         else:
             raise ValueError("Tipologia di contributo unificato non riconosciuta.")
 
@@ -448,7 +309,7 @@ class GestioneStrumentiLegali:
             "totale": totale,
             "notes": notes,
             "warnings": warnings,
-            "sources": [source.to_dict() for source in dict.fromkeys(sources)],
+            "sources": list({source["url"]: source for source in sources}.values()),
         }
 
     def calcola_interessi(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
@@ -464,7 +325,7 @@ class GestioneStrumentiLegali:
         if data_fine < data_inizio:
             raise ValueError("La data finale deve essere successiva o uguale alla data iniziale.")
 
-        periods = LEGAL_INTEREST_PERIODS if mode == "legali" else COMMERCIAL_MORA_PERIODS
+        periods: List[InterestPeriod] = self.norme.interest_periods(mode)
         label = "Interessi legali ex art. 1284 c.c." if mode == "legali" else "Interessi moratori ex D.Lgs. 231/2002"
 
         segments: List[Dict[str, Any]] = []
@@ -673,28 +534,30 @@ class GestioneStrumentiLegali:
             raise ValueError("Indica un importo netto mensile positivo.")
 
         warnings: List[str] = []
-        sources = [FONTI["art_545_cpc"].to_dict(), FONTI["assegno_sociale_2026"].to_dict()]
+        rules = self.norme.pignoramento_rules()
+        assegno_sociale = self.norme.assegno_sociale(2026)
+        sources = self._sources_for_codes("art_545_cpc", "assegno_sociale_2026")
         base_pignorabile = importo
         minimo_protetto = 0.0
 
         if tipo_reddito == "pensione":
-            minimo_protetto = round(ASSEGNO_SOCIALE_2026 * 1.5, 2)
+            minimo_protetto = round(assegno_sociale * float(rules["pensione_minimo_multiplier"]["value"]), 2)
             base_pignorabile = max(0.0, importo - minimo_protetto)
             if base_pignorabile == 0:
                 warnings.append("L'importo indicato e interamente assorbito dal minimo vitale pensionistico 2026.")
 
         if tipo_credito == "ordinario":
-            aliquota = 20.0
+            aliquota = float(rules["ordinario_quota"]["value"])
         elif tipo_credito == "esattoriale":
-            sources.append(FONTI["dpr_602_1973"].to_dict())
+            sources.extend(self._sources_for_codes("dpr_602_1973"))
             if importo <= 2500:
-                aliquota = 10.0
+                aliquota = float(rules["esattoriale_fino_2500"]["value"])
             elif importo <= 5000:
-                aliquota = round((1 / 7) * 100, 4)
+                aliquota = float(rules["esattoriale_fino_5000"]["value"])
             else:
-                aliquota = 20.0
+                aliquota = float(rules["esattoriale_oltre_5000"]["value"])
         elif tipo_credito == "alimentare":
-            aliquota = aliquota_alimentare
+            aliquota = aliquota_alimentare or float(rules["alimentare_default"]["value"])
             warnings.append("Per i crediti alimentari la misura concreta resta rimessa al provvedimento del giudice.")
         else:
             raise ValueError("Tipologia di credito non riconosciuta.")
@@ -732,7 +595,8 @@ class GestioneStrumentiLegali:
         iva_perc = _safe_float(payload.get("ctu_iva_perc"), 22.0)
 
         warnings: List[str] = []
-        sources = [FONTI["l_319_1980"].to_dict(), FONTI["dm_30_05_2002"].to_dict()]
+        sources = self._sources_for_codes("l_319_1980", "dm_30_05_2002")
+        vacazioni_cfg = self.norme.ctu_vacazioni()
 
         vacazioni = vacazioni_input
         onorario_base = onorario_manuale
@@ -743,7 +607,7 @@ class GestioneStrumentiLegali:
                 notes.append("Numero vacazioni ricavato arrotondando per eccesso ogni blocco di due ore.")
             if vacazioni <= 0:
                 raise ValueError("Indica le ore o il numero di vacazioni da liquidare.")
-            onorario_base = VACAZIONE_PRIMA + max(vacazioni - 1, 0) * VACAZIONE_SUCCESSIVA
+            onorario_base = vacazioni_cfg["prima"] + max(vacazioni - 1, 0) * vacazioni_cfg["successiva"]
             onorario_base = round(onorario_base, 2)
             warnings.append("Molti incarichi CTU seguono criteri tabellari specifici del D.P.R. 115/2002: qui e automatizzata la sola logica a vacazione / liquidazione manuale.")
         elif modalita == "manuale":
@@ -774,16 +638,16 @@ class GestioneStrumentiLegali:
 
     def _contributo_civile(self, valore: float) -> float:
         if valore <= 0:
-            return 518.0
-        for limite, importo in CONTRIBUTO_CIVILE_TIERS:
+            return float(self.norme.contributo_defaults("civile").get("indeterminabile_amount", 518.0))
+        for limite, importo in self.norme.contributo_tiers("civile"):
             if valore <= limite:
                 return float(importo)
-        return CONTRIBUTO_CIVILE_TIERS[-1][1]
+        return self.norme.contributo_tiers("civile")[-1][1]
 
     def _contributo_tributario(self, valore: float) -> float:
         if valore <= 0:
             raise ValueError("Per il ricorso tributario indica il valore della controversia.")
-        for limite, importo in CONTRIBUTO_TRIBUTARIO_TIERS:
+        for limite, importo in self.norme.contributo_tiers("tributario"):
             if valore <= limite:
                 return float(importo)
-        return CONTRIBUTO_TRIBUTARIO_TIERS[-1][1]
+        return self.norme.contributo_tiers("tributario")[-1][1]

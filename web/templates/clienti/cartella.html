@@ -127,8 +127,8 @@
         <li><h6 class="dropdown-header"><i class="bi bi-file-earmark-text me-1"></i>Preventivi & Incarichi</h6></li>
         <li>
           <a class="dropdown-item"
-             href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=cliente.id) }}?from_page=cliente">
-            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Nuovo preventivo
+             href="{{ url_for('preventivi.wizard', id_cliente=cliente.id, from_page='cliente') }}">
+            <i class="bi bi-magic me-2 text-primary"></i>Preventivo guidato
           </a>
         </li>
         <li>
@@ -826,9 +826,9 @@
   <div class="tab-pane fade" id="tab-preventivi" role="tabpanel">
     <div class="d-flex justify-content-between align-items-center pt-3 pb-2">
       <span class="fw-semibold text-muted small">{{ preventivi_cliente|length }} preventivo/i</span>
-      <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=cliente.id) }}?from_page=cliente"
+      <a href="{{ url_for('preventivi.wizard', id_cliente=cliente.id, from_page='cliente') }}"
          class="btn btn-sm btn-primary">
-        <i class="bi bi-file-earmark-plus me-1"></i>Nuovo preventivo
+        <i class="bi bi-magic me-1"></i>Preventivo guidato
       </a>
     </div>
     {% if preventivi_cliente %}
@@ -871,9 +871,9 @@
         <i class="bi bi-file-earmark-text"></i>
         <p class="fw-semibold mt-3 mb-1">Nessun preventivo</p>
         <p class="text-muted small">I preventivi emessi per questo cliente compariranno qui.</p>
-        <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=cliente.id) }}?from_page=cliente"
+        <a href="{{ url_for('preventivi.wizard', id_cliente=cliente.id, from_page='cliente') }}"
            class="btn btn-primary mt-2">
-          <i class="bi bi-file-earmark-plus me-2"></i>Nuovo preventivo
+          <i class="bi bi-magic me-2"></i>Avvia preventivo guidato
         </a>
       </div>
     {% endif %}

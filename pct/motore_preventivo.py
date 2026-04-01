@@ -59,6 +59,14 @@ class TipoPratica:
 
     # Esborsi tipici per la tipologia (importi orientativi Art. 15 DPR 633/72)
     esborsi_tipici: List[Dict] = field(default_factory=list)
+    motore_label: str = ""
+    redattore_label: str = ""
+    summary: str = ""
+    when_to_use: str = ""
+    oggetto_template: str = ""
+    note_template: str = ""
+    checklist_iniziale: List[str] = field(default_factory=list)
+    normative_references: List[Dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -73,6 +81,15 @@ class TipoPratica:
             "tipo_compenso_default": self.tipo_compenso_default,
             "valore_suggerito": self.valore_suggerito,
             "esborsi_tipici": self.esborsi_tipici,
+            "motore_label": self.motore_label,
+            "redattore_label": self.redattore_label,
+            "summary": self.summary,
+            "when_to_use": self.when_to_use,
+            "oggetto_template": self.oggetto_template,
+            "note_template": self.note_template,
+            "checklist_iniziale": self.checklist_iniziale,
+            "normative_references": self.normative_references,
+            "fasi_default_keys": [_fase_key(f) for f in self.fasi_default],
         }
 
 
@@ -905,6 +922,266 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
 }
 
 
+_URL_LEGGE_FORENSE = "https://www.gazzettaufficiale.it/eli/id/2013/01/18/13G00018/sg"
+_URL_DM55 = (
+    "https://www.normattiva.it/atto/caricaDettaglioAtto?"
+    "atto.codiceRedazionale=14G00067&atto.dataPubblicazioneGazzetta=2014-04-02"
+    "&bloccoAggiornamentoBreadCrumb=true&classica=true&dataVigenza=11%2F03%2F2026"
+)
+_URL_DM147 = (
+    "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+    "atto.codiceRedazionale=22G00157&atto.dataPubblicazioneGazzetta=2022-10-08"
+    "&atto.tipoProvvedimento=DECRETO"
+)
+_URL_EQUO_COMPENSO = (
+    "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+    "atto.codiceRedazionale=23G00051&atto.dataPubblicazioneGazzetta=2023-05-05"
+    "&atto.tipoProvvedimento=LEGGE"
+)
+_URL_CPC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1940-10-28%3B1443"
+_URL_CPP = (
+    "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica"
+    "%3A1988-09-22%3B447"
+)
+_URL_CPA = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-07-02%3B104"
+_URL_TRIBUTARIO = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A1992-12-31%3B546"
+_URL_MEDIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-03-04%3B28"
+_URL_NEGOZIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legge%3A2014-09-12%3B132"
+
+_RIFERIMENTI_BASE: List[Dict[str, str]] = [
+    {
+        "title": "L. 31 dicembre 2012, n. 247",
+        "article": "art. 13",
+        "description": "Conferimento dell'incarico, obbligo di informativa sul compenso e pattuizione con il cliente.",
+        "url": _URL_LEGGE_FORENSE,
+    },
+    {
+        "title": "D.M. 10 marzo 2014, n. 55",
+        "article": "parametri forensi",
+        "description": "Parametri di riferimento per la liquidazione dei compensi professionali forensi.",
+        "url": _URL_DM55,
+    },
+    {
+        "title": "D.M. 13 agosto 2022, n. 147",
+        "article": "aggiornamento tabelle",
+        "description": "Aggiornamento dei parametri forensi e delle tabelle applicative.",
+        "url": _URL_DM147,
+    },
+    {
+        "title": "L. 21 aprile 2023, n. 49",
+        "article": "equo compenso",
+        "description": "Presidio sull'equo compenso nei rapporti con clienti qualificati e grandi committenti.",
+        "url": _URL_EQUO_COMPENSO,
+    },
+]
+
+_RIFERIMENTI_AREA: Dict[str, Dict[str, str]] = {
+    "Civile": {
+        "title": "Codice di procedura civile",
+        "description": "Riferimento processuale della tipologia selezionata in ambito civile.",
+        "url": _URL_CPC,
+    },
+    "Lavoro e previdenza": {
+        "title": "Codice di procedura civile",
+        "description": "Riferimento processuale del rito lavoro e previdenza.",
+        "url": _URL_CPC,
+    },
+    "Penale": {
+        "title": "Codice di procedura penale",
+        "description": "Riferimento processuale della tipologia selezionata in ambito penale.",
+        "url": _URL_CPP,
+    },
+    "Amministrativo": {
+        "title": "Codice del processo amministrativo",
+        "description": "Riferimento processuale della tipologia selezionata in ambito amministrativo.",
+        "url": _URL_CPA,
+    },
+    "Tributario": {
+        "title": "D.Lgs. 31 dicembre 1992, n. 546",
+        "description": "Riferimento processuale del contenzioso tributario.",
+        "url": _URL_TRIBUTARIO,
+    },
+    "Stragiudiziale": {
+        "title": "Prestazioni stragiudiziali",
+        "description": "Prestazioni stragiudiziali e strumenti ADR richiamati per la tipologia selezionata.",
+        "url": _URL_MEDIAZIONE,
+    },
+    "Speciali": {
+        "title": "Accordo professionale e criteri analogici",
+        "description": "Prestazioni speciali o atipiche con compenso pattizio o applicazione analogica dei parametri.",
+        "url": _URL_LEGGE_FORENSE,
+    },
+}
+
+_MOTORE_PER_AREA = {
+    "Civile": "Motore parametrico giudiziale civile",
+    "Lavoro e previdenza": "Motore parametrico lavoro e previdenza",
+    "Penale": "Motore parametrico penale",
+    "Amministrativo": "Motore parametrico amministrativo",
+    "Tributario": "Motore parametrico tributario",
+    "Stragiudiziale": "Motore preventivo stragiudiziale / ADR",
+    "Speciali": "Motore preventivo speciale e pattizio",
+}
+
+_REDATTORE_PER_AREA = {
+    "Civile": "Redattore preventivo giudiziale civile",
+    "Lavoro e previdenza": "Redattore preventivo rito lavoro",
+    "Penale": "Redattore preventivo penale",
+    "Amministrativo": "Redattore preventivo amministrativo",
+    "Tributario": "Redattore preventivo tributario",
+    "Stragiudiziale": "Redattore preventivo stragiudiziale",
+    "Speciali": "Redattore preventivo personalizzato",
+}
+
+_SUMMARY_OVERRIDES = {
+    "atto_citazione": "Preventivo per avviare un giudizio ordinario di cognizione con atto di citazione e gestione delle relative fasi.",
+    "decreto_ingiuntivo": "Preventivo per il recupero monitorio del credito fondato su prova scritta, con stima delle fasi essenziali del procedimento.",
+    "diffida": "Preventivo per attività stragiudiziale di diffida o messa in mora, con impostazione pronta per invio PEC o raccomandata.",
+    "mediazione": "Preventivo per assistenza in procedura di mediazione civile e commerciale con valorizzazione delle fasi ADR.",
+    "negoziazione_assistita": "Preventivo per assistenza nella convenzione di negoziazione assistita e nelle fasi di trattativa e definizione.",
+    "ricorso_tar": "Preventivo per tutela davanti al TAR con struttura pensata per ricorso, cautelare e fase di merito.",
+    "ricorso_tributario": "Preventivo per contenzioso tributario con articolazione per ricorso, istanza cautelare e fasi successive.",
+}
+
+_WHEN_TO_USE_OVERRIDES = {
+    "atto_citazione": "Usalo quando la tutela passa dal rito ordinario e vuoi impostare sin da subito attività introduttiva, istruttoria e decisionale.",
+    "decreto_ingiuntivo": "Usalo quando il credito è documentato e il cliente vuole una prima azione monitoria con tempi e costi prevedibili.",
+    "diffida": "Usalo nella fase di onboarding cliente quando prima della lite è opportuno tentare una richiesta formale ben tracciata.",
+    "mediazione": "Usalo quando la materia impone o rende utile un tentativo ADR prima del giudizio o in corso di causa.",
+    "negoziazione_assistita": "Usalo quando la controversia richiede o consiglia una negoziazione assistita prima dell'azione giudiziale.",
+}
+
+
+def _fase_key(fase: Fase) -> str:
+    mapping = {
+        Fase.STUDIO: "studio",
+        Fase.INTRODUTTIVA: "introduttiva",
+        Fase.ISTRUTTORIA: "istruttoria",
+        Fase.DECISIONALE: "decisionale",
+        Fase.ESECUTIVA: "esecutiva",
+        Fase.ATTIVAZIONE: "attivazione",
+        Fase.RIVITALIZZAZIONE: "rivitalizzazione",
+        Fase.NEGOZIAZIONE_TRATTAZIONE: "negoziazione",
+        Fase.CONCILIAZIONE: "conciliazione",
+    }
+    return mapping[fase]
+
+
+def _descrivi_fase(fase: Fase) -> str:
+    mapping = {
+        Fase.STUDIO: "analisi iniziale della pratica e della documentazione",
+        Fase.INTRODUTTIVA: "impostazione strategica e redazione dell'atto iniziale",
+        Fase.ISTRUTTORIA: "gestione istruttoria, udienze e mezzi di prova",
+        Fase.DECISIONALE: "conclusioni, note finali e decisione",
+        Fase.ESECUTIVA: "attività esecutiva e recupero coattivo",
+        Fase.ATTIVAZIONE: "avvio della procedura ADR o stragiudiziale",
+        Fase.RIVITALIZZAZIONE: "interlocuzione con organismo e parti",
+        Fase.NEGOZIAZIONE_TRATTAZIONE: "trattativa assistita e verbalizzazione delle posizioni",
+        Fase.CONCILIAZIONE: "definizione dell'accordo e chiusura della procedura",
+    }
+    return mapping[fase]
+
+
+def _summary_for(tp: TipoPratica) -> str:
+    if tp.id in _SUMMARY_OVERRIDES:
+        return _SUMMARY_OVERRIDES[tp.id]
+    area = tp.area.lower()
+    if tp.area == "Stragiudiziale":
+        return f"Preventivo per {tp.label.lower()}, con impostazione immediata di attivita, tempi e spese vive tipiche."
+    if tp.area == "Penale":
+        return f"Preventivo per {tp.label.lower()} in ambito penale, con compenso strutturato sulle fasi difensive effettivamente prevedibili."
+    return f"Preventivo per {tp.label.lower()} in area {area}, con compenso guidato dai parametri forensi e dalle fasi standard della pratica."
+
+
+def _when_to_use_for(tp: TipoPratica) -> str:
+    if tp.id in _WHEN_TO_USE_OVERRIDES:
+        return _WHEN_TO_USE_OVERRIDES[tp.id]
+    if tp.richiede_valore:
+        return "Usalo quando vuoi partire da una tipologia gia riconoscibile, stimando il compenso in base a valore, fase e complessita dell'incarico."
+    return "Usalo quando il compenso dipende soprattutto da attivita, presidio professionale e complessita, piu che da un valore di lite."
+
+
+def _oggetto_template_for(tp: TipoPratica) -> str:
+    return f"Preventivo professionale per {tp.label.lower()}"
+
+
+def _note_template_for(tp: TipoPratica) -> str:
+    lines = [
+        f"Il presente preventivo riguarda l'attivita di {tp.label.lower()} e viene predisposto sulla base dei parametri forensi applicabili.",
+        "L'importo potra essere aggiornato in caso di estensione dell'incarico, attivita ulteriori non preventivabili o mutamenti del valore/complessita della pratica.",
+        "Restano esclusi contributo unificato, notifiche, bolli, trasferte, ausiliari e ulteriori spese vive non comprese nelle voci esposte, salvo diverso accordo scritto.",
+    ]
+    if tp.area == "Stragiudiziale":
+        lines.append("Le attivita di trattativa o ADR ulteriori rispetto a quelle stimate formeranno oggetto di integrazione del preventivo.")
+    if tp.area == "Penale":
+        lines.append("Il compenso potra richiedere adeguamento in caso di udienze ulteriori, impugnazioni, incidenti o attivita investigative aggiuntive.")
+    lines.append("Informativa resa ai sensi dell'art. 13 L. 247/2012 e dei parametri forensi vigenti.")
+    return "\n".join(lines)
+
+
+def _checklist_for(tp: TipoPratica) -> List[str]:
+    checklist = [
+        "confermare cliente, controparte e obiettivo dell'incarico",
+        "verificare documenti disponibili e urgenze operative",
+    ]
+    if tp.richiede_valore:
+        checklist.append("stimare correttamente il valore economico della pratica")
+    for fase in tp.fasi_default[:4]:
+        checklist.append(_descrivi_fase(fase))
+    if tp.area == "Stragiudiziale":
+        checklist.append("definire se inserire fase di mediazione o negoziazione assistita")
+    return checklist
+
+
+def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
+    refs = [dict(item) for item in _RIFERIMENTI_BASE]
+    area_ref = _RIFERIMENTI_AREA.get(tp.area)
+    if area_ref:
+        refs.append(
+            {
+                "title": area_ref["title"],
+                "article": tp.base_normativa,
+                "description": area_ref["description"],
+                "url": area_ref["url"],
+            }
+        )
+    if tp.id == "mediazione":
+        refs.append(
+            {
+                "title": "D.Lgs. 4 marzo 2010, n. 28",
+                "article": "mediazione civile e commerciale",
+                "description": "Disciplina del procedimento di mediazione e dei casi di procedibilita.",
+                "url": _URL_MEDIAZIONE,
+            }
+        )
+    if tp.id == "negoziazione_assistita":
+        refs.append(
+            {
+                "title": "D.L. 12 settembre 2014, n. 132",
+                "article": "negoziazione assistita",
+                "description": "Disciplina della convenzione di negoziazione assistita e dei casi di obbligatorieta.",
+                "url": _URL_NEGOZIAZIONE,
+            }
+        )
+    return refs
+
+
+def _arricchisci_catalogo() -> None:
+    for tp in CATALOGO:
+        tp.esborsi_tipici = [dict(item) for item in _ESBORSI_TIPICI.get(tp.id, [])]
+        tp.motore_label = tp.motore_label or _MOTORE_PER_AREA.get(tp.area, "Motore preventivo forense")
+        tp.redattore_label = tp.redattore_label or _REDATTORE_PER_AREA.get(tp.area, "Redattore preventivo professionale")
+        tp.summary = tp.summary or _summary_for(tp)
+        tp.when_to_use = tp.when_to_use or _when_to_use_for(tp)
+        tp.oggetto_template = tp.oggetto_template or _oggetto_template_for(tp)
+        tp.note_template = tp.note_template or _note_template_for(tp)
+        tp.checklist_iniziale = tp.checklist_iniziale or _checklist_for(tp)
+        tp.normative_references = tp.normative_references or _normative_references_for(tp)
+
+
+_arricchisci_catalogo()
+
+
 def get_tipo_pratica(id_pratica: str) -> Optional[TipoPratica]:
     return _IDX.get(id_pratica)
 
@@ -919,7 +1196,26 @@ def catalogo_per_area() -> Dict[str, List[TipoPratica]]:
     result: Dict[str, List[TipoPratica]] = {a: [] for a in AREE}
     for tp in CATALOGO:
         result.setdefault(tp.area, []).append(tp)
+    for area in result:
+        result[area] = sorted(result[area], key=lambda item: item.label)
     return result
+
+
+def catalogo_wizard() -> Dict[str, List[dict]]:
+    """Catalogo serializzabile e pronto per il wizard frontend."""
+    return {
+        area: [tp.to_dict() for tp in items]
+        for area, items in catalogo_per_area().items()
+        if items
+    }
+
+
+def redattore_preventivo_iniziale(id_pratica: str) -> dict:
+    """Restituisce la scheda professionale della tipologia per il wizard preventivi."""
+    tp = get_tipo_pratica(id_pratica)
+    if tp is None:
+        raise ValueError(f"Tipologia pratica non trovata: {id_pratica!r}")
+    return tp.to_dict()
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,662 @@
+{% extends "base.html" %}
+{% block title %}Preventivo guidato{% endblock %}
+{% block pct_modulo %}preventivi{% endblock %}
+
+{% block content %}
+<style>
+  .prev-area-btn.active { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+  .prev-tipo-card { border: 1px solid var(--bs-border-color); border-radius: 1rem; background: #fff; padding: 1rem; cursor: pointer; transition: all .15s ease; height: 100%; }
+  .prev-tipo-card:hover { border-color: var(--bs-primary); box-shadow: 0 .6rem 1.6rem rgba(13,110,253,.08); transform: translateY(-1px); }
+  .prev-tipo-card.active { border-color: var(--bs-primary); background: rgba(13,110,253,.04); box-shadow: 0 .9rem 2rem rgba(13,110,253,.12); }
+  .prev-kpi { border-radius: 1rem; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); border: 1px solid rgba(13,110,253,.12); padding: .9rem 1rem; }
+  .prev-kpi .value { font-size: 1.2rem; font-weight: 700; color: var(--bs-primary); }
+  .prev-summary-card { top: 5.25rem; }
+  .prev-note-box { white-space: pre-line; }
+  .prev-norm-list a { text-decoration: none; }
+  .prev-section-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--bs-secondary-color); font-weight: 700; }
+</style>
+
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-magic"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Preventivo guidato</h1>
+    <p class="ds-ph-sub">Nuovo cliente, tipologia pratica, motore normativo e bozza iniziale in un unico flusso.</p>
+  </div>
+  <div class="ds-ph-actions d-flex gap-2">
+    <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=id_cliente_pre) if id_cliente_pre else url_for('preventivi.nuovo_preventivo') }}"
+       class="ds-btn ds-btn-ghost">
+      <i class="bi bi-sliders"></i><span class="d-none d-sm-inline">Editor avanzato</span>
+    </a>
+    <a href="{{ url_for('preventivi.lista') }}" class="ds-btn ds-btn-secondary">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Preventivi</span>
+    </a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+
+{% if entry_mode == "iniziale" %}
+<div class="alert alert-primary border-0 shadow-sm">
+  <div class="fw-semibold mb-1"><i class="bi bi-stars me-2"></i>Onboarding cliente attivo</div>
+  <div class="small">
+    Hai appena creato il cliente. Qui puoi impostare subito il preventivo iniziale con tipologia, riferimenti normativi, calcolo automatico e bozza professionale.
+  </div>
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('preventivi.wizard_genera') }}" id="wizardPreventivo">
+  <input type="hidden" name="from_page" value="{{ from_page }}">
+  <input type="hidden" name="id_pratica" id="inpIdPratica">
+  <input type="hidden" name="tipo_compenso" id="inpTipoCompenso">
+  <input type="hidden" name="tipo_procedimento" id="inpTipoProcedimento">
+  <input type="hidden" name="compenso_pattuito" id="inpCompensoPattuito" value="0">
+
+  <div class="row g-3">
+    <div class="col-12 col-xxl-8">
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-person-vcard me-2 text-primary"></i>1. Cliente e contesto</span>
+          <span class="badge text-bg-light">Fase iniziale</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
+              <select name="id_cliente" id="selectCliente" class="form-select" required>
+                <option value="">Seleziona cliente</option>
+                {% for cl in clienti %}
+                <option value="{{ cl.id }}" {% if cliente_sel and cl.id == cliente_sel.id %}selected{% endif %}>{{ cl.nome_completo }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Il wizard si precompila meglio se parti dal cliente corretto.</div>
+            </div>
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Fascicolo collegato</label>
+              <select name="id_fascicolo" id="selectFascicolo" class="form-select">
+                <option value="">Nessun fascicolo collegato</option>
+              </select>
+              <div class="form-text">Opzionale. Se presente, il preventivo resta agganciato alla pratica.</div>
+            </div>
+            <div class="col-lg-8">
+              <label class="form-label fw-semibold">Oggetto del preventivo <span class="text-danger">*</span></label>
+              <input type="text" name="oggetto" id="inpOggetto" class="form-control" required
+                     placeholder="Il wizard propone un oggetto pronto da rifinire">
+            </div>
+            <div class="col-lg-2">
+              <label class="form-label fw-semibold">Data emissione</label>
+              <input type="date" name="data_emissione" class="form-control" value="{{ oggi }}">
+            </div>
+            <div class="col-lg-2">
+              <label class="form-label fw-semibold">Scadenza</label>
+              <input type="date" name="data_scadenza" class="form-control" value="{{ scadenza_default }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-diagram-3 me-2 text-primary"></i>2. Tipologia e motore preventivo</span>
+          <span class="small text-muted">Tutte le tipologie sono collegate al motore e al redattore del preventivo</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 align-items-end mb-3">
+            <div class="col-lg-8">
+              <div class="prev-section-label mb-2">Area pratica</div>
+              <div class="d-flex flex-wrap gap-2" id="areaButtons"></div>
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label fw-semibold">Filtra tipologie</label>
+              <input type="search" id="inpFiltroTipologie" class="form-control"
+                     placeholder="Es. recupero crediti, mediazione, penale...">
+            </div>
+          </div>
+          <div class="row g-3" id="tipologiaGrid"></div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-calculator me-2 text-primary"></i>3. Parametri di calcolo e struttura del preventivo
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4" id="boxValoreControversia">
+              <label class="form-label fw-semibold">Valore pratica / controversia</label>
+              <input type="number" name="valore_controversia" id="inpValore" class="form-control"
+                     min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Grado / sede</label>
+              <select id="selGrado" class="form-select">
+                <option value="Giudice di Pace">Giudice di Pace</option>
+                <option value="Tribunale" selected>Tribunale</option>
+                <option value="Corte d'Appello">Corte d'Appello</option>
+                <option value="Corte di Cassazione">Corte di Cassazione</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Complessita stimata</label>
+              <select name="complessita" id="selComplessita" class="form-select">
+                <option value="bassa">Bassa</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Tariffa oraria</label>
+              <input type="number" name="tariffa_oraria" id="inpTariffaOraria" class="form-control"
+                     min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Ore stimate</label>
+              <input type="number" name="ore_stimate" id="inpOreStimate" class="form-control"
+                     min="0" step="0.50" placeholder="0">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Anticipazioni art. 15</label>
+              <input type="number" name="anticipazioni_art15" id="inpAnticipazioni" class="form-control"
+                     min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Avvocato referente</label>
+              <input type="text" name="avvocato_referente" class="form-control"
+                     value="{{ cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '' }}"
+                     placeholder="Avv. referente">
+            </div>
+          </div>
+          <hr class="my-4">
+          <div class="row g-3">
+            <div class="col-lg-7">
+              <div class="prev-section-label mb-2">Fasi incluse nel compenso</div>
+              <div id="fasiGrid" class="row g-2"></div>
+            </div>
+            <div class="col-lg-5">
+              <div class="prev-section-label mb-2">Opzioni di calcolo</div>
+              <div class="row g-2">
+                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkBonusTelematico"><label class="form-check-label" for="chkBonusTelematico">Applica bonus telematico</label></div></div>
+                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkSpeseGenerali" checked><label class="form-check-label" for="chkSpeseGenerali">Spese generali ex art. 2 D.M. 55/2014</label></div></div>
+                <div class="col-md-6"><label class="form-label fw-semibold">Perc. spese generali</label><input type="number" id="inpPercSpese" class="form-control" value="15" min="0" max="30" step="1"></div>
+                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_cassa" id="chkCassa" checked><label class="form-check-label" for="chkCassa">Applica CPA 4%</label></div></div>
+                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_iva" id="chkIva" checked><label class="form-check-label" for="chkIva">Applica IVA 22%</label></div></div>
+                <div class="col-12 d-grid">
+                  <button type="button" class="btn btn-primary" id="btnCalcolaPreventivo"><i class="bi bi-lightning-charge me-1"></i>Calcola e aggiorna la bozza</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <hr class="my-4">
+          <div class="prev-section-label mb-2">Spese vive suggerite</div>
+          <div id="esborsiGrid" class="row g-2"><div class="col-12 text-muted small">Seleziona una tipologia per vedere gli esborsi tipici.</div></div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-file-earmark-text me-2 text-primary"></i>4. Bozza del preventivo</span>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="btnAggiungiVoce"><i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale</button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead class="table-light">
+                <tr><th>Descrizione</th><th style="width: 170px;">Tipo voce</th><th class="text-end" style="width: 170px;">Importo</th><th style="width: 50px;"></th></tr>
+              </thead>
+              <tbody id="vociBody">
+                <tr id="emptyVociState"><td colspan="4" class="text-center text-muted py-4">Seleziona una tipologia e calcola il compenso per creare la prima bozza del preventivo.</td></tr>
+              </tbody>
+              <tfoot>
+                <tr><td colspan="2" class="text-end small text-muted">Imponibile voci</td><td class="text-end fw-semibold" id="lblImponibile">€ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">CPA</td><td class="text-end small" id="lblCassa">€ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">IVA</td><td class="text-end small" id="lblIva">€ 0,00</td><td></td></tr>
+                <tr><td colspan="2" class="text-end small text-muted">Anticipazioni art. 15</td><td class="text-end small" id="lblAnticipazioni">€ 0,00</td><td></td></tr>
+                <tr class="table-primary"><td colspan="2" class="text-end fw-bold">Totale stimato</td><td class="text-end fw-bold" id="lblTotale">€ 0,00</td><td></td></tr>
+              </tfoot>
+            </table>
+          </div>
+          <div class="row g-3 mt-1">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note professionali e condizioni</label>
+              <textarea name="note" id="inpNote" class="form-control" rows="7" placeholder="Il redattore propone una bozza che puoi adattare al cliente e alla pratica."></textarea>
+            </div>
+            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkGeneraConferimento" name="genera_conferimento" value="1"><label class="form-check-label" for="chkGeneraConferimento">Genera anche il conferimento incarico</label></div></div>
+            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkInformativaArt13" name="informativa_art13_resa" value="1" checked><label class="form-check-label" for="chkInformativaArt13">Informativa art. 13 resa</label></div></div>
+            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkClausolaAdr" name="clausola_adr_resa" value="1"><label class="form-check-label" for="chkClausolaAdr">Verifica ADR / clausola resa</label></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end pb-4">
+        <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Crea preventivo</button>
+      </div>
+    </div>
+
+    <div class="col-12 col-xxl-4">
+      <div class="card shadow-sm position-sticky prev-summary-card">
+        <div class="card-header fw-semibold"><i class="bi bi-clipboard2-data me-2 text-primary"></i>Riepilogo intelligente</div>
+        <div class="card-body">
+          <div class="prev-section-label mb-2">Tipologia selezionata</div>
+          <div id="schedaTipologia" class="small text-muted">Seleziona una tipologia per vedere quando usarla, quali riferimenti applica il motore e come verra costruito il preventivo.</div>
+          <hr>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Compenso base</div><div class="value" id="kpiCompenso">€ 0,00</div></div></div>
+            <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Totale stimato</div><div class="value" id="kpiTotale">€ 0,00</div></div></div>
+          </div>
+          <div class="mb-3">
+            <div class="prev-section-label mb-2">Riferimenti normativi</div>
+            <div id="normativaList" class="prev-norm-list d-flex flex-column gap-2 small text-muted">Nessuna tipologia selezionata.</div>
+          </div>
+          <div class="mb-3">
+            <div class="prev-section-label mb-2">Checklist iniziale</div>
+            <ul id="checklistList" class="small text-muted ps-3 mb-0"><li>Seleziona una tipologia per attivare la checklist operativa.</li></ul>
+          </div>
+          <div class="alert alert-light border small mb-0">
+            <div class="fw-semibold mb-1">Logica consigliata</div>
+            <div>1. scegli la tipologia, 2. controlla valore e fasi, 3. calcola, 4. rifinisci la bozza e genera il preventivo.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+<script>
+const CATALOGO = {{ catalogo_per_area|tojson }};
+const AREE = {{ aree|tojson }};
+
+const TIPI_VOCE = ['Onorario', 'Spesa forfettaria', 'Spesa viva'];
+const catalogoFlat = Object.values(CATALOGO).flat();
+
+let areaCorrente = AREE.find((area) => (CATALOGO[area] || []).length) || '';
+let tipologiaCorrente = null;
+let ultimoCalcolo = null;
+let oggettoToccato = false;
+let noteToccate = false;
+
+function money(value) {
+  const num = Number(value || 0);
+  return `€ ${num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function phaseLabel(key) {
+  const map = {
+    studio: 'Studio',
+    introduttiva: 'Introduttiva',
+    istruttoria: 'Istruttoria',
+    decisionale: 'Decisionale',
+    esecutiva: 'Esecutiva',
+    attivazione: 'Attivazione',
+    rivitalizzazione: 'Rivitalizzazione',
+    negoziazione: 'Negoziazione',
+    conciliazione: 'Conciliazione',
+  };
+  return map[key] || key;
+}
+
+function renderAreaButtons() {
+  const wrap = document.getElementById('areaButtons');
+  wrap.innerHTML = '';
+  AREE.forEach((area) => {
+    const total = (CATALOGO[area] || []).length;
+    if (!total) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `btn btn-outline-primary btn-sm prev-area-btn ${area === areaCorrente ? 'active' : ''}`;
+    btn.textContent = `${area} (${total})`;
+    btn.addEventListener('click', () => {
+      areaCorrente = area;
+      renderAreaButtons();
+      renderTipologie();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function renderTipologie() {
+  const grid = document.getElementById('tipologiaGrid');
+  const filtro = (document.getElementById('inpFiltroTipologie').value || '').trim().toLowerCase();
+  const items = (CATALOGO[areaCorrente] || []).filter((item) => {
+    if (!filtro) return true;
+    const haystack = [item.label, item.summary, item.when_to_use, item.base_normativa].join(' ').toLowerCase();
+    return haystack.includes(filtro);
+  });
+  if (!items.length) {
+    grid.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">Nessuna tipologia trovata con questo filtro.</div></div>';
+    return;
+  }
+  grid.innerHTML = items.map((item) => `
+    <div class="col-md-6">
+      <button type="button" class="prev-tipo-card w-100 text-start ${tipologiaCorrente && tipologiaCorrente.id === item.id ? 'active' : ''}" data-tipologia-id="${item.id}">
+        <div class="d-flex align-items-start justify-content-between gap-2">
+          <div>
+            <div class="fw-semibold text-dark">${escapeHtml(item.label)}</div>
+            <div class="small text-muted mt-1">${escapeHtml(item.summary)}</div>
+          </div>
+          <span class="badge text-bg-light">${escapeHtml(item.tipo_compenso_default)}</span>
+        </div>
+      </button>
+    </div>`).join('');
+  grid.querySelectorAll('[data-tipologia-id]').forEach((node) => {
+    node.addEventListener('click', () => selezionaTipologia(node.dataset.tipologiaId));
+  });
+}
+
+function selezionaTipologia(idTipologia) {
+  tipologiaCorrente = catalogoFlat.find((item) => item.id === idTipologia) || null;
+  if (!tipologiaCorrente) return;
+  document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
+  document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
+  document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
+  renderTipologie();
+  renderSchedaTipologia();
+  renderFasi();
+  renderEsborsi();
+  applicaSuggerimenti();
+  aggiornaVisibilitaValore();
+  aggiornaPlaceholderValore();
+  aggiornaGradoDefault();
+  ultimoCalcolo = null;
+}
+
+function renderSchedaTipologia() {
+  const target = document.getElementById('schedaTipologia');
+  const checklist = document.getElementById('checklistList');
+  const normativa = document.getElementById('normativaList');
+  if (!tipologiaCorrente) {
+    target.textContent = 'Seleziona una tipologia per vedere il dettaglio professionale.';
+    checklist.innerHTML = '<li>Seleziona una tipologia per attivare la checklist operativa.</li>';
+    normativa.textContent = 'Nessuna tipologia selezionata.';
+    return;
+  }
+  target.innerHTML = `
+    <div class="mb-2">
+      <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
+      <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
+      <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
+    </div>
+    <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
+    <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
+    <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
+  checklist.innerHTML = (tipologiaCorrente.checklist_iniziale || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  normativa.innerHTML = (tipologiaCorrente.normative_references || []).map((ref) => `
+    <div class="border rounded-3 p-2">
+      <div class="fw-semibold text-dark">${escapeHtml(ref.title || '')}</div>
+      <div class="small">${escapeHtml(ref.article || '')}</div>
+      <div class="small text-muted mb-1">${escapeHtml(ref.description || '')}</div>
+      ${ref.url ? `<a href="${ref.url}" target="_blank" rel="noopener">Fonte ufficiale</a>` : ''}
+    </div>`).join('');
+}
+
+function renderFasi() {
+  const grid = document.getElementById('fasiGrid');
+  if (!tipologiaCorrente) {
+    grid.innerHTML = '<div class="col-12 text-muted small">Seleziona una tipologia per vedere le fasi.</div>';
+    return;
+  }
+  const phases = tipologiaCorrente.fasi_default_keys || [];
+  grid.innerHTML = phases.map((key) => `
+    <div class="col-md-6">
+      <label class="border rounded-3 p-2 d-flex align-items-center gap-2">
+        <input class="form-check-input mt-0 fase-check" type="checkbox" value="${key}" checked>
+        <span>${escapeHtml(phaseLabel(key))}</span>
+      </label>
+    </div>`).join('');
+}
+
+function renderEsborsi() {
+  const grid = document.getElementById('esborsiGrid');
+  if (!tipologiaCorrente || !(tipologiaCorrente.esborsi_tipici || []).length) {
+    grid.innerHTML = '<div class="col-12 text-muted small">Nessun esborso tipico suggerito per questa tipologia.</div>';
+    syncEsborsiRows();
+    return;
+  }
+  grid.innerHTML = tipologiaCorrente.esborsi_tipici.map((item, index) => `
+    <div class="col-md-6">
+      <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100">
+        <input class="form-check-input mt-1 esborso-check" type="checkbox" data-key="${tipologiaCorrente.id}_${index}" data-desc="${escapeHtml(item.descrizione)}" data-importo="${item.importo}">
+        <span class="small">
+          <span class="fw-semibold d-block text-dark">${escapeHtml(item.descrizione)}</span>
+          <span class="text-muted">${money(item.importo)}</span>
+        </span>
+      </label>
+    </div>`).join('');
+  grid.querySelectorAll('.esborso-check').forEach((node) => node.addEventListener('change', syncEsborsiRows));
+  syncEsborsiRows();
+}
+
+function applicaSuggerimenti() {
+  if (!tipologiaCorrente) return;
+  const oggetto = document.getElementById('inpOggetto');
+  const note = document.getElementById('inpNote');
+  if (!oggettoToccato || !oggetto.value.trim()) oggetto.value = tipologiaCorrente.oggetto_template || '';
+  if (!noteToccate || !note.value.trim()) note.value = tipologiaCorrente.note_template || '';
+}
+
+function aggiornaVisibilitaValore() {
+  const box = document.getElementById('boxValoreControversia');
+  box.style.display = !tipologiaCorrente || tipologiaCorrente.richiede_valore ? '' : 'none';
+}
+
+function aggiornaPlaceholderValore() {
+  const input = document.getElementById('inpValore');
+  input.placeholder = tipologiaCorrente && tipologiaCorrente.valore_suggerito ? `Suggerito: ${money(tipologiaCorrente.valore_suggerito)}` : '0.00';
+}
+
+function aggiornaGradoDefault() {
+  if (tipologiaCorrente) document.getElementById('selGrado').value = tipologiaCorrente.grado_default || 'Tribunale';
+}
+</script>
+<script>
+function rowMarkup(desc = '', importo = '', tipo = 'Onorario', attrs = '') {
+  return `
+    <tr class="prev-voice-row" ${attrs}>
+      <td><input type="text" name="voce_descr[]" class="form-control form-control-sm" value="${escapeHtml(desc)}" required></td>
+      <td><select name="voce_tipo[]" class="form-select form-select-sm">${TIPI_VOCE.map((item) => `<option value="${item}" ${item === tipo ? 'selected' : ''}>${item}</option>`).join('')}</select></td>
+      <td><input type="number" name="voce_importo[]" class="form-control form-control-sm text-end voce-importo" min="0" step="0.01" value="${Number(importo || 0)}"></td>
+      <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="bi bi-trash"></i></button></td>
+    </tr>`;
+}
+
+function aggiornaEmptyState() {
+  const tbody = document.getElementById('vociBody');
+  const empty = document.getElementById('emptyVociState');
+  const hasRows = !!tbody.querySelector('.prev-voice-row');
+  empty.style.display = hasRows ? 'none' : '';
+}
+
+function attachRowEvents(row) {
+  row.querySelectorAll('input, select').forEach((node) => {
+    node.addEventListener('input', recalcTotals);
+    node.addEventListener('change', recalcTotals);
+  });
+  row.querySelector('.btn-remove-row').addEventListener('click', () => {
+    row.remove();
+    aggiornaEmptyState();
+    recalcTotals();
+  });
+}
+
+function addVoce(desc = '', importo = '', tipo = 'Onorario', attrs = '') {
+  const tbody = document.getElementById('vociBody');
+  const temp = document.createElement('tbody');
+  temp.innerHTML = rowMarkup(desc, importo, tipo, attrs).trim();
+  const row = temp.firstElementChild;
+  tbody.appendChild(row);
+  attachRowEvents(row);
+  aggiornaEmptyState();
+  recalcTotals();
+  return row;
+}
+
+function upsertVocePrincipale(desc, importo) {
+  let row = document.querySelector('tr[data-role="main-compenso"]');
+  if (!row) row = addVoce(desc, importo, 'Onorario', 'data-role="main-compenso"');
+  row.querySelector('input[name="voce_descr[]"]').value = desc;
+  row.querySelector('select[name="voce_tipo[]"]').value = 'Onorario';
+  row.querySelector('input[name="voce_importo[]"]').value = Number(importo || 0);
+  recalcTotals();
+}
+
+function syncEsborsiRows() {
+  document.querySelectorAll('tr[data-role="esborso-tipico"]').forEach((row) => row.remove());
+  document.querySelectorAll('.esborso-check:checked').forEach((node) => {
+    addVoce(node.dataset.desc, node.dataset.importo, 'Spesa viva', 'data-role="esborso-tipico"');
+  });
+  aggiornaEmptyState();
+  recalcTotals();
+}
+
+function recalcTotals() {
+  let imponibile = 0;
+  document.querySelectorAll('input[name="voce_importo[]"]').forEach((node) => { imponibile += Number(node.value || 0); });
+  const cassa = document.getElementById('chkCassa').checked ? imponibile * 0.04 : 0;
+  const baseIva = imponibile + cassa;
+  const iva = document.getElementById('chkIva').checked ? baseIva * 0.22 : 0;
+  const anticipazioni = Number(document.getElementById('inpAnticipazioni').value || 0);
+  const totale = baseIva + iva + anticipazioni;
+  document.getElementById('lblImponibile').textContent = money(imponibile);
+  document.getElementById('lblCassa').textContent = money(cassa);
+  document.getElementById('lblIva').textContent = money(iva);
+  document.getElementById('lblAnticipazioni').textContent = money(anticipazioni);
+  document.getElementById('lblTotale').textContent = money(totale);
+  document.getElementById('kpiTotale').textContent = money(totale);
+  document.getElementById('inpCompensoPattuito').value = totale.toFixed(2);
+}
+
+function buildQuery() {
+  const params = new URLSearchParams();
+  params.set('id_pratica', tipologiaCorrente.id);
+  params.set('valore', document.getElementById('inpValore').value || 0);
+  params.set('grado', document.getElementById('selGrado').value || '');
+  params.set('bonus_telematico', document.getElementById('chkBonusTelematico').checked ? '1' : '0');
+  params.set('spese_generali', document.getElementById('chkSpeseGenerali').checked ? '1' : '0');
+  params.set('perc_spese_generali', document.getElementById('inpPercSpese').value || '15');
+  params.set('applica_cpa', document.getElementById('chkCassa').checked ? '1' : '0');
+  params.set('applica_iva', document.getElementById('chkIva').checked ? '1' : '0');
+  params.set('anticipazioni', document.getElementById('inpAnticipazioni').value || '0');
+  const fasi = Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
+  params.set('fasi', fasi.join(','));
+  return params;
+}
+
+function renderRisultato(data) {
+  ultimoCalcolo = data;
+  document.getElementById('kpiCompenso').textContent = money(data.onorario_base || data.totale_base || 0);
+  document.getElementById('kpiTotale').textContent = money(data.totale || 0);
+  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_base || data.totale_base || 0);
+  recalcTotals();
+}
+
+function renderRisultatoOrario() {
+  const tariffa = Number(document.getElementById('inpTariffaOraria').value || 0);
+  const ore = Number(document.getElementById('inpOreStimate').value || 0);
+  const imponibile = tariffa * ore;
+  ultimoCalcolo = { onorario_base: imponibile, totale: imponibile, scaglione: 'Compenso orario pattuito' };
+  document.getElementById('kpiCompenso').textContent = money(imponibile);
+  upsertVocePrincipale(`Compenso orario per ${tipologiaCorrente.label} (${ore.toLocaleString('it-IT')} ore x ${money(tariffa)})`, imponibile);
+  recalcTotals();
+}
+
+async function calcolaPreventivo() {
+  if (!tipologiaCorrente) {
+    alert('Seleziona prima una tipologia di pratica.');
+    return;
+  }
+  const tipoCompenso = (tipologiaCorrente.tipo_compenso_default || '').toLowerCase();
+  if (tipoCompenso.includes('orario')) {
+    const tariffa = Number(document.getElementById('inpTariffaOraria').value || 0);
+    const ore = Number(document.getElementById('inpOreStimate').value || 0);
+    if (tariffa > 0 && ore > 0) {
+      renderRisultatoOrario();
+      return;
+    }
+  }
+  const btn = document.getElementById('btnCalcolaPreventivo');
+  const oldHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Calcolo...';
+  try {
+    const response = await fetch(`{{ url_for('preventivi.wizard_calcola') }}?${buildQuery().toString()}`);
+    const data = await response.json();
+    if (data.errore) {
+      alert(data.errore);
+      return;
+    }
+    renderRisultato(data);
+  } catch (error) {
+    alert(`Impossibile calcolare il preventivo: ${error.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldHtml;
+  }
+}
+
+async function caricaFascicoli(idCliente) {
+  const sel = document.getElementById('selectFascicolo');
+  sel.innerHTML = '<option value="">Caricamento fascicoli...</option>';
+  if (!idCliente) {
+    sel.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
+    return;
+  }
+  try {
+    const response = await fetch(`{{ url_for('preventivi.ajax_fascicoli', id_cliente='__ID__') }}`.replace('__ID__', idCliente));
+    const items = await response.json();
+    sel.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
+    items.forEach((item) => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.numero_rg ? `${item.titolo} (RG ${item.numero_rg})` : item.titolo;
+      sel.appendChild(option);
+    });
+  } catch (error) {
+    sel.innerHTML = '<option value="">Errore caricamento fascicoli</option>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const clienteSelect = document.getElementById('selectCliente');
+  renderAreaButtons();
+  renderTipologie();
+  aggiornaEmptyState();
+  recalcTotals();
+  if (clienteSelect.value) caricaFascicoli(clienteSelect.value);
+  clienteSelect.addEventListener('change', (event) => caricaFascicoli(event.target.value));
+  document.getElementById('inpFiltroTipologie').addEventListener('input', renderTipologie);
+  document.getElementById('btnCalcolaPreventivo').addEventListener('click', calcolaPreventivo);
+  document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
+  document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
+  document.getElementById('chkCassa').addEventListener('change', recalcTotals);
+  document.getElementById('chkIva').addEventListener('change', recalcTotals);
+  document.getElementById('inpOggetto').addEventListener('input', () => { oggettoToccato = true; });
+  document.getElementById('inpNote').addEventListener('input', () => { noteToccate = true; });
+  const first = areaCorrente ? (CATALOGO[areaCorrente] || [])[0] : null;
+  if (first) selezionaTipologia(first.id);
+  document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
+    if (!tipologiaCorrente) {
+      event.preventDefault();
+      alert('Seleziona una tipologia di pratica prima di creare il preventivo.');
+      return;
+    }
+    if (!document.querySelectorAll('.prev-voice-row').length) {
+      event.preventDefault();
+      alert('Calcola il compenso o aggiungi almeno una voce al preventivo.');
+    }
+  });
+});
+</script>
+{% endblock %}

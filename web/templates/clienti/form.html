@@ -581,6 +581,26 @@
   </div>
 </div>
 
+{% if not cliente %}
+<div class="card shadow-sm mb-3 border-primary-subtle">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-file-earmark-text me-2 text-primary"></i>Onboarding pratica iniziale
+  </div>
+  <div class="card-body">
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" role="switch"
+             id="crea_preventivo_iniziale" name="crea_preventivo_iniziale" value="1" checked>
+      <label class="form-check-label fw-semibold" for="crea_preventivo_iniziale">
+        Apri subito il preventivo iniziale guidato dopo il salvataggio
+      </label>
+    </div>
+    <div class="small text-muted mt-2">
+      Il wizard proporra automaticamente tipologia, riferimenti normativi, calcolo parametrico e bozza del preventivo da rifinire.
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {# ---- Bottoni ---- #}
 <div class="d-flex gap-2 mb-4">
   <button type="submit" class="btn btn-primary">

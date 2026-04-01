@@ -3542,6 +3542,15 @@ read -r -p "Premi Invio per chiudere..." _
                 )
                 flash(f"Cliente '{c.nome_completo}' aggiunto.", "success")
                 sync_pubblica("crea", "clienti", c.id)
+                if f.get("crea_preventivo_iniziale", "1") == "1":
+                    return redirect(
+                        url_for(
+                            "preventivi.wizard",
+                            id_cliente=c.id,
+                            from_page="cliente",
+                            entry="iniziale",
+                        )
+                    )
                 return redirect(url_for("dettaglio_cliente", id_cliente=c.id))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")

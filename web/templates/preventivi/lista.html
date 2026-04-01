@@ -12,8 +12,11 @@
     <p class="ds-ph-sub">Preventivi professionali e conferimenti di incarico — {{ anno }}</p>
   </div>
   <div class="ds-ph-actions d-flex gap-2">
-    <a href="{{ url_for('preventivi.nuovo_preventivo') }}" class="ds-btn ds-btn-primary">
-      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo preventivo</span>
+    <a href="{{ url_for('preventivi.wizard') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-magic"></i><span class="d-none d-sm-inline">Preventivo guidato</span>
+    </a>
+    <a href="{{ url_for('preventivi.nuovo_preventivo') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-sliders"></i><span class="d-none d-sm-inline">Editor avanzato</span>
     </a>
     <a href="{{ url_for('preventivi.nuovo_conferimento') }}" class="ds-btn ds-btn-secondary">
       <i class="bi bi-pen"></i><span class="d-none d-sm-inline">Nuovo incarico</span>
@@ -134,8 +137,8 @@
     <i class="bi bi-file-earmark-text fs-1 opacity-25 d-block mb-2"></i>
     Nessun preventivo trovato per i criteri selezionati.
     <div class="mt-3">
-      <a href="{{ url_for('preventivi.nuovo_preventivo') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Crea il primo preventivo
+      <a href="{{ url_for('preventivi.wizard') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-magic me-1"></i>Avvia il preventivo guidato
       </a>
     </div>
   </div>

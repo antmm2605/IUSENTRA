@@ -8,9 +8,13 @@
   <div class="ds-ph-icon"><i class="bi bi-file-earmark-plus"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Nuovo Preventivo</h1>
-    <p class="ds-ph-sub">Compila le voci per il preventivo professionale</p>
+    <p class="ds-ph-sub">Editor avanzato per il preventivo professionale</p>
   </div>
-  <div class="ds-ph-actions">
+  <div class="ds-ph-actions d-flex gap-2">
+    <a href="{{ url_for('preventivi.wizard', id_cliente=cliente_sel.id if cliente_sel else '', from_page=from_page) }}"
+       class="ds-btn ds-btn-primary">
+      <i class="bi bi-magic"></i><span class="d-none d-sm-inline">Wizard guidato</span>
+    </a>
     <a href="{{ url_for('preventivi.lista') }}" class="ds-btn ds-btn-secondary">
       <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Annulla</span>
     </a>
@@ -24,6 +28,19 @@
   </div>
   {% endfor %}
 {% endwith %}
+
+<div class="alert alert-primary border-0 shadow-sm">
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
+    <div>
+      <div class="fw-semibold"><i class="bi bi-stars me-2"></i>Flusso consigliato</div>
+      <div class="small">Per il nuovo cliente e per le tipologie standard usa il wizard: propone area, riferimenti normativi, motore di calcolo e bozza iniziale del preventivo.</div>
+    </div>
+    <a href="{{ url_for('preventivi.wizard', id_cliente=cliente_sel.id if cliente_sel else '', from_page=from_page) }}"
+       class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-arrow-right-circle me-1"></i>Apri il wizard
+    </a>
+  </div>
+</div>
 
 <form method="post" id="formPreventivo">
   <input type="hidden" name="from_page" value="{{ from_page }}">

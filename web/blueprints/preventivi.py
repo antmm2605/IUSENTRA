@@ -608,13 +608,19 @@ def ajax_parametri_dm55():
 @_richiedi_login
 def wizard():
     """Wizard step-by-step per la costruzione guidata del preventivo."""
-    from pct.motore_preventivo import catalogo_per_area, AREE
+    from pct.motore_preventivo import AREE, catalogo_wizard
     gc = get_clienti()
+    id_cliente = request.args.get("id_cliente", "").strip()
+    cliente_sel = gc.get(id_cliente) if id_cliente else None
     return render_template(
         "preventivi/wizard.html",
-        catalogo_per_area=catalogo_per_area(),
+        catalogo_per_area=catalogo_wizard(),
         aree=AREE,
         clienti=gc.tutti(),
+        cliente_sel=cliente_sel,
+        id_cliente_pre=id_cliente,
+        from_page=request.args.get("from_page", "").strip(),
+        entry_mode=request.args.get("entry", "").strip(),
         oggi=date.today(),
         scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
     )
@@ -720,6 +726,9 @@ def wizard_calcola():
 
         return jsonify({
             "tipo_pratica":          tp.to_dict(),
+            "summary":               tp.summary,
+            "when_to_use":           tp.when_to_use,
+            "normative_references":  tp.normative_references,
             "materia":               dm.materia,
             "scaglione":             dm.scaglione,
             "fasi":                  fasi_out,

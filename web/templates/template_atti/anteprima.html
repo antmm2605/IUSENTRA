@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Anteprima — {{ t.titolo }}{% endblock %}
+{% from "template_atti/_editor_macros.html" import professional_editor %}
+{% block title %}Anteprima - {{ t.titolo }}{% endblock %}
 
 {% block content %}
 <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
@@ -7,12 +8,7 @@
     <i class="bi bi-arrow-left"></i>
   </a>
   <h4 class="mb-0 fw-bold flex-grow-1">{{ t.titolo }}</h4>
-  <form method="post" action="{{ url_for('template_atti.pdf', id_template=id_template) }}" class="d-flex gap-2">
-    <input type="hidden" name="testo_generato" value="{{ testo_generato }}">
-    <button type="submit" class="btn btn-primary">
-      <i class="bi bi-file-earmark-pdf me-2"></i>Scarica PDF
-    </button>
-  </form>
+  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">Template professionale</span>
 </div>
 
 {% if cliente or fascicolo %}
@@ -30,40 +26,50 @@
 </div>
 {% endif %}
 
-<div class="card border-0 shadow-sm" style="border-radius:16px;">
-  <div class="card-body">
-    <!-- Editor inline del testo generato -->
-    <form method="post" action="{{ url_for('template_atti.pdf', id_template=id_template) }}" id="form-pdf">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="text-muted" style="font-size:.78rem;">
-          <i class="bi bi-pencil me-1"></i>Modifica il testo prima di scaricare il PDF
-        </span>
-        <button type="button" id="btn-copia" class="btn btn-sm btn-outline-secondary">
-          <i class="bi bi-clipboard me-1"></i>Copia testo
-        </button>
-      </div>
-      <textarea name="testo_generato" id="editor-atto" class="form-control font-monospace"
-                rows="30" style="font-size:.85rem; line-height:1.7;">{{ testo_generato }}</textarea>
-      <div class="d-flex gap-2 mt-3">
-        <button type="submit" class="btn btn-primary flex-grow-1">
-          <i class="bi bi-file-earmark-pdf me-2"></i>Genera PDF
-        </button>
-        <a href="{{ url_for('template_atti.usa', id_template=id_template) }}"
-           class="btn btn-outline-secondary">Ricomincia</a>
-      </div>
-    </form>
+<div class="card border-0 shadow-sm mb-4" style="border-radius:16px;background:linear-gradient(135deg,#f6f9ff 0%,#ffffff 100%);">
+  <div class="card-body d-flex justify-content-between align-items-start gap-3 flex-wrap">
+    <div>
+      <div class="small text-uppercase text-primary fw-bold mb-1">Revisione finale</div>
+      <h5 class="mb-2 fw-bold">{{ t.titolo }}</h5>
+      <p class="text-muted mb-0" style="max-width:820px;">
+        Qui puoi rifinire il testo definitivo in un ambiente piu vicino all'impaginazione reale dell'atto. Il PDF terra conto della formattazione inserita nell'editor.
+      </p>
+    </div>
+    <button type="button" id="btn-copia" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-clipboard me-1"></i>Copia testo
+    </button>
   </div>
 </div>
+
+<form method="post" action="{{ url_for('template_atti.pdf', id_template=id_template) }}" id="template-preview-form">
+  {{ professional_editor(
+    'testo_generato',
+    editor_html,
+    editor_id='template-preview-editor',
+    placeholder='Il contenuto del template comparira qui',
+    min_height='840px'
+  ) }}
+
+  <div class="d-flex gap-2 mt-3 flex-wrap">
+    <button type="submit" class="btn btn-primary flex-grow-1">
+      <i class="bi bi-file-earmark-pdf me-2"></i>Scarica PDF
+    </button>
+    <a href="{{ url_for('template_atti.usa', id_template=id_template) }}" class="btn btn-outline-secondary">Ricomincia</a>
+  </div>
+</form>
 {% endblock %}
 
 {% block extra_scripts %}
+{% include "template_atti/_editor_assets.html" %}
 <script>
-document.getElementById('btn-copia').addEventListener('click', () => {
-  const txt = document.getElementById('editor-atto').value;
-  navigator.clipboard.writeText(txt).then(() => {
+document.getElementById('btn-copia')?.addEventListener('click', () => {
+  const testo = window.TemplateActEditors.getPlainText('template-preview-editor');
+  navigator.clipboard.writeText(testo).then(() => {
     const btn = document.getElementById('btn-copia');
     btn.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Copiato!';
-    setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia testo', 2000);
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia testo';
+    }, 2000);
   });
 });
 </script>

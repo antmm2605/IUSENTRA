@@ -6,7 +6,9 @@ URL base: /template-atti/
 from __future__ import annotations
 
 import io
+import re
 from datetime import date
+from html import escape
 
 from flask import (Blueprint, abort, flash, g, redirect, render_template,
                    request, send_file, url_for, current_app)
@@ -236,6 +238,7 @@ def usa(id_template: str):
             "template_atti/anteprima.html",
             t=t,
             testo_generato=testo_generato,
+            editor_html=_to_editor_html(testo_generato),
             id_template=id_template,
             variabili_json=_variabili_safe(variabili),
             cliente=cliente,
@@ -326,6 +329,7 @@ def compila(model_code: str):
             payload=payload,
             form_values={key: _valore_form(value) for key, value in payload.items()},
             testo_generato=testo_generato,
+            editor_html=_to_editor_html(testo_generato),
             selected_cliente=selected_cliente,
             selected_fascicolo=selected_fascicolo,
             guidance=ctx["guidance"],
@@ -389,7 +393,85 @@ def _variabili_safe(v: dict) -> dict:
     return safe
 
 
-def _genera_pdf(titolo: str, testo: str, config: dict) -> io.BytesIO:
+def _to_editor_html(content: str) -> str:
+    text = (content or "").strip()
+    if not text:
+        return "<p></p>"
+    if _looks_like_html(text):
+        return text
+    return _plain_text_to_editor_html(text)
+
+
+def _looks_like_html(content: str) -> bool:
+    lowered = (content or "").strip().lower()
+    return any(
+        tag in lowered
+        for tag in ("<p", "<div", "<h1", "<h2", "<h3", "<ul", "<ol", "<li", "<table", "<blockquote", "<br", "<hr")
+    )
+
+
+def _plain_text_to_editor_html(content: str) -> str:
+    normalized = (content or "").replace("\r", "").strip()
+    if not normalized:
+        return "<p></p>"
+
+    blocks = [
+        [line.strip() for line in block.split("\n") if line.strip()]
+        for block in re.split(r"\n\s*\n", normalized)
+    ]
+    blocks = [lines for lines in blocks if lines]
+    html_blocks: list[str] = []
+
+    for index, lines in enumerate(blocks):
+        if len(lines) == 1:
+            line = lines[0]
+            if index == 0 and _is_upper_heading(line):
+                html_blocks.append(f'<div class="legal-doc-kicker">{escape(line)}</div>')
+                continue
+            if (index == 0 or index == 1) and len(line) <= 90 and not line.endswith(":"):
+                html_blocks.append(f"<h1>{escape(line)}</h1>")
+                continue
+            if _is_upper_heading(line):
+                html_blocks.append(f"<h2>{escape(line)}</h2>")
+                continue
+            if line.endswith(":") and len(line) <= 60:
+                html_blocks.append(f'<p class="legal-doc-label"><strong>{escape(line)}</strong></p>')
+                continue
+
+        if all(re.match(r"^\d+\.\s+", line) for line in lines):
+            items = [re.sub(r"^\d+\.\s+", "", line) for line in lines]
+            html_blocks.append("<ol>" + "".join(f"<li>{escape(item)}</li>" for item in items) + "</ol>")
+            continue
+
+        if all(line.startswith("- ") for line in lines):
+            items = [line[2:].strip() for line in lines]
+            html_blocks.append("<ul>" + "".join(f"<li>{escape(item)}</li>" for item in items) + "</ul>")
+            continue
+
+        css_class = ' class="legal-doc-party"' if len(lines) > 1 else ""
+        html_blocks.append(f"<p{css_class}>" + "<br>".join(escape(line) for line in lines) + "</p>")
+
+    return "\n".join(html_blocks) or "<p></p>"
+
+
+def _is_upper_heading(line: str) -> bool:
+    stripped = (line or "").strip()
+    if not stripped or len(stripped) > 90:
+        return False
+    letters = [char for char in stripped if char.isalpha()]
+    if not letters:
+        return False
+    return stripped == stripped.upper()
+
+
+def _fallback_pdf_from_text(titolo: str, testo: str, config: dict) -> io.BytesIO:
+    safe_text = testo or ""
+    safe_text = re.sub(r"(?i)<br\s*/?>", "\n", safe_text)
+    safe_text = re.sub(r"(?i)</(p|div|h1|h2|h3|h4|blockquote)>", "\n", safe_text)
+    safe_text = re.sub(r"(?i)<li[^>]*>", "- ", safe_text)
+    safe_text = re.sub(r"(?i)</li>", "\n", safe_text)
+    safe_text = re.sub(r"<[^>]+>", "", safe_text)
+    safe_text = re.sub(r"\n{3,}", "\n\n", safe_text).strip()
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib.units import mm
@@ -418,7 +500,7 @@ def _genera_pdf(titolo: str, testo: str, config: dict) -> io.BytesIO:
         story.append(Spacer(1, 6*mm))
         story.append(HRFlowable(width="100%", thickness=1.5, color=PRIMARY))
         story.append(Spacer(1, 6*mm))
-        for riga in testo.split("\n"):
+        for riga in safe_text.split("\n"):
             if riga.strip():
                 story.append(Paragraph(riga.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"),
                                        style_body))
@@ -435,6 +517,20 @@ def _genera_pdf(titolo: str, testo: str, config: dict) -> io.BytesIO:
         buf.seek(0)
         return buf
     except ImportError:
-        buf = io.BytesIO(testo.encode("utf-8"))
+        buf = io.BytesIO(safe_text.encode("utf-8"))
         buf.seek(0)
         return buf
+
+
+def _genera_pdf(titolo: str, testo: str, config: dict) -> io.BytesIO:
+    html = _to_editor_html(testo)
+    try:
+        from pct.editor import html_to_pdf
+
+        pdf_bytes = html_to_pdf(html, titolo)
+        buf = io.BytesIO(pdf_bytes)
+        buf.seek(0)
+        return buf
+    except Exception as exc:
+        current_app.logger.exception("Errore generazione PDF HTML template atti: %s", exc)
+        return _fallback_pdf_from_text(titolo, testo, config)

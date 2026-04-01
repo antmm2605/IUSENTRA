@@ -117,6 +117,17 @@ def test_wizard_schema_modello_riusa_catalogo_centrale():
     assert "sender" in schema["prefill_map"]
 
 
+def test_modelli_ereditano_renderer_professionale_per_area():
+    pen_schema = wizard_schema_modello("PEN_MEM_001")
+    amm_schema = wizard_schema_modello("AMM_RIC_001")
+    trib_schema = wizard_schema_modello("TRIB_RIC_001")
+    civ_schema = wizard_schema_modello("CIV_COM_001")
+    assert pen_schema["renderer"] == "criminal_defense_v1"
+    assert amm_schema["renderer"] == "administrative_litigation_v1"
+    assert trib_schema["renderer"] == "tax_litigation_v1"
+    assert civ_schema["renderer"] == "civil_judicial_v1"
+
+
 def test_render_citation_compiled_act_uses_professional_structure():
     fascicolo = _fake_fascicolo()
     payload = prefill_payload(
@@ -155,6 +166,35 @@ def test_render_citation_compiled_act_uses_professional_structure():
     assert "CONCLUSIONI" in testo
     assert "15/10/2026" in testo
     assert "Dichiarazione di valore" in testo
+
+
+def test_render_penal_memory_uses_professional_sections():
+    payload = prefill_payload(
+        "PEN_MEM_001",
+        fascicolo=_fake_fascicolo(),
+        cliente=_fake_cliente(),
+        utente=_fake_utente(),
+        config={"STUDIO_AVVOCATO": "Avv. Mario Rossi"},
+    )
+    payload.update(
+        {
+            "proceeding_authority": "Procura della Repubblica presso il Tribunale di Palmi",
+            "assisted_person": "Montagnese Elisabetta",
+            "criminal_proceeding_reference": "RGNR 102/2026",
+            "defensive_arguments": "L'assistita chiede che siano valorizzati gli elementi gia versati in atti.",
+            "specific_requests": "Si chiede l'acquisizione della documentazione difensiva allegata.",
+            "requests_or_conclusions": "Ogni piu ampia riserva in rito e nel merito.",
+            "documents_offered": ["memoria_precedente.pdf", "allegato_difensivo.pdf"],
+            "place": "Palmi",
+        }
+    )
+    errors = validate_payload("PEN_MEM_001", payload)
+    assert errors == {}
+    testo = render_compiled_act("PEN_MEM_001", payload)
+    assert "PROCURA DELLA REPUBBLICA PRESSO IL TRIBUNALE DI PALMI" in testo
+    assert "ARGOMENTAZIONI DIFENSIVE" in testo
+    assert "RICHIESTE" in testo
+    assert "DOCUMENTI E ALLEGATI" in testo
 
 
 def test_validate_and_render_compiled_act():

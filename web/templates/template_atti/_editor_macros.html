@@ -1,0 +1,72 @@
+{% macro professional_editor(name, value='', editor_id='professional-editor', placeholder="Scrivi qui il contenuto dell'atto", min_height='720px') -%}
+<div class="legal-editor-root" id="{{ editor_id }}-root" data-editor-root data-editor-id="{{ editor_id }}" data-placeholder="{{ placeholder }}">
+  <textarea name="{{ name }}" id="{{ editor_id }}-source" data-editor-source class="d-none">{{ value }}</textarea>
+  <div class="legal-editor-shell border-0 shadow-sm">
+    <div class="legal-editor-toolbar" data-editor-toolbar>
+      <div class="legal-editor-toolbar-group">
+        <select class="form-select form-select-sm legal-editor-select" data-editor-block title="Formato blocco">
+          <option value="P">Corpo</option>
+          <option value="H2">Titolo sezione</option>
+          <option value="H3">Sottotitolo</option>
+          <option value="BLOCKQUOTE">Nota</option>
+        </select>
+      </div>
+      <div class="legal-editor-divider"></div>
+      <div class="legal-editor-toolbar-group">
+        <button type="button" class="legal-editor-btn" data-command="bold" title="Grassetto">
+          <i class="bi bi-type-bold"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="italic" title="Corsivo">
+          <i class="bi bi-type-italic"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="underline" title="Sottolineato">
+          <i class="bi bi-type-underline"></i>
+        </button>
+      </div>
+      <div class="legal-editor-divider"></div>
+      <div class="legal-editor-toolbar-group">
+        <button type="button" class="legal-editor-btn" data-command="justifyLeft" title="Allinea a sinistra">
+          <i class="bi bi-text-left"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="justifyCenter" title="Centra">
+          <i class="bi bi-text-center"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="justifyRight" title="Allinea a destra">
+          <i class="bi bi-text-right"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="justifyFull" title="Giustifica">
+          <i class="bi bi-justify"></i>
+        </button>
+      </div>
+      <div class="legal-editor-divider"></div>
+      <div class="legal-editor-toolbar-group">
+        <button type="button" class="legal-editor-btn" data-command="insertUnorderedList" title="Elenco puntato">
+          <i class="bi bi-list-ul"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="insertOrderedList" title="Elenco numerato">
+          <i class="bi bi-list-ol"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="insertHorizontalRule" title="Linea divisoria">
+          <i class="bi bi-dash-lg"></i>
+        </button>
+      </div>
+      <div class="legal-editor-divider"></div>
+      <div class="legal-editor-toolbar-group">
+        <button type="button" class="legal-editor-btn" data-command="removeFormat" title="Pulisci formato">
+          <i class="bi bi-eraser"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="undo" title="Annulla">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+        <button type="button" class="legal-editor-btn" data-command="redo" title="Ripeti">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="legal-editor-stage">
+      <div class="legal-editor-page" data-editor-surface contenteditable="true" spellcheck="true" style="min-height: {{ min_height }};"></div>
+    </div>
+  </div>
+</div>
+{%- endmacro %}

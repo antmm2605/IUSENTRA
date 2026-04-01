@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "template_atti/_editor_macros.html" import professional_editor %}
 {% block title %}{{ 'Modifica' if t else 'Nuovo' }} Template{% endblock %}
 
 {% block content %}
@@ -34,26 +35,21 @@
           <div class="mb-3">
             <label class="form-label fw-semibold" style="font-size:.82rem;">
               Corpo del documento
-              <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Editor Word</span>
+              <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Editor Professionale</span>
             </label>
 
-            <!-- Hidden textarea per il submit -->
-            <textarea name="corpo" id="editor-corpo" style="display:none;">{{ form.get('corpo', '') }}</textarea>
-
-            <!-- Editor visibile -->
-            <div id="tinymce-container" style="border:1px solid #dee2e6; border-radius:8px; overflow:hidden;">
-              <!-- Toolbar -->
-              <div id="editor-toolbar" class="border-bottom p-2 bg-light"></div>
-              <!-- Area di editing -->
-              <div id="editor-visual" contenteditable="true"
-                   style="min-height:500px; padding:20px; font-family:'Times New Roman',serif; font-size:12pt; line-height:1.6; outline:none;">
-              </div>
-            </div>
+            {{ professional_editor(
+              'corpo',
+              form.get('corpo', ''),
+              editor_id='template-body-editor',
+              placeholder="Scrivi il template dell'atto e inserisci le variabili disponibili",
+              min_height='560px'
+            ) }}
 
             <div class="form-text mt-2">
               <i class="bi bi-info-circle me-1"></i>
-              Usa la toolbar per formattare. Le variabili {{ '{{' }}...{{ '}}' }} saranno preservate.
-              <span class="ms-2 text-muted">| Ctrl+Z: Annulla | Ctrl+Y: Ripeti</span>
+              Usa la toolbar per formattare e dare al template una struttura piu vicina a un vero atto professionale.
+              Le variabili {{ '{{' }}...{{ '}}' }} saranno preservate in anteprima e nel PDF.
             </div>
           </div>
 
@@ -73,7 +69,6 @@
       </div>
     </div>
 
-    <!-- Variabili disponibili -->
     <div class="col-lg-4">
       <div class="card border-0 shadow-sm" style="border-radius:16px;">
         <div class="card-header fw-semibold" style="background:transparent;font-size:.85rem;">
@@ -104,124 +99,13 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{% include "template_atti/_editor_assets.html" %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const textarea = document.getElementById('editor-corpo');
-  const visualEditor = document.getElementById('editor-visual');
-  const toolbar = document.getElementById('editor-toolbar');
-  const form = document.getElementById('templateForm');
-
-  // Carica contenuto iniziale (preserva HTML esistente)
-  if (textarea.value) {
-    // Decodifica eventuali entità HTML per le variabili Jinja
-    visualEditor.innerHTML = textarea.value
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&amp;/g, '&');
-  }
-
-  // Sync visivo → textarea prima del submit
-  form.addEventListener('submit', function(e) {
-    // Preserva le variabili Jinja2 dalla codifica HTML
-    let content = visualEditor.innerHTML;
-    textarea.value = content;
-  });
-
-  // Inserimento variabili con posizione cursore corretta
-  document.querySelectorAll('.var-chip').forEach(chip => {
-    chip.style.cursor = 'pointer';
+  document.querySelectorAll('.var-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
-      const varText = chip.textContent.trim();
-      insertAtCursor(visualEditor, varText);
-      visualEditor.focus();
+      window.TemplateActEditors.insertText('template-body-editor', chip.textContent.trim());
     });
-  });
-
-  // Funzione per inserire testo alla posizione del cursore
-  function insertAtCursor(element, text) {
-    const sel = window.getSelection();
-    if (sel.getRangeAt && sel.rangeCount) {
-      const range = sel.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(document.createTextNode(text));
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    } else {
-      element.innerHTML += text;
-    }
-  }
-
-  // Crea toolbar con bottoni
-  const tools = [
-    { icon: 'bi-type-bold', cmd: 'bold', title: 'Grassetto (Ctrl+B)' },
-    { icon: 'bi-type-italic', cmd: 'italic', title: 'Corsivo (Ctrl+I)' },
-    { icon: 'bi-type-underline', cmd: 'underline', title: 'Sottolineato (Ctrl+U)' },
-    { sep: true },
-    { icon: 'bi-text-left', cmd: 'justifyLeft', title: 'Allinea a sinistra' },
-    { icon: 'bi-text-center', cmd: 'justifyCenter', title: 'Centra' },
-    { icon: 'bi-text-right', cmd: 'justifyRight', title: 'Allinea a destra' },
-    { sep: true },
-    { icon: 'bi-list-ul', cmd: 'insertUnorderedList', title: 'Lista puntata' },
-    { icon: 'bi-list-ol', cmd: 'insertOrderedList', title: 'Lista numerata' },
-    { sep: true },
-    { icon: 'bi-arrow-undo', cmd: 'undo', title: 'Annulla (Ctrl+Z)' },
-    { icon: 'bi-arrow-redo', cmd: 'redo', title: 'Ripeti (Ctrl+Y)' },
-  ];
-
-  tools.forEach(tool => {
-    if (tool.sep) {
-      toolbar.innerHTML += '<span class="mx-2 text-muted">|</span>';
-    } else {
-      toolbar.innerHTML += `
-        <button type="button" class="btn btn-sm btn-light border-0"
-                onclick="document.execCommand('${tool.cmd}', false, null)"
-                title="${tool.title}" style="min-width:36px;">
-          <i class="bi ${tool.icon}"></i>
-        </button>
-      `;
-    }
-  });
-
-  // Aggiungi selettore dimensioni font
-  const fontSelect = document.createElement('select');
-  fontSelect.className = 'form-select form-select-sm ms-2';
-  fontSelect.style.width = 'auto';
-  fontSelect.innerHTML = `
-    <option value="3">Normale (12pt)</option>
-    <option value="4">Grande (14pt)</option>
-    <option value="5">Molto grande (18pt)</option>
-    <option value="6">Titolo (24pt)</option>
-  `;
-  fontSelect.onchange = () => document.execCommand('fontSize', false, fontSelect.value);
-  toolbar.appendChild(fontSelect);
-
-  // Shortcut tastiera
-  visualEditor.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.metaKey) {
-      switch(e.key.toLowerCase()) {
-        case 's':
-          e.preventDefault();
-          form.requestSubmit();
-          break;
-        case 'b':
-        case 'i':
-        case 'u':
-          // Lascia gestire a execCommand
-          break;
-      }
-    }
-  });
-
-  // Auto-save ogni 30 secondi (opzionale)
-  let autoSaveInterval = setInterval(() => {
-    textarea.value = visualEditor.innerHTML;
-    console.log('Auto-save eseguito');
-  }, 30000);
-
-  // Pulisci intervallo quando si lascia la pagina
-  window.addEventListener('beforeunload', () => {
-    clearInterval(autoSaveInterval);
   });
 });
 </script>
@@ -231,35 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
   background-color: #e9ecef !important;
   color: #0d6efd;
   transform: translateX(2px);
-  transition: all 0.2s ease;
-}
-
-#editor-visual:focus {
-  box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
-  border-radius: 8px;
-}
-
-#editor-visual {
-  background: white;
-  min-height: 500px;
-  page-break-inside: avoid;
-}
-
-#editor-visual p {
-  margin-bottom: 0.5em;
-}
-
-#editor-toolbar button:hover {
-  background-color: #e9ecef !important;
-}
-
-#editor-toolbar button:active {
-  background-color: #dee2e6 !important;
-}
-
-/* Evidenzia variabili Jinja2 nell'editor */
-#editor-visual {
-  caret-color: #0d6efd;
+  transition: all .2s ease;
 }
 </style>
 {% endblock %}

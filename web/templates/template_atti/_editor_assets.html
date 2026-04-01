@@ -1,0 +1,326 @@
+<style>
+.legal-editor-shell {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.legal-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .8rem 1rem;
+  background: rgba(255, 255, 255, .92);
+  border-bottom: 1px solid rgba(15, 23, 42, .08);
+  flex-wrap: wrap;
+}
+
+.legal-editor-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.legal-editor-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, .08);
+  background: #fff;
+  color: #334155;
+  transition: all .18s ease;
+}
+
+.legal-editor-btn:hover,
+.legal-editor-btn:focus {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, .28);
+}
+
+.legal-editor-select {
+  min-width: 150px;
+  border-radius: 10px;
+}
+
+.legal-editor-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(15, 23, 42, .08);
+}
+
+.legal-editor-stage {
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, .05), transparent 35%),
+    linear-gradient(180deg, #edf4fb 0%, #f4f7fb 100%);
+}
+
+.legal-editor-page {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 52px 58px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, .28);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .08);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.03rem;
+  line-height: 1.9;
+  color: #1f2937;
+  outline: none;
+}
+
+.legal-editor-page:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+}
+
+.legal-editor-page h1,
+.legal-editor-page h2,
+.legal-editor-page h3,
+.legal-editor-page h4 {
+  font-family: "Times New Roman", Georgia, serif;
+  color: #0f172a;
+  margin: 1.2rem 0 .55rem;
+  font-weight: 700;
+}
+
+.legal-editor-page h1 {
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-size: 1.2rem;
+}
+
+.legal-editor-page h2 {
+  text-transform: uppercase;
+  font-size: 1.02rem;
+  letter-spacing: .04em;
+}
+
+.legal-editor-page h3 {
+  font-size: .98rem;
+}
+
+.legal-editor-page p {
+  margin: 0 0 .85rem;
+}
+
+.legal-editor-page blockquote {
+  border-left: 3px solid #93c5fd;
+  margin: 1rem 0;
+  padding: .25rem 0 .25rem 1rem;
+  color: #475569;
+  font-style: italic;
+}
+
+.legal-editor-page hr {
+  border: 0;
+  border-top: 1px solid rgba(148, 163, 184, .45);
+  margin: 1.2rem 0;
+}
+
+.legal-editor-page ol,
+.legal-editor-page ul {
+  margin: 0 0 1rem 1.5rem;
+}
+
+.legal-editor-page li {
+  margin-bottom: .35rem;
+}
+
+.legal-doc-kicker {
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #1d4ed8;
+  font-size: .88rem;
+  margin-bottom: .75rem;
+}
+
+.legal-doc-label {
+  margin-bottom: .35rem;
+}
+
+.legal-doc-party {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .legal-editor-stage {
+    padding: .75rem;
+  }
+
+  .legal-editor-page {
+    padding: 28px 20px;
+    border-radius: 12px;
+    min-height: 70vh;
+  }
+
+  .legal-editor-toolbar {
+    padding: .7rem;
+  }
+}
+</style>
+
+<script>
+window.TemplateActEditors = window.TemplateActEditors || (() => {
+  const editors = new Map();
+
+  function looksLikeHtml(value) {
+    const text = (value || '').trim().toLowerCase();
+    return ['<p', '<div', '<h1', '<h2', '<h3', '<ul', '<ol', '<table', '<blockquote', '<hr', '<br']
+      .some((tag) => text.includes(tag));
+  }
+
+  function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value;
+    return div.innerHTML;
+  }
+
+  function plainTextToHtml(value) {
+    const normalized = (value || '').replace(/\r/g, '').trim();
+    if (!normalized) {
+      return '<p></p>';
+    }
+    const blocks = normalized.split(/\n\s*\n/).map((block) => (
+      block.split('\n').map((line) => line.trim()).filter(Boolean)
+    )).filter((lines) => lines.length);
+
+    return blocks.map((lines, index) => {
+      if (lines.length === 1) {
+        const line = lines[0];
+        if (index === 0 && line === line.toUpperCase() && line.length <= 80) {
+          return `<div class="legal-doc-kicker">${escapeHtml(line)}</div>`;
+        }
+        if ((index === 0 || index === 1) && line.length <= 90 && !line.endsWith(':')) {
+          return `<h1>${escapeHtml(line)}</h1>`;
+        }
+        if (line === line.toUpperCase() && line.length <= 80) {
+          return `<h2>${escapeHtml(line)}</h2>`;
+        }
+        if (line.endsWith(':') && line.length <= 60) {
+          return `<p class="legal-doc-label"><strong>${escapeHtml(line)}</strong></p>`;
+        }
+      }
+
+      if (lines.every((line) => /^\d+\.\s+/.test(line))) {
+        const items = lines.map((line) => line.replace(/^\d+\.\s+/, ''));
+        return `<ol>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>`;
+      }
+
+      if (lines.every((line) => /^-\s+/.test(line))) {
+        const items = lines.map((line) => line.replace(/^-\s+/, ''));
+        return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+      }
+
+      const html = lines.map((line) => escapeHtml(line)).join('<br>');
+      const cssClass = lines.length > 1 ? ' class="legal-doc-party"' : '';
+      return `<p${cssClass}>${html}</p>`;
+    }).join('');
+  }
+
+  function ensureParagraph(surface) {
+    if (!surface.innerHTML.trim()) {
+      surface.innerHTML = '<p></p>';
+    }
+  }
+
+  function sync(editorId) {
+    const state = editors.get(editorId);
+    if (!state) return;
+    state.source.value = state.surface.innerHTML.trim();
+  }
+
+  function syncAll() {
+    editors.forEach((_, editorId) => sync(editorId));
+  }
+
+  function exec(editorId, command, value = null) {
+    const state = editors.get(editorId);
+    if (!state) return;
+    state.surface.focus();
+    document.execCommand(command, false, value);
+    ensureParagraph(state.surface);
+    sync(editorId);
+  }
+
+  function insertText(editorId, text) {
+    const state = editors.get(editorId);
+    if (!state) return;
+    state.surface.focus();
+    document.execCommand('insertText', false, text);
+    sync(editorId);
+  }
+
+  function getPlainText(editorId) {
+    const state = editors.get(editorId);
+    if (!state) return '';
+    return state.surface.innerText || '';
+  }
+
+  function bindToolbar(root, editorId) {
+    root.querySelectorAll('[data-command]').forEach((button) => {
+      button.addEventListener('click', () => {
+        exec(editorId, button.dataset.command);
+      });
+    });
+
+    const blockSelect = root.querySelector('[data-editor-block]');
+    blockSelect?.addEventListener('change', () => {
+      exec(editorId, 'formatBlock', blockSelect.value);
+    });
+  }
+
+  function initRoot(root) {
+    const editorId = root.dataset.editorId;
+    if (!editorId || editors.has(editorId)) {
+      return;
+    }
+
+    const source = root.querySelector('[data-editor-source]');
+    const surface = root.querySelector('[data-editor-surface]');
+    if (!source || !surface) {
+      return;
+    }
+
+    const initial = source.value || '';
+    surface.dataset.placeholder = root.dataset.placeholder || '';
+    surface.innerHTML = looksLikeHtml(initial) ? initial : plainTextToHtml(initial);
+    ensureParagraph(surface);
+
+    editors.set(editorId, { root, source, surface });
+    bindToolbar(root, editorId);
+
+    surface.addEventListener('input', () => sync(editorId));
+    surface.addEventListener('blur', () => sync(editorId));
+    surface.addEventListener('paste', () => {
+      setTimeout(() => sync(editorId), 0);
+    });
+  }
+
+  function initAll(scope = document) {
+    scope.querySelectorAll('[data-editor-root]').forEach(initRoot);
+    scope.querySelectorAll('form').forEach((form) => {
+      if (form.dataset.editorSyncBound === 'true') {
+        return;
+      }
+      form.dataset.editorSyncBound = 'true';
+      form.addEventListener('submit', () => syncAll());
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => initAll());
+
+  return {
+    initAll,
+    sync,
+    syncAll,
+    insertText,
+    getPlainText,
+  };
+})();
+</script>

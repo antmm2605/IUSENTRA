@@ -663,6 +663,14 @@ MODEL_RENDERER_OVERRIDES: dict[str, str] = {
     "CIV_CIT_001": "civil_citation_v1",
 }
 
+DEFAULT_RENDERERS_BY_AREA: dict[str, str] = {
+    "STRAGIUDIZIALE": "extrajudicial_professional_v1",
+    "CIVILE": "civil_judicial_v1",
+    "PENALE": "criminal_defense_v1",
+    "AMMINISTRATIVO": "administrative_litigation_v1",
+    "TRIBUTARIO": "tax_litigation_v1",
+}
+
 MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
     "STR_DIFF_001": {
         "sender": ["cliente.nome_completo", "fascicolo.nome_cliente"],
@@ -823,7 +831,7 @@ def _build_model_schema(model: dict[str, Any]) -> dict[str, Any]:
         "technical_notes": list(guidance["technical_notes"]),
         "legal_references": list(guidance["references"]),
         "sections": list(MODEL_SECTION_OVERRIDES.get(model["code"], AREA_DEFAULT_SECTIONS.get(model["area"], []))),
-        "renderer": MODEL_RENDERER_OVERRIDES.get(model["code"], "generic_professional_v1"),
+        "renderer": MODEL_RENDERER_OVERRIDES.get(model["code"], DEFAULT_RENDERERS_BY_AREA.get(model["area"], "generic_professional_v1")),
         "prefill_map": copy.deepcopy(MODEL_PREFILL_MAP_OVERRIDES.get(model["code"], {})),
         "validation_rules": _build_validation_rules_for_fields(field_names),
         "suggested_attachments": _dedupe_preserve(
@@ -1065,6 +1073,11 @@ def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
     renderers = {
         "civil_citation_v1": _render_civ_cit_001,
         "extrajudicial_notice_v1": _render_str_diff_001,
+        "extrajudicial_professional_v1": _render_extrajudicial_professional_act,
+        "civil_judicial_v1": _render_civil_judicial_act,
+        "criminal_defense_v1": _render_criminal_defense_act,
+        "administrative_litigation_v1": _render_administrative_litigation_act,
+        "tax_litigation_v1": _render_tax_litigation_act,
         "generic_professional_v1": _render_generic_professional_act,
     }
     renderer = renderers.get(model.get("renderer", "generic_professional_v1"), _render_generic_professional_act)
@@ -1371,6 +1384,531 @@ def _render_str_diff_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
     return _clean_rendered_lines(lines)
 
 
+def _render_extrajudicial_professional_act(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    sender = _first_non_empty(
+        payload.get("sender"),
+        payload.get("creditor"),
+        payload.get("client"),
+        payload.get("client_or_sender"),
+    )
+    recipient = _first_non_empty(
+        payload.get("recipient"),
+        payload.get("debtor"),
+        payload.get("counterparty_or_recipient"),
+        payload.get("recipient_or_court"),
+    )
+    lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
+    title = payload.get("title") or model["name"]
+
+    premise_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("facts")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "legal_relationship_title",
+                "credit_reason",
+                "breach_description",
+                "contested_facts",
+                "communication_body",
+                "received_notice_reference",
+                "client_position",
+                "dispute_background",
+                "relevant_facts",
+                "assignment_object",
+                "professional_activity_object",
+            ],
+        ),
+    )
+    content_lines = _collect_labeled_field_lines(
+        payload,
+        [
+            "specific_request",
+            "requested_amount_or_performance",
+            "requested_amount",
+            "formal_notice_to_perform",
+            "remaining_amount_or_obligation",
+            "economic_or_performance_offer",
+            "proposal_terms",
+            "mutual_obligations",
+            "amounts_and_deadlines",
+            "fee_or_fee_criteria",
+            "expenses_terms",
+            "payment_method_details",
+            "included_activities",
+            "privacy_consents",
+            "fee_items",
+        ],
+    )
+    final_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("requests_or_conclusions")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "final_request",
+                "proposal",
+                "operational_conclusion",
+                "request_for_clarification_or_compliance",
+            ],
+        ),
+    )
+    warning_lines = _collect_labeled_field_lines(
+        payload,
+        [
+            "deadline_assigned",
+            "new_deadline",
+            "final_deadline",
+            "acceptance_deadline",
+            "payment_deadline",
+            "estimate_valid_until",
+            "interest_requested",
+            "warning_of_further_actions",
+            "final_warning",
+            "reservation_of_rights",
+            "without_prejudice_clause",
+            "legal_consequences_warning",
+            "mutual_waivers",
+            "jurisdiction_clause",
+            "costs_allocation",
+            "parties_signatures",
+        ],
+    )
+
+    lines: list[str] = [
+        _first_non_empty(payload.get("_studio_address"), payload.get("place")).upper(),
+        title,
+        "",
+        f"Mittente: {sender or '-'}",
+        f"Destinatario: {recipient or '-'}",
+    ]
+    _append_section(lines, "OGGETTO", _render_text_block_lines(payload.get("subject")))
+    _append_section(lines, "PREMESSA", premise_lines)
+    _append_section(lines, "CONTENUTO DELL'ATTO", content_lines)
+    _append_section(lines, "RICHIESTE E DETERMINAZIONI FINALI", final_lines)
+    _append_section(lines, "TERMINI, RISERVE E AVVERTENZE", warning_lines)
+    if payload.get("attachments_list"):
+        _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
+def _render_civil_judicial_act(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    authority = _normalize_court_heading(
+        _first_non_empty(
+            payload.get("court_name"),
+            payload.get("competent_court"),
+            payload.get("appeal_court"),
+            payload.get("competent_judge"),
+            payload.get("recipient_or_court"),
+            payload.get("_court_heading"),
+        )
+    )
+    assisted = _first_non_empty(
+        payload.get("plaintiff"),
+        payload.get("claimant"),
+        payload.get("applicant"),
+        payload.get("applicant_party"),
+        payload.get("party"),
+        payload.get("appellant"),
+        payload.get("creditor"),
+        payload.get("client_or_sender"),
+    )
+    counterpart = _first_non_empty(
+        payload.get("defendant"),
+        payload.get("debtor"),
+        payload.get("respondent"),
+        payload.get("respondent_party"),
+        payload.get("opposed_party"),
+        payload.get("appellee"),
+        payload.get("counterparty_or_recipient"),
+    )
+    lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
+
+    facts_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("facts")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "claim_subject",
+                "linked_proceeding",
+                "position_on_facts",
+                "relevant_facts_summary",
+                "memo_subject",
+                "contested_enforcement_title",
+                "enforcement_stage",
+                "challenged_enforcement_act",
+                "knowledge_or_service_date",
+                "lease_agreement",
+                "property_address",
+                "grounds_for_eviction",
+                "grounds_for_validation",
+                "unpaid_rents_or_contract_expiry",
+                "rent_or_charges_due",
+            ],
+        ),
+    )
+    law_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("legal_arguments")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "procedural_exceptions",
+                "merit_exceptions",
+                "grounds_of_opposition",
+                "credit_or_amount_or_procedure_objections",
+                "procedural_defects_alleged",
+                "specific_grounds_of_appeal",
+                "request_for_reform_or_annulment",
+                "request_for_stay_of_enforceability",
+                "stay_request",
+            ],
+        ),
+    )
+    request_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("requests_or_conclusions")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "request_content",
+                "request_reason",
+                "counterclaim",
+                "third_party_call",
+                "request_for_validation",
+                "formal_intimation_to_pay",
+                "legal_warnings",
+                "requested_measure",
+                "request_for_stay_of_enforceability",
+            ],
+        ),
+    )
+    evidence_lines = _collect_labeled_field_lines(
+        payload,
+        [
+            "evidence_means",
+            "admissible_evidence_or_documents",
+            "written_evidence",
+            "documents_offered",
+            "essential_attachments",
+            "supporting_attachments",
+        ],
+    )
+
+    lines: list[str] = [
+        authority,
+        payload.get("title") or model["name"],
+        "",
+        "Per:",
+        _render_citation_actor_block(
+            assisted,
+            payload.get("_client_tax_id"),
+            payload.get("_client_address"),
+            lawyer,
+            _first_non_empty(payload.get("lawyer_tax_code"), payload.get("_lawyer_tax_id")),
+            _first_non_empty(payload.get("lawyer_pec"), payload.get("_lawyer_pec")),
+            _first_non_empty(payload.get("_studio_address"), payload.get("place")),
+        ),
+    ]
+    if counterpart:
+        lines.extend(["", "Contro:", _render_citation_defendant_block(counterpart, payload.get("_counterparty_tax_id"), payload.get("_counterparty_address"))])
+    if payload.get("case_reference_display"):
+        lines.extend(["", f"Riferimento procedimento: {payload.get('case_reference_display')}"])
+    _append_section(lines, "IN FATTO", facts_lines)
+    _append_section(lines, "IN DIRITTO", law_lines)
+    _append_section(lines, "RICHIESTE E CONCLUSIONI", request_lines)
+    _append_section(lines, "MEZZI ISTRUTTORI E DOCUMENTI", evidence_lines)
+    if payload.get("case_value"):
+        lines.extend(
+            [
+                "",
+                f"Dichiarazione di valore: {_format_currency(payload.get('case_value')) or _display_value(payload.get('case_value'))}",
+            ]
+        )
+    if payload.get("attachments_list"):
+        _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
+def _render_criminal_defense_act(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    authority = _first_non_empty(
+        payload.get("proceeding_authority"),
+        payload.get("competent_authority"),
+        payload.get("competent_prosecutor_office"),
+        payload.get("hearing_authority"),
+        payload.get("office_name"),
+        payload.get("recipient_or_court"),
+    )
+    assisted = _first_non_empty(
+        payload.get("assisted_person"),
+        payload.get("defendant_person"),
+        payload.get("requesting_party"),
+        payload.get("appealing_party"),
+        payload.get("party"),
+        payload.get("client_or_sender"),
+    )
+    proceeding_ref = _first_non_empty(
+        payload.get("criminal_proceeding_reference"),
+        payload.get("penal_decree_reference"),
+        payload.get("seizure_report_reference"),
+        payload.get("case_reference_display"),
+    )
+    lawyer = _normalize_lawyer_name(
+        payload.get("appointed_defender") or payload.get("lawyer") or payload.get("signature")
+    )
+
+    premise_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("facts")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "criminal_proceeding_reference",
+                "penal_decree_reference",
+                "service_date",
+                "measure_or_service_date",
+                "hearing_date",
+                "challenged_measure",
+                "seized_asset",
+            ],
+        ),
+    )
+    defense_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("defensive_arguments")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "grounds_or_declaration_of_opposition",
+                "grounds_of_appeal",
+                "grounds_for_release",
+                "defensive_position_summary",
+            ],
+        ),
+    )
+    request_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("requests_or_conclusions")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "specific_requests",
+                "request_content",
+                "request_reason",
+                "specific_procedural_requests",
+                "postponement_reason",
+                "final_conclusions",
+            ],
+        ),
+    )
+    document_lines = _collect_labeled_field_lines(
+        payload,
+        [
+            "supporting_documents",
+            "documents_offered",
+            "requested_documents_or_records",
+            "legal_entitlement_title",
+        ],
+    )
+
+    lines: list[str] = [
+        authority.upper() if authority else "AUTORITA PROCEDENTE",
+        payload.get("title") or model["name"],
+        "",
+        f"Assistito / Parte istante: {assisted or '-'}",
+        f"Difensore: {lawyer}",
+    ]
+    if proceeding_ref:
+        lines.append(f"Riferimento procedimento: {proceeding_ref}")
+    _append_section(lines, "PREMESSA", premise_lines)
+    _append_section(lines, "ARGOMENTAZIONI DIFENSIVE", defense_lines)
+    _append_section(lines, "RICHIESTE", request_lines)
+    _append_section(lines, "DOCUMENTI E ALLEGATI", document_lines)
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
+def _render_administrative_litigation_act(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    authority = _first_non_empty(
+        payload.get("competent_tar"),
+        payload.get("appeal_court"),
+        payload.get("recipient_or_court"),
+        payload.get("case_reference"),
+    )
+    claimant = _first_non_empty(
+        payload.get("claimant"),
+        payload.get("applicant_party"),
+        payload.get("party"),
+        payload.get("appellant"),
+        payload.get("client_or_sender"),
+    )
+    resistant = _first_non_empty(
+        payload.get("respondent_administration"),
+        payload.get("interested_third_parties"),
+        payload.get("appellees"),
+        payload.get("counterparty_or_recipient"),
+    )
+    lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
+
+    facts_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("facts")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "challenged_administrative_act",
+                "knowledge_or_service_date",
+                "main_case_reference",
+                "new_act_or_new_grounds",
+                "knowledge_date",
+                "supervening_facts",
+                "facts_summary",
+            ],
+        ),
+    )
+    reasons_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("legal_arguments")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "additional_grounds",
+                "legal_defence",
+                "reply_to_counterpart",
+                "grounds_of_appeal",
+            ],
+        ),
+    )
+    interim_lines = _collect_labeled_field_lines(
+        payload,
+        [
+            "interim_relief_request",
+            "requested_interim_measure",
+            "serious_and_irreparable_harm",
+            "fumus_boni_iuris",
+            "urgency_reasons",
+            "grounds_of_interim_appeal",
+            "requested_measure",
+        ],
+    )
+    conclusion_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("requests_or_conclusions")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "request_for_annulment_or_other_relief",
+                "specific_requests",
+                "final_conclusions",
+                "request_content",
+                "request_reason",
+            ],
+        ),
+    )
+
+    lines: list[str] = [
+        authority.upper() if authority else "GIUDICE AMMINISTRATIVO",
+        payload.get("title") or model["name"],
+        "",
+        f"Ricorrente / parte istante: {claimant or '-'}",
+        f"Amministrazione / controinteressati: {resistant or '-'}",
+        f"Difensore: {lawyer}",
+    ]
+    _append_section(lines, "FATTI DI CAUSA", facts_lines)
+    _append_section(lines, "MOTIVI", reasons_lines)
+    _append_section(lines, "DOMANDA CAUTELARE", interim_lines)
+    _append_section(lines, "CONCLUSIONI", conclusion_lines)
+    if payload.get("documents_offered"):
+        _append_section(lines, "DOCUMENTI OFFERTI", _render_numbered_list(_to_string_list(payload.get("documents_offered"))))
+    if payload.get("attachments_list"):
+        _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
+def _render_tax_litigation_act(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    authority = _first_non_empty(
+        payload.get("competent_tax_court"),
+        payload.get("appeal_tax_court"),
+        payload.get("recipient_or_court"),
+    )
+    claimant = _first_non_empty(
+        payload.get("claimant"),
+        payload.get("applicant_party"),
+        payload.get("party"),
+        payload.get("appellant"),
+        payload.get("client_or_sender"),
+    )
+    resistant = _first_non_empty(
+        payload.get("tax_authority_or_resistant_party"),
+        payload.get("resistant_party"),
+        payload.get("appellee"),
+        payload.get("counterparty_or_recipient"),
+    )
+    lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
+
+    facts_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("facts")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "challenged_tax_act",
+                "service_date",
+                "dispute_value",
+                "tax_case_reference",
+                "appeal_case_reference",
+                "linked_tax_case",
+                "factual_clarifications",
+            ],
+        ),
+    )
+    reason_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("grounds_of_appeal")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "preliminary_exceptions",
+                "defences_on_merits",
+                "legal_clarifications",
+                "reply_to_counterpart",
+                "defences_against_appeal_grounds",
+            ],
+        ),
+    )
+    interim_lines = _collect_labeled_field_lines(
+        payload,
+        [
+            "interim_relief_request",
+            "request_for_suspension",
+            "serious_and_irreparable_harm",
+            "fumus_boni_iuris",
+        ],
+    )
+    conclusion_lines = _merge_render_lines(
+        _render_text_block_lines(payload.get("requests_or_conclusions")),
+        _collect_labeled_field_lines(
+            payload,
+            [
+                "final_request",
+                "specific_requests",
+                "final_conclusions",
+                "digital_domicile_or_pec",
+            ],
+        ),
+    )
+
+    lines: list[str] = [
+        authority.upper() if authority else "GIUSTIZIA TRIBUTARIA",
+        payload.get("title") or model["name"],
+        "",
+        f"Ricorrente / appellante: {claimant or '-'}",
+        f"Resistente / appellato: {resistant or '-'}",
+        f"Difensore: {lawyer}",
+    ]
+    _append_section(lines, "ATTO IMPUGNATO E FATTI", facts_lines)
+    _append_section(lines, "MOTIVI", reason_lines)
+    _append_section(lines, "ISTANZA CAUTELARE", interim_lines)
+    _append_section(lines, "CONCLUSIONI", conclusion_lines)
+    if payload.get("documents_offered"):
+        _append_section(lines, "DOCUMENTI OFFERTI", _render_numbered_list(_to_string_list(payload.get("documents_offered"))))
+    if payload.get("attachments_list"):
+        _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
 def _append_section(lines: list[str], title: str, body_lines: list[str]) -> None:
     if not body_lines:
         return
@@ -1445,6 +1983,32 @@ def _render_bullet_lines(value: Any) -> list[str]:
 
 def _render_numbered_list(items: list[str]) -> list[str]:
     return [f"{idx}. {item}" for idx, item in enumerate(items, start=1)]
+
+
+def _collect_labeled_field_lines(payload: dict[str, Any], field_names: Iterable[str]) -> list[str]:
+    lines: list[str] = []
+    for name in field_names:
+        value = payload.get(name)
+        if _is_empty_value(value):
+            continue
+        label = FIELD_CATALOG.get(name, {}).get("label", name.replace("_", " ").title())
+        if lines:
+            lines.append("")
+        lines.append(f"{label}:")
+        lines.extend(_render_field_value(value))
+    return lines
+
+
+def _merge_render_lines(*groups: list[str]) -> list[str]:
+    merged: list[str] = []
+    for group in groups:
+        cleaned = [line for line in group if line and line != "-"]
+        if not cleaned:
+            continue
+        if merged:
+            merged.append("")
+        merged.extend(cleaned)
+    return merged
 
 
 def _to_string_list(value: Any) -> list[str]:

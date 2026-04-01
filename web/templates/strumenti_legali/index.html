@@ -1,0 +1,660 @@
+{% extends "base.html" %}
+{% block title %}Strumenti Legali{% endblock %}
+{% block pct_modulo %}strumenti-legali{% endblock %}
+
+{% block content %}
+<div class="ds-ph mb-4">
+  <div class="ds-ph-icon"><i class="bi bi-grid-1x2"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Strumenti Legali Operativi</h1>
+    <p class="ds-ph-sub">
+      Cinque moduli ad alto valore per fascicolo, compensi, credito ed esecuzione, gia pronti per uso interno o via API.
+    </p>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
+  <div class="card-body">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-lg-8">
+        <label class="form-label fw-semibold">Pratica da usare come contesto</label>
+        <select name="id_fascicolo" class="form-select">
+          <option value="">Seleziona un fascicolo per precompilare i moduli</option>
+          {% for fascicolo in fascicoli %}
+          <option value="{{ fascicolo.id }}" {{ 'selected' if fascicolo_sel and fascicolo.id == fascicolo_sel.id }}>
+            {{ fascicolo.numero }} - {{ fascicolo.titolo }}{% if fascicolo.nome_cliente %} - {{ fascicolo.nome_cliente }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-lg-4 d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1">
+          <i class="bi bi-magic me-2"></i>Carica contesto
+        </button>
+        <a href="{{ url_for('strumenti_legali.index') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if fascicolo_sel %}
+<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <div class="small text-muted mb-1">Contesto attivo</div>
+        <div class="fw-semibold fs-5">{{ fascicolo_sel.numero }} - {{ fascicolo_sel.titolo }}</div>
+        <div class="small text-muted">
+          {{ fascicolo_sel.nome_cliente or 'Cliente non indicato' }}
+          {% if cliente_sel and cliente_sel.identificativo_fiscale %}
+          - {{ cliente_sel.identificativo_fiscale }}
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-lg-3">
+        <div class="small text-muted mb-1">Ufficio / R.G.</div>
+        <div class="fw-semibold">{{ fascicolo_sel.tribunale or 'n/d' }}</div>
+        <div class="small text-muted">
+          {% if fascicolo_sel.numero_rg %}
+          {{ fascicolo_sel.numero_rg }}{% if fascicolo_sel.anno_rg %}/{{ fascicolo_sel.anno_rg }}{% endif %}
+          {% else %}
+          n/d
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-lg-2">
+        <div class="small text-muted mb-1">Controparte</div>
+        <div class="fw-semibold">{{ fascicolo_sel.controparte or 'n/d' }}</div>
+      </div>
+      <div class="col-lg-2">
+        <div class="small text-muted mb-1">Valore causa</div>
+        <div class="fw-semibold">
+          {% if fascicolo_sel.valore_causa %}
+          &euro; {{ "%.2f"|format(fascicolo_sel.valore_causa) }}
+          {% else %}
+          n/d
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  {% for modulo in moduli %}
+  <div class="col-md-6 col-xl">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-2">
+          <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(26,58,92,.08);">
+            <i class="bi {{ modulo.icon }} text-primary"></i>
+          </div>
+          <div class="fw-semibold">{{ modulo.title }}</div>
+        </div>
+        <div class="small text-muted">{{ modulo.subtitle }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="accordion" id="accordionStrumentiLegali">
+  {% set risultato_cu = results.get('contributo_unificato') %}
+  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+    <h2 class="accordion-header">
+      <button class="accordion-button {% if active_tool != 'contributo_unificato' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolContributo">
+        <i class="bi bi-bank me-2"></i>Contributo unificato
+      </button>
+    </h2>
+    <div id="toolContributo" class="accordion-collapse collapse {% if active_tool == 'contributo_unificato' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+      <div class="accordion-body">
+        <form method="post" class="row g-3">
+          <input type="hidden" name="tool" value="contributo_unificato">
+          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Tipologia</label>
+            <select name="cu_categoria" class="form-select">
+              {% for option in opzioni_cu %}
+              <option value="{{ option.value }}" {{ 'selected' if form_state.cu_categoria == option.value }}>{{ option.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Grado</label>
+            <select name="cu_grado" class="form-select">
+              <option value="primo_grado" {{ 'selected' if form_state.cu_grado == 'primo_grado' }}>Primo grado</option>
+              <option value="appello" {{ 'selected' if form_state.cu_grado == 'appello' }}>Appello</option>
+              <option value="cassazione" {{ 'selected' if form_state.cu_grado == 'cassazione' }}>Cassazione</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Valore</label>
+            <input type="number" step="0.01" min="0" name="cu_valore" class="form-control" value="{{ form_state.cu_valore }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Anticip. forf.</label>
+            <select name="cu_anticipazione_forfettaria" class="form-select">
+              <option value="1" {{ 'selected' if form_state.cu_anticipazione_forfettaria == '1' }}>Si</option>
+              <option value="0" {{ 'selected' if form_state.cu_anticipazione_forfettaria != '1' }}>No</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary">
+              <i class="bi bi-calculator me-2"></i>Calcola contributo
+            </button>
+          </div>
+        </form>
+        {% if risultato_cu %}
+        <div class="row g-3 mt-1">
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Tipologia</div>
+              <div class="fw-semibold">{{ risultato_cu.categoria_label }}</div>
+              <div class="small text-muted mt-2">Grado: {{ risultato_cu.grado_label }}</div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Contributo base</div>
+              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_cu.base) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Totale operativo</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_cu.totale) }}</div>
+              <div class="small text-muted">Anticipazione forfettaria: &euro; {{ "%.2f"|format(risultato_cu.anticipazione_forfettaria) }}</div>
+            </div>
+          </div>
+        </div>
+        {% if risultato_cu.notes %}
+        <div class="alert alert-info mt-3 mb-0">
+          {% for note in risultato_cu.notes %}
+          <div>{{ note }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if risultato_cu.warnings %}
+        <div class="alert alert-warning mt-3 mb-0">
+          {% for warning in risultato_cu.warnings %}
+          <div>{{ warning }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          {% for source in risultato_cu.sources %}
+          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% set risultato_int = results.get('interessi') %}
+  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+    <h2 class="accordion-header">
+      <button class="accordion-button {% if active_tool != 'interessi' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolInteressi">
+        <i class="bi bi-percent me-2"></i>Interessi legali e moratori
+      </button>
+    </h2>
+    <div id="toolInteressi" class="accordion-collapse collapse {% if active_tool == 'interessi' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+      <div class="accordion-body">
+        <form method="post" class="row g-3">
+          <input type="hidden" name="tool" value="interessi">
+          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Regime</label>
+            <select name="int_tipo" class="form-select">
+              <option value="legali" {{ 'selected' if form_state.int_tipo == 'legali' }}>Interessi legali</option>
+              <option value="mora_commerciale" {{ 'selected' if form_state.int_tipo == 'mora_commerciale' }}>Mora commerciale D.Lgs. 231/2002</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Capitale</label>
+            <input type="number" step="0.01" min="0" name="int_capitale" class="form-control" value="{{ form_state.int_capitale }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Dal</label>
+            <input type="date" name="int_data_inizio" class="form-control" value="{{ form_state.int_data_inizio }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Al</label>
+            <input type="date" name="int_data_fine" class="form-control" value="{{ form_state.int_data_fine }}">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary">
+              <i class="bi bi-lightning-charge me-2"></i>Calcola interessi
+            </button>
+          </div>
+        </form>
+        {% if risultato_int %}
+        <div class="row g-3 mt-1">
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Regime applicato</div>
+              <div class="fw-semibold">{{ risultato_int.label }}</div>
+              <div class="small text-muted mt-2">{{ risultato_int.start_date }} - {{ risultato_int.end_date }}</div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Interessi maturati</div>
+              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_int.total_interest) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Capitale + interessi</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_int.total_amount) }}</div>
+              <div class="small text-muted">{{ risultato_int.days }} giorni complessivi</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive mt-3">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Periodo</th>
+                <th>Giorni</th>
+                <th>Tasso</th>
+                <th class="text-end">Interessi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for segment in risultato_int.segments %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ segment.label }}</div>
+                  <div class="small text-muted">{{ segment.from }} - {{ segment.to }}</div>
+                </td>
+                <td>{{ segment.days }}</td>
+                <td>
+                  {{ "%.2f"|format(segment.rate) }}%
+                  {% if segment.reference_rate is not none %}
+                  <div class="small text-muted">rif. BCE {{ "%.2f"|format(segment.reference_rate) }}%</div>
+                  {% endif %}
+                </td>
+                <td class="text-end fw-semibold">&euro; {{ "%.2f"|format(segment.interest) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if risultato_int.warnings %}
+        <div class="alert alert-warning mb-0">
+          {% for warning in risultato_int.warnings %}
+          <div>{{ warning }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          {% for source in risultato_int.sources %}
+          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% set risultato_nota = results.get('nota_credito') %}
+  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+    <h2 class="accordion-header">
+      <button class="accordion-button {% if active_tool != 'nota_credito' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolNotaCredito">
+        <i class="bi bi-file-earmark-ruled me-2"></i>Nota di precisazione del credito
+      </button>
+    </h2>
+    <div id="toolNotaCredito" class="accordion-collapse collapse {% if active_tool == 'nota_credito' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+      <div class="accordion-body">
+        <form method="post" class="row g-3">
+          <input type="hidden" name="tool" value="nota_credito">
+          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Tribunale / Ufficio</label>
+            <input type="text" name="note_tribunale" class="form-control" value="{{ form_state.note_tribunale }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">R.G.</label>
+            <input type="text" name="note_rg" class="form-control" value="{{ form_state.note_rg }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Creditore</label>
+            <input type="text" name="note_creditore" class="form-control" value="{{ form_state.note_creditore }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Debitore</label>
+            <input type="text" name="note_debitore" class="form-control" value="{{ form_state.note_debitore }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Titolo / oggetto del credito</label>
+            <input type="text" name="note_titolo" class="form-control" value="{{ form_state.note_titolo }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Capitale</label>
+            <input type="number" step="0.01" min="0" name="note_capitale" class="form-control" value="{{ form_state.note_capitale }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Interessi</label>
+            <select name="note_interessi_tipo" class="form-select">
+              <option value="legali" {{ 'selected' if form_state.note_interessi_tipo == 'legali' }}>Legali</option>
+              <option value="mora_commerciale" {{ 'selected' if form_state.note_interessi_tipo == 'mora_commerciale' }}>Mora 231/2002</option>
+              <option value="manuale" {{ 'selected' if form_state.note_interessi_tipo == 'manuale' }}>Manuale</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Interessi manuali</label>
+            <input type="number" step="0.01" min="0" name="note_interessi_manual" class="form-control" value="{{ form_state.note_interessi_manual }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Decorrenza</label>
+            <input type="date" name="note_data_inizio" class="form-control" value="{{ form_state.note_data_inizio }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Fino al</label>
+            <input type="date" name="note_data_fine" class="form-control" value="{{ form_state.note_data_fine }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Spese vive</label>
+            <input type="number" step="0.01" min="0" name="note_spese_vive" class="form-control" value="{{ form_state.note_spese_vive }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Compensi</label>
+            <input type="number" step="0.01" min="0" name="note_compensi" class="form-control" value="{{ form_state.note_compensi }}">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label fw-semibold">CPA %</label>
+            <input type="number" step="0.01" min="0" name="note_cpa_perc" class="form-control" value="{{ form_state.note_cpa_perc }}">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label fw-semibold">IVA %</label>
+            <input type="number" step="0.01" min="0" name="note_iva_perc" class="form-control" value="{{ form_state.note_iva_perc }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Acconti</label>
+            <input type="number" step="0.01" min="0" name="note_acconti" class="form-control" value="{{ form_state.note_acconti }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Luogo</label>
+            <input type="text" name="note_luogo" class="form-control" value="{{ form_state.note_luogo }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Data</label>
+            <input type="date" name="note_data" class="form-control" value="{{ form_state.note_data }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Difensore</label>
+            <input type="text" name="note_avvocato" class="form-control" value="{{ form_state.note_avvocato }}">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary">
+              <i class="bi bi-file-earmark-text me-2"></i>Genera nota
+            </button>
+          </div>
+        </form>
+        {% if risultato_nota %}
+        <div class="row g-3 mt-1">
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Totale maturato</div>
+              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_nota.totale_lordo) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Acconti imputati</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_nota.acconti) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Residuo richiesto</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_nota.residuo) }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-responsive mt-3">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Voce</th>
+                <th class="text-end">Importo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in risultato_nota.breakdown %}
+              <tr>
+                <td>{{ row.label }}</td>
+                <td class="text-end fw-semibold">&euro; {{ "%.2f"|format(row.amount) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="card border-0 bg-light mt-3">
+          <div class="card-body">
+            <div class="fw-semibold mb-2">Bozza professionale</div>
+            <div class="border rounded-4 bg-white p-4">{{ risultato_nota.rendered_html|safe }}</div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label fw-semibold">Testo pronto da rifinire</label>
+          <textarea class="form-control" rows="16">{{ risultato_nota.rendered_text }}</textarea>
+        </div>
+        {% if risultato_nota.warnings %}
+        <div class="alert alert-warning mt-3 mb-0">
+          {% for warning in risultato_nota.warnings %}
+          <div>{{ warning }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if risultato_nota.sources %}
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          {% for source in risultato_nota.sources %}
+          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% set risultato_pig = results.get('pignoramento') %}
+  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+    <h2 class="accordion-header">
+      <button class="accordion-button {% if active_tool != 'pignoramento' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolPignoramento">
+        <i class="bi bi-cash-stack me-2"></i>Simulatore pignoramento
+      </button>
+    </h2>
+    <div id="toolPignoramento" class="accordion-collapse collapse {% if active_tool == 'pignoramento' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+      <div class="accordion-body">
+        <form method="post" class="row g-3">
+          <input type="hidden" name="tool" value="pignoramento">
+          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Reddito</label>
+            <select name="pig_tipo_reddito" class="form-select">
+              <option value="stipendio" {{ 'selected' if form_state.pig_tipo_reddito == 'stipendio' }}>Stipendio</option>
+              <option value="pensione" {{ 'selected' if form_state.pig_tipo_reddito == 'pensione' }}>Pensione</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Tipo credito</label>
+            <select name="pig_tipo_credito" class="form-select">
+              <option value="ordinario" {{ 'selected' if form_state.pig_tipo_credito == 'ordinario' }}>Ordinario</option>
+              <option value="esattoriale" {{ 'selected' if form_state.pig_tipo_credito == 'esattoriale' }}>Esattoriale</option>
+              <option value="alimentare" {{ 'selected' if form_state.pig_tipo_credito == 'alimentare' }}>Alimentare</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Netto mensile</label>
+            <input type="number" step="0.01" min="0" name="pig_importo_netto" class="form-control" value="{{ form_state.pig_importo_netto }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Aliquota alim. %</label>
+            <input type="number" step="0.01" min="0" name="pig_aliquota_alimentare" class="form-control" value="{{ form_state.pig_aliquota_alimentare }}">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary">
+              <i class="bi bi-graph-up me-2"></i>Simula quota
+            </button>
+          </div>
+        </form>
+        {% if risultato_pig %}
+        <div class="row g-3 mt-1">
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Importo netto</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_pig.importo) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Minimo protetto</div>
+              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_pig.minimo_protetto) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Base pignorabile</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_pig.base_pignorabile) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Quota massima</div>
+              <div class="fw-bold fs-4 text-danger">&euro; {{ "%.2f"|format(risultato_pig.quota_massima) }}</div>
+              <div class="small text-muted">Aliquota {{ "%.2f"|format(risultato_pig.aliquota) }}%</div>
+            </div>
+          </div>
+        </div>
+        {% if risultato_pig.warnings %}
+        <div class="alert alert-warning mt-3 mb-0">
+          {% for warning in risultato_pig.warnings %}
+          <div>{{ warning }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          {% for source in risultato_pig.sources %}
+          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% set risultato_ctu = results.get('ctu') %}
+  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+    <h2 class="accordion-header">
+      <button class="accordion-button {% if active_tool != 'ctu' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCtu">
+        <i class="bi bi-journal-medical me-2"></i>CTU, vacazioni e compensi ausiliari
+      </button>
+    </h2>
+    <div id="toolCtu" class="accordion-collapse collapse {% if active_tool == 'ctu' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+      <div class="accordion-body">
+        <form method="post" class="row g-3">
+          <input type="hidden" name="tool" value="ctu">
+          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">Modalita</label>
+            <select name="ctu_modalita" class="form-select">
+              <option value="vacazioni" {{ 'selected' if form_state.ctu_modalita == 'vacazioni' }}>Vacazioni</option>
+              <option value="manuale" {{ 'selected' if form_state.ctu_modalita == 'manuale' }}>Onorario manuale</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Ore</label>
+            <input type="number" step="0.25" min="0" name="ctu_ore" class="form-control" value="{{ form_state.ctu_ore }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Vacazioni</label>
+            <input type="number" min="0" name="ctu_vacazioni" class="form-control" value="{{ form_state.ctu_vacazioni }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold">Onorario</label>
+            <input type="number" step="0.01" min="0" name="ctu_onorario" class="form-control" value="{{ form_state.ctu_onorario }}">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label fw-semibold">Spese</label>
+            <input type="number" step="0.01" min="0" name="ctu_spese" class="form-control" value="{{ form_state.ctu_spese }}">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label fw-semibold">CPA %</label>
+            <input type="number" step="0.01" min="0" name="ctu_cpa_perc" class="form-control" value="{{ form_state.ctu_cpa_perc }}">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label fw-semibold">IVA %</label>
+            <input type="number" step="0.01" min="0" name="ctu_iva_perc" class="form-control" value="{{ form_state.ctu_iva_perc }}">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary">
+              <i class="bi bi-journal-check me-2"></i>Calcola compenso
+            </button>
+          </div>
+        </form>
+        {% if risultato_ctu %}
+        <div class="row g-3 mt-1">
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Modalita</div>
+              <div class="fw-semibold">{{ risultato_ctu.modalita_label }}</div>
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Onorario base</div>
+              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_ctu.onorario_base) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Accessori</div>
+              <div class="fw-semibold">CPA &euro; {{ "%.2f"|format(risultato_ctu.cpa) }}</div>
+              <div class="small text-muted">IVA &euro; {{ "%.2f"|format(risultato_ctu.iva) }} - Spese &euro; {{ "%.2f"|format(risultato_ctu.spese) }}</div>
+            </div>
+          </div>
+          <div class="col-lg-3">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted">Totale</div>
+              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_ctu.totale) }}</div>
+              <div class="small text-muted">
+                {% if risultato_ctu.vacazioni %}
+                {{ risultato_ctu.vacazioni }} vacazioni
+                {% elif risultato_ctu.ore %}
+                {{ risultato_ctu.ore }} ore
+                {% else %}
+                calcolo diretto
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% if risultato_ctu.notes %}
+        <div class="alert alert-info mt-3 mb-0">
+          {% for note in risultato_ctu.notes %}
+          <div>{{ note }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if risultato_ctu.warnings %}
+        <div class="alert alert-warning mt-3 mb-0">
+          {% for warning in risultato_ctu.warnings %}
+          <div>{{ warning }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          {% for source in risultato_ctu.sources %}
+          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

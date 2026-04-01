@@ -461,7 +461,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
 class GestioneTabelleNormative:
     def __init__(self, db_path: str = "./intelligence/tabelle_normative.json"):
         self.db_path = db_path
-        self._data: Dict[str, Any] = {"tables": {}, "sync_runs": []}
+        self._data: Dict[str, Any] = {"tables": {}, "sync_runs": [], "source_checks": {}}
         self._load()
         self._ensure_seeded()
 
@@ -474,8 +474,9 @@ class GestioneTabelleNormative:
                 raw = json.load(fh)
             self._data["tables"] = dict(raw.get("tables") or {})
             self._data["sync_runs"] = list(raw.get("sync_runs") or [])
+            self._data["source_checks"] = dict(raw.get("source_checks") or {})
         except Exception:
-            self._data = {"tables": {}, "sync_runs": []}
+            self._data = {"tables": {}, "sync_runs": [], "source_checks": {}}
 
     def _save(self) -> None:
         path = Path(self.db_path)
@@ -575,6 +576,21 @@ class GestioneTabelleNormative:
 
     def catalogo_fonti(self) -> List[Dict[str, str]]:
         return [source.to_dict() for source in FONTI_OPERATIVE.values()]
+
+    def source_checks(self) -> Dict[str, Dict[str, Any]]:
+        return dict(self._data.get("source_checks") or {})
+
+    def relevant_source_codes(self, source_ids: Optional[Iterable[str]] = None) -> List[str]:
+        watched_ids = set(source_ids or [])
+        rows: List[str] = []
+        for definition in canonical_table_definitions().values():
+            watch_source_ids = set(definition.get("watch_source_ids") or [])
+            if watched_ids and not (watch_source_ids & watched_ids):
+                continue
+            for code in definition.get("source_codes") or []:
+                if code not in rows:
+                    rows.append(code)
+        return rows
 
     def get_table(self, table_id: str, on_date: Optional[date] = None) -> Dict[str, Any]:
         table = self._data.get("tables", {}).get(table_id)
@@ -714,6 +730,7 @@ class GestioneTabelleNormative:
         self,
         *,
         source_runs: Optional[Mapping[str, Any]] = None,
+        source_code_runs: Optional[Mapping[str, Any]] = None,
         source_ids: Optional[Iterable[str]] = None,
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
@@ -721,6 +738,9 @@ class GestioneTabelleNormative:
         watched_ids = set(source_ids or [])
         definitions = canonical_table_definitions()
         source_runs = dict(source_runs or {})
+        source_code_runs = dict(source_code_runs or {})
+        if source_code_runs:
+            self._data.setdefault("source_checks", {}).update(source_code_runs)
 
         processed = 0
         created = 0
@@ -766,17 +786,39 @@ class GestioneTabelleNormative:
                 for source_id in definition.get("watch_source_ids") or []
                 if source_id in source_runs
             }
+            relevant_code_runs = {
+                code: source_code_runs[code]
+                for code in definition.get("source_codes") or []
+                if code in source_code_runs
+            }
+            use_specific_sources = bool(source_code_runs) and bool(definition.get("source_codes") or [])
+            changed_codes = [code for code, run in relevant_code_runs.items() if bool((run or {}).get("changed"))]
+            failed_codes = [code for code, run in relevant_code_runs.items() if str((run or {}).get("status", "")) not in {"", "ok"}]
             changed_sources = [source_id for source_id, run in relevant_runs.items() if bool((run or {}).get("changed"))]
             failed_sources = [source_id for source_id, run in relevant_runs.items() if str((run or {}).get("status", "")) not in {"", "ok"}]
-            if failed_sources:
+            effective_changed = changed_codes if use_specific_sources else changed_sources
+            effective_failed = failed_codes if use_specific_sources else failed_sources
+            if effective_failed:
+                source_labels = [
+                    (FONTI_OPERATIVE.get(code).title if code in FONTI_OPERATIVE else code)
+                    for code in effective_failed
+                ]
+                if not use_specific_sources:
+                    source_labels = list(effective_failed)
                 table["sync_status"] = "fonte_non_raggiungibile"
-                table["last_warning"] = f"Fonte monitorata non raggiungibile: {', '.join(failed_sources)}."
+                table["last_warning"] = f"Fonte monitorata non raggiungibile: {', '.join(source_labels)}."
                 warnings.append({"table_id": table_id, "warning": table["last_warning"]})
-            elif changed_sources and not table_changed:
+            elif effective_changed and not table_changed:
+                source_labels = [
+                    (FONTI_OPERATIVE.get(code).title if code in FONTI_OPERATIVE else code)
+                    for code in effective_changed
+                ]
+                if not use_specific_sources:
+                    source_labels = list(effective_changed)
                 table["sync_status"] = "verifica_richiesta"
                 table["last_warning"] = (
-                    "Fonte ufficiale variata ma nessuna tabella strutturata e stata aggiornata automaticamente. "
-                    f"Verificare: {', '.join(changed_sources)}."
+                    "Fonte ufficiale specifica della tabella variata ma nessuna tabella strutturata e stata aggiornata automaticamente. "
+                    f"Verificare: {', '.join(source_labels)}."
                 )
                 review_required += 1
                 warnings.append({"table_id": table_id, "warning": table["last_warning"]})
@@ -784,7 +826,7 @@ class GestioneTabelleNormative:
                 table["sync_status"] = "sincronizzata"
                 table["last_warning"] = ""
             table["last_synced_at"] = _now_iso(current_time)
-            if changed_sources:
+            if effective_changed:
                 table["last_source_change_at"] = _now_iso(current_time)
             touched_tables.append(
                 {

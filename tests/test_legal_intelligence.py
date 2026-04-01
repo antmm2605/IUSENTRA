@@ -66,6 +66,50 @@ def test_monitor_cycle_integra_sync_tabelle_normative(tmp_path):
 
     assert report["normative_sync"]["processed_tables"] >= 1
     assert "alerts" in report["normative_sync"]
+    assert gestore.recent_audit_traces(limit=4)
+
+
+def test_fonte_in_errore_non_risulta_mai_controllata(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    gestore.monitor_source(
+        "cassazione",
+        request_get=lambda *args, **kwargs: DummyResponse(b"errore", status_code=500),
+    )
+
+    snapshot = gestore.build_dashboard_snapshot(
+        fascicoli=[],
+        clienti=[],
+        appuntamenti=[],
+        scadenze=[],
+        portali=[],
+    )
+    row = next(item for item in snapshot["source_rows"] if item["id"] == "cassazione")
+
+    assert row["status"] == "errore"
+    assert row["freshness"] == "errore"
+
+
+def test_recent_alerts_escludono_fonti_risolte(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    gestore.monitor_source(
+        "normattiva",
+        request_get=lambda *args, **kwargs: DummyResponse(b"errore", status_code=503),
+    )
+    gestore.monitor_source(
+        "normattiva",
+        request_get=lambda *args, **kwargs: DummyResponse(b"ok", status_code=200),
+    )
+
+    alerts = gestore.recent_alerts(limit=8)
+
+    assert not any(
+        alert["source_id"] == "normattiva" and alert["alert_type"] == "fonte_non_raggiungibile"
+        for alert in alerts
+    )
 
 
 def test_dashboard_snapshot_espone_contatore_riferimenti_normativi(tmp_path):

@@ -4,14 +4,17 @@ import hashlib
 import json
 import re
 import uuid
+import warnings
+from urllib.parse import urlparse
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 
-from pct.normative_tables import GestioneTabelleNormative
+from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
 
 USER_AGENT = "HACS-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
 MAX_MONITOR_BYTES = 512_000
@@ -44,6 +47,57 @@ def _parse_iso_date(value: str) -> Optional[datetime]:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data or b"").hexdigest()
+
+
+def _looks_like_html(content_type: str, url: str) -> bool:
+    value = (content_type or "").lower()
+    path = (urlparse(url or "").path or "").lower()
+    return (
+        "html" in value
+        or path.endswith(".html")
+        or path.endswith(".htm")
+        or path.endswith(".page")
+        or not Path(path).suffix
+    )
+
+
+def _normalize_textual_payload(content: bytes, content_type: str, url: str) -> bytes:
+    if not _looks_like_html(content_type, url):
+        return content
+    text = (content or b"").decode("utf-8", errors="ignore")
+    text = re.sub(r"(?is)<(script|style|noscript)\b.*?</\1>", " ", text)
+    text = re.sub(r"(?is)<!--.*?-->", " ", text)
+    text = re.sub(r"(?is)<[^>]+>", " ", text)
+    text = _clean_spaces(text)
+    return text.encode("utf-8")
+
+
+def _detect_protection_page(final_url: str, content: bytes) -> bool:
+    normalized = _normalize_textual_payload(content, "text/html", final_url).decode("utf-8", errors="ignore")
+    sample = (
+        (final_url or "")
+        + "\n"
+        + (content or b"").decode("utf-8", errors="ignore")[:6000]
+        + "\n"
+        + normalized[:6000]
+    ).lower()
+    markers = (
+        "validate.perfdrive.com",
+        "radware",
+        "security challenge",
+        "captcha",
+        "enable javascript",
+        "please wait while we verify",
+        "errore nel caricamento delle informazioni",
+        "session id:",
+        "normattiva - errore",
+    )
+    return any(marker in sample for marker in markers)
+
+
+def _requires_tls_fallback(url: str) -> bool:
+    host = (urlparse(url or "").hostname or "").lower()
+    return host.endswith("giustizia-amministrativa.it")
 
 
 def _severity_rank(level: str) -> int:
@@ -98,6 +152,7 @@ class MonitorRun:
     content_type: str = ""
     size_bytes: int = 0
     changed: bool = False
+    comparison_mode: str = "raw"
     summary: str = ""
     warning: str = ""
 
@@ -179,7 +234,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="fonti_ufficiali",
         area="Pubblicazioni ufficiali",
         official_url="https://www.gazzettaufficiale.it/",
-        monitor_url="https://www.gazzettaufficiale.it/",
+        monitor_url="https://www.gazzettaufficiale.it/rss/SG",
         connector_kind="rss-portal",
         cadence="quotidiana",
         formats=["RSS", "HTML", "PDF"],
@@ -218,7 +273,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="giurisprudenza_orientamenti",
         area="Giurisprudenza di legittimita",
         official_url="https://www.cortedicassazione.it/",
-        monitor_url="https://www.cortedicassazione.it/cassazione-resources/resources/cms/documents/servizi-online.html",
+        monitor_url="https://www.cortedicassazione.it/it/massimario.page",
         connector_kind="portal",
         cadence="giornaliera",
         formats=["HTML", "PDF"],
@@ -244,7 +299,7 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         motore="giurisprudenza_orientamenti",
         area="Giurisprudenza amministrativa",
         official_url="https://www.giustizia-amministrativa.it/",
-        monitor_url="https://www.giustizia-amministrativa.it/web/guest/decisioni-e-pareri",
+        monitor_url="https://www.giustizia-amministrativa.it/",
         connector_kind="portal",
         cadence="giornaliera",
         formats=["HTML", "PDF"],
@@ -530,21 +585,120 @@ class GestioneLegalIntelligence:
         for raw in self._data.get("monitor_runs", []):
             run = MonitorRun.from_dict(raw)
             current = latest.get(run.source_id)
-            if current is None or run.checked_at > current.checked_at:
+            if current is None or run.checked_at >= current.checked_at:
                 latest[run.source_id] = run
         return latest
 
     def _latest_success(self, source_id: str) -> Optional[MonitorRun]:
-        successes = [
-            MonitorRun.from_dict(raw)
-            for raw in self._data.get("monitor_runs", [])
-            if raw.get("source_id") == source_id and raw.get("status") == "ok"
-        ]
-        return max(successes, key=lambda item: item.checked_at) if successes else None
+        latest: Optional[MonitorRun] = None
+        for raw in self._data.get("monitor_runs", []):
+            if raw.get("source_id") != source_id or raw.get("status") != "ok":
+                continue
+            run = MonitorRun.from_dict(raw)
+            if latest is None or run.checked_at >= latest.checked_at:
+                latest = run
+        return latest
+
+    def _fetch_response(self, fetch: Callable[..., Any], url: str) -> tuple[Any, bool]:
+        base_kwargs = {
+            "headers": {"User-Agent": USER_AGENT},
+            "timeout": self.timeout,
+            "allow_redirects": True,
+            "verify": True,
+        }
+
+        def _call(**extra: Any) -> Any:
+            kwargs = dict(base_kwargs)
+            kwargs.update(extra)
+            try:
+                return fetch(url, **kwargs)
+            except TypeError:
+                kwargs.pop("verify", None)
+                return fetch(url, **kwargs)
+
+        try:
+            return _call(), False
+        except requests.exceptions.SSLError:
+            if not _requires_tls_fallback(url):
+                raise
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", InsecureRequestWarning)
+                return _call(verify=False), True
+
+    def _fetch_state(
+        self,
+        *,
+        label: str,
+        official_url: str,
+        monitor_url: str,
+        latest_hash: str = "",
+        fetch: Optional[Callable[..., Any]] = None,
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        current_time = now or datetime.now()
+        response, used_tls_fallback = self._fetch_response(fetch or requests.get, monitor_url)
+        content = bytes(getattr(response, "content", b"") or b"")[:MAX_MONITOR_BYTES]
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        headers = getattr(response, "headers", {}) or {}
+        content_type = str(headers.get("content-type", "") or "")
+        final_url = str(getattr(response, "url", monitor_url) or monitor_url)
+        status = "ok" if status_code < 400 else "errore"
+        comparison_mode = "raw"
+        warning = ""
+        changed = False
+
+        if status == "ok" and _detect_protection_page(final_url, content):
+            comparison_mode = "challenge_guard"
+            content_hash = latest_hash or _sha256(b"challenge_guard")
+            warning = "Controllo limitato da pagina di protezione applicativa."
+        else:
+            normalized = _normalize_textual_payload(content, content_type, final_url)
+            comparison_mode = "normalized_text" if normalized != content else "raw"
+            content_hash = _sha256(normalized)
+            changed = bool(status == "ok" and latest_hash and latest_hash != content_hash)
+            if status != "ok":
+                warning = f"HTTP {status_code}"
+
+        if used_tls_fallback:
+            extra = "Verifica TLS ridotta per compatibilita del certificato remoto."
+            warning = f"{warning} {extra}".strip()
+
+        notes: List[str] = []
+        if comparison_mode == "normalized_text":
+            notes.append("confronto testo stabile")
+        elif comparison_mode == "challenge_guard":
+            notes.append("pagina protetta")
+        if used_tls_fallback:
+            notes.append("retry TLS compatibile")
+        if changed:
+            notes.append("contenuto modificato")
+        summary = f"{label}: HTTP {status_code or 'n/d'} - hash {content_hash[:12]}"
+        if notes:
+            summary += " - " + " - ".join(notes)
+
+        return {
+            "id": uuid.uuid4().hex,
+            "checked_at": _now_iso(current_time),
+            "acquired_at": _now_iso(current_time),
+            "official_url": official_url,
+            "monitor_url": monitor_url,
+            "final_url": final_url,
+            "status": status,
+            "status_code": status_code,
+            "content_hash": content_hash,
+            "content_type": content_type,
+            "size_bytes": len(content),
+            "changed": changed,
+            "comparison_mode": comparison_mode,
+            "summary": summary,
+            "warning": warning,
+        }
 
     def _freshness_status(self, source: FonteUfficiale, run: Optional[MonitorRun]) -> str:
-        if run is None or run.status != "ok":
+        if run is None:
             return "mai_controllata"
+        if run.status == "errore":
+            return "errore"
         checked_at = _parse_iso_date(run.checked_at)
         if checked_at is None:
             return "sconosciuta"
@@ -587,6 +741,30 @@ class GestioneLegalIntelligence:
         related_entity_id: str = "",
         now: Optional[datetime] = None,
     ) -> IntelligenceAlert:
+        fingerprint = (source_id, motore_id, alert_type, title, related_entity_type, related_entity_id)
+        for idx in range(len(self._data.get("alerts", [])) - 1, -1, -1):
+            existing = IntelligenceAlert.from_dict(self._data["alerts"][idx])
+            current_key = (
+                existing.source_id,
+                existing.motore_id,
+                existing.alert_type,
+                existing.title,
+                existing.related_entity_type,
+                existing.related_entity_id,
+            )
+            if current_key != fingerprint or existing.acknowledged:
+                continue
+            payload = existing.to_dict()
+            payload.update(
+                {
+                    "created_at": _now_iso(now),
+                    "severity": severity,
+                    "details": details,
+                    "official_url": official_url,
+                }
+            )
+            self._data["alerts"][idx] = payload
+            return IntelligenceAlert.from_dict(payload)
         alert = IntelligenceAlert(
             id=uuid.uuid4().hex,
             created_at=_now_iso(now),
@@ -610,42 +788,24 @@ class GestioneLegalIntelligence:
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         source = FONTI_UFFICIALI[source_id]
-        fetch = request_get or requests.get
         current_time = now or datetime.now()
         latest_ok = self._latest_success(source_id)
         try:
-            response = fetch(
-                source.monitor_url,
-                headers={"User-Agent": USER_AGENT},
-                timeout=self.timeout,
-                allow_redirects=True,
-            )
-            content = bytes(getattr(response, "content", b"") or b"")[:MAX_MONITOR_BYTES]
-            status_code = int(getattr(response, "status_code", 0) or 0)
-            headers = getattr(response, "headers", {}) or {}
-            content_hash = _sha256(content)
-            changed = bool(latest_ok and latest_ok.content_hash and latest_ok.content_hash != content_hash)
-            status = "ok" if status_code < 400 else "errore"
-            run = MonitorRun(
-                id=uuid.uuid4().hex,
-                source_id=source_id,
-                checked_at=_now_iso(current_time),
-                acquired_at=_now_iso(current_time),
+            payload = self._fetch_state(
+                label=source.nome,
                 official_url=source.official_url,
                 monitor_url=source.monitor_url,
-                final_url=str(getattr(response, "url", source.monitor_url) or source.monitor_url),
-                status=status,
-                status_code=status_code,
-                content_hash=content_hash,
-                content_type=str(headers.get("content-type", "") or ""),
-                size_bytes=len(content),
-                changed=changed,
-                summary=f"{source.nome}: HTTP {status_code or 'n/d'} - hash {content_hash[:12]}{' - contenuto modificato' if changed else ''}",
-                warning="" if status == "ok" else f"HTTP {status_code}",
+                latest_hash=getattr(latest_ok, "content_hash", ""),
+                fetch=request_get,
+                now=current_time,
+            )
+            run = MonitorRun(
+                source_id=source_id,
+                **payload,
             )
             self._append_limited("monitor_runs", run.to_dict(), MAX_MONITOR_RUNS)
             alerts: List[IntelligenceAlert] = []
-            if status != "ok":
+            if run.status != "ok":
                 alerts.append(
                     self._create_alert(
                         source_id=source_id,
@@ -653,12 +813,12 @@ class GestioneLegalIntelligence:
                         alert_type="fonte_non_raggiungibile",
                         severity="alta",
                         title=f"{source.nome} non raggiungibile",
-                        details=f"Il controllo ha restituito HTTP {status_code}. Verificare la fonte ufficiale.",
+                        details=f"Il controllo ha restituito HTTP {run.status_code}. Verificare la fonte ufficiale.",
                         official_url=source.official_url,
                         now=current_time,
                     )
                 )
-            elif changed:
+            elif run.changed:
                 alerts.append(
                     self._create_alert(
                         source_id=source_id,
@@ -672,7 +832,7 @@ class GestioneLegalIntelligence:
                     )
                 )
             self._save()
-            return {"ok": status == "ok", "run": run.to_dict(), "alerts": [alert.to_dict() for alert in alerts]}
+            return {"ok": run.status == "ok", "run": run.to_dict(), "alerts": [alert.to_dict() for alert in alerts]}
         except Exception as exc:
             run = MonitorRun(
                 id=uuid.uuid4().hex,
@@ -683,6 +843,7 @@ class GestioneLegalIntelligence:
                 monitor_url=source.monitor_url,
                 final_url=source.monitor_url,
                 status="errore",
+                comparison_mode="raw",
                 warning=str(exc),
                 summary=f"{source.nome}: errore controllo - {exc}",
             )
@@ -714,7 +875,20 @@ class GestioneLegalIntelligence:
             results.append(result)
             if result.get("ok"):
                 ok_count += 1
-        sync_report = self.sync_normative_tables(source_ids=ids, now=now)
+        sync_report = self.sync_normative_tables(source_ids=ids, request_get=request_get, now=now)
+        self.registra_trace_risposta(
+            query="Monitoraggio fonti ufficiali",
+            user="sistema",
+            engine_ids=["fonti_ufficiali", "monitoraggio_alert", "audit_affidabilita"],
+            source_ids=ids,
+            ai_model="sistema",
+            result_summary=(
+                f"Controllate {len(ids)} fonti ufficiali: {ok_count} riuscite, "
+                f"{len(ids) - ok_count} con criticita; sync tabelle {sync_report.get('updated', 0)} aggiornate."
+            ),
+            warning="" if ok_count == len(ids) else "Alcune fonti ufficiali richiedono verifica operativa.",
+            now=now,
+        )
         return {
             "ok": ok_count == len(ids),
             "checked": len(ids),
@@ -727,6 +901,7 @@ class GestioneLegalIntelligence:
     def sync_normative_tables(
         self,
         source_ids: Optional[List[str]] = None,
+        request_get: Optional[Callable[..., Any]] = None,
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         latest_runs = self._latest_runs()
@@ -735,12 +910,46 @@ class GestioneLegalIntelligence:
             for source_id, run in latest_runs.items()
             if not source_ids or source_id in source_ids
         }
+        source_checks = self.normative_tables.source_checks()
+        source_code_runs: Dict[str, Dict[str, Any]] = {}
+        current_time = now or datetime.now()
+        for code in self.normative_tables.relevant_source_codes(source_ids):
+            source = FONTI_OPERATIVE.get(code)
+            if not source:
+                continue
+            try:
+                source_code_runs[code] = self._fetch_state(
+                    label=source.title,
+                    official_url=source.url,
+                    monitor_url=source.url,
+                    latest_hash=str((source_checks.get(code) or {}).get("content_hash", "") or ""),
+                    fetch=request_get,
+                    now=current_time,
+                )
+            except Exception as exc:
+                source_code_runs[code] = {
+                    "id": uuid.uuid4().hex,
+                    "checked_at": _now_iso(current_time),
+                    "acquired_at": _now_iso(current_time),
+                    "official_url": source.url,
+                    "monitor_url": source.url,
+                    "final_url": source.url,
+                    "status": "errore",
+                    "status_code": 0,
+                    "content_hash": "",
+                    "content_type": "",
+                    "size_bytes": 0,
+                    "changed": False,
+                    "comparison_mode": "raw",
+                    "summary": f"{source.title}: errore controllo - {exc}",
+                    "warning": str(exc),
+                }
         report = self.normative_tables.sync_from_canonical(
             source_runs=source_runs,
+            source_code_runs=source_code_runs,
             source_ids=source_ids,
             now=now,
         )
-        current_time = now or datetime.now()
         alerts: List[Dict[str, Any]] = []
         for table in report.get("tables", []):
             if table.get("updated"):
@@ -773,8 +982,34 @@ class GestioneLegalIntelligence:
                 )
         if alerts:
             self._save()
+        self.registra_trace_risposta(
+            query="Sincronizzazione tabelle normative",
+            user="sistema",
+            engine_ids=["vigenza_versionamento", "monitoraggio_alert", "audit_affidabilita"],
+            source_ids=sorted(set(source_ids or source_runs.keys() or ["normattiva", "gazzetta_ufficiale"])),
+            ai_model="sistema",
+            result_summary=(
+                f"Tabelle processate: {report.get('processed_tables', 0)}, "
+                f"aggiornate: {report.get('updated', 0)}, da verificare: {report.get('review_required', 0)}."
+            ),
+            warning="" if not report.get("review_required") else "Sono presenti tabelle normative da verificare.",
+            now=current_time,
+        )
         report["alerts"] = alerts
         return report
+
+    def _alert_is_resolved(self, alert: IntelligenceAlert, latest_runs: Dict[str, MonitorRun]) -> bool:
+        if alert.alert_type == "fonte_non_raggiungibile":
+            latest = latest_runs.get(alert.source_id)
+            return bool(latest and latest.status == "ok")
+        if alert.related_entity_type == "normative_table" and alert.related_entity_id:
+            try:
+                table = self.normative_tables.get_table(alert.related_entity_id)
+            except KeyError:
+                return False
+            if alert.alert_type == "tabella_normativa_da_validare":
+                return table.get("sync_status") != "verifica_richiesta"
+        return False
 
     def registra_trace_risposta(
         self,
@@ -824,7 +1059,27 @@ class GestioneLegalIntelligence:
     def recent_alerts(self, limit: int = 12) -> List[Dict[str, Any]]:
         alerts = [IntelligenceAlert.from_dict(raw) for raw in self._data.get("alerts", [])]
         alerts.sort(key=lambda item: (item.created_at, _severity_rank(item.severity)), reverse=True)
-        return [alert.to_dict() for alert in alerts[:limit]]
+        latest_runs = self._latest_runs()
+        rows: List[Dict[str, Any]] = []
+        seen = set()
+        for alert in alerts:
+            if self._alert_is_resolved(alert, latest_runs):
+                continue
+            key = (
+                alert.source_id,
+                alert.motore_id,
+                alert.alert_type,
+                alert.title,
+                alert.related_entity_type,
+                alert.related_entity_id,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(alert.to_dict())
+            if len(rows) >= limit:
+                break
+        return rows
 
     def recent_audit_traces(self, limit: int = 10) -> List[Dict[str, Any]]:
         traces = [AuditTrace.from_dict(raw) for raw in self._data.get("audit_traces", [])]
@@ -852,6 +1107,7 @@ class GestioneLegalIntelligence:
                     "status_code": getattr(run, "status_code", 0),
                     "changed": bool(getattr(run, "changed", False)),
                     "summary": getattr(run, "summary", "Nessun controllo eseguito."),
+                    "warning": getattr(run, "warning", ""),
                 }
             )
         rows.sort(key=lambda item: (item["freshness"] != "aggiornata", item["nome"]))

@@ -41,3 +41,31 @@ def test_sync_normativo_segnala_verifica_su_fonte_variata(tmp_path):
     assert report["processed_tables"] >= 1
     assert report["review_required"] >= 1
     assert any(row["sync_status"] == "verifica_richiesta" for row in report["tables"])
+
+
+def test_sync_normativo_con_source_codes_isola_la_tabella_corretta(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    report = gestore.sync_from_canonical(
+        source_runs={
+            "gazzetta_ufficiale": {
+                "status": "ok",
+                "changed": True,
+                "checked_at": "2026-04-01T09:30:00",
+            }
+        },
+        source_code_runs={
+            "interesse_legale_2026": {
+                "status": "ok",
+                "changed": True,
+                "checked_at": "2026-04-01T09:30:00",
+            }
+        },
+        source_ids=["gazzetta_ufficiale"],
+    )
+
+    flagged = {row["id"] for row in report["tables"] if row["sync_status"] == "verifica_richiesta"}
+
+    assert "interesse_legale" in flagged
+    assert "mora_commerciale" not in flagged
+    assert "contributo_unificato_civile" not in flagged

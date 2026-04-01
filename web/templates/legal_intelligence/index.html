@@ -212,13 +212,17 @@
             <td><span class="small text-muted">{{ row.connector_kind }}</span></td>
             <td>{{ row.cadence }}</td>
             <td>
-              <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.status == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
+              <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.freshness == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
                 {{ row.freshness }}
               </span>
+              {% if row.warning %}
+              <div class="small text-muted mt-1">{{ row.warning }}</div>
+              {% endif %}
             </td>
             <td>
               {% if row.last_check %}
               <span class="small">{{ row.last_check[:16]|replace('T', ' ') }}</span>
+              <div class="small text-muted">{{ row.summary }}</div>
               {% else %}
               <span class="small text-muted">mai</span>
               {% endif %}

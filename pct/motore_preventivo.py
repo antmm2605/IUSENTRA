@@ -14,7 +14,7 @@ Normativa di riferimento:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pct.tariffario import (
     Fase,
@@ -983,6 +983,7 @@ _URL_EQUO_COMPENSO = (
     "atto.codiceRedazionale=23G00051&atto.dataPubblicazioneGazzetta=2023-05-05"
     "&atto.tipoProvvedimento=LEGGE"
 )
+_URL_DPR633 = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A1972-10-26%3B633"
 _URL_CPC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1940-10-28%3B1443"
 _URL_CC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1942-03-16%3B262"
 _URL_CPP = (
@@ -1026,6 +1027,12 @@ _RIFERIMENTI_BASE: List[Dict[str, str]] = [
         "article": "equo compenso",
         "description": "Presidio sull'equo compenso nei rapporti con clienti qualificati e grandi committenti.",
         "url": _URL_EQUO_COMPENSO,
+    },
+    {
+        "title": "D.P.R. 26 ottobre 1972, n. 633",
+        "article": "art. 15",
+        "description": "Disciplina delle anticipazioni e delle spese vive non imponibili IVA quando riaddebitate al cliente.",
+        "url": _URL_DPR633,
     },
 ]
 
@@ -1311,6 +1318,54 @@ def redattore_preventivo_iniziale(id_pratica: str) -> dict:
     if tp is None:
         raise ValueError(f"Tipologia pratica non trovata: {id_pratica!r}")
     return tp.to_dict()
+
+
+def catalogo_riferimenti_normativi() -> List[Dict[str, Any]]:
+    """Catalogo deduplicato dei riferimenti normativi ufficiali usati dal motore preventivi.
+
+    Ogni riferimento conserva la provenienza funzionale:
+    - aree in cui compare
+    - tipologie pratica collegate
+    - motori/redattori che lo espongono nel wizard
+    """
+    catalogo: Dict[tuple[str, str, str], Dict[str, Any]] = {}
+    for tp in CATALOGO:
+        for ref in tp.normative_references:
+            key = (
+                (ref.get("title") or "").strip(),
+                (ref.get("article") or "").strip(),
+                (ref.get("url") or "").strip(),
+            )
+            if not any(key):
+                continue
+            entry = catalogo.setdefault(
+                key,
+                {
+                    "title": key[0],
+                    "article": key[1],
+                    "description": (ref.get("description") or "").strip(),
+                    "url": key[2],
+                    "areas": [],
+                    "tipologie_ids": [],
+                    "tipologie_labels": [],
+                    "motori": [],
+                    "redattori": [],
+                },
+            )
+            if tp.area not in entry["areas"]:
+                entry["areas"].append(tp.area)
+            if tp.id not in entry["tipologie_ids"]:
+                entry["tipologie_ids"].append(tp.id)
+            if tp.label not in entry["tipologie_labels"]:
+                entry["tipologie_labels"].append(tp.label)
+            if tp.motore_label and tp.motore_label not in entry["motori"]:
+                entry["motori"].append(tp.motore_label)
+            if tp.redattore_label and tp.redattore_label not in entry["redattori"]:
+                entry["redattori"].append(tp.redattore_label)
+
+    rows = list(catalogo.values())
+    rows.sort(key=lambda item: (item["title"], item["article"], item["url"]))
+    return rows
 
 
 # ──────────────────────────────────────────────────────────────────────────────

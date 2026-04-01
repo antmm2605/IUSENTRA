@@ -6,9 +6,22 @@ def test_catalogo_normativo_seeded(tmp_path):
 
     snapshot = gestore.snapshot()
 
-    assert snapshot["totali"] >= 8
-    assert snapshot["sincronizzate"] >= 8
+    assert snapshot["totali"] >= 9
+    assert snapshot["sincronizzate"] >= 9
     assert any(row["id"] == "interesse_legale" for row in snapshot["tabelle"])
+    assert any(row["id"] == "riferimenti_normativi_catalogo" for row in snapshot["tabelle"])
+    assert snapshot["riferimenti_normativi_totali"] >= 8
+
+
+def test_catalogo_riferimenti_normativi_include_fonti_preventivo(tmp_path):
+    gestore = GestioneTabelleNormative(str(tmp_path / "tabelle_normative.json"))
+
+    riferimenti = gestore.catalogo_riferimenti_normativi()
+
+    assert any(row["title"] == "D.M. 10 marzo 2014, n. 55" for row in riferimenti)
+    mediazione = next(row for row in riferimenti if row["title"] == "D.M. 24 ottobre 2023, n. 150")
+    assert "Stragiudiziale" in mediazione["areas"]
+    assert "mediazione" in mediazione["tipologie_ids"]
 
 
 def test_sync_normativo_segnala_verifica_su_fonte_variata(tmp_path):

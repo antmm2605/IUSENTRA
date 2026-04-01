@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
@@ -67,6 +68,54 @@ class InterestPeriod:
 
 
 FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
+    "normattiva_portale": FonteOperativa(
+        code="normattiva_portale",
+        title="Normattiva - portale ufficiale",
+        url="https://www.normattiva.it/",
+        note="Fonte primaria per testi vigenti, multivigenza e riferimenti normativi nazionali.",
+    ),
+    "gazzetta_ufficiale_portale": FonteOperativa(
+        code="gazzetta_ufficiale_portale",
+        title="Gazzetta Ufficiale - portale ufficiale",
+        url="https://www.gazzettaufficiale.it/",
+        note="Fonte primaria per pubblicazione, decorrenza e versioni ufficiali degli atti.",
+    ),
+    "cnf_portale": FonteOperativa(
+        code="cnf_portale",
+        title="CNF - portale ufficiale",
+        url="https://www.consiglionazionaleforense.it/",
+        note="Fonte primaria per professione forense, codice deontologico e riferimenti professionali.",
+    ),
+    "pst_portale": FonteOperativa(
+        code="pst_portale",
+        title="PST Giustizia - portale ufficiale",
+        url="https://pst.giustizia.it/",
+        note="Fonte primaria per regole tecniche, servizi web, XSD e note software house.",
+    ),
+    "giustizia_amministrativa_portale": FonteOperativa(
+        code="giustizia_amministrativa_portale",
+        title="Giustizia amministrativa - portale ufficiale",
+        url="https://www.giustizia-amministrativa.it/",
+        note="Fonte primaria per processo amministrativo, decisioni e documentazione tecnica collegata.",
+    ),
+    "cassazione_portale": FonteOperativa(
+        code="cassazione_portale",
+        title="Corte di Cassazione - portale ufficiale",
+        url="https://www.cortedicassazione.it/",
+        note="Fonte primaria per servizi online, massimario e raccolte ufficiali di legittimita.",
+    ),
+    "corte_costituzionale_portale": FonteOperativa(
+        code="corte_costituzionale_portale",
+        title="Corte costituzionale - portale ufficiale",
+        url="https://www.cortecostituzionale.it/",
+        note="Fonte primaria per decisioni, depositi e comunicati costituzionali.",
+    ),
+    "eur_lex_portale": FonteOperativa(
+        code="eur_lex_portale",
+        title="EUR-Lex - portale ufficiale",
+        url="https://eur-lex.europa.eu/",
+        note="Fonte primaria per normativa e giurisprudenza dell'Unione europea.",
+    ),
     "dpr_115_2002": FonteOperativa(
         code="dpr_115_2002",
         title="D.P.R. 115/2002 - art. 13 (Normattiva)",
@@ -154,8 +203,114 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
 }
 
 
-def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
+def _slug_component(value: str) -> str:
+    value = re.sub(r"[^a-z0-9]+", "_", (value or "").strip().lower())
+    return value.strip("_")
+
+
+def _watch_source_ids_for_url(url: str) -> List[str]:
+    value = (url or "").lower()
+    source_ids: List[str] = []
+    mapping = (
+        ("normattiva.it", "normattiva"),
+        ("gazzettaufficiale.it", "gazzetta_ufficiale"),
+        ("consiglionazionaleforense.it", "cnf"),
+        ("pst.giustizia.it", "pst_giustizia"),
+        ("giustizia-amministrativa.it", "giustizia_amministrativa"),
+        ("cortedicassazione.it", "cassazione"),
+        ("cortecostituzionale.it", "corte_costituzionale"),
+        ("eur-lex.europa.eu", "eur_lex"),
+        ("inps.it", "gazzetta_ufficiale"),
+    )
+    for needle, source_id in mapping:
+        if needle in value and source_id not in source_ids:
+            source_ids.append(source_id)
+    return source_ids or ["normattiva"]
+
+
+def _source_codes_for_watch_ids(source_ids: Iterable[str]) -> List[str]:
+    mapping = {
+        "normattiva": "normattiva_portale",
+        "gazzetta_ufficiale": "gazzetta_ufficiale_portale",
+        "cnf": "cnf_portale",
+        "pst_giustizia": "pst_portale",
+        "giustizia_amministrativa": "giustizia_amministrativa_portale",
+        "cassazione": "cassazione_portale",
+        "corte_costituzionale": "corte_costituzionale_portale",
+        "eur_lex": "eur_lex_portale",
+    }
+    rows: List[str] = []
+    for source_id in source_ids or []:
+        code = mapping.get(source_id)
+        if code and code not in rows:
+            rows.append(code)
+    return rows
+
+
+def _build_reference_code(title: str, article: str, url: str) -> str:
+    base = _slug_component(title) or "riferimento"
+    article_part = _slug_component(article)
+    url_part = hashlib.sha1((url or title).encode("utf-8")).hexdigest()[:8]
+    if article_part:
+        return f"{base}_{article_part}_{url_part}"
+    return f"{base}_{url_part}"
+
+
+def canonical_reference_catalog_definition() -> Dict[str, Any]:
+    from pct.motore_preventivo import catalogo_riferimenti_normativi
+
+    reference_rows = []
+    source_ids: List[str] = []
+    source_codes: List[str] = []
+    for ref in catalogo_riferimenti_normativi():
+        watch_ids = _watch_source_ids_for_url(ref.get("url", ""))
+        for source_id in watch_ids:
+            if source_id not in source_ids:
+                source_ids.append(source_id)
+        for code in _source_codes_for_watch_ids(watch_ids):
+            if code not in source_codes:
+                source_codes.append(code)
+        reference_rows.append(
+            {
+                "reference_code": _build_reference_code(
+                    ref.get("title", ""),
+                    ref.get("article", ""),
+                    ref.get("url", ""),
+                ),
+                "title": ref.get("title", ""),
+                "article": ref.get("article", ""),
+                "description": ref.get("description", ""),
+                "url": ref.get("url", ""),
+                "areas": list(ref.get("areas", []) or []),
+                "tipologie_ids": list(ref.get("tipologie_ids", []) or []),
+                "tipologie_labels": list(ref.get("tipologie_labels", []) or []),
+                "motori": list(ref.get("motori", []) or []),
+                "redattori": list(ref.get("redattori", []) or []),
+                "watch_source_ids": watch_ids,
+            }
+        )
+
+    reference_rows.sort(key=lambda item: (item["title"], item["article"], item["url"]))
     return {
+        "id": "riferimenti_normativi_catalogo",
+        "title": "Catalogo riferimenti normativi ufficiali",
+        "category": "riferimenti_normativi",
+        "description": (
+            "Catalogo centralizzato delle norme ufficiali richiamate dai motori legali, "
+            "dal preventivo guidato e dai redattori interni."
+        ),
+        "strategy": "seed_mirror",
+        "source_codes": source_codes or ["normattiva_portale", "gazzetta_ufficiale_portale"],
+        "watch_source_ids": source_ids or ["normattiva", "gazzetta_ufficiale"],
+        "rows": reference_rows,
+        "defaults": {"total_references": len(reference_rows)},
+        "published_at": SEED_REVISION,
+        "effective_from": SEED_REVISION,
+    }
+
+
+def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
+    definitions = {
         "contributo_unificato_civile": {
             "id": "contributo_unificato_civile",
             "title": "Contributo unificato civile",
@@ -298,6 +453,9 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "effective_from": "2002-08-05",
         },
     }
+    reference_definition = canonical_reference_catalog_definition()
+    definitions[reference_definition["id"]] = reference_definition
+    return definitions
 
 
 class GestioneTabelleNormative:
@@ -326,24 +484,28 @@ class GestioneTabelleNormative:
             json.dump(self._data, fh, ensure_ascii=False, indent=2)
 
     def _ensure_seeded(self) -> None:
-        if self._data.get("tables"):
-            return
         seed_time = datetime.now()
+        existing_tables = self._data.setdefault("tables", {})
+        created_tables: List[str] = []
         for table_id, definition in canonical_table_definitions().items():
-            self._data["tables"][table_id] = self._build_table_payload(definition, seed_time, created=True)
-        self._append_sync_run(
-            {
-                "id": uuid.uuid4().hex,
-                "created_at": _now_iso(seed_time),
-                "status": "bootstrap",
-                "processed_tables": len(self._data["tables"]),
-                "created": len(self._data["tables"]),
-                "updated": 0,
-                "review_required": 0,
-                "tables": list(self._data["tables"].keys()),
-            }
-        )
-        self._save()
+            if table_id in existing_tables:
+                continue
+            existing_tables[table_id] = self._build_table_payload(definition, seed_time, created=True)
+            created_tables.append(table_id)
+        if created_tables:
+            self._append_sync_run(
+                {
+                    "id": uuid.uuid4().hex,
+                    "created_at": _now_iso(seed_time),
+                    "status": "bootstrap" if len(created_tables) == len(existing_tables) else "bootstrap_incrementale",
+                    "processed_tables": len(canonical_table_definitions()),
+                    "created": len(created_tables),
+                    "updated": 0,
+                    "review_required": 0,
+                    "tables": created_tables,
+                }
+            )
+            self._save()
 
     def _append_sync_run(self, payload: Dict[str, Any]) -> None:
         self._data.setdefault("sync_runs", []).append(payload)
@@ -440,6 +602,14 @@ class GestioneTabelleNormative:
         table = self.get_table(table_id, on_date=on_date)
         return list((table.get("active_version") or {}).get("rows") or [])
 
+    def catalogo_riferimenti_normativi(self) -> List[Dict[str, Any]]:
+        try:
+            rows = list(self.rows("riferimenti_normativi_catalogo"))
+        except KeyError:
+            return []
+        rows.sort(key=lambda item: (item.get("title", ""), item.get("article", "")))
+        return rows
+
     def catalogo_tabelle(self) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
         for table_id in sorted(self._data.get("tables", {})):
@@ -465,11 +635,14 @@ class GestioneTabelleNormative:
 
     def snapshot(self) -> Dict[str, Any]:
         catalogo = self.catalogo_tabelle()
+        riferimenti = self.catalogo_riferimenti_normativi()
         return {
             "totali": len(catalogo),
             "sincronizzate": sum(1 for row in catalogo if row["sync_status"] == "sincronizzata"),
             "verifica_richiesta": sum(1 for row in catalogo if row["sync_status"] == "verifica_richiesta"),
             "fonte_non_raggiungibile": sum(1 for row in catalogo if row["sync_status"] == "fonte_non_raggiungibile"),
+            "riferimenti_normativi_totali": len(riferimenti),
+            "riferimenti_normativi": riferimenti[:20],
             "tabelle": catalogo,
             "recent_sync_runs": list(reversed(self._data.get("sync_runs", [])[-8:])),
         }

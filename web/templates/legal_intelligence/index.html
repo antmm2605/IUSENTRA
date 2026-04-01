@@ -73,6 +73,14 @@
       </div>
     </div>
   </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Riferimenti ufficiali</div>
+        <div class="fw-bold fs-3 text-primary">{{ snapshot.headline.riferimenti_normativi }}</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="row g-4 mb-4">
@@ -230,7 +238,7 @@
   <div class="card-body">
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="fw-semibold"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
-      <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle</span>
+      <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle · {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
     </div>
     <div class="table-responsive">
       <table class="table align-middle">
@@ -268,6 +276,48 @@
           {% else %}
           <tr>
             <td colspan="5" class="small text-muted">Nessuna tabella normativa caricata.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="fw-semibold"><i class="bi bi-bookmark-check me-2 text-primary"></i>Catalogo normativo ufficiale</div>
+      <span class="badge text-bg-light">{{ snapshot.normative_tables.riferimenti_normativi_totali }} voci</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Riferimento</th>
+            <th>Aree</th>
+            <th>Tipologie</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in snapshot.normative_tables.riferimenti_normativi %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ row.title }}</div>
+              <div class="small text-muted">{{ row.article or row.reference_code }}</div>
+            </td>
+            <td class="small">{{ row.areas|join(', ') or '-' }}</td>
+            <td class="small">{{ row.tipologie_labels|length }}</td>
+            <td class="text-end">
+              {% if row.url %}
+              <a href="{{ row.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="small text-muted">Nessun riferimento normativo catalogato.</td>
           </tr>
           {% endfor %}
         </tbody>

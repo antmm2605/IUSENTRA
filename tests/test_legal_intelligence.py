@@ -68,6 +68,23 @@ def test_monitor_cycle_integra_sync_tabelle_normative(tmp_path):
     assert "alerts" in report["normative_sync"]
 
 
+def test_dashboard_snapshot_espone_contatore_riferimenti_normativi(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    snapshot = gestore.build_dashboard_snapshot(
+        fascicoli=[],
+        clienti=[],
+        appuntamenti=[],
+        scadenze=[],
+        portali=[],
+    )
+
+    assert snapshot["headline"]["riferimenti_normativi"] >= 8
+    assert snapshot["normative_tables"]["riferimenti_normativi"]
+
+
 def test_tracker_fascicolo_mostra_avanzamento_e_chiusura(tmp_path):
     gestore = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),

@@ -961,6 +961,7 @@ class GestioneLegalIntelligence:
                 "alert_totali": len(stored_alerts) + len(derived_alerts),
                 "audit_recenti": len(self.recent_audit_traces(limit=8)),
                 "tabelle_normative": normative_snapshot["totali"],
+                "riferimenti_normativi": normative_snapshot.get("riferimenti_normativi_totali", 0),
                 "tabelle_da_validare": normative_snapshot["verifica_richiesta"],
                 "fascicoli": len(fascicoli),
                 "clienti": len(clienti),

@@ -1,4 +1,5 @@
 from pct.motore_preventivo import (
+    catalogo_riferimenti_normativi,
     catalogo_wizard,
     get_tipo_pratica,
     redattore_preventivo_iniziale,
@@ -49,3 +50,11 @@ def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():
     assert "sfratto_morosita" in civile_ids
     assert "risarcimento_danni" in civile_ids
     assert "sinistro_stradale_stragiudiziale" in stragiud_ids
+
+
+def test_catalogo_riferimenti_normativi_deduplica_e_traccia_tipologie():
+    riferimenti = catalogo_riferimenti_normativi()
+    dm55 = next(row for row in riferimenti if row["title"] == "D.M. 10 marzo 2014, n. 55")
+    assert "Civile" in dm55["areas"]
+    assert "decreto_ingiuntivo" in dm55["tipologie_ids"]
+    assert dm55["motori"]

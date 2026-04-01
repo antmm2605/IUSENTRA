@@ -69,6 +69,18 @@
         {% endif %}
         <div class="small"><strong>Difensore:</strong> {{ payload.get('lawyer') }}</div>
         <div class="small"><strong>Destinatario / Ufficio:</strong> {{ payload.get('recipient_or_court') }}</div>
+        <div class="small"><strong>Renderer:</strong> {{ renderer_name }}</div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Schema del modello</div>
+      <div class="card-body small">
+        <div class="d-flex flex-wrap gap-2">
+          {% for item in sections %}
+          <span class="badge bg-light text-dark border">{{ item.replace('_', ' ') }}</span>
+          {% endfor %}
+        </div>
       </div>
     </div>
 

@@ -52,21 +52,16 @@ def _valore_form(value):
 def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=None,
                           selected_fascicolo=None, errors: dict | None = None):
     from pct.compilatore_atti import (
-        get_modello,
-        campi_base_visibili,
-        campi_extra_modello,
         opzioni_campo,
-        professional_guidance_for_model,
-        suggested_attachments_for_model,
-        suggested_clauses_for_model,
-        validation_rules_for_model,
+        wizard_schema_modello,
     )
-    model = get_modello(model_code)
+    schema = wizard_schema_modello(model_code)
+    model = schema["model"]
     clienti = get_clienti().tutti()
     fascicoli = get_fascicoli().tutti()
     utenti = get_utenti().tutti(solo_attivi=True)
-    base_fields = campi_base_visibili()
-    extra_fields = campi_extra_modello(model_code)
+    base_fields = schema["base_fields"]
+    extra_fields = schema["extra_fields"]
     field_options = {}
     for field in base_fields + extra_fields:
         if field["type"] == "select":
@@ -90,10 +85,13 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
         "errors": errors or {},
         "selected_cliente": selected_cliente,
         "selected_fascicolo": selected_fascicolo,
-        "guidance": professional_guidance_for_model(model_code),
-        "suggested_attachments": suggested_attachments_for_model(model_code),
-        "suggested_clauses": suggested_clauses_for_model(model_code),
-        "validation_rules": validation_rules_for_model(model_code),
+        "guidance": schema["guidance"],
+        "suggested_attachments": schema["suggested_attachments"],
+        "suggested_clauses": schema["suggested_clauses"],
+        "validation_rules": schema["validation_rules"],
+        "sections": schema["sections"],
+        "renderer_name": schema["renderer"],
+        "prefill_map": schema["prefill_map"],
     }
 
 
@@ -333,6 +331,8 @@ def compila(model_code: str):
             guidance=ctx["guidance"],
             suggested_attachments=ctx["suggested_attachments"],
             suggested_clauses=ctx["suggested_clauses"],
+            sections=ctx["sections"],
+            renderer_name=ctx["renderer_name"],
         )
 
     return render_template(

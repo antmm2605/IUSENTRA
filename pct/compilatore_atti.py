@@ -11,6 +11,7 @@ Struttura pensata per il software:
 """
 from __future__ import annotations
 
+import copy
 from datetime import date
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -621,7 +622,7 @@ def _infer_field_type(name: str) -> str:
 
 
 def _placeholder_for(label: str, field_type: str) -> str:
-    lowered = label[:1].lower() + label[1:] if label else "valore"
+    lowered = _placeholder_label(label)
     if field_type in {"select", "date"}:
         return f"Seleziona {lowered}"
     if field_type in {"multiselect", "repeater"}:
@@ -629,69 +630,113 @@ def _placeholder_for(label: str, field_type: str) -> str:
     return f"Inserisci {lowered}"
 
 
-def elenco_modelli() -> list[dict[str, Any]]:
-    return list(MODELS)
+def _placeholder_label(label: str) -> str:
+    if not label:
+        return "valore"
+    words: list[str] = []
+    for word in label.split():
+        normalized = word.replace(".", "").replace("/", "")
+        if normalized and normalized.isupper():
+            words.append(word)
+        else:
+            words.append(word.lower())
+    return " ".join(words) if words else "valore"
 
 
-def modelli_per_area() -> list[dict[str, Any]]:
-    grouped: list[dict[str, Any]] = []
-    for area in AREA_ORDINE:
-        models = [m for m in MODELS if m["area"] == area]
-        if models:
-            grouped.append({"area": area, "label": AREA_LABELS.get(area, area.title()), "models": models})
-    return grouped
+AREA_DEFAULT_SECTIONS: dict[str, list[str]] = {
+    "STRAGIUDIZIALE": ["intestazione", "parti", "oggetto", "premessa", "richiesta_finale", "allegati", "firma"],
+    "CIVILE": ["intestazione", "parti", "fatto", "diritto", "conclusioni", "allegati", "firma"],
+    "PENALE": ["intestazione", "autorita", "posizione_difensiva", "richieste", "allegati", "firma"],
+    "AMMINISTRATIVO": ["intestazione", "parti", "fatti", "motivi", "domanda_cautelare", "conclusioni", "allegati", "firma"],
+    "TRIBUTARIO": ["intestazione", "parti", "atto_impugnato", "motivi", "domanda_cautelare", "conclusioni", "allegati", "firma"],
+}
+
+MODEL_SECTION_OVERRIDES: dict[str, list[str]] = {
+    "STR_DIFF_001": ["intestazione", "parti", "oggetto", "premessa", "diffida", "avvertimento_finale", "allegati", "firma"],
+    "CIV_CIT_001": ["intestazione", "parti", "fatto", "diritto", "vocatio_in_ius", "avvertimenti_rito", "conclusioni", "fase_istruttoria", "dichiarazione_valore", "firma"],
+    "CIV_RDI_001": ["intestazione", "ricorrente", "debitore", "credito", "prova_scritta", "richieste", "provvisoria_esecutorieta", "allegati", "firma"],
+    "CIV_COM_001": ["intestazione", "parti", "posizione_sui_fatti", "eccezioni_processuali", "eccezioni_di_merito", "domande", "mezzi_istruttori", "conclusioni", "firma"],
+}
+
+MODEL_RENDERER_OVERRIDES: dict[str, str] = {
+    "STR_DIFF_001": "extrajudicial_notice_v1",
+    "CIV_CIT_001": "civil_citation_v1",
+}
+
+MODEL_PREFILL_MAP_OVERRIDES: dict[str, dict[str, list[str]]] = {
+    "STR_DIFF_001": {
+        "sender": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "recipient": ["fascicolo.controparte"],
+        "subject": ["fascicolo.oggetto", "fascicolo.titolo"],
+        "breach_description": ["fascicolo.note"],
+        "attachments_list": ["fascicolo.documenti[].nome"],
+        "signature": ["utente.nome_completo", "config.STUDIO_AVVOCATO"],
+    },
+    "CIV_CIT_001": {
+        "court_name": ["fascicolo.tribunale"],
+        "plaintiff": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "defendant": ["fascicolo.controparte"],
+        "lawyer": ["utente.nome_completo", "config.STUDIO_AVVOCATO"],
+        "lawyer_tax_code": ["config.STUDIO_CF"],
+        "lawyer_pec": ["config.SMTP_FROM", "config.PCT_STUDIO_PEC"],
+        "claim_subject": ["fascicolo.oggetto", "fascicolo.titolo"],
+        "facts": ["fascicolo.note"],
+        "documents_offered": ["fascicolo.documenti[].nome"],
+        "hearing_date": ["fascicolo.data_prossima_udienza", "fascicolo.data_prima_udienza"],
+    },
+    "CIV_RDI_001": {
+        "competent_court": ["fascicolo.tribunale"],
+        "claimant": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "debtor": ["fascicolo.controparte"],
+        "credit_source": ["fascicolo.oggetto", "fascicolo.titolo"],
+        "requested_amount": ["fascicolo.valore_causa"],
+        "written_evidence": ["fascicolo.note"],
+        "requested_costs": ["config.SPESE_MONITORIO"],
+    },
+    "CIV_COM_001": {
+        "court_name": ["fascicolo.tribunale"],
+        "proceeding_number": ["fascicolo.rg_completo", "fascicolo.numero"],
+        "defendant": ["cliente.nome_completo", "fascicolo.nome_cliente"],
+        "plaintiff": ["fascicolo.controparte"],
+        "lawyer_tax_code": ["config.STUDIO_CF"],
+        "lawyer_pec": ["config.SMTP_FROM", "config.PCT_STUDIO_PEC"],
+        "documents_offered": ["fascicolo.documenti[].nome"],
+    },
+}
+
+MODEL_SUGGESTED_ATTACHMENTS_OVERRIDES: dict[str, list[str]] = {
+    "STR_DIFF_001": [
+        "Contratto, ordine, incarico o rapporto da cui nasce l'obbligazione.",
+        "Diffide o solleciti precedenti e prova della loro trasmissione.",
+    ],
+    "CIV_CIT_001": [
+        "Procura alle liti firmata e documento di identita del cliente, se previsto dal flusso di studio.",
+        "Titolo o rapporto contrattuale, fatture, estratti conto, corrispondenza e diffide stragiudiziali richiamate nell'atto.",
+    ],
+    "CIV_RDI_001": [
+        "Prova scritta del credito: contratto, fatture, DDT, estratto autentico o riconoscimento del debito.",
+        "Documentazione sulla scadenza del credito e sugli interessi richiesti.",
+    ],
+}
+
+MODEL_SUGGESTED_CLAUSES_OVERRIDES: dict[str, list[str]] = {
+    "STR_DIFF_001": [
+        "Formula conclusiva di riserva di ogni diritto, azione ed eccezione in caso di mancato adempimento.",
+    ],
+    "CIV_CIT_001": [
+        "Vocatio in ius coerente con il termine a comparire e con la data effettivamente fissata.",
+        "Avvertimenti di rito coordinati con artt. 163-bis e 166 c.p.c. e con il tipo di giudizio instaurato.",
+    ],
+    "CIV_RDI_001": [
+        "Richiesta espressa di emissione del decreto ingiuntivo e, se del caso, di concessione della provvisoria esecutorieta.",
+    ],
+}
 
 
-def get_modello(model_code: str) -> Optional[dict[str, Any]]:
-    return MODEL_INDEX.get(model_code)
-
-
-def campi_catalogo() -> dict[str, dict[str, Any]]:
-    names = set(BASE_REQUIRED_FIELDS)
-    for model in MODELS:
-        names.update(model["required_extra_fields"])
-    return {name: _field_meta(name) for name in sorted(names)}
-
-
-def campi_modello(model_code: str) -> list[dict[str, Any]]:
-    model = _require_model(model_code)
-    fields = BASE_REQUIRED_FIELDS + model["required_extra_fields"]
-    return [_field_meta(name) for name in fields]
-
-
-def campi_base_visibili() -> list[dict[str, Any]]:
-    return [_field_meta(name) for name in BASE_REQUIRED_FIELDS if name not in HIDDEN_BASE_FIELDS]
-
-
-def campi_extra_modello(model_code: str) -> list[dict[str, Any]]:
-    model = _require_model(model_code)
-    return [_field_meta(name) for name in model["required_extra_fields"]]
-
-
-def model_options() -> list[tuple[str, str]]:
-    return [(m["code"], m["name"]) for m in MODELS]
-
-
-def area_options() -> list[tuple[str, str]]:
-    return [(key, AREA_LABELS[key]) for key in AREA_ORDINE]
-
-
-def professional_guidance_for_model(model_code: str) -> dict[str, Any]:
-    model = _require_model(model_code)
-    area_guidance = AREA_PRO_GUIDANCE.get(model["area"], {})
-    specific = MODEL_GUIDANCE_OVERRIDES.get(model_code, {})
-    return {
-        "summary": specific.get("summary") or area_guidance.get("summary") or model["name"],
-        "when_to_use": list(specific.get("when_to_use") or area_guidance.get("when_to_use") or []),
-        "structure": list(specific.get("structure") or area_guidance.get("structure") or []),
-        "technical_notes": list(specific.get("technical_notes") or area_guidance.get("technical_notes") or []),
-        "references": list(specific.get("references") or area_guidance.get("references") or []),
-    }
-
-
-def validation_rules_for_model(model_code: str) -> list[dict[str, str]]:
+def _build_validation_rules_for_fields(field_names: Iterable[str]) -> list[dict[str, str]]:
     rules: list[dict[str, str]] = []
-    for field in campi_modello(model_code):
+    for name in field_names:
+        field = _field_meta(name)
         rules.append({"field": field["name"], "rule": "required", "message": f"{field['label']} obbligatorio."})
         if field["type"] == "email":
             rules.append({"field": field["name"], "rule": "email", "message": f"{field['label']} deve essere un indirizzo valido."})
@@ -702,8 +747,7 @@ def validation_rules_for_model(model_code: str) -> list[dict[str, str]]:
     return rules
 
 
-def suggested_attachments_for_model(model_code: str) -> list[str]:
-    model = _require_model(model_code)
+def _base_suggested_attachments(area: str, required_extra_fields: list[str]) -> list[str]:
     base = [
         "Procura alle liti o incarico, se rilevante per l'atto.",
         "Documenti richiamati nei fatti e nelle conclusioni.",
@@ -731,14 +775,13 @@ def suggested_attachments_for_model(model_code: str) -> list[str]:
             "Documentazione contabile, fiscale e amministrativa richiamata nel ricorso o nelle difese.",
         ],
     }
-    extra = area_specific.get(model["area"], [])
-    if "documents_offered" in model["required_extra_fields"] or "documents_list_detailed" in model["required_extra_fields"]:
+    extra = list(area_specific.get(area, []))
+    if "documents_offered" in required_extra_fields or "documents_list_detailed" in required_extra_fields:
         extra.append("Indice allegati con numerazione coerente tra atto e fascicolo.")
     return _dedupe_preserve(base + extra)
 
 
-def suggested_clauses_for_model(model_code: str) -> list[str]:
-    model = _require_model(model_code)
+def _base_suggested_clauses(model_code: str, area: str) -> list[str]:
     base = [
         "Formula finale su luogo, data e sottoscrizione.",
         "Richiamo coerente agli allegati effettivamente indicati nell'atto.",
@@ -750,9 +793,158 @@ def suggested_clauses_for_model(model_code: str) -> list[str]:
         "AMMINISTRATIVO": ["Indicazione della misura cautelare, se richiesta.", "Conclusioni con annullamento, riforma o altra tutela richiesta."],
         "TRIBUTARIO": ["Indicazione del valore della controversia e del domicilio digitale, ove rilevanti.", "Conclusioni finali su annullamento, sospensione e spese."],
     }
-    if model["code"].endswith("DEPDOC_001"):
+    extra = list(area_specific.get(area, []))
+    if model_code.endswith("DEPDOC_001"):
         base.append("Numerazione allegati e finalita del deposito in forma sintetica e coerente.")
-    return _dedupe_preserve(base + area_specific.get(model["area"], []))
+    return _dedupe_preserve(base + extra)
+
+
+def _guidance_from_sources(model: dict[str, Any]) -> dict[str, Any]:
+    area_guidance = AREA_PRO_GUIDANCE.get(model["area"], {})
+    specific = MODEL_GUIDANCE_OVERRIDES.get(model["code"], {})
+    return {
+        "summary": specific.get("summary") or area_guidance.get("summary") or model["name"],
+        "when_to_use": list(specific.get("when_to_use") or area_guidance.get("when_to_use") or []),
+        "structure": list(specific.get("structure") or area_guidance.get("structure") or []),
+        "technical_notes": list(specific.get("technical_notes") or area_guidance.get("technical_notes") or []),
+        "references": list(specific.get("references") or area_guidance.get("references") or []),
+    }
+
+
+def _build_model_schema(model: dict[str, Any]) -> dict[str, Any]:
+    guidance = _guidance_from_sources(model)
+    required_extra_fields = list(model["required_extra_fields"])
+    field_names = BASE_REQUIRED_FIELDS + required_extra_fields
+    return {
+        **model,
+        "summary": guidance["summary"],
+        "when_to_use": list(guidance["when_to_use"]),
+        "structure": list(guidance["structure"]),
+        "technical_notes": list(guidance["technical_notes"]),
+        "legal_references": list(guidance["references"]),
+        "sections": list(MODEL_SECTION_OVERRIDES.get(model["code"], AREA_DEFAULT_SECTIONS.get(model["area"], []))),
+        "renderer": MODEL_RENDERER_OVERRIDES.get(model["code"], "generic_professional_v1"),
+        "prefill_map": copy.deepcopy(MODEL_PREFILL_MAP_OVERRIDES.get(model["code"], {})),
+        "validation_rules": _build_validation_rules_for_fields(field_names),
+        "suggested_attachments": _dedupe_preserve(
+            _base_suggested_attachments(model["area"], required_extra_fields)
+            + MODEL_SUGGESTED_ATTACHMENTS_OVERRIDES.get(model["code"], [])
+        ),
+        "suggested_clauses": _dedupe_preserve(
+            _base_suggested_clauses(model["code"], model["area"])
+            + MODEL_SUGGESTED_CLAUSES_OVERRIDES.get(model["code"], [])
+        ),
+    }
+
+
+def _build_compiler_schema() -> dict[str, Any]:
+    names = set(BASE_REQUIRED_FIELDS)
+    for model in MODELS:
+        names.update(model["required_extra_fields"])
+    field_catalog = {name: _field_meta(name) for name in sorted(names)}
+    models = [_build_model_schema(model) for model in MODELS]
+    return {
+        "field_catalog": field_catalog,
+        "base_required_fields": list(BASE_REQUIRED_FIELDS),
+        "models": models,
+    }
+
+
+def _field_schema(name: str) -> dict[str, Any]:
+    return copy.deepcopy(FIELD_CATALOG.get(name) or _field_meta(name))
+
+
+def elenco_modelli() -> list[dict[str, Any]]:
+    return [copy.deepcopy(model) for model in MODELS]
+
+
+def modelli_per_area() -> list[dict[str, Any]]:
+    grouped: list[dict[str, Any]] = []
+    for area in AREA_ORDINE:
+        models = [copy.deepcopy(m) for m in MODELS if m["area"] == area]
+        if models:
+            grouped.append({"area": area, "label": AREA_LABELS.get(area, area.title()), "models": models})
+    return grouped
+
+
+def get_modello(model_code: str) -> Optional[dict[str, Any]]:
+    model = MODEL_INDEX.get(model_code)
+    return copy.deepcopy(model) if model else None
+
+
+def campi_catalogo() -> dict[str, dict[str, Any]]:
+    return copy.deepcopy(FIELD_CATALOG)
+
+
+def campi_modello(model_code: str) -> list[dict[str, Any]]:
+    model = _require_model(model_code)
+    fields = BASE_REQUIRED_FIELDS + model["required_extra_fields"]
+    return [_field_schema(name) for name in fields]
+
+
+def campi_base_visibili() -> list[dict[str, Any]]:
+    return [_field_schema(name) for name in BASE_REQUIRED_FIELDS if name not in HIDDEN_BASE_FIELDS]
+
+
+def campi_extra_modello(model_code: str) -> list[dict[str, Any]]:
+    model = _require_model(model_code)
+    return [_field_schema(name) for name in model["required_extra_fields"]]
+
+
+def model_options() -> list[tuple[str, str]]:
+    return [(m["code"], m["name"]) for m in MODELS]
+
+
+def area_options() -> list[tuple[str, str]]:
+    return [(key, AREA_LABELS[key]) for key in AREA_ORDINE]
+
+
+def catalogo_compilatore() -> dict[str, Any]:
+    return copy.deepcopy(COMPILER_SCHEMA)
+
+
+def wizard_schema_modello(model_code: str) -> dict[str, Any]:
+    model = _require_model(model_code)
+    return {
+        "model": copy.deepcopy(model),
+        "field_catalog": copy.deepcopy(FIELD_CATALOG),
+        "base_required_fields": list(BASE_REQUIRED_FIELDS),
+        "base_fields": campi_base_visibili(),
+        "extra_fields": campi_extra_modello(model_code),
+        "guidance": professional_guidance_for_model(model_code),
+        "validation_rules": validation_rules_for_model(model_code),
+        "suggested_attachments": suggested_attachments_for_model(model_code),
+        "suggested_clauses": suggested_clauses_for_model(model_code),
+        "sections": list(model.get("sections", [])),
+        "renderer": model.get("renderer", "generic_professional_v1"),
+        "prefill_map": copy.deepcopy(model.get("prefill_map", {})),
+    }
+
+
+def professional_guidance_for_model(model_code: str) -> dict[str, Any]:
+    model = _require_model(model_code)
+    return {
+        "summary": model.get("summary") or _guidance_from_sources(model)["summary"] or model["name"],
+        "when_to_use": list(model.get("when_to_use", _guidance_from_sources(model)["when_to_use"])),
+        "structure": list(model.get("structure", _guidance_from_sources(model)["structure"])),
+        "technical_notes": list(model.get("technical_notes", _guidance_from_sources(model)["technical_notes"])),
+        "references": list(model.get("legal_references", _guidance_from_sources(model)["references"])),
+    }
+
+
+def validation_rules_for_model(model_code: str) -> list[dict[str, str]]:
+    model = _require_model(model_code)
+    return copy.deepcopy(model.get("validation_rules", []))
+
+
+def suggested_attachments_for_model(model_code: str) -> list[str]:
+    model = _require_model(model_code)
+    return list(model.get("suggested_attachments", []))
+
+
+def suggested_clauses_for_model(model_code: str) -> list[str]:
+    model = _require_model(model_code)
+    return list(model.get("suggested_clauses", []))
 
 
 def opzioni_campo(
@@ -871,10 +1063,11 @@ def validate_payload(model_code: str, payload: dict[str, Any]) -> dict[str, str]
 def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
     model = _require_model(model_code)
     renderers = {
-        "CIV_CIT_001": _render_civ_cit_001,
-        "STR_DIFF_001": _render_str_diff_001,
+        "civil_citation_v1": _render_civ_cit_001,
+        "extrajudicial_notice_v1": _render_str_diff_001,
+        "generic_professional_v1": _render_generic_professional_act,
     }
-    renderer = renderers.get(model_code, _render_generic_professional_act)
+    renderer = renderers.get(model.get("renderer", "generic_professional_v1"), _render_generic_professional_act)
     return renderer(model, payload).strip()
 
 
@@ -996,6 +1189,12 @@ def _dedupe_preserve(items: Iterable[str]) -> list[str]:
         seen.add(key)
         result.append(item)
     return result
+
+
+COMPILER_SCHEMA = _build_compiler_schema()
+FIELD_CATALOG = COMPILER_SCHEMA["field_catalog"]
+MODELS = COMPILER_SCHEMA["models"]
+MODEL_INDEX = {model["code"]: model for model in MODELS}
 
 
 def _render_generic_professional_act(model: dict[str, Any], payload: dict[str, Any]) -> str:

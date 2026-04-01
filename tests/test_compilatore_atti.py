@@ -1,12 +1,14 @@
 from types import SimpleNamespace
 
 from pct.compilatore_atti import (
+    catalogo_compilatore,
     campi_extra_modello,
     get_modello,
     prefill_payload,
     professional_guidance_for_model,
     render_compiled_act,
     validate_payload,
+    wizard_schema_modello,
 )
 
 
@@ -55,9 +57,25 @@ def test_modello_ha_campi_extra_coerenti():
     model = get_modello("CIV_CIT_001")
     assert model is not None
     assert model["name"] == "Atto di Citazione"
+    assert model["renderer"] == "civil_citation_v1"
+    assert "vocatio_in_ius" in model["sections"]
     field_names = [field["name"] for field in campi_extra_modello("CIV_CIT_001")]
     assert "court_name" in field_names
     assert "documents_offered" in field_names
+
+
+def test_catalogo_compilatore_espone_schema_pronto_per_software():
+    schema = catalogo_compilatore()
+    assert "field_catalog" in schema
+    assert "base_required_fields" in schema
+    assert "models" in schema
+    assert schema["field_catalog"]["court_name"]["label"] == "Ufficio Giudiziario"
+    assert schema["field_catalog"]["court_name"]["placeholder"].startswith("Inserisci ")
+    model = next(item for item in schema["models"] if item["code"] == "CIV_CIT_001")
+    assert model["renderer"] == "civil_citation_v1"
+    assert "summary" in model
+    assert "validation_rules" in model
+    assert "prefill_map" in model
 
 
 def test_prefill_payload_recupera_dati_dalla_pratica():
@@ -88,6 +106,15 @@ def test_professional_guidance_for_citation_has_cartabia_notes():
     assert "giudizio ordinario di cognizione" in guidance["summary"]
     assert any("120 giorni" in item for item in guidance["technical_notes"])
     assert any("Art. 163-bis c.p.c." in item for item in guidance["references"])
+
+
+def test_wizard_schema_modello_riusa_catalogo_centrale():
+    schema = wizard_schema_modello("STR_DIFF_001")
+    assert schema["model"]["code"] == "STR_DIFF_001"
+    assert schema["renderer"] == "extrajudicial_notice_v1"
+    assert any(field["name"] == "sender" for field in schema["extra_fields"])
+    assert "diffida" in " ".join(schema["sections"])
+    assert "sender" in schema["prefill_map"]
 
 
 def test_render_citation_compiled_act_uses_professional_structure():

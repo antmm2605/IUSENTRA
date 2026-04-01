@@ -146,12 +146,24 @@
           <span class="badge bg-light text-dark border">{{ form_values.get('status', 'BOZZA') }}</span>
           <span class="badge bg-light text-dark border">v{{ form_values.get('version', '1.0') }}</span>
         </div>
+        <div class="small text-muted mt-3"><strong>Renderer:</strong> {{ renderer_name }}</div>
         {% if selected_cliente %}
         <div class="mt-3 small"><strong>Cliente:</strong> {{ selected_cliente.nome_completo }}</div>
         {% endif %}
         {% if selected_fascicolo %}
         <div class="small"><strong>Pratica:</strong> {{ selected_fascicolo.titolo }}</div>
         {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Sezioni generate</div>
+      <div class="card-body small">
+        <div class="d-flex flex-wrap gap-2">
+          {% for item in sections %}
+          <span class="badge bg-light text-dark border">{{ item.replace('_', ' ') }}</span>
+          {% endfor %}
+        </div>
       </div>
     </div>
 

@@ -463,11 +463,12 @@ function escapeHtml(value) {
 
 function genericRuleForMateria(materia) {
   const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
+  const gradoPreferito = gradi.includes('Tribunale') ? 'Tribunale' : gradi[0];
   return {
     rule_code: '',
     label: 'Regola standard del tariffario',
     summary: 'Profilo base del motore tariffario per la materia selezionata.',
-    grado_input_value: gradi[0],
+    grado_input_value: gradoPreferito,
     allowed_grade_input_values: gradi,
   };
 }
@@ -484,7 +485,7 @@ function renderRegole() {
   const materia = document.getElementById('selMateria').value;
   const select = document.getElementById('selRegolaTariffaria');
   const baseRows = RULE_CATALOG[materia] || [];
-  const rows = baseRows.length ? baseRows : [genericRuleForMateria(materia)];
+  const rows = [genericRuleForMateria(materia), ...baseRows];
   const preferred = select.dataset.selected || REGOLA_SEL;
   select.innerHTML = rows.map((row) => `<option value="${escapeHtml(row.rule_code)}">${escapeHtml(row.label)}</option>`).join('');
   const target = rows.find((row) => row.rule_code === preferred) || rows[0] || null;
@@ -497,10 +498,8 @@ function renderGradi() {
   const select = document.getElementById('selGrado');
   const rule = currentRule();
   const materia = document.getElementById('selMateria').value;
-  const gradi = (rule?.allowed_grade_input_values && rule.allowed_grade_input_values.length)
-    ? rule.allowed_grade_input_values
-    : (GRADE_CATALOG[materia] || ['Tribunale']);
-  const preferred = select.dataset.selected || GRADO_SEL || rule?.grado_input_value || gradi[0];
+  const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
+  const preferred = select.dataset.selected || GRADO_SEL || rule?.grado_input_value || (gradi.includes('Tribunale') ? 'Tribunale' : gradi[0]);
   const selected = gradi.includes(preferred) ? preferred : (rule?.grado_input_value && gradi.includes(rule.grado_input_value) ? rule.grado_input_value : gradi[0]);
   select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');
   select.value = selected;
@@ -526,8 +525,7 @@ function currentProfile() {
   const materia = document.getElementById('selMateria').value;
   const grado = document.getElementById('selGrado').value;
   const rule = currentRule();
-  return PROFILE_ROWS.find((item) => rule && item.profile_code === rule.profile_code && item.grado_input_value === grado)
-    || PROFILE_ROWS.find((item) => rule && item.profile_code === rule.profile_code)
+  return PROFILE_ROWS.find((item) => rule?.rule_code && item.profile_code === rule.profile_code && item.grado_input_value === grado)
     || PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
     || PROFILE_ROWS.find((item) => item.materia_label === materia)
     || null;
@@ -535,7 +533,13 @@ function currentProfile() {
 
 function currentPractice() {
   const rule = currentRule();
-  if (rule?.suggested_practice_id && PRACTICE_BY_ID[rule.suggested_practice_id]) {
+  const grado = document.getElementById('selGrado').value;
+  if (
+    rule?.rule_code
+    && rule?.suggested_practice_id
+    && PRACTICE_BY_ID[rule.suggested_practice_id]
+    && (!rule.allowed_grade_input_values || rule.allowed_grade_input_values.includes(grado))
+  ) {
     return PRACTICE_BY_ID[rule.suggested_practice_id];
   }
   const profile = currentProfile();
@@ -575,6 +579,7 @@ function renderProfilo() {
   const row = currentProfile();
   const rule = currentRule();
   const grado = document.getElementById('selGrado').value;
+  const ruleCompatible = rule?.rule_code && (!rule.allowed_grade_input_values || rule.allowed_grade_input_values.includes(grado));
   if (!row) {
     target.innerHTML = '<div class="text-muted small">Nessun profilo disponibile per questa combinazione.</div>';
     return;
@@ -583,14 +588,14 @@ function renderProfilo() {
   target.innerHTML = `
       <div class="mb-2">
         <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(row.table_label)}</span>
-        ${rule ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(rule.label)}</span>` : ''}
+        ${ruleCompatible ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(rule.label)}</span>` : ''}
         <span class="badge ${row.exact_snapshot ? 'bg-success-subtle text-success-emphasis' : 'bg-warning-subtle text-warning-emphasis'}">
           ${row.exact_snapshot ? 'snapshot ufficiale' : 'profilo ricostruttivo'}
         </span>
       </div>
       <div class="fw-semibold mb-1">${escapeHtml(row.summary || '')}</div>
       <div class="small text-muted mb-3">${escapeHtml(row.base_note || '')}</div>
-      ${rule?.summary ? `<div class="small text-muted mb-3">${escapeHtml(rule.summary)}</div>` : ''}
+      ${ruleCompatible && rule?.summary ? `<div class="small text-muted mb-3">${escapeHtml(rule.summary)}</div>` : ''}
       <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(practice?.label || row.suggested_practice_id || '')}</div>
       <div class="small"><strong>Grado operativo:</strong> ${escapeHtml(grado)}</div>
     `;

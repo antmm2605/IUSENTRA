@@ -2294,9 +2294,7 @@ def create_app(config: dict | None = None) -> Flask:
         from pct.tariffario import ComplessitaStimata, Fase, Grado, LivelloCompenso, Materia, calcola_compenso
         from pct.tariffario_catalogo import (
             first_profile_for_materia,
-            first_rule_for_materia,
             grade_catalog_by_materia,
-            grade_catalog_for_rule,
             phase_catalog_by_materia,
             profile_lookup_by_labels,
             profile_lookup_by_rule,
@@ -2326,6 +2324,11 @@ def create_app(config: dict | None = None) -> Flask:
                 "Compenso unico": "compenso_unico",
             }
             return mapping.get(fase_value, fase_value)
+
+        def _preferred_grade(gradi: list[str]) -> str:
+            if "Tribunale" in gradi:
+                return "Tribunale"
+            return gradi[0] if gradi else Grado.TRIBUNALE.value
 
         def _esborsi_catalogo(tp, accessori_ids: list[str]) -> list[dict]:
             rows = []
@@ -2390,19 +2393,12 @@ def create_app(config: dict | None = None) -> Flask:
             for item in items
         }
         materia_sel = request.form.get("materia", "") or (materie[0] if materie else "")
-        rule_defaults = rule_catalog.get(materia_sel) or []
-        regola_tariffaria_sel = request.form.get("regola_tariffaria", "").strip() or (rule_defaults[0]["rule_code"] if rule_defaults else "")
-        regola_attiva = rule_lookup(regola_tariffaria_sel) or first_rule_for_materia(materia_sel)
-        if regola_attiva and not regola_tariffaria_sel:
-            regola_tariffaria_sel = regola_attiva.get("rule_code", "")
-        grade_defaults = (
-            grade_catalog_for_rule(regola_tariffaria_sel)
-            or grade_catalog.get(materia_sel)
-            or [Grado.TRIBUNALE.value]
-        )
-        grado_sel = request.form.get("grado", "").strip() or (regola_attiva.get("grado_input_value", "") if regola_attiva else "") or grade_defaults[0]
+        regola_tariffaria_sel = request.form.get("regola_tariffaria", "").strip()
+        regola_attiva = rule_lookup(regola_tariffaria_sel) if regola_tariffaria_sel else None
+        grade_defaults = grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value]
+        grado_sel = request.form.get("grado", "").strip() or (regola_attiva.get("grado_input_value", "") if regola_attiva else "") or _preferred_grade(grade_defaults)
         if grado_sel not in grade_defaults:
-            grado_sel = grade_defaults[0]
+            grado_sel = _preferred_grade(grade_defaults)
         livello_compenso_sel = LivelloCompenso.BASE
         complessita_sel = request.form.get("complessita", ComplessitaStimata.MEDIA.value).strip() or ComplessitaStimata.MEDIA.value
         valore_str = request.form.get("valore", "0").replace(",", ".").strip()
@@ -2433,13 +2429,9 @@ def create_app(config: dict | None = None) -> Flask:
         if request.method == "POST":
             try:
                 materia = Materia(materia_sel)
-                grade_defaults = (
-                    grade_catalog_for_rule(regola_tariffaria_sel)
-                    or grade_catalog.get(materia_sel)
-                    or [Grado.TRIBUNALE.value]
-                )
+                grade_defaults = grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value]
                 if grado_sel not in grade_defaults:
-                    grado_sel = grade_defaults[0]
+                    grado_sel = _preferred_grade(grade_defaults)
                 grado = Grado(grado_sel)
                 valore = _parse_float(valore_str, 0.0)
                 fasi = []
@@ -2460,7 +2452,7 @@ def create_app(config: dict | None = None) -> Flask:
                     perc_spese_generali=max(0.0, perc_spese / 100.0),
                     complessita=complessita_sel,
                 )
-                regola_attiva = rule_lookup(regola_tariffaria_sel) or first_rule_for_materia(materia_sel)
+                regola_attiva = rule_lookup(regola_tariffaria_sel) if regola_tariffaria_sel else None
                 profilo_attivo = (
                     profile_lookup_by_rule(regola_tariffaria_sel, grado_sel)
                     or profile_lookup_by_labels(materia_sel, grado_sel)

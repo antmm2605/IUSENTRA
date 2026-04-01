@@ -379,7 +379,13 @@ function currentRegolaTariffaria() {
   if (!tipologiaCorrente) return null;
   const select = document.getElementById('selRegolaTariffaria');
   const rows = (tipologiaCorrente.regole_tariffarie || []).length
-    ? (tipologiaCorrente.regole_tariffarie || [])
+    ? [{
+        rule_code: '',
+        label: 'Regola standard del motore',
+        summary: tipologiaCorrente.base_normativa || '',
+        grado_input_value: tipologiaCorrente.grado_default || 'Tribunale',
+        allowed_grade_input_values: tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale'],
+      }, ...(tipologiaCorrente.regole_tariffarie || [])]
     : [{
         rule_code: '',
         label: 'Regola standard del motore',
@@ -398,7 +404,13 @@ function renderRegoleTariffarie() {
     return;
   }
   const rows = (tipologiaCorrente.regole_tariffarie || []).length
-    ? (tipologiaCorrente.regole_tariffarie || [])
+    ? [{
+        rule_code: '',
+        label: 'Regola standard del motore',
+        summary: tipologiaCorrente.base_normativa || '',
+        grado_input_value: tipologiaCorrente.grado_default || 'Tribunale',
+        allowed_grade_input_values: tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale'],
+      }, ...(tipologiaCorrente.regole_tariffarie || [])]
     : [{
         rule_code: '',
         label: 'Regola standard del motore',
@@ -424,10 +436,8 @@ function renderGradiTariffari() {
     return;
   }
   const regola = currentRegolaTariffaria();
-  const gradi = (regola?.allowed_grade_input_values && regola.allowed_grade_input_values.length)
-    ? regola.allowed_grade_input_values
-    : (tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale']);
-  const preferred = select.dataset.selected || WIZARD_PREFILL.grado || regola?.grado_input_value || tipologiaCorrente.grado_default || gradi[0];
+  const gradi = tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale'];
+  const preferred = select.dataset.selected || WIZARD_PREFILL.grado || regola?.grado_input_value || tipologiaCorrente.grado_default || (gradi.includes('Tribunale') ? 'Tribunale' : gradi[0]);
   const selected = gradi.includes(preferred) ? preferred : (regola?.grado_input_value && gradi.includes(regola.grado_input_value) ? regola.grado_input_value : gradi[0]);
   select.disabled = false;
   select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');
@@ -646,6 +656,8 @@ function renderSchedaTipologia() {
   const checklist = document.getElementById('checklistList');
   const normativa = document.getElementById('normativaList');
   const regola = currentRegolaTariffaria();
+  const grado = document.getElementById('selGrado').value || '';
+  const ruleCompatible = regola?.rule_code && (!regola.allowed_grade_input_values || regola.allowed_grade_input_values.includes(grado));
   if (!tipologiaCorrente) {
       target.textContent = 'Seleziona una tipologia per vedere il dettaglio professionale.';
       checklist.innerHTML = '<li>Seleziona una tipologia per attivare la checklist operativa.</li>';
@@ -657,11 +669,11 @@ function renderSchedaTipologia() {
         <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
-        ${regola ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(regola.label)}</span>` : ''}
+        ${ruleCompatible ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(regola.label)}</span>` : ''}
       </div>
       <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
       <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
-      ${regola?.summary ? `<div class="small text-muted mb-2">${escapeHtml(regola.summary)}</div>` : ''}
+      ${ruleCompatible && regola?.summary ? `<div class="small text-muted mb-2">${escapeHtml(regola.summary)}</div>` : ''}
       <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
   const accessori = accessoriCalcoloSelezionati();
   if (accessori.length) {
@@ -677,7 +689,7 @@ function renderSchedaTipologia() {
   });
   checklist.innerHTML = checklistItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
     const normativeRefs = dedupeNormativeReferences([
-      ...(regola?.normative_references || []),
+      ...(ruleCompatible ? (regola?.normative_references || []) : []),
       ...(tipologiaCorrente.normative_references || []),
       ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
     ]);
@@ -785,11 +797,12 @@ function syncTipoProcedimentoHidden() {
   const input = document.getElementById('inpTipoProcedimento');
   const regola = currentRegolaTariffaria();
   const grado = document.getElementById('selGrado').value || '';
+  const ruleCompatible = regola?.rule_code && (!regola.allowed_grade_input_values || regola.allowed_grade_input_values.includes(grado));
   if (!tipologiaCorrente) {
     input.value = '';
     return;
   }
-  input.value = regola
+  input.value = ruleCompatible
     ? `${regola.label}${grado ? ` — ${grado}` : ''}`
     : `${tipologiaCorrente.label}${grado ? ` — ${grado}` : ''}`;
 }

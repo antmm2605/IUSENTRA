@@ -23,6 +23,9 @@ from flask import (
     stream_with_context,
 )
 
+from web.helpers import get_legal_intelligence
+from pct.legal_intelligence import fonti_per_query, motori_per_query
+
 assistente = Blueprint("assistente", __name__)
 
 # ── System prompt ──────────────────────────────────────────────────────────────
@@ -248,6 +251,14 @@ def assistente_chat():
     data = request.get_json(silent=True) or {}
     messages: list = data.get("messages", [])
     fascicolo_id: str = data.get("fascicolo_id", "")
+    last_user_message = next(
+        (
+            (msg.get("content", "") or "").strip()
+            for msg in reversed(messages)
+            if (msg.get("role") or "") == "user"
+        ),
+        "",
+    )
 
     # System prompt + eventuale contesto fascicolo
     system_content = _SYSTEM_PROMPT + _build_fascicolo_context(fascicolo_id)
@@ -261,6 +272,19 @@ def assistente_chat():
             "num_ctx": 4096,
         },
     }
+
+    try:
+        get_legal_intelligence().registra_trace_risposta(
+            query=last_user_message or "Richiesta assistente PCT",
+            user=getattr(g.get("utente_corrente"), "username", ""),
+            engine_ids=motori_per_query(last_user_message),
+            source_ids=fonti_per_query(last_user_message),
+            ai_model=_ollama_model(),
+            result_summary="Richiesta inviata all'assistente Lex.",
+            warning="Risposta generativa locale: verificare sempre le fonti ufficiali prima dell'uso professionale.",
+        )
+    except Exception:
+        current_app.logger.exception("Errore audit assistente_chat")
 
     def generate():
         try:

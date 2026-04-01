@@ -155,6 +155,50 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error(f"[scheduler] Sync uffici fallito: {e}")
 
+    def _run_legal_monitor(source_ids, label):
+        with app.app_context():
+            try:
+                from pct.legal_intelligence import GestioneLegalIntelligence
+
+                gestore = GestioneLegalIntelligence(
+                    db_path=app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json")
+                )
+                report = gestore.run_monitor_cycle(source_ids=source_ids)
+                if report.get("ok"):
+                    logger.info(
+                        "[scheduler] Legal intelligence %s: %d fonti aggiornate",
+                        label,
+                        report.get("successful", 0),
+                    )
+                else:
+                    logger.warning(
+                        "[scheduler] Legal intelligence %s: %d ok / %d fallite",
+                        label,
+                        report.get("successful", 0),
+                        report.get("failed", 0),
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Legal intelligence %s fallito: %s", label, e)
+
+    @scheduler.scheduled_job(CronTrigger(hour=5, minute=45), id="legal_monitor_daily")
+    def _legal_monitor_daily():
+        _run_legal_monitor(
+            [
+                "normattiva",
+                "gazzetta_ufficiale",
+                "cnf",
+                "cassazione",
+                "corte_costituzionale",
+                "giustizia_amministrativa",
+                "eur_lex",
+            ],
+            "daily",
+        )
+
+    @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=15), id="legal_monitor_pst")
+    def _legal_monitor_pst():
+        _run_legal_monitor(["pst_giustizia"], "pst")
+
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler

@@ -32,6 +32,7 @@
   {% for f in fascicoli %}
   <div class="portale-card card">
     <div class="card-body">
+      {% set tracker = tracker_map.get(f.id) if tracker_map else None %}
       <div class="d-flex align-items-start gap-2">
         <span class="badge rounded-pill
           {% if f.stato.value == 'APERTO' %}bg-primary
@@ -47,6 +48,30 @@
           {% if f.tribunale %}
           <div class="text-muted" style="font-size:.78rem;">
             <i class="bi bi-building me-1"></i>{{ f.tribunale }}
+          </div>
+          {% endif %}
+          {% if tracker %}
+          <div class="mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <div class="small fw-semibold text-uppercase text-muted">Stato pratica</div>
+              <div class="small fw-semibold text-primary">{{ tracker.current_label }}</div>
+            </div>
+            <div class="progress" style="height:8px;border-radius:999px;">
+              <div class="progress-bar" role="progressbar" style="width: {{ tracker.percent }}%; background:linear-gradient(90deg, #1a3a5c, #3b82f6);" aria-valuenow="{{ tracker.percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-2" style="gap:.4rem;">
+              {% for step in tracker.steps %}
+              <div class="small {% if step.complete %}text-primary fw-semibold{% else %}text-muted{% endif %}" style="font-size:.68rem;">
+                {{ step.label }}
+              </div>
+              {% endfor %}
+            </div>
+            {% if tracker.last_event %}
+            <div class="small text-muted mt-2"><i class="bi bi-clock-history me-1"></i>Ultimo evento: {{ tracker.last_event }}</div>
+            {% endif %}
+            {% if tracker.next_event %}
+            <div class="small text-muted mt-1"><i class="bi bi-arrow-right-circle me-1"></i>Prossimo passaggio: {{ tracker.next_event }}</div>
+            {% endif %}
           </div>
           {% endif %}
         </div>

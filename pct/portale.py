@@ -177,6 +177,12 @@ class GestionePortale:
     def get(self, id_portale: str) -> Optional[PortaleCliente]:
         return self._portali.get(id_portale)
 
+    def tutti(self, includi_inattivi: bool = True) -> List[PortaleCliente]:
+        portali = sorted(self._portali.values(), key=lambda p: p.creato_il, reverse=True)
+        if includi_inattivi:
+            return portali
+        return [p for p in portali if p.is_attivo]
+
     def aggiorna_permessi(self, id_portale: str, permessi: PermessiPortale) -> PortaleCliente:
         p = self._portali[id_portale]
         p.permessi = permessi

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Motori Legali{% endblock %}
+
+{% block content %}
+<div class="ds-ph mb-4">
+  <div class="ds-ph-icon"><i class="bi bi-diagram-3"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Motori Legali</h1>
+    <p class="ds-ph-sub">Fonti ufficiali, monitoraggio, audit e vantaggio competitivo integrati nel gestionale.</p>
+  </div>
+  <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}" class="ms-auto">
+    <button class="btn btn-primary">
+      <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo fonti
+    </button>
+  </form>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Motori attivi</div>
+        <div class="fw-bold fs-3">{{ snapshot.headline.motori_attivi }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Fonti aggiornate</div>
+        <div class="fw-bold fs-3 text-success">{{ snapshot.headline.fonti_aggiornate }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Alert aperti</div>
+        <div class="fw-bold fs-3 text-warning">{{ snapshot.headline.alert_totali }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Audit recenti</div>
+        <div class="fw-bold fs-3 text-primary">{{ snapshot.headline.audit_recenti }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="card border-0 shadow-sm" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="fw-semibold"><i class="bi bi-cpu me-2 text-primary"></i>Architettura dei motori</div>
+          <span class="badge text-bg-light">{{ snapshot.engine_cards|length }} moduli</span>
+        </div>
+        <div class="row g-3">
+          {% for engine in snapshot.engine_cards %}
+          <div class="col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="fw-semibold">{{ engine.short_name }}</div>
+                <span class="badge {% if engine.badge == 'operativo' %}text-bg-success{% elif engine.badge == 'parziale' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                  {{ engine.badge|replace('_', ' ') }}
+                </span>
+              </div>
+              <div class="small text-muted mb-2">{{ engine.descrizione }}</div>
+              <div class="small"><strong>Output:</strong> {{ engine.output }}</div>
+              <div class="small mt-1"><strong>Valore:</strong> {{ engine.value }}</div>
+              <div class="small mt-2 text-muted">Fonti coperte: {{ engine.coverage }}/{{ engine.total_sources }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3"><i class="bi bi-stars me-2 text-primary"></i>Vantaggio competitivo</div>
+        <div class="d-flex flex-column gap-3">
+          {% for item in snapshot.competitive_advantages %}
+          <div class="border rounded-4 p-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:42px;height:42px;background:rgba(26,58,92,.08);">
+                <i class="bi {{ item.icon }} text-primary"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ item.title }}</div>
+                <div class="small text-muted">{{ item.description }}</div>
+              </div>
+              <div class="fw-bold fs-4">{{ item.value }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3"><i class="bi bi-exclamation-diamond me-2 text-primary"></i>Alert operativi</div>
+        <div class="d-flex flex-column gap-2">
+          {% for alert in snapshot.derived_alerts %}
+          <div class="border rounded-4 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <div class="fw-semibold">{{ alert.title }}</div>
+              <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
+                {{ alert.severity }}
+              </span>
+            </div>
+            <div class="small text-muted">{{ alert.details }}</div>
+          </div>
+          {% else %}
+          <div class="text-muted small">Nessun alert operativo derivato al momento.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3"><i class="bi bi-broadcast me-2 text-primary"></i>Alert da monitoraggio</div>
+        <div class="d-flex flex-column gap-2">
+          {% for alert in snapshot.stored_alerts %}
+          <div class="border rounded-4 p-3">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <div class="fw-semibold">{{ alert.title }}</div>
+              <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% elif alert.severity == 'media' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">
+                {{ alert.severity }}
+              </span>
+            </div>
+            <div class="small text-muted mb-2">{{ alert.details }}</div>
+            {% if alert.official_url %}
+            <a href="{{ alert.official_url }}" class="small text-decoration-none" target="_blank" rel="noopener">Apri fonte ufficiale</a>
+            {% endif %}
+          </div>
+          {% else %}
+          <div class="text-muted small">Nessun alert storico registrato.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
+  <div class="card-body">
+    <div class="fw-semibold mb-3"><i class="bi bi-journal-check me-2 text-primary"></i>Fonti ufficiali monitorate</div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Fonte</th>
+            <th>Motore</th>
+            <th>Frequenza</th>
+            <th>Stato</th>
+            <th>Ultimo check</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in snapshot.source_rows %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ row.nome }}</div>
+              <div class="small text-muted">{{ row.area }}</div>
+            </td>
+            <td><span class="small text-muted">{{ row.connector_kind }}</span></td>
+            <td>{{ row.cadence }}</td>
+            <td>
+              <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.status == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
+                {{ row.freshness }}
+              </span>
+            </td>
+            <td>
+              {% if row.last_check %}
+              <span class="small">{{ row.last_check[:16]|replace('T', ' ') }}</span>
+              {% else %}
+              <span class="small text-muted">mai</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius:18px;">
+  <div class="card-body">
+    <div class="fw-semibold mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>Audit delle risposte</div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>Query</th>
+            <th>Motori</th>
+            <th>Modello</th>
+            <th>Warning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for trace in snapshot.recent_audits %}
+          <tr>
+            <td class="small">{{ trace.created_at[:16]|replace('T', ' ') }}</td>
+            <td class="small">{{ trace.query }}</td>
+            <td class="small">{{ trace.engine_ids|join(', ') }}</td>
+            <td class="small">{{ trace.ai_model or 'n/d' }}</td>
+            <td class="small text-muted">{{ trace.warning or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-muted small">Nessuna traccia audit registrata.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

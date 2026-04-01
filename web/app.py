@@ -325,6 +325,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "wizard_pro", "sessioni.json"),
         )
     )
+    app.config["LEGAL_INTELLIGENCE_DB"] = cfg.get(
+        "LEGAL_INTELLIGENCE_DB",
+        os.getenv(
+            "PCT_LEGAL_INTELLIGENCE_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "motori.json"),
+        ),
+    )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
     app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")
@@ -7612,6 +7619,9 @@ read -r -p "Premi Invio per chiudere..." _
 
     from web.blueprints.statistiche import statistiche as statistiche_bp  # Statistiche /statistiche/*
     app.register_blueprint(statistiche_bp)
+
+    from web.blueprints.legal_intelligence import legal_intelligence as legal_intelligence_bp  # Motori legali /legal-intelligence/*
+    app.register_blueprint(legal_intelligence_bp)
 
     from web.blueprints.export_csv import export_csv as export_csv_bp  # Export CSV /export/*
     app.register_blueprint(export_csv_bp)

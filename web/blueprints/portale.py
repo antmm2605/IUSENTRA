@@ -13,6 +13,7 @@ from flask import (Blueprint, abort, flash, redirect, render_template,
                    request, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
+from pct.legal_intelligence import costruisci_tracker_fascicoli
 
 portale = Blueprint("portale", __name__, url_prefix="/portale")
 
@@ -68,12 +69,15 @@ def home(token: str):
             if any(f.id == s.id_fascicolo for f in fascicoli)
         ]
 
+    tracker_map = costruisci_tracker_fascicoli(fascicoli)
+
     return render_template(
         "portale/home.html",
         token=token,
         p=p,
         cliente=cliente,
         fascicoli=fascicoli,
+        tracker_map=tracker_map,
         appuntamenti=appuntamenti,
         scadenze=scadenze,
         oggi=date.today(),

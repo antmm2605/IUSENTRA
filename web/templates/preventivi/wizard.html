@@ -187,21 +187,35 @@
         </div>
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-4" id="boxValoreControversia">
+            <div class="col-md-3" id="boxValoreControversia">
               <label class="form-label fw-semibold">Valore pratica / controversia</label>
               <input type="number" name="valore_controversia" id="inpValore" class="form-control"
                      min="0" step="0.01" placeholder="0.00">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label fw-semibold">Grado / sede</label>
               <select id="selGrado" class="form-select">
                 <option value="Giudice di Pace">Giudice di Pace</option>
                 <option value="Tribunale" selected>Tribunale</option>
                 <option value="Corte d'Appello">Corte d'Appello</option>
                 <option value="Corte di Cassazione">Corte di Cassazione</option>
+                <option value="TAR">TAR</option>
+                <option value="Consiglio di Stato">Consiglio di Stato</option>
+                <option value="CGT di primo grado">CGT di primo grado</option>
+                <option value="CGT di secondo grado">CGT di secondo grado</option>
+                <option value="Fuori giudizio">Fuori giudizio</option>
+                <option value="Procedura ADR">Procedura ADR</option>
               </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Livello compenso</label>
+              <select id="selLivelloCompenso" class="form-select" name="livello_compenso">
+                <option value="minimo">Minimo</option>
+                <option value="base" selected>Base</option>
+                <option value="massimo">Massimo</option>
+              </select>
+            </div>
+            <div class="col-md-3">
               <label class="form-label fw-semibold">Complessita stimata</label>
               <select name="complessita" id="selComplessita" class="form-select">
                 <option value="bassa">Bassa</option>
@@ -776,9 +790,12 @@ function applyWizardPrefill() {
   if (WIZARD_PREFILL.valore) {
     document.getElementById('inpValore').value = WIZARD_PREFILL.valore;
   }
-  if (WIZARD_PREFILL.grado) {
-    document.getElementById('selGrado').value = WIZARD_PREFILL.grado;
-  }
+    if (WIZARD_PREFILL.grado) {
+      document.getElementById('selGrado').value = WIZARD_PREFILL.grado;
+    }
+    if (WIZARD_PREFILL.livello_compenso) {
+      document.getElementById('selLivelloCompenso').value = WIZARD_PREFILL.livello_compenso;
+    }
   if (WIZARD_PREFILL.tariffa_oraria) {
     document.getElementById('inpTariffaOraria').value = WIZARD_PREFILL.tariffa_oraria;
   }
@@ -796,12 +813,38 @@ function applyWizardPrefill() {
   document.getElementById('chkCassa').checked = WIZARD_PREFILL.applica_cpa !== false;
   document.getElementById('chkIva').checked = WIZARD_PREFILL.applica_iva !== false;
 
-  if (Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length) {
-    const checkedSet = new Set(WIZARD_PREFILL.fasi);
-    document.querySelectorAll('.fase-check').forEach((node) => {
-      node.checked = checkedSet.has(node.value);
-    });
-  }
+    if (Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length) {
+      const checkedSet = new Set(WIZARD_PREFILL.fasi);
+      document.querySelectorAll('.fase-check').forEach((node) => {
+        node.checked = checkedSet.has(node.value);
+      });
+    }
+    if (WIZARD_PREFILL.has_accessori_prefill) {
+      const accessoriSet = new Set(WIZARD_PREFILL.accessori);
+      document.querySelectorAll('.accessorio-check').forEach((node) => {
+        node.checked = accessoriSet.has(node.dataset.accessorioId);
+      });
+      renderSchedaTipologia();
+      renderEsborsi();
+    }
+    if (WIZARD_PREFILL.has_esborsi_prefill) {
+      const esborsiSet = new Set(WIZARD_PREFILL.esborsi);
+      document.querySelectorAll('.esborso-check').forEach((node) => {
+        node.checked = esborsiSet.has(node.dataset.key);
+      });
+      syncEsborsiRows();
+    }
+    if (WIZARD_PREFILL.has_manual_voci_prefill && Array.isArray(WIZARD_PREFILL.manual_voci)) {
+      WIZARD_PREFILL.manual_voci.forEach((row, index) => {
+        if (!row || !String(row.descrizione || '').trim()) return;
+        upsertVocePerRuolo(
+          `manual-prefill-${index}`,
+          row.descrizione,
+          Number(row.importo || 0),
+          row.tipo || 'Onorario',
+        );
+      });
+    }
 
   if (WIZARD_PREFILL.oggetto) {
     const oggetto = document.getElementById('inpOggetto');
@@ -924,6 +967,7 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('id_pratica', idPratica || tipologiaCorrente.id);
   params.set('valore', document.getElementById('inpValore').value || 0);
   params.set('grado', document.getElementById('selGrado').value || '');
+  params.set('livello_compenso', document.getElementById('selLivelloCompenso').value || 'base');
   params.set('bonus_telematico', document.getElementById('chkBonusTelematico').checked ? '1' : '0');
   params.set('spese_generali', document.getElementById('chkSpeseGenerali').checked ? '1' : '0');
   params.set('perc_spese_generali', document.getElementById('inpPercSpese').value || '15');
@@ -939,9 +983,9 @@ function buildQuery(idPratica = '', fasiOverride = null) {
 
 function renderRisultato(data) {
   ultimoCalcolo = data;
-  document.getElementById('kpiCompenso').textContent = money(data.onorario_base || data.totale_base || 0);
+  document.getElementById('kpiCompenso').textContent = money(data.onorario_selezionato || data.onorario_base || data.totale_base || 0);
   document.getElementById('kpiTotale').textContent = money(data.totale || 0);
-  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_base || data.totale_base || 0);
+  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_selezionato || data.onorario_base || data.totale_base || 0);
   recalcTotals();
 }
 
@@ -967,7 +1011,7 @@ async function applicaAccessoriCalcolo() {
     const role = `accessorio-${accessorio.id}`;
     const label = accessorio.row_label || `Compenso professionale per ${data.tipo_pratica?.label || accessorio.label}`;
     ruoliAttivi.add(role);
-    upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || 0, 'Onorario');
+      upsertVocePerRuolo(role, label, data.onorario_selezionato || data.onorario_base || data.totale_base || 0, 'Onorario');
   }
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => {
     if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
@@ -1083,10 +1127,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   selClienteRapidoTipo.addEventListener('change', syncClienteRapidoUi);
   document.getElementById('inpFiltroTipologie').addEventListener('input', renderTipologie);
   document.getElementById('btnCalcolaPreventivo').addEventListener('click', calcolaPreventivo);
-  document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
-  document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
-  document.getElementById('chkCassa').addEventListener('change', recalcTotals);
-  document.getElementById('chkIva').addEventListener('change', recalcTotals);
+    document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
+    document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
+    document.getElementById('chkCassa').addEventListener('change', recalcTotals);
+    document.getElementById('chkIva').addEventListener('change', recalcTotals);
+    document.getElementById('selLivelloCompenso').addEventListener('change', () => {
+      if (tipologiaCorrente && (ultimoCalcolo || (tipologiaCorrente.tipo_compenso_default || '').toLowerCase().includes('orario'))) {
+        calcolaPreventivo();
+      }
+    });
   document.getElementById('chkGeneraConferimento').addEventListener('change', syncWorkflowChecks);
   document.getElementById('selectFascicolo').addEventListener('change', (event) => {
     applicaContestoFascicolo(fascicoloById(event.target.value));

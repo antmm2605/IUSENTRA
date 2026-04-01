@@ -7,6 +7,7 @@ Richiede autenticazione tramite g.utente_corrente (gestita da app.py).
 from __future__ import annotations
 
 import io
+import json
 from datetime import date, timedelta
 
 from flask import (Blueprint, abort, flash, g, redirect,
@@ -831,6 +832,7 @@ def wizard():
         "area": area_prefill,
         "valore": request.args.get("valore", "").strip(),
         "grado": request.args.get("grado", "").strip(),
+        "livello_compenso": request.args.get("livello_compenso", "base").strip() or "base",
         "fasi": fasi_prefill,
         "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
         "spese_generali": request.args.get("spese_generali", "1") == "1",
@@ -842,8 +844,29 @@ def wizard():
         "ore_stimate": request.args.get("ore_stimate", "").strip(),
         "oggetto": request.args.get("oggetto", "").strip(),
         "note": request.args.get("note", "").strip(),
+        "accessori": [],
+        "esborsi": [],
+        "manual_voci": [],
+        "has_accessori_prefill": False,
+        "has_esborsi_prefill": False,
+        "has_manual_voci_prefill": False,
         "auto_calcola": request.args.get("auto_calcola", "").strip() == "1",
     }
+    for key, field_name in (
+        ("accessori_json", "accessori"),
+        ("esborsi_json", "esborsi"),
+        ("manual_voci_json", "manual_voci"),
+    ):
+        raw_value = (request.args.get(key, "") or "").strip()
+        if not raw_value:
+            continue
+        try:
+            parsed = json.loads(raw_value)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            parsed = []
+        if isinstance(parsed, list):
+            wizard_prefill[field_name] = parsed
+            wizard_prefill[f"has_{field_name}_prefill"] = True
     return render_template(
         "preventivi/wizard.html",
         catalogo_per_area=catalogo_wizard(),
@@ -872,23 +895,24 @@ def wizard_calcola():
       anticipazioni, variazioni per fase (var_studio, var_introduttiva, ecc.)
     """
     from flask import jsonify
-    from pct.motore_preventivo import motore_calcola, get_tipo_pratica
-    from pct.tariffario import Grado, Fase
+    from pct.motore_preventivo import get_tipo_pratica, motore_calcola
+    from pct.tariffario import Fase, Grado, LivelloCompenso
 
     try:
-        id_pratica      = request.args.get("id_pratica", "")
-        valore          = float(request.args.get("valore", 0) or 0)
-        grado_raw       = request.args.get("grado", "")
-        fasi_raw        = request.args.get("fasi", "")
-        bonus_tel       = request.args.get("bonus_telematico", "0") == "1"
-        incl_spese      = request.args.get("spese_generali", "1") == "1"
+        id_pratica = request.args.get("id_pratica", "")
+        valore = float(request.args.get("valore", 0) or 0)
+        grado_raw = request.args.get("grado", "")
+        livello_raw = request.args.get("livello_compenso", "base")
+        fasi_raw = request.args.get("fasi", "")
+        bonus_tel = request.args.get("bonus_telematico", "0") == "1"
+        incl_spese = request.args.get("spese_generali", "1") == "1"
         try:
             perc_sg = float(request.args.get("perc_spese_generali", "15") or "15") / 100.0
         except (ValueError, TypeError):
             perc_sg = 0.15
-        applica_cpa     = request.args.get("applica_cpa", "1") == "1"
-        applica_iva     = request.args.get("applica_iva", "1") == "1"
-        anticipazioni   = float(request.args.get("anticipazioni", 0) or 0)
+        applica_cpa = request.args.get("applica_cpa", "1") == "1"
+        applica_iva = request.args.get("applica_iva", "1") == "1"
+        anticipazioni = float(request.args.get("anticipazioni", 0) or 0)
 
         if not id_pratica:
             return jsonify({"errore": "id_pratica mancante"}), 200
@@ -897,40 +921,47 @@ def wizard_calcola():
         if not tp:
             return jsonify({"errore": f"Tipologia non trovata: {id_pratica}"}), 200
 
-        # Grado
         _mappa_grado = {
-            "Giudice di Pace":      Grado.GIUDICE_DI_PACE,
-            "Tribunale":            Grado.TRIBUNALE,
-            "Corte d'Appello":      Grado.CORTE_APPELLO,
-            "Corte di Cassazione":  Grado.CASSAZIONE,
+            "Giudice di Pace": Grado.GIUDICE_DI_PACE,
+            "Tribunale": Grado.TRIBUNALE,
+            "Corte d'Appello": Grado.CORTE_APPELLO,
+            "Corte di Cassazione": Grado.CASSAZIONE,
+            "TAR": Grado.TAR,
+            "Consiglio di Stato": Grado.CONSIGLIO_DI_STATO,
+            "CGT di primo grado": Grado.CGT_PRIMO_GRADO,
+            "CGT di secondo grado": Grado.CGT_SECONDO_GRADO,
+            "Fuori giudizio": Grado.FUORI_GIUDIZIO,
+            "Procedura ADR": Grado.PROCEDURA_ADR,
         }
         grado = _mappa_grado.get(grado_raw) if grado_raw else None
+        try:
+            livello = LivelloCompenso(str(livello_raw or "base").lower())
+        except ValueError:
+            livello = LivelloCompenso.BASE
 
-        # Fasi
         _mappa_fase = {
-            "studio":               Fase.STUDIO,
-            "introduttiva":         Fase.INTRODUTTIVA,
-            "istruttoria":          Fase.ISTRUTTORIA,
-            "decisionale":          Fase.DECISIONALE,
-            "esecutiva":            Fase.ESECUTIVA,
-            "attivazione":          Fase.ATTIVAZIONE,
-            "rivitalizzazione":     Fase.RIVITALIZZAZIONE,
-            "negoziazione":         Fase.NEGOZIAZIONE_TRATTAZIONE,
-            "conciliazione":        Fase.CONCILIAZIONE,
+            "studio": Fase.STUDIO,
+            "introduttiva": Fase.INTRODUTTIVA,
+            "istruttoria": Fase.ISTRUTTORIA,
+            "decisionale": Fase.DECISIONALE,
+            "esecutiva": Fase.ESECUTIVA,
+            "attivazione": Fase.ATTIVAZIONE,
+            "rivitalizzazione": Fase.RIVITALIZZAZIONE,
+            "negoziazione": Fase.NEGOZIAZIONE_TRATTAZIONE,
+            "conciliazione": Fase.CONCILIAZIONE,
         }
         fasi = [_mappa_fase[k] for k in fasi_raw.split(",") if k.strip() in _mappa_fase] or None
 
-        # Variazioni per fase
         _mappa_var_fasi = {
-            "attivazione":      Fase.ATTIVAZIONE.value,
+            "attivazione": Fase.ATTIVAZIONE.value,
             "rivitalizzazione": Fase.RIVITALIZZAZIONE.value,
-            "negoziazione":     Fase.NEGOZIAZIONE_TRATTAZIONE.value,
-            "conciliazione":    Fase.CONCILIAZIONE.value,
-            "studio":           Fase.STUDIO.value,
-            "introduttiva":     Fase.INTRODUTTIVA.value,
-            "istruttoria":      Fase.ISTRUTTORIA.value,
-            "decisionale":      Fase.DECISIONALE.value,
-            "esecutiva":        Fase.ESECUTIVA.value,
+            "negoziazione": Fase.NEGOZIAZIONE_TRATTAZIONE.value,
+            "conciliazione": Fase.CONCILIAZIONE.value,
+            "studio": Fase.STUDIO.value,
+            "introduttiva": Fase.INTRODUTTIVA.value,
+            "istruttoria": Fase.ISTRUTTORIA.value,
+            "decisionale": Fase.DECISIONALE.value,
+            "esecutiva": Fase.ESECUTIVA.value,
         }
         variazioni_fasi: dict = {}
         for k, fase_label in _mappa_var_fasi.items():
@@ -946,6 +977,7 @@ def wizard_calcola():
             valore_controversia=valore,
             grado=grado,
             fasi=fasi,
+            livello_compenso=livello,
             bonus_telematico=bonus_tel,
             includi_spese_generali=incl_spese,
             perc_spese_generali=perc_sg,
@@ -974,6 +1006,7 @@ def wizard_calcola():
             "spese_generali":        dm.spese_generali,
             "perc_spese_generali":   int(round(dm.perc_spese_generali * 100)),
             "onorario_base":         ris.onorario_base,
+            "onorario_selezionato":  ris.onorario_selezionato,
             "cpa":                   ris.cpa,
             "base_iva":              ris.base_iva,
             "iva":                   ris.iva,
@@ -981,6 +1014,7 @@ def wizard_calcola():
             "totale":                ris.totale,
             "applica_cpa":           ris.applica_cpa,
             "applica_iva":           ris.applica_iva,
+            "livello_compenso":      ris.livello_compenso,
             "nota":                  dm.note,
             "base_normativa":        tp.base_normativa,
         })

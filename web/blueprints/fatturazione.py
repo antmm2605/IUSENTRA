@@ -7,6 +7,7 @@ Richiede autenticazione tramite g.utente_corrente (gestita da app.py).
 from __future__ import annotations
 
 import io
+import json
 from datetime import date, timedelta
 
 from flask import (Blueprint, abort, flash, g, redirect,
@@ -168,6 +169,44 @@ def nuova(id_cliente: str = ""):
         "applica_ritenuta": request.args.get("applica_ritenuta", "0") == "1",
         "applica_bollo": request.args.get("applica_bollo", "0") == "1",
     }
+    raw_voci_json = (request.args.get("voci_json", "") or "").strip()
+    voci_prefill = []
+    if raw_voci_json:
+        try:
+            parsed = json.loads(raw_voci_json)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            parsed = []
+        if isinstance(parsed, list):
+            for row in parsed:
+                if not isinstance(row, dict):
+                    continue
+                descrizione = (row.get("descrizione") or "").strip()
+                if not descrizione:
+                    continue
+                try:
+                    quantita = float(row.get("quantita", 1) or 1)
+                except (ValueError, TypeError):
+                    quantita = 1.0
+                try:
+                    prezzo = float(row.get("prezzo_unitario", row.get("importo", 0)) or 0)
+                except (ValueError, TypeError):
+                    prezzo = 0.0
+                voci_prefill.append(
+                    {
+                        "descrizione": descrizione,
+                        "quantita": f"{quantita:g}",
+                        "prezzo_unitario": f"{prezzo:.2f}",
+                    }
+                )
+    if not voci_prefill:
+        voci_prefill = [
+            {
+                "descrizione": prefill["descrizione"],
+                "quantita": prefill["quantita"] or "1",
+                "prezzo_unitario": prefill["importo"],
+            }
+        ]
+    prefill["voci"] = voci_prefill
 
     return render_template(
         "fatturazione/form.html",

@@ -37,6 +37,12 @@ class Grado(str, Enum):
     TRIBUNALE = "Tribunale"
     CORTE_APPELLO = "Corte d'Appello"
     CASSAZIONE = "Corte di Cassazione"
+    TAR = "TAR"
+    CONSIGLIO_DI_STATO = "Consiglio di Stato"
+    CGT_PRIMO_GRADO = "CGT di primo grado"
+    CGT_SECONDO_GRADO = "CGT di secondo grado"
+    FUORI_GIUDIZIO = "Fuori giudizio"
+    PROCEDURA_ADR = "Procedura ADR"
 
 
 class Fase(str, Enum):
@@ -50,6 +56,12 @@ class Fase(str, Enum):
     RIVITALIZZAZIONE = "Fase di rivitalizzazione"
     NEGOZIAZIONE_TRATTAZIONE = "Fase di negoziazione"
     CONCILIAZIONE = "Fase di conciliazione"
+
+
+class LivelloCompenso(str, Enum):
+    MINIMO = "minimo"
+    BASE = "base"
+    MASSIMO = "massimo"
 
 
 @dataclass
@@ -92,6 +104,50 @@ class RisultatoCalcolo:
     note: str = ""
     # variazioni percentuali applicate per fase (es. {"Fase di attivazione": 1.10})
     variazioni_fasi: Dict[str, float] = field(default_factory=dict)
+    bonus_telematico_attivo: bool = False
+    includi_spese_generali: bool = True
+
+    def _indice_livello(self, livello: LivelloCompenso | str) -> int:
+        value = livello.value if isinstance(livello, LivelloCompenso) else str(livello or LivelloCompenso.BASE.value)
+        mapping = {
+            LivelloCompenso.MINIMO.value: 0,
+            LivelloCompenso.BASE.value: 1,
+            LivelloCompenso.MASSIMO.value: 2,
+        }
+        return mapping.get(value, 1)
+
+    def dettaglio_livello(self, livello: LivelloCompenso | str) -> Dict[str, float]:
+        idx = self._indice_livello(livello)
+        return {fase: float(valori[idx]) for fase, valori in self.dettaglio.items()}
+
+    def subtotale_livello(self, livello: LivelloCompenso | str) -> float:
+        return round(sum(self.dettaglio_livello(livello).values()), 2)
+
+    def bonus_telematico_livello(self, livello: LivelloCompenso | str) -> float:
+        if not self.bonus_telematico_attivo:
+            return 0.0
+        return round(self.subtotale_livello(livello) * 0.30, 2)
+
+    def spese_generali_livello(self, livello: LivelloCompenso | str) -> float:
+        if not self.includi_spese_generali or self.perc_spese_generali <= 0:
+            return 0.0
+        imponibile = self.subtotale_livello(livello) + self.bonus_telematico_livello(livello)
+        return round(imponibile * self.perc_spese_generali, 2)
+
+    def totale_compenso_livello(self, livello: LivelloCompenso | str) -> float:
+        imponibile = self.subtotale_livello(livello) + self.bonus_telematico_livello(livello)
+        return round(imponibile + self.spese_generali_livello(livello), 2)
+
+    def riepilogo_livello(self, livello: LivelloCompenso | str) -> dict:
+        livello_value = livello.value if isinstance(livello, LivelloCompenso) else str(livello or LivelloCompenso.BASE.value)
+        return {
+            "livello": livello_value,
+            "subtotale": self.subtotale_livello(livello_value),
+            "bonus_telematico": self.bonus_telematico_livello(livello_value),
+            "spese_generali": self.spese_generali_livello(livello_value),
+            "totale_compenso": self.totale_compenso_livello(livello_value),
+            "dettaglio": self.dettaglio_livello(livello_value),
+        }
 
     def to_dict(self) -> dict:
         return {
@@ -110,6 +166,8 @@ class RisultatoCalcolo:
             "totale_con_spese": self.totale_con_spese,
             "note": self.note,
             "variazioni_fasi": self.variazioni_fasi,
+            "bonus_telematico_attivo": self.bonus_telematico_attivo,
+            "includi_spese_generali": self.includi_spese_generali,
         }
 
 
@@ -141,6 +199,12 @@ _GRADO_COEFF_APPROSSIMATI = {
     Grado.TRIBUNALE: 1.0,
     Grado.CORTE_APPELLO: 1.30,
     Grado.CASSAZIONE: 1.60,
+    Grado.TAR: 1.0,
+    Grado.CONSIGLIO_DI_STATO: 1.0,
+    Grado.CGT_PRIMO_GRADO: 1.0,
+    Grado.CGT_SECONDO_GRADO: 1.0,
+    Grado.FUORI_GIUDIZIO: 1.0,
+    Grado.PROCEDURA_ADR: 1.0,
 }
 
 
@@ -421,20 +485,27 @@ def _tabella_per_calcolo(
         return tabella, 1.0, "A1", exact, note
 
     if materia == Materia.PENALE:
+        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI.get(grado, 1.0)
         note.append("Penale: HACS mantiene una tabella sintetica per assenza di scaglioni di valore nella UI attuale.")
-        return _fallback_penale(), 1.0, "PENALE", False, note
+        if coeff != 1.0:
+            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} sul profilo penale sintetico.")
+        return _fallback_penale(), coeff, "PENALE", False, note
 
     if materia == Materia.AMMINISTRATIVO:
-        codice = "A21" if grado == Grado.TRIBUNALE else "A22"
+        codice = "A21" if grado in {Grado.TRIBUNALE, Grado.TAR} else "A22"
         tabella, exact = _exact_or_fallback(codice, _fallback_amministrativo)
         note.append(f"Tabella {codice[1:]} per giustizia amministrativa.")
         return tabella, 1.0, codice, exact, note
 
     if materia == Materia.TRIBUTARIO:
-        codice = "A23" if grado == Grado.TRIBUNALE else "A24"
+        codice = "A23" if grado in {Grado.TRIBUNALE, Grado.CGT_PRIMO_GRADO} else "A24"
         tabella, exact = _exact_or_fallback(codice, _fallback_tributario)
-        note.append(f"Tabella {codice[1:]} per giustizia tributaria.")
-        return tabella, 1.0, codice, exact, note
+        coeff = 1.0 if grado in {Grado.TRIBUNALE, Grado.CGT_PRIMO_GRADO, Grado.CGT_SECONDO_GRADO} else _GRADO_COEFF_APPROSSIMATI.get(grado, 1.0)
+        if coeff != 1.0:
+            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} sul profilo tributario di impugnazione.")
+        else:
+            note.append(f"Tabella {codice[1:]} per giustizia tributaria.")
+        return tabella, coeff, codice, exact and coeff == 1.0, note
 
     if materia == Materia.STRAGIUD:
         tabella, exact = _exact_or_fallback("A25", _fallback_stragiudiziale)
@@ -588,6 +659,8 @@ def calcola_compenso(
         totale_con_spese=totale_con_spese,
         note=" ".join(note_parts),
         variazioni_fasi=dict(_variazioni),
+        bonus_telematico_attivo=bonus_telematico,
+        includi_spese_generali=includi_spese_generali,
     )
 
 

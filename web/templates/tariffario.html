@@ -88,6 +88,14 @@
             <div class="col-lg-5">
               <label class="form-label fw-semibold">Opzioni compenso</label>
               <div class="border rounded-3 p-3 bg-light h-100">
+                <div class="mb-3">
+                  <label class="form-label small text-muted mb-1">Livello del compenso da applicare</label>
+                  <select name="livello_compenso" id="selLivelloCompenso" class="form-select">
+                    <option value="minimo" {{ 'selected' if livello_compenso_sel == 'minimo' else '' }}>Minimo</option>
+                    <option value="base" {{ 'selected' if livello_compenso_sel == 'base' else '' }}>Base</option>
+                    <option value="massimo" {{ 'selected' if livello_compenso_sel == 'massimo' else '' }}>Massimo</option>
+                  </select>
+                </div>
                 <div class="form-check form-switch mb-2">
                   <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
                          id="chkSpese" {{ 'checked' if spese_gen else '' }}>
@@ -106,6 +114,57 @@
                 <div class="small text-muted">
                   Il motore applica anche i riferimenti su variazione per fase, CPA, IVA,
                   anticipazioni ex art. 15 e compenso orario.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Integrazioni selezionabili</label>
+              <div id="addonBox" class="border rounded-3 p-3 bg-light h-100">
+                <div class="text-muted small">Seleziona materia e grado per vedere mediazione e altre integrazioni disponibili.</div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <label class="form-label fw-semibold">Spese vive suggerite</label>
+              <div id="expenseBox" class="border rounded-3 p-3 bg-light h-100">
+                <div class="text-muted small">Le spese vive suggerite seguono la pratica collegata al profilo tariffario attivo.</div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label fw-semibold mb-0">Voce manuale</label>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddManualRow">
+                  <i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale
+                </button>
+              </div>
+              <div class="border rounded-3 p-3 bg-light">
+                <div id="manualRows">
+                  {% for row in manual_rows_prefill %}
+                  <div class="row g-2 align-items-end manual-row mb-2">
+                    <div class="col-lg-6">
+                      <label class="form-label small text-muted mb-1">Descrizione</label>
+                      <input type="text" name="manual_descr[]" class="form-control" value="{{ row.descrizione }}">
+                    </div>
+                    <div class="col-lg-3">
+                      <label class="form-label small text-muted mb-1">Tipo voce</label>
+                      <select name="manual_tipo[]" class="form-select">
+                        {% for tipo in ['Onorario', 'Spesa forfettaria', 'Spesa viva'] %}
+                        <option value="{{ tipo }}" {{ 'selected' if row.tipo == tipo else '' }}>{{ tipo }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-lg-2">
+                      <label class="form-label small text-muted mb-1">Importo</label>
+                      <input type="number" name="manual_importo[]" class="form-control text-end" min="0" step="0.01" value="{{ "%.2f"|format(row.importo) }}">
+                    </div>
+                    <div class="col-lg-1">
+                      <button type="button" class="btn btn-outline-danger w-100 btn-remove-manual"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <div id="manualEmptyState" class="text-muted small {% if manual_rows_prefill %}d-none{% endif %}">
+                  Nessuna voce manuale aggiunta. Usa questa sezione per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.
                 </div>
               </div>
             </div>
@@ -129,10 +188,14 @@
         <i class="bi bi-cash-stack me-2"></i>Risultato del calcolo
       </div>
       <div class="card-body">
+        {% set riepilogo_min = risultato.riepilogo_livello('minimo') %}
+        {% set riepilogo_base = risultato.riepilogo_livello('base') %}
+        {% set riepilogo_max = risultato.riepilogo_livello('massimo') %}
         <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
           <div><strong>Materia:</strong> {{ risultato.materia }}</div>
           <div><strong>Grado:</strong> {{ risultato.grado }}</div>
           <div><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
+          <div><strong>Livello selezionato:</strong> {{ livello_compenso_sel|capitalize }}</div>
         </div>
 
         <div class="table-responsive">
@@ -140,46 +203,49 @@
             <thead class="table-light">
               <tr>
                 <th>Fase</th>
-                <th class="text-end">Minimo</th>
-                <th class="text-end">Base</th>
-                <th class="text-end">Massimo</th>
+                <th class="text-end {{ 'table-primary' if livello_compenso_sel == 'minimo' else '' }}">Minimo</th>
+                <th class="text-end {{ 'table-primary' if livello_compenso_sel == 'base' else '' }}">Base</th>
+                <th class="text-end {{ 'table-primary' if livello_compenso_sel == 'massimo' else '' }}">Massimo</th>
               </tr>
             </thead>
             <tbody>
               {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
               <tr>
                 <td class="fw-semibold">{{ fase }}</td>
-                <td class="text-end">EUR {{ "%.2f"|format(vmin) }}</td>
-                <td class="text-end fw-semibold">EUR {{ "%.2f"|format(vbase) }}</td>
-                <td class="text-end">EUR {{ "%.2f"|format(vmax) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">EUR {{ "%.2f"|format(vmin) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else 'fw-semibold' }}">EUR {{ "%.2f"|format(vbase) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">EUR {{ "%.2f"|format(vmax) }}</td>
               </tr>
               {% endfor %}
             </tbody>
             <tfoot>
               <tr class="table-light">
                 <th>Subtotale onorari</th>
-                <th class="text-end">EUR {{ "%.2f"|format(risultato.totale_minimo) }}</th>
-                <th class="text-end">EUR {{ "%.2f"|format(risultato.totale_base - risultato.bonus_telematico) }}</th>
-                <th class="text-end">EUR {{ "%.2f"|format(risultato.totale_massimo) }}</th>
+                <th class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">EUR {{ "%.2f"|format(riepilogo_min.subtotale) }}</th>
+                <th class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else '' }}">EUR {{ "%.2f"|format(riepilogo_base.subtotale) }}</th>
+                <th class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">EUR {{ "%.2f"|format(riepilogo_max.subtotale) }}</th>
               </tr>
-              {% if risultato.bonus_telematico %}
+              {% if riepilogo_min.bonus_telematico or riepilogo_base.bonus_telematico or riepilogo_max.bonus_telematico %}
               <tr class="table-success">
-                <td colspan="2">Bonus telematico 30%</td>
-                <td class="text-end fw-semibold">+ EUR {{ "%.2f"|format(risultato.bonus_telematico) }}</td>
-                <td></td>
+                <td>Bonus telematico 30%</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_min.bonus_telematico) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_base.bonus_telematico) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_max.bonus_telematico) }}</td>
               </tr>
               {% endif %}
-              {% if risultato.spese_generali %}
+              {% if riepilogo_min.spese_generali or riepilogo_base.spese_generali or riepilogo_max.spese_generali %}
               <tr class="table-warning">
-                <td colspan="2">Spese generali</td>
-                <td class="text-end fw-semibold">+ EUR {{ "%.2f"|format(risultato.spese_generali) }}</td>
-                <td></td>
+                <td>Spese generali</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_min.spese_generali) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_base.spese_generali) }}</td>
+                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_max.spese_generali) }}</td>
               </tr>
               {% endif %}
               <tr class="table-primary">
-                <th colspan="2">Totale compenso</th>
-                <th class="text-end fw-bold">EUR {{ "%.2f"|format(risultato.totale_con_spese) }}</th>
-                <th></th>
+                <th>Totale compenso</th>
+                <th class="text-end {{ 'fw-bold table-primary' if livello_compenso_sel == 'minimo' else 'fw-bold' }}">EUR {{ "%.2f"|format(riepilogo_min.totale_compenso) }}</th>
+                <th class="text-end {{ 'fw-bold table-primary' if livello_compenso_sel == 'base' else 'fw-bold' }}">EUR {{ "%.2f"|format(riepilogo_base.totale_compenso) }}</th>
+                <th class="text-end {{ 'fw-bold table-primary' if livello_compenso_sel == 'massimo' else 'fw-bold' }}">EUR {{ "%.2f"|format(riepilogo_max.totale_compenso) }}</th>
               </tr>
             </tfoot>
           </table>
@@ -191,24 +257,47 @@
         </div>
         {% endif %}
 
-        <div class="rounded-3 border bg-light p-3 small">
-          {% set imponibile = risultato.totale_con_spese %}
-          {% set cassa = imponibile * 0.04 %}
-          {% set base_iva = imponibile + cassa %}
-          {% set iva = base_iva * 0.22 %}
-          {% set totale_fattura = base_iva + iva %}
-          <div class="fw-semibold mb-2">Riepilogo economico collegato</div>
-          <div class="row g-1">
-            <div class="col-8">Compenso</div>
-            <div class="col-4 text-end">EUR {{ "%.2f"|format(imponibile) }}</div>
-            <div class="col-8 text-muted">CPA 4%</div>
-            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(cassa) }}</div>
-            <div class="col-8 text-muted">IVA 22%</div>
-            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(iva) }}</div>
-            <div class="col-8 fw-bold border-top pt-1">Totale fattura teorico</div>
-            <div class="col-4 text-end fw-bold border-top pt-1 text-primary">EUR {{ "%.2f"|format(totale_fattura) }}</div>
+        {% if righe_calcolo %}
+        <div class="rounded-3 border p-3 mb-3">
+          <div class="fw-semibold mb-2">Voci incluse nel risultato operativo</div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Descrizione</th>
+                  <th style="width: 160px;">Tipo</th>
+                  <th class="text-end" style="width: 160px;">Importo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in righe_calcolo %}
+                <tr>
+                  <td>{{ row.descrizione }}</td>
+                  <td>{{ row.tipo }}</td>
+                  <td class="text-end">EUR {{ "%.2f"|format(row.importo) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
+        {% endif %}
+
+        {% if riepilogo_economico %}
+        <div class="rounded-3 border bg-light p-3 small">
+          <div class="fw-semibold mb-2">Riepilogo economico collegato</div>
+          <div class="row g-1">
+            <div class="col-8">Imponibile complessivo</div>
+            <div class="col-4 text-end">EUR {{ "%.2f"|format(riepilogo_economico.imponibile) }}</div>
+            <div class="col-8 text-muted">CPA 4%</div>
+            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(riepilogo_economico.cassa) }}</div>
+            <div class="col-8 text-muted">IVA 22%</div>
+            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(riepilogo_economico.iva) }}</div>
+            <div class="col-8 fw-bold border-top pt-1">Totale fattura teorico</div>
+            <div class="col-4 text-end fw-bold border-top pt-1 text-primary">EUR {{ "%.2f"|format(riepilogo_economico.totale) }}</div>
+          </div>
+        </div>
+        {% endif %}
       </div>
       <div class="card-footer d-flex gap-2 flex-wrap">
         {% if url_wizard_precompilato %}
@@ -322,9 +411,15 @@
 const GRADE_CATALOG = {{ grade_catalog|tojson }};
 const PHASE_CATALOG = {{ phase_catalog|tojson }};
 const PROFILE_ROWS = {{ tariffario_profili|tojson }};
+const PRACTICE_BY_ID = {{ pratiche_by_id|tojson }};
 const MATERIA_SEL = {{ materia_sel|tojson }};
 const GRADO_SEL = {{ grado_sel|tojson }};
 const FASI_SEL = {{ fasi_sel|tojson }};
+const ACCESSORI_SEL = {{ accessori_sel|tojson }};
+const ESBORSI_SEL = {{ esborsi_sel|tojson }};
+
+let accessoriInit = false;
+let esborsiInit = false;
 
 function escapeHtml(value) {
   return String(value || '')
@@ -348,7 +443,8 @@ function renderFasi() {
   const materia = document.getElementById('selMateria').value;
   const box = document.getElementById('phaseBox');
   const fasi = PHASE_CATALOG[materia] || [];
-  const selected = new Set(FASI_SEL);
+  const live = Array.from(document.querySelectorAll('#phaseBox input[name="fasi"]:checked')).map((node) => node.value);
+  const selected = new Set(live.length ? live : FASI_SEL);
   box.innerHTML = fasi.map((fase) => `
     <div class="col-md-6">
       <label class="border rounded-3 p-2 d-flex align-items-center gap-2 h-100">
@@ -359,16 +455,56 @@ function renderFasi() {
   `).join('');
 }
 
-function renderProfilo() {
+function currentProfile() {
   const materia = document.getElementById('selMateria').value;
   const grado = document.getElementById('selGrado').value;
+  return PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
+    || PROFILE_ROWS.find((item) => item.materia_label === materia)
+    || null;
+}
+
+function currentPractice() {
+  const profile = currentProfile();
+  if (!profile) return null;
+  return PRACTICE_BY_ID[profile.suggested_practice_id] || null;
+}
+
+function currentAccessoriSelection() {
+  return new Set(Array.from(document.querySelectorAll('input[name="accessori"]:checked')).map((node) => node.value));
+}
+
+function activeExpenseRows() {
+  const practice = currentPractice();
+  if (!practice) return [];
+  const rows = (practice.esborsi_tipici || []).map((item, index) => ({
+    key: `${practice.id}:${index}`,
+    descrizione: item.descrizione,
+    importo: Number(item.importo || 0),
+  }));
+  const accessoriAttivi = currentAccessoriSelection();
+  (practice.accessori_calcolo || []).forEach((accessorio) => {
+    if (!accessoriAttivi.has(accessorio.id)) return;
+    const practiceAccessorio = PRACTICE_BY_ID[accessorio.tipo_pratica_id];
+    (practiceAccessorio?.esborsi_tipici || []).forEach((item, index) => {
+      rows.push({
+        key: `${accessorio.id}:${index}`,
+        descrizione: item.descrizione,
+        importo: Number(item.importo || 0),
+      });
+    });
+  });
+  return rows;
+}
+
+function renderProfilo() {
   const target = document.getElementById('profileBox');
-  const row = PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
-    || PROFILE_ROWS.find((item) => item.materia_label === materia);
+  const row = currentProfile();
+  const grado = document.getElementById('selGrado').value;
   if (!row) {
     target.innerHTML = '<div class="text-muted small">Nessun profilo disponibile per questa combinazione.</div>';
     return;
   }
+  const practice = PRACTICE_BY_ID[row.suggested_practice_id];
   target.innerHTML = `
     <div class="mb-2">
       <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(row.table_label)}</span>
@@ -378,9 +514,98 @@ function renderProfilo() {
     </div>
     <div class="fw-semibold mb-1">${escapeHtml(row.summary || '')}</div>
     <div class="small text-muted mb-3">${escapeHtml(row.base_note || '')}</div>
-    <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(row.suggested_practice_id || '')}</div>
+    <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(practice?.label || row.suggested_practice_id || '')}</div>
     <div class="small"><strong>Grado operativo:</strong> ${escapeHtml(row.grado_label || grado)}</div>
   `;
+}
+
+function renderAccessori() {
+  const box = document.getElementById('addonBox');
+  const practice = currentPractice();
+  if (!practice || !(practice.accessori_calcolo || []).length) {
+    box.innerHTML = '<div class="text-muted small">Nessuna integrazione opzionale per il profilo attivo.</div>';
+    renderExpenses();
+    return;
+  }
+  const currentSelected = currentAccessoriSelection();
+  const selected = currentSelected.size || accessoriInit ? currentSelected : new Set(ACCESSORI_SEL);
+  accessoriInit = true;
+  box.innerHTML = (practice.accessori_calcolo || []).map((item) => `
+    <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100 mb-2">
+      <input class="form-check-input mt-1" type="checkbox" name="accessori" value="${escapeHtml(item.id)}" ${selected.has(item.id) ? 'checked' : ''}>
+      <span class="small">
+        <span class="fw-semibold d-block text-dark">${escapeHtml(item.label)}</span>
+        <span class="text-muted d-block">${escapeHtml(item.description || '')}</span>
+      </span>
+    </label>
+  `).join('');
+  box.querySelectorAll('input[name="accessori"]').forEach((node) => {
+    node.addEventListener('change', () => {
+      renderExpenses();
+      renderProfilo();
+    });
+  });
+  renderExpenses();
+}
+
+function renderExpenses() {
+  const box = document.getElementById('expenseBox');
+  const rows = activeExpenseRows();
+  if (!rows.length) {
+    box.innerHTML = '<div class="text-muted small">Nessuna spesa viva suggerita per il profilo attivo.</div>';
+    return;
+  }
+  const currentSelected = new Set(Array.from(document.querySelectorAll('input[name="esborsi"]:checked')).map((node) => node.value));
+  const selected = currentSelected.size || esborsiInit ? currentSelected : new Set(ESBORSI_SEL);
+  esborsiInit = true;
+  box.innerHTML = rows.map((item) => `
+    <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100 mb-2">
+      <input class="form-check-input mt-1" type="checkbox" name="esborsi" value="${escapeHtml(item.key)}" ${selected.has(item.key) ? 'checked' : ''}>
+      <span class="small">
+        <span class="fw-semibold d-block text-dark">${escapeHtml(item.descrizione)}</span>
+        <span class="text-muted">${item.importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR</span>
+      </span>
+    </label>
+  `).join('');
+}
+
+function updateManualEmptyState() {
+  const state = document.getElementById('manualEmptyState');
+  const rows = document.querySelectorAll('#manualRows .manual-row');
+  state.classList.toggle('d-none', rows.length > 0);
+}
+
+function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
+  const container = document.getElementById('manualRows');
+  const row = document.createElement('div');
+  row.className = 'row g-2 align-items-end manual-row mb-2';
+  row.innerHTML = `
+    <div class="col-lg-6">
+      <label class="form-label small text-muted mb-1">Descrizione</label>
+      <input type="text" name="manual_descr[]" class="form-control" value="${escapeHtml(descrizione)}">
+    </div>
+    <div class="col-lg-3">
+      <label class="form-label small text-muted mb-1">Tipo voce</label>
+      <select name="manual_tipo[]" class="form-select">
+        <option value="Onorario" ${tipo === 'Onorario' ? 'selected' : ''}>Onorario</option>
+        <option value="Spesa forfettaria" ${tipo === 'Spesa forfettaria' ? 'selected' : ''}>Spesa forfettaria</option>
+        <option value="Spesa viva" ${tipo === 'Spesa viva' ? 'selected' : ''}>Spesa viva</option>
+      </select>
+    </div>
+    <div class="col-lg-2">
+      <label class="form-label small text-muted mb-1">Importo</label>
+      <input type="number" name="manual_importo[]" class="form-control text-end" min="0" step="0.01" value="${escapeHtml(importo)}">
+    </div>
+    <div class="col-lg-1">
+      <button type="button" class="btn btn-outline-danger w-100 btn-remove-manual"><i class="bi bi-trash"></i></button>
+    </div>
+  `;
+  container.appendChild(row);
+  row.querySelector('.btn-remove-manual').addEventListener('click', () => {
+    row.remove();
+    updateManualEmptyState();
+  });
+  updateManualEmptyState();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -390,13 +615,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderGradi();
   renderFasi();
   renderProfilo();
+  renderAccessori();
+  updateManualEmptyState();
   selMateria.addEventListener('change', () => {
     selGrado.dataset.selected = '';
     renderGradi();
     renderFasi();
     renderProfilo();
+    renderAccessori();
   });
-  selGrado.addEventListener('change', renderProfilo);
+  selGrado.addEventListener('change', () => {
+    renderProfilo();
+    renderAccessori();
+  });
+  document.getElementById('btnAddManualRow').addEventListener('click', () => addManualRow('', 'Onorario', ''));
+  document.querySelectorAll('.btn-remove-manual').forEach((node) => {
+    node.addEventListener('click', () => {
+      node.closest('.manual-row')?.remove();
+      updateManualEmptyState();
+    });
+  });
 });
 </script>
 {% endblock %}

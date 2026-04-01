@@ -81,3 +81,24 @@ def test_catalogo_riferimenti_normativi_deduplica_e_traccia_tipologie():
     assert "Civile" in dm55["areas"]
     assert "decreto_ingiuntivo" in dm55["tipologie_ids"]
     assert dm55["motori"]
+
+
+def test_atto_citazione_espone_mediazione_generale_opzionale():
+    scheda = redattore_preventivo_iniziale("atto_citazione")
+    accessorio = next(item for item in scheda["accessori_calcolo"] if item["id"] == "mediazione_generale")
+    assert accessorio["tipo_pratica_id"] == "mediazione"
+    assert accessorio["default_checked"] is False
+    assert any(ref["title"] == "D.Lgs. 4 marzo 2010, n. 28" for ref in accessorio["normative_references"])
+
+
+def test_catalogo_wizard_espone_gradi_specializzati_per_tariffario_e_preventivi():
+    catalogo = catalogo_wizard()
+    ricorso_tar = next(item for item in catalogo["Amministrativo"] if item["id"] == "ricorso_tar")
+    cautelare_tar = next(item for item in catalogo["Amministrativo"] if item["id"] == "cautelare_sospensiva")
+    cassazione_tributaria = next(item for item in catalogo["Tributario"] if item["id"] == "cassazione_tributaria")
+    consulenza = next(item for item in catalogo["Stragiudiziale"] if item["id"] == "consulenza")
+
+    assert ricorso_tar["grado_default"] == "TAR"
+    assert cautelare_tar["grado_default"] == "TAR"
+    assert cassazione_tributaria["grado_default"] == "Corte di Cassazione"
+    assert consulenza["grado_default"] == "Fuori giudizio"

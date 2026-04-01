@@ -2290,7 +2290,8 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/tariffario", methods=["GET", "POST"])
     def tariffario():
-        from pct.tariffario import calcola_compenso, Materia, Grado, Fase
+        from pct.motore_preventivo import catalogo_wizard, get_tipo_pratica, motore_calcola
+        from pct.tariffario import Fase, Grado, LivelloCompenso, Materia, calcola_compenso
         from pct.tariffario_catalogo import (
             first_profile_for_materia,
             grade_catalog_by_materia,
@@ -2298,26 +2299,116 @@ def create_app(config: dict | None = None) -> Flask:
             profile_lookup_by_labels,
         )
         from web.helpers import get_normative_tables
+
+        def _parse_float(value, default=0.0):
+            try:
+                return float(str(value or default).replace(",", "."))
+            except (TypeError, ValueError):
+                return default
+
+        def _parse_level(value: str) -> LivelloCompenso:
+            try:
+                return LivelloCompenso(str(value or LivelloCompenso.BASE.value).lower())
+            except ValueError:
+                return LivelloCompenso.BASE
+
+        def _fase_key_from_value(fase_value: str) -> str:
+            mapping = {
+                Fase.STUDIO.value: "studio",
+                Fase.INTRODUTTIVA.value: "introduttiva",
+                Fase.ISTRUTTORIA.value: "istruttoria",
+                Fase.DECISIONALE.value: "decisionale",
+                Fase.ESECUTIVA.value: "esecutiva",
+                Fase.ATTIVAZIONE.value: "attivazione",
+                Fase.RIVITALIZZAZIONE.value: "rivitalizzazione",
+                Fase.NEGOZIAZIONE_TRATTAZIONE.value: "negoziazione",
+                Fase.CONCILIAZIONE.value: "conciliazione",
+                "Compenso unico": "compenso_unico",
+            }
+            return mapping.get(fase_value, fase_value)
+
+        def _esborsi_catalogo(tp, accessori_ids: list[str]) -> list[dict]:
+            rows = []
+            if not tp:
+                return rows
+            for index, item in enumerate(tp.esborsi_tipici or []):
+                rows.append(
+                    {
+                        "key": f"{tp.id}:{index}",
+                        "descrizione": item.get("descrizione", ""),
+                        "importo": float(item.get("importo", 0) or 0),
+                        "source": tp.id,
+                    }
+                )
+            accessori_map = {item.get("id"): item for item in tp.accessori_calcolo or []}
+            for accessorio_id in accessori_ids:
+                accessorio = accessori_map.get(accessorio_id)
+                if not accessorio:
+                    continue
+                tp_accessorio = get_tipo_pratica(accessorio.get("tipo_pratica_id", ""))
+                if not tp_accessorio:
+                    continue
+                for index, item in enumerate(tp_accessorio.esborsi_tipici or []):
+                    rows.append(
+                        {
+                            "key": f"{accessorio_id}:{index}",
+                            "descrizione": item.get("descrizione", ""),
+                            "importo": float(item.get("importo", 0) or 0),
+                            "source": accessorio_id,
+                        }
+                    )
+            return rows
+
+        def _manual_rows_from_form():
+            rows = []
+            descrizioni = request.form.getlist("manual_descr[]")
+            importi = request.form.getlist("manual_importo[]")
+            tipi = request.form.getlist("manual_tipo[]")
+            for descrizione, importo, tipo in zip(descrizioni, importi, tipi):
+                descrizione = (descrizione or "").strip()
+                if not descrizione:
+                    continue
+                rows.append(
+                    {
+                        "descrizione": descrizione,
+                        "tipo": (tipo or "Onorario").strip() or "Onorario",
+                        "importo": round(_parse_float(importo, 0.0), 2),
+                    }
+                )
+            return rows
+
         risultato = None
         materie = [m.value for m in Materia]
         phase_catalog = phase_catalog_by_materia()
         grade_catalog = grade_catalog_by_materia()
+        pratiche_catalogo = catalogo_wizard()
+        pratiche_by_id = {
+            item["id"]: item
+            for items in pratiche_catalogo.values()
+            for item in items
+        }
         materia_sel = request.form.get("materia", "") or (materie[0] if materie else "")
         grade_defaults = grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value]
-        grado_sel   = request.form.get("grado", "") or grade_defaults[0]
-        valore_str  = request.form.get("valore", "0").replace(",", ".").strip()
-        fasi_sel    = request.form.getlist("fasi")
-        bonus_tel   = request.form.get("bonus_telematico") == "1"
-        spese_gen   = request.form.get("spese_generali", "1") == "1"
-        try:
-            perc_spese = float(request.form.get("perc_spese_generali", "15") or "15")
-        except (ValueError, TypeError):
-            perc_spese = 15.0
+        grado_sel = request.form.get("grado", "") or grade_defaults[0]
+        livello_compenso_sel = _parse_level(request.form.get("livello_compenso", LivelloCompenso.BASE.value))
+        valore_str = request.form.get("valore", "0").replace(",", ".").strip()
+        fasi_sel = request.form.getlist("fasi")
+        bonus_tel = request.form.get("bonus_telematico") == "1"
+        spese_gen = request.form.get("spese_generali", "1") == "1"
+        perc_spese = _parse_float(request.form.get("perc_spese_generali", "15"), 15.0)
+        accessori_sel = request.form.getlist("accessori")
+        esborsi_sel = request.form.getlist("esborsi")
+        manual_rows_prefill = _manual_rows_from_form()
 
         fasi_valide = phase_catalog.get(materia_sel) or []
         if not fasi_sel:
             fasi_sel = [item["value"] for item in fasi_valide]
         profilo_attivo = profile_lookup_by_labels(materia_sel, grado_sel) or first_profile_for_materia(materia_sel)
+        tipo_pratica_attiva = get_tipo_pratica(profilo_attivo.get("suggested_practice_id", "")) if profilo_attivo else None
+        esborsi_catalogo = _esborsi_catalogo(tipo_pratica_attiva, accessori_sel)
+        esborsi_sel_set = set(esborsi_sel)
+        righe_calcolo = []
+        riepilogo_economico = None
 
         if request.method == "POST":
             try:
@@ -2325,7 +2416,7 @@ def create_app(config: dict | None = None) -> Flask:
                 if grado_sel not in (grade_catalog.get(materia_sel) or []):
                     grado_sel = (grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value])[0]
                 grado = Grado(grado_sel)
-                valore  = float(valore_str) if valore_str else 0.0
+                valore = _parse_float(valore_str, 0.0)
                 fasi = []
                 for fase_val in fasi_sel:
                     try:
@@ -2334,11 +2425,105 @@ def create_app(config: dict | None = None) -> Flask:
                         continue
                 if not fasi:
                     fasi = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE]
-                risultato = calcola_compenso(materia, grado, valore, fasi,
-                                             bonus_telematico=bonus_tel,
-                                             includi_spese_generali=spese_gen,
-                                             perc_spese_generali=max(0.0, perc_spese / 100.0))
+                risultato = calcola_compenso(
+                    materia,
+                    grado,
+                    valore,
+                    fasi,
+                    bonus_telematico=bonus_tel,
+                    includi_spese_generali=spese_gen,
+                    perc_spese_generali=max(0.0, perc_spese / 100.0),
+                )
                 profilo_attivo = profile_lookup_by_labels(materia_sel, grado_sel) or first_profile_for_materia(materia_sel)
+                tipo_pratica_attiva = get_tipo_pratica(profilo_attivo.get("suggested_practice_id", "")) if profilo_attivo else None
+                esborsi_catalogo = _esborsi_catalogo(tipo_pratica_attiva, accessori_sel)
+                esborsi_sel_set = set(esborsi_sel)
+
+                if risultato:
+                    righe_calcolo.append(
+                        {
+                            "descrizione": f"Compenso professionale per {profilo_attivo.get('table_label', materia_sel)} - {risultato.scaglione}",
+                            "tipo": "Onorario",
+                            "importo": risultato.totale_compenso_livello(livello_compenso_sel),
+                            "fonte": "principale",
+                        }
+                    )
+
+                accessori_map = {item.get("id"): item for item in (tipo_pratica_attiva.accessori_calcolo or [])} if tipo_pratica_attiva else {}
+                fase_key_map = {
+                    "studio": Fase.STUDIO,
+                    "introduttiva": Fase.INTRODUTTIVA,
+                    "istruttoria": Fase.ISTRUTTORIA,
+                    "decisionale": Fase.DECISIONALE,
+                    "esecutiva": Fase.ESECUTIVA,
+                    "attivazione": Fase.ATTIVAZIONE,
+                    "rivitalizzazione": Fase.RIVITALIZZAZIONE,
+                    "negoziazione": Fase.NEGOZIAZIONE_TRATTAZIONE,
+                    "conciliazione": Fase.CONCILIAZIONE,
+                }
+                for accessorio_id in accessori_sel:
+                    accessorio = accessori_map.get(accessorio_id)
+                    if not accessorio:
+                        continue
+                    fasi_accessorio = [
+                        fase_key_map[key]
+                        for key in accessorio.get("fasi_default_keys", [])
+                        if key in fase_key_map
+                    ] or None
+                    ris_accessorio = motore_calcola(
+                        id_pratica=accessorio.get("tipo_pratica_id", ""),
+                        valore_controversia=valore,
+                        livello_compenso=livello_compenso_sel,
+                        bonus_telematico=bonus_tel,
+                        includi_spese_generali=spese_gen,
+                        perc_spese_generali=max(0.0, perc_spese / 100.0),
+                        fasi=fasi_accessorio,
+                        applica_cpa=False,
+                        applica_iva=False,
+                    )
+                    righe_calcolo.append(
+                        {
+                            "descrizione": accessorio.get("row_label") or f"Compenso professionale per {ris_accessorio.tipo_pratica.label}",
+                            "tipo": "Onorario",
+                            "importo": ris_accessorio.onorario_selezionato,
+                            "fonte": f"accessorio:{accessorio_id}",
+                        }
+                    )
+
+                for item in esborsi_catalogo:
+                    if item["key"] not in esborsi_sel_set:
+                        continue
+                    righe_calcolo.append(
+                        {
+                            "descrizione": item["descrizione"],
+                            "tipo": "Spesa viva",
+                            "importo": item["importo"],
+                            "fonte": f"esborso:{item['key']}",
+                        }
+                    )
+
+                for row in manual_rows_prefill:
+                    righe_calcolo.append(
+                        {
+                            "descrizione": row["descrizione"],
+                            "tipo": row["tipo"],
+                            "importo": row["importo"],
+                            "fonte": "manuale",
+                        }
+                    )
+
+                imponibile = round(sum(float(row["importo"]) for row in righe_calcolo), 2)
+                cassa = round(imponibile * 0.04, 2)
+                base_iva = round(imponibile + cassa, 2)
+                iva = round(base_iva * 0.22, 2)
+                totale = round(base_iva + iva, 2)
+                riepilogo_economico = {
+                    "imponibile": imponibile,
+                    "cassa": cassa,
+                    "base_iva": base_iva,
+                    "iva": iva,
+                    "totale": totale,
+                }
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
 
@@ -2355,12 +2540,24 @@ def create_app(config: dict | None = None) -> Flask:
         url_wizard_precompilato = ""
         url_parcella_precompilata = ""
         if risultato and profilo_attivo:
+            manual_voci_json = json.dumps(manual_rows_prefill, ensure_ascii=False)
+            esborsi_json = json.dumps(esborsi_sel, ensure_ascii=False)
+            accessori_json = json.dumps(accessori_sel, ensure_ascii=False)
+            voci_parcella = [
+                {
+                    "descrizione": row["descrizione"],
+                    "quantita": 1,
+                    "prezzo_unitario": f"{float(row['importo']):.2f}",
+                }
+                for row in righe_calcolo
+            ]
             url_wizard_precompilato = url_for(
                 "preventivi.wizard",
                 id_pratica=profilo_attivo.get("suggested_practice_id", ""),
-                area=profilo_attivo.get("area_scope", ""),
+                area=(tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel),
                 valore=valore_str or "0",
                 grado=grado_sel,
+                livello_compenso=livello_compenso_sel.value,
                 fasi=",".join(fasi_sel),
                 bonus_telematico="1" if bonus_tel else "0",
                 spese_generali="1" if spese_gen else "0",
@@ -2368,14 +2565,15 @@ def create_app(config: dict | None = None) -> Flask:
                 applica_cpa="1",
                 applica_iva="1",
                 anticipazioni="0",
+                accessori_json=accessori_json,
+                esborsi_json=esborsi_json,
+                manual_voci_json=manual_voci_json,
                 auto_calcola="1",
                 entry="tariffario",
             )
             url_parcella_precompilata = url_for(
                 "fatturazione.nuova",
-                descrizione=f"Compenso professionale per {profilo_attivo.get('table_label', materia_sel)} - {risultato.scaglione}",
-                quantita="1",
-                importo=f"{risultato.totale_con_spese:.2f}",
+                voci_json=json.dumps(voci_parcella, ensure_ascii=False),
                 note=risultato.note,
                 applica_cassa="1",
                 applica_iva="1",
@@ -2394,13 +2592,22 @@ def create_app(config: dict | None = None) -> Flask:
             opzioni_tariffario=opzioni_tariffario,
             riferimenti_tariffario=riferimenti_tariffario,
             canali_fatturazione=canali_fatturazione,
+            pratiche_by_id=pratiche_by_id,
+            tipo_pratica_attiva=tipo_pratica_attiva.to_dict() if tipo_pratica_attiva else None,
             materia_sel=materia_sel,
             grado_sel=grado_sel,
+            livello_compenso_sel=livello_compenso_sel.value,
             valore_str=valore_str,
             fasi_sel=fasi_sel,
             bonus_tel=bonus_tel,
             spese_gen=spese_gen,
             perc_spese=perc_spese,
+            accessori_sel=accessori_sel,
+            esborsi_sel=esborsi_sel,
+            esborsi_catalogo=esborsi_catalogo,
+            manual_rows_prefill=manual_rows_prefill,
+            righe_calcolo=righe_calcolo,
+            riepilogo_economico=riepilogo_economico,
             url_wizard_precompilato=url_wizard_precompilato,
             url_parcella_precompilata=url_parcella_precompilata,
             oggi=date.today(),

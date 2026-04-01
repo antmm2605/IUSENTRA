@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 from pct.tariffario import (
     Fase,
     Grado,
+    LivelloCompenso,
     Materia,
     RisultatoCalcolo,
     calcola_compenso,
@@ -112,7 +113,7 @@ CATALOGO: List[TipoPratica] = [
         label="Consulenza / Parere civile",
         area="Civile",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO],
         base_normativa="Tab. A25 DM 55/2014 agg. DM 147/2022 — Prestazioni stragiudiziali",
         richiede_valore=False,
@@ -123,7 +124,7 @@ CATALOGO: List[TipoPratica] = [
         label="Diffida / Lettera legale",
         area="Civile",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
         base_normativa="Tab. A25 DM 55/2014 agg. DM 147/2022 — Prestazioni stragiudiziali",
         richiede_valore=True,
@@ -287,7 +288,7 @@ CATALOGO: List[TipoPratica] = [
         label="Procedimenti di famiglia / minori",
         area="Civile",
         materia=Materia.CIVILE_COGN,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A2 DM 55/2014 — D.Lgs. 149/2022 (riforma proc. civ.)",
     ),
@@ -296,7 +297,7 @@ CATALOGO: List[TipoPratica] = [
         label="Sfratto per morosita / convalida",
         area="Civile",
         materia=Materia.CIVILE_COGN,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A2 DM 55/2014 — artt. 657 ss. c.p.c.",
     ),
@@ -305,7 +306,7 @@ CATALOGO: List[TipoPratica] = [
         label="Risarcimento danni",
         area="Civile",
         materia=Materia.CIVILE_COGN,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A2 DM 55/2014 — artt. 2043 e 2054 c.c.",
     ),
@@ -317,7 +318,7 @@ CATALOGO: List[TipoPratica] = [
         label="Controversia di lavoro",
         area="Civile",
         materia=Materia.LAVORO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A3 DM 55/2014 agg. DM 147/2022 — art. 409 c.p.c.",
     ),
@@ -326,7 +327,7 @@ CATALOGO: List[TipoPratica] = [
         label="Licenziamento (impugnazione)",
         area="Civile",
         materia=Materia.LAVORO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A3 DM 55/2014 — L. 300/1970 art. 18 / D.Lgs. 23/2015",
     ),
@@ -335,7 +336,7 @@ CATALOGO: List[TipoPratica] = [
         label="Differenze retributive",
         area="Civile",
         materia=Materia.LAVORO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A3 DM 55/2014 — art. 36 Cost.",
     ),
@@ -353,7 +354,7 @@ CATALOGO: List[TipoPratica] = [
         label="Previdenza (INPS / INAIL / fondi)",
         area="Civile",
         materia=Materia.PREVIDENZA,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A4 DM 55/2014 agg. DM 147/2022 — artt. 442 ss. c.p.c.",
     ),
@@ -362,7 +363,7 @@ CATALOGO: List[TipoPratica] = [
         label="Assistenza previdenziale / ricorso amministrativo",
         area="Civile",
         materia=Materia.PREVIDENZA,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A4 DM 55/2014 — ricorso amm.vo INPS/INAIL",
         richiede_valore=False,
@@ -376,7 +377,7 @@ CATALOGO: List[TipoPratica] = [
         label="Consulenza / Parere penale",
         area="Penale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=False,
@@ -387,7 +388,7 @@ CATALOGO: List[TipoPratica] = [
         label="Denuncia / Querela",
         area="Penale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=False,
@@ -398,7 +399,7 @@ CATALOGO: List[TipoPratica] = [
         label="Assistenza in indagini preliminari",
         area="Penale",
         materia=Materia.PENALE,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
         base_normativa="Tab. penale DM 55/2014 — art. 61 c.p.p. / fase investigativa",
         richiede_valore=False,
@@ -467,7 +468,7 @@ CATALOGO: List[TipoPratica] = [
         label="Ricorso TAR",
         area="Amministrativo",
         materia=Materia.AMMINISTRATIVO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A21 DM 55/2014 agg. DM 147/2022 — D.Lgs. 104/2010 (Cod. Proc. Amm.)",
     ),
@@ -476,7 +477,7 @@ CATALOGO: List[TipoPratica] = [
         label="Cautelare / Sospensiva (TAR)",
         area="Amministrativo",
         materia=Materia.AMMINISTRATIVO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A21 DM 55/2014 — art. 55 D.Lgs. 104/2010",
     ),
@@ -485,7 +486,7 @@ CATALOGO: List[TipoPratica] = [
         label="Motivi aggiunti",
         area="Amministrativo",
         materia=Materia.AMMINISTRATIVO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
         base_normativa="Tab. A21 DM 55/2014 — art. 43 D.Lgs. 104/2010",
     ),
@@ -494,7 +495,7 @@ CATALOGO: List[TipoPratica] = [
         label="Appello Consiglio di Stato",
         area="Amministrativo",
         materia=Materia.AMMINISTRATIVO,
-        grado_default=Grado.CORTE_APPELLO,
+        grado_default=Grado.CONSIGLIO_DI_STATO,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A22 DM 55/2014 × coeff. 1.30 — artt. 91 ss. D.Lgs. 104/2010",
     ),
@@ -503,7 +504,7 @@ CATALOGO: List[TipoPratica] = [
         label="Giudizio di ottemperanza",
         area="Amministrativo",
         materia=Materia.AMMINISTRATIVO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TAR,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A21 DM 55/2014 — artt. 112 ss. D.Lgs. 104/2010",
     ),
@@ -515,7 +516,7 @@ CATALOGO: List[TipoPratica] = [
         label="Ricorso tributario (CGT primo grado)",
         area="Tributario",
         materia=Materia.TRIBUTARIO,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.CGT_PRIMO_GRADO,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A23 DM 55/2014 agg. DM 147/2022 — D.Lgs. 546/1992",
     ),
@@ -524,7 +525,7 @@ CATALOGO: List[TipoPratica] = [
         label="Appello tributario (CGT secondo grado)",
         area="Tributario",
         materia=Materia.TRIBUTARIO,
-        grado_default=Grado.CORTE_APPELLO,
+        grado_default=Grado.CGT_SECONDO_GRADO,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A24 DM 55/2014 — art. 52 D.Lgs. 546/1992",
     ),
@@ -542,7 +543,7 @@ CATALOGO: List[TipoPratica] = [
         label="Autotutela tributaria",
         area="Tributario",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
         base_normativa="Tab. A25 DM 55/2014 — D.Lgs. 219/2023 (riforma autotutela)",
         richiede_valore=True,
@@ -553,7 +554,7 @@ CATALOGO: List[TipoPratica] = [
         label="Accertamento con adesione",
         area="Tributario",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A25 DM 55/2014 — D.Lgs. 218/1997",
         richiede_valore=True,
@@ -567,7 +568,7 @@ CATALOGO: List[TipoPratica] = [
         label="Parere legale",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=False,
@@ -578,7 +579,7 @@ CATALOGO: List[TipoPratica] = [
         label="Consulenza legale",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=False,
@@ -589,7 +590,7 @@ CATALOGO: List[TipoPratica] = [
         label="Assistenza in trattativa",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=True,
@@ -600,7 +601,7 @@ CATALOGO: List[TipoPratica] = [
         label="Redazione contratto",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=True,
@@ -611,7 +612,7 @@ CATALOGO: List[TipoPratica] = [
         label="Revisione / Due diligence contrattuale",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=False,
@@ -622,7 +623,7 @@ CATALOGO: List[TipoPratica] = [
         label="Sinistro stradale / richiesta risarcitoria stragiudiziale",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
         base_normativa="Tab. A25 DM 55/2014 — artt. 145, 148 e 149 D.Lgs. 209/2005",
         richiede_valore=True,
@@ -633,7 +634,7 @@ CATALOGO: List[TipoPratica] = [
         label="Mediazione (D.Lgs. 28/2010)",
         area="Stragiudiziale",
         materia=Materia.MEDIAZIONE,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.PROCEDURA_ADR,
         fasi_default=[Fase.ATTIVAZIONE, Fase.RIVITALIZZAZIONE, Fase.CONCILIAZIONE],
         base_normativa="Tab. A25 DM 55/2014 agg. DM 147/2022 — D.Lgs. 28/2010",
         richiede_valore=True,
@@ -644,7 +645,7 @@ CATALOGO: List[TipoPratica] = [
         label="Negoziazione assistita (D.L. 132/2014)",
         area="Stragiudiziale",
         materia=Materia.NEGOZIAZIONE_ASSISTITA,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.PROCEDURA_ADR,
         fasi_default=[Fase.ATTIVAZIONE, Fase.NEGOZIAZIONE_TRATTAZIONE, Fase.CONCILIAZIONE],
         base_normativa="Tab. A25 DM 55/2014 agg. DM 147/2022 — D.L. 132/2014 conv. L. 162/2014",
         richiede_valore=True,
@@ -655,7 +656,7 @@ CATALOGO: List[TipoPratica] = [
         label="Transazione / Accordo stragiudiziale",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A25 DM 55/2014 — art. 1965 c.c.",
         richiede_valore=True,
@@ -666,7 +667,7 @@ CATALOGO: List[TipoPratica] = [
         label="Recupero crediti stragiudiziale",
         area="Stragiudiziale",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali",
         richiede_valore=True,
@@ -689,7 +690,7 @@ CATALOGO: List[TipoPratica] = [
         label="Domiciliazione",
         area="Speciali",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO],
         base_normativa="Tab. A25 DM 55/2014 — Prestazioni stragiudiziali / domiciliazione",
         richiede_valore=False,
@@ -700,7 +701,7 @@ CATALOGO: List[TipoPratica] = [
         label="Attività a tempo (compenso orario)",
         area="Speciali",
         materia=Materia.STRAGIUD,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO],
         base_normativa="L. 247/2012 art. 13 co. 2 — compenso orario libero accordo",
         richiede_valore=False,
@@ -1026,6 +1027,27 @@ _RIF_MEDIAZIONE_LOCAZIONE = [
     },
 ]
 
+_RIF_MEDIAZIONE_GENERALE = [
+    {
+        "title": "D.Lgs. 4 marzo 2010, n. 28",
+        "article": "art. 5 e procedimento di mediazione",
+        "description": "Disciplina della mediazione civile e commerciale e delle ipotesi in cui la procedura puo rilevare come condizione di procedibilita o come scelta strategica preventiva.",
+        "url": _URL_MEDIAZIONE,
+    },
+    {
+        "title": "D.M. 24 ottobre 2023, n. 150",
+        "article": "spese e indennita di mediazione",
+        "description": "Regolamento vigente su spese, indennita e maggiorazioni applicabili agli organismi di mediazione.",
+        "url": _URL_DM150_MEDIAZIONE,
+    },
+    {
+        "title": "Ministero della Giustizia",
+        "article": "registro organismi di mediazione",
+        "description": "Registro ufficiale e scheda ministeriale per verificare organismi iscritti e operativita del portale dedicato.",
+        "url": _URL_REGISTRO_MEDIAZIONE_INFO,
+    },
+]
+
 _RIFERIMENTI_BASE: List[Dict[str, str]] = [
     {
         "title": "L. 31 dicembre 2012, n. 247",
@@ -1155,6 +1177,42 @@ _ACCESSORI_CALCOLO: Dict[str, List[Dict[str, Any]]] = {
         }
     ]
 }
+
+
+def _accessori_generici_per(tp: TipoPratica) -> List[Dict[str, Any]]:
+    if tp.id in {"mediazione", "negoziazione_assistita"}:
+        return []
+    if tp.area not in {"Civile", "Stragiudiziale"}:
+        return []
+    return [
+        {
+            "id": "mediazione_generale",
+            "tipo_pratica_id": "mediazione",
+            "label": "Aggiungi mediazione civile / commerciale",
+            "description": (
+                "Attiva il calcolo della mediazione come integrazione opzionale quando la materia lo richiede "
+                "o quando vuoi includerla nel preventivo gia in fase iniziale."
+            ),
+            "default_checked": False,
+            "row_label": "Compenso professionale per mediazione civile collegata",
+            "fasi_default_keys": ["attivazione", "rivitalizzazione", "conciliazione"],
+            "normative_references": _RIF_MEDIAZIONE_GENERALE,
+        }
+    ]
+
+
+def _accessori_calcolo_for(tp: TipoPratica) -> List[Dict[str, Any]]:
+    rows = [
+        {
+            **{k: v for k, v in item.items() if k != "normative_references"},
+            "normative_references": [dict(ref) for ref in item.get("normative_references", [])],
+        }
+        for item in _ACCESSORI_CALCOLO.get(tp.id, [])
+    ]
+    has_mediazione = any(item.get("tipo_pratica_id") == "mediazione" for item in rows)
+    if not has_mediazione:
+        rows.extend(_accessori_generici_per(tp))
+    return rows
 
 
 def _fase_key(fase: Fase) -> str:
@@ -1339,13 +1397,7 @@ def _arricchisci_catalogo() -> None:
         tp.note_template = tp.note_template or _note_template_for(tp)
         tp.checklist_iniziale = tp.checklist_iniziale or _checklist_for(tp)
         tp.normative_references = tp.normative_references or _normative_references_for(tp)
-        tp.accessori_calcolo = [
-            {
-                **{k: v for k, v in item.items() if k != "normative_references"},
-                "normative_references": [dict(ref) for ref in item.get("normative_references", [])],
-            }
-            for item in _ACCESSORI_CALCOLO.get(tp.id, [])
-        ]
+        tp.accessori_calcolo = _accessori_calcolo_for(tp)
 
 
 _arricchisci_catalogo()
@@ -1447,7 +1499,8 @@ class RisultatoMotore:
     calcolo_dm55: RisultatoCalcolo
 
     # Valori calcolati dal motore
-    onorario_base: float        # totale con spese generali (da calcolo_dm55)
+    onorario_base: float        # compat: coincide con il livello selezionato
+    onorario_selezionato: float
     cpa: float                  # Cassa Forense 4% (su onorario_base)
     base_iva: float             # onorario_base + cpa
     iva: float                  # 22% (se applica_iva)
@@ -1456,12 +1509,14 @@ class RisultatoMotore:
 
     applica_cpa: bool = True
     applica_iva: bool = True
+    livello_compenso: str = LivelloCompenso.BASE.value
 
     def to_dict(self) -> dict:
         return {
             "tipo_pratica": self.tipo_pratica.to_dict(),
             "calcolo_dm55": self.calcolo_dm55.to_dict(),
             "onorario_base": self.onorario_base,
+            "onorario_selezionato": self.onorario_selezionato,
             "cpa": self.cpa,
             "base_iva": self.base_iva,
             "iva": self.iva,
@@ -1469,6 +1524,7 @@ class RisultatoMotore:
             "totale": self.totale,
             "applica_cpa": self.applica_cpa,
             "applica_iva": self.applica_iva,
+            "livello_compenso": self.livello_compenso,
         }
 
 
@@ -1481,6 +1537,7 @@ def motore_calcola(
     valore_controversia: float = 0.0,
     grado: Optional[Grado] = None,
     fasi: Optional[List[Fase]] = None,
+    livello_compenso: LivelloCompenso | str = LivelloCompenso.BASE,
     bonus_telematico: bool = False,
     includi_spese_generali: bool = True,
     perc_spese_generali: float = 0.15,
@@ -1496,6 +1553,7 @@ def motore_calcola(
         valore_controversia: valore in €
         grado: override grado (default: grado_default del tipo pratica)
         fasi: override fasi (default: fasi_default del tipo pratica)
+        livello_compenso: minimo / base / massimo da usare come livello operativo
         bonus_telematico: +30% per deposito con ricerca testuale
         includi_spese_generali: applica spese generali art. 2 DM 55/2014
         perc_spese_generali: percentuale (default 15%)
@@ -1522,7 +1580,8 @@ def motore_calcola(
         variazioni_fasi=variazioni_fasi or None,
     )
 
-    onorario_base = calcolo.totale_con_spese if includi_spese_generali else calcolo.totale_base
+    livello = livello_compenso if isinstance(livello_compenso, LivelloCompenso) else LivelloCompenso(str(livello_compenso or LivelloCompenso.BASE.value))
+    onorario_base = calcolo.totale_compenso_livello(livello)
     cpa = round(onorario_base * 0.04, 2) if applica_cpa else 0.0
     base_iva = round(onorario_base + cpa, 2)
     iva = round(base_iva * 0.22, 2) if applica_iva else 0.0
@@ -1532,6 +1591,7 @@ def motore_calcola(
         tipo_pratica=tp,
         calcolo_dm55=calcolo,
         onorario_base=onorario_base,
+        onorario_selezionato=onorario_base,
         cpa=cpa,
         base_iva=base_iva,
         iva=iva,
@@ -1539,4 +1599,5 @@ def motore_calcola(
         totale=totale,
         applica_cpa=applica_cpa,
         applica_iva=applica_iva,
+        livello_compenso=livello.value,
     )

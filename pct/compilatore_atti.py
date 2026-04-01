@@ -423,6 +423,165 @@ FIELD_ALIASES_BY_ROLE = {
     },
 }
 
+AREA_PRO_GUIDANCE: dict[str, dict[str, Any]] = {
+    "STRAGIUDIZIALE": {
+        "summary": "Atto stragiudiziale impostato per diffide, messe in mora, richieste di pagamento e comunicazioni professionali con tono formale e tracciabile.",
+        "when_to_use": [
+            "Prima dell'azione giudiziale, per fissare una posizione chiara e creare prova documentale.",
+            "Quando serve assegnare un termine, costituire in mora o formalizzare una proposta o contestazione.",
+        ],
+        "structure": [
+            "Intestazione del mittente e del destinatario.",
+            "Oggetto sintetico e immediatamente leggibile.",
+            "Ricostruzione dei fatti o dell'inadempimento.",
+            "Richiesta finale con termine e avvertimento conclusivo.",
+        ],
+        "technical_notes": [
+            "Verifica che destinatario, PEC e allegati coincidano con quanto andra effettivamente notificato o inviato.",
+            "Mantieni una formula conclusiva coerente con l'effetto voluto: diffida, messa in mora, contestazione o proposta.",
+        ],
+        "references": [
+            "Codice civile: regole generali su adempimento, mora e responsabilita.",
+            "Prassi di studio: preferire allegati nominati in modo coerente con la lettera.",
+        ],
+    },
+    "CIVILE": {
+        "summary": "Atto giudiziale civile impostato per una redazione ordinata, leggibile e gia pronta per revisione e deposito.",
+        "when_to_use": [
+            "Per introdurre o coltivare un giudizio civile con una struttura chiara su fatti, diritto e richieste.",
+            "Quando occorre allineare il testo dell'atto alla pratica, ai documenti gia presenti e ai dati del fascicolo.",
+        ],
+        "structure": [
+            "Intestazione dell'ufficio giudiziario o dell'autorita competente.",
+            "Indicazione delle parti assistite e della controparte.",
+            "Esposizione dei fatti, motivi in diritto, mezzi istruttori e conclusioni.",
+            "Chiusura con valore, allegati, luogo, data e sottoscrizione.",
+        ],
+        "technical_notes": [
+            "Controlla sempre competenza, rito, termini processuali e prova documentale prima del deposito.",
+            "Per il PCT conserva un PDF nativo ben formattato e firma secondo il flusso del redattore atti.",
+        ],
+        "references": [
+            "Codice di procedura civile.",
+            "D.M. 44/2011 per il deposito telematico civile.",
+        ],
+    },
+    "PENALE": {
+        "summary": "Atto penale guidato per richieste difensive, memorie, nomine e istanze verso l'autorita procedente.",
+        "when_to_use": [
+            "Per definire in modo sintetico ma completo la posizione dell'assistito e le richieste alla Procura o al giudice.",
+            "Quando serve un atto chiaro, depositabile e immediatamente verificabile sul fascicolo penale.",
+        ],
+        "structure": [
+            "Autorita procedente, riferimento del procedimento e parte assistita.",
+            "Argomentazioni difensive e richieste specifiche.",
+            "Documenti prodotti o allegati richiamati nel testo.",
+        ],
+        "technical_notes": [
+            "Nel penale telematico verifica sempre formato di firma, canale di deposito e termini perentori.",
+            "Le richieste devono essere collegate a un potere difensivo o a una base normativa chiara.",
+        ],
+        "references": [
+            "Codice di procedura penale.",
+            "Regole tecniche del portale PDP Penale.",
+        ],
+    },
+    "AMMINISTRATIVO": {
+        "summary": "Atto amministrativo costruito per ricorsi, memorie e istanze con attenzione a termini, cautelare e documenti amministrativi.",
+        "when_to_use": [
+            "Per impugnare atti amministrativi o sviluppare il giudizio davanti al TAR o al Consiglio di Stato.",
+            "Quando occorre coordinare motivi, domanda cautelare e documenti gia raccolti in pratica.",
+        ],
+        "structure": [
+            "Autorita adita, parti e atto impugnato.",
+            "Fatti, motivi di ricorso o difesa, domanda cautelare, conclusioni.",
+            "Elenco allegati e chiusura del documento.",
+        ],
+        "technical_notes": [
+            "Controlla sempre il termine decadenziale e la prova della piena conoscenza o notifica dell'atto impugnato.",
+            "Adegua il documento alle regole del deposito telematico amministrativo e ai protocolli locali.",
+        ],
+        "references": [
+            "Codice del processo amministrativo.",
+            "Regole tecniche PAT.",
+        ],
+    },
+    "TRIBUTARIO": {
+        "summary": "Atto tributario predisposto per ricorsi, controdeduzioni e istanze con attenzione a valore, notifica e mediazione tributaria.",
+        "when_to_use": [
+            "Per impugnare un atto tributario o sviluppare il contraddittorio davanti alla giustizia tributaria.",
+            "Quando serve una bozza completa di riferimenti a atto impugnato, valore, motivi e allegati fiscali.",
+        ],
+        "structure": [
+            "Corte tributaria competente, parti e atto impugnato.",
+            "Motivi del ricorso o delle difese.",
+            "Richiesta cautelare, conclusioni e documenti prodotti.",
+        ],
+        "technical_notes": [
+            "Verifica sempre notifica dell'atto impugnato, valore della controversia e condizioni di procedibilita eventualmente applicabili.",
+            "Nel deposito telematico tributario rispetta il flusso NIR e la firma richiesta dal portale.",
+        ],
+        "references": [
+            "D.Lgs. 546/1992.",
+            "Regole tecniche del processo tributario telematico.",
+        ],
+    },
+}
+
+MODEL_GUIDANCE_OVERRIDES: dict[str, dict[str, Any]] = {
+    "STR_DIFF_001": {
+        "summary": "Diffida formale gia impostata per sollecitare l'adempimento, fissare un termine e mettere in chiaro le conseguenze del mancato riscontro.",
+        "when_to_use": [
+            "Quando vuoi una lettera netta, tracciabile e immediatamente utilizzabile come antecedente del contenzioso.",
+            "Quando serve una richiesta formale con termine preciso e riserva di azioni ulteriori.",
+        ],
+        "structure": [
+            "Mittente, destinatario e oggetto della diffida.",
+            "Descrizione dell'inadempimento e richiesta specifica.",
+            "Termine con avvertimento finale e richiamo agli allegati.",
+        ],
+    },
+    "CIV_CIT_001": {
+        "summary": "Atto di Citazione per il giudizio ordinario di cognizione, redatto con schema gia allineato a intestazione, parti, fatto, diritto, vocatio in ius e conclusioni.",
+        "when_to_use": [
+            "Quando il diritto va fatto valere con giudizio ordinario e non e sufficiente o opportuno il monitorio.",
+            "Quando la controversia richiede piena istruttoria, accertamento del fatto o valutazioni non sostenute da sola prova scritta liquida.",
+        ],
+        "structure": [
+            "Intestazione del Tribunale competente e titolo dell'atto.",
+            "Parte attrice, difensore, domicilio professionale e controparte.",
+            "Sezioni FATTO e DIRITTO con esposizione chiara e specifica.",
+            "Vocatio in ius con udienza, termine a comparire e avvertimenti di rito.",
+            "Conclusioni, mezzi istruttori, documenti prodotti e dichiarazione di valore.",
+        ],
+        "technical_notes": [
+            "Riforma Cartabia: il termine minimo tra notifica e udienza e di 120 giorni in Italia ai sensi dell'art. 163-bis c.p.c.",
+            "Il convenuto deve costituirsi almeno 70 giorni prima dell'udienza indicata, ai sensi dell'art. 166 c.p.c.",
+            "Per il deposito telematico prepara un PDF nativo ben formattato e firma PAdES o CAdES secondo il flusso del redattore atti.",
+        ],
+        "references": [
+            "Art. 163 c.p.c.",
+            "Art. 163-bis c.p.c.",
+            "Art. 166 c.p.c.",
+            "D.M. 44/2011.",
+        ],
+    },
+    "CIV_RDI_001": {
+        "summary": "Ricorso monitorio strutturato per crediti da prova scritta, con attenzione a importi, scadenza e documentazione a supporto.",
+        "when_to_use": [
+            "Quando il credito e certo, liquido, esigibile e assistito da prova scritta idonea.",
+            "Quando si vuole ottenere un titolo monitorio prima dell'eventuale fase di opposizione.",
+        ],
+    },
+    "CIV_COM_001": {
+        "summary": "Comparsa di costituzione e risposta impostata per contestare fatti, proporre eccezioni, riconvenzionale o chiamata di terzo in modo ordinato.",
+        "when_to_use": [
+            "Quando il convenuto si costituisce e deve prendere posizione su domanda, fatti, eccezioni e prova.",
+            "Quando occorre impostare una difesa completa gia pronta per deposito telematico.",
+        ],
+    },
+}
+
 
 def _field_meta(name: str) -> dict[str, Any]:
     raw = FIELD_CATALOG_RAW.get(name)
@@ -515,6 +674,19 @@ def model_options() -> list[tuple[str, str]]:
 
 def area_options() -> list[tuple[str, str]]:
     return [(key, AREA_LABELS[key]) for key in AREA_ORDINE]
+
+
+def professional_guidance_for_model(model_code: str) -> dict[str, Any]:
+    model = _require_model(model_code)
+    area_guidance = AREA_PRO_GUIDANCE.get(model["area"], {})
+    specific = MODEL_GUIDANCE_OVERRIDES.get(model_code, {})
+    return {
+        "summary": specific.get("summary") or area_guidance.get("summary") or model["name"],
+        "when_to_use": list(specific.get("when_to_use") or area_guidance.get("when_to_use") or []),
+        "structure": list(specific.get("structure") or area_guidance.get("structure") or []),
+        "technical_notes": list(specific.get("technical_notes") or area_guidance.get("technical_notes") or []),
+        "references": list(specific.get("references") or area_guidance.get("references") or []),
+    }
 
 
 def validation_rules_for_model(model_code: str) -> list[dict[str, str]]:
@@ -626,6 +798,8 @@ def prefill_payload(
     allegati = [getattr(doc, "nome", "") for doc in documenti if getattr(doc, "nome", "")]
     lawyer_name = _first_non_empty(getattr(utente, "nome_completo", ""), getattr(utente, "username", ""), config.get("STUDIO_AVVOCATO", ""), config.get("STUDIO_NOME", ""))
     lawyer_id = _first_non_empty(getattr(utente, "id", ""), getattr(utente, "username", ""))
+    lawyer_pec = _first_non_empty(config.get("SMTP_FROM", ""), config.get("PCT_STUDIO_PEC", ""))
+    lawyer_cf = _first_non_empty(config.get("STUDIO_CF", ""))
     payload: dict[str, Any] = {
         "model_code": model["code"],
         "title": model["name"],
@@ -648,6 +822,14 @@ def prefill_payload(
         "author_user_id": lawyer_id,
         "version": "1.0",
         "status": "BOZZA",
+        "_client_tax_id": _resolve_cliente_tax_id(cliente),
+        "_client_address": _resolve_cliente_address(cliente),
+        "_counterparty_tax_id": _resolve_controparte_tax_id(fascicolo),
+        "_counterparty_address": _resolve_controparte_address(fascicolo),
+        "_lawyer_tax_id": lawyer_cf,
+        "_lawyer_pec": lawyer_pec,
+        "_studio_address": _first_non_empty(config.get("STUDIO_INDIRIZZO", "")),
+        "_court_heading": _resolve_court_heading(fascicolo),
     }
     for field_name in model["required_extra_fields"]:
         payload[field_name] = _prefill_extra_field(field_name, fascicolo=fascicolo, cliente=cliente, utente=utente, config=config, allegati=allegati)
@@ -688,39 +870,20 @@ def validate_payload(model_code: str, payload: dict[str, Any]) -> dict[str, str]
 
 def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
     model = _require_model(model_code)
-    lines: list[str] = [
-        payload.get("title") or model["name"],
-        model["code"],
-        "",
-        f"Area: {AREA_LABELS.get(model['area'], model['area'])}",
-        f"Pratica: {payload.get('case_reference_display') or payload.get('case_id') or 'n.d.'}",
-        f"Materia: {_display_value(payload.get('matter'))}",
-        f"Destinatario / Ufficio: {_display_value(payload.get('recipient_or_court'))}",
-        f"Cliente / Mittente: {_display_value(payload.get('client_or_sender'))}",
-        f"Controparte / Destinatario: {_display_value(payload.get('counterparty_or_recipient'))}",
-        f"Difensore: {_display_value(payload.get('lawyer'))}",
-        "",
-        "OGGETTO",
-        _display_value(payload.get("subject")),
-        "",
-        "FATTI",
-        _display_value(payload.get("facts")),
-        "",
-        "RICHIESTE / CONCLUSIONI",
-        _display_value(payload.get("requests_or_conclusions")),
-        "",
-        "DATI SPECIFICI DEL MODELLO",
-    ]
-    for field in campi_extra_modello(model_code):
-        lines.extend(["", field["label"].upper(), *_render_field_value(payload.get(field["name"]))])
-    lines.extend(["", "ALLEGATI", *_render_field_value(payload.get("attachments_list")), "", f"{_display_value(payload.get('place'))}, {payload.get('document_date') or date.today().isoformat()}", "", _display_value(payload.get("signature"))])
-    return "\n".join(lines).strip()
+    renderers = {
+        "CIV_CIT_001": _render_civ_cit_001,
+        "STR_DIFF_001": _render_str_diff_001,
+    }
+    renderer = renderers.get(model_code, _render_generic_professional_act)
+    return renderer(model, payload).strip()
 
 
 def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any = None, utente: Any = None, config: Optional[dict[str, Any]] = None, allegati: Optional[list[str]] = None) -> Any:
     config = config or {}
     lawyer_name = _first_non_empty(getattr(utente, "nome_completo", ""), getattr(utente, "username", ""), config.get("STUDIO_AVVOCATO", ""))
     lawyer_pec = _first_non_empty(config.get("SMTP_FROM", ""), config.get("PCT_STUDIO_PEC", ""))
+    if field_name == "court_name":
+        return _resolve_court_heading(fascicolo)
     if field_name in FIELD_ALIASES_BY_ROLE["cliente"]:
         return _resolve_cliente_label(cliente, fascicolo)
     if field_name in FIELD_ALIASES_BY_ROLE["controparte"]:
@@ -737,6 +900,17 @@ def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any
         return lawyer_name
     if field_name == "defender_bar_association":
         return config.get("STUDIO_NOME", "")
+    if field_name == "appearance_notice":
+        return (
+            "con l'invito a costituirsi nel termine di settanta giorni prima dell'udienza indicata, "
+            "ai sensi e nelle forme dell'art. 166 c.p.c., e a comparire nell'udienza fissata dinanzi al giudice designato"
+        )
+    if field_name == "ritual_warnings":
+        return (
+            "La costituzione oltre i suddetti termini implica le decadenze di cui agli artt. 38 e 167 c.p.c.\n"
+            "La difesa tecnica mediante avvocato e obbligatoria nei giudizi davanti al tribunale, salvo i casi previsti dall'art. 86 c.p.c. o da leggi speciali.\n"
+            "La parte, sussistendone i presupposti di legge, puo presentare istanza per l'ammissione al patrocinio a spese dello Stato."
+        )
     if field_name in {"case_value", "dispute_value", "requested_amount", "principal_amount", "interest_amount", "costs_amount", "expenses", "cpa_amount", "vat_amount", "total_amount"}:
         value = getattr(fascicolo, "valore_causa", 0) if fascicolo else 0
         return value or ""
@@ -822,6 +996,373 @@ def _dedupe_preserve(items: Iterable[str]) -> list[str]:
         seen.add(key)
         result.append(item)
     return result
+
+
+def _render_generic_professional_act(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    heading = _first_non_empty(payload.get("_court_heading"), payload.get("recipient_or_court"), payload.get("court_name"))
+    title = payload.get("title") or model["name"]
+    lines: list[str] = []
+
+    if heading:
+        lines.append(heading.upper())
+    lines.append(title)
+    lines.append("")
+
+    if model["area"] == "STRAGIUDIZIALE":
+        lines.extend(
+            [
+                f"Mittente: {_display_value(payload.get('client_or_sender'))}",
+                f"Destinatario: {_display_value(payload.get('counterparty_or_recipient') or payload.get('recipient_or_court'))}",
+            ]
+        )
+    elif model["area"] == "PENALE":
+        lines.extend(
+            [
+                f"Assistito: {_display_value(payload.get('client_or_sender'))}",
+                f"Autorita procedente: {_display_value(payload.get('recipient_or_court'))}",
+                f"Difensore: {_display_value(payload.get('lawyer'))}",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                f"Parte assistita: {_display_value(payload.get('client_or_sender'))}",
+                f"Controparte: {_display_value(payload.get('counterparty_or_recipient'))}",
+                f"Difensore: {_display_value(payload.get('lawyer'))}",
+            ]
+        )
+
+    if payload.get("case_reference_display"):
+        lines.append(f"Riferimento pratica: {payload.get('case_reference_display')}")
+
+    _append_section(lines, "OGGETTO", _render_text_block_lines(payload.get("subject")))
+    _append_section(lines, "PREMESSA IN FATTO", _render_text_block_lines(payload.get("facts")))
+    _append_section(lines, "RICHIESTE / CONCLUSIONI", _render_text_block_lines(payload.get("requests_or_conclusions")))
+
+    extra_fields = campi_extra_modello(model["code"])
+    if extra_fields:
+        lines.append("")
+        lines.append("ELEMENTI SPECIFICI DEL MODELLO")
+        for field in extra_fields:
+            lines.append("")
+            lines.append(field["label"].upper())
+            lines.extend(_render_field_value(payload.get(field["name"])))
+
+    if payload.get("attachments_list"):
+        _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
+
+    lines.extend(
+        [
+            "",
+            _render_footer_line(payload),
+            "",
+            _normalize_lawyer_name(payload.get("signature") or payload.get("lawyer")),
+        ]
+    )
+    return _clean_rendered_lines(lines)
+
+
+def _render_civ_cit_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    court_heading = _normalize_court_heading(
+        payload.get("court_name") or payload.get("_court_heading") or payload.get("recipient_or_court")
+    )
+    court_display = _first_non_empty(payload.get("court_name"), payload.get("_court_heading"), payload.get("recipient_or_court"))
+    plaintiff = _first_non_empty(payload.get("plaintiff"), payload.get("client_or_sender"))
+    defendant = _first_non_empty(payload.get("defendant"), payload.get("counterparty_or_recipient"))
+    lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
+    lawyer_cf = _first_non_empty(payload.get("lawyer_tax_code"), payload.get("_lawyer_tax_id"))
+    lawyer_pec = _first_non_empty(payload.get("lawyer_pec"), payload.get("_lawyer_pec"))
+    plaintiff_text = _render_citation_actor_block(
+        plaintiff,
+        payload.get("_client_tax_id"),
+        payload.get("_client_address"),
+        lawyer,
+        lawyer_cf,
+        lawyer_pec,
+        _first_non_empty(payload.get("_studio_address"), payload.get("place")),
+    )
+    defendant_text = _render_citation_defendant_block(
+        defendant,
+        payload.get("_counterparty_tax_id"),
+        payload.get("_counterparty_address"),
+    )
+    evidence_lines: list[str] = []
+    evidence_means = _render_text_block_lines(payload.get("evidence_means"))
+    evidence_docs = _dedupe_preserve(
+        _to_string_list(payload.get("documents_offered")) + _to_string_list(payload.get("attachments_list"))
+    )
+    if evidence_means and evidence_means != ["-"]:
+        evidence_lines.extend(evidence_means)
+    if evidence_docs:
+        if evidence_lines:
+            evidence_lines.append("")
+        evidence_lines.append("Si offrono in comunicazione i seguenti documenti:")
+        evidence_lines.extend(_render_numbered_list(evidence_docs))
+
+    lines: list[str] = [
+        court_heading or _normalize_court_heading(court_display or "Tribunale"),
+        "Atto di Citazione",
+        "",
+        "Per:",
+        plaintiff_text,
+        "",
+        "Contro:",
+        defendant_text,
+    ]
+    _append_section(lines, "FATTO", _render_citation_facts(payload))
+    _append_section(lines, "DIRITTO", _render_text_block_lines(payload.get("legal_arguments")))
+    lines.extend(
+        [
+            "",
+            "Tutto cio premesso, l'attore come sopra rappresentato e difeso",
+            "",
+            "CITA",
+            (
+                f"{defendant} a comparire dinanzi al {court_display or court_heading}, locali di rito, "
+                f"all'udienza del {_format_italian_date(payload.get('hearing_date'))}, ore di rito, "
+                f"{_normalize_sentence(payload.get('appearance_notice') or '')}."
+            ),
+        ]
+    )
+    _append_section(lines, "AVVERTIMENTI DI RITO", _render_bullet_lines(payload.get("ritual_warnings")))
+    _append_section(lines, "CONCLUSIONI", _render_text_block_lines(payload.get("requests_or_conclusions")))
+    if evidence_lines:
+        _append_section(lines, "IN VIA ISTRUTTORIA", evidence_lines)
+    case_value = _format_currency(payload.get("case_value"))
+    if case_value:
+        lines.extend(
+            [
+                "",
+                f"Dichiarazione di valore: ai fini del contributo unificato, il valore della causa e di {case_value}.",
+            ]
+        )
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
+def _render_str_diff_001(model: dict[str, Any], payload: dict[str, Any]) -> str:
+    recipient = _first_non_empty(payload.get("recipient"), payload.get("counterparty_or_recipient"), payload.get("recipient_or_court"))
+    sender = _first_non_empty(payload.get("sender"), payload.get("client_or_sender"))
+    lawyer = _normalize_lawyer_name(payload.get("lawyer") or payload.get("signature"))
+    lines: list[str] = [
+        _first_non_empty(payload.get("_studio_address"), payload.get("place")).upper(),
+        "Diffida",
+        "",
+        f"Mittente: {sender}",
+        f"Destinatario: {recipient}",
+    ]
+    _append_section(lines, "OGGETTO", _render_text_block_lines(payload.get("subject")))
+    lines.extend(
+        [
+            "",
+            f"Il sottoscritto {lawyer}, nell'interesse di {sender}, espone quanto segue.",
+        ]
+    )
+    _append_section(lines, "PREMESSA", _render_text_block_lines(payload.get("breach_description") or payload.get("facts")))
+    deadline = _format_italian_date(payload.get("deadline_assigned"))
+    request_lines = _render_text_block_lines(payload.get("specific_request") or payload.get("requests_or_conclusions"))
+    if deadline:
+        request_lines.append("")
+        request_lines.append(f"Si assegna termine fino al {deadline} per l'integrale adempimento.")
+    _append_section(lines, "DIFFIDA E INVITO AD ADEMPIERE", request_lines)
+    _append_section(lines, "AVVERTIMENTO FINALE", _render_text_block_lines(payload.get("final_warning")))
+    if payload.get("attachments_list"):
+        _append_section(lines, "ALLEGATI RICHIAMATI", _render_numbered_list(_to_string_list(payload.get("attachments_list"))))
+    lines.extend(["", _render_footer_line(payload), "", lawyer])
+    return _clean_rendered_lines(lines)
+
+
+def _append_section(lines: list[str], title: str, body_lines: list[str]) -> None:
+    if not body_lines:
+        return
+    lines.extend(["", title])
+    lines.extend(body_lines)
+
+
+def _render_citation_facts(payload: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    if payload.get("claim_subject"):
+        claim_subject = str(payload.get("claim_subject")).strip()
+        if claim_subject.endswith("."):
+            lines.append(f"La presente domanda ha ad oggetto: {claim_subject}")
+        else:
+            lines.append(f"La presente domanda ha ad oggetto: {claim_subject}.")
+        lines.append("")
+    lines.extend(_render_text_block_lines(payload.get("facts")))
+    return lines
+
+
+def _render_citation_actor_block(
+    plaintiff: str,
+    plaintiff_tax_id: Any,
+    plaintiff_address: Any,
+    lawyer: str,
+    lawyer_cf: str,
+    lawyer_pec: str,
+    studio_address: str,
+) -> str:
+    parts = [plaintiff]
+    if _first_non_empty(plaintiff_tax_id):
+        parts.append(f"(C.F. {_first_non_empty(plaintiff_tax_id)})")
+    if _first_non_empty(plaintiff_address):
+        parts.append(f"residente/con sede in {_first_non_empty(plaintiff_address)}")
+    base = ", ".join(parts)
+    difesa = f"rappresentato e difeso da {lawyer}"
+    if lawyer_cf:
+        difesa += f" (C.F. {lawyer_cf})"
+    if studio_address:
+        difesa += f", ed elettivamente domiciliato presso il suo studio in {studio_address}"
+    difesa += ", come da procura alle liti."
+    if lawyer_pec:
+        difesa += f" Dichiara domicilio digitale all'indirizzo PEC {lawyer_pec}."
+    return f"{base}, {difesa}"
+
+
+def _render_citation_defendant_block(defendant: str, defendant_tax_id: Any, defendant_address: Any) -> str:
+    parts = [defendant]
+    if _first_non_empty(defendant_tax_id):
+        parts.append(f"(C.F./P.IVA {_first_non_empty(defendant_tax_id)})")
+    if _first_non_empty(defendant_address):
+        parts.append(f"residente/con sede in {_first_non_empty(defendant_address)}")
+    return ", ".join(parts) + "."
+
+
+def _render_footer_line(payload: dict[str, Any]) -> str:
+    place = _first_non_empty(payload.get("place"), payload.get("_studio_address"), "Luogo da completare")
+    return f"{place}, {_format_italian_date(payload.get('document_date'))}"
+
+
+def _render_text_block_lines(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if _is_empty_value(value):
+        return ["-"]
+    return [line.strip() for line in str(value).replace("\r", "").split("\n") if line.strip()] or ["-"]
+
+
+def _render_bullet_lines(value: Any) -> list[str]:
+    return [f"- {line}" for line in _render_text_block_lines(value) if line != "-"] or ["-"]
+
+
+def _render_numbered_list(items: list[str]) -> list[str]:
+    return [f"{idx}. {item}" for idx, item in enumerate(items, start=1)]
+
+
+def _to_string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if _is_empty_value(value):
+        return []
+    return [str(value).strip()]
+
+
+def _clean_rendered_lines(lines: list[str]) -> str:
+    cleaned: list[str] = []
+    prev_blank = False
+    for line in lines:
+        current = str(line).rstrip()
+        is_blank = current.strip() == ""
+        if is_blank and prev_blank:
+            continue
+        cleaned.append(current)
+        prev_blank = is_blank
+    return "\n".join(cleaned).strip()
+
+
+def _format_italian_date(value: Any) -> str:
+    if _is_empty_value(value):
+        return date.today().strftime("%d/%m/%Y")
+    text = str(value).strip()
+    try:
+        return date.fromisoformat(text[:10]).strftime("%d/%m/%Y")
+    except ValueError:
+        return text
+
+
+def _format_currency(value: Any) -> str:
+    if _is_empty_value(value):
+        return ""
+    try:
+        text = str(value).strip()
+        if "," in text and "." in text:
+            normalized = text.replace(".", "").replace(",", ".")
+        elif "," in text:
+            normalized = text.replace(",", ".")
+        else:
+            normalized = text
+        amount = float(normalized)
+    except ValueError:
+        return str(value)
+    formatted = f"{amount:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"Euro {formatted}"
+
+
+def _normalize_lawyer_name(value: Any) -> str:
+    text = _first_non_empty(value)
+    if not text:
+        return "Avv. __________________"
+    lowered = text.lower()
+    if lowered.startswith("avv.") or lowered.startswith("avv "):
+        return text
+    return f"Avv. {text}"
+
+
+def _normalize_sentence(value: Any) -> str:
+    text = _first_non_empty(value)
+    if not text:
+        return "con l'invito a costituirsi nel termine di legge"
+    return text[:-1] if text.endswith(".") else text
+
+
+def _normalize_court_heading(value: Any) -> str:
+    text = _first_non_empty(value)
+    if not text:
+        return "TRIBUNALE"
+    return text.split(" - ")[0].strip().upper()
+
+
+def _resolve_cliente_tax_id(cliente: Any) -> str:
+    return _first_non_empty(
+        getattr(cliente, "codice_fiscale", ""),
+        getattr(cliente, "partita_iva", ""),
+        getattr(cliente, "identificativo_fiscale", ""),
+    )
+
+
+def _resolve_cliente_address(cliente: Any) -> str:
+    if not cliente:
+        return ""
+    for attr in ("indirizzo_domicilio", "indirizzo_residenza", "indirizzo_sede_legale", "indirizzo"):
+        value = getattr(cliente, attr, None)
+        text = _first_non_empty(value)
+        if text:
+            return text
+    return ""
+
+
+def _resolve_controparte_tax_id(fascicolo: Any) -> str:
+    if not fascicolo:
+        return ""
+    return _first_non_empty(
+        getattr(fascicolo, "codice_fiscale_controparte", ""),
+        getattr(fascicolo, "cf_controparte", ""),
+        getattr(fascicolo, "controparte_codice_fiscale", ""),
+    )
+
+
+def _resolve_controparte_address(fascicolo: Any) -> str:
+    if not fascicolo:
+        return ""
+    return _first_non_empty(
+        getattr(fascicolo, "indirizzo_controparte", ""),
+        getattr(fascicolo, "controparte_indirizzo", ""),
+    )
+
+
+def _resolve_court_heading(fascicolo: Any) -> str:
+    if not fascicolo:
+        return ""
+    return _first_non_empty(getattr(fascicolo, "tribunale", "")).split(" - ")[0].strip()
 
 
 def _require_model(model_code: str) -> dict[str, Any]:

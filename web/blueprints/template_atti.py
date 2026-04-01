@@ -56,6 +56,7 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
         campi_base_visibili,
         campi_extra_modello,
         opzioni_campo,
+        professional_guidance_for_model,
         suggested_attachments_for_model,
         suggested_clauses_for_model,
         validation_rules_for_model,
@@ -89,6 +90,7 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
         "errors": errors or {},
         "selected_cliente": selected_cliente,
         "selected_fascicolo": selected_fascicolo,
+        "guidance": professional_guidance_for_model(model_code),
         "suggested_attachments": suggested_attachments_for_model(model_code),
         "suggested_clauses": suggested_clauses_for_model(model_code),
         "validation_rules": validation_rules_for_model(model_code),
@@ -328,6 +330,7 @@ def compila(model_code: str):
             testo_generato=testo_generato,
             selected_cliente=selected_cliente,
             selected_fascicolo=selected_fascicolo,
+            guidance=ctx["guidance"],
             suggested_attachments=ctx["suggested_attachments"],
             suggested_clauses=ctx["suggested_clauses"],
         )

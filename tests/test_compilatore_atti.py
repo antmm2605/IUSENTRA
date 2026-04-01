@@ -4,6 +4,7 @@ from pct.compilatore_atti import (
     campi_extra_modello,
     get_modello,
     prefill_payload,
+    professional_guidance_for_model,
     render_compiled_act,
     validate_payload,
 )
@@ -75,9 +76,58 @@ def test_prefill_payload_recupera_dati_dalla_pratica():
     assert payload["case_id"] == "FASC123"
     assert payload["client_or_sender"] == "Montagnese Elisabetta"
     assert payload["counterparty_or_recipient"] == "Stillitano Francesco"
-    assert payload["court_name"] == "Tribunale di Palmi - Civile - Giovannella Maria Elena"
+    assert payload["court_name"] == "Tribunale di Palmi"
     assert payload["lawyer_pec"] == "studio@examplepec.it"
     assert payload["documents_offered"] == ["comparsa.pdf", "procura.pdf"]
+    assert payload["_client_tax_id"] == ""
+    assert payload["_court_heading"] == "Tribunale di Palmi"
+
+
+def test_professional_guidance_for_citation_has_cartabia_notes():
+    guidance = professional_guidance_for_model("CIV_CIT_001")
+    assert "giudizio ordinario di cognizione" in guidance["summary"]
+    assert any("120 giorni" in item for item in guidance["technical_notes"])
+    assert any("Art. 163-bis c.p.c." in item for item in guidance["references"])
+
+
+def test_render_citation_compiled_act_uses_professional_structure():
+    fascicolo = _fake_fascicolo()
+    payload = prefill_payload(
+        "CIV_CIT_001",
+        fascicolo=fascicolo,
+        cliente=_fake_cliente(),
+        utente=_fake_utente(),
+        config={
+            "STUDIO_AVVOCATO": "Mario Rossi",
+            "STUDIO_INDIRIZZO": "Via Roma 1, Palmi",
+            "STUDIO_CF": "RSSMRA80A01H501Z",
+            "SMTP_FROM": "studio@examplepec.it",
+        },
+    )
+    payload.update(
+        {
+            "plaintiff": "Montagnese Elisabetta",
+            "defendant": "Stillitano Francesco",
+            "claim_subject": "Domanda di accertamento dell'inadempimento e condanna al pagamento.",
+            "facts": "L'attrice ha eseguito le proprie obbligazioni, mentre il convenuto non ha corrisposto quanto dovuto nonostante i ripetuti solleciti.",
+            "legal_arguments": "L'inadempimento integra violazione dell'art. 1218 c.c.; risultano dovuti capitale, interessi e spese secondo i titoli allegati.",
+            "evidence_means": "Si chiede ammissione della prova documentale e, ove necessario, prova testimoniale sui capitoli da articolare.",
+            "requests_or_conclusions": "Voglia l'Ill.mo Tribunale accertare l'inadempimento del convenuto e condannarlo al pagamento del dovuto, oltre interessi e spese di lite.",
+            "hearing_date": "2026-10-15",
+            "case_value": 12000,
+        }
+    )
+    errors = validate_payload("CIV_CIT_001", payload)
+    assert errors == {}
+    testo = render_compiled_act("CIV_CIT_001", payload)
+    assert "TRIBUNALE DI PALMI" in testo
+    assert "Atto di Citazione" in testo
+    assert "FATTO" in testo
+    assert "DIRITTO" in testo
+    assert "CITA" in testo
+    assert "CONCLUSIONI" in testo
+    assert "15/10/2026" in testo
+    assert "Dichiarazione di valore" in testo
 
 
 def test_validate_and_render_compiled_act():
@@ -107,5 +157,5 @@ def test_validate_and_render_compiled_act():
     testo = render_compiled_act("STR_DIFF_001", payload)
     assert "DIFFIDA" in testo.upper()
     assert "OGGETTO" in testo
-    assert "DATI SPECIFICI DEL MODELLO" in testo
+    assert "DIFFIDA E INVITO AD ADEMPIERE" in testo
     assert "Montagnese Elisabetta" in testo

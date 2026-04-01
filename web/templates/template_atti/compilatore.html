@@ -45,6 +45,19 @@
   {% endfor %}
 {% endwith %}
 
+<div class="card border-0 shadow-sm mb-4" style="border-radius:16px;background:linear-gradient(135deg,#f6f9ff 0%,#ffffff 100%);">
+  <div class="card-body">
+    <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+      <div>
+        <div class="small text-uppercase text-primary fw-bold mb-1">Scheda professionale del modello</div>
+        <h5 class="mb-2 fw-bold">{{ model.name }}</h5>
+        <p class="text-muted mb-0" style="max-width:840px;">{{ guidance.summary }}</p>
+      </div>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">{{ model.code }}</span>
+    </div>
+  </div>
+</div>
+
 <div class="row g-4">
   <div class="col-lg-8">
     <form method="get" class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
@@ -138,6 +151,48 @@
         {% endif %}
         {% if selected_fascicolo %}
         <div class="small"><strong>Pratica:</strong> {{ selected_fascicolo.titolo }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Quando usarlo</div>
+      <div class="card-body small">
+        <ul class="mb-0 ps-3">
+          {% for item in guidance.when_to_use %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Struttura consigliata</div>
+      <div class="card-body small">
+        <ul class="mb-0 ps-3">
+          {% for item in guidance.structure %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Note tecniche</div>
+      <div class="card-body small">
+        <ul class="mb-0 ps-3">
+          {% for item in guidance.technical_notes %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% if guidance.references %}
+        <hr class="my-3">
+        <div class="small text-muted fw-semibold mb-2">Riferimenti essenziali</div>
+        <ul class="mb-0 ps-3">
+          {% for item in guidance.references %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ul>
         {% endif %}
       </div>
     </div>

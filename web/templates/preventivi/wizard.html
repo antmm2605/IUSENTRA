@@ -84,6 +84,53 @@
               </select>
               <div class="form-text">Opzionale. Se presente, il preventivo resta agganciato alla pratica.</div>
             </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="chkClienteRapido" name="cliente_rapido_attivo" value="1">
+                <label class="form-check-label fw-semibold" for="chkClienteRapido">Cliente non ancora censito: inserimento rapido</label>
+              </div>
+              <div class="form-text">Creo un cliente potenziale con dati minimi e completo l'anagrafica quando il preventivo viene accettato.</div>
+            </div>
+            <div class="col-12" id="boxClienteRapido" style="display:none">
+              <div class="border rounded-4 p-3 bg-light">
+                <div class="row g-3">
+                  <div class="col-lg-3">
+                    <label class="form-label fw-semibold">Tipo cliente rapido</label>
+                    <select name="cliente_rapido_tipo" id="selClienteRapidoTipo" class="form-select">
+                      <option value="PERSONA_FISICA" selected>Persona fisica</option>
+                      <option value="PERSONA_GIURIDICA">Persona giuridica</option>
+                    </select>
+                  </div>
+                  <div class="col-lg-3 cliente-rapido-pf">
+                    <label class="form-label fw-semibold">Nome</label>
+                    <input type="text" name="cliente_rapido_nome" id="inpClienteRapidoNome" class="form-control" placeholder="Mario">
+                  </div>
+                  <div class="col-lg-3 cliente-rapido-pf">
+                    <label class="form-label fw-semibold">Cognome</label>
+                    <input type="text" name="cliente_rapido_cognome" id="inpClienteRapidoCognome" class="form-control" placeholder="Rossi">
+                  </div>
+                  <div class="col-lg-3 cliente-rapido-pf">
+                    <label class="form-label fw-semibold">Codice fiscale</label>
+                    <input type="text" name="cliente_rapido_codice_fiscale" id="inpClienteRapidoCfPf" class="form-control font-monospace text-uppercase" maxlength="16" placeholder="RSSMRA80A01H501Z">
+                  </div>
+                  <div class="col-lg-6 cliente-rapido-pg" style="display:none">
+                    <label class="form-label fw-semibold">Ragione sociale</label>
+                    <input type="text" name="cliente_rapido_ragione_sociale" id="inpClienteRapidoRagioneSociale" class="form-control" placeholder="Alfa S.r.l.">
+                  </div>
+                  <div class="col-lg-3 cliente-rapido-pg" style="display:none">
+                    <label class="form-label fw-semibold">Partita IVA</label>
+                    <input type="text" name="cliente_rapido_partita_iva" id="inpClienteRapidoPiva" class="form-control font-monospace" maxlength="11" placeholder="12345678901">
+                  </div>
+                  <div class="col-lg-3 cliente-rapido-pg" style="display:none">
+                    <label class="form-label fw-semibold">Codice fiscale</label>
+                    <input type="text" name="cliente_rapido_codice_fiscale_pg" id="inpClienteRapidoCfPg" class="form-control font-monospace text-uppercase" maxlength="16" placeholder="Codice fiscale ente">
+                  </div>
+                </div>
+                <div class="small text-muted mt-3">
+                  Il cliente viene salvato come <strong>potenziale</strong>. Prima del conferimento il sistema ti guidera al completamento di recapiti e indirizzi.
+                </div>
+              </div>
+            </div>
             <div class="col-lg-8">
               <label class="form-label fw-semibold">Oggetto del preventivo <span class="text-danger">*</span></label>
               <input type="text" name="oggetto" id="inpOggetto" class="form-control" required
@@ -464,6 +511,40 @@ function aggiornaGradoDefault() {
   if (tipologiaCorrente) document.getElementById('selGrado').value = tipologiaCorrente.grado_default || 'Tribunale';
 }
 
+function syncClienteRapidoUi() {
+  const quick = document.getElementById('chkClienteRapido').checked;
+  const box = document.getElementById('boxClienteRapido');
+  const selectCliente = document.getElementById('selectCliente');
+  const selectFascicolo = document.getElementById('selectFascicolo');
+  const tipoRapido = document.getElementById('selClienteRapidoTipo').value;
+  box.style.display = quick ? '' : 'none';
+  selectCliente.disabled = quick;
+  selectCliente.required = !quick;
+  if (quick) {
+    selectCliente.value = '';
+    selectFascicolo.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
+    selectFascicolo.disabled = true;
+  } else {
+    selectFascicolo.disabled = false;
+    if (selectCliente.value) {
+      caricaFascicoli(selectCliente.value);
+    }
+  }
+
+  document.querySelectorAll('.cliente-rapido-pf').forEach((node) => {
+    node.style.display = tipoRapido === 'PERSONA_FISICA' ? '' : 'none';
+  });
+  document.querySelectorAll('.cliente-rapido-pg').forEach((node) => {
+    node.style.display = tipoRapido === 'PERSONA_GIURIDICA' ? '' : 'none';
+  });
+
+  document.getElementById('inpClienteRapidoNome').required = quick && tipoRapido === 'PERSONA_FISICA';
+  document.getElementById('inpClienteRapidoCognome').required = quick && tipoRapido === 'PERSONA_FISICA';
+  document.getElementById('inpClienteRapidoCfPf').required = quick && tipoRapido === 'PERSONA_FISICA';
+  document.getElementById('inpClienteRapidoRagioneSociale').required = quick && tipoRapido === 'PERSONA_GIURIDICA';
+  syncWorkflowChecks();
+}
+
 function syncWorkflowChecks() {
   const chkConf = document.getElementById('chkGeneraConferimento');
   const chkFasc = document.getElementById('chkApriFascicoloGuidato');
@@ -621,9 +702,16 @@ async function calcolaPreventivo() {
 
 async function caricaFascicoli(idCliente) {
   const sel = document.getElementById('selectFascicolo');
+  if (document.getElementById('chkClienteRapido').checked) {
+    sel.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
+    sel.disabled = true;
+    syncWorkflowChecks();
+    return;
+  }
   sel.innerHTML = '<option value="">Caricamento fascicoli...</option>';
   if (!idCliente) {
     sel.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
+    sel.disabled = false;
     syncWorkflowChecks();
     return;
   }
@@ -637,20 +725,26 @@ async function caricaFascicoli(idCliente) {
       option.textContent = item.numero_rg ? `${item.titolo} (RG ${item.numero_rg})` : item.titolo;
       sel.appendChild(option);
     });
+    sel.disabled = false;
   } catch (error) {
     sel.innerHTML = '<option value="">Errore caricamento fascicoli</option>';
+    sel.disabled = false;
   }
   syncWorkflowChecks();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const clienteSelect = document.getElementById('selectCliente');
+  const chkClienteRapido = document.getElementById('chkClienteRapido');
+  const selClienteRapidoTipo = document.getElementById('selClienteRapidoTipo');
   renderAreaButtons();
   renderTipologie();
   aggiornaEmptyState();
   recalcTotals();
   if (clienteSelect.value) caricaFascicoli(clienteSelect.value);
   clienteSelect.addEventListener('change', (event) => caricaFascicoli(event.target.value));
+  chkClienteRapido.addEventListener('change', syncClienteRapidoUi);
+  selClienteRapidoTipo.addEventListener('change', syncClienteRapidoUi);
   document.getElementById('inpFiltroTipologie').addEventListener('input', renderTipologie);
   document.getElementById('btnCalcolaPreventivo').addEventListener('click', calcolaPreventivo);
   document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
@@ -663,6 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('inpNote').addEventListener('input', () => { noteToccate = true; });
   const first = areaCorrente ? (CATALOGO[areaCorrente] || [])[0] : null;
   if (first) selezionaTipologia(first.id);
+  syncClienteRapidoUi();
   syncWorkflowChecks();
   document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
     if (!tipologiaCorrente) {
@@ -673,6 +768,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!document.querySelectorAll('.prev-voice-row').length) {
       event.preventDefault();
       alert('Calcola il compenso o aggiungi almeno una voce al preventivo.');
+      return;
+    }
+    if (chkClienteRapido.checked) {
+      const tipoRapido = selClienteRapidoTipo.value;
+      if (tipoRapido === 'PERSONA_FISICA') {
+        if (!document.getElementById('inpClienteRapidoNome').value.trim() || !document.getElementById('inpClienteRapidoCognome').value.trim() || !document.getElementById('inpClienteRapidoCfPf').value.trim()) {
+          event.preventDefault();
+          alert('Completa nome, cognome e codice fiscale del cliente rapido.');
+          return;
+        }
+      } else {
+        const ragione = document.getElementById('inpClienteRapidoRagioneSociale').value.trim();
+        const piva = document.getElementById('inpClienteRapidoPiva').value.trim();
+        const cf = document.getElementById('inpClienteRapidoCfPg').value.trim();
+        if (!ragione || (!piva && !cf)) {
+          event.preventDefault();
+          alert('Per il cliente rapido persona giuridica inserisci ragione sociale e partita IVA oppure codice fiscale.');
+          return;
+        }
+      }
+    } else if (!clienteSelect.value) {
+      event.preventDefault();
+      alert('Seleziona un cliente oppure usa l\'inserimento rapido.');
     }
   });
 });

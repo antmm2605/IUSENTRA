@@ -39,9 +39,23 @@
       <div class="card-header fw-semibold"><i class="bi bi-person me-2"></i>Cliente</div>
       <div class="card-body">
         {% if cliente %}
-        <div class="fw-bold">{{ cliente.nome_completo }}</div>
+        <div class="fw-bold d-flex align-items-center gap-2 flex-wrap">
+          <span>{{ cliente.nome_completo }}</span>
+          {% if cliente.stato.value == 'POTENZIALE' %}
+          <span class="badge text-bg-warning">Potenziale</span>
+          {% endif %}
+        </div>
         {% if cliente.codice_fiscale %}
         <div class="text-muted small">C.F. {{ cliente.codice_fiscale }}</div>
+        {% endif %}
+        {% if cliente_da_completare %}
+        <div class="alert alert-warning border-0 mt-3 mb-2 py-2 small">
+          <div class="fw-semibold mb-1">Anagrafica essenziale</div>
+          <div>Mancano ancora: {{ campi_cliente_mancanti|join(', ') }}.</div>
+        </div>
+        <a href="{{ url_completa_cliente }}" class="btn btn-sm btn-warning me-2">
+          <i class="bi bi-person-plus me-1"></i>Completa anagrafica
+        </a>
         {% endif %}
         <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}" class="btn btn-sm btn-outline-secondary mt-2">
           <i class="bi bi-person-lines-fill me-1"></i>Apri scheda
@@ -84,6 +98,16 @@
           </div>
           <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-primary">
             <i class="bi bi-folder2-open me-1"></i>Vai al fascicolo
+          </a>
+        </div>
+        {% elif suggerisci_conferimento and cliente_da_completare %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Prima completa l'anagrafica cliente</div>
+            <div class="text-muted small">Per passare al conferimento in modo ordinato conviene integrare adesso i dati mancanti: {{ campi_cliente_mancanti|join(', ') }}.</div>
+          </div>
+          <a href="{{ url_completa_cliente }}" class="btn btn-warning">
+            <i class="bi bi-person-vcard me-1"></i>Completa anagrafica
           </a>
         </div>
         {% elif suggerisci_conferimento %}

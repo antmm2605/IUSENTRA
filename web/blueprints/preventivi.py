@@ -37,6 +37,52 @@ def _url_onboarding_fascicolo(id_cliente: str, *, id_preventivo: str = "", id_co
     return url_for("nuovo_fascicolo", **params)
 
 
+def _url_completa_cliente(id_cliente: str, *, next_url: str = "") -> str:
+    params = {}
+    if next_url:
+        params["next_url"] = next_url
+    return url_for("modifica_cliente", id_cliente=id_cliente, **params)
+
+
+def _cliente_da_completare(cliente) -> bool:
+    return bool(cliente and not getattr(cliente, "profilo_completo_per_conferimento", True))
+
+
+def _campi_cliente_mancanti(cliente) -> list[str]:
+    if not cliente:
+        return []
+    return list(getattr(cliente, "campi_mancanti_per_conferimento", []) or [])
+
+
+def _crea_cliente_rapido_da_wizard(form) -> tuple[str, str]:
+    from pct.clienti import TipoCliente
+
+    gc = get_clienti()
+    tipo_raw = (form.get("cliente_rapido_tipo") or "PERSONA_FISICA").strip().upper()
+    tipo = TipoCliente(tipo_raw)
+    avvocato = (form.get("avvocato_referente") or "").strip()
+    note = "Anagrafica essenziale creata dal preventivo guidato. Completare i dati prima del conferimento definitivo."
+    codice_fiscale = (
+        form.get("cliente_rapido_codice_fiscale", "")
+        if tipo == TipoCliente.PERSONA_FISICA
+        else (form.get("cliente_rapido_codice_fiscale_pg", "") or form.get("cliente_rapido_codice_fiscale", ""))
+    )
+    cliente, creato = gc.crea_o_recupera_potenziale(
+        tipo=tipo,
+        nome=form.get("cliente_rapido_nome", ""),
+        cognome=form.get("cliente_rapido_cognome", ""),
+        ragione_sociale=form.get("cliente_rapido_ragione_sociale", ""),
+        codice_fiscale=codice_fiscale,
+        partita_iva=form.get("cliente_rapido_partita_iva", ""),
+        provenienza="Preventivo guidato",
+        avvocato_referente=avvocato,
+        note=note,
+    )
+    if creato:
+        return cliente.id, f"Cliente potenziale '{cliente.nome_completo}' creato dal wizard."
+    return cliente.id, f"Cliente già presente: ho riutilizzato l'anagrafica '{cliente.nome_completo}'."
+
+
 def _richiedi_login(f):
     from functools import wraps
     @wraps(f)
@@ -236,6 +282,14 @@ def dettaglio_preventivo(id_preventivo: str):
     suggerisci_fascicolo = bool(
         not fascicolo and (conferimenti or p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO})
     )
+    cliente_da_completare = _cliente_da_completare(cliente)
+    campi_cliente_mancanti = _campi_cliente_mancanti(cliente)
+    url_completa_cliente = ""
+    if cliente:
+        url_completa_cliente = _url_completa_cliente(
+            cliente.id,
+            next_url=url_crea_conferimento if suggerisci_conferimento else url_for("cartella_cliente", id_cliente=cliente.id),
+        )
     return render_template(
         "preventivi/dettaglio_preventivo.html",
         p=p,
@@ -244,8 +298,11 @@ def dettaglio_preventivo(id_preventivo: str):
         conferimenti=conferimenti,
         url_crea_conferimento=url_crea_conferimento,
         url_apri_fascicolo=url_apri_fascicolo,
+        url_completa_cliente=url_completa_cliente,
         suggerisci_conferimento=suggerisci_conferimento,
         suggerisci_fascicolo=suggerisci_fascicolo,
+        cliente_da_completare=cliente_da_completare,
+        campi_cliente_mancanti=campi_cliente_mancanti,
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -415,6 +472,14 @@ def nuovo_conferimento(id_cliente: str = ""):
     preventivo_pre = gp.get_preventivo(id_preventivo_pre) if id_preventivo_pre else None
     from_page = request.args.get("from_page", "")
     id_fascicolo_pre = request.args.get("id_fascicolo", "")
+    cliente_da_completare = _cliente_da_completare(cliente_sel)
+    campi_cliente_mancanti = _campi_cliente_mancanti(cliente_sel)
+    url_completa_cliente = ""
+    if cliente_sel:
+        url_completa_cliente = _url_completa_cliente(
+            cliente_sel.id,
+            next_url=request.full_path.rstrip("?"),
+        )
 
     # Preventivi del cliente per il select
     preventivi_cliente = []
@@ -428,6 +493,9 @@ def nuovo_conferimento(id_cliente: str = ""):
         fascicoli=fascicoli,
         preventivo_pre=preventivo_pre,
         preventivi_cliente=preventivi_cliente,
+        cliente_da_completare=cliente_da_completare,
+        campi_cliente_mancanti=campi_cliente_mancanti,
+        url_completa_cliente=url_completa_cliente,
         oggi=date.today(),
         from_page=from_page,
         id_fascicolo_pre=id_fascicolo_pre,
@@ -453,6 +521,14 @@ def dettaglio_conferimento(id_conferimento: str):
         id_conferimento=c.id,
         from_page="conferimento",
     )
+    cliente_da_completare = _cliente_da_completare(cliente)
+    campi_cliente_mancanti = _campi_cliente_mancanti(cliente)
+    url_completa_cliente = ""
+    if cliente:
+        url_completa_cliente = _url_completa_cliente(
+            cliente.id,
+            next_url=url_apri_fascicolo if not fascicolo else url_for("preventivi.dettaglio_conferimento", id_conferimento=c.id),
+        )
     return render_template(
         "preventivi/dettaglio_conferimento.html",
         c=c,
@@ -460,6 +536,9 @@ def dettaglio_conferimento(id_conferimento: str):
         fascicolo=fascicolo,
         preventivo=preventivo,
         url_apri_fascicolo=url_apri_fascicolo,
+        url_completa_cliente=url_completa_cliente,
+        cliente_da_completare=cliente_da_completare,
+        campi_cliente_mancanti=campi_cliente_mancanti,
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -832,8 +911,16 @@ def wizard_genera():
 
     id_cliente = f.get("id_cliente", "").strip()
     if not id_cliente:
-        flash("Seleziona un cliente.", "danger")
-        return redirect(url_for("preventivi.wizard"))
+        if f.get("cliente_rapido_attivo"):
+            try:
+                id_cliente, msg_cliente = _crea_cliente_rapido_da_wizard(f)
+                flash(msg_cliente, "success")
+            except ValueError as e:
+                flash(str(e), "danger")
+                return redirect(url_for("preventivi.wizard", from_page=f.get("from_page", "").strip()))
+        else:
+            flash("Seleziona un cliente oppure inseriscine uno rapido.", "danger")
+            return redirect(url_for("preventivi.wizard", from_page=f.get("from_page", "").strip()))
 
     oggetto = f.get("oggetto", "").strip()
     if not oggetto:

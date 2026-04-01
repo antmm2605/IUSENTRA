@@ -3507,6 +3507,9 @@ read -r -p "Premi Invio per chiudere..." _
         gc = get_clienti()
         if request.method == "POST":
             f = request.form
+            next_url = f.get("next_url", "").strip()
+            if next_url and not next_url.startswith("/"):
+                next_url = ""
             tipo = TipoCliente(f["tipo"])
             try:
                 c = gc.nuovo(
@@ -3542,6 +3545,8 @@ read -r -p "Premi Invio per chiudere..." _
                 )
                 flash(f"Cliente '{c.nome_completo}' aggiunto.", "success")
                 sync_pubblica("crea", "clienti", c.id)
+                if next_url:
+                    return redirect(next_url)
                 if f.get("crea_preventivo_iniziale", "1") == "1":
                     return redirect(
                         url_for(
@@ -3561,6 +3566,7 @@ read -r -p "Premi Invio per chiudere..." _
             tipi=list(TipoCliente),
             stati=list(StatoCliente),
             tipi_doc=list(TipoDocumentoCliente),
+            next_url=request.args.get("next_url", "").strip(),
         )
 
     @app.route("/clienti/<id_cliente>")
@@ -4139,6 +4145,9 @@ read -r -p "Premi Invio per chiudere..." _
 
         if request.method == "POST":
             f = request.form
+            next_url = f.get("next_url", "").strip()
+            if next_url and not next_url.startswith("/"):
+                next_url = ""
             try:
                 gc.aggiorna(id_cliente,
                     nome=f.get("nome", c.nome),
@@ -4179,6 +4188,8 @@ read -r -p "Premi Invio per chiudere..." _
                 )
                 flash("Cliente aggiornato.", "success")
                 sync_pubblica("modifica", "clienti", id_cliente)
+                if next_url:
+                    return redirect(next_url)
                 return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
@@ -4189,6 +4200,7 @@ read -r -p "Premi Invio per chiudere..." _
             tipi=list(TipoCliente),
             stati=list(StatoCliente),
             tipi_doc=list(TipoDocumentoCliente),
+            next_url=request.args.get("next_url", "").strip(),
         )
 
     @app.route("/clienti/<id_cliente>/elimina", methods=["POST"])

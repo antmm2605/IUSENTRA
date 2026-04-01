@@ -185,6 +185,48 @@ class Cliente:
     def procedimenti_attivi(self) -> List[RiferimentoProcedimento]:
         return [p for p in self.procedimenti if p.attivo]
 
+    @property
+    def profilo_minimo_per_preventivo(self) -> bool:
+        if self.tipo == TipoCliente.PERSONA_GIURIDICA:
+            return bool(self.ragione_sociale and (self.partita_iva or self.codice_fiscale))
+        return bool(self.nome and self.cognome and self.codice_fiscale)
+
+    @property
+    def campi_mancanti_per_conferimento(self) -> List[str]:
+        mancanti: List[str] = []
+        recapito_presente = any([
+            self.recapiti.telefono,
+            self.recapiti.cellulare,
+            self.recapiti.email,
+            self.recapiti.pec,
+        ])
+        if self.tipo == TipoCliente.PERSONA_GIURIDICA:
+            if not self.ragione_sociale:
+                mancanti.append("ragione sociale")
+            if not (self.partita_iva or self.codice_fiscale):
+                mancanti.append("partita IVA o codice fiscale")
+            if not self.indirizzo_sede_legale.via or not self.indirizzo_sede_legale.comune:
+                mancanti.append("sede legale")
+            if not recapito_presente:
+                mancanti.append("almeno un recapito")
+            return mancanti
+
+        if not self.nome:
+            mancanti.append("nome")
+        if not self.cognome:
+            mancanti.append("cognome")
+        if not self.codice_fiscale:
+            mancanti.append("codice fiscale")
+        if not self.indirizzo_residenza.via or not self.indirizzo_residenza.comune:
+            mancanti.append("residenza")
+        if not recapito_presente:
+            mancanti.append("almeno un recapito")
+        return mancanti
+
+    @property
+    def profilo_completo_per_conferimento(self) -> bool:
+        return not self.campi_mancanti_per_conferimento
+
     # ---------------------------------------------------------------- serde
 
     def to_dict(self) -> dict:
@@ -447,6 +489,84 @@ class GestioneClienti:
             if c.codice_fiscale.upper() == cf.upper():
                 return c
         return None
+
+    def get_by_codice_fiscale(self, cf: str) -> Optional[Cliente]:
+        cf = (cf or "").strip().upper()
+        if not cf:
+            return None
+        return self._cerca_per_cf(cf)
+
+    def get_by_partita_iva(self, piva: str) -> Optional[Cliente]:
+        piva = (piva or "").strip()
+        if not piva:
+            return None
+        for c in self._clienti.values():
+            if (c.partita_iva or "").strip() == piva:
+                return c
+        return None
+
+    def crea_o_recupera_potenziale(
+        self,
+        *,
+        tipo: TipoCliente,
+        nome: str = "",
+        cognome: str = "",
+        ragione_sociale: str = "",
+        codice_fiscale: str = "",
+        partita_iva: str = "",
+        provenienza: str = "Preventivo guidato",
+        avvocato_referente: str = "",
+        note: str = "",
+    ) -> tuple[Cliente, bool]:
+        codice_fiscale = (codice_fiscale or "").strip().upper()
+        partita_iva = (partita_iva or "").strip()
+
+        if tipo == TipoCliente.PERSONA_FISICA:
+            if not nome.strip() or not cognome.strip():
+                raise ValueError("Per il cliente rapido inserisci nome e cognome.")
+            if not codice_fiscale:
+                raise ValueError("Per il cliente rapido inserisci il codice fiscale.")
+            if not self.valida_cf(codice_fiscale):
+                raise ValueError("Il codice fiscale rapido non ha un formato valido.")
+            esistente = self.get_by_codice_fiscale(codice_fiscale)
+            if esistente:
+                return esistente, False
+            cliente = self.nuovo(
+                tipo=tipo,
+                nome=nome.strip(),
+                cognome=cognome.strip(),
+                codice_fiscale=codice_fiscale,
+                stato=StatoCliente.POTENZIALE,
+                provenienza=provenienza,
+                avvocato_referente=avvocato_referente,
+                note=note.strip(),
+            )
+            return cliente, True
+
+        if not ragione_sociale.strip():
+            raise ValueError("Per il cliente rapido persona giuridica inserisci la ragione sociale.")
+        if partita_iva and not self.valida_piva(partita_iva):
+            raise ValueError("La partita IVA rapida non ha un formato valido.")
+        if codice_fiscale and len(codice_fiscale) not in {11, 16}:
+            raise ValueError("Il codice fiscale della persona giuridica non ha un formato valido.")
+        esistente = None
+        if partita_iva:
+            esistente = self.get_by_partita_iva(partita_iva)
+        if not esistente and codice_fiscale:
+            esistente = self.get_by_codice_fiscale(codice_fiscale)
+        if esistente:
+            return esistente, False
+        cliente = self.nuovo(
+            tipo=tipo,
+            ragione_sociale=ragione_sociale.strip(),
+            codice_fiscale=codice_fiscale,
+            partita_iva=partita_iva,
+            stato=StatoCliente.POTENZIALE,
+            provenienza=provenienza,
+            avvocato_referente=avvocato_referente,
+            note=note.strip(),
+        )
+        return cliente, True
 
     @staticmethod
     def valida_cf(cf: str) -> bool:

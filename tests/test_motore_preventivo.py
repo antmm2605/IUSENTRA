@@ -34,3 +34,18 @@ def test_redattore_preventivo_iniziale_restituisce_scheda_pronta_per_wizard():
     assert scheda["oggetto_template"].startswith("Preventivo professionale")
     assert "Informativa resa ai sensi dell'art. 13" in scheda["note_template"]
     assert any(ref["title"] == "D.L. 12 settembre 2014, n. 132" for ref in scheda["normative_references"])
+
+
+def test_mediazione_riporta_anche_il_regolamento_spese_post_cartabia():
+    scheda = redattore_preventivo_iniziale("mediazione")
+    titles = {ref["title"] for ref in scheda["normative_references"]}
+    assert "D.M. 24 ottobre 2023, n. 150" in titles
+
+
+def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():
+    catalogo = catalogo_wizard()
+    civile_ids = {item["id"] for item in catalogo["Civile"]}
+    stragiud_ids = {item["id"] for item in catalogo["Stragiudiziale"]}
+    assert "sfratto_morosita" in civile_ids
+    assert "risarcimento_danni" in civile_ids
+    assert "sinistro_stradale_stragiudiziale" in stragiud_ids

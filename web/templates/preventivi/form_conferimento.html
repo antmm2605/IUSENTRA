@@ -25,6 +25,20 @@
   {% endfor %}
 {% endwith %}
 
+{% if cliente_da_completare and cliente_sel %}
+<div class="alert alert-warning border-0 shadow-sm">
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+    <div>
+      <div class="fw-semibold"><i class="bi bi-person-vcard me-2"></i>Anagrafica cliente da completare</div>
+      <div class="small">Prima del conferimento definitivo conviene integrare: {{ campi_cliente_mancanti|join(', ') }}.</div>
+    </div>
+    <a href="{{ url_completa_cliente }}" class="btn btn-sm btn-warning">
+      <i class="bi bi-arrow-right-circle me-1"></i>Completa anagrafica
+    </a>
+  </div>
+</div>
+{% endif %}
+
 {% set tipo_compenso_sel = preventivo_pre.tipo_compenso if preventivo_pre and preventivo_pre.tipo_compenso else 'Compenso fisso' %}
 {% set tipo_proc_sel = preventivo_pre.tipo_procedimento if preventivo_pre and preventivo_pre.tipo_procedimento else 'Civile - fase di cognizione' %}
 {% set avvocato_default = preventivo_pre.creato_da if preventivo_pre and preventivo_pre.creato_da else (cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '') %}

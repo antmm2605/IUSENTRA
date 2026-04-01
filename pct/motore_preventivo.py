@@ -290,6 +290,24 @@ CATALOGO: List[TipoPratica] = [
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A2 DM 55/2014 — D.Lgs. 149/2022 (riforma proc. civ.)",
     ),
+    TipoPratica(
+        id="sfratto_morosita",
+        label="Sfratto per morosita / convalida",
+        area="Civile",
+        materia=Materia.CIVILE_COGN,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A2 DM 55/2014 — artt. 657 ss. c.p.c.",
+    ),
+    TipoPratica(
+        id="risarcimento_danni",
+        label="Risarcimento danni",
+        area="Civile",
+        materia=Materia.CIVILE_COGN,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=_FASI_BASE,
+        base_normativa="Tab. A2 DM 55/2014 — artt. 2043 e 2054 c.c.",
+    ),
 
     # ── LAVORO E PREVIDENZA ─────────────────────────────────────────────────
 
@@ -599,6 +617,17 @@ CATALOGO: List[TipoPratica] = [
         tipo_compenso_default="Compenso fisso",
     ),
     TipoPratica(
+        id="sinistro_stradale_stragiudiziale",
+        label="Sinistro stradale / richiesta risarcitoria stragiudiziale",
+        area="Stragiudiziale",
+        materia=Materia.STRAGIUD,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
+        base_normativa="Tab. A25 DM 55/2014 — artt. 145, 148 e 149 D.Lgs. 209/2005",
+        richiede_valore=True,
+        tipo_compenso_default="Compenso fisso",
+    ),
+    TipoPratica(
         id="mediazione",
         label="Mediazione (D.Lgs. 28/2010)",
         area="Stragiudiziale",
@@ -791,6 +820,17 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
         {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
     ],
+    "sfratto_morosita": [
+        {"descrizione": "Contributo Unificato (indicativo)", "importo": 103.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Notifica intimazione / citazione", "importo": 25.0},
+    ],
+    "risarcimento_danni": [
+        {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
+        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
+        {"descrizione": "Perizia di parte / relazione tecnica (indicativa)", "importo": 250.0},
+    ],
     # ── LAVORO ──
     "controversia_lavoro": [
         {"descrizione": "Marca da bollo ricorso lavoro", "importo": 27.0},
@@ -897,6 +937,11 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Bollo richiesta accertamento adesione", "importo": 16.0},
     ],
     # ── STRAGIUDIZIALE ──
+    "sinistro_stradale_stragiudiziale": [
+        {"descrizione": "Visura PRA / documenti veicolo", "importo": 15.0},
+        {"descrizione": "PEC / raccomandate alla compagnia", "importo": 15.0},
+        {"descrizione": "Perizia medico-legale o tecnica (indicativa)", "importo": 180.0},
+    ],
     "mediazione": [
         {"descrizione": "Indennità organismo di mediazione (indicativa)", "importo": 100.0},
         {"descrizione": "Spese postali / PEC organismo", "importo": 15.0},
@@ -939,6 +984,7 @@ _URL_EQUO_COMPENSO = (
     "&atto.tipoProvvedimento=LEGGE"
 )
 _URL_CPC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1940-10-28%3B1443"
+_URL_CC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1942-03-16%3B262"
 _URL_CPP = (
     "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica"
     "%3A1988-09-22%3B447"
@@ -947,6 +993,14 @@ _URL_CPA = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.l
 _URL_TRIBUTARIO = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A1992-12-31%3B546"
 _URL_MEDIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-03-04%3B28"
 _URL_NEGOZIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legge%3A2014-09-12%3B132"
+_URL_DM150_MEDIAZIONE = (
+    "https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?"
+    "atto.codiceRedazionale=23G00162&atto.dataPubblicazioneGazzetta=2023-10-31"
+    "&atto.tipoProvvedimento=DECRETO"
+)
+_URL_CODICE_ASSICURAZIONI = (
+    "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2005-09-07%3B209"
+)
 
 _RIFERIMENTI_BASE: List[Dict[str, str]] = [
     {
@@ -1039,6 +1093,9 @@ _SUMMARY_OVERRIDES = {
     "diffida": "Preventivo per attività stragiudiziale di diffida o messa in mora, con impostazione pronta per invio PEC o raccomandata.",
     "mediazione": "Preventivo per assistenza in procedura di mediazione civile e commerciale con valorizzazione delle fasi ADR.",
     "negoziazione_assistita": "Preventivo per assistenza nella convenzione di negoziazione assistita e nelle fasi di trattativa e definizione.",
+    "sfratto_morosita": "Preventivo per intimazione di sfratto per morosita e convalida, con focus sulle attivita urgenti introduttive.",
+    "risarcimento_danni": "Preventivo per azione risarcitoria civile con stima di istruttoria, prova tecnica e fase decisionale.",
+    "sinistro_stradale_stragiudiziale": "Preventivo per richiesta risarcitoria stragiudiziale verso compagnia o responsabile prima dell'eventuale giudizio.",
     "ricorso_tar": "Preventivo per tutela davanti al TAR con struttura pensata per ricorso, cautelare e fase di merito.",
     "ricorso_tributario": "Preventivo per contenzioso tributario con articolazione per ricorso, istanza cautelare e fasi successive.",
 }
@@ -1049,6 +1106,9 @@ _WHEN_TO_USE_OVERRIDES = {
     "diffida": "Usalo nella fase di onboarding cliente quando prima della lite è opportuno tentare una richiesta formale ben tracciata.",
     "mediazione": "Usalo quando la materia impone o rende utile un tentativo ADR prima del giudizio o in corso di causa.",
     "negoziazione_assistita": "Usalo quando la controversia richiede o consiglia una negoziazione assistita prima dell'azione giudiziale.",
+    "sfratto_morosita": "Usalo quando il locatore deve attivare rapidamente la tutela per morosita e vuoi stimare con chiarezza fase introduttiva e possibili sviluppi.",
+    "risarcimento_danni": "Usalo quando il cliente chiede ristoro economico e la pratica richiede di stimare bene istruttoria, spese vive e possibili consulenze.",
+    "sinistro_stradale_stragiudiziale": "Usalo quando vuoi costruire un preventivo per la fase di messa in mora, raccolta documenti e trattativa assicurativa prima della causa.",
 }
 
 
@@ -1154,6 +1214,14 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "url": _URL_MEDIAZIONE,
             }
         )
+        refs.append(
+            {
+                "title": "D.M. 24 ottobre 2023, n. 150",
+                "article": "spese e indennita di mediazione",
+                "description": "Criteri di iscrizione, indennita e spese degli organismi di mediazione dopo la riforma Cartabia.",
+                "url": _URL_DM150_MEDIAZIONE,
+            }
+        )
     if tp.id == "negoziazione_assistita":
         refs.append(
             {
@@ -1161,6 +1229,33 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "article": "negoziazione assistita",
                 "description": "Disciplina della convenzione di negoziazione assistita e dei casi di obbligatorieta.",
                 "url": _URL_NEGOZIAZIONE,
+            }
+        )
+    if tp.id == "sinistro_stradale_stragiudiziale":
+        refs.append(
+            {
+                "title": "D.Lgs. 7 settembre 2005, n. 209",
+                "article": "artt. 145, 148 e 149",
+                "description": "Procedura risarcitoria RCA, richiesta danni e indennizzo diretto in fase stragiudiziale.",
+                "url": _URL_CODICE_ASSICURAZIONI,
+            }
+        )
+    if tp.id == "sfratto_morosita":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 657 e seguenti",
+                "description": "Intimazione di sfratto per morosita e citazione per la convalida.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "risarcimento_danni":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "artt. 2043 e 2054",
+                "description": "Responsabilita aquiliana e responsabilita da circolazione dei veicoli.",
+                "url": _URL_CC,
             }
         )
     return refs

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Anteprima - {{ model.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('template_atti.compila', model_code=model.code, id_cliente=selected_cliente.id if selected_cliente else '', id_fascicolo=selected_fascicolo.id if selected_fascicolo else '') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div class="flex-grow-1">
+    <h4 class="mb-0 fw-bold">{{ payload.get('title') or model.name }}</h4>
+    <div class="text-muted small">{{ model.code }} - {{ model.area }}</div>
+  </div>
+  <form method="post" action="{{ url_for('template_atti.compila_pdf', model_code=model.code) }}" class="d-flex gap-2">
+    <input type="hidden" name="title" value="{{ payload.get('title') or model.name }}">
+    <input type="hidden" name="testo_generato" value="{{ testo_generato }}">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-file-earmark-pdf me-2"></i>Scarica PDF
+    </button>
+  </form>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted" style="font-size:.78rem;">
+            <i class="bi bi-pencil me-1"></i>Puoi rifinire il testo prima di generare il PDF
+          </span>
+        </div>
+        <form method="post" action="{{ url_for('template_atti.compila_pdf', model_code=model.code) }}">
+          <input type="hidden" name="title" value="{{ payload.get('title') or model.name }}">
+          <textarea name="testo_generato" class="form-control font-monospace" rows="30" style="font-size:.85rem;line-height:1.7;">{{ testo_generato }}</textarea>
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-file-earmark-pdf me-2"></i>Genera PDF
+            </button>
+            <a href="{{ url_for('template_atti.compila', model_code=model.code, id_cliente=selected_cliente.id if selected_cliente else '', id_fascicolo=selected_fascicolo.id if selected_fascicolo else '') }}" class="btn btn-outline-secondary">Torna alla compilazione</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-body">
+        <div class="small text-muted fw-semibold mb-2">Riepilogo pratica</div>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <span class="badge bg-light text-dark border">{{ payload.get('status', 'BOZZA') }}</span>
+          <span class="badge bg-light text-dark border">v{{ payload.get('version', '1.0') }}</span>
+          <span class="badge bg-light text-dark border">{{ payload.get('document_date') }}</span>
+        </div>
+        {% if selected_cliente %}
+        <div class="small"><strong>Cliente:</strong> {{ selected_cliente.nome_completo }}</div>
+        {% endif %}
+        {% if selected_fascicolo %}
+        <div class="small"><strong>Pratica:</strong> {{ selected_fascicolo.titolo }}{% if selected_fascicolo.rg_completo %} - {{ selected_fascicolo.rg_completo }}{% endif %}</div>
+        {% endif %}
+        <div class="small"><strong>Difensore:</strong> {{ payload.get('lawyer') }}</div>
+        <div class="small"><strong>Destinatario / Ufficio:</strong> {{ payload.get('recipient_or_court') }}</div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Clausole da controllare</div>
+      <div class="card-body small">
+        <ul class="mb-0 ps-3">
+          {% for item in suggested_clauses %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Allegati da verificare</div>
+      <div class="card-body small">
+        <ul class="mb-0 ps-3">
+          {% for item in suggested_attachments %}
+          <li class="mb-2">{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

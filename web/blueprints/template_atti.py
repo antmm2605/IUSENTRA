@@ -11,7 +11,7 @@ from datetime import date
 from flask import (Blueprint, abort, flash, g, redirect, render_template,
                    request, send_file, url_for, current_app)
 
-from web.helpers import get_clienti, get_fascicoli
+from web.helpers import get_clienti, get_fascicoli, get_utenti
 
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
@@ -43,6 +43,58 @@ def _variabili_base(config):
     }
 
 
+def _valore_form(value):
+    if isinstance(value, list):
+        return "\n".join([str(item) for item in value if str(item).strip()])
+    return value or ""
+
+
+def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=None,
+                          selected_fascicolo=None, errors: dict | None = None):
+    from pct.compilatore_atti import (
+        get_modello,
+        campi_base_visibili,
+        campi_extra_modello,
+        opzioni_campo,
+        suggested_attachments_for_model,
+        suggested_clauses_for_model,
+        validation_rules_for_model,
+    )
+    model = get_modello(model_code)
+    clienti = get_clienti().tutti()
+    fascicoli = get_fascicoli().tutti()
+    utenti = get_utenti().tutti(solo_attivi=True)
+    base_fields = campi_base_visibili()
+    extra_fields = campi_extra_modello(model_code)
+    field_options = {}
+    for field in base_fields + extra_fields:
+        if field["type"] == "select":
+            field_options[field["name"]] = opzioni_campo(
+                field["name"],
+                fascicoli=fascicoli,
+                utenti=utenti,
+                model=model,
+            )
+    form_values = {key: _valore_form(value) for key, value in payload.items()}
+    return {
+        "model": model,
+        "clienti": clienti,
+        "fascicoli": fascicoli,
+        "utenti": utenti,
+        "base_fields": base_fields,
+        "extra_fields": extra_fields,
+        "field_options": field_options,
+        "form_values": form_values,
+        "payload": payload,
+        "errors": errors or {},
+        "selected_cliente": selected_cliente,
+        "selected_fascicolo": selected_fascicolo,
+        "suggested_attachments": suggested_attachments_for_model(model_code),
+        "suggested_clauses": suggested_clauses_for_model(model_code),
+        "validation_rules": validation_rules_for_model(model_code),
+    }
+
+
 # ================================================================ LISTA
 
 @template_atti.route("/", methods=["GET"])
@@ -51,10 +103,12 @@ def lista():
     gt = _get_gt()
     templates = gt.tutti()
     from pct.template_atti import CATEGORIE
+    from pct.compilatore_atti import modelli_per_area
     return render_template(
         "template_atti/lista.html",
         templates=templates,
         categorie=CATEGORIE,
+        modelli_compilatore=modelli_per_area(),
     )
 
 
@@ -201,6 +255,94 @@ def usa(id_template: str):
     )
 
 
+@template_atti.route("/compila/<model_code>", methods=["GET", "POST"])
+@_richiedi_login
+def compila(model_code: str):
+    from pct.compilatore_atti import (
+        get_modello,
+        prefill_payload,
+        merge_payload_with_form,
+        validate_payload,
+        render_compiled_act,
+    )
+    model = get_modello(model_code)
+    if not model:
+        abort(404)
+
+    id_cliente = request.values.get("id_cliente", "").strip()
+    id_fascicolo = request.values.get("id_fascicolo", "").strip()
+
+    clienti_repo = get_clienti()
+    fascicoli_repo = get_fascicoli()
+    selected_cliente = clienti_repo.get(id_cliente) if id_cliente else None
+    selected_fascicolo = fascicoli_repo.get(id_fascicolo) if id_fascicolo else None
+    if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
+        selected_cliente = clienti_repo.get(selected_fascicolo.id_cliente)
+        id_cliente = getattr(selected_cliente, "id", "") if selected_cliente else id_cliente
+
+    initial_payload = prefill_payload(
+        model_code,
+        fascicolo=selected_fascicolo,
+        cliente=selected_cliente,
+        utente=g.get("utente_corrente"),
+        config=current_app.config,
+    )
+
+    if request.method == "POST":
+        form_data = request.form.to_dict(flat=True)
+        form_data["case_id"] = id_fascicolo
+        if id_cliente and not form_data.get("client_or_sender"):
+            form_data["client_or_sender"] = getattr(selected_cliente, "nome_completo", "")
+        payload = merge_payload_with_form(
+            model_code,
+            initial_payload=initial_payload,
+            form_data=form_data,
+        )
+        errors = validate_payload(model_code, payload)
+        if errors:
+            flash("Completa i campi obbligatori evidenziati prima di generare l'atto.", "warning")
+            ctx = _contesto_compilatore(
+                model_code,
+                payload=payload,
+                selected_cliente=selected_cliente,
+                selected_fascicolo=selected_fascicolo,
+                errors=errors,
+            )
+            return render_template(
+                "template_atti/compilatore.html",
+                **ctx,
+            )
+
+        testo_generato = render_compiled_act(model_code, payload)
+        ctx = _contesto_compilatore(
+            model_code,
+            payload=payload,
+            selected_cliente=selected_cliente,
+            selected_fascicolo=selected_fascicolo,
+        )
+        return render_template(
+            "template_atti/anteprima_compilatore.html",
+            model=model,
+            payload=payload,
+            form_values={key: _valore_form(value) for key, value in payload.items()},
+            testo_generato=testo_generato,
+            selected_cliente=selected_cliente,
+            selected_fascicolo=selected_fascicolo,
+            suggested_attachments=ctx["suggested_attachments"],
+            suggested_clauses=ctx["suggested_clauses"],
+        )
+
+    return render_template(
+        "template_atti/compilatore.html",
+        **_contesto_compilatore(
+            model_code,
+            payload=initial_payload,
+            selected_cliente=selected_cliente,
+            selected_fascicolo=selected_fascicolo,
+        ),
+    )
+
+
 # ================================================================ PDF
 
 @template_atti.route("/<id_template>/pdf", methods=["POST"])
@@ -212,6 +354,21 @@ def pdf(id_template: str):
         abort(404)
     testo = request.form.get("testo_generato", "")
     titolo = t.titolo
+    buf = _genera_pdf(titolo, testo, current_app.config)
+    nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
+    return send_file(buf, mimetype="application/pdf",
+                     as_attachment=False, download_name=nome_file)
+
+
+@template_atti.route("/compila/<model_code>/pdf", methods=["POST"])
+@_richiedi_login
+def compila_pdf(model_code: str):
+    from pct.compilatore_atti import get_modello
+    model = get_modello(model_code)
+    if not model:
+        abort(404)
+    testo = request.form.get("testo_generato", "")
+    titolo = request.form.get("title", "") or model["name"]
     buf = _genera_pdf(titolo, testo, current_app.config)
     nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
     return send_file(buf, mimetype="application/pdf",

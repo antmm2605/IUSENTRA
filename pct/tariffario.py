@@ -64,6 +64,12 @@ class LivelloCompenso(str, Enum):
     MASSIMO = "massimo"
 
 
+class ComplessitaStimata(str, Enum):
+    BASSA = "bassa"
+    MEDIA = "media"
+    ALTA = "alta"
+
+
 @dataclass
 class ScaglioneFase:
     base: float
@@ -106,6 +112,9 @@ class RisultatoCalcolo:
     variazioni_fasi: Dict[str, float] = field(default_factory=dict)
     bonus_telematico_attivo: bool = False
     includi_spese_generali: bool = True
+    valore_input: float = 0.0
+    valore_calcolo: float = 0.0
+    complessita_stimata: str = ""
 
     def _indice_livello(self, livello: LivelloCompenso | str) -> int:
         value = livello.value if isinstance(livello, LivelloCompenso) else str(livello or LivelloCompenso.BASE.value)
@@ -154,6 +163,9 @@ class RisultatoCalcolo:
             "materia": self.materia,
             "grado": self.grado,
             "valore_controversia": self.valore_controversia,
+            "valore_input": self.valore_input,
+            "valore_calcolo": self.valore_calcolo,
+            "complessita_stimata": self.complessita_stimata,
             "scaglione": self.scaglione,
             "fasi_selezionate": self.fasi_selezionate,
             "dettaglio": {k: list(v) for k, v in self.dettaglio.items()},
@@ -210,6 +222,33 @@ _GRADO_COEFF_APPROSSIMATI = {
 
 def _sc(valore: float) -> ScaglioneFase:
     return ScaglioneFase(base=float(valore))
+
+
+_COMPLESSITA_VIRTUAL_VALUE = {
+    ComplessitaStimata.BASSA: 39000.0,
+    ComplessitaStimata.MEDIA: 156000.0,
+    ComplessitaStimata.ALTA: 390000.0,
+}
+
+
+def _parse_complessita(value: ComplessitaStimata | str | None) -> ComplessitaStimata | None:
+    if isinstance(value, ComplessitaStimata):
+        return value
+    if value in (None, ""):
+        return None
+    try:
+        return ComplessitaStimata(str(value).strip().lower())
+    except ValueError:
+        return None
+
+
+def valore_virtuale_indeterminabile(
+    complessita: ComplessitaStimata | str | None,
+) -> tuple[float, ComplessitaStimata | None]:
+    complessita_norm = _parse_complessita(complessita)
+    if not complessita_norm:
+        return 0.0, None
+    return _COMPLESSITA_VIRTUAL_VALUE[complessita_norm], complessita_norm
 
 
 @lru_cache(maxsize=1)
@@ -568,6 +607,7 @@ def calcola_compenso(
     includi_spese_generali: bool = True,
     perc_spese_generali: float = 0.15,
     variazioni_fasi: Optional[Dict[str, float]] = None,
+    complessita: ComplessitaStimata | str | None = None,
 ) -> RisultatoCalcolo:
     """Calcola il compenso forense secondo DM 147/2022.
 
@@ -578,6 +618,9 @@ def calcola_compenso(
     """
     tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado)
     _variazioni = variazioni_fasi or {}
+    valore_input = float(valore or 0.0)
+    valore_calcolo = valore_input
+    complessita_norm = _parse_complessita(complessita)
 
     _mediaz = {Materia.MEDIAZIONE, Materia.NEGOZIAZIONE_ASSISTITA}
     if materia == Materia.STRAGIUD:
@@ -588,9 +631,27 @@ def calcola_compenso(
     else:
         fasi_richieste = [fase.value for fase in fasi]
 
+    materie_con_scaglione_virtuale = {
+        Materia.CIVILE_COGN,
+        Materia.LAVORO,
+        Materia.PREVIDENZA,
+        Materia.ESEC_IMMO,
+        Materia.ESEC_MOB,
+        Materia.VOLONTARIA,
+        Materia.AMMINISTRATIVO,
+        Materia.TRIBUTARIO,
+    }
+    if valore_calcolo <= 0 and materia in materie_con_scaglione_virtuale and complessita_norm:
+        valore_calcolo, _ = valore_virtuale_indeterminabile(complessita_norm)
+        note_parts.append(
+            "Valore non determinato: per il calcolo HACS ha collocato la pratica nello scaglione "
+            f"compatibile con complessita {complessita_norm.value}, secondo la logica di valore "
+            "indeterminabile del D.M. 55/2014."
+        )
+
     sc = tabella[-1]
     for scaglione in tabella:
-        if valore <= scaglione.valore_a:
+        if valore_calcolo <= scaglione.valore_a:
             sc = scaglione
             break
 
@@ -646,7 +707,7 @@ def calcola_compenso(
     return RisultatoCalcolo(
         materia=materia.value,
         grado=grado.value,
-        valore_controversia=valore,
+        valore_controversia=valore_calcolo,
         scaglione=sc.label,
         fasi_selezionate=list(dettaglio.keys()),
         dettaglio=dettaglio,
@@ -661,6 +722,9 @@ def calcola_compenso(
         variazioni_fasi=dict(_variazioni),
         bonus_telematico_attivo=bonus_telematico,
         includi_spese_generali=includi_spese_generali,
+        valore_input=valore_input,
+        valore_calcolo=valore_calcolo,
+        complessita_stimata=complessita_norm.value if complessita_norm else "",
     )
 
 
@@ -670,6 +734,10 @@ def tutte_le_materie() -> List[Materia]:
 
 def tutti_i_gradi() -> List[Grado]:
     return list(Grado)
+
+
+def tutte_le_complessita() -> List[ComplessitaStimata]:
+    return list(ComplessitaStimata)
 
 
 def tutte_le_fasi() -> List[Fase]:

@@ -192,20 +192,14 @@
               <input type="number" name="valore_controversia" id="inpValore" class="form-control"
                      min="0" step="0.01" placeholder="0.00">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Regola tariffaria / competenza</label>
+              <select id="selRegolaTariffaria" class="form-select"></select>
+              <div class="form-text">Collega la tipologia alla competenza per giurisdizione o rito applicabile.</div>
+            </div>
+            <div class="col-md-2">
               <label class="form-label fw-semibold">Grado / sede</label>
-              <select id="selGrado" class="form-select">
-                <option value="Giudice di Pace">Giudice di Pace</option>
-                <option value="Tribunale" selected>Tribunale</option>
-                <option value="Corte d'Appello">Corte d'Appello</option>
-                <option value="Corte di Cassazione">Corte di Cassazione</option>
-                <option value="TAR">TAR</option>
-                <option value="Consiglio di Stato">Consiglio di Stato</option>
-                <option value="CGT di primo grado">CGT di primo grado</option>
-                <option value="CGT di secondo grado">CGT di secondo grado</option>
-                <option value="Fuori giudizio">Fuori giudizio</option>
-                <option value="Procedura ADR">Procedura ADR</option>
-              </select>
+              <select id="selGrado" class="form-select"></select>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-semibold">Livello compenso</label>
@@ -387,6 +381,65 @@ function phaseLabel(key) {
     conciliazione: 'Conciliazione',
   };
   return map[key] || key;
+}
+
+function currentRegolaTariffaria() {
+  if (!tipologiaCorrente) return null;
+  const select = document.getElementById('selRegolaTariffaria');
+  const rows = (tipologiaCorrente.regole_tariffarie || []).length
+    ? (tipologiaCorrente.regole_tariffarie || [])
+    : [{
+        rule_code: '',
+        label: 'Regola standard del motore',
+        summary: tipologiaCorrente.base_normativa || '',
+        grado_input_value: tipologiaCorrente.grado_default || 'Tribunale',
+        allowed_grade_input_values: tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale'],
+      }];
+  return rows.find((item) => item.rule_code === select.value) || rows[0] || null;
+}
+
+function renderRegoleTariffarie() {
+  const select = document.getElementById('selRegolaTariffaria');
+  if (!tipologiaCorrente) {
+    select.innerHTML = '<option value="">Seleziona prima una tipologia</option>';
+    select.disabled = true;
+    return;
+  }
+  const rows = (tipologiaCorrente.regole_tariffarie || []).length
+    ? (tipologiaCorrente.regole_tariffarie || [])
+    : [{
+        rule_code: '',
+        label: 'Regola standard del motore',
+        summary: tipologiaCorrente.base_normativa || '',
+        grado_input_value: tipologiaCorrente.grado_default || 'Tribunale',
+        allowed_grade_input_values: tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale'],
+      }];
+  const preferred = select.dataset.selected
+    || (WIZARD_PREFILL.regola_tariffaria || '')
+    || tipologiaCorrente.regola_tariffaria_default
+    || rows[0].rule_code;
+  select.disabled = false;
+  select.innerHTML = rows.map((row) => `<option value="${escapeHtml(row.rule_code)}">${escapeHtml(row.label)}</option>`).join('');
+  const target = rows.find((row) => row.rule_code === preferred) || rows[0];
+  select.value = target.rule_code;
+}
+
+function renderGradiTariffari() {
+  const select = document.getElementById('selGrado');
+  if (!tipologiaCorrente) {
+    select.innerHTML = '<option value="">Seleziona prima una tipologia</option>';
+    select.disabled = true;
+    return;
+  }
+  const regola = currentRegolaTariffaria();
+  const gradi = (regola?.allowed_grade_input_values && regola.allowed_grade_input_values.length)
+    ? regola.allowed_grade_input_values
+    : (tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale']);
+  const preferred = select.dataset.selected || WIZARD_PREFILL.grado || regola?.grado_input_value || tipologiaCorrente.grado_default || gradi[0];
+  const selected = gradi.includes(preferred) ? preferred : (regola?.grado_input_value && gradi.includes(regola.grado_input_value) ? regola.grado_input_value : gradi[0]);
+  select.disabled = false;
+  select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');
+  select.value = selected;
 }
 
 function fascicoloOptionLabel(meta) {
@@ -573,41 +626,51 @@ function selezionaTipologia(idTipologia) {
   if (!tipologiaCorrente) return;
   clearAccessorioRows();
   areaCorrente = tipologiaCorrente.area || areaCorrente;
-  document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
-  document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
-  document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
-  document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
-  renderAreaButtons();
-  renderTipologie();
-  renderSchedaTipologia();
-  renderFasi();
-  renderEsborsi();
-  applicaSuggerimenti();
-  aggiornaVisibilitaValore();
-  aggiornaPlaceholderValore();
-  aggiornaGradoDefault();
-  ultimoCalcolo = null;
-}
+    document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
+    document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
+    document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
+    document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
+    const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
+    const selGrado = document.getElementById('selGrado');
+    const regolaPrefill = (tipologiaCorrente.regole_tariffarie || []).some((row) => row.rule_code === WIZARD_PREFILL.regola_tariffaria)
+      ? WIZARD_PREFILL.regola_tariffaria
+      : '';
+    selRegolaTariffaria.dataset.selected = regolaPrefill;
+    selGrado.dataset.selected = WIZARD_PREFILL.grado || tipologiaCorrente.grado_default || '';
+    renderAreaButtons();
+    renderTipologie();
+    aggiornaGradoDefault();
+    renderSchedaTipologia();
+    renderFasi();
+    renderEsborsi();
+    applicaSuggerimenti();
+    aggiornaVisibilitaValore();
+    aggiornaPlaceholderValore();
+    ultimoCalcolo = null;
+  }
 
 function renderSchedaTipologia() {
   const target = document.getElementById('schedaTipologia');
   const checklist = document.getElementById('checklistList');
   const normativa = document.getElementById('normativaList');
+  const regola = currentRegolaTariffaria();
   if (!tipologiaCorrente) {
-    target.textContent = 'Seleziona una tipologia per vedere il dettaglio professionale.';
-    checklist.innerHTML = '<li>Seleziona una tipologia per attivare la checklist operativa.</li>';
-    normativa.textContent = 'Nessuna tipologia selezionata.';
-    return;
+      target.textContent = 'Seleziona una tipologia per vedere il dettaglio professionale.';
+      checklist.innerHTML = '<li>Seleziona una tipologia per attivare la checklist operativa.</li>';
+      normativa.textContent = 'Nessuna tipologia selezionata.';
+      return;
   }
   target.innerHTML = `
-    <div class="mb-2">
-      <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
-      <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
-      <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
-    </div>
-    <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
-    <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
-    <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
+      <div class="mb-2">
+        <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
+        <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
+        <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
+        ${regola ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(regola.label)}</span>` : ''}
+      </div>
+      <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
+      <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
+      ${regola?.summary ? `<div class="small text-muted mb-2">${escapeHtml(regola.summary)}</div>` : ''}
+      <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
   const accessori = accessoriCalcoloSelezionati();
   if (accessori.length) {
     target.innerHTML += accessori.map((accessorio) => `
@@ -621,10 +684,11 @@ function renderSchedaTipologia() {
     checklistItems.push(`integrazione attiva: ${accessorio.label.toLowerCase()}`);
   });
   checklist.innerHTML = checklistItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
-  const normativeRefs = dedupeNormativeReferences([
-    ...(tipologiaCorrente.normative_references || []),
-    ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
-  ]);
+    const normativeRefs = dedupeNormativeReferences([
+      ...(regola?.normative_references || []),
+      ...(tipologiaCorrente.normative_references || []),
+      ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
+    ]);
   normativa.innerHTML = normativeRefs.map((ref) => `
     <div class="border rounded-3 p-2">
       <div class="fw-semibold text-dark">${escapeHtml(ref.title || '')}</div>
@@ -725,8 +789,23 @@ function aggiornaPlaceholderValore() {
   input.placeholder = tipologiaCorrente && tipologiaCorrente.valore_suggerito ? `Suggerito: ${money(tipologiaCorrente.valore_suggerito)}` : '0.00';
 }
 
+function syncTipoProcedimentoHidden() {
+  const input = document.getElementById('inpTipoProcedimento');
+  const regola = currentRegolaTariffaria();
+  const grado = document.getElementById('selGrado').value || '';
+  if (!tipologiaCorrente) {
+    input.value = '';
+    return;
+  }
+  input.value = regola
+    ? `${regola.label}${grado ? ` — ${grado}` : ''}`
+    : `${tipologiaCorrente.label}${grado ? ` — ${grado}` : ''}`;
+}
+
 function aggiornaGradoDefault() {
-  if (tipologiaCorrente) document.getElementById('selGrado').value = tipologiaCorrente.grado_default || 'Tribunale';
+  renderRegoleTariffarie();
+  renderGradiTariffari();
+  syncTipoProcedimentoHidden();
 }
 
 function syncClienteRapidoUi() {
@@ -787,14 +866,23 @@ function applyWizardPrefill() {
     selezionaTipologia(WIZARD_PREFILL.id_pratica);
   }
 
-  if (WIZARD_PREFILL.valore) {
-    document.getElementById('inpValore').value = WIZARD_PREFILL.valore;
-  }
+    if (WIZARD_PREFILL.valore) {
+      document.getElementById('inpValore').value = WIZARD_PREFILL.valore;
+    }
+    if (WIZARD_PREFILL.regola_tariffaria) {
+      const selRegola = document.getElementById('selRegolaTariffaria');
+      selRegola.dataset.selected = WIZARD_PREFILL.regola_tariffaria;
+      renderRegoleTariffarie();
+      renderGradiTariffari();
+    }
     if (WIZARD_PREFILL.grado) {
       document.getElementById('selGrado').value = WIZARD_PREFILL.grado;
     }
     if (WIZARD_PREFILL.livello_compenso) {
       document.getElementById('selLivelloCompenso').value = WIZARD_PREFILL.livello_compenso;
+    }
+    if (WIZARD_PREFILL.complessita) {
+      document.getElementById('selComplessita').value = WIZARD_PREFILL.complessita;
     }
   if (WIZARD_PREFILL.tariffa_oraria) {
     document.getElementById('inpTariffaOraria').value = WIZARD_PREFILL.tariffa_oraria;
@@ -858,6 +946,7 @@ function applyWizardPrefill() {
   }
 
   prefillApplicato = true;
+  syncTipoProcedimentoHidden();
   recalcTotals();
 
   if (WIZARD_PREFILL.auto_calcola && tipologiaCorrente) {
@@ -967,7 +1056,9 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('id_pratica', idPratica || tipologiaCorrente.id);
   params.set('valore', document.getElementById('inpValore').value || 0);
   params.set('grado', document.getElementById('selGrado').value || '');
+  params.set('regola_tariffaria', document.getElementById('selRegolaTariffaria').value || '');
   params.set('livello_compenso', document.getElementById('selLivelloCompenso').value || 'base');
+  params.set('complessita', document.getElementById('selComplessita').value || 'media');
   params.set('bonus_telematico', document.getElementById('chkBonusTelematico').checked ? '1' : '0');
   params.set('spese_generali', document.getElementById('chkSpeseGenerali').checked ? '1' : '0');
   params.set('perc_spese_generali', document.getElementById('inpPercSpese').value || '15');
@@ -1109,6 +1200,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clienteSelect = document.getElementById('selectCliente');
   const chkClienteRapido = document.getElementById('chkClienteRapido');
   const selClienteRapidoTipo = document.getElementById('selClienteRapidoTipo');
+  const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
+  const selGrado = document.getElementById('selGrado');
   renderAreaButtons();
   renderTipologie();
   renderContestoFascicolo();
@@ -1131,8 +1224,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
     document.getElementById('chkCassa').addEventListener('change', recalcTotals);
     document.getElementById('chkIva').addEventListener('change', recalcTotals);
+    selRegolaTariffaria.addEventListener('change', () => {
+      selGrado.dataset.selected = '';
+      renderGradiTariffari();
+      renderSchedaTipologia();
+      renderEsborsi();
+      syncTipoProcedimentoHidden();
+    });
+    selGrado.addEventListener('change', syncTipoProcedimentoHidden);
     document.getElementById('selLivelloCompenso').addEventListener('change', () => {
       if (tipologiaCorrente && (ultimoCalcolo || (tipologiaCorrente.tipo_compenso_default || '').toLowerCase().includes('orario'))) {
+        calcolaPreventivo();
+      }
+    });
+    document.getElementById('selComplessita').addEventListener('change', () => {
+      if (tipologiaCorrente && ultimoCalcolo) {
         calcolaPreventivo();
       }
     });

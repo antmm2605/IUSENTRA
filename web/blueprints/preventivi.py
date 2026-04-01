@@ -832,7 +832,9 @@ def wizard():
         "area": area_prefill,
         "valore": request.args.get("valore", "").strip(),
         "grado": request.args.get("grado", "").strip(),
+        "regola_tariffaria": request.args.get("regola_tariffaria", "").strip(),
         "livello_compenso": request.args.get("livello_compenso", "base").strip() or "base",
+        "complessita": request.args.get("complessita", "media").strip() or "media",
         "fasi": fasi_prefill,
         "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
         "spese_generali": request.args.get("spese_generali", "1") == "1",
@@ -902,7 +904,9 @@ def wizard_calcola():
         id_pratica = request.args.get("id_pratica", "")
         valore = float(request.args.get("valore", 0) or 0)
         grado_raw = request.args.get("grado", "")
+        regola_tariffaria = request.args.get("regola_tariffaria", "").strip()
         livello_raw = request.args.get("livello_compenso", "base")
+        complessita = request.args.get("complessita", "media").strip() or "media"
         fasi_raw = request.args.get("fasi", "")
         bonus_tel = request.args.get("bonus_telematico", "0") == "1"
         incl_spese = request.args.get("spese_generali", "1") == "1"
@@ -978,6 +982,7 @@ def wizard_calcola():
             grado=grado,
             fasi=fasi,
             livello_compenso=livello,
+            complessita=complessita,
             bonus_telematico=bonus_tel,
             includi_spese_generali=incl_spese,
             perc_spese_generali=perc_sg,
@@ -1015,6 +1020,8 @@ def wizard_calcola():
             "applica_cpa":           ris.applica_cpa,
             "applica_iva":           ris.applica_iva,
             "livello_compenso":      ris.livello_compenso,
+            "complessita":           complessita,
+            "regola_tariffaria":     regola_tariffaria,
             "nota":                  dm.note,
             "base_normativa":        tp.base_normativa,
         })

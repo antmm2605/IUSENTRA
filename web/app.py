@@ -2291,12 +2291,18 @@ def create_app(config: dict | None = None) -> Flask:
     @app.route("/tariffario", methods=["GET", "POST"])
     def tariffario():
         from pct.motore_preventivo import catalogo_wizard, get_tipo_pratica, motore_calcola
-        from pct.tariffario import Fase, Grado, LivelloCompenso, Materia, calcola_compenso
+        from pct.tariffario import ComplessitaStimata, Fase, Grado, LivelloCompenso, Materia, calcola_compenso
         from pct.tariffario_catalogo import (
             first_profile_for_materia,
+            first_rule_for_materia,
             grade_catalog_by_materia,
+            grade_catalog_for_rule,
             phase_catalog_by_materia,
             profile_lookup_by_labels,
+            profile_lookup_by_rule,
+            rule_catalog_by_materia,
+            rule_lookup,
+            tariffario_complessita_rows,
         )
         from web.helpers import get_normative_tables
 
@@ -2381,6 +2387,8 @@ def create_app(config: dict | None = None) -> Flask:
         materie = [m.value for m in Materia]
         phase_catalog = phase_catalog_by_materia()
         grade_catalog = grade_catalog_by_materia()
+        rule_catalog = rule_catalog_by_materia()
+        complessita_catalog = tariffario_complessita_rows()
         pratiche_catalogo = catalogo_wizard()
         pratiche_by_id = {
             item["id"]: item
@@ -2388,9 +2396,21 @@ def create_app(config: dict | None = None) -> Flask:
             for item in items
         }
         materia_sel = request.form.get("materia", "") or (materie[0] if materie else "")
-        grade_defaults = grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value]
-        grado_sel = request.form.get("grado", "") or grade_defaults[0]
+        rule_defaults = rule_catalog.get(materia_sel) or []
+        regola_tariffaria_sel = request.form.get("regola_tariffaria", "").strip() or (rule_defaults[0]["rule_code"] if rule_defaults else "")
+        regola_attiva = rule_lookup(regola_tariffaria_sel) or first_rule_for_materia(materia_sel)
+        if regola_attiva and not regola_tariffaria_sel:
+            regola_tariffaria_sel = regola_attiva.get("rule_code", "")
+        grade_defaults = (
+            grade_catalog_for_rule(regola_tariffaria_sel)
+            or grade_catalog.get(materia_sel)
+            or [Grado.TRIBUNALE.value]
+        )
+        grado_sel = request.form.get("grado", "").strip() or (regola_attiva.get("grado_input_value", "") if regola_attiva else "") or grade_defaults[0]
+        if grado_sel not in grade_defaults:
+            grado_sel = grade_defaults[0]
         livello_compenso_sel = _parse_level(request.form.get("livello_compenso", LivelloCompenso.BASE.value))
+        complessita_sel = request.form.get("complessita", ComplessitaStimata.MEDIA.value).strip() or ComplessitaStimata.MEDIA.value
         valore_str = request.form.get("valore", "0").replace(",", ".").strip()
         fasi_sel = request.form.getlist("fasi")
         bonus_tel = request.form.get("bonus_telematico") == "1"
@@ -2403,8 +2423,14 @@ def create_app(config: dict | None = None) -> Flask:
         fasi_valide = phase_catalog.get(materia_sel) or []
         if not fasi_sel:
             fasi_sel = [item["value"] for item in fasi_valide]
-        profilo_attivo = profile_lookup_by_labels(materia_sel, grado_sel) or first_profile_for_materia(materia_sel)
-        tipo_pratica_attiva = get_tipo_pratica(profilo_attivo.get("suggested_practice_id", "")) if profilo_attivo else None
+        profilo_attivo = (
+            profile_lookup_by_rule(regola_tariffaria_sel, grado_sel)
+            or profile_lookup_by_labels(materia_sel, grado_sel)
+            or first_profile_for_materia(materia_sel)
+        )
+        tipo_pratica_attiva = get_tipo_pratica((regola_attiva or {}).get("suggested_practice_id", "")) if regola_attiva else None
+        if not tipo_pratica_attiva and profilo_attivo:
+            tipo_pratica_attiva = get_tipo_pratica(profilo_attivo.get("suggested_practice_id", ""))
         esborsi_catalogo = _esborsi_catalogo(tipo_pratica_attiva, accessori_sel)
         esborsi_sel_set = set(esborsi_sel)
         righe_calcolo = []
@@ -2413,8 +2439,13 @@ def create_app(config: dict | None = None) -> Flask:
         if request.method == "POST":
             try:
                 materia = Materia(materia_sel)
-                if grado_sel not in (grade_catalog.get(materia_sel) or []):
-                    grado_sel = (grade_catalog.get(materia_sel) or [Grado.TRIBUNALE.value])[0]
+                grade_defaults = (
+                    grade_catalog_for_rule(regola_tariffaria_sel)
+                    or grade_catalog.get(materia_sel)
+                    or [Grado.TRIBUNALE.value]
+                )
+                if grado_sel not in grade_defaults:
+                    grado_sel = grade_defaults[0]
                 grado = Grado(grado_sel)
                 valore = _parse_float(valore_str, 0.0)
                 fasi = []
@@ -2433,9 +2464,17 @@ def create_app(config: dict | None = None) -> Flask:
                     bonus_telematico=bonus_tel,
                     includi_spese_generali=spese_gen,
                     perc_spese_generali=max(0.0, perc_spese / 100.0),
+                    complessita=complessita_sel,
                 )
-                profilo_attivo = profile_lookup_by_labels(materia_sel, grado_sel) or first_profile_for_materia(materia_sel)
-                tipo_pratica_attiva = get_tipo_pratica(profilo_attivo.get("suggested_practice_id", "")) if profilo_attivo else None
+                regola_attiva = rule_lookup(regola_tariffaria_sel) or first_rule_for_materia(materia_sel)
+                profilo_attivo = (
+                    profile_lookup_by_rule(regola_tariffaria_sel, grado_sel)
+                    or profile_lookup_by_labels(materia_sel, grado_sel)
+                    or first_profile_for_materia(materia_sel)
+                )
+                tipo_pratica_attiva = get_tipo_pratica((regola_attiva or {}).get("suggested_practice_id", "")) if regola_attiva else None
+                if not tipo_pratica_attiva and profilo_attivo:
+                    tipo_pratica_attiva = get_tipo_pratica(profilo_attivo.get("suggested_practice_id", ""))
                 esborsi_catalogo = _esborsi_catalogo(tipo_pratica_attiva, accessori_sel)
                 esborsi_sel_set = set(esborsi_sel)
 
@@ -2474,6 +2513,7 @@ def create_app(config: dict | None = None) -> Flask:
                         id_pratica=accessorio.get("tipo_pratica_id", ""),
                         valore_controversia=valore,
                         livello_compenso=livello_compenso_sel,
+                        complessita=complessita_sel,
                         bonus_telematico=bonus_tel,
                         includi_spese_generali=spese_gen,
                         perc_spese_generali=max(0.0, perc_spese / 100.0),
@@ -2556,10 +2596,12 @@ def create_app(config: dict | None = None) -> Flask:
                 id_pratica=profilo_attivo.get("suggested_practice_id", ""),
                 area=(tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel),
                 valore=valore_str or "0",
-                grado=grado_sel,
-                livello_compenso=livello_compenso_sel.value,
-                fasi=",".join(fasi_sel),
-                bonus_telematico="1" if bonus_tel else "0",
+                  grado=grado_sel,
+                  livello_compenso=livello_compenso_sel.value,
+                  regola_tariffaria=regola_tariffaria_sel,
+                  complessita=complessita_sel,
+                  fasi=",".join(fasi_sel),
+                  bonus_telematico="1" if bonus_tel else "0",
                 spese_generali="1" if spese_gen else "0",
                 perc_spese_generali=str(int(round(perc_spese))),
                 applica_cpa="1",
@@ -2584,9 +2626,12 @@ def create_app(config: dict | None = None) -> Flask:
             "tariffario.html",
             materie=materie,
             grade_catalog=grade_catalog,
+            rule_catalog=rule_catalog,
+            complessita_catalog=complessita_catalog,
             phase_catalog=phase_catalog,
             risultato=risultato,
             profilo_attivo=profilo_attivo,
+            regola_attiva=regola_attiva,
             tariffario_tables=tariffario_tables,
             tariffario_profili=tariffario_profili,
             opzioni_tariffario=opzioni_tariffario,
@@ -2596,7 +2641,9 @@ def create_app(config: dict | None = None) -> Flask:
             tipo_pratica_attiva=tipo_pratica_attiva.to_dict() if tipo_pratica_attiva else None,
             materia_sel=materia_sel,
             grado_sel=grado_sel,
+            regola_tariffaria_sel=regola_tariffaria_sel,
             livello_compenso_sel=livello_compenso_sel.value,
+            complessita_sel=complessita_sel,
             valore_str=valore_str,
             fasi_sel=fasi_sel,
             bonus_tel=bonus_tel,

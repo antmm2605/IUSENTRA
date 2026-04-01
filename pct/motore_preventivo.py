@@ -24,6 +24,7 @@ from pct.tariffario import (
     RisultatoCalcolo,
     calcola_compenso,
 )
+from pct.tariffario_catalogo import default_rule_for_practice, rules_for_practice
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -70,6 +71,15 @@ class TipoPratica:
     accessori_calcolo: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
+        regole = rules_for_practice(self.id)
+        regola_default = default_rule_for_practice(self.id)
+        gradi_consentiti = []
+        for regola in regole:
+            for grado in regola.get("allowed_grade_input_values", []) or []:
+                if grado not in gradi_consentiti:
+                    gradi_consentiti.append(grado)
+        if not gradi_consentiti:
+            gradi_consentiti = [self.grado_default.value]
         return {
             "id": self.id,
             "label": self.label,
@@ -92,6 +102,9 @@ class TipoPratica:
             "normative_references": self.normative_references,
             "accessori_calcolo": self.accessori_calcolo,
             "fasi_default_keys": [_fase_key(f) for f in self.fasi_default],
+            "gradi_consentiti": gradi_consentiti,
+            "regola_tariffaria_default": regola_default.get("rule_code", "") if regola_default else "",
+            "regole_tariffarie": regole,
         }
 
 
@@ -297,7 +310,7 @@ CATALOGO: List[TipoPratica] = [
         label="Sfratto per morosita / convalida",
         area="Civile",
         materia=Materia.CIVILE_COGN,
-        grado_default=Grado.FUORI_GIUDIZIO,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
         base_normativa="Tab. A2 DM 55/2014 — artt. 657 ss. c.p.c.",
     ),
@@ -306,7 +319,7 @@ CATALOGO: List[TipoPratica] = [
         label="Risarcimento danni",
         area="Civile",
         materia=Materia.CIVILE_COGN,
-        grado_default=Grado.TAR,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A2 DM 55/2014 — artt. 2043 e 2054 c.c.",
     ),
@@ -318,7 +331,7 @@ CATALOGO: List[TipoPratica] = [
         label="Controversia di lavoro",
         area="Civile",
         materia=Materia.LAVORO,
-        grado_default=Grado.TAR,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A3 DM 55/2014 agg. DM 147/2022 — art. 409 c.p.c.",
     ),
@@ -327,7 +340,7 @@ CATALOGO: List[TipoPratica] = [
         label="Licenziamento (impugnazione)",
         area="Civile",
         materia=Materia.LAVORO,
-        grado_default=Grado.TAR,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A3 DM 55/2014 — L. 300/1970 art. 18 / D.Lgs. 23/2015",
     ),
@@ -336,7 +349,7 @@ CATALOGO: List[TipoPratica] = [
         label="Differenze retributive",
         area="Civile",
         materia=Materia.LAVORO,
-        grado_default=Grado.FUORI_GIUDIZIO,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A3 DM 55/2014 — art. 36 Cost.",
     ),
@@ -354,7 +367,7 @@ CATALOGO: List[TipoPratica] = [
         label="Previdenza (INPS / INAIL / fondi)",
         area="Civile",
         materia=Materia.PREVIDENZA,
-        grado_default=Grado.FUORI_GIUDIZIO,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A4 DM 55/2014 agg. DM 147/2022 — artt. 442 ss. c.p.c.",
     ),
@@ -1538,6 +1551,7 @@ def motore_calcola(
     grado: Optional[Grado] = None,
     fasi: Optional[List[Fase]] = None,
     livello_compenso: LivelloCompenso | str = LivelloCompenso.BASE,
+    complessita: str = "",
     bonus_telematico: bool = False,
     includi_spese_generali: bool = True,
     perc_spese_generali: float = 0.15,
@@ -1554,6 +1568,7 @@ def motore_calcola(
         grado: override grado (default: grado_default del tipo pratica)
         fasi: override fasi (default: fasi_default del tipo pratica)
         livello_compenso: minimo / base / massimo da usare come livello operativo
+        complessita: bassa / media / alta per pratiche a valore indeterminabile
         bonus_telematico: +30% per deposito con ricerca testuale
         includi_spese_generali: applica spese generali art. 2 DM 55/2014
         perc_spese_generali: percentuale (default 15%)
@@ -1578,6 +1593,7 @@ def motore_calcola(
         includi_spese_generali=includi_spese_generali,
         perc_spese_generali=perc_spese_generali,
         variazioni_fasi=variazioni_fasi or None,
+        complessita=complessita,
     )
 
     livello = livello_compenso if isinstance(livello_compenso, LivelloCompenso) else LivelloCompenso(str(livello_compenso or LivelloCompenso.BASE.value))

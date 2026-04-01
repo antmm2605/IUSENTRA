@@ -102,3 +102,26 @@ def test_catalogo_wizard_espone_gradi_specializzati_per_tariffario_e_preventivi(
     assert cautelare_tar["grado_default"] == "TAR"
     assert cassazione_tributaria["grado_default"] == "Corte di Cassazione"
     assert consulenza["grado_default"] == "Fuori giudizio"
+
+
+def test_catalogo_wizard_espone_regole_tariffarie_e_gradi_consentiti():
+    scheda = redattore_preventivo_iniziale("atto_citazione")
+
+    assert scheda["regole_tariffarie"]
+    assert scheda["regola_tariffaria_default"] == "civile_cognizione_primo_grado"
+    assert "Tribunale" in scheda["gradi_consentiti"]
+    assert "Giudice di Pace" in scheda["gradi_consentiti"]
+
+
+def test_default_grado_civile_lavoro_e_previdenza_sono_allineati_al_rito():
+    sfratto = redattore_preventivo_iniziale("sfratto_morosita")
+    lavoro = redattore_preventivo_iniziale("controversia_lavoro")
+    licenziamento = redattore_preventivo_iniziale("licenziamento")
+    previdenza = redattore_preventivo_iniziale("previdenza")
+    danni = redattore_preventivo_iniziale("risarcimento_danni")
+
+    assert sfratto["grado_default"] == "Tribunale"
+    assert lavoro["grado_default"] == "Tribunale"
+    assert licenziamento["grado_default"] == "Tribunale"
+    assert previdenza["grado_default"] == "Tribunale"
+    assert danni["grado_default"] == "Tribunale"

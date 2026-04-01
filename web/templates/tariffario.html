@@ -3,6 +3,24 @@
 {% block pct_modulo %}tariffario{% endblock %}
 
 {% block content %}
+<style>
+  .tf-choice-list { display: flex; flex-direction: column; gap: .75rem; }
+  .tf-choice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1rem;
+    padding: .95rem 1rem;
+    background: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .tf-choice-item:hover { border-color: rgba(13,110,253,.45); box-shadow: 0 .35rem .9rem rgba(13,110,253,.06); }
+  .tf-choice-item .amount { font-weight: 700; color: var(--bs-primary); white-space: nowrap; }
+  .tf-choice-item .meta { min-width: 0; flex: 1 1 auto; }
+  .tf-choice-item .meta .title { font-weight: 600; color: var(--bs-emphasis-color); }
+  .tf-choice-item .meta .description { font-size: .88rem; color: var(--bs-secondary-color); }
+</style>
 <div class="ds-ph mb-4">
   <div class="ds-ph-icon"><i class="bi bi-calculator"></i></div>
   <div class="ds-ph-body">
@@ -62,7 +80,7 @@
       <div class="card-body">
         <form method="post" id="tariffarioForm">
           <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-lg-3">
               <label class="form-label fw-semibold">Materia</label>
               <select id="selMateria" name="materia" class="form-select" required>
                 {% for materia in materie %}
@@ -70,11 +88,16 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Grado di giudizio</label>
+            <div class="col-lg-5">
+              <label class="form-label fw-semibold">Regola tariffaria / competenza</label>
+              <select id="selRegolaTariffaria" name="regola_tariffaria" class="form-select"></select>
+              <div class="form-text">Allinea materia, competenza per giurisdizione e pratica suggerita dal motore.</div>
+            </div>
+            <div class="col-lg-2">
+              <label class="form-label fw-semibold">Grado / sede</label>
               <select id="selGrado" name="grado" class="form-select" required></select>
             </div>
-            <div class="col-md-4">
+            <div class="col-lg-2">
               <label class="form-label fw-semibold">Valore controversia (EUR)</label>
               <input type="number" id="inpValore" name="valore" class="form-control"
                      min="0" step="0.01" value="{{ valore_str }}" placeholder="0.00">
@@ -95,6 +118,15 @@
                     <option value="base" {{ 'selected' if livello_compenso_sel == 'base' else '' }}>Base</option>
                     <option value="massimo" {{ 'selected' if livello_compenso_sel == 'massimo' else '' }}>Massimo</option>
                   </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small text-muted mb-1">Complessita stimata</label>
+                  <select name="complessita" id="selComplessita" class="form-select">
+                    {% for row in complessita_catalog %}
+                    <option value="{{ row.value }}" {{ 'selected' if complessita_sel == row.value else '' }}>{{ row.label }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="form-text">Usata quando il valore non e determinato e serve collocare lo scaglione in modo prudenziale.</div>
                 </div>
                 <div class="form-check form-switch mb-2">
                   <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
@@ -193,9 +225,15 @@
         {% set riepilogo_max = risultato.riepilogo_livello('massimo') %}
         <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
           <div><strong>Materia:</strong> {{ risultato.materia }}</div>
+          {% if regola_attiva %}
+          <div><strong>Regola:</strong> {{ regola_attiva.label }}</div>
+          {% endif %}
           <div><strong>Grado:</strong> {{ risultato.grado }}</div>
           <div><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
           <div><strong>Livello selezionato:</strong> {{ livello_compenso_sel|capitalize }}</div>
+          {% if risultato.complessita_stimata %}
+          <div><strong>Complessita:</strong> {{ risultato.complessita_stimata|capitalize }}</div>
+          {% endif %}
         </div>
 
         <div class="table-responsive">
@@ -409,11 +447,13 @@
 {% block extra_scripts %}
 <script>
 const GRADE_CATALOG = {{ grade_catalog|tojson }};
+const RULE_CATALOG = {{ rule_catalog|tojson }};
 const PHASE_CATALOG = {{ phase_catalog|tojson }};
 const PROFILE_ROWS = {{ tariffario_profili|tojson }};
 const PRACTICE_BY_ID = {{ pratiche_by_id|tojson }};
 const MATERIA_SEL = {{ materia_sel|tojson }};
 const GRADO_SEL = {{ grado_sel|tojson }};
+const REGOLA_SEL = {{ regola_tariffaria_sel|tojson }};
 const FASI_SEL = {{ fasi_sel|tojson }};
 const ACCESSORI_SEL = {{ accessori_sel|tojson }};
 const ESBORSI_SEL = {{ esborsi_sel|tojson }};
@@ -430,11 +470,38 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
-function renderGradi() {
+function currentRule() {
   const materia = document.getElementById('selMateria').value;
+  const ruleCode = document.getElementById('selRegolaTariffaria').value;
+  const rows = RULE_CATALOG[materia] || [];
+  return rows.find((item) => item.rule_code === ruleCode) || rows[0] || null;
+}
+
+function renderRegole() {
+  const materia = document.getElementById('selMateria').value;
+  const select = document.getElementById('selRegolaTariffaria');
+  const rows = RULE_CATALOG[materia] || [];
+  if (!rows.length) {
+    select.innerHTML = '<option value="">Regola non disponibile</option>';
+    return;
+  }
+  const preferred = select.dataset.selected || REGOLA_SEL;
+  select.innerHTML = rows.map((row) => `<option value="${escapeHtml(row.rule_code)}">${escapeHtml(row.label)}</option>`).join('');
+  const target = rows.find((row) => row.rule_code === preferred) || rows[0] || null;
+  if (target) {
+    select.value = target.rule_code;
+  }
+}
+
+function renderGradi() {
   const select = document.getElementById('selGrado');
-  const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
-  const selected = gradi.includes(select.dataset.selected || '') ? select.dataset.selected : (gradi.includes(GRADO_SEL) ? GRADO_SEL : gradi[0]);
+  const rule = currentRule();
+  const materia = document.getElementById('selMateria').value;
+  const gradi = (rule?.allowed_grade_input_values && rule.allowed_grade_input_values.length)
+    ? rule.allowed_grade_input_values
+    : (GRADE_CATALOG[materia] || ['Tribunale']);
+  const preferred = select.dataset.selected || GRADO_SEL || rule?.grado_input_value || gradi[0];
+  const selected = gradi.includes(preferred) ? preferred : (rule?.grado_input_value && gradi.includes(rule.grado_input_value) ? rule.grado_input_value : gradi[0]);
   select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');
   select.value = selected;
 }
@@ -458,12 +525,19 @@ function renderFasi() {
 function currentProfile() {
   const materia = document.getElementById('selMateria').value;
   const grado = document.getElementById('selGrado').value;
-  return PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
+  const rule = currentRule();
+  return PROFILE_ROWS.find((item) => rule && item.profile_code === rule.profile_code && item.grado_input_value === grado)
+    || PROFILE_ROWS.find((item) => rule && item.profile_code === rule.profile_code)
+    || PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
     || PROFILE_ROWS.find((item) => item.materia_label === materia)
     || null;
 }
 
 function currentPractice() {
+  const rule = currentRule();
+  if (rule?.suggested_practice_id && PRACTICE_BY_ID[rule.suggested_practice_id]) {
+    return PRACTICE_BY_ID[rule.suggested_practice_id];
+  }
   const profile = currentProfile();
   if (!profile) return null;
   return PRACTICE_BY_ID[profile.suggested_practice_id] || null;
@@ -499,6 +573,7 @@ function activeExpenseRows() {
 function renderProfilo() {
   const target = document.getElementById('profileBox');
   const row = currentProfile();
+  const rule = currentRule();
   const grado = document.getElementById('selGrado').value;
   if (!row) {
     target.innerHTML = '<div class="text-muted small">Nessun profilo disponibile per questa combinazione.</div>';
@@ -506,17 +581,19 @@ function renderProfilo() {
   }
   const practice = PRACTICE_BY_ID[row.suggested_practice_id];
   target.innerHTML = `
-    <div class="mb-2">
-      <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(row.table_label)}</span>
-      <span class="badge ${row.exact_snapshot ? 'bg-success-subtle text-success-emphasis' : 'bg-warning-subtle text-warning-emphasis'}">
-        ${row.exact_snapshot ? 'snapshot ufficiale' : 'profilo ricostruttivo'}
-      </span>
-    </div>
-    <div class="fw-semibold mb-1">${escapeHtml(row.summary || '')}</div>
-    <div class="small text-muted mb-3">${escapeHtml(row.base_note || '')}</div>
-    <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(practice?.label || row.suggested_practice_id || '')}</div>
-    <div class="small"><strong>Grado operativo:</strong> ${escapeHtml(row.grado_label || grado)}</div>
-  `;
+      <div class="mb-2">
+        <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(row.table_label)}</span>
+        ${rule ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(rule.label)}</span>` : ''}
+        <span class="badge ${row.exact_snapshot ? 'bg-success-subtle text-success-emphasis' : 'bg-warning-subtle text-warning-emphasis'}">
+          ${row.exact_snapshot ? 'snapshot ufficiale' : 'profilo ricostruttivo'}
+        </span>
+      </div>
+      <div class="fw-semibold mb-1">${escapeHtml(row.summary || '')}</div>
+      <div class="small text-muted mb-3">${escapeHtml(row.base_note || '')}</div>
+      ${rule?.summary ? `<div class="small text-muted mb-3">${escapeHtml(rule.summary)}</div>` : ''}
+      <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(practice?.label || row.suggested_practice_id || '')}</div>
+      <div class="small"><strong>Grado operativo:</strong> ${escapeHtml(grado)}</div>
+    `;
 }
 
 function renderAccessori() {
@@ -530,15 +607,15 @@ function renderAccessori() {
   const currentSelected = currentAccessoriSelection();
   const selected = currentSelected.size || accessoriInit ? currentSelected : new Set(ACCESSORI_SEL);
   accessoriInit = true;
-  box.innerHTML = (practice.accessori_calcolo || []).map((item) => `
-    <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100 mb-2">
-      <input class="form-check-input mt-1" type="checkbox" name="accessori" value="${escapeHtml(item.id)}" ${selected.has(item.id) ? 'checked' : ''}>
-      <span class="small">
-        <span class="fw-semibold d-block text-dark">${escapeHtml(item.label)}</span>
-        <span class="text-muted d-block">${escapeHtml(item.description || '')}</span>
-      </span>
-    </label>
-  `).join('');
+  box.innerHTML = `<div class="tf-choice-list">${(practice.accessori_calcolo || []).map((item) => `
+    <label class="tf-choice-item">
+        <input class="form-check-input mt-1" type="checkbox" name="accessori" value="${escapeHtml(item.id)}" ${selected.has(item.id) ? 'checked' : ''}>
+        <span class="meta">
+          <span class="title d-block">${escapeHtml(item.label)}</span>
+          <span class="description d-block">${escapeHtml(item.description || '')}</span>
+        </span>
+      </label>
+    `).join('')}</div>`;
   box.querySelectorAll('input[name="accessori"]').forEach((node) => {
     node.addEventListener('change', () => {
       renderExpenses();
@@ -558,15 +635,16 @@ function renderExpenses() {
   const currentSelected = new Set(Array.from(document.querySelectorAll('input[name="esborsi"]:checked')).map((node) => node.value));
   const selected = currentSelected.size || esborsiInit ? currentSelected : new Set(ESBORSI_SEL);
   esborsiInit = true;
-  box.innerHTML = rows.map((item) => `
-    <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100 mb-2">
-      <input class="form-check-input mt-1" type="checkbox" name="esborsi" value="${escapeHtml(item.key)}" ${selected.has(item.key) ? 'checked' : ''}>
-      <span class="small">
-        <span class="fw-semibold d-block text-dark">${escapeHtml(item.descrizione)}</span>
-        <span class="text-muted">${item.importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR</span>
-      </span>
-    </label>
-  `).join('');
+  box.innerHTML = `<div class="tf-choice-list">${rows.map((item) => `
+    <label class="tf-choice-item">
+        <input class="form-check-input mt-1" type="checkbox" name="esborsi" value="${escapeHtml(item.key)}" ${selected.has(item.key) ? 'checked' : ''}>
+        <span class="meta">
+          <span class="title d-block">${escapeHtml(item.descrizione)}</span>
+          <span class="description d-block">Seleziona per includerla nel totale operativo.</span>
+        </span>
+        <span class="amount">${item.importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR</span>
+      </label>
+    `).join('')}</div>`;
 }
 
 function updateManualEmptyState() {
@@ -608,26 +686,37 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
   updateManualEmptyState();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const selMateria = document.getElementById('selMateria');
-  const selGrado = document.getElementById('selGrado');
-  selGrado.dataset.selected = GRADO_SEL;
-  renderGradi();
-  renderFasi();
-  renderProfilo();
-  renderAccessori();
-  updateManualEmptyState();
-  selMateria.addEventListener('change', () => {
-    selGrado.dataset.selected = '';
+  document.addEventListener('DOMContentLoaded', () => {
+    const selMateria = document.getElementById('selMateria');
+    const selRegola = document.getElementById('selRegolaTariffaria');
+    const selGrado = document.getElementById('selGrado');
+    selRegola.dataset.selected = REGOLA_SEL;
+    selGrado.dataset.selected = GRADO_SEL;
+    renderRegole();
     renderGradi();
     renderFasi();
     renderProfilo();
     renderAccessori();
-  });
-  selGrado.addEventListener('change', () => {
-    renderProfilo();
-    renderAccessori();
-  });
+    updateManualEmptyState();
+    selMateria.addEventListener('change', () => {
+      selRegola.dataset.selected = '';
+      selGrado.dataset.selected = '';
+      renderRegole();
+      renderGradi();
+      renderFasi();
+      renderProfilo();
+      renderAccessori();
+    });
+    selRegola.addEventListener('change', () => {
+      selGrado.dataset.selected = '';
+      renderGradi();
+      renderProfilo();
+      renderAccessori();
+    });
+    selGrado.addEventListener('change', () => {
+      renderProfilo();
+      renderAccessori();
+    });
   document.getElementById('btnAddManualRow').addEventListener('click', () => addManualRow('', 'Onorario', ''));
   document.querySelectorAll('.btn-remove-manual').forEach((node) => {
     node.addEventListener('click', () => {

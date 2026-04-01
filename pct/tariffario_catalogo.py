@@ -79,6 +79,24 @@ GRADE_INPUT_BY_KEY = {
     "PROCEDURA_ADR": "Procedura ADR",
 }
 
+COMPLESSITA_ROWS = [
+    {
+        "value": "bassa",
+        "label": "Bassa",
+        "description": "Valore indeterminabile collocato nel range base 26.000-52.000 EUR.",
+    },
+    {
+        "value": "media",
+        "label": "Media",
+        "description": "Valore indeterminabile collocato nel range intermedio 52.000-260.000 EUR.",
+    },
+    {
+        "value": "alta",
+        "label": "Alta",
+        "description": "Valore indeterminabile collocato nel range superiore 260.000-520.000 EUR.",
+    },
+]
+
 _URL_LEGGE_FORENSE = "https://www.gazzettaufficiale.it/eli/id/2013/01/18/13G00018/sg"
 _URL_DM55 = (
     "https://www.normattiva.it/atto/caricaDettaglioAtto?"
@@ -631,6 +649,369 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
     },
 ]
 
+RULE_ROWS: List[Dict[str, Any]] = [
+    {
+        "rule_code": "civile_gdp",
+        "materia_label": "Civile di cognizione",
+        "label": "Civile ordinario davanti al Giudice di Pace",
+        "summary": "Cognizione ordinaria o risarcitoria di competenza del Giudice di Pace.",
+        "profile_code": "civile_gdp",
+        "suggested_practice_id": "atto_citazione",
+        "grado_input_value": "Giudice di Pace",
+        "allowed_grade_input_values": ["Giudice di Pace"],
+    },
+    {
+        "rule_code": "civile_cognizione_primo_grado",
+        "materia_label": "Civile di cognizione",
+        "label": "Cognizione ordinaria di primo grado",
+        "summary": "Giudizi civili ordinari di primo grado davanti al Tribunale.",
+        "profile_code": "civile_tribunale",
+        "suggested_practice_id": "atto_citazione",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "civile_monitorio",
+        "materia_label": "Civile di cognizione",
+        "label": "Procedimento monitorio / decreto ingiuntivo",
+        "summary": "Ricorsi monitori ex art. 633 c.p.c. e moduli collegati di recupero crediti.",
+        "profile_code": "civile_tribunale",
+        "suggested_practice_id": "decreto_ingiuntivo",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "civile_opposizione_monitorio",
+        "materia_label": "Civile di cognizione",
+        "label": "Opposizione a decreto ingiuntivo",
+        "summary": "Opposizione monitoria con sviluppo pieno delle fasi di cognizione.",
+        "profile_code": "civile_tribunale",
+        "suggested_practice_id": "opposizione_di",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "civile_convalida_sfratto",
+        "materia_label": "Civile di cognizione",
+        "label": "Convalida di sfratto / locazione",
+        "summary": "Procedimenti locatizi con possibile mediazione obbligatoria da includere nel preventivo.",
+        "profile_code": "civile_tribunale",
+        "suggested_practice_id": "sfratto_morosita",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "civile_risarcimento_danni",
+        "materia_label": "Civile di cognizione",
+        "label": "Risarcimento danni",
+        "summary": "Azioni risarcitorie extracontrattuali o da circolazione con possibile istruttoria tecnica.",
+        "profile_code": "civile_tribunale",
+        "suggested_practice_id": "risarcimento_danni",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "civile_appello",
+        "materia_label": "Civile di cognizione",
+        "label": "Impugnazione in appello",
+        "summary": "Giudizi civili di secondo grado davanti alla Corte d'Appello.",
+        "profile_code": "civile_appello",
+        "suggested_practice_id": "appello_civile",
+        "grado_input_value": "Corte d'Appello",
+        "allowed_grade_input_values": ["Corte d'Appello"],
+    },
+    {
+        "rule_code": "civile_cassazione",
+        "materia_label": "Civile di cognizione",
+        "label": "Ricorso per Cassazione",
+        "summary": "Giudizio di legittimita con focus su studio, ricorso e fase decisionale.",
+        "profile_code": "civile_cassazione",
+        "suggested_practice_id": "cassazione_civile",
+        "grado_input_value": "Corte di Cassazione",
+        "allowed_grade_input_values": ["Corte di Cassazione"],
+    },
+    {
+        "rule_code": "esecuzione_precetto",
+        "materia_label": "Esecuzione mobiliare",
+        "label": "Atto di precetto",
+        "summary": "Intimazione ad adempiere prodromica all'esecuzione forzata.",
+        "profile_code": "esecuzione_mobiliare",
+        "suggested_practice_id": "precetto",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "esecuzione_mobiliare",
+        "materia_label": "Esecuzione mobiliare",
+        "label": "Esecuzione mobiliare",
+        "summary": "Procedure esecutive su beni mobili con fasi introduttive ed esecutive.",
+        "profile_code": "esecuzione_mobiliare",
+        "suggested_practice_id": "esecuzione_mobiliare",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "esecuzione_presso_terzi",
+        "materia_label": "Esecuzione mobiliare",
+        "label": "Pignoramento presso terzi",
+        "summary": "Esecuzione presso terzi con controllo su udienza, terzo pignorato e allegati essenziali.",
+        "profile_code": "esecuzione_mobiliare",
+        "suggested_practice_id": "esecuzione_terzi",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "esecuzione_immobiliare",
+        "materia_label": "Esecuzione immobiliare",
+        "label": "Esecuzione immobiliare",
+        "summary": "Procedure esecutive su beni immobili con fasi esecutive dedicate.",
+        "profile_code": "esecuzione_immobiliare",
+        "suggested_practice_id": "esecuzione_immobiliare",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "volontaria_giurisdizione",
+        "materia_label": "Volontaria giurisdizione",
+        "label": "Procedimento camerale / volontaria giurisdizione",
+        "summary": "Procedure camerali e volontaria giurisdizione, inclusi procedimenti familiari congiunti.",
+        "profile_code": "volontaria",
+        "suggested_practice_id": "separazione_consensuale",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "lavoro_primo_grado",
+        "materia_label": "Controversie di lavoro",
+        "label": "Rito lavoro di primo grado",
+        "summary": "Controversie di lavoro ex art. 409 c.p.c. davanti al Tribunale.",
+        "profile_code": "lavoro_tribunale",
+        "suggested_practice_id": "controversia_lavoro",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "lavoro_licenziamento",
+        "materia_label": "Controversie di lavoro",
+        "label": "Impugnazione licenziamento",
+        "summary": "Controversie su licenziamento con regole del rito lavoro e possibile urgenza cautelare.",
+        "profile_code": "lavoro_tribunale",
+        "suggested_practice_id": "licenziamento",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "lavoro_differenze_retributive",
+        "materia_label": "Controversie di lavoro",
+        "label": "Differenze retributive",
+        "summary": "Recupero differenze retributive e crediti di lavoro con prova documentale e conteggi.",
+        "profile_code": "lavoro_tribunale",
+        "suggested_practice_id": "differenze_retributive",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale", "Fuori giudizio"],
+    },
+    {
+        "rule_code": "lavoro_appello",
+        "materia_label": "Controversie di lavoro",
+        "label": "Appello lavoro",
+        "summary": "Giudizi di impugnazione in materia di lavoro davanti alla Corte d'Appello.",
+        "profile_code": "lavoro_appello",
+        "suggested_practice_id": "appello_lavoro",
+        "grado_input_value": "Corte d'Appello",
+        "allowed_grade_input_values": ["Corte d'Appello"],
+    },
+    {
+        "rule_code": "lavoro_cassazione",
+        "materia_label": "Controversie di lavoro",
+        "label": "Cassazione lavoro",
+        "summary": "Ricorsi per Cassazione in materia di lavoro con struttura concentrata sulle fasi essenziali.",
+        "profile_code": "lavoro_cassazione",
+        "suggested_practice_id": "appello_lavoro",
+        "grado_input_value": "Corte di Cassazione",
+        "allowed_grade_input_values": ["Corte di Cassazione"],
+    },
+    {
+        "rule_code": "previdenza_giudiziale",
+        "materia_label": "Previdenza e assistenza",
+        "label": "Contenzioso previdenziale giudiziale",
+        "summary": "Cause previdenziali e assistenziali davanti al Tribunale.",
+        "profile_code": "previdenza_tribunale",
+        "suggested_practice_id": "previdenza",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "previdenza_ricorso_amministrativo",
+        "materia_label": "Previdenza e assistenza",
+        "label": "Ricorso amministrativo / fase non giudiziale",
+        "summary": "Fase amministrativa o precontenziosa INPS/INAIL collegabile poi al giudizio.",
+        "profile_code": "previdenza_tribunale",
+        "suggested_practice_id": "assistenza_previdenziale",
+        "grado_input_value": "Fuori giudizio",
+        "allowed_grade_input_values": ["Fuori giudizio", "Tribunale"],
+    },
+    {
+        "rule_code": "previdenza_appello",
+        "materia_label": "Previdenza e assistenza",
+        "label": "Appello previdenza",
+        "summary": "Impugnazioni previdenziali con coefficiente di appello sul profilo di primo grado.",
+        "profile_code": "previdenza_appello",
+        "suggested_practice_id": "previdenza",
+        "grado_input_value": "Corte d'Appello",
+        "allowed_grade_input_values": ["Corte d'Appello"],
+    },
+    {
+        "rule_code": "penale_indagini",
+        "materia_label": "Penale",
+        "label": "Indagini preliminari / fase pre-dibattimentale",
+        "summary": "Assistenza penale in indagini preliminari o attivita pre-dibattimentale.",
+        "profile_code": "penale_base",
+        "suggested_practice_id": "indagini_preliminari",
+        "grado_input_value": "Fuori giudizio",
+        "allowed_grade_input_values": ["Fuori giudizio", "Tribunale"],
+    },
+    {
+        "rule_code": "penale_primo_grado",
+        "materia_label": "Penale",
+        "label": "Giudizio penale di primo grado",
+        "summary": "Udienza preliminare o dibattimento penale di primo grado.",
+        "profile_code": "penale_base",
+        "suggested_practice_id": "dibattimento_penale",
+        "grado_input_value": "Tribunale",
+        "allowed_grade_input_values": ["Tribunale"],
+    },
+    {
+        "rule_code": "penale_appello",
+        "materia_label": "Penale",
+        "label": "Impugnazione penale in appello",
+        "summary": "Giudizio di appello in materia penale.",
+        "profile_code": "penale_appello",
+        "suggested_practice_id": "impugnazioni_penali",
+        "grado_input_value": "Corte d'Appello",
+        "allowed_grade_input_values": ["Corte d'Appello"],
+    },
+    {
+        "rule_code": "penale_cassazione",
+        "materia_label": "Penale",
+        "label": "Ricorso per Cassazione penale",
+        "summary": "Ricorso di legittimita in materia penale.",
+        "profile_code": "penale_cassazione",
+        "suggested_practice_id": "cassazione_penale",
+        "grado_input_value": "Corte di Cassazione",
+        "allowed_grade_input_values": ["Corte di Cassazione"],
+    },
+    {
+        "rule_code": "amministrativo_tar",
+        "materia_label": "Amministrativo / TAR-CdS",
+        "label": "Ricorso al TAR",
+        "summary": "Ricorsi di primo grado davanti al TAR con possibile domanda cautelare.",
+        "profile_code": "amministrativo_primo_grado",
+        "suggested_practice_id": "ricorso_tar",
+        "grado_input_value": "TAR",
+        "allowed_grade_input_values": ["TAR"],
+    },
+    {
+        "rule_code": "amministrativo_cautelare_tar",
+        "materia_label": "Amministrativo / TAR-CdS",
+        "label": "Istanza cautelare al TAR",
+        "summary": "Misure cautelari nel giudizio amministrativo di primo grado.",
+        "profile_code": "amministrativo_primo_grado",
+        "suggested_practice_id": "cautelare_sospensiva",
+        "grado_input_value": "TAR",
+        "allowed_grade_input_values": ["TAR"],
+    },
+    {
+        "rule_code": "amministrativo_cds",
+        "materia_label": "Amministrativo / TAR-CdS",
+        "label": "Appello al Consiglio di Stato",
+        "summary": "Impugnazioni in secondo grado davanti al Consiglio di Stato.",
+        "profile_code": "amministrativo_appello",
+        "suggested_practice_id": "appello_cds",
+        "grado_input_value": "Consiglio di Stato",
+        "allowed_grade_input_values": ["Consiglio di Stato"],
+    },
+    {
+        "rule_code": "tributario_primo_grado",
+        "materia_label": "Tributario / CGT",
+        "label": "Ricorso alla CGT di primo grado",
+        "summary": "Ricorso tributario introduttivo davanti alla Corte di Giustizia Tributaria di primo grado.",
+        "profile_code": "tributario_primo_grado",
+        "suggested_practice_id": "ricorso_tributario",
+        "grado_input_value": "CGT di primo grado",
+        "allowed_grade_input_values": ["CGT di primo grado"],
+    },
+    {
+        "rule_code": "tributario_secondo_grado",
+        "materia_label": "Tributario / CGT",
+        "label": "Appello alla CGT di secondo grado",
+        "summary": "Impugnazioni tributarie davanti alla Corte di Giustizia Tributaria di secondo grado.",
+        "profile_code": "tributario_appello",
+        "suggested_practice_id": "appello_tributario",
+        "grado_input_value": "CGT di secondo grado",
+        "allowed_grade_input_values": ["CGT di secondo grado"],
+    },
+    {
+        "rule_code": "tributario_cassazione",
+        "materia_label": "Tributario / CGT",
+        "label": "Cassazione tributaria",
+        "summary": "Ricorso di legittimita in materia tributaria.",
+        "profile_code": "tributario_cassazione",
+        "suggested_practice_id": "cassazione_tributaria",
+        "grado_input_value": "Corte di Cassazione",
+        "allowed_grade_input_values": ["Corte di Cassazione"],
+    },
+    {
+        "rule_code": "stragiud_consulenza",
+        "materia_label": "Stragiudiziale / Consulenza",
+        "label": "Consulenza / parere",
+        "summary": "Pareri, analisi strategiche e assistenza fuori giudizio.",
+        "profile_code": "stragiudiziale",
+        "suggested_practice_id": "consulenza",
+        "grado_input_value": "Fuori giudizio",
+        "allowed_grade_input_values": ["Fuori giudizio"],
+    },
+    {
+        "rule_code": "stragiud_diffida",
+        "materia_label": "Stragiudiziale / Consulenza",
+        "label": "Diffida / messa in mora",
+        "summary": "Attivita stragiudiziale di diffida e messa in mora.",
+        "profile_code": "stragiudiziale",
+        "suggested_practice_id": "diffida",
+        "grado_input_value": "Fuori giudizio",
+        "allowed_grade_input_values": ["Fuori giudizio"],
+    },
+    {
+        "rule_code": "stragiud_sinistro",
+        "materia_label": "Stragiudiziale / Consulenza",
+        "label": "Sinistro stradale stragiudiziale",
+        "summary": "Gestione stragiudiziale del danno prima dell'eventuale giudizio.",
+        "profile_code": "stragiudiziale",
+        "suggested_practice_id": "sinistro_stradale_stragiudiziale",
+        "grado_input_value": "Fuori giudizio",
+        "allowed_grade_input_values": ["Fuori giudizio"],
+    },
+    {
+        "rule_code": "mediazione_adr",
+        "materia_label": "Mediazione (D.Lgs. 28/2010)",
+        "label": "Mediazione civile / commerciale",
+        "summary": "Procedura di mediazione con calcolo dedicato alle fasi ADR.",
+        "profile_code": "mediazione",
+        "suggested_practice_id": "mediazione",
+        "grado_input_value": "Procedura ADR",
+        "allowed_grade_input_values": ["Procedura ADR"],
+    },
+    {
+        "rule_code": "negoziazione_adr",
+        "materia_label": "Negoziazione Assistita (D.L. 132/2014)",
+        "label": "Negoziazione assistita",
+        "summary": "Convenzione e trattativa assistita nella fase ADR.",
+        "profile_code": "negoziazione_assistita",
+        "suggested_practice_id": "negoziazione_assistita",
+        "grado_input_value": "Procedura ADR",
+        "allowed_grade_input_values": ["Procedura ADR"],
+    },
+]
+
 OPTION_ROWS: List[Dict[str, Any]] = [
     {
         "option_code": "spese_generali_15",
@@ -869,6 +1250,33 @@ def tariffario_reference_rows() -> List[Dict[str, Any]]:
     return [dict(row) for row in TARIFFARIO_REFERENCE_ROWS]
 
 
+def tariffario_complessita_rows() -> List[Dict[str, str]]:
+    return [dict(row) for row in COMPLESSITA_ROWS]
+
+
+def _profile_by_code(profile_code: str) -> Optional[Dict[str, Any]]:
+    for row in tariffario_profile_rows():
+        if row.get("profile_code") == profile_code:
+            return dict(row)
+    return None
+
+
+def tariffario_rule_rows() -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for row in RULE_ROWS:
+        item = dict(row)
+        profile = _profile_by_code(item.get("profile_code", ""))
+        item["profile"] = profile
+        item["grado_input_value"] = item.get("grado_input_value") or (profile or {}).get("grado_input_value", "")
+        item["allowed_grade_input_values"] = list(item.get("allowed_grade_input_values") or ([item["grado_input_value"]] if item.get("grado_input_value") else []))
+        refs = list(TARIFFARIO_REFERENCE_ROWS[:4])
+        if item.get("materia_label") in {"Amministrativo / TAR-CdS", "Tributario / CGT", "Mediazione (D.Lgs. 28/2010)", "Negoziazione Assistita (D.L. 132/2014)"}:
+            refs.append(_reference_by_code("l49_equo_compenso"))
+        item["normative_references"] = [ref for ref in refs if ref]
+        rows.append(item)
+    return rows
+
+
 def phase_catalog_by_materia() -> Dict[str, List[Dict[str, str]]]:
     catalog: Dict[str, List[Dict[str, str]]] = {}
     for row in tariffario_profile_rows():
@@ -899,6 +1307,74 @@ def grade_catalog_by_materia() -> Dict[str, List[str]]:
     return catalog
 
 
+def rule_catalog_by_materia() -> Dict[str, List[Dict[str, Any]]]:
+    catalog: Dict[str, List[Dict[str, Any]]] = {}
+    for row in tariffario_rule_rows():
+        catalog.setdefault(row["materia_label"], []).append(row)
+    return catalog
+
+
+def rule_lookup(rule_code: str) -> Optional[Dict[str, Any]]:
+    for row in tariffario_rule_rows():
+        if row.get("rule_code") == rule_code:
+            return dict(row)
+    return None
+
+
+def rules_for_practice(practice_id: str) -> List[Dict[str, Any]]:
+    return [dict(row) for row in tariffario_rule_rows() if row.get("suggested_practice_id") == practice_id]
+
+
+def default_rule_for_practice(practice_id: str) -> Optional[Dict[str, Any]]:
+    rows = rules_for_practice(practice_id)
+    if not rows:
+        return None
+    practice_map = {
+        "atto_citazione": "Tribunale",
+        "risarcimento_danni": "Tribunale",
+        "controversia_lavoro": "Tribunale",
+        "licenziamento": "Tribunale",
+        "previdenza": "Tribunale",
+        "appello_civile": "Corte d'Appello",
+        "appello_lavoro": "Corte d'Appello",
+        "cassazione_civile": "Corte di Cassazione",
+        "cassazione_penale": "Corte di Cassazione",
+        "cassazione_tributaria": "Corte di Cassazione",
+        "ricorso_tar": "TAR",
+        "appello_cds": "Consiglio di Stato",
+        "ricorso_tributario": "CGT di primo grado",
+        "appello_tributario": "CGT di secondo grado",
+        "mediazione": "Procedura ADR",
+        "negoziazione_assistita": "Procedura ADR",
+    }
+    preferred_grade = practice_map.get(practice_id)
+    if preferred_grade:
+        for row in rows:
+            if row.get("grado_input_value") == preferred_grade:
+                return dict(row)
+    return dict(rows[0])
+
+
+def grade_catalog_for_rule(rule_code: str) -> List[str]:
+    row = rule_lookup(rule_code)
+    if not row:
+        return []
+    return list(row.get("allowed_grade_input_values") or [])
+
+
+def profile_lookup_by_rule(rule_code: str, grado_label: str = "") -> Optional[Dict[str, Any]]:
+    row = rule_lookup(rule_code)
+    if not row:
+        return None
+    profile_code = row.get("profile_code", "")
+    for profile in tariffario_profile_rows():
+        if profile.get("profile_code") != profile_code:
+            continue
+        if not grado_label or profile.get("grado_input_value") == grado_label:
+            return dict(profile)
+    return _profile_by_code(profile_code)
+
+
 def profile_lookup_by_labels(materia_label: str, grado_label: str) -> Optional[Dict[str, Any]]:
     for row in tariffario_profile_rows():
         if row["materia_label"] == materia_label and row["grado_input_value"] == grado_label:
@@ -908,6 +1384,13 @@ def profile_lookup_by_labels(materia_label: str, grado_label: str) -> Optional[D
 
 def first_profile_for_materia(materia_label: str) -> Optional[Dict[str, Any]]:
     for row in tariffario_profile_rows():
+        if row["materia_label"] == materia_label:
+            return dict(row)
+    return None
+
+
+def first_rule_for_materia(materia_label: str) -> Optional[Dict[str, Any]]:
+    for row in tariffario_rule_rows():
         if row["materia_label"] == materia_label:
             return dict(row)
     return None

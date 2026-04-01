@@ -97,3 +97,19 @@ def test_riepilogo_livello_massimo_calcola_bonus_e_spese():
     assert riepilogo["subtotale"] == round(1378.5 + 1165.5, 2)
     assert riepilogo["bonus_telematico"] == round(riepilogo["subtotale"] * 0.30, 2)
     assert riepilogo["spese_generali"] == round((riepilogo["subtotale"] + riepilogo["bonus_telematico"]) * 0.15, 2)
+
+
+def test_valore_indeterminabile_usa_complessita_stimata_per_scaglione():
+    risultato = calcola_compenso(
+        Materia.CIVILE_COGN,
+        Grado.TRIBUNALE,
+        0,
+        [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE],
+        complessita="media",
+    )
+
+    assert risultato.complessita_stimata == "media"
+    assert risultato.valore_input == 0
+    assert risultato.valore_calcolo == 156000.0
+    assert risultato.scaglione == "Da EUR 52.000 a EUR 260.000"
+    assert "valore non determinato" in risultato.note.lower()

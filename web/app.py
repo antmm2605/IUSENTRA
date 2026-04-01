@@ -2312,12 +2312,6 @@ def create_app(config: dict | None = None) -> Flask:
             except (TypeError, ValueError):
                 return default
 
-        def _parse_level(value: str) -> LivelloCompenso:
-            try:
-                return LivelloCompenso(str(value or LivelloCompenso.BASE.value).lower())
-            except ValueError:
-                return LivelloCompenso.BASE
-
         def _fase_key_from_value(fase_value: str) -> str:
             mapping = {
                 Fase.STUDIO.value: "studio",
@@ -2409,7 +2403,7 @@ def create_app(config: dict | None = None) -> Flask:
         grado_sel = request.form.get("grado", "").strip() or (regola_attiva.get("grado_input_value", "") if regola_attiva else "") or grade_defaults[0]
         if grado_sel not in grade_defaults:
             grado_sel = grade_defaults[0]
-        livello_compenso_sel = _parse_level(request.form.get("livello_compenso", LivelloCompenso.BASE.value))
+        livello_compenso_sel = LivelloCompenso.BASE
         complessita_sel = request.form.get("complessita", ComplessitaStimata.MEDIA.value).strip() or ComplessitaStimata.MEDIA.value
         valore_str = request.form.get("valore", "0").replace(",", ".").strip()
         fasi_sel = request.form.getlist("fasi")
@@ -2483,7 +2477,7 @@ def create_app(config: dict | None = None) -> Flask:
                         {
                             "descrizione": f"Compenso professionale per {profilo_attivo.get('table_label', materia_sel)} - {risultato.scaglione}",
                             "tipo": "Onorario",
-                            "importo": risultato.totale_compenso_livello(livello_compenso_sel),
+                            "importo": risultato.totale_compenso_livello(LivelloCompenso.BASE),
                             "fonte": "principale",
                         }
                     )
@@ -2512,7 +2506,7 @@ def create_app(config: dict | None = None) -> Flask:
                     ris_accessorio = motore_calcola(
                         id_pratica=accessorio.get("tipo_pratica_id", ""),
                         valore_controversia=valore,
-                        livello_compenso=livello_compenso_sel,
+                        livello_compenso=LivelloCompenso.BASE,
                         complessita=complessita_sel,
                         bonus_telematico=bonus_tel,
                         includi_spese_generali=spese_gen,
@@ -2597,7 +2591,6 @@ def create_app(config: dict | None = None) -> Flask:
                 area=(tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel),
                 valore=valore_str or "0",
                   grado=grado_sel,
-                  livello_compenso=livello_compenso_sel.value,
                   regola_tariffaria=regola_tariffaria_sel,
                   complessita=complessita_sel,
                   fasi=",".join(fasi_sel),
@@ -2642,7 +2635,6 @@ def create_app(config: dict | None = None) -> Flask:
             materia_sel=materia_sel,
             grado_sel=grado_sel,
             regola_tariffaria_sel=regola_tariffaria_sel,
-            livello_compenso_sel=livello_compenso_sel.value,
             complessita_sel=complessita_sel,
             valore_str=valore_str,
             fasi_sel=fasi_sel,

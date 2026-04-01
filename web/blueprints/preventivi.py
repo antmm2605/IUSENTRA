@@ -833,7 +833,6 @@ def wizard():
         "valore": request.args.get("valore", "").strip(),
         "grado": request.args.get("grado", "").strip(),
         "regola_tariffaria": request.args.get("regola_tariffaria", "").strip(),
-        "livello_compenso": request.args.get("livello_compenso", "base").strip() or "base",
         "complessita": request.args.get("complessita", "media").strip() or "media",
         "fasi": fasi_prefill,
         "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
@@ -905,7 +904,6 @@ def wizard_calcola():
         valore = float(request.args.get("valore", 0) or 0)
         grado_raw = request.args.get("grado", "")
         regola_tariffaria = request.args.get("regola_tariffaria", "").strip()
-        livello_raw = request.args.get("livello_compenso", "base")
         complessita = request.args.get("complessita", "media").strip() or "media"
         fasi_raw = request.args.get("fasi", "")
         bonus_tel = request.args.get("bonus_telematico", "0") == "1"
@@ -938,10 +936,7 @@ def wizard_calcola():
             "Procedura ADR": Grado.PROCEDURA_ADR,
         }
         grado = _mappa_grado.get(grado_raw) if grado_raw else None
-        try:
-            livello = LivelloCompenso(str(livello_raw or "base").lower())
-        except ValueError:
-            livello = LivelloCompenso.BASE
+        livello = LivelloCompenso.BASE
 
         _mappa_fase = {
             "studio": Fase.STUDIO,

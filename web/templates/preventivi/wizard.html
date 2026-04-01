@@ -202,14 +202,6 @@
               <select id="selGrado" class="form-select"></select>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-semibold">Livello compenso</label>
-              <select id="selLivelloCompenso" class="form-select" name="livello_compenso">
-                <option value="minimo">Minimo</option>
-                <option value="base" selected>Base</option>
-                <option value="massimo">Massimo</option>
-              </select>
-            </div>
-            <div class="col-md-3">
               <label class="form-label fw-semibold">Complessita stimata</label>
               <select name="complessita" id="selComplessita" class="form-select">
                 <option value="bassa">Bassa</option>
@@ -878,9 +870,6 @@ function applyWizardPrefill() {
     if (WIZARD_PREFILL.grado) {
       document.getElementById('selGrado').value = WIZARD_PREFILL.grado;
     }
-    if (WIZARD_PREFILL.livello_compenso) {
-      document.getElementById('selLivelloCompenso').value = WIZARD_PREFILL.livello_compenso;
-    }
     if (WIZARD_PREFILL.complessita) {
       document.getElementById('selComplessita').value = WIZARD_PREFILL.complessita;
     }
@@ -1057,7 +1046,6 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('valore', document.getElementById('inpValore').value || 0);
   params.set('grado', document.getElementById('selGrado').value || '');
   params.set('regola_tariffaria', document.getElementById('selRegolaTariffaria').value || '');
-  params.set('livello_compenso', document.getElementById('selLivelloCompenso').value || 'base');
   params.set('complessita', document.getElementById('selComplessita').value || 'media');
   params.set('bonus_telematico', document.getElementById('chkBonusTelematico').checked ? '1' : '0');
   params.set('spese_generali', document.getElementById('chkSpeseGenerali').checked ? '1' : '0');
@@ -1074,9 +1062,9 @@ function buildQuery(idPratica = '', fasiOverride = null) {
 
 function renderRisultato(data) {
   ultimoCalcolo = data;
-  document.getElementById('kpiCompenso').textContent = money(data.onorario_selezionato || data.onorario_base || data.totale_base || 0);
+  document.getElementById('kpiCompenso').textContent = money(data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
   document.getElementById('kpiTotale').textContent = money(data.totale || 0);
-  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_selezionato || data.onorario_base || data.totale_base || 0);
+  upsertVocePrincipale(`Compenso professionale per ${tipologiaCorrente.label} - ${data.scaglione}`, data.onorario_base || data.totale_base || data.onorario_selezionato || 0);
   recalcTotals();
 }
 
@@ -1102,7 +1090,7 @@ async function applicaAccessoriCalcolo() {
     const role = `accessorio-${accessorio.id}`;
     const label = accessorio.row_label || `Compenso professionale per ${data.tipo_pratica?.label || accessorio.label}`;
     ruoliAttivi.add(role);
-      upsertVocePerRuolo(role, label, data.onorario_selezionato || data.onorario_base || data.totale_base || 0, 'Onorario');
+      upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || data.onorario_selezionato || 0, 'Onorario');
   }
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => {
     if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
@@ -1232,11 +1220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       syncTipoProcedimentoHidden();
     });
     selGrado.addEventListener('change', syncTipoProcedimentoHidden);
-    document.getElementById('selLivelloCompenso').addEventListener('change', () => {
-      if (tipologiaCorrente && (ultimoCalcolo || (tipologiaCorrente.tipo_compenso_default || '').toLowerCase().includes('orario'))) {
-        calcolaPreventivo();
-      }
-    });
     document.getElementById('selComplessita').addEventListener('change', () => {
       if (tipologiaCorrente && ultimoCalcolo) {
         calcolaPreventivo();

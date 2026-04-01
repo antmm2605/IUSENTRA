@@ -112,14 +112,6 @@
               <label class="form-label fw-semibold">Opzioni compenso</label>
               <div class="border rounded-3 p-3 bg-light h-100">
                 <div class="mb-3">
-                  <label class="form-label small text-muted mb-1">Livello del compenso da applicare</label>
-                  <select name="livello_compenso" id="selLivelloCompenso" class="form-select">
-                    <option value="minimo" {{ 'selected' if livello_compenso_sel == 'minimo' else '' }}>Minimo</option>
-                    <option value="base" {{ 'selected' if livello_compenso_sel == 'base' else '' }}>Base</option>
-                    <option value="massimo" {{ 'selected' if livello_compenso_sel == 'massimo' else '' }}>Massimo</option>
-                  </select>
-                </div>
-                <div class="mb-3">
                   <label class="form-label small text-muted mb-1">Complessita stimata</label>
                   <select name="complessita" id="selComplessita" class="form-select">
                     {% for row in complessita_catalog %}
@@ -230,7 +222,6 @@
           {% endif %}
           <div><strong>Grado:</strong> {{ risultato.grado }}</div>
           <div><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
-          <div><strong>Livello selezionato:</strong> {{ livello_compenso_sel|capitalize }}</div>
           {% if risultato.complessita_stimata %}
           <div><strong>Complessita:</strong> {{ risultato.complessita_stimata|capitalize }}</div>
           {% endif %}
@@ -241,49 +232,49 @@
             <thead class="table-light">
               <tr>
                 <th>Fase</th>
-                <th class="text-end {{ 'table-primary' if livello_compenso_sel == 'minimo' else '' }}">Minimo</th>
-                <th class="text-end {{ 'table-primary' if livello_compenso_sel == 'base' else '' }}">Base</th>
-                <th class="text-end {{ 'table-primary' if livello_compenso_sel == 'massimo' else '' }}">Massimo</th>
+                <th class="text-end">Minimo</th>
+                <th class="text-end table-primary">Base</th>
+                <th class="text-end">Massimo</th>
               </tr>
             </thead>
             <tbody>
               {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
               <tr>
                 <td class="fw-semibold">{{ fase }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">EUR {{ "%.2f"|format(vmin) }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else 'fw-semibold' }}">EUR {{ "%.2f"|format(vbase) }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">EUR {{ "%.2f"|format(vmax) }}</td>
+                <td class="text-end">EUR {{ "%.2f"|format(vmin) }}</td>
+                <td class="text-end table-primary fw-semibold">EUR {{ "%.2f"|format(vbase) }}</td>
+                <td class="text-end">EUR {{ "%.2f"|format(vmax) }}</td>
               </tr>
               {% endfor %}
             </tbody>
             <tfoot>
               <tr class="table-light">
                 <th>Subtotale onorari</th>
-                <th class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">EUR {{ "%.2f"|format(riepilogo_min.subtotale) }}</th>
-                <th class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else '' }}">EUR {{ "%.2f"|format(riepilogo_base.subtotale) }}</th>
-                <th class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">EUR {{ "%.2f"|format(riepilogo_max.subtotale) }}</th>
+                <th class="text-end">EUR {{ "%.2f"|format(riepilogo_min.subtotale) }}</th>
+                <th class="text-end table-primary fw-semibold">EUR {{ "%.2f"|format(riepilogo_base.subtotale) }}</th>
+                <th class="text-end">EUR {{ "%.2f"|format(riepilogo_max.subtotale) }}</th>
               </tr>
               {% if riepilogo_min.bonus_telematico or riepilogo_base.bonus_telematico or riepilogo_max.bonus_telematico %}
               <tr class="table-success">
                 <td>Bonus telematico 30%</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_min.bonus_telematico) }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_base.bonus_telematico) }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_max.bonus_telematico) }}</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_min.bonus_telematico) }}</td>
+                <td class="text-end table-primary fw-semibold">+ EUR {{ "%.2f"|format(riepilogo_base.bonus_telematico) }}</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_max.bonus_telematico) }}</td>
               </tr>
               {% endif %}
               {% if riepilogo_min.spese_generali or riepilogo_base.spese_generali or riepilogo_max.spese_generali %}
               <tr class="table-warning">
                 <td>Spese generali</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'minimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_min.spese_generali) }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'base' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_base.spese_generali) }}</td>
-                <td class="text-end {{ 'table-primary fw-semibold' if livello_compenso_sel == 'massimo' else '' }}">+ EUR {{ "%.2f"|format(riepilogo_max.spese_generali) }}</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_min.spese_generali) }}</td>
+                <td class="text-end table-primary fw-semibold">+ EUR {{ "%.2f"|format(riepilogo_base.spese_generali) }}</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_max.spese_generali) }}</td>
               </tr>
               {% endif %}
               <tr class="table-primary">
                 <th>Totale compenso</th>
-                <th class="text-end {{ 'fw-bold table-primary' if livello_compenso_sel == 'minimo' else 'fw-bold' }}">EUR {{ "%.2f"|format(riepilogo_min.totale_compenso) }}</th>
-                <th class="text-end {{ 'fw-bold table-primary' if livello_compenso_sel == 'base' else 'fw-bold' }}">EUR {{ "%.2f"|format(riepilogo_base.totale_compenso) }}</th>
-                <th class="text-end {{ 'fw-bold table-primary' if livello_compenso_sel == 'massimo' else 'fw-bold' }}">EUR {{ "%.2f"|format(riepilogo_max.totale_compenso) }}</th>
+                <th class="text-end fw-bold">EUR {{ "%.2f"|format(riepilogo_min.totale_compenso) }}</th>
+                <th class="text-end fw-bold table-primary">EUR {{ "%.2f"|format(riepilogo_base.totale_compenso) }}</th>
+                <th class="text-end fw-bold">EUR {{ "%.2f"|format(riepilogo_max.totale_compenso) }}</th>
               </tr>
             </tfoot>
           </table>
@@ -470,21 +461,30 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function genericRuleForMateria(materia) {
+  const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
+  return {
+    rule_code: '',
+    label: 'Regola standard del tariffario',
+    summary: 'Profilo base del motore tariffario per la materia selezionata.',
+    grado_input_value: gradi[0],
+    allowed_grade_input_values: gradi,
+  };
+}
+
 function currentRule() {
   const materia = document.getElementById('selMateria').value;
   const ruleCode = document.getElementById('selRegolaTariffaria').value;
   const rows = RULE_CATALOG[materia] || [];
-  return rows.find((item) => item.rule_code === ruleCode) || rows[0] || null;
+  if (!rows.length) return genericRuleForMateria(materia);
+  return rows.find((item) => item.rule_code === ruleCode) || rows[0] || genericRuleForMateria(materia);
 }
 
 function renderRegole() {
   const materia = document.getElementById('selMateria').value;
   const select = document.getElementById('selRegolaTariffaria');
-  const rows = RULE_CATALOG[materia] || [];
-  if (!rows.length) {
-    select.innerHTML = '<option value="">Regola non disponibile</option>';
-    return;
-  }
+  const baseRows = RULE_CATALOG[materia] || [];
+  const rows = baseRows.length ? baseRows : [genericRuleForMateria(materia)];
   const preferred = select.dataset.selected || REGOLA_SEL;
   select.innerHTML = rows.map((row) => `<option value="${escapeHtml(row.rule_code)}">${escapeHtml(row.label)}</option>`).join('');
   const target = rows.find((row) => row.rule_code === preferred) || rows[0] || null;

@@ -62,7 +62,7 @@ def _area_pratica_da_fascicolo(fascicolo) -> str:
         "CIVILE": "Civile",
         "FAMIGLIA": "Civile",
         "SUCCESSIONI": "Civile",
-        "LAVORO": "Lavoro e previdenza",
+        "LAVORO": "Civile",
         "PENALE": "Penale",
         "AMMINISTRATIVO": "Amministrativo",
         "TRIBUTARIO": "Tributario",
@@ -1246,7 +1246,7 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
             "Anticipazioni in nome e per conto (Art. 15 DPR 633/72)",
             f"€ {p.anticipazioni_art15:,.2f}"
         ))
-    rows.append(("TOTALE STIMATO", f"€ {p.totale:,.2f}"))
+    rows.append(("TOTALE", f"€ {p.totale:,.2f}"))
 
     rie_data = [
         [Paragraph(label, ParagraphStyle(

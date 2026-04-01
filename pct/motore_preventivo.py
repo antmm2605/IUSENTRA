@@ -31,7 +31,6 @@ from pct.tariffario import (
 
 AREE = [
     "Civile",
-    "Lavoro e previdenza",
     "Penale",
     "Amministrativo",
     "Tributario",
@@ -67,6 +66,7 @@ class TipoPratica:
     note_template: str = ""
     checklist_iniziale: List[str] = field(default_factory=list)
     normative_references: List[Dict[str, str]] = field(default_factory=list)
+    accessori_calcolo: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -89,6 +89,7 @@ class TipoPratica:
             "note_template": self.note_template,
             "checklist_iniziale": self.checklist_iniziale,
             "normative_references": self.normative_references,
+            "accessori_calcolo": self.accessori_calcolo,
             "fasi_default_keys": [_fase_key(f) for f in self.fasi_default],
         }
 
@@ -309,12 +310,12 @@ CATALOGO: List[TipoPratica] = [
         base_normativa="Tab. A2 DM 55/2014 — artt. 2043 e 2054 c.c.",
     ),
 
-    # ── LAVORO E PREVIDENZA ─────────────────────────────────────────────────
+    # ── CIVILE (comprende lavoro e previdenza) ─────────────────────────────
 
     TipoPratica(
         id="controversia_lavoro",
         label="Controversia di lavoro",
-        area="Lavoro e previdenza",
+        area="Civile",
         materia=Materia.LAVORO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -323,7 +324,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="licenziamento",
         label="Licenziamento (impugnazione)",
-        area="Lavoro e previdenza",
+        area="Civile",
         materia=Materia.LAVORO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -332,7 +333,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="differenze_retributive",
         label="Differenze retributive",
-        area="Lavoro e previdenza",
+        area="Civile",
         materia=Materia.LAVORO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -341,7 +342,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="appello_lavoro",
         label="Appello in materia di lavoro",
-        area="Lavoro e previdenza",
+        area="Civile",
         materia=Materia.LAVORO,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=_FASI_BASE,
@@ -350,7 +351,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="previdenza",
         label="Previdenza (INPS / INAIL / fondi)",
-        area="Lavoro e previdenza",
+        area="Civile",
         materia=Materia.PREVIDENZA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -359,7 +360,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="assistenza_previdenziale",
         label="Assistenza previdenziale / ricorso amministrativo",
-        area="Lavoro e previdenza",
+        area="Civile",
         materia=Materia.PREVIDENZA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -734,12 +735,12 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "PEC (se invio telematico)", "importo": 5.0},
     ],
     "recupero_crediti": [
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Contributo Unificato (indicativo)", "importo": 98.0},
         {"descrizione": "Notifica tramite Ufficiale Giudiziario", "importo": 25.0},
     ],
     "decreto_ingiuntivo": [
-        {"descrizione": "Marca da bollo ricorso D.I.", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso D.I.", "importo": 27.0},
         {"descrizione": "Contributo Unificato", "importo": 98.0},
         {"descrizione": "Notifica D.I. tramite U.G.", "importo": 25.0},
         {"descrizione": "Diritti U.G. notifica", "importo": 12.0},
@@ -747,26 +748,26 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     "opposizione_di": [
         {"descrizione": "Contributo Unificato opposizione", "importo": 196.0},
         {"descrizione": "Notifica atto di citazione", "importo": 25.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "atto_citazione": [
         {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
         {"descrizione": "Notifica atto citazione tramite U.G.", "importo": 25.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "comparsa_risposta": [
-        {"descrizione": "Marca da bollo comparsa", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria comparsa", "importo": 27.0},
         {"descrizione": "Contributo Unificato (se non già versato)", "importo": 196.0},
     ],
     "appello_civile": [
         {"descrizione": "Contributo Unificato appello", "importo": 392.0},
         {"descrizione": "Notifica atto di appello", "importo": 25.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "cassazione_civile": [
         {"descrizione": "Contributo Unificato Cassazione", "importo": 784.0},
         {"descrizione": "Notifica ricorso Cassazione", "importo": 30.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "precetto": [
         {"descrizione": "Notifica precetto tramite U.G.", "importo": 25.0},
@@ -776,7 +777,7 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     "pignoramento": [
         {"descrizione": "Diritti U.G. pignoramento mobiliare", "importo": 50.0},
         {"descrizione": "Iscrizione a ruolo procedura esecutiva", "importo": 43.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "esecuzione_mobiliare": [
         {"descrizione": "Diritti U.G.", "importo": 50.0},
@@ -792,66 +793,66 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     "esecuzione_terzi": [
         {"descrizione": "Iscrizione a ruolo pignoramento c/terzi", "importo": 43.0},
         {"descrizione": "Notifica U.G.", "importo": 25.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "opposizione_esecutiva": [
         {"descrizione": "Contributo Unificato opposizione esec.", "importo": 196.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "separazione_consensuale": [
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Bollo verbale udienza", "importo": 16.0},
     ],
     "separazione_giudiziale": [
         {"descrizione": "Contributo Unificato", "importo": 196.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica atto citazione", "importo": 25.0},
     ],
     "divorzio_congiunto": [
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Bollo verbale udienza", "importo": 16.0},
     ],
     "divorzio_giudiziale": [
         {"descrizione": "Contributo Unificato", "importo": 196.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica atto di citazione", "importo": 25.0},
     ],
     "procedimenti_famiglia": [
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
     ],
     "sfratto_morosita": [
         {"descrizione": "Contributo Unificato (indicativo)", "importo": 103.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica intimazione / citazione", "importo": 25.0},
     ],
     "risarcimento_danni": [
         {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
         {"descrizione": "Perizia di parte / relazione tecnica (indicativa)", "importo": 250.0},
     ],
     # ── LAVORO ──
     "controversia_lavoro": [
-        {"descrizione": "Marca da bollo ricorso lavoro", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso lavoro", "importo": 27.0},
         {"descrizione": "Contributo Unificato lavoro", "importo": 18.0},
         {"descrizione": "Notifica (se richiesta)", "importo": 15.0},
     ],
     "licenziamento": [
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Contributo Unificato", "importo": 18.0},
     ],
     "differenze_retributive": [
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Contributo Unificato", "importo": 18.0},
         {"descrizione": "Estratti busta paga / documenti", "importo": 20.0},
     ],
     "appello_lavoro": [
         {"descrizione": "Contributo Unificato appello lavoro", "importo": 36.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "previdenza": [
-        {"descrizione": "Marca da bollo ricorso previdenziale", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso previdenziale", "importo": 27.0},
         {"descrizione": "Contributo Unificato previdenziale", "importo": 9.0},
     ],
     "assistenza_previdenziale": [
@@ -893,12 +894,12 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     # ── AMMINISTRATIVO ──
     "ricorso_tar": [
         {"descrizione": "Contributo Unificato TAR (base)", "importo": 650.0},
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Notifica ricorso (atti da notificare)", "importo": 30.0},
     ],
     "cautelare_sospensiva": [
         {"descrizione": "Contributo Unificato TAR (+ misura cautelare)", "importo": 650.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica motivi aggiunti/cautelare", "importo": 25.0},
     ],
     "motivi_aggiunti": [
@@ -907,26 +908,26 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     ],
     "appello_cds": [
         {"descrizione": "Contributo Unificato CdS", "importo": 1300.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica appello", "importo": 30.0},
     ],
     "ottemperanza": [
         {"descrizione": "Contributo Unificato ottemperanza", "importo": 650.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     # ── TRIBUTARIO ──
     "ricorso_tributario": [
         {"descrizione": "Contributo Unificato CGT (base)", "importo": 30.0},
-        {"descrizione": "Marca da bollo ricorso", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Notifica ricorso", "importo": 15.0},
     ],
     "appello_tributario": [
         {"descrizione": "Contributo Unificato CGT appello", "importo": 60.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "cassazione_tributaria": [
         {"descrizione": "Contributo Unificato Cassazione trib.", "importo": 784.0},
-        {"descrizione": "Marca da bollo", "importo": 27.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "autotutela": [
         {"descrizione": "Raccomandata / PEC istanza", "importo": 10.0},
@@ -1002,6 +1003,21 @@ _URL_DM150_MEDIAZIONE = (
 _URL_CODICE_ASSICURAZIONI = (
     "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2005-09-07%3B209"
 )
+
+_RIF_MEDIAZIONE_LOCAZIONE = [
+    {
+        "title": "D.Lgs. 4 marzo 2010, n. 28",
+        "article": "art. 5, comma 1 — locazione",
+        "description": "Nelle controversie in materia di locazione la mediazione costituisce condizione di procedibilita della domanda giudiziale.",
+        "url": _URL_MEDIAZIONE,
+    },
+    {
+        "title": "D.M. 24 ottobre 2023, n. 150",
+        "article": "spese e indennita di mediazione",
+        "description": "Disciplina delle spese, indennita e maggiorazioni applicabili nella procedura di mediazione dopo la riforma Cartabia.",
+        "url": _URL_DM150_MEDIAZIONE,
+    },
+]
 
 _RIFERIMENTI_BASE: List[Dict[str, str]] = [
     {
@@ -1118,6 +1134,21 @@ _WHEN_TO_USE_OVERRIDES = {
     "sinistro_stradale_stragiudiziale": "Usalo quando vuoi costruire un preventivo per la fase di messa in mora, raccolta documenti e trattativa assicurativa prima della causa.",
 }
 
+_ACCESSORI_CALCOLO: Dict[str, List[Dict[str, Any]]] = {
+    "sfratto_morosita": [
+        {
+            "id": "mediazione_locazione",
+            "tipo_pratica_id": "mediazione",
+            "label": "Aggiungi mediazione civile (locazione)",
+            "description": "In materia di locazione la mediazione e condizione di procedibilita ai sensi dell'art. 5, comma 1, D.Lgs. 28/2010.",
+            "default_checked": True,
+            "row_label": "Compenso professionale per mediazione civile collegata alla controversia locatizia",
+            "fasi_default_keys": ["attivazione", "rivitalizzazione", "conciliazione"],
+            "normative_references": _RIF_MEDIAZIONE_LOCAZIONE,
+        }
+    ]
+}
+
 
 def _fase_key(fase: Fase) -> str:
     mapping = {
@@ -1197,12 +1228,17 @@ def _checklist_for(tp: TipoPratica) -> List[str]:
         checklist.append(_descrivi_fase(fase))
     if tp.area == "Stragiudiziale":
         checklist.append("definire se inserire fase di mediazione o negoziazione assistita")
+    if tp.id == "sfratto_morosita":
+        checklist.append("verificare subito la mediazione civile obbligatoria in materia di locazione")
     return checklist
 
 
 def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
     refs = [dict(item) for item in _RIFERIMENTI_BASE]
-    area_ref = _RIFERIMENTI_AREA.get(tp.area)
+    if tp.materia in {Materia.LAVORO, Materia.PREVIDENZA}:
+        area_ref = _RIFERIMENTI_AREA.get("Lavoro e previdenza")
+    else:
+        area_ref = _RIFERIMENTI_AREA.get(tp.area)
     if area_ref:
         refs.append(
             {
@@ -1256,6 +1292,7 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "url": _URL_CPC,
             }
         )
+        refs.extend([dict(item) for item in _RIF_MEDIAZIONE_LOCAZIONE])
     if tp.id == "risarcimento_danni":
         refs.append(
             {
@@ -1271,14 +1308,25 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
 def _arricchisci_catalogo() -> None:
     for tp in CATALOGO:
         tp.esborsi_tipici = [dict(item) for item in _ESBORSI_TIPICI.get(tp.id, [])]
-        tp.motore_label = tp.motore_label or _MOTORE_PER_AREA.get(tp.area, "Motore preventivo forense")
-        tp.redattore_label = tp.redattore_label or _REDATTORE_PER_AREA.get(tp.area, "Redattore preventivo professionale")
+        if tp.materia in {Materia.LAVORO, Materia.PREVIDENZA}:
+            tp.motore_label = tp.motore_label or _MOTORE_PER_AREA.get("Lavoro e previdenza", "Motore preventivo forense")
+            tp.redattore_label = tp.redattore_label or _REDATTORE_PER_AREA.get("Lavoro e previdenza", "Redattore preventivo professionale")
+        else:
+            tp.motore_label = tp.motore_label or _MOTORE_PER_AREA.get(tp.area, "Motore preventivo forense")
+            tp.redattore_label = tp.redattore_label or _REDATTORE_PER_AREA.get(tp.area, "Redattore preventivo professionale")
         tp.summary = tp.summary or _summary_for(tp)
         tp.when_to_use = tp.when_to_use or _when_to_use_for(tp)
         tp.oggetto_template = tp.oggetto_template or _oggetto_template_for(tp)
         tp.note_template = tp.note_template or _note_template_for(tp)
         tp.checklist_iniziale = tp.checklist_iniziale or _checklist_for(tp)
         tp.normative_references = tp.normative_references or _normative_references_for(tp)
+        tp.accessori_calcolo = [
+            {
+                **{k: v for k, v in item.items() if k != "normative_references"},
+                "normative_references": [dict(ref) for ref in item.get("normative_references", [])],
+            }
+            for item in _ACCESSORI_CALCOLO.get(tp.id, [])
+        ]
 
 
 _arricchisci_catalogo()

@@ -47,9 +47,31 @@ def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():
     catalogo = catalogo_wizard()
     civile_ids = {item["id"] for item in catalogo["Civile"]}
     stragiud_ids = {item["id"] for item in catalogo["Stragiudiziale"]}
+    assert "controversia_lavoro" in civile_ids
+    assert "previdenza" in civile_ids
     assert "sfratto_morosita" in civile_ids
     assert "risarcimento_danni" in civile_ids
     assert "sinistro_stradale_stragiudiziale" in stragiud_ids
+
+
+def test_sfratto_morosita_espone_mediazione_civile_nello_stesso_wizard():
+    scheda = redattore_preventivo_iniziale("sfratto_morosita")
+    assert scheda["accessori_calcolo"]
+    accessorio = scheda["accessori_calcolo"][0]
+    assert accessorio["tipo_pratica_id"] == "mediazione"
+    assert accessorio["default_checked"] is True
+    assert any("locazione" in (ref.get("article") or "").lower() for ref in accessorio["normative_references"])
+
+
+def test_esborsi_tipici_non_propongono_piu_marca_da_bollo_nel_wizard_preventivi():
+    catalogo = catalogo_wizard()
+    descrizioni = [
+        voce["descrizione"]
+        for items in catalogo.values()
+        for item in items
+        for voce in item.get("esborsi_tipici", [])
+    ]
+    assert all("Marca da bollo" not in descrizione for descrizione in descrizioni)
 
 
 def test_catalogo_riferimenti_normativi_deduplica_e_traccia_tipologie():

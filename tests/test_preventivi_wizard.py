@@ -16,7 +16,7 @@ def _mk_fascicolo(tipo: TipoFascicolo, **overrides) -> Fascicolo:
 
 def test_area_pratica_da_fascicolo_mappa_tipo_su_macro_area_wizard():
     assert _area_pratica_da_fascicolo(_mk_fascicolo(TipoFascicolo.CIVILE)) == "Civile"
-    assert _area_pratica_da_fascicolo(_mk_fascicolo(TipoFascicolo.LAVORO)) == "Lavoro e previdenza"
+    assert _area_pratica_da_fascicolo(_mk_fascicolo(TipoFascicolo.LAVORO)) == "Civile"
     assert _area_pratica_da_fascicolo(_mk_fascicolo(TipoFascicolo.STRAGIUDIZIALE)) == "Stragiudiziale"
     assert _area_pratica_da_fascicolo(_mk_fascicolo(TipoFascicolo.PENALE)) == "Penale"
 

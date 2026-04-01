@@ -276,7 +276,7 @@
                 <tr><td colspan="2" class="text-end small text-muted">CPA</td><td class="text-end small" id="lblCassa">€ 0,00</td><td></td></tr>
                 <tr><td colspan="2" class="text-end small text-muted">IVA</td><td class="text-end small" id="lblIva">€ 0,00</td><td></td></tr>
                 <tr><td colspan="2" class="text-end small text-muted">Anticipazioni art. 15</td><td class="text-end small" id="lblAnticipazioni">€ 0,00</td><td></td></tr>
-                <tr class="table-primary"><td colspan="2" class="text-end fw-bold">Totale stimato</td><td class="text-end fw-bold" id="lblTotale">€ 0,00</td><td></td></tr>
+                <tr class="table-primary"><td colspan="2" class="text-end fw-bold">Totale</td><td class="text-end fw-bold" id="lblTotale">€ 0,00</td><td></td></tr>
               </tfoot>
             </table>
           </div>
@@ -308,7 +308,7 @@
           <hr>
           <div class="row g-2 mb-3">
             <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Compenso base</div><div class="value" id="kpiCompenso">€ 0,00</div></div></div>
-            <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Totale stimato</div><div class="value" id="kpiTotale">€ 0,00</div></div></div>
+            <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Totale</div><div class="value" id="kpiTotale">€ 0,00</div></div></div>
           </div>
           <div class="mb-3">
             <div class="prev-section-label mb-2">Riferimenti normativi</div>
@@ -385,6 +385,7 @@ function tipologiaValidaPerArea(area) {
 function resetTipologiaSelection() {
   tipologiaCorrente = null;
   ultimoCalcolo = null;
+  clearAccessorioRows();
   document.getElementById('inpIdPratica').value = '';
   document.getElementById('inpAreaPratica').value = areaCorrente || '';
   document.getElementById('inpTipoCompenso').value = '';
@@ -460,6 +461,51 @@ function fascicoloById(idFascicolo) {
     || (FASCICOLO_PRE && FASCICOLO_PRE.id === idFascicolo ? FASCICOLO_PRE : null);
 }
 
+function getTipologiaById(idTipologia) {
+  return catalogoFlat.find((item) => item.id === idTipologia) || null;
+}
+
+function isAccessorioChecked(accessorio) {
+  const checkbox = document.getElementById(`chkAccessorio_${accessorio.id}`);
+  if (checkbox) return checkbox.checked;
+  return !!accessorio.default_checked;
+}
+
+function accessoriCalcoloSelezionati() {
+  if (!tipologiaCorrente) return [];
+  return (tipologiaCorrente.accessori_calcolo || []).filter((accessorio) => isAccessorioChecked(accessorio));
+}
+
+function dedupeNormativeReferences(refs) {
+  const seen = new Set();
+  return (refs || []).filter((ref) => {
+    const key = [ref.title || '', ref.article || '', ref.url || ''].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function esborsiSuggeritiAttivi() {
+  if (!tipologiaCorrente) return [];
+  const righe = (tipologiaCorrente.esborsi_tipici || []).map((item, index) => ({
+    key: `${tipologiaCorrente.id}_${index}`,
+    descrizione: item.descrizione,
+    importo: item.importo,
+  }));
+  accessoriCalcoloSelezionati().forEach((accessorio) => {
+    const tipologiaAccessorio = getTipologiaById(accessorio.tipo_pratica_id);
+    (tipologiaAccessorio?.esborsi_tipici || []).forEach((item, index) => {
+      righe.push({
+        key: `${accessorio.id}_${index}`,
+        descrizione: `${accessorio.label} — ${item.descrizione}`,
+        importo: item.importo,
+      });
+    });
+  });
+  return righe;
+}
+
 function renderAreaButtons() {
   const wrap = document.getElementById('areaButtons');
   wrap.innerHTML = '';
@@ -509,6 +555,7 @@ function renderTipologie() {
 function selezionaTipologia(idTipologia) {
   tipologiaCorrente = catalogoFlat.find((item) => item.id === idTipologia) || null;
   if (!tipologiaCorrente) return;
+  clearAccessorioRows();
   areaCorrente = tipologiaCorrente.area || areaCorrente;
   document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
   document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
@@ -545,8 +592,24 @@ function renderSchedaTipologia() {
     <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
     <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
     <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
-  checklist.innerHTML = (tipologiaCorrente.checklist_iniziale || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
-  normativa.innerHTML = (tipologiaCorrente.normative_references || []).map((ref) => `
+  const accessori = accessoriCalcoloSelezionati();
+  if (accessori.length) {
+    target.innerHTML += accessori.map((accessorio) => `
+      <div class="border rounded-3 p-2 mt-3 bg-light">
+        <div class="fw-semibold text-dark small">${escapeHtml(accessorio.label)}</div>
+        <div class="small text-muted">${escapeHtml(accessorio.description || '')}</div>
+      </div>`).join('');
+  }
+  const checklistItems = [...(tipologiaCorrente.checklist_iniziale || [])];
+  accessori.forEach((accessorio) => {
+    checklistItems.push(`integrazione attiva: ${accessorio.label.toLowerCase()}`);
+  });
+  checklist.innerHTML = checklistItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const normativeRefs = dedupeNormativeReferences([
+    ...(tipologiaCorrente.normative_references || []),
+    ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
+  ]);
+  normativa.innerHTML = normativeRefs.map((ref) => `
     <div class="border rounded-3 p-2">
       <div class="fw-semibold text-dark">${escapeHtml(ref.title || '')}</div>
       <div class="small">${escapeHtml(ref.article || '')}</div>
@@ -562,26 +625,56 @@ function renderFasi() {
     return;
   }
   const phases = tipologiaCorrente.fasi_default_keys || [];
-  grid.innerHTML = phases.map((key) => `
+  const phaseMarkup = phases.map((key) => `
     <div class="col-md-6">
       <label class="border rounded-3 p-2 d-flex align-items-center gap-2">
         <input class="form-check-input mt-0 fase-check" type="checkbox" value="${key}" checked>
         <span>${escapeHtml(phaseLabel(key))}</span>
       </label>
     </div>`).join('');
+  const accessoriMarkup = (tipologiaCorrente.accessori_calcolo || []).map((accessorio) => `
+    <div class="col-12">
+      <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100 bg-light">
+        <input class="form-check-input mt-1 accessorio-check" type="checkbox" id="chkAccessorio_${accessorio.id}" data-accessorio-id="${accessorio.id}" ${accessorio.default_checked ? 'checked' : ''}>
+        <span class="small">
+          <span class="fw-semibold d-block text-dark">${escapeHtml(accessorio.label)}</span>
+          <span class="text-muted d-block">${escapeHtml(accessorio.description || '')}</span>
+        </span>
+      </label>
+    </div>`).join('');
+  grid.innerHTML = phaseMarkup + accessoriMarkup;
+  grid.querySelectorAll('.accessorio-check').forEach((node) => {
+    node.addEventListener('change', async () => {
+      renderSchedaTipologia();
+      renderEsborsi();
+      clearAccessorioRows();
+      if (ultimoCalcolo) {
+        try {
+          await applicaAccessoriCalcolo();
+        } catch (error) {
+          alert(`Impossibile aggiornare gli accessori del preventivo: ${error.message}`);
+        }
+      } else {
+        aggiornaEmptyState();
+        recalcTotals();
+      }
+    });
+  });
 }
 
 function renderEsborsi() {
   const grid = document.getElementById('esborsiGrid');
-  if (!tipologiaCorrente || !(tipologiaCorrente.esborsi_tipici || []).length) {
+  const selectedKeys = new Set(Array.from(document.querySelectorAll('.esborso-check:checked')).map((node) => node.dataset.key));
+  const esborsi = esborsiSuggeritiAttivi();
+  if (!esborsi.length) {
     grid.innerHTML = '<div class="col-12 text-muted small">Nessun esborso tipico suggerito per questa tipologia.</div>';
     syncEsborsiRows();
     return;
   }
-  grid.innerHTML = tipologiaCorrente.esborsi_tipici.map((item, index) => `
+  grid.innerHTML = esborsi.map((item) => `
     <div class="col-md-6">
       <label class="border rounded-3 p-3 d-flex align-items-start gap-2 h-100">
-        <input class="form-check-input mt-1 esborso-check" type="checkbox" data-key="${tipologiaCorrente.id}_${index}" data-desc="${escapeHtml(item.descrizione)}" data-importo="${item.importo}">
+        <input class="form-check-input mt-1 esborso-check" type="checkbox" data-key="${item.key}" data-desc="${escapeHtml(item.descrizione)}" data-importo="${item.importo}" ${selectedKeys.has(item.key) ? 'checked' : ''}>
         <span class="small">
           <span class="fw-semibold d-block text-dark">${escapeHtml(item.descrizione)}</span>
           <span class="text-muted">${money(item.importo)}</span>
@@ -711,13 +804,21 @@ function addVoce(desc = '', importo = '', tipo = 'Onorario', attrs = '') {
   return row;
 }
 
-function upsertVocePrincipale(desc, importo) {
-  let row = document.querySelector('tr[data-role="main-compenso"]');
-  if (!row) row = addVoce(desc, importo, 'Onorario', 'data-role="main-compenso"');
+function upsertVocePerRuolo(role, desc, importo, tipo = 'Onorario') {
+  let row = document.querySelector(`tr[data-role="${role}"]`);
+  if (!row) row = addVoce(desc, importo, tipo, `data-role="${role}"`);
   row.querySelector('input[name="voce_descr[]"]').value = desc;
-  row.querySelector('select[name="voce_tipo[]"]').value = 'Onorario';
+  row.querySelector('select[name="voce_tipo[]"]').value = tipo;
   row.querySelector('input[name="voce_importo[]"]').value = Number(importo || 0);
   recalcTotals();
+}
+
+function upsertVocePrincipale(desc, importo) {
+  upsertVocePerRuolo('main-compenso', desc, importo, 'Onorario');
+}
+
+function clearAccessorioRows() {
+  document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => row.remove());
 }
 
 function syncEsborsiRows() {
@@ -746,9 +847,9 @@ function recalcTotals() {
   document.getElementById('inpCompensoPattuito').value = totale.toFixed(2);
 }
 
-function buildQuery() {
+function buildQuery(idPratica = '', fasiOverride = null) {
   const params = new URLSearchParams();
-  params.set('id_pratica', tipologiaCorrente.id);
+  params.set('id_pratica', idPratica || tipologiaCorrente.id);
   params.set('valore', document.getElementById('inpValore').value || 0);
   params.set('grado', document.getElementById('selGrado').value || '');
   params.set('bonus_telematico', document.getElementById('chkBonusTelematico').checked ? '1' : '0');
@@ -757,7 +858,9 @@ function buildQuery() {
   params.set('applica_cpa', document.getElementById('chkCassa').checked ? '1' : '0');
   params.set('applica_iva', document.getElementById('chkIva').checked ? '1' : '0');
   params.set('anticipazioni', document.getElementById('inpAnticipazioni').value || '0');
-  const fasi = Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
+  const fasi = Array.isArray(fasiOverride)
+    ? fasiOverride
+    : Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
   params.set('fasi', fasi.join(','));
   return params;
 }
@@ -777,6 +880,27 @@ function renderRisultatoOrario() {
   ultimoCalcolo = { onorario_base: imponibile, totale: imponibile, scaglione: 'Compenso orario pattuito' };
   document.getElementById('kpiCompenso').textContent = money(imponibile);
   upsertVocePrincipale(`Compenso orario per ${tipologiaCorrente.label} (${ore.toLocaleString('it-IT')} ore x ${money(tariffa)})`, imponibile);
+  recalcTotals();
+}
+
+async function applicaAccessoriCalcolo() {
+  const accessori = accessoriCalcoloSelezionati();
+  const ruoliAttivi = new Set();
+  for (const accessorio of accessori) {
+    const response = await fetch(`{{ url_for('preventivi.wizard_calcola') }}?${buildQuery(accessorio.tipo_pratica_id, accessorio.fasi_default_keys || null).toString()}`);
+    const data = await response.json();
+    if (data.errore) {
+      throw new Error(data.errore);
+    }
+    const role = `accessorio-${accessorio.id}`;
+    const label = accessorio.row_label || `Compenso professionale per ${data.tipo_pratica?.label || accessorio.label}`;
+    ruoliAttivi.add(role);
+    upsertVocePerRuolo(role, label, data.onorario_base || data.totale_base || 0, 'Onorario');
+  }
+  document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => {
+    if (!ruoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
+  aggiornaEmptyState();
   recalcTotals();
 }
 
@@ -806,6 +930,7 @@ async function calcolaPreventivo() {
       return;
     }
     renderRisultato(data);
+    await applicaAccessoriCalcolo();
   } catch (error) {
     alert(`Impossibile calcolare il preventivo: ${error.message}`);
   } finally {

@@ -1027,10 +1027,17 @@ tr.htmx-request {
 .uff-tipo-TRIBUNALE        { background: #dbeafe; color: #1e40af; }
 .uff-tipo-CORTE_APPELLO    { background: #d1fae5; color: #065f46; }
 .uff-tipo-PROCURA          { background: #fef3c7; color: #92400e; }
+.uff-tipo-PROCURA_GENERALE { background: #fde68a; color: #78350f; }
 .uff-tipo-CORTE_CASSAZIONE { background: #fce7f3; color: #9d174d; }
 .uff-tipo-TM               { background: #e0e7ff; color: #3730a3; }
 .uff-tipo-SORVEGLIANZA     { background: #ecfdf5; color: #065f46; }
+.uff-tipo-CORTE_ASSISE     { background: #fee2e2; color: #991b1b; }
 .uff-tipo-GDP              { background: #fff7ed; color: #9a3412; }
+.uff-tipo-TAR              { background: #dcfce7; color: #166534; }
+.uff-tipo-CDS              { background: #dbeafe; color: #1d4ed8; }
+.uff-tipo-CGARS            { background: #ede9fe; color: #5b21b6; }
+.uff-tipo-CGT              { background: #cffafe; color: #155e75; }
+.uff-tipo-CPT              { background: #f3e8ff; color: #7e22ce; }
 .uff-empty { padding: .85rem 1rem; color: #94a3b8; font-size: .83rem; text-align: center; }
 [data-bs-theme="dark"] .uffp-dropdown    { background: #1e293b; border-color: #334155; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
 [data-bs-theme="dark"] .uff-group-header { background: #1a2742; border-color: #273549; }

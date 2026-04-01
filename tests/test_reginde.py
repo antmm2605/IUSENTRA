@@ -167,3 +167,12 @@ def test_gestore_cerca_usa_anche_metadati_ministeriali():
 
     assert risultati
     assert all(item["tipo"] == "TRIBUNALE" for item in risultati)
+
+
+def test_gestore_cerca_supporta_corti_tributarie():
+    gestore = GestoreUfficiGiudiziari()
+
+    risultati = gestore.cerca("abruzzo", tipo="CGT", limit=3)
+
+    assert risultati
+    assert all(item["tipo"] == "CGT" for item in risultati)

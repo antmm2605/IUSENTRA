@@ -54,6 +54,47 @@ def _campi_cliente_mancanti(cliente) -> list[str]:
     return list(getattr(cliente, "campi_mancanti_per_conferimento", []) or [])
 
 
+def _area_pratica_da_fascicolo(fascicolo) -> str:
+    if not fascicolo:
+        return ""
+    tipo = getattr(getattr(fascicolo, "tipo", None), "value", "") or ""
+    mapping = {
+        "CIVILE": "Civile",
+        "FAMIGLIA": "Civile",
+        "SUCCESSIONI": "Civile",
+        "LAVORO": "Lavoro e previdenza",
+        "PENALE": "Penale",
+        "AMMINISTRATIVO": "Amministrativo",
+        "TRIBUTARIO": "Tributario",
+        "STRAGIUDIZIALE": "Stragiudiziale",
+        "CONSULENZA": "Stragiudiziale",
+        "ALTRO": "Speciali",
+    }
+    return mapping.get(str(tipo).upper(), "Speciali")
+
+
+def _contesto_fascicolo_wizard(fascicolo) -> dict:
+    if not fascicolo:
+        return {}
+    rg_label = fascicolo.rg_completo or (f"RG {fascicolo.numero_rg}" if fascicolo.numero_rg else "")
+    descrizione = (fascicolo.oggetto or fascicolo.titolo or "Pratica collegata").strip()
+    context_label = f"{rg_label} — {descrizione}" if rg_label else descrizione
+    return {
+        "id": fascicolo.id,
+        "titolo": fascicolo.titolo,
+        "oggetto": fascicolo.oggetto or "",
+        "numero": fascicolo.numero,
+        "numero_rg": fascicolo.numero_rg or "",
+        "anno_rg": fascicolo.anno_rg or "",
+        "rg_label": rg_label,
+        "tribunale": fascicolo.tribunale or "",
+        "tipo_fascicolo": getattr(fascicolo.tipo, "value", ""),
+        "area_pratica": _area_pratica_da_fascicolo(fascicolo),
+        "context_label": context_label,
+        "display_label": context_label,
+    }
+
+
 def _crea_cliente_rapido_da_wizard(form) -> tuple[str, str]:
     from pct.clienti import TipoCliente
 
@@ -604,8 +645,7 @@ def pdf_conferimento(id_conferimento: str):
 def ajax_fascicoli(id_cliente: str):
     from flask import jsonify
     fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
-    return jsonify([{"id": f.id, "titolo": f.titolo,
-                     "numero_rg": f.numero_rg or ""} for f in fascicoli])
+    return jsonify([_contesto_fascicolo_wizard(f) for f in fascicoli])
 
 
 @preventivi.route("/ajax/preventivi/<id_cliente>")
@@ -757,7 +797,12 @@ def wizard():
     """Wizard step-by-step per la costruzione guidata del preventivo."""
     from pct.motore_preventivo import AREE, catalogo_wizard
     gc = get_clienti()
+    gf = get_fascicoli()
     id_cliente = request.args.get("id_cliente", "").strip()
+    id_fascicolo_pre = request.args.get("id_fascicolo", "").strip()
+    fascicolo_pre = gf.get(id_fascicolo_pre) if id_fascicolo_pre else None
+    if fascicolo_pre and not id_cliente:
+        id_cliente = fascicolo_pre.id_cliente or ""
     cliente_sel = gc.get(id_cliente) if id_cliente else None
     return render_template(
         "preventivi/wizard.html",
@@ -766,6 +811,8 @@ def wizard():
         clienti=gc.tutti(),
         cliente_sel=cliente_sel,
         id_cliente_pre=id_cliente,
+        id_fascicolo_pre=id_fascicolo_pre,
+        fascicolo_pre_context=_contesto_fascicolo_wizard(fascicolo_pre) if fascicolo_pre else None,
         from_page=request.args.get("from_page", "").strip(),
         entry_mode=request.args.get("entry", "").strip(),
         oggi=date.today(),

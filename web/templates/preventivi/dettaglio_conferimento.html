@@ -15,9 +15,12 @@
       - Avv. {{ c.avvocato_referente }}
     </p>
   </div>
-  <div class="ds-ph-actions d-flex gap-2">
+  <div class="ds-ph-actions d-flex gap-2 d-print-none">
     <a href="{{ url_for('preventivi.pdf_conferimento', id_conferimento=c.id) }}" class="ds-btn ds-btn-secondary" target="_blank">
-      <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-sm-inline">PDF</span>
+      <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-sm-inline">PDF / Stampa</span>
+    </a>
+    <a href="{{ url_for('preventivi.pdf_conferimento', id_conferimento=c.id) }}?download=1" class="ds-btn ds-btn-secondary">
+      <i class="bi bi-download"></i><span class="d-none d-sm-inline">Scarica</span>
     </a>
     <a href="{{ url_for('preventivi.lista', tab='conferimenti') }}" class="ds-btn ds-btn-secondary">
       <i class="bi bi-arrow-left"></i>

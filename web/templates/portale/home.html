@@ -138,6 +138,69 @@
 </div>
 {% endif %}
 
+<!-- Documenti economici -->
+{% if p.permessi.vedi_economici %}
+<p class="section-header">Preventivi, incarichi e parcelle</p>
+<div class="portale-card card mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+      <div>
+        <div class="fw-semibold">Area economica del tuo rapporto con lo studio</div>
+        <div class="text-muted" style="font-size:.8rem;">
+          Qui trovi i documenti economici disponibili in PDF, pronti da aprire, scaricare o stampare.
+        </div>
+      </div>
+      <a href="{{ url_for('portale.economici', token=token) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-wallet2 me-1"></i>Apri area
+      </a>
+    </div>
+
+    <div class="row g-2 mb-3 text-center">
+      <div class="col-4">
+        <div class="border rounded-3 py-2 h-100">
+          <div class="fw-bold text-primary">{{ economici.stats.preventivi }}</div>
+          <div class="text-muted" style="font-size:.72rem;">Preventivi</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="border rounded-3 py-2 h-100">
+          <div class="fw-bold text-primary">{{ economici.stats.conferimenti }}</div>
+          <div class="text-muted" style="font-size:.72rem;">Incarichi</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="border rounded-3 py-2 h-100">
+          <div class="fw-bold text-primary">{{ economici.stats.parcelle }}</div>
+          <div class="text-muted" style="font-size:.72rem;">Parcelle</div>
+        </div>
+      </div>
+    </div>
+
+    {% if economici.timeline %}
+    <div class="d-flex flex-column gap-2">
+      {% for item in economici.timeline[:3] %}
+      <div class="d-flex align-items-start gap-2 border rounded-3 p-2">
+        <i class="bi {% if item.kind == 'preventivo' %}bi-file-earmark-text{% elif item.kind == 'conferimento' %}bi-file-earmark-check{% else %}bi-receipt{% endif %} text-primary mt-1"></i>
+        <div class="flex-grow-1">
+          <div class="fw-semibold" style="font-size:.86rem;">
+            {{ item.numero }} · {{ item.titolo }}
+          </div>
+          <div class="text-muted" style="font-size:.76rem;">
+            {{ item.data }}
+            {% if item.fascicolo_label %} · {{ item.fascicolo_label }}{% endif %}
+          </div>
+        </div>
+        <div class="fw-semibold text-nowrap" style="font-size:.82rem;">€ {{ "%.2f"|format(item.totale) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-muted" style="font-size:.82rem;">Nessun documento economico ancora disponibile.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <!-- Quick actions -->
 <p class="section-header">Azioni rapide</p>
 <div class="row g-3 mb-2">
@@ -157,6 +220,16 @@
       <div class="portale-card card h-100 text-center py-3">
         <i class="bi bi-person-vcard fs-2 text-primary mb-1"></i>
         <div style="font-size:.8rem;font-weight:600;">I miei dati</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {% if p.permessi.vedi_economici %}
+  <div class="col-6">
+    <a href="{{ url_for('portale.economici', token=token) }}" class="text-decoration-none">
+      <div class="portale-card card h-100 text-center py-3">
+        <i class="bi bi-wallet2 fs-2 text-primary mb-1"></i>
+        <div style="font-size:.8rem;font-weight:600;">Documenti economici</div>
       </div>
     </a>
   </div>

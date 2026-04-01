@@ -253,8 +253,9 @@ def pdf(id_parcella: str):
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
     buf = _genera_pdf(p, cliente, fascicolo, current_app.config)
     nome_file = f"parcella_{p.numero.replace('/', '-')}.pdf"
+    download = (request.args.get("download") or "").strip().lower() in {"1", "true", "yes", "download"}
     return send_file(buf, mimetype="application/pdf",
-                     as_attachment=False, download_name=nome_file)
+                     as_attachment=download, download_name=nome_file)
 
 
 # ================================================================ XML FatturaPA

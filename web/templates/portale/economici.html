@@ -1,0 +1,145 @@
+{% extends "portale/base.html" %}
+{% block title %}Documenti economici{% endblock %}
+{% set active_tab = "economici" %}
+
+{% macro stato_badge(stato) -%}
+  {% set palette = {
+    'BOZZA': 'secondary',
+    'GENERATO': 'primary',
+    'VERIFICATO': 'info',
+    'INVIATO': 'primary',
+    'APERTO': 'warning',
+    'ACCETTATO': 'success',
+    'CONVERTITO': 'success',
+    'RIFIUTATO': 'danger',
+    'SCADUTO': 'warning',
+    'REVISIONATO': 'dark',
+    'ATTIVO': 'success',
+    'DEFINITO': 'secondary',
+    'REVOCATO': 'danger',
+    'EMESSA': 'primary',
+    'PAGATA': 'success',
+    'ANNULLATA': 'dark'
+  } %}
+  <span class="badge bg-{{ palette.get(stato, 'secondary') }}">{{ stato }}</span>
+{%- endmacro %}
+
+{% macro card_documento(kind, doc, pdf_url) -%}
+<div class="portale-card card mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-start justify-content-between gap-3 mb-2">
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="fw-semibold">
+            {% if kind == 'preventivo' %}Preventivo{% elif kind == 'conferimento' %}Conferimento{% else %}Parcella{% endif %}
+            {{ doc.numero }}
+          </div>
+          {{ stato_badge(doc.stato.value if doc.stato is defined and doc.stato.value is defined else doc.stato) }}
+        </div>
+        <div class="text-muted" style="font-size:.78rem;">
+          {% if kind == 'conferimento' %}
+            {{ doc.data_incarico }}
+          {% else %}
+            {{ doc.data_emissione }}
+          {% endif %}
+          {% if doc.data_scadenza is defined and doc.data_scadenza %}
+            · Scadenza {{ doc.data_scadenza }}
+          {% endif %}
+        </div>
+      </div>
+      <div class="text-end">
+        {% if kind == 'conferimento' %}
+          <div class="fw-bold text-primary">€ {{ "%.2f"|format(doc.compenso_pattuito or 0) }}</div>
+        {% else %}
+          <div class="fw-bold text-primary">€ {{ "%.2f"|format(doc.totale) }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="small mb-3">
+      {% if kind == 'parcella' %}
+        {{ doc.note or 'Parcella professionale emessa dallo studio.' }}
+      {% else %}
+        {{ doc.oggetto }}
+      {% endif %}
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{{ pdf_url }}" target="_blank" class="btn btn-sm btn-primary">
+        <i class="bi bi-file-earmark-pdf me-1"></i>PDF / Stampa
+      </a>
+      <a href="{{ pdf_url }}?download=1" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i>Scarica
+      </a>
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<div class="mb-4">
+  <h5 class="fw-bold mb-1">Documenti economici</h5>
+  <p class="text-muted mb-0" style="font-size:.85rem;">
+    Consultazione semplice e ordinata di preventivi, conferimenti d'incarico e parcelle dello studio.
+  </p>
+</div>
+
+<div class="row g-2 mb-4 text-center">
+  <div class="col-4">
+    <div class="portale-card card h-100">
+      <div class="card-body py-3">
+        <div class="fw-bold fs-4 text-primary">{{ stats.preventivi }}</div>
+        <div class="text-muted" style="font-size:.74rem;">Preventivi</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="portale-card card h-100">
+      <div class="card-body py-3">
+        <div class="fw-bold fs-4 text-primary">{{ stats.conferimenti }}</div>
+        <div class="text-muted" style="font-size:.74rem;">Incarichi</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="portale-card card h-100">
+      <div class="card-body py-3">
+        <div class="fw-bold fs-4 text-primary">{{ stats.parcelle }}</div>
+        <div class="text-muted" style="font-size:.74rem;">Parcelle</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not stats.totale %}
+<div class="portale-card card">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-wallet2 fs-1 d-block mb-2 opacity-50"></i>
+    Nessun documento economico disponibile al momento.
+  </div>
+</div>
+{% else %}
+
+{% if preventivi %}
+<p class="section-header">Preventivi</p>
+{% for doc in preventivi %}
+  {{ card_documento('preventivo', doc, url_for('portale.pdf_preventivo', token=token, id_preventivo=doc.id)) }}
+{% endfor %}
+{% endif %}
+
+{% if conferimenti %}
+<p class="section-header">Conferimenti di incarico</p>
+{% for doc in conferimenti %}
+  {{ card_documento('conferimento', doc, url_for('portale.pdf_conferimento', token=token, id_conferimento=doc.id)) }}
+{% endfor %}
+{% endif %}
+
+{% if parcelle %}
+<p class="section-header">Parcelle</p>
+{% for doc in parcelle %}
+  {{ card_documento('parcella', doc, url_for('portale.pdf_parcella', token=token, id_parcella=doc.id)) }}
+{% endfor %}
+{% endif %}
+
+{% endif %}
+{% endblock %}

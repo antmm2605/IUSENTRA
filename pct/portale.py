@@ -32,6 +32,7 @@ class PermessiPortale:
     vedi_anagrafica:      bool = True
     modifica_anagrafica:  bool = False   # cliente può aggiornare i recapiti
     vedi_fascicoli:       bool = True
+    vedi_economici:       bool = True    # preventivi, incarichi e parcelle
     vedi_attivita:        bool = False   # timeline attività processuali
     vedi_appuntamenti:    bool = False   # prossimi appuntamenti
     vedi_scadenze:        bool = False   # scadenze del fascicolo

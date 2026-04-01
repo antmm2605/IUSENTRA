@@ -10,7 +10,7 @@ import os
 from datetime import date
 
 from flask import (Blueprint, abort, flash, redirect, render_template,
-                   request, url_for, current_app)
+                   request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
 from pct.legal_intelligence import costruisci_tracker_fascicoli
@@ -28,6 +28,25 @@ def _get_portale():
     )
 
 
+def _get_preventivi():
+    from pct.preventivi import GestionePreventivi
+    return GestionePreventivi(
+        db_path=current_app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
+    )
+
+
+def _get_fatturazione():
+    from pct.fatturazione import GestioneFatturazione
+    return GestioneFatturazione(
+        db_path=current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+    )
+
+
+def _download_requested() -> bool:
+    value = (request.args.get("download") or "").strip().lower()
+    return value in {"1", "true", "yes", "download"}
+
+
 def _carica_contesto(token: str):
     """Verifica token e carica portale + cliente. Abort 403/410 se non valido."""
     gp = _get_portale()
@@ -41,6 +60,136 @@ def _carica_contesto(token: str):
     return gp, portale_obj, cliente
 
 
+def _fascicoli_map_cliente(id_cliente: str):
+    try:
+        return {
+            f.id: f for f in get_fascicoli().tutti()
+            if f.id_cliente == id_cliente
+        }
+    except Exception:
+        return {}
+
+
+def _documenti_economici_cliente(id_cliente: str):
+    fascicoli_map = _fascicoli_map_cliente(id_cliente)
+
+    try:
+        gp_prev = _get_preventivi()
+        preventivi = [
+            p for p in gp_prev.tutti_preventivi()
+            if p.id_cliente == id_cliente
+        ]
+        conferimenti = [
+            c for c in gp_prev.tutti_conferimenti()
+            if c.id_cliente == id_cliente
+        ]
+    except Exception:
+        preventivi = []
+        conferimenti = []
+
+    try:
+        gf = _get_fatturazione()
+        parcelle = [
+            p for p in gf.tutte()
+            if p.id_cliente == id_cliente
+        ]
+    except Exception:
+        parcelle = []
+
+    preventivi = sorted(
+        preventivi,
+        key=lambda p: (p.data_emissione or "", p.creato_il or ""),
+        reverse=True,
+    )
+    conferimenti = sorted(
+        conferimenti,
+        key=lambda c: (c.data_incarico or "", c.creato_il or ""),
+        reverse=True,
+    )
+    parcelle = sorted(
+        parcelle,
+        key=lambda p: (p.data_emissione or "", p.creato_il or ""),
+        reverse=True,
+    )
+
+    timeline = []
+    for p in preventivi:
+        fascicolo = fascicoli_map.get(p.id_fascicolo)
+        timeline.append({
+            "kind": "preventivo",
+            "id": p.id,
+            "numero": p.numero,
+            "data": p.data_emissione,
+            "titolo": p.oggetto,
+            "stato": getattr(p.stato, "value", str(p.stato)),
+            "totale": round(p.totale, 2),
+            "fascicolo_label": fascicolo.titolo if fascicolo else "",
+        })
+    for c in conferimenti:
+        fascicolo = fascicoli_map.get(c.id_fascicolo)
+        totale = c.compenso_pattuito or 0.0
+        timeline.append({
+            "kind": "conferimento",
+            "id": c.id,
+            "numero": c.numero,
+            "data": c.data_incarico,
+            "titolo": c.oggetto,
+            "stato": getattr(c.stato, "value", str(c.stato)),
+            "totale": round(totale, 2),
+            "fascicolo_label": fascicolo.titolo if fascicolo else "",
+        })
+    for parcella in parcelle:
+        fascicolo = fascicoli_map.get(parcella.id_fascicolo)
+        timeline.append({
+            "kind": "parcella",
+            "id": parcella.id,
+            "numero": parcella.numero,
+            "data": parcella.data_emissione,
+            "titolo": parcella.note or "Parcella professionale",
+            "stato": getattr(parcella.stato, "value", str(parcella.stato)),
+            "totale": round(parcella.totale, 2),
+            "fascicolo_label": fascicolo.titolo if fascicolo else "",
+        })
+
+    timeline.sort(key=lambda row: (row.get("data") or "", row.get("numero") or ""), reverse=True)
+    return {
+        "preventivi": preventivi,
+        "conferimenti": conferimenti,
+        "parcelle": parcelle,
+        "timeline": timeline,
+        "stats": {
+            "preventivi": len(preventivi),
+            "conferimenti": len(conferimenti),
+            "parcelle": len(parcelle),
+            "totale": len(timeline),
+        },
+    }
+
+
+def _preventivo_cliente_o_404(id_cliente: str, id_preventivo: str):
+    gp_prev = _get_preventivi()
+    p = gp_prev.get_preventivo(id_preventivo)
+    if not p or p.id_cliente != id_cliente:
+        abort(404)
+    return p, gp_prev
+
+
+def _conferimento_cliente_o_404(id_cliente: str, id_conferimento: str):
+    gp_prev = _get_preventivi()
+    c = gp_prev.get_conferimento(id_conferimento)
+    if not c or c.id_cliente != id_cliente:
+        abort(404)
+    return c, gp_prev
+
+
+def _parcella_cliente_o_404(id_cliente: str, id_parcella: str):
+    gf = _get_fatturazione()
+    p = gf.get(id_parcella)
+    if not p or p.id_cliente != id_cliente:
+        abort(404)
+    return p, gf
+
+
 # ================================================================ HOME
 
 @portale.route("/<token>")
@@ -50,6 +199,7 @@ def home(token: str):
     fascicoli = []
     appuntamenti = []
     scadenze = []
+    economici = {"stats": {"preventivi": 0, "conferimenti": 0, "parcelle": 0, "totale": 0}, "timeline": []}
 
     if p.permessi.vedi_fascicoli:
         gf = get_fascicoli()
@@ -69,6 +219,9 @@ def home(token: str):
             if any(f.id == s.id_fascicolo for f in fascicoli)
         ]
 
+    if getattr(p.permessi, "vedi_economici", False):
+        economici = _documenti_economici_cliente(cliente.id)
+
     tracker_map = costruisci_tracker_fascicoli(fascicoli)
 
     return render_template(
@@ -80,6 +233,7 @@ def home(token: str):
         tracker_map=tracker_map,
         appuntamenti=appuntamenti,
         scadenze=scadenze,
+        economici=economici,
         oggi=date.today(),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
     )
@@ -225,6 +379,91 @@ def carica_documento(token: str):
         token=token, p=p, cliente=cliente,
         caricati=caricati, errori=errori,
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+    )
+
+
+# ================================================================ ECONOMICI
+
+@portale.route("/<token>/economici", methods=["GET"])
+def economici(token: str):
+    gp, p, cliente = _carica_contesto(token)
+    if not getattr(p.permessi, "vedi_economici", False):
+        abort(403)
+
+    dati = _documenti_economici_cliente(cliente.id)
+    return render_template(
+        "portale/economici.html",
+        token=token,
+        p=p,
+        cliente=cliente,
+        preventivi=dati["preventivi"],
+        conferimenti=dati["conferimenti"],
+        parcelle=dati["parcelle"],
+        timeline=dati["timeline"],
+        stats=dati["stats"],
+        oggi=date.today(),
+        studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
+    )
+
+
+@portale.route("/<token>/preventivi/<id_preventivo>/pdf", methods=["GET"])
+def pdf_preventivo(token: str, id_preventivo: str):
+    _, p, cliente = _carica_contesto(token)
+    if not getattr(p.permessi, "vedi_economici", False):
+        abort(403)
+
+    preventivo, _ = _preventivo_cliente_o_404(cliente.id, id_preventivo)
+    fascicolo = get_fascicoli().get(preventivo.id_fascicolo) if preventivo.id_fascicolo else None
+    from web.blueprints.preventivi import _genera_pdf_preventivo
+
+    buf = _genera_pdf_preventivo(preventivo, cliente, fascicolo, current_app.config)
+    nome_file = f"preventivo_{preventivo.numero.replace('/', '-')}.pdf"
+    return send_file(
+        buf,
+        mimetype="application/pdf",
+        as_attachment=_download_requested(),
+        download_name=nome_file,
+    )
+
+
+@portale.route("/<token>/conferimenti/<id_conferimento>/pdf", methods=["GET"])
+def pdf_conferimento(token: str, id_conferimento: str):
+    _, p, cliente = _carica_contesto(token)
+    if not getattr(p.permessi, "vedi_economici", False):
+        abort(403)
+
+    conferimento, gp_prev = _conferimento_cliente_o_404(cliente.id, id_conferimento)
+    fascicolo = get_fascicoli().get(conferimento.id_fascicolo) if conferimento.id_fascicolo else None
+    preventivo = gp_prev.get_preventivo(conferimento.id_preventivo) if conferimento.id_preventivo else None
+    from web.blueprints.preventivi import _genera_pdf_conferimento
+
+    buf = _genera_pdf_conferimento(conferimento, cliente, fascicolo, preventivo, current_app.config)
+    nome_file = f"conferimento_{conferimento.numero.replace('/', '-')}.pdf"
+    return send_file(
+        buf,
+        mimetype="application/pdf",
+        as_attachment=_download_requested(),
+        download_name=nome_file,
+    )
+
+
+@portale.route("/<token>/parcelle/<id_parcella>/pdf", methods=["GET"])
+def pdf_parcella(token: str, id_parcella: str):
+    _, p, cliente = _carica_contesto(token)
+    if not getattr(p.permessi, "vedi_economici", False):
+        abort(403)
+
+    parcella, _ = _parcella_cliente_o_404(cliente.id, id_parcella)
+    fascicolo = get_fascicoli().get(parcella.id_fascicolo) if parcella.id_fascicolo else None
+    from web.blueprints.fatturazione import _genera_pdf
+
+    buf = _genera_pdf(parcella, cliente, fascicolo, current_app.config)
+    nome_file = f"parcella_{parcella.numero.replace('/', '-')}.pdf"
+    return send_file(
+        buf,
+        mimetype="application/pdf",
+        as_attachment=_download_requested(),
+        download_name=nome_file,
     )
 
 

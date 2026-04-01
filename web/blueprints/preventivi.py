@@ -402,8 +402,9 @@ def pdf_preventivo(id_preventivo: str):
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
     buf = _genera_pdf_preventivo(p, cliente, fascicolo, current_app.config)
     nome_file = f"preventivo_{p.numero.replace('/', '-')}.pdf"
+    download = (request.args.get("download") or "").strip().lower() in {"1", "true", "yes", "download"}
     return send_file(buf, mimetype="application/pdf",
-                     as_attachment=False, download_name=nome_file)
+                     as_attachment=download, download_name=nome_file)
 
 
 # ================================================================ NUOVO CONFERIMENTO
@@ -634,8 +635,9 @@ def pdf_conferimento(id_conferimento: str):
     preventivo = gp.get_preventivo(c.id_preventivo) if c.id_preventivo else None
     buf = _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, current_app.config)
     nome_file = f"conferimento_incarico_{c.numero.replace('/', '-')}.pdf"
+    download = (request.args.get("download") or "").strip().lower() in {"1", "true", "yes", "download"}
     return send_file(buf, mimetype="application/pdf",
-                     as_attachment=False, download_name=nome_file)
+                     as_attachment=download, download_name=nome_file)
 
 
 # ================================================================ AJAX fascicoli per cliente

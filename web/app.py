@@ -4375,6 +4375,7 @@ read -r -p "Premi Invio per chiudere..." _
             vedi_anagrafica=bool(f.get("vedi_anagrafica")),
             modifica_anagrafica=bool(f.get("modifica_anagrafica")),
             vedi_fascicoli=bool(f.get("vedi_fascicoli")),
+            vedi_economici=bool(f.get("vedi_economici")),
             vedi_attivita=bool(f.get("vedi_attivita")),
             vedi_appuntamenti=bool(f.get("vedi_appuntamenti")),
             vedi_scadenze=bool(f.get("vedi_scadenze")),

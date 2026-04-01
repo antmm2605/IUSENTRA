@@ -180,6 +180,13 @@
     <span>Documenti</span>
   </a>
   {% endif %}
+  {% if p.permessi.vedi_economici %}
+  <a href="{{ url_for('portale.economici', token=token) }}"
+     class="pbn-item {% if active_tab == 'economici' %}active{% endif %}">
+    <i class="bi bi-wallet2"></i>
+    <span>Economici</span>
+  </a>
+  {% endif %}
   {% if p.permessi.vedi_anagrafica %}
   <a href="{{ url_for('portale.anagrafica', token=token) }}"
      class="pbn-item {% if active_tab == 'anagrafica' %}active{% endif %}">

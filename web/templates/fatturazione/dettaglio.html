@@ -157,11 +157,15 @@
   <div class="col-lg-4">
 
     <!-- Azioni principali -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;">
+    <div class="card border-0 shadow-sm mb-4 d-print-none" style="border-radius:16px;">
       <div class="card-body d-flex flex-column gap-2">
         <a href="{{ url_for('fatturazione.pdf', id_parcella=p.id) }}"
            target="_blank" class="btn btn-primary">
-          <i class="bi bi-file-earmark-pdf me-2"></i>Scarica PDF
+          <i class="bi bi-file-earmark-pdf me-2"></i>PDF / Stampa
+        </a>
+        <a href="{{ url_for('fatturazione.pdf', id_parcella=p.id) }}?download=1"
+           class="btn btn-outline-secondary">
+          <i class="bi bi-download me-2"></i>Scarica PDF
         </a>
         <a href="{{ url_for('fatturazione.xml_fattura_pa', id_parcella=p.id) }}"
            class="btn btn-outline-success" title="Scarica XML FatturaPA 1.2 per SDI">

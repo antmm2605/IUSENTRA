@@ -10,6 +10,7 @@ Funzionalità:
   - Ricerca scadenze imminenti con filtri
 """
 
+import calendar
 import json
 import uuid
 from datetime import date, datetime, timedelta
@@ -124,12 +125,66 @@ def prossimo_giorno_lavorativo(d: date, sospensione_feriale: bool = True) -> dat
 
 # ------------------------------------------------------------------ Calcolo termini
 
-def calcola_termine(
+def _aggiungi_mesi_calendario(d: date, mesi: int) -> date:
+    totale = (d.month - 1) + mesi
+    anno = d.year + (totale // 12)
+    mese = (totale % 12) + 1
+    giorno = min(d.day, calendar.monthrange(anno, mese)[1])
+    return date(anno, mese, giorno)
+
+
+def _aggiungi_anni_calendario(d: date, anni: int) -> date:
+    anno = d.year + anni
+    giorno = min(d.day, calendar.monthrange(anno, d.month)[1])
+    return date(anno, d.month, giorno)
+
+
+def _aggiungi_giorni_processuali(
     data_inizio: date,
     giorni: int,
+    sospensione_feriale: bool = True,
+    escludi_inizio: bool = True,
+) -> date:
+    if giorni <= 0:
+        return data_inizio
+
+    corrente = data_inizio + timedelta(days=1) if escludi_inizio else data_inizio
+    contati = 0
+    while True:
+        if not (sospensione_feriale and corrente.month == 8):
+            contati += 1
+            if contati == giorni:
+                return corrente
+        corrente += timedelta(days=1)
+
+
+def _aggiungi_giorni_lavorativi(
+    data_inizio: date,
+    giorni: int,
+    sospensione_feriale: bool = True,
+    escludi_inizio: bool = True,
+) -> date:
+    if giorni <= 0:
+        return data_inizio
+
+    corrente = data_inizio + timedelta(days=1) if escludi_inizio else data_inizio
+    contati = 0
+    while True:
+        if è_giorno_lavorativo(corrente, sospensione_feriale):
+            contati += 1
+            if contati == giorni:
+                return corrente
+        corrente += timedelta(days=1)
+
+
+def calcola_termine(
+    data_inizio: date,
+    giorni: int = 0,
     tipo: str = "liberi",
     sospensione_feriale: bool = True,
     escludi_inizio: bool = True,
+    mesi: int = 0,
+    anni: int = 0,
 ) -> date:
     """
     Calcola un termine legale.
@@ -137,25 +192,43 @@ def calcola_termine(
     Args:
         data_inizio: data di decorrenza (es. notifica, udienza).
         giorni: numero di giorni del termine.
-        tipo: "liberi" (solo lavorativi), "continui" (tutti i giorni).
+        tipo:
+          - "liberi": termine processuale a giorni di calendario, con
+            esclusione del dies a quo e proroga se la scadenza cade in giorno
+            non lavorativo.
+          - "continui": alias di retrocompatibilita di "liberi".
+          - "lavorativi": conteggio per soli giorni lavorativi.
         sospensione_feriale: se True applica la sospensione feriale agostana.
         escludi_inizio: se True il dies a quo non è contato (art. 155 c.p.c.).
+        mesi: termine espresso in mesi di calendario comune.
+        anni: termine espresso in anni di calendario comune.
     Returns:
         Data di scadenza (prorogata al giorno lavorativo se cade in festività).
     """
     d = data_inizio
-    if escludi_inizio:
-        d += timedelta(days=1)
+    tipo_norm = (tipo or "liberi").lower()
 
-    if tipo == "continui":
-        d += timedelta(days=giorni)
-    else:  # giorni liberi (lavorativi)
-        contati = 0
-        while contati < giorni:
-            if è_giorno_lavorativo(d, sospensione_feriale):
-                contati += 1
-            if contati < giorni:
-                d += timedelta(days=1)
+    if anni:
+        d = _aggiungi_anni_calendario(d, anni)
+
+    if mesi:
+        d = _aggiungi_mesi_calendario(d, mesi)
+
+    if giorni:
+        if tipo_norm == "lavorativi":
+            d = _aggiungi_giorni_lavorativi(
+                d,
+                giorni,
+                sospensione_feriale=sospensione_feriale,
+                escludi_inizio=escludi_inizio,
+            )
+        else:
+            d = _aggiungi_giorni_processuali(
+                d,
+                giorni,
+                sospensione_feriale=sospensione_feriale,
+                escludi_inizio=escludi_inizio,
+            )
 
     # Se la scadenza cade in giorno non lavorativo, proroga al successivo
     # (art. 155 co. 4 c.p.c.)
@@ -168,7 +241,7 @@ PRESET_TERMINI: Dict[str, Dict[str, Any]] = {
     "impugnazione_sentenza_civile": {
         "label": "Impugnazione sentenza civile",
         "giorni": 30, "tipo": "liberi", "sospensione_feriale": True,
-        "descrizione": "Art. 325 c.p.c. — 30 giorni liberi dalla notifica",
+        "descrizione": "Art. 325 c.p.c. — 30 giorni dalla notifica della sentenza, con sospensione feriale se applicabile.",
     },
     "appello_breve": {
         "label": "Appello (termine breve)",
@@ -177,8 +250,8 @@ PRESET_TERMINI: Dict[str, Dict[str, Any]] = {
     },
     "appello_lungo": {
         "label": "Appello (termine lungo)",
-        "giorni": 6 * 30, "tipo": "continui", "sospensione_feriale": False,
-        "descrizione": "Art. 327 c.p.c. — 6 mesi dal deposito sentenza",
+        "giorni": 0, "mesi": 6, "tipo": "continui", "sospensione_feriale": False,
+        "descrizione": "Art. 327 c.p.c. — 6 mesi dal deposito della sentenza, computati a mesi di calendario comune.",
     },
     "cassazione_breve": {
         "label": "Ricorso in Cassazione (breve)",
@@ -187,48 +260,63 @@ PRESET_TERMINI: Dict[str, Dict[str, Any]] = {
     },
     "cassazione_lungo": {
         "label": "Ricorso in Cassazione (lungo)",
-        "giorni": 6 * 30, "tipo": "continui", "sospensione_feriale": False,
-        "descrizione": "Art. 327 c.p.c. — 6 mesi dal deposito",
+        "giorni": 0, "mesi": 6, "tipo": "continui", "sospensione_feriale": False,
+        "descrizione": "Art. 327 c.p.c. — 6 mesi dal deposito, computati a mesi di calendario comune.",
     },
     "opposizione_decreto_ingiuntivo": {
         "label": "Opposizione decreto ingiuntivo",
         "giorni": 40, "tipo": "liberi", "sospensione_feriale": True,
         "descrizione": "Art. 641 c.p.c. — 40 giorni dalla notifica",
     },
+    "memoria_ex_171_ter_n1": {
+        "label": "Memoria art. 171-ter n. 1",
+        "giorni": 40, "tipo": "liberi", "sospensione_feriale": True,
+        "descrizione": "Prima memoria del rito ordinario post-Cartabia: 40 giorni prima dell'udienza.",
+    },
+    "memoria_ex_171_ter_n2": {
+        "label": "Memoria art. 171-ter n. 2",
+        "giorni": 20, "tipo": "liberi", "sospensione_feriale": True,
+        "descrizione": "Seconda memoria del rito ordinario post-Cartabia: 20 giorni prima dell'udienza.",
+    },
+    "memoria_ex_171_ter_n3": {
+        "label": "Memoria art. 171-ter n. 3",
+        "giorni": 10, "tipo": "liberi", "sospensione_feriale": True,
+        "descrizione": "Terza memoria del rito ordinario post-Cartabia: 10 giorni prima dell'udienza.",
+    },
     "memoria_ex_183_co6_n1": {
-        "label": "Memoria art. 183 co. 6 n. 1",
+        "label": "Memoria art. 183 co. 6 n. 1 (rito previgente)",
         "giorni": 30, "tipo": "liberi", "sospensione_feriale": True,
-        "descrizione": "Prima memoria: precisazione domande ed eccezioni",
+        "descrizione": "Preset legacy per fascicoli con rito previgente: 30 giorni.",
     },
     "memoria_ex_183_co6_n2": {
-        "label": "Memoria art. 183 co. 6 n. 2",
+        "label": "Memoria art. 183 co. 6 n. 2 (rito previgente)",
         "giorni": 30, "tipo": "liberi", "sospensione_feriale": True,
-        "descrizione": "Seconda memoria: prove",
+        "descrizione": "Preset legacy per fascicoli con rito previgente: 30 giorni.",
     },
     "memoria_ex_183_co6_n3": {
-        "label": "Memoria art. 183 co. 6 n. 3",
+        "label": "Memoria art. 183 co. 6 n. 3 (rito previgente)",
         "giorni": 20, "tipo": "liberi", "sospensione_feriale": True,
-        "descrizione": "Terza memoria: controprove",
+        "descrizione": "Preset legacy per fascicoli con rito previgente: 20 giorni.",
     },
     "comparsa_conclusionale": {
         "label": "Comparsa conclusionale",
         "giorni": 60, "tipo": "liberi", "sospensione_feriale": True,
-        "descrizione": "Art. 190 c.p.c. — 60 giorni",
+        "descrizione": "Art. 190 c.p.c. — 60 giorni.",
     },
     "memoria_replica": {
         "label": "Memoria di replica",
         "giorni": 20, "tipo": "liberi", "sospensione_feriale": True,
-        "descrizione": "Art. 190 c.p.c. — 20 giorni dopo comparsa",
+        "descrizione": "Art. 190 c.p.c. — 20 giorni dopo la comparsa conclusionale.",
     },
     "prescrizione_ordinaria": {
         "label": "Prescrizione ordinaria",
-        "giorni": 10 * 365, "tipo": "continui", "sospensione_feriale": False,
-        "descrizione": "Art. 2946 c.c. — 10 anni",
+        "giorni": 0, "anni": 10, "tipo": "continui", "sospensione_feriale": False,
+        "descrizione": "Art. 2946 c.c. — 10 anni, computati secondo il calendario comune.",
     },
     "prescrizione_breve_5anni": {
         "label": "Prescrizione breve (5 anni)",
-        "giorni": 5 * 365, "tipo": "continui", "sospensione_feriale": False,
-        "descrizione": "Art. 2948 c.c. — 5 anni",
+        "giorni": 0, "anni": 5, "tipo": "continui", "sospensione_feriale": False,
+        "descrizione": "Art. 2948 c.c. — 5 anni, computati secondo il calendario comune.",
     },
 }
 
@@ -390,9 +478,11 @@ class GestioneScadenziario:
         d_inizio = date.fromisoformat(data_decorrenza)
         d_scadenza = calcola_termine(
             data_inizio=d_inizio,
-            giorni=preset["giorni"],
+            giorni=preset.get("giorni", 0),
             tipo=preset["tipo"],
             sospensione_feriale=preset.get("sospensione_feriale", True),
+            mesi=preset.get("mesi", 0),
+            anni=preset.get("anni", 0),
         )
         return self.nuova(
             titolo=titolo,

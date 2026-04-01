@@ -1551,10 +1551,19 @@ def create_app(config: dict | None = None) -> Flask:
         data = request.get_json() or {}
         try:
             d_inizio = date.fromisoformat(data["data_inizio"])
-            giorni = int(data["giorni"])
+            giorni = int(data.get("giorni", 0))
+            mesi = int(data.get("mesi", 0))
+            anni = int(data.get("anni", 0))
             tipo = data.get("tipo", "liberi")
             sospensione = data.get("sospensione_feriale", True)
-            d_scadenza = calcola_termine(d_inizio, giorni, tipo, sospensione)
+            d_scadenza = calcola_termine(
+                d_inizio,
+                giorni=giorni,
+                tipo=tipo,
+                sospensione_feriale=sospensione,
+                mesi=mesi,
+                anni=anni,
+            )
             return jsonify({
                 "data_scadenza": d_scadenza.isoformat(),
                 "lavorativo": è_giorno_lavorativo(d_scadenza),

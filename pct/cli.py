@@ -1345,15 +1345,24 @@ def cmd_sc_completa(id_sc, note, db):
 
 @grp_scadenze.command("calcola")
 @click.option("--da", "data_inizio", required=True, help="Data inizio YYYY-MM-DD")
-@click.option("--giorni", required=True, type=int)
-@click.option("--tipo", default="liberi", type=click.Choice(["liberi", "continui"]))
+@click.option("--giorni", default=0, show_default=True, type=int)
+@click.option("--mesi", default=0, show_default=True, type=int)
+@click.option("--anni", default=0, show_default=True, type=int)
+@click.option("--tipo", default="liberi", type=click.Choice(["liberi", "continui", "lavorativi"]))
 @click.option("--no-feriale", is_flag=True, default=False,
               help="Ignora sospensione feriale agostana")
-def cmd_sc_calcola(data_inizio, giorni, tipo, no_feriale):
+def cmd_sc_calcola(data_inizio, giorni, mesi, anni, tipo, no_feriale):
     """Calcola un termine processuale."""
     from datetime import date
     d = date.fromisoformat(data_inizio)
-    scad = calcola_termine(d, giorni, tipo, sospensione_feriale=not no_feriale)
+    scad = calcola_termine(
+        d,
+        giorni=giorni,
+        mesi=mesi,
+        anni=anni,
+        tipo=tipo,
+        sospensione_feriale=not no_feriale,
+    )
     g_rimasti = (scad - date.today()).days
     click.echo(f"Termine calcolato: {scad.isoformat()}")
     click.echo(f"  Da oggi: {g_rimasti} giorni")

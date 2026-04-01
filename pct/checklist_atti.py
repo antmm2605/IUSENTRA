@@ -219,7 +219,8 @@ COMPARSA_RISPOSTA = TemplateAtto(
     nota_canale=(
         "La comparsa si deposita tramite redattore atti (Consolle Avvocato / FileSafe / Lextel) "
         "che crea e invia la busta telematica al tribunale. "
-        "Attenzione ai termini: deve essere depositata almeno 20 giorni prima dell'udienza. "
+        "Attenzione ai termini del rito ordinario post-Cartabia: la costituzione del convenuto "
+        "deve avvenire almeno 70 giorni prima dell'udienza indicata nell'atto di citazione. "
         "PolisWeb serve solo per consultare il fascicolo."
     ),
     documenti=[
@@ -234,7 +235,7 @@ COMPARSA_RISPOSTA = TemplateAtto(
     checklist=[
         _chk("Ufficio abilitato al deposito telematico PCT verificato", critico=True),
         _chk("Firma digitale valida e non scaduta", critico=True),
-        _chk("Comparsa depositata entro 20 gg prima dell'udienza", critico=True),
+        _chk("Comparsa depositata entro 70 gg prima dell'udienza nel rito ordinario post-Cartabia", critico=True),
         _chk("Procura alle liti del convenuto allegata nella busta", critico=True),
         _chk("Eccezioni processuali proposte a pena di decadenza", critico=True),
         _chk("Domande riconvenzionali dichiarate esplicitamente"),

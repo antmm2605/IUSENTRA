@@ -95,20 +95,31 @@ def test_prossimo_giorno_lavorativo_da_sabato():
 # ------------------------------------------------------------------ Calcolo termini
 
 def test_calcola_termine_liberi():
-    """30 giorni liberi (lavorativi), escludendo agosto."""
+    """30 giorni processuali di calendario, con esclusione del dies a quo."""
     d = date(2024, 1, 15)  # Lunedì
-    scad = calcola_termine(d, 30, tipo="liberi", sospensione_feriale=True)
-    # Il risultato deve essere >= d + 30 giorni lavorativi
-    assert scad > d
-    assert è_giorno_lavorativo(scad)
+    scad = calcola_termine(d, 30, tipo="liberi", sospensione_feriale=False)
+    assert scad == date(2024, 2, 14)
 
 
 def test_calcola_termine_continui():
-    """30 giorni continui."""
+    """L'alias 'continui' resta disponibile per retrocompatibilità."""
     d = date(2024, 1, 15)
     scad = calcola_termine(d, 30, tipo="continui", sospensione_feriale=False)
-    # Almeno 30 giorni dopo (può essere prorogata se cade in weekend)
-    assert scad >= d + timedelta(days=30)
+    assert scad == date(2024, 2, 14)
+
+
+def test_calcola_termine_lavorativi():
+    """Il tipo lavorativi conta solo i giorni utili di studio/cancelleria."""
+    d = date(2024, 1, 15)
+    scad = calcola_termine(d, 5, tipo="lavorativi", sospensione_feriale=False)
+    assert scad == date(2024, 1, 22)
+
+
+def test_calcola_termine_con_sospensione_feriale():
+    """Ad agosto il termine resta sospeso e riprende a settembre."""
+    d = date(2024, 7, 25)
+    scad = calcola_termine(d, 10, tipo="liberi", sospensione_feriale=True)
+    assert scad == date(2024, 9, 4)
 
 
 def test_termine_proroga_domenica():
@@ -137,7 +148,7 @@ def test_impugnazione_30gg():
 
 def test_appello_lungo_6mesi():
     preset = PRESET_TERMINI["appello_lungo"]
-    assert preset["giorni"] == 180  # 6 * 30
+    assert preset["mesi"] == 6
     assert preset["tipo"] == "continui"
 
 
@@ -174,6 +185,15 @@ def test_nuova_da_preset(gs):
     assert sc.id is not None
     assert sc.data_scadenza > date.today().isoformat()
     assert è_giorno_lavorativo(date.fromisoformat(sc.data_scadenza))
+
+
+def test_nuova_da_preset_mesi(gs):
+    sc = gs.nuova_da_preset(
+        preset_key="appello_lungo",
+        titolo="Appello termine lungo",
+        data_decorrenza="2026-01-31",
+    )
+    assert sc.data_scadenza == "2026-07-31"
 
 
 def test_preset_inesistente_errore(gs):

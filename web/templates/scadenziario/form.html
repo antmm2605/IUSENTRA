@@ -88,7 +88,7 @@
         <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
         <input type="text" name="titolo" class="form-control" required
                value="{{ scadenza.titolo if scadenza else '' }}"
-               placeholder="es. Deposito memoria art. 183 co. 6 n. 1">
+               placeholder="es. Deposito memoria art. 171-ter n. 1">
       </div>
       <div class="col-md-4">
         <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
@@ -183,7 +183,7 @@
     <div class="card-body small text-muted">
       <p class="mb-2"><strong>Termine perentorio</strong>: il mancato rispetto determina la decadenza dal diritto, non sanabile.</p>
       <p class="mb-2"><strong>Data decorrenza</strong>: giorno da cui inizia a decorrere il termine (es. data di notifica).</p>
-      <p class="mb-0"><strong>Calcolo automatico</strong>: usa i preset per calcolare automaticamente la data di scadenza dai termini processuali comuni (art. 183, 190 c.p.c. ecc.).</p>
+      <p class="mb-0"><strong>Calcolo automatico</strong>: usa i preset per calcolare automaticamente la data di scadenza dai termini processuali comuni (art. 171-ter, 190 c.p.c., impugnazioni e termini lunghi).</p>
     </div>
   </div>
   <div class="card shadow-sm">
@@ -231,7 +231,9 @@ async function calcolaTermine() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         data_inizio: dataInizio,
-        giorni: p.giorni,
+        giorni: p.giorni || 0,
+        mesi: p.mesi || 0,
+        anni: p.anni || 0,
         tipo: p.tipo,
         sospensione_feriale: p.sospensione_feriale !== false,
       })

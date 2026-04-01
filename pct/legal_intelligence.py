@@ -26,6 +26,7 @@ MAX_AUDIT_TRACES = 500
 REGISTRO_MEDIAZIONE_INFO_URL = "https://www.giustizia.it/giustizia/it/mg_3_4_15.page"
 REGISTRO_MEDIAZIONE_DIRECT_URL = "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
 REGISTRO_MEDIAZIONE_TABLE_ID = "organismi_mediazione_elenco"
+REGISTRO_MEDIAZIONE_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 REGISTRO_MEDIAZIONE_NOTICE = (
     "Il Ministero della Giustizia segnala che la consultazione del registro diretto puo richiedere "
     "Microsoft Edge in modalita compatibilita con Internet Explorer."
@@ -706,6 +707,63 @@ class GestioneLegalIntelligence:
     def _registry_cell_text(self, node: Any) -> str:
         return _clean_spaces(" ".join(node.xpath(".//text()")))
 
+    def _registro_mediazione_defaults(self) -> Dict[str, Any]:
+        table = self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID)
+        defaults = dict(table.get("defaults") or {})
+        defaults.update(
+            {
+                "official_info_url": REGISTRO_MEDIAZIONE_INFO_URL,
+                "official_registry_url": REGISTRO_MEDIAZIONE_DIRECT_URL,
+                "consultation_mode": "Microsoft Edge in modalita compatibilita con Internet Explorer",
+            }
+        )
+        return defaults
+
+    def _extract_registro_mediazione_operational_notice(self, html_payload: Any) -> str:
+        if not html_payload:
+            return ""
+        try:
+            document = lxml_html.fromstring(html_payload)
+        except Exception:
+            return ""
+        text = _clean_spaces(" ".join(document.xpath("//text()")))
+        normalized = _normalize_label(text)
+        if "per motivi tecnici" in normalized and "registro degli organismi di mediazione" in normalized:
+            return (
+                "Avviso ministeriale: per motivi tecnici il Ministero della Giustizia segnala che, al momento, "
+                "non e possibile accedere al Registro degli organismi di mediazione. Per la consultazione il "
+                "Ministero indica Microsoft Edge in modalita compatibilita con Internet Explorer."
+            )
+        return ""
+
+    def _fetch_registro_mediazione_context(
+        self,
+        *,
+        request_get: Optional[Callable[..., Any]] = None,
+    ) -> Dict[str, Any]:
+        defaults = self._registro_mediazione_defaults()
+        context: Dict[str, Any] = {"defaults": defaults, "warning": ""}
+        try:
+            info_document = self._fetch_html_document(
+                REGISTRO_MEDIAZIONE_INFO_URL,
+                request_get=request_get,
+            )
+            if info_document["status_code"] < 400:
+                context["info_document"] = info_document
+                defaults.update(
+                    {
+                        "last_info_fetch_url": info_document["final_url"],
+                        "last_info_hash": _sha256(info_document["content"]),
+                    }
+                )
+                operational_notice = self._extract_registro_mediazione_operational_notice(info_document["content"])
+                if operational_notice:
+                    defaults["technical_notice"] = operational_notice
+                    context["warning"] = operational_notice
+        except Exception as exc:
+            context["info_warning"] = _truncate(str(exc), 280)
+        return context
+
     def _registry_header_role(self, header: str) -> str:
         normalized = _normalize_label(header)
         if not normalized:
@@ -759,10 +817,19 @@ class GestioneLegalIntelligence:
                 best_rows = data_rows
         return best_headers, best_rows
 
-    def _parse_registro_mediazione_rows(self, html_text: str) -> List[Dict[str, Any]]:
-        if not html_text.strip():
+    def _parse_registro_mediazione_rows(self, html_payload: Any) -> List[Dict[str, Any]]:
+        if html_payload is None:
             return []
-        document = lxml_html.fromstring(html_text)
+        if isinstance(html_payload, (bytes, bytearray)):
+            if not bytes(html_payload).strip():
+                return []
+            payload = bytes(html_payload)
+        else:
+            html_text = str(html_payload or "")
+            if not html_text.strip():
+                return []
+            payload = html_text
+        document = lxml_html.fromstring(payload)
         headers, rows = self._pick_registry_table(document)
         if not headers or not rows:
             return []
@@ -829,6 +896,99 @@ class GestioneLegalIntelligence:
             organisms.append(payload)
         organisms.sort(key=lambda item: (item.get("name", ""), item.get("city", ""), item.get("registration_number", "")))
         return organisms
+
+    def _store_registro_mediazione_rows(
+        self,
+        rows: List[Dict[str, Any]],
+        *,
+        defaults: Dict[str, Any],
+        current_time: datetime,
+        label: str,
+        notes: Optional[List[str]] = None,
+        warning: str = "",
+        origin: str,
+        sync_status: str = "sincronizzata",
+    ) -> Dict[str, Any]:
+        defaults = dict(defaults or {})
+        defaults["row_count"] = len(rows)
+        update = self.normative_tables.update_table_rows(
+            REGISTRO_MEDIAZIONE_TABLE_ID,
+            rows,
+            now=current_time,
+            published_at=current_time.date().isoformat(),
+            effective_from=current_time.date().isoformat(),
+            label=label,
+            notes=notes or [],
+            defaults=defaults,
+            sync_status=sync_status,
+            warning=warning,
+            origin=origin,
+            source_changed=True,
+        )
+        return {
+            "ok": True,
+            "updated": update.get("updated", False),
+            "rows": len(rows),
+            "warning": warning,
+            "used_cached_rows": False,
+            "origin": origin,
+        }
+
+    def import_registro_mediazione_snapshot(
+        self,
+        html_payload: Any,
+        *,
+        filename: str = "",
+        now: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        current_time = now or datetime.now()
+        if isinstance(html_payload, (bytes, bytearray)) and len(bytes(html_payload)) > REGISTRO_MEDIAZIONE_IMPORT_MAX_BYTES:
+            raise ValueError("Il file HTML supera il limite di 5 MB. Ridurre lo snapshot e riprovare.")
+        html_text = ""
+        if isinstance(html_payload, (bytes, bytearray)):
+            html_text = bytes(html_payload).decode("utf-8", errors="ignore")
+        else:
+            html_text = str(html_payload or "")
+        normalized = _normalize_label(html_text[:4000])
+        if "multipart related" in normalized and "content transfer encoding" in normalized:
+            raise ValueError("Formato non supportato. Salva la pagina del registro come HTML completo, non come archivio MHTML.")
+
+        rows = self._parse_registro_mediazione_rows(html_payload)
+        if not rows:
+            raise ValueError(
+                "Lo snapshot caricato non contiene una tabella leggibile del registro ministeriale. "
+                "Apri il registro in Edge modalita compatibilita IE e salva la pagina come HTML."
+            )
+
+        context = self._fetch_registro_mediazione_context()
+        defaults = dict(context["defaults"])
+        defaults.update(
+            {
+                "registry_notice": REGISTRO_MEDIAZIONE_NOTICE,
+                "data_origin": "manual_snapshot",
+                "data_origin_label": "Snapshot HTML ufficiale importato",
+                "import_filename": filename,
+                "imported_at": _now_iso(current_time),
+                "last_successful_sync_at": _now_iso(current_time),
+                "last_successful_origin": "manual_snapshot",
+                "last_successful_row_count": len(rows),
+            }
+        )
+        warning = context.get("warning", "")
+        if warning:
+            defaults["technical_notice"] = warning
+        result = self._store_registro_mediazione_rows(
+            rows,
+            defaults=defaults,
+            current_time=current_time,
+            label=f"Import snapshot registro mediazione {current_time.date().isoformat()}",
+            notes=[REGISTRO_MEDIAZIONE_NOTICE, "Dati importati da snapshot HTML ufficiale."],
+            warning=warning,
+            origin="manual_snapshot",
+        )
+        result["filename"] = filename
+        result["imported"] = True
+        return result
 
     def _fetch_state(
         self,
@@ -1137,14 +1297,9 @@ class GestioneLegalIntelligence:
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         current_time = now or datetime.now()
-        defaults = dict(self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID).get("defaults") or {})
-        defaults.update(
-            {
-                "official_info_url": REGISTRO_MEDIAZIONE_INFO_URL,
-                "official_registry_url": REGISTRO_MEDIAZIONE_DIRECT_URL,
-                "consultation_mode": "Microsoft Edge in modalita compatibilita con Internet Explorer",
-            }
-        )
+        context = self._fetch_registro_mediazione_context(request_get=request_get)
+        defaults = dict(context["defaults"])
+        existing_rows = [dict(row) for row in self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID)]
         try:
             document = self._fetch_html_document(
                 REGISTRO_MEDIAZIONE_DIRECT_URL,
@@ -1155,45 +1310,82 @@ class GestioneLegalIntelligence:
             if document["protection_page"]:
                 raise RuntimeError("La consultazione diretta del registro e protetta o richiede browser compatibile.")
 
-            rows = self._parse_registro_mediazione_rows(document["text"])
+            rows = self._parse_registro_mediazione_rows(document["content"])
             if not rows:
                 raise RuntimeError("Il registro diretto non ha restituito un elenco strutturato leggibile.")
 
             defaults.update(
                 {
-                    "row_count": len(rows),
                     "last_registry_fetch_url": document["final_url"],
                     "last_registry_hash": _sha256(document["content"]),
                     "registry_notice": REGISTRO_MEDIAZIONE_NOTICE,
+                    "data_origin": "live_registry",
+                    "data_origin_label": "Registro diretto ministeriale",
+                    "last_successful_sync_at": _now_iso(current_time),
+                    "last_successful_origin": "live_registry",
+                    "last_successful_row_count": len(rows),
                 }
             )
-            update = self.normative_tables.update_table_rows(
-                REGISTRO_MEDIAZIONE_TABLE_ID,
+            warning = context.get("warning", "")
+            result = self._store_registro_mediazione_rows(
                 rows,
-                now=current_time,
-                published_at=current_time.date().isoformat(),
-                effective_from=current_time.date().isoformat(),
+                defaults=defaults,
+                current_time=current_time,
                 label=f"Sync registro mediazione {current_time.date().isoformat()}",
                 notes=[REGISTRO_MEDIAZIONE_NOTICE],
-                defaults=defaults,
-                sync_status="sincronizzata",
-                warning="",
+                warning=warning,
                 origin="live_registry",
-                source_changed=True,
             )
-            return {
-                "ok": True,
-                "updated": update.get("updated", False),
-                "rows": len(rows),
-                "warning": "",
-                "final_url": document["final_url"],
-            }
+            result["final_url"] = document["final_url"]
+            result["live_ok"] = True
+            return result
         except Exception as exc:
-            warning = _truncate(str(exc), 300)
-            defaults.update({"registry_notice": REGISTRO_MEDIAZIONE_NOTICE})
+            raw_warning = _truncate(str(exc), 300)
+            warning = context.get("warning") or raw_warning
+            defaults.update(
+                {
+                    "registry_notice": REGISTRO_MEDIAZIONE_NOTICE,
+                    "last_registry_attempt_at": _now_iso(current_time),
+                    "last_registry_attempt_warning": raw_warning,
+                }
+            )
+            if warning:
+                defaults["technical_notice"] = warning
+            if existing_rows:
+                origin = str(defaults.get("data_origin") or defaults.get("last_successful_origin") or "manual_snapshot")
+                origin_label = str(defaults.get("data_origin_label") or "").strip()
+                if not origin_label:
+                    origin_label = "Snapshot HTML ufficiale importato" if origin == "manual_snapshot" else "Registro diretto ministeriale"
+                defaults.update(
+                    {
+                        "data_origin": origin,
+                        "data_origin_label": origin_label,
+                        "last_successful_row_count": len(existing_rows),
+                    }
+                )
+                self.normative_tables.update_table_rows(
+                    REGISTRO_MEDIAZIONE_TABLE_ID,
+                    existing_rows,
+                    now=current_time,
+                    defaults=defaults,
+                    sync_status="sincronizzata",
+                    warning=warning,
+                    origin=origin,
+                    source_changed=True,
+                )
+                return {
+                    "ok": True,
+                    "updated": False,
+                    "rows": len(existing_rows),
+                    "warning": warning,
+                    "final_url": REGISTRO_MEDIAZIONE_DIRECT_URL,
+                    "used_cached_rows": True,
+                    "live_ok": False,
+                    "origin": origin,
+                }
             self.normative_tables.update_table_rows(
                 REGISTRO_MEDIAZIONE_TABLE_ID,
-                self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID),
+                existing_rows,
                 now=current_time,
                 defaults=defaults,
                 sync_status="fonte_non_raggiungibile",
@@ -1204,9 +1396,12 @@ class GestioneLegalIntelligence:
             return {
                 "ok": False,
                 "updated": False,
-                "rows": len(self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID)),
+                "rows": len(existing_rows),
                 "warning": warning,
                 "final_url": REGISTRO_MEDIAZIONE_DIRECT_URL,
+                "used_cached_rows": False,
+                "live_ok": False,
+                "origin": "live_registry",
             }
 
     def mediazione_registry_snapshot(
@@ -1218,8 +1413,10 @@ class GestioneLegalIntelligence:
         organismo_type: str = "",
     ) -> Dict[str, Any]:
         metadata_rows = self.normative_tables.rows("registro_organismi_mediazione")
-        metadata = dict(metadata_rows[0]) if metadata_rows else {}
         table = self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID)
+        defaults = dict(table.get("defaults") or {})
+        metadata = dict(metadata_rows[0]) if metadata_rows else {}
+        metadata.update({key: value for key, value in defaults.items() if value not in (None, "")})
         rows = [dict(row) for row in self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID)]
 
         q_norm = _normalize_label(q)
@@ -1253,6 +1450,12 @@ class GestioneLegalIntelligence:
 
         type_options = sorted({row.get("type", "") for row in rows if row.get("type")})
         city_options = sorted({row.get("city", "") for row in rows if row.get("city")})[:200]
+        data_origin = str(metadata.get("data_origin") or defaults.get("data_origin") or "")
+        data_origin_label = str(
+            metadata.get("data_origin_label")
+            or defaults.get("data_origin_label")
+            or ("Registro diretto ministeriale" if data_origin == "live_registry" else "")
+        )
         return {
             "metadata": metadata,
             "table": table,
@@ -1269,6 +1472,12 @@ class GestioneLegalIntelligence:
             "city_options": city_options,
             "has_cached_rows": bool(rows),
             "official_notice": metadata.get("consultation_mode") or REGISTRO_MEDIAZIONE_NOTICE,
+            "technical_notice": metadata.get("technical_notice") or table.get("last_warning") or "",
+            "data_origin": data_origin,
+            "data_origin_label": data_origin_label,
+            "imported_at": metadata.get("imported_at", ""),
+            "import_filename": metadata.get("import_filename", ""),
+            "last_successful_sync_at": metadata.get("last_successful_sync_at", ""),
         }
 
     def sync_normative_tables(
@@ -1363,7 +1572,7 @@ class GestioneLegalIntelligence:
                     ).to_dict()
                 )
         if mediazione_sync:
-            if mediazione_sync.get("ok"):
+            if mediazione_sync.get("ok") and not mediazione_sync.get("used_cached_rows"):
                 alerts.append(
                     self._create_alert(
                         source_id="registro_mediazione",
@@ -1372,6 +1581,27 @@ class GestioneLegalIntelligence:
                         severity="media",
                         title="Registro organismi di mediazione sincronizzato",
                         details=f"Elenco interno aggiornato con {mediazione_sync.get('rows', 0)} organismi.",
+                        related_entity_type="normative_table",
+                        related_entity_id=REGISTRO_MEDIAZIONE_TABLE_ID,
+                        official_url=REGISTRO_MEDIAZIONE_INFO_URL,
+                        now=current_time,
+                    ).to_dict()
+                )
+            elif mediazione_sync.get("used_cached_rows"):
+                origin = str(mediazione_sync.get("origin") or "manual_snapshot")
+                origin_label = "snapshot ufficiale" if origin == "manual_snapshot" else "cache interna"
+                alerts.append(
+                    self._create_alert(
+                        source_id="registro_mediazione",
+                        motore_id="monitoraggio_alert",
+                        alert_type="registro_mediazione_cache_utilizzata",
+                        severity="media",
+                        title="Registro mediazione non raggiungibile: uso cache",
+                        details=(
+                            f"Il registro diretto ministeriale non e stato interrogabile. "
+                            f"Il gestionale continua a mostrare {mediazione_sync.get('rows', 0)} organismi "
+                            f"dalla {origin_label}. {mediazione_sync.get('warning', REGISTRO_MEDIAZIONE_NOTICE)}"
+                        ),
                         related_entity_type="normative_table",
                         related_entity_id=REGISTRO_MEDIAZIONE_TABLE_ID,
                         official_url=REGISTRO_MEDIAZIONE_INFO_URL,

@@ -114,10 +114,17 @@ def esegui_sync_normativo():
 def esegui_sync_registro_mediazione():
     report = get_legal_intelligence().sync_normative_tables(source_ids=["registro_mediazione"])
     mediazione = dict(report.get("mediazione_registry") or {})
-    if mediazione.get("ok"):
+    if mediazione.get("ok") and not mediazione.get("used_cached_rows"):
         flash(
             f"Registro mediazione sincronizzato: {mediazione.get('rows', 0)} organismi disponibili nel gestionale.",
             "success",
+        )
+    elif mediazione.get("used_cached_rows"):
+        flash(
+            "Registro diretto ministeriale non raggiungibile. "
+            f"Il gestionale continua a mostrare {mediazione.get('rows', 0)} organismi gia presenti in cache. "
+            + str(mediazione.get("warning") or ""),
+            "warning",
         )
     else:
         flash(
@@ -125,6 +132,38 @@ def esegui_sync_registro_mediazione():
             + str(mediazione.get("warning") or "Verificare la fonte ministeriale ufficiale."),
             "warning",
         )
+    return redirect(url_for("legal_intelligence.registro_mediazione"))
+
+
+@legal_intelligence.route("/mediazione/import", methods=["POST"])
+@_richiedi_login
+def importa_registro_mediazione():
+    upload = request.files.get("snapshot_file")
+    html_payload = request.form.get("html_content", "")
+    filename = ""
+    if upload and upload.filename:
+        filename = upload.filename
+        html_payload = upload.read()
+
+    if not html_payload:
+        flash(
+            "Carica un file HTML del registro oppure incolla il sorgente HTML della pagina ufficiale.",
+            "warning",
+        )
+        return redirect(url_for("legal_intelligence.registro_mediazione"))
+
+    try:
+        report = get_legal_intelligence().import_registro_mediazione_snapshot(
+            html_payload,
+            filename=filename,
+        )
+        flash(
+            f"Snapshot ufficiale importato correttamente: {report.get('rows', 0)} organismi disponibili nel gestionale.",
+            "success",
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore import registro mediazione: %s", exc)
+        flash(f"Importazione non riuscita: {exc}", "warning")
     return redirect(url_for("legal_intelligence.registro_mediazione"))
 
 

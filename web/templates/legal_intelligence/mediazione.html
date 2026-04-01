@@ -95,8 +95,24 @@
               <div class="small text-muted mt-1">{{ registro.metadata.responsible_office }}</div>
             </div>
           </div>
+          <div class="col-md-6">
+            <div class="border rounded-4 p-3 h-100">
+              <div class="small text-muted mb-1">Origine dati in cache</div>
+              <div class="fw-semibold">{{ registro.data_origin_label or 'Nessun dato importato o sincronizzato' }}</div>
+              {% if registro.imported_at %}
+              <div class="small text-muted mt-1">Importato il {{ registro.imported_at[:16]|replace('T', ' ') }}</div>
+              {% elif registro.last_successful_sync_at %}
+              <div class="small text-muted mt-1">Ultimo sync utile {{ registro.last_successful_sync_at[:16]|replace('T', ' ') }}</div>
+              {% endif %}
+            </div>
+          </div>
         </div>
-        {% if registro.table.last_warning %}
+        {% if registro.technical_notice %}
+        <div class="alert alert-warning rounded-4 mt-3 mb-0">
+          <div class="fw-semibold mb-1">Avviso ufficiale del Ministero</div>
+          <div class="small">{{ registro.technical_notice }}</div>
+        </div>
+        {% elif registro.table.last_warning %}
         <div class="alert alert-warning rounded-4 mt-3 mb-0">
           <div class="fw-semibold mb-1">Avviso sincronizzazione</div>
           <div class="small">{{ registro.table.last_warning }}</div>
@@ -106,7 +122,7 @@
     </div>
   </div>
   <div class="col-lg-4">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
       <div class="card-body">
         <div class="fw-semibold mb-3"><i class="bi bi-funnel me-2 text-primary"></i>Filtri</div>
         <form method="get" class="d-flex flex-column gap-3">
@@ -142,6 +158,30 @@
             </button>
             <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">Reset</a>
           </div>
+        </form>
+      </div>
+    </div>
+    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
+      <div class="card-body">
+        <div class="fw-semibold mb-3"><i class="bi bi-upload me-2 text-primary"></i>Importa snapshot ufficiale</div>
+        <div class="small text-muted mb-3">
+          Se il registro diretto non e disponibile, apri la pagina ufficiale in Edge con modalita compatibilita Internet Explorer,
+          salva la pagina come HTML e caricala qui. Il gestionale manterra la cache persistente fino al prossimo sync utile.
+        </div>
+        <form method="post" action="{{ url_for('legal_intelligence.importa_registro_mediazione') }}" enctype="multipart/form-data" class="d-flex flex-column gap-3">
+          <div>
+            <label class="form-label small text-muted">File HTML del registro</label>
+            <input type="file" name="snapshot_file" class="form-control" accept=".html,.htm,text/html">
+            <div class="form-text">Usa HTML completo. Evita il formato MHTML.</div>
+          </div>
+          <div class="text-center small text-muted">oppure</div>
+          <div>
+            <label class="form-label small text-muted">Sorgente HTML incollato</label>
+            <textarea name="html_content" class="form-control" rows="6" placeholder="Incolla qui il sorgente HTML della pagina ufficiale salvata dal browser"></textarea>
+          </div>
+          <button class="btn btn-outline-primary">
+            <i class="bi bi-database-add me-2"></i>Importa snapshot HTML
+          </button>
         </form>
       </div>
     </div>
@@ -212,7 +252,8 @@
     <div class="alert alert-light border rounded-4 mb-0">
       <div class="fw-semibold mb-1">Elenco non ancora disponibile nel gestionale</div>
       <div class="small text-muted">
-        Il registro diretto ministeriale non ha restituito un elenco strutturato durante l'ultimo controllo. Il sistema conserva comunque la fonte ufficiale e puoi rilanciare la sincronizzazione quando il portale torna disponibile.
+        Il registro diretto ministeriale non ha restituito un elenco strutturato durante l'ultimo controllo.
+        Puoi rilanciare la sincronizzazione quando il portale torna disponibile oppure importare uno snapshot HTML ufficiale dal riquadro laterale.
       </div>
     </div>
     {% endif %}

@@ -226,6 +226,7 @@ def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):
     assert snapshot["total_rows"] == 2
     assert snapshot["filtered_rows"] == 1
     assert snapshot["rows"][0]["name"] == "Organismo Privato Demo"
+    assert snapshot["data_origin"] == "live_registry"
 
 
 def test_sync_normative_tables_include_registro_mediazione_snapshot(tmp_path):
@@ -253,6 +254,70 @@ def test_sync_normative_tables_include_registro_mediazione_snapshot(tmp_path):
     assert "mediazione_registry" in report
     assert report["mediazione_registry"]["ok"] is True
     assert report["mediazione_registry"]["rows"] == 1
+
+
+def test_import_registro_mediazione_snapshot_popola_cache(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    html = """
+    <html><body>
+      <table>
+        <tr><th>N. iscrizione</th><th>Organismo</th><th>Tipo</th><th>Sede</th><th>PEC</th></tr>
+        <tr><td>401</td><td>Organismo Importato</td><td>Privato</td><td>Bologna</td><td>import@pec.example.test</td></tr>
+      </table>
+    </body></html>
+    """
+
+    report = gestore.import_registro_mediazione_snapshot(html, filename="registro.html")
+    snapshot = gestore.mediazione_registry_snapshot()
+
+    assert report["ok"] is True
+    assert report["imported"] is True
+    assert snapshot["total_rows"] == 1
+    assert snapshot["data_origin"] == "manual_snapshot"
+    assert snapshot["data_origin_label"] == "Snapshot HTML ufficiale importato"
+    assert snapshot["import_filename"] == "registro.html"
+
+
+def test_sync_registro_mediazione_elenco_preserva_cache_se_portale_non_raggiungibile(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    gestore.import_registro_mediazione_snapshot(
+        """
+        <html><body>
+          <table>
+            <tr><th>N. iscrizione</th><th>Organismo</th><th>Tipo</th><th>Sede</th></tr>
+            <tr><td>501</td><td>Organismo Cache</td><td>Pubblico</td><td>Roma</td></tr>
+          </table>
+        </body></html>
+        """,
+        filename="cache.html",
+    )
+
+    info_html = b"""
+    <html><body>
+      <p>Per motivi tecnici, al momento non e possibile accedere</p>
+      <p>Registro degli organismi di mediazione</p>
+    </body></html>
+    """
+
+    def fake_get(url, **kwargs):
+        if "mg_3_4_15.page" in url:
+            return DummyResponse(info_html, url=url)
+        return DummyResponse(b"ko", status_code=503, url=url)
+
+    report = gestore.sync_registro_mediazione_elenco(request_get=fake_get)
+    snapshot = gestore.mediazione_registry_snapshot()
+
+    assert report["ok"] is True
+    assert report["used_cached_rows"] is True
+    assert snapshot["total_rows"] == 1
+    assert snapshot["rows"][0]["name"] == "Organismo Cache"
+    assert "motivi tecnici" in snapshot["technical_notice"].lower()
 
 
 def test_fonti_per_query_mediazione_risolvono_la_fonte_ufficiale():

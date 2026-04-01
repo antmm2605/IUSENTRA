@@ -95,7 +95,7 @@
       </div>
       <div class="small text-muted mt-2">
         {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
-        {{ snapshot.mediazione_registry.total_rows }} organismi in cache · ultimo sync {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
+        {{ snapshot.mediazione_registry.total_rows }} organismi in cache · {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} · ultimo sync {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
         {% else %}
         Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} · {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
         {% endif %}

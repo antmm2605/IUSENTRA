@@ -26,6 +26,17 @@ def _get_gp():
     )
 
 
+def _url_onboarding_fascicolo(id_cliente: str, *, id_preventivo: str = "", id_conferimento: str = "", from_page: str = "") -> str:
+    params = {"id_cliente": id_cliente}
+    if id_preventivo:
+        params["source_preventivo"] = id_preventivo
+    if id_conferimento:
+        params["source_conferimento"] = id_conferimento
+    if from_page:
+        params["from_page"] = from_page
+    return url_for("nuovo_fascicolo", **params)
+
+
 def _richiedi_login(f):
     from functools import wraps
     @wraps(f)
@@ -200,20 +211,41 @@ def nuovo_preventivo(id_cliente: str = ""):
 @preventivi.route("/p/<id_preventivo>", methods=["GET"])
 @_richiedi_login
 def dettaglio_preventivo(id_preventivo: str):
+    from pct.preventivi import StatoPreventivo
     gp = _get_gp()
     p = gp.get_preventivo(id_preventivo)
     if not p:
         abort(404)
     cliente = get_clienti().get(p.id_cliente)
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
-    # Conferimenti collegati
-    conferimenti = [c for c in gp.tutti_conferimenti() if c.id_preventivo == id_preventivo]
+    conferimenti = gp.conferimenti_per_preventivo(id_preventivo)
+    url_crea_conferimento = url_for(
+        "preventivi.nuovo_conferimento",
+        id_cliente=p.id_cliente,
+    ) + f"?id_preventivo={p.id}&from_page=preventivo"
+    url_apri_fascicolo = _url_onboarding_fascicolo(
+        p.id_cliente,
+        id_preventivo=p.id,
+        id_conferimento=conferimenti[0].id if conferimenti else "",
+        from_page="preventivo",
+    )
+    suggerisci_conferimento = (
+        p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO}
+        and not conferimenti
+    )
+    suggerisci_fascicolo = bool(
+        not fascicolo and (conferimenti or p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO})
+    )
     return render_template(
         "preventivi/dettaglio_preventivo.html",
         p=p,
         cliente=cliente,
         fascicolo=fascicolo,
         conferimenti=conferimenti,
+        url_crea_conferimento=url_crea_conferimento,
+        url_apri_fascicolo=url_apri_fascicolo,
+        suggerisci_conferimento=suggerisci_conferimento,
+        suggerisci_fascicolo=suggerisci_fascicolo,
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -237,6 +269,11 @@ def cambia_stato_preventivo(id_preventivo: str):
         return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
     gp.cambia_stato_preventivo(id_preventivo, nuovo_stato)
     flash(f"Stato aggiornato: {nuovo_stato.value}.", "success")
+    if nuovo_stato == StatoPreventivo.ACCETTATO:
+        flash(
+            "Preventivo accettato: il prossimo passo consigliato e creare il conferimento di incarico e aprire il fascicolo guidato.",
+            "success",
+        )
     return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
 
 
@@ -309,6 +346,9 @@ def nuovo_conferimento(id_cliente: str = ""):
             quota_palmario = float(f.get("quota_palmario_pct") or 0)
         except (ValueError, TypeError):
             quota_palmario = 0.0
+        id_preventivo = f.get("id_preventivo", "").strip()
+        id_fascicolo = f.get("id_fascicolo", "").strip()
+        apri_fascicolo_guidato = bool(f.get("apri_fascicolo_guidato")) and not id_fascicolo
 
         cfg = current_app.config
         c = gp.crea_conferimento(
@@ -316,11 +356,13 @@ def nuovo_conferimento(id_cliente: str = ""):
             oggetto=oggetto,
             avvocato_referente=avvocato,
             creato_da=g.utente_corrente.username if g.utente_corrente else "",
-            id_preventivo=f.get("id_preventivo", "").strip() or None,
-            id_fascicolo=f.get("id_fascicolo", "").strip() or None,
+            id_preventivo=id_preventivo or None,
+            id_fascicolo=id_fascicolo or None,
             data_incarico=f.get("data_incarico") or date.today().isoformat(),
             compenso_pattuito=compenso,
             note=f.get("note", "").strip(),
+            id_pratica=f.get("id_pratica", "").strip(),
+            area_pratica=f.get("area_pratica", "").strip(),
             numero_iscrizione_albo=f.get("numero_iscrizione_albo", "").strip(),
             ordine_avvocati=f.get("ordine_avvocati", "").strip(),
             tipo_compenso=f.get("tipo_compenso", "").strip(),
@@ -334,12 +376,30 @@ def nuovo_conferimento(id_cliente: str = ""):
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
         )
+        if id_preventivo:
+            from pct.preventivi import StatoPreventivo
+            gp.aggiorna_preventivo(
+                id_preventivo,
+                stato=StatoPreventivo.CONVERTITO,
+            )
+        if apri_fascicolo_guidato:
+            flash(
+                f"Conferimento incarico {c.numero} creato. Completa ora l'apertura guidata del fascicolo.",
+                "success",
+            )
+            return redirect(
+                _url_onboarding_fascicolo(
+                    id_cliente,
+                    id_preventivo=id_preventivo,
+                    id_conferimento=c.id,
+                    from_page=f.get("from_page", "") or "conferimento",
+                )
+            )
         flash(f"Conferimento incarico {c.numero} creato.", "success")
         from_page = f.get("from_page", "")
         if from_page == "preventivo":
-            id_prev = f.get("id_preventivo", "").strip()
-            if id_prev:
-                return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_prev))
+            if id_preventivo:
+                return redirect(url_for("preventivi.dettaglio_preventivo", id_preventivo=id_preventivo))
         if from_page == "cliente":
             return redirect(url_for("cartella_cliente", id_cliente=id_cliente))
         return redirect(url_for("preventivi.dettaglio_conferimento", id_conferimento=c.id))
@@ -371,6 +431,7 @@ def nuovo_conferimento(id_cliente: str = ""):
         oggi=date.today(),
         from_page=from_page,
         id_fascicolo_pre=id_fascicolo_pre,
+        apri_fascicolo_default=bool(preventivo_pre and not id_fascicolo_pre and not preventivo_pre.id_fascicolo),
     )
 
 
@@ -386,12 +447,19 @@ def dettaglio_conferimento(id_conferimento: str):
     cliente = get_clienti().get(c.id_cliente)
     fascicolo = get_fascicoli().get(c.id_fascicolo) if c.id_fascicolo else None
     preventivo = gp.get_preventivo(c.id_preventivo) if c.id_preventivo else None
+    url_apri_fascicolo = _url_onboarding_fascicolo(
+        c.id_cliente,
+        id_preventivo=c.id_preventivo or "",
+        id_conferimento=c.id,
+        from_page="conferimento",
+    )
     return render_template(
         "preventivi/dettaglio_conferimento.html",
         c=c,
         cliente=cliente,
         fascicolo=fascicolo,
         preventivo=preventivo,
+        url_apri_fascicolo=url_apri_fascicolo,
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -824,6 +892,8 @@ def wizard_genera():
         applica_iva=bool(f.get("applica_iva")),
         anticipazioni_art15=anticipazioni,
         note=f.get("note", "").strip(),
+        id_pratica=f.get("id_pratica", "").strip(),
+        area_pratica=f.get("area_pratica", "").strip(),
         tipo_compenso=f.get("tipo_compenso", "").strip(),
         tipo_procedimento=f.get("tipo_procedimento", "").strip(),
         valore_controversia=valore_controversia,
@@ -837,12 +907,13 @@ def wizard_genera():
 
     # Conferimento immediato?
     if f.get("genera_conferimento"):
+        conferimento = None
         avvocato = f.get("avvocato_referente", "").strip() or cfg.get("STUDIO_NOME", "Studio Legale")
         try:
             compenso_pattuito = float(f.get("compenso_pattuito") or p.totale)
         except (ValueError, TypeError):
             compenso_pattuito = p.totale
-        gp.crea_conferimento(
+        conferimento = gp.crea_conferimento(
             id_cliente=id_cliente,
             oggetto=oggetto,
             avvocato_referente=avvocato,
@@ -850,6 +921,8 @@ def wizard_genera():
             id_preventivo=p.id,
             id_fascicolo=f.get("id_fascicolo", "").strip() or None,
             compenso_pattuito=compenso_pattuito,
+            id_pratica=f.get("id_pratica", "").strip(),
+            area_pratica=f.get("area_pratica", "").strip(),
             tipo_compenso=f.get("tipo_compenso", "").strip(),
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
             informativa_art13_resa=bool(f.get("informativa_art13_resa")),
@@ -858,6 +931,21 @@ def wizard_genera():
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
         )
+        from pct.preventivi import StatoPreventivo
+        gp.aggiorna_preventivo(p.id, stato=StatoPreventivo.CONVERTITO)
+        if bool(f.get("apri_fascicolo_guidato")) and not p.id_fascicolo:
+            flash(
+                f"Preventivo {p.numero} e conferimento incarico creati. Completa ora l'apertura guidata del fascicolo.",
+                "success",
+            )
+            return redirect(
+                _url_onboarding_fascicolo(
+                    id_cliente,
+                    id_preventivo=p.id,
+                    id_conferimento=conferimento.id if conferimento else "",
+                    from_page=f.get("from_page", "").strip() or "wizard",
+                )
+            )
         flash(f"Preventivo {p.numero} e conferimento incarico creati.", "success")
     else:
         flash(f"Preventivo {p.numero} creato.", "success")

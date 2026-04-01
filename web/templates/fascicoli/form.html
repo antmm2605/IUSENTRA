@@ -5,14 +5,13 @@
 
 {% block content %}
 
-{# ── Page Header ── #}
 <div class="ds-ph">
   <div class="ds-ph-icon">
     <i class="bi bi-{% if fascicolo %}pencil{% else %}folder-plus{% endif %}"></i>
   </div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">{{ 'Modifica: ' + fascicolo.titolo if fascicolo else 'Nuovo Fascicolo' }}</h1>
-    <p class="ds-ph-sub">Dati processuali, parti e informazioni del fascicolo</p>
+    <p class="ds-ph-sub">Dati processuali, parti e informazioni del fascicolo.</p>
   </div>
   <div class="ds-ph-actions">
     {% if fascicolo %}
@@ -28,211 +27,247 @@
 </div>
 
 <div class="row g-4">
-<div class="col-lg-8">
-<form method="post">
+  <div class="col-lg-8">
+    <form method="post">
+      {% if not fascicolo %}
+      <input type="hidden" name="source_preventivo" value="{{ source_preventivo or '' }}">
+      <input type="hidden" name="source_conferimento" value="{{ source_conferimento or '' }}">
+      <input type="hidden" name="from_page" value="{{ from_page or '' }}">
+      {% endif %}
 
-{# Dati principali #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-folder2-open me-2 text-primary"></i>Dati principali
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-8">
-        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
-        <input type="text" name="titolo" class="form-control" required
-               value="{{ fascicolo.titolo if fascicolo else '' }}"
-               placeholder="es. Rossi c/ Bianchi — Inadempimento contrattuale">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
-        <select name="tipo" class="form-select" required>
-          {% for t in tipi %}
-          <option value="{{ t.value }}" {{ 'selected' if fascicolo and fascicolo.tipo == t }}>
-            {{ t.value.replace('_',' ') }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
-        <textarea name="oggetto" class="form-control" rows="2"
-                  placeholder="Breve descrizione della causa…">{{ fascicolo.oggetto if fascicolo else '' }}</textarea>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# Cliente e controparte #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-people me-2 text-primary"></i>Parti
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Cliente</label>
-        <select name="id_cliente" class="form-select">
-          <option value="">— Seleziona cliente —</option>
-          {% for c in clienti %}
-          <option value="{{ c.id }}"
-            {% if (fascicolo and fascicolo.id_cliente == c.id) or id_cliente_pre == c.id %}
-              selected
-            {% endif %}>
-            {{ c.nome_completo }}
-            {% if c.codice_fiscale %} ({{ c.codice_fiscale }}){% endif %}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Controparte</label>
-        {# Widget soggetto search — cerca nel DB o digita liberamente #}
-        <div class="ss-wrap" id="ss-controparte">
-          <div class="ss-input-group">
-            <i class="bi bi-search ss-icon"></i>
-            <input type="text"
-                   name="controparte"
-                   id="ss-controparte-input"
-                   class="ss-input"
-                   value="{{ fascicolo.controparte if fascicolo else '' }}"
-                   placeholder="Cerca per nome, C.F.… o digita"
-                   autocomplete="off">
-            <button type="button" class="ss-btn-new"
-                    onclick="window.open('/soggetti/nuovo','_blank')"
-                    title="Crea nuovo soggetto">
-              <i class="bi bi-plus-lg me-1"></i>Nuovo
-            </button>
-          </div>
-          <div id="ss-controparte-dropdown" class="ss-dropdown"></div>
-          <div id="ss-controparte-chip" class="ss-chip mt-1" style="display:none"></div>
+      {% if workflow_prefill and not fascicolo %}
+      <div class="card shadow-sm border-primary-subtle mb-3">
+        <div class="card-header bg-primary-subtle text-primary-emphasis fw-semibold">
+          <i class="bi bi-diagram-3 me-2"></i>Apertura guidata dal workflow commerciale
         </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          initSoggettoSearch({
-            uid: 'controparte',
-            allowFreeText: true,
-            createLabel: 'Crea nuovo soggetto'
-          });
-        });
-        </script>
+        <div class="card-body">
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <span class="badge text-bg-primary">{{ workflow_prefill.source_label }}</span>
+            {% if workflow_prefill.source_number %}
+            <span class="badge text-bg-light" style="font-family:monospace">{{ workflow_prefill.source_number }}</span>
+            {% endif %}
+            {% if workflow_prefill.tipo_procedimento %}
+            <span class="badge text-bg-light">{{ workflow_prefill.tipo_procedimento }}</span>
+            {% endif %}
+          </div>
+          {% if workflow_prefill.summary %}
+          <p class="mb-2">{{ workflow_prefill.summary }}</p>
+          {% endif %}
+          {% if workflow_prefill.when_to_use %}
+          <p class="text-muted small mb-3">{{ workflow_prefill.when_to_use }}</p>
+          {% endif %}
+          {% if workflow_prefill.checklist %}
+          <div class="small">
+            <div class="fw-semibold text-muted mb-2">Checklist iniziale suggerita</div>
+            <ul class="mb-0 ps-3">
+              {% for item in workflow_prefill.checklist %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-folder2-open me-2 text-primary"></i>Dati principali
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+              <input type="text" name="titolo" class="form-control" required
+                     value="{{ fascicolo.titolo if fascicolo else (workflow_prefill.titolo if workflow_prefill else '') }}"
+                     placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+              <select name="tipo" class="form-select" required>
+                {% for t in tipi %}
+                <option value="{{ t.value }}" {{ 'selected' if (fascicolo and fascicolo.tipo == t) or (not fascicolo and workflow_prefill and workflow_prefill.tipo == t.value) }}>
+                  {{ t.value.replace('_',' ') }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Oggetto / Descrizione</label>
+              <textarea name="oggetto" class="form-control" rows="2"
+                        placeholder="Breve descrizione della causa...">{{ fascicolo.oggetto if fascicolo else (workflow_prefill.oggetto if workflow_prefill else '') }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-people me-2 text-primary"></i>Parti
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Cliente</label>
+              <select name="id_cliente" class="form-select">
+                <option value="">- Seleziona cliente -</option>
+                {% for c in clienti %}
+                <option value="{{ c.id }}"
+                  {% if (fascicolo and fascicolo.id_cliente == c.id) or id_cliente_pre == c.id %}
+                    selected
+                  {% endif %}>
+                  {{ c.nome_completo }}{% if c.codice_fiscale %} ({{ c.codice_fiscale }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Controparte</label>
+              <div class="ss-wrap" id="ss-controparte">
+                <div class="ss-input-group">
+                  <i class="bi bi-search ss-icon"></i>
+                  <input type="text"
+                         name="controparte"
+                         id="ss-controparte-input"
+                         class="ss-input"
+                         value="{{ fascicolo.controparte if fascicolo else '' }}"
+                         placeholder="Cerca per nome, C.F. o digita"
+                         autocomplete="off">
+                  <button type="button" class="ss-btn-new"
+                          onclick="window.open('/soggetti/nuovo','_blank')"
+                          title="Crea nuovo soggetto">
+                    <i class="bi bi-plus-lg me-1"></i>Nuovo
+                  </button>
+                </div>
+                <div id="ss-controparte-dropdown" class="ss-dropdown"></div>
+                <div id="ss-controparte-chip" class="ss-chip mt-1" style="display:none"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-bank me-2 text-primary"></i>Dati processuali
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Tribunale</label>
+              {{ ufficio_picker("tribunale",
+                  current_value = fascicolo.tribunale if fascicolo else "",
+                  usa_nome = true,
+                  label = "Tribunale",
+                  uid = "uffp-fascicolo-tribunale") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Numero RG</label>
+              <input type="text" name="numero_rg" class="form-control font-monospace"
+                     value="{{ fascicolo.numero_rg if fascicolo else '' }}"
+                     placeholder="1234">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Anno RG</label>
+              <input type="number" name="anno_rg" class="form-control"
+                     value="{{ fascicolo.anno_rg if fascicolo and fascicolo.anno_rg else oggi.year }}"
+                     min="2000" max="2099">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Sezione</label>
+              <input type="text" name="sezione" class="form-control"
+                     value="{{ fascicolo.sezione if fascicolo else '' }}"
+                     placeholder="I, II">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Giudice</label>
+              <input type="text" name="giudice" class="form-control"
+                     value="{{ fascicolo.giudice if fascicolo else '' }}"
+                     placeholder="Dott. ...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Valore causa (EUR)</label>
+              <input type="number" name="valore_causa" class="form-control" step="0.01" min="0"
+                     value="{{ fascicolo.valore_causa if fascicolo else (workflow_prefill.valore_causa if workflow_prefill and workflow_prefill.valore_causa else '') }}"
+                     placeholder="0.00">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-briefcase me-2 text-primary"></i>Avvocati responsabili
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Avvocato referente</label>
+              <input type="text" name="avvocato_referente" class="form-control"
+                     value="{{ fascicolo.avvocato_referente if fascicolo else (workflow_prefill.avvocato_referente if workflow_prefill else '') }}"
+                     placeholder="Avv. Mario Rossi">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Avvocato dominus</label>
+              <input type="text" name="avvocato_dominus" class="form-control"
+                     value="{{ fascicolo.avvocato_dominus if fascicolo else '' }}"
+                     placeholder="Avv. ...">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="3">{{ fascicolo.note if fascicolo else (workflow_prefill.note if workflow_prefill else '') }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mb-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if fascicolo else 'Crea fascicolo' }}
+        </button>
+        {% if fascicolo %}
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
+           class="btn btn-outline-secondary">Annulla</a>
+        {% else %}
+        <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary">Annulla</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-info-circle me-2 text-primary"></i>Guida rapida
+      </div>
+      <div class="card-body small text-muted">
+        <p class="mb-2"><strong>RG (Registro Generale)</strong>: numero assegnato dal tribunale all'iscrizione a ruolo.</p>
+        <p class="mb-2"><strong>Sezione</strong>: sezione del tribunale competente (es. I, II, Lavoro).</p>
+        <p class="mb-0"><strong>Valore causa</strong>: utile per compensi, contributo unificato e monitoraggio economico della pratica.</p>
+      </div>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-lightning me-2 text-muted"></i>Prossimi passi
+      </div>
+      <div class="card-body small text-muted">
+        {% if workflow_prefill and not fascicolo %}
+        Dopo la creazione il fascicolo restera collegato a preventivo e conferimento, con onboarding iniziale gia registrato.
+        {% else %}
+        Dopo la creazione del fascicolo potrai aggiungere documenti, scadenze processuali, attivita, depositi telematici e note.
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-{# Dati processuali #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-bank me-2 text-primary"></i>Dati processuali
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-5">
-        <label class="form-label fw-semibold">Tribunale</label>
-        {{ ufficio_picker("tribunale",
-            current_value = fascicolo.tribunale if fascicolo else "",
-            usa_nome = true,
-            label = "Tribunale",
-            uid = "uffp-fascicolo-tribunale") }}
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold">Numero RG</label>
-        <input type="text" name="numero_rg" class="form-control font-monospace"
-               value="{{ fascicolo.numero_rg if fascicolo else '' }}"
-               placeholder="1234">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label fw-semibold">Anno RG</label>
-        <input type="number" name="anno_rg" class="form-control"
-               value="{{ fascicolo.anno_rg if fascicolo and fascicolo.anno_rg else oggi.year }}"
-               min="2000" max="2099">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label fw-semibold">Sezione</label>
-        <input type="text" name="sezione" class="form-control"
-               value="{{ fascicolo.sezione if fascicolo else '' }}"
-               placeholder="I, II…">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Giudice</label>
-        <input type="text" name="giudice" class="form-control"
-               value="{{ fascicolo.giudice if fascicolo else '' }}"
-               placeholder="Dott. …">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Valore causa (€)</label>
-        <input type="number" name="valore_causa" class="form-control" step="0.01" min="0"
-               value="{{ fascicolo.valore_causa if fascicolo else '' }}"
-               placeholder="0.00">
-      </div>
-    </div>
-  </div>
-</div>
-
-{# Studio #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-briefcase me-2 text-primary"></i>Avvocati responsabili
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Avvocato referente</label>
-        <input type="text" name="avvocato_referente" class="form-control"
-               value="{{ fascicolo.avvocato_referente if fascicolo else '' }}"
-               placeholder="Avv. Mario Rossi">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Avvocato dominus</label>
-        <input type="text" name="avvocato_dominus" class="form-control"
-               value="{{ fascicolo.avvocato_dominus if fascicolo else '' }}"
-               placeholder="Avv. …">
-      </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">Note</label>
-        <textarea name="note" class="form-control" rows="3">{{ fascicolo.note if fascicolo else '' }}</textarea>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="d-flex gap-2 mb-4">
-  <button type="submit" class="btn btn-primary">
-    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if fascicolo else 'Crea fascicolo' }}
-  </button>
-  {% if fascicolo %}
-  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
-     class="btn btn-outline-secondary">Annulla</a>
-  {% else %}
-  <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary">Annulla</a>
-  {% endif %}
-</div>
-
-</form>
-</div>{# /col-lg-8 #}
-
-{# ── Sidebar info ── #}
-<div class="col-lg-4">
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-info-circle me-2 text-primary"></i>Guida rapida
-    </div>
-    <div class="card-body small text-muted">
-      <p class="mb-2"><strong>RG (Registro Generale)</strong>: numero assegnato dal tribunale all'atto dell'iscrizione a ruolo.</p>
-      <p class="mb-2"><strong>Sezione</strong>: sezione del tribunale competente (es. I, II, Lavoro).</p>
-      <p class="mb-0"><strong>Valore causa</strong>: influenza la determinazione degli onorari secondo i parametri ministeriali D.M. 55/2014.</p>
-    </div>
-  </div>
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-lightning me-2 text-muted"></i>Prossimi passi
-    </div>
-    <div class="card-body small text-muted">
-      Dopo la creazione del fascicolo potrai aggiungere: documenti, scadenze processuali, attività, depositi telematici e note.
-    </div>
-  </div>
-</div>{# /col-lg-4 #}
-
-</div>{# /row #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  initSoggettoSearch({
+    uid: 'controparte',
+    allowFreeText: true,
+    createLabel: 'Crea nuovo soggetto'
+  });
+});
+</script>
 {% endblock %}

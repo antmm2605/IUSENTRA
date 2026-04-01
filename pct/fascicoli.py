@@ -26,6 +26,7 @@ class TipoFascicolo(str, Enum):
     CIVILE          = "CIVILE"
     PENALE          = "PENALE"
     AMMINISTRATIVO  = "AMMINISTRATIVO"
+    TRIBUTARIO      = "TRIBUTARIO"
     STRAGIUDIZIALE  = "STRAGIUDIZIALE"
     CONSULENZA      = "CONSULENZA"
     LAVORO          = "LAVORO"
@@ -572,6 +573,28 @@ class GestioneFascicoli:
             avvocato=avvocato,
         )
         f.avanzamento.append(av)
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return f
+
+    def registra_onboarding(
+        self,
+        id_fasc: str,
+        descrizione: str,
+        *,
+        note: str = "",
+        avvocato: str = "",
+    ) -> Fascicolo:
+        """Registra nel fascicolo l'apertura guidata senza alterare lo stato operativo."""
+        f = self._get_o_errore(id_fasc)
+        f.avanzamento.append(AvanzamentoPratica(
+            data=datetime.now().isoformat(),
+            descrizione=descrizione,
+            stato_precedente=f.stato.value,
+            stato_nuovo=f.stato.value,
+            note=note,
+            avvocato=avvocato,
+        ))
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return f

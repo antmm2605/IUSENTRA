@@ -53,6 +53,7 @@
 <form method="post" action="{{ url_for('preventivi.wizard_genera') }}" id="wizardPreventivo">
   <input type="hidden" name="from_page" value="{{ from_page }}">
   <input type="hidden" name="id_pratica" id="inpIdPratica">
+  <input type="hidden" name="area_pratica" id="inpAreaPratica">
   <input type="hidden" name="tipo_compenso" id="inpTipoCompenso">
   <input type="hidden" name="tipo_procedimento" id="inpTipoProcedimento">
   <input type="hidden" name="compenso_pattuito" id="inpCompensoPattuito" value="0">
@@ -226,6 +227,7 @@
               <textarea name="note" id="inpNote" class="form-control" rows="7" placeholder="Il redattore propone una bozza che puoi adattare al cliente e alla pratica."></textarea>
             </div>
             <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkGeneraConferimento" name="genera_conferimento" value="1"><label class="form-check-label" for="chkGeneraConferimento">Genera anche il conferimento incarico</label></div></div>
+            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkApriFascicoloGuidato" name="apri_fascicolo_guidato" value="1"><label class="form-check-label" for="chkApriFascicoloGuidato">Poi apri il fascicolo guidato</label></div></div>
             <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkInformativaArt13" name="informativa_art13_resa" value="1" checked><label class="form-check-label" for="chkInformativaArt13">Informativa art. 13 resa</label></div></div>
             <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkClausolaAdr" name="clausola_adr_resa" value="1"><label class="form-check-label" for="chkClausolaAdr">Verifica ADR / clausola resa</label></div></div>
           </div>
@@ -360,6 +362,7 @@ function selezionaTipologia(idTipologia) {
   tipologiaCorrente = catalogoFlat.find((item) => item.id === idTipologia) || null;
   if (!tipologiaCorrente) return;
   document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
+  document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
   document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
   document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
   renderTipologie();
@@ -459,6 +462,16 @@ function aggiornaPlaceholderValore() {
 
 function aggiornaGradoDefault() {
   if (tipologiaCorrente) document.getElementById('selGrado').value = tipologiaCorrente.grado_default || 'Tribunale';
+}
+
+function syncWorkflowChecks() {
+  const chkConf = document.getElementById('chkGeneraConferimento');
+  const chkFasc = document.getElementById('chkApriFascicoloGuidato');
+  const selFasc = document.getElementById('selectFascicolo');
+  if (!chkConf || !chkFasc || !selFasc) return;
+  const canOpen = chkConf.checked && !selFasc.value;
+  chkFasc.disabled = !canOpen;
+  if (!canOpen) chkFasc.checked = false;
 }
 </script>
 <script>
@@ -611,6 +624,7 @@ async function caricaFascicoli(idCliente) {
   sel.innerHTML = '<option value="">Caricamento fascicoli...</option>';
   if (!idCliente) {
     sel.innerHTML = '<option value="">Nessun fascicolo collegato</option>';
+    syncWorkflowChecks();
     return;
   }
   try {
@@ -626,6 +640,7 @@ async function caricaFascicoli(idCliente) {
   } catch (error) {
     sel.innerHTML = '<option value="">Errore caricamento fascicoli</option>';
   }
+  syncWorkflowChecks();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -642,10 +657,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
   document.getElementById('chkCassa').addEventListener('change', recalcTotals);
   document.getElementById('chkIva').addEventListener('change', recalcTotals);
+  document.getElementById('chkGeneraConferimento').addEventListener('change', syncWorkflowChecks);
+  document.getElementById('selectFascicolo').addEventListener('change', syncWorkflowChecks);
   document.getElementById('inpOggetto').addEventListener('input', () => { oggettoToccato = true; });
   document.getElementById('inpNote').addEventListener('input', () => { noteToccate = true; });
   const first = areaCorrente ? (CATALOGO[areaCorrente] || [])[0] : null;
   if (first) selezionaTipologia(first.id);
+  syncWorkflowChecks();
   document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
     if (!tipologiaCorrente) {
       event.preventDefault();

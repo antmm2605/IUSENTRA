@@ -5,7 +5,7 @@
 {# ── Mappe colore / icona per stato e tipo ── #}
 {% set SC      = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
 {% set SC_ICON = {'APERTO':'bi-folder2-open','IN_CORSO':'bi-folder-check','SOSPESO':'bi-pause-circle','DEFINITO':'bi-check2-circle','ARCHIVIATO':'bi-archive'} %}
-{% set TC_COL  = {'CIVILE':'primary','PENALE':'danger','AMMINISTRATIVO':'warning','STRAGIUDIZIALE':'info','CONSULENZA':'success','LAVORO':'purple','FAMIGLIA':'pink','SUCCESSIONI':'orange','ALTRO':'secondary'} %}
+{% set TC_COL  = {'CIVILE':'primary','PENALE':'danger','AMMINISTRATIVO':'warning','TRIBUTARIO':'warning','STRAGIUDIZIALE':'info','CONSULENZA':'success','LAVORO':'purple','FAMIGLIA':'pink','SUCCESSIONI':'orange','ALTRO':'secondary'} %}
 {% set EC      = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
 {% set ESITO_ICON = {'favorevole':'bi-trophy-fill text-success','sfavorevole':'bi-x-circle-fill text-danger','parziale':'bi-dash-circle-fill text-warning'} %}
 
@@ -790,6 +790,20 @@
                 </div>
                 <div class="fw-bold text-primary">€ {{ "%.2f"|format(p.totale) }}</div>
                 {% if p.note %}<div class="text-muted small mt-1">{{ p.note }}</div>{% endif %}
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  {% if p.stato.value == 'ACCETTATO' and p.id not in preventivi_con_conferimento %}
+                  <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=cliente.id) }}?id_preventivo={{ p.id }}&from_page=cliente"
+                     class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-file-earmark-check me-1"></i>Conferimento
+                  </a>
+                  {% endif %}
+                  {% if not p.id_fascicolo and (p.id in preventivi_con_conferimento or p.stato.value == 'CONVERTITO') %}
+                  <a href="{{ url_for('nuovo_fascicolo', id_cliente=cliente.id, source_preventivo=p.id, from_page='cliente') }}"
+                     class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-folder-plus me-1"></i>Apri fascicolo
+                  </a>
+                  {% endif %}
+                </div>
                 {% if p.data_pagamento %}
                   <div class="text-success small mt-1">
                     <i class="bi bi-check-circle me-1"></i>Pagata il {{ p.data_pagamento|fmt_data }}
@@ -834,7 +848,7 @@
     {% if preventivi_cliente %}
       <div class="d-flex flex-column gap-2">
       {% for p in preventivi_cliente %}
-        {% set stato_col = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'}[p.stato.value] %}
+        {% set stato_col = {'BOZZA':'secondary','APERTO':'secondary','INVIATO':'primary','ACCETTATO':'success','CONVERTITO':'success','RIFIUTATO':'danger','SCADUTO':'warning','REVISIONATO':'dark'}[p.stato.value] %}
         <div class="card border-0 shadow-sm">
           <div class="card-body p-3">
             <div class="d-flex align-items-start gap-3">
@@ -893,7 +907,7 @@
     {% if conferimenti_cliente %}
       <div class="d-flex flex-column gap-2">
       {% for c in conferimenti_cliente %}
-        {% set stato_col = {'ATTIVO':'success','REVOCATO':'danger','CONCLUSO':'secondary'}[c.stato.value] %}
+        {% set stato_col = {'ATTIVO':'success','REVOCATO':'danger','DEFINITO':'secondary'}[c.stato.value] %}
         <div class="card border-0 shadow-sm">
           <div class="card-body p-3">
             <div class="d-flex align-items-start gap-3">
@@ -913,6 +927,14 @@
                   <div class="fw-bold text-success">€ {{ "%.2f"|format(c.compenso_pattuito) }}</div>
                 {% endif %}
                 {% if c.note %}<div class="text-muted small mt-1">{{ c.note }}</div>{% endif %}
+                {% if not c.id_fascicolo %}
+                <div class="mt-2">
+                  <a href="{{ url_for('nuovo_fascicolo', id_cliente=cliente.id, source_conferimento=c.id, source_preventivo=c.id_preventivo or '', from_page='cliente') }}"
+                     class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-folder-plus me-1"></i>Apri fascicolo
+                  </a>
+                </div>
+                {% endif %}
               </div>
               <div class="flex-shrink-0">
                 <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=c.id) }}"

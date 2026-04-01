@@ -3,21 +3,20 @@
 {% block pct_modulo %}preventivi{% endblock %}
 
 {% block content %}
+{% set badge = {'BOZZA':'secondary','APERTO':'secondary','INVIATO':'primary','ACCETTATO':'success','CONVERTITO':'success','RIFIUTATO':'danger','SCADUTO':'warning','REVISIONATO':'dark'} %}
 
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-file-earmark-text"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Preventivo {{ p.numero }}</h1>
     <p class="ds-ph-sub">
-      {% set badge = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'} %}
       <span class="badge bg-{{ badge.get(p.stato.value, 'secondary') }}">{{ p.stato.value }}</span>
-      · {{ p.data_emissione }}
-      {% if p.data_scadenza %} · valido fino al {{ p.data_scadenza }}{% endif %}
+      - {{ p.data_emissione }}
+      {% if p.data_scadenza %} - valido fino al {{ p.data_scadenza }}{% endif %}
     </p>
   </div>
   <div class="ds-ph-actions d-flex gap-2">
-    <a href="{{ url_for('preventivi.pdf_preventivo', id_preventivo=p.id) }}"
-       class="ds-btn ds-btn-secondary" target="_blank">
+    <a href="{{ url_for('preventivi.pdf_preventivo', id_preventivo=p.id) }}" class="ds-btn ds-btn-secondary" target="_blank">
       <i class="bi bi-file-earmark-pdf"></i><span class="d-none d-sm-inline">PDF</span>
     </a>
     <a href="{{ url_for('preventivi.lista') }}" class="ds-btn ds-btn-secondary">
@@ -35,8 +34,6 @@
 {% endwith %}
 
 <div class="row g-3">
-
-  {# ── Info cliente/fascicolo ── #}
   <div class="col-md-6">
     <div class="card h-100">
       <div class="card-header fw-semibold"><i class="bi bi-person me-2"></i>Cliente</div>
@@ -46,8 +43,7 @@
         {% if cliente.codice_fiscale %}
         <div class="text-muted small">C.F. {{ cliente.codice_fiscale }}</div>
         {% endif %}
-        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
-           class="btn btn-sm btn-outline-secondary mt-2">
+        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}" class="btn btn-sm btn-outline-secondary mt-2">
           <i class="bi bi-person-lines-fill me-1"></i>Apri scheda
         </a>
         {% else %}
@@ -66,8 +62,7 @@
         {% if fascicolo.numero_rg %}
         <div class="text-muted small">RG {{ fascicolo.numero_rg }}</div>
         {% endif %}
-        <a href="{{ url_for('dettaglio_fascicolo', id_fascicolo=fascicolo.id) }}"
-           class="btn btn-sm btn-outline-secondary mt-2">
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-secondary mt-2">
           <i class="bi bi-folder2-open me-1"></i>Apri fascicolo
         </a>
         {% else %}
@@ -77,7 +72,49 @@
     </div>
   </div>
 
-  {# ── Oggetto e parametri legali ── #}
+  <div class="col-12">
+    <div class="card border-primary-subtle">
+      <div class="card-header fw-semibold"><i class="bi bi-signpost-2 me-2"></i>Workflow consigliato</div>
+      <div class="card-body">
+        {% if fascicolo %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Preventivo gia trasformato in pratica operativa</div>
+            <div class="text-muted small">Cliente, preventivo e fascicolo sono gia collegati. Da qui puoi proseguire con atti, scadenze e depositi.</div>
+          </div>
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-primary">
+            <i class="bi bi-folder2-open me-1"></i>Vai al fascicolo
+          </a>
+        </div>
+        {% elif suggerisci_conferimento %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Prossimo passo: conferimento di incarico</div>
+            <div class="text-muted small">Il preventivo risulta accettato. Ora conviene generare il conferimento per completare il passaggio commerciale.</div>
+          </div>
+          <a href="{{ url_crea_conferimento }}" class="btn btn-success">
+            <i class="bi bi-file-earmark-check me-1"></i>Crea conferimento
+          </a>
+        </div>
+        {% elif suggerisci_fascicolo %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Prossimo passo: apertura fascicolo guidata</div>
+            <div class="text-muted small">Hai gia tutti i dati utili. Il fascicolo verra precompilato e collegato automaticamente a questo workflow.</div>
+          </div>
+          <a href="{{ url_apri_fascicolo }}" class="btn btn-primary">
+            <i class="bi bi-folder-plus me-1"></i>Apri fascicolo guidato
+          </a>
+        </div>
+        {% else %}
+        <div class="text-muted small">
+          Quando il cliente accetta il preventivo, aggiorna lo stato e il sistema ti proporra automaticamente conferimento e apertura fascicolo.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   <div class="col-12">
     <div class="card">
       <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Oggetto e parametri</div>
@@ -86,30 +123,30 @@
         <div class="row g-2 mt-1">
           <div class="col-md-4">
             <span class="text-muted small">Tipo compenso:</span>
-            <span class="badge bg-secondary ms-1">{{ p.tipo_compenso }}</span>
+            <span class="badge bg-secondary ms-1">{{ p.tipo_compenso or 'Non definito' }}</span>
           </div>
           <div class="col-md-4">
             <span class="text-muted small">Procedimento:</span>
-            <span class="small fw-semibold ms-1">{{ p.tipo_procedimento }}</span>
+            <span class="small fw-semibold ms-1">{{ p.tipo_procedimento or '-' }}</span>
           </div>
           {% if p.valore_controversia > 0 %}
           <div class="col-md-4">
             <span class="text-muted small">Valore controversia:</span>
-            <span class="small fw-semibold ms-1">€ {{ "%.2f"|format(p.valore_controversia) }}</span>
+            <span class="small fw-semibold ms-1">EUR {{ "%.2f"|format(p.valore_controversia) }}</span>
           </div>
           {% endif %}
           {% if p.tariffa_oraria > 0 %}
           <div class="col-md-4">
             <span class="text-muted small">Tariffa oraria:</span>
-            <span class="small fw-semibold ms-1">€ {{ "%.2f"|format(p.tariffa_oraria) }}/ora</span>
+            <span class="small fw-semibold ms-1">EUR {{ "%.2f"|format(p.tariffa_oraria) }}/ora</span>
             {% if p.ore_stimate > 0 %}
-            · <span class="small text-muted">{{ p.ore_stimate }} ore stimate</span>
+            - <span class="small text-muted">{{ p.ore_stimate }} ore stimate</span>
             {% endif %}
           </div>
           {% endif %}
           {% if p.complessita %}
           <div class="col-12">
-            <span class="text-muted small">Complessità (art. 13 L. 247/2012):</span>
+            <span class="text-muted small">Complessita:</span>
             <span class="small ms-1">{{ p.complessita }}</span>
           </div>
           {% endif %}
@@ -118,7 +155,6 @@
     </div>
   </div>
 
-  {# ── Voci ── #}
   <div class="col-12">
     <div class="card">
       <div class="card-header fw-semibold"><i class="bi bi-list-ul me-2"></i>Voci del preventivo</div>
@@ -136,39 +172,36 @@
             <tr>
               <td>{{ v.descrizione }}</td>
               <td><span class="badge bg-light text-dark border">{{ v.tipo.value }}</span></td>
-              <td class="text-end">€ {{ "%.2f"|format(v.importo) }}</td>
+              <td class="text-end">EUR {{ "%.2f"|format(v.importo) }}</td>
             </tr>
             {% endfor %}
           </tbody>
           <tfoot class="table-light">
             <tr>
               <td colspan="2" class="text-end">Imponibile</td>
-              <td class="text-end fw-semibold">€ {{ "%.2f"|format(p.imponibile) }}</td>
+              <td class="text-end fw-semibold">EUR {{ "%.2f"|format(p.imponibile) }}</td>
             </tr>
             {% if p.applica_cassa %}
             <tr>
-              <td colspan="2" class="text-end small text-muted">Cassa Forense (4%)</td>
-              <td class="text-end small text-muted">€ {{ "%.2f"|format(p.cassa_forense) }}</td>
+              <td colspan="2" class="text-end small text-muted">CPA 4%</td>
+              <td class="text-end small text-muted">EUR {{ "%.2f"|format(p.cassa_forense) }}</td>
             </tr>
             {% endif %}
             {% if p.applica_iva %}
             <tr>
-              <td colspan="2" class="text-end small text-muted">IVA (22%)</td>
-              <td class="text-end small text-muted">€ {{ "%.2f"|format(p.iva) }}</td>
+              <td colspan="2" class="text-end small text-muted">IVA 22%</td>
+              <td class="text-end small text-muted">EUR {{ "%.2f"|format(p.iva) }}</td>
             </tr>
             {% endif %}
             {% if p.anticipazioni_art15 %}
             <tr>
-              <td colspan="2" class="text-end small text-muted">
-                Anticipazioni in nome e per conto
-                <small class="d-block" style="font-size:.72rem">Art. 15 DPR 633/72 — esenti</small>
-              </td>
-              <td class="text-end small text-muted">€ {{ "%.2f"|format(p.anticipazioni_art15) }}</td>
+              <td colspan="2" class="text-end small text-muted">Anticipazioni art. 15</td>
+              <td class="text-end small text-muted">EUR {{ "%.2f"|format(p.anticipazioni_art15) }}</td>
             </tr>
             {% endif %}
             <tr class="table-primary">
-              <td colspan="2" class="text-end fw-bold">TOTALE STIMATO</td>
-              <td class="text-end fw-bold fs-5">€ {{ "%.2f"|format(p.totale) }}</td>
+              <td colspan="2" class="text-end fw-bold">Totale stimato</td>
+              <td class="text-end fw-bold fs-5">EUR {{ "%.2f"|format(p.totale) }}</td>
             </tr>
           </tfoot>
         </table>
@@ -187,7 +220,6 @@
   </div>
   {% endif %}
 
-  {# ── Azioni stato ── #}
   <div class="col-12">
     <div class="card">
       <div class="card-header fw-semibold"><i class="bi bi-arrow-repeat me-2"></i>Cambia stato</div>
@@ -197,7 +229,7 @@
         {% if s != p.stato.value %}
         <form method="post" action="{{ url_for('preventivi.cambia_stato_preventivo', id_preventivo=p.id) }}">
           <input type="hidden" name="stato" value="{{ s }}">
-          <button type="submit" class="btn btn-sm btn-outline-{{ col }}">→ {{ s }}</button>
+          <button type="submit" class="btn btn-sm btn-outline-{{ col }}">-> {{ s }}</button>
         </form>
         {% endif %}
         {% endfor %}
@@ -205,13 +237,11 @@
     </div>
   </div>
 
-  {# ── Conferimenti collegati ── #}
   <div class="col-12">
     <div class="card">
       <div class="card-header d-flex align-items-center justify-content-between fw-semibold">
-        <span><i class="bi bi-pen me-2"></i>Conferimenti di incarico collegati</span>
-        <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=p.id_cliente) }}?id_preventivo={{ p.id }}&from_page=preventivo"
-           class="btn btn-sm btn-outline-primary">
+        <span><i class="bi bi-pen me-2"></i>Conferimenti collegati</span>
+        <a href="{{ url_crea_conferimento }}" class="btn btn-sm btn-outline-primary">
           <i class="bi bi-plus-lg me-1"></i>Crea conferimento
         </a>
       </div>
@@ -219,13 +249,12 @@
         {% if conferimenti %}
         <ul class="list-group list-group-flush">
           {% for c in conferimenti %}
-          {% set badge = {'ATTIVO':'success','DEFINITO':'secondary','REVOCATO':'danger'} %}
+          {% set badge_conf = {'ATTIVO':'success','DEFINITO':'secondary','REVOCATO':'danger'} %}
           <li class="list-group-item d-flex align-items-center gap-2 px-0">
-            <span class="badge bg-{{ badge.get(c.stato.value,'secondary') }}">{{ c.stato.value }}</span>
+            <span class="badge bg-{{ badge_conf.get(c.stato.value,'secondary') }}">{{ c.stato.value }}</span>
             <span class="font-monospace small text-muted">{{ c.numero }}</span>
             <span>{{ c.oggetto }}</span>
-            <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=c.id) }}"
-               class="btn btn-sm btn-outline-secondary ms-auto">
+            <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=c.id) }}" class="btn btn-sm btn-outline-secondary ms-auto">
               <i class="bi bi-eye"></i>
             </a>
           </li>
@@ -238,7 +267,6 @@
     </div>
   </div>
 
-  {# ── Elimina ── #}
   <div class="col-12 pb-4">
     <form method="post" action="{{ url_for('preventivi.elimina_preventivo', id_preventivo=p.id) }}"
           onsubmit="return confirm('Eliminare il preventivo {{ p.numero }}?')">
@@ -247,7 +275,6 @@
       </button>
     </form>
   </div>
-
 </div>
 
 {% endblock %}

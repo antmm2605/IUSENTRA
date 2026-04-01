@@ -8,7 +8,7 @@
   <div class="ds-ph-icon"><i class="bi bi-pen"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Nuovo Conferimento di Incarico</h1>
-    <p class="ds-ph-sub">Lettera di incarico professionale</p>
+    <p class="ds-ph-sub">Lettera di incarico professionale pronta per il passaggio operativo.</p>
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('preventivi.lista', tab='conferimenti') }}" class="ds-btn ds-btn-secondary">
@@ -25,15 +25,19 @@
   {% endfor %}
 {% endwith %}
 
+{% set tipo_compenso_sel = preventivo_pre.tipo_compenso if preventivo_pre and preventivo_pre.tipo_compenso else 'Compenso fisso' %}
+{% set tipo_proc_sel = preventivo_pre.tipo_procedimento if preventivo_pre and preventivo_pre.tipo_procedimento else 'Civile - fase di cognizione' %}
+{% set avvocato_default = preventivo_pre.creato_da if preventivo_pre and preventivo_pre.creato_da else (cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '') %}
+
 <form method="post" id="formConferimento">
   <input type="hidden" name="from_page" value="{{ from_page }}">
   {% if preventivo_pre %}
   <input type="hidden" name="id_preventivo" value="{{ preventivo_pre.id }}">
+  <input type="hidden" name="id_pratica" value="{{ preventivo_pre.id_pratica }}">
+  <input type="hidden" name="area_pratica" value="{{ preventivo_pre.area_pratica }}">
   {% endif %}
 
   <div class="row g-3">
-
-    {# ── Cliente ── #}
     <div class="col-12">
       <div class="card">
         <div class="card-header fw-semibold"><i class="bi bi-person me-2"></i>Cliente e pratica</div>
@@ -41,12 +45,10 @@
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Cliente <span class="text-danger">*</span></label>
-              <select name="id_cliente" id="selectCliente" class="form-select" required
-                      onchange="onClienteChange(this.value)">
-                <option value="">— Seleziona cliente —</option>
+              <select name="id_cliente" id="selectCliente" class="form-select" required onchange="onClienteChange(this.value)">
+                <option value="">- Seleziona cliente -</option>
                 {% for cl in clienti %}
-                <option value="{{ cl.id }}"
-                  {% if cliente_sel and cl.id == cliente_sel.id %}selected{% endif %}>
+                <option value="{{ cl.id }}" {% if cliente_sel and cl.id == cliente_sel.id %}selected{% endif %}>
                   {{ cl.nome_completo }}
                 </option>
                 {% endfor %}
@@ -55,22 +57,22 @@
             <div class="col-md-6">
               <label class="form-label">Fascicolo (opzionale)</label>
               <select name="id_fascicolo" id="selectFascicolo" class="form-select">
-                <option value="">— Nessun fascicolo —</option>
+                <option value="">- Nessun fascicolo -</option>
                 {% for f in fascicoli %}
-                <option value="{{ f.id }}"
-                  {% if id_fascicolo_pre == f.id %}selected{% endif %}>
+                <option value="{{ f.id }}" {% if id_fascicolo_pre == f.id %}selected{% endif %}>
                   {{ f.titolo }}{% if f.numero_rg %} (RG {{ f.numero_rg }}){% endif %}
                 </option>
                 {% endfor %}
               </select>
             </div>
+
             {% if not preventivo_pre %}
             <div class="col-md-6">
               <label class="form-label">Preventivo di riferimento (opzionale)</label>
               <select name="id_preventivo" id="selectPreventivo" class="form-select">
-                <option value="">— Nessun preventivo —</option>
+                <option value="">- Nessun preventivo -</option>
                 {% for prev in preventivi_cliente %}
-                <option value="{{ prev.id }}">{{ prev.numero }} — {{ prev.oggetto }} (€ {{ "%.2f"|format(prev.totale) }})</option>
+                <option value="{{ prev.id }}">{{ prev.numero }} - {{ prev.oggetto }} (EUR {{ "%.2f"|format(prev.totale) }})</option>
                 {% endfor %}
               </select>
             </div>
@@ -78,9 +80,18 @@
             <div class="col-md-6">
               <label class="form-label">Preventivo collegato</label>
               <div class="form-control bg-light">
-                <span class="font-monospace">{{ preventivo_pre.numero }}</span> —
+                <span class="font-monospace">{{ preventivo_pre.numero }}</span> -
                 {{ preventivo_pre.oggetto }}
-                <span class="text-muted small">(€ {{ "%.2f"|format(preventivo_pre.totale) }})</span>
+                <span class="text-muted small">(EUR {{ "%.2f"|format(preventivo_pre.totale) }})</span>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if preventivo_pre and not id_fascicolo_pre and not preventivo_pre.id_fascicolo %}
+            <div class="col-12">
+              <div class="alert alert-primary border-0 mb-0 py-2 small">
+                <i class="bi bi-lightning-charge me-1"></i>
+                Questo conferimento puo aprire subito il fascicolo guidato usando i dati gia definiti nel preventivo.
               </div>
             </div>
             {% endif %}
@@ -89,7 +100,6 @@
       </div>
     </div>
 
-    {# ── Dati incarico ── #}
     <div class="col-12">
       <div class="card">
         <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Dati incarico</div>
@@ -104,6 +114,7 @@
             <div class="col-md-6">
               <label class="form-label">Avvocato referente <span class="text-danger">*</span></label>
               <input type="text" name="avvocato_referente" class="form-control" required
+                     value="{{ avvocato_default }}"
                      placeholder="Es. Mario Rossi">
             </div>
             <div class="col-md-3">
@@ -112,49 +123,52 @@
             </div>
             <div class="col-md-3">
               <label class="form-label">N. iscrizione Albo</label>
-              <input type="text" name="numero_iscrizione_albo" class="form-control"
-                     placeholder="Es. 1234">
+              <input type="text" name="numero_iscrizione_albo" class="form-control" placeholder="Es. 1234">
             </div>
             <div class="col-md-6">
               <label class="form-label">Ordine degli Avvocati</label>
-              <input type="text" name="ordine_avvocati" class="form-control"
-                     placeholder="Es. Ordine degli Avvocati di Milano">
+              <input type="text" name="ordine_avvocati" class="form-control" placeholder="Es. Ordine degli Avvocati di Milano">
             </div>
             <div class="col-md-6">
               <label class="form-label">Tipo di compenso <span class="text-danger">*</span>
                 <small class="text-muted fw-normal">(art. 13 L. 247/2012)</small></label>
               <select name="tipo_compenso" id="selTipoCompenso" class="form-select" onchange="aggiornaUiCompenso()">
-                <option value="Compenso fisso">Compenso fisso</option>
-                <option value="Compenso orario">Compenso orario</option>
-                <option value="Per fasi processuali (D.M. 55/2014)">Per fasi processuali (D.M. 55/2014)</option>
-                <option value="Forfettario onnicomprensivo">Forfettario onnicomprensivo</option>
-                <option value="Misto (fisso + quota sul risultato)">Misto (fisso + quota sul risultato)</option>
-                <option value="A liquidazione (parametri D.M. 55/2014)">A liquidazione (parametri D.M. 55/2014)</option>
+                <option value="Compenso fisso" {{ 'selected' if tipo_compenso_sel == 'Compenso fisso' }}>Compenso fisso</option>
+                <option value="Compenso orario" {{ 'selected' if tipo_compenso_sel == 'Compenso orario' }}>Compenso orario</option>
+                <option value="Per fasi processuali (D.M. 55/2014)" {{ 'selected' if tipo_compenso_sel == 'Per fasi processuali (D.M. 55/2014)' }}>Per fasi processuali (D.M. 55/2014)</option>
+                <option value="Forfettario onnicomprensivo" {{ 'selected' if tipo_compenso_sel == 'Forfettario onnicomprensivo' }}>Forfettario onnicomprensivo</option>
+                <option value="Misto (fisso + quota sul risultato)" {{ 'selected' if tipo_compenso_sel == 'Misto (fisso + quota sul risultato)' }}>Misto (fisso + quota sul risultato)</option>
+                <option value="A liquidazione (parametri D.M. 55/2014)" {{ 'selected' if tipo_compenso_sel == 'A liquidazione (parametri D.M. 55/2014)' }}>A liquidazione (parametri D.M. 55/2014)</option>
               </select>
             </div>
             <div class="col-md-6">
               <label class="form-label">Tipo procedimento
                 <small class="text-muted fw-normal">(D.M. 55/2014)</small></label>
               <select name="tipo_procedimento" class="form-select">
-                <option value="Civile — fase di cognizione">Civile — fase di cognizione</option>
-                <option value="Civile — fase esecutiva">Civile — fase esecutiva</option>
-                <option value="Penale">Penale</option>
-                <option value="Amministrativo (TAR/CdS)">Amministrativo (TAR/CdS)</option>
-                <option value="Stragiudiziale / Consulenza">Stragiudiziale / Consulenza</option>
-                <option value="Mediazione / Negoziazione assistita">Mediazione / Negoziazione assistita</option>
-                <option value="Arbitrato">Arbitrato</option>
+                {% set tipo_proc_standard = ['Civile - fase di cognizione', 'Civile - fase esecutiva', 'Penale', 'Amministrativo (TAR/CdS)', 'Stragiudiziale / Consulenza', 'Mediazione / Negoziazione assistita', 'Arbitrato'] %}
+                {% if tipo_proc_sel and tipo_proc_sel not in tipo_proc_standard %}
+                <option value="{{ tipo_proc_sel }}" selected>{{ tipo_proc_sel }}</option>
+                {% endif %}
+                <option value="Civile - fase di cognizione" {{ 'selected' if tipo_proc_sel == 'Civile - fase di cognizione' }}>Civile - fase di cognizione</option>
+                <option value="Civile - fase esecutiva" {{ 'selected' if tipo_proc_sel == 'Civile - fase esecutiva' }}>Civile - fase esecutiva</option>
+                <option value="Penale" {{ 'selected' if tipo_proc_sel == 'Penale' }}>Penale</option>
+                <option value="Amministrativo (TAR/CdS)" {{ 'selected' if tipo_proc_sel == 'Amministrativo (TAR/CdS)' }}>Amministrativo (TAR/CdS)</option>
+                <option value="Stragiudiziale / Consulenza" {{ 'selected' if tipo_proc_sel == 'Stragiudiziale / Consulenza' }}>Stragiudiziale / Consulenza</option>
+                <option value="Mediazione / Negoziazione assistita" {{ 'selected' if tipo_proc_sel == 'Mediazione / Negoziazione assistita' }}>Mediazione / Negoziazione assistita</option>
+                <option value="Arbitrato" {{ 'selected' if tipo_proc_sel == 'Arbitrato' }}>Arbitrato</option>
               </select>
             </div>
             <div class="col-md-4" id="rowCompenso">
-              <label class="form-label">Compenso pattuito (€)</label>
+              <label class="form-label">Compenso pattuito (EUR)</label>
               <input type="number" name="compenso_pattuito" id="inpCompenso" class="form-control text-end"
                      step="0.01" min="0" placeholder="0.00"
                      value="{{ preventivo_pre.totale if preventivo_pre and preventivo_pre.totale else '' }}">
-              <div class="form-text">Lascia vuoto → parametri D.M. 55/2014</div>
+              <div class="form-text">Lascia vuoto per usare i parametri professionali.</div>
             </div>
             <div class="col-md-4" id="rowTariffaOraria" style="display:none">
-              <label class="form-label">Tariffa oraria (€/ora)</label>
+              <label class="form-label">Tariffa oraria (EUR/ora)</label>
               <input type="number" name="tariffa_oraria" class="form-control"
+                     value="{{ preventivo_pre.tariffa_oraria if preventivo_pre and preventivo_pre.tariffa_oraria else '' }}"
                      step="0.01" min="0" placeholder="0.00">
             </div>
           </div>
@@ -162,7 +176,6 @@
       </div>
     </div>
 
-    {# ── Patto di palmario ── #}
     <div class="col-12" id="rowPalmario" style="display:none">
       <div class="card border-warning">
         <div class="card-header fw-semibold text-warning-emphasis">
@@ -176,31 +189,27 @@
                 <input class="form-check-input" type="checkbox" name="patto_palmario"
                        id="chkPalmario" value="1" onchange="aggiornaUiCompenso()">
                 <label class="form-check-label" for="chkPalmario">
-                  Attiva patto di palmario (compenso aggiuntivo sul risultato)
+                  Attiva patto di palmario
                 </label>
               </div>
             </div>
             <div class="col-md-3" id="rowQuotaPalmario" style="display:none">
               <label class="form-label">% sul risultato</label>
-              <input type="number" name="quota_palmario_pct" class="form-control"
-                     step="0.1" min="0" max="50" placeholder="Es. 10">
+              <input type="number" name="quota_palmario_pct" class="form-control" step="0.1" min="0" max="50" placeholder="Es. 10">
             </div>
           </div>
           <p class="small text-muted mt-2 mb-0">
-            Il patto di palmario prevede un compenso aggiuntivo commisurato al vantaggio economico
-            conseguito dal cliente. Non è ammesso il patto di quota lite puro (compenso esclusivamente
-            proporzionale al risultato) ai sensi dell'art. 13 co. 4 L. 247/2012.
+            Il palmario e un compenso aggiuntivo sul risultato utile conseguito dal cliente. Non e ammesso un compenso soltanto proporzionale al risultato.
           </p>
         </div>
       </div>
     </div>
 
-    {# ── Obblighi informativi art. 13 L. 247/2012 ── #}
     <div class="col-12">
       <div class="card border-info">
         <div class="card-header fw-semibold text-info-emphasis">
           <i class="bi bi-shield-check me-2"></i>Obblighi informativi
-          <small class="text-muted fw-normal ms-2">(art. 13 L. 247/2012 — obbligatorio)</small>
+          <small class="text-muted fw-normal ms-2">(art. 13 L. 247/2012)</small>
         </div>
         <div class="card-body">
           <div class="d-flex flex-column gap-3">
@@ -208,11 +217,9 @@
               <input class="form-check-input" type="checkbox" name="informativa_art13_resa"
                      id="chkInformativa" value="1">
               <label class="form-check-label" for="chkInformativa">
-                <strong>Informativa art. 13 L. 247/2012 resa al cliente</strong>
+                <strong>Informativa art. 13 resa al cliente</strong>
                 <div class="text-muted small">
-                  L'avvocato ha informato il cliente del grado di complessità dell'incarico,
-                  degli oneri ipotizzabili dalla conclusione e degli estremi della polizza
-                  assicurativa professionale.
+                  Complessita dell'incarico, oneri ipotizzabili e polizza RC professionale gia illustrati.
                 </div>
               </label>
             </div>
@@ -222,29 +229,42 @@
               <label class="form-check-label" for="chkADR">
                 <strong>Informativa sugli strumenti ADR resa al cliente</strong>
                 <div class="text-muted small">
-                  Il cliente è stato informato della possibilità di ricorrere alla mediazione
-                  civile (D.Lgs. 28/2010), alla negoziazione assistita (D.L. 132/2014) o
-                  ad altri strumenti di risoluzione alternativa delle controversie.
+                  Il cliente e stato informato su mediazione, negoziazione assistita e altri strumenti alternativi.
                 </div>
               </label>
             </div>
           </div>
           <div class="alert alert-info border-0 mt-3 mb-0 py-2 small">
             <i class="bi bi-info-circle me-1"></i>
-            Questi dati saranno inclusi nella lettera di incarico (PDF) e attestano il rispetto
-            degli obblighi di cui all'art. 13 L. 247/2012.
+            Questi dati vengono riportati nella lettera di incarico e aiutano il controllo formale interno.
           </div>
         </div>
       </div>
     </div>
 
-    {# ── Note ── #}
     <div class="col-12">
       <div class="card">
         <div class="card-header fw-semibold"><i class="bi bi-chat-left-text me-2"></i>Note / Clausole aggiuntive</div>
         <div class="card-body">
           <textarea name="note" class="form-control" rows="4"
-                    placeholder="Eventuali condizioni particolari, esclusioni, clausole specifiche..."></textarea>
+                    placeholder="Eventuali condizioni particolari, esclusioni, clausole specifiche...">{{ preventivo_pre.note if preventivo_pre and preventivo_pre.note else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card border-primary-subtle">
+        <div class="card-body py-3">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" name="apri_fascicolo_guidato"
+                   id="chkApriFascicoloGuidato" value="1" {{ 'checked' if apri_fascicolo_default else '' }}>
+            <label class="form-check-label" for="chkApriFascicoloGuidato">
+              <strong>Apri subito il fascicolo guidato dopo il conferimento</strong>
+              <div class="text-muted small">
+                Consigliato quando il preventivo e gia stato accettato e vuoi passare direttamente alla pratica operativa.
+              </div>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -255,7 +275,6 @@
         <i class="bi bi-check-lg me-1"></i>Crea conferimento incarico
       </button>
     </div>
-
   </div>
 </form>
 
@@ -263,13 +282,12 @@
 function aggiornaUiCompenso() {
   const tipo = document.getElementById('selTipoCompenso').value;
   const isOrario = tipo === 'Compenso orario';
-  const isMisto  = tipo.includes('Misto');
+  const isMisto = tipo.includes('Misto');
   document.getElementById('rowTariffaOraria').style.display = isOrario ? '' : 'none';
   document.getElementById('rowPalmario').style.display = isMisto ? '' : 'none';
   const chkPalm = document.getElementById('chkPalmario');
   if (chkPalm) {
-    document.getElementById('rowQuotaPalmario').style.display =
-      (isMisto && chkPalm.checked) ? '' : 'none';
+    document.getElementById('rowQuotaPalmario').style.display = (isMisto && chkPalm.checked) ? '' : 'none';
   }
 }
 
@@ -278,12 +296,29 @@ function onClienteChange(idCliente) {
   caricaPreventivi(idCliente);
 }
 
-document.addEventListener('DOMContentLoaded', aggiornaUiCompenso);
+function syncApriFascicolo() {
+  const chk = document.getElementById('chkApriFascicoloGuidato');
+  const sel = document.getElementById('selectFascicolo');
+  if (!chk || !sel) return;
+  const canOpen = !sel.value;
+  chk.disabled = !canOpen;
+  if (!canOpen) chk.checked = false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  aggiornaUiCompenso();
+  syncApriFascicolo();
+  const sel = document.getElementById('selectFascicolo');
+  if (sel) sel.addEventListener('change', syncApriFascicolo);
+});
 
 function caricaFascicoli(idCliente) {
   const sel = document.getElementById('selectFascicolo');
-  sel.innerHTML = '<option value="">— Nessun fascicolo —</option>';
-  if (!idCliente) return;
+  sel.innerHTML = '<option value="">- Nessun fascicolo -</option>';
+  if (!idCliente) {
+    syncApriFascicolo();
+    return;
+  }
   fetch(`/preventivi/ajax/fascicoli/${idCliente}`)
     .then(r => r.json())
     .then(data => {
@@ -293,13 +328,14 @@ function caricaFascicoli(idCliente) {
         opt.textContent = f.titolo + (f.numero_rg ? ` (RG ${f.numero_rg})` : '');
         sel.appendChild(opt);
       });
+      syncApriFascicolo();
     });
 }
 
 function caricaPreventivi(idCliente) {
   const sel = document.getElementById('selectPreventivo');
   if (!sel) return;
-  sel.innerHTML = '<option value="">— Nessun preventivo —</option>';
+  sel.innerHTML = '<option value="">- Nessun preventivo -</option>';
   if (!idCliente) return;
   fetch(`/preventivi/ajax/preventivi/${idCliente}`)
     .then(r => r.json())
@@ -307,7 +343,7 @@ function caricaPreventivi(idCliente) {
       data.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.numero} — ${p.oggetto} (€ ${p.totale.toFixed(2)})`;
+        opt.textContent = `${p.numero} - ${p.oggetto} (EUR ${p.totale.toFixed(2)})`;
         sel.appendChild(opt);
       });
     });

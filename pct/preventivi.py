@@ -152,6 +152,8 @@ class Preventivo:
     creato_il:       str = field(default_factory=lambda: datetime.now().isoformat())
 
     # Parametri incarico (art. 13 L. 247/2012 + D.M. 55/2014)
+    id_pratica:            str   = ""    # slug tipologia motore preventivo
+    area_pratica:          str   = ""    # macro-area pratica
     tipo_compenso:        str   = ""    # es. "Compenso fisso", "Per fasi processuali (D.M. 55/2014)"
     tipo_procedimento:    str   = ""    # es. "Civile — fase di cognizione"
     valore_controversia:  float = 0.0  # €, 0 = indeterminabile
@@ -255,6 +257,8 @@ class ConferimentoIncarico:
     creato_il:           str = field(default_factory=lambda: datetime.now().isoformat())
 
     # Dati avvocato e modalità compenso
+    id_pratica:               str   = ""
+    area_pratica:             str   = ""
     numero_iscrizione_albo: str   = ""
     ordine_avvocati:        str   = ""
     tipo_compenso:          str   = ""
@@ -370,6 +374,8 @@ class GestionePreventivi:
                         applica_iva:    bool = True,
                         anticipazioni_art15: float = 0.0,
                         note:           str = "",
+                        id_pratica:           str   = "",
+                        area_pratica:         str   = "",
                         tipo_compenso:       str   = "",
                         tipo_procedimento:   str   = "",
                         valore_controversia: float = 0.0,
@@ -393,6 +399,8 @@ class GestionePreventivi:
             applica_iva=applica_iva,
             anticipazioni_art15=anticipazioni_art15,
             note=note,
+            id_pratica=id_pratica,
+            area_pratica=area_pratica,
             tipo_compenso=tipo_compenso,
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,
@@ -419,6 +427,9 @@ class GestionePreventivi:
 
     def preventivi_per_fascicolo(self, id_fascicolo: str) -> List[Preventivo]:
         return [p for p in self.tutti_preventivi() if p.id_fascicolo == id_fascicolo]
+
+    def conferimenti_per_preventivo(self, id_preventivo: str) -> List["ConferimentoIncarico"]:
+        return [c for c in self.tutti_conferimenti() if c.id_preventivo == id_preventivo]
 
     def aggiorna_preventivo(self, id_preventivo: str, **kwargs) -> Preventivo:
         p = self._preventivi[id_preventivo]
@@ -497,6 +508,8 @@ class GestionePreventivi:
                           data_incarico:      Optional[str] = None,
                           compenso_pattuito:  float = 0.0,
                           note:               str = "",
+                          id_pratica:             str   = "",
+                          area_pratica:           str   = "",
                           numero_iscrizione_albo: str   = "",
                           ordine_avvocati:        str   = "",
                           tipo_compenso:          str   = "",
@@ -509,6 +522,21 @@ class GestionePreventivi:
                           studio_piva:        str = "",
                           studio_cf:          str = "",
                           studio_indirizzo:   str = "") -> ConferimentoIncarico:
+        if id_preventivo:
+            preventivo = self._preventivi.get(id_preventivo)
+            if preventivo:
+                if not id_pratica:
+                    id_pratica = preventivo.id_pratica
+                if not area_pratica:
+                    area_pratica = preventivo.area_pratica
+                if not tipo_compenso:
+                    tipo_compenso = preventivo.tipo_compenso
+                if not tipo_procedimento:
+                    tipo_procedimento = preventivo.tipo_procedimento
+                if not tariffa_oraria:
+                    tariffa_oraria = preventivo.tariffa_oraria
+                if not compenso_pattuito:
+                    compenso_pattuito = preventivo.totale
         c = ConferimentoIncarico(
             id=str(uuid.uuid4()),
             numero=self._prossimo_numero_conferimento(),
@@ -522,6 +550,8 @@ class GestionePreventivi:
             note=note,
             stato=StatoConferimento.ATTIVO,
             creato_da=creato_da,
+            id_pratica=id_pratica,
+            area_pratica=area_pratica,
             numero_iscrizione_albo=numero_iscrizione_albo,
             ordine_avvocati=ordine_avvocati,
             tipo_compenso=tipo_compenso,
@@ -563,6 +593,37 @@ class GestionePreventivi:
         c = self._conferimenti[id_conferimento]
         c.stato = stato
         self._salva_conferimenti()
+
+    def collega_fascicolo(
+        self,
+        id_fascicolo: str,
+        *,
+        id_preventivo: Optional[str] = None,
+        id_conferimento: Optional[str] = None,
+        converti_preventivo: bool = False,
+    ) -> None:
+        modifica_preventivi = False
+        modifica_conferimenti = False
+        if id_preventivo and id_preventivo in self._preventivi:
+            p = self._preventivi[id_preventivo]
+            p.id_fascicolo = id_fascicolo
+            if converti_preventivo:
+                p.stato = StatoPreventivo.CONVERTITO
+            modifica_preventivi = True
+        if id_conferimento and id_conferimento in self._conferimenti:
+            c = self._conferimenti[id_conferimento]
+            c.id_fascicolo = id_fascicolo
+            modifica_conferimenti = True
+            if c.id_preventivo and c.id_preventivo in self._preventivi:
+                p = self._preventivi[c.id_preventivo]
+                p.id_fascicolo = id_fascicolo
+                if converti_preventivo:
+                    p.stato = StatoPreventivo.CONVERTITO
+                modifica_preventivi = True
+        if modifica_preventivi:
+            self._salva_preventivi()
+        if modifica_conferimenti:
+            self._salva_conferimenti()
 
     def elimina_conferimento(self, id_conferimento: str):
         if id_conferimento in self._conferimenti:

@@ -3663,6 +3663,9 @@ read -r -p "Premi Invio per chiudere..." _
             gp = GestionePreventivi(gp_path)
             preventivi_cliente = gp.preventivi_per_cliente(id_cliente)
             conferimenti_cliente = gp.conferimenti_per_cliente(id_cliente)
+            preventivi_con_conferimento = {
+                c.id_preventivo for c in conferimenti_cliente if c.id_preventivo
+            }
 
             track_recente("cliente", id_cliente, c.nome_completo,
                           url_for("cartella_cliente", id_cliente=id_cliente),
@@ -3681,6 +3684,7 @@ read -r -p "Premi Invio per chiudere..." _
                 parcelle_cliente=parcelle_cliente,
                 preventivi_cliente=preventivi_cliente,
                 conferimenti_cliente=conferimenti_cliente,
+                preventivi_con_conferimento=preventivi_con_conferimento,
                 tipi_fascicolo=list(TipoFascicolo),
             )
         except Exception as e:
@@ -3716,7 +3720,7 @@ read -r -p "Premi Invio per chiudere..." _
 
             # Ordine fisso dei tipi
             _ordine_tipi = [
-                "CIVILE", "PENALE", "LAVORO", "FAMIGLIA", "AMMINISTRATIVO",
+                "CIVILE", "PENALE", "LAVORO", "FAMIGLIA", "AMMINISTRATIVO", "TRIBUTARIO",
                 "STRAGIUDIZIALE", "SUCCESSIONI", "CONSULENZA", "ALTRO",
             ]
             fascicoli_per_tipo: dict = {}
@@ -4820,11 +4824,16 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/fascicoli/nuovo", methods=["GET", "POST"])
     def nuovo_fascicolo():
+        from pct.preventivi import GestionePreventivi
+        from pct.workflow_onboarding import build_fascicolo_onboarding
         gc = get_clienti()
         gf = get_fascicoli()
+        gp = GestionePreventivi(app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json"))
         if request.method == "POST":
             f = request.form
             id_cliente = f.get("id_cliente", "")
+            source_preventivo = f.get("source_preventivo", "").strip()
+            source_conferimento = f.get("source_conferimento", "").strip()
             nome_cliente = ""
             if id_cliente:
                 c = gc.get(id_cliente)
@@ -4847,14 +4856,58 @@ read -r -p "Premi Invio per chiudere..." _
                     valore_causa=float(f.get("valore_causa") or 0),
                     note=f.get("note", ""),
                 )
+                if source_preventivo or source_conferimento:
+                    gp.collega_fascicolo(
+                        fasc.id,
+                        id_preventivo=source_preventivo or None,
+                        id_conferimento=source_conferimento or None,
+                        converti_preventivo=True,
+                    )
+                    onboarding_sources = []
+                    if source_preventivo:
+                        preventivo_src = gp.get_preventivo(source_preventivo)
+                        if preventivo_src:
+                            onboarding_sources.append(f"Preventivo {preventivo_src.numero}")
+                    if source_conferimento:
+                        conferimento_src = gp.get_conferimento(source_conferimento)
+                        if conferimento_src:
+                            onboarding_sources.append(f"Conferimento {conferimento_src.numero}")
+                    gf.registra_onboarding(
+                        fasc.id,
+                        "Apertura guidata del fascicolo",
+                        note="Workflow origine: " + " - ".join(onboarding_sources) if onboarding_sources else "",
+                        avvocato=f.get("avvocato_referente", ""),
+                    )
                 flash(f"Fascicolo {fasc.numero} creato.", "success")
                 sync_pubblica("crea", "fascicoli", fasc.id)
                 # Se arriva dalla cartella cliente, torna lì
+                if source_preventivo or source_conferimento:
+                    return redirect(url_for("dettaglio_fascicolo", id_fasc=fasc.id))
                 if id_cliente:
                     return redirect(url_for("cartella_cliente", id_cliente=id_cliente))
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=fasc.id))
             except (ValueError, KeyError) as e:
                 flash(str(e), "danger")
+
+        source_preventivo = request.args.get("source_preventivo", "").strip()
+        source_conferimento = request.args.get("source_conferimento", "").strip()
+        from_page = request.args.get("from_page", "").strip()
+        id_cliente_pre = request.args.get("id_cliente", "").strip()
+        preventivo_src = gp.get_preventivo(source_preventivo) if source_preventivo else None
+        conferimento_src = gp.get_conferimento(source_conferimento) if source_conferimento else None
+        if not id_cliente_pre:
+            id_cliente_pre = (
+                (conferimento_src.id_cliente if conferimento_src else "")
+                or (preventivo_src.id_cliente if preventivo_src else "")
+            )
+        cliente_src = gc.get(id_cliente_pre) if id_cliente_pre else None
+        workflow_prefill = None
+        if cliente_src and (preventivo_src or conferimento_src):
+            workflow_prefill = build_fascicolo_onboarding(
+                cliente=cliente_src,
+                preventivo=preventivo_src,
+                conferimento=conferimento_src,
+            )
 
         clienti = gc.tutti(stato=None)
         return render_template(
@@ -4863,7 +4916,12 @@ read -r -p "Premi Invio per chiudere..." _
             clienti=clienti,
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
-            id_cliente_pre=request.args.get("id_cliente", ""),
+            id_cliente_pre=id_cliente_pre,
+            workflow_prefill=workflow_prefill,
+            source_preventivo=source_preventivo,
+            source_conferimento=source_conferimento,
+            from_page=from_page,
+            oggi=date.today(),
         )
 
     @app.route("/fascicoli/<id_fasc>")

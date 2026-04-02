@@ -413,9 +413,24 @@ SECTION_FIELD_HINTS: dict[str, list[str]] = {
 
 
 class AssistenteRedazionale:
-    def __init__(self, audit_db_path: str = "", office_cache_path: str = "") -> None:
+    def __init__(
+        self,
+        audit_db_path: str = "",
+        office_cache_path: str = "",
+        *,
+        pst_wsdl_catalog_zip_path: str = "",
+        pst_official_cache_path: str = "",
+        pst_catalog_endpoint: str = "",
+        pst_timeout: float = 8.0,
+    ) -> None:
         self.store = GestioneAssistenteRedazionale(audit_db_path) if audit_db_path else None
-        self.resolver = CompetenceResolver(office_cache_path=office_cache_path)
+        self.resolver = CompetenceResolver(
+            office_cache_path=office_cache_path,
+            pst_wsdl_catalog_zip_path=pst_wsdl_catalog_zip_path,
+            pst_official_cache_path=pst_official_cache_path,
+            pst_catalog_endpoint=pst_catalog_endpoint,
+            pst_timeout=pst_timeout,
+        )
         self.legal_validator = ValidatorNormativoRedazionale()
 
     def analyze(
@@ -437,6 +452,7 @@ class AssistenteRedazionale:
             synthetic_fascicolo,
             profile.to_procedural_profile(),
             profile.registry_suggestion,
+            context=payload,
         )
         schema_channel = self._resolve_schema_channel(profile, resolver)
 
@@ -521,7 +537,7 @@ class AssistenteRedazionale:
         base = SCHEMA_CHANNELS.get(profile.channel, SCHEMA_CHANNELS["PEC"])
         if base.channel != "PCT_TELEMATICO":
             return base
-        office_type = str(resolver.get("office_type") or "")
+        office_type = str(resolver.get("effective_office_type") or resolver.get("office_type") or "")
         if office_type == "CORTE_CASSAZIONE" or profile.grado == "legittimita":
             return _schema_channel_with_xsd(base, "CASSAZIONE")
         if office_type == "GDP":

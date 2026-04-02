@@ -38,6 +38,7 @@ from .pst_catalog import (
     get_catalog_snapshot,
     get_catalog_sources,
 )
+from .pst_services import PSTOfficialCatalogAdapter
 from .validazione import MAX_BYTES_ALLEGATO, verifica_dimensione, verifica_pdfa
 
 
@@ -65,6 +66,15 @@ def _slug(text: str) -> str:
 def _contains_any(text: str, needles: Iterable[str]) -> bool:
     base = _slug(text)
     return any(_slug(needle) in base for needle in needles if needle)
+
+
+def _guess_comune_from_label(label: str) -> str:
+    text = str(label or "").strip()
+    if not text:
+        return ""
+    if " di " in text:
+        return text.rsplit(" di ", 1)[-1].strip()
+    return text
 
 
 def _service_state(issues: Iterable["ValidationIssue"], service: str) -> str:
@@ -452,8 +462,22 @@ def _classify_documents(documenti: List[Dict[str, Any]]) -> Dict[str, List[Dict[
 class CompetenceResolver:
     """Risoluzione deterministica di ufficio, sede, grado e registro."""
 
-    def __init__(self, office_cache_path: str = "") -> None:
+    def __init__(
+        self,
+        office_cache_path: str = "",
+        *,
+        pst_wsdl_catalog_zip_path: str = "",
+        pst_official_cache_path: str = "",
+        pst_catalog_endpoint: str = "",
+        pst_timeout: float = 8.0,
+    ) -> None:
         self.office_cache_path = office_cache_path
+        self.official = PSTOfficialCatalogAdapter(
+            wsdl_catalog_zip_path=pst_wsdl_catalog_zip_path,
+            cache_path=pst_official_cache_path,
+            catalog_endpoint=pst_catalog_endpoint,
+            timeout=pst_timeout,
+        )
 
     def _load_offices(self) -> List[Dict[str, Any]]:
         try:
@@ -468,7 +492,9 @@ class CompetenceResolver:
         fascicolo: Fascicolo,
         profile: ProceduralProfile,
         codice_registro: str,
+        context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        context = dict(context or {})
         offices = self._load_offices()
         tribunale = (fascicolo.tribunale or "").strip()
         office = None
@@ -486,19 +512,111 @@ class CompetenceResolver:
                 if office:
                     match_mode = "name"
 
+        office_name = str((office or {}).get("nome", tribunale or ""))
+        office_code = str((office or {}).get("codice", tribunale or ""))
+        office_type = str((office or {}).get("tipo", "")).upper()
+        office_distretto = str((office or {}).get("distretto", ""))
+        office_comune = str((office or {}).get("comune", "")).strip() or _guess_comune_from_label(office_name)
+        requested_registry = (codice_registro or "").strip().upper()
+
+        official_office_lookup = {"item": {}, "source": "disabled", "matched_on": "none"}
+        official_office = {}
+        if tribunale and (office_comune or office_distretto or office_name):
+            official_office_lookup = self.official.find_office(
+                office_name=office_name or tribunale,
+                office_code=office_code,
+                comune=office_comune,
+                distretto=office_distretto,
+                penale=profile.channel == "PDP_PENALE",
+            )
+            official_office = dict(official_office_lookup.get("item") or {})
+
+        effective_office = office or {}
+        if official_office:
+            effective_office = {
+                "nome": official_office.get("descrizione", office_name or tribunale),
+                "codice": official_office.get("codice_ufficio", office_code or tribunale),
+                "tipo": official_office.get("tipo_ufficio", office_type),
+                "distretto": official_office.get("distretto", office_distretto),
+                "comune": official_office.get("comune", office_comune),
+            }
+
+        effective_office_name = str(effective_office.get("nome", office_name or tribunale))
+        effective_office_code = str(effective_office.get("codice", office_code or tribunale))
+        effective_office_type = str(effective_office.get("tipo", office_type)).upper()
+        effective_office_distretto = str(effective_office.get("distretto", office_distretto))
+
+        official_registries = (
+            self.official.get_registries_for_office(effective_office_code)
+            if effective_office_code
+            else self.official.get_registries_for_office("")
+        )
+        official_registry_codes = [
+            str(item.get("codice", "")).strip().upper()
+            for item in official_registries.items
+            if str(item.get("codice", "")).strip()
+        ]
+        effective_allowed_registries = official_registry_codes or list(profile.allowed_registries)
+
+        rito_seed = requested_registry or (effective_allowed_registries[0] if effective_allowed_registries else "")
+        official_riti = self.official.get_riti_for_registry(rito_seed) if rito_seed else self.official.get_riti_for_registry("")
+        effective_riti = [
+            str(item.get("descrizione", "")).strip()
+            for item in official_riti.items
+            if str(item.get("descrizione", "")).strip()
+        ]
+
+        official_normativa = None
+        normativa_id = str(context.get("id_atti_depositabili") or "").strip()
+        if normativa_id:
+            official_normativa = self.official.get_normativa(normativa_id).to_dict()
+
+        official_sync = self.official.get_runtime_snapshot()
+        official_sync.update(
+            {
+                "office_lookup": {
+                    "source": official_office_lookup.get("source", "disabled"),
+                    "matched_on": official_office_lookup.get("matched_on", "none"),
+                    "matched_code": official_office.get("codice_ufficio", ""),
+                },
+                "registries": official_registries.to_dict(),
+                "riti": official_riti.to_dict(),
+                "effective_registry_source": official_registries.source,
+                "effective_rito_source": official_riti.source,
+            }
+        )
+        if official_normativa:
+            official_sync["normativa"] = official_normativa
+
         payload = {
             "office_found": bool(office),
             "office_match_mode": match_mode,
-            "office_name": str((office or {}).get("nome", tribunale or "")),
-            "office_code": str((office or {}).get("codice", tribunale or "")),
-            "office_type": str((office or {}).get("tipo", "")).upper(),
-            "office_distretto": str((office or {}).get("distretto", "")),
-            "requested_registry": (codice_registro or "").strip().upper(),
+            "office_name": office_name,
+            "office_code": office_code,
+            "office_type": office_type,
+            "office_distretto": office_distretto,
+            "requested_registry": requested_registry,
             "requested_channel": profile.channel,
             "requested_grade": profile.grado,
             "requested_rito": profile.rito,
             "allowed_office_types": list(profile.allowed_office_types),
             "allowed_registries": list(profile.allowed_registries),
+            "effective_allowed_registries": effective_allowed_registries,
+            "effective_riti": effective_riti,
+            "official_office_found": bool(official_office),
+            "official_office_match_mode": official_office_lookup.get("matched_on", "none"),
+            "official_office_name": str(official_office.get("descrizione", "")),
+            "official_office_code": str(official_office.get("codice_ufficio", "")),
+            "official_office_type": str(official_office.get("tipo_ufficio", "")).upper(),
+            "official_office_distretto": str(official_office.get("distretto", "")),
+            "effective_office_found": bool(effective_office_name),
+            "effective_office_name": effective_office_name,
+            "effective_office_code": effective_office_code,
+            "effective_office_type": effective_office_type,
+            "effective_office_distretto": effective_office_distretto,
+            "official_registries": official_registries.to_dict(),
+            "official_riti": official_riti.to_dict(),
+            "pst_official_runtime": official_sync,
             "catalog_versions": {
                 "procedural_kb": PROCEDURAL_KB_VERSION,
                 "office_catalog": OFFICE_CATALOG_VERSION,
@@ -583,7 +701,7 @@ class ValidatorNormativoRedazionale:
                 )
             )
 
-        if fascicolo.tribunale and not resolver.get("office_found"):
+        if fascicolo.tribunale and not resolver.get("effective_office_found"):
             issues.append(
                 ValidationIssue(
                     service=SERVICE_GIURIDICO,
@@ -600,7 +718,7 @@ class ValidatorNormativoRedazionale:
                 )
             )
 
-        office_type = resolver.get("office_type", "")
+        office_type = resolver.get("effective_office_type", "") or resolver.get("office_type", "")
         if office_type and profile.allowed_office_types and office_type not in profile.allowed_office_types:
             issues.append(
                 ValidationIssue(
@@ -618,7 +736,11 @@ class ValidatorNormativoRedazionale:
                 )
             )
 
-        if profile.allowed_registries and registro and registro not in profile.allowed_registries:
+        effective_registries = list(
+            resolver.get("effective_allowed_registries")
+            or profile.allowed_registries
+        )
+        if effective_registries and registro and registro not in effective_registries:
             issues.append(
                 ValidationIssue(
                     service=SERVICE_GIURIDICO,
@@ -627,13 +749,38 @@ class ValidatorNormativoRedazionale:
                     title="Registro non compatibile con il procedimento",
                     detail=(
                         f"Il registro {registro} non rientra tra quelli consentiti per il profilo "
-                        f"'{profile.label}' ({', '.join(profile.allowed_registries)})."
+                        f"'{profile.label}' ({', '.join(effective_registries)})."
                     ),
-                    source="Regola procedurale interna versionata",
+                    source="Resolver procedurale + catalogo PST ufficiale",
                     suggested_action="Seleziona il registro compatibile con rito e grado del deposito.",
                     field="codice_registro",
                 )
             )
+
+        effective_riti = [
+            str(item).strip()
+            for item in (resolver.get("effective_riti") or [])
+            if str(item).strip()
+        ]
+        if effective_riti and profile.rito:
+            rito_atteso = _slug(profile.rito)
+            if rito_atteso and not any(rito_atteso in _slug(item) for item in effective_riti):
+                issues.append(
+                    ValidationIssue(
+                        service=SERVICE_GIURIDICO,
+                        level=LEVEL_WARNING,
+                        code="rito_da_confermare",
+                        title="Rito da confermare sul catalogo PST",
+                        detail=(
+                            f"Il catalogo ufficiale restituisce i riti {', '.join(effective_riti)} "
+                            f"per il registro {registro or resolver.get('requested_registry')}, mentre il profilo usa "
+                            f"'{profile.rito}'."
+                        ),
+                        source="Catalogo servizi PST - getRito",
+                        suggested_action="Conferma il rito applicabile e il registro prima della preparazione finale.",
+                        field="codice_registro",
+                    )
+                )
 
         if profile.required_existing_rg and not (numero_rg and anno_rg):
             issues.append(
@@ -1029,7 +1176,7 @@ class ValidatorSchemiPST:
         if not main_doc:
             return issues
 
-        if not resolver.get("office_found"):
+        if not resolver.get("effective_office_found"):
             issues.append(
                 ValidationIssue(
                     service=SERVICE_TECNICO,
@@ -1058,7 +1205,12 @@ class ValidatorSchemiPST:
                 if doc.get("id") != context.get("atto_principale_id")
             ]
             dati = DatiBusta(
-                codice_ufficio=str(resolver.get("office_code") or fascicolo.tribunale or "SCONOSCIUTO"),
+                codice_ufficio=str(
+                    resolver.get("effective_office_code")
+                    or resolver.get("office_code")
+                    or fascicolo.tribunale
+                    or "SCONOSCIUTO"
+                ),
                 codice_registro=str(context.get("codice_registro") or "RG"),
                 oggetto=str(context.get("oggetto") or fascicolo.titolo or ""),
                 tipo_atto=str(context.get("tipo_atto") or "ATTO_GENERICO"),
@@ -1155,7 +1307,9 @@ class ValidatorSchemiPST:
             )
 
         codice_ufficio_xml = root.findtext(".//p:UfficioGiudiziario/p:CodiceUfficio", namespaces=ns) or ""
-        if str(codice_ufficio_xml).strip() != str(resolver.get("office_code") or "").strip():
+        if str(codice_ufficio_xml).strip() != str(
+            resolver.get("effective_office_code") or resolver.get("office_code") or ""
+        ).strip():
             issues.append(
                 ValidationIssue(
                     service=SERVICE_TECNICO,
@@ -1256,9 +1410,24 @@ class GestioneValidazioniDeposito:
 class OrchestratoreDepositoGuidato:
     """Orchestratore centrale: resolver + validator giuridico + validator tecnico/documentale."""
 
-    def __init__(self, validation_db_path: str, office_cache_path: str = "") -> None:
+    def __init__(
+        self,
+        validation_db_path: str,
+        office_cache_path: str = "",
+        *,
+        pst_wsdl_catalog_zip_path: str = "",
+        pst_official_cache_path: str = "",
+        pst_catalog_endpoint: str = "",
+        pst_timeout: float = 8.0,
+    ) -> None:
         self.kb = ProceduralKnowledgeBase()
-        self.resolver = CompetenceResolver(office_cache_path=office_cache_path)
+        self.resolver = CompetenceResolver(
+            office_cache_path=office_cache_path,
+            pst_wsdl_catalog_zip_path=pst_wsdl_catalog_zip_path,
+            pst_official_cache_path=pst_official_cache_path,
+            pst_catalog_endpoint=pst_catalog_endpoint,
+            pst_timeout=pst_timeout,
+        )
         self.validator_normativo = ValidatorNormativoRedazionale()
         self.validator_tecnico = ValidatorSchemiPST()
         self.validator_documentale = DocumentValidator()
@@ -1286,7 +1455,12 @@ class OrchestratoreDepositoGuidato:
         }
 
         profile = self.kb.resolve_profile(fascicolo, normalized_context["tipo_atto"])
-        resolver = self.resolver.resolve(fascicolo, profile, normalized_context["codice_registro"])
+        resolver = self.resolver.resolve(
+            fascicolo,
+            profile,
+            normalized_context["codice_registro"],
+            context=normalized_context,
+        )
 
         issues: List[ValidationIssue] = []
         issues.extend(

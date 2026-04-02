@@ -112,8 +112,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=43,
             current_support="parziale",
             notes=(
-                "HACS usa bundle/versioning interno e REST pubblico PST per gli uffici, "
-                "ma non interroga ancora direttamente questo metodo SOAP in produzione."
+                "HACS dispone ora di un adapter WSDL/cache per questo metodo; "
+                "la sincronizzazione live si attiva quando e configurato l'endpoint SOAP ufficiale."
             ),
         ),
         PSTOfficialMethod(
@@ -123,8 +123,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=44,
             current_support="parziale",
             notes=(
-                "Il catalogo penale e coperto da bundle e mapping interni; "
-                "manca ancora il binding live al metodo ufficiale."
+                "Il metodo e tracciato dal catalogo WSDL e puo usare cache/endpoint ufficiale; "
+                "resta il fallback interno finche il binding live non e configurato."
             ),
         ),
         PSTOfficialMethod(
@@ -134,8 +134,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=45,
             current_support="parziale",
             notes=(
-                "Il resolver usa registri consentiti per profilo procedurale; "
-                "non sincronizza ancora i registri direttamente dal servizio ministeriale."
+                "Resolver e validator possono ora leggere registri da cache/servizio ufficiale; "
+                "la copertura live dipende dall'endpoint SOAP configurato."
             ),
         ),
         PSTOfficialMethod(
@@ -145,8 +145,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=45,
             current_support="parziale",
             notes=(
-                "Il motore penale usa regole interne versionate; "
-                "non scarica ancora la normativa depositabile dal metodo ufficiale."
+                "Il metodo e supportato dall'adapter ufficiale con cache; "
+                "la normativa live viene letta quando il servizio ministeriale e disponibile."
             ),
         ),
         PSTOfficialMethod(
@@ -156,8 +156,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=46,
             current_support="parziale",
             notes=(
-                "I tipi ufficio sono modellati internamente, ma non ancora "
-                "risolti con il gruppo civile/penale del servizio v1.65."
+                "I tipi ufficio sono ancora modellati internamente come fallback, "
+                "ma l'adapter WSDL puo sincronizzarli dal catalogo ufficiale."
             ),
         ),
         PSTOfficialMethod(
@@ -167,8 +167,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=46,
             current_support="parziale",
             notes=(
-                "Il rito e determinato da profili procedurali/versionati; "
-                "manca ancora la sincronizzazione diretta dal catalogo ministeriale."
+                "Il rito continua ad avere un fallback procedurale interno, "
+                "ma resolver e validator possono leggere i riti dal catalogo ministeriale ufficiale."
             ),
         ),
         PSTOfficialMethod(
@@ -178,8 +178,8 @@ def get_official_methods() -> list[PSTOfficialMethod]:
             page=48,
             current_support="parziale",
             notes=(
-                "Il namespace ufficiale vigente e tracciato nel catalogo, "
-                "ma il modulo ReGIndE locale non usa ancora un adapter SOAP esplicito."
+                "Il namespace ufficiale vigente e tracciato nel catalogo "
+                "e il software usa ora un adapter SOAP configurabile per il catalogo PST."
             ),
         ),
         PSTOfficialMethod(

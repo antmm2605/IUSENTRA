@@ -155,8 +155,9 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Controlli redazionali" in html
     assert "Correzioni da effettuare" in html
     assert "Manca la data della prima comparizione" in html
-    assert "Completa dati fascicolo" in html
-    assert "Aggiungi documenti" in html
+    assert "Imposta prima udienza" in html
+    assert "Inserisci data notifica" in html
+    assert "Carica procura" in html
     assert "Apri redattore guidato" in html
 
 
@@ -216,3 +217,40 @@ def test_dettaglio_fascicolo_separa_istanze_e_scadenze(tmp_path):
     html = response.get_data(as_text=True)
     assert "Deposita memoria 171-ter" in html
     assert "istanza_fissazione_udienza.pdf" in html
+
+
+def test_responsabile_conformita_non_blocca_data_notifica_se_strutturata(tmp_path):
+    clienti = GestioneClienti(db_path=str(tmp_path / "clienti.json"))
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Mario",
+        cognome="Rossi",
+        codice_fiscale="RSSMRA80A01H501Z",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = fascicoli.nuovo(
+        titolo="Atto di citazione Rossi c. Alfa",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        controparte="Alfa S.r.l.",
+        id_cliente=cliente.id,
+        data_notifica_citazione="2026-04-03",
+    )
+
+    preventivo = SimpleNamespace(id="prev-1", id_pratica="atto_citazione", oggetto="Atto di citazione")
+    summary = build_fascicolo_compliance_summary(
+        fascicolo=fasc,
+        cliente=cliente,
+        preventivo=preventivo,
+        conferimento=None,
+        config={"STUDIO_AVVOCATO": "Avv. Mario Rossi"},
+        utente=SimpleNamespace(username="avv.rossi", nome_completo="Avv. Mario Rossi"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+        parti=[],
+    )
+
+    assert all(issue.get("code") != "citazione_data_notifica_non_strutturata" for issue in summary["blocking_issues"])

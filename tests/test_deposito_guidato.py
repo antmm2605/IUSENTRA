@@ -111,6 +111,9 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
     assert any(issue["code"] == "procura_mancante" for issue in run.issues)
     assert run.snapshot["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
     assert run.resolver["pst_official_catalog"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
+    assert "pst_official_runtime" in run.resolver
+    assert "getRegistriFromUfficio" in run.resolver["pst_official_runtime"]["methods"] or run.resolver["pst_official_runtime"]["methods"] == {}
+    assert "effective_allowed_registries" in run.resolver
     assert run.snapshot["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
     assert run.snapshot["pst_busta_audit"]["formal_checks"]["T003"]["status"] == "ok"
 

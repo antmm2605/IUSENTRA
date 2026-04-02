@@ -348,6 +348,7 @@ class Fascicolo:
     data_apertura: str = field(default_factory=lambda: date.today().isoformat())
     data_chiusura: str = ""
     data_prima_udienza: str = ""
+    data_notifica_citazione: str = ""
     data_prossima_udienza: str = ""
 
     # --- Contenuto

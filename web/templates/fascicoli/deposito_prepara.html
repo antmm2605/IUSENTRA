@@ -27,6 +27,7 @@
 {% endblock %}
 
 {% block content %}
+{% set correction = correction_context or {} %}
 
 {# ── Header ─────────────────────────────────────────────────────────── #}
 <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
@@ -42,6 +43,18 @@
   <span class="text-muted small"><i class="bi bi-building me-1"></i>{{ fascicolo.tribunale }}</span>
   {% endif %}
 </div>
+
+{% if correction.active %}
+<div class="alert alert-primary border-0 shadow-sm mb-4" style="border-radius:16px;">
+  <div class="d-flex align-items-start gap-3">
+    <span class="badge text-bg-primary mt-1">Correzione</span>
+    <div>
+      <div class="fw-semibold">{{ correction.title }}</div>
+      <div class="small text-muted">{{ correction.help }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <div class="row g-4">
 
@@ -1480,6 +1493,8 @@ function avviaGeneraBusta() {
   _eseguiGeneraBusta();
 }
 
+const correctionContext = {{ correction|tojson }};
+
 ['fTipoAtto', 'fRegistro', 'fNumRG', 'fAnnoRG'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', () => _scheduleValidation(40));
 });
@@ -1488,6 +1503,23 @@ function avviaGeneraBusta() {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (correctionContext && correctionContext.active) {
+    const tipo = correctionContext.prefill_tipo_atto || '';
+    const registro = correctionContext.prefill_registro || '';
+    const oggetto = correctionContext.prefill_oggetto || '';
+    const tipoSelect = document.getElementById('fTipoAtto');
+    const registroSelect = document.getElementById('fRegistro');
+    const oggettoInput = document.getElementById('fOggetto');
+    if (tipo && tipoSelect && Array.from(tipoSelect.options).some(opt => opt.value === tipo)) {
+      tipoSelect.value = tipo;
+    }
+    if (registro && registroSelect && Array.from(registroSelect.options).some(opt => opt.value === registro)) {
+      registroSelect.value = registro;
+    }
+    if (oggetto && oggettoInput && !oggettoInput.value) {
+      oggettoInput.value = oggetto;
+    }
+  }
   _renderValidationIdle();
   _scheduleValidation(50);
 });

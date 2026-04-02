@@ -255,3 +255,61 @@ def test_compila_template_post_usa_id_fascicolo_del_form_anche_se_query_vuota(tm
     assert "Bozza professionale" in html
     assert "Campo redazionale obbligatorio: case_id" not in html
     assert "Pratica Collegata obbligatorio." not in html
+
+
+def test_compilatore_mostra_correzione_guidata_e_campi_evidenziati(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Elisa",
+        cognome="Bianchi",
+        codice_fiscale="BNCLSE80A41H501Q",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = fascicoli.nuovo(
+        titolo="Causa civile demo",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        controparte="Beta S.r.l.",
+        id_cliente=cliente.id,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            f"/template-atti/compila/CIV_CIT_001?model_code=CIV_CIT_001&id_cliente={cliente.id}"
+            f"&id_fascicolo={fasc.id}&intent=datiatto_xml&focus_field=recipient_or_court"
+            "&highlight_fields=case_id,recipient_or_court,subject"
+            "&correction_title=Completa%20DatiAtto.xml"
+            "&correction_help=Apri%20il%20wizard%20sul%20blocco%20strutturato",
+        )
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Completa DatiAtto.xml" in html
+    assert "Apri il wizard sul blocco strutturato" in html
+    assert 'id="field-recipient_or_court"' in html
+    assert 'data-field-name="recipient_or_court"' in html
+    assert "correction-field-target" in html

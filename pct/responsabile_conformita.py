@@ -256,24 +256,25 @@ def _citation_specific_issues(
             )
         )
 
-    issues.append(
-        _manual_issue(
-            service=SERVICE_GIURIDICO,
-            level=LEVEL_BLOCK,
-            code="citazione_data_notifica_non_strutturata",
-            title="Data di notificazione della citazione non ancora strutturata",
-            detail=(
-                "Il fascicolo non espone ancora in modo strutturato la data di notificazione "
-                "della citazione, dato minimo richiesto per una verifica completa della nota di iscrizione a ruolo."
-            ),
-            source=source,
-            suggested_action=(
-                "Aggiungi nel fascicolo o nel wizard un campo strutturato per la data di notificazione "
-                "della citazione e collegalo ai controlli di iscrizione a ruolo."
-            ),
-            field="data_notifica_citazione",
+    if not str(getattr(fascicolo, "data_notifica_citazione", "") or "").strip():
+        issues.append(
+            _manual_issue(
+                service=SERVICE_GIURIDICO,
+                level=LEVEL_BLOCK,
+                code="citazione_data_notifica_non_strutturata",
+                title="Data di notificazione della citazione non ancora strutturata",
+                detail=(
+                    "Il fascicolo non espone ancora in modo strutturato la data di notificazione "
+                    "della citazione, dato minimo richiesto per una verifica completa della nota di iscrizione a ruolo."
+                ),
+                source=source,
+                suggested_action=(
+                    "Aggiungi nel fascicolo o nel wizard un campo strutturato per la data di notificazione "
+                    "della citazione e collegalo ai controlli di iscrizione a ruolo."
+                ),
+                field="data_notifica_citazione",
+            )
         )
-    )
 
     if not cliente:
         issues.append(

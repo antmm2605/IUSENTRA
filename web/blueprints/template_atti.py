@@ -43,6 +43,10 @@ def _get_assistente_redazionale():
     return AssistenteRedazionale(
         audit_db_path=current_app.config.get("REDACTION_ASSISTANT_DB", "./intelligence/assistente_redazionale.json"),
         office_cache_path=current_app.config.get("UFFICI_GIUDIZIARI_DB", "") or current_app.config.get("REGINDE_DB", ""),
+        pst_wsdl_catalog_zip_path=current_app.config.get("PST_WSDL_CATALOG_ZIP", ""),
+        pst_official_cache_path=current_app.config.get("PST_OFFICIAL_CACHE", ""),
+        pst_catalog_endpoint=current_app.config.get("PST_SOAP_CATALOGO_UG_ENDPOINT", ""),
+        pst_timeout=float(current_app.config.get("PST_SOAP_TIMEOUT", 8.0) or 8.0),
     )
 
 
@@ -83,9 +87,32 @@ def _valore_form(value):
     return value or ""
 
 
+def _split_csv(value: str) -> list[str]:
+    return [item.strip() for item in str(value or "").split(",") if item.strip()]
+
+
+def _build_correction_context() -> dict:
+    intent = (request.args.get("intent", "") or "").strip()
+    focus_field = (request.args.get("focus_field", "") or "").strip()
+    highlight_fields = _split_csv(request.args.get("highlight_fields", ""))
+    title = (request.args.get("correction_title", "") or "").strip()
+    help_text = (request.args.get("correction_help", "") or "").strip()
+    if not any([intent, focus_field, highlight_fields, title, help_text]):
+        return {}
+    return {
+        "active": True,
+        "intent": intent,
+        "focus_field": focus_field,
+        "highlight_fields": highlight_fields,
+        "title": title or "Correzione guidata",
+        "help": help_text or "Completa i campi evidenziati per superare il controllo di conformita'.",
+    }
+
+
 def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=None,
                           selected_fascicolo=None, errors: dict | None = None,
-                          assistant_analysis: dict | None = None):
+                          assistant_analysis: dict | None = None,
+                          correction_context: dict | None = None):
     from pct.compilatore_atti import (
         opzioni_campo,
         wizard_schema_modello,
@@ -128,6 +155,7 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
         "renderer_name": schema["renderer"],
         "prefill_map": schema["prefill_map"],
         "assistant_analysis": assistant_analysis or {},
+        "correction_context": correction_context or {},
     }
 
 
@@ -191,6 +219,7 @@ def _resolve_compiler_context(model_code: str):
         "selected_fascicolo": selected_fascicolo,
         "initial_payload": initial_payload,
         "payload": payload,
+        "correction_context": _build_correction_context(),
     }
 
 
@@ -383,6 +412,7 @@ def compila(model_code: str):
     selected_fascicolo = resolved["selected_fascicolo"]
     initial_payload = resolved["initial_payload"]
     payload = resolved["payload"]
+    correction_context = resolved["correction_context"]
     assistant_analysis = _build_assistant_analysis(
         model_code,
         payload=payload,
@@ -402,6 +432,7 @@ def compila(model_code: str):
                 selected_fascicolo=selected_fascicolo,
                 errors=errors,
                 assistant_analysis=assistant_analysis,
+                correction_context=correction_context,
             )
             return render_template(
                 "template_atti/compilatore.html",
@@ -419,6 +450,7 @@ def compila(model_code: str):
                 selected_cliente=selected_cliente,
                 selected_fascicolo=selected_fascicolo,
                 assistant_analysis=assistant_analysis,
+                correction_context=correction_context,
             )
             return render_template("template_atti/compilatore.html", **ctx)
 
@@ -429,6 +461,7 @@ def compila(model_code: str):
             selected_cliente=selected_cliente,
             selected_fascicolo=selected_fascicolo,
             assistant_analysis=assistant_analysis,
+            correction_context=correction_context,
         )
         return render_template(
             "template_atti/anteprima_compilatore.html",
@@ -445,6 +478,7 @@ def compila(model_code: str):
             sections=ctx["sections"],
             renderer_name=ctx["renderer_name"],
             assistant_analysis=assistant_analysis,
+            correction_context=correction_context,
         )
 
     return render_template(
@@ -455,6 +489,7 @@ def compila(model_code: str):
             selected_cliente=selected_cliente,
             selected_fascicolo=selected_fascicolo,
             assistant_analysis=assistant_analysis,
+            correction_context=correction_context,
         ),
     )
 

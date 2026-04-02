@@ -4,6 +4,7 @@
 {% block page_title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
 
 {% block content %}
+{% set correction_highlight = correction_context.highlight if correction_context else '' %}
 
 <div class="ds-ph">
   <div class="ds-ph-icon">
@@ -25,6 +26,18 @@
     {% endif %}
   </div>
 </div>
+
+{% if correction_context and correction_context.active %}
+<div class="alert alert-primary border-0 shadow-sm mb-4" style="border-radius:16px;">
+  <div class="d-flex align-items-start gap-3">
+    <span class="badge text-bg-primary mt-1">Correzione</span>
+    <div>
+      <div class="fw-semibold">{{ correction_context.title }}</div>
+      <div class="small text-muted">{{ correction_context.help }}</div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <div class="row g-4">
   <div class="col-lg-8">
@@ -78,7 +91,7 @@
           <div class="row g-3">
             <div class="col-md-8">
               <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
-              <input type="text" name="titolo" class="form-control" required
+              <input type="text" id="field-titolo" name="titolo" class="form-control {% if correction_highlight == 'titolo' %}border-primary shadow-sm{% endif %}" required
                      value="{{ fascicolo.titolo if fascicolo else (workflow_prefill.titolo if workflow_prefill else '') }}"
                      placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale">
             </div>
@@ -94,7 +107,7 @@
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Oggetto / Descrizione</label>
-              <textarea name="oggetto" class="form-control" rows="2"
+              <textarea id="field-oggetto" name="oggetto" class="form-control {% if correction_highlight == 'oggetto' %}border-primary shadow-sm{% endif %}" rows="2"
                         placeholder="Breve descrizione della causa...">{{ fascicolo.oggetto if fascicolo else (workflow_prefill.oggetto if workflow_prefill else '') }}</textarea>
             </div>
           </div>
@@ -155,41 +168,53 @@
           <div class="row g-3">
             <div class="col-md-5">
               <label class="form-label fw-semibold">Tribunale</label>
-              {{ ufficio_picker("tribunale",
-                  current_value = fascicolo.tribunale if fascicolo else "",
-                  usa_nome = true,
-                  label = "Tribunale",
-                  uid = "uffp-fascicolo-tribunale") }}
+              <div class="{% if correction_highlight == 'tribunale' %}border border-primary rounded-3 p-2 shadow-sm{% endif %}">
+                {{ ufficio_picker("tribunale",
+                    current_value = fascicolo.tribunale if fascicolo else "",
+                    usa_nome = true,
+                    label = "Tribunale",
+                    uid = "uffp-fascicolo-tribunale") }}
+              </div>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-semibold">Numero RG</label>
-              <input type="text" name="numero_rg" class="form-control font-monospace"
+              <input type="text" id="field-numero_rg" name="numero_rg" class="form-control font-monospace {% if correction_highlight == 'numero_rg' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.numero_rg if fascicolo else '' }}"
                      placeholder="1234">
             </div>
             <div class="col-md-2">
               <label class="form-label fw-semibold">Anno RG</label>
-              <input type="number" name="anno_rg" class="form-control"
+              <input type="number" id="field-anno_rg" name="anno_rg" class="form-control {% if correction_highlight == 'anno_rg' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.anno_rg if fascicolo and fascicolo.anno_rg else oggi.year }}"
                      min="2000" max="2099">
             </div>
             <div class="col-md-2">
               <label class="form-label fw-semibold">Sezione</label>
-              <input type="text" name="sezione" class="form-control"
+              <input type="text" id="field-sezione" name="sezione" class="form-control {% if correction_highlight == 'sezione' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.sezione if fascicolo else '' }}"
                      placeholder="I, II">
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Giudice</label>
-              <input type="text" name="giudice" class="form-control"
+              <input type="text" id="field-giudice" name="giudice" class="form-control {% if correction_highlight == 'giudice' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.giudice if fascicolo else '' }}"
                      placeholder="Dott. ...">
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Valore causa (EUR)</label>
-              <input type="number" name="valore_causa" class="form-control" step="0.01" min="0"
+              <input type="number" id="field-valore_causa" name="valore_causa" class="form-control {% if correction_highlight == 'valore_causa' %}border-primary shadow-sm{% endif %}" step="0.01" min="0"
                      value="{{ fascicolo.valore_causa if fascicolo else (workflow_prefill.valore_causa if workflow_prefill and workflow_prefill.valore_causa else '') }}"
                      placeholder="0.00">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Data prima udienza / comparizione</label>
+              <input type="date" id="field-data_prima_udienza" name="data_prima_udienza" class="form-control {% if correction_highlight == 'data_prima_udienza' %}border-primary shadow-sm{% endif %}"
+                     value="{{ fascicolo.data_prima_udienza if fascicolo else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Data notificazione citazione</label>
+              <input type="date" id="field-data_notifica_citazione" name="data_notifica_citazione" class="form-control {% if correction_highlight == 'data_notifica_citazione' %}border-primary shadow-sm{% endif %}"
+                     value="{{ fascicolo.data_notifica_citazione if fascicolo else '' }}">
             </div>
           </div>
         </div>
@@ -203,7 +228,7 @@
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Avvocato referente</label>
-              <input type="text" name="avvocato_referente" class="form-control"
+              <input type="text" id="field-avvocato_referente" name="avvocato_referente" class="form-control {% if correction_highlight == 'avvocato_referente' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.avvocato_referente if fascicolo else (workflow_prefill.avvocato_referente if workflow_prefill else '') }}"
                      placeholder="Avv. Mario Rossi">
             </div>
@@ -215,7 +240,7 @@
             </div>
             <div class="col-12">
               <label class="form-label fw-semibold">Note</label>
-              <textarea name="note" class="form-control" rows="3">{{ fascicolo.note if fascicolo else (workflow_prefill.note if workflow_prefill else '') }}</textarea>
+              <textarea id="field-note" name="note" class="form-control {% if correction_highlight == 'note' %}border-primary shadow-sm{% endif %}" rows="3">{{ fascicolo.note if fascicolo else (workflow_prefill.note if workflow_prefill else '') }}</textarea>
             </div>
           </div>
         </div>
@@ -260,6 +285,20 @@
     </div>
   </div>
 </div>
+
+{% if correction_context and correction_context.active and correction_highlight %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const target = document.getElementById('field-{{ correction_highlight }}');
+    if (target) {
+      setTimeout(function () {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.focus();
+      }, 180);
+    }
+  });
+</script>
+{% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

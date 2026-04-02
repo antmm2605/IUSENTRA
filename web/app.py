@@ -16,7 +16,8 @@ import threading
 import zipfile as _zipfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
+from urllib.parse import urlencode
 
 from flask import (
     Flask,
@@ -383,6 +384,31 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "assistente_redazionale.json"),
         ),
     )
+    app.config["UFFICI_GIUDIZIARI_DB"] = cfg.get(
+        "UFFICI_GIUDIZIARI_DB",
+        os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
+    )
+    app.config["PST_WSDL_CATALOG_ZIP"] = cfg.get(
+        "PST_WSDL_CATALOG_ZIP",
+        os.getenv(
+            "PCT_PST_WSDL_CATALOG_ZIP",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "A1_WSDL_CATALOG_v1.52b.zip"),
+        ),
+    )
+    app.config["PST_OFFICIAL_CACHE"] = cfg.get(
+        "PST_OFFICIAL_CACHE",
+        os.getenv(
+            "PCT_PST_OFFICIAL_CACHE",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "pst_catalogo_ufficiale.json"),
+        ),
+    )
+    app.config["PST_SOAP_CATALOGO_UG_ENDPOINT"] = cfg.get(
+        "PST_SOAP_CATALOGO_UG_ENDPOINT",
+        os.getenv("PCT_PST_SOAP_CATALOGO_UG_ENDPOINT", ""),
+    )
+    app.config["PST_SOAP_TIMEOUT"] = float(
+        cfg.get("PST_SOAP_TIMEOUT", os.getenv("PCT_PST_SOAP_TIMEOUT", "8")) or 8
+    )
     # Scheduler
     app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
     app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")
@@ -519,7 +545,11 @@ def create_app(config: dict | None = None) -> Flask:
 
             g._deposito_guidato = OrchestratoreDepositoGuidato(
                 validation_db_path=_cfg_data_path("VALIDATION_RUNS_DB"),
-                office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
+                office_cache_path=app.config.get("UFFICI_GIUDIZIARI_DB", ""),
+                pst_wsdl_catalog_zip_path=app.config.get("PST_WSDL_CATALOG_ZIP", ""),
+                pst_official_cache_path=app.config.get("PST_OFFICIAL_CACHE", ""),
+                pst_catalog_endpoint=app.config.get("PST_SOAP_CATALOGO_UG_ENDPOINT", ""),
+                pst_timeout=float(app.config.get("PST_SOAP_TIMEOUT", 8.0) or 8.0),
             )
         return g._deposito_guidato
 
@@ -737,14 +767,75 @@ def create_app(config: dict | None = None) -> Flask:
             "istanze_depositi": istanze_depositi,
         }
 
-    def _fascicolo_focus_url(id_fasc: str, *, focus: str = "", open_modal: str = "") -> str:
-        params: dict[str, str] = {}
+    def _url_with_query(base_url: str, **params) -> str:
+        clean = {
+            key: value
+            for key, value in params.items()
+            if value not in (None, "", [], ())
+        }
+        if not clean:
+            return base_url
+        joiner = "&" if "?" in base_url else "?"
+        return f"{base_url}{joiner}{urlencode(clean, doseq=True)}"
+
+    def _fascicolo_focus_url(id_fasc: str, *, focus: str = "", open_modal: str = "", **extra_params) -> str:
+        base = url_for("dettaglio_fascicolo", id_fasc=id_fasc)
+        params: dict[str, Any] = dict(extra_params)
         if focus:
             params["focus"] = focus
         if open_modal:
             params["open_modal"] = open_modal
-        base = url_for("dettaglio_fascicolo", id_fasc=id_fasc, **params)
-        return f"{base}#sezione-{focus}" if focus else base
+        full = _url_with_query(base, **params)
+        return f"{full}#sezione-{focus}" if focus else full
+
+    def _compiler_correction_url(
+        id_fasc: str,
+        *,
+        model_code: str,
+        cliente_id: str = "",
+        correction_title: str = "",
+        correction_help: str = "",
+        **query,
+    ) -> str:
+        if not model_code:
+            return ""
+        base = url_for(
+            "template_atti.compila",
+            model_code=model_code,
+            id_cliente=cliente_id,
+            id_fascicolo=id_fasc,
+        )
+        return _url_with_query(
+            base,
+            correction_title=correction_title,
+            correction_help=correction_help,
+            **query,
+        )
+
+    def _deposito_correction_url(id_fasc: str, **query) -> str:
+        return _url_with_query(url_for("deposito_prepara", id_fasc=id_fasc), **query)
+
+    def _fascicolo_edit_url(id_fasc: str, **query) -> str:
+        return _url_with_query(url_for("modifica_fascicolo", id_fasc=id_fasc), **query)
+
+    def _prefill_tipo_atto_from_summary(summary: Optional[dict]) -> str:
+        summary = summary or {}
+        practice_id = str(summary.get("practice_id") or "").strip().lower()
+        model_code = str(summary.get("model_code") or "").strip().upper()
+        haystack = f"{practice_id} {model_code}"
+        if "cit" in haystack:
+            return "ATTO_DI_CITAZIONE"
+        if "comparsa" in haystack or "com_" in haystack:
+            return "COMPARSA_RISPOSTA"
+        if "cass" in haystack:
+            return "RICORSO_CASSAZIONE"
+        if "appello" in haystack:
+            return "APPELLO"
+        if "decreto" in haystack or "ingiunt" in haystack:
+            return "DECRETO_INGIUNTIVO"
+        if "ricorso" in haystack:
+            return "RICORSO"
+        return "ATTO_GENERICO"
 
     def _responsabile_issue_action_meta(
         id_fasc: str,
@@ -756,71 +847,174 @@ def create_app(config: dict | None = None) -> Flask:
         summary = summary or {}
         model_code = str(summary.get("model_code") or "").strip()
         cliente_id = str(getattr(cliente, "id", "") or "").strip()
-        compile_url = (
-            url_for(
-                "template_atti.compila",
-                model_code=model_code,
-                id_cliente=cliente_id,
-                id_fascicolo=id_fasc,
-            )
-            if model_code
-            else ""
-        )
-        edit_url = url_for("modifica_fascicolo", id_fasc=id_fasc)
-        deposit_url = url_for("deposito_prepara", id_fasc=id_fasc)
-        parti_url = _fascicolo_focus_url(id_fasc, focus="parti", open_modal="parte")
-        documenti_url = _fascicolo_focus_url(id_fasc, focus="documenti", open_modal="documento")
+        registry_suggestion = str(summary.get("registry_suggestion") or "").strip().upper()
 
+        code = str(issue.get("code") or "").strip().lower()
+        field = str(issue.get("field") or "").strip().lower()
         service = str(issue.get("service") or "").upper()
         tokens = " ".join(
             filter(
                 None,
                 [
-                    str(issue.get("code") or "").lower(),
-                    str(issue.get("field") or "").lower(),
+                    code,
+                    field,
                     str(issue.get("title") or "").lower(),
                     str(issue.get("detail") or "").lower(),
                 ],
             )
         )
 
-        if service == "DOCUMENTALE" or any(
-            token in tokens
-            for token in ("procura", "notifica", "relata", "contributo", "allegat", "sentenza", "indice", "ricevut")
+        if code == "citazione_udienza_mancante" or field == "data_prima_udienza":
+            return {
+                "action_url": _fascicolo_edit_url(
+                    id_fasc,
+                    intent="prima_udienza",
+                    highlight="data_prima_udienza",
+                    correction_title="Imposta prima udienza",
+                    correction_help="Per l'atto di citazione serve una data di prima comparizione strutturata nel fascicolo.",
+                ),
+                "action_label": "Imposta prima udienza",
+            }
+
+        if code == "citazione_data_notifica_non_strutturata" or field == "data_notifica_citazione":
+            return {
+                "action_url": _fascicolo_edit_url(
+                    id_fasc,
+                    intent="data_notifica_citazione",
+                    highlight="data_notifica_citazione",
+                    correction_title="Inserisci data notifica",
+                    correction_help="La data di notificazione della citazione deve essere salvata in modo strutturato per i controlli successivi.",
+                ),
+                "action_label": "Inserisci data notifica",
+            }
+
+        if code in {"citazione_procura_mancante", "doc_procura_missing"} or "procura" in tokens:
+            return {
+                "action_url": _fascicolo_focus_url(
+                    id_fasc,
+                    focus="documenti",
+                    open_modal="documento",
+                    doc_kind="PROCURA",
+                    correction_title="Carica procura alle liti",
+                    correction_help="Il controllo ha rilevato l'assenza della procura. Apri il modal già posizionato sul tipo documento corretto.",
+                ),
+                "action_label": "Carica procura",
+            }
+
+        if code in {"citazione_relata_notifica_mancante", "doc_notifica_missing"} or any(
+            token in tokens for token in ("notifica", "relata")
         ):
-            return {"action_url": documenti_url, "action_label": "Aggiungi documenti"}
-        if any(
-            token in tokens
-            for token in ("attore", "assistito", "controparte", "difensore", "cliente", "cf_", "pec_difensore", "parti")
+            return {
+                "action_url": _fascicolo_focus_url(
+                    id_fasc,
+                    focus="documenti",
+                    open_modal="documento",
+                    doc_kind="NOTIFICA",
+                    correction_title="Carica relata o prova di notifica",
+                    correction_help="Per superare il blocco documentale serve una relata o prova notificatoria coerente con l'atto introduttivo.",
+                ),
+                "action_label": "Carica relata / notifica",
+            }
+
+        if code in {"citazione_contributo_non_rilevato", "doc_contributo_missing"} or "contributo" in tokens:
+            return {
+                "action_url": _fascicolo_focus_url(
+                    id_fasc,
+                    focus="documenti",
+                    open_modal="documento",
+                    doc_kind="ALLEGATO",
+                    doc_hint="contributo",
+                    correction_title="Carica ricevuta contributo unificato",
+                    correction_help="Il fascicolo non mostra ancora la ricevuta del contributo o dei diritti quando dovuti.",
+                ),
+                "action_label": "Carica contributo",
+            }
+
+        if code in {"citazione_cliente_mancante", "redazione_assistito_non_strutturato"} or any(
+            token in tokens for token in ("assistito", "cliente", "attore")
         ):
-            return {"action_url": parti_url, "action_label": "Completa parti e soggetti"}
-        if service == "TECNICO_PST" or any(
-            token in tokens for token in ("schema", "xml", "datiatto", "channel", "codice", "preview")
-        ):
-            return {"action_url": deposit_url, "action_label": "Apri pre-deposito"}
-        if any(
-            token in tokens
-            for token in (
-                "udienza",
-                "tribunale",
-                "registro",
-                "ufficio",
-                "competenza",
-                "valore",
-                "oggetto",
-                "sezione",
-                "numero_rg",
-                "anno_rg",
-                "giudice",
-            )
-        ):
-            return {"action_url": edit_url, "action_label": "Completa dati fascicolo"}
+            return {
+                "action_url": _fascicolo_focus_url(
+                    id_fasc,
+                    focus="parti",
+                    open_modal="parte",
+                    role_hint="ASSISTITO",
+                    correction_title="Aggiungi assistito",
+                    correction_help="La conformità richiede almeno l'assistito strutturato nella sezione Parti del procedimento.",
+                ),
+                "action_label": "Aggiungi assistito",
+            }
+
+        if code in {"citazione_cf_controparte_non_rilevato", "redazione_controparte_non_strutturata"} or "controparte" in tokens:
+            return {
+                "action_url": _fascicolo_focus_url(
+                    id_fasc,
+                    focus="parti",
+                    open_modal="parte",
+                    role_hint="CONTROPARTE",
+                    correction_title="Aggiungi controparte",
+                    correction_help="La controparte va strutturata nella pratica prima della redazione o del deposito.",
+                ),
+                "action_label": "Aggiungi controparte",
+            }
+
+        if field in {"tribunale", "numero_rg", "anno_rg", "sezione", "giudice", "valore_causa", "oggetto", "avvocato_referente"}:
+            return {
+                "action_url": _fascicolo_edit_url(
+                    id_fasc,
+                    intent=field,
+                    highlight=field,
+                    correction_title="Completa dati fascicolo",
+                    correction_help="Apri la scheda del fascicolo direttamente sul campo che il controllo ha segnalato.",
+                ),
+                "action_label": "Completa dati fascicolo",
+            }
+
+        if service == "TECNICO_PST" or any(token in tokens for token in ("schema", "xml", "datiatto", "registro", "rito", "preview")):
+            return {
+                "action_url": _deposito_correction_url(
+                    id_fasc,
+                    intent="registro",
+                    correction_title="Configura pre-deposito",
+                    correction_help="Il wizard pre-deposito si apre già con i dati tecnici da confermare o correggere.",
+                    prefill_tipo_atto=_prefill_tipo_atto_from_summary(summary),
+                    prefill_registro=registry_suggestion,
+                ),
+                "action_label": "Apri pre-deposito",
+            }
+
         if service == "REDAZIONALE" or any(
-            token in tokens for token in ("redazione", "fatti", "facts", "requests", "conclusioni", "richieste")
+            token in tokens for token in ("redazione", "fatti", "facts", "requests", "conclusioni", "richieste", "datiatto")
         ):
+            focus_field = "facts"
+            highlight_fields = ["facts"]
+            if any(token in tokens for token in ("conclusioni", "richieste", "requests")):
+                focus_field = "requests_or_conclusions"
+                highlight_fields = ["requests_or_conclusions"]
+            elif any(token in tokens for token in ("datiatto", "xml", "schema")):
+                focus_field = "recipient_or_court"
+                highlight_fields = ["case_id", "recipient_or_court", "subject"]
+            compile_url = _compiler_correction_url(
+                id_fasc,
+                model_code=model_code,
+                cliente_id=cliente_id,
+                intent="redazione",
+                focus_field=focus_field,
+                highlight_fields=",".join(highlight_fields),
+                correction_title="Completa il blocco redazionale",
+                correction_help="Il redattore guidato si apre sul blocco da completare o correggere.",
+            )
             if compile_url:
                 return {"action_url": compile_url, "action_label": "Apri redattore guidato"}
-        return {"action_url": edit_url, "action_label": "Verifica il fascicolo"}
+
+        return {
+            "action_url": _fascicolo_edit_url(
+                id_fasc,
+                correction_title="Verifica il fascicolo",
+                correction_help="Controlla e completa i dati generali del fascicolo prima di procedere.",
+            ),
+            "action_label": "Verifica il fascicolo",
+        }
 
     def _arricchisci_responsabile_conformita(
         summary: Optional[dict],
@@ -861,19 +1055,70 @@ def create_app(config: dict | None = None) -> Flask:
 
         gates = dict(summary.get("action_gates") or {})
         if gates.get("generate_final_act") and compile_url:
-            gates["generate_final_act"]["url"] = compile_url
+            gates["generate_final_act"]["url"] = _compiler_correction_url(
+                fascicolo.id,
+                model_code=model_code,
+                cliente_id=cliente_id,
+                intent="redazione_finale",
+                focus_field="subject",
+                highlight_fields="subject,requests_or_conclusions",
+                correction_title="Completa la bozza finale",
+                correction_help="Risolvi i blocchi redazionali e strutturali prima della generazione definitiva.",
+            )
             gates["generate_final_act"]["url_label"] = "Apri redattore guidato"
         if gates.get("generate_xml") and compile_url:
-            gates["generate_xml"]["url"] = compile_url
-            gates["generate_xml"]["url_label"] = "Completa dati strutturati"
+            gates["generate_xml"]["url"] = _compiler_correction_url(
+                fascicolo.id,
+                model_code=model_code,
+                cliente_id=cliente_id,
+                intent="datiatto_xml",
+                focus_field="recipient_or_court",
+                highlight_fields="case_id,recipient_or_court,subject",
+                correction_title="Completa DatiAtto.xml",
+                correction_help="Il redattore si apre già sui campi strutturati minimi utili alla generazione XML.",
+            )
+            gates["generate_xml"]["url_label"] = "Completa DatiAtto.xml"
         if gates.get("prepare_deposit"):
-            gates["prepare_deposit"]["url"] = deposit_url
+            gates["prepare_deposit"]["url"] = _deposito_correction_url(
+                fascicolo.id,
+                correction_title="Configura il pre-deposito",
+                correction_help="Conferma registro, ufficio, dati atto e documenti prima della preparazione della busta.",
+            )
             gates["prepare_deposit"]["url_label"] = "Apri pre-deposito"
         if gates.get("close_review"):
             gates["close_review"]["url"] = f"{detail_url}#accConformitaFascicolo"
             gates["close_review"]["url_label"] = "Rivedi controlli"
         summary["action_gates"] = gates
         return summary
+
+    def _fascicolo_form_correction_context() -> dict:
+        intent = (request.args.get("intent", "") or "").strip()
+        highlight = (request.args.get("highlight", "") or "").strip()
+        title = (request.args.get("correction_title", "") or "").strip()
+        help_text = (request.args.get("correction_help", "") or "").strip()
+        if not any([intent, highlight, title, help_text]):
+            return {}
+        return {
+            "active": True,
+            "intent": intent,
+            "highlight": highlight,
+            "title": title or "Correzione guidata del fascicolo",
+            "help": help_text or "Completa il campo evidenziato per superare il controllo di conformita'.",
+        }
+
+    def _deposito_correction_context(fascicolo: Fascicolo) -> dict:
+        correction_title = (request.args.get("correction_title", "") or "").strip()
+        correction_help = (request.args.get("correction_help", "") or "").strip()
+        prefill_tipo_atto = (request.args.get("prefill_tipo_atto", "") or "").strip()
+        prefill_registro = (request.args.get("prefill_registro", "") or "").strip().upper()
+        return {
+            "active": any([correction_title, correction_help, prefill_tipo_atto, prefill_registro]),
+            "title": correction_title or "Pre-deposito guidato",
+            "help": correction_help or "Verifica dati atto, registro, ufficio e allegati prima della generazione della busta.",
+            "prefill_tipo_atto": prefill_tipo_atto,
+            "prefill_registro": prefill_registro,
+            "prefill_oggetto": str(getattr(fascicolo, "oggetto", "") or fascicolo.titolo or "").strip(),
+        }
 
     def _tipo_documento_da_nome_portale(nome_file: str) -> TipoDocumento:
         nome = Path(nome_file).name.lower()
@@ -5955,6 +6200,8 @@ read -r -p "Premi Invio per chiudere..." _
                     anno_rg=int(f.get("anno_rg") or 0),
                     giudice=f.get("giudice", ""),
                     sezione=f.get("sezione", ""),
+                    data_prima_udienza=f.get("data_prima_udienza", ""),
+                    data_notifica_citazione=f.get("data_notifica_citazione", ""),
                     avvocato_referente=f.get("avvocato_referente", ""),
                     avvocato_dominus=f.get("avvocato_dominus", ""),
                     oggetto=f.get("oggetto", ""),
@@ -6026,6 +6273,7 @@ read -r -p "Premi Invio per chiudere..." _
             source_preventivo=source_preventivo,
             source_conferimento=source_conferimento,
             from_page=from_page,
+            correction_context=_fascicolo_form_correction_context(),
             oggi=date.today(),
         )
 
@@ -6153,6 +6401,8 @@ read -r -p "Premi Invio per chiudere..." _
                     anno_rg=int(f.get("anno_rg") or 0),
                     giudice=f.get("giudice", ""),
                     sezione=f.get("sezione", ""),
+                    data_prima_udienza=f.get("data_prima_udienza", ""),
+                    data_notifica_citazione=f.get("data_notifica_citazione", ""),
                     avvocato_referente=f.get("avvocato_referente", ""),
                     avvocato_dominus=f.get("avvocato_dominus", ""),
                     oggetto=f.get("oggetto", ""),
@@ -6173,6 +6423,8 @@ read -r -p "Premi Invio per chiudere..." _
             tipi=list(TipoFascicolo),
             stati=list(StatoFascicolo),
             id_cliente_pre="",
+            correction_context=_fascicolo_form_correction_context(),
+            oggi=date.today(),
         )
 
     @app.route("/fascicoli/<id_fasc>/stato", methods=["POST"])
@@ -7484,6 +7736,7 @@ read -r -p "Premi Invio per chiudere..." _
             pec_tribunale=pec_tribunale,
             pec_configurata=pec_configurata,
             pdfa_stato=pdfa_stato,
+            correction_context=_deposito_correction_context(fasc),
             oggi=date.today(),
         )
 

@@ -2362,6 +2362,11 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
   const params = new URLSearchParams(window.location.search);
   const focus = params.get('focus');
   const openModal = params.get('open_modal');
+  const docKind = params.get('doc_kind');
+  const docHint = params.get('doc_hint');
+  const roleHint = params.get('role_hint');
+  const correctionTitle = params.get('correction_title');
+  const correctionHelp = params.get('correction_help');
   const modalMap = {
     documento: 'modalDocumento',
     parte: 'modalAggiungiParte',
@@ -2381,9 +2386,43 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
   if (modalId && window.bootstrap) {
     const modalEl = document.getElementById(modalId);
     if (modalEl) {
+      if (openModal === 'documento') {
+        const tipoSelect = modalEl.querySelector('select[name="tipo_doc"]');
+        const noteInput = modalEl.querySelector('input[name="note"]');
+        if (tipoSelect && docKind) {
+          tipoSelect.value = docKind;
+        }
+        if (noteInput && docHint === 'contributo' && !noteInput.value) {
+          noteInput.value = 'Ricevuta contributo unificato / diritti di cancelleria';
+        }
+      }
+      if (openModal === 'parte') {
+        const ruoloSelect = modalEl.querySelector('select[name="ruolo"]');
+        if (ruoloSelect && roleHint) {
+          ruoloSelect.value = roleHint;
+        }
+      }
       setTimeout(() => {
         new bootstrap.Modal(modalEl).show();
       }, 220);
+    }
+  }
+
+  if ((correctionTitle || correctionHelp) && focus) {
+    const target = document.getElementById(`sezione-${focus}`);
+    if (target && !target.querySelector('.inline-correction-banner')) {
+      const banner = document.createElement('div');
+      banner.className = 'alert alert-primary border-0 shadow-sm mt-3 inline-correction-banner';
+      banner.innerHTML = `
+        <div class="d-flex align-items-start gap-3">
+          <span class="badge text-bg-primary mt-1">Correzione</span>
+          <div>
+            <div class="fw-semibold">${correctionTitle || 'Correzione guidata'}</div>
+            <div class="small text-muted">${correctionHelp || 'Completa il punto indicato per superare il controllo.'}</div>
+          </div>
+        </div>
+      `;
+      target.prepend(banner);
     }
   }
 })();

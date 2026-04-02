@@ -4,22 +4,23 @@
 {% macro render_field(field) %}
   {% set value = form_values.get(field.name, '') %}
   {% set error = errors.get(field.name) %}
-  <div class="col-12 {% if field.type not in ['richtext', 'textarea', 'multiselect', 'repeater'] %}col-lg-6{% endif %}">
-    <label class="form-label fw-semibold" style="font-size:.82rem;">{{ field.label }}{% if field.required %} *{% endif %}</label>
+  {% set is_highlighted = field.name in correction_context.get('highlight_fields', []) %}
+  <div class="col-12 {% if field.type not in ['richtext', 'textarea', 'multiselect', 'repeater'] %}col-lg-6{% endif %} correction-field {% if is_highlighted %}correction-field-target{% endif %}" data-field-name="{{ field.name }}">
+    <label class="form-label fw-semibold" for="field-{{ field.name }}" style="font-size:.82rem;">{{ field.label }}{% if field.required %} *{% endif %}</label>
     {% if field.type == 'select' %}
-      <select name="{{ field.name }}" class="form-select {% if error %}is-invalid{% endif %}">
+      <select id="field-{{ field.name }}" data-field-name="{{ field.name }}" name="{{ field.name }}" class="form-select {% if error %}is-invalid{% endif %} {% if is_highlighted %}border-primary shadow-sm{% endif %}">
         <option value="">{{ field.placeholder }}</option>
         {% for opt_value, opt_label in field_options.get(field.name, []) %}
         <option value="{{ opt_value }}" {{ 'selected' if value == opt_value else '' }}>{{ opt_label }}</option>
         {% endfor %}
       </select>
     {% elif field.type in ['richtext', 'textarea', 'multiselect', 'repeater'] %}
-      <textarea name="{{ field.name }}" class="form-control {% if error %}is-invalid{% endif %}" rows="{{ 6 if field.type == 'richtext' else 4 }}" placeholder="{{ field.placeholder }}">{{ value }}</textarea>
+      <textarea id="field-{{ field.name }}" data-field-name="{{ field.name }}" name="{{ field.name }}" class="form-control {% if error %}is-invalid{% endif %} {% if is_highlighted %}border-primary shadow-sm{% endif %}" rows="{{ 6 if field.type == 'richtext' else 4 }}" placeholder="{{ field.placeholder }}">{{ value }}</textarea>
       {% if field.type in ['multiselect', 'repeater'] %}
       <div class="form-text">Una voce per riga.</div>
       {% endif %}
     {% else %}
-      <input type="{{ 'text' if field.type == 'richtext' else field.type }}" name="{{ field.name }}" class="form-control {% if error %}is-invalid{% endif %}" value="{{ value }}" placeholder="{{ field.placeholder }}">
+      <input id="field-{{ field.name }}" data-field-name="{{ field.name }}" type="{{ 'text' if field.type == 'richtext' else field.type }}" name="{{ field.name }}" class="form-control {% if error %}is-invalid{% endif %} {% if is_highlighted %}border-primary shadow-sm{% endif %}" value="{{ value }}" placeholder="{{ field.placeholder }}">
     {% endif %}
     {% if error %}<div class="invalid-feedback d-block">{{ error }}</div>{% endif %}
   </div>
@@ -57,6 +58,17 @@
 }
 .assist-mini-list + .assist-mini-list {
   margin-top: .5rem;
+}
+.correction-field-target {
+  position: relative;
+}
+.correction-field-target::after {
+  content: "";
+  position: absolute;
+  inset: -.35rem;
+  border-radius: 14px;
+  border: 1px solid rgba(13, 110, 253, .22);
+  pointer-events: none;
 }
 </style>
 {% endblock %}
@@ -103,6 +115,13 @@
           <h6 class="mb-0 fw-semibold">Precompila dalla pratica</h6>
         </div>
         <input type="hidden" name="model_code" value="{{ model.code }}">
+        {% if correction_context.active %}
+        <input type="hidden" name="intent" value="{{ correction_context.intent }}">
+        <input type="hidden" name="focus_field" value="{{ correction_context.focus_field }}">
+        <input type="hidden" name="highlight_fields" value="{{ correction_context.highlight_fields|join(',') }}">
+        <input type="hidden" name="correction_title" value="{{ correction_context.title }}">
+        <input type="hidden" name="correction_help" value="{{ correction_context.help }}">
+        {% endif %}
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label fw-semibold" style="font-size:.82rem;">Cliente</label>
@@ -152,6 +171,18 @@
         </div>
       </div>
     </div>
+
+    {% if correction_context.active %}
+    <div class="alert alert-primary border-0 shadow-sm mb-4" style="border-radius:16px;" id="correction-banner">
+      <div class="d-flex align-items-start gap-3">
+        <span class="badge text-bg-primary mt-1">Correzione</span>
+        <div>
+          <div class="fw-semibold">{{ correction_context.title }}</div>
+          <div class="small text-muted">{{ correction_context.help }}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
     <form method="post" class="card border-0 shadow-sm" style="border-radius:16px;" id="compiler-form">
       <input type="hidden" name="id_cliente" value="{{ selected_cliente.id if selected_cliente else '' }}">
@@ -368,6 +399,7 @@
 
 {% block extra_scripts %}
 <script>
+const correctionContext = {{ correction_context|tojson }};
 const selCliente = document.getElementById('sel-cliente');
 const selFascicolo = document.getElementById('sel-fascicolo');
 const compilerForm = document.getElementById('compiler-form');
@@ -500,5 +532,17 @@ compilerForm?.querySelectorAll('input, select, textarea').forEach(el => {
 });
 
 renderAssistant({{ assistant_analysis|tojson }});
+if (correctionContext && correctionContext.active) {
+  const targetName = correctionContext.focus_field || (correctionContext.highlight_fields || [])[0] || '';
+  const target = targetName ? document.getElementById(`field-${targetName}`) : null;
+  if (target) {
+    setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof target.focus === 'function') {
+        target.focus();
+      }
+    }, 180);
+  }
+}
 </script>
 {% endblock %}

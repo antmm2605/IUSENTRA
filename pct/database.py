@@ -34,6 +34,7 @@ class StatisticheModulo:
     nome: str
     percorso: str
     esiste: bool
+    migrabile_sqlite: bool = False
     dimensione_bytes: int = 0
     record_totali: int = 0
     ultima_modifica: str = ""
@@ -91,6 +92,7 @@ class RisultatoMigrazione:
     percorso_db: str
     record_migrati: Dict[str, int] = field(default_factory=dict)
     errori: List[str] = field(default_factory=list)
+    avvisi: List[str] = field(default_factory=list)
     ms: int = 0
 
     def to_dict(self) -> dict:
@@ -289,7 +291,7 @@ class GestioneDatabase:
         problemi = gdb.verifica_integrita()
     """
 
-    MODULI = [
+    MODULI_SQLITE = [
         "clienti", "fascicoli", "appuntamenti",
         "scadenze", "messaggi", "utenti", "audit",
     ]
@@ -303,7 +305,18 @@ class GestioneDatabase:
             Chiavi riconosciute: clienti, fascicoli, appuntamenti,
             scadenze, messaggi, utenti, audit, search_index.
         """
-        self.percorsi = {k: Path(v) for k, v in percorsi.items()}
+        self.percorsi = {k: Path(v) for k, v in percorsi.items() if v}
+
+    def _moduli_monitorati(self) -> List[str]:
+        """Ritorna i moduli JSON monitorati nel pannello admin."""
+        chiavi = [
+            chiave
+            for chiave, percorso in self.percorsi.items()
+            if chiave != "search_index" and percorso.suffix.lower() == ".json"
+        ]
+        core = [chiave for chiave in self.MODULI_SQLITE if chiave in chiavi]
+        extra = sorted(chiave for chiave in chiavi if chiave not in self.MODULI_SQLITE)
+        return core + extra
 
     # ---------------------------------------------------------------- I/O
 
@@ -348,12 +361,13 @@ class GestioneDatabase:
         totale_record = 0
         totale_bytes = 0
 
-        for chiave in self.MODULI:
+        for chiave in self._moduli_monitorati():
             p = self.percorsi.get(chiave)
             sm = StatisticheModulo(
                 nome=chiave,
                 percorso=str(p) if p else "",
                 esiste=bool(p and p.exists()),
+                migrabile_sqlite=chiave in self.MODULI_SQLITE,
             )
             if not p:
                 sm.stato = "NON_CONFIGURATO"
@@ -401,6 +415,8 @@ class GestioneDatabase:
 
         return {
             "moduli": [m.to_dict() for m in moduli],
+            "moduli_monitorati": len(moduli),
+            "moduli_migrabili_sqlite": len([m for m in moduli if m.migrabile_sqlite]),
             "totale_record": totale_record,
             "totale_dimensione_bytes": totale_bytes,
             "totale_dimensione": _fmt_bytes(totale_bytes),
@@ -628,7 +644,7 @@ class GestioneDatabase:
         risultati: List[RisultatoOttimizzazione] = []
 
         # Compatta file JSON
-        for chiave in self.MODULI:
+        for chiave in self._moduli_monitorati():
             p = self.percorsi.get(chiave)
             if not p or not p.exists():
                 continue
@@ -710,7 +726,11 @@ class GestioneDatabase:
         conn = sqlite3.connect(percorso_db)
         conn.row_factory = sqlite3.Row
         errori: List[str] = []
+        avvisi: List[str] = []
         migrati: Dict[str, int] = {}
+        id_clienti_migrati = set()
+        id_fascicoli_migrati = set()
+        id_appuntamenti_migrati = set()
 
         try:
             conn.executescript(SCHEMA_SQL)
@@ -729,7 +749,6 @@ class GestioneDatabase:
                 c_count = 0
                 for c in clienti_raw:
                     try:
-                        ind = c.get("indirizzo") or {}
                         rec = c.get("recapiti") or {}
                         conn.execute("""
                             INSERT OR REPLACE INTO clienti
@@ -743,11 +762,13 @@ class GestioneDatabase:
                             c.get("nome", ""), c.get("ragione_sociale", ""),
                             c.get("codice_fiscale", ""), c.get("partita_iva", ""),
                             c.get("email", ""),
-                            (rec.get("telefono_principale") if isinstance(rec, dict) else c.get("telefono", "")),
+                            rec.get("telefono_principale") if isinstance(rec, dict) else c.get("telefono", ""),
                             c.get("note", ""), c.get("creato_il", ""),
                             json.dumps(c, ensure_ascii=False),
                         ))
                         c_count += 1
+                        if c.get("id"):
+                            id_clienti_migrati.add(c.get("id"))
                     except Exception as e:
                         errori.append(f"clienti/{c.get('id','?')}: {e}")
                 migrati["clienti"] = c_count
@@ -760,6 +781,12 @@ class GestioneDatabase:
                 f_count = 0
                 for f in fasc_raw:
                     try:
+                        id_cliente = f.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"fascicoli/{f.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
                         conn.execute("""
                             INSERT OR REPLACE INTO fascicoli
                             (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
@@ -771,7 +798,7 @@ class GestioneDatabase:
                         """, (
                             f.get("id"), f.get("numero"), f.get("titolo"),
                             f.get("tipo", "CIVILE"), f.get("stato", "APERTO"),
-                            f.get("id_cliente") or None, f.get("nome_cliente", ""),
+                            id_cliente, f.get("nome_cliente", ""),
                             f.get("tribunale", ""), f.get("sezione", ""),
                             f.get("giudice", ""), f.get("numero_rg", ""),
                             f.get("anno_rg", ""), f.get("controparte", ""),
@@ -784,6 +811,8 @@ class GestioneDatabase:
                             json.dumps(f.get("scadenze", []), ensure_ascii=False),
                         ))
                         f_count += 1
+                        if f.get("id"):
+                            id_fascicoli_migrati.add(f.get("id"))
                     except Exception as e:
                         errori.append(f"fascicoli/{f.get('id','?')}: {e}")
                 migrati["fascicoli"] = f_count
@@ -812,6 +841,8 @@ class GestioneDatabase:
                             a.get("note", ""), a.get("creato_il", ""),
                         ))
                         a_count += 1
+                        if a.get("id"):
+                            id_appuntamenti_migrati.add(a.get("id"))
                     except Exception as e:
                         errori.append(f"appuntamenti/{a.get('id','?')}: {e}")
                 migrati["appuntamenti"] = a_count
@@ -824,6 +855,18 @@ class GestioneDatabase:
                 s_count = 0
                 for s in scad_raw:
                     try:
+                        id_fascicolo = s.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"scadenze/{s.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
+                        id_appuntamento = s.get("id_appuntamento") or None
+                        if id_appuntamento and id_appuntamento not in id_appuntamenti_migrati:
+                            avvisi.append(
+                                f"scadenze/{s.get('id','?')}: appuntamento {id_appuntamento!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_appuntamento = None
                         conn.execute("""
                             INSERT OR REPLACE INTO scadenze
                             (id, tipo, stato, titolo, data_scadenza, priorita,
@@ -835,8 +878,8 @@ class GestioneDatabase:
                             s.get("stato", "APERTO"), s.get("titolo", ""),
                             s.get("data_scadenza", ""), s.get("priorita", "MEDIA"),
                             1 if s.get("perentorio") else 0,
-                            s.get("note", ""), s.get("id_fascicolo") or None,
-                            s.get("id_appuntamento") or None,
+                            s.get("note", ""), id_fascicolo,
+                            id_appuntamento,
                             s.get("id_utente_responsabile", ""),
                             json.dumps(s.get("giorni_preavviso", []), ensure_ascii=False),
                             json.dumps(s.get("avvisi_inviati", []), ensure_ascii=False),
@@ -855,6 +898,18 @@ class GestioneDatabase:
                 m_count = 0
                 for m in msg_raw:
                     try:
+                        id_cliente = m.get("id_cliente") or None
+                        if id_cliente and id_cliente not in id_clienti_migrati:
+                            avvisi.append(
+                                f"messaggi/{m.get('id','?')}: cliente {id_cliente!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_cliente = None
+                        id_fascicolo = m.get("id_fascicolo") or None
+                        if id_fascicolo and id_fascicolo not in id_fascicoli_migrati:
+                            avvisi.append(
+                                f"messaggi/{m.get('id','?')}: fascicolo {id_fascicolo!r} non trovato, riferimento scollegato in migrazione"
+                            )
+                            id_fascicolo = None
                         conn.execute("""
                             INSERT OR REPLACE INTO messaggi
                             (id, canale, stato, oggetto, corpo,
@@ -867,7 +922,7 @@ class GestioneDatabase:
                             m.get("stato", "BOZZA"), m.get("oggetto", ""),
                             m.get("corpo", ""), m.get("email_destinatario", ""),
                             m.get("telefono_destinatario", ""),
-                            m.get("id_cliente") or None, m.get("id_fascicolo") or None,
+                            id_cliente, id_fascicolo,
                             m.get("tipo_automazione", ""), m.get("inviato_il", ""),
                             m.get("errore_invio", ""), m.get("creato_il", ""),
                         ))
@@ -945,6 +1000,7 @@ class GestioneDatabase:
             percorso_db=percorso_db,
             record_migrati=migrati,
             errori=errori,
+            avvisi=avvisi,
             ms=ms,
         )
 

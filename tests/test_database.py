@@ -149,6 +149,16 @@ def test_statistiche_modulo_vuoto(tmp_path):
     assert mod["stato"] in ("VUOTO", "OK")
     assert mod["record_totali"] == 0
 
+def test_statistiche_include_modulo_extra_monitorato(tmp_path):
+    p = tmp_path / "preventivi.json"
+    _scrivi_json(p, [{"id": "pr1", "oggetto": "Preventivo"}])
+    db2 = GestioneDatabase({"preventivi": str(p)})
+    stats = db2.statistiche()
+    modulo = next((m for m in stats["moduli"] if m["nome"] == "preventivi"), None)
+    assert modulo is not None
+    assert modulo["record_totali"] == 1
+    assert modulo["migrabile_sqlite"] is False
+
 
 # ================================================================ verifica_integrita()
 
@@ -262,6 +272,47 @@ def test_migra_ms_positivo(db, tmp_path):
     dest = str(tmp_path / "migrato.db")
     risultato = db.migra_verso_sqlite(dest)
     assert risultato.ms >= 0
+
+def test_migra_verso_sqlite_sanifica_scadenza_orfana(tmp_path):
+    _scrivi_json(tmp_path / "clienti.json", [{"id": "c1", "nome": "Mario"}])
+    _scrivi_json(tmp_path / "fascicoli.json", [])
+    _scrivi_json(tmp_path / "agenda.json", [])
+    _scrivi_json(tmp_path / "scadenze.json", [{
+        "id": "s_orfana",
+        "titolo": "Scadenza orfana",
+        "data_scadenza": "2024-07-01",
+        "id_fascicolo": "f_missing",
+        "id_appuntamento": "a_missing",
+        "tipo": "ALTRO",
+    }])
+    _scrivi_json(tmp_path / "messaggi.json", [])
+    _scrivi_json(tmp_path / "utenti.json", [])
+    _scrivi_json(tmp_path / "audit.json", [])
+
+    db2 = GestioneDatabase({
+        "clienti": str(tmp_path / "clienti.json"),
+        "fascicoli": str(tmp_path / "fascicoli.json"),
+        "appuntamenti": str(tmp_path / "agenda.json"),
+        "scadenze": str(tmp_path / "scadenze.json"),
+        "messaggi": str(tmp_path / "messaggi.json"),
+        "utenti": str(tmp_path / "utenti.json"),
+        "audit": str(tmp_path / "audit.json"),
+    })
+    dest = str(tmp_path / "migrato.db")
+    risultato = db2.migra_verso_sqlite(dest)
+    assert risultato.riuscita is True
+    assert risultato.errori == []
+    assert any("scadenze/s_orfana" in avviso for avviso in risultato.avvisi)
+
+    conn = sqlite3.connect(dest)
+    row = conn.execute(
+        "SELECT id_fascicolo, id_appuntamento FROM scadenze WHERE id = ?",
+        ("s_orfana",),
+    ).fetchone()
+    conn.close()
+    assert row is not None
+    assert row[0] is None
+    assert row[1] is None
 
 
 # ================================================================ esporta_tutto()
@@ -406,6 +457,8 @@ def test_admin_database_migra_json(client_admin):
     data = r.get_json()
     assert data["ok"] is True
     assert "record_migrati" in data
+    assert "messaggio" in data
+    assert "avvisi" in data
 
 def test_admin_database_export_zip(client_admin):
     r = client_admin.get("/admin/database/export")

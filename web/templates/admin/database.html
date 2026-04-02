@@ -23,8 +23,8 @@
   <div class="col-6 col-md-3">
     <div class="card text-center h-100 border-0 shadow-sm">
       <div class="card-body py-3">
-        <div class="fs-2 fw-bold text-primary">{{ statistiche.moduli | length }}</div>
-        <div class="small text-muted">Moduli attivi</div>
+        <div class="fs-2 fw-bold text-primary">{{ statistiche.moduli_monitorati | default(statistiche.moduli | length) }}</div>
+        <div class="small text-muted">Moduli monitorati</div>
       </div>
     </div>
   </div>
@@ -83,7 +83,16 @@
       <tbody>
         {% for m in statistiche.moduli %}
         <tr>
-          <td><strong>{{ m.nome | capitalize }}</strong></td>
+          <td>
+            <strong>{{ m.nome | capitalize }}</strong>
+            {% if m.migrabile_sqlite %}
+              <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1">SQLite core</span>
+            {% elif m.nome == "search_index" %}
+              <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle ms-1">Indice</span>
+            {% else %}
+              <span class="badge text-bg-light text-muted border ms-1">JSON monitorato</span>
+            {% endif %}
+          </td>
           <td><code class="small text-muted">{{ m.percorso }}</code></td>
           <td class="text-end">{{ m.record_totali }}</td>
           <td class="text-end">{{ m.dimensione_leggibile }}</td>
@@ -162,6 +171,10 @@
             vincoli di integrità referenziale, indici ottimizzati e modalità WAL.
           </p>
         {% endif %}
+        <div class="small text-muted mb-3">
+          La migrazione relazionale include i moduli core: clienti, fascicoli, appuntamenti, scadenze, messaggi, utenti e audit.
+          Gli altri moduli restano monitorati nel pannello e conservati nei rispettivi JSON versionati.
+        </div>
         <button class="btn btn-primary w-100" onclick="migraSQL()" id="btn-migra">
           <i class="bi bi-arrow-right-circle me-1"></i>
           {% if sqlite_info and sqlite_info.esiste %}Ri-esegui migrazione{% else %}Avvia migrazione{% endif %}
@@ -363,17 +376,21 @@ async function migraSQL() {
 
   try {
     const r = await fetch('{{ url_for("admin_database_migra") }}', {method: 'POST'});
-    const data = await r.json();
-    if (data.ok) {
-      out.innerHTML = `<div class="alert alert-success py-2 small mt-2">
-        <i class="bi bi-check-circle me-1"></i>
-        Migrati <strong>${data.record_migrati}</strong> record in ${data.durata_secondi}s.<br>
-        <code>${data.percorso_db}</code>
-      </div>`;
-      setTimeout(() => location.reload(), 2000);
-    } else {
-      out.innerHTML = `<div class="alert alert-danger py-2 small mt-2">
-        <i class="bi bi-exclamation-circle me-1"></i>${data.messaggio}
+      const data = await r.json();
+      if (data.ok) {
+        out.innerHTML = `<div class="alert alert-success py-2 small mt-2">
+          <i class="bi bi-check-circle me-1"></i>
+          ${data.messaggio}<br>
+          Migrati <strong>${data.record_migrati}</strong> record in ${data.durata_secondi}s.<br>
+          <code>${data.percorso_db}</code>
+          ${data.avvisi && data.avvisi.length ? '<ul class="mb-0 mt-1">' + data.avvisi.map(a=>`<li>${a}</li>`).join('') + '</ul>' : ''}
+        </div>`;
+        if (!data.avvisi || data.avvisi.length === 0) {
+          setTimeout(() => location.reload(), 2000);
+        }
+      } else {
+        out.innerHTML = `<div class="alert alert-danger py-2 small mt-2">
+          <i class="bi bi-exclamation-circle me-1"></i>${data.messaggio}
         ${data.errori.length ? '<ul class="mb-0 mt-1">' + data.errori.map(e=>`<li>${e}</li>`).join('') + '</ul>' : ''}
       </div>`;
     }

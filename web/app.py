@@ -805,13 +805,29 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_database() -> GestioneDatabase:
         return GestioneDatabase({
+            "calendar_sync": app.config.get("CALENDAR_SYNC_DB"),
             "clienti": app.config["CLIENTI_DB"],
+            "condivisioni": app.config.get("CONDIVISIONI_DB"),
+            "note_faldone": app.config.get("NOTE_FALDONE_DB"),
             "fascicoli": app.config["FASCICOLI_DB"],
             "appuntamenti": app.config["AGENDA_DB"],
             "scadenze": app.config["SCADENZIARIO_DB"],
             "messaggi": app.config["MESSAGGI_DB"],
+            "email_casella": app.config.get("EMAIL_CASELLA_DB"),
             "utenti": app.config["AUTH_DB"],
             "audit": app.config["AUDIT_DB"],
+            "privacy": app.config.get("PRIVACY_DB"),
+            "portale": app.config.get("PORTALE_DB"),
+            "fatturazione": app.config.get("FATTURAZIONE_DB"),
+            "preventivi": app.config.get("PREVENTIVI_DB"),
+            "soggetti": app.config.get("SOGGETTI_DB"),
+            "soggetti_parti": app.config.get("SOGGETTI_PARTI_DB"),
+            "wizard_pro": app.config.get("WIZARD_PRO_DB"),
+            "legal_intelligence": app.config.get("LEGAL_INTELLIGENCE_DB"),
+            "normative_tables": app.config.get("NORMATIVE_TABLES_DB"),
+            "validation_runs": app.config.get("VALIDATION_RUNS_DB"),
+            "template_atti": app.config.get("TEMPLATE_ATTI_DB"),
+            "redaction_assistant": app.config.get("REDACTION_ASSISTANT_DB"),
             "search_index": app.config["SEARCH_INDEX"],
         })
 
@@ -8275,12 +8291,20 @@ read -r -p "Premi Invio per chiudere..." _
         risultato = db.migra_verso_sqlite(percorso_db)
         audit("database.migra_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
         totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
+        if risultato.riuscita and risultato.avvisi:
+            messaggio = "Migrazione completata con avvisi: alcuni riferimenti orfani sono stati scollegati per preservare i record."
+        elif risultato.riuscita:
+            messaggio = "Migrazione completata con successo."
+        else:
+            messaggio = "Migrazione non completata: verifica gli errori riportati."
         return jsonify({
             "ok": risultato.riuscita,
+            "messaggio": messaggio,
             "percorso_db": risultato.percorso_db,
             "record_migrati": totale,
             "per_modulo": risultato.record_migrati,
             "errori": risultato.errori,
+            "avvisi": risultato.avvisi,
             "durata_secondi": round(risultato.ms / 1000, 3),
         })
 

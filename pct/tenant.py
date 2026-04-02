@@ -218,8 +218,27 @@ class DatabaseConfig:
         return asdict(self)
 
     @staticmethod
-    def from_dict(d: dict) -> "DatabaseConfig":
-        d = dict(d)
+    def from_dict(d: dict | str | None) -> "DatabaseConfig":
+        if isinstance(d, DatabaseConfig):
+            return d
+        if d is None:
+            d = {}
+        elif isinstance(d, str):
+            mode = d.strip().upper()
+            d = {"mode": mode} if mode in (DbMode.LOCAL, DbMode.MYSQL, DbMode.POSTGRESQL) else {}
+        elif not isinstance(d, dict):
+            d = {}
+        else:
+            d = dict(d)
+            if not d.get("mode"):
+                for legacy_key in ("db_mode", "database_mode", "tipo", "engine"):
+                    legacy_mode = d.get(legacy_key)
+                    if isinstance(legacy_mode, str):
+                        normalized = legacy_mode.strip().upper()
+                        if normalized in (DbMode.LOCAL, DbMode.MYSQL, DbMode.POSTGRESQL):
+                            d["mode"] = normalized
+                            break
+
         d.setdefault("mode", DbMode.LOCAL)
         d.setdefault("host", "localhost")
         d.setdefault("porta", 0)
@@ -356,7 +375,10 @@ class StudioLegale:
     @property
     def database(self) -> DatabaseConfig:
         """Restituisce la configurazione DB tipizzata."""
-        return DatabaseConfig.from_dict(self.db_config) if self.db_config else DatabaseConfig()
+        try:
+            return DatabaseConfig.from_dict(self.db_config) if self.db_config else DatabaseConfig()
+        except Exception:
+            return DatabaseConfig()
 
     @property
     def db_mode(self) -> str:
@@ -371,15 +393,33 @@ class StudioLegale:
     @staticmethod
     def from_dict(d: dict) -> "StudioLegale":
         d = dict(d)
+        legacy_db = d.get("db_config", d.get("database", {}))
+        if isinstance(legacy_db, str):
+            normalized = legacy_db.strip().upper()
+            d["db_config"] = {"mode": normalized} if normalized in (DbMode.LOCAL, DbMode.MYSQL, DbMode.POSTGRESQL) else {}
+        elif isinstance(legacy_db, dict):
+            d["db_config"] = legacy_db
+        else:
+            d["db_config"] = {}
+
+        branding = d.get("branding", {})
+        d["branding"] = branding if isinstance(branding, dict) else {}
+
+        override = d.get("moduli_override", [])
+        if isinstance(override, list):
+            d["moduli_override"] = [str(v).strip() for v in override if str(v).strip()]
+        elif isinstance(override, str):
+            d["moduli_override"] = [v.strip() for v in override.split(",") if v.strip()]
+        else:
+            d["moduli_override"] = []
+
         d.setdefault("moduli_override", [])
-        d.setdefault("branding", {})
         d.setdefault("api_key", secrets.token_urlsafe(32))
         d.setdefault("note_admin", "")
         d.setdefault("avvocato_ref", "")
         d.setdefault("max_utenti", 0)
         d.setdefault("max_storage_mb", 0)
         d.setdefault("data_attivazione", "")
-        d.setdefault("db_config", {})
         return StudioLegale(**{k: v for k, v in d.items() if k in StudioLegale.__dataclass_fields__})
 
 

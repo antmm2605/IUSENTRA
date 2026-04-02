@@ -553,6 +553,10 @@ class GestioneUtenti:
             result = [u for u in result if u.attivo]
         return sorted(result, key=lambda u: u.username)
 
+    def lista(self, solo_attivi: bool = False) -> List[Utente]:
+        """Alias retrocompatibile usato dal pannello admin multi-tenant."""
+        return self.tutti(solo_attivi=solo_attivi)
+
     def per_ruolo(self, ruolo: RuoloUtente) -> List[Utente]:
         return [u for u in self._utenti.values() if u.ruolo == ruolo]
 

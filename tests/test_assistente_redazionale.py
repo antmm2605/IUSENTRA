@@ -5,6 +5,7 @@ from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.compilatore_atti import prefill_payload
 from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.pst_catalog import PST_WEB_SERVICES_DOC_VERSION
 from web.app import create_app
 
 
@@ -89,6 +90,7 @@ def test_assistente_redazionale_civile_restituisce_schema_e_blocchi_guidati(tmp_
     assert analysis.profile["registry_suggestion"] == "RG"
     assert analysis.semaforo["tecnico_ministeriale"] == "ok"
     assert any(section["key"] == "parti" for section in analysis.sections)
+    assert analysis.snapshot["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
 
 
 def test_api_assistente_redazionale_restituisce_riepilogo_intelligente(tmp_path):
@@ -166,6 +168,7 @@ def test_api_assistente_redazionale_restituisce_riepilogo_intelligente(tmp_path)
     assert data["analysis"]["profile"]["channel"] == "PAT_AMMINISTRATIVO"
     assert data["analysis"]["schema_channel"]["label"] == "Processo amministrativo telematico"
     assert "next_steps" in data["analysis"]
+    assert data["analysis"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
 
 
 def test_compila_template_post_usa_id_fascicolo_del_form_anche_se_query_vuota(tmp_path):

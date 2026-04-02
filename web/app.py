@@ -16,6 +16,7 @@ import threading
 import zipfile as _zipfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 from flask import (
     Flask,

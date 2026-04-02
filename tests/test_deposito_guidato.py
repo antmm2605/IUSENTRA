@@ -4,6 +4,7 @@ from pathlib import Path
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.deposito_guidato import OrchestratoreDepositoGuidato
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.pst_catalog import PST_WEB_SERVICES_DOC_VERSION
 from web.app import create_app
 
 
@@ -108,6 +109,8 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
     assert run.can_prepare_deposit is False
     assert run.semaforo["giuridico"] == "blocco"
     assert any(issue["code"] == "procura_mancante" for issue in run.issues)
+    assert run.snapshot["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
+    assert run.resolver["pst_official_catalog"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
 
 
 def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tmp_path):
@@ -181,3 +184,4 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert data["validation"]["semaforo"]["documentale"] == "ok"
     assert data["validation"]["semaforo"]["giuridico"] == "warning"
     assert any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
+    assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION

@@ -37,6 +37,12 @@ from .deposito_guidato import (
     ValidationIssue,
     ValidatorNormativoRedazionale,
 )
+from .pst_catalog import (
+    PST_WEB_SERVICES_DOC_URL,
+    PST_WEB_SERVICES_DOC_VERSION,
+    get_catalog_snapshot,
+    get_catalog_sources,
+)
 
 
 REDACTION_RULESET_VERSION = "2026.04.02.1"
@@ -284,10 +290,10 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
                 "url": "https://pst.giustizia.it/PST/page/it/processo_telematico__comunicazione_alle_software_house_aggiornamento_specifiche_tecniche_deposito_atti_sicid_ritualita_immigrati?contentId=NWS3782",
             },
             {
-                "label": "PST - documentazione servizi web software house",
-                "url": "https://pst.giustizia.it/PST/resources/cms/documents/Documentazione_servizi_web_v1.52_1.pdf",
+                "label": f"PST - documentazione servizi web software house v{PST_WEB_SERVICES_DOC_VERSION}",
+                "url": PST_WEB_SERVICES_DOC_URL,
             },
-        ],
+        ] + get_catalog_sources(),
     ),
     "PDP_PENALE": SchemaChannelProfile(
         channel="PDP_PENALE",
@@ -466,6 +472,8 @@ class AssistenteRedazionale:
                 "ministerial_schema_catalog_version": MINISTERIAL_SCHEMA_CATALOG_VERSION,
                 "compiler_renderer": model.get("renderer", ""),
                 "office_catalog_version": OFFICE_CATALOG_VERSION,
+                "pst_webservices_doc_version": PST_WEB_SERVICES_DOC_VERSION,
+                "pst_official_catalog": get_catalog_snapshot(),
             },
             sections=sections,
             required_documents=required_documents,

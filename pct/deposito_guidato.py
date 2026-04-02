@@ -27,12 +27,20 @@ from . import __version__ as APP_VERSION
 from .busta import Allegato, BustaTelematica, DatiBusta
 from .checklist_atti import CANALE_LABEL
 from .fascicoli import Fascicolo
+from .pst_catalog import (
+    PST_CATALOG_VERSION,
+    PST_SCHEMA_VERSION,
+    PST_WEB_SERVICES_DOC_URL,
+    PST_WEB_SERVICES_DOC_VERSION,
+    get_catalog_snapshot,
+    get_catalog_sources,
+)
 from .validazione import MAX_BYTES_ALLEGATO, verifica_dimensione, verifica_pdfa
 
 
 PROCEDURAL_KB_VERSION = "2026.04.02.1"
-SCHEMA_CATALOG_VERSION = "PCT-SNAPSHOT-2026-01-26"
-OFFICE_CATALOG_VERSION = "PST-CATALOGO-UFFICI-2026"
+SCHEMA_CATALOG_VERSION = PST_SCHEMA_VERSION
+OFFICE_CATALOG_VERSION = PST_CATALOG_VERSION
 PST_NAMESPACE = "http://www.giustizia.it/processo_telematico"
 
 SERVICE_GIURIDICO = "GIURIDICO"
@@ -84,14 +92,14 @@ def _base_fonti() -> list[dict[str, str]]:
             "url": "https://pst.giustizia.it/PST/page/it/processo_civile_telematico__comunicazione_alle_software_house_aggiornamento_specifiche_tecniche_deposito_atti_sicid?contentId=NWS4594",
         },
         {
-            "label": "PST - documentazione servizi web software house",
-            "url": "https://pst.giustizia.it/PST/resources/cms/documents/Documentazione_servizi_web_v1.52_1.pdf",
+            "label": f"PST - documentazione servizi web software house v{PST_WEB_SERVICES_DOC_VERSION}",
+            "url": PST_WEB_SERVICES_DOC_URL,
         },
         {
             "label": "D.Lgs. 149/2022",
             "url": "https://www.gazzettaufficiale.it/eli/id/2022/10/17/22G00158/sg",
         },
-    ]
+    ] + get_catalog_sources()
 
 
 def _profile_fonti(*extra: dict[str, str]) -> list[dict[str, str]]:
@@ -492,7 +500,9 @@ class CompetenceResolver:
                 "procedural_kb": PROCEDURAL_KB_VERSION,
                 "office_catalog": OFFICE_CATALOG_VERSION,
                 "schema_catalog": SCHEMA_CATALOG_VERSION,
+                "pst_webservices_doc_version": PST_WEB_SERVICES_DOC_VERSION,
             },
+            "pst_official_catalog": get_catalog_snapshot(),
         }
         payload["catalog_hash"] = hashlib.sha256(
             json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
@@ -1305,6 +1315,8 @@ class OrchestratoreDepositoGuidato:
             "procedural_kb_version": self.kb.version,
             "schema_catalog_version": SCHEMA_CATALOG_VERSION,
             "office_catalog_version": OFFICE_CATALOG_VERSION,
+            "pst_webservices_doc_version": PST_WEB_SERVICES_DOC_VERSION,
+            "pst_webservices_doc_url": PST_WEB_SERVICES_DOC_URL,
             "profile_channel": profile.channel,
             "profile_deposit_mode": profile.deposit_mode,
             "selected_documents": selected_summary,

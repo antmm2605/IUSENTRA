@@ -659,6 +659,7 @@ class GestioneTenant:
             "LEGAL_INTELLIGENCE_DB": f"{base}/intelligence/motori.json",
             "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",
+            "REDACTION_ASSISTANT_DB": f"{base}/intelligence/assistente_redazionale.json",
         }
 
     # ---- Helper

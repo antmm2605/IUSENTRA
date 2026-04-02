@@ -374,6 +374,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["TEMPLATE_ATTI_DB"], "template_atti", "editor_layout.json"),
         ),
     )
+    app.config["REDACTION_ASSISTANT_DB"] = cfg.get(
+        "REDACTION_ASSISTANT_DB",
+        os.getenv(
+            "PCT_REDACTION_ASSISTANT_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "assistente_redazionale.json"),
+        ),
+    )
     # Scheduler
     app.config["BACKUP_ORA"]       = os.getenv("PCT_BACKUP_ORA", "02:00")
     app.config["WA_REMINDER_ORA"]  = os.getenv("PCT_WA_REMINDER_ORA", "18:00")

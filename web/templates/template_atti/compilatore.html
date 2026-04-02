@@ -25,6 +25,42 @@
   </div>
 {% endmacro %}
 
+{% block extra_head %}
+<style>
+.assistant-sticky {
+  position: sticky;
+  top: 1rem;
+}
+.assist-section-chip {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  padding: .35rem .65rem;
+  font-size: .76rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.assist-section-chip[data-state="ok"] {
+  background: rgba(25, 135, 84, .08);
+  border-color: rgba(25, 135, 84, .2);
+  color: #146c43;
+}
+.assist-section-chip[data-state="partial"] {
+  background: rgba(255, 193, 7, .12);
+  border-color: rgba(255, 193, 7, .25);
+  color: #997404;
+}
+.assist-section-chip[data-state="missing"] {
+  background: rgba(220, 53, 69, .08);
+  border-color: rgba(220, 53, 69, .18);
+  color: #b02a37;
+}
+.assist-mini-list + .assist-mini-list {
+  margin-top: .5rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
   <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
@@ -98,10 +134,29 @@
       </div>
     </form>
 
-    <form method="post" class="card border-0 shadow-sm" style="border-radius:16px;">
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;" id="assistant-guided-card">
       <div class="card-body">
-        <input type="hidden" name="id_cliente" value="{{ selected_cliente.id if selected_cliente else '' }}">
-        <input type="hidden" name="id_fascicolo" value="{{ selected_fascicolo.id if selected_fascicolo else '' }}">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="badge rounded-pill text-bg-info">Assistente</span>
+          <h6 class="mb-0 fw-semibold">Blocchi redazionali guidati</h6>
+        </div>
+        <div class="small text-muted mb-3" id="assist-editor-intro">
+          Il motore verifica coerenza procedurale, schema tecnico e completezza redazionale mentre compili.
+        </div>
+        <div class="d-flex flex-wrap gap-2" id="assist-sections-inline">
+          {% for section in assistant_analysis.get('sections', []) %}
+          <span class="assist-section-chip" data-state="{{ section.state }}">
+            {{ section.label }}
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <form method="post" class="card border-0 shadow-sm" style="border-radius:16px;" id="compiler-form">
+      <input type="hidden" name="id_cliente" value="{{ selected_cliente.id if selected_cliente else '' }}">
+      <input type="hidden" name="id_fascicolo" value="{{ selected_fascicolo.id if selected_fascicolo else '' }}">
+      <div class="card-body">
         {% for hidden_name in ['model_code', 'area', 'act_type', 'case_id', 'author_user_id', 'version', 'status'] %}
         <input type="hidden" name="{{ hidden_name }}" value="{{ form_values.get(hidden_name, '') }}">
         {% endfor %}
@@ -127,7 +182,7 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-          <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
+          <button type="submit" class="btn btn-primary btn-lg flex-grow-1" id="assist-generate-btn">
             <i class="bi bi-magic me-2"></i>Genera anteprima atto
           </button>
           <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary btn-lg">Annulla</a>
@@ -137,6 +192,71 @@
   </div>
 
   <div class="col-lg-4">
+    <div class="assistant-sticky">
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;" id="assist-summary-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+          <div>
+            <div class="small text-muted fw-semibold mb-1">Riepilogo intelligente</div>
+            <div class="fw-semibold" id="assist-profile-label">{{ assistant_analysis.get('profile', {}).get('label', model.name) }}</div>
+          </div>
+          <span class="badge bg-light text-dark border" id="assist-overall">{{ assistant_analysis.get('overall_state', 'warning') }}</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-light text-dark border" id="assist-sem-giu">Giuridico: {{ assistant_analysis.get('semaforo', {}).get('giuridico', 'warning') }}</span>
+          <span class="badge bg-light text-dark border" id="assist-sem-tech">Schemi: {{ assistant_analysis.get('semaforo', {}).get('tecnico_ministeriale', 'warning') }}</span>
+          <span class="badge bg-light text-dark border" id="assist-sem-doc">Documentale: {{ assistant_analysis.get('semaforo', {}).get('documentale', 'warning') }}</span>
+        </div>
+        <div class="small text-muted mb-3" id="assist-profile-detail">
+          {{ assistant_analysis.get('profile', {}).get('competence_rule', 'Il motore propone competenza, schema e blocchi del testo in base alla tipologia selezionata.') }}
+        </div>
+        <div class="small fw-semibold mb-2">Canale e snapshot</div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="assist-channel">{{ assistant_analysis.get('schema_channel', {}).get('label', 'Canale') }}</span>
+          <span class="badge bg-light text-dark border" id="assist-registry">{{ assistant_analysis.get('profile', {}).get('registry_suggestion', 'Registro') }}</span>
+          <span class="badge bg-light text-dark border" id="assist-grade">{{ assistant_analysis.get('profile', {}).get('grade_label', 'Grado') }}</span>
+        </div>
+        <div class="small text-muted mb-3" id="assist-snapshot">
+          Snapshot schemi {{ assistant_analysis.get('schema_channel', {}).get('schema_version', 'n.d.') }} · Regole {{ assistant_analysis.get('snapshot', {}).get('redaction_ruleset_version', 'n.d.') }}
+        </div>
+        <div class="small fw-semibold mb-2">Prossimi passi</div>
+        <div id="assist-next-steps" class="small text-muted">
+          {% for item in assistant_analysis.get('next_steps', [])[:3] %}
+          <div class="assist-mini-list">{{ item }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Documenti essenziali</div>
+      <div class="card-body small" id="assist-required-docs">
+        {% for item in assistant_analysis.get('required_documents', []) %}
+        <div class="assist-mini-list d-flex align-items-start justify-content-between gap-2">
+          <div>
+            <div class="fw-semibold">{{ item.label }}</div>
+            <div class="text-muted">{{ item.detail }}</div>
+          </div>
+          <span class="badge {{ 'bg-success-subtle text-success border border-success-subtle' if item.state == 'ok' else 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' }}">
+            {{ 'ok' if item.state == 'ok' else 'da aggiungere' }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
+      <div class="card-header bg-white fw-semibold">Controlli attivi</div>
+      <div class="card-body small" id="assist-issues">
+        {% for issue in assistant_analysis.get('issues', [])[:4] %}
+        <div class="assist-mini-list border rounded p-2 {{ 'bg-danger-subtle border-danger-subtle' if issue.level == 'BLOCK' else 'bg-warning-subtle border-warning-subtle' }}">
+          <div class="fw-semibold">{{ issue.title }}</div>
+          <div class="text-muted">{{ issue.detail }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
     <div class="card border-0 shadow-sm mb-3" style="border-radius:16px;">
       <div class="card-body">
         <div class="small text-muted fw-semibold mb-2">Riepilogo modello</div>
@@ -241,6 +361,7 @@
         </ul>
       </div>
     </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -249,6 +370,9 @@
 <script>
 const selCliente = document.getElementById('sel-cliente');
 const selFascicolo = document.getElementById('sel-fascicolo');
+const compilerForm = document.getElementById('compiler-form');
+const assistantApiUrl = "{{ url_for('template_atti.api_assistente_redazionale', model_code=model.code) }}";
+let assistantTimer = null;
 
 function filtraFascicoli() {
   if (!selCliente || !selFascicolo) return;
@@ -261,5 +385,117 @@ function filtraFascicoli() {
 
 selCliente?.addEventListener('change', filtraFascicoli);
 filtraFascicoli();
+
+function badgeClassForState(state) {
+  if (state === 'ok') return 'badge bg-success-subtle text-success border border-success-subtle';
+  if (state === 'blocco') return 'badge bg-danger-subtle text-danger border border-danger-subtle';
+  if (state === 'missing') return 'badge bg-danger-subtle text-danger border border-danger-subtle';
+  if (state === 'partial' || state === 'warning') return 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+  return 'badge bg-light text-dark border';
+}
+
+function renderInlineSections(analysis) {
+  const root = document.getElementById('assist-sections-inline');
+  if (!root) return;
+  const sections = Array.isArray(analysis.sections) ? analysis.sections : [];
+  root.innerHTML = sections.map(section => `
+    <span class="assist-section-chip" data-state="${section.state}">
+      ${section.label}
+    </span>
+  `).join('');
+}
+
+function renderRequiredDocs(analysis) {
+  const root = document.getElementById('assist-required-docs');
+  if (!root) return;
+  const items = Array.isArray(analysis.required_documents) ? analysis.required_documents : [];
+  root.innerHTML = items.map(item => `
+    <div class="assist-mini-list d-flex align-items-start justify-content-between gap-2">
+      <div>
+        <div class="fw-semibold">${item.label}</div>
+        <div class="text-muted">${item.detail}</div>
+      </div>
+      <span class="${badgeClassForState(item.state)}">${item.state === 'ok' ? 'ok' : 'da aggiungere'}</span>
+    </div>
+  `).join('') || '<div class="text-muted">Nessun allegato essenziale specifico per questo modello.</div>';
+}
+
+function renderIssues(analysis) {
+  const root = document.getElementById('assist-issues');
+  if (!root) return;
+  const issues = Array.isArray(analysis.issues) ? analysis.issues.slice(0, 4) : [];
+  root.innerHTML = issues.map(issue => `
+    <div class="assist-mini-list border rounded p-2 ${issue.level === 'BLOCK' ? 'bg-danger-subtle border-danger-subtle' : (issue.level === 'WARNING' ? 'bg-warning-subtle border-warning-subtle' : 'bg-success-subtle border-success-subtle')}">
+      <div class="fw-semibold">${issue.title}</div>
+      <div class="text-muted">${issue.detail}</div>
+    </div>
+  `).join('') || '<div class="text-success">Nessuna anomalia rilevata in questa fase.</div>';
+}
+
+function renderAssistant(analysis) {
+  const blockers = Array.isArray(analysis.issues) ? analysis.issues.filter(item => item.level === 'BLOCK') : [];
+  document.getElementById('assist-profile-label').textContent = analysis.profile?.label || "{{ model.name }}";
+  document.getElementById('assist-overall').className = badgeClassForState(analysis.overall_state);
+  document.getElementById('assist-overall').textContent = analysis.overall_state || 'warning';
+  document.getElementById('assist-sem-giu').className = badgeClassForState(analysis.semaforo?.giuridico || 'warning');
+  document.getElementById('assist-sem-tech').className = badgeClassForState(analysis.semaforo?.tecnico_ministeriale || 'warning');
+  document.getElementById('assist-sem-doc').className = badgeClassForState(analysis.semaforo?.documentale || 'warning');
+  document.getElementById('assist-sem-giu').textContent = `Giuridico: ${analysis.semaforo?.giuridico || 'warning'}`;
+  document.getElementById('assist-sem-tech').textContent = `Schemi: ${analysis.semaforo?.tecnico_ministeriale || 'warning'}`;
+  document.getElementById('assist-sem-doc').textContent = `Documentale: ${analysis.semaforo?.documentale || 'warning'}`;
+  document.getElementById('assist-profile-detail').textContent = analysis.profile?.competence_rule || '';
+  document.getElementById('assist-channel').textContent = analysis.schema_channel?.label || 'Canale';
+  document.getElementById('assist-registry').textContent = analysis.profile?.registry_suggestion || 'Registro';
+  document.getElementById('assist-grade').textContent = analysis.profile?.grade_label || 'Grado';
+  document.getElementById('assist-snapshot').textContent = `Snapshot schemi ${analysis.schema_channel?.schema_version || 'n.d.'} · Regole ${analysis.snapshot?.redaction_ruleset_version || 'n.d.'}`;
+  document.getElementById('assist-editor-intro').textContent =
+    analysis.profile?.procedural_note || 'Il motore verifica coerenza procedurale, schema tecnico e completezza redazionale mentre compili.';
+  const nextRoot = document.getElementById('assist-next-steps');
+  const steps = Array.isArray(analysis.next_steps) ? analysis.next_steps.slice(0, 3) : [];
+  nextRoot.innerHTML = steps.map(item => `<div class="assist-mini-list">${item}</div>`).join('') || '<div class="text-muted">Nessuna azione aggiuntiva richiesta.</div>';
+  renderInlineSections(analysis);
+  renderRequiredDocs(analysis);
+  renderIssues(analysis);
+  const btn = document.getElementById('assist-generate-btn');
+  if (btn) {
+    btn.disabled = blockers.length > 0;
+    btn.innerHTML = blockers.length > 0
+      ? '<i class="bi bi-shield-exclamation me-2"></i>Risolvi i blocchi prima di generare'
+      : '<i class="bi bi-magic me-2"></i>Genera anteprima atto';
+  }
+}
+
+function scheduleAssistantRefresh(delay = 220) {
+  clearTimeout(assistantTimer);
+  assistantTimer = setTimeout(refreshAssistant, delay);
+}
+
+function refreshAssistant() {
+  if (!compilerForm) return;
+  const fd = new FormData(compilerForm);
+  fetch(assistantApiUrl, {
+    method: 'POST',
+    body: fd,
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok || !data.analysis) throw new Error(data.errore || 'Errore assistente redazionale');
+      renderAssistant(data.analysis);
+    })
+    .catch(err => {
+      const root = document.getElementById('assist-issues');
+      if (root) {
+        root.innerHTML = `<div class="assist-mini-list border rounded p-2 bg-danger-subtle border-danger-subtle">${String(err.message || err)}</div>`;
+      }
+    });
+}
+
+compilerForm?.querySelectorAll('input, select, textarea').forEach(el => {
+  el.addEventListener('input', () => scheduleAssistantRefresh(280));
+  el.addEventListener('change', () => scheduleAssistantRefresh(80));
+});
+
+renderAssistant({{ assistant_analysis|tojson }});
 </script>
 {% endblock %}

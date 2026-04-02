@@ -37,6 +37,15 @@ def _get_gp():
     return GestionePreferenzeTemplateAtti(prefs_path=prefs_path)
 
 
+def _get_assistente_redazionale():
+    from pct.assistente_redazionale import AssistenteRedazionale
+
+    return AssistenteRedazionale(
+        audit_db_path=current_app.config.get("REDACTION_ASSISTANT_DB", "./intelligence/assistente_redazionale.json"),
+        office_cache_path=current_app.config.get("UFFICI_GIUDIZIARI_DB", "") or current_app.config.get("REGINDE_DB", ""),
+    )
+
+
 @template_atti.context_processor
 def _inject_editor_preferences():
     from pct.template_atti import DEFAULT_EDITOR_LAYOUT, catalogo_font_editor
@@ -75,7 +84,8 @@ def _valore_form(value):
 
 
 def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=None,
-                          selected_fascicolo=None, errors: dict | None = None):
+                          selected_fascicolo=None, errors: dict | None = None,
+                          assistant_analysis: dict | None = None):
     from pct.compilatore_atti import (
         opzioni_campo,
         wizard_schema_modello,
@@ -117,7 +127,63 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
         "sections": schema["sections"],
         "renderer_name": schema["renderer"],
         "prefill_map": schema["prefill_map"],
+        "assistant_analysis": assistant_analysis or {},
     }
+
+
+def _resolve_compiler_context(model_code: str):
+    from pct.compilatore_atti import (
+        merge_payload_with_form,
+        prefill_payload,
+    )
+
+    id_cliente = request.values.get("id_cliente", "").strip()
+    id_fascicolo = request.values.get("id_fascicolo", "").strip()
+
+    clienti_repo = get_clienti()
+    fascicoli_repo = get_fascicoli()
+    selected_cliente = clienti_repo.get(id_cliente) if id_cliente else None
+    selected_fascicolo = fascicoli_repo.get(id_fascicolo) if id_fascicolo else None
+    if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
+        selected_cliente = clienti_repo.get(selected_fascicolo.id_cliente)
+        id_cliente = getattr(selected_cliente, "id", "") if selected_cliente else id_cliente
+
+    initial_payload = prefill_payload(
+        model_code,
+        fascicolo=selected_fascicolo,
+        cliente=selected_cliente,
+        utente=g.get("utente_corrente"),
+        config=current_app.config,
+    )
+    payload = initial_payload
+    if request.method == "POST":
+        form_data = request.form.to_dict(flat=True)
+        form_data["case_id"] = id_fascicolo
+        if id_cliente and not form_data.get("client_or_sender"):
+            form_data["client_or_sender"] = getattr(selected_cliente, "nome_completo", "")
+        payload = merge_payload_with_form(
+            model_code,
+            initial_payload=initial_payload,
+            form_data=form_data,
+        )
+    return {
+        "id_cliente": id_cliente,
+        "id_fascicolo": id_fascicolo,
+        "selected_cliente": selected_cliente,
+        "selected_fascicolo": selected_fascicolo,
+        "initial_payload": initial_payload,
+        "payload": payload,
+    }
+
+
+def _build_assistant_analysis(model_code: str, *, payload: dict, selected_cliente=None, selected_fascicolo=None):
+    return _get_assistente_redazionale().analyze(
+        model_code,
+        payload,
+        fascicolo=selected_fascicolo,
+        cliente=selected_cliente,
+        utente=g.get("utente_corrente"),
+    ).to_dict()
 
 
 # ================================================================ LISTA
@@ -286,45 +352,29 @@ def usa(id_template: str):
 def compila(model_code: str):
     from pct.compilatore_atti import (
         get_modello,
-        prefill_payload,
-        merge_payload_with_form,
         validate_payload,
         render_compiled_act,
     )
     model = get_modello(model_code)
     if not model:
         abort(404)
-
-    id_cliente = request.values.get("id_cliente", "").strip()
-    id_fascicolo = request.values.get("id_fascicolo", "").strip()
-
-    clienti_repo = get_clienti()
-    fascicoli_repo = get_fascicoli()
-    selected_cliente = clienti_repo.get(id_cliente) if id_cliente else None
-    selected_fascicolo = fascicoli_repo.get(id_fascicolo) if id_fascicolo else None
-    if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
-        selected_cliente = clienti_repo.get(selected_fascicolo.id_cliente)
-        id_cliente = getattr(selected_cliente, "id", "") if selected_cliente else id_cliente
-
-    initial_payload = prefill_payload(
+    resolved = _resolve_compiler_context(model_code)
+    id_cliente = resolved["id_cliente"]
+    id_fascicolo = resolved["id_fascicolo"]
+    selected_cliente = resolved["selected_cliente"]
+    selected_fascicolo = resolved["selected_fascicolo"]
+    initial_payload = resolved["initial_payload"]
+    payload = resolved["payload"]
+    assistant_analysis = _build_assistant_analysis(
         model_code,
-        fascicolo=selected_fascicolo,
-        cliente=selected_cliente,
-        utente=g.get("utente_corrente"),
-        config=current_app.config,
+        payload=payload,
+        selected_cliente=selected_cliente,
+        selected_fascicolo=selected_fascicolo,
     )
 
     if request.method == "POST":
-        form_data = request.form.to_dict(flat=True)
-        form_data["case_id"] = id_fascicolo
-        if id_cliente and not form_data.get("client_or_sender"):
-            form_data["client_or_sender"] = getattr(selected_cliente, "nome_completo", "")
-        payload = merge_payload_with_form(
-            model_code,
-            initial_payload=initial_payload,
-            form_data=form_data,
-        )
         errors = validate_payload(model_code, payload)
+        blockers = [issue for issue in assistant_analysis.get("issues", []) if issue.get("level") == "BLOCK"]
         if errors:
             flash("Completa i campi obbligatori evidenziati prima di generare l'atto.", "warning")
             ctx = _contesto_compilatore(
@@ -333,11 +383,26 @@ def compila(model_code: str):
                 selected_cliente=selected_cliente,
                 selected_fascicolo=selected_fascicolo,
                 errors=errors,
+                assistant_analysis=assistant_analysis,
             )
             return render_template(
                 "template_atti/compilatore.html",
                 **ctx,
             )
+        if blockers:
+            first = blockers[0]
+            flash(
+                f"Bozza bloccata: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
+                "warning",
+            )
+            ctx = _contesto_compilatore(
+                model_code,
+                payload=payload,
+                selected_cliente=selected_cliente,
+                selected_fascicolo=selected_fascicolo,
+                assistant_analysis=assistant_analysis,
+            )
+            return render_template("template_atti/compilatore.html", **ctx)
 
         testo_generato = render_compiled_act(model_code, payload)
         ctx = _contesto_compilatore(
@@ -345,6 +410,7 @@ def compila(model_code: str):
             payload=payload,
             selected_cliente=selected_cliente,
             selected_fascicolo=selected_fascicolo,
+            assistant_analysis=assistant_analysis,
         )
         return render_template(
             "template_atti/anteprima_compilatore.html",
@@ -360,15 +426,17 @@ def compila(model_code: str):
             suggested_clauses=ctx["suggested_clauses"],
             sections=ctx["sections"],
             renderer_name=ctx["renderer_name"],
+            assistant_analysis=assistant_analysis,
         )
 
     return render_template(
         "template_atti/compilatore.html",
         **_contesto_compilatore(
             model_code,
-            payload=initial_payload,
+            payload=payload,
             selected_cliente=selected_cliente,
             selected_fascicolo=selected_fascicolo,
+            assistant_analysis=assistant_analysis,
         ),
     )
 
@@ -444,6 +512,29 @@ def compila_pdf(model_code: str):
     nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
+
+
+# ================================================================ API assistente redazionale
+
+@template_atti.route("/api/assistente-redazionale/<model_code>", methods=["POST"])
+@_richiedi_login
+def api_assistente_redazionale(model_code: str):
+    try:
+        from pct.compilatore_atti import get_modello
+
+        if not get_modello(model_code):
+            return jsonify({"ok": False, "errore": "Modello non trovato."}), 200
+        resolved = _resolve_compiler_context(model_code)
+        analysis = _build_assistant_analysis(
+            model_code,
+            payload=resolved["payload"],
+            selected_cliente=resolved["selected_cliente"],
+            selected_fascicolo=resolved["selected_fascicolo"],
+        )
+        return jsonify({"ok": True, "analysis": analysis}), 200
+    except Exception as e:
+        current_app.logger.exception("Errore api_assistente_redazionale: %s", e)
+        return jsonify({"ok": False, "errore": str(e)}), 200
 
 
 # ================================================================ helpers

@@ -225,3 +225,27 @@ def test_famiglia_aggiunge_modifica_condizioni_responsabilita_reclamo_appello_e_
     assert ads["grado_default"] == "Giudice tutelare"
     assert {row["rule_code"] for row in ads["regole_tariffarie"]} == {"volontaria_amministrazione_sostegno"}
     assert any(ref["article"] == "art. 404" for ref in ads["normative_references"])
+
+
+def test_tutelare_estende_nomina_modifica_tutela_e_reclamo_con_gradi_corretti():
+    nomina_ads = redattore_preventivo_iniziale("nomina_amministratore_sostegno")
+    modifica_ads = redattore_preventivo_iniziale("modifica_revoca_ads")
+    tutela = redattore_preventivo_iniziale("tutela_curatela")
+    reclamo_gt = redattore_preventivo_iniziale("reclamo_giudice_tutelare")
+
+    assert nomina_ads["grado_default"] == "Giudice tutelare"
+    assert "artt. 404 e 405" in nomina_ads["base_normativa"]
+    assert {row["rule_code"] for row in nomina_ads["regole_tariffarie"]} == {"volontaria_nomina_ads"}
+
+    assert modifica_ads["grado_default"] == "Giudice tutelare"
+    assert "art. 413" in modifica_ads["base_normativa"]
+    assert {row["rule_code"] for row in modifica_ads["regole_tariffarie"]} == {"volontaria_modifica_ads"}
+
+    assert tutela["materia"] == "Volontaria giurisdizione"
+    assert "343" in tutela["base_normativa"]
+    assert {row["rule_code"] for row in tutela["regole_tariffarie"]} == {"volontaria_tutela_curatela"}
+
+    assert reclamo_gt["grado_default"] == "Tribunale"
+    assert "art. 739" in reclamo_gt["base_normativa"]
+    assert {row["rule_code"] for row in reclamo_gt["regole_tariffarie"]} == {"volontaria_reclamo_giudice_tutelare"}
+    assert any(ref["article"] == "art. 739" for ref in reclamo_gt["normative_references"])

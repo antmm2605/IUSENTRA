@@ -251,3 +251,25 @@ def test_famiglia_estende_sottocasi_revisione_reclamo_appello_e_ads():
     assert profile_lookup_by_rule("famiglia_reclamo")["table_code"] == "A12"
     assert profile_lookup_by_rule("famiglia_appello_minori")["table_code"] == "A12"
     assert profile_lookup_by_rule("volontaria_amministrazione_sostegno")["table_code"] == "A7"
+
+
+def test_tutelare_separa_nomina_modifica_tutela_e_reclamo_del_giudice_tutelare():
+    nomina_ads = {row["rule_code"] for row in rules_for_practice("nomina_amministratore_sostegno")}
+    modifica_ads = {row["rule_code"] for row in rules_for_practice("modifica_revoca_ads")}
+    tutela = {row["rule_code"] for row in rules_for_practice("tutela_curatela")}
+    reclamo = {row["rule_code"] for row in rules_for_practice("reclamo_giudice_tutelare")}
+
+    assert nomina_ads == {"volontaria_nomina_ads"}
+    assert modifica_ads == {"volontaria_modifica_ads"}
+    assert tutela == {"volontaria_tutela_curatela"}
+    assert reclamo == {"volontaria_reclamo_giudice_tutelare"}
+
+    assert default_rule_for_practice("nomina_amministratore_sostegno")["rule_code"] == "volontaria_nomina_ads"
+    assert default_rule_for_practice("modifica_revoca_ads")["rule_code"] == "volontaria_modifica_ads"
+    assert default_rule_for_practice("tutela_curatela")["rule_code"] == "volontaria_tutela_curatela"
+    assert default_rule_for_practice("reclamo_giudice_tutelare")["rule_code"] == "volontaria_reclamo_giudice_tutelare"
+
+    assert profile_lookup_by_rule("volontaria_nomina_ads")["table_code"] == "A7"
+    assert profile_lookup_by_rule("volontaria_modifica_ads")["table_code"] == "A7"
+    assert profile_lookup_by_rule("volontaria_tutela_curatela")["table_code"] == "A7"
+    assert profile_lookup_by_rule("volontaria_reclamo_giudice_tutelare")["table_code"] == "A7"

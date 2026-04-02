@@ -368,7 +368,43 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.VOLONTARIA,
         grado_default=Grado.GIUDICE_TUTELARE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — art. 404 c.c. / art. 720-bis c.p.c.",
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — artt. 473-bis.52 ss. c.p.c. / artt. 404 ss. c.c.",
+    ),
+    TipoPratica(
+        id="nomina_amministratore_sostegno",
+        label="Nomina amministratore di sostegno",
+        area="Civile",
+        materia=Materia.VOLONTARIA,
+        grado_default=Grado.GIUDICE_TUTELARE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — artt. 473-bis.52 ss. c.p.c. / artt. 404 e 405 c.c.",
+    ),
+    TipoPratica(
+        id="modifica_revoca_ads",
+        label="Modifica / revoca amministrazione di sostegno",
+        area="Civile",
+        materia=Materia.VOLONTARIA,
+        grado_default=Grado.GIUDICE_TUTELARE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — artt. 473-bis.52 ss. c.p.c. / art. 413 c.c.",
+    ),
+    TipoPratica(
+        id="tutela_curatela",
+        label="Tutela / curatela ordinaria",
+        area="Civile",
+        materia=Materia.VOLONTARIA,
+        grado_default=Grado.GIUDICE_TUTELARE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — artt. 473-bis.64 ss. c.p.c. / artt. 343 ss. c.c.",
+    ),
+    TipoPratica(
+        id="reclamo_giudice_tutelare",
+        label="Reclamo avverso decreto del giudice tutelare",
+        area="Civile",
+        materia=Materia.VOLONTARIA,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — art. 739 c.p.c.",
     ),
     TipoPratica(
         id="sfratto_morosita",
@@ -960,6 +996,25 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Diritti di segreteria ricorso al giudice tutelare", "importo": 27.0},
         {"descrizione": "Certificazioni e visure sanitarie / anagrafiche", "importo": 25.0},
     ],
+    "nomina_amministratore_sostegno": [
+        {"descrizione": "Diritti di segreteria ricorso al giudice tutelare", "importo": 27.0},
+        {"descrizione": "Certificazioni mediche e documentazione anagrafica", "importo": 25.0},
+        {"descrizione": "Visure patrimoniali essenziali", "importo": 20.0},
+    ],
+    "modifica_revoca_ads": [
+        {"descrizione": "Diritti di segreteria istanza", "importo": 27.0},
+        {"descrizione": "Aggiornamento certificazioni / relazioni", "importo": 25.0},
+    ],
+    "tutela_curatela": [
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
+        {"descrizione": "Certificati stato civile / anagrafici", "importo": 20.0},
+        {"descrizione": "Visure patrimoniali iniziali", "importo": 20.0},
+    ],
+    "reclamo_giudice_tutelare": [
+        {"descrizione": "Diritti di segreteria reclamo", "importo": 27.0},
+        {"descrizione": "Notifica reclamo (se richiesta)", "importo": 25.0},
+        {"descrizione": "Copie autentiche del decreto reclamato", "importo": 15.0},
+    ],
     "sfratto_morosita": [
         {"descrizione": "Contributo Unificato (indicativo)", "importo": 103.0},
         {"descrizione": "Diritti di segreteria", "importo": 27.0},
@@ -1303,6 +1358,10 @@ _SUMMARY_OVERRIDES = {
     "reclamo_famiglia_minori": "Preventivo per reclamo sui provvedimenti temporanei e urgenti in materia di persone, minorenni e famiglie, con profilo da impugnazione davanti alla Corte d'Appello.",
     "appello_famiglia_minori": "Preventivo per appello in materia famiglia o minori contro la sentenza resa dal tribunale competente.",
     "amministrazione_sostegno": "Preventivo per ricorso e gestione del procedimento di amministrazione di sostegno davanti al giudice tutelare con regola di volontaria giurisdizione.",
+    "nomina_amministratore_sostegno": "Preventivo per la sola fase di apertura e nomina dell'amministratore di sostegno, con documentazione sanitaria e patrimoniale essenziale.",
+    "modifica_revoca_ads": "Preventivo per modifica dei poteri, sostituzione o revoca dell'amministratore di sostegno gia nominato.",
+    "tutela_curatela": "Preventivo per procedimenti ordinari di tutela o curatela, separati dall'amministrazione di sostegno per non confondere presupposti e documentazione.",
+    "reclamo_giudice_tutelare": "Preventivo per impugnare in via di reclamo un decreto del giudice tutelare davanti al tribunale competente.",
     "cassazione_lavoro": "Preventivo per ricorso di legittimita in materia di lavoro, separato dal secondo grado per mantenere regola tariffaria e grado coerenti.",
     "mediazione": "Preventivo per assistenza in procedura di mediazione civile e commerciale con valorizzazione delle fasi ADR.",
     "negoziazione_assistita": "Preventivo per assistenza nella convenzione di negoziazione assistita e nelle fasi di trattativa e definizione.",
@@ -1331,6 +1390,10 @@ _WHEN_TO_USE_OVERRIDES = {
     "reclamo_famiglia_minori": "Usalo quando devi impugnare in via di reclamo i provvedimenti temporanei e urgenti resi nel rito famiglia e minori.",
     "appello_famiglia_minori": "Usalo quando devi proporre appello contro una sentenza del tribunale in materia di persone, minorenni e famiglie.",
     "amministrazione_sostegno": "Usalo quando l'intervento richiesto riguarda la nomina, la modifica o la gestione dell'amministratore di sostegno davanti al giudice tutelare.",
+    "nomina_amministratore_sostegno": "Usalo quando la pratica riguarda l'apertura iniziale dell'amministrazione di sostegno e vuoi isolare costi e documenti della sola nomina.",
+    "modifica_revoca_ads": "Usalo quando esiste gia un'amministrazione di sostegno e devi chiedere variazioni dei poteri, sostituzione o cessazione della misura.",
+    "tutela_curatela": "Usalo quando il caso ricade su tutela o curatela ordinaria e non vuoi confonderlo con l'amministrazione di sostegno.",
+    "reclamo_giudice_tutelare": "Usalo quando devi contestare un decreto del giudice tutelare e vuoi una scheda dedicata al reclamo davanti al tribunale.",
     "cassazione_lavoro": "Usalo quando il contenzioso di lavoro e gia arrivato alla fase di legittimita e non vuoi mescolare il ricorso per Cassazione con il giudizio di appello.",
     "mediazione": "Usalo quando la materia impone o rende utile un tentativo ADR prima del giudizio o in corso di causa.",
     "negoziazione_assistita": "Usalo quando la controversia richiede o consiglia una negoziazione assistita prima dell'azione giudiziale.",
@@ -1571,6 +1634,9 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
         "reclamo_famiglia_minori",
         "appello_famiglia_minori",
         "amministrazione_sostegno",
+        "nomina_amministratore_sostegno",
+        "modifica_revoca_ads",
+        "tutela_curatela",
     }:
         refs.append(
             {
@@ -1665,6 +1731,74 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "title": "Codice di procedura civile",
                 "article": "art. 720-bis",
                 "description": "Procedimento davanti al giudice tutelare per l'amministrazione di sostegno e i relativi provvedimenti.",
+                "url": _URL_CPC,
+            }
+        )
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 473-bis.52 e seguenti",
+                "description": "Sezione dedicata ai procedimenti di interdizione, inabilitazione e nomina di amministratore di sostegno nel rito vigente.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "nomina_amministratore_sostegno":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "artt. 404 e 405",
+                "description": "Presupposti della misura e decreto di nomina dell'amministratore di sostegno.",
+                "url": _URL_CC,
+            }
+        )
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 473-bis.52 e seguenti",
+                "description": "Procedimento vigente per interdizione, inabilitazione e nomina dell'amministratore di sostegno.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "modifica_revoca_ads":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "art. 413",
+                "description": "Revoca e modifica dell'amministrazione di sostegno e dei relativi provvedimenti.",
+                "url": _URL_CC,
+            }
+        )
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 473-bis.52 e seguenti",
+                "description": "Quadro processuale vigente per le istanze che incidono sulla misura di amministrazione di sostegno.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "tutela_curatela":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "artt. 343 e seguenti",
+                "description": "Disciplina di apertura e gestione della tutela e della curatela ordinaria.",
+                "url": _URL_CC,
+            }
+        )
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 473-bis.64 e seguenti",
+                "description": "Disposizioni processuali relative a minori, interdetti e inabilitati nel rito vigente.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "reclamo_giudice_tutelare":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 739",
+                "description": "Reclamo contro i decreti pronunciati in camera di consiglio, rilevante per i provvedimenti del giudice tutelare.",
                 "url": _URL_CPC,
             }
         )

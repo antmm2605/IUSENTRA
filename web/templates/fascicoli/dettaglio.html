@@ -1094,6 +1094,13 @@
                     {% if item.detail %}<div class="text-muted mt-1">{{ item.detail }}</div>{% endif %}
                     {% if item.action %}<div class="mt-1"><span class="text-muted">Correzione:</span> {{ item.action }}</div>{% endif %}
                     {% if item.source %}<div class="text-muted mt-1" style="font-size:.72rem">Fonte: {{ item.source }}</div>{% endif %}
+                    {% if item.action_url %}
+                    <div class="mt-2">
+                      <a href="{{ item.action_url }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-arrow-right-circle me-1"></i>{{ item.action_label or 'Correggi ora' }}
+                      </a>
+                    </div>
+                    {% endif %}
                   </div>
                   {% endfor %}
                 </div>
@@ -1122,6 +1129,13 @@
               <span class="badge text-bg-danger">Bloccata</span>
               {% endif %}
             </div>
+            {% if gate.url %}
+            <div class="mt-1">
+              <a href="{{ gate.url }}" class="btn btn-sm {% if gate.allowed %}btn-outline-success{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-arrow-right-circle me-1"></i>{{ gate.url_label or 'Apri' }}
+              </a>
+            </div>
+            {% endif %}
             {% endfor %}
           </div>
         </div>
@@ -1148,7 +1162,7 @@
 
     {# Cambia stato #}
     {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" id="sezione-documenti">
       <div class="card-header fw-semibold">
         <i class="bi bi-arrow-repeat me-2"></i>Cambia stato
       </div>
@@ -1174,7 +1188,7 @@
     {% endif %}
 
     {# Azioni fascicolo #}
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" id="sezione-deposito">
       <div class="card-header fw-semibold">
         <i class="bi bi-lightning me-2 text-primary"></i>Azioni
       </div>
@@ -1210,7 +1224,7 @@
     </div>
 
     {# Avanzamento pratica #}
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" id="sezione-parti">
       <div class="card-header fw-semibold">
         <i class="bi bi-clock-history me-2 text-primary"></i>Avanzamento pratica
       </div>
@@ -2184,6 +2198,37 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
       }, 1600);
     }
   });
+})();
+
+// ---- Deep link correttivi Responsabile di conformita ----
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const focus = params.get('focus');
+  const openModal = params.get('open_modal');
+  const modalMap = {
+    documento: 'modalDocumento',
+    parte: 'modalAggiungiParte',
+    deposito: 'modalDeposito'
+  };
+
+  if (focus) {
+    const target = document.getElementById(`sezione-${focus}`);
+    if (target) {
+      setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    }
+  }
+
+  const modalId = modalMap[openModal || ''];
+  if (modalId && window.bootstrap) {
+    const modalEl = document.getElementById(modalId);
+    if (modalEl) {
+      setTimeout(() => {
+        new bootstrap.Modal(modalEl).show();
+      }, 220);
+    }
+  }
 })();
 
 // ---- Autocomplete soggetti nel modal Aggiungi Parte ----

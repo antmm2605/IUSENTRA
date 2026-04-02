@@ -609,6 +609,144 @@ def create_app(config: dict | None = None) -> Flask:
             return 0
         return sum(1 for path in cartella.rglob("*") if path.is_file())
 
+    def _fascicolo_focus_url(id_fasc: str, *, focus: str = "", open_modal: str = "") -> str:
+        params: dict[str, str] = {}
+        if focus:
+            params["focus"] = focus
+        if open_modal:
+            params["open_modal"] = open_modal
+        base = url_for("dettaglio_fascicolo", id_fasc=id_fasc, **params)
+        return f"{base}#sezione-{focus}" if focus else base
+
+    def _responsabile_issue_action_meta(
+        id_fasc: str,
+        issue: dict,
+        *,
+        cliente=None,
+        summary: Optional[dict] = None,
+    ) -> dict[str, str]:
+        summary = summary or {}
+        model_code = str(summary.get("model_code") or "").strip()
+        cliente_id = str(getattr(cliente, "id", "") or "").strip()
+        compile_url = (
+            url_for(
+                "template_atti.compila",
+                model_code=model_code,
+                id_cliente=cliente_id,
+                id_fascicolo=id_fasc,
+            )
+            if model_code
+            else ""
+        )
+        edit_url = url_for("modifica_fascicolo", id_fasc=id_fasc)
+        deposit_url = url_for("deposito_prepara", id_fasc=id_fasc)
+        parti_url = _fascicolo_focus_url(id_fasc, focus="parti", open_modal="parte")
+        documenti_url = _fascicolo_focus_url(id_fasc, focus="documenti", open_modal="documento")
+
+        service = str(issue.get("service") or "").upper()
+        tokens = " ".join(
+            filter(
+                None,
+                [
+                    str(issue.get("code") or "").lower(),
+                    str(issue.get("field") or "").lower(),
+                    str(issue.get("title") or "").lower(),
+                    str(issue.get("detail") or "").lower(),
+                ],
+            )
+        )
+
+        if service == "DOCUMENTALE" or any(
+            token in tokens
+            for token in ("procura", "notifica", "relata", "contributo", "allegat", "sentenza", "indice", "ricevut")
+        ):
+            return {"action_url": documenti_url, "action_label": "Aggiungi documenti"}
+        if any(
+            token in tokens
+            for token in ("attore", "assistito", "controparte", "difensore", "cliente", "cf_", "pec_difensore", "parti")
+        ):
+            return {"action_url": parti_url, "action_label": "Completa parti e soggetti"}
+        if service == "TECNICO_PST" or any(
+            token in tokens for token in ("schema", "xml", "datiatto", "channel", "codice", "preview")
+        ):
+            return {"action_url": deposit_url, "action_label": "Apri pre-deposito"}
+        if any(
+            token in tokens
+            for token in (
+                "udienza",
+                "tribunale",
+                "registro",
+                "ufficio",
+                "competenza",
+                "valore",
+                "oggetto",
+                "sezione",
+                "numero_rg",
+                "anno_rg",
+                "giudice",
+            )
+        ):
+            return {"action_url": edit_url, "action_label": "Completa dati fascicolo"}
+        if service == "REDAZIONALE" or any(
+            token in tokens for token in ("redazione", "fatti", "facts", "requests", "conclusioni", "richieste")
+        ):
+            if compile_url:
+                return {"action_url": compile_url, "action_label": "Apri redattore guidato"}
+        return {"action_url": edit_url, "action_label": "Verifica il fascicolo"}
+
+    def _arricchisci_responsabile_conformita(
+        summary: Optional[dict],
+        *,
+        fascicolo: Fascicolo,
+        cliente=None,
+    ) -> Optional[dict]:
+        if not summary or not summary.get("available"):
+            return summary
+
+        model_code = str(summary.get("model_code") or "").strip()
+        cliente_id = str(getattr(cliente, "id", "") or "").strip()
+        compile_url = (
+            url_for(
+                "template_atti.compila",
+                model_code=model_code,
+                id_cliente=cliente_id,
+                id_fascicolo=fascicolo.id,
+            )
+            if model_code
+            else ""
+        )
+        detail_url = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
+        deposit_url = url_for("deposito_prepara", id_fasc=fascicolo.id)
+
+        summary["corrections"] = [
+            {
+                **issue,
+                **_responsabile_issue_action_meta(
+                    fascicolo.id,
+                    issue,
+                    cliente=cliente,
+                    summary=summary,
+                ),
+            }
+            for issue in summary.get("corrections", [])
+        ]
+
+        gates = dict(summary.get("action_gates") or {})
+        if gates.get("generate_final_act") and compile_url:
+            gates["generate_final_act"]["url"] = compile_url
+            gates["generate_final_act"]["url_label"] = "Apri redattore guidato"
+        if gates.get("generate_xml") and compile_url:
+            gates["generate_xml"]["url"] = compile_url
+            gates["generate_xml"]["url_label"] = "Completa dati strutturati"
+        if gates.get("prepare_deposit"):
+            gates["prepare_deposit"]["url"] = deposit_url
+            gates["prepare_deposit"]["url_label"] = "Apri pre-deposito"
+        if gates.get("close_review"):
+            gates["close_review"]["url"] = f"{detail_url}#accConformitaFascicolo"
+            gates["close_review"]["url_label"] = "Rivedi controlli"
+        summary["action_gates"] = gates
+        return summary
+
     def _tipo_documento_da_nome_portale(nome_file: str) -> TipoDocumento:
         nome = Path(nome_file).name.lower()
         checks = [
@@ -5823,6 +5961,11 @@ read -r -p "Premi Invio per chiudere..." _
             utente=g.utente_corrente,
             office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
             parti=parti,
+        )
+        responsabile_conformita = _arricchisci_responsabile_conformita(
+            responsabile_conformita,
+            fascicolo=fasc,
+            cliente=cliente,
         )
         return render_template(
             "fascicoli/dettaglio.html",

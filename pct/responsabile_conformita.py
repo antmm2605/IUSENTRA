@@ -965,6 +965,10 @@ def build_fascicolo_compliance_summary(
         seen_corrections.add(key)
         corrections.append(
             {
+                "code": str(issue.get("code") or "").strip(),
+                "field": str(issue.get("field") or "").strip(),
+                "service": str(issue.get("service") or "").strip(),
+                "level": str(issue.get("level") or "").strip(),
                 "state": "blocco" if issue.get("level") == LEVEL_BLOCK else "warning",
                 "title": str(issue.get("title") or "").strip(),
                 "detail": str(issue.get("detail") or "").strip(),

@@ -80,6 +80,8 @@ def test_responsabile_conformita_citazione_distinge_quattro_aree_e_blocchi(tmp_p
     assert summary["action_gates"]["generate_xml"]["applicable"] is True
     assert summary["action_gates"]["generate_xml"]["allowed"] is False
     assert summary["action_gates"]["prepare_deposit"]["allowed"] is False
+    assert any(issue.get("code") == "citazione_udienza_mancante" for issue in summary["blocking_issues"])
+    assert any(correction.get("service") for correction in summary["corrections"])
     assert any("prima comparizione" in issue["title"].lower() or "notificazione" in issue["detail"].lower() for issue in summary["blocking_issues"])
 
 
@@ -146,3 +148,6 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Controlli redazionali" in html
     assert "Correzioni da effettuare" in html
     assert "Manca la data della prima comparizione" in html
+    assert "Completa dati fascicolo" in html
+    assert "Aggiungi documenti" in html
+    assert "Apri redattore guidato" in html

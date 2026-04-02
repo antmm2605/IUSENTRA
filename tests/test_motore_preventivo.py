@@ -50,6 +50,9 @@ def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():
     stragiud_ids = {item["id"] for item in catalogo["Stragiudiziale"]}
     assert "controversia_lavoro" in civile_ids
     assert "previdenza" in civile_ids
+    assert "appello_previdenza" in civile_ids
+    assert "cassazione_previdenza" in civile_ids
+    assert "cassazione_lavoro" in civile_ids
     assert "sfratto_morosita" in civile_ids
     assert "risarcimento_danni" in civile_ids
     assert "sinistro_stradale_stragiudiziale" in stragiud_ids
@@ -128,10 +131,30 @@ def test_default_grado_civile_lavoro_e_previdenza_sono_allineati_al_rito():
     lavoro = redattore_preventivo_iniziale("controversia_lavoro")
     licenziamento = redattore_preventivo_iniziale("licenziamento")
     previdenza = redattore_preventivo_iniziale("previdenza")
+    appello_previdenza = redattore_preventivo_iniziale("appello_previdenza")
+    cassazione_previdenza = redattore_preventivo_iniziale("cassazione_previdenza")
+    cassazione_lavoro = redattore_preventivo_iniziale("cassazione_lavoro")
     danni = redattore_preventivo_iniziale("risarcimento_danni")
 
     assert sfratto["grado_default"] == "Tribunale"
     assert lavoro["grado_default"] == "Tribunale"
     assert licenziamento["grado_default"] == "Tribunale"
     assert previdenza["grado_default"] == "Tribunale"
+    assert appello_previdenza["grado_default"] == "Corte d'Appello"
+    assert cassazione_previdenza["grado_default"] == "Corte di Cassazione"
+    assert cassazione_lavoro["grado_default"] == "Corte di Cassazione"
     assert danni["grado_default"] == "Tribunale"
+
+
+def test_lavoro_e_previdenza_non_mischiano_piu_gradi_diversi_nella_stessa_tipologia():
+    appello_lavoro = redattore_preventivo_iniziale("appello_lavoro")
+    cassazione_lavoro = redattore_preventivo_iniziale("cassazione_lavoro")
+    previdenza = redattore_preventivo_iniziale("previdenza")
+    appello_previdenza = redattore_preventivo_iniziale("appello_previdenza")
+    cassazione_previdenza = redattore_preventivo_iniziale("cassazione_previdenza")
+
+    assert {row["rule_code"] for row in appello_lavoro["regole_tariffarie"]} == {"lavoro_appello"}
+    assert {row["rule_code"] for row in cassazione_lavoro["regole_tariffarie"]} == {"lavoro_cassazione"}
+    assert {row["rule_code"] for row in previdenza["regole_tariffarie"]} == {"previdenza_giudiziale"}
+    assert {row["rule_code"] for row in appello_previdenza["regole_tariffarie"]} == {"previdenza_appello"}
+    assert {row["rule_code"] for row in cassazione_previdenza["regole_tariffarie"]} == {"previdenza_cassazione"}

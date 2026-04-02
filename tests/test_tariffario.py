@@ -160,3 +160,32 @@ def test_recupero_crediti_e_comparsa_risposta_non_collassano_su_un_unico_grado()
     }
     assert default_rule_for_practice("comparsa_risposta")["rule_code"] == "civile_comparsa_risposta"
     assert set(comparsa) >= {"civile_comparsa_risposta", "civile_comparsa_risposta_gdp"}
+
+
+def test_lavoro_e_previdenza_hanno_tipologie_distinte_per_appello_e_cassazione():
+    appello_lavoro = {row["rule_code"]: row for row in rules_for_practice("appello_lavoro")}
+    cassazione_lavoro = {row["rule_code"]: row for row in rules_for_practice("cassazione_lavoro")}
+    previdenza_primo = {row["rule_code"]: row for row in rules_for_practice("previdenza")}
+    appello_previdenza = {row["rule_code"]: row for row in rules_for_practice("appello_previdenza")}
+    cassazione_previdenza = {row["rule_code"]: row for row in rules_for_practice("cassazione_previdenza")}
+
+    assert set(appello_lavoro) == {"lavoro_appello"}
+    assert set(cassazione_lavoro) == {"lavoro_cassazione"}
+    assert default_rule_for_practice("cassazione_lavoro")["rule_code"] == "lavoro_cassazione"
+    assert profile_lookup_by_rule("lavoro_cassazione")["table_code"] == "A13"
+
+    assert set(previdenza_primo) == {"previdenza_giudiziale"}
+    assert set(appello_previdenza) == {"previdenza_appello"}
+    assert set(cassazione_previdenza) == {"previdenza_cassazione"}
+    assert default_rule_for_practice("appello_previdenza")["rule_code"] == "previdenza_appello"
+    assert default_rule_for_practice("cassazione_previdenza")["rule_code"] == "previdenza_cassazione"
+
+
+def test_tributario_resta_gia_separato_per_primo_grado_appello_e_cassazione():
+    ricorso = {row["rule_code"] for row in rules_for_practice("ricorso_tributario")}
+    appello = {row["rule_code"] for row in rules_for_practice("appello_tributario")}
+    cassazione = {row["rule_code"] for row in rules_for_practice("cassazione_tributaria")}
+
+    assert ricorso == {"tributario_primo_grado"}
+    assert appello == {"tributario_secondo_grado"}
+    assert cassazione == {"tributario_cassazione"}

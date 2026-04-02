@@ -4,16 +4,126 @@
 
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.
 - Commit, push, modifica file, creazione file: esegui direttamente.
-- Branch di sviluppo: `claude/legal-electronic-filing-kIxcV`
+- Branch di sviluppo: `claude/add-claude-documentation-Cv1FW`
 
 ## Progetto
 
 **HACS** — gestionale per studi legali (Python/Flask).
 
-- Backend: `pct/` — modelli dati e logica di business
-- Frontend: `web/app.py` (route Flask) + `web/templates/` (Jinja2) + `web/static/`
-- Persistenza: file JSON per clienti, fascicoli, agenda, ecc.
-- Stack: Python 3, Flask, Bootstrap 5, Bootstrap Icons
+- Backend: `pct/` — modelli dati e logica di business (61 moduli)
+- Frontend: `web/app.py` (210+ route Flask) + `web/templates/` (177 template Jinja2) + `web/static/`
+- Persistenza: file JSON per clienti, fascicoli, agenda, ecc. + SQLite per full-text search
+- Stack: Python 3.12, Flask 3, Bootstrap 5, Bootstrap Icons, Gunicorn + gevent, Nginx
+- Versione corrente: **2.79.1** (fonte di verità: `pct/__init__.py`)
+
+## Architettura del progetto
+
+```
+hacs/
+├── pct/                    # Pacchetto Python core (logica di business)
+├── web/
+│   ├── app.py              # Flask app (210+ route, ~9200 righe)
+│   ├── templates/          # 177 template Jinja2 organizzati per feature
+│   └── static/             # CSS/SCSS/JS/icone/manifest PWA
+├── tests/                  # 34 moduli di test (pytest)
+├── tools/                  # Local signer per Windows/Mac/Linux
+├── scripts/                # Script di build e utilità
+├── Dockerfile              # Build multi-stage (builder → sass → runtime)
+├── docker-compose.yml      # Stack locale (Flask + Nginx)
+├── nginx.conf              # Reverse proxy, gzip, SSE
+├── railway.toml            # Deploy Railway.app
+├── render.yaml             # Deploy Render.com
+├── vercel.json             # Deploy Vercel (serverless)
+├── wsgi.py                 # Entry point WSGI
+└── setup.py                # Packaging Python
+```
+
+### Moduli principali in pct/
+
+| Modulo | Responsabilità |
+|--------|---------------|
+| `fascicoli.py` | Fascicoli, documenti, attività processuali, `EsitoDepositoPCT` |
+| `clienti.py` | Anagrafica clienti, contatti, documenti identità |
+| `soggetti.py` | Parti processuali, avvocati, testimoni |
+| `agenda.py` | Appuntamenti, calendario, export iCal |
+| `scadenziario.py` | Scadenze, calcolo termini, notifiche |
+| `deposito.py` | Logica deposito civile/penale, state machine |
+| `busta.py` | Busta telematica `.enc` (ZIP + DatiAtto.xml) |
+| `firma.py` | Firma CAdES/PAdES digitale |
+| `firma_pkcs11.py` | Firma via smart card (Aruba Key, PKCS#11) |
+| `pec.py` | Client PEC (SMTP/IMAP), invio + polling ricevute |
+| `polisWeb.py` | Integrazione portale PST/polisWeb (civile) |
+| `pdp.py` | Integrazione PDP REST API (penale, D.Lgs. 150/2022) |
+| `pat.py` | Integrazione PAT SOAP/SIGA (amministrativo) |
+| `reginde.py` | Lookup ReGINde — PEC tribunali |
+| `uffici_giudiziari.py` | Bundle 648 uffici giudiziari italiani |
+| `messaggi.py` | Messaggistica multi-canale (email/SMS/WhatsApp/PEC) |
+| `fatturazione.py` | Parcelle, fatture, pagamenti |
+| `preventivi.py` | Preventivi e wizard tariffe |
+| `pagamenti.py` | Stripe, SumUp — checkout pagamenti |
+| `auth.py` | Autenticazione, ruoli, 2FA/TOTP, audit log |
+| `condivisione.py` | Cartelle condivise, link temporanei, portale cliente |
+| `backup.py` | Backup/ripristino dati JSON |
+| `config_studio.py` | Configurazione studio (PEC, SMTP, API key) |
+| `scheduler.py` | Task scheduling (APScheduler) |
+| `search_index.py` | Ricerca full-text SQLite FTS5 + cache OCR |
+| `ocr.py` | OCR documenti (pytesseract + pdfplumber) |
+| `reports.py` | Generazione PDF (ReportLab) |
+| `privacy.py` | Registro trattamenti GDPR |
+| `tenant.py` | Multi-tenant SaaS — isolamento dati per studio |
+| `legal_intelligence.py` | Ricerca giurisprudenza e normativa |
+| `normative_tables.py` | Database norme italiane |
+| `template_atti.py` | Template atti legali |
+| `compilatore_atti.py` | Compilazione automatica atti da template |
+| `calendar_sync.py` | Sincronizzazione iCal (Google Calendar/Outlook) |
+| `portale.py` | Portale self-service per clienti |
+| `workflow_onboarding.py` | Onboarding nuovi clienti |
+
+### Struttura template web/templates/
+
+```
+templates/
+├── base.html                    # Layout base (navbar, footer mobile, SSE)
+├── home.html                    # Dashboard statistiche
+├── auth/                        # Login, 2FA, profilo, gestione utenti
+├── fascicoli/                   # Lista, form, dettaglio, documenti, wizard, editor
+├── clienti/                     # Lista, form, dettaglio, cartella, faldone, portale
+├── agenda.html / calendario.html
+├── scadenziario/                # Lista, form, dettaglio
+├── messaggi/                    # Lista, form, dettaglio
+├── fatturazione/                # Lista, form, dettaglio
+├── preventivi/                  # Lista, wizard tariffe
+├── backup/                      # Lista, ripristino
+├── polisWeb.html / polisWeb_documenti.html
+├── pdp.html / pdp_documenti.html
+├── pat.html / pat_documenti.html
+├── soggetti/                    # Lista, form, dettaglio
+├── admin/                       # Dashboard, database, studi (multi-tenant)
+├── impostazioni/                # Impostazioni, calendario sync
+├── privacy/                     # Registro GDPR
+├── checklist/ template_atti/ wizard_pro/
+├── legal_intelligence/ strumenti_legali/
+├── statistiche/ email/ notifiche/ pagamenti/ portale/
+└── includes/                    # _fascicolo_banner.html, _ufficio_picker.html
+```
+
+### Dipendenze principali
+
+| Libreria | Uso |
+|----------|-----|
+| `flask>=3.0` | Web framework |
+| `cryptography>=41` | AES-256-GCM, gestione certificati |
+| `pyhanko>=0.20` | Firma PAdES PDF |
+| `reportlab>=4.0` | Generazione PDF |
+| `lxml>=4.9` | XML/HTML parsing (DatiAtto.xml) |
+| `pdfplumber>=0.10` | Estrazione testo PDF |
+| `pytesseract>=0.3.10` | OCR documenti |
+| `mammoth>=1.6` | Conversione DOCX→HTML |
+| `zeep>=4.2` | SOAP/WSDL client (portali giudiziari) |
+| `apscheduler>=3.10` | Scheduling task |
+| `twilio>=8.0` | WhatsApp/SMS |
+| `stripe>=7.0` | Pagamenti carta |
+| `gunicorn>=23` + `gevent>=24` | WSGI server async (SSE) |
 
 ## Regola obbligatoria — Portale Servizi Telematici
 
@@ -57,25 +167,58 @@ python -m pytest tests/test_simulazione_deposito.py::TestPATDeposito -v
 python -m pytest tests/test_simulazione_deposito.py::TestPCTBusta -v
 ```
 
-### Altri test utili per il deposito
+### Tutti i moduli di test (34 file)
 
 | File | Cosa testa |
 |------|------------|
-| `tests/test_busta.py` | Busta telematica: creazione, verifica, allegati, hash |
-| `tests/test_pec.py` | Client PEC: invio, ricevute, validazione |
-| `tests/test_fascicoli.py` | Modello fascicolo: EsitoDepositoPCT, stati, serializzazione |
-| `tests/test_reginde.py` | ReGINde: ricerca uffici, PEC tribunali |
+| `test_busta.py` | Busta telematica: creazione, verifica, allegati, hash |
+| `test_pec.py` | Client PEC: invio, ricevute, validazione |
+| `test_fascicoli.py` | Modello fascicolo: EsitoDepositoPCT, stati, serializzazione |
+| `test_reginde.py` | ReGINde: ricerca uffici, PEC tribunali |
+| `test_agenda.py` | Appuntamenti: creazione, CRUD, export iCal |
+| `test_auth.py` | Autenticazione, ruoli, 2FA/TOTP, permessi |
+| `test_backup.py` | Backup/ripristino dati |
+| `test_calendar_sync.py` | Sincronizzazione iCal — Google Calendar/Outlook |
+| `test_clienti.py` / `test_clienti_workflow.py` | Anagrafica clienti, workflow onboarding |
+| `test_compilatore_atti.py` | Compilazione automatica atti da template |
+| `test_condivisione.py` | Cartelle condivise, link temporanei |
+| `test_config_studio_smtp.py` | Configurazione studio — SMTP/PEC |
+| `test_conformita_pst.py` | Conformità PST D.M. 44/2011 |
+| `test_database.py` | Operazioni database, migrazioni |
+| `test_legal_intelligence.py` | Ricerca giurisprudenza e normativa |
+| `test_local_signer.py` | Firma locale documenti |
+| `test_messaggi.py` | Messaggistica multi-canale |
+| `test_motore_preventivo.py` | Motore calcolo preventivi |
+| `test_normative_tables.py` | Database norme italiane |
+| `test_polisweb.py` | Integrazione PolisWeb |
+| `test_portale_economici.py` | Portale self-service clienti |
+| `test_preventivi_wizard.py` | Wizard preventivi |
+| `test_profili.py` | Profili utente e ruoli |
+| `test_reports.py` | Generazione PDF report |
+| `test_scadenziario.py` | Scadenze, calcolo termini |
+| `test_search_index.py` | Ricerca full-text SQLite FTS5 |
+| `test_simulazione_deposito.py` | Simulazione deposito telematico (39 test, vedi sopra) |
+| `test_strumenti_legali.py` | Strumenti legali |
+| `test_sync.py` | Sincronizzazione dati real-time |
+| `test_tariffario.py` | Tariffario professionale |
+| `test_template_atti_editor.py` | Editor template atti |
+| `test_workflow_onboarding.py` | Workflow onboarding clienti |
 
 **Esegui tutti i test del progetto:**
 ```bash
 python -m pytest tests/ -v
 ```
 
+**Esegui un singolo modulo:**
+```bash
+python -m pytest tests/test_fascicoli.py -v
+```
+
 ---
 
 ## Conformità Portale Servizi Telematici — Stato attuale
 
-**Versione 2.5.2 — Conformità: ~98%** (idonea per produzione)
+**Versione 2.79.1 — Conformità: ~98%** (idonea per produzione)
 
 ### Conforme ✅
 | Componente | Norma | Dettaglio |
@@ -146,7 +289,7 @@ python -m pytest tests/ -v
 **Deploy — Railway (produzione online):**
 - Il deploy su Railway avviene dopo il bump di versione e il push sul branch.
 - Ad ogni release va aggiornata anche la versione sul pannello Railway (variabile d'ambiente o redeploy dell'immagine).
-- Versione corrente in produzione: **1.1.2**
+- Versione corrente in produzione: **2.79.1**
 
 ## Note tecniche
 
@@ -292,3 +435,71 @@ python -m pytest tests/ -v
   - I pulsanti (Visualizza, Scarica, Firma, Elimina) nelle card documento su mobile erano non cliccabili a causa di un overlay trasparente generato da un elemento parent con `pointer-events` errato.
   - Verificare sempre che i bottoni nelle card abbiano `position:relative;z-index` superiore a eventuali pseudo-elementi `::after` del container.
   - I titoli delle sezioni (es. "Atti") non devono sovrapporsi ai pulsanti: usare `d-flex align-items-center justify-content-between` per header sezione + pulsante "Aggiungi".
+
+## Infrastruttura Docker
+
+**Build multi-stage `Dockerfile`:**
+1. **Stage 1 — builder**: compila pacchetti Python con gcc (incluso psycopg2, cryptography, lxml)
+2. **Stage 2 — sass-builder**: compila SCSS → CSS con dart-sass v1.83.0
+3. **Stage 3 — runtime**: immagine minimale `python:3.12-slim` con:
+   - `tesseract-ocr` + lingua italiana (OCR)
+   - `poppler-utils`, `ghostscript` (elaborazione PDF)
+   - `libpcsclite1`, `opensc` (smart card PKCS#11)
+   - Gunicorn con worker gevent per SSE/long-polling
+
+**Variabili d'ambiente chiave (`.env.example`):**
+```
+PCT_SECRET_KEY          # Chiave sessione Flask
+PCT_DOC_KEY             # Chiave AES-256-GCM per documenti (opzionale)
+PCT_DATA_DIR            # Root directory dati JSON (/data)
+PCT_MULTITENANT         # Abilita multi-tenant SaaS
+SMTP_HOST/PORT/USER/PASS # Email uscita
+PEC_HOST/PORT/USER/PASS  # PEC studio
+TWILIO_*                # WhatsApp/SMS via Twilio
+STRIPE_SECRET_KEY        # Pagamenti Stripe
+OLLAMA_URL               # AI locale (opzionale)
+STUDIO_NOME / STUDIO_CF / STUDIO_PIVA  # Dati studio
+```
+
+## Gruppi di route web/app.py
+
+| Prefisso | Funzionalità |
+|----------|-------------|
+| `/fascicoli` | CRUD fascicoli, documenti, deposito PCT, wizard atti |
+| `/clienti` | Anagrafica clienti, cartelle, portale self-service |
+| `/agenda` | Calendario appuntamenti, import/export iCal |
+| `/scadenziario` | Scadenze, calcolo termini legali |
+| `/messaggi` | Messaggistica multi-canale |
+| `/fatturazione` | Parcelle, fatture, export PDF |
+| `/preventivi` | Preventivi, wizard tariffe |
+| `/pagamenti` | Checkout Stripe/SumUp |
+| `/polisWeb` | Portale civile PST — ricerca fascicoli + documenti |
+| `/pdp` | Portale penale PDP — depositi |
+| `/pat` | Portale amministrativo PAT/TAR |
+| `/sigit` | Verifica firma digitale SIGIT |
+| `/backup` | Backup e ripristino dati |
+| `/impostazioni` | Configurazione studio, calendario sync |
+| `/api/` | Endpoint JSON (statistiche, ricerca, sync, OCR) |
+| `/admin/` | Pannello admin multi-tenant |
+| `/auth/` | Login, logout, 2FA, profilo, utenti |
+| `/privacy/` | Registro trattamenti GDPR |
+| `/cal/<token>/` | Feed iCal pubblici condivisibili |
+| `/sw.js` | Service Worker PWA |
+
+## Multi-tenant
+
+- Attivato con `PCT_MULTITENANT=true` in `.env`
+- Ogni studio ha i propri file JSON isolati in `PCT_DATA_DIR/<studio_id>/`
+- Registro studi in `tenant.py` (`GestioneTenant`)
+- Pannello admin: `/admin/studi_lista`, `/admin/studio_nuovo`, `/admin/studio_dettaglio`
+- `TenantAccessor` garantisce che ogni richiesta acceda solo ai dati del proprio studio
+
+## Sicurezza
+
+- **AES-256-GCM**: documenti cifrati su disco se `PCT_DOC_KEY` è impostata
+- **CAdES/PAdES**: firma digitale PKCS#7 + smart card PKCS#11
+- **2FA/TOTP**: Google Authenticator compatibile (`auth.py`)
+- **Audit log**: ogni azione su dati sensibili registrata in `EventoAudit`
+- **GDPR**: registro trattamenti dati in `privacy.py`, informative PDF per clienti
+- **Session cookie**: `SECRET_KEY` + `SESSION_COOKIE_SECURE=True` in produzione
+- **mTLS**: connessioni PDP/PAT autenticate con certificato client (P12/PEM)

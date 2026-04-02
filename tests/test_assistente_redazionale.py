@@ -166,3 +166,87 @@ def test_api_assistente_redazionale_restituisce_riepilogo_intelligente(tmp_path)
     assert data["analysis"]["profile"]["channel"] == "PAT_AMMINISTRATIVO"
     assert data["analysis"]["schema_channel"]["label"] == "Processo amministrativo telematico"
     assert "next_steps" in data["analysis"]
+
+
+def test_compila_template_post_usa_id_fascicolo_del_form_anche_se_query_vuota(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    utente = gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Francesco",
+        cognome="Stillitano",
+        codice_fiscale="STLFNC80A01H501Q",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = fascicoli.nuovo(
+        titolo="Causa di risarcimento danni",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1234",
+        anno_rg=2026,
+        controparte="SeiDonne S.a.s.",
+        id_cliente=cliente.id,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/template-atti/compila/STR_DIFF_001?model_code=STR_DIFF_001&id_cliente={cliente.id}&id_fascicolo=",
+            data={
+                "id_cliente": cliente.id,
+                "id_fascicolo": fasc.id,
+                "model_code": "STR_DIFF_001",
+                "title": "Diffida",
+                "area": "STRAGIUDIZIALE",
+                "act_type": "Diffida",
+                "case_id": fasc.id,
+                "matter": "STRAGIUDIZIALE",
+                "recipient_or_court": "Invio / notifica a mezzo PEC",
+                "client_or_sender": cliente.nome_completo,
+                "counterparty_or_recipient": "SeiDonne S.a.s.",
+                "lawyer": "Avv. Mario Rossi",
+                "subject": "Diffida",
+                "facts": "La controparte permane inadempiente nonostante i precedenti solleciti.",
+                "requests_or_conclusions": "Si intima l'adempimento entro il termine assegnato.",
+                "place": "Palmi",
+                "document_date": "2026-04-02",
+                "signature": "Avv. Mario Rossi",
+                "attachments_list": "contratto.pdf\npec_precedente.eml",
+                "author_user_id": utente.id,
+                "version": "1.0",
+                "status": "BOZZA",
+                "sender": cliente.nome_completo,
+                "recipient": "seidonnesas@legalmail.it",
+                "breach_description": "Mancato pagamento del corrispettivo dovuto.",
+                "specific_request": "Versare quanto dovuto entro il termine indicato.",
+                "deadline_assigned": "2026-04-03",
+                "final_warning": "In difetto si procedera senza ulteriore avviso.",
+            },
+        )
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Bozza professionale" in html
+    assert "Campo redazionale obbligatorio: case_id" not in html
+    assert "Pratica Collegata obbligatorio." not in html

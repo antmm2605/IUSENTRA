@@ -137,8 +137,26 @@ def _resolve_compiler_context(model_code: str):
         prefill_payload,
     )
 
-    id_cliente = request.values.get("id_cliente", "").strip()
-    id_fascicolo = request.values.get("id_fascicolo", "").strip()
+    if request.method == "POST":
+        id_cliente = (
+            request.form.get("id_cliente", "").strip()
+            or request.args.get("id_cliente", "").strip()
+        )
+        id_fascicolo = (
+            request.form.get("id_fascicolo", "").strip()
+            or request.form.get("case_id", "").strip()
+            or request.args.get("id_fascicolo", "").strip()
+        )
+    else:
+        id_cliente = (
+            request.args.get("id_cliente", "").strip()
+            or request.form.get("id_cliente", "").strip()
+        )
+        id_fascicolo = (
+            request.args.get("id_fascicolo", "").strip()
+            or request.form.get("id_fascicolo", "").strip()
+            or request.form.get("case_id", "").strip()
+        )
 
     clienti_repo = get_clienti()
     fascicoli_repo = get_fascicoli()
@@ -158,7 +176,7 @@ def _resolve_compiler_context(model_code: str):
     payload = initial_payload
     if request.method == "POST":
         form_data = request.form.to_dict(flat=True)
-        form_data["case_id"] = id_fascicolo
+        form_data["case_id"] = form_data.get("case_id", "").strip() or id_fascicolo
         if id_cliente and not form_data.get("client_or_sender"):
             form_data["client_or_sender"] = getattr(selected_cliente, "nome_completo", "")
         payload = merge_payload_with_form(

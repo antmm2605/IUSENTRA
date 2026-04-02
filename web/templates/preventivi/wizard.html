@@ -346,6 +346,23 @@
     backdrop-filter: blur(10px);
     box-shadow: 0 .65rem 1.7rem rgba(15, 23, 42, .05);
   }
+  .prev-toolbar-shell {
+    position: relative;
+  }
+  .prev-toolbar-placeholder {
+    display: none;
+  }
+  .prev-toolbar-placeholder.active {
+    display: block;
+  }
+  .prev-toolbar.is-fixed {
+    position: fixed;
+    top: var(--prev-toolbar-top, 5.45rem);
+    left: var(--prev-toolbar-left, auto);
+    width: var(--prev-toolbar-width, auto);
+    z-index: 40;
+    margin-bottom: 0;
+  }
   .prev-toolbar-top {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(17rem, .8fr);
@@ -580,6 +597,16 @@
     .prev-toolbar {
       position: static;
     }
+    .prev-toolbar.is-fixed {
+      position: static;
+      width: auto;
+      left: auto;
+      top: auto;
+    }
+    .prev-toolbar-placeholder {
+      display: none !important;
+      height: 0 !important;
+    }
   }
   @media (max-width: 991.98px) {
     .prev-toolbar-top {
@@ -807,7 +834,9 @@
               <div class="small text-muted" id="fascicoloContextHint">L'area pratica viene proposta automaticamente in base al fascicolo collegato.</div>
             </div>
           </div>
-          <div class="prev-toolbar">
+          <div class="prev-toolbar-shell" id="tipologiaToolbarShell">
+            <div class="prev-toolbar-placeholder" id="tipologiaToolbarPlaceholder" aria-hidden="true"></div>
+            <div class="prev-toolbar" id="tipologiaToolbar">
             <div class="prev-toolbar-top">
               <div>
                 <div class="prev-section-label mb-2">Area pratica</div>
@@ -844,6 +873,7 @@
                 <button type="button" class="prev-filter-chip" data-compenso-filter="ADR">ADR</button>
               </div>
             </div>
+          </div>
           </div>
           <div class="row g-3 prev-tipo-grid" id="tipologiaGrid"></div>
         </div>
@@ -1240,6 +1270,49 @@ function scrollWizardSection(stepId) {
   window.requestAnimationFrame(() => {
     card.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+}
+
+function isDesktopWizardLayout() {
+  return window.matchMedia('(min-width: 1200px)').matches;
+}
+
+function resetTipologiaToolbarPin() {
+  const toolbar = document.getElementById('tipologiaToolbar');
+  const placeholder = document.getElementById('tipologiaToolbarPlaceholder');
+  if (!toolbar || !placeholder) return;
+  toolbar.classList.remove('is-fixed');
+  toolbar.style.removeProperty('--prev-toolbar-left');
+  toolbar.style.removeProperty('--prev-toolbar-width');
+  toolbar.style.removeProperty('--prev-toolbar-top');
+  placeholder.classList.remove('active');
+  placeholder.style.height = '0px';
+}
+
+function syncTipologiaToolbarPin() {
+  const main = document.getElementById('main');
+  const shell = document.getElementById('tipologiaToolbarShell');
+  const toolbar = document.getElementById('tipologiaToolbar');
+  const placeholder = document.getElementById('tipologiaToolbarPlaceholder');
+  const step2Collapse = document.getElementById('wizardStep2Collapse');
+  if (!main || !shell || !toolbar || !placeholder || !step2Collapse || !step2Collapse.classList.contains('show') || !isDesktopWizardLayout()) {
+    resetTipologiaToolbarPin();
+    return;
+  }
+  const mainRect = main.getBoundingClientRect();
+  const shellRect = shell.getBoundingClientRect();
+  const toolbarHeight = toolbar.offsetHeight;
+  const fixedTop = Math.max(mainRect.top + 12, 12);
+  const shouldPin = shellRect.top <= fixedTop && (shellRect.bottom - toolbarHeight) > fixedTop;
+  if (!shouldPin) {
+    resetTipologiaToolbarPin();
+    return;
+  }
+  toolbar.classList.add('is-fixed');
+  toolbar.style.setProperty('--prev-toolbar-left', `${shellRect.left}px`);
+  toolbar.style.setProperty('--prev-toolbar-width', `${shellRect.width}px`);
+  toolbar.style.setProperty('--prev-toolbar-top', `${fixedTop}px`);
+  placeholder.classList.add('active');
+  placeholder.style.height = `${toolbarHeight}px`;
 }
 
 function phaseLabel(key) {
@@ -2411,8 +2484,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderTipologie();
     });
   });
-  advancedFiltersCollapse.addEventListener('shown.bs.collapse', () => setChipButtonState(btnToggleAdvancedFilters, true));
-  advancedFiltersCollapse.addEventListener('hidden.bs.collapse', () => setChipButtonState(btnToggleAdvancedFilters, false));
+  advancedFiltersCollapse.addEventListener('shown.bs.collapse', () => {
+    setChipButtonState(btnToggleAdvancedFilters, true);
+    syncTipologiaToolbarPin();
+  });
+  advancedFiltersCollapse.addEventListener('hidden.bs.collapse', () => {
+    setChipButtonState(btnToggleAdvancedFilters, false);
+    syncTipologiaToolbarPin();
+  });
+  document.getElementById('wizardStep2Collapse').addEventListener('shown.bs.collapse', syncTipologiaToolbarPin);
+  document.getElementById('wizardStep2Collapse').addEventListener('hidden.bs.collapse', resetTipologiaToolbarPin);
+  document.getElementById('main')?.addEventListener('scroll', syncTipologiaToolbarPin, { passive: true });
+  window.addEventListener('resize', syncTipologiaToolbarPin);
   document.getElementById('btnCalcolaPreventivo').addEventListener('click', calcolaPreventivo);
     document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
     document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
@@ -2454,6 +2537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyWizardPrefill();
   syncToolbarState();
   setChipButtonState(btnToggleAdvancedFilters, advancedFiltersCollapse.classList.contains('show'));
+  syncTipologiaToolbarPin();
   document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
     if (!tipologiaCorrente) {
       event.preventDefault();

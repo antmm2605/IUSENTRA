@@ -381,7 +381,11 @@ def test_tariffario_estende_profili_e_regole_ufficiali_non_ancora_tipizzati():
     assert {row["rule_code"] for row in rules_for_practice("istruzione_preventiva")} == {"civile_istruzione_preventiva"}
     assert {row["rule_code"] for row in rules_for_practice("cautelare_civile")} == {"civile_cautelare"}
     assert {row["rule_code"] for row in rules_for_practice("giudizio_corte_conti")} == {"contabile_corte_conti"}
-    assert {row["rule_code"] for row in rules_for_practice("giurisdizioni_superiori")} == {"giurisdizioni_superiori"}
+    assert {row["rule_code"] for row in rules_for_practice("giurisdizioni_superiori")} == {
+        "giurisdizioni_superiori_corte_costituzionale",
+        "giurisdizioni_superiori_corte_edu",
+        "giurisdizioni_superiori_corte_giustizia_ue",
+    }
     assert {row["rule_code"] for row in rules_for_practice("iscrizione_ipotecaria_tavolare")} == {"affari_ipotecari_tavolari"}
     assert {row["rule_code"] for row in rules_for_practice("apertura_liquidazione_giudiziale")} == {"crisi_impresa_apertura"}
     assert {row["rule_code"] for row in rules_for_practice("accertamento_passivo")} == {"crisi_impresa_passivo"}
@@ -390,9 +394,12 @@ def test_tariffario_estende_profili_e_regole_ufficiali_non_ancora_tipizzati():
     assert default_rule_for_practice("indagini_difensive")["rule_code"] == "penale_indagini_difensive"
     assert default_rule_for_practice("convalida_arresto")["rule_code"] == "penale_convalida_arresto"
     assert default_rule_for_practice("sorveglianza_penale")["rule_code"] == "penale_sorveglianza_tribunale"
+    assert default_rule_for_practice("giurisdizioni_superiori")["rule_code"] == "giurisdizioni_superiori_corte_costituzionale"
 
     assert profile_lookup_by_rule("contabile_corte_conti")["table_code"] == "A11"
-    assert profile_lookup_by_rule("giurisdizioni_superiori")["table_code"] == "A14"
+    assert profile_lookup_by_rule("giurisdizioni_superiori_corte_costituzionale")["table_code"] == "A14"
+    assert profile_lookup_by_rule("giurisdizioni_superiori_corte_edu")["grado_input_value"] == "Corte europea dei diritti dell'uomo"
+    assert profile_lookup_by_rule("giurisdizioni_superiori_corte_giustizia_ue")["grado_input_value"] == "Corte di giustizia UE"
     assert profile_lookup_by_rule("affari_ipotecari_tavolari")["table_code"] == "A19"
     assert profile_lookup_by_rule("crisi_impresa_apertura")["table_code"] == "A20"
     assert profile_lookup_by_rule("crisi_impresa_passivo")["table_code"] == "A20-BIS"

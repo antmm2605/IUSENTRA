@@ -288,6 +288,7 @@ def test_catalogo_wizard_estende_tabelle_ufficiali_dm147_nel_preventivo_guidato(
 def test_nuove_tipologie_tariffarie_espongono_regole_gradi_e_fonti_specialistiche():
     istruzione = redattore_preventivo_iniziale("istruzione_preventiva")
     corte_conti = redattore_preventivo_iniziale("giudizio_corte_conti")
+    giurisdizioni_superiori = redattore_preventivo_iniziale("giurisdizioni_superiori")
     passivo = redattore_preventivo_iniziale("accertamento_passivo")
     cautelari_penali = redattore_preventivo_iniziale("misure_cautelari_penali")
     sorveglianza = redattore_preventivo_iniziale("sorveglianza_penale")
@@ -300,6 +301,14 @@ def test_nuove_tipologie_tariffarie_espongono_regole_gradi_e_fonti_specialistich
     assert corte_conti["grado_default"] == "Corte dei Conti"
     assert {row["rule_code"] for row in corte_conti["regole_tariffarie"]} == {"contabile_corte_conti"}
     assert any(ref["title"] == "D.Lgs. 26 agosto 2016, n. 174" for ref in corte_conti["normative_references"])
+
+    assert giurisdizioni_superiori["materia"] == "Giurisdizioni superiori / europee"
+    assert giurisdizioni_superiori["grado_default"] == "Corte costituzionale"
+    assert {row["rule_code"] for row in giurisdizioni_superiori["regole_tariffarie"]} == {
+        "giurisdizioni_superiori_corte_costituzionale",
+        "giurisdizioni_superiori_corte_edu",
+        "giurisdizioni_superiori_corte_giustizia_ue",
+    }
 
     assert passivo["materia"] == "Crisi d'impresa / concorsuale"
     assert passivo["grado_default"] == "Tribunale concorsuale"

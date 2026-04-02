@@ -987,10 +987,10 @@ CATALOGO.extend(
         ),
         TipoPratica(
             id="giurisdizioni_superiori",
-            label="Corte costituzionale / Corte europea / CGUE",
+            label="Giurisdizioni superiori / europee",
             area="Speciali",
             materia=Materia.GIURISDIZIONI_SUPERIORI,
-            grado_default=Grado.CORTE_SUPERIORE_UE,
+            grado_default=Grado.CORTE_COSTITUZIONALE,
             fasi_default=_FASI_BASE,
             base_normativa="Tab. A14 DM 55/2014 agg. DM 147/2022 - giurisdizioni costituzionali e sovranazionali.",
         ),

@@ -55,6 +55,9 @@ class Grado(str, Enum):
     TAR = "TAR"
     CONSIGLIO_DI_STATO = "Consiglio di Stato"
     CORTE_DEI_CONTI = "Corte dei Conti"
+    CORTE_COSTITUZIONALE = "Corte costituzionale"
+    CORTE_EDU = "Corte europea dei diritti dell'uomo"
+    CORTE_GIUSTIZIA_UE = "Corte di giustizia UE"
     CORTE_SUPERIORE_UE = "Corte cost. / Corte europea / CGUE"
     CONSERVATORIA_TAVOLARE = "Conservatoria / tavolare"
     TRIBUNALE_CONCORSUALE = "Tribunale concorsuale"
@@ -245,6 +248,9 @@ _GRADO_COEFF_APPROSSIMATI = {
     Grado.TAR: 1.0,
     Grado.CONSIGLIO_DI_STATO: 1.0,
     Grado.CORTE_DEI_CONTI: 1.0,
+    Grado.CORTE_COSTITUZIONALE: 1.0,
+    Grado.CORTE_EDU: 1.0,
+    Grado.CORTE_GIUSTIZIA_UE: 1.0,
     Grado.CORTE_SUPERIORE_UE: 1.0,
     Grado.CONSERVATORIA_TAVOLARE: 1.0,
     Grado.TRIBUNALE_CONCORSUALE: 1.0,

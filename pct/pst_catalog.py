@@ -12,10 +12,15 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 
-PST_WEB_SERVICES_DOC_VERSION = "1.65"
+PST_WEB_SERVICES_DOC_VERSION = "1.69"
 PST_WEB_SERVICES_DOC_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
-    "Documentazione_servizi_web_v1.65.pdf"
+    "Documentazione_servizi_web_v1.69.pdf"
+)
+PST_WEB_SERVICES_DOC_PAGE_URL = "https://pst.giustizia.it/PST/it/documentation.page"
+PST_WEB_SERVICES_WSDL_CATALOG_VERSION = "1.52"
+PST_WEB_SERVICES_UPDATE_PAGE_URL = (
+    "https://pst.giustizia.it/PST/it/pst_2_14.wp?contentId=ACC4571"
 )
 PST_USER_VADEMECUM_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
@@ -29,8 +34,8 @@ PST_DM44_SPECIFICHE_URL = (
 PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
-PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.65-2026.04.02.1"
-PST_SCHEMA_VERSION = "PST-SCHEMI-v1.65-2026.04.02.1"
+PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.04.02.1"
+PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.04.02.1"
 PST_MAX_BUSTA_MB = 60
 PST_MAX_BUSTA_BYTES = PST_MAX_BUSTA_MB * 1024 * 1024
 PST_FORMAL_ERROR_CODES = {
@@ -149,8 +154,16 @@ def get_official_methods() -> list[PSTOfficialMethod]:
 def get_catalog_sources() -> list[dict[str, str]]:
     return [
         {
-            "label": "PST - documentazione servizi web software house v1.65",
+            "label": "PST - documentazione servizi web software house v1.69",
             "url": PST_WEB_SERVICES_DOC_URL,
+        },
+        {
+            "label": "PST - pagina documentazione ufficiale",
+            "url": PST_WEB_SERVICES_DOC_PAGE_URL,
+        },
+        {
+            "label": "PST - avviso aggiornamento documentazione servizi web",
+            "url": PST_WEB_SERVICES_UPDATE_PAGE_URL,
         },
         {
             "label": f"PST - specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
@@ -181,6 +194,9 @@ def get_catalog_snapshot() -> dict[str, Any]:
     return {
         "pst_webservices_doc_version": PST_WEB_SERVICES_DOC_VERSION,
         "pst_webservices_doc_url": PST_WEB_SERVICES_DOC_URL,
+        "pst_webservices_doc_page_url": PST_WEB_SERVICES_DOC_PAGE_URL,
+        "pst_webservices_update_page_url": PST_WEB_SERVICES_UPDATE_PAGE_URL,
+        "pst_webservices_wsdl_catalog_version": PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
         "pst_user_vademecum_url": PST_USER_VADEMECUM_URL,
         "pst_dm44_specifiche_revision": PST_DM44_SPECIFICHE_REVISION,
         "pst_dm44_specifiche_url": PST_DM44_SPECIFICHE_URL,

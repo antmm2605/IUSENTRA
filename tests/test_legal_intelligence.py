@@ -199,6 +199,61 @@ def test_dashboard_snapshot_include_fonti_tariffario_e_fatturazione(tmp_path):
 
     assert "agenzia_entrate" in source_ids
     assert "fatturapa" in source_ids
+    assert "pst_servizi_web" in source_ids
+
+
+def test_monitor_source_pst_servizi_web_rileva_versione_e_catalogo_wsdl(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    html = b"""
+    <html><body>
+      <a href="/PST/resources/cms/documents/Documentazione_servizi_web_v1.69.pdf">
+        Documentazione servizi web esposti (versione 1.69)
+      </a>
+      <a href="/PST/resources/cms/documents/A1_WSDL_CATALOG_v1.52.zip">Catalogo WSDL</a>
+    </body></html>
+    """
+
+    result = gestore.monitor_source(
+        "pst_servizi_web",
+        request_get=lambda *args, **kwargs: DummyResponse(
+            html,
+            url="https://pst.giustizia.it/PST/it/documentation.page",
+        ),
+    )
+
+    assert result["ok"] is True
+    assert result["run"]["detected_version"] == "1.69"
+    assert result["run"]["detected_reference"] == "1.52"
+    assert result["run"]["detected_document_url"].endswith("Documentazione_servizi_web_v1.69.pdf")
+
+
+def test_monitor_source_pst_servizi_web_segnala_disallineamento_versione(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    html = b"""
+    <html><body>
+      <a href="/PST/resources/cms/documents/Documentazione_servizi_web_v1.70.pdf">
+        Documentazione servizi web esposti (versione 1.70)
+      </a>
+      <a href="/PST/resources/cms/documents/A1_WSDL_CATALOG_v1.53.zip">Catalogo WSDL</a>
+    </body></html>
+    """
+
+    result = gestore.monitor_source(
+        "pst_servizi_web",
+        request_get=lambda *args, **kwargs: DummyResponse(
+            html,
+            url="https://pst.giustizia.it/PST/it/documentation.page",
+        ),
+    )
+
+    alert_types = {alert["alert_type"] for alert in result["alerts"]}
+
+    assert result["run"]["detected_version"] == "1.70"
+    assert "documentazione_servizi_web_da_aggiornare" in alert_types
 
 
 def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):

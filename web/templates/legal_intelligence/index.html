@@ -234,6 +234,12 @@
             <td>
               <div class="fw-semibold">{{ row.nome }}</div>
               <div class="small text-muted">{{ row.area }}</div>
+              {% if row.detected_version or row.detected_reference %}
+              <div class="small text-muted mt-1">
+                {% if row.detected_version %}Versione rilevata: {{ row.detected_version }}{% endif %}
+                {% if row.detected_reference %}{% if row.detected_version %} · {% endif %}Catalogo WSDL: {{ row.detected_reference }}{% endif %}
+              </div>
+              {% endif %}
             </td>
             <td><span class="small text-muted">{{ row.connector_kind }}</span></td>
             <td>{{ row.cadence }}</td>
@@ -254,7 +260,12 @@
               {% endif %}
             </td>
             <td class="text-end">
-              <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+              <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                {% if row.detected_document_url %}
+                <a href="{{ row.detected_document_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Documento</a>
+                {% endif %}
+                <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+              </div>
             </td>
           </tr>
           {% endfor %}

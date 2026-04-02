@@ -6,7 +6,7 @@ import re
 import uuid
 import warnings
 import unicodedata
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -17,6 +17,13 @@ from lxml import html as lxml_html
 from urllib3.exceptions import InsecureRequestWarning
 
 from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
+from pct.pst_catalog import (
+    PST_WEB_SERVICES_DOC_PAGE_URL,
+    PST_WEB_SERVICES_DOC_URL,
+    PST_WEB_SERVICES_DOC_VERSION,
+    PST_WEB_SERVICES_UPDATE_PAGE_URL,
+    PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
+)
 
 USER_AGENT = "HACS-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
 MAX_MONITOR_BYTES = 512_000
@@ -30,6 +37,22 @@ REGISTRO_MEDIAZIONE_IMPORT_MAX_BYTES = 5 * 1024 * 1024
 REGISTRO_MEDIAZIONE_NOTICE = (
     "Il Ministero della Giustizia segnala che la consultazione del registro diretto puo richiedere "
     "Microsoft Edge in modalita compatibilita con Internet Explorer."
+)
+PST_SERVIZI_WEB_TITLE_RE = re.compile(
+    r"Documentazione servizi web esposti\s*\(versione\s*([0-9.]+)\)",
+    re.IGNORECASE,
+)
+PST_SERVIZI_WEB_PDF_RE = re.compile(
+    r"Documentazione_servizi_web_v([0-9.]+)\.pdf",
+    re.IGNORECASE,
+)
+PST_SERVIZI_WEB_PDF_URL_RE = re.compile(
+    r"(?P<url>https?://[^\s\"'>]*Documentazione_servizi_web_v[0-9.]+\.pdf|/PST/resources/cms/documents/Documentazione_servizi_web_v[0-9.]+\.pdf)",
+    re.IGNORECASE,
+)
+PST_WSDL_CATALOG_RE = re.compile(
+    r"A1[_-]WSDL[_-]CATALOG[_-]v([0-9.]+)\.zip",
+    re.IGNORECASE,
 )
 
 
@@ -187,6 +210,9 @@ class MonitorRun:
     size_bytes: int = 0
     changed: bool = False
     comparison_mode: str = "raw"
+    detected_version: str = ""
+    detected_reference: str = ""
+    detected_document_url: str = ""
     summary: str = ""
     warning: str = ""
 
@@ -287,6 +313,22 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         formats=["HTML", "PDF", "WSDL", "XSD"],
         capability="Documentazione software house, servizi web e note tecniche.",
         notes="Fonte primaria per XSD, WSDL, ReGIndE, pagamenti e consultazione registri.",
+    ),
+    "pst_servizi_web": FonteUfficiale(
+        id="pst_servizi_web",
+        nome="PST - documentazione servizi web",
+        motore="procedurale_telematico",
+        area="Telematico / servizi web",
+        official_url=PST_WEB_SERVICES_DOC_PAGE_URL,
+        monitor_url=PST_WEB_SERVICES_DOC_PAGE_URL,
+        connector_kind="portal-docs",
+        cadence="giornaliera",
+        formats=["HTML", "PDF", "ZIP", "WSDL"],
+        capability="Monitora la versione pubblicata della documentazione servizi web per software house e del catalogo WSDL allegato.",
+        notes=(
+            f"La pagina documentazione PST espone attualmente la documentazione servizi web versione {PST_WEB_SERVICES_DOC_VERSION} "
+            f"con PDF dedicato {PST_WEB_SERVICES_DOC_URL}."
+        ),
     ),
     "cnf": FonteUfficiale(
         id="cnf",
@@ -407,7 +449,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Raccoglie, verifica e indicizza solo fonti istituzionali con URL, hash e data di acquisizione.",
         output="Catalogo fonti, hash, data pubblicazione, data acquisizione.",
         value="Evita fonti non ufficiali e rende verificabile ogni contenuto monitorato.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex", "agenzia_entrate", "fatturapa"],
+        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex", "agenzia_entrate", "fatturapa"],
     ),
     "vigenza_versionamento": MotoreLegale(
         id="vigenza_versionamento",
@@ -425,7 +467,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Isola PCT, PDP, PAT, ReGIndE, pagamenti, XSD, WSDL e regole tecniche.",
         output="Checklist tecniche, alert XSD/WSDL e conformita pre-invio.",
         value="Evita errori di deposito dovuti a specifiche tecniche o aggiornamenti di portale.",
-        source_ids=["pst_giustizia"],
+        source_ids=["pst_giustizia", "pst_servizi_web"],
     ),
     "professione_forense": MotoreLegale(
         id="professione_forense",
@@ -452,7 +494,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Schedula controlli distinti per fonte e genera alert utili, non solo notizie generiche.",
         output="Alert su contenuto modificato, nuovi documenti e nuove note tecniche.",
         value="Trasforma il gestionale in un assistente proattivo invece che in un archivio passivo.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
     ),
     "audit_affidabilita": MotoreLegale(
         id="audit_affidabilita",
@@ -461,7 +503,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Registra query, fonti, versioni, warning e modello AI per ogni risposta assistita.",
         output="Tracce di audit consultabili e storicizzate.",
         value="Aumenta fiducia interna, debugging e responsabilita operativa.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
     ),
 }
 
@@ -474,6 +516,8 @@ KEYWORD_TO_ENGINE: Dict[str, List[str]] = {
     "reginde": ["procedurale_telematico"],
     "xsd": ["procedurale_telematico", "monitoraggio_alert"],
     "wsdl": ["procedurale_telematico", "monitoraggio_alert"],
+    "software house": ["procedurale_telematico", "monitoraggio_alert"],
+    "servizi web": ["procedurale_telematico", "monitoraggio_alert"],
     "gazzetta": ["fonti_ufficiali", "vigenza_versionamento"],
     "normattiva": ["fonti_ufficiali", "vigenza_versionamento"],
     "vigenza": ["vigenza_versionamento"],
@@ -509,6 +553,9 @@ KEYWORD_TO_SOURCE: Dict[str, List[str]] = {
     "pdp": ["pst_giustizia"],
     "pat": ["pst_giustizia"],
     "reginde": ["pst_giustizia"],
+    "servizi web": ["pst_servizi_web"],
+    "software house": ["pst_servizi_web"],
+    "wsdl": ["pst_servizi_web"],
     "cnf": ["cnf"],
     "deontolog": ["cnf"],
     "tariffario": ["cnf", "gazzetta_ufficiale"],
@@ -552,6 +599,40 @@ def fonti_per_query(query: str) -> List[str]:
                 if source_id not in found:
                     found.append(source_id)
     return found or ["normattiva", "pst_giustizia"]
+
+
+def _extract_pst_servizi_web_metadata(content: bytes, content_type: str, final_url: str) -> Dict[str, str]:
+    raw_text = (content or b"").decode("utf-8", errors="ignore")
+    normalized = _normalize_textual_payload(content, content_type, final_url).decode("utf-8", errors="ignore")
+    text = f"{raw_text}\n{normalized}\n{final_url}"
+
+    detected_version = ""
+    detected_reference = ""
+    detected_document_url = ""
+
+    title_match = PST_SERVIZI_WEB_TITLE_RE.search(text)
+    if title_match:
+        detected_version = title_match.group(1).strip()
+    if not detected_version:
+        pdf_version_match = PST_SERVIZI_WEB_PDF_RE.search(text)
+        if pdf_version_match:
+            detected_version = pdf_version_match.group(1).strip()
+
+    pdf_url_match = PST_SERVIZI_WEB_PDF_URL_RE.search(raw_text)
+    if pdf_url_match:
+        detected_document_url = urljoin(final_url, pdf_url_match.group("url").strip())
+    elif PST_SERVIZI_WEB_PDF_RE.search(final_url):
+        detected_document_url = final_url
+
+    wsdl_match = PST_WSDL_CATALOG_RE.search(text)
+    if wsdl_match:
+        detected_reference = wsdl_match.group(1).strip()
+
+    return {
+        "detected_version": detected_version,
+        "detected_reference": detected_reference,
+        "detected_document_url": detected_document_url,
+    }
 
 
 def costruisci_tracker_fascicolo(fascicolo: Any) -> Dict[str, Any]:
@@ -1027,6 +1108,7 @@ class GestioneLegalIntelligence:
     def _fetch_state(
         self,
         *,
+        source_id: str,
         label: str,
         official_url: str,
         monitor_url: str,
@@ -1055,6 +1137,9 @@ class GestioneLegalIntelligence:
             comparison_mode = "raw"
             warning = ""
             changed = False
+            detected_version = ""
+            detected_reference = ""
+            detected_document_url = ""
 
             if status == "ok" and _detect_protection_page(final_url, content):
                 comparison_mode = "challenge_guard"
@@ -1076,6 +1161,12 @@ class GestioneLegalIntelligence:
                 extra = "Verifica TLS ridotta per compatibilita del certificato remoto."
                 warning = f"{warning} {extra}".strip()
 
+            if status == "ok" and source_id == "pst_servizi_web":
+                metadata = _extract_pst_servizi_web_metadata(content, content_type, final_url)
+                detected_version = metadata.get("detected_version", "")
+                detected_reference = metadata.get("detected_reference", "")
+                detected_document_url = metadata.get("detected_document_url", "")
+
             notes: List[str] = []
             if comparison_mode == "normalized_text":
                 notes.append("confronto testo stabile")
@@ -1091,6 +1182,10 @@ class GestioneLegalIntelligence:
                 notes.append("fonte alternativa ufficiale")
                 extra = "Monitoraggio continuato tramite fonte alternativa ufficiale."
                 warning = f"{warning} {extra}".strip()
+            if detected_version:
+                notes.append(f"versione {detected_version}")
+            if detected_reference:
+                notes.append(f"WSDL catalog {detected_reference}")
             summary = f"{label}: HTTP {status_code or 'n/d'} - hash {content_hash[:12]}"
             if notes:
                 summary += " - " + " - ".join(notes)
@@ -1109,6 +1204,9 @@ class GestioneLegalIntelligence:
                 "size_bytes": len(content),
                 "changed": changed,
                 "comparison_mode": comparison_mode,
+                "detected_version": detected_version,
+                "detected_reference": detected_reference,
+                "detected_document_url": detected_document_url,
                 "summary": summary,
                 "warning": warning,
             }
@@ -1136,7 +1234,7 @@ class GestioneLegalIntelligence:
         return "aggiornata" if age <= timedelta(days=3) else "stale"
 
     def _alert_kind_for_source(self, source_id: str) -> str:
-        if source_id == "pst_giustizia":
+        if source_id in {"pst_giustizia", "pst_servizi_web"}:
             return "nuova_documentazione_tecnica"
         if source_id in {"normattiva", "gazzetta_ufficiale", "eur_lex"}:
             return "norma_o_testo_modificato"
@@ -1147,6 +1245,8 @@ class GestioneLegalIntelligence:
     def _alert_details_for_source(self, source: FonteUfficiale) -> str:
         if source.id == "pst_giustizia":
             return "Rilevata una variazione nella documentazione tecnica o software house del PST."
+        if source.id == "pst_servizi_web":
+            return "Rilevata una variazione nella pagina ufficiale della documentazione servizi web del PST."
         if source.id in {"normattiva", "gazzetta_ufficiale", "eur_lex"}:
             return "Rilevata una variazione su una fonte normativa ufficiale da riesaminare."
         if source.id == "cnf":
@@ -1218,6 +1318,7 @@ class GestioneLegalIntelligence:
         latest_ok = self._latest_success(source_id)
         try:
             payload = self._fetch_state(
+                source_id=source_id,
                 label=source.nome,
                 official_url=source.official_url,
                 monitor_url=source.monitor_url,
@@ -1254,6 +1355,29 @@ class GestioneLegalIntelligence:
                         title=f"{source.nome}: contenuto aggiornato",
                         details=self._alert_details_for_source(source),
                         official_url=source.official_url,
+                        now=current_time,
+                    )
+                )
+            if (
+                source_id == "pst_servizi_web"
+                and run.status == "ok"
+                and getattr(run, "detected_version", "")
+                and getattr(run, "detected_version", "") != PST_WEB_SERVICES_DOC_VERSION
+            ):
+                detected_document_url = getattr(run, "detected_document_url", "") or PST_WEB_SERVICES_UPDATE_PAGE_URL
+                alerts.append(
+                    self._create_alert(
+                        source_id=source_id,
+                        motore_id=source.motore,
+                        alert_type="documentazione_servizi_web_da_aggiornare",
+                        severity="alta",
+                        title=f"PST servizi web: disponibile versione {run.detected_version}",
+                        details=(
+                            f"La pagina ufficiale PST espone la versione {run.detected_version} della documentazione servizi web, "
+                            f"mentre il catalogo interno e tarato su {PST_WEB_SERVICES_DOC_VERSION}. "
+                            "Riallineare catalogo, resolver e validatori tecnici."
+                        ),
+                        official_url=detected_document_url,
                         now=current_time,
                     )
                 )
@@ -1535,6 +1659,7 @@ class GestioneLegalIntelligence:
                 continue
             try:
                 source_code_runs[code] = self._fetch_state(
+                    source_id=code,
                     label=source.title,
                     official_url=source.url,
                     monitor_url=source.url,
@@ -1785,6 +1910,9 @@ class GestioneLegalIntelligence:
                     "status": getattr(run, "status", "mai_controllata"),
                     "status_code": getattr(run, "status_code", 0),
                     "changed": bool(getattr(run, "changed", False)),
+                    "detected_version": getattr(run, "detected_version", ""),
+                    "detected_reference": getattr(run, "detected_reference", ""),
+                    "detected_document_url": getattr(run, "detected_document_url", ""),
                     "summary": getattr(run, "summary", "Nessun controllo eseguito."),
                     "warning": getattr(run, "warning", ""),
                 }

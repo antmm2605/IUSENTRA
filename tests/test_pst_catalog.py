@@ -2,18 +2,24 @@ from pct.pst_catalog import (
     PST_DM44_SPECIFICHE_URL,
     PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE,
     PST_USER_VADEMECUM_URL,
+    PST_WEB_SERVICES_DOC_PAGE_URL,
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
+    PST_WEB_SERVICES_UPDATE_PAGE_URL,
+    PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
     get_catalog_snapshot,
     get_catalog_sources,
     get_official_methods,
 )
 
 
-def test_catalog_snapshot_usa_documentazione_pst_v165():
+def test_catalog_snapshot_usa_documentazione_pst_v169():
     snapshot = get_catalog_snapshot()
-    assert snapshot["pst_webservices_doc_version"] == "1.65"
+    assert snapshot["pst_webservices_doc_version"] == "1.69"
     assert snapshot["pst_webservices_doc_url"] == PST_WEB_SERVICES_DOC_URL
+    assert snapshot["pst_webservices_doc_page_url"] == PST_WEB_SERVICES_DOC_PAGE_URL
+    assert snapshot["pst_webservices_update_page_url"] == PST_WEB_SERVICES_UPDATE_PAGE_URL
+    assert snapshot["pst_webservices_wsdl_catalog_version"] == PST_WEB_SERVICES_WSDL_CATALOG_VERSION
     assert snapshot["reginde_namespace"] == PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE
     assert snapshot["pst_user_vademecum_url"] == PST_USER_VADEMECUM_URL
     assert snapshot["pst_dm44_specifiche_url"] == PST_DM44_SPECIFICHE_URL

@@ -4,6 +4,112 @@
 
 {% block content %}
 <style>
+  .tf-shell {
+    --tf-ink: #17324d;
+    --tf-soft: #eef4fb;
+    --tf-line: rgba(23, 50, 77, .12);
+    --tf-muted: #607284;
+  }
+  .tf-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
+    gap: 1rem;
+    padding: 1.25rem 1.35rem;
+    border: 1px solid var(--tf-line);
+    border-radius: 1.35rem;
+    background:
+      radial-gradient(circle at top right, rgba(13,110,253,.10), transparent 40%),
+      linear-gradient(180deg, #ffffff, #f7faff);
+    box-shadow: 0 1rem 2rem rgba(23, 50, 77, .05);
+  }
+  .tf-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--tf-muted);
+    margin-bottom: .55rem;
+    font-weight: 700;
+  }
+  .tf-hero-title {
+    margin: 0;
+    font-size: clamp(1.65rem, 3vw, 2.3rem);
+    line-height: 1.05;
+    color: var(--tf-ink);
+    font-weight: 800;
+  }
+  .tf-hero-sub {
+    margin: .8rem 0 0;
+    max-width: 62ch;
+    color: var(--tf-muted);
+    font-size: .96rem;
+  }
+  .tf-hero-note {
+    border: 1px solid rgba(13,110,253,.12);
+    border-radius: 1.1rem;
+    background: rgba(255,255,255,.92);
+    padding: 1rem 1.05rem;
+  }
+  .tf-hero-note-label {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--tf-muted);
+    font-weight: 700;
+    margin-bottom: .4rem;
+  }
+  .tf-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .85rem;
+  }
+  .tf-stat {
+    border: 1px solid var(--tf-line);
+    border-radius: 1.15rem;
+    background: #fff;
+    padding: 1rem 1.05rem;
+    min-width: 0;
+  }
+  .tf-stat-label {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--tf-muted);
+    margin-bottom: .35rem;
+    font-weight: 700;
+  }
+  .tf-stat-value {
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--tf-ink);
+  }
+  .tf-stat-note {
+    margin-top: .35rem;
+    color: var(--tf-muted);
+    font-size: .82rem;
+  }
+  .tf-workspace-card,
+  .tf-side-card,
+  .tf-result-card {
+    border: 1px solid var(--tf-line);
+    border-radius: 1.2rem;
+    overflow: hidden;
+    box-shadow: 0 .85rem 1.8rem rgba(23, 50, 77, .05);
+  }
+  .tf-workspace-card .card-header,
+  .tf-side-card .card-header,
+  .tf-result-card .card-header:not(.bg-primary) {
+    background: #fff;
+    border-bottom: 1px solid var(--tf-line);
+    padding: 1rem 1.15rem;
+  }
+  .tf-side-stack {
+    position: sticky;
+    top: 5.25rem;
+  }
   .tf-choice-list { display: flex; flex-direction: column; gap: .75rem; }
   .tf-choice-item {
     display: flex;
@@ -20,139 +126,153 @@
   .tf-choice-item .meta { min-width: 0; flex: 1 1 auto; }
   .tf-choice-item .meta .title { font-weight: 600; color: var(--bs-emphasis-color); }
   .tf-choice-item .meta .description { font-size: .88rem; color: var(--bs-secondary-color); }
+  .tf-profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin-bottom: .8rem;
+  }
+  .tf-accordion .accordion-item {
+    border: 0;
+    border-top: 1px solid var(--tf-line);
+  }
+  .tf-accordion .accordion-item:first-child {
+    border-top: 0;
+  }
+  .tf-accordion .accordion-button {
+    background: #fff;
+    box-shadow: none;
+    padding: 1rem 1.1rem;
+    gap: .75rem;
+  }
+  .tf-accordion .accordion-button:not(.collapsed) {
+    background: var(--tf-soft);
+    color: var(--tf-ink);
+  }
+  .tf-accordion .accordion-button::after {
+    margin-left: auto;
+  }
+  .tf-accordion-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .45rem;
+    font-weight: 700;
+    color: var(--tf-ink);
+  }
+  .tf-accordion-meta {
+    font-size: .78rem;
+    color: var(--tf-muted);
+  }
+  .tf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    border: 1px solid var(--tf-line);
+    border-radius: 999px;
+    padding: .18rem .5rem;
+    font-size: .72rem;
+    color: var(--tf-muted);
+    background: rgba(255,255,255,.85);
+  }
+  .tf-ref-list,
+  .tf-stack-list {
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+  }
+  .tf-ref-item,
+  .tf-stack-item {
+    border: 1px solid var(--tf-line);
+    border-radius: .95rem;
+    padding: .9rem .95rem;
+    background: #fff;
+  }
+  .tf-ref-title,
+  .tf-stack-title {
+    font-weight: 700;
+    color: var(--tf-ink);
+    margin-bottom: .2rem;
+  }
+  .tf-ref-meta,
+  .tf-stack-meta {
+    font-size: .82rem;
+    color: var(--tf-muted);
+  }
+  @media (max-width: 1199.98px) {
+    .tf-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tf-side-stack { position: static; }
+  }
+  @media (max-width: 991.98px) {
+    .tf-hero { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 575.98px) {
+    .tf-summary-grid { grid-template-columns: 1fr; }
+    .tf-hero,
+    .tf-stat { padding: .95rem; }
+  }
 </style>
-<div class="ds-ph mb-4">
-  <div class="ds-ph-icon"><i class="bi bi-calculator"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Tariffario Forense</h1>
-    <p class="ds-ph-sub">
-      Parametri per materia, grado, fasi e opzioni compenso con collegamento diretto
-      a preventivi, parcelle e XML FatturaPA.
-    </p>
-  </div>
-</div>
+{% set audit_open_count = tariffario_audit_summary.da_verificare + tariffario_audit_summary.ricostruttiva %}
+<div class="tf-shell">
+  <section class="tf-hero mb-4">
+    <div>
+      <div class="tf-kicker"><i class="bi bi-calculator"></i> Console tariffaria</div>
+      <h1 class="tf-hero-title">Tariffario Forense</h1>
+      <p class="tf-hero-sub">
+        Un workspace unico per calcolo, regola tariffaria, profilo operativo e passaggio diretto
+        a preventivo, parcella e XML FatturaPA. Le sezioni normative restano disponibili, ma non
+        invadono piu il flusso principale di lavoro.
+      </p>
+    </div>
+    <aside class="tf-hero-note">
+      <div class="tf-hero-note-label">Modalita di consultazione</div>
+      <div class="small text-muted mb-2">
+        Il calcolo resta in primo piano. Audit, tabelle, canali e riferimenti si aprono solo quando servono.
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="tf-chip"><i class="bi bi-layers"></i>{{ tariffario_profili|length }} profili</span>
+        <span class="tf-chip"><i class="bi bi-diagram-2"></i>{{ tariffario_regole|length }} regole</span>
+        <span class="tf-chip"><i class="bi bi-database-check"></i>{{ tariffario_tables|length }} tabelle</span>
+        <span class="tf-chip"><i class="bi bi-shield-check"></i>{{ tariffario_audit_summary.verificata_snapshot + tariffario_audit_summary.verificata_seed }}/{{ tariffario_audit_summary.totale }} allineate</span>
+      </div>
+    </aside>
+  </section>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="text-muted small">Profili tariffari</div>
-        <div class="fs-3 fw-bold">{{ tariffario_profili|length }}</div>
-        <div class="small text-muted">Materia, grado e fasi operative</div>
+  <section class="tf-summary-grid mb-4">
+    <article class="tf-stat">
+      <div class="tf-stat-label">Profili tariffari</div>
+      <div class="tf-stat-value">{{ tariffario_profili|length }}</div>
+      <div class="tf-stat-note">Materia, grado, fasi e profilo operativo.</div>
+    </article>
+    <article class="tf-stat">
+      <div class="tf-stat-label">Opzioni di calcolo</div>
+      <div class="tf-stat-value">{{ opzioni_tariffario|length }}</div>
+      <div class="tf-stat-note">Spese generali, bonus, accessori e logiche fiscali.</div>
+    </article>
+    <article class="tf-stat">
+      <div class="tf-stat-label">Tabelle sincronizzate</div>
+      <div class="tf-stat-value">{{ tariffario_tables|length }}</div>
+      <div class="tf-stat-note">Catalogo normativo condiviso con il motore preventivi.</div>
+    </article>
+    <article class="tf-stat">
+      <div class="tf-stat-label">Audit da aprire</div>
+      <div class="tf-stat-value {% if tariffario_audit_summary.da_verificare %}text-danger{% elif audit_open_count %}text-warning{% else %}text-success{% endif %}">{{ audit_open_count }}</div>
+      <div class="tf-stat-note">
+        {% if audit_open_count %}
+        Voci ricostruttive o da verificare disponibili nel pannello tecnico.
+        {% else %}
+        Nessun approfondimento aperto: il catalogo attivo e allineato.
+        {% endif %}
       </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="text-muted small">Opzioni compenso</div>
-        <div class="fs-3 fw-bold">{{ opzioni_tariffario|length }}</div>
-        <div class="small text-muted">Spese generali, bonus, CPA, IVA e controlli</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="text-muted small">Tabelle normative</div>
-        <div class="fs-3 fw-bold">{{ tariffario_tables|length }}</div>
-        <div class="small text-muted">Sincronizzate nel database normativo</div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card shadow-sm h-100">
-      <div class="card-body">
-        <div class="text-muted small">Canali fatturazione</div>
-        <div class="fs-3 fw-bold">{{ canali_fatturazione|length }}</div>
-        <div class="small text-muted">Preventivo, parcella, XML e upload</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="card shadow-sm mb-4">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-shield-check me-2 text-primary"></i>Audit conformita tariffaria
-  </div>
-  <div class="card-body">
-    <div class="row g-3 mb-3">
-      <div class="col-md-3">
-        <div class="border rounded-3 p-3 h-100">
-          <div class="text-muted small">Regole censite</div>
-          <div class="fs-4 fw-bold">{{ tariffario_regole|length }}</div>
-          <div class="small text-muted">Tariffario e preventivi leggono lo stesso catalogo</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="border rounded-3 p-3 h-100">
-          <div class="text-muted small">Verificate su snapshot</div>
-          <div class="fs-4 fw-bold text-success">{{ tariffario_audit_summary.verificata_snapshot }}</div>
-          <div class="small text-muted">Regole coperte da snapshot ufficiale DM 147/2022</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="border rounded-3 p-3 h-100">
-          <div class="text-muted small">Integrazioni seed</div>
-          <div class="fs-4 fw-bold text-info">{{ tariffario_audit_summary.verificata_seed }}</div>
-          <div class="small text-muted">Voci sincronizzate con integrazione controllata del catalogo</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="border rounded-3 p-3 h-100">
-          <div class="text-muted small">Da verificare / ricostruttive</div>
-          <div class="fs-4 fw-bold {% if tariffario_audit_summary.da_verificare %}text-danger{% else %}text-warning{% endif %}">
-            {{ tariffario_audit_summary.da_verificare + tariffario_audit_summary.ricostruttiva }}
-          </div>
-          <div class="small text-muted">Le voci non perfettamente speculari emergono qui in modo esplicito</div>
-        </div>
-      </div>
-    </div>
-
-    {% if tariffario_audit_warning_rows %}
-    <div class="table-responsive">
-      <table class="table table-sm align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Materia</th>
-            <th>Regola</th>
-            <th>Pratica</th>
-            <th>Tabella</th>
-            <th>Stato</th>
-            <th>Nota</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in tariffario_audit_warning_rows %}
-          <tr>
-            <td>{{ row.materia_label }}</td>
-            <td>{{ row.rule_label }}</td>
-            <td>{{ row.practice_label or row.suggested_practice_id }}</td>
-            <td>{{ row.table_code }}</td>
-            <td>
-              <span class="badge {% if row.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif row.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif row.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif row.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
-                {{ row.compliance_label }}
-              </span>
-            </td>
-            <td class="small text-muted">{{ row.compliance_note }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="alert alert-success mb-0 small">
-      <i class="bi bi-check-circle me-1"></i>Le regole oggi attive risultano allineate allo snapshot ufficiale o alle integrazioni seed controllate del catalogo.
-    </div>
-    {% endif %}
-  </div>
-</div>
+    </article>
+  </section>
 
 <div class="row g-4">
   <div class="col-xl-8">
-    <div class="card shadow-sm mb-4">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-sliders me-2 text-primary"></i>Parametri del calcolo
+    <div class="card tf-workspace-card mb-4">
+      <div class="card-header fw-semibold d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <span><i class="bi bi-sliders me-2 text-primary"></i>Parametri del calcolo</span>
+        <span class="text-muted small">Il motore compila preventivi e parcelle dalla stessa struttura.</span>
       </div>
       <div class="card-body">
         <form method="post" id="tariffarioForm">
@@ -291,7 +411,7 @@
     </div>
 
     {% if risultato %}
-    <div class="card shadow-sm border-primary mb-4">
+    <div class="card shadow-sm border-primary mb-4 tf-result-card">
       <div class="card-header bg-primary text-white fw-semibold">
         <i class="bi bi-cash-stack me-2"></i>Risultato del calcolo
       </div>
@@ -435,101 +555,194 @@
   </div>
 
   <div class="col-xl-4">
-    <div class="card shadow-sm mb-4">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-diagram-3 me-2 text-primary"></i>Profilo attivo
-      </div>
-      <div class="card-body">
-        <div id="profileBox">
-          {% if profilo_attivo %}
-          <div class="mb-2">
-            <span class="badge bg-primary-subtle text-primary-emphasis">{{ profilo_attivo.table_label }}</span>
-            {% if profilo_attivo.exact_snapshot %}
-            <span class="badge bg-success-subtle text-success-emphasis">snapshot ufficiale</span>
+    <div class="tf-side-stack">
+      <div class="card tf-side-card mb-4">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-diagram-3 me-2 text-primary"></i>Profilo attivo
+        </div>
+        <div class="card-body">
+          <div id="profileBox">
+            {% if profilo_attivo %}
+            <div class="tf-profile-badges">
+              <span class="badge bg-primary-subtle text-primary-emphasis">{{ profilo_attivo.table_label }}</span>
+              {% if profilo_attivo.exact_snapshot %}
+              <span class="badge bg-success-subtle text-success-emphasis">snapshot ufficiale</span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning-emphasis">profilo ricostruttivo</span>
+              {% endif %}
+            </div>
+            <div class="fw-semibold mb-1">{{ profilo_attivo.summary }}</div>
+            <div class="small text-muted mb-3">{{ profilo_attivo.base_note }}</div>
+            {% if regola_attiva and regola_attiva.compliance_label %}
+            <div class="small mb-2">
+              <span class="badge {% if regola_attiva.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif regola_attiva.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif regola_attiva.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif regola_attiva.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
+                {{ regola_attiva.compliance_label }}
+              </span>
+            </div>
+            <div class="small text-muted mb-3">{{ regola_attiva.compliance_note }}</div>
+            {% endif %}
+            <div class="small"><strong>Pratica suggerita:</strong> {{ profilo_attivo.suggested_practice_id }}</div>
+            <div class="small"><strong>Grado operativo:</strong> {{ profilo_attivo.grado_label }}</div>
             {% else %}
-            <span class="badge bg-warning-subtle text-warning-emphasis">profilo ricostruttivo</span>
+            <div class="text-muted small">Seleziona materia e grado per vedere il profilo tariffario collegato.</div>
             {% endif %}
           </div>
-          <div class="fw-semibold mb-1">{{ profilo_attivo.summary }}</div>
-          <div class="small text-muted mb-3">{{ profilo_attivo.base_note }}</div>
-          {% if regola_attiva and regola_attiva.compliance_label %}
-          <div class="small mb-2">
-            <span class="badge {% if regola_attiva.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif regola_attiva.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif regola_attiva.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif regola_attiva.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
-              {{ regola_attiva.compliance_label }}
-            </span>
-          </div>
-          <div class="small text-muted mb-3">{{ regola_attiva.compliance_note }}</div>
-          {% endif %}
-          <div class="small"><strong>Pratica suggerita:</strong> {{ profilo_attivo.suggested_practice_id }}</div>
-          <div class="small"><strong>Grado operativo:</strong> {{ profilo_attivo.grado_label }}</div>
-          {% else %}
-          <div class="text-muted small">Seleziona materia e grado per vedere il profilo tariffario collegato.</div>
-          {% endif %}
         </div>
       </div>
-    </div>
 
-    <div class="card shadow-sm mb-4">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-shield-check me-2 text-primary"></i>Tabelle normative sincronizzate
-      </div>
-      <div class="card-body">
-        <div class="list-group list-group-flush">
-          {% for row in tariffario_tables %}
-          <div class="list-group-item px-0">
-            <div class="d-flex justify-content-between gap-2">
-              <div>
-                <div class="fw-semibold">{{ row.title }}</div>
-                <div class="small text-muted">{{ row.description }}</div>
+      <div class="card tf-side-card">
+        <div class="card-header fw-semibold d-flex align-items-center justify-content-between gap-2">
+          <span><i class="bi bi-journal-text me-2 text-primary"></i>Supporto normativo e operativo</span>
+          <span class="text-muted small">Apri solo il dettaglio che ti serve</span>
+        </div>
+        <div class="accordion accordion-flush tf-accordion" id="tfKnowledgeAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfAuditHeading">
+              <button class="accordion-button {% if not tariffario_audit_warning_rows %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#tfAuditCollapse" aria-expanded="{{ 'true' if tariffario_audit_warning_rows else 'false' }}" aria-controls="tfAuditCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Audit conformita tariffaria
+                    <span class="tf-chip">{{ tariffario_regole|length }} regole</span>
+                    <span class="tf-chip {% if tariffario_audit_summary.da_verificare %}text-danger{% elif audit_open_count %}text-warning{% else %}text-success{% endif %}">{{ audit_open_count }} aperte</span>
+                  </span>
+                  <span class="tf-accordion-meta">Copertura tra snapshot ufficiale, seed e mapping ricostruttivi.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfAuditCollapse" class="accordion-collapse collapse {% if tariffario_audit_warning_rows %}show{% endif %}" aria-labelledby="tfAuditHeading">
+              <div class="accordion-body">
+                <div class="row g-2 mb-3">
+                  <div class="col-sm-6">
+                    <div class="tf-stack-item">
+                      <div class="tf-stack-title">{{ tariffario_audit_summary.verificata_snapshot }}</div>
+                      <div class="tf-stack-meta">Regole allineate allo snapshot ufficiale DM 147/2022.</div>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <div class="tf-stack-item">
+                      <div class="tf-stack-title">{{ tariffario_audit_summary.verificata_seed }}</div>
+                      <div class="tf-stack-meta">Regole coperte da integrazioni seed controllate.</div>
+                    </div>
+                  </div>
+                </div>
+                {% if tariffario_audit_warning_rows %}
+                <div class="tf-stack-list">
+                  {% for row in tariffario_audit_warning_rows %}
+                  <article class="tf-stack-item">
+                    <div class="d-flex justify-content-between gap-2 mb-1">
+                      <div class="tf-stack-title">{{ row.rule_label }}</div>
+                      <span class="badge {% if row.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif row.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif row.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif row.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
+                        {{ row.compliance_label }}
+                      </span>
+                    </div>
+                    <div class="small text-muted mb-1">{{ row.materia_label }}{% if row.practice_label or row.suggested_practice_id %} - {{ row.practice_label or row.suggested_practice_id }}{% endif %}</div>
+                    <div class="small"><strong>Tabella:</strong> {{ row.table_code or 'n/d' }}</div>
+                    <div class="small text-muted mt-1">{{ row.compliance_note }}</div>
+                  </article>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-success mb-0 small">
+                  <i class="bi bi-check-circle me-1"></i>Le regole oggi attive risultano allineate allo snapshot ufficiale o alle integrazioni seed controllate del catalogo.
+                </div>
+                {% endif %}
               </div>
-              <span class="badge {% if row.sync_status == 'sincronizzata' %}text-bg-success{% elif row.sync_status == 'verifica_richiesta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ row.sync_status }}</span>
             </div>
           </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
 
-    <div class="card shadow-sm mb-4">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-link-45deg me-2 text-primary"></i>Canali fatturazione e operativita
-      </div>
-      <div class="card-body">
-        {% for row in canali_fatturazione %}
-        <div class="border rounded-3 p-3 mb-3">
-          <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-            <div class="fw-semibold">{{ row.label }}</div>
-            <span class="badge {% if row.status == 'operativo' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ row.status }}</span>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfTablesHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfTablesCollapse" aria-expanded="false" aria-controls="tfTablesCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Tabelle normative sincronizzate
+                    <span class="tf-chip">{{ tariffario_tables|length }} attive</span>
+                  </span>
+                  <span class="tf-accordion-meta">Stato del catalogo normativo usato da tariffario e preventivi.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfTablesCollapse" class="accordion-collapse collapse" aria-labelledby="tfTablesHeading">
+              <div class="accordion-body">
+                <div class="tf-stack-list">
+                  {% for row in tariffario_tables %}
+                  <article class="tf-stack-item">
+                    <div class="d-flex justify-content-between gap-2 mb-1">
+                      <div class="tf-stack-title">{{ row.title }}</div>
+                      <span class="badge {% if row.sync_status == 'sincronizzata' %}text-bg-success{% elif row.sync_status == 'verifica_richiesta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ row.sync_status }}</span>
+                    </div>
+                    <div class="tf-stack-meta">{{ row.description }}</div>
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="small text-muted mb-2">{{ row.description }}</div>
-          {% if row.reference %}
-          <a href="{{ row.reference.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
-          {% endif %}
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfChannelsHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfChannelsCollapse" aria-expanded="false" aria-controls="tfChannelsCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Canali fatturazione e operativita
+                    <span class="tf-chip">{{ canali_fatturazione|length }} flussi</span>
+                  </span>
+                  <span class="tf-accordion-meta">Dal calcolo al preventivo, parcella, XML e upload esterno.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfChannelsCollapse" class="accordion-collapse collapse" aria-labelledby="tfChannelsHeading">
+              <div class="accordion-body">
+                <div class="tf-stack-list">
+                  {% for row in canali_fatturazione %}
+                  <article class="tf-stack-item">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                      <div class="tf-stack-title">{{ row.label }}</div>
+                      <span class="badge {% if row.status == 'operativo' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ row.status }}</span>
+                    </div>
+                    <div class="tf-stack-meta mb-2">{{ row.description }}</div>
+                    {% if row.reference %}
+                    <a href="{{ row.reference.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
+                    {% endif %}
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfRefsHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfRefsCollapse" aria-expanded="false" aria-controls="tfRefsCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Riferimenti normativi ufficiali
+                    <span class="tf-chip">{{ riferimenti_tariffario|length }} fonti</span>
+                  </span>
+                  <span class="tf-accordion-meta">Archivio consultabile senza sovraccaricare il flusso di calcolo.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfRefsCollapse" class="accordion-collapse collapse" aria-labelledby="tfRefsHeading">
+              <div class="accordion-body">
+                <div class="tf-ref-list">
+                  {% for ref in riferimenti_tariffario %}
+                  <article class="tf-ref-item">
+                    <div class="tf-ref-title">{{ ref.title }}</div>
+                    <div class="small fw-semibold mb-1">{{ ref.article }}</div>
+                    <div class="tf-ref-meta mb-2">{{ ref.description }}</div>
+                    <a href="{{ ref.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        {% endfor %}
       </div>
     </div>
   </div>
 </div>
-
-<div class="card shadow-sm">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-book me-2 text-primary"></i>Riferimenti normativi ufficiali
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      {% for ref in riferimenti_tariffario %}
-      <div class="col-lg-4 col-md-6">
-        <div class="border rounded-3 h-100 p-3">
-          <div class="fw-semibold">{{ ref.title }}</div>
-          <div class="small">{{ ref.article }}</div>
-          <div class="small text-muted mb-2">{{ ref.description }}</div>
-          <a href="{{ ref.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
 </div>
 {% endblock %}
 

@@ -36,6 +36,7 @@ class Materia(str, Enum):
 class Grado(str, Enum):
     GIUDICE_DI_PACE = "Giudice di Pace"
     TRIBUNALE = "Tribunale"
+    GIUDICE_TUTELARE = "Giudice tutelare"
     GIP_GUP = "GIP / GUP"
     TRIBUNALE_MONOCRATICO = "Tribunale monocratico"
     TRIBUNALE_COLLEGIALE = "Tribunale collegiale"
@@ -217,6 +218,7 @@ _PHASE_LABELS = {
 _GRADO_COEFF_APPROSSIMATI = {
     Grado.GIUDICE_DI_PACE: 1.0,
     Grado.TRIBUNALE: 1.0,
+    Grado.GIUDICE_TUTELARE: 1.0,
     Grado.GIP_GUP: 1.0,
     Grado.TRIBUNALE_MONOCRATICO: 1.0,
     Grado.TRIBUNALE_COLLEGIALE: 1.0,
@@ -577,6 +579,11 @@ _PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
     "volontaria": {
         "table_code": "A7",
         "note": "Tabella 7 per procedimenti di volontaria giurisdizione.",
+        "force_compenso_unico": True,
+    },
+    "volontaria_giudice_tutelare": {
+        "table_code": "A7",
+        "note": "Tabella 7 per procedimenti di volontaria giurisdizione davanti al giudice tutelare.",
         "force_compenso_unico": True,
     },
     "esecuzione_mobiliare": {

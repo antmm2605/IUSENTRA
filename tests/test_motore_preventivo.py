@@ -196,3 +196,32 @@ def test_famiglia_e_volontaria_separano_consensuale_giudiziale_camerale_e_minori
     assert minori["materia"] == "Civile di cognizione"
     assert {row["rule_code"] for row in minori["regole_tariffarie"]} == {"famiglia_procedimenti_minori"}
     assert any(ref["title"] == "D.Lgs. 10 ottobre 2022, n. 149" for ref in minori["normative_references"])
+
+
+def test_famiglia_aggiunge_modifica_condizioni_responsabilita_reclamo_appello_e_ads():
+    modifica = redattore_preventivo_iniziale("modifica_condizioni_famiglia")
+    responsabilita = redattore_preventivo_iniziale("responsabilita_genitoriale")
+    reclamo = redattore_preventivo_iniziale("reclamo_famiglia_minori")
+    appello = redattore_preventivo_iniziale("appello_famiglia_minori")
+    ads = redattore_preventivo_iniziale("amministrazione_sostegno")
+
+    assert modifica["grado_default"] == "Tribunale"
+    assert "473-bis.29" in modifica["base_normativa"]
+    assert {row["rule_code"] for row in modifica["regole_tariffarie"]} == {"famiglia_modifica_condizioni"}
+
+    assert responsabilita["materia"] == "Civile di cognizione"
+    assert "337-bis" in responsabilita["base_normativa"]
+    assert {row["rule_code"] for row in responsabilita["regole_tariffarie"]} == {"famiglia_responsabilita_genitoriale"}
+
+    assert reclamo["grado_default"] == "Corte d'Appello"
+    assert "473-bis.24" in reclamo["base_normativa"]
+    assert {row["rule_code"] for row in reclamo["regole_tariffarie"]} == {"famiglia_reclamo"}
+
+    assert appello["grado_default"] == "Corte d'Appello"
+    assert "473-bis.30" in appello["base_normativa"]
+    assert {row["rule_code"] for row in appello["regole_tariffarie"]} == {"famiglia_appello_minori"}
+
+    assert ads["materia"] == "Volontaria giurisdizione"
+    assert ads["grado_default"] == "Giudice tutelare"
+    assert {row["rule_code"] for row in ads["regole_tariffarie"]} == {"volontaria_amministrazione_sostegno"}
+    assert any(ref["article"] == "art. 404" for ref in ads["normative_references"])

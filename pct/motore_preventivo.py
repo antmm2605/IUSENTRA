@@ -326,6 +326,51 @@ CATALOGO: List[TipoPratica] = [
         base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — artt. 473-bis ss. c.p.c. / procedimenti relativi ai minori",
     ),
     TipoPratica(
+        id="modifica_condizioni_famiglia",
+        label="Modifica condizioni separazione / divorzio",
+        area="Civile",
+        materia=Materia.CIVILE_COGN,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=_FASI_BASE,
+        base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — art. 473-bis.29 c.p.c.",
+    ),
+    TipoPratica(
+        id="responsabilita_genitoriale",
+        label="Responsabilita genitoriale e affidamento",
+        area="Civile",
+        materia=Materia.CIVILE_COGN,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=_FASI_BASE,
+        base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — artt. 337-bis ss. c.c. / artt. 473-bis ss. c.p.c.",
+    ),
+    TipoPratica(
+        id="reclamo_famiglia_minori",
+        label="Reclamo famiglia / minori",
+        area="Civile",
+        materia=Materia.CIVILE_COGN,
+        grado_default=Grado.CORTE_APPELLO,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A12 DM 55/2014 agg. DM 147/2022 — art. 473-bis.24 c.p.c.",
+    ),
+    TipoPratica(
+        id="appello_famiglia_minori",
+        label="Appello famiglia / minori",
+        area="Civile",
+        materia=Materia.CIVILE_COGN,
+        grado_default=Grado.CORTE_APPELLO,
+        fasi_default=_FASI_BASE,
+        base_normativa="Tab. A12 DM 55/2014 agg. DM 147/2022 — art. 473-bis.30 c.p.c.",
+    ),
+    TipoPratica(
+        id="amministrazione_sostegno",
+        label="Amministrazione di sostegno",
+        area="Civile",
+        materia=Materia.VOLONTARIA,
+        grado_default=Grado.GIUDICE_TUTELARE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — art. 404 c.c. / art. 720-bis c.p.c.",
+    ),
+    TipoPratica(
         id="sfratto_morosita",
         label="Sfratto per morosita / convalida",
         area="Civile",
@@ -891,6 +936,30 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
     ],
+    "modifica_condizioni_famiglia": [
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
+        {"descrizione": "Notifica ricorso / decreto", "importo": 25.0},
+    ],
+    "responsabilita_genitoriale": [
+        {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
+        {"descrizione": "Notifica ricorso / provvedimento", "importo": 25.0},
+    ],
+    "reclamo_famiglia_minori": [
+        {"descrizione": "Diritti di segreteria reclamo", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
+        {"descrizione": "Notifica reclamo", "importo": 25.0},
+    ],
+    "appello_famiglia_minori": [
+        {"descrizione": "Contributo Unificato appello (se dovuto)", "importo": 392.0},
+        {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        {"descrizione": "Notifica atto di appello", "importo": 25.0},
+    ],
+    "amministrazione_sostegno": [
+        {"descrizione": "Diritti di segreteria ricorso al giudice tutelare", "importo": 27.0},
+        {"descrizione": "Certificazioni e visure sanitarie / anagrafiche", "importo": 25.0},
+    ],
     "sfratto_morosita": [
         {"descrizione": "Contributo Unificato (indicativo)", "importo": 103.0},
         {"descrizione": "Diritti di segreteria", "importo": 27.0},
@@ -1229,6 +1298,11 @@ _SUMMARY_OVERRIDES = {
     "divorzio_congiunto": "Preventivo per domanda congiunta di scioglimento o cessazione degli effetti civili del matrimonio, con compenso unico tabellare di volontaria giurisdizione.",
     "procedimenti_famiglia": "Preventivo per procedimenti camerali di famiglia, da usare quando il rito resta non contenzioso o comunque camerale.",
     "procedimenti_minori": "Preventivo per procedimenti relativi ai minori con struttura piu prudente sul rito contenzioso davanti al tribunale competente.",
+    "modifica_condizioni_famiglia": "Preventivo per revisione o modifica delle condizioni gia fissate in materia familiare, con focus su ricorso e provvedimenti successivi.",
+    "responsabilita_genitoriale": "Preventivo per controversie su affidamento, collocamento, mantenimento e responsabilita genitoriale, separato dal contenitore generico famiglia.",
+    "reclamo_famiglia_minori": "Preventivo per reclamo sui provvedimenti temporanei e urgenti in materia di persone, minorenni e famiglie, con profilo da impugnazione davanti alla Corte d'Appello.",
+    "appello_famiglia_minori": "Preventivo per appello in materia famiglia o minori contro la sentenza resa dal tribunale competente.",
+    "amministrazione_sostegno": "Preventivo per ricorso e gestione del procedimento di amministrazione di sostegno davanti al giudice tutelare con regola di volontaria giurisdizione.",
     "cassazione_lavoro": "Preventivo per ricorso di legittimita in materia di lavoro, separato dal secondo grado per mantenere regola tariffaria e grado coerenti.",
     "mediazione": "Preventivo per assistenza in procedura di mediazione civile e commerciale con valorizzazione delle fasi ADR.",
     "negoziazione_assistita": "Preventivo per assistenza nella convenzione di negoziazione assistita e nelle fasi di trattativa e definizione.",
@@ -1252,6 +1326,11 @@ _WHEN_TO_USE_OVERRIDES = {
     "divorzio_congiunto": "Usalo quando la crisi familiare e gia definita in forma condivisa e vuoi stimare subito il compenso unico della domanda congiunta.",
     "procedimenti_famiglia": "Usalo per procedimenti camerali familiari o per richieste non pienamente contenziose che non vuoi mescolare ai giudizi di separazione o divorzio.",
     "procedimenti_minori": "Usalo quando il focus principale riguarda provvedimenti sui minori e preferisci una stima piu cauta sul rito davanti al tribunale competente.",
+    "modifica_condizioni_famiglia": "Usalo quando devi chiedere la revisione di affidamento, mantenimento o altri provvedimenti gia emessi nella crisi familiare.",
+    "responsabilita_genitoriale": "Usalo quando la pratica riguarda in via principale affidamento, mantenimento, collocamento o esercizio della responsabilita genitoriale.",
+    "reclamo_famiglia_minori": "Usalo quando devi impugnare in via di reclamo i provvedimenti temporanei e urgenti resi nel rito famiglia e minori.",
+    "appello_famiglia_minori": "Usalo quando devi proporre appello contro una sentenza del tribunale in materia di persone, minorenni e famiglie.",
+    "amministrazione_sostegno": "Usalo quando l'intervento richiesto riguarda la nomina, la modifica o la gestione dell'amministratore di sostegno davanti al giudice tutelare.",
     "cassazione_lavoro": "Usalo quando il contenzioso di lavoro e gia arrivato alla fase di legittimita e non vuoi mescolare il ricorso per Cassazione con il giudizio di appello.",
     "mediazione": "Usalo quando la materia impone o rende utile un tentativo ADR prima del giudizio o in corso di causa.",
     "negoziazione_assistita": "Usalo quando la controversia richiede o consiglia una negoziazione assistita prima dell'azione giudiziale.",
@@ -1487,6 +1566,11 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
         "divorzio_giudiziale",
         "procedimenti_famiglia",
         "procedimenti_minori",
+        "modifica_condizioni_famiglia",
+        "responsabilita_genitoriale",
+        "reclamo_famiglia_minori",
+        "appello_famiglia_minori",
+        "amministrazione_sostegno",
     }:
         refs.append(
             {
@@ -1520,6 +1604,67 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "title": "Codice di procedura civile",
                 "article": "art. 473-bis",
                 "description": "Il titolo IV-bis si applica ai procedimenti relativi allo stato delle persone, ai minorenni e alle famiglie attribuiti al giudice competente.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "modifica_condizioni_famiglia":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 473-bis.29",
+                "description": "Domande di modifica o revisione dei provvedimenti in materia di affidamento, mantenimento e responsabilita genitoriale.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "responsabilita_genitoriale":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "artt. 337-bis e seguenti",
+                "description": "Disciplina sostanziale dell'affidamento e dell'esercizio della responsabilita genitoriale nei rapporti con i figli.",
+                "url": _URL_CC,
+            }
+        )
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 473-bis e seguenti",
+                "description": "Rito unitario delle controversie in materia di persone, minorenni e famiglie davanti al tribunale competente.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "reclamo_famiglia_minori":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 473-bis.24",
+                "description": "Reclamo avverso i provvedimenti temporanei e urgenti nel rito persone, minorenni e famiglie.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "appello_famiglia_minori":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 473-bis.30",
+                "description": "Appello avverso la sentenza pronunciata dal tribunale nei procedimenti di persone, minorenni e famiglie.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "amministrazione_sostegno":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "art. 404",
+                "description": "Presupposti e finalita dell'amministrazione di sostegno a tutela della persona fragile.",
+                "url": _URL_CC,
+            }
+        )
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 720-bis",
+                "description": "Procedimento davanti al giudice tutelare per l'amministrazione di sostegno e i relativi provvedimenti.",
                 "url": _URL_CPC,
             }
         )

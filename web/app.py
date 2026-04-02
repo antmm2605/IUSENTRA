@@ -2328,6 +2328,7 @@ def create_app(config: dict | None = None) -> Flask:
         def _preferred_grade(gradi: list[str]) -> str:
             ordine = [
                 "Tribunale",
+                "Giudice tutelare",
                 "GIP / GUP",
                 "Tribunale monocratico",
                 "Tribunale collegiale",

@@ -230,3 +230,24 @@ def test_famiglia_e_volontaria_non_collassano_piu_su_un_unico_contenitore():
     assert default_rule_for_practice("procedimenti_minori")["rule_code"] == "famiglia_procedimenti_minori"
     assert profile_lookup_by_rule("famiglia_camerale")["table_code"] == "A7"
     assert profile_lookup_by_rule("famiglia_procedimenti_minori")["table_code"] == "A2"
+
+
+def test_famiglia_estende_sottocasi_revisione_reclamo_appello_e_ads():
+    modifica = {row["rule_code"] for row in rules_for_practice("modifica_condizioni_famiglia")}
+    responsabilita = {row["rule_code"] for row in rules_for_practice("responsabilita_genitoriale")}
+    reclamo = {row["rule_code"] for row in rules_for_practice("reclamo_famiglia_minori")}
+    appello = {row["rule_code"] for row in rules_for_practice("appello_famiglia_minori")}
+    ads = {row["rule_code"] for row in rules_for_practice("amministrazione_sostegno")}
+
+    assert modifica == {"famiglia_modifica_condizioni"}
+    assert responsabilita == {"famiglia_responsabilita_genitoriale"}
+    assert reclamo == {"famiglia_reclamo"}
+    assert appello == {"famiglia_appello_minori"}
+    assert ads == {"volontaria_amministrazione_sostegno"}
+
+    assert default_rule_for_practice("reclamo_famiglia_minori")["rule_code"] == "famiglia_reclamo"
+    assert default_rule_for_practice("appello_famiglia_minori")["rule_code"] == "famiglia_appello_minori"
+    assert default_rule_for_practice("amministrazione_sostegno")["rule_code"] == "volontaria_amministrazione_sostegno"
+    assert profile_lookup_by_rule("famiglia_reclamo")["table_code"] == "A12"
+    assert profile_lookup_by_rule("famiglia_appello_minori")["table_code"] == "A12"
+    assert profile_lookup_by_rule("volontaria_amministrazione_sostegno")["table_code"] == "A7"

@@ -610,6 +610,133 @@ def create_app(config: dict | None = None) -> Flask:
             return 0
         return sum(1 for path in cartella.rglob("*") if path.is_file())
 
+    _DOC_TIPI_ATTI_PRINCIPALI = {
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        TipoDocumento.MEMORIA,
+        TipoDocumento.RICORSO,
+        TipoDocumento.CITAZIONE,
+        TipoDocumento.COMPARSA,
+    }
+    _DOC_TIPI_PROVVEDIMENTI = {
+        TipoDocumento.SENTENZA,
+        TipoDocumento.ORDINANZA,
+        TipoDocumento.DECRETO,
+        TipoDocumento.VERBALE,
+    }
+    _DOC_TIPI_RICEVUTE = {
+        TipoDocumento.COMUNICAZIONE,
+        TipoDocumento.DEPOSITO_PCT,
+        TipoDocumento.NOTIFICA,
+    }
+    _ATTIVITA_UDIENZE_SCADENZE = {
+        TipoAttivita.UDIENZA,
+        TipoAttivita.TERMINE_SCADENZA,
+        TipoAttivita.RINVIO,
+    }
+
+    def _fascicolo_text(*parts: object) -> str:
+        return " ".join(str(part or "").strip() for part in parts if str(part or "").strip()).lower()
+
+    def _documento_bucket(doc: Documento) -> str:
+        tipo = getattr(doc, "tipo", None)
+        if tipo in _DOC_TIPI_PROVVEDIMENTI:
+            return "provvedimenti"
+        if tipo in _DOC_TIPI_RICEVUTE:
+            return "ricevute"
+        if tipo in _DOC_TIPI_ATTI_PRINCIPALI:
+            return "atti_principali"
+        return "allegati"
+
+    def _documento_is_istanza(doc: Documento) -> bool:
+        testo = _fascicolo_text(getattr(doc, "nome", ""), getattr(doc, "note", ""), getattr(doc, "tipo", ""))
+        return "istanza" in testo
+
+    def _deposito_is_istanza(dep) -> bool:
+        testo = _fascicolo_text(
+            getattr(dep, "tipo_atto", ""),
+            getattr(dep, "messaggio", ""),
+            getattr(dep, "note", ""),
+            getattr(dep, "nome_atto_principale", ""),
+        )
+        return "istanza" in testo
+
+    def _deposito_is_comunicazione(dep) -> bool:
+        return any(
+            (
+                getattr(dep, "ricevuta_accettazione", ""),
+                getattr(dep, "ricevuta_consegna", ""),
+                getattr(dep, "ricevuta_controlli_automatici", ""),
+                getattr(dep, "ricevuta_cancelleria", ""),
+                getattr(dep, "documenti_portale", None),
+                getattr(dep, "fonte_portale", ""),
+            )
+        )
+
+    def _build_fascicolo_workspace(
+        fasc: Fascicolo,
+        *,
+        apps: Optional[list] = None,
+        scadenze: Optional[list] = None,
+    ) -> dict:
+        documenti = list(getattr(fasc, "documenti", []) or [])
+        attivita = list(getattr(fasc, "attivita", []) or [])
+        depositi = list(getattr(fasc, "depositi_pct", []) or [])
+        appuntamenti = list(apps or [])
+        termini = list(scadenze or [])
+
+        documenti_buckets = {
+            "all": len(documenti),
+            "atti_principali": 0,
+            "allegati": 0,
+            "ricevute": 0,
+            "provvedimenti": 0,
+            "istanze": 0,
+        }
+        for doc in documenti:
+            documenti_buckets[_documento_bucket(doc)] += 1
+            if _documento_is_istanza(doc):
+                documenti_buckets["istanze"] += 1
+
+        attivita_processuali = [
+            att for att in attivita
+            if att.tipo not in _ATTIVITA_UDIENZE_SCADENZE
+            and att.tipo != TipoAttivita.COMUNICAZIONE_CANCELLERIA
+        ]
+        udienze_attivita = [att for att in attivita if att.tipo in _ATTIVITA_UDIENZE_SCADENZE]
+        comunicazioni_attivita = [
+            att for att in attivita if att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+        ]
+        comunicazioni_depositi = [dep for dep in depositi if _deposito_is_comunicazione(dep)]
+        istanze_documenti = [doc for doc in documenti if _documento_is_istanza(doc)]
+        istanze_depositi = [dep for dep in depositi if _deposito_is_istanza(dep)]
+
+        attivita_processuali.sort(key=lambda att: getattr(att, "data", "") or "", reverse=True)
+        udienze_attivita.sort(key=lambda att: getattr(att, "data", "") or "")
+        comunicazioni_attivita.sort(key=lambda att: getattr(att, "data", "") or "", reverse=True)
+        comunicazioni_depositi.sort(key=lambda dep: getattr(dep, "timestamp", "") or "", reverse=True)
+        termini.sort(key=lambda sc: getattr(sc, "data_scadenza", "") or "")
+        appuntamenti.sort(key=lambda app_obj: getattr(app_obj, "data_ora", "") or "")
+
+        return {
+            "counts": {
+                "profilo": 1,
+                "documenti": len(documenti),
+                "attivita": len(attivita_processuali),
+                "udienze_scadenze": len(udienze_attivita) + len(termini) + len(appuntamenti),
+                "comunicazioni": len(comunicazioni_attivita) + max(len(comunicazioni_depositi), len(depositi)),
+                "istanze": len(istanze_documenti) + len(istanze_depositi),
+            },
+            "documenti_buckets": documenti_buckets,
+            "attivita_processuali": attivita_processuali,
+            "udienze_attivita": udienze_attivita,
+            "scadenze": termini,
+            "appuntamenti": appuntamenti,
+            "comunicazioni_attivita": comunicazioni_attivita,
+            "comunicazioni_depositi": comunicazioni_depositi,
+            "istanze_documenti": istanze_documenti,
+            "istanze_depositi": istanze_depositi,
+        }
+
     def _fascicolo_focus_url(id_fasc: str, *, focus: str = "", open_modal: str = "") -> str:
         params: dict[str, str] = {}
         if focus:
@@ -5919,10 +6046,12 @@ read -r -p "Premi Invio per chiudere..." _
         preventivo = preventivi_fascicolo[0] if preventivi_fascicolo else None
         conferimento = conferimenti_fascicolo[0] if conferimenti_fascicolo else None
         agenda = get_agenda()
+        scadenziario = get_scadenziario()
         # appuntamenti collegati al procedimento
         apps = []
         if fasc.numero_rg:
             apps = agenda.cerca(testo=fasc.numero_rg)
+        scadenze_fascicolo = scadenziario.tutte(id_fascicolo=id_fasc, solo_aperte=False)
         track_recente("fascicolo", id_fasc, f"{fasc.numero} — {fasc.titolo}",
                       url_for("dettaglio_fascicolo", id_fasc=id_fasc), "bi-folder2-open")
         # PEC del tribunale dal registro ReGINde
@@ -5968,6 +6097,11 @@ read -r -p "Premi Invio per chiudere..." _
             fascicolo=fasc,
             cliente=cliente,
         )
+        workspace_fascicolo = _build_fascicolo_workspace(
+            fasc,
+            apps=apps,
+            scadenze=scadenze_fascicolo,
+        )
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
@@ -5975,6 +6109,8 @@ read -r -p "Premi Invio per chiudere..." _
             preventivo=preventivo,
             conferimento=conferimento,
             apps=apps,
+            scadenze_fascicolo=scadenze_fascicolo,
+            workspace_fascicolo=workspace_fascicolo,
             tipi_doc=list(TipoDocumento),
             tipi_att=list(TipoAttivita),
             esiti=list(EsitoAttivita),

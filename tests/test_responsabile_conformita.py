@@ -2,9 +2,10 @@ from types import SimpleNamespace
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.preventivi import GestionePreventivi, TipoVoce, VocePreventivo
 from pct.responsabile_conformita import build_fascicolo_compliance_summary
+from pct.scadenziario import GestioneScadenziario, TipoTermine
 from web.app import create_app
 
 
@@ -141,6 +142,12 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
+    assert "Profilo fascicolo" in html
+    assert "Documenti fascicolo" in html
+    assert "Attività processuali" in html
+    assert "Udienze e scadenze" in html
+    assert "Comunicazioni di cancelleria" in html
+    assert "Istanze" in html
     assert "Responsabile di conformita" in html
     assert "Controlli processuali" in html
     assert "Controlli documentali" in html
@@ -151,3 +158,61 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Completa dati fascicolo" in html
     assert "Aggiungi documenti" in html
     assert "Apri redattore guidato" in html
+
+
+def test_dettaglio_fascicolo_separa_istanze_e_scadenze(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = fascicoli.nuovo(
+        titolo="Comparsa e istanza istruttoria",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1234",
+        anno_rg=2026,
+    )
+    fascicoli.aggiungi_documento(
+        fasc.id,
+        "istanza_fissazione_udienza.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"istanza",
+        note="Istanza di fissazione udienza",
+    )
+
+    scadenziario = GestioneScadenziario(cfg["SCADENZIARIO_DB"])
+    scadenziario.nuova(
+        titolo="Deposita memoria 171-ter",
+        tipo=TipoTermine.DEPOSITO_MEMORIA,
+        data_scadenza="2026-05-10",
+        id_fascicolo=fasc.id,
+        descrizione="Termine processuale istruttorio",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fasc.id}")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Deposita memoria 171-ter" in html
+    assert "istanza_fissazione_udienza.pdf" in html

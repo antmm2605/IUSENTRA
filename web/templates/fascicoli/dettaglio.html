@@ -4,6 +4,8 @@
 
 {% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
 {% set EC = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+{% set WFS = workspace_fascicolo or {} %}
+{% set WFC = WFS.counts or {} %}
 {% set ns_portale = namespace(documenti=0, depositi=0) %}
 {% for dep_meta in fascicolo.depositi_pct or [] %}
   {% if dep_meta.documenti_portale %}
@@ -44,15 +46,47 @@
   </div>
 </div>
 
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <div class="d-flex flex-wrap gap-2 small">
+      <a href="#sezione-profilo" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-info-circle me-1"></i>Profilo
+        <span class="badge text-bg-primary ms-1">{{ WFC.profilo or 0 }}</span>
+      </a>
+      <a href="#sezione-documenti-fascicolo" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-paperclip me-1"></i>Documenti
+        <span class="badge text-bg-primary ms-1">{{ WFC.documenti or 0 }}</span>
+      </a>
+      <a href="#sezione-attivita-processuali" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-list-check me-1"></i>Attivita
+        <span class="badge text-bg-primary ms-1">{{ WFC.attivita or 0 }}</span>
+      </a>
+      <a href="#sezione-udienze-scadenze" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-calendar-event me-1"></i>Udienze / scadenze
+        <span class="badge text-bg-primary ms-1">{{ WFC.udienze_scadenze or 0 }}</span>
+      </a>
+      <a href="#sezione-comunicazioni-cancelleria" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-inboxes me-1"></i>Cancelleria
+        <span class="badge text-bg-primary ms-1">{{ WFC.comunicazioni or 0 }}</span>
+      </a>
+      <a href="#sezione-istanze" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-journal-text me-1"></i>Istanze
+        <span class="badge text-bg-primary ms-1">{{ WFC.istanze or 0 }}</span>
+      </a>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
 
   {# ---- Colonna principale ---- #}
   <div class="col-lg-8">
 
-    {# Dati processuali #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-info-circle me-2 text-primary"></i>Dati processuali
+    {# Profilo fascicolo #}
+    <div class="card shadow-sm mb-3" id="sezione-profilo">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span><i class="bi bi-info-circle me-2 text-primary"></i>Profilo fascicolo</span>
+        <span class="badge bg-light text-dark border">ProfiloFascicolo</span>
       </div>
       <div class="card-body">
         <div class="row g-3 small">
@@ -110,27 +144,30 @@
     {% endif %}
 
     {# ---- Attività processuali ---- #}
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" id="sezione-attivita-processuali">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi bi-list-check me-2 text-primary"></i>
           Attività processuali
-          <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.attivita|length }}</span>
+          <span class="badge bg-primary rounded-pill ms-1">{{ WFS.attivita_processuali|length }}</span>
         </span>
         <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
                 data-bs-target="#modalAttivita">
           <i class="bi bi-plus-lg me-1"></i>Aggiungi
         </button>
       </div>
+      <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
+        Timeline procedurale del fascicolo: passaggi, adempimenti operativi e storico delle lavorazioni, separata da udienze, scadenze e comunicazioni di cancelleria.
+      </div>
       <div class="card-body p-0">
-        {% if fascicolo.attivita %}
+        {% if WFS.attivita_processuali %}
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0 small mob-cards">
             <thead class="table-light">
               <tr><th>Data</th><th>Tipo</th><th>Titolo</th><th>Luogo</th><th>Esito</th><th></th></tr>
             </thead>
             <tbody>
-              {% for att in fascicolo.attivita|sort(attribute='data', reverse=True) %}
+              {% for att in WFS.attivita_processuali %}
               <tr>
                 <td data-label="Data" class="text-nowrap">{{ att.data|fmt_data }}</td>
                 <td data-label="Tipo">
@@ -169,11 +206,11 @@
     </div>
 
     {# ---- Documenti ---- #}
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" id="sezione-documenti-fascicolo">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi bi-paperclip me-2 text-primary"></i>
-          Documenti
+          Documenti fascicolo
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
         </span>
         <div class="d-flex gap-2 flex-wrap">
@@ -188,6 +225,15 @@
                   data-bs-target="#modalDocumento">
             <i class="bi bi-upload me-1"></i>Carica
           </button>
+        </div>
+      </div>
+      <div class="card-body py-2 border-bottom bg-light-subtle small">
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge bg-light text-dark border">Tutti {{ WFS.documenti_buckets.all or 0 }}</span>
+          <span class="badge bg-light text-dark border">Atti principali {{ WFS.documenti_buckets.atti_principali or 0 }}</span>
+          <span class="badge bg-light text-dark border">Allegati {{ WFS.documenti_buckets.allegati or 0 }}</span>
+          <span class="badge bg-light text-dark border">Ricevute {{ WFS.documenti_buckets.ricevute or 0 }}</span>
+          <span class="badge bg-light text-dark border">Provvedimenti del giudice {{ WFS.documenti_buckets.provvedimenti or 0 }}</span>
         </div>
       </div>
       <div class="card-body p-0">
@@ -469,7 +515,7 @@
           <div class="mt-2">
             Sono gia' censiti <strong>{{ ns_portale.documenti }}</strong> documenti ufficiali
             in <strong>{{ ns_portale.depositi }}</strong> deposit{% if ns_portale.depositi == 1 %}o{% else %}i{% endif %}
-            nella sezione <strong>{{ dep_label if dep_label is defined else 'Depositi telematici PCT' }}</strong>.
+            nella sezione <strong>Comunicazioni di cancelleria</strong>.
           </div>
           <div class="mt-1">
             Qui compariranno i file locali solo dopo l'acquisizione dei documenti gia' scaricati dal portale ufficiale.
@@ -493,6 +539,70 @@
           </div>
           {% endif %}
         </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---- Udienze e scadenze ---- #}
+    <div class="card shadow-sm mb-3" id="sezione-udienze-scadenze">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
+          <i class="bi bi-calendar-event me-2 text-primary"></i>
+          Udienze e scadenze
+          <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.udienze_attivita|length) + (WFS.scadenze|length) + (WFS.appuntamenti|length) }}</span>
+        </span>
+        <a href="{{ url_for('scadenziario', id_fascicolo=fascicolo.id) }}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-calendar3 me-1"></i>Scadenziario
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if WFS.udienze_attivita or WFS.scadenze or WFS.appuntamenti %}
+        <div class="list-group list-group-flush small">
+          {% for att in WFS.udienze_attivita %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ att.titolo }}</div>
+                <div class="text-muted">{{ att.descrizione or att.tipo.value.replace('_',' ') }}</div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
+                <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% for sc in WFS.scadenze %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ sc.titolo }}</div>
+                <div class="text-muted">{{ sc.descrizione or sc.tipo.value.replace('_',' ') }}</div>
+              </div>
+              <div class="text-end">
+                <span class="badge {% if sc.stato.value == 'COMPLETATO' %}bg-success{% elif sc.stato.value == 'SCADUTO' %}bg-danger{% else %}bg-light text-dark border{% endif %}">
+                  {{ sc.stato.value.replace('_',' ') }}
+                </span>
+                <div class="text-muted mt-1">{{ sc.data_scadenza|fmt_data }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% for a in WFS.appuntamenti[:5] %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+                   class="text-decoration-none fw-semibold text-dark">{{ a.titolo }}</a>
+                <div class="text-muted">{{ a.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+              </div>
+              <span class="badge badge-{{ a.tipo.value }}">{{ a.tipo.value }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-4 small">Nessuna udienza o scadenza registrata</div>
         {% endif %}
       </div>
     </div>
@@ -525,14 +635,14 @@
       {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% endif %}
 
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-sm mb-3" id="sezione-comunicazioni-cancelleria">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi {{ dep_icon }} me-2 text-{{ dep_col }}"></i>
-          <span class="d-none d-sm-inline">{{ dep_label }}</span>
-          <span class="d-sm-none">Depositi</span>
-          {% if fascicolo.depositi_pct %}
-          <span class="badge bg-{{ dep_col }} rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
+          <span class="d-none d-sm-inline">Comunicazioni di cancelleria</span>
+          <span class="d-sm-none">Cancelleria</span>
+          {% if WFC.comunicazioni %}
+          <span class="badge bg-{{ dep_col }} rounded-pill ms-1">{{ WFC.comunicazioni }}</span>
           {% endif %}
         </span>
         <div class="d-flex gap-1 gap-sm-2 flex-wrap align-items-center">
@@ -599,7 +709,28 @@
           </button>
         </div>
       </div>
+      <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
+        Ricevute PEC, esiti dei controlli automatici, comunicazioni di cancelleria e lotti ufficiali del canale {{ dep_portale_label }}.
+      </div>
       <div class="card-body p-0">
+        {% if WFS.comunicazioni_attivita %}
+        <div class="list-group list-group-flush border-bottom">
+          {% for att in WFS.comunicazioni_attivita %}
+          <div class="list-group-item small">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ att.titolo }}</div>
+                <div class="text-muted">{{ att.descrizione or att.note or 'Comunicazione di cancelleria registrata nel fascicolo.' }}</div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
+                <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
         {% if fascicolo.depositi_pct %}
         <div class="list-group list-group-flush">
           {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
@@ -908,7 +1039,7 @@
           </div>
           {% endfor %}
         </div>
-        {% else %}
+        {% elif not WFS.comunicazioni_attivita %}
         <div class="text-center py-4 px-3">
           <i class="bi {{ dep_icon }} fs-2 text-{{ dep_col }} opacity-25 d-block mb-2"></i>
           <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
@@ -929,29 +1060,55 @@
       </div>
     </div>
 
-    {# ---- Appuntamenti collegati ---- #}
-    {% if apps %}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-calendar-event me-2 text-primary"></i>
-        Appuntamenti collegati ({{ apps|length }})
+    {# ---- Istanze ---- #}
+    <div class="card shadow-sm mb-3" id="sezione-istanze">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span>
+          <i class="bi bi-journal-text me-2 text-primary"></i>Istanze
+          <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.istanze_documenti|length) + (WFS.istanze_depositi|length) }}</span>
+        </span>
+        {% if WFS.istanze_documenti %}
+        <span class="badge bg-light text-dark border">Documenti collegati</span>
+        {% endif %}
       </div>
       <div class="card-body p-0">
-        <ul class="list-group list-group-flush">
-          {% for a in apps[:5] %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-                 class="text-decoration-none fw-semibold text-dark">{{ a.titolo }}</a>
-              <div class="small text-muted">{{ a.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+        {% if WFS.istanze_documenti or WFS.istanze_depositi %}
+        <div class="list-group list-group-flush small">
+          {% for doc in WFS.istanze_documenti %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ doc.nome }}</div>
+                <div class="text-muted">{{ doc.tipo.value.replace('_', ' ') }}</div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-light text-dark border">{{ doc.data_documento|fmt_data if doc.data_documento else 'Documento' }}</span>
+              </div>
             </div>
-            <span class="badge badge-{{ a.tipo.value }}">{{ a.tipo.value }}</span>
-          </li>
+          </div>
           {% endfor %}
-        </ul>
+          {% for dep in WFS.istanze_depositi %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ dep.tipo_atto }}</div>
+                <div class="text-muted">{{ dep.nome_atto_principale or dep.note or 'Istanza registrata nel canale ufficiale' }}</div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
+                <div class="text-muted mt-1">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-4 small">
+          Nessuna istanza distinta ancora censita nel fascicolo. Quando il tipo atto o il documento contiene un'istanza, la sezione la evidenzia qui separandola dal resto dei documenti.
+        </div>
+        {% endif %}
       </div>
     </div>
-    {% endif %}
 
   </div>{# /col-lg-8 #}
 

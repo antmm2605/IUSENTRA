@@ -29,7 +29,10 @@ from .checklist_atti import CANALE_LABEL
 from .fascicoli import Fascicolo
 from .pst_catalog import (
     PST_CATALOG_VERSION,
+    PST_DM44_SPECIFICHE_URL,
     PST_SCHEMA_VERSION,
+    PST_MAX_BUSTA_BYTES,
+    PST_MAX_BUSTA_MB,
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
     get_catalog_snapshot,
@@ -959,7 +962,23 @@ class DocumentValidator:
                         )
                     )
 
-        if total_bytes > MAX_BYTES_ALLEGATO:
+        if total_bytes > PST_MAX_BUSTA_BYTES:
+            issues.append(
+                ValidationIssue(
+                    service=SERVICE_DOCUMENTALE,
+                    level=LEVEL_BLOCK,
+                    code="dimensione_busta_t003",
+                    title="Busta oltre il limite ministeriale",
+                    detail=(
+                        f"La selezione attuale pesa circa {round(total_bytes / (1024 * 1024), 2)} MB "
+                        f"e supera il limite PST di {PST_MAX_BUSTA_MB} MB (controllo T003)."
+                    ),
+                    source="Specifiche tecniche D.M. 44/2011 rev. 04.01.24",
+                    suggested_action="Riduci la dimensione complessiva del deposito prima di generare la busta.",
+                    field="allegati_ids",
+                )
+            )
+        elif total_bytes > int(PST_MAX_BUSTA_BYTES * 0.75):
             issues.append(
                 ValidationIssue(
                     service=SERVICE_DOCUMENTALE,
@@ -968,9 +987,9 @@ class DocumentValidator:
                     title="Busta documentale pesante",
                     detail=(
                         f"La selezione attuale pesa circa {round(total_bytes / (1024 * 1024), 2)} MB: "
-                        "verifica limiti PEC e opportunita di deposito piu snello."
+                        "verifica il margine residuo rispetto al limite ministeriale e l'opportunita di un deposito piu snello."
                     ),
-                    source="Regola tecnica operativa",
+                    source="Specifiche tecniche D.M. 44/2011 rev. 04.01.24",
                     suggested_action="Valuta la riduzione di scansioni e allegati non essenziali.",
                     field="allegati_ids",
                 )
@@ -1050,8 +1069,10 @@ class ValidatorSchemiPST:
                 operatore=str(context.get("operatore") or ""),
                 cf_mittente=str(context.get("cf_mittente") or ""),
             )
-            xml_bytes = BustaTelematica(dati)._crea_xml_dati_atto()
+            busta = BustaTelematica(dati)
+            xml_bytes = busta._crea_xml_dati_atto()
             root = etree.fromstring(xml_bytes)
+            busta_audit = busta.audit_conformita_pst()
         except Exception as exc:
             issues.append(
                 ValidationIssue(
@@ -1179,6 +1200,8 @@ class ValidatorSchemiPST:
                     field="numero_rg",
                 )
             )
+
+        context["pst_busta_audit"] = busta_audit
 
         return issues
 
@@ -1317,8 +1340,10 @@ class OrchestratoreDepositoGuidato:
             "office_catalog_version": OFFICE_CATALOG_VERSION,
             "pst_webservices_doc_version": PST_WEB_SERVICES_DOC_VERSION,
             "pst_webservices_doc_url": PST_WEB_SERVICES_DOC_URL,
+            "pst_dm44_specifiche_url": PST_DM44_SPECIFICHE_URL,
             "profile_channel": profile.channel,
             "profile_deposit_mode": profile.deposit_mode,
+            "pst_busta_audit": dict(normalized_context.get("pst_busta_audit") or {}),
             "selected_documents": selected_summary,
             "selected_count": len(selected_summary),
         }

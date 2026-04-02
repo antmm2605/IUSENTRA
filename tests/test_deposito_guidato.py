@@ -111,6 +111,8 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
     assert any(issue["code"] == "procura_mancante" for issue in run.issues)
     assert run.snapshot["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
     assert run.resolver["pst_official_catalog"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
+    assert run.snapshot["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+    assert run.snapshot["pst_busta_audit"]["formal_checks"]["T003"]["status"] == "ok"
 
 
 def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tmp_path):
@@ -185,3 +187,4 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert data["validation"]["semaforo"]["giuridico"] == "warning"
     assert any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
     assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
+    assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"

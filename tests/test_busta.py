@@ -77,6 +77,18 @@ def test_verifica_busta_valida(dati_busta, tmp_path):
 
     assert risultato["valida"] is True
     assert risultato["id_busta"] is not None
+    assert risultato["audit_tecnico"]["transport_mode"] == "simulazione_zip_rinominato"
+    assert risultato["audit_tecnico"]["formal_checks"]["T001"]["status"] == "non_verificabile_offline"
+
+
+def test_audit_busta_esplicita_simulazione_locale(dati_busta):
+    busta = BustaTelematica(dati_busta)
+    audit = busta.audit_conformita_pst()
+
+    assert audit["uses_real_encryption"] is False
+    assert audit["atto_msg_generated"] is False
+    assert audit["formal_checks"]["T002"]["status"] == "warning"
+    assert any(issue["code"] == "SIM-ENC" for issue in audit["issues"])
 
 
 def test_busta_con_allegati(tmp_path, tmp_pdf):

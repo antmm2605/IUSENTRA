@@ -13,6 +13,14 @@ from typing import List, Optional
 from dataclasses import dataclass, field
 from lxml import etree
 
+from .pst_catalog import (
+    PST_DM44_SPECIFICHE_REVISION,
+    PST_DM44_SPECIFICHE_URL,
+    PST_FORMAL_ERROR_CODES,
+    PST_MAX_BUSTA_BYTES,
+    PST_MAX_BUSTA_MB,
+)
+
 
 @dataclass
 class Allegato:
@@ -116,6 +124,113 @@ class BustaTelematica:
                 sha256.update(chunk)
         return sha256.hexdigest().upper()
 
+    def stima_dimensione_busta(self) -> int:
+        """Stima la dimensione della busta simulata, includendo un overhead minimo."""
+        totale = len(self._crea_xml_dati_atto()) + 4096
+        file_paths = [self.dati.atto_principale] + [a.percorso for a in self.dati.allegati]
+        for percorso in file_paths:
+            path = Path(percorso)
+            if path.exists():
+                totale += path.stat().st_size
+        return totale
+
+    def audit_conformita_pst(self) -> dict:
+        """
+        Restituisce un audit tecnico della busta rispetto alle specifiche PST.
+
+        L'audit distingue tra quanto e verificabile offline e quanto richiede
+        ancora un adapter ministeriale completo lato Atto.msg / Atto.enc.
+        """
+        issues: list[dict[str, str]] = []
+        xml_ok = True
+        try:
+            root = etree.fromstring(self._crea_xml_dati_atto())
+            ns = {"p": self.NAMESPACE}
+            if root.find(".//p:Documenti/p:Attoprincipale", ns) is None:
+                xml_ok = False
+        except Exception as exc:
+            xml_ok = False
+            issues.append(
+                {
+                    "code": "T002",
+                    "level": "BLOCK",
+                    "title": "DatiAtto.xml non generabile",
+                    "detail": f"Il payload XML tecnico non e stato generato correttamente: {exc}",
+                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "suggested_action": "Correggi i metadati della busta prima del deposito.",
+                }
+            )
+
+        size_bytes = self.stima_dimensione_busta()
+        if size_bytes > PST_MAX_BUSTA_BYTES:
+            issues.append(
+                {
+                    "code": "T003",
+                    "level": "BLOCK",
+                    "title": "Busta oltre il limite ministeriale",
+                    "detail": (
+                        f"La busta stimata pesa circa {round(size_bytes / (1024 * 1024), 2)} MB "
+                        f"e supera il limite PST di {PST_MAX_BUSTA_MB} MB."
+                    ),
+                    "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "suggested_action": "Riduci scansioni e allegati o suddividi il deposito.",
+                }
+            )
+
+        issues.append(
+            {
+                "code": "SIM-ENC",
+                "level": "WARNING",
+                "title": "Trasporto ministeriale simulato",
+                "detail": (
+                    "Il file .enc locale e ottenuto rinominando uno ZIP strutturale. "
+                    "Le specifiche PST prevedono invece Atto.enc ottenuto dalla cifratura di Atto.msg."
+                ),
+                "source": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                "suggested_action": (
+                    "Tratta questa busta come simulazione tecnica locale finche non viene "
+                    "implementato il trasporto ministeriale completo."
+                ),
+            }
+        )
+
+        t002_status = "warning"
+        if not xml_ok:
+            t002_status = "block"
+        t003_status = "block" if size_bytes > PST_MAX_BUSTA_BYTES else "ok"
+
+        return {
+            "transport_mode": "simulazione_zip_rinominato",
+            "expected_transport_mode": "atto_enc_da_atto_msg_cifrato_3des",
+            "uses_real_encryption": False,
+            "atto_msg_generated": False,
+            "indice_busta_generated": False,
+            "size_bytes": size_bytes,
+            "max_size_bytes": PST_MAX_BUSTA_BYTES,
+            "max_size_mb": PST_MAX_BUSTA_MB,
+            "formal_checks": {
+                "T001": {
+                    "status": "non_verificabile_offline",
+                    "message": PST_FORMAL_ERROR_CODES["T001"],
+                },
+                "T002": {
+                    "status": t002_status,
+                    "message": PST_FORMAL_ERROR_CODES["T002"],
+                },
+                "T003": {
+                    "status": t003_status,
+                    "message": PST_FORMAL_ERROR_CODES["T003"],
+                },
+            },
+            "sources": [
+                {
+                    "label": f"Specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+                    "url": PST_DM44_SPECIFICHE_URL,
+                }
+            ],
+            "issues": issues,
+        }
+
     def crea_busta(self, output_dir: str) -> str:
         """
         Crea la busta telematica e la salva nella directory specificata.
@@ -167,6 +282,7 @@ class BustaTelematica:
             "id_busta": None,
             "documenti": [],
             "errori": [],
+            "audit_tecnico": {},
         }
 
         try:
@@ -188,6 +304,7 @@ class BustaTelematica:
                     risultato["documenti"].append(doc.text)
 
                 risultato["valida"] = True
+                risultato["audit_tecnico"] = self.audit_conformita_pst()
         except Exception as e:
             risultato["errori"].append(str(e))
 

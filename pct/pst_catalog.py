@@ -1,8 +1,9 @@
 """
-pct/pst_catalog.py - Catalogo versionato dei servizi web PST ufficiali.
+pct/pst_catalog.py - Catalogo versionato delle fonti ufficiali PST.
 
-Questo modulo centralizza la documentazione software house del Portale
-Servizi Telematici usata dai resolver e dai validatori deterministici.
+Questo modulo centralizza la documentazione software house, il vademecum
+utente e le specifiche tecniche del Portale Servizi Telematici usate dai
+resolver e dai validatori deterministici.
 """
 
 from __future__ import annotations
@@ -16,11 +17,27 @@ PST_WEB_SERVICES_DOC_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
     "Documentazione_servizi_web_v1.65.pdf"
 )
+PST_USER_VADEMECUM_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/"
+    "Manuale_utente_PSTVademecum.pdf"
+)
+PST_DM44_SPECIFICHE_REVISION = "04.01.24"
+PST_DM44_SPECIFICHE_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/"
+    "SPECIFICHE_TECNICHE_DM_44_2011REV_04.01.24.pdf"
+)
 PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
 PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.65-2026.04.02.1"
 PST_SCHEMA_VERSION = "PST-SCHEMI-v1.65-2026.04.02.1"
+PST_MAX_BUSTA_MB = 60
+PST_MAX_BUSTA_BYTES = PST_MAX_BUSTA_MB * 1024 * 1024
+PST_FORMAL_ERROR_CODES = {
+    "T001": "Indirizzo del mittente non censito in ReGIndE.",
+    "T002": "Formato del messaggio non aderente alle specifiche.",
+    "T003": "Dimensione del messaggio eccede la dimensione massima consentita.",
+}
 
 
 @dataclass(frozen=True)
@@ -136,6 +153,14 @@ def get_catalog_sources() -> list[dict[str, str]]:
             "url": PST_WEB_SERVICES_DOC_URL,
         },
         {
+            "label": f"PST - specifiche tecniche D.M. 44/2011 rev. {PST_DM44_SPECIFICHE_REVISION}",
+            "url": PST_DM44_SPECIFICHE_URL,
+        },
+        {
+            "label": "PST - manuale utente / vademecum",
+            "url": PST_USER_VADEMECUM_URL,
+        },
+        {
             "label": "PST - namespace ReGIndE interrogazioniExt",
             "url": PST_WEB_SERVICES_DOC_URL,
         },
@@ -156,9 +181,15 @@ def get_catalog_snapshot() -> dict[str, Any]:
     return {
         "pst_webservices_doc_version": PST_WEB_SERVICES_DOC_VERSION,
         "pst_webservices_doc_url": PST_WEB_SERVICES_DOC_URL,
+        "pst_user_vademecum_url": PST_USER_VADEMECUM_URL,
+        "pst_dm44_specifiche_revision": PST_DM44_SPECIFICHE_REVISION,
+        "pst_dm44_specifiche_url": PST_DM44_SPECIFICHE_URL,
         "reginde_namespace": PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE,
         "catalog_version": PST_CATALOG_VERSION,
         "schema_version": PST_SCHEMA_VERSION,
+        "busta_max_bytes": PST_MAX_BUSTA_BYTES,
+        "busta_max_mb": PST_MAX_BUSTA_MB,
+        "formal_error_codes": dict(PST_FORMAL_ERROR_CODES),
         "methods": methods,
         "summary": summary,
     }

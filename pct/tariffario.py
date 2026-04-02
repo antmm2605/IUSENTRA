@@ -551,6 +551,15 @@ def _exact_or_fallback(codice: str, fallback_fn) -> tuple[list[Scaglione], bool]
 
 
 _PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
+    "civile_appello_tribunale": {
+        "table_code": "A2",
+        "note": "Tabella 2 per appello civile devoluto al Tribunale ex art. 341 c.p.c.",
+    },
+    "civile_monitorio_gdp": {
+        "table_code": "A8",
+        "note": "Tabella 8 per procedimenti monitori davanti al Giudice di Pace.",
+        "force_compenso_unico": True,
+    },
     "civile_monitorio": {
         "table_code": "A8",
         "note": "Tabella 8 per procedimenti monitori.",

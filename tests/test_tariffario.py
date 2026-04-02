@@ -1,4 +1,5 @@
 from pct.tariffario import Fase, Grado, Materia, calcola_compenso
+from pct.tariffario_catalogo import default_rule_for_practice, profile_lookup_by_rule, rules_for_practice
 
 
 def test_tabella_civile_primo_grado_legge_valori_dm147_snapshot():
@@ -113,3 +114,49 @@ def test_valore_indeterminabile_usa_complessita_stimata_per_scaglione():
     assert risultato.valore_calcolo == 156000.0
     assert risultato.scaglione == "Da EUR 52.000 a EUR 260.000"
     assert "valore non determinato" in risultato.note.lower()
+
+
+def test_appello_civile_sdoppia_competenza_tra_tribunale_e_corte_appello():
+    rules = rules_for_practice("appello_civile")
+    by_code = {row["rule_code"]: row for row in rules}
+
+    assert set(by_code) >= {"civile_appello_da_gdp", "civile_appello"}
+    assert by_code["civile_appello_da_gdp"]["grado_input_value"] == "Tribunale"
+    assert by_code["civile_appello"]["grado_input_value"] == "Corte d'Appello"
+
+    profile_gdp = profile_lookup_by_rule("civile_appello_da_gdp")
+    profile_tribunale = profile_lookup_by_rule("civile_appello")
+    assert profile_gdp["table_code"] == "A2"
+    assert profile_tribunale["table_code"] == "A12"
+    assert default_rule_for_practice("appello_civile")["rule_code"] == "civile_appello"
+
+
+def test_monitorio_e_opposizione_coprono_anche_competenza_del_giudice_di_pace():
+    monitorio = {row["rule_code"]: row for row in rules_for_practice("decreto_ingiuntivo")}
+    opposizione = {row["rule_code"]: row for row in rules_for_practice("opposizione_di")}
+
+    assert set(monitorio) >= {"civile_monitorio", "civile_monitorio_gdp"}
+    assert monitorio["civile_monitorio"]["grado_input_value"] == "Tribunale"
+    assert monitorio["civile_monitorio_gdp"]["grado_input_value"] == "Giudice di Pace"
+
+    profilo_monitorio_gdp = profile_lookup_by_rule("civile_monitorio_gdp")
+    assert profilo_monitorio_gdp["table_code"] == "A8"
+    assert profilo_monitorio_gdp["calc_mode"] == "compenso_unico"
+
+    assert set(opposizione) >= {"civile_opposizione_monitorio", "civile_opposizione_monitorio_gdp"}
+    assert opposizione["civile_opposizione_monitorio"]["grado_input_value"] == "Tribunale"
+    assert opposizione["civile_opposizione_monitorio_gdp"]["grado_input_value"] == "Giudice di Pace"
+
+
+def test_recupero_crediti_e_comparsa_risposta_non_collassano_su_un_unico_grado():
+    recupero = {row["rule_code"]: row for row in rules_for_practice("recupero_crediti")}
+    comparsa = {row["rule_code"]: row for row in rules_for_practice("comparsa_risposta")}
+
+    assert set(recupero) >= {
+        "recupero_crediti_monitorio",
+        "recupero_crediti_monitorio_gdp",
+        "recupero_crediti_ordinario",
+        "recupero_crediti_ordinario_gdp",
+    }
+    assert default_rule_for_practice("comparsa_risposta")["rule_code"] == "civile_comparsa_risposta"
+    assert set(comparsa) >= {"civile_comparsa_risposta", "civile_comparsa_risposta_gdp"}

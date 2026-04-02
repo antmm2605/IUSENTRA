@@ -113,6 +113,16 @@ def test_catalogo_wizard_espone_regole_tariffarie_e_gradi_consentiti():
     assert "Giudice di Pace" in scheda["gradi_consentiti"]
 
 
+def test_appello_civile_espone_base_normativa_sdoppiata_per_competenza():
+    scheda = redattore_preventivo_iniziale("appello_civile")
+    regole = {row["rule_code"]: row for row in scheda["regole_tariffarie"]}
+
+    assert "art. 341 c.p.c." in scheda["base_normativa"].lower()
+    assert "tab. a2" in scheda["base_normativa"].lower()
+    assert "tab. a12" in scheda["base_normativa"].lower()
+    assert set(regole) >= {"civile_appello_da_gdp", "civile_appello"}
+
+
 def test_default_grado_civile_lavoro_e_previdenza_sono_allineati_al_rito():
     sfratto = redattore_preventivo_iniziale("sfratto_morosita")
     lavoro = redattore_preventivo_iniziale("controversia_lavoro")

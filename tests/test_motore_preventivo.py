@@ -249,3 +249,42 @@ def test_tutelare_estende_nomina_modifica_tutela_e_reclamo_con_gradi_corretti():
     assert "art. 739" in reclamo_gt["base_normativa"]
     assert {row["rule_code"] for row in reclamo_gt["regole_tariffarie"]} == {"volontaria_reclamo_giudice_tutelare"}
     assert any(ref["article"] == "art. 739" for ref in reclamo_gt["normative_references"])
+
+
+def test_catalogo_wizard_estende_tabelle_ufficiali_dm147_nel_preventivo_guidato():
+    catalogo = catalogo_wizard()
+    civile_ids = {item["id"] for item in catalogo["Civile"]}
+    penale_ids = {item["id"] for item in catalogo["Penale"]}
+    speciali_ids = {item["id"] for item in catalogo["Speciali"]}
+
+    assert {"istruzione_preventiva", "cautelare_civile"} <= civile_ids
+    assert {"giudice_pace_penale", "indagini_difensive", "convalida_arresto", "misure_cautelari_penali", "sorveglianza_penale"} <= penale_ids
+    assert {"giudizio_corte_conti", "giurisdizioni_superiori", "iscrizione_ipotecaria_tavolare", "apertura_liquidazione_giudiziale", "accertamento_passivo"} <= speciali_ids
+
+
+def test_nuove_tipologie_tariffarie_espongono_regole_gradi_e_fonti_specialistiche():
+    istruzione = redattore_preventivo_iniziale("istruzione_preventiva")
+    corte_conti = redattore_preventivo_iniziale("giudizio_corte_conti")
+    passivo = redattore_preventivo_iniziale("accertamento_passivo")
+    cautelari_penali = redattore_preventivo_iniziale("misure_cautelari_penali")
+    sorveglianza = redattore_preventivo_iniziale("sorveglianza_penale")
+
+    assert istruzione["grado_default"] == "Giudice competente"
+    assert {row["rule_code"] for row in istruzione["regole_tariffarie"]} == {"civile_istruzione_preventiva"}
+    assert any("692" in (ref.get("article") or "") for ref in istruzione["normative_references"])
+
+    assert corte_conti["materia"] == "Contabile / Corte dei Conti"
+    assert corte_conti["grado_default"] == "Corte dei Conti"
+    assert {row["rule_code"] for row in corte_conti["regole_tariffarie"]} == {"contabile_corte_conti"}
+    assert any(ref["title"] == "D.Lgs. 26 agosto 2016, n. 174" for ref in corte_conti["normative_references"])
+
+    assert passivo["materia"] == "Crisi d'impresa / concorsuale"
+    assert passivo["grado_default"] == "Tribunale concorsuale"
+    assert {row["rule_code"] for row in passivo["regole_tariffarie"]} == {"crisi_impresa_passivo"}
+    assert any(ref["title"] == "D.Lgs. 12 gennaio 2019, n. 14" for ref in passivo["normative_references"])
+
+    assert {row["rule_code"] for row in cautelari_penali["regole_tariffarie"]} == {"penale_cautelari_personali", "penale_cautelari_reali"}
+    assert any("272" in (ref.get("article") or "") for ref in cautelari_penali["normative_references"])
+
+    assert {row["rule_code"] for row in sorveglianza["regole_tariffarie"]} == {"penale_sorveglianza_tribunale", "penale_sorveglianza_magistrato"}
+    assert any(ref["title"] == "L. 26 luglio 1975, n. 354" for ref in sorveglianza["normative_references"])

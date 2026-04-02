@@ -31,11 +31,16 @@ class Materia(str, Enum):
     MEDIAZIONE = "Mediazione (D.Lgs. 28/2010)"
     NEGOZIAZIONE_ASSISTITA = "Negoziazione Assistita (D.L. 132/2014)"
     ARBITRATO = "Arbitrato"
+    CONTABILE = "Contabile / Corte dei Conti"
+    GIURISDIZIONI_SUPERIORI = "Giurisdizioni superiori / europee"
+    AFFARI_IPOTECARI = "Iscrizione ipotecaria / affari tavolari"
+    CRISI_IMPRESA = "Crisi d'impresa / concorsuale"
 
 
 class Grado(str, Enum):
     GIUDICE_DI_PACE = "Giudice di Pace"
     TRIBUNALE = "Tribunale"
+    GIUDICE_COMPETENTE = "Giudice competente"
     GIUDICE_TUTELARE = "Giudice tutelare"
     GIP_GUP = "GIP / GUP"
     TRIBUNALE_MONOCRATICO = "Tribunale monocratico"
@@ -46,8 +51,13 @@ class Grado(str, Enum):
     CORTE_ASSISE_APPELLO = "Corte d'Assise d'Appello"
     CASSAZIONE = "Corte di Cassazione"
     TRIBUNALE_SORVEGLIANZA = "Tribunale di Sorveglianza"
+    MAGISTRATO_SORVEGLIANZA = "Magistrato di Sorveglianza"
     TAR = "TAR"
     CONSIGLIO_DI_STATO = "Consiglio di Stato"
+    CORTE_DEI_CONTI = "Corte dei Conti"
+    CORTE_SUPERIORE_UE = "Corte cost. / Corte europea / CGUE"
+    CONSERVATORIA_TAVOLARE = "Conservatoria / tavolare"
+    TRIBUNALE_CONCORSUALE = "Tribunale concorsuale"
     CGT_PRIMO_GRADO = "CGT di primo grado"
     CGT_SECONDO_GRADO = "CGT di secondo grado"
     FUORI_GIUDIZIO = "Fuori giudizio"
@@ -218,6 +228,7 @@ _PHASE_LABELS = {
 _GRADO_COEFF_APPROSSIMATI = {
     Grado.GIUDICE_DI_PACE: 1.0,
     Grado.TRIBUNALE: 1.0,
+    Grado.GIUDICE_COMPETENTE: 1.0,
     Grado.GIUDICE_TUTELARE: 1.0,
     Grado.GIP_GUP: 1.0,
     Grado.TRIBUNALE_MONOCRATICO: 1.0,
@@ -228,8 +239,13 @@ _GRADO_COEFF_APPROSSIMATI = {
     Grado.CORTE_ASSISE_APPELLO: 1.0,
     Grado.CASSAZIONE: 1.60,
     Grado.TRIBUNALE_SORVEGLIANZA: 1.0,
+    Grado.MAGISTRATO_SORVEGLIANZA: 1.0,
     Grado.TAR: 1.0,
     Grado.CONSIGLIO_DI_STATO: 1.0,
+    Grado.CORTE_DEI_CONTI: 1.0,
+    Grado.CORTE_SUPERIORE_UE: 1.0,
+    Grado.CONSERVATORIA_TAVOLARE: 1.0,
+    Grado.TRIBUNALE_CONCORSUALE: 1.0,
     Grado.CGT_PRIMO_GRADO: 1.0,
     Grado.CGT_SECONDO_GRADO: 1.0,
     Grado.FUORI_GIUDIZIO: 1.0,
@@ -271,9 +287,9 @@ def valore_virtuale_indeterminabile(
 @lru_cache(maxsize=1)
 def _carica_snapshot() -> dict[str, dict[str, list[float | None]]]:
     try:
-        raw = json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8-sig"))
-        tabelle = raw.get("tabelle", {}) if isinstance(raw, dict) else {}
-        return tabelle if isinstance(tabelle, dict) else {}
+        from pct.tariffario_catalogo import load_tariffario_snapshot
+
+        return load_tariffario_snapshot()
     except Exception:
         return {}
 
@@ -553,6 +569,14 @@ def _exact_or_fallback(codice: str, fallback_fn) -> tuple[list[Scaglione], bool]
 
 
 _PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
+    "civile_istruzione_preventiva": {
+        "table_code": "A9",
+        "note": "Tabella 9 per procedimenti di istruzione preventiva.",
+    },
+    "civile_cautelare": {
+        "table_code": "A10",
+        "note": "Tabella 10 per procedimenti cautelari civili.",
+    },
     "civile_appello_tribunale": {
         "table_code": "A2",
         "note": "Tabella 2 per appello civile devoluto al Tribunale ex art. 341 c.p.c.",
@@ -606,6 +630,31 @@ _PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
         "note": "Tabella 15, colonna indagini preliminari.",
         "single_label": "Penale - indagini preliminari",
     },
+    "penale_giudice_pace": {
+        "table_code": "A15-1",
+        "note": "Tabella 15, colonna Giudice di Pace penale.",
+        "single_label": "Penale - Giudice di Pace",
+    },
+    "penale_indagini_difensive": {
+        "table_code": "A15-3",
+        "note": "Tabella 15, colonna indagini difensive.",
+        "single_label": "Penale - indagini difensive",
+    },
+    "penale_convalida_arresto": {
+        "table_code": "A15-CONVALIDA",
+        "note": "Tabella 15, colonna convalida dell'arresto.",
+        "single_label": "Penale - convalida arresto",
+    },
+    "penale_cautelari_personali": {
+        "table_code": "A15-4",
+        "note": "Tabella 15, colonna cautelari personali.",
+        "single_label": "Penale - cautelari personali",
+    },
+    "penale_cautelari_reali": {
+        "table_code": "A15-5",
+        "note": "Tabella 15, colonna cautelari reali.",
+        "single_label": "Penale - cautelari reali",
+    },
     "penale_udienza_preliminare": {
         "table_code": "A15-6",
         "note": "Tabella 15, colonna GIP/GUP.",
@@ -636,6 +685,11 @@ _PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
         "note": "Tabella 15, colonna Tribunale di sorveglianza.",
         "single_label": "Penale - Tribunale di sorveglianza",
     },
+    "penale_magistrato_sorveglianza": {
+        "table_code": "A15-MSORV",
+        "note": "Tabella 15, colonna Magistrato di sorveglianza.",
+        "single_label": "Penale - Magistrato di sorveglianza",
+    },
     "penale_assise_appello": {
         "table_code": "A15-12",
         "note": "Tabella 15, colonna Corte d'Assise d'Appello.",
@@ -650,6 +704,28 @@ _PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
         "table_code": "A26",
         "note": "Tabella 26 per arbitrato.",
         "force_compenso_unico": True,
+    },
+    "contabile_corte_conti": {
+        "table_code": "A11",
+        "note": "Tabella 11 per giudizi innanzi alla Corte dei Conti.",
+    },
+    "giurisdizioni_superiori": {
+        "table_code": "A14",
+        "note": "Tabella 14 per giudizi innanzi alla Corte costituzionale, alla Corte europea e alla Corte di giustizia UE.",
+    },
+    "affari_ipotecari_tavolari": {
+        "table_code": "A19",
+        "note": "Tabella 19 per iscrizione ipotecaria e affari tavolari.",
+        "force_compenso_unico": True,
+    },
+    "crisi_impresa_apertura": {
+        "table_code": "A20",
+        "note": "Tabella 20 per procedimenti di apertura della procedura concorsuale.",
+        "force_compenso_unico": True,
+    },
+    "crisi_impresa_passivo": {
+        "table_code": "A20-BIS",
+        "note": "Tabella 20-bis per accertamento del passivo nella liquidazione giudiziale.",
     },
 }
 
@@ -675,13 +751,14 @@ def _tabella_per_calcolo(
                 note.append(note_text)
             return tabella, 1.0, table_code, True, note
 
-    if grado == Grado.GIUDICE_DI_PACE:
+    if grado == Grado.GIUDICE_DI_PACE and materia != Materia.PENALE:
         tabella, exact = _exact_or_fallback("A1", _fallback_gdp)
         note.append("Tabella 1 (Giudice di Pace).")
         return tabella, 1.0, "A1", exact, note
 
     if materia == Materia.PENALE:
         penal_map = {
+            Grado.GIUDICE_DI_PACE: ("A15-1", "Penale - Giudice di Pace", "Tabella 15 per giudizi penali davanti al Giudice di Pace."),
             Grado.FUORI_GIUDIZIO: ("A15-2", "Penale - indagini preliminari", "Tabella 15 per indagini preliminari."),
             Grado.GIP_GUP: ("A15-6", "Penale - GIP/GUP", "Tabella 15 per udienza preliminare e attivita GIP/GUP."),
             Grado.TRIBUNALE: ("A15-7", "Penale - Tribunale monocratico", "Tabella 15, profilo base penale davanti al Tribunale monocratico."),
@@ -691,6 +768,7 @@ def _tabella_per_calcolo(
             Grado.CORTE_APPELLO: ("A15-10", "Penale - Corte d'Appello", "Tabella 15 per appello penale."),
             Grado.CORTE_APPELLO_PENALE: ("A15-10", "Penale - Corte d'Appello", "Tabella 15 per appello penale."),
             Grado.TRIBUNALE_SORVEGLIANZA: ("A15-11", "Penale - Tribunale di sorveglianza", "Tabella 15 per Tribunale di Sorveglianza."),
+            Grado.MAGISTRATO_SORVEGLIANZA: ("A15-MSORV", "Penale - Magistrato di sorveglianza", "Tabella 15 per Magistrato di Sorveglianza."),
             Grado.CORTE_ASSISE_APPELLO: ("A15-12", "Penale - Corte d'Assise d'Appello", "Tabella 15 per Corte d'Assise d'Appello."),
             Grado.CASSAZIONE: ("A15-13", "Penale - Cassazione e magistrature superiori", "Tabella 15 per Corte di Cassazione penale e magistrature superiori."),
         }
@@ -732,6 +810,42 @@ def _tabella_per_calcolo(
             note.append("Tabella 26 per arbitrato.")
             return tabella, 1.0, "A26", True, note
         note.append("Tabella 26 non disponibile in snapshot: fallback civile analogico.")
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        return tabella, 1.0, "A2", exact, note
+
+    if materia == Materia.CONTABILE:
+        tabella = _tabella_snapshot("A11")
+        if tabella:
+            note.append("Tabella 11 per giudizi innanzi alla Corte dei Conti.")
+            return tabella, 1.0, "A11", True, note
+        note.append("Tabella 11 non disponibile in snapshot: fallback civile analogico.")
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        return tabella, 1.0, "A2", exact, note
+
+    if materia == Materia.GIURISDIZIONI_SUPERIORI:
+        tabella = _tabella_snapshot("A14")
+        if tabella:
+            note.append("Tabella 14 per giudizi innanzi alla Corte costituzionale, alla Corte europea e alla Corte di giustizia UE.")
+            return tabella, 1.0, "A14", True, note
+        note.append("Tabella 14 non disponibile in snapshot: fallback Cassazione.")
+        tabella, exact = _exact_or_fallback("A13", _fallback_civile)
+        return tabella, 1.0, "A13", exact, note
+
+    if materia == Materia.AFFARI_IPOTECARI:
+        tabella = _snapshot_table("A19", single_label="Affari ipotecari / tavolari")
+        if tabella:
+            note.append("Tabella 19 per iscrizione ipotecaria e affari tavolari.")
+            return tabella, 1.0, "A19", True, note
+        note.append("Tabella 19 non disponibile in snapshot: fallback stragiudiziale.")
+        tabella, exact = _exact_or_fallback("A25", _fallback_stragiudiziale)
+        return tabella, 1.0, "A25", exact, note
+
+    if materia == Materia.CRISI_IMPRESA:
+        tabella = _snapshot_table("A20", single_label="Crisi d'impresa / apertura procedura")
+        if tabella:
+            note.append("Tabella 20 per procedimenti di apertura della procedura concorsuale.")
+            return tabella, 1.0, "A20", True, note
+        note.append("Tabella 20 non disponibile in snapshot: fallback civile analogico.")
         tabella, exact = _exact_or_fallback("A2", _fallback_civile)
         return tabella, 1.0, "A2", exact, note
 
@@ -886,6 +1000,10 @@ def calcola_compenso(
         Materia.AMMINISTRATIVO,
         Materia.TRIBUTARIO,
         Materia.ARBITRATO,
+        Materia.CONTABILE,
+        Materia.GIURISDIZIONI_SUPERIORI,
+        Materia.AFFARI_IPOTECARI,
+        Materia.CRISI_IMPRESA,
     }
     if valore_calcolo <= 0 and materia in materie_con_scaglione_virtuale and complessita_norm:
         valore_calcolo, _ = valore_virtuale_indeterminabile(complessita_norm)

@@ -2328,14 +2328,19 @@ def create_app(config: dict | None = None) -> Flask:
         def _preferred_grade(gradi: list[str]) -> str:
             ordine = [
                 "Tribunale",
+                "Giudice competente",
                 "Giudice tutelare",
                 "GIP / GUP",
                 "Tribunale monocratico",
                 "Tribunale collegiale",
                 "Corte d'Assise",
+                "Magistrato di Sorveglianza",
                 "Fuori giudizio",
                 "Procedura ADR",
                 "TAR",
+                "Corte dei Conti",
+                "Conservatoria / tavolare",
+                "Tribunale concorsuale",
                 "CGT di primo grado",
                 "Giudice di Pace",
                 "Corte d'Appello",
@@ -2343,6 +2348,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "Corte d'Assise d'Appello",
                 "Corte di Cassazione",
                 "Tribunale di Sorveglianza",
+                "Corte cost. / Corte europea / CGUE",
                 "Consiglio di Stato",
                 "CGT di secondo grado",
             ]

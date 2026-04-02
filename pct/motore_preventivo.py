@@ -859,6 +859,129 @@ CATALOGO: List[TipoPratica] = [
     ),
 ]
 
+CATALOGO.extend(
+    [
+        TipoPratica(
+            id="istruzione_preventiva",
+            label="Istruzione preventiva / ATP",
+            area="Civile",
+            materia=Materia.CIVILE_COGN,
+            grado_default=Grado.GIUDICE_COMPETENTE,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
+            base_normativa="Tab. A9 DM 55/2014 agg. DM 147/2022 - artt. 692 ss. c.p.c.",
+        ),
+        TipoPratica(
+            id="cautelare_civile",
+            label="Procedimento cautelare civile",
+            area="Civile",
+            materia=Materia.CIVILE_COGN,
+            grado_default=Grado.GIUDICE_COMPETENTE,
+            fasi_default=_FASI_BASE,
+            base_normativa="Tab. A10 DM 55/2014 agg. DM 147/2022 - artt. 669-bis ss. c.p.c.",
+        ),
+        TipoPratica(
+            id="giudice_pace_penale",
+            label="Giudizio penale davanti al Giudice di Pace",
+            area="Penale",
+            materia=Materia.PENALE,
+            grado_default=Grado.GIUDICE_DI_PACE,
+            fasi_default=_FASI_PENALE,
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 - colonna Giudice di Pace penale.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="indagini_difensive",
+            label="Indagini difensive",
+            area="Penale",
+            materia=Materia.PENALE,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.ISTRUTTORIA],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 - indagini difensive - artt. 391-bis ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="convalida_arresto",
+            label="Convalida arresto / fermo",
+            area="Penale",
+            materia=Materia.PENALE,
+            grado_default=Grado.GIP_GUP,
+            fasi_default=[Fase.STUDIO, Fase.ISTRUTTORIA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 - convalida dell'arresto - artt. 390 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="misure_cautelari_penali",
+            label="Misure cautelari penali",
+            area="Penale",
+            materia=Materia.PENALE,
+            grado_default=Grado.GIP_GUP,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 - cautelari personali e reali - artt. 272 ss. e 321 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="sorveglianza_penale",
+            label="Sorveglianza penale",
+            area="Penale",
+            materia=Materia.PENALE,
+            grado_default=Grado.TRIBUNALE_SORVEGLIANZA,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 - tribunale e magistrato di sorveglianza.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="giudizio_corte_conti",
+            label="Giudizio innanzi alla Corte dei Conti",
+            area="Speciali",
+            materia=Materia.CONTABILE,
+            grado_default=Grado.CORTE_DEI_CONTI,
+            fasi_default=_FASI_BASE,
+            base_normativa="Tab. A11 DM 55/2014 agg. DM 147/2022 - giudizi innanzi alla Corte dei Conti.",
+        ),
+        TipoPratica(
+            id="giurisdizioni_superiori",
+            label="Corte costituzionale / Corte europea / CGUE",
+            area="Speciali",
+            materia=Materia.GIURISDIZIONI_SUPERIORI,
+            grado_default=Grado.CORTE_SUPERIORE_UE,
+            fasi_default=_FASI_BASE,
+            base_normativa="Tab. A14 DM 55/2014 agg. DM 147/2022 - giurisdizioni costituzionali e sovranazionali.",
+        ),
+        TipoPratica(
+            id="iscrizione_ipotecaria_tavolare",
+            label="Iscrizione ipotecaria / affari tavolari",
+            area="Speciali",
+            materia=Materia.AFFARI_IPOTECARI,
+            grado_default=Grado.CONSERVATORIA_TAVOLARE,
+            fasi_default=[Fase.STUDIO],
+            base_normativa="Tab. A19 DM 55/2014 agg. DM 147/2022 - iscrizione ipotecaria / affari tavolari.",
+        ),
+        TipoPratica(
+            id="apertura_liquidazione_giudiziale",
+            label="Apertura liquidazione giudiziale",
+            area="Speciali",
+            materia=Materia.CRISI_IMPRESA,
+            grado_default=Grado.TRIBUNALE_CONCORSUALE,
+            fasi_default=[Fase.STUDIO],
+            base_normativa="Tab. A20 DM 55/2014 agg. DM 147/2022 - procedimenti di apertura concorsuale oggi coordinati con la liquidazione giudiziale.",
+        ),
+        TipoPratica(
+            id="accertamento_passivo",
+            label="Accertamento del passivo",
+            area="Speciali",
+            materia=Materia.CRISI_IMPRESA,
+            grado_default=Grado.TRIBUNALE_CONCORSUALE,
+            fasi_default=_FASI_BASE,
+            base_normativa="Tab. A20-bis DM 55/2014 agg. DM 147/2022 - accertamento del passivo nel fallimento e nella liquidazione giudiziale.",
+        ),
+    ]
+)
+
 # Indice rapido id → TipoPratica
 _IDX: Dict[str, TipoPratica] = {tp.id: tp for tp in CATALOGO}
 
@@ -1172,6 +1295,55 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     ],
 }
 
+_ESBORSI_TIPICI.update(
+    {
+        "istruzione_preventiva": [
+            {"descrizione": "Contributo unificato (se dovuto)", "importo": 147.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+        "cautelare_civile": [
+            {"descrizione": "Contributo unificato cautelare (indicativo)", "importo": 147.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+            {"descrizione": "Notifica ricorso / decreto", "importo": 25.0},
+        ],
+        "giudice_pace_penale": [
+            {"descrizione": "Copie atti procedimento", "importo": 20.0},
+        ],
+        "indagini_difensive": [
+            {"descrizione": "Investigazioni difensive / acquisizione documenti", "importo": 80.0},
+        ],
+        "convalida_arresto": [
+            {"descrizione": "Accesso atti / copie urgenti", "importo": 20.0},
+        ],
+        "misure_cautelari_penali": [
+            {"descrizione": "Copie atti cautelari", "importo": 20.0},
+            {"descrizione": "Notifiche / accessi urgenti", "importo": 15.0},
+        ],
+        "sorveglianza_penale": [
+            {"descrizione": "Copie atti esecutivi penali", "importo": 20.0},
+        ],
+        "giudizio_corte_conti": [
+            {"descrizione": "Contributo unificato contabile (se dovuto)", "importo": 259.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+        "giurisdizioni_superiori": [
+            {"descrizione": "Diritti di cancelleria / traduzioni", "importo": 60.0},
+        ],
+        "iscrizione_ipotecaria_tavolare": [
+            {"descrizione": "Tassa ipotecaria / diritti conservatoria", "importo": 35.0},
+            {"descrizione": "Visure e formalita", "importo": 30.0},
+        ],
+        "apertura_liquidazione_giudiziale": [
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+            {"descrizione": "Contributo unificato concorsuale (indicativo)", "importo": 518.0},
+        ],
+        "accertamento_passivo": [
+            {"descrizione": "Contributo unificato opposizione stato passivo (indicativo)", "importo": 518.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+    }
+)
+
 
 _URL_LEGGE_FORENSE = "https://www.gazzettaufficiale.it/eli/id/2013/01/18/13G00018/sg"
 _URL_DM55 = (
@@ -1199,6 +1371,9 @@ _URL_CPP = (
 )
 _URL_CPA = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-07-02%3B104"
 _URL_TRIBUTARIO = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A1992-12-31%3B546"
+_URL_CODICE_GIUSTIZIA_CONTABILE = "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=16G00187&atto.dataPubblicazioneGazzetta=2016-09-07&qId=&tipoDettaglio=multivigenza"
+_URL_CODICE_CRISE_IMPRESA = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2019%3B14="
+_URL_ORDINAMENTO_PENITENZIARIO = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1975-07-26%3B354"
 _URL_MEDIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2010-03-04%3B28"
 _URL_REGISTRO_MEDIAZIONE_INFO = "https://www.giustizia.it/giustizia/it/mg_3_4_15.page"
 _URL_NEGOZIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legge%3A2014-09-12%3B132"
@@ -1622,6 +1797,24 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "url": _URL_CC,
             }
         )
+    if tp.id == "istruzione_preventiva":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 692 e seguenti",
+                "description": "Procedimenti di istruzione preventiva, accertamento tecnico preventivo e anticipazione della prova.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "cautelare_civile":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "artt. 669-bis e seguenti",
+                "description": "Disciplina uniforme dei procedimenti cautelari civili e delle misure urgenti.",
+                "url": _URL_CPC,
+            }
+        )
     if tp.id in {
         "separazione_consensuale",
         "separazione_giudiziale",
@@ -1757,6 +1950,78 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "article": "artt. 473-bis.52 e seguenti",
                 "description": "Procedimento vigente per interdizione, inabilitazione e nomina dell'amministratore di sostegno.",
                 "url": _URL_CPC,
+            }
+        )
+    if tp.id == "giudice_pace_penale":
+        refs.append(
+            {
+                "title": "D.Lgs. 28 agosto 2000, n. 274",
+                "article": "procedimento penale davanti al Giudice di Pace",
+                "description": "Disciplina speciale dei procedimenti penali attribuiti al Giudice di Pace.",
+                "url": "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2000-08-28%3B274",
+            }
+        )
+    if tp.id == "indagini_difensive":
+        refs.append(
+            {
+                "title": "Codice di procedura penale",
+                "article": "artt. 391-bis e seguenti",
+                "description": "Attivita investigative difensive del difensore nella fase preliminare e nel corso del procedimento.",
+                "url": _URL_CPP,
+            }
+        )
+    if tp.id == "convalida_arresto":
+        refs.append(
+            {
+                "title": "Codice di procedura penale",
+                "article": "artt. 390 e 391",
+                "description": "Richiesta e udienza di convalida dell'arresto o del fermo davanti al giudice competente.",
+                "url": _URL_CPP,
+            }
+        )
+    if tp.id == "misure_cautelari_penali":
+        refs.append(
+            {
+                "title": "Codice di procedura penale",
+                "article": "artt. 272 e seguenti, artt. 321 e seguenti",
+                "description": "Misure cautelari personali e reali nel procedimento penale.",
+                "url": _URL_CPP,
+            }
+        )
+    if tp.id == "sorveglianza_penale":
+        refs.append(
+            {
+                "title": "L. 26 luglio 1975, n. 354",
+                "article": "ordinamento penitenziario",
+                "description": "Base normativa dei procedimenti davanti al Tribunale e al Magistrato di Sorveglianza.",
+                "url": _URL_ORDINAMENTO_PENITENZIARIO,
+            }
+        )
+    if tp.id == "giudizio_corte_conti":
+        refs.append(
+            {
+                "title": "D.Lgs. 26 agosto 2016, n. 174",
+                "article": "Codice di giustizia contabile",
+                "description": "Rito e competenza dei giudizi davanti alla Corte dei Conti.",
+                "url": _URL_CODICE_GIUSTIZIA_CONTABILE,
+            }
+        )
+    if tp.id == "iscrizione_ipotecaria_tavolare":
+        refs.append(
+            {
+                "title": "Codice civile",
+                "article": "artt. 2808 e seguenti",
+                "description": "Disciplina sostanziale dell'ipoteca e delle formalita di iscrizione.",
+                "url": _URL_CC,
+            }
+        )
+    if tp.id in {"apertura_liquidazione_giudiziale", "accertamento_passivo"}:
+        refs.append(
+            {
+                "title": "D.Lgs. 12 gennaio 2019, n. 14",
+                "article": "Codice della crisi d'impresa e dell'insolvenza",
+                "description": "Disciplina vigente della liquidazione giudiziale e dell'accertamento del passivo.",
+                "url": _URL_CODICE_CRISE_IMPRESA,
             }
         )
     if tp.id == "modifica_revoca_ads":

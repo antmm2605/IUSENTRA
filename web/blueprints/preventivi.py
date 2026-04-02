@@ -703,6 +703,10 @@ def ajax_parametri_dm55():
         "Tributario / CGT":                  Materia.TRIBUTARIO,
         "Stragiudiziale / Consulenza":       Materia.STRAGIUD,
         "Arbitrato":                         Materia.STRAGIUD,
+        "Contabile / Corte dei Conti":       Materia.CONTABILE,
+        "Giurisdizioni superiori / europee": Materia.GIURISDIZIONI_SUPERIORI,
+        "Iscrizione ipotecaria / affari tavolari": Materia.AFFARI_IPOTECARI,
+        "Crisi d'impresa / concorsuale":     Materia.CRISI_IMPRESA,
     }
     # Per mediazione/negoziazione: sceglie in base a tipo_mediazione
     if tipo_proc == "Mediazione / Negoziazione assistita":
@@ -714,8 +718,28 @@ def ajax_parametri_dm55():
     _mappa_grado = {
         "Giudice di Pace":   Grado.GIUDICE_DI_PACE,
         "Tribunale":         Grado.TRIBUNALE,
+        "Giudice competente": Grado.GIUDICE_COMPETENTE,
+        "Giudice tutelare":  Grado.GIUDICE_TUTELARE,
+        "GIP / GUP":         Grado.GIP_GUP,
+        "Tribunale monocratico": Grado.TRIBUNALE_MONOCRATICO,
+        "Tribunale collegiale": Grado.TRIBUNALE_COLLEGIALE,
+        "Corte d'Assise":    Grado.CORTE_ASSISE,
         "Corte d'Appello":   Grado.CORTE_APPELLO,
+        "Corte d'Appello penale": Grado.CORTE_APPELLO_PENALE,
+        "Corte d'Assise d'Appello": Grado.CORTE_ASSISE_APPELLO,
         "Corte di Cassazione": Grado.CASSAZIONE,
+        "Tribunale di Sorveglianza": Grado.TRIBUNALE_SORVEGLIANZA,
+        "Magistrato di Sorveglianza": Grado.MAGISTRATO_SORVEGLIANZA,
+        "TAR": Grado.TAR,
+        "Consiglio di Stato": Grado.CONSIGLIO_DI_STATO,
+        "Corte dei Conti": Grado.CORTE_DEI_CONTI,
+        "Corte cost. / Corte europea / CGUE": Grado.CORTE_SUPERIORE_UE,
+        "Conservatoria / tavolare": Grado.CONSERVATORIA_TAVOLARE,
+        "Tribunale concorsuale": Grado.TRIBUNALE_CONCORSUALE,
+        "CGT di primo grado": Grado.CGT_PRIMO_GRADO,
+        "CGT di secondo grado": Grado.CGT_SECONDO_GRADO,
+        "Fuori giudizio": Grado.FUORI_GIUDIZIO,
+        "Procedura ADR": Grado.PROCEDURA_ADR,
     }
     grado = _mappa_grado.get(grado_raw, Grado.TRIBUNALE)
 

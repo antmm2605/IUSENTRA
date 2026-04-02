@@ -16,6 +16,7 @@ from pct.database import (
     ProblemaIntegrita,
     RisultatoOttimizzazione,
     RisultatoMigrazione,
+    bootstrap_moduli_monitorati,
     _fmt_bytes,
 )
 
@@ -158,6 +159,42 @@ def test_statistiche_include_modulo_extra_monitorato(tmp_path):
     assert modulo is not None
     assert modulo["record_totali"] == 1
     assert modulo["migrabile_sqlite"] is False
+
+
+def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
+    paths = {
+        "calendar_sync": str(tmp_path / "agenda" / "calendar_sync.json"),
+        "condivisioni": str(tmp_path / "clienti" / "condivisioni.json"),
+        "note_faldone": str(tmp_path / "clienti" / "note_faldone.json"),
+        "fatturazione": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "preventivi": str(tmp_path / "preventivi" / "preventivi.json"),
+        "wizard_pro": str(tmp_path / "wizard_pro" / "sessioni.json"),
+        "legal_intelligence": str(tmp_path / "intelligence" / "motori.json"),
+        "normative_tables": str(tmp_path / "intelligence" / "tabelle_normative.json"),
+        "validation_runs": str(tmp_path / "intelligence" / "validation_runs.json"),
+        "template_atti": str(tmp_path / "template_atti" / "templates.json"),
+        "template_atti_prefs": str(tmp_path / "template_atti" / "editor_layout.json"),
+        "redaction_assistant": str(tmp_path / "intelligence" / "assistente_redazionale.json"),
+    }
+
+    creati = bootstrap_moduli_monitorati(paths)
+
+    assert Path(paths["preventivi"]).exists()
+    assert json.loads(Path(paths["preventivi"]).read_text(encoding="utf-8")) == {}
+    assert json.loads((tmp_path / "preventivi" / "conferimenti.json").read_text(encoding="utf-8")) == {}
+    assert json.loads(Path(paths["calendar_sync"]).read_text(encoding="utf-8")) == {"profiles": []}
+    assert json.loads(Path(paths["condivisioni"]).read_text(encoding="utf-8")) == {
+        "cartelle": {},
+        "fascicoli": {},
+        "link": {},
+    }
+    assert json.loads(Path(paths["validation_runs"]).read_text(encoding="utf-8")) == {"runs": []}
+    assert json.loads(Path(paths["redaction_assistant"]).read_text(encoding="utf-8")) == []
+    assert "tables" in json.loads(Path(paths["normative_tables"]).read_text(encoding="utf-8"))
+    assert "monitor_runs" in json.loads(Path(paths["legal_intelligence"]).read_text(encoding="utf-8"))
+    assert "editor_layout" in json.loads(Path(paths["template_atti_prefs"]).read_text(encoding="utf-8"))
+    assert "preventivi" in creati
+    assert "normative_tables" in creati
 
 
 # ================================================================ verifica_integrita()
@@ -394,6 +431,60 @@ def test_statistiche_sqlite_esistente(db, tmp_path):
 
 
 # ================================================================ Route web admin/database
+
+def test_create_app_bootstrap_moduli_monitorati(tmp_path):
+    from web.app import create_app
+    from pct.auth import GestioneUtenti, RuoloUtente
+
+    auth_db = str(tmp_path / "auth" / "utenti.json")
+    audit_db = str(tmp_path / "auth" / "audit.json")
+    gu = GestioneUtenti(db_path=auth_db, audit_path=audit_db, secret_key="test")
+    gu.crea(username="bootstrap", password="Admin1234!", ruolo=RuoloUtente.AMMINISTRATORE, email="bootstrap@test.it")
+
+    cfg = {
+        "TESTING": True,
+        "SECRET_KEY": "test",
+        "AUTH_DB": auth_db,
+        "AUDIT_DB": audit_db,
+        "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
+        "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),
+        "SEARCH_INDEX": str(tmp_path / "search" / "index.db"),
+        "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
+        "FASCICOLI_ARCH": str(tmp_path / "fascicoli" / "archivio"),
+        "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
+        "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
+        "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "clienti" / "condivisioni.json"),
+        "NOTE_FALDONE_DB": str(tmp_path / "clienti" / "note_faldone.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "WIZARD_PRO_DB": str(tmp_path / "wizard_pro" / "sessioni.json"),
+        "LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json"),
+        "NORMATIVE_TABLES_DB": str(tmp_path / "intelligence" / "tabelle_normative.json"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "intelligence" / "validation_runs.json"),
+        "REDACTION_ASSISTANT_DB": str(tmp_path / "intelligence" / "assistente_redazionale.json"),
+        "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti" / "anagrafica.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "soggetti" / "parti.json"),
+    }
+
+    create_app(cfg)
+
+    assert Path(cfg["PREVENTIVI_DB"]).exists()
+    assert Path(tmp_path / "preventivi" / "conferimenti.json").exists()
+    assert Path(cfg["FATTURAZIONE_DB"]).exists()
+    assert Path(cfg["EMAIL_CASELLA_DB"]).exists()
+    assert Path(cfg["WIZARD_PRO_DB"]).exists()
+    assert Path(cfg["LEGAL_INTELLIGENCE_DB"]).exists()
+    assert Path(cfg["NORMATIVE_TABLES_DB"]).exists()
+    assert Path(cfg["VALIDATION_RUNS_DB"]).exists()
+    assert Path(cfg["REDACTION_ASSISTANT_DB"]).exists()
+    assert Path(cfg["TEMPLATE_ATTI_DB"]).exists()
+    assert Path(cfg["TEMPLATE_ATTI_PREFS_DB"]).exists()
+
 
 @pytest.fixture
 def client_admin(tmp_path):

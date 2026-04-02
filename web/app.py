@@ -27,6 +27,7 @@ from flask import (
     jsonify,
     send_file,
     Response,
+    has_request_context,
 )
 
 from pct.agenda import (
@@ -107,7 +108,7 @@ from pct.scadenziario import (
 from pct.search_index import IndiceRicerca
 from pct.ocr import estrai_testo as ocr_estrai_testo, estensione_supportata as ocr_supportato
 from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf, lista_fascicoli_pdf, lista_clienti_pdf
-from pct.database import GestioneDatabase
+from pct.database import GestioneDatabase, bootstrap_moduli_monitorati
 from pct.sync import GestoreSincronizzazione, get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
 from pct import __version__ as APP_VERSION
@@ -443,8 +444,48 @@ def create_app(config: dict | None = None) -> Flask:
         app.config.setdefault("SMTP_USE_TLS",   True)
 
     def _cfg_data_path(key: str) -> str:
-        paths = getattr(g, "data_paths", {}) or {}
-        return paths.get(key, app.config[key])
+        if has_request_context():
+            paths = getattr(g, "data_paths", {}) or {}
+            return paths.get(key, app.config[key])
+        return app.config[key]
+
+    def _database_paths() -> dict[str, str]:
+        return {
+            "calendar_sync": _cfg_data_path("CALENDAR_SYNC_DB"),
+            "clienti": _cfg_data_path("CLIENTI_DB"),
+            "condivisioni": _cfg_data_path("CONDIVISIONI_DB"),
+            "note_faldone": _cfg_data_path("NOTE_FALDONE_DB"),
+            "fascicoli": _cfg_data_path("FASCICOLI_DB"),
+            "appuntamenti": _cfg_data_path("AGENDA_DB"),
+            "scadenze": _cfg_data_path("SCADENZIARIO_DB"),
+            "messaggi": _cfg_data_path("MESSAGGI_DB"),
+            "email_casella": _cfg_data_path("EMAIL_CASELLA_DB"),
+            "utenti": _cfg_data_path("AUTH_DB"),
+            "audit": _cfg_data_path("AUDIT_DB"),
+            "privacy": _cfg_data_path("PRIVACY_DB"),
+            "portale": _cfg_data_path("PORTALE_DB"),
+            "fatturazione": _cfg_data_path("FATTURAZIONE_DB"),
+            "preventivi": _cfg_data_path("PREVENTIVI_DB"),
+            "soggetti": _cfg_data_path("SOGGETTI_DB"),
+            "soggetti_parti": _cfg_data_path("SOGGETTI_PARTI_DB"),
+            "wizard_pro": _cfg_data_path("WIZARD_PRO_DB"),
+            "legal_intelligence": _cfg_data_path("LEGAL_INTELLIGENCE_DB"),
+            "normative_tables": _cfg_data_path("NORMATIVE_TABLES_DB"),
+            "validation_runs": _cfg_data_path("VALIDATION_RUNS_DB"),
+            "template_atti": _cfg_data_path("TEMPLATE_ATTI_DB"),
+            "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
+            "redaction_assistant": _cfg_data_path("REDACTION_ASSISTANT_DB"),
+            "search_index": _cfg_data_path("SEARCH_INDEX"),
+        }
+
+    def _bootstrap_runtime_data_modules() -> dict[str, str]:
+        created = bootstrap_moduli_monitorati(_database_paths())
+        if created:
+            app.logger.info(
+                "Bootstrap automatico moduli dati: %s",
+                ", ".join(f"{nome}={path}" for nome, path in sorted(created.items())),
+            )
+        return created
 
     def get_agenda() -> Agenda:
         if not hasattr(g, "_agenda"):
@@ -804,32 +845,10 @@ def create_app(config: dict | None = None) -> Flask:
         return get_condivisioni().ha_accesso(u.id, id_cliente, richiesto)
 
     def get_database() -> GestioneDatabase:
-        return GestioneDatabase({
-            "calendar_sync": app.config.get("CALENDAR_SYNC_DB"),
-            "clienti": app.config["CLIENTI_DB"],
-            "condivisioni": app.config.get("CONDIVISIONI_DB"),
-            "note_faldone": app.config.get("NOTE_FALDONE_DB"),
-            "fascicoli": app.config["FASCICOLI_DB"],
-            "appuntamenti": app.config["AGENDA_DB"],
-            "scadenze": app.config["SCADENZIARIO_DB"],
-            "messaggi": app.config["MESSAGGI_DB"],
-            "email_casella": app.config.get("EMAIL_CASELLA_DB"),
-            "utenti": app.config["AUTH_DB"],
-            "audit": app.config["AUDIT_DB"],
-            "privacy": app.config.get("PRIVACY_DB"),
-            "portale": app.config.get("PORTALE_DB"),
-            "fatturazione": app.config.get("FATTURAZIONE_DB"),
-            "preventivi": app.config.get("PREVENTIVI_DB"),
-            "soggetti": app.config.get("SOGGETTI_DB"),
-            "soggetti_parti": app.config.get("SOGGETTI_PARTI_DB"),
-            "wizard_pro": app.config.get("WIZARD_PRO_DB"),
-            "legal_intelligence": app.config.get("LEGAL_INTELLIGENCE_DB"),
-            "normative_tables": app.config.get("NORMATIVE_TABLES_DB"),
-            "validation_runs": app.config.get("VALIDATION_RUNS_DB"),
-            "template_atti": app.config.get("TEMPLATE_ATTI_DB"),
-            "redaction_assistant": app.config.get("REDACTION_ASSISTANT_DB"),
-            "search_index": app.config["SEARCH_INDEX"],
-        })
+        _bootstrap_runtime_data_modules()
+        return GestioneDatabase(_database_paths())
+
+    _bootstrap_runtime_data_modules()
 
     # Singleton di sincronizzazione (uno per processo Flask)
     _sync = get_gestore()
@@ -890,6 +909,7 @@ def create_app(config: dict | None = None) -> Flask:
         if studio:
             g.tenant = studio
             g.data_paths = tm.percorsi_dati(tenant_slug)
+            _bootstrap_runtime_data_modules()
 
     # Route pubbliche che non richiedono login.
     # Le route del Local Signer devono essere scaricabili senza sessione:

@@ -1134,3 +1134,87 @@ def _fmt_bytes(n: int) -> str:
     elif n < 1024 ** 3:
         return f"{n / 1024 ** 2:.1f} MB"
     return f"{n / 1024 ** 3:.1f} GB"
+
+
+def _bootstrap_json_file(path: str, payload: Any) -> bool:
+    target = Path(path)
+    if target.exists():
+        return False
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as fh:
+        json.dump(payload, fh, ensure_ascii=False, indent=2)
+    return True
+
+
+def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, str]:
+    """
+    Inizializza automaticamente i file JSON mancanti dei moduli monitorati.
+
+    Non sovrascrive mai file esistenti e usa, quando utile, la struttura minima
+    corretta per evitare stati "Non trovato" dovuti solo a bootstrap non ancora
+    eseguiti.
+    """
+    normalized = {
+        str(nome or "").strip().lower(): str(path).strip()
+        for nome, path in (moduli or {}).items()
+        if path
+    }
+    created: Dict[str, str] = {}
+
+    def _mark(nome: str, path: str, changed: bool) -> None:
+        if changed:
+            created[nome] = path
+
+    simple_payloads: Dict[str, Any] = {
+        "calendar_sync": {"profiles": []},
+        "condivisioni": {"cartelle": {}, "fascicoli": {}, "link": {}},
+        "note_faldone": {},
+        "email_casella": {},
+        "fatturazione": {},
+        "portale": {},
+        "preventivi": {},
+        "soggetti": [],
+        "soggetti_parti": {},
+        "template_atti": {},
+        "validation_runs": {"runs": []},
+        "redaction_assistant": [],
+        "wizard_pro": [],
+    }
+
+    for nome, payload in simple_payloads.items():
+        path = normalized.get(nome)
+        if not path:
+            continue
+        _mark(nome, path, _bootstrap_json_file(path, payload))
+
+    preventivi_path = normalized.get("preventivi")
+    if preventivi_path:
+        conf_path = str(Path(preventivi_path).with_name("conferimenti.json"))
+        _bootstrap_json_file(conf_path, {})
+
+    template_prefs_path = normalized.get("template_atti_prefs")
+    if template_prefs_path and not Path(template_prefs_path).exists():
+        from pct.template_atti import GestionePreferenzeTemplateAtti
+
+        GestionePreferenzeTemplateAtti(template_prefs_path).salva()
+        created["template_atti_prefs"] = template_prefs_path
+
+    normative_path = normalized.get("normative_tables")
+    if normative_path and not Path(normative_path).exists():
+        from pct.normative_tables import GestioneTabelleNormative
+
+        GestioneTabelleNormative(normative_path)
+        created["normative_tables"] = normative_path
+
+    legal_path = normalized.get("legal_intelligence")
+    if legal_path and not Path(legal_path).exists():
+        from pct.legal_intelligence import GestioneLegalIntelligence
+
+        gestore = GestioneLegalIntelligence(
+            db_path=legal_path,
+            normative_db_path=normalized.get("normative_tables"),
+        )
+        gestore._save()
+        created["legal_intelligence"] = legal_path
+
+    return created

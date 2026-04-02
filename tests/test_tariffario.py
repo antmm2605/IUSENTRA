@@ -1,4 +1,4 @@
-from pct.tariffario import Fase, Grado, Materia, calcola_compenso
+from pct.tariffario import Fase, Grado, LivelloCompenso, Materia, calcola_compenso, livello_compenso_da_complessita
 from pct.tariffario_catalogo import (
     TABELLE_SNAPSHOT_META,
     default_rule_for_practice,
@@ -196,6 +196,22 @@ def test_valore_indeterminabile_usa_complessita_stimata_per_scaglione():
     assert risultato.valore_calcolo == 156000.0
     assert risultato.scaglione == "Da EUR 52.000 a EUR 260.000"
     assert "valore non determinato" in risultato.note.lower()
+
+
+def test_complessita_stimata_pilota_il_livello_compenso_operativo():
+    risultato = calcola_compenso(
+        Materia.CIVILE_COGN,
+        Grado.TRIBUNALE,
+        10000,
+        [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE],
+        includi_spese_generali=True,
+        perc_spese_generali=0.15,
+    )
+
+    assert livello_compenso_da_complessita("bassa") == LivelloCompenso.MINIMO
+    assert livello_compenso_da_complessita("media") == LivelloCompenso.BASE
+    assert livello_compenso_da_complessita("alta") == LivelloCompenso.MASSIMO
+    assert risultato.totale_compenso_livello(livello_compenso_da_complessita("bassa")) < risultato.totale_compenso_livello(livello_compenso_da_complessita("media")) < risultato.totale_compenso_livello(livello_compenso_da_complessita("alta"))
 
 
 def test_appello_civile_sdoppia_competenza_tra_tribunale_e_corte_appello():

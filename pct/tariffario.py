@@ -283,6 +283,18 @@ def _parse_complessita(value: ComplessitaStimata | str | None) -> ComplessitaSti
         return None
 
 
+def livello_compenso_da_complessita(
+    complessita: ComplessitaStimata | str | None,
+) -> LivelloCompenso:
+    complessita_norm = _parse_complessita(complessita)
+    mapping = {
+        ComplessitaStimata.BASSA: LivelloCompenso.MINIMO,
+        ComplessitaStimata.MEDIA: LivelloCompenso.BASE,
+        ComplessitaStimata.ALTA: LivelloCompenso.MASSIMO,
+    }
+    return mapping.get(complessita_norm, LivelloCompenso.BASE)
+
+
 def valore_virtuale_indeterminabile(
     complessita: ComplessitaStimata | str | None,
 ) -> tuple[float, ComplessitaStimata | None]:

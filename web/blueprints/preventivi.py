@@ -718,7 +718,7 @@ def ajax_parametri_dm55():
       var_<nome_fase>     — variazione % per fase (es. var_attivazione=10 → +10%)
     """
     from flask import jsonify
-    from pct.tariffario import calcola_compenso, Materia, Grado, Fase
+    from pct.tariffario import calcola_compenso, Materia, Grado, Fase, livello_compenso_da_complessita
 
     tipo_proc        = request.args.get("tipo_procedimento", "")
     tipo_mediazione  = request.args.get("tipo_mediazione", "mediazione")
@@ -727,6 +727,7 @@ def ajax_parametri_dm55():
     grado_raw        = request.args.get("grado", "Tribunale")
     bonus_tel        = request.args.get("bonus_telematico", "0") == "1"
     incl_spese       = request.args.get("spese_generali", "0") == "1"
+    complessita      = request.args.get("complessita", "media").strip() or "media"
     try:
         perc_sg = float(request.args.get("perc_spese_generali", "15") or "15") / 100.0
     except (ValueError, TypeError):
@@ -840,7 +841,10 @@ def ajax_parametri_dm55():
             perc_spese_generali=perc_sg,
             variazioni_fasi=variazioni_fasi or None,
             maggiorazioni_fasi=maggiorazioni_fasi or None,
+            complessita=complessita,
         )
+        livello = livello_compenso_da_complessita(complessita)
+        totale_selezionato = ris.totale_compenso_livello(livello)
         # Costruisce la risposta con dettaglio min/base/max per fase
         fasi_out = {}
         for fase, (vmin, vbase, vmax) in ris.dettaglio.items():
@@ -858,7 +862,9 @@ def ajax_parametri_dm55():
             "perc_spese_generali": int(round(ris.perc_spese_generali * 100)),
             "totale_con_spese":  ris.totale_con_spese,
             # Compat
-            "totale":            ris.totale_con_spese if incl_spese else ris.totale_base,
+            "totale":            totale_selezionato,
+            "complessita":       complessita,
+            "livello_compenso":  livello.value,
             "nota":              ris.note,
         })
     except Exception as e:
@@ -977,7 +983,7 @@ def wizard_calcola():
     """
     from flask import jsonify
     from pct.motore_preventivo import get_tipo_pratica, motore_calcola
-    from pct.tariffario import Fase, Grado, LivelloCompenso
+    from pct.tariffario import Fase, Grado, livello_compenso_da_complessita
 
     try:
         id_pratica = request.args.get("id_pratica", "")
@@ -1023,7 +1029,7 @@ def wizard_calcola():
             "Procedura ADR": Grado.PROCEDURA_ADR,
         }
         grado = _mappa_grado.get(grado_raw) if grado_raw else None
-        livello = LivelloCompenso.BASE
+        livello = livello_compenso_da_complessita(complessita)
 
         _mappa_fase = {
             "studio": Fase.STUDIO,

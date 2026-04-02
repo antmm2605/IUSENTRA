@@ -2292,7 +2292,7 @@ def create_app(config: dict | None = None) -> Flask:
     def tariffario():
         from pct.economico_context import costruisci_contesto_economico, dump_log_calcolo
         from pct.motore_preventivo import catalogo_wizard, get_tipo_pratica, motore_calcola
-        from pct.tariffario import ComplessitaStimata, Fase, Grado, LivelloCompenso, Materia, calcola_compenso
+        from pct.tariffario import ComplessitaStimata, Fase, Grado, Materia, calcola_compenso, livello_compenso_da_complessita
         from pct.tariffario_catalogo import (
             first_profile_for_materia,
             grade_catalog_by_materia,
@@ -2488,8 +2488,8 @@ def create_app(config: dict | None = None) -> Flask:
         grado_sel = request.form.get("grado", "").strip() or (regola_attiva.get("grado_input_value", "") if regola_attiva else "") or _preferred_grade(grade_defaults)
         if grado_sel not in grade_defaults:
             grado_sel = _preferred_grade(grade_defaults)
-        livello_compenso_sel = LivelloCompenso.BASE
         complessita_sel = request.form.get("complessita", ComplessitaStimata.MEDIA.value).strip() or ComplessitaStimata.MEDIA.value
+        livello_compenso_sel = livello_compenso_da_complessita(complessita_sel)
         valore_str = request.form.get("valore", "0").replace(",", ".").strip()
         fasi_sel = request.form.getlist("fasi")
         bonus_tel = request.form.get("bonus_telematico") == "1"
@@ -2563,7 +2563,7 @@ def create_app(config: dict | None = None) -> Flask:
                         {
                             "descrizione": f"Compenso professionale per {profilo_attivo.get('table_label', materia_sel)} - {risultato.scaglione}",
                             "tipo": "Onorario",
-                            "importo": risultato.totale_compenso_livello(LivelloCompenso.BASE),
+                            "importo": risultato.totale_compenso_livello(livello_compenso_sel),
                             "fonte": "principale",
                         }
                     )
@@ -2593,7 +2593,7 @@ def create_app(config: dict | None = None) -> Flask:
                     ris_accessorio = motore_calcola(
                         id_pratica=accessorio.get("tipo_pratica_id", ""),
                         valore_controversia=valore,
-                        livello_compenso=LivelloCompenso.BASE,
+                        livello_compenso=livello_compenso_sel,
                         complessita=complessita_sel,
                         bonus_telematico=bonus_tel,
                         includi_spese_generali=spese_gen,
@@ -2751,7 +2751,7 @@ def create_app(config: dict | None = None) -> Flask:
                     manual_voci=manual_rows_prefill,
                     risultato={
                         "scaglione": risultato.scaglione,
-                        "onorario_base": risultato.totale_base,
+                        "onorario_base": risultato.totale_compenso_livello(livello_compenso_sel),
                         "cpa": riepilogo_economico.get("cpa", 0.0),
                         "iva": riepilogo_economico.get("iva", 0.0),
                         "totale": riepilogo_economico.get("totale", 0.0),

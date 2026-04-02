@@ -23,6 +23,7 @@ from pct.tariffario import (
     Materia,
     RisultatoCalcolo,
     calcola_compenso,
+    livello_compenso_da_complessita,
 )
 from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
 
@@ -2284,7 +2285,7 @@ def motore_calcola(
     grado: Optional[Grado] = None,
     regola_tariffaria: str = "",
     fasi: Optional[List[Fase]] = None,
-    livello_compenso: LivelloCompenso | str = LivelloCompenso.BASE,
+    livello_compenso: LivelloCompenso | str | None = None,
     complessita: str = "",
     bonus_telematico: bool = False,
     includi_spese_generali: bool = True,
@@ -2337,7 +2338,12 @@ def motore_calcola(
         complessita=complessita,
     )
 
-    livello = livello_compenso if isinstance(livello_compenso, LivelloCompenso) else LivelloCompenso(str(livello_compenso or LivelloCompenso.BASE.value))
+    if livello_compenso in (None, ""):
+        livello = livello_compenso_da_complessita(complessita)
+    elif isinstance(livello_compenso, LivelloCompenso):
+        livello = livello_compenso
+    else:
+        livello = LivelloCompenso(str(livello_compenso or LivelloCompenso.BASE.value))
     onorario_base = calcolo.totale_compenso_livello(livello)
     cpa = round(onorario_base * 0.04, 2) if applica_cpa else 0.0
     base_iva = round(onorario_base + cpa, 2)

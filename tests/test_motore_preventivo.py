@@ -2,8 +2,10 @@ from pct.motore_preventivo import (
     catalogo_riferimenti_normativi,
     catalogo_wizard,
     get_tipo_pratica,
+    motore_calcola,
     redattore_preventivo_iniziale,
 )
+from pct.tariffario import Grado
 
 
 def test_atto_citazione_ha_metadata_professionali_e_riferimenti():
@@ -138,6 +140,32 @@ def test_catalogo_wizard_espone_regole_tariffarie_e_gradi_consentiti():
     assert scheda["regola_tariffaria_default"] == "civile_cognizione_primo_grado"
     assert "Tribunale" in scheda["gradi_consentiti"]
     assert "Giudice di Pace" in scheda["gradi_consentiti"]
+
+
+def test_motore_preventivo_usa_la_complessita_come_driver_del_livello_compenso():
+    basso = motore_calcola(
+        "atto_citazione",
+        valore_controversia=10000,
+        grado=Grado.TRIBUNALE,
+        complessita="bassa",
+    )
+    medio = motore_calcola(
+        "atto_citazione",
+        valore_controversia=10000,
+        grado=Grado.TRIBUNALE,
+        complessita="media",
+    )
+    alto = motore_calcola(
+        "atto_citazione",
+        valore_controversia=10000,
+        grado=Grado.TRIBUNALE,
+        complessita="alta",
+    )
+
+    assert basso.livello_compenso == "minimo"
+    assert medio.livello_compenso == "base"
+    assert alto.livello_compenso == "massimo"
+    assert basso.onorario_selezionato < medio.onorario_selezionato < alto.onorario_selezionato
 
 
 def test_appello_civile_espone_base_normativa_sdoppiata_per_competenza():

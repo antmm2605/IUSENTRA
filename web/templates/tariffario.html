@@ -14,7 +14,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
     gap: 1rem;
-    padding: 1.25rem 1.35rem;
+    padding: 1.05rem 1.15rem;
     border: 1px solid var(--tf-line);
     border-radius: 1.35rem;
     background:
@@ -50,7 +50,7 @@
     border: 1px solid rgba(13,110,253,.12);
     border-radius: 1.1rem;
     background: rgba(255,255,255,.92);
-    padding: 1rem 1.05rem;
+    padding: .9rem .95rem;
   }
   .tf-hero-note-label {
     font-size: .72rem;
@@ -69,7 +69,7 @@
     border: 1px solid var(--tf-line);
     border-radius: 1.15rem;
     background: #fff;
-    padding: 1rem 1.05rem;
+    padding: .9rem .95rem;
     min-width: 0;
   }
   .tf-stat-label {
@@ -109,6 +109,76 @@
   .tf-side-stack {
     position: sticky;
     top: 5.25rem;
+  }
+  .tf-form-accordion {
+    border: 1px solid var(--tf-line);
+    border-radius: 1.05rem;
+    overflow: hidden;
+    background: #fff;
+  }
+  .tf-form-accordion .accordion-item {
+    border: 0;
+    border-top: 1px solid var(--tf-line);
+  }
+  .tf-form-accordion .accordion-item:first-child {
+    border-top: 0;
+  }
+  .tf-form-accordion .accordion-button {
+    background: #fff;
+    box-shadow: none;
+    padding: .9rem 1rem;
+    gap: .75rem;
+  }
+  .tf-form-accordion .accordion-button:not(.collapsed) {
+    background: var(--tf-soft);
+    color: var(--tf-ink);
+  }
+  .tf-form-accordion .accordion-body {
+    padding: 1rem;
+    background: #fbfdff;
+  }
+  .tf-form-panel {
+    border: 1px solid var(--tf-line);
+    border-radius: 1rem;
+    padding: .95rem 1rem;
+    background: #fff;
+  }
+  .tf-form-panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+  .tf-form-panel-title h3 {
+    margin: 0;
+    font-size: .98rem;
+    font-weight: 700;
+    color: var(--tf-ink);
+  }
+  .tf-form-panel-note {
+    font-size: .8rem;
+    color: var(--tf-muted);
+  }
+  .tf-dynamic-box .tf-choice-list {
+    gap: .6rem;
+  }
+  .tf-dynamic-box .tf-choice-item {
+    padding: .8rem .85rem;
+    border-radius: .9rem;
+  }
+  .tf-manual-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+  .tf-manual-state {
+    border: 1px dashed var(--tf-line);
+    border-radius: .9rem;
+    padding: .75rem .85rem;
+    background: #fff;
   }
   .tf-choice-list { display: flex; flex-direction: column; gap: .75rem; }
   .tf-choice-item {
@@ -210,6 +280,8 @@
     .tf-summary-grid { grid-template-columns: 1fr; }
     .tf-hero,
     .tf-stat { padding: .95rem; }
+    .tf-form-accordion .accordion-button,
+    .tf-form-accordion .accordion-body { padding: .9rem; }
   }
 </style>
 {% set audit_open_count = tariffario_audit_summary.da_verificare + tariffario_audit_summary.ricostruttiva %}
@@ -301,98 +373,185 @@
               <div class="form-text">Usa 0 per valore indeterminabile o per i profili senza scaglione economico.</div>
             </div>
 
-            <div class="col-lg-7">
-              <label class="form-label fw-semibold">Fasi da includere</label>
-              <div id="phaseBox" class="row g-2"></div>
-            </div>
-            <div class="col-lg-5">
-              <label class="form-label fw-semibold">Opzioni compenso</label>
-              <div class="border rounded-3 p-3 bg-light h-100">
-                <div class="mb-3">
-                  <label class="form-label small text-muted mb-1">Complessita stimata</label>
-                  <select name="complessita" id="selComplessita" class="form-select">
-                    {% for row in complessita_catalog %}
-                    <option value="{{ row.value }}" {{ 'selected' if complessita_sel == row.value else '' }}>{{ row.label }}</option>
-                    {% endfor %}
-                  </select>
-                  <div class="form-text">Usata quando il valore non e determinato e serve collocare lo scaglione in modo prudenziale.</div>
-                </div>
-                <div class="form-check form-switch mb-2">
-                  <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
-                         id="chkSpese" {{ 'checked' if spese_gen else '' }}>
-                  <label class="form-check-label" for="chkSpese">Spese generali 15%</label>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label small text-muted mb-1">Percentuale spese generali</label>
-                  <input type="number" name="perc_spese_generali" id="inpPercSpese" class="form-control"
-                         min="0" max="30" step="1" value="{{ perc_spese|int }}">
-                </div>
-                <div class="form-check form-switch mb-2">
-                  <input class="form-check-input" type="checkbox" name="bonus_telematico" value="1"
-                         id="chkBonus" {{ 'checked' if bonus_tel else '' }}>
-                  <label class="form-check-label" for="chkBonus">Bonus telematico 30%</label>
-                </div>
-                <div class="small text-muted">
-                  Il motore applica anche i riferimenti su variazione per fase, CPA, IVA,
-                  anticipazioni ex art. 15 e compenso orario.
-                </div>
-              </div>
-            </div>
-
             <div class="col-12">
-              <label class="form-label fw-semibold">Variazioni ADR e accordo</label>
-              <div id="variationBox" class="border rounded-3 p-3 bg-light">
-                <div class="text-muted small">La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</div>
-              </div>
-            </div>
-
-            <div class="col-lg-6">
-              <label class="form-label fw-semibold">Integrazioni selezionabili</label>
-              <div id="addonBox" class="border rounded-3 p-3 bg-light h-100">
-                <div class="text-muted small">Seleziona materia e grado per vedere mediazione e altre integrazioni disponibili.</div>
-              </div>
-            </div>
-            <div class="col-lg-6">
-              <label class="form-label fw-semibold">Spese vive suggerite</label>
-              <div id="expenseBox" class="border rounded-3 p-3 bg-light h-100">
-                <div class="text-muted small">Le spese vive suggerite seguono la pratica collegata al profilo tariffario attivo.</div>
-              </div>
-            </div>
-            <div class="col-12">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <label class="form-label fw-semibold mb-0">Voce manuale</label>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddManualRow">
-                  <i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale
-                </button>
-              </div>
-              <div class="border rounded-3 p-3 bg-light">
-                <div id="manualRows">
-                  {% for row in manual_rows_prefill %}
-                  <div class="row g-2 align-items-end manual-row mb-2">
-                    <div class="col-lg-6">
-                      <label class="form-label small text-muted mb-1">Descrizione</label>
-                      <input type="text" name="manual_descr[]" class="form-control" value="{{ row.descrizione }}">
-                    </div>
-                    <div class="col-lg-3">
-                      <label class="form-label small text-muted mb-1">Tipo voce</label>
-                      <select name="manual_tipo[]" class="form-select">
-                        {% for tipo in ['Onorario', 'Spesa forfettaria', 'Spesa viva'] %}
-                        <option value="{{ tipo }}" {{ 'selected' if row.tipo == tipo else '' }}>{{ tipo }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                    <div class="col-lg-2">
-                      <label class="form-label small text-muted mb-1">Importo</label>
-                      <input type="number" name="manual_importo[]" class="form-control text-end" min="0" step="0.01" value="{{ "%.2f"|format(row.importo) }}">
-                    </div>
-                    <div class="col-lg-1">
-                      <button type="button" class="btn btn-outline-danger w-100 btn-remove-manual"><i class="bi bi-trash"></i></button>
+              <div class="accordion tf-form-accordion" id="tfCalcAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfBaseCalcHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfBaseCalcCollapse" aria-expanded="false" aria-controls="tfBaseCalcCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Compenso base e fasi
+                          <span class="tf-chip">Compenso unico</span>
+                          <span class="tf-chip">Opzioni fiscali</span>
+                        </span>
+                        <span class="tf-accordion-meta">Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfBaseCalcCollapse" class="accordion-collapse collapse" aria-labelledby="tfBaseCalcHeading">
+                    <div class="accordion-body">
+                      <div class="row g-3">
+                        <div class="col-lg-7">
+                          <div class="tf-form-panel">
+                            <div class="tf-form-panel-title">
+                              <h3>Fasi da includere</h3>
+                              <span class="tf-form-panel-note">Include anche il flag compenso unico quando previsto.</span>
+                            </div>
+                            <div id="phaseBox" class="row g-2"></div>
+                          </div>
+                        </div>
+                        <div class="col-lg-5">
+                          <div class="tf-form-panel">
+                            <div class="tf-form-panel-title">
+                              <h3>Opzioni compenso</h3>
+                              <span class="tf-form-panel-note">Compresso in un unico pannello operativo.</span>
+                            </div>
+                            <div class="row g-3">
+                              <div class="col-12">
+                                <label class="form-label small text-muted mb-1">Complessita stimata</label>
+                                <select name="complessita" id="selComplessita" class="form-select">
+                                  {% for row in complessita_catalog %}
+                                  <option value="{{ row.value }}" {{ 'selected' if complessita_sel == row.value else '' }}>{{ row.label }}</option>
+                                  {% endfor %}
+                                </select>
+                                <div class="form-text">Usata quando il valore non e determinato e serve collocare lo scaglione in modo prudenziale.</div>
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                  <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
+                                         id="chkSpese" {{ 'checked' if spese_gen else '' }}>
+                                  <label class="form-check-label" for="chkSpese">Spese generali 15%</label>
+                                </div>
+                                <label class="form-label small text-muted mb-1">Percentuale spese generali</label>
+                                <input type="number" name="perc_spese_generali" id="inpPercSpese" class="form-control"
+                                       min="0" max="30" step="1" value="{{ perc_spese|int }}">
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                  <input class="form-check-input" type="checkbox" name="bonus_telematico" value="1"
+                                         id="chkBonus" {{ 'checked' if bonus_tel else '' }}>
+                                  <label class="form-check-label" for="chkBonus">Bonus telematico 30%</label>
+                                </div>
+                                <div class="small text-muted pt-1">
+                                  Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  {% endfor %}
                 </div>
-                <div id="manualEmptyState" class="text-muted small {% if manual_rows_prefill %}d-none{% endif %}">
-                  Nessuna voce manuale aggiunta. Usa questa sezione per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfAdrHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfAdrCollapse" aria-expanded="false" aria-controls="tfAdrCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Variazioni ADR e accordo
+                          <span class="tf-chip">Mediazione</span>
+                          <span class="tf-chip">Negoziazione</span>
+                        </span>
+                        <span class="tf-accordion-meta">Si attiva solo quando il profilo o una sua integrazione usa ADR.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfAdrCollapse" class="accordion-collapse collapse" aria-labelledby="tfAdrHeading">
+                    <div class="accordion-body">
+                      <div id="variationBox" class="tf-form-panel tf-dynamic-box">
+                        <div class="text-muted small">La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfAddonHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfAddonCollapse" aria-expanded="false" aria-controls="tfAddonCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Integrazioni selezionabili
+                          <span class="tf-chip">Accessori</span>
+                        </span>
+                        <span class="tf-accordion-meta">Mediazione, negoziazione e moduli opzionali del profilo attivo.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfAddonCollapse" class="accordion-collapse collapse" aria-labelledby="tfAddonHeading">
+                    <div class="accordion-body">
+                      <div id="addonBox" class="tf-form-panel tf-dynamic-box">
+                        <div class="text-muted small">Seleziona materia e grado per vedere mediazione e altre integrazioni disponibili.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfExpenseHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfExpenseCollapse" aria-expanded="false" aria-controls="tfExpenseCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Spese vive suggerite e voce manuale
+                          <span class="tf-chip">Esborsi</span>
+                          <span class="tf-chip">Art. 15 / manuale</span>
+                        </span>
+                        <span class="tf-accordion-meta">Contributo unificato, diritti di segreteria, notifiche e voci concordate con il cliente.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfExpenseCollapse" class="accordion-collapse collapse" aria-labelledby="tfExpenseHeading">
+                    <div class="accordion-body">
+                      <div class="row g-3">
+                        <div class="col-12">
+                          <div id="expenseBox" class="tf-form-panel tf-dynamic-box">
+                            <div class="text-muted small">Le spese vive suggerite seguono la pratica collegata al profilo tariffario attivo.</div>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="tf-form-panel">
+                            <div class="tf-manual-toolbar">
+                              <div>
+                                <div class="fw-semibold">Voce manuale</div>
+                                <div class="small text-muted">Per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.</div>
+                              </div>
+                              <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddManualRow">
+                                <i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale
+                              </button>
+                            </div>
+                            <div id="manualRows">
+                              {% for row in manual_rows_prefill %}
+                              <div class="row g-2 align-items-end manual-row mb-2">
+                                <div class="col-lg-6">
+                                  <label class="form-label small text-muted mb-1">Descrizione</label>
+                                  <input type="text" name="manual_descr[]" class="form-control" value="{{ row.descrizione }}">
+                                </div>
+                                <div class="col-lg-3">
+                                  <label class="form-label small text-muted mb-1">Tipo voce</label>
+                                  <select name="manual_tipo[]" class="form-select">
+                                    {% for tipo in ['Onorario', 'Spesa forfettaria', 'Spesa viva'] %}
+                                    <option value="{{ tipo }}" {{ 'selected' if row.tipo == tipo else '' }}>{{ tipo }}</option>
+                                    {% endfor %}
+                                  </select>
+                                </div>
+                                <div class="col-lg-2">
+                                  <label class="form-label small text-muted mb-1">Importo</label>
+                                  <input type="number" name="manual_importo[]" class="form-control text-end" min="0" step="0.01" value="{{ "%.2f"|format(row.importo) }}">
+                                </div>
+                                <div class="col-lg-1">
+                                  <button type="button" class="btn btn-outline-danger w-100 btn-remove-manual"><i class="bi bi-trash"></i></button>
+                                </div>
+                              </div>
+                              {% endfor %}
+                            </div>
+                            <div id="manualEmptyState" class="tf-manual-state text-muted small {% if manual_rows_prefill %}d-none{% endif %}">
+                              Nessuna voce manuale aggiunta. Usa questa sezione per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -598,7 +757,7 @@
         <div class="accordion accordion-flush tf-accordion" id="tfKnowledgeAccordion">
           <div class="accordion-item">
             <h2 class="accordion-header" id="tfAuditHeading">
-              <button class="accordion-button {% if not tariffario_audit_warning_rows %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#tfAuditCollapse" aria-expanded="{{ 'true' if tariffario_audit_warning_rows else 'false' }}" aria-controls="tfAuditCollapse">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfAuditCollapse" aria-expanded="false" aria-controls="tfAuditCollapse">
                 <span>
                   <span class="tf-accordion-title">
                     Audit conformita tariffaria
@@ -609,7 +768,7 @@
                 </span>
               </button>
             </h2>
-            <div id="tfAuditCollapse" class="accordion-collapse collapse {% if tariffario_audit_warning_rows %}show{% endif %}" aria-labelledby="tfAuditHeading">
+            <div id="tfAuditCollapse" class="accordion-collapse collapse" aria-labelledby="tfAuditHeading">
               <div class="accordion-body">
                 <div class="row g-2 mb-3">
                   <div class="col-sm-6">

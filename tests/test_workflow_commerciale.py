@@ -123,7 +123,9 @@ def test_apri_fascicolo_automatico_crea_checklist_e_scadenze(tmp_path):
     assert fascicolo.id_cliente == cliente.id
     assert gp.get_preventivo(preventivo.id).id_fascicolo == fascicolo.id
     assert gp.get_conferimento(conferimento.id).id_fascicolo == fascicolo.id
-    assert len(fascicolo.attivita) >= 3
+    assert result["attivita_create"] == 0
+    assert len(fascicolo.attivita) == 0
+    assert any("Apertura automatica del fascicolo" in av.descrizione for av in fascicolo.avanzamento)
     assert len(gs.tutte(id_fascicolo=fascicolo.id)) == 3
 
 
@@ -166,10 +168,11 @@ def test_apri_fascicolo_automatico_comparsa_risposta_genera_attivita_specifiche(
     )
 
     fascicolo = result["fascicolo"]
-    titles = [att.titolo.lower() for att in fascicolo.attivita]
-    descriptions = [att.descrizione.lower() for att in fascicolo.attivita]
+    scadenze = gs.tutte(id_fascicolo=fascicolo.id)
+    texts = [f"{sc.titolo} {sc.descrizione}".lower() for sc in scadenze]
 
-    assert any("166-167" in title or "termine di costituzione" in title for title in titles)
-    assert any("citazione" in desc and "procura" in desc for desc in descriptions)
-    assert any(att.tipo.value == "DEPOSITO_ATTI" for att in fascicolo.attivita)
-    assert any("166-167" in (sc.titolo + " " + sc.descrizione) for sc in gs.tutte(id_fascicolo=fascicolo.id))
+    assert result["attivita_create"] == 0
+    assert len(fascicolo.attivita) == 0
+    assert any("166-167" in text or "termine di costituzione" in text for text in texts)
+    assert any("citazione" in text and "procura" in text for text in texts)
+    assert any("eccezioni" in text or "mezzi istruttori" in text for text in texts)

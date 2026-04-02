@@ -5765,6 +5765,8 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/fascicoli/<id_fasc>")
     def dettaglio_fascicolo(id_fasc):
+        from pct.preventivi import GestionePreventivi
+        from pct.responsabile_conformita import build_fascicolo_compliance_summary
         gf = get_fascicoli()
         gc = get_clienti()
         fasc = gf.get(id_fasc)
@@ -5772,6 +5774,11 @@ read -r -p "Premi Invio per chiudere..." _
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
         cliente = gc.get(fasc.id_cliente) if fasc.id_cliente else None
+        gp = GestionePreventivi(app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json"))
+        preventivi_fascicolo = gp.preventivi_per_fascicolo(id_fasc)
+        conferimenti_fascicolo = gp.conferimenti_per_fascicolo(id_fasc)
+        preventivo = preventivi_fascicolo[0] if preventivi_fascicolo else None
+        conferimento = conferimenti_fascicolo[0] if conferimenti_fascicolo else None
         agenda = get_agenda()
         # appuntamenti collegati al procedimento
         apps = []
@@ -5807,10 +5814,22 @@ read -r -p "Premi Invio per chiudere..." _
             or (ha_udienza_importata and not fasc.data_prima_udienza)
             or not ha_metadati_portale
         )
+        responsabile_conformita = build_fascicolo_compliance_summary(
+            fascicolo=fasc,
+            cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
+            config=app.config,
+            utente=g.utente_corrente,
+            office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
+            parti=parti,
+        )
         return render_template(
             "fascicoli/dettaglio.html",
             fascicolo=fasc,
             cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
             apps=apps,
             tipi_doc=list(TipoDocumento),
             tipi_att=list(TipoAttivita),
@@ -5823,6 +5842,7 @@ read -r -p "Premi Invio per chiudere..." _
             pst_portale_label=_portale_ufficiale_label(fasc),
             pst_import_dir=str(pst_import_dir),
             polisweb_sync_needed=polisweb_sync_needed,
+            responsabile_conformita=responsabile_conformita,
             oggi=date.today(),
         )
 

@@ -135,7 +135,7 @@ def build_workflow_summary(
         },
         {
             "key": "fascicolo",
-            "label": "Fascicolo operativo",
+            "label": "Workflow fascicolo attivato",
             "complete": bool(fascicolo),
         },
     ]
@@ -176,6 +176,7 @@ def build_workflow_summary(
         "cliente_completo": not cliente_missing,
         "accepted": accepted,
         "firma_eseguita": firma_ok,
+        "fascicolo_operativo": bool(fascicolo),
         "fascicolo_pronto": bool(fascicolo),
         "next_step_key": next_step_key,
         "next_step_label": next_step_label,
@@ -215,29 +216,20 @@ def _seed_attivita_iniziali(
 ) -> int:
     oggi = date.today().isoformat()
     created = 0
-    if activity_plan:
-        for item in activity_plan[:3]:
-            titolo = str(item.get("title") or "").strip()
-            descrizione = str(item.get("description") or "").strip() or titolo
-            gf.aggiungi_attivita(
-                id_fascicolo,
-                _tipo_attivita_from_key(item.get("activity_type", "")),
-                oggi,
-                _titolo_attivita_checklist(titolo or descrizione),
-                descrizione=descrizione,
-                note=str(item.get("note") or "Attivita iniziale generata automaticamente dal workflow commerciale intelligente."),
-                avvocato=avvocato,
-            )
-            created += 1
-        return created
-    for item in checklist[:3]:
+    # I controlli iniziali del workflow restano onboarding e scadenze:
+    # non devono popolare automaticamente la timeline delle attività processuali.
+    for item in activity_plan or []:
+        if not _bool(item.get("materialize_in_fascicolo")):
+            continue
+        titolo = str(item.get("title") or "").strip()
+        descrizione = str(item.get("description") or "").strip() or titolo
         gf.aggiungi_attivita(
             id_fascicolo,
-            TipoAttivita.ALTRO,
+            _tipo_attivita_from_key(item.get("activity_type", "")),
             oggi,
-            _titolo_attivita_checklist(item),
-            descrizione=item,
-            note="Attività iniziale generata automaticamente dal workflow commerciale.",
+            _titolo_attivita_checklist(titolo or descrizione),
+            descrizione=descrizione,
+            note=str(item.get("note") or "Attivita iniziale generata automaticamente dal workflow commerciale intelligente."),
             avvocato=avvocato,
         )
         created += 1

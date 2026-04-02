@@ -593,6 +593,11 @@ class AssistenteRedazionale:
             degree = "in_corso_di_causa"
             competence = "Ufficio presso cui pende il fascicolo e registro gia assegnato"
             required_docs = ["procura", "indice"]
+        elif "citazione" in name:
+            office_types = ["TRIBUNALE", "GDP"]
+            degree = "primo_grado"
+            competence = "Tribunale o Giudice di Pace in base a materia, valore e territorio"
+            required_docs = ["procura", "notifica", "contributo", "indice"]
         elif "decreto ingiuntivo" in name or "monitorio" in name:
             office_types = ["TRIBUNALE", "GDP"]
             degree = "primo_grado"
@@ -618,7 +623,7 @@ class AssistenteRedazionale:
             registry_suggestion=registry,
             allowed_registries=["RG", "RGL", "VG", "RGE"],
             allowed_office_types=office_types,
-            required_fields=["subject", "recipient_or_court"],
+            required_fields=["id_cliente", "tribunale", "oggetto", "controparte"],
             required_narrative_fields=["facts", "requests_or_conclusions"],
             required_document_keys=required_docs,
             procedural_note="Il motore usa un controllo deterministico su materia, rito, competenza, registro e allegati essenziali prima della bozza finale.",

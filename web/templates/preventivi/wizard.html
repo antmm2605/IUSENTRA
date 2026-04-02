@@ -4,53 +4,659 @@
 
 {% block content %}
 <style>
-  .prev-area-btn.active { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
-  .prev-tipo-card { border: 1px solid var(--bs-border-color); border-radius: 1rem; background: #fff; padding: 1rem; cursor: pointer; transition: all .15s ease; height: 100%; }
-  .prev-tipo-card:hover { border-color: var(--bs-primary); box-shadow: 0 .6rem 1.6rem rgba(13,110,253,.08); transform: translateY(-1px); }
-  .prev-tipo-card.active { border-color: var(--bs-primary); background: rgba(13,110,253,.04); box-shadow: 0 .9rem 2rem rgba(13,110,253,.12); }
-  .prev-kpi { border-radius: 1rem; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); border: 1px solid rgba(13,110,253,.12); padding: .9rem 1rem; }
-  .prev-kpi .value { font-size: 1.2rem; font-weight: 700; color: var(--bs-primary); }
-  .prev-summary-card { top: 5.25rem; }
-  .prev-note-box { white-space: pre-line; }
-  .prev-norm-list a { text-decoration: none; }
-  .prev-section-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--bs-secondary-color); font-weight: 700; }
+  .prev-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .prev-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(246,249,255,.96) 100%);
+    box-shadow: 0 .75rem 2rem rgba(15, 23, 42, .05);
+  }
+  .prev-hero-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1 1 24rem;
+  }
+  .prev-hero-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 110, 253, .08);
+    color: var(--bs-primary);
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+  }
+  .prev-hero-copy {
+    min-width: 0;
+  }
+  .prev-kicker,
+  .prev-section-label {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--bs-secondary-color);
+    font-weight: 700;
+  }
+  .prev-title {
+    margin: .1rem 0 .35rem;
+    font-size: clamp(1.75rem, 2vw, 2.45rem);
+    line-height: 1.05;
+    font-weight: 700;
+    color: #1f3557;
+  }
+  .prev-sub {
+    margin: 0;
+    color: var(--bs-secondary-color);
+    max-width: 48rem;
+  }
+  .prev-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .75rem;
+  }
+  .prev-mode-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, .08);
+    background: rgba(255,255,255,.92);
+  }
+  .prev-mode-switch .mode-pill {
+    border: 0;
+    background: transparent;
+    color: #51627f;
+    font-size: .92rem;
+    line-height: 1;
+    padding: .6rem .95rem;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .prev-mode-switch .mode-pill.active {
+    background: #1f6fff;
+    color: #fff;
+    box-shadow: 0 .6rem 1.4rem rgba(31, 111, 255, .22);
+  }
+  .prev-entry-alert {
+    border: 1px solid rgba(13, 110, 253, .12);
+    border-radius: 1.1rem;
+    background: linear-gradient(180deg, rgba(236,244,255,.95) 0%, rgba(255,255,255,.97) 100%);
+    box-shadow: 0 .55rem 1.5rem rgba(15, 23, 42, .04);
+  }
+  .prev-wizard-grid {
+    display: grid;
+    gap: 1rem;
+  }
+  .prev-main-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .prev-summary-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .prev-summary-card {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.25rem;
+    background: rgba(255,255,255,.97);
+    box-shadow: 0 .8rem 2rem rgba(15, 23, 42, .05);
+    overflow: hidden;
+  }
+  .prev-summary-card.is-sticky {
+    position: sticky;
+    top: 5.35rem;
+  }
+  .prev-summary-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1rem 1.1rem .85rem;
+    border-bottom: 1px solid rgba(15, 23, 42, .08);
+  }
+  .prev-summary-head h2 {
+    margin: .15rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f3557;
+  }
+  .prev-summary-body {
+    padding: 1rem 1.1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .95rem;
+  }
+  .prev-summary-body .badge {
+    font-weight: 600;
+  }
+  .prev-summary-intro {
+    font-size: .9rem;
+    color: var(--bs-secondary-color);
+  }
+  .prev-summary-title {
+    margin: .7rem 0 .4rem;
+    font-size: 1.2rem;
+    line-height: 1.15;
+    font-weight: 700;
+    color: #1d2f4d;
+  }
+  .prev-summary-desc {
+    font-size: .92rem;
+    color: var(--bs-secondary-color);
+    margin: 0;
+  }
+  .prev-summary-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-bottom: .65rem;
+  }
+  .prev-summary-chips .badge {
+    border-radius: 999px;
+    padding: .4rem .55rem;
+  }
+  .prev-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .7rem;
+    margin: .15rem 0;
+  }
+  .prev-kpi {
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid rgba(13,110,253,.12);
+    padding: .9rem 1rem;
+  }
+  .prev-kpi .value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+  }
+  .prev-summary-accordion .accordion-item,
+  .prev-compact-accordion .accordion-item,
+  .prev-step-accordion .accordion-item {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.15rem !important;
+    overflow: hidden;
+    box-shadow: 0 .5rem 1.6rem rgba(15, 23, 42, .04);
+    background: rgba(255,255,255,.98);
+  }
+  .prev-summary-accordion .accordion-item + .accordion-item,
+  .prev-compact-accordion .accordion-item + .accordion-item,
+  .prev-step-accordion .accordion-item + .accordion-item {
+    margin-top: .85rem;
+  }
+  .prev-summary-accordion .accordion-button,
+  .prev-compact-accordion .accordion-button {
+    font-weight: 700;
+    font-size: .96rem;
+    background: rgba(248, 250, 255, .94);
+    box-shadow: none;
+    gap: .5rem;
+  }
+  .prev-summary-accordion .accordion-button:not(.collapsed),
+  .prev-compact-accordion .accordion-button:not(.collapsed) {
+    background: rgba(243, 247, 255, .98);
+    color: #1f3557;
+  }
+  .prev-summary-accordion .accordion-body,
+  .prev-compact-accordion .accordion-body {
+    padding: .95rem 1rem 1rem;
+  }
+  .prev-summary-count {
+    margin-left: auto;
+    border-radius: 999px;
+    background: rgba(13, 110, 253, .08);
+    color: var(--bs-primary);
+    font-size: .76rem;
+    font-weight: 700;
+    padding: .2rem .5rem;
+  }
+  .prev-ref-list,
+  .prev-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+  }
+  .prev-ref-card {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: .95rem;
+    padding: .8rem .85rem;
+    background: #fff;
+  }
+  .prev-ref-card a {
+    text-decoration: none;
+  }
+  .prev-ref-card-title {
+    font-weight: 700;
+    color: #203555;
+  }
+  .prev-checklist {
+    padding-left: 1rem;
+    margin: 0;
+    color: var(--bs-secondary-color);
+  }
+  .prev-checklist li + li {
+    margin-top: .35rem;
+  }
+  .prev-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .88rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .prev-step-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .prev-step-accordion .accordion-button {
+    background: rgba(255,255,255,.98);
+    box-shadow: none;
+    padding: 1rem 1.15rem;
+    gap: .85rem;
+    align-items: center;
+  }
+  .prev-step-accordion .accordion-button:not(.collapsed) {
+    background: linear-gradient(180deg, rgba(248,251,255,.98) 0%, rgba(255,255,255,.98) 100%);
+    color: #1f3557;
+  }
+  .prev-step-number {
+    width: 2rem;
+    height: 2rem;
+    border-radius: .8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--bs-primary);
+    background: rgba(13, 110, 253, .08);
+    flex: 0 0 auto;
+  }
+  .prev-step-copy {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+  }
+  .prev-step-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f3557;
+  }
+  .prev-step-sub {
+    font-size: .88rem;
+    color: var(--bs-secondary-color);
+  }
+  .prev-step-meta {
+    margin-left: auto;
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--bs-secondary-color);
+    font-weight: 700;
+    padding-right: 1rem;
+  }
+  .prev-step-body {
+    padding: 1.15rem 1.15rem 1.2rem;
+  }
+  .prev-toolbar {
+    position: sticky;
+    top: 5.45rem;
+    z-index: 8;
+    margin-bottom: .85rem;
+    padding: .95rem 1rem 1rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.1rem;
+    background: rgba(252, 253, 255, .96);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 .65rem 1.7rem rgba(15, 23, 42, .05);
+  }
+  .prev-toolbar-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, .8fr);
+    gap: 1rem;
+    align-items: end;
+  }
+  .prev-chip-row,
+  .prev-filter-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+  }
+  .prev-chip-row {
+    overflow-x: auto;
+    padding-bottom: .15rem;
+    scrollbar-width: thin;
+  }
+  .prev-area-btn {
+    border-radius: 999px;
+    padding: .55rem .85rem;
+    font-weight: 600;
+  }
+  .prev-area-btn.active {
+    background: var(--bs-primary);
+    color: #fff;
+    border-color: var(--bs-primary);
+    box-shadow: 0 .55rem 1.3rem rgba(13,110,253,.18);
+  }
+  .prev-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin-top: .8rem;
+  }
+  .prev-chip-toggle,
+  .prev-filter-chip {
+    border-radius: 999px;
+    border: 1px solid rgba(13, 110, 253, .2);
+    background: #fff;
+    color: #27508a;
+    font-size: .9rem;
+    padding: .48rem .8rem;
+    font-weight: 600;
+  }
+  .prev-chip-toggle.active,
+  .prev-filter-chip.active {
+    background: rgba(13,110,253,.1);
+    border-color: rgba(13,110,253,.35);
+    color: var(--bs-primary);
+  }
+  .prev-toolbar-advanced {
+    margin-top: .9rem;
+    padding-top: .9rem;
+    border-top: 1px solid rgba(15, 23, 42, .08);
+  }
+  .prev-tipo-grid.compact .prev-tipo-card {
+    padding: .85rem .9rem;
+    min-height: 0;
+  }
+  .prev-tipo-card {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1rem;
+    background: #fff;
+    padding: 1rem;
+    transition: all .15s ease;
+    height: 100%;
+    cursor: pointer;
+    min-height: 7.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    box-shadow: 0 .55rem 1.45rem rgba(15, 23, 42, .04);
+  }
+  .prev-tipo-card:hover {
+    border-color: rgba(13,110,253,.38);
+    box-shadow: 0 .7rem 1.8rem rgba(13,110,253,.08);
+    transform: translateY(-1px);
+  }
+  .prev-tipo-card.active {
+    border-color: rgba(13,110,253,.48);
+    background: rgba(13,110,253,.04);
+    box-shadow: 0 .9rem 2rem rgba(13,110,253,.12);
+  }
+  .prev-tipo-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .8rem;
+  }
+  .prev-tipo-badge {
+    border-radius: 999px;
+    padding: .28rem .55rem;
+    background: rgba(15, 23, 42, .05);
+    color: #42536f;
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .prev-tipo-title {
+    font-weight: 700;
+    color: #1c3153;
+    margin-bottom: .2rem;
+  }
+  .prev-tipo-summary {
+    color: var(--bs-secondary-color);
+    font-size: .92rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .prev-tipo-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+  .prev-fav-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: .75rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    background: #fff;
+    color: #7a88a1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  .prev-fav-btn.active {
+    color: #f59f00;
+    border-color: rgba(245, 159, 0, .24);
+    background: rgba(245, 159, 0, .12);
+  }
+  .prev-subsection {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1rem;
+    padding: .95rem 1rem;
+    background: rgba(255,255,255,.98);
+    box-shadow: 0 .45rem 1.25rem rgba(15, 23, 42, .035);
+  }
+  .prev-step-body .form-text {
+    margin-top: .32rem;
+  }
+  .prev-step-body .row.g-3 {
+    --bs-gutter-y: .95rem;
+  }
+  .prev-subsection .row.g-3 {
+    --bs-gutter-y: .85rem;
+  }
+  .prev-summary-layout-badge {
+    white-space: nowrap;
+  }
+  .prev-subsection + .prev-subsection {
+    margin-top: 1rem;
+  }
+  .prev-subsection-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .85rem;
+  }
+  .prev-subsection-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f3557;
+  }
+  .prev-inline-note {
+    font-size: .86rem;
+    color: var(--bs-secondary-color);
+  }
+  .prev-note-box {
+    white-space: pre-line;
+  }
+  .prev-action-bar-wrap {
+    position: sticky;
+    bottom: .8rem;
+    z-index: 12;
+    margin-top: .5rem;
+  }
+  .prev-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .85rem 1rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1rem;
+    background: rgba(255,255,255,.95);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 .9rem 2rem rgba(15, 23, 42, .08);
+  }
+  .prev-action-total {
+    min-width: 0;
+  }
+  .prev-action-total .label {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--bs-secondary-color);
+    font-weight: 700;
+  }
+  .prev-action-total .value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--bs-primary);
+    line-height: 1.05;
+  }
+  .prev-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .65rem;
+  }
+  @media (min-width: 1200px) {
+    .prev-wizard-grid {
+      grid-template-columns: minmax(0, 1.7fr) minmax(20rem, .73fr);
+      grid-template-areas: "main summary";
+      align-items: start;
+    }
+    .prev-main-flow {
+      grid-area: main;
+    }
+    .prev-summary-shell {
+      grid-area: summary;
+    }
+  }
+  @media (max-width: 1199.98px) {
+    .prev-summary-card.is-sticky,
+    .prev-toolbar {
+      position: static;
+    }
+  }
+  @media (max-width: 991.98px) {
+    .prev-toolbar-top {
+      grid-template-columns: 1fr;
+    }
+    .prev-step-meta {
+      display: none;
+    }
+    .prev-summary-layout-badge {
+      display: none;
+    }
+  }
+  @media (max-width: 767.98px) {
+    .prev-hero {
+      padding: 1rem 1rem 1.1rem;
+    }
+    .prev-step-accordion .accordion-button,
+    .prev-step-body,
+    .prev-summary-head,
+    .prev-summary-body {
+      padding-left: .95rem;
+      padding-right: .95rem;
+    }
+    .prev-kpi-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .prev-action-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .prev-action-buttons {
+      justify-content: stretch;
+    }
+    .prev-action-buttons > * {
+      flex: 1 1 auto;
+    }
+    .prev-chip-row,
+    .prev-filter-strip {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: .2rem;
+    }
+    .prev-chip-row > *,
+    .prev-filter-strip > * {
+      flex: 0 0 auto;
+    }
+  }
 </style>
 
-<div class="ds-ph">
-  <div class="ds-ph-icon"><i class="bi bi-magic"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Preventivo guidato</h1>
-    <p class="ds-ph-sub">Nuovo cliente, tipologia pratica, motore normativo e bozza iniziale in un unico flusso.</p>
+<div class="prev-page">
+  <div class="prev-hero">
+    <div class="prev-hero-main">
+      <div class="prev-hero-icon"><i class="bi bi-magic"></i></div>
+      <div class="prev-hero-copy">
+        <div class="prev-kicker">Console guidata</div>
+        <h1 class="prev-title">Preventivo guidato</h1>
+        <p class="prev-sub">Nuovo cliente, tipologia pratica, motore normativo e bozza iniziale in un unico flusso, con meno rumore visivo e più spazio al lavoro reale.</p>
+      </div>
+    </div>
+    <div class="prev-hero-actions">
+      <div class="prev-mode-switch" aria-label="Modalità di compilazione">
+        <span class="mode-pill active">Guidato</span>
+        <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=id_cliente_pre) if id_cliente_pre else url_for('preventivi.nuovo_preventivo') }}" class="mode-pill">
+          <i class="bi bi-sliders me-1"></i>Avanzato
+        </a>
+      </div>
+      <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Torna ai preventivi
+      </a>
+    </div>
   </div>
-  <div class="ds-ph-actions d-flex gap-2">
-    <a href="{{ url_for('preventivi.nuovo_preventivo', id_cliente=id_cliente_pre) if id_cliente_pre else url_for('preventivi.nuovo_preventivo') }}"
-       class="ds-btn ds-btn-ghost">
-      <i class="bi bi-sliders"></i><span class="d-none d-sm-inline">Editor avanzato</span>
-    </a>
-    <a href="{{ url_for('preventivi.lista') }}" class="ds-btn ds-btn-secondary">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Preventivi</span>
-    </a>
-  </div>
-</div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
-    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  </div>
-  {% endfor %}
-{% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endwith %}
 
-{% if entry_mode == "iniziale" %}
-<div class="alert alert-primary border-0 shadow-sm">
-  <div class="fw-semibold mb-1"><i class="bi bi-stars me-2"></i>Onboarding cliente attivo</div>
-  <div class="small">
-    Hai appena creato il cliente. Qui puoi impostare subito il preventivo iniziale con tipologia, riferimenti normativi, calcolo automatico e bozza professionale.
+  {% if entry_mode == "iniziale" %}
+  <div class="alert prev-entry-alert mb-0">
+    <div class="fw-semibold mb-1"><i class="bi bi-stars me-2"></i>Onboarding cliente attivo</div>
+    <div class="small">
+      Hai appena creato il cliente. Qui puoi impostare subito il preventivo iniziale con tipologia, riferimenti normativi, calcolo automatico e bozza professionale.
+    </div>
   </div>
-</div>
-{% endif %}
+  {% endif %}
 
-<form method="post" action="{{ url_for('preventivi.wizard_genera') }}" id="wizardPreventivo">
+  <form method="post" action="{{ url_for('preventivi.wizard_genera') }}" id="wizardPreventivo">
   <input type="hidden" name="from_page" value="{{ from_page }}">
   <input type="hidden" name="id_pratica" id="inpIdPratica">
   <input type="hidden" name="area_pratica" id="inpAreaPratica">
@@ -65,14 +671,21 @@
   <input type="hidden" name="log_calcolo" id="inpLogCalcolo">
   <input type="hidden" name="compenso_pattuito" id="inpCompensoPattuito" value="0">
 
-  <div class="row g-3">
-    <div class="col-12 col-xxl-8">
-      <div class="card shadow-sm mb-3">
-        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-person-vcard me-2 text-primary"></i>1. Cliente e contesto</span>
-          <span class="badge text-bg-light">Fase iniziale</span>
+  <div class="row g-3 prev-wizard-grid">
+    <div class="col-12 col-xxl-8 order-2 order-xxl-1 prev-main-flow">
+      <div class="card shadow-sm mb-0">
+        <div class="card-header p-0 border-0 bg-transparent">
+          <button class="accordion-button border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#wizardStep1Collapse" aria-expanded="true" aria-controls="wizardStep1Collapse">
+            <span class="prev-step-number">1</span>
+            <span class="prev-step-copy">
+              <span class="prev-step-title">Cliente e contesto</span>
+              <span class="prev-step-sub">Parti da cliente e pratica corretti per avere il miglior prefill possibile.</span>
+            </span>
+            <span class="prev-step-meta">Fase iniziale</span>
+          </button>
         </div>
-        <div class="card-body">
+        <div id="wizardStep1Collapse" class="collapse show">
+        <div class="card-body prev-step-body">
           <div class="row g-3">
             <div class="col-lg-6">
               <label class="form-label fw-semibold">Cliente <span class="text-danger">*</span></label>
@@ -153,14 +766,22 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
 
-      <div class="card shadow-sm mb-3">
-        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-diagram-3 me-2 text-primary"></i>2. Tipologia e motore preventivo</span>
-          <span class="small text-muted">Tutte le tipologie sono collegate al motore e al redattore del preventivo</span>
+      <div class="card shadow-sm mb-0">
+        <div class="card-header p-0 border-0 bg-transparent">
+          <button class="accordion-button border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#wizardStep2Collapse" aria-expanded="true" aria-controls="wizardStep2Collapse">
+            <span class="prev-step-number">2</span>
+            <span class="prev-step-copy">
+              <span class="prev-step-title">Tipologia e motore preventivo</span>
+              <span class="prev-step-sub">Toolbar compatta, ricerca veloce, preferite e selezione guidata del profilo operativo.</span>
+            </span>
+            <span class="prev-step-meta">Motore e redattore</span>
+          </button>
         </div>
-        <div class="card-body">
+        <div id="wizardStep2Collapse" class="collapse show">
+        <div class="card-body prev-step-body">
           <div id="fascicoloContextBox" class="alert alert-light border shadow-sm d-none mb-3">
             <div class="d-flex flex-column gap-2 gap-lg-1">
               <div class="fw-semibold text-dark"><i class="bi bi-folder2-open me-2 text-primary"></i>Contesto pratica collegata</div>
@@ -173,111 +794,201 @@
               <div class="small text-muted" id="fascicoloContextHint">L'area pratica viene proposta automaticamente in base al fascicolo collegato.</div>
             </div>
           </div>
-          <div class="row g-3 align-items-end mb-3">
-            <div class="col-lg-8">
-              <div class="prev-section-label mb-2">Area pratica</div>
-              <div class="d-flex flex-wrap gap-2" id="areaButtons"></div>
+          <div class="prev-toolbar">
+            <div class="prev-toolbar-top">
+              <div>
+                <div class="prev-section-label mb-2">Area pratica</div>
+                <div class="prev-chip-row" id="areaButtons"></div>
+              </div>
+              <div>
+                <label class="form-label fw-semibold">Ricerca tipologie</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="search" id="inpFiltroTipologie" class="form-control"
+                         placeholder="Es. recupero crediti, mediazione, penale...">
+                </div>
+              </div>
             </div>
-            <div class="col-lg-4">
-              <label class="form-label fw-semibold">Filtra tipologie</label>
-              <input type="search" id="inpFiltroTipologie" class="form-control"
-                     placeholder="Es. recupero crediti, mediazione, penale...">
+            <div class="prev-toolbar-actions">
+              <button type="button" class="prev-chip-toggle" id="btnToggleAdvancedFilters" data-bs-toggle="collapse" data-bs-target="#advancedFiltersCollapse" aria-expanded="false" aria-controls="advancedFiltersCollapse">
+                <i class="bi bi-sliders2 me-1"></i>Filtri avanzati
+              </button>
+              <button type="button" class="prev-chip-toggle" id="btnToggleFavorites">
+                <i class="bi bi-star me-1"></i>Preferite
+              </button>
+              <button type="button" class="prev-chip-toggle" id="btnToggleCompact">
+                <i class="bi bi-arrows-collapse me-1"></i>Vista compatta
+              </button>
+            </div>
+            <div class="collapse prev-toolbar-advanced" id="advancedFiltersCollapse">
+              <div class="prev-section-label mb-2">Filtri compenso</div>
+              <div class="prev-filter-strip">
+                <button type="button" class="prev-filter-chip active" data-compenso-filter="ALL">Tutte</button>
+                <button type="button" class="prev-filter-chip" data-compenso-filter="Per fasi processuali">Per fasi</button>
+                <button type="button" class="prev-filter-chip" data-compenso-filter="Compenso unico">Compenso unico</button>
+                <button type="button" class="prev-filter-chip" data-compenso-filter="Compenso fisso">Compenso fisso</button>
+                <button type="button" class="prev-filter-chip" data-compenso-filter="Compenso orario">Compenso orario</button>
+                <button type="button" class="prev-filter-chip" data-compenso-filter="ADR">ADR</button>
+              </div>
             </div>
           </div>
-          <div class="row g-3" id="tipologiaGrid"></div>
+          <div class="row g-3 prev-tipo-grid" id="tipologiaGrid"></div>
+        </div>
         </div>
       </div>
 
-      <div class="card shadow-sm mb-3">
-        <div class="card-header fw-semibold">
-          <i class="bi bi-calculator me-2 text-primary"></i>3. Parametri di calcolo e struttura del preventivo
+      <div class="card shadow-sm mb-0">
+        <div class="card-header p-0 border-0 bg-transparent">
+          <button class="accordion-button collapsed border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#wizardStep3Collapse" aria-expanded="false" aria-controls="wizardStep3Collapse">
+            <span class="prev-step-number">3</span>
+            <span class="prev-step-copy">
+              <span class="prev-step-title">Parametri di calcolo e struttura del preventivo</span>
+              <span class="prev-step-sub">Raggruppa il calcolo in blocchi chiari: economico, fasi e opzioni operative.</span>
+            </span>
+            <span class="prev-step-meta">Calcolo</span>
+          </button>
         </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-3" id="boxValoreControversia">
-              <label class="form-label fw-semibold">Valore pratica / controversia</label>
-              <input type="number" name="valore_controversia" id="inpValore" class="form-control"
-                     min="0" step="0.01" placeholder="0.00">
+        <div id="wizardStep3Collapse" class="collapse">
+        <div class="card-body prev-step-body">
+          <div class="prev-subsection">
+            <div class="prev-subsection-head">
+              <h3 class="prev-subsection-title">Parametri economici e competenza</h3>
+              <div class="prev-inline-note">Allinea valore, regola tariffaria e grado alla pratica selezionata.</div>
             </div>
-            <div class="col-md-4">
-              <label class="form-label fw-semibold">Regola tariffaria / competenza</label>
-              <select id="selRegolaTariffaria" class="form-select"></select>
-              <div class="form-text">Collega la tipologia alla competenza per giurisdizione o rito applicabile.</div>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-semibold">Grado / sede</label>
-              <select id="selGrado" class="form-select"></select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Complessita stimata</label>
-              <select name="complessita" id="selComplessita" class="form-select">
-                <option value="bassa">Bassa</option>
-                <option value="media" selected>Media</option>
-                <option value="alta">Alta</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Tariffa oraria</label>
-              <input type="number" name="tariffa_oraria" id="inpTariffaOraria" class="form-control"
-                     min="0" step="0.01" placeholder="0.00">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Ore stimate</label>
-              <input type="number" name="ore_stimate" id="inpOreStimate" class="form-control"
-                     min="0" step="0.50" placeholder="0">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Anticipazioni art. 15</label>
-              <input type="number" name="anticipazioni_art15" id="inpAnticipazioni" class="form-control"
-                     min="0" step="0.01" placeholder="0.00">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Avvocato referente</label>
-              <input type="text" name="avvocato_referente" class="form-control"
-                     value="{{ cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '' }}"
-                     placeholder="Avv. referente">
+            <div class="row g-3">
+              <div class="col-md-3" id="boxValoreControversia">
+                <label class="form-label fw-semibold">Valore pratica / controversia</label>
+                <input type="number" name="valore_controversia" id="inpValore" class="form-control"
+                       min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Regola tariffaria / competenza</label>
+                <select id="selRegolaTariffaria" class="form-select"></select>
+                <div class="form-text">Collega la tipologia alla competenza per giurisdizione o rito applicabile.</div>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label fw-semibold">Grado / sede</label>
+                <select id="selGrado" class="form-select"></select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Complessita stimata</label>
+                <select name="complessita" id="selComplessita" class="form-select">
+                  <option value="bassa">Bassa</option>
+                  <option value="media" selected>Media</option>
+                  <option value="alta">Alta</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Tariffa oraria</label>
+                <input type="number" name="tariffa_oraria" id="inpTariffaOraria" class="form-control"
+                       min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Ore stimate</label>
+                <input type="number" name="ore_stimate" id="inpOreStimate" class="form-control"
+                       min="0" step="0.50" placeholder="0">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Anticipazioni art. 15</label>
+                <input type="number" name="anticipazioni_art15" id="inpAnticipazioni" class="form-control"
+                       min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Avvocato referente</label>
+                <input type="text" name="avvocato_referente" class="form-control"
+                       value="{{ cliente_sel.avvocato_referente if cliente_sel and cliente_sel.avvocato_referente else '' }}"
+                       placeholder="Avv. referente">
+              </div>
             </div>
           </div>
-          <hr class="my-4">
-          <div class="row g-3">
-            <div class="col-lg-7">
-              <div class="prev-section-label mb-2">Fasi incluse nel compenso</div>
-              <div id="fasiGrid" class="row g-2"></div>
+
+          <div class="prev-subsection">
+            <div class="prev-subsection-head">
+              <h3 class="prev-subsection-title">Fasi incluse e opzioni di calcolo</h3>
+              <div class="prev-inline-note">Le fasi guidano il compenso, le opzioni fiscali e operative restano raccolte in un unico blocco.</div>
             </div>
-            <div class="col-lg-5">
-              <div class="prev-section-label mb-2">Opzioni di calcolo</div>
-              <div class="row g-2">
-                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkBonusTelematico"><label class="form-check-label" for="chkBonusTelematico">Applica bonus telematico</label></div></div>
-                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkSpeseGenerali" checked><label class="form-check-label" for="chkSpeseGenerali">Spese generali ex art. 2 D.M. 55/2014</label></div></div>
-                <div class="col-md-6"><label class="form-label fw-semibold">Perc. spese generali</label><input type="number" id="inpPercSpese" class="form-control" value="15" min="0" max="30" step="1"></div>
-                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_cassa" id="chkCassa" checked><label class="form-check-label" for="chkCassa">Applica CPA 4%</label></div></div>
-                <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_iva" id="chkIva" checked><label class="form-check-label" for="chkIva">Applica IVA 22%</label></div></div>
-                <div class="col-12 d-grid">
-                  <button type="button" class="btn btn-primary" id="btnCalcolaPreventivo"><i class="bi bi-lightning-charge me-1"></i>Calcola e aggiorna la bozza</button>
+            <div class="row g-3">
+              <div class="col-lg-7">
+                <div class="prev-section-label mb-2">Fasi incluse nel compenso</div>
+                <div id="fasiGrid" class="row g-2"></div>
+              </div>
+              <div class="col-lg-5">
+                <div class="prev-section-label mb-2">Opzioni di calcolo</div>
+                <div class="row g-2">
+                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkBonusTelematico"><label class="form-check-label" for="chkBonusTelematico">Applica bonus telematico</label></div></div>
+                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkSpeseGenerali" checked><label class="form-check-label" for="chkSpeseGenerali">Spese generali ex art. 2 D.M. 55/2014</label></div></div>
+                  <div class="col-md-6"><label class="form-label fw-semibold">Perc. spese generali</label><input type="number" id="inpPercSpese" class="form-control" value="15" min="0" max="30" step="1"></div>
+                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_cassa" id="chkCassa" checked><label class="form-check-label" for="chkCassa">Applica CPA 4%</label></div></div>
+                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_iva" id="chkIva" checked><label class="form-check-label" for="chkIva">Applica IVA 22%</label></div></div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="row g-3 mt-1">
-            <div class="col-12">
-              <div class="prev-section-label mb-2">Variazioni ADR e accordo</div>
-              <div id="adrVariationBox" class="border rounded-4 p-3 bg-light small text-muted">
-                La variazione ADR si attiva quando selezioni mediazione, negoziazione assistita o un'integrazione ADR collegata.
+
+          <div class="accordion prev-compact-accordion" id="step3ExtraAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3AdrCollapse" aria-expanded="false" aria-controls="step3AdrCollapse">
+                  Variazioni ADR e accordo
+                </button>
+              </h2>
+              <div id="step3AdrCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div id="adrVariationBox" class="small text-muted">
+                    La variazione ADR si attiva quando selezioni mediazione, negoziazione assistita o un'integrazione ADR collegata.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3AccessoriCollapse" aria-expanded="false" aria-controls="step3AccessoriCollapse">
+                  Integrazioni selezionabili
+                </button>
+              </h2>
+              <div id="step3AccessoriCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div id="accessoriGrid" class="row g-2"><div class="col-12 text-muted small">Seleziona una tipologia per vedere le integrazioni disponibili.</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step3EsborsiCollapse" aria-expanded="false" aria-controls="step3EsborsiCollapse">
+                  Spese vive suggerite
+                </button>
+              </h2>
+              <div id="step3EsborsiCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div id="esborsiGrid" class="row g-2"><div class="col-12 text-muted small">Seleziona una tipologia per vedere gli esborsi tipici.</div></div>
+                </div>
               </div>
             </div>
           </div>
-          <hr class="my-4">
-          <div class="prev-section-label mb-2">Spese vive suggerite</div>
-          <div id="esborsiGrid" class="row g-2"><div class="col-12 text-muted small">Seleziona una tipologia per vedere gli esborsi tipici.</div></div>
+        </div>
         </div>
       </div>
 
-      <div class="card shadow-sm mb-3">
-        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-file-earmark-text me-2 text-primary"></i>4. Bozza del preventivo</span>
-          <button type="button" class="btn btn-sm btn-outline-primary" id="btnAggiungiVoce"><i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale</button>
+      <div class="card shadow-sm mb-0">
+        <div class="card-header p-0 border-0 bg-transparent">
+          <button class="accordion-button collapsed border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#wizardStep4Collapse" aria-expanded="false" aria-controls="wizardStep4Collapse">
+            <span class="prev-step-number">4</span>
+            <span class="prev-step-copy">
+              <span class="prev-step-title">Bozza del preventivo</span>
+              <span class="prev-step-sub">Tabella operativa con editing rapido di importi, voci manuali e note collassabili.</span>
+            </span>
+            <span class="prev-step-meta">Bozza</span>
+          </button>
         </div>
-        <div class="card-body">
+        <div id="wizardStep4Collapse" class="collapse">
+        <div class="card-body prev-step-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+              <div class="prev-section-label">Bozza operativa</div>
+              <div class="small text-muted">Puoi correggere descrizioni e importi direttamente in tabella.</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAggiungiVoce"><i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale</button>
+          </div>
           <div class="table-responsive">
             <table class="table align-middle">
               <thead class="table-light">
@@ -295,53 +1006,117 @@
               </tfoot>
             </table>
           </div>
-          <div class="row g-3 mt-1">
-            <div class="col-12">
-              <label class="form-label fw-semibold">Note professionali e condizioni</label>
-              <textarea name="note" id="inpNote" class="form-control" rows="7" placeholder="Il redattore propone una bozza che puoi adattare al cliente e alla pratica."></textarea>
+          <div class="accordion prev-compact-accordion mt-3">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#step4NoteCollapse" aria-expanded="false" aria-controls="step4NoteCollapse">
+                  Note professionali e condizioni
+                </button>
+              </h2>
+              <div id="step4NoteCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label fw-semibold">Note professionali e condizioni</label>
+                      <textarea name="note" id="inpNote" class="form-control" rows="7" placeholder="Il redattore propone una bozza che puoi adattare al cliente e alla pratica."></textarea>
+                    </div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkGeneraConferimento" name="genera_conferimento" value="1"><label class="form-check-label" for="chkGeneraConferimento">Genera anche il conferimento incarico</label></div></div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkApriFascicoloGuidato" name="apri_fascicolo_guidato" value="1"><label class="form-check-label" for="chkApriFascicoloGuidato">Poi apri il fascicolo guidato</label></div></div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkInformativaArt13" name="informativa_art13_resa" value="1" checked><label class="form-check-label" for="chkInformativaArt13">Informativa art. 13 resa</label></div></div>
+                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkClausolaAdr" name="clausola_adr_resa" value="1"><label class="form-check-label" for="chkClausolaAdr">Verifica ADR / clausola resa</label></div></div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkGeneraConferimento" name="genera_conferimento" value="1"><label class="form-check-label" for="chkGeneraConferimento">Genera anche il conferimento incarico</label></div></div>
-            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkApriFascicoloGuidato" name="apri_fascicolo_guidato" value="1"><label class="form-check-label" for="chkApriFascicoloGuidato">Poi apri il fascicolo guidato</label></div></div>
-            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkInformativaArt13" name="informativa_art13_resa" value="1" checked><label class="form-check-label" for="chkInformativaArt13">Informativa art. 13 resa</label></div></div>
-            <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkClausolaAdr" name="clausola_adr_resa" value="1"><label class="form-check-label" for="chkClausolaAdr">Verifica ADR / clausola resa</label></div></div>
           </div>
+        </div>
         </div>
       </div>
 
-      <div class="d-flex gap-2 justify-content-end pb-4">
-        <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
-        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Crea preventivo</button>
+      <div class="prev-action-bar-wrap">
+        <div class="prev-action-bar">
+          <div class="prev-action-total">
+            <div class="label">Totale preventivo</div>
+            <div class="value" id="stickyTotale">â‚¬ 0,00</div>
+          </div>
+          <div class="prev-action-buttons">
+            <a href="{{ url_for('preventivi.lista') }}" class="btn btn-outline-secondary">Annulla</a>
+            <button type="button" class="btn btn-primary" id="btnCalcolaPreventivo"><i class="bi bi-lightning-charge me-1"></i>Calcola e aggiorna bozza</button>
+            <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Crea preventivo</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="col-12 col-xxl-4">
-      <div class="card shadow-sm position-sticky prev-summary-card">
-        <div class="card-header fw-semibold"><i class="bi bi-clipboard2-data me-2 text-primary"></i>Riepilogo intelligente</div>
-        <div class="card-body">
-          <div class="prev-section-label mb-2">Tipologia selezionata</div>
-          <div id="schedaTipologia" class="small text-muted">Seleziona una tipologia per vedere quando usarla, quali riferimenti applica il motore e come verra costruito il preventivo.</div>
-          <hr>
-          <div class="row g-2 mb-3">
-            <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Compenso base</div><div class="value" id="kpiCompenso">€ 0,00</div></div></div>
-            <div class="col-6"><div class="prev-kpi"><div class="small text-muted">Totale</div><div class="value" id="kpiTotale">€ 0,00</div></div></div>
+    <div class="col-12 col-xxl-4 order-1 order-xxl-2 prev-summary-shell">
+      <div class="card prev-summary-card is-sticky">
+        <div class="prev-summary-head">
+          <div>
+            <div class="prev-kicker">Riepilogo intelligente</div>
+            <h2>Vista compatta del preventivo</h2>
           </div>
-          <div class="mb-3">
-            <div class="prev-section-label mb-2">Riferimenti normativi</div>
-            <div id="normativaList" class="prev-norm-list d-flex flex-column gap-2 small text-muted">Nessuna tipologia selezionata.</div>
+          <span class="badge text-bg-light prev-summary-layout-badge">desktop sticky</span>
+        </div>
+        <div class="prev-summary-body">
+          <div id="schedaTipologia" class="prev-summary-intro">Seleziona una tipologia per vedere quando usarla, quali riferimenti applica il motore e come verrà costruito il preventivo.</div>
+          <div class="prev-kpi-grid">
+            <div class="prev-kpi">
+              <div class="small text-muted">Compenso base</div>
+              <div class="value" id="kpiCompenso">€ 0,00</div>
+            </div>
+            <div class="prev-kpi">
+              <div class="small text-muted">Totale</div>
+              <div class="value" id="kpiTotale">€ 0,00</div>
+            </div>
           </div>
-          <div class="mb-3">
-            <div class="prev-section-label mb-2">Checklist iniziale</div>
-            <ul id="checklistList" class="small text-muted ps-3 mb-0"><li>Seleziona una tipologia per attivare la checklist operativa.</li></ul>
-          </div>
-          <div class="alert alert-light border small mb-0">
-            <div class="fw-semibold mb-1">Logica consigliata</div>
-            <div>1. scegli la tipologia, 2. controlla valore e fasi, 3. calcola, 4. rifinisci la bozza e genera il preventivo.</div>
+          <div class="accordion prev-summary-accordion" id="summaryAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#summaryNormativaCollapse" aria-expanded="false" aria-controls="summaryNormativaCollapse">
+                  Riferimenti normativi
+                  <span class="prev-summary-count" id="normativaBadgeCount">0</span>
+                </button>
+              </h2>
+              <div id="summaryNormativaCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div id="normativaList" class="prev-ref-list">Nessuna tipologia selezionata.</div>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#summaryChecklistCollapse" aria-expanded="false" aria-controls="summaryChecklistCollapse">
+                  Checklist iniziale
+                  <span class="prev-summary-count" id="checklistBadgeCount">0</span>
+                </button>
+              </h2>
+              <div id="summaryChecklistCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <ul id="checklistList" class="prev-checklist">
+                    <li>Seleziona una tipologia per attivare la checklist operativa.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#summaryLogicCollapse" aria-expanded="false" aria-controls="summaryLogicCollapse">
+                  Logica di lavoro consigliata
+                </button>
+              </h2>
+              <div id="summaryLogicCollapse" class="accordion-collapse collapse">
+                <div class="accordion-body small text-muted">
+                  1. scegli la tipologia, 2. controlla valore e fasi, 3. calcola, 4. rifinisci la bozza e genera il preventivo.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 </form>
+</div>
 <script>
 const CATALOGO = {{ catalogo_per_area|tojson }};
 const AREE = {{ aree|tojson }};
@@ -351,6 +1126,8 @@ const WIZARD_PREFILL = {{ wizard_prefill|tojson }};
 
 const TIPI_VOCE = ['Onorario', 'Spesa forfettaria', 'Spesa viva'];
 const catalogoFlat = Object.values(CATALOGO).flat();
+const STORAGE_KEY_PREFERITE = 'hacs.preventivi.preferite';
+const STORAGE_KEY_COMPACT = 'hacs.preventivi.compact';
 
 let areaCorrente = AREE.find((area) => (CATALOGO[area] || []).length) || '';
 let tipologiaCorrente = null;
@@ -360,6 +1137,10 @@ let noteToccate = false;
 let fascicoliCliente = [];
 let fascicoloCorrente = FASCICOLO_PRE;
 let prefillApplicato = false;
+let compensationFilter = 'ALL';
+let showOnlyFavorites = false;
+let compactMode = window.localStorage.getItem(STORAGE_KEY_COMPACT) === '1';
+let favoriteTipologie = new Set(JSON.parse(window.localStorage.getItem(STORAGE_KEY_PREFERITE) || '[]'));
 
 function money(value) {
   const num = Number(value || 0);
@@ -373,6 +1154,79 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+}
+
+function persistUiState() {
+  window.localStorage.setItem(STORAGE_KEY_COMPACT, compactMode ? '1' : '0');
+  window.localStorage.setItem(STORAGE_KEY_PREFERITE, JSON.stringify(Array.from(favoriteTipologie)));
+}
+
+function isFavoriteTipologia(idTipologia) {
+  return favoriteTipologie.has(idTipologia);
+}
+
+function toggleFavoriteTipologia(idTipologia) {
+  if (favoriteTipologie.has(idTipologia)) {
+    favoriteTipologie.delete(idTipologia);
+  } else {
+    favoriteTipologie.add(idTipologia);
+  }
+  persistUiState();
+  renderTipologie();
+}
+
+function normalizeCompensoType(value) {
+  const raw = String(value || '').toLowerCase();
+  if (raw.includes('unico')) return 'Compenso unico';
+  if (raw.includes('fisso')) return 'Compenso fisso';
+  if (raw.includes('orario')) return 'Compenso orario';
+  return 'Per fasi processuali';
+}
+
+function matchesCompensoFilter(item) {
+  if (compensationFilter === 'ALL') return true;
+  if (compensationFilter === 'ADR') {
+    return !!item?.variation_policy?.kind || /mediazione|negoziazione/i.test(String(item?.label || ''));
+  }
+  return normalizeCompensoType(item?.tipo_compenso_default) === compensationFilter;
+}
+
+function setChipButtonState(button, active) {
+  if (!button) return;
+  button.classList.toggle('active', !!active);
+}
+
+function syncToolbarState() {
+  setChipButtonState(document.getElementById('btnToggleFavorites'), showOnlyFavorites);
+  setChipButtonState(document.getElementById('btnToggleCompact'), compactMode);
+  document.querySelectorAll('[data-compenso-filter]').forEach((node) => {
+    setChipButtonState(node, node.dataset.compensoFilter === compensationFilter);
+  });
+  const grid = document.getElementById('tipologiaGrid');
+  if (grid) {
+    grid.classList.toggle('compact', compactMode);
+  }
+}
+
+function setWizardStep(stepId, open) {
+  const node = document.getElementById(stepId);
+  if (!node) return;
+  const instance = bootstrap.Collapse.getOrCreateInstance(node, { toggle: false });
+  if (open) {
+    instance.show();
+  } else {
+    instance.hide();
+  }
+}
+
+function scrollWizardSection(stepId) {
+  const node = document.getElementById(stepId);
+  if (!node) return;
+  const card = node.closest('.card');
+  if (!card) return;
+  window.requestAnimationFrame(() => {
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
 
 function phaseLabel(key) {
@@ -558,7 +1412,7 @@ function impostaAreaPratica(area, { preferFirst = true } = {}) {
   if (!tipologiaValidaPerArea(areaCorrente)) {
     const primaTipologia = (CATALOGO[areaCorrente] || [])[0] || null;
     if (preferFirst && primaTipologia) {
-      selezionaTipologia(primaTipologia.id);
+      selezionaTipologia(primaTipologia.id, { autoAdvance: false });
     } else {
       resetTipologiaSelection();
     }
@@ -744,33 +1598,58 @@ function renderAreaButtons() {
 function renderTipologie() {
   const grid = document.getElementById('tipologiaGrid');
   const filtro = (document.getElementById('inpFiltroTipologie').value || '').trim().toLowerCase();
-  const items = (CATALOGO[areaCorrente] || []).filter((item) => {
+  let items = (CATALOGO[areaCorrente] || []).filter((item) => {
+    if (!matchesCompensoFilter(item)) return false;
+    if (showOnlyFavorites && !isFavoriteTipologia(item.id)) return false;
     if (!filtro) return true;
     const haystack = [item.label, item.summary, item.when_to_use, item.base_normativa].join(' ').toLowerCase();
     return haystack.includes(filtro);
   });
+  syncToolbarState();
   if (!items.length) {
-    grid.innerHTML = '<div class="col-12"><div class="alert alert-light border mb-0">Nessuna tipologia trovata con questo filtro.</div></div>';
+    grid.innerHTML = `<div class="col-12"><div class="alert alert-light border mb-0">${showOnlyFavorites ? 'Non hai ancora aggiunto tipologie preferite per questo filtro.' : 'Nessuna tipologia trovata con questo filtro.'}</div></div>`;
     return;
   }
   grid.innerHTML = items.map((item) => `
     <div class="col-md-6">
-      <button type="button" class="prev-tipo-card w-100 text-start ${tipologiaCorrente && tipologiaCorrente.id === item.id ? 'active' : ''}" data-tipologia-id="${item.id}">
-        <div class="d-flex align-items-start justify-content-between gap-2">
+      <article class="prev-tipo-card ${tipologiaCorrente && tipologiaCorrente.id === item.id ? 'active' : ''}" data-tipologia-id="${item.id}" role="button" tabindex="0" aria-pressed="${tipologiaCorrente && tipologiaCorrente.id === item.id ? 'true' : 'false'}">
+        <div class="prev-tipo-head">
           <div>
-            <div class="fw-semibold text-dark">${escapeHtml(item.label)}</div>
-            <div class="small text-muted mt-1">${escapeHtml(item.summary)}</div>
+            <div class="prev-tipo-title">${escapeHtml(item.label)}</div>
+            <div class="prev-tipo-summary">${escapeHtml(item.summary)}</div>
           </div>
-          <span class="badge text-bg-light">${escapeHtml(item.tipo_compenso_default)}</span>
+          <button type="button" class="prev-fav-btn ${isFavoriteTipologia(item.id) ? 'active' : ''}" data-fav-tipologia="${item.id}" aria-label="Salva tra le preferite">
+            <i class="bi ${isFavoriteTipologia(item.id) ? 'bi-star-fill' : 'bi-star'}"></i>
+          </button>
         </div>
-      </button>
+        <div class="prev-tipo-meta">
+          <span class="prev-tipo-badge">${escapeHtml(item.tipo_compenso_default)}</span>
+          <span class="prev-tipo-badge">${escapeHtml(item.motore_label || 'Motore tariffario')}</span>
+        </div>
+      </article>
     </div>`).join('');
   grid.querySelectorAll('[data-tipologia-id]').forEach((node) => {
-    node.addEventListener('click', () => selezionaTipologia(node.dataset.tipologiaId));
+    node.addEventListener('click', (event) => {
+      if (event.target.closest('[data-fav-tipologia]')) return;
+      selezionaTipologia(node.dataset.tipologiaId, { autoAdvance: true });
+    });
+    node.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selezionaTipologia(node.dataset.tipologiaId, { autoAdvance: true });
+      }
+    });
+  });
+  grid.querySelectorAll('[data-fav-tipologia]').forEach((node) => {
+    node.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFavoriteTipologia(node.dataset.favTipologia);
+    });
   });
 }
 
-function selezionaTipologia(idTipologia) {
+function selezionaTipologia(idTipologia, { autoAdvance = false } = {}) {
   tipologiaCorrente = catalogoFlat.find((item) => item.id === idTipologia) || null;
   if (!tipologiaCorrente) return;
   clearAccessorioRows();
@@ -796,34 +1675,43 @@ function selezionaTipologia(idTipologia) {
     aggiornaVisibilitaValore();
     aggiornaPlaceholderValore();
     ultimoCalcolo = null;
+    if (autoAdvance) {
+      setWizardStep('wizardStep2Collapse', false);
+      setWizardStep('wizardStep3Collapse', true);
+      scrollWizardSection('wizardStep3Collapse');
+    }
   }
 
 function renderSchedaTipologia() {
   const target = document.getElementById('schedaTipologia');
   const checklist = document.getElementById('checklistList');
   const normativa = document.getElementById('normativaList');
+  const normativaBadge = document.getElementById('normativaBadgeCount');
+  const checklistBadge = document.getElementById('checklistBadgeCount');
   const regola = currentRegolaTariffaria();
   const grado = document.getElementById('selGrado').value || '';
   const ruleCompatible = regola?.rule_code && (!regola.allowed_grade_input_values || regola.allowed_grade_input_values.includes(grado));
   if (!tipologiaCorrente) {
-      target.textContent = 'Seleziona una tipologia per vedere il dettaglio professionale.';
-      checklist.innerHTML = '<li>Seleziona una tipologia per attivare la checklist operativa.</li>';
-      normativa.textContent = 'Nessuna tipologia selezionata.';
-      return;
+    target.textContent = 'Seleziona una tipologia per vedere il dettaglio professionale.';
+    checklist.innerHTML = '<li>Seleziona una tipologia per attivare la checklist operativa.</li>';
+    normativa.textContent = 'Nessuna tipologia selezionata.';
+    normativaBadge.textContent = '0';
+    checklistBadge.textContent = '0';
+    return;
   }
   target.innerHTML = `
-      <div class="mb-2">
+      <div class="prev-summary-chips">
         <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
         ${ruleCompatible ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(regola.label)}</span>` : ''}
         ${ruleCompatible && regola?.compliance_label ? `<span class="badge ${regola.compliance_badge === 'success' ? 'bg-success-subtle text-success-emphasis' : regola.compliance_badge === 'info' ? 'bg-info-subtle text-info-emphasis' : regola.compliance_badge === 'warning' ? 'bg-warning-subtle text-warning-emphasis' : regola.compliance_badge === 'danger' ? 'bg-danger-subtle text-danger-emphasis' : 'text-bg-light'}">${escapeHtml(regola.compliance_label)}</span>` : ''}
       </div>
-      <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
-      <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
-      ${ruleCompatible && regola?.summary ? `<div class="small text-muted mb-2">${escapeHtml(regola.summary)}</div>` : ''}
-      ${ruleCompatible && regola?.compliance_note ? `<div class="small text-muted mb-2"><i class="bi bi-shield-check me-1"></i>${escapeHtml(regola.compliance_note)}</div>` : ''}
-      <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
+      <div class="prev-summary-title">${escapeHtml(tipologiaCorrente.label)}</div>
+      <div class="prev-summary-desc">${escapeHtml(tipologiaCorrente.summary)}</div>
+      ${ruleCompatible && regola?.summary ? `<div class="small text-muted mt-2">${escapeHtml(regola.summary)}</div>` : ''}
+      ${ruleCompatible && regola?.compliance_note ? `<div class="small text-muted mt-2"><i class="bi bi-shield-check me-1"></i>${escapeHtml(regola.compliance_note)}</div>` : ''}
+      <div class="prev-note-box small mt-2">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
   const accessori = accessoriCalcoloSelezionati();
   if (accessori.length) {
     target.innerHTML += accessori.map((accessorio) => `
@@ -837,24 +1725,48 @@ function renderSchedaTipologia() {
     checklistItems.push(`integrazione attiva: ${accessorio.label.toLowerCase()}`);
   });
   checklist.innerHTML = checklistItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
-    const normativeRefs = dedupeNormativeReferences([
-      ...(ruleCompatible ? (regola?.normative_references || []) : []),
-      ...(tipologiaCorrente.normative_references || []),
-      ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
-    ]);
-  normativa.innerHTML = normativeRefs.map((ref) => `
-    <div class="border rounded-3 p-2">
-      <div class="fw-semibold text-dark">${escapeHtml(ref.title || '')}</div>
-      <div class="small">${escapeHtml(ref.article || '')}</div>
-      <div class="small text-muted mb-1">${escapeHtml(ref.description || '')}</div>
-      ${ref.url ? `<a href="${ref.url}" target="_blank" rel="noopener">Fonte ufficiale</a>` : ''}
-    </div>`).join('');
+  checklistBadge.textContent = String(checklistItems.length || 0);
+  const normativeRefs = dedupeNormativeReferences([
+    ...(ruleCompatible ? (regola?.normative_references || []) : []),
+    ...(tipologiaCorrente.normative_references || []),
+    ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
+  ]);
+  normativaBadge.textContent = String(normativeRefs.length || 0);
+  const visibleRefs = normativeRefs.slice(0, 3);
+  const hiddenRefs = normativeRefs.slice(3);
+  normativa.innerHTML = [
+    ...visibleRefs.map((ref) => `
+      <div class="prev-ref-card">
+        <div class="prev-ref-card-title">${escapeHtml(ref.title || '')}</div>
+        <div class="small">${escapeHtml(ref.article || '')}</div>
+        <div class="small text-muted mb-1">${escapeHtml(ref.description || '')}</div>
+        ${ref.url ? `<a href="${ref.url}" target="_blank" rel="noopener" class="prev-inline-link">Fonte ufficiale</a>` : ''}
+      </div>`),
+    hiddenRefs.length ? `
+      <div class="collapse" id="summaryNormativaMore">
+        ${hiddenRefs.map((ref) => `
+          <div class="prev-ref-card mt-2">
+            <div class="prev-ref-card-title">${escapeHtml(ref.title || '')}</div>
+            <div class="small">${escapeHtml(ref.article || '')}</div>
+            <div class="small text-muted mb-1">${escapeHtml(ref.description || '')}</div>
+            ${ref.url ? `<a href="${ref.url}" target="_blank" rel="noopener" class="prev-inline-link">Fonte ufficiale</a>` : ''}
+          </div>`).join('')}
+      </div>
+      <button type="button" class="btn btn-link btn-sm px-0 mt-1" data-bs-toggle="collapse" data-bs-target="#summaryNormativaMore" aria-expanded="false" aria-controls="summaryNormativaMore">
+        Vedi tutte le ${hiddenRefs.length + visibleRefs.length} fonti
+      </button>
+    ` : '',
+  ].join('');
 }
 
 function renderFasi() {
   const grid = document.getElementById('fasiGrid');
+  const accessoriGrid = document.getElementById('accessoriGrid');
   if (!tipologiaCorrente) {
     grid.innerHTML = '<div class="col-12 text-muted small">Seleziona una tipologia per vedere le fasi.</div>';
+    if (accessoriGrid) {
+      accessoriGrid.innerHTML = '<div class="col-12 text-muted small">Seleziona una tipologia per vedere le integrazioni disponibili.</div>';
+    }
     renderAdrVariationBox();
     return;
   }
@@ -876,8 +1788,11 @@ function renderFasi() {
         </span>
       </label>
     </div>`).join('');
-  grid.innerHTML = phaseMarkup + accessoriMarkup;
-  grid.querySelectorAll('.accessorio-check').forEach((node) => {
+  grid.innerHTML = phaseMarkup || '<div class="col-12 text-muted small">Nessuna fase configurata per questa tipologia.</div>';
+  if (accessoriGrid) {
+    accessoriGrid.innerHTML = accessoriMarkup || '<div class="col-12 text-muted small">Nessuna integrazione selezionabile per questa tipologia.</div>';
+  }
+  document.querySelectorAll('.accessorio-check').forEach((node) => {
     node.addEventListener('change', async () => {
       renderSchedaTipologia();
       renderAdrVariationBox();
@@ -1026,7 +1941,7 @@ function applyWizardPrefill() {
     impostaAreaPratica(WIZARD_PREFILL.area, { preferFirst: true });
   }
   if (WIZARD_PREFILL.id_pratica && getTipologiaById(WIZARD_PREFILL.id_pratica)) {
-    selezionaTipologia(WIZARD_PREFILL.id_pratica);
+    selezionaTipologia(WIZARD_PREFILL.id_pratica, { autoAdvance: false });
   }
 
     if (WIZARD_PREFILL.valore) {
@@ -1221,6 +2136,7 @@ function recalcTotals() {
   document.getElementById('lblAnticipazioni').textContent = money(anticipazioni);
   document.getElementById('lblTotale').textContent = money(totale);
   document.getElementById('kpiTotale').textContent = money(totale);
+  document.getElementById('stickyTotale').textContent = money(totale);
   document.getElementById('inpCompensoPattuito').value = totale.toFixed(2);
 }
 
@@ -1328,6 +2244,8 @@ function renderRisultatoOrario() {
   document.getElementById('kpiCompenso').textContent = money(imponibile);
   upsertVocePrincipale(`Compenso orario per ${tipologiaCorrente.label} (${ore.toLocaleString('it-IT')} ore x ${money(tariffa)})`, imponibile);
   recalcTotals();
+  setWizardStep('wizardStep4Collapse', true);
+  scrollWizardSection('wizardStep4Collapse');
 }
 
 async function applicaAccessoriCalcolo() {
@@ -1378,6 +2296,8 @@ async function calcolaPreventivo() {
     }
     renderRisultato(data);
     await applicaAccessoriCalcolo();
+    setWizardStep('wizardStep4Collapse', true);
+    scrollWizardSection('wizardStep4Collapse');
   } catch (error) {
     alert(`Impossibile calcolare il preventivo: ${error.message}`);
   } finally {
@@ -1442,6 +2362,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selClienteRapidoTipo = document.getElementById('selClienteRapidoTipo');
   const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
   const selGrado = document.getElementById('selGrado');
+  const btnToggleFavorites = document.getElementById('btnToggleFavorites');
+  const btnToggleCompact = document.getElementById('btnToggleCompact');
+  const btnToggleAdvancedFilters = document.getElementById('btnToggleAdvancedFilters');
+  const advancedFiltersCollapse = document.getElementById('advancedFiltersCollapse');
   renderAreaButtons();
   renderTipologie();
   renderContestoFascicolo();
@@ -1459,6 +2383,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   chkClienteRapido.addEventListener('change', syncClienteRapidoUi);
   selClienteRapidoTipo.addEventListener('change', syncClienteRapidoUi);
   document.getElementById('inpFiltroTipologie').addEventListener('input', renderTipologie);
+  btnToggleFavorites.addEventListener('click', () => {
+    showOnlyFavorites = !showOnlyFavorites;
+    renderTipologie();
+  });
+  btnToggleCompact.addEventListener('click', () => {
+    compactMode = !compactMode;
+    persistUiState();
+    renderTipologie();
+  });
+  document.querySelectorAll('[data-compenso-filter]').forEach((node) => {
+    node.addEventListener('click', () => {
+      compensationFilter = node.dataset.compensoFilter || 'ALL';
+      renderTipologie();
+    });
+  });
+  advancedFiltersCollapse.addEventListener('shown.bs.collapse', () => setChipButtonState(btnToggleAdvancedFilters, true));
+  advancedFiltersCollapse.addEventListener('hidden.bs.collapse', () => setChipButtonState(btnToggleAdvancedFilters, false));
   document.getElementById('btnCalcolaPreventivo').addEventListener('click', calcolaPreventivo);
     document.getElementById('btnAggiungiVoce').addEventListener('click', () => addVoce('', '', 'Onorario'));
     document.getElementById('inpAnticipazioni').addEventListener('input', recalcTotals);
@@ -1493,11 +2434,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     impostaAreaPratica(areaIniziale, { preferFirst: true });
   } else {
     const first = areaCorrente ? (CATALOGO[areaCorrente] || [])[0] : null;
-    if (first) selezionaTipologia(first.id);
+    if (first) selezionaTipologia(first.id, { autoAdvance: false });
   }
   syncClienteRapidoUi();
   syncWorkflowChecks();
   applyWizardPrefill();
+  syncToolbarState();
+  setChipButtonState(btnToggleAdvancedFilters, advancedFiltersCollapse.classList.contains('show'));
   document.getElementById('wizardPreventivo').addEventListener('submit', (event) => {
     if (!tipologiaCorrente) {
       event.preventDefault();

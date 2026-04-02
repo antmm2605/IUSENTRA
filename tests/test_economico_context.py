@@ -4,6 +4,7 @@ from pct.economico_context import (
     costruisci_contesto_economico,
     dump_log_calcolo,
     riepilogo_contesto_economico,
+    sincronizza_contesto_economico,
 )
 
 
@@ -57,3 +58,25 @@ def test_causale_documento_economico_arricchisce_la_nota_con_contesto_adr():
     assert "Compenso professionale" in causale
     assert "Mediazione civile" in causale
     assert "ADR con accordo" in causale
+
+
+def test_sincronizza_contesto_economico_arricchisce_regola_e_audit_tariffario():
+    raw = dump_log_calcolo(
+        costruisci_contesto_economico(
+            source="tariffario_forense",
+            source_label="Tariffario forense",
+            id_pratica="negoziazione_assistita",
+            pratica_label="Negoziazione assistita",
+            regola_tariffaria="negoziazione_adr",
+            regola_tariffaria_code="negoziazione_adr",
+        )
+    )
+
+    synced = sincronizza_contesto_economico(raw)
+    summary = riepilogo_contesto_economico(synced)
+
+    assert synced["regola_tariffaria_code"] == "negoziazione_adr"
+    assert synced["regola_tariffaria_label"] == "Negoziazione assistita"
+    assert summary["regola_tariffaria_label"] == "Negoziazione assistita"
+    assert summary["audit_tariffario"]["table_code"] == "A27"
+    assert summary["audit_tariffario"]["compliance_label"] == "Ricostruttiva"

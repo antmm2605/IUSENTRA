@@ -19,6 +19,7 @@ from pct.economico_context import (
     costruisci_contesto_economico,
     dump_log_calcolo,
     riepilogo_contesto_economico,
+    sincronizza_contesto_economico,
 )
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
@@ -104,7 +105,7 @@ def _contesto_fascicolo_wizard(fascicolo) -> dict:
 
 def _contesto_log_wizard_da_form(form) -> str:
     raw = (form.get("log_calcolo", "") or "").strip()
-    parsed = carica_log_calcolo(raw)
+    parsed = sincronizza_contesto_economico(raw)
     if parsed:
         return dump_log_calcolo(parsed)
     return dump_log_calcolo(
@@ -118,6 +119,7 @@ def _contesto_log_wizard_da_form(form) -> str:
             tipo_procedimento=form.get("tipo_procedimento", "").strip(),
             grado_sede=form.get("grado_sede", "").strip(),
             regola_tariffaria=form.get("regola_tariffaria", "").strip(),
+            regola_tariffaria_code=form.get("regola_tariffaria", "").strip(),
             complessita=form.get("complessita", "").strip(),
             valore_controversia=form.get("valore_controversia", "0"),
             bonus_telematico=bool(form.get("bonus_telematico")),
@@ -1465,14 +1467,26 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
             meta_rows.append(f"<b>Origine:</b> {calc_summary['source_label']}")
         if calc_summary.get("pratica_label"):
             meta_rows.append(f"<b>Tipologia:</b> {calc_summary['pratica_label']}")
-        if calc_summary.get("regola_tariffaria"):
-            meta_rows.append(f"<b>Regola:</b> {calc_summary['regola_tariffaria']}")
+        regola_label = calc_summary.get("regola_tariffaria_label") or calc_summary.get("regola_tariffaria")
+        if regola_label:
+            meta_rows.append(f"<b>Regola:</b> {regola_label}")
         if calc_summary.get("grado_sede"):
             meta_rows.append(f"<b>Grado / sede:</b> {calc_summary['grado_sede']}")
         if calc_summary.get("scaglione"):
             meta_rows.append(f"<b>Scaglione:</b> {calc_summary['scaglione']}")
         if calc_summary.get("complessita"):
             meta_rows.append(f"<b>Complessita:</b> {calc_summary['complessita']}")
+        audit = calc_summary.get("audit_tariffario") or {}
+        if audit.get("compliance_label"):
+            audit_parts = [f"<b>Conformita tariffaria:</b> {audit['compliance_label']}"]
+            if audit.get("table_code"):
+                table_label = str(audit.get("table_label") or "").strip()
+                audit_parts.append(
+                    f"Tabella {audit['table_code']}" + (f" - {table_label}" if table_label else "")
+                )
+            if audit.get("compliance_note"):
+                audit_parts.append(str(audit["compliance_note"]))
+            meta_rows.append(" - ".join(part for part in audit_parts if part))
         if calc_summary.get("adr_accordo"):
             meta_rows.append("<b>ADR:</b> accordo finale con maggiorazioni normative attive")
         elif calc_summary.get("adr_enabled"):

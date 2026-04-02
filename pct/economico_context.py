@@ -25,6 +25,94 @@ def dump_log_calcolo(data: Dict[str, Any]) -> str:
     return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
 
 
+def _compact_tariffario_audit(row: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    if not isinstance(row, dict):
+        return {}
+    profile = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+    rule_label = str(
+        row.get("rule_label")
+        or row.get("label")
+        or row.get("regola_tariffaria_label")
+        or row.get("regola_tariffaria")
+        or ""
+    ).strip()
+    return {
+        "rule_code": str(row.get("rule_code") or row.get("regola_tariffaria_code") or "").strip(),
+        "rule_label": rule_label,
+        "table_code": str(row.get("table_code") or profile.get("table_code") or "").strip(),
+        "table_label": str(row.get("table_label") or profile.get("table_label") or "").strip(),
+        "compliance_status": str(row.get("compliance_status") or "").strip(),
+        "compliance_label": str(row.get("compliance_label") or "").strip(),
+        "compliance_badge": str(row.get("compliance_badge") or "").strip(),
+        "compliance_note": str(row.get("compliance_note") or "").strip(),
+        "snapshot_origin": str(row.get("snapshot_origin") or "").strip(),
+        "source_snapshot": str(row.get("source_snapshot") or "").strip(),
+    }
+
+
+def _resolve_tariffario_audit(
+    *,
+    rule_code: str = "",
+    rule_label: str = "",
+    practice_id: str = "",
+    fallback_rule_value: str = "",
+    existing: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    compact_existing = _compact_tariffario_audit(existing)
+    if compact_existing.get("rule_code"):
+        return compact_existing
+
+    try:
+        from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
+    except Exception:
+        return compact_existing
+
+    row: Optional[Dict[str, Any]] = None
+    candidate_code = str(rule_code or fallback_rule_value or "").strip()
+    if candidate_code:
+        row = rule_lookup(candidate_code)
+
+    if row is None and practice_id:
+        practice_rows = rules_for_practice(practice_id)
+        normalized_label = str(rule_label or fallback_rule_value or "").strip().lower()
+        if normalized_label:
+            row = next(
+                (
+                    item for item in practice_rows
+                    if str(item.get("rule_label") or item.get("label") or "").strip().lower() == normalized_label
+                ),
+                None,
+            )
+        if row is None:
+            row = default_rule_for_practice(practice_id)
+
+    return _compact_tariffario_audit(row)
+
+
+def sincronizza_contesto_economico(raw: Any) -> Dict[str, Any]:
+    data = carica_log_calcolo(raw)
+    if not data:
+        return {}
+
+    audit = _resolve_tariffario_audit(
+        rule_code=str(data.get("regola_tariffaria_code") or "").strip(),
+        rule_label=str(data.get("regola_tariffaria_label") or "").strip(),
+        practice_id=str(data.get("id_pratica") or "").strip(),
+        fallback_rule_value=str(data.get("regola_tariffaria") or "").strip(),
+        existing=data.get("audit_tariffario"),
+    )
+    if audit:
+        data["audit_tariffario"] = audit
+        if audit.get("rule_code"):
+            data["regola_tariffaria_code"] = audit["rule_code"]
+        if audit.get("rule_label"):
+            data["regola_tariffaria_label"] = audit["rule_label"]
+            if not str(data.get("regola_tariffaria") or "").strip() or str(data.get("regola_tariffaria") or "").strip() == audit["rule_code"]:
+                data["regola_tariffaria"] = audit["rule_label"]
+
+    return data
+
+
 def _safe_float(value: Any, default: float = 0.0) -> float:
     try:
         return float(value or default)
@@ -78,6 +166,7 @@ def costruisci_contesto_economico(
     tipo_procedimento: str = "",
     grado_sede: str = "",
     regola_tariffaria: str = "",
+    regola_tariffaria_code: str = "",
     complessita: str = "",
     valore_controversia: float = 0.0,
     bonus_telematico: bool = False,
@@ -93,10 +182,23 @@ def costruisci_contesto_economico(
     manual_voci: Optional[List[Dict[str, Any]]] = None,
     risultato: Optional[Dict[str, Any]] = None,
     riferimenti_normativi: Optional[Iterable[Any]] = None,
+    audit_tariffario: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
+    audit = _resolve_tariffario_audit(
+        rule_code=regola_tariffaria_code,
+        rule_label=regola_tariffaria,
+        practice_id=id_pratica,
+        fallback_rule_value=regola_tariffaria,
+        existing=audit_tariffario,
+    )
+    regola_display = str(regola_tariffaria or "").strip()
+    if audit.get("rule_label"):
+        regola_display = audit["rule_label"]
+    regola_code = str(regola_tariffaria_code or "").strip() or str(audit.get("rule_code") or "").strip()
+
     pratica_text = " ".join(
         part.lower()
-        for part in (pratica_label, tipo_procedimento, regola_tariffaria)
+        for part in (pratica_label, tipo_procedimento, regola_display)
         if str(part or "").strip()
     )
     return {
@@ -111,7 +213,9 @@ def costruisci_contesto_economico(
         "tipo_compenso": tipo_compenso,
         "tipo_procedimento": tipo_procedimento,
         "grado_sede": grado_sede,
-        "regola_tariffaria": regola_tariffaria,
+        "regola_tariffaria": regola_display,
+        "regola_tariffaria_code": regola_code,
+        "regola_tariffaria_label": str(audit.get("rule_label") or regola_display),
         "complessita": complessita,
         "valore_controversia": round(_safe_float(valore_controversia), 2),
         "bonus_telematico": bool(bonus_telematico),
@@ -136,17 +240,19 @@ def costruisci_contesto_economico(
         "manual_voci": list(manual_voci or []),
         "risultato": dict(risultato or {}),
         "riferimenti_normativi": _compact_refs(riferimenti_normativi or []),
+        "audit_tariffario": audit,
     }
 
 
 def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
-    data = carica_log_calcolo(raw)
+    data = sincronizza_contesto_economico(raw)
     if not data:
         return {}
 
     adr = data.get("adr") or {}
     result = data.get("risultato") or {}
     riferimenti = [row for row in data.get("riferimenti_normativi", []) if row][:4]
+    audit = _compact_tariffario_audit(data.get("audit_tariffario"))
     return {
         "source_label": str(data.get("source_label") or data.get("source") or "").strip(),
         "oggetto": str(data.get("oggetto") or "").strip(),
@@ -158,6 +264,8 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
         "tipo_procedimento": str(data.get("tipo_procedimento") or "").strip(),
         "grado_sede": str(data.get("grado_sede") or "").strip(),
         "regola_tariffaria": str(data.get("regola_tariffaria") or "").strip(),
+        "regola_tariffaria_code": str(data.get("regola_tariffaria_code") or audit.get("rule_code") or "").strip(),
+        "regola_tariffaria_label": str(data.get("regola_tariffaria_label") or audit.get("rule_label") or data.get("regola_tariffaria") or "").strip(),
         "complessita": str(data.get("complessita") or "").strip(),
         "valore_controversia": round(_safe_float(data.get("valore_controversia")), 2),
         "bonus_telematico": bool(data.get("bonus_telematico")),
@@ -176,6 +284,7 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
         "iva": round(_safe_float(result.get("iva")), 2),
         "totale": round(_safe_float(result.get("totale")), 2),
         "nota": str(result.get("nota") or result.get("note") or "").strip(),
+        "audit_tariffario": audit,
     }
 
 
@@ -187,7 +296,7 @@ def causale_documento_economico(note: str = "", raw_context: Any = None, max_len
     pratica = summary.get("pratica_label") or summary.get("tipo_procedimento")
     if pratica:
         tags.append(str(pratica))
-    regola = summary.get("regola_tariffaria")
+    regola = summary.get("regola_tariffaria_label") or summary.get("regola_tariffaria")
     if regola:
         tags.append(f"regola {regola}")
     if summary.get("adr_accordo"):

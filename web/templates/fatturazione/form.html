@@ -63,11 +63,24 @@
       <div class="row g-2 small">
         {% if prefill.calc_summary.source_label %}<div class="col-md-4"><span class="text-muted">Origine</span><div class="fw-semibold">{{ prefill.calc_summary.source_label }}</div></div>{% endif %}
         {% if prefill.calc_summary.pratica_label %}<div class="col-md-4"><span class="text-muted">Tipologia</span><div class="fw-semibold">{{ prefill.calc_summary.pratica_label }}</div></div>{% endif %}
-        {% if prefill.calc_summary.regola_tariffaria %}<div class="col-md-4"><span class="text-muted">Regola</span><div class="fw-semibold">{{ prefill.calc_summary.regola_tariffaria }}</div></div>{% endif %}
+        {% if prefill.calc_summary.regola_tariffaria_label or prefill.calc_summary.regola_tariffaria %}<div class="col-md-4"><span class="text-muted">Regola</span><div class="fw-semibold">{{ prefill.calc_summary.regola_tariffaria_label or prefill.calc_summary.regola_tariffaria }}</div></div>{% endif %}
         {% if prefill.calc_summary.grado_sede %}<div class="col-md-4"><span class="text-muted">Grado / sede</span><div class="fw-semibold">{{ prefill.calc_summary.grado_sede }}</div></div>{% endif %}
         {% if prefill.calc_summary.complessita %}<div class="col-md-4"><span class="text-muted">Complessita</span><div class="fw-semibold text-capitalize">{{ prefill.calc_summary.complessita }}</div></div>{% endif %}
         {% if prefill.calc_summary.scaglione %}<div class="col-md-4"><span class="text-muted">Scaglione</span><div class="fw-semibold">{{ prefill.calc_summary.scaglione }}</div></div>{% endif %}
       </div>
+      {% if prefill.calc_summary.audit_tariffario and prefill.calc_summary.audit_tariffario.compliance_label %}
+      <div class="alert alert-{{ prefill.calc_summary.audit_tariffario.compliance_badge or 'secondary' }} py-2 mt-3 mb-2 small">
+        <div class="fw-semibold mb-1">Conformita tariffaria: {{ prefill.calc_summary.audit_tariffario.compliance_label }}</div>
+        <div>
+          {% if prefill.calc_summary.audit_tariffario.table_code %}
+            Tabella {{ prefill.calc_summary.audit_tariffario.table_code }}
+            {% if prefill.calc_summary.audit_tariffario.table_label %}- {{ prefill.calc_summary.audit_tariffario.table_label }}{% endif %}
+            -
+          {% endif %}
+          {{ prefill.calc_summary.audit_tariffario.compliance_note }}
+        </div>
+      </div>
+      {% endif %}
       {% if prefill.calc_summary.adr_enabled or prefill.calc_summary.variazioni_fasi %}
       <div class="alert alert-light border py-2 mt-3 mb-2 small">
         <div class="fw-semibold mb-1">ADR e variazioni</div>

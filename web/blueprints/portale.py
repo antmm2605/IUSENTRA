@@ -13,6 +13,7 @@ from flask import (Blueprint, abort, flash, redirect, render_template,
                    request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
+from pct.economico_context import riepilogo_contesto_economico
 from pct.legal_intelligence import costruisci_tracker_fascicoli
 
 portale = Blueprint("portale", __name__, url_prefix="/portale")
@@ -124,6 +125,7 @@ def _documenti_economici_cliente(id_cliente: str):
             "stato": getattr(p.stato, "value", str(p.stato)),
             "totale": round(p.totale, 2),
             "fascicolo_label": fascicolo.titolo if fascicolo else "",
+            "calc_summary": riepilogo_contesto_economico(getattr(p, "log_calcolo", None)),
         })
     for c in conferimenti:
         fascicolo = fascicoli_map.get(c.id_fascicolo)
@@ -149,6 +151,7 @@ def _documenti_economici_cliente(id_cliente: str):
             "stato": getattr(parcella.stato, "value", str(parcella.stato)),
             "totale": round(parcella.totale, 2),
             "fascicolo_label": fascicolo.titolo if fascicolo else "",
+            "calc_summary": riepilogo_contesto_economico(getattr(parcella, "log_calcolo", None)),
         })
 
     timeline.sort(key=lambda row: (row.get("data") or "", row.get("numero") or ""), reverse=True)

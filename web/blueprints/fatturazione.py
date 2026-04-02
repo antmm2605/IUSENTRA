@@ -18,6 +18,7 @@ from pct.economico_context import (
     carica_log_calcolo,
     dump_log_calcolo,
     riepilogo_contesto_economico,
+    sincronizza_contesto_economico,
 )
 
 fatturazione = Blueprint("fatturazione", __name__, url_prefix="/fatturazione")
@@ -69,7 +70,7 @@ def _voci_prefill_da_preventivo(preventivo) -> list[dict]:
 
 
 def _contesto_parcella_da_preventivo(preventivo) -> str:
-    data = carica_log_calcolo(getattr(preventivo, "log_calcolo", None))
+    data = sincronizza_contesto_economico(getattr(preventivo, "log_calcolo", None))
     data["source"] = "parcella_da_preventivo"
     data["source_label"] = "Parcella derivata da preventivo"
     data["documento_origine"] = {
@@ -312,6 +313,8 @@ def nuova(id_cliente: str = ""):
             }
         ]
     prefill["voci"] = voci_prefill
+    if prefill.get("log_calcolo"):
+        prefill["log_calcolo"] = dump_log_calcolo(sincronizza_contesto_economico(prefill.get("log_calcolo")))
     prefill["calc_summary"] = riepilogo_contesto_economico(prefill.get("log_calcolo"))
 
     return render_template(
@@ -675,14 +678,26 @@ def _genera_pdf(p, cliente, fascicolo, config) -> io.BytesIO:
             meta_rows.append(f"<b>Origine:</b> {calc_summary['source_label']}")
         if calc_summary.get("pratica_label"):
             meta_rows.append(f"<b>Tipologia:</b> {calc_summary['pratica_label']}")
-        if calc_summary.get("regola_tariffaria"):
-            meta_rows.append(f"<b>Regola:</b> {calc_summary['regola_tariffaria']}")
+        regola_label = calc_summary.get("regola_tariffaria_label") or calc_summary.get("regola_tariffaria")
+        if regola_label:
+            meta_rows.append(f"<b>Regola:</b> {regola_label}")
         if calc_summary.get("grado_sede"):
             meta_rows.append(f"<b>Grado / sede:</b> {calc_summary['grado_sede']}")
         if calc_summary.get("scaglione"):
             meta_rows.append(f"<b>Scaglione:</b> {calc_summary['scaglione']}")
         if calc_summary.get("complessita"):
             meta_rows.append(f"<b>Complessita:</b> {calc_summary['complessita']}")
+        audit = calc_summary.get("audit_tariffario") or {}
+        if audit.get("compliance_label"):
+            audit_parts = [f"<b>Conformita tariffaria:</b> {audit['compliance_label']}"]
+            if audit.get("table_code"):
+                table_label = str(audit.get("table_label") or "").strip()
+                audit_parts.append(
+                    f"Tabella {audit['table_code']}" + (f" - {table_label}" if table_label else "")
+                )
+            if audit.get("compliance_note"):
+                audit_parts.append(str(audit["compliance_note"]))
+            meta_rows.append(" - ".join(part for part in audit_parts if part))
         if calc_summary.get("adr_accordo"):
             meta_rows.append("<b>ADR:</b> accordo finale con maggiorazioni normative applicate")
         elif calc_summary.get("adr_enabled"):

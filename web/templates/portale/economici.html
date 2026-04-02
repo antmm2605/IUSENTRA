@@ -64,6 +64,30 @@
       {% endif %}
     </div>
 
+    {% if doc.calc_summary %}
+    <div class="small border rounded-3 bg-light px-3 py-2 mb-3">
+      {% if doc.calc_summary.pratica_label %}
+      <div><span class="text-muted">Tipologia:</span> <span class="fw-semibold">{{ doc.calc_summary.pratica_label }}</span></div>
+      {% endif %}
+      {% if doc.calc_summary.regola_tariffaria_label or doc.calc_summary.regola_tariffaria %}
+      <div><span class="text-muted">Regola:</span> <span class="fw-semibold">{{ doc.calc_summary.regola_tariffaria_label or doc.calc_summary.regola_tariffaria }}</span></div>
+      {% endif %}
+      {% if doc.calc_summary.grado_sede %}
+      <div><span class="text-muted">Grado / sede:</span> <span class="fw-semibold">{{ doc.calc_summary.grado_sede }}</span></div>
+      {% endif %}
+      {% if doc.calc_summary.audit_tariffario and doc.calc_summary.audit_tariffario.compliance_label %}
+      <div class="mt-2">
+        <span class="badge bg-{{ doc.calc_summary.audit_tariffario.compliance_badge or 'secondary' }}">
+          {{ doc.calc_summary.audit_tariffario.compliance_label }}
+        </span>
+        {% if doc.calc_summary.audit_tariffario.table_code %}
+        <span class="text-muted ms-1">Tabella {{ doc.calc_summary.audit_tariffario.table_code }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <div class="d-flex flex-wrap gap-2">
       <a href="{{ pdf_url }}" target="_blank" class="btn btn-sm btn-primary">
         <i class="bi bi-file-earmark-pdf me-1"></i>PDF / Stampa

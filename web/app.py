@@ -2735,7 +2735,8 @@ def create_app(config: dict | None = None) -> Flask:
                     ),
                     tipo_procedimento=profilo_attivo.get("label", ""),
                     grado_sede=grado_sel,
-                    regola_tariffaria=regola_tariffaria_sel,
+                    regola_tariffaria=regola_attiva.get("rule_label", "") if regola_attiva else regola_tariffaria_sel,
+                    regola_tariffaria_code=regola_attiva.get("rule_code", "") if regola_attiva else regola_tariffaria_sel,
                     complessita=complessita_sel,
                     valore_controversia=valore_str or "0",
                     bonus_telematico=bonus_tel,
@@ -2756,6 +2757,7 @@ def create_app(config: dict | None = None) -> Flask:
                         "totale": riepilogo_economico.get("totale", 0.0),
                         "nota": risultato.note,
                     },
+                    audit_tariffario=regola_attiva,
                     riferimenti_normativi=[
                         row.get("title", "")
                         for row in (tipo_pratica_attiva.normative_references if tipo_pratica_attiva else riferimenti_tariffario)

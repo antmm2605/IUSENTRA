@@ -382,6 +382,7 @@ class GestionePreventivi:
                         tariffa_oraria:      float = 0.0,
                         ore_stimate:         float = 0.0,
                         complessita:         str   = "",
+                        log_calcolo:    Optional[str] = None,
                         studio_piva:    str = "",
                         studio_cf:      str = "",
                         studio_indirizzo: str = "") -> Preventivo:
@@ -407,6 +408,7 @@ class GestionePreventivi:
             tariffa_oraria=tariffa_oraria,
             ore_stimate=ore_stimate,
             complessita=complessita,
+            log_calcolo=log_calcolo,
             creato_da=creato_da,
             studio_piva=studio_piva,
             studio_cf=studio_cf,

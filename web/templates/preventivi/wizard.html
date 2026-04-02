@@ -56,6 +56,13 @@
   <input type="hidden" name="area_pratica" id="inpAreaPratica">
   <input type="hidden" name="tipo_compenso" id="inpTipoCompenso">
   <input type="hidden" name="tipo_procedimento" id="inpTipoProcedimento">
+  <input type="hidden" name="grado_sede" id="inpGradoSede">
+  <input type="hidden" name="regola_tariffaria" id="inpRegolaTariffaria">
+  <input type="hidden" name="bonus_telematico" id="inpBonusTelematico" value="0">
+  <input type="hidden" name="spese_generali" id="inpSpeseGenerali" value="1">
+  <input type="hidden" name="perc_spese_generali" id="inpPercSpeseGenerali" value="15">
+  <input type="hidden" name="adr_accordo" id="inpAdrAccordo" value="0">
+  <input type="hidden" name="log_calcolo" id="inpLogCalcolo">
   <input type="hidden" name="compenso_pattuito" id="inpCompensoPattuito" value="0">
 
   <div class="row g-3">
@@ -917,13 +924,19 @@ function aggiornaPlaceholderValore() {
 
 function syncTipoProcedimentoHidden() {
   const input = document.getElementById('inpTipoProcedimento');
+  const gradoInput = document.getElementById('inpGradoSede');
+  const regolaInput = document.getElementById('inpRegolaTariffaria');
   const regola = currentRegolaTariffaria();
   const grado = document.getElementById('selGrado').value || '';
   const ruleCompatible = regola?.rule_code && (!regola.allowed_grade_input_values || regola.allowed_grade_input_values.includes(grado));
   if (!tipologiaCorrente) {
     input.value = '';
+    gradoInput.value = '';
+    regolaInput.value = '';
     return;
   }
+  gradoInput.value = grado;
+  regolaInput.value = ruleCompatible ? (regola.rule_code || '') : '';
   input.value = ruleCompatible
     ? `${regola.label}${grado ? ` — ${grado}` : ''}`
     : `${tipologiaCorrente.label}${grado ? ` — ${grado}` : ''}`;
@@ -1188,6 +1201,64 @@ function recalcTotals() {
   document.getElementById('inpCompensoPattuito').value = totale.toFixed(2);
 }
 
+function buildEconomicLogPayload() {
+  const regola = currentRegolaTariffaria();
+  const grado = document.getElementById('selGrado').value || '';
+  const chkAdrAccordo = document.getElementById('chkAdrAccordo');
+  const accessori = accessoriCalcoloSelezionati().map((row) => ({
+    id: row.id,
+    label: row.label,
+    tipo_pratica_id: row.tipo_pratica_id,
+  }));
+  const manualVoci = Array.from(document.querySelectorAll('tr[data-role^="manual-"], tr[data-role^="manual-prefill-"]')).map((row) => ({
+    descrizione: row.querySelector('input[name="voce_descr[]"]')?.value || '',
+    importo: Number(row.querySelector('input[name="voce_importo[]"]')?.value || 0),
+    tipo: row.querySelector('select[name="voce_tipo[]"]')?.value || 'Onorario',
+  })).filter((row) => row.descrizione.trim());
+  return {
+    source: 'preventivo_guidato',
+    source_label: 'Preventivo guidato',
+    oggetto: document.getElementById('inpOggetto').value || '',
+    id_pratica: document.getElementById('inpIdPratica').value || '',
+    pratica_label: tipologiaCorrente?.label || '',
+    area_pratica: document.getElementById('inpAreaPratica').value || '',
+    tipo_compenso: document.getElementById('inpTipoCompenso').value || '',
+    tipo_procedimento: document.getElementById('inpTipoProcedimento').value || '',
+    grado_sede: grado,
+    regola_tariffaria: regola?.rule_code || '',
+    complessita: document.getElementById('selComplessita').value || '',
+    valore_controversia: Number(document.getElementById('inpValore').value || 0),
+    bonus_telematico: document.getElementById('chkBonusTelematico').checked,
+    spese_generali: document.getElementById('chkSpeseGenerali').checked,
+    perc_spese_generali: Number(document.getElementById('inpPercSpese').value || 15),
+    applica_cpa: document.getElementById('chkCassa').checked,
+    applica_iva: document.getElementById('chkIva').checked,
+    anticipazioni_art15: Number(document.getElementById('inpAnticipazioni').value || 0),
+    adr: {
+      enabled: !!activeAdrTipologia(),
+      accordo: !!(chkAdrAccordo && chkAdrAccordo.checked),
+      variazioni_fasi_pct: currentAdrVariationValues(),
+    },
+    accessori,
+    esborsi: esborsiSuggeritiAttivi(),
+    manual_voci: manualVoci,
+    riferimenti_normativi: dedupeNormativeReferences([
+      ...(tipologiaCorrente?.normative_references || []),
+      ...accessori.flatMap((row) => getTipologiaById(row.tipo_pratica_id)?.normative_references || []),
+    ]).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
+    risultato: ultimoCalcolo || {},
+  };
+}
+
+function syncCalcoloHiddenFields() {
+  document.getElementById('inpBonusTelematico').value = document.getElementById('chkBonusTelematico').checked ? '1' : '0';
+  document.getElementById('inpSpeseGenerali').value = document.getElementById('chkSpeseGenerali').checked ? '1' : '0';
+  document.getElementById('inpPercSpeseGenerali').value = document.getElementById('inpPercSpese').value || '15';
+  const chkAdrAccordo = document.getElementById('chkAdrAccordo');
+  document.getElementById('inpAdrAccordo').value = chkAdrAccordo && chkAdrAccordo.checked ? '1' : '0';
+  document.getElementById('inpLogCalcolo').value = JSON.stringify(buildEconomicLogPayload());
+}
+
 function buildQuery(idPratica = '', fasiOverride = null) {
   const params = new URLSearchParams();
   params.set('id_pratica', idPratica || tipologiaCorrente.id);
@@ -1436,7 +1507,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (!clienteSelect.value) {
       event.preventDefault();
       alert('Seleziona un cliente oppure usa l\'inserimento rapido.');
+      return;
     }
+    syncCalcoloHiddenFields();
   });
 });
 </script>

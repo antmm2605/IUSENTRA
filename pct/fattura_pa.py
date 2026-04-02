@@ -19,6 +19,7 @@ from datetime import date
 from typing import Optional, TYPE_CHECKING
 
 from lxml import etree
+from pct.economico_context import causale_documento_economico
 
 if TYPE_CHECKING:
     from pct.fatturazione import Parcella
@@ -52,7 +53,7 @@ _METODO_MAP = {
 
 def _el(parent: etree._Element, tag: str, text: str = "") -> etree._Element:
     """Crea e aggiunge un sub-element, omette se text è vuoto."""
-    e = etree.SubElement(parent, tag)
+    e = etree.SubElement(parent, f"{{{_NS}}}{tag}")
     if text:
         e.text = str(text)
     return e
@@ -93,7 +94,7 @@ def genera_xml_fattura_pa(
         XML in bytes (UTF-8) pronto per il salvataggio come .xml.
     """
     # Radice
-    root = etree.Element("p:FatturaElettronica", nsmap={"p": _NS})
+    root = etree.Element(f"{{{_NS}}}FatturaElettronica", nsmap=_NSMAP)
     root.set("versione", "FPR12")
 
     # ---------------------------------------------------------------- HEADER
@@ -195,8 +196,9 @@ def genera_xml_fattura_pa(
         _el(db, "ImportoBollo", f"{parcella.bollo:.2f}")
 
     _el(dgd, "ImportoTotaleDocumento", f"{parcella.totale:.2f}")
-    if parcella.note:
-        _el(dgd, "Causale", parcella.note[:200])
+    causale = causale_documento_economico(parcella.note, getattr(parcella, "log_calcolo", None))
+    if causale:
+        _el(dgd, "Causale", causale[:200])
 
     # DatiBeniServizi
     dbs = _el(body, "DatiBeniServizi")

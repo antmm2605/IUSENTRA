@@ -70,6 +70,48 @@
       </div>
     </div>
 
+    {% if calc_summary %}
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:16px; border-left:4px solid #1a3a5c !important;">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+          <h6 class="fw-semibold mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Tracciabilita del calcolo</h6>
+          {% if preventivo %}
+          <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=preventivo.id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-file-earmark-text me-1"></i>Apri preventivo origine
+          </a>
+          {% endif %}
+        </div>
+        <div class="row g-2 small">
+          {% if calc_summary.source_label %}<div class="col-md-4"><span class="text-muted">Origine</span><div class="fw-semibold">{{ calc_summary.source_label }}</div></div>{% endif %}
+          {% if calc_summary.pratica_label %}<div class="col-md-4"><span class="text-muted">Tipologia</span><div class="fw-semibold">{{ calc_summary.pratica_label }}</div></div>{% endif %}
+          {% if calc_summary.regola_tariffaria %}<div class="col-md-4"><span class="text-muted">Regola</span><div class="fw-semibold">{{ calc_summary.regola_tariffaria }}</div></div>{% endif %}
+          {% if calc_summary.grado_sede %}<div class="col-md-4"><span class="text-muted">Grado / sede</span><div class="fw-semibold">{{ calc_summary.grado_sede }}</div></div>{% endif %}
+          {% if calc_summary.complessita %}<div class="col-md-4"><span class="text-muted">Complessita</span><div class="fw-semibold text-capitalize">{{ calc_summary.complessita }}</div></div>{% endif %}
+          {% if calc_summary.scaglione %}<div class="col-md-4"><span class="text-muted">Scaglione</span><div class="fw-semibold">{{ calc_summary.scaglione }}</div></div>{% endif %}
+        </div>
+        {% if calc_summary.adr_enabled or calc_summary.variazioni_fasi %}
+        <div class="alert alert-light border py-2 mt-3 mb-2 small">
+          <div class="fw-semibold mb-1">ADR e variazioni</div>
+          {% if calc_summary.adr_accordo %}
+          <div>Parcella derivata da un calcolo ADR con accordo finale.</div>
+          {% elif calc_summary.adr_enabled %}
+          <div>Parcella derivata da un calcolo ADR con variazioni di fase.</div>
+          {% endif %}
+          {% if calc_summary.variazioni_fasi %}
+          <div class="mt-1">{{ calc_summary.variazioni_fasi | map(attribute='label') | join(' · ') }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% if calc_summary.riferimenti_normativi %}
+        <div class="small text-muted">
+          <span class="fw-semibold text-dark">Riferimenti:</span>
+          {{ calc_summary.riferimenti_normativi | join(' · ') }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Voci -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius:16px; overflow:hidden;">
       <div class="card-header fw-semibold" style="background:transparent;font-size:.85rem;">

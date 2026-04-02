@@ -94,6 +94,17 @@ class Parcella:
     data_pagamento:    Optional[str] = None
     metodo_pagamento:  Optional[str] = None
 
+    # Provenienza e contesto economico
+    origine:           str   = ""
+    id_preventivo:     Optional[str] = None
+    id_pratica:        str   = ""
+    area_pratica:      str   = ""
+    tipo_compenso:     str   = ""
+    tipo_procedimento: str   = ""
+    valore_controversia: float = 0.0
+    complessita:       str   = ""
+    log_calcolo:       Optional[str] = None
+
     # Dati studio (per il PDF — sovrascrivono config globale se impostati)
     studio_piva:       str = ""
     studio_cf:         str = ""
@@ -205,6 +216,15 @@ class GestioneFatturazione:
              applica_ritenuta: bool = False,
              applica_bollo:   bool = False,
              note:            str = "",
+             origine:         str = "",
+             id_preventivo:   Optional[str] = None,
+             id_pratica:      str = "",
+             area_pratica:    str = "",
+             tipo_compenso:   str = "",
+             tipo_procedimento: str = "",
+             valore_controversia: float = 0.0,
+             complessita:     str = "",
+             log_calcolo:     Optional[str] = None,
              studio_piva:     str = "",
              studio_cf:       str = "",
              studio_indirizzo: str = "",
@@ -224,6 +244,15 @@ class GestioneFatturazione:
             applica_ritenuta=applica_ritenuta,
             applica_bollo=applica_bollo,
             note=note,
+            origine=origine,
+            id_preventivo=id_preventivo,
+            id_pratica=id_pratica,
+            area_pratica=area_pratica,
+            tipo_compenso=tipo_compenso,
+            tipo_procedimento=tipo_procedimento,
+            valore_controversia=valore_controversia,
+            complessita=complessita,
+            log_calcolo=log_calcolo,
             creato_da=creato_da,
             studio_piva=studio_piva,
             studio_cf=studio_cf,

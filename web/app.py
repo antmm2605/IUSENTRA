@@ -2290,6 +2290,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     @app.route("/tariffario", methods=["GET", "POST"])
     def tariffario():
+        from pct.economico_context import costruisci_contesto_economico, dump_log_calcolo
         from pct.motore_preventivo import catalogo_wizard, get_tipo_pratica, motore_calcola
         from pct.tariffario import ComplessitaStimata, Fase, Grado, LivelloCompenso, Materia, calcola_compenso
         from pct.tariffario_catalogo import (
@@ -2697,6 +2698,48 @@ def create_app(config: dict | None = None) -> Flask:
             for key, raw_value in variazioni_prefill.items():
                 wizard_params[f"var_{key}"] = raw_value
             url_wizard_precompilato = url_for("preventivi.wizard", **wizard_params)
+            log_parcella = dump_log_calcolo(
+                costruisci_contesto_economico(
+                    source="tariffario_forense",
+                    source_label="Tariffario forense",
+                    oggetto=tipo_pratica_attiva.label if tipo_pratica_attiva else "",
+                    id_pratica=profilo_attivo.get("suggested_practice_id", ""),
+                    pratica_label=tipo_pratica_attiva.label if tipo_pratica_attiva else profilo_attivo.get("label", ""),
+                    area_pratica=tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel,
+                    tipo_compenso=(
+                        tipo_pratica_attiva.tipo_compenso_default
+                        if tipo_pratica_attiva
+                        else "Per fasi processuali (D.M. 55/2014)"
+                    ),
+                    tipo_procedimento=profilo_attivo.get("label", ""),
+                    grado_sede=grado_sel,
+                    regola_tariffaria=regola_tariffaria_sel,
+                    complessita=complessita_sel,
+                    valore_controversia=valore_str or "0",
+                    bonus_telematico=bonus_tel,
+                    spese_generali=spese_gen,
+                    perc_spese_generali=perc_spese,
+                    applica_cpa=True,
+                    applica_iva=True,
+                    adr_accordo=adr_accordo,
+                    variazioni_fasi_pct=variazioni_prefill,
+                    accessori=accessori_sel,
+                    esborsi=esborsi_sel,
+                    manual_voci=manual_rows_prefill,
+                    risultato={
+                        "scaglione": risultato.scaglione,
+                        "onorario_base": risultato.totale_base,
+                        "cpa": riepilogo_economico.get("cpa", 0.0),
+                        "iva": riepilogo_economico.get("iva", 0.0),
+                        "totale": riepilogo_economico.get("totale", 0.0),
+                        "nota": risultato.note,
+                    },
+                    riferimenti_normativi=[
+                        row.get("title", "")
+                        for row in (tipo_pratica_attiva.normative_references if tipo_pratica_attiva else riferimenti_tariffario)
+                    ][:4],
+                )
+            )
             url_parcella_precompilata = url_for(
                 "fatturazione.nuova",
                 voci_json=json.dumps(voci_parcella, ensure_ascii=False),
@@ -2704,6 +2747,17 @@ def create_app(config: dict | None = None) -> Flask:
                 applica_cassa="1",
                 applica_iva="1",
                 origine="tariffario",
+                id_pratica=profilo_attivo.get("suggested_practice_id", ""),
+                area_pratica=tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel,
+                tipo_compenso=(
+                    tipo_pratica_attiva.tipo_compenso_default
+                    if tipo_pratica_attiva
+                    else "Per fasi processuali (D.M. 55/2014)"
+                ),
+                tipo_procedimento=profilo_attivo.get("label", ""),
+                valore_controversia=valore_str or "0",
+                complessita=complessita_sel,
+                log_calcolo=log_parcella,
             )
 
         return render_template(

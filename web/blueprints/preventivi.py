@@ -14,6 +14,12 @@ from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli
+from pct.economico_context import (
+    carica_log_calcolo,
+    costruisci_contesto_economico,
+    dump_log_calcolo,
+    riepilogo_contesto_economico,
+)
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
@@ -94,6 +100,35 @@ def _contesto_fascicolo_wizard(fascicolo) -> dict:
         "context_label": context_label,
         "display_label": context_label,
     }
+
+
+def _contesto_log_wizard_da_form(form) -> str:
+    raw = (form.get("log_calcolo", "") or "").strip()
+    parsed = carica_log_calcolo(raw)
+    if parsed:
+        return dump_log_calcolo(parsed)
+    return dump_log_calcolo(
+        costruisci_contesto_economico(
+            source="preventivo_guidato",
+            source_label="Preventivo guidato",
+            oggetto=form.get("oggetto", "").strip(),
+            id_pratica=form.get("id_pratica", "").strip(),
+            area_pratica=form.get("area_pratica", "").strip(),
+            tipo_compenso=form.get("tipo_compenso", "").strip(),
+            tipo_procedimento=form.get("tipo_procedimento", "").strip(),
+            grado_sede=form.get("grado_sede", "").strip(),
+            regola_tariffaria=form.get("regola_tariffaria", "").strip(),
+            complessita=form.get("complessita", "").strip(),
+            valore_controversia=form.get("valore_controversia", "0"),
+            bonus_telematico=bool(form.get("bonus_telematico")),
+            spese_generali=bool(form.get("spese_generali")),
+            perc_spese_generali=form.get("perc_spese_generali", "15"),
+            applica_cpa=bool(form.get("applica_cassa")),
+            applica_iva=bool(form.get("applica_iva")),
+            anticipazioni_art15=form.get("anticipazioni_art15", "0"),
+            adr_accordo=bool(form.get("adr_accordo")),
+        )
+    )
 
 
 def _crea_cliente_rapido_da_wizard(form) -> tuple[str, str]:
@@ -317,6 +352,7 @@ def dettaglio_preventivo(id_preventivo: str):
         id_conferimento=conferimenti[0].id if conferimenti else "",
         from_page="preventivo",
     )
+    url_crea_parcella = url_for("fatturazione.da_preventivo", id_preventivo=p.id)
     suggerisci_conferimento = (
         p.stato in {StatoPreventivo.ACCETTATO, StatoPreventivo.CONVERTITO}
         and not conferimenti
@@ -339,12 +375,14 @@ def dettaglio_preventivo(id_preventivo: str):
         fascicolo=fascicolo,
         conferimenti=conferimenti,
         url_crea_conferimento=url_crea_conferimento,
+        url_crea_parcella=url_crea_parcella,
         url_apri_fascicolo=url_apri_fascicolo,
         url_completa_cliente=url_completa_cliente,
         suggerisci_conferimento=suggerisci_conferimento,
         suggerisci_fascicolo=suggerisci_fascicolo,
         cliente_da_completare=cliente_da_completare,
         campi_cliente_mancanti=campi_cliente_mancanti,
+        calc_summary=riepilogo_contesto_economico(p.log_calcolo),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -1157,6 +1195,7 @@ def wizard_genera():
         anticipazioni = 0.0
 
     cfg = current_app.config
+    log_calcolo = _contesto_log_wizard_da_form(f)
     p = gp.crea_preventivo(
         id_cliente=id_cliente,
         oggetto=oggetto,
@@ -1177,6 +1216,7 @@ def wizard_genera():
         tariffa_oraria=tariffa_oraria,
         ore_stimate=ore_stimate,
         complessita=f.get("complessita", "").strip(),
+        log_calcolo=log_calcolo,
         studio_piva=cfg.get("STUDIO_PIVA", ""),
         studio_cf=cfg.get("STUDIO_CF", ""),
         studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
@@ -1414,6 +1454,37 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
     ]))
     story.append(rie_tbl)
     story.append(Spacer(1, 6*mm))
+
+    calc_summary = riepilogo_contesto_economico(p.log_calcolo)
+    if calc_summary:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph("Tracciabilita del calcolo", style_h2))
+        meta_rows = []
+        if calc_summary.get("source_label"):
+            meta_rows.append(f"<b>Origine:</b> {calc_summary['source_label']}")
+        if calc_summary.get("pratica_label"):
+            meta_rows.append(f"<b>Tipologia:</b> {calc_summary['pratica_label']}")
+        if calc_summary.get("regola_tariffaria"):
+            meta_rows.append(f"<b>Regola:</b> {calc_summary['regola_tariffaria']}")
+        if calc_summary.get("grado_sede"):
+            meta_rows.append(f"<b>Grado / sede:</b> {calc_summary['grado_sede']}")
+        if calc_summary.get("scaglione"):
+            meta_rows.append(f"<b>Scaglione:</b> {calc_summary['scaglione']}")
+        if calc_summary.get("complessita"):
+            meta_rows.append(f"<b>Complessita:</b> {calc_summary['complessita']}")
+        if calc_summary.get("adr_accordo"):
+            meta_rows.append("<b>ADR:</b> accordo finale con maggiorazioni normative attive")
+        elif calc_summary.get("adr_enabled"):
+            meta_rows.append("<b>ADR:</b> procedura con variazioni di fase")
+        if calc_summary.get("variazioni_fasi"):
+            meta_rows.append(
+                "<b>Variazioni:</b> "
+                + " · ".join(row["label"] for row in calc_summary["variazioni_fasi"])
+            )
+        for row in meta_rows:
+            story.append(Paragraph(row, style_small))
+        story.append(Spacer(1, 3*mm))
 
     # Note + disclaimer
     if p.note:

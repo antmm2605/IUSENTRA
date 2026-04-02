@@ -14,6 +14,11 @@ from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli
+from pct.economico_context import (
+    carica_log_calcolo,
+    dump_log_calcolo,
+    riepilogo_contesto_economico,
+)
 
 fatturazione = Blueprint("fatturazione", __name__, url_prefix="/fatturazione")
 
@@ -27,6 +32,13 @@ def _get_gf():
     )
 
 
+def _get_gp():
+    from pct.preventivi import GestionePreventivi
+    return GestionePreventivi(
+        db_path=current_app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
+    )
+
+
 def _richiedi_login(f):
     from functools import wraps
     @wraps(f)
@@ -35,6 +47,66 @@ def _richiedi_login(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return wrapper
+
+
+def _float_prefill(value, default=0.0):
+    try:
+        return float(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _voci_prefill_da_preventivo(preventivo) -> list[dict]:
+    return [
+        {
+            "descrizione": voce.descrizione,
+            "quantita": "1",
+            "prezzo_unitario": f"{float(voce.importo):.2f}",
+        }
+        for voce in getattr(preventivo, "voci", []) or []
+        if getattr(voce, "descrizione", "").strip()
+    ]
+
+
+def _contesto_parcella_da_preventivo(preventivo) -> str:
+    data = carica_log_calcolo(getattr(preventivo, "log_calcolo", None))
+    data["source"] = "parcella_da_preventivo"
+    data["source_label"] = "Parcella derivata da preventivo"
+    data["documento_origine"] = {
+        "tipo": "preventivo",
+        "id": preventivo.id,
+        "numero": preventivo.numero,
+    }
+    data.setdefault("oggetto", preventivo.oggetto)
+    data.setdefault("id_pratica", preventivo.id_pratica)
+    data.setdefault("area_pratica", preventivo.area_pratica)
+    data.setdefault("tipo_compenso", preventivo.tipo_compenso)
+    data.setdefault("tipo_procedimento", preventivo.tipo_procedimento)
+    data.setdefault("valore_controversia", preventivo.valore_controversia)
+    data.setdefault("complessita", preventivo.complessita)
+    return dump_log_calcolo(data)
+
+
+def _prefill_base():
+    return {
+        "origine": request.args.get("origine", "").strip(),
+        "descrizione": request.args.get("descrizione", "").strip(),
+        "quantita": request.args.get("quantita", "1").strip() or "1",
+        "importo": request.args.get("importo", "").strip(),
+        "note": request.args.get("note", "").strip(),
+        "applica_cassa": request.args.get("applica_cassa", "1") != "0",
+        "applica_iva": request.args.get("applica_iva", "1") != "0",
+        "applica_ritenuta": request.args.get("applica_ritenuta", "0") == "1",
+        "applica_bollo": request.args.get("applica_bollo", "0") == "1",
+        "id_preventivo": request.args.get("id_preventivo", "").strip(),
+        "id_pratica": request.args.get("id_pratica", "").strip(),
+        "area_pratica": request.args.get("area_pratica", "").strip(),
+        "tipo_compenso": request.args.get("tipo_compenso", "").strip(),
+        "tipo_procedimento": request.args.get("tipo_procedimento", "").strip(),
+        "valore_controversia": request.args.get("valore_controversia", "").strip(),
+        "complessita": request.args.get("complessita", "").strip(),
+        "log_calcolo": request.args.get("log_calcolo", "").strip(),
+    }
 
 
 # ================================================================ LISTA
@@ -84,6 +156,7 @@ def lista():
 def nuova(id_cliente: str = ""):
     gc = get_clienti()
     gf_parc = _get_gf()
+    gp_prev = _get_gp()
 
     if request.method == "POST":
         from pct.fatturazione import VoceParcella, StatoParcella
@@ -119,7 +192,14 @@ def nuova(id_cliente: str = ""):
         # Dati studio da config
         cfg = current_app.config
         scade_il = f.get("data_scadenza", "").strip() or None
-
+        note = f.get("note", "").strip()
+        origine = f.get("origine", "").strip()
+        id_preventivo = f.get("id_preventivo", "").strip() or None
+        log_calcolo = f.get("log_calcolo", "").strip() or None
+        if id_preventivo and not log_calcolo:
+            preventivo = gp_prev.get_preventivo(id_preventivo)
+            if preventivo:
+                log_calcolo = _contesto_parcella_da_preventivo(preventivo)
         p = gf_parc.crea(
             id_cliente=id_cliente,
             voci=voci,
@@ -131,7 +211,16 @@ def nuova(id_cliente: str = ""):
             applica_cassa=bool(f.get("applica_cassa")),
             applica_ritenuta=bool(f.get("applica_ritenuta")),
             applica_bollo=bool(f.get("applica_bollo")),
-            note=f.get("note", "").strip(),
+            note=note,
+            origine=origine,
+            id_preventivo=id_preventivo,
+            id_pratica=f.get("id_pratica", "").strip(),
+            area_pratica=f.get("area_pratica", "").strip(),
+            tipo_compenso=f.get("tipo_compenso", "").strip(),
+            tipo_procedimento=f.get("tipo_procedimento", "").strip(),
+            valore_controversia=_float_prefill(f.get("valore_controversia"), 0.0),
+            complessita=f.get("complessita", "").strip(),
+            log_calcolo=log_calcolo,
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
@@ -151,6 +240,13 @@ def nuova(id_cliente: str = ""):
         id_cliente = id_cliente_query
     id_fascicolo_pre = request.args.get("id_fascicolo", "").strip()
     fascicolo_pre = get_fascicoli().get(id_fascicolo_pre) if id_fascicolo_pre else None
+    id_preventivo = request.args.get("id_preventivo", "").strip()
+    preventivo_pre = gp_prev.get_preventivo(id_preventivo) if id_preventivo else None
+    if preventivo_pre:
+        id_cliente = preventivo_pre.id_cliente or id_cliente
+        if preventivo_pre.id_fascicolo and not id_fascicolo_pre:
+            id_fascicolo_pre = preventivo_pre.id_fascicolo
+            fascicolo_pre = get_fascicoli().get(id_fascicolo_pre)
     if fascicolo_pre and not id_cliente:
         id_cliente = fascicolo_pre.id_cliente or ""
     clienti = gc.tutti()
@@ -158,17 +254,24 @@ def nuova(id_cliente: str = ""):
     fascicoli = []
     if cliente_sel:
         fascicoli = [f for f in get_fascicoli().tutti() if f.id_cliente == id_cliente]
-    prefill = {
-        "origine": request.args.get("origine", "").strip(),
-        "descrizione": request.args.get("descrizione", "").strip(),
-        "quantita": request.args.get("quantita", "1").strip() or "1",
-        "importo": request.args.get("importo", "").strip(),
-        "note": request.args.get("note", "").strip(),
-        "applica_cassa": request.args.get("applica_cassa", "1") != "0",
-        "applica_iva": request.args.get("applica_iva", "1") != "0",
-        "applica_ritenuta": request.args.get("applica_ritenuta", "0") == "1",
-        "applica_bollo": request.args.get("applica_bollo", "0") == "1",
-    }
+    prefill = _prefill_base()
+    if preventivo_pre:
+        prefill.update(
+            {
+                "origine": prefill["origine"] or "preventivo",
+                "id_preventivo": preventivo_pre.id,
+                "id_pratica": preventivo_pre.id_pratica,
+                "area_pratica": preventivo_pre.area_pratica,
+                "tipo_compenso": preventivo_pre.tipo_compenso,
+                "tipo_procedimento": preventivo_pre.tipo_procedimento,
+                "valore_controversia": f"{preventivo_pre.valore_controversia:.2f}" if preventivo_pre.valore_controversia else "",
+                "complessita": preventivo_pre.complessita,
+                "note": prefill["note"] or preventivo_pre.note or "",
+                "applica_cassa": preventivo_pre.applica_cassa,
+                "applica_iva": preventivo_pre.applica_iva,
+                "log_calcolo": prefill["log_calcolo"] or _contesto_parcella_da_preventivo(preventivo_pre),
+            }
+        )
     raw_voci_json = (request.args.get("voci_json", "") or "").strip()
     voci_prefill = []
     if raw_voci_json:
@@ -198,6 +301,8 @@ def nuova(id_cliente: str = ""):
                         "prezzo_unitario": f"{prezzo:.2f}",
                     }
                 )
+    elif preventivo_pre:
+        voci_prefill = _voci_prefill_da_preventivo(preventivo_pre)
     if not voci_prefill:
         voci_prefill = [
             {
@@ -207,6 +312,7 @@ def nuova(id_cliente: str = ""):
             }
         ]
     prefill["voci"] = voci_prefill
+    prefill["calc_summary"] = riepilogo_contesto_economico(prefill.get("log_calcolo"))
 
     return render_template(
         "fatturazione/form.html",
@@ -215,11 +321,26 @@ def nuova(id_cliente: str = ""):
         fascicoli=fascicoli,
         id_fascicolo_pre=id_fascicolo_pre,
         fascicolo_pre=fascicolo_pre,
+        preventivo_pre=preventivo_pre,
         prefill=prefill,
         oggi=date.today(),
         scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
         from_cliente=from_cliente_get,
     )
+
+
+@fatturazione.route("/da-preventivo/<id_preventivo>", methods=["GET"])
+@_richiedi_login
+def da_preventivo(id_preventivo: str):
+    preventivo = _get_gp().get_preventivo(id_preventivo)
+    if not preventivo:
+        abort(404)
+    params = {"id_preventivo": preventivo.id, "origine": "preventivo"}
+    if preventivo.id_cliente:
+        params["id_cliente"] = preventivo.id_cliente
+    if preventivo.id_fascicolo:
+        params["id_fascicolo"] = preventivo.id_fascicolo
+    return redirect(url_for("fatturazione.nuova", **params))
 
 
 # ================================================================ DETTAGLIO
@@ -233,11 +354,14 @@ def dettaglio(id_parcella: str):
         abort(404)
     cliente = get_clienti().get(p.id_cliente)
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
+    preventivo = _get_gp().get_preventivo(p.id_preventivo) if p.id_preventivo else None
     return render_template(
         "fatturazione/dettaglio.html",
         p=p,
         cliente=cliente,
         fascicolo=fascicolo,
+        preventivo=preventivo,
+        calc_summary=riepilogo_contesto_economico(p.log_calcolo),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
     )
 
@@ -540,6 +664,42 @@ def _genera_pdf(p, cliente, fascicolo, config) -> io.BytesIO:
     ]))
     story.append(rie_tbl)
     story.append(Spacer(1, 6*mm))
+
+    calc_summary = riepilogo_contesto_economico(p.log_calcolo)
+    if calc_summary:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph("Tracciabilita del calcolo", style_h2))
+        meta_rows = []
+        if calc_summary.get("source_label"):
+            meta_rows.append(f"<b>Origine:</b> {calc_summary['source_label']}")
+        if calc_summary.get("pratica_label"):
+            meta_rows.append(f"<b>Tipologia:</b> {calc_summary['pratica_label']}")
+        if calc_summary.get("regola_tariffaria"):
+            meta_rows.append(f"<b>Regola:</b> {calc_summary['regola_tariffaria']}")
+        if calc_summary.get("grado_sede"):
+            meta_rows.append(f"<b>Grado / sede:</b> {calc_summary['grado_sede']}")
+        if calc_summary.get("scaglione"):
+            meta_rows.append(f"<b>Scaglione:</b> {calc_summary['scaglione']}")
+        if calc_summary.get("complessita"):
+            meta_rows.append(f"<b>Complessita:</b> {calc_summary['complessita']}")
+        if calc_summary.get("adr_accordo"):
+            meta_rows.append("<b>ADR:</b> accordo finale con maggiorazioni normative applicate")
+        elif calc_summary.get("adr_enabled"):
+            meta_rows.append("<b>ADR:</b> procedura con logica parametrica dedicata")
+        if calc_summary.get("variazioni_fasi"):
+            meta_rows.append(
+                "<b>Variazioni:</b> "
+                + " · ".join(row["label"] for row in calc_summary["variazioni_fasi"])
+            )
+        if calc_summary.get("riferimenti_normativi"):
+            meta_rows.append(
+                "<b>Riferimenti:</b> "
+                + " · ".join(calc_summary["riferimenti_normativi"][:3])
+            )
+        for row in meta_rows:
+            story.append(Paragraph(row, style_small))
+        story.append(Spacer(1, 4*mm))
 
     # ---- Pagamento
     if studio_iban or p.note:

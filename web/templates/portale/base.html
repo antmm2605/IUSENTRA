@@ -155,6 +155,18 @@
 
 <!-- Main content -->
 <main class="portale-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'warning' if cat == 'warning' else ('danger' if cat == 'danger' else 'success') }} alert-dismissible fade show portale-card" role="alert">
+          {{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
   {% block content %}{% endblock %}
 </main>
 

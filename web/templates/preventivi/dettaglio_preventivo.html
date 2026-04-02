@@ -33,7 +33,7 @@
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+  <div class="alert alert-{{ 'warning' if cat == 'warning' else ('success' if cat == 'success' else 'danger') }} alert-dismissible fade show">
     {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
   {% endfor %}
@@ -106,6 +106,27 @@
             <i class="bi bi-folder2-open me-1"></i>Vai al fascicolo
           </a>
         </div>
+        {% elif p.stato.value not in ['ACCETTATO', 'CONVERTITO'] %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Scegli il canale di conferma</div>
+            <div class="text-muted small">Puoi inviare il preventivo al portale cliente oppure registrare subito l'accettazione avvenuta in studio.</div>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            {% if portale_obj and portale_obj.is_attivo %}
+            <form method="post" action="{{ url_invia_cliente }}">
+              <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-send me-1"></i>Invia al cliente
+              </button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_accetta_studio }}">
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-check2-circle me-1"></i>Accettazione in studio
+              </button>
+            </form>
+          </div>
+        </div>
         {% elif suggerisci_conferimento and cliente_da_completare %}
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
@@ -126,6 +147,16 @@
             <i class="bi bi-file-earmark-check me-1"></i>Crea conferimento
           </a>
         </div>
+        {% elif conferimento_principale %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Il conferimento è pronto</div>
+            <div class="text-muted small">Il preventivo è già accettato. Il prossimo passo operativo è la firma del conferimento, poi il fascicolo si apre in automatico.</div>
+          </div>
+          <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=conferimento_principale.id) }}" class="btn btn-success">
+            <i class="bi bi-pen me-1"></i>Apri conferimento
+          </a>
+        </div>
         {% elif suggerisci_fascicolo %}
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
@@ -140,6 +171,30 @@
         <div class="text-muted small">
           Quando il cliente accetta il preventivo, aggiorna lo stato e il sistema ti proporra automaticamente conferimento e apertura fascicolo.
         </div>
+        {% endif %}
+        {% if workflow_summary %}
+        <hr class="my-3">
+        <div class="row g-2 small">
+          <div class="col-md-3"><span class="text-muted">Canale:</span> <span class="fw-semibold">{{ workflow_summary.channel_label }}</span></div>
+          {% if workflow_summary.practice_label %}<div class="col-md-3"><span class="text-muted">Tipologia:</span> <span class="fw-semibold">{{ workflow_summary.practice_label }}</span></div>{% endif %}
+          {% if workflow_summary.next_step_label %}<div class="col-md-6"><span class="text-muted">Prossimo passo:</span> {{ workflow_summary.next_step_label }}</div>{% endif %}
+        </div>
+        {% if workflow_summary.checklist_preview %}
+        <div class="mt-3">
+          <div class="small fw-semibold mb-1">Checklist iniziale prevista</div>
+          <ul class="small text-muted mb-0 ps-3">
+            {% for item in workflow_summary.checklist_preview %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        {% if workflow_summary.riferimenti_normativi %}
+        <div class="small text-muted mt-3">
+          <span class="fw-semibold text-dark">Riferimenti chiave:</span>
+          {{ workflow_summary.riferimenti_normativi[:3] | map(attribute='title') | join(' · ') }}
+        </div>
+        {% endif %}
         {% endif %}
       </div>
     </div>

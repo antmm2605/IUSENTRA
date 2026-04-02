@@ -88,7 +88,38 @@
     </div>
     {% endif %}
 
+    {% if doc.workflow_summary %}
+    <div class="small border rounded-3 px-3 py-2 mb-3">
+      <div class="fw-semibold mb-1">Riepilogo intelligente</div>
+      {% if doc.workflow_summary.channel_label %}
+      <div><span class="text-muted">Canale:</span> <span class="fw-semibold">{{ doc.workflow_summary.channel_label }}</span></div>
+      {% endif %}
+      {% if doc.workflow_summary.next_step_label %}
+      <div class="mt-1"><span class="text-muted">Prossimo passo:</span> {{ doc.workflow_summary.next_step_label }}</div>
+      {% endif %}
+      {% if doc.workflow_summary.riferimenti_normativi %}
+      <div class="mt-2 text-muted">
+        {{ doc.workflow_summary.riferimenti_normativi[:2] | map(attribute='title') | join(' · ') }}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
     <div class="d-flex flex-wrap gap-2">
+      {% if kind == 'preventivo' and doc.can_accept %}
+      <form method="post" action="{{ url_for('portale.accetta_preventivo', token=token, id_preventivo=doc.id) }}">
+        <button type="submit" class="btn btn-sm btn-success">
+          <i class="bi bi-check-circle me-1"></i>Accetta preventivo
+        </button>
+      </form>
+      {% endif %}
+      {% if kind == 'conferimento' and doc.can_sign %}
+      <form method="post" action="{{ url_for('portale.firma_conferimento', token=token, id_conferimento=doc.id) }}">
+        <button type="submit" class="btn btn-sm btn-success">
+          <i class="bi bi-pen me-1"></i>Firma conferimento
+        </button>
+      </form>
+      {% endif %}
       <a href="{{ pdf_url }}" target="_blank" class="btn btn-sm btn-primary">
         <i class="bi bi-file-earmark-pdf me-1"></i>PDF / Stampa
       </a>
@@ -143,6 +174,25 @@
   </div>
 </div>
 {% else %}
+
+{% if azioni_richieste %}
+<div class="portale-card card mb-4 border-warning-subtle">
+  <div class="card-body">
+    <div class="fw-semibold mb-2">Azioni richieste</div>
+    <div class="d-flex flex-column gap-2">
+      {% for action in azioni_richieste[:3] %}
+      <div class="border rounded-3 p-3">
+        <div class="fw-semibold">{{ action.title }}</div>
+        <div class="text-muted mb-2" style="font-size:.8rem;">{{ action.subtitle }}</div>
+        <form method="post" action="{{ action.action_url }}">
+          <button type="submit" class="btn btn-sm btn-success">{{ action.button_label }}</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% if preventivi %}
 <p class="section-header">Preventivi</p>

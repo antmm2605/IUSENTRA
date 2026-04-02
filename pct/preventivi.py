@@ -68,6 +68,11 @@ class StatoConferimento(str, Enum):
     REVOCATO = "REVOCATO"
 
 
+def _normalize_workflow_channel(value: str | None) -> str:
+    channel = str(value or "").strip().upper()
+    return channel if channel in {"STUDIO", "ONLINE"} else "STUDIO"
+
+
 # ================================================================ Piano pagamenti
 
 @dataclass
@@ -171,6 +176,12 @@ class Preventivo:
     token_portale: Optional[str] = None
     token_portale_il: Optional[str] = None  # ISO datetime generazione
     portale_aperto_il: Optional[str] = None  # ISO datetime prima apertura
+    workflow_channel: str = "STUDIO"
+    inviato_cliente_il: Optional[str] = None
+    accettato_il: Optional[str] = None
+    accettato_via: str = ""
+    accettato_ip: str = ""
+    accettato_user_agent: str = ""
 
     # Versione/revisione
     versione: int = 1
@@ -225,6 +236,7 @@ class Preventivo:
             d["stato"] = StatoPreventivo(stato_raw)
         except ValueError:
             d["stato"] = StatoPreventivo.BOZZA
+        d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
         d["voci"] = [VocePreventivo.from_dict(v) for v in d.get("voci", [])]
         d["piano_pagamenti"] = [VoceScadenza.from_dict(r) for r in d.get("piano_pagamenti", [])]
         campi = set(Preventivo.__dataclass_fields__)
@@ -275,6 +287,14 @@ class ConferimentoIncarico:
     studio_piva:      str = ""
     studio_cf:        str = ""
     studio_indirizzo: str = ""
+    workflow_channel: str = "STUDIO"
+    firma_cliente_richiesta: bool = True
+    firma_cliente_eseguita: bool = False
+    firma_cliente_il: Optional[str] = None
+    firma_cliente_via: str = ""
+    firma_cliente_ip: str = ""
+    firma_cliente_user_agent: str = ""
+    fascicolo_aperto_il: Optional[str] = None
 
     # ---------------------------------------------------------------- Serde
 
@@ -287,6 +307,7 @@ class ConferimentoIncarico:
     def from_dict(d: Dict[str, Any]) -> "ConferimentoIncarico":
         d = dict(d)
         d["stato"] = StatoConferimento(d.get("stato", "ATTIVO"))
+        d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
         campi = set(ConferimentoIncarico.__dataclass_fields__)
         return ConferimentoIncarico(**{k: v for k, v in d.items() if k in campi})
 
@@ -383,6 +404,7 @@ class GestionePreventivi:
                         ore_stimate:         float = 0.0,
                         complessita:         str   = "",
                         log_calcolo:    Optional[str] = None,
+                        workflow_channel: str = "STUDIO",
                         studio_piva:    str = "",
                         studio_cf:      str = "",
                         studio_indirizzo: str = "") -> Preventivo:
@@ -409,6 +431,7 @@ class GestionePreventivi:
             ore_stimate=ore_stimate,
             complessita=complessita,
             log_calcolo=log_calcolo,
+            workflow_channel=_normalize_workflow_channel(workflow_channel),
             creato_da=creato_da,
             studio_piva=studio_piva,
             studio_cf=studio_cf,
@@ -437,6 +460,8 @@ class GestionePreventivi:
         p = self._preventivi[id_preventivo]
         for k, v in kwargs.items():
             if hasattr(p, k):
+                if k == "workflow_channel":
+                    v = _normalize_workflow_channel(v)
                 setattr(p, k, v)
         self._salva_preventivi()
         return p
@@ -491,6 +516,11 @@ class GestionePreventivi:
         p_new.token_portale = None
         p_new.token_portale_il = None
         p_new.portale_aperto_il = None
+        p_new.inviato_cliente_il = None
+        p_new.accettato_il = None
+        p_new.accettato_via = ""
+        p_new.accettato_ip = ""
+        p_new.accettato_user_agent = ""
         p_new.creato_il = datetime.now().isoformat()
         # Marca il precedente come revisionato
         p_old.stato = StatoPreventivo.REVISIONATO
@@ -521,6 +551,8 @@ class GestionePreventivi:
                           quota_palmario_pct:     float = 0.0,
                           informativa_art13_resa: bool  = False,
                           clausola_adr_resa:      bool  = False,
+                          workflow_channel:       str = "",
+                          firma_cliente_richiesta: bool = True,
                           studio_piva:        str = "",
                           studio_cf:          str = "",
                           studio_indirizzo:   str = "") -> ConferimentoIncarico:
@@ -539,6 +571,7 @@ class GestionePreventivi:
                     tariffa_oraria = preventivo.tariffa_oraria
                 if not compenso_pattuito:
                     compenso_pattuito = preventivo.totale
+                workflow_channel = workflow_channel or preventivo.workflow_channel
         c = ConferimentoIncarico(
             id=str(uuid.uuid4()),
             numero=self._prossimo_numero_conferimento(),
@@ -563,6 +596,8 @@ class GestionePreventivi:
             quota_palmario_pct=quota_palmario_pct,
             informativa_art13_resa=informativa_art13_resa,
             clausola_adr_resa=clausola_adr_resa,
+            workflow_channel=_normalize_workflow_channel(workflow_channel),
+            firma_cliente_richiesta=bool(firma_cliente_richiesta),
             studio_piva=studio_piva,
             studio_cf=studio_cf,
             studio_indirizzo=studio_indirizzo,
@@ -587,7 +622,135 @@ class GestionePreventivi:
         c = self._conferimenti[id_conferimento]
         for k, v in kwargs.items():
             if hasattr(c, k):
+                if k == "workflow_channel":
+                    v = _normalize_workflow_channel(v)
                 setattr(c, k, v)
+        self._salva_conferimenti()
+        return c
+
+    def get_conferimento_principale_preventivo(self, id_preventivo: str) -> Optional["ConferimentoIncarico"]:
+        rows = sorted(
+            [c for c in self.tutti_conferimenti() if c.id_preventivo == id_preventivo],
+            key=lambda c: (c.data_incarico or "", c.creato_il or ""),
+            reverse=True,
+        )
+        return rows[0] if rows else None
+
+    def registra_invio_preventivo(
+        self,
+        id_preventivo: str,
+        *,
+        workflow_channel: str = "ONLINE",
+    ) -> Preventivo:
+        p = self._preventivi[id_preventivo]
+        p.workflow_channel = _normalize_workflow_channel(workflow_channel)
+        p.stato = StatoPreventivo.INVIATO
+        p.inviato_cliente_il = datetime.now().isoformat()
+        self._salva_preventivi()
+        return p
+
+    def crea_conferimento_da_preventivo(
+        self,
+        id_preventivo: str,
+        *,
+        creato_da: str = "",
+        avvocato_referente: str = "",
+        note: str = "",
+        workflow_channel: str = "",
+        informativa_art13_resa: bool = True,
+        clausola_adr_resa: bool = True,
+        studio_piva: str = "",
+        studio_cf: str = "",
+        studio_indirizzo: str = "",
+    ) -> ConferimentoIncarico:
+        preventivo = self._preventivi.get(id_preventivo)
+        if not preventivo:
+            raise KeyError(id_preventivo)
+        existing = self.get_conferimento_principale_preventivo(id_preventivo)
+        if existing:
+            return existing
+        oggetto = f"Conferimento incarico - {preventivo.oggetto}".strip(" -")
+        return self.crea_conferimento(
+            id_cliente=preventivo.id_cliente,
+            oggetto=oggetto,
+            avvocato_referente=avvocato_referente or preventivo.creato_da or "Avv. referente",
+            creato_da=creato_da,
+            id_preventivo=preventivo.id,
+            id_fascicolo=preventivo.id_fascicolo,
+            compenso_pattuito=preventivo.totale,
+            note=note,
+            id_pratica=preventivo.id_pratica,
+            area_pratica=preventivo.area_pratica,
+            tipo_compenso=preventivo.tipo_compenso,
+            tipo_procedimento=preventivo.tipo_procedimento,
+            tariffa_oraria=preventivo.tariffa_oraria,
+            informativa_art13_resa=informativa_art13_resa,
+            clausola_adr_resa=clausola_adr_resa,
+            workflow_channel=workflow_channel or preventivo.workflow_channel,
+            firma_cliente_richiesta=True,
+            studio_piva=studio_piva or preventivo.studio_piva,
+            studio_cf=studio_cf or preventivo.studio_cf,
+            studio_indirizzo=studio_indirizzo or preventivo.studio_indirizzo,
+        )
+
+    def registra_accettazione_preventivo(
+        self,
+        id_preventivo: str,
+        *,
+        workflow_channel: str = "STUDIO",
+        via: str = "",
+        ip: str = "",
+        user_agent: str = "",
+        creato_da: str = "",
+        avvocato_referente: str = "",
+        auto_crea_conferimento: bool = True,
+        studio_piva: str = "",
+        studio_cf: str = "",
+        studio_indirizzo: str = "",
+    ) -> tuple[Preventivo, Optional["ConferimentoIncarico"]]:
+        p = self._preventivi[id_preventivo]
+        p.workflow_channel = _normalize_workflow_channel(workflow_channel)
+        p.stato = StatoPreventivo.ACCETTATO
+        p.accettato_il = datetime.now().isoformat()
+        p.accettato_via = str(via or "").strip()
+        p.accettato_ip = str(ip or "").strip()
+        p.accettato_user_agent = (user_agent or "").strip()[:300]
+        self._salva_preventivi()
+
+        conferimento = self.get_conferimento_principale_preventivo(id_preventivo)
+        if not conferimento and auto_crea_conferimento:
+            conferimento = self.crea_conferimento_da_preventivo(
+                id_preventivo,
+                creato_da=creato_da,
+                avvocato_referente=avvocato_referente,
+                workflow_channel=p.workflow_channel,
+                studio_piva=studio_piva,
+                studio_cf=studio_cf,
+                studio_indirizzo=studio_indirizzo,
+                note=(
+                    "Conferimento creato automaticamente dal workflow commerciale "
+                    "dopo accettazione del preventivo."
+                ),
+            )
+        return p, conferimento
+
+    def registra_firma_conferimento(
+        self,
+        id_conferimento: str,
+        *,
+        via: str = "",
+        workflow_channel: str = "",
+        ip: str = "",
+        user_agent: str = "",
+    ) -> ConferimentoIncarico:
+        c = self._conferimenti[id_conferimento]
+        c.workflow_channel = _normalize_workflow_channel(workflow_channel or c.workflow_channel)
+        c.firma_cliente_richiesta = True
+        c.firma_cliente_eseguita = True
+        c.firma_cliente_il = datetime.now().isoformat()
+        c.firma_cliente_via = str(via or "").strip()
+        c.firma_cliente_ip = str(ip or "").strip()
+        c.firma_cliente_user_agent = (user_agent or "").strip()[:300]
         self._salva_conferimenti()
         return c
 
@@ -615,6 +778,7 @@ class GestionePreventivi:
         if id_conferimento and id_conferimento in self._conferimenti:
             c = self._conferimenti[id_conferimento]
             c.id_fascicolo = id_fascicolo
+            c.fascicolo_aperto_il = datetime.now().isoformat()
             modifica_conferimenti = True
             if c.id_preventivo and c.id_preventivo in self._preventivi:
                 p = self._preventivi[c.id_preventivo]

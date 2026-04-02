@@ -145,6 +145,8 @@
           {% set permessi_labels = [
             ('vedi_fascicoli',      'bi-folder2-open',       'Visualizzare le pratiche'),
             ('vedi_economici',      'bi-wallet2',            'Visualizzare preventivi, incarichi e parcelle'),
+            ('accetta_preventivi',  'bi-check2-circle',      'Accettare i preventivi dal portale'),
+            ('firma_conferimenti',  'bi-pen',                'Firmare i conferimenti dal portale'),
             ('vedi_appuntamenti',   'bi-calendar-event',     'Vedere i prossimi appuntamenti'),
             ('vedi_scadenze',       'bi-clock-history',      'Vedere le scadenze'),
             ('vedi_anagrafica',     'bi-person-vcard',       'Accedere alla propria anagrafica'),
@@ -153,7 +155,7 @@
             ('firma_privacy',       'bi-shield-check',       'Firmare il consenso privacy GDPR'),
           ] %}
           {% for campo, icon, label in permessi_labels %}
-          {% set checked = portale_obj.permessi|attr(campo) if portale_obj else (campo in ['vedi_fascicoli','vedi_economici','carica_documenti','firma_privacy','vedi_anagrafica']) %}
+          {% set checked = portale_obj.permessi|attr(campo) if portale_obj else (campo in ['vedi_fascicoli','vedi_economici','accetta_preventivi','firma_conferimenti','carica_documenti','firma_privacy','vedi_anagrafica']) %}
           <div class="form-check form-switch d-flex align-items-center gap-2">
             <input class="form-check-input" type="checkbox" role="switch"
                    name="{{ campo }}" id="p-{{ campo }}" value="1"

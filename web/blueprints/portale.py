@@ -15,6 +15,7 @@ from flask import (Blueprint, abort, flash, redirect, render_template,
 from web.helpers import get_clienti, get_fascicoli, get_agenda, get_scadenziario
 from pct.economico_context import riepilogo_contesto_economico
 from pct.legal_intelligence import costruisci_tracker_fascicoli
+from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_summary
 
 portale = Blueprint("portale", __name__, url_prefix="/portale")
 
@@ -40,6 +41,15 @@ def _get_fatturazione():
     from pct.fatturazione import GestioneFatturazione
     return GestioneFatturazione(
         db_path=current_app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+    )
+
+
+def _avvocato_referente_workflow(cliente=None, preventivo=None, conferimento=None) -> str:
+    return (
+        getattr(conferimento, "avvocato_referente", "")
+        or getattr(cliente, "avvocato_referente", "")
+        or getattr(preventivo, "creato_da", "")
+        or "Avv. referente"
     )
 
 
@@ -73,12 +83,14 @@ def _fascicoli_map_cliente(id_cliente: str):
 
 def _documenti_economici_cliente(id_cliente: str):
     fascicoli_map = _fascicoli_map_cliente(id_cliente)
+    gp_prev = None
 
     try:
+        from pct.preventivi import StatoPreventivo
         gp_prev = _get_preventivi()
         preventivi = [
             p for p in gp_prev.tutti_preventivi()
-            if p.id_cliente == id_cliente
+            if p.id_cliente == id_cliente and p.stato not in {StatoPreventivo.BOZZA, StatoPreventivo.IN_CALCOLO}
         ]
         conferimenti = [
             c for c in gp_prev.tutti_conferimenti()
@@ -139,6 +151,7 @@ def _documenti_economici_cliente(id_cliente: str):
             "stato": getattr(c.stato, "value", str(c.stato)),
             "totale": round(totale, 2),
             "fascicolo_label": fascicolo.titolo if fascicolo else "",
+            "calc_summary": riepilogo_contesto_economico(getattr(gp_prev.get_preventivo(c.id_preventivo), "log_calcolo", None)) if c.id_preventivo else {},
         })
     for parcella in parcelle:
         fascicolo = fascicoli_map.get(parcella.id_fascicolo)
@@ -193,6 +206,75 @@ def _parcella_cliente_o_404(id_cliente: str, id_parcella: str):
     return p, gf
 
 
+def _workflow_summary_portale(cliente, *, preventivo=None, conferimento=None):
+    fascicolo = None
+    if conferimento and getattr(conferimento, "id_fascicolo", ""):
+        fascicolo = get_fascicoli().get(conferimento.id_fascicolo)
+    elif preventivo and getattr(preventivo, "id_fascicolo", ""):
+        fascicolo = get_fascicoli().get(preventivo.id_fascicolo)
+    try:
+        return build_workflow_summary(
+            cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
+            fascicolo=fascicolo,
+        )
+    except Exception:
+        current_app.logger.exception("Errore riepilogo workflow portale")
+        return {}
+
+
+def _enrich_economici_portale(portale_obj, cliente, dati):
+    gp_prev = _get_preventivi()
+    pending_actions = []
+
+    for doc in dati["preventivi"]:
+        summary = _workflow_summary_portale(cliente, preventivo=doc)
+        setattr(doc, "workflow_summary", summary)
+        setattr(doc, "calc_summary", riepilogo_contesto_economico(getattr(doc, "log_calcolo", None)))
+        can_accept = bool(
+            getattr(portale_obj.permessi, "accetta_preventivi", True)
+            and getattr(portale_obj.permessi, "vedi_economici", False)
+            and getattr(getattr(doc, "stato", None), "value", getattr(doc, "stato", "")) in {"INVIATO", "APERTO"}
+        )
+        setattr(doc, "can_accept", can_accept)
+        if can_accept:
+            pending_actions.append(
+                {
+                    "kind": "preventivo",
+                    "title": f"Accetta il preventivo {doc.numero}",
+                    "subtitle": getattr(doc, "oggetto", ""),
+                    "action_url": url_for("portale.accetta_preventivo", token=request.view_args.get("token"), id_preventivo=doc.id),
+                    "button_label": "Accetta preventivo",
+                }
+            )
+
+    for doc in dati["conferimenti"]:
+        preventivo = gp_prev.get_preventivo(doc.id_preventivo) if doc.id_preventivo else None
+        summary = _workflow_summary_portale(cliente, preventivo=preventivo, conferimento=doc)
+        setattr(doc, "workflow_summary", summary)
+        setattr(doc, "calc_summary", riepilogo_contesto_economico(getattr(preventivo, "log_calcolo", None)) if preventivo else {})
+        can_sign = bool(
+            getattr(portale_obj.permessi, "firma_conferimenti", True)
+            and getattr(portale_obj.permessi, "vedi_economici", False)
+            and not getattr(doc, "firma_cliente_eseguita", False)
+            and not getattr(doc, "id_fascicolo", "")
+        )
+        setattr(doc, "can_sign", can_sign)
+        if can_sign:
+            pending_actions.append(
+                {
+                    "kind": "conferimento",
+                    "title": f"Firma il conferimento {doc.numero}",
+                    "subtitle": getattr(doc, "oggetto", ""),
+                    "action_url": url_for("portale.firma_conferimento", token=request.view_args.get("token"), id_conferimento=doc.id),
+                    "button_label": "Firma conferimento",
+                }
+            )
+
+    return pending_actions
+
+
 # ================================================================ HOME
 
 @portale.route("/<token>")
@@ -203,6 +285,7 @@ def home(token: str):
     appuntamenti = []
     scadenze = []
     economici = {"stats": {"preventivi": 0, "conferimenti": 0, "parcelle": 0, "totale": 0}, "timeline": []}
+    azioni_richieste = []
 
     if p.permessi.vedi_fascicoli:
         gf = get_fascicoli()
@@ -224,6 +307,7 @@ def home(token: str):
 
     if getattr(p.permessi, "vedi_economici", False):
         economici = _documenti_economici_cliente(cliente.id)
+        azioni_richieste = _enrich_economici_portale(p, cliente, economici)
 
     tracker_map = costruisci_tracker_fascicoli(fascicoli)
 
@@ -237,6 +321,7 @@ def home(token: str):
         appuntamenti=appuntamenti,
         scadenze=scadenze,
         economici=economici,
+        azioni_richieste=azioni_richieste,
         oggi=date.today(),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
     )
@@ -394,6 +479,7 @@ def economici(token: str):
         abort(403)
 
     dati = _documenti_economici_cliente(cliente.id)
+    azioni_richieste = _enrich_economici_portale(p, cliente, dati)
     return render_template(
         "portale/economici.html",
         token=token,
@@ -404,9 +490,76 @@ def economici(token: str):
         parcelle=dati["parcelle"],
         timeline=dati["timeline"],
         stats=dati["stats"],
+        azioni_richieste=azioni_richieste,
         oggi=date.today(),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
     )
+
+
+@portale.route("/<token>/preventivi/<id_preventivo>/accetta", methods=["POST"])
+def accetta_preventivo(token: str, id_preventivo: str):
+    _, p, cliente = _carica_contesto(token)
+    if not getattr(p.permessi, "vedi_economici", False) or not getattr(p.permessi, "accetta_preventivi", True):
+        abort(403)
+
+    preventivo, gp_prev = _preventivo_cliente_o_404(cliente.id, id_preventivo)
+    stato_value = getattr(getattr(preventivo, "stato", None), "value", getattr(preventivo, "stato", ""))
+    if stato_value not in {"INVIATO", "APERTO", "ACCETTATO", "CONVERTITO"}:
+        flash("Questo preventivo non è in uno stato accettabile dal portale.", "warning")
+        return redirect(url_for("portale.economici", token=token))
+
+    _, conferimento = gp_prev.registra_accettazione_preventivo(
+        id_preventivo,
+        workflow_channel="ONLINE",
+        via="PORTALE_CLIENTE",
+        ip=request.remote_addr or "",
+        user_agent=request.headers.get("User-Agent", ""),
+        avvocato_referente=_avvocato_referente_workflow(cliente=cliente, preventivo=preventivo),
+        auto_crea_conferimento=True,
+        studio_piva=current_app.config.get("STUDIO_PIVA", ""),
+        studio_cf=current_app.config.get("STUDIO_CF", ""),
+        studio_indirizzo=current_app.config.get("STUDIO_INDIRIZZO", ""),
+    )
+    flash("Preventivo accettato correttamente.", "success")
+    if conferimento:
+        flash("Il conferimento è stato predisposto automaticamente: puoi confermarlo dal portale.", "success")
+    return redirect(url_for("portale.economici", token=token))
+
+
+@portale.route("/<token>/conferimenti/<id_conferimento>/firma", methods=["POST"])
+def firma_conferimento(token: str, id_conferimento: str):
+    _, p, cliente = _carica_contesto(token)
+    if not getattr(p.permessi, "vedi_economici", False) or not getattr(p.permessi, "firma_conferimenti", True):
+        abort(403)
+
+    conferimento, gp_prev = _conferimento_cliente_o_404(cliente.id, id_conferimento)
+    preventivo = gp_prev.get_preventivo(conferimento.id_preventivo) if conferimento.id_preventivo else None
+    gp_prev.registra_firma_conferimento(
+        id_conferimento,
+        via="PORTALE_CLIENTE",
+        workflow_channel="ONLINE",
+        ip=request.remote_addr or "",
+        user_agent=request.headers.get("User-Agent", ""),
+    )
+    if cliente and not getattr(cliente, "profilo_completo_per_conferimento", True):
+        flash("Conferimento firmato. Completa prima l'anagrafica per aprire la pratica in automatico.", "warning")
+        return redirect(url_for("portale.economici", token=token))
+
+    result = apri_fascicolo_automatico(
+        gp=gp_prev,
+        gf=get_fascicoli(),
+        gs=get_scadenziario(),
+        cliente=cliente,
+        preventivo=preventivo,
+        conferimento=gp_prev.get_conferimento(id_conferimento),
+        avvocato=_avvocato_referente_workflow(cliente=cliente, preventivo=preventivo, conferimento=conferimento),
+    )
+    fasc = result["fascicolo"]
+    flash(
+        f"Conferimento firmato. Fascicolo {fasc.numero} aperto automaticamente con checklist e scadenze iniziali.",
+        "success",
+    )
+    return redirect(url_for("portale.home", token=token))
 
 
 @portale.route("/<token>/preventivi/<id_preventivo>/pdf", methods=["GET"])

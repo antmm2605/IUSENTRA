@@ -30,7 +30,7 @@
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
-  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+  <div class="alert alert-{{ 'warning' if cat == 'warning' else ('success' if cat == 'success' else 'danger') }} alert-dismissible fade show">
     {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
   {% endfor %}
@@ -103,26 +103,63 @@
             <i class="bi bi-folder2-open me-1"></i>Vai al fascicolo
           </a>
         </div>
-        {% elif cliente_da_completare %}
+        {% elif cliente_da_completare and not c.firma_cliente_eseguita %}
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
-            <div class="fw-semibold">Prima completa l'anagrafica cliente</div>
-            <div class="text-muted small">Per aprire la pratica in modo completo conviene integrare ora: {{ campi_cliente_mancanti|join(', ') }}.</div>
+            <div class="fw-semibold">Firma pronta, ma anagrafica da completare</div>
+            <div class="text-muted small">Per aprire la pratica in automatico conviene integrare prima: {{ campi_cliente_mancanti|join(', ') }}.</div>
           </div>
-          <a href="{{ url_completa_cliente }}" class="btn btn-warning">
-            <i class="bi bi-person-vcard me-1"></i>Completa anagrafica
-          </a>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_completa_cliente }}" class="btn btn-warning">
+              <i class="bi bi-person-vcard me-1"></i>Completa anagrafica
+            </a>
+            <form method="post" action="{{ url_firma_studio }}">
+              <button type="submit" class="btn btn-success">
+                <i class="bi bi-pen me-1"></i>Registra firma cliente
+              </button>
+            </form>
+          </div>
+        </div>
+        {% elif not c.firma_cliente_eseguita %}
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="fw-semibold">Prossimo passo: firma conferimento</div>
+            <div class="text-muted small">Con la firma del cliente il sistema apre automaticamente il fascicolo, collega il workflow e crea checklist e scadenze iniziali.</div>
+          </div>
+          <form method="post" action="{{ url_firma_studio }}">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-pen me-1"></i>Registra firma cliente
+            </button>
+          </form>
         </div>
         {% else %}
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div>
-            <div class="fw-semibold">Prossimo passo: apertura fascicolo guidata</div>
-            <div class="text-muted small">Questo conferimento ha gia tutto il necessario per aprire la pratica con i dati precompilati.</div>
+            <div class="fw-semibold">Firma acquisita: fascicolo pronto</div>
+            <div class="text-muted small">Il conferimento è già firmato. Se il fascicolo non è stato ancora aperto puoi farlo adesso con i dati già precompilati.</div>
           </div>
           <a href="{{ url_apri_fascicolo }}" class="btn btn-primary">
             <i class="bi bi-folder-plus me-1"></i>Apri fascicolo guidato
           </a>
         </div>
+        {% endif %}
+        {% if workflow_summary %}
+        <hr class="my-3">
+        <div class="row g-2 small">
+          <div class="col-md-3"><span class="text-muted">Canale:</span> <span class="fw-semibold">{{ workflow_summary.channel_label }}</span></div>
+          {% if workflow_summary.practice_label %}<div class="col-md-3"><span class="text-muted">Tipologia:</span> <span class="fw-semibold">{{ workflow_summary.practice_label }}</span></div>{% endif %}
+          {% if workflow_summary.next_step_label %}<div class="col-md-6"><span class="text-muted">Prossimo passo:</span> {{ workflow_summary.next_step_label }}</div>{% endif %}
+        </div>
+        {% if workflow_summary.checklist_preview %}
+        <div class="mt-3">
+          <div class="small fw-semibold mb-1">Checklist iniziale prevista</div>
+          <ul class="small text-muted mb-0 ps-3">
+            {% for item in workflow_summary.checklist_preview %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
         {% endif %}
       </div>
     </div>
@@ -146,6 +183,16 @@
 
           <dt class="col-sm-3">Data incarico</dt>
           <dd class="col-sm-9">{{ c.data_incarico }}</dd>
+
+          <dt class="col-sm-3">Firma cliente</dt>
+          <dd class="col-sm-9">
+            {% if c.firma_cliente_eseguita %}
+            <span class="badge bg-success">Registrata</span>
+            <span class="text-muted small ms-2">{{ c.firma_cliente_il[:10] if c.firma_cliente_il else '' }}</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">Da raccogliere</span>
+            {% endif %}
+          </dd>
 
           <dt class="col-sm-3">Tipo compenso</dt>
           <dd class="col-sm-9">

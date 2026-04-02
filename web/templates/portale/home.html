@@ -25,6 +25,23 @@
 </a>
 {% endif %}
 
+{% if azioni_richieste %}
+<p class="section-header">Azioni richieste</p>
+<div class="d-flex flex-column gap-2 mb-4">
+  {% for action in azioni_richieste[:2] %}
+  <div class="portale-card card border-warning-subtle">
+    <div class="card-body">
+      <div class="fw-semibold">{{ action.title }}</div>
+      <div class="text-muted mb-3" style="font-size:.8rem;">{{ action.subtitle }}</div>
+      <form method="post" action="{{ action.action_url }}">
+        <button type="submit" class="btn btn-sm btn-success">{{ action.button_label }}</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- Fascicoli -->
 {% if p.permessi.vedi_fascicoli and fascicoli %}
 <p class="section-header" id="fascicoli">Le tue pratiche</p>

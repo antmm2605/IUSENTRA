@@ -189,3 +189,25 @@ def test_tributario_resta_gia_separato_per_primo_grado_appello_e_cassazione():
     assert ricorso == {"tributario_primo_grado"}
     assert appello == {"tributario_secondo_grado"}
     assert cassazione == {"tributario_cassazione"}
+
+
+def test_esecuzioni_separano_opposizione_all_esecuzione_e_agli_atti():
+    opposizione_esecuzione = {row["rule_code"]: row for row in rules_for_practice("opposizione_esecutiva")}
+    opposizione_atti = {row["rule_code"]: row for row in rules_for_practice("opposizione_atti_esecutivi")}
+
+    assert set(opposizione_esecuzione) == {"civile_opposizione_esecutiva"}
+    assert set(opposizione_atti) == {"civile_opposizione_atti_esecutivi"}
+    assert default_rule_for_practice("opposizione_esecutiva")["rule_code"] == "civile_opposizione_esecutiva"
+    assert default_rule_for_practice("opposizione_atti_esecutivi")["rule_code"] == "civile_opposizione_atti_esecutivi"
+    assert profile_lookup_by_rule("civile_opposizione_esecutiva")["table_code"] == "A2"
+    assert profile_lookup_by_rule("civile_opposizione_atti_esecutivi")["table_code"] == "A2"
+
+
+def test_profili_esecutivi_restano_allineati_a_precetto_e_presso_terzi():
+    precetto = {row["rule_code"] for row in rules_for_practice("precetto")}
+    presso_terzi = {row["rule_code"] for row in rules_for_practice("esecuzione_terzi")}
+
+    assert precetto == {"esecuzione_precetto"}
+    assert presso_terzi == {"esecuzione_presso_terzi"}
+    assert profile_lookup_by_rule("esecuzione_precetto")["table_code"] == "A6"
+    assert profile_lookup_by_rule("esecuzione_presso_terzi")["table_code"] == "A17"

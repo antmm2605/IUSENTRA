@@ -53,6 +53,7 @@ def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():
     assert "appello_previdenza" in civile_ids
     assert "cassazione_previdenza" in civile_ids
     assert "cassazione_lavoro" in civile_ids
+    assert "opposizione_atti_esecutivi" in civile_ids
     assert "sfratto_morosita" in civile_ids
     assert "risarcimento_danni" in civile_ids
     assert "sinistro_stradale_stragiudiziale" in stragiud_ids
@@ -158,3 +159,16 @@ def test_lavoro_e_previdenza_non_mischiano_piu_gradi_diversi_nella_stessa_tipolo
     assert {row["rule_code"] for row in previdenza["regole_tariffarie"]} == {"previdenza_giudiziale"}
     assert {row["rule_code"] for row in appello_previdenza["regole_tariffarie"]} == {"previdenza_appello"}
     assert {row["rule_code"] for row in cassazione_previdenza["regole_tariffarie"]} == {"previdenza_cassazione"}
+
+
+def test_esecuzioni_distinguono_opposizione_all_esecuzione_e_agli_atti():
+    opposizione_esecuzione = redattore_preventivo_iniziale("opposizione_esecutiva")
+    opposizione_atti = redattore_preventivo_iniziale("opposizione_atti_esecutivi")
+
+    assert opposizione_esecuzione["label"] == "Opposizione all'esecuzione"
+    assert "artt. 615 e 619 c.p.c." in opposizione_esecuzione["base_normativa"]
+    assert {row["rule_code"] for row in opposizione_esecuzione["regole_tariffarie"]} == {"civile_opposizione_esecutiva"}
+
+    assert opposizione_atti["label"] == "Opposizione agli atti esecutivi"
+    assert "art. 617 c.p.c." in opposizione_atti["base_normativa"]
+    assert {row["rule_code"] for row in opposizione_atti["regole_tariffarie"]} == {"civile_opposizione_atti_esecutivi"}

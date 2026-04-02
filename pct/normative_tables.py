@@ -10,10 +10,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from pct.tariffario_catalogo import (
+    tariffario_audit_rows,
     tariffario_fatturazione_rows,
     tariffario_option_rows,
     tariffario_profile_rows,
     tariffario_reference_rows,
+    tariffario_rule_rows,
     tariffario_scaglioni_rows,
 )
 
@@ -639,6 +641,30 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "published_at": "2022-10-08",
             "effective_from": "2022-10-23",
         },
+        "tariffario_forense_regole": {
+            "id": "tariffario_forense_regole",
+            "title": "Tariffario forense - regole tariffarie e competenza",
+            "category": "tariffario_forense",
+            "description": "Regole operative per materia, competenza, grado e pratica guidata condivise tra tariffario e preventivi.",
+            "strategy": "seed_mirror",
+            "source_codes": ["dm_55_2014_parametri", "dm_147_2022_parametri", "legge_forense_247_2012", "equo_compenso_49_2023"],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale"],
+            "rows": tariffario_rule_rows(),
+            "published_at": "2026-04-02",
+            "effective_from": "2026-04-02",
+        },
+        "tariffario_forense_audit": {
+            "id": "tariffario_forense_audit",
+            "title": "Tariffario forense - audit di conformita",
+            "category": "tariffario_forense",
+            "description": "Audit strutturato delle regole tariffarie con stato di copertura, snapshot e note di verifica.",
+            "strategy": "seed_mirror",
+            "source_codes": ["dm_55_2014_parametri", "dm_147_2022_parametri", "legge_forense_247_2012", "equo_compenso_49_2023"],
+            "watch_source_ids": ["normattiva", "gazzetta_ufficiale"],
+            "rows": tariffario_audit_rows(),
+            "published_at": "2026-04-02",
+            "effective_from": "2026-04-02",
+        },
         "tariffario_forense_opzioni": {
             "id": "tariffario_forense_opzioni",
             "title": "Tariffario forense - opzioni compenso",
@@ -1032,6 +1058,12 @@ class GestioneTabelleNormative:
 
     def tariffario_profili(self) -> List[Dict[str, Any]]:
         return self.rows("tariffario_forense_profili")
+
+    def tariffario_regole(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_regole")
+
+    def tariffario_audit(self) -> List[Dict[str, Any]]:
+        return self.rows("tariffario_forense_audit")
 
     def tariffario_opzioni(self) -> List[Dict[str, Any]]:
         return self.rows("tariffario_forense_opzioni")

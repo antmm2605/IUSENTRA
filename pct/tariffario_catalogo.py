@@ -2361,10 +2361,10 @@ _upsert_rows(
             "exact_snapshot": True,
             "coeff": 1.0,
             "requires_value": True,
-            "phase_keys": ["studio", "esecutiva"],
+            "phase_keys": ["introduttiva", "esecutiva"],
             "suggested_practice_id": "esecuzione_terzi",
             "summary": "Pignoramento presso terzi ed esecuzioni affini.",
-            "base_note": "La fase esecutiva deriva dalla colonna istruttoria della tabella 17.",
+            "base_note": "Le fasi operative usano la colonna introduttiva e la colonna istruttoria della tabella 17; la fase studio non e valorizzata nello snapshot ufficiale.",
         },
         {
             "profile_code": "esecuzione_immobiliare",
@@ -2378,10 +2378,10 @@ _upsert_rows(
             "exact_snapshot": True,
             "coeff": 1.0,
             "requires_value": True,
-            "phase_keys": ["studio", "esecutiva"],
+            "phase_keys": ["introduttiva", "esecutiva"],
             "suggested_practice_id": "esecuzione_immobiliare",
             "summary": "Procedure esecutive immobiliari.",
-            "base_note": "La fase esecutiva deriva dalla colonna istruttoria della tabella 18.",
+            "base_note": "Le fasi operative usano la colonna introduttiva e la colonna istruttoria della tabella 18; la fase studio non e valorizzata nello snapshot ufficiale.",
         },
         {
             "profile_code": "volontaria",
@@ -3040,6 +3040,126 @@ def tariffario_complessita_rows() -> List[Dict[str, str]]:
     return [dict(row) for row in COMPLESSITA_ROWS]
 
 
+@lru_cache(maxsize=1)
+def raw_tariffario_snapshot_codes() -> set[str]:
+    try:
+        raw = json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8-sig"))
+    except Exception:
+        return set()
+    tabelle = raw.get("tabelle", {}) if isinstance(raw, dict) else {}
+    return {str(code) for code in tabelle.keys()} if isinstance(tabelle, dict) else set()
+
+
+def _available_phase_keys_for_table(raw_table: Mapping[str, Iterable[Optional[float]]]) -> set[str]:
+    phase_keys: set[str] = set()
+    for raw_phase, values in (raw_table or {}).items():
+        if not any(value is not None for value in values or []):
+            continue
+        phase_keys.add(PHASE_KEY_BY_RAW.get(str(raw_phase), str(raw_phase).lower()))
+    return phase_keys
+
+
+def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    snapshot = load_tariffario_snapshot()
+    table_code = str((profile or {}).get("table_code") or "")
+    table_snapshot = snapshot.get(table_code) or {}
+    snapshot_origin = "snapshot" if table_code in raw_tariffario_snapshot_codes() else ("seed" if table_code in snapshot else "")
+    available_phase_keys = _available_phase_keys_for_table(table_snapshot)
+    profile_phase_keys = [str(key) for key in ((profile or {}).get("phase_keys") or [])]
+    phase_aliases = {
+        "A16": {"esecutiva": "istruttoria"},
+        "A17": {"esecutiva": "istruttoria"},
+        "A18": {"esecutiva": "istruttoria"},
+        "A27": {
+            "attivazione": "introduttiva",
+            "rivitalizzazione": "istruttoria",
+            "negoziazione": "istruttoria",
+            "conciliazione": "decisionale",
+        },
+    }.get(table_code, {})
+    missing_phase_keys: List[str] = []
+    mapped_phase_keys: List[str] = []
+    for key in profile_phase_keys:
+        if key in available_phase_keys:
+            continue
+        alias_key = phase_aliases.get(key, "")
+        if alias_key and alias_key in available_phase_keys:
+            mapped_phase_keys.append(key)
+            continue
+        missing_phase_keys.append(key)
+    exact_snapshot = bool((profile or {}).get("exact_snapshot"))
+    ref_count = len(list(item.get("normative_references") or []))
+
+    status = "verificata_snapshot"
+    label = "Verificata su snapshot"
+    badge = "success"
+    note = "Regola allineata al catalogo tariffario e alla tabella ufficiale presente nello snapshot DM 147/2022."
+
+    if not profile:
+        status = "da_verificare"
+        label = "Da verificare"
+        badge = "danger"
+        note = "Regola tariffaria priva di profilo di calcolo collegato."
+    elif not table_code or not table_snapshot:
+        status = "da_verificare"
+        label = "Da verificare"
+        badge = "danger"
+        note = "La tabella indicata dal profilo non e presente nello snapshot tariffario disponibile."
+    elif missing_phase_keys:
+        status = "da_verificare"
+        label = "Da verificare"
+        badge = "danger"
+        note = (
+            "La regola usa fasi non coperte integralmente dalla tabella collegata: "
+            + ", ".join(missing_phase_keys)
+            + "."
+        )
+    elif ref_count == 0:
+        status = "da_verificare"
+        label = "Da verificare"
+        badge = "danger"
+        note = "Regola senza riferimenti normativi ufficiali agganciati."
+    elif not exact_snapshot:
+        status = "ricostruttiva"
+        label = "Ricostruttiva"
+        badge = "warning"
+        note = "Profilo operativo ricostruito dal motore: utile e coerente, ma non speculare uno-a-uno alla tabella ministeriale."
+    elif mapped_phase_keys:
+        status = "ricostruttiva"
+        label = "Ricostruttiva"
+        badge = "warning"
+        note = (
+            "La regola usa un mapping operativo di fase rispetto alle colonne ufficiali della tabella: "
+            + ", ".join(mapped_phase_keys)
+            + "."
+        )
+    elif snapshot_origin == "seed":
+        status = "verificata_seed"
+        label = "Verificata su integrazione"
+        badge = "info"
+        note = "Regola coperta da integrazione seed del catalogo tariffario, sincronizzata insieme allo snapshot ufficiale."
+
+    return {
+        "compliance_status": status,
+        "compliance_label": label,
+        "compliance_badge": badge,
+        "compliance_note": note,
+        "snapshot_origin": snapshot_origin,
+        "snapshot_present": bool(table_snapshot),
+        "phase_alignment_ok": not missing_phase_keys,
+        "missing_phase_keys": missing_phase_keys,
+        "mapped_phase_keys": mapped_phase_keys,
+        "normative_reference_count": ref_count,
+        "source_snapshot": _SNAPSHOT_PATH.name,
+        "severity_rank": {
+            "da_verificare": 3,
+            "ricostruttiva": 2,
+            "verificata_seed": 1,
+            "verificata_snapshot": 0,
+        }.get(status, 9),
+    }
+
+
 def _profile_by_code(profile_code: str) -> Optional[Dict[str, Any]]:
     for row in tariffario_profile_rows():
         if row.get("profile_code") == profile_code:
@@ -3070,7 +3190,46 @@ def tariffario_rule_rows() -> List[Dict[str, Any]]:
         if item.get("materia_label") == "Crisi d'impresa / concorsuale":
             refs.append(_reference_by_code("dlgs14_crisi_impresa"))
         item["normative_references"] = [ref for ref in refs if ref]
+        item.update(_compliance_payload_for_rule(item, profile))
         rows.append(item)
+    return rows
+
+
+def tariffario_audit_rows() -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for row in tariffario_rule_rows():
+        rows.append(
+            {
+                "rule_code": row.get("rule_code", ""),
+                "rule_label": row.get("label", ""),
+                "suggested_practice_id": row.get("suggested_practice_id", ""),
+                "materia_label": row.get("materia_label", ""),
+                "grado_input_value": row.get("grado_input_value", ""),
+                "table_code": (row.get("profile") or {}).get("table_code", ""),
+                "table_label": (row.get("profile") or {}).get("table_label", ""),
+                "profile_code": row.get("profile_code", ""),
+                "exact_snapshot": bool((row.get("profile") or {}).get("exact_snapshot")),
+                "snapshot_origin": row.get("snapshot_origin", ""),
+                "snapshot_present": bool(row.get("snapshot_present")),
+                "phase_alignment_ok": bool(row.get("phase_alignment_ok")),
+                "missing_phase_keys": list(row.get("missing_phase_keys") or []),
+                "mapped_phase_keys": list(row.get("mapped_phase_keys") or []),
+                "normative_reference_count": int(row.get("normative_reference_count") or 0),
+                "compliance_status": row.get("compliance_status", ""),
+                "compliance_label": row.get("compliance_label", ""),
+                "compliance_badge": row.get("compliance_badge", "secondary"),
+                "compliance_note": row.get("compliance_note", ""),
+                "severity_rank": int(row.get("severity_rank") or 0),
+                "source_snapshot": row.get("source_snapshot", _SNAPSHOT_PATH.name),
+            }
+        )
+    rows.sort(
+        key=lambda item: (
+            int(item.get("severity_rank", 0)),
+            item.get("materia_label", ""),
+            item.get("rule_label", ""),
+        )
+    )
     return rows
 
 

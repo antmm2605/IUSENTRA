@@ -2656,9 +2656,31 @@ def create_app(config: dict | None = None) -> Flask:
             if row["id"].startswith("tariffario_forense_")
         ]
         tariffario_profili = tabelle_normative.tariffario_profili()
+        tariffario_regole = tabelle_normative.tariffario_regole()
+        tariffario_audit = tabelle_normative.tariffario_audit()
         opzioni_tariffario = tabelle_normative.tariffario_opzioni()
         riferimenti_tariffario = tabelle_normative.tariffario_riferimenti()
         canali_fatturazione = tabelle_normative.tariffario_fatturazione()
+        tariffario_audit = [
+            {
+                **row,
+                "practice_label": (
+                    pratiche_by_id.get(row.get("suggested_practice_id", ""), {}).get("label")
+                    or row.get("suggested_practice_id", "")
+                ),
+            }
+            for row in tariffario_audit
+        ]
+        tariffario_audit_summary = {
+            "totale": len(tariffario_audit),
+            "verificata_snapshot": sum(1 for row in tariffario_audit if row.get("compliance_status") == "verificata_snapshot"),
+            "verificata_seed": sum(1 for row in tariffario_audit if row.get("compliance_status") == "verificata_seed"),
+            "ricostruttiva": sum(1 for row in tariffario_audit if row.get("compliance_status") == "ricostruttiva"),
+            "da_verificare": sum(1 for row in tariffario_audit if row.get("compliance_status") == "da_verificare"),
+        }
+        tariffario_audit_warning_rows = [
+            row for row in tariffario_audit if row.get("compliance_status") != "verificata_snapshot"
+        ][:10]
 
         url_wizard_precompilato = ""
         url_parcella_precompilata = ""
@@ -2772,6 +2794,10 @@ def create_app(config: dict | None = None) -> Flask:
             regola_attiva=regola_attiva,
             tariffario_tables=tariffario_tables,
             tariffario_profili=tariffario_profili,
+            tariffario_regole=tariffario_regole,
+            tariffario_audit=tariffario_audit,
+            tariffario_audit_summary=tariffario_audit_summary,
+            tariffario_audit_warning_rows=tariffario_audit_warning_rows,
             opzioni_tariffario=opzioni_tariffario,
             riferimenti_tariffario=riferimenti_tariffario,
             canali_fatturazione=canali_fatturazione,

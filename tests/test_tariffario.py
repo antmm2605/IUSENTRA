@@ -5,6 +5,8 @@ from pct.tariffario_catalogo import (
     load_tariffario_snapshot,
     profile_lookup_by_rule,
     rules_for_practice,
+    tariffario_audit_rows,
+    tariffario_rule_rows,
 )
 
 
@@ -258,6 +260,26 @@ def test_lavoro_e_previdenza_hanno_tipologie_distinte_per_appello_e_cassazione()
     assert set(appello_previdenza) == {"previdenza_appello"}
     assert set(cassazione_previdenza) == {"previdenza_cassazione"}
     assert default_rule_for_practice("appello_previdenza")["rule_code"] == "previdenza_appello"
+
+
+def test_audit_tariffario_copre_tutte_le_regole_senza_buchi_strutturali():
+    rules = tariffario_rule_rows()
+    audit_rows = tariffario_audit_rows()
+
+    assert len(audit_rows) == len(rules)
+    assert all(row["snapshot_present"] for row in audit_rows)
+    assert all(row["phase_alignment_ok"] for row in audit_rows)
+    assert all(row["normative_reference_count"] >= 4 for row in audit_rows)
+    assert not [row["rule_code"] for row in audit_rows if row["compliance_status"] == "da_verificare"]
+
+
+def test_audit_tariffario_giurisdizioni_superiori_separa_le_tre_sedi_su_tabella_14():
+    audit_rows = {row["rule_code"]: row for row in tariffario_audit_rows()}
+
+    assert audit_rows["giurisdizioni_superiori_corte_costituzionale"]["table_code"] == "A14"
+    assert audit_rows["giurisdizioni_superiori_corte_edu"]["grado_input_value"] == "Corte europea dei diritti dell'uomo"
+    assert audit_rows["giurisdizioni_superiori_corte_giustizia_ue"]["grado_input_value"] == "Corte di giustizia UE"
+    assert audit_rows["giurisdizioni_superiori_corte_costituzionale"]["compliance_status"] in {"verificata_snapshot", "verificata_seed"}
     assert default_rule_for_practice("cassazione_previdenza")["rule_code"] == "previdenza_cassazione"
 
 

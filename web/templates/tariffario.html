@@ -71,6 +71,83 @@
   </div>
 </div>
 
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-shield-check me-2 text-primary"></i>Audit conformita tariffaria
+  </div>
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Regole censite</div>
+          <div class="fs-4 fw-bold">{{ tariffario_regole|length }}</div>
+          <div class="small text-muted">Tariffario e preventivi leggono lo stesso catalogo</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Verificate su snapshot</div>
+          <div class="fs-4 fw-bold text-success">{{ tariffario_audit_summary.verificata_snapshot }}</div>
+          <div class="small text-muted">Regole coperte da snapshot ufficiale DM 147/2022</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Integrazioni seed</div>
+          <div class="fs-4 fw-bold text-info">{{ tariffario_audit_summary.verificata_seed }}</div>
+          <div class="small text-muted">Voci sincronizzate con integrazione controllata del catalogo</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small">Da verificare / ricostruttive</div>
+          <div class="fs-4 fw-bold {% if tariffario_audit_summary.da_verificare %}text-danger{% else %}text-warning{% endif %}">
+            {{ tariffario_audit_summary.da_verificare + tariffario_audit_summary.ricostruttiva }}
+          </div>
+          <div class="small text-muted">Le voci non perfettamente speculari emergono qui in modo esplicito</div>
+        </div>
+      </div>
+    </div>
+
+    {% if tariffario_audit_warning_rows %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Materia</th>
+            <th>Regola</th>
+            <th>Pratica</th>
+            <th>Tabella</th>
+            <th>Stato</th>
+            <th>Nota</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in tariffario_audit_warning_rows %}
+          <tr>
+            <td>{{ row.materia_label }}</td>
+            <td>{{ row.rule_label }}</td>
+            <td>{{ row.practice_label or row.suggested_practice_id }}</td>
+            <td>{{ row.table_code }}</td>
+            <td>
+              <span class="badge {% if row.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif row.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif row.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif row.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
+                {{ row.compliance_label }}
+              </span>
+            </td>
+            <td class="small text-muted">{{ row.compliance_note }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-success mb-0 small">
+      <i class="bi bi-check-circle me-1"></i>Le regole oggi attive risultano allineate allo snapshot ufficiale o alle integrazioni seed controllate del catalogo.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
 <div class="row g-4">
   <div class="col-xl-8">
     <div class="card shadow-sm mb-4">
@@ -292,6 +369,12 @@
           <i class="bi bi-info-circle me-1"></i>{{ risultato.note }}
         </div>
         {% endif %}
+        {% if regola_attiva and regola_attiva.compliance_label %}
+        <div class="alert {% if regola_attiva.compliance_status == 'da_verificare' %}alert-danger{% elif regola_attiva.compliance_status == 'ricostruttiva' %}alert-warning{% elif regola_attiva.compliance_status == 'verificata_seed' %}alert-info{% else %}alert-success{% endif %} small mb-3">
+          <div class="fw-semibold mb-1">Conformita regola tariffaria</div>
+          <div>{{ regola_attiva.compliance_label }}. {{ regola_attiva.compliance_note }}</div>
+        </div>
+        {% endif %}
 
         {% if righe_calcolo %}
         <div class="rounded-3 border p-3 mb-3">
@@ -369,6 +452,14 @@
           </div>
           <div class="fw-semibold mb-1">{{ profilo_attivo.summary }}</div>
           <div class="small text-muted mb-3">{{ profilo_attivo.base_note }}</div>
+          {% if regola_attiva and regola_attiva.compliance_label %}
+          <div class="small mb-2">
+            <span class="badge {% if regola_attiva.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif regola_attiva.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif regola_attiva.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif regola_attiva.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
+              {{ regola_attiva.compliance_label }}
+            </span>
+          </div>
+          <div class="small text-muted mb-3">{{ regola_attiva.compliance_note }}</div>
+          {% endif %}
           <div class="small"><strong>Pratica suggerita:</strong> {{ profilo_attivo.suggested_practice_id }}</div>
           <div class="small"><strong>Grado operativo:</strong> {{ profilo_attivo.grado_label }}</div>
           {% else %}

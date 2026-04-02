@@ -817,10 +817,12 @@ function renderSchedaTipologia() {
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
         ${ruleCompatible ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(regola.label)}</span>` : ''}
+        ${ruleCompatible && regola?.compliance_label ? `<span class="badge ${regola.compliance_badge === 'success' ? 'bg-success-subtle text-success-emphasis' : regola.compliance_badge === 'info' ? 'bg-info-subtle text-info-emphasis' : regola.compliance_badge === 'warning' ? 'bg-warning-subtle text-warning-emphasis' : regola.compliance_badge === 'danger' ? 'bg-danger-subtle text-danger-emphasis' : 'text-bg-light'}">${escapeHtml(regola.compliance_label)}</span>` : ''}
       </div>
       <div class="fw-semibold fs-6 text-dark mb-1">${escapeHtml(tipologiaCorrente.label)}</div>
       <div class="small text-muted mb-2">${escapeHtml(tipologiaCorrente.summary)}</div>
       ${ruleCompatible && regola?.summary ? `<div class="small text-muted mb-2">${escapeHtml(regola.summary)}</div>` : ''}
+      ${ruleCompatible && regola?.compliance_note ? `<div class="small text-muted mb-2"><i class="bi bi-shield-check me-1"></i>${escapeHtml(regola.compliance_note)}</div>` : ''}
       <div class="prev-note-box small">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
   const accessori = accessoriCalcoloSelezionati();
   if (accessori.length) {

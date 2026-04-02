@@ -1,5 +1,5 @@
 # ============================================================
-#  version: 2.96.3
+#  version: 2.96.4
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:
@@ -69,7 +69,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="HACS - Studio Legale PCT" \
-      org.opencontainers.image.version="2.96.3" \
+      org.opencontainers.image.version="2.96.4" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -110,14 +110,17 @@ ENV PYTHONPATH=/app
 # Su Railway/Render monta un volume su /data
 # In locale:  docker run -v $(pwd)/data:/data ... oppure usa docker-compose
 ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
+    PCT_CALENDAR_SYNC_DB=/data/agenda/calendar_sync.json \
     PCT_CLIENTI_DB=/data/clienti/anagrafica.json \
     PCT_CONDIVISIONI_DB=/data/clienti/condivisioni.json \
+    PCT_NOTE_FALDONE_DB=/data/clienti/note_faldone.json \
     PCT_SOGGETTI_DB=/data/soggetti/anagrafica.json \
     PCT_SOGGETTI_PARTI_DB=/data/soggetti/parti.json \
     PCT_FASCICOLI_DB=/data/fascicoli/fascicoli.json \
     PCT_FASCICOLI_DOCS=/data/fascicoli/documenti \
     PCT_FASCICOLI_ARCH=/data/fascicoli/archivio \
     PCT_MESSAGGI_DB=/data/messaggi/storico.json \
+    PCT_EMAIL_DB=/data/email/casella.json \
     PCT_BACKUP_DIR=/data/backup \
     PCT_AUTH_DB=/data/auth/utenti.json \
     PCT_AUDIT_DB=/data/auth/audit.json \
@@ -127,8 +130,15 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_PORTALE_DB=/data/portale/portali.json \
     PCT_PORTALE_UPLOADS=/data/portale/uploads \
     PCT_FATTURAZIONE_DB=/data/fatturazione/parcelle.json \
+    PCT_PREVENTIVI_DB=/data/preventivi/preventivi.json \
     PCT_NOTIFICHE_LOG=/data/notifiche/log.json \
+    PCT_WIZARD_PRO_DB=/data/wizard_pro/sessioni.json \
+    PCT_LEGAL_INTELLIGENCE_DB=/data/intelligence/motori.json \
+    PCT_NORMATIVE_TABLES_DB=/data/intelligence/tabelle_normative.json \
+    PCT_VALIDATION_RUNS_DB=/data/intelligence/validation_runs.json \
+    PCT_REDACTION_ASSISTANT_DB=/data/intelligence/assistente_redazionale.json \
     PCT_TEMPLATE_ATTI_DB=/data/template_atti/templates.json \
+    PCT_TEMPLATE_ATTI_PREFS_DB=/data/template_atti/editor_layout.json \
     PCT_PAGAMENTI_DIR=/data/pagamenti \
     PCT_UFFICI_DB=/data/uffici/uffici_giudiziari.json \
     PCT_UFFICI_TTL_GIORNI=7 \

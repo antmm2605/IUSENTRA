@@ -502,7 +502,7 @@ def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
     body = response.data.decode("utf-8")
     assert response.status_code == 200
     assert "Cartella tecnica locale del fascicolo" in body
-    assert "import_pst" in body
+    assert "pst_import" in body
     assert fascicolo.id in body
 
 

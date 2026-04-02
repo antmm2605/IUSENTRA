@@ -1090,7 +1090,7 @@ class GestoreUfficiGiudiziari:
         q_up   = q.upper()
         tipo_u = tipo.upper() if tipo else ""
         limit = max(1, min(int(limit or 20), 50))
-        out: list[dict] = []
+        out: list[tuple[int, str, str, dict]] = []
         for u in self.carica():
             if tipo_u and u.get("tipo") != tipo_u:
                 continue
@@ -1104,15 +1104,66 @@ class GestoreUfficiGiudiziari:
                 u.get("provincia_ministero", ""),
                 u.get("codice_ministero", ""),
             )
-            if any(
+            if not any(
                 slug_q in _n(str(val)) or q_up in str(val).upper()
                 for val in campi
                 if val
             ):
-                out.append(u)
-            if len(out) >= limit:
-                break
-        return out
+                continue
+            nome = str(u.get("nome", ""))
+            distretto = str(u.get("distretto", ""))
+            descrizione = str(u.get("descrizione_ministero", ""))
+            comune = str(u.get("comune_ministero", ""))
+            tipo_desc = str(u.get("tipo_ministero_descrizione", ""))
+            regione = str(u.get("regione_ministero", ""))
+            provincia = str(u.get("provincia_ministero", ""))
+            codice_ministero = str(u.get("codice_ministero", ""))
+
+            nome_slug = _n(nome)
+            distretto_slug = _n(distretto)
+            descrizione_slug = _n(descrizione)
+            comune_slug = _n(comune)
+            tipo_desc_slug = _n(tipo_desc)
+            regione_slug = _n(regione)
+            provincia_slug = _n(provincia)
+
+            score = 0
+            if nome_slug == slug_q:
+                score += 1000
+            elif nome_slug.startswith(slug_q):
+                score += 800
+            elif slug_q in nome_slug:
+                score += 500
+
+            if distretto_slug == slug_q:
+                score += 700
+            elif distretto_slug.startswith(slug_q):
+                score += 450
+            elif slug_q in distretto_slug:
+                score += 250
+
+            if comune_slug == slug_q:
+                score += 500
+            elif comune_slug.startswith(slug_q):
+                score += 300
+            elif slug_q in comune_slug:
+                score += 180
+
+            if slug_q in descrizione_slug:
+                score += 120
+            if slug_q in tipo_desc_slug:
+                score += 90
+            if slug_q in regione_slug:
+                score += 80
+            if slug_q in provincia_slug:
+                score += 70
+            if codice_ministero and q_up == codice_ministero.upper():
+                score += 600
+
+            out.append((score, nome.lower(), distretto.lower(), u))
+
+        out.sort(key=lambda item: (-item[0], item[1], item[2]))
+        return [row[3] for row in out[:limit]]
 
     def stato(self) -> dict:
         """Restituisce metadati sulla cache (usata nell'UI admin)."""

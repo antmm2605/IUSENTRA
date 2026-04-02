@@ -990,7 +990,7 @@ def _pst_host(url: str) -> str:
 def _pst_endpoint_configurato_e_legacy(url: Optional[str] = None) -> bool:
     candidate = (url or _PST_BASE).strip()
     env_base = os.getenv("PCT_PST_BASE_URL", "").strip()
-    if not env_base and _supporto_auto_pst_disponibile() and candidate == _PST_BASE:
+    if url is None and not env_base and _supporto_auto_pst_disponibile() and candidate == _PST_BASE:
         return False
     return _pst_host(candidate).lower() == "wspa.giustizia.it"
 

@@ -305,9 +305,9 @@ class TestPCTInvioPEC:
         busta_path = busta.crea_busta(str(tmp_path / "output"))
 
         # Mocka l'SMTP per evitare connessioni reali
-        with patch("smtplib.SMTP_SSL") as mock_smtp:
+        with patch("pct.pec._SMTP_SSLv4") as mock_smtp:
             mock_server = MagicMock()
-            mock_smtp.return_value.__enter__.return_value = mock_server
+            mock_smtp.return_value = mock_server
 
             risultato = client.invia_busta(
                 destinatario_pec="tribunale.milano@giustiziapec.it",
@@ -333,10 +333,9 @@ class TestPCTInvioPEC:
         busta   = BustaTelematica(dati_busta_pct)
         path    = busta.crea_busta(str(tmp_path / "output"))
 
-        with patch("smtplib.SMTP_SSL") as mock_smtp:
+        with patch("pct.pec._SMTP_SSLv4") as mock_smtp:
             mock_server = MagicMock()
-            mock_server.sendmail.return_value = {}
-            mock_smtp.return_value.__enter__.return_value = mock_server
+            mock_smtp.return_value = mock_server
 
             risultato = client.invia_busta(
                 destinatario_pec="tribunale.milano@giustiziapec.it",

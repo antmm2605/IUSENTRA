@@ -106,7 +106,11 @@ def test_esborsi_tipici_non_propongono_piu_marca_da_bollo_nel_wizard_preventivi(
 
 def test_catalogo_riferimenti_normativi_deduplica_e_traccia_tipologie():
     riferimenti = catalogo_riferimenti_normativi()
-    dm55 = next(row for row in riferimenti if row["title"] == "D.M. 10 marzo 2014, n. 55")
+    dm55 = next(
+        row
+        for row in riferimenti
+        if row["title"] == "D.M. 10 marzo 2014, n. 55" and row["article"] == "parametri forensi"
+    )
     assert "Civile" in dm55["areas"]
     assert "decreto_ingiuntivo" in dm55["tipologie_ids"]
     assert dm55["motori"]

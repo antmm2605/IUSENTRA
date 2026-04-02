@@ -100,7 +100,7 @@ def test_negoziazione_assistita_applica_variazione_pm50_e_bonus_accordo_adr():
     assert risultato.spese_generali == 472.99
     assert risultato.totale_con_spese == 3626.24
     assert "variazioni per fase applicate" in risultato.note.lower()
-    assert "maggiorazioni normative applicate sulle fasi" in risultato.note.lower()
+    assert "accordo adr ex art. 20, comma 1-bis, d.m. 55/2014: +30% automatico" in risultato.note.lower()
     assert "dm 147/2022: variazione +/-50% tassativa." in risultato.note.lower()
 
 
@@ -142,8 +142,10 @@ def test_penale_appello_applica_coefficiente_ricostruttivo():
         [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE],
     )
 
-    assert appello.totale_base == round(primo_grado.totale_base * 1.30, 2)
-    assert "coefficiente ricostruttivo x1.30" in appello.note
+    assert primo_grado.totale_base == 3592.0
+    assert appello.totale_base == 4254.0
+    assert "tabella 15 per appello penale" in appello.note.lower()
+    assert "tabella 15-10" in appello.note.lower()
 
 
 def test_tributario_cassazione_applica_coefficiente_ricostruttivo():
@@ -160,8 +162,10 @@ def test_tributario_cassazione_applica_coefficiente_ricostruttivo():
         [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
     )
 
-    assert cassazione.totale_base == round(appello.totale_base * 1.60, 2)
-    assert "coefficiente ricostruttivo x1.60" in cassazione.note
+    assert appello.totale_base == 3187.0
+    assert cassazione.totale_base == 3082.0
+    assert "tabella 13 per giudizi di legittimita in cassazione" in cassazione.note.lower()
+    assert "tabella 13" in cassazione.note.lower()
 
 
 def test_riepilogo_livello_massimo_calcola_bonus_e_spese():

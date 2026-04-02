@@ -635,6 +635,8 @@ function renderAdrVariationBox() {
   const accordoChecked = accordoLive ? accordoLive.checked : !!WIZARD_PREFILL.adr_accordo;
   const range = policy.range_pct || { min: -50, max: 50, default: 0 };
   const agreementBonus = policy.agreement_bonus || {};
+  const agreementPhaseKeys = agreementBonus.phase_keys || [];
+  const agreementPct = Number(agreementBonus.pct || 0);
   box.innerHTML = `
     <div class="d-flex flex-column gap-3">
       <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
@@ -647,6 +649,14 @@ function renderAdrVariationBox() {
           <label class="form-check-label fw-semibold small" for="chkAdrAccordo">Procedura conclusa con accordo</label>
         </div>
       </div>
+      ${agreementBonus.enabled && accordoChecked ? `
+        <div class="alert alert-success small py-2 mb-0">
+          <i class="bi bi-check-circle me-1"></i>
+          La maggiorazione normativa del +${escapeHtml(agreementPct)}% viene applicata automaticamente nel calcolo
+          sulle fasi ${escapeHtml(agreementPhaseKeys.join(', '))}. I campi percentuali qui sotto restano separati e
+          servono solo per la variazione manuale ${range.min}% / +${range.max}%.
+        </div>
+      ` : ''}
       <div class="row g-2">
         ${(policy.phase_controls || []).map((item) => `
           <div class="col-md-6 col-xl-3">
@@ -662,6 +672,11 @@ function renderAdrVariationBox() {
                 step="5"
                 value="${escapeHtml(values[item.key] ?? range.default ?? 0)}">
             </div>
+            ${agreementBonus.enabled && agreementPhaseKeys.includes(item.key) ? `
+              <div class="form-text ${accordoChecked ? 'text-success' : 'text-muted'}">
+                ${accordoChecked ? `+${escapeHtml(agreementPct)}% automatico con accordo` : `fase soggetta a +${escapeHtml(agreementPct)}% automatico se si raggiunge l'accordo`}
+              </div>
+            ` : ''}
           </div>
         `).join('')}
       </div>
@@ -671,6 +686,10 @@ function renderAdrVariationBox() {
       </div>
     </div>
   `;
+  const accordoNode = box.querySelector('#chkAdrAccordo');
+  if (accordoNode) {
+    accordoNode.addEventListener('change', () => renderAdrVariationBox());
+  }
 }
 
 function dedupeNormativeReferences(refs) {

@@ -102,6 +102,30 @@ def test_negoziazione_assistita_applica_variazione_pm50_e_bonus_accordo_adr():
     assert "dm 147/2022: variazione +/-50% tassativa." in risultato.note.lower()
 
 
+def test_accordo_adr_applica_bonus_automatico_senza_confondere_le_variazioni_manuali():
+    risultato = calcola_compenso(
+        Materia.NEGOZIAZIONE_ASSISTITA,
+        Grado.PROCEDURA_ADR,
+        10000,
+        [Fase.ATTIVAZIONE, Fase.NEGOZIAZIONE_TRATTAZIONE, Fase.CONCILIAZIONE],
+        includi_spese_generali=False,
+        maggiorazioni_fasi={
+            Fase.ATTIVAZIONE.value: 1.30,
+            Fase.NEGOZIAZIONE_TRATTAZIONE.value: 1.30,
+        },
+    )
+
+    assert risultato.variazioni_fasi == {}
+    assert risultato.maggiorazioni_fasi == {
+        Fase.ATTIVAZIONE.value: 1.30,
+        Fase.NEGOZIAZIONE_TRATTAZIONE.value: 1.30,
+    }
+    assert risultato.dettaglio["Fase di attivazione"] == (286.65, 573.3, 859.95)
+    assert risultato.dettaglio["Fase di negoziazione"] == (573.3, 1146.6, 1719.9)
+    assert risultato.totale_base == 3439.9
+    assert "accordo adr ex art. 20, comma 1-bis, d.m. 55/2014: +30% automatico" in risultato.note.lower()
+
+
 def test_penale_appello_applica_coefficiente_ricostruttivo():
     primo_grado = calcola_compenso(
         Materia.PENALE,

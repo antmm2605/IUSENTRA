@@ -1067,7 +1067,20 @@ def calcola_compenso(
         note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")
     if _maggiorazioni:
         fasi_maggiorate = ", ".join(sorted(_maggiorazioni.keys()))
-        note_parts.append(f"Maggiorazioni normative applicate sulle fasi: {fasi_maggiorate}.")
+        maggiorazioni_pct = sorted(
+            {
+                int(round((float(valore) - 1.0) * 100))
+                for valore in _maggiorazioni.values()
+                if float(valore) > 0
+            }
+        )
+        if len(maggiorazioni_pct) == 1 and maggiorazioni_pct[0] > 0:
+            note_parts.append(
+                f"Accordo ADR ex art. 20, comma 1-bis, D.M. 55/2014: "
+                f"+{maggiorazioni_pct[0]}% automatico sulle fasi {fasi_maggiorate}."
+            )
+        else:
+            note_parts.append(f"Maggiorazioni normative applicate sulle fasi: {fasi_maggiorate}.")
     if includi_spese_generali and perc_sg > 0:
         note_parts.append(f"Spese generali art. 2 DM 55/2014: {int(perc_sg*100)}% sul compenso base.")
     if esatto:

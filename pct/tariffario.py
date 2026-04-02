@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 class Materia(str, Enum):
@@ -129,6 +129,7 @@ class RisultatoCalcolo:
     note: str = ""
     # variazioni percentuali applicate per fase (es. {"Fase di attivazione": 1.10})
     variazioni_fasi: Dict[str, float] = field(default_factory=dict)
+    maggiorazioni_fasi: Dict[str, float] = field(default_factory=dict)
     bonus_telematico_attivo: bool = False
     includi_spese_generali: bool = True
     valore_input: float = 0.0
@@ -197,6 +198,7 @@ class RisultatoCalcolo:
             "totale_con_spese": self.totale_con_spese,
             "note": self.note,
             "variazioni_fasi": self.variazioni_fasi,
+            "maggiorazioni_fasi": self.maggiorazioni_fasi,
             "bonus_telematico_attivo": self.bonus_telematico_attivo,
             "includi_spese_generali": self.includi_spese_generali,
         }
@@ -522,7 +524,7 @@ def _mediazione_scaglioni_snapshot() -> list[float]:
 
 
 def _fallback_mediazione() -> list[Scaglione]:
-    """Tabella mediazione (D.Lgs. 28/2010) — 3 fasi da A25 DM 147/2022.
+    """Tabella mediazione (D.Lgs. 28/2010) — 3 fasi da A27 DM 147/2022.
 
     Ripartizione percentuale fasi (orientamento CNF):
       Fase di attivazione:      40 %
@@ -543,7 +545,7 @@ def _fallback_mediazione() -> list[Scaglione]:
 
 
 def _fallback_negoziazione_assistita() -> list[Scaglione]:
-    """Tabella negoziazione assistita (D.L. 132/2014) — 3 fasi da A25 DM 147/2022.
+    """Tabella negoziazione assistita (D.L. 132/2014) — 3 fasi da A27 DM 147/2022.
 
     Stesse percentuali della mediazione ma fase intermedia denominata
     'Fase di negoziazione' anziché 'Fase di rivitalizzazione'.
@@ -965,6 +967,7 @@ def calcola_compenso(
     includi_spese_generali: bool = True,
     perc_spese_generali: float = 0.15,
     variazioni_fasi: Optional[Dict[str, float]] = None,
+    maggiorazioni_fasi: Optional[Dict[str, float]] = None,
     complessita: ComplessitaStimata | str | None = None,
 ) -> RisultatoCalcolo:
     """Calcola il compenso forense secondo DM 147/2022.
@@ -976,6 +979,7 @@ def calcola_compenso(
     """
     tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado, profile_code=profile_code)
     _variazioni = variazioni_fasi or {}
+    _maggiorazioni = maggiorazioni_fasi or {}
     valore_input = float(valore or 0.0)
     valore_calcolo = valore_input
     complessita_norm = _parse_complessita(complessita)
@@ -1031,10 +1035,13 @@ def calcola_compenso(
         # Applica variazione per fase (clamp ±50%)
         var = float(_variazioni.get(fase, 1.0))
         var = max(0.50, min(1.50, var))
-        vbase_raw = round(fase_data.base * coeff * var, 2)
-        vmin = round(fase_data.minimo * coeff, 2)
-        vmax = round(fase_data.massimo * coeff, 2)
-        # Il base varia, min/max rimangono quelli tabellari (DM ±50% sul tabellare)
+        mag = float(_maggiorazioni.get(fase, 1.0))
+        mag = max(0.0, mag)
+        vbase_raw = round(fase_data.base * coeff * var * mag, 2)
+        vmin = round(fase_data.minimo * coeff * mag, 2)
+        vmax = round(fase_data.massimo * coeff * mag, 2)
+        # La variazione percentuale incide sul valore medio; eventuali maggiorazioni normative
+        # (es. accordo ADR) si riflettono sull'intera forbice tabellare della fase.
         dettaglio[fase] = (vmin, vbase_raw, vmax)
         tot_min += vmin
         tot_base += vbase_raw
@@ -1058,6 +1065,9 @@ def calcola_compenso(
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
     if _variazioni:
         note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")
+    if _maggiorazioni:
+        fasi_maggiorate = ", ".join(sorted(_maggiorazioni.keys()))
+        note_parts.append(f"Maggiorazioni normative applicate sulle fasi: {fasi_maggiorate}.")
     if includi_spese_generali and perc_sg > 0:
         note_parts.append(f"Spese generali art. 2 DM 55/2014: {int(perc_sg*100)}% sul compenso base.")
     if esatto:
@@ -1084,6 +1094,7 @@ def calcola_compenso(
         totale_con_spese=totale_con_spese,
         note=" ".join(note_parts),
         variazioni_fasi=dict(_variazioni),
+        maggiorazioni_fasi=dict(_maggiorazioni),
         bonus_telematico_attivo=bonus_telematico,
         includi_spese_generali=includi_spese_generali,
         valore_input=valore_input,

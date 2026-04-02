@@ -251,6 +251,14 @@
               </div>
             </div>
           </div>
+          <div class="row g-3 mt-1">
+            <div class="col-12">
+              <div class="prev-section-label mb-2">Variazioni ADR e accordo</div>
+              <div id="adrVariationBox" class="border rounded-4 p-3 bg-light small text-muted">
+                La variazione ADR si attiva quando selezioni mediazione, negoziazione assistita o un'integrazione ADR collegata.
+              </div>
+            </div>
+          </div>
           <hr class="my-4">
           <div class="prev-section-label mb-2">Spese vive suggerite</div>
           <div id="esborsiGrid" class="row g-2"><div class="col-12 text-muted small">Seleziona una tipologia per vedere gli esborsi tipici.</div></div>
@@ -582,6 +590,82 @@ function accessoriCalcoloSelezionati() {
   return (tipologiaCorrente.accessori_calcolo || []).filter((accessorio) => isAccessorioChecked(accessorio));
 }
 
+function currentAdrVariationValues() {
+  const values = {};
+  document.querySelectorAll('.adr-var-input').forEach((node) => {
+    if (String(node.value || '').trim() !== '') {
+      values[node.dataset.phaseKey] = node.value;
+    }
+  });
+  return values;
+}
+
+function activeAdrTipologia() {
+  if (tipologiaCorrente?.variation_policy?.kind) return tipologiaCorrente;
+  for (const accessorio of accessoriCalcoloSelezionati()) {
+    const adrTipologia = getTipologiaById(accessorio.tipo_pratica_id);
+    if (adrTipologia?.variation_policy?.kind) {
+      return adrTipologia;
+    }
+  }
+  return null;
+}
+
+function renderAdrVariationBox() {
+  const box = document.getElementById('adrVariationBox');
+  if (!box) return;
+  const adrTipologia = activeAdrTipologia();
+  if (!adrTipologia?.variation_policy?.kind) {
+    box.innerHTML = 'La variazione ADR si attiva quando selezioni mediazione, negoziazione assistita o un\'integrazione ADR collegata.';
+    box.classList.add('text-muted');
+    return;
+  }
+  box.classList.remove('text-muted');
+  const policy = adrTipologia.variation_policy || {};
+  const liveValues = currentAdrVariationValues();
+  const values = Object.keys(liveValues).length ? liveValues : (WIZARD_PREFILL.variazioni_fasi || {});
+  const accordoLive = document.getElementById('chkAdrAccordo');
+  const accordoChecked = accordoLive ? accordoLive.checked : !!WIZARD_PREFILL.adr_accordo;
+  const range = policy.range_pct || { min: -50, max: 50, default: 0 };
+  const agreementBonus = policy.agreement_bonus || {};
+  box.innerHTML = `
+    <div class="d-flex flex-column gap-3">
+      <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+        <div>
+          <div class="fw-semibold text-dark">${escapeHtml(adrTipologia.label)}</div>
+          <div class="small text-muted">Tabella 27 DM 55/2014 aggiornata dal D.M. 147/2022 con variazione ammessa entro ${range.min}% / +${range.max}% sui valori medi.</div>
+        </div>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" id="chkAdrAccordo" ${accordoChecked ? 'checked' : ''}>
+          <label class="form-check-label fw-semibold small" for="chkAdrAccordo">Procedura conclusa con accordo</label>
+        </div>
+      </div>
+      <div class="row g-2">
+        ${(policy.phase_controls || []).map((item) => `
+          <div class="col-md-6 col-xl-3">
+            <label class="form-label small text-muted mb-1">${escapeHtml(item.label)}</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">%</span>
+              <input
+                type="number"
+                class="form-control adr-var-input"
+                data-phase-key="${escapeHtml(item.key)}"
+                min="${range.min}"
+                max="${range.max}"
+                step="5"
+                value="${escapeHtml(values[item.key] ?? range.default ?? 0)}">
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="small text-muted">
+        ${(policy.references || []).map((item) => `<div>${escapeHtml(item)}</div>`).join('')}
+        ${agreementBonus.enabled ? `<div>Accordo ADR: +${escapeHtml(agreementBonus.pct)}% sulle fasi ${escapeHtml((agreementBonus.phase_keys || []).join(', '))}.</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
 function dedupeNormativeReferences(refs) {
   const seen = new Set();
   return (refs || []).filter((ref) => {
@@ -741,6 +825,7 @@ function renderFasi() {
   const grid = document.getElementById('fasiGrid');
   if (!tipologiaCorrente) {
     grid.innerHTML = '<div class="col-12 text-muted small">Seleziona una tipologia per vedere le fasi.</div>';
+    renderAdrVariationBox();
     return;
   }
   const phases = tipologiaCorrente.fasi_default_keys || [];
@@ -765,6 +850,7 @@ function renderFasi() {
   grid.querySelectorAll('.accessorio-check').forEach((node) => {
     node.addEventListener('change', async () => {
       renderSchedaTipologia();
+      renderAdrVariationBox();
       renderEsborsi();
       clearAccessorioRows();
       if (ultimoCalcolo) {
@@ -779,6 +865,7 @@ function renderFasi() {
       }
     });
   });
+  renderAdrVariationBox();
 }
 
 function renderEsborsi() {
@@ -950,7 +1037,20 @@ function applyWizardPrefill() {
         node.checked = accessoriSet.has(node.dataset.accessorioId);
       });
       renderSchedaTipologia();
+      renderAdrVariationBox();
       renderEsborsi();
+    }
+    if (WIZARD_PREFILL.adr_accordo) {
+      const chkAdr = document.getElementById('chkAdrAccordo');
+      if (chkAdr) chkAdr.checked = true;
+    }
+    if (WIZARD_PREFILL.variazioni_fasi && typeof WIZARD_PREFILL.variazioni_fasi === 'object') {
+      document.querySelectorAll('.adr-var-input').forEach((node) => {
+        const prefillValue = WIZARD_PREFILL.variazioni_fasi[node.dataset.phaseKey];
+        if (prefillValue !== undefined && prefillValue !== null && String(prefillValue).trim() !== '') {
+          node.value = prefillValue;
+        }
+      });
     }
     if (WIZARD_PREFILL.has_esborsi_prefill) {
       const esborsiSet = new Set(WIZARD_PREFILL.esborsi);
@@ -1105,6 +1205,16 @@ function buildQuery(idPratica = '', fasiOverride = null) {
     ? fasiOverride
     : Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
   params.set('fasi', fasi.join(','));
+  const chkAdrAccordo = document.getElementById('chkAdrAccordo');
+  if (chkAdrAccordo) {
+    params.set('adr_accordo', chkAdrAccordo.checked ? '1' : '0');
+  }
+  document.querySelectorAll('.adr-var-input').forEach((node) => {
+    const rawValue = String(node.value || '').trim();
+    if (rawValue !== '') {
+      params.set(`var_${node.dataset.phaseKey}`, rawValue);
+    }
+  });
   return params;
 }
 
@@ -1264,10 +1374,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       selGrado.dataset.selected = '';
       renderGradiTariffari();
       renderSchedaTipologia();
+      renderAdrVariationBox();
       renderEsborsi();
       syncTipoProcedimentoHidden();
     });
-    selGrado.addEventListener('change', syncTipoProcedimentoHidden);
+    selGrado.addEventListener('change', () => {
+      syncTipoProcedimentoHidden();
+      renderAdrVariationBox();
+    });
     document.getElementById('selComplessita').addEventListener('change', () => {
       if (tipologiaCorrente && ultimoCalcolo) {
         calcolaPreventivo();

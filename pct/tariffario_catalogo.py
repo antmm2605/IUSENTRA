@@ -177,6 +177,22 @@ TARIFFARIO_REFERENCE_ROWS: List[Dict[str, Any]] = [
         "domains": ["tariffario", "preventivi", "parcelle"],
     },
     {
+        "reference_code": "dm55_art19",
+        "title": "D.M. 10 marzo 2014, n. 55",
+        "article": "art. 19",
+        "description": "Per mediazione e negoziazione assistita i valori medi possono essere aumentati o diminuiti entro il limite del 50%.",
+        "url": _URL_DM55,
+        "domains": ["tariffario", "preventivi", "parcelle"],
+    },
+    {
+        "reference_code": "dm55_art20_adr",
+        "title": "D.M. 10 marzo 2014, n. 55",
+        "article": "art. 20, comma 1-bis",
+        "description": "Se mediazione o negoziazione si concludono con accordo, restando ferma la fase di conciliazione, le fasi iniziali ADR aumentano del 30%.",
+        "url": _URL_DM55,
+        "domains": ["tariffario", "preventivi", "parcelle"],
+    },
+    {
         "reference_code": "dm55_art4bis",
         "title": "D.M. 10 marzo 2014, n. 55",
         "article": "art. 4, comma 1-bis",
@@ -696,8 +712,8 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "materia_label": "Mediazione (D.Lgs. 28/2010)",
         "grado_key": "PROCEDURA_ADR",
         "grado_label": "Procedura ADR",
-        "table_code": "A25-MEDIAZIONE",
-        "table_label": "Tabella 25 - Profilo mediazione",
+        "table_code": "A27",
+        "table_label": "Tabella 27 - Mediazione e negoziazione assistita",
         "calc_mode": "per_fasi_adr",
         "exact_snapshot": False,
         "coeff": 1.0,
@@ -705,7 +721,7 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "phase_keys": ["attivazione", "rivitalizzazione", "conciliazione"],
         "suggested_practice_id": "mediazione",
         "summary": "Mediazione civile con riparto operativo su attivazione, rivitalizzazione e conciliazione.",
-        "base_note": "Riparto operativo derivato dal compenso unico stragiudiziale, con fasi ADR dedicate.",
+        "base_note": "Valori letti dalla tabella 27 con mapping attivazione / rivitalizzazione / conciliazione.",
     },
     {
         "profile_code": "negoziazione_assistita",
@@ -713,8 +729,8 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "materia_label": "Negoziazione Assistita (D.L. 132/2014)",
         "grado_key": "PROCEDURA_ADR",
         "grado_label": "Procedura ADR",
-        "table_code": "A25-NEGOZIAZIONE",
-        "table_label": "Tabella 25 - Profilo negoziazione assistita",
+        "table_code": "A27",
+        "table_label": "Tabella 27 - Mediazione e negoziazione assistita",
         "calc_mode": "per_fasi_adr",
         "exact_snapshot": False,
         "coeff": 1.0,
@@ -722,7 +738,7 @@ PROFILE_ROWS: List[Dict[str, Any]] = [
         "phase_keys": ["attivazione", "negoziazione", "conciliazione"],
         "suggested_practice_id": "negoziazione_assistita",
         "summary": "Negoziazione assistita con riparto operativo delle fasi ADR.",
-        "base_note": "Riparto operativo derivato dal compenso unico stragiudiziale, con fase di negoziazione dedicata.",
+        "base_note": "Valori letti dalla tabella 27 con mapping attivazione / negoziazione / conciliazione.",
     },
 ]
 
@@ -2735,6 +2751,17 @@ OPTION_ROWS: List[Dict[str, Any]] = [
         "reference_code": "dm55_art4",
     },
     {
+        "option_code": "accordo_adr_30",
+        "label": "Maggiorazione accordo ADR",
+        "option_kind": "maggiorazione",
+        "value_type": "percent",
+        "value": 30.0,
+        "default_checked": False,
+        "domains": ["tariffario", "preventivi", "parcelle"],
+        "description": "Se la procedura ADR si chiude con accordo, le fasi iniziali aumentano del 30% mentre la conciliazione resta ferma.",
+        "reference_code": "dm55_art20_adr",
+    },
+    {
         "option_code": "compenso_orario_200_500",
         "label": "Compenso orario",
         "option_kind": "alternativa",
@@ -2914,6 +2941,13 @@ def tariffario_profile_rows() -> List[Dict[str, Any]]:
         refs = list(TARIFFARIO_REFERENCE_ROWS[:4])
         if item["materia_key"] in {"AMMINISTRATIVO", "TRIBUTARIO", "MEDIAZIONE", "NEGOZIAZIONE_ASSISTITA"}:
             refs.append(_reference_by_code("l49_equo_compenso"))
+        if item["materia_key"] in {"MEDIAZIONE", "NEGOZIAZIONE_ASSISTITA"}:
+            refs.extend(
+                [
+                    _reference_by_code("dm55_art19"),
+                    _reference_by_code("dm55_art20_adr"),
+                ]
+            )
         if item["materia_key"] == "CONTABILE":
             refs.append(_reference_by_code("dlgs174_giustizia_contabile"))
         if item["materia_key"] == "CRISI_IMPRESA":
@@ -2967,6 +3001,13 @@ def tariffario_rule_rows() -> List[Dict[str, Any]]:
         refs = list(TARIFFARIO_REFERENCE_ROWS[:4])
         if item.get("materia_label") in {"Amministrativo / TAR-CdS", "Tributario / CGT", "Mediazione (D.Lgs. 28/2010)", "Negoziazione Assistita (D.L. 132/2014)"}:
             refs.append(_reference_by_code("l49_equo_compenso"))
+        if item.get("materia_label") in {"Mediazione (D.Lgs. 28/2010)", "Negoziazione Assistita (D.L. 132/2014)"}:
+            refs.extend(
+                [
+                    _reference_by_code("dm55_art19"),
+                    _reference_by_code("dm55_art20_adr"),
+                ]
+            )
         if item.get("materia_label") == "Contabile / Corte dei Conti":
             refs.append(_reference_by_code("dlgs174_giustizia_contabile"))
         if item.get("materia_label") == "Crisi d'impresa / concorsuale":

@@ -142,6 +142,13 @@
               </div>
             </div>
 
+            <div class="col-12">
+              <label class="form-label fw-semibold">Variazioni ADR e accordo</label>
+              <div id="variationBox" class="border rounded-3 p-3 bg-light">
+                <div class="text-muted small">La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</div>
+              </div>
+            </div>
+
             <div class="col-lg-6">
               <label class="form-label fw-semibold">Integrazioni selezionabili</label>
               <div id="addonBox" class="border rounded-3 p-3 bg-light h-100">
@@ -448,6 +455,8 @@ const REGOLA_SEL = {{ regola_tariffaria_sel|tojson }};
 const FASI_SEL = {{ fasi_sel|tojson }};
 const ACCESSORI_SEL = {{ accessori_sel|tojson }};
 const ESBORSI_SEL = {{ esborsi_sel|tojson }};
+const ADR_ACCORDO_SEL = {{ adr_accordo|tojson }};
+const VARIAZIONI_PREFILL = {{ variazioni_prefill|tojson }};
 
 let accessoriInit = false;
 let esborsiInit = false;
@@ -582,6 +591,83 @@ function currentPractice() {
   return PRACTICE_BY_ID[profile.suggested_practice_id] || null;
 }
 
+function currentVariationValues() {
+  const values = {};
+  document.querySelectorAll('.adr-var-input').forEach((node) => {
+    if (String(node.value || '').trim() !== '') {
+      values[node.dataset.phaseKey] = node.value;
+    }
+  });
+  return values;
+}
+
+function activeAdrPractice() {
+  const practice = currentPractice();
+  if (practice?.variation_policy?.kind) return practice;
+  const selectedAccessori = currentAccessoriSelection();
+  for (const accessorio of (practice?.accessori_calcolo || [])) {
+    if (!selectedAccessori.has(accessorio.id)) continue;
+    const adrPractice = PRACTICE_BY_ID[accessorio.tipo_pratica_id];
+    if (adrPractice?.variation_policy?.kind) {
+      return adrPractice;
+    }
+  }
+  return null;
+}
+
+function renderAdrVariations() {
+  const box = document.getElementById('variationBox');
+  const adrPractice = activeAdrPractice();
+  if (!adrPractice?.variation_policy?.kind) {
+    box.innerHTML = '<div class="text-muted small">La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</div>';
+    return;
+  }
+  const policy = adrPractice.variation_policy || {};
+  const liveValues = currentVariationValues();
+  const values = Object.keys(liveValues).length ? liveValues : (VARIAZIONI_PREFILL || {});
+  const accordoLive = document.getElementById('chkAdrAccordo');
+  const accordoChecked = accordoLive ? accordoLive.checked : !!ADR_ACCORDO_SEL;
+  const range = policy.range_pct || { min: -50, max: 50, default: 0 };
+  const agreementBonus = policy.agreement_bonus || {};
+  box.innerHTML = `
+    <div class="d-flex flex-column gap-3">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+        <div>
+          <div class="fw-semibold text-dark">${escapeHtml(adrPractice.label)}</div>
+          <div class="small text-muted">Tabella 27, variazione per fase entro il range ${range.min}% / +${range.max}% e bonus accordo dove previsto.</div>
+        </div>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" name="adr_accordo" value="1" id="chkAdrAccordo" ${accordoChecked ? 'checked' : ''}>
+          <label class="form-check-label small fw-semibold" for="chkAdrAccordo">Procedura conclusa con accordo</label>
+        </div>
+      </div>
+      <div class="row g-2">
+        ${(policy.phase_controls || []).map((item) => `
+          <div class="col-md-6 col-xl-3">
+            <label class="form-label small text-muted mb-1">${escapeHtml(item.label)}</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">%</span>
+              <input
+                type="number"
+                class="form-control adr-var-input"
+                name="var_${escapeHtml(item.key)}"
+                data-phase-key="${escapeHtml(item.key)}"
+                min="${range.min}"
+                max="${range.max}"
+                step="5"
+                value="${escapeHtml(values[item.key] ?? range.default ?? 0)}">
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="small text-muted">
+        ${(policy.references || []).map((item) => `<div>${escapeHtml(item)}</div>`).join('')}
+        ${agreementBonus.enabled ? `<div>Accordo ADR: +${escapeHtml(agreementBonus.pct)}% sulle fasi ${escapeHtml((agreementBonus.phase_keys || []).join(', '))}.</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
 function currentAccessoriSelection() {
   return new Set(Array.from(document.querySelectorAll('input[name="accessori"]:checked')).map((node) => node.value));
 }
@@ -641,6 +727,7 @@ function renderAccessori() {
   const practice = currentPractice();
   if (!practice || !(practice.accessori_calcolo || []).length) {
     box.innerHTML = '<div class="text-muted small">Nessuna integrazione opzionale per il profilo attivo.</div>';
+    renderAdrVariations();
     renderExpenses();
     return;
   }
@@ -658,10 +745,12 @@ function renderAccessori() {
     `).join('')}</div>`;
   box.querySelectorAll('input[name="accessori"]').forEach((node) => {
     node.addEventListener('change', () => {
+      renderAdrVariations();
       renderExpenses();
       renderProfilo();
     });
   });
+  renderAdrVariations();
   renderExpenses();
 }
 

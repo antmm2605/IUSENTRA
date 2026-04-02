@@ -69,6 +69,7 @@ class TipoPratica:
     checklist_iniziale: List[str] = field(default_factory=list)
     normative_references: List[Dict[str, str]] = field(default_factory=list)
     accessori_calcolo: List[Dict[str, Any]] = field(default_factory=list)
+    variation_policy: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         regole = rules_for_practice(self.id)
@@ -101,11 +102,50 @@ class TipoPratica:
             "checklist_iniziale": self.checklist_iniziale,
             "normative_references": self.normative_references,
             "accessori_calcolo": self.accessori_calcolo,
+            "variation_policy": self.variation_policy,
             "fasi_default_keys": [_fase_key(f) for f in self.fasi_default],
             "gradi_consentiti": gradi_consentiti,
             "regola_tariffaria_default": regola_default.get("rule_code", "") if regola_default else "",
             "regole_tariffarie": regole,
         }
+
+
+def _adr_variation_policy(kind: str) -> Dict[str, Any]:
+    phase_keys = ["attivazione", "rivitalizzazione", "conciliazione"]
+    agreement_phase_keys = ["attivazione", "rivitalizzazione"]
+    if kind == "negoziazione":
+        phase_keys = ["attivazione", "negoziazione", "conciliazione"]
+        agreement_phase_keys = ["attivazione", "negoziazione"]
+    return {
+        "kind": "adr_pm50_con_accordo",
+        "range_pct": {"min": -50, "max": 50, "default": 0},
+        "phase_controls": [
+            {
+                "key": key,
+                "label": {
+                    "attivazione": "Fase di attivazione",
+                    "rivitalizzazione": "Fase di rivitalizzazione",
+                    "negoziazione": "Fase di negoziazione",
+                    "conciliazione": "Fase di conciliazione",
+                }.get(key, key),
+            }
+            for key in phase_keys
+        ],
+        "agreement_bonus": {
+            "enabled": True,
+            "pct": 30,
+            "phase_keys": agreement_phase_keys,
+            "description": (
+                "Se la procedura si conclude con accordo, i compensi delle fasi di attivazione "
+                "e negoziazione/rivitalizzazione sono aumentati del 30%, ferma la fase di conciliazione."
+            ),
+        },
+        "references": [
+            "Art. 2 D.M. 55/2014: spese generali 15% sul compenso.",
+            "Art. 19 D.M. 55/2014: variazione per fase entro il +/-50%.",
+            "Art. 20, comma 1-bis, D.M. 55/2014: +30% sulle fasi iniziali ADR se si raggiunge l'accordo.",
+        ],
+    }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -777,9 +817,10 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.MEDIAZIONE,
         grado_default=Grado.PROCEDURA_ADR,
         fasi_default=[Fase.ATTIVAZIONE, Fase.RIVITALIZZAZIONE, Fase.CONCILIAZIONE],
-        base_normativa="Tab. A25 DM 55/2014 agg. DM 147/2022 — D.Lgs. 28/2010",
+        base_normativa="Tab. A27 DM 55/2014 agg. DM 147/2022 — D.Lgs. 28/2010",
         richiede_valore=True,
         tipo_compenso_default="Per fasi processuali (D.M. 55/2014)",
+        variation_policy=_adr_variation_policy("mediazione"),
     ),
     TipoPratica(
         id="negoziazione_assistita",
@@ -788,9 +829,10 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.NEGOZIAZIONE_ASSISTITA,
         grado_default=Grado.PROCEDURA_ADR,
         fasi_default=[Fase.ATTIVAZIONE, Fase.NEGOZIAZIONE_TRATTAZIONE, Fase.CONCILIAZIONE],
-        base_normativa="Tab. A25 DM 55/2014 agg. DM 147/2022 — D.L. 132/2014 conv. L. 162/2014",
+        base_normativa="Tab. A27 DM 55/2014 agg. DM 147/2022 — D.L. 132/2014 conv. L. 162/2014",
         richiede_valore=True,
         tipo_compenso_default="Per fasi processuali (D.M. 55/2014)",
+        variation_policy=_adr_variation_policy("negoziazione"),
     ),
     TipoPratica(
         id="transazione",
@@ -1750,6 +1792,14 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
         )
         refs.append(
             {
+                "title": "D.M. 10 marzo 2014, n. 55",
+                "article": "artt. 2, 19 e 20, comma 1-bis",
+                "description": "Spese generali al 15%, variazione per fase entro il +/-50% e maggiorazione del 30% sulle fasi iniziali ADR in caso di accordo.",
+                "url": _URL_DM55,
+            }
+        )
+        refs.append(
+            {
                 "title": "Ministero della Giustizia",
                 "article": "registro organismi di mediazione",
                 "description": (
@@ -1767,6 +1817,14 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "article": "negoziazione assistita",
                 "description": "Disciplina della convenzione di negoziazione assistita e dei casi di obbligatorieta.",
                 "url": _URL_NEGOZIAZIONE,
+            }
+        )
+        refs.append(
+            {
+                "title": "D.M. 10 marzo 2014, n. 55",
+                "article": "artt. 2, 19 e 20, comma 1-bis",
+                "description": "Spese generali al 15%, variazione per fase entro il +/-50% e maggiorazione del 30% sulle fasi iniziali ADR in caso di accordo.",
+                "url": _URL_DM55,
             }
         )
     if tp.id == "sinistro_stradale_stragiudiziale":
@@ -2232,6 +2290,7 @@ def motore_calcola(
     includi_spese_generali: bool = True,
     perc_spese_generali: float = 0.15,
     variazioni_fasi: Optional[Dict[str, float]] = None,
+    maggiorazioni_fasi: Optional[Dict[str, float]] = None,
     applica_cpa: bool = True,
     applica_iva: bool = True,
     anticipazioni: float = 0.0,
@@ -2274,6 +2333,7 @@ def motore_calcola(
         includi_spese_generali=includi_spese_generali,
         perc_spese_generali=perc_spese_generali,
         variazioni_fasi=variazioni_fasi or None,
+        maggiorazioni_fasi=maggiorazioni_fasi or None,
         complessita=complessita,
     )
 

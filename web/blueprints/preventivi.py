@@ -675,7 +675,7 @@ def ajax_parametri_dm55():
       bonus_telematico    — "1" | "0"
       spese_generali      — "1" | "0"
       perc_spese_generali — float es. "15" → 0.15
-      var_<nome_fase>     — variazione % per fase (es. var_attivazione=110 → +10%)
+      var_<nome_fase>     — variazione % per fase (es. var_attivazione=10 → +10%)
     """
     from flask import jsonify
     from pct.tariffario import calcola_compenso, Materia, Grado, Fase
@@ -776,9 +776,18 @@ def ajax_parametri_dm55():
         raw_val = request.args.get(f"var_{k}")
         if raw_val is not None:
             try:
-                variazioni_fasi[fase_label] = float(raw_val) / 100.0
+                variazioni_fasi[fase_label] = 1.0 + (float(raw_val) / 100.0)
             except (ValueError, TypeError):
                 pass
+
+    maggiorazioni_fasi: dict = {}
+    if request.args.get("adr_accordo", "0") == "1":
+        if materia == Materia.MEDIAZIONE:
+            maggiorazioni_fasi[Fase.ATTIVAZIONE.value] = 1.30
+            maggiorazioni_fasi[Fase.RIVITALIZZAZIONE.value] = 1.30
+        elif materia == Materia.NEGOZIAZIONE_ASSISTITA:
+            maggiorazioni_fasi[Fase.ATTIVAZIONE.value] = 1.30
+            maggiorazioni_fasi[Fase.NEGOZIAZIONE_TRATTAZIONE.value] = 1.30
 
     try:
         ris = calcola_compenso(
@@ -790,6 +799,7 @@ def ajax_parametri_dm55():
             includi_spese_generali=incl_spese,
             perc_spese_generali=perc_sg,
             variazioni_fasi=variazioni_fasi or None,
+            maggiorazioni_fasi=maggiorazioni_fasi or None,
         )
         # Costruisce la risposta con dettaglio min/base/max per fase
         fasi_out = {}
@@ -859,6 +869,12 @@ def wizard():
         "regola_tariffaria": request.args.get("regola_tariffaria", "").strip(),
         "complessita": request.args.get("complessita", "media").strip() or "media",
         "fasi": fasi_prefill,
+        "variazioni_fasi": {
+            key: (request.args.get(f"var_{key}", "") or "").strip()
+            for key in ("attivazione", "rivitalizzazione", "negoziazione", "conciliazione")
+            if (request.args.get(f"var_{key}", "") or "").strip()
+        },
+        "adr_accordo": request.args.get("adr_accordo", "0") == "1",
         "bonus_telematico": request.args.get("bonus_telematico", "0") == "1",
         "spese_generali": request.args.get("spese_generali", "1") == "1",
         "perc_spese_generali": request.args.get("perc_spese_generali", "15").strip() or "15",
@@ -998,9 +1014,26 @@ def wizard_calcola():
             raw_val = request.args.get(f"var_{k}")
             if raw_val is not None:
                 try:
-                    variazioni_fasi[fase_label] = float(raw_val) / 100.0
+                    variazioni_fasi[fase_label] = 1.0 + (float(raw_val) / 100.0)
                 except (ValueError, TypeError):
                     pass
+
+        maggiorazioni_fasi: dict = {}
+        variation_policy = dict(getattr(tp, "variation_policy", {}) or {})
+        agreement_bonus = dict(variation_policy.get("agreement_bonus", {}) or {})
+        if request.args.get("adr_accordo", "0") == "1" and agreement_bonus.get("enabled"):
+            pct = float(agreement_bonus.get("pct", 0) or 0)
+            multiplier = 1.0 + (pct / 100.0)
+            phase_key_to_value = {
+                "attivazione": Fase.ATTIVAZIONE.value,
+                "rivitalizzazione": Fase.RIVITALIZZAZIONE.value,
+                "negoziazione": Fase.NEGOZIAZIONE_TRATTAZIONE.value,
+                "conciliazione": Fase.CONCILIAZIONE.value,
+            }
+            for key in agreement_bonus.get("phase_keys", []) or []:
+                phase_value = phase_key_to_value.get(str(key))
+                if phase_value:
+                    maggiorazioni_fasi[phase_value] = multiplier
 
         ris = motore_calcola(
             id_pratica=id_pratica,
@@ -1014,6 +1047,7 @@ def wizard_calcola():
             includi_spese_generali=incl_spese,
             perc_spese_generali=perc_sg,
             variazioni_fasi=variazioni_fasi or None,
+            maggiorazioni_fasi=maggiorazioni_fasi or None,
             applica_cpa=applica_cpa,
             applica_iva=applica_iva,
             anticipazioni=anticipazioni,

@@ -52,6 +52,56 @@ def test_stragiudiziale_forza_compenso_unico():
     assert "tabella 25" in risultato.note.lower()
 
 
+def test_mediazione_tabella_27_usa_snapshot_ufficiale_e_spese_generali_art2():
+    risultato = calcola_compenso(
+        Materia.MEDIAZIONE,
+        Grado.PROCEDURA_ADR,
+        10000,
+        [Fase.ATTIVAZIONE, Fase.RIVITALIZZAZIONE, Fase.CONCILIAZIONE],
+        includi_spese_generali=True,
+        perc_spese_generali=0.15,
+    )
+
+    assert risultato.scaglione == "Da EUR 5.200 a EUR 26.000"
+    assert risultato.dettaglio["Fase di attivazione"] == (220.5, 441.0, 661.5)
+    assert risultato.dettaglio["Fase di rivitalizzazione"] == (441.0, 882.0, 1323.0)
+    assert risultato.dettaglio["Fase di conciliazione"] == (860.0, 1720.0, 2580.0)
+    assert risultato.totale_base == 3043.0
+    assert risultato.spese_generali == 456.45
+    assert risultato.totale_con_spese == 3499.45
+    assert "tabella 27" in risultato.note.lower()
+    assert "spese generali art. 2 dm 55/2014: 15% sul compenso base." in risultato.note.lower()
+
+
+def test_negoziazione_assistita_applica_variazione_pm50_e_bonus_accordo_adr():
+    risultato = calcola_compenso(
+        Materia.NEGOZIAZIONE_ASSISTITA,
+        Grado.PROCEDURA_ADR,
+        10000,
+        [Fase.ATTIVAZIONE, Fase.NEGOZIAZIONE_TRATTAZIONE, Fase.CONCILIAZIONE],
+        includi_spese_generali=True,
+        perc_spese_generali=0.15,
+        variazioni_fasi={
+            Fase.ATTIVAZIONE.value: 1.50,
+            Fase.NEGOZIAZIONE_TRATTAZIONE.value: 0.50,
+        },
+        maggiorazioni_fasi={
+            Fase.ATTIVAZIONE.value: 1.30,
+            Fase.NEGOZIAZIONE_TRATTAZIONE.value: 1.30,
+        },
+    )
+
+    assert risultato.dettaglio["Fase di attivazione"] == (286.65, 859.95, 859.95)
+    assert risultato.dettaglio["Fase di negoziazione"] == (573.3, 573.3, 1719.9)
+    assert risultato.dettaglio["Fase di conciliazione"] == (860.0, 1720.0, 2580.0)
+    assert risultato.totale_base == 3153.25
+    assert risultato.spese_generali == 472.99
+    assert risultato.totale_con_spese == 3626.24
+    assert "variazioni per fase applicate" in risultato.note.lower()
+    assert "maggiorazioni normative applicate sulle fasi" in risultato.note.lower()
+    assert "dm 147/2022: variazione +/-50% tassativa." in risultato.note.lower()
+
+
 def test_penale_appello_applica_coefficiente_ricostruttivo():
     primo_grado = calcola_compenso(
         Materia.PENALE,

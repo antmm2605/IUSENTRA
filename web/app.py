@@ -2325,6 +2325,67 @@ def create_app(config: dict | None = None) -> Flask:
             }
             return mapping.get(fase_value, fase_value)
 
+        def _fase_value_from_key(fase_key: str) -> str:
+            mapping = {
+                "studio": Fase.STUDIO.value,
+                "introduttiva": Fase.INTRODUTTIVA.value,
+                "istruttoria": Fase.ISTRUTTORIA.value,
+                "decisionale": Fase.DECISIONALE.value,
+                "esecutiva": Fase.ESECUTIVA.value,
+                "attivazione": Fase.ATTIVAZIONE.value,
+                "rivitalizzazione": Fase.RIVITALIZZAZIONE.value,
+                "negoziazione": Fase.NEGOZIAZIONE_TRATTAZIONE.value,
+                "conciliazione": Fase.CONCILIAZIONE.value,
+                "compenso_unico": "Compenso unico",
+            }
+            return mapping.get(fase_key, fase_key)
+
+        def _variation_policy_for(tp) -> dict:
+            if not tp:
+                return {}
+            return dict(getattr(tp, "variation_policy", {}) or {})
+
+        def _variation_keys_for(tp) -> list[str]:
+            policy = _variation_policy_for(tp)
+            return [
+                str(item.get("key"))
+                for item in policy.get("phase_controls", []) or []
+                if str(item.get("key") or "").strip()
+            ]
+
+        def _variazioni_fasi_da_form(tp) -> dict:
+            rows = {}
+            for key in _variation_keys_for(tp):
+                raw = (request.form.get(f"var_{key}") or "").strip()
+                if not raw:
+                    continue
+                rows[_fase_value_from_key(key)] = 1.0 + (_parse_float(raw, 0.0) / 100.0)
+            return rows
+
+        def _maggiorazioni_adr_da_form(tp) -> dict:
+            if request.form.get("adr_accordo") != "1":
+                return {}
+            policy = _variation_policy_for(tp)
+            agreement_bonus = dict(policy.get("agreement_bonus", {}) or {})
+            if not agreement_bonus.get("enabled"):
+                return {}
+            pct = _parse_float(agreement_bonus.get("pct", 0), 0.0)
+            if pct <= 0:
+                return {}
+            multiplier = 1.0 + (pct / 100.0)
+            rows = {}
+            for key in agreement_bonus.get("phase_keys", []) or []:
+                rows[_fase_value_from_key(str(key))] = multiplier
+            return rows
+
+        def _variazioni_prefill_from_form() -> dict:
+            rows = {}
+            for key in ("attivazione", "rivitalizzazione", "negoziazione", "conciliazione"):
+                raw = (request.form.get(f"var_{key}") or "").strip()
+                if raw:
+                    rows[key] = raw
+            return rows
+
         def _preferred_grade(gradi: list[str]) -> str:
             ordine = [
                 "Tribunale",
@@ -2436,6 +2497,8 @@ def create_app(config: dict | None = None) -> Flask:
         accessori_sel = request.form.getlist("accessori")
         esborsi_sel = request.form.getlist("esborsi")
         manual_rows_prefill = _manual_rows_from_form()
+        adr_accordo = request.form.get("adr_accordo") == "1"
+        variazioni_prefill = _variazioni_prefill_from_form()
 
         fasi_valide = phase_catalog.get(materia_sel) or []
         if not fasi_sel:
@@ -2478,6 +2541,8 @@ def create_app(config: dict | None = None) -> Flask:
                     bonus_telematico=bonus_tel,
                     includi_spese_generali=spese_gen,
                     perc_spese_generali=max(0.0, perc_spese / 100.0),
+                    variazioni_fasi=_variazioni_fasi_da_form(tipo_pratica_attiva) or None,
+                    maggiorazioni_fasi=_maggiorazioni_adr_da_form(tipo_pratica_attiva) or None,
                     complessita=complessita_sel,
                 )
                 regola_attiva = rule_lookup(regola_tariffaria_sel) if regola_tariffaria_sel else None
@@ -2518,6 +2583,7 @@ def create_app(config: dict | None = None) -> Flask:
                     accessorio = accessori_map.get(accessorio_id)
                     if not accessorio:
                         continue
+                    tp_accessorio = get_tipo_pratica(accessorio.get("tipo_pratica_id", ""))
                     fasi_accessorio = [
                         fase_key_map[key]
                         for key in accessorio.get("fasi_default_keys", [])
@@ -2531,6 +2597,8 @@ def create_app(config: dict | None = None) -> Flask:
                         bonus_telematico=bonus_tel,
                         includi_spese_generali=spese_gen,
                         perc_spese_generali=max(0.0, perc_spese / 100.0),
+                        variazioni_fasi=_variazioni_fasi_da_form(tp_accessorio) or None,
+                        maggiorazioni_fasi=_maggiorazioni_adr_da_form(tp_accessorio) or None,
                         fasi=fasi_accessorio,
                         applica_cpa=False,
                         applica_iva=False,
@@ -2605,27 +2673,30 @@ def create_app(config: dict | None = None) -> Flask:
                 }
                 for row in righe_calcolo
             ]
-            url_wizard_precompilato = url_for(
-                "preventivi.wizard",
-                id_pratica=profilo_attivo.get("suggested_practice_id", ""),
-                area=(tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel),
-                valore=valore_str or "0",
-                  grado=grado_sel,
-                  regola_tariffaria=regola_tariffaria_sel,
-                  complessita=complessita_sel,
-                  fasi=",".join(fasi_sel),
-                  bonus_telematico="1" if bonus_tel else "0",
-                spese_generali="1" if spese_gen else "0",
-                perc_spese_generali=str(int(round(perc_spese))),
-                applica_cpa="1",
-                applica_iva="1",
-                anticipazioni="0",
-                accessori_json=accessori_json,
-                esborsi_json=esborsi_json,
-                manual_voci_json=manual_voci_json,
-                auto_calcola="1",
-                entry="tariffario",
-            )
+            wizard_params = {
+                "id_pratica": profilo_attivo.get("suggested_practice_id", ""),
+                "area": (tipo_pratica_attiva.area if tipo_pratica_attiva else materia_sel),
+                "valore": valore_str or "0",
+                "grado": grado_sel,
+                "regola_tariffaria": regola_tariffaria_sel,
+                "complessita": complessita_sel,
+                "fasi": ",".join(fasi_sel),
+                "bonus_telematico": "1" if bonus_tel else "0",
+                "spese_generali": "1" if spese_gen else "0",
+                "perc_spese_generali": str(int(round(perc_spese))),
+                "applica_cpa": "1",
+                "applica_iva": "1",
+                "anticipazioni": "0",
+                "adr_accordo": "1" if adr_accordo else "0",
+                "accessori_json": accessori_json,
+                "esborsi_json": esborsi_json,
+                "manual_voci_json": manual_voci_json,
+                "auto_calcola": "1",
+                "entry": "tariffario",
+            }
+            for key, raw_value in variazioni_prefill.items():
+                wizard_params[f"var_{key}"] = raw_value
+            url_wizard_precompilato = url_for("preventivi.wizard", **wizard_params)
             url_parcella_precompilata = url_for(
                 "fatturazione.nuova",
                 voci_json=json.dumps(voci_parcella, ensure_ascii=False),
@@ -2663,6 +2734,8 @@ def create_app(config: dict | None = None) -> Flask:
             perc_spese=perc_spese,
             accessori_sel=accessori_sel,
             esborsi_sel=esborsi_sel,
+            adr_accordo=adr_accordo,
+            variazioni_prefill=variazioni_prefill,
             esborsi_catalogo=esborsi_catalogo,
             manual_rows_prefill=manual_rows_prefill,
             righe_calcolo=righe_calcolo,

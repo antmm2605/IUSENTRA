@@ -44,6 +44,29 @@ def test_mediazione_riporta_anche_il_regolamento_spese_post_cartabia():
     assert "Ministero della Giustizia" in titles
 
 
+def test_mediazione_e_negoziazione_espongono_variation_policy_adr_per_wizard_e_tariffario():
+    mediazione = redattore_preventivo_iniziale("mediazione")
+    negoziazione = redattore_preventivo_iniziale("negoziazione_assistita")
+
+    assert "tab. a27" in mediazione["base_normativa"].lower()
+    assert "tab. a27" in negoziazione["base_normativa"].lower()
+
+    policy_mediazione = mediazione["variation_policy"]
+    policy_negoziazione = negoziazione["variation_policy"]
+
+    assert policy_mediazione["kind"] == "adr_pm50_con_accordo"
+    assert policy_negoziazione["kind"] == "adr_pm50_con_accordo"
+    assert policy_mediazione["range_pct"] == {"min": -50, "max": 50, "default": 0}
+    assert policy_negoziazione["range_pct"] == {"min": -50, "max": 50, "default": 0}
+    assert [row["key"] for row in policy_mediazione["phase_controls"]] == ["attivazione", "rivitalizzazione", "conciliazione"]
+    assert [row["key"] for row in policy_negoziazione["phase_controls"]] == ["attivazione", "negoziazione", "conciliazione"]
+    assert policy_mediazione["agreement_bonus"]["pct"] == 30
+    assert policy_mediazione["agreement_bonus"]["phase_keys"] == ["attivazione", "rivitalizzazione"]
+    assert policy_negoziazione["agreement_bonus"]["phase_keys"] == ["attivazione", "negoziazione"]
+    assert any("art. 19" in ref.lower() for ref in policy_mediazione["references"])
+    assert any("art. 20" in ref.lower() for ref in policy_negoziazione["references"])
+
+
 def test_catalogo_include_tipologie_civili_e_stragiudiziali_aggiunte():
     catalogo = catalogo_wizard()
     civile_ids = {item["id"] for item in catalogo["Civile"]}

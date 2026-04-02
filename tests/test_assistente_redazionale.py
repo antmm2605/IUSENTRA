@@ -87,6 +87,8 @@ def test_assistente_redazionale_civile_restituisce_schema_e_blocchi_guidati(tmp_
 
     assert analysis.profile["channel"] == "PCT_TELEMATICO"
     assert analysis.schema_channel["supports_xml"] is True
+    assert analysis.schema_channel["official_schema_key"] == "SICI"
+    assert analysis.schema_channel["production_ready"] is True
     assert analysis.profile["registry_suggestion"] == "RG"
     assert analysis.semaforo["tecnico_ministeriale"] == "ok"
     assert any(section["key"] == "parti" for section in analysis.sections)

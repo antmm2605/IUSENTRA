@@ -217,7 +217,7 @@
           <span class="badge bg-light text-dark border" id="assist-grade">{{ assistant_analysis.get('profile', {}).get('grade_label', 'Grado') }}</span>
         </div>
         <div class="small text-muted mb-3" id="assist-snapshot">
-          Snapshot schemi {{ assistant_analysis.get('schema_channel', {}).get('schema_version', 'n.d.') }} · Regole {{ assistant_analysis.get('snapshot', {}).get('redaction_ruleset_version', 'n.d.') }}
+          Snapshot schemi {{ assistant_analysis.get('schema_channel', {}).get('schema_version', 'n.d.') }} | Regole {{ assistant_analysis.get('snapshot', {}).get('redaction_ruleset_version', 'n.d.') }}
         </div>
         <div class="small fw-semibold mb-2">Prossimi passi</div>
         <div id="assist-next-steps" class="small text-muted">
@@ -447,7 +447,10 @@ function renderAssistant(analysis) {
   document.getElementById('assist-channel').textContent = analysis.schema_channel?.label || 'Canale';
   document.getElementById('assist-registry').textContent = analysis.profile?.registry_suggestion || 'Registro';
   document.getElementById('assist-grade').textContent = analysis.profile?.grade_label || 'Grado';
-  document.getElementById('assist-snapshot').textContent = `Snapshot schemi ${analysis.schema_channel?.schema_version || 'n.d.'} · Regole ${analysis.snapshot?.redaction_ruleset_version || 'n.d.'}`;
+  const schemaKey = analysis.schema_channel?.official_schema_key ? ` | Canale XSD ${analysis.schema_channel.official_schema_key}` : '';
+  const schemaState = analysis.schema_channel?.production_status ? ` | Stato ${analysis.schema_channel.production_status}` : '';
+  document.getElementById('assist-snapshot').textContent =
+    `Snapshot schemi ${analysis.schema_channel?.schema_version || 'n.d.'}${schemaKey}${schemaState} | Regole ${analysis.snapshot?.redaction_ruleset_version || 'n.d.'}`;
   document.getElementById('assist-editor-intro').textContent =
     analysis.profile?.procedural_note || 'Il motore verifica coerenza procedurale, schema tecnico e completezza redazionale mentre compili.';
   const nextRoot = document.getElementById('assist-next-steps');

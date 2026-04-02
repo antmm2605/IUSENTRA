@@ -226,6 +226,7 @@ def test_monitor_source_pst_servizi_web_rileva_versione_e_catalogo_wsdl(tmp_path
     assert result["ok"] is True
     assert result["run"]["detected_version"] == "1.69"
     assert result["run"]["detected_reference"] == "1.52"
+    assert result["run"]["detected_package"] == "A1_WSDL_CATALOG_v1.52.zip"
     assert result["run"]["detected_document_url"].endswith("Documentazione_servizi_web_v1.69.pdf")
 
 
@@ -254,6 +255,71 @@ def test_monitor_source_pst_servizi_web_segnala_disallineamento_versione(tmp_pat
 
     assert result["run"]["detected_version"] == "1.70"
     assert "documentazione_servizi_web_da_aggiornare" in alert_types
+
+
+def test_monitor_source_pst_xsd_sici_rileva_pacchetto_e_stato_production(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    detail_html = b"""
+    <html><body>
+      <h4>XSD SICI - 26 gennaio 2026</h4>
+      <a href="/PST/resources/cms/documents/XSD_SICI_20260116.zip">Nuovi XSD SICI - 26/01/2026</a>
+      <a href="/PST/resources/cms/documents/modifiche_XSD_SICI_20260116.pdf">Nota modifiche XSD SICI - 26/01/2026</a>
+    </body></html>
+    """
+    news_html = b"""
+    <html><body>
+      <h4>Interruzione del 29 gennaio 2026</h4>
+      <p>A seguito dell'attivita di manutenzione verranno messi in produzione gli XSD aggiornati,
+      anticipati con la news del 26.01.2026.</p>
+    </body></html>
+    """
+
+    def fake_get(url, **kwargs):
+        if "NWS4596" in url:
+            return DummyResponse(news_html, url=url)
+        return DummyResponse(detail_html, url="https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC3277")
+
+    result = gestore.monitor_source("pst_xsd_sici", request_get=fake_get)
+
+    assert result["ok"] is True
+    assert result["run"]["detected_package"] == "XSD_SICI_20260116.zip"
+    assert result["run"]["detected_package_date"] == "2026-01-26"
+    assert result["run"]["detected_status"] == "production"
+    assert result["run"]["detected_news_date"] == "2026-01-29"
+
+
+def test_monitor_source_pst_xsd_cassazione_segnala_disallineamento_status(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    gestore = GestioneLegalIntelligence(str(db_path))
+
+    detail_html = b"""
+    <html><body>
+      <h4>XSD per la Corte Suprema di Cassazione</h4>
+      <a href="/PST/resources/cms/documents/XSD_Cassazione_20260401.zip">XSD_Cassazione_20260401.zip</a>
+      <a href="/PST/page/it/news?contentId=NWS9999">news</a>
+    </body></html>
+    """
+    news_html = b"""
+    <html><body>
+      <h4>News 10 aprile 2026</h4>
+      <p>Gli schemi XSD pubblicati sono stati applicati in esercizio e potranno essere utilizzati a partire dalla data odierna.</p>
+    </body></html>
+    """
+
+    def fake_get(url, **kwargs):
+        if "NWS9999" in url:
+            return DummyResponse(news_html, url=url)
+        return DummyResponse(detail_html, url="https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4671")
+
+    result = gestore.monitor_source("pst_xsd_cassazione", request_get=fake_get)
+
+    alert_types = {alert["alert_type"] for alert in result["alerts"]}
+
+    assert result["run"]["detected_package"] == "XSD_Cassazione_20260401.zip"
+    assert result["run"]["detected_status"] == "production"
+    assert "xsd_canale_da_aggiornare" in alert_types
 
 
 def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):

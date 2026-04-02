@@ -95,9 +95,9 @@
       </div>
       <div class="small text-muted mt-2">
         {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
-        {{ snapshot.mediazione_registry.total_rows }} organismi in cache · {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} · ultimo sync {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
+        {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultimo sync {{ snapshot.mediazione_registry.table.last_synced_at[:16]|replace('T', ' ') if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
         {% else %}
-        Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} · {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
+        Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} | {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
         {% endif %}
       </div>
     </div>
@@ -234,10 +234,13 @@
             <td>
               <div class="fw-semibold">{{ row.nome }}</div>
               <div class="small text-muted">{{ row.area }}</div>
-              {% if row.detected_version or row.detected_reference %}
+              {% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %}
               <div class="small text-muted mt-1">
                 {% if row.detected_version %}Versione rilevata: {{ row.detected_version }}{% endif %}
-                {% if row.detected_reference %}{% if row.detected_version %} · {% endif %}Catalogo WSDL: {{ row.detected_reference }}{% endif %}
+                {% if row.detected_reference %}{% if row.detected_version %} | {% endif %}Catalogo WSDL: {{ row.detected_reference }}{% endif %}
+                {% if row.detected_package %}{% if row.detected_version or row.detected_reference %} | {% endif %}Pacchetto: {{ row.detected_package }}{% endif %}
+                {% if row.detected_status %}{% if row.detected_version or row.detected_reference or row.detected_package %} | {% endif %}Stato: {{ row.detected_status }}{% endif %}
+                {% if row.detected_news_date %}{% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %} | {% endif %}News: {{ row.detected_news_date }}{% endif %}
               </div>
               {% endif %}
             </td>
@@ -279,7 +282,7 @@
   <div class="card-body">
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div class="fw-semibold"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
-      <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle · {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
+      <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle | {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
     </div>
     <div class="table-responsive">
       <table class="table align-middle">

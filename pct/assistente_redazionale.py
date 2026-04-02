@@ -14,7 +14,7 @@ import json
 import re
 import unicodedata
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -40,6 +40,7 @@ from .deposito_guidato import (
 from .pst_catalog import (
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
+    get_xsd_channel,
     get_catalog_snapshot,
     get_catalog_sources,
 )
@@ -150,6 +151,13 @@ class SchemaChannelProfile:
     supports_xml: bool
     supports_busta: bool
     sources: List[Dict[str, str]] = field(default_factory=list)
+    official_schema_key: str = ""
+    official_package_name: str = ""
+    official_package_date: str = ""
+    production_ready: bool = False
+    production_status: str = ""
+    production_status_date: str = ""
+    status_source_url: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -286,8 +294,8 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
         supports_busta=True,
         sources=[
             {
-                "label": "PST - aggiornamento specifiche tecniche deposito atti SICID",
-                "url": "https://pst.giustizia.it/PST/page/it/processo_telematico__comunicazione_alle_software_house_aggiornamento_specifiche_tecniche_deposito_atti_sicid_ritualita_immigrati?contentId=NWS3782",
+                "label": "PST - dettaglio documentazione servizi web v1.69",
+                "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571",
             },
             {
                 "label": f"PST - documentazione servizi web software house v{PST_WEB_SERVICES_DOC_VERSION}",
@@ -366,6 +374,30 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
 }
 
 
+def _schema_channel_with_xsd(base: SchemaChannelProfile, xsd_key: str) -> SchemaChannelProfile:
+    channel = get_xsd_channel(xsd_key)
+    return replace(
+        base,
+        schema_version=f"{xsd_key} {channel.package_date} | {channel.status}",
+        family=f"{base.family} / {channel.label}",
+        sources=_dedupe_sources(
+            base.sources,
+            [
+                {"label": f"{channel.label} - pagina download", "url": channel.download_page_url},
+                {"label": f"{channel.label} - pacchetto", "url": channel.package_url},
+                {"label": f"{channel.label} - news stato esercizio", "url": channel.status_source_news_url},
+            ],
+        ),
+        official_schema_key=xsd_key,
+        official_package_name=channel.package_name,
+        official_package_date=channel.package_date,
+        production_ready=channel.production_ready,
+        production_status=channel.status,
+        production_status_date=channel.status_source_news_date,
+        status_source_url=channel.status_source_news_url,
+    )
+
+
 SECTION_FIELD_HINTS: dict[str, list[str]] = {
     "intestazione": ["court_name", "recipient_or_court", "appeal_court", "competent_tar", "competent_tax_court", "proceeding_authority"],
     "parti": ["plaintiff", "defendant", "claimant", "respondent", "appellant", "appellee", "client_or_sender", "counterparty_or_recipient", "assisted_person"],
@@ -400,13 +432,13 @@ class AssistenteRedazionale:
             raise ValueError(f"Modello non trovato: {model_code}")
 
         profile = self._build_profile(model, fascicolo=fascicolo)
-        schema_channel = SCHEMA_CHANNELS.get(profile.channel, SCHEMA_CHANNELS["PEC"])
         synthetic_fascicolo = self._build_fascicolo_proxy(model, payload, fascicolo=fascicolo, cliente=cliente)
         resolver = self.resolver.resolve(
             synthetic_fascicolo,
             profile.to_procedural_profile(),
             profile.registry_suggestion,
         )
+        schema_channel = self._resolve_schema_channel(profile, resolver)
 
         issues: list[ValidationIssue] = []
         if profile.channel == "PCT_TELEMATICO":
@@ -484,6 +516,19 @@ class AssistenteRedazionale:
         if self.store:
             self.store.salva_run(run)
         return run
+
+    def _resolve_schema_channel(self, profile: RedactionProfile, resolver: Dict[str, Any]) -> SchemaChannelProfile:
+        base = SCHEMA_CHANNELS.get(profile.channel, SCHEMA_CHANNELS["PEC"])
+        if base.channel != "PCT_TELEMATICO":
+            return base
+        office_type = str(resolver.get("office_type") or "")
+        if office_type == "CORTE_CASSAZIONE" or profile.grado == "legittimita":
+            return _schema_channel_with_xsd(base, "CASSAZIONE")
+        if office_type == "GDP":
+            return _schema_channel_with_xsd(base, "SIGP")
+        if office_type == "UNEP":
+            return _schema_channel_with_xsd(base, "UNEP")
+        return _schema_channel_with_xsd(base, "SICI")
 
     def _build_profile(self, model: Dict[str, Any], *, fascicolo: Any = None) -> RedactionProfile:
         area = str(model.get("area", "")).upper()
@@ -875,10 +920,17 @@ class AssistenteRedazionale:
                     service=SERVICE_TECNICO,
                     level="OK",
                     code="schema_pst_preview",
-                    title="Schema ministeriale PST pronto in anteprima",
+                    title=(
+                        "Schema ministeriale PST pronto per il canale"
+                        if schema_channel.production_ready
+                        else "Schema ministeriale PST pubblicato ma da confermare in esercizio"
+                    ),
                     detail=(
                         f"Il modello usa la famiglia {schema_channel.family} con namespace {schema_channel.namespace} "
-                        f"e snapshot {schema_channel.schema_version}; la validazione XML finale avverra al pre-deposito."
+                        f"e snapshot {schema_channel.schema_version}; "
+                        f"stato ufficiale {schema_channel.production_status or 'n.d.'}"
+                        f"{' dal ' + schema_channel.production_status_date if schema_channel.production_status_date else ''}. "
+                        "La validazione XML finale avverra al pre-deposito."
                     ),
                     source="Catalogo schemi ministeriali versionato",
                     suggested_action="Continua la redazione; il controllo XML definitivo scattera sulla busta reale.",
@@ -910,7 +962,10 @@ class AssistenteRedazionale:
                 title="Snapshot tecnico del canale disponibile",
                 detail=(
                     f"Il profilo e agganciato al catalogo {schema_channel.schema_version} "
-                    f"({schema_channel.family})."
+                    f"({schema_channel.family})"
+                    f"{'; pacchetto ' + schema_channel.official_package_name if schema_channel.official_package_name else ''}"
+                    f"{'; stato ' + schema_channel.production_status if schema_channel.production_status else ''}"
+                    f"{' dal ' + schema_channel.production_status_date if schema_channel.production_status_date else ''}."
                 ),
                 source="Catalogo schemi ministeriali versionato",
                 suggested_action="Usa questo snapshot per redazione, pre-check e audit del fascicolo.",

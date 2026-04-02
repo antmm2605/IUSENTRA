@@ -66,6 +66,9 @@
         <div class="small"><strong>Canale:</strong> {{ assistant_analysis.get('schema_channel', {}).get('label', '-') }}</div>
         <div class="small"><strong>Registro:</strong> {{ assistant_analysis.get('profile', {}).get('registry_suggestion', '-') }}</div>
         <div class="small"><strong>Snapshot:</strong> {{ assistant_analysis.get('schema_channel', {}).get('schema_version', '-') }}</div>
+        {% if assistant_analysis.get('schema_channel', {}).get('official_schema_key') %}
+        <div class="small"><strong>Canale XSD:</strong> {{ assistant_analysis.get('schema_channel', {}).get('official_schema_key', '-') }} | {{ assistant_analysis.get('schema_channel', {}).get('production_status', '-') }}</div>
+        {% endif %}
       </div>
     </div>
 

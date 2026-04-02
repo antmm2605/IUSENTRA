@@ -18,11 +18,15 @@ from urllib3.exceptions import InsecureRequestWarning
 
 from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
 from pct.pst_catalog import (
+    PST_WEB_SERVICES_DOC_DETAIL_URL,
     PST_WEB_SERVICES_DOC_PAGE_URL,
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
     PST_WEB_SERVICES_UPDATE_PAGE_URL,
     PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
+    PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME,
+    PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION,
+    get_xsd_channel,
 )
 
 USER_AGENT = "HACS-Legal-Intelligence/1.0 (+https://pst.giustizia.it)"
@@ -51,9 +55,50 @@ PST_SERVIZI_WEB_PDF_URL_RE = re.compile(
     re.IGNORECASE,
 )
 PST_WSDL_CATALOG_RE = re.compile(
-    r"A1[_-]WSDL[_-]CATALOG[_-]v([0-9.]+)\.zip",
+    r"A1[_-]WSDL[_-]CATALOG[_-]v([0-9]+(?:\.[0-9]+)*(?:[a-z])?)(?:\.zip|\b)",
     re.IGNORECASE,
 )
+PST_XSD_PACKAGE_RE = re.compile(r"(?P<name>[^/]+\.zip)$", re.IGNORECASE)
+PST_XSD_PDF_RE = re.compile(r"(?P<name>[^/]+\.pdf)$", re.IGNORECASE)
+PST_NEWS_DATE_RE = re.compile(
+    r"(?P<date>\d{1,2}/\d{1,2}/\d{4}|\d{1,2}\s+[a-z]+\s+\d{4})",
+    re.IGNORECASE,
+)
+PST_XSD_SOURCE_CHANNELS = {
+    "pst_xsd_sici": "SICI",
+    "pst_xsd_sigp": "SIGP",
+    "pst_xsd_unep": "UNEP",
+    "pst_xsd_cassazione": "CASSAZIONE",
+}
+PST_XSD_PRODUCTION_MARKERS = (
+    "utilizzabili in ambiente di produzione",
+    "utilizzabili in ambiente di esercizio",
+    "applicati in esercizio",
+    "messi in produzione",
+    "messa in produzione",
+    "entrata in esercizio",
+)
+PST_XSD_PREVIEW_MARKERS = (
+    "messa in esercizio verra comunicata successivamente",
+    "messa in esercizio sara comunicata successivamente",
+    "messa in esercizio sara comunicata successivamente",
+    "data di messa in esercizio",
+    "verra resa nota con successiva comunicazione",
+)
+ITALIAN_MONTHS = {
+    "gennaio": 1,
+    "febbraio": 2,
+    "marzo": 3,
+    "aprile": 4,
+    "maggio": 5,
+    "giugno": 6,
+    "luglio": 7,
+    "agosto": 8,
+    "settembre": 9,
+    "ottobre": 10,
+    "novembre": 11,
+    "dicembre": 12,
+}
 
 
 def _now_iso(now: Optional[datetime] = None) -> str:
@@ -67,6 +112,30 @@ def _clean_spaces(value: str) -> str:
 def _truncate(value: str, limit: int = 220) -> str:
     value = _clean_spaces(value)
     return value if len(value) <= limit else value[: limit - 1].rstrip() + "..."
+
+
+def _extract_pst_date(value: str) -> str:
+    text = _clean_spaces(value)
+    if not text:
+        return ""
+    match = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", text)
+    if match:
+        day, month, year = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        try:
+            return date(year, month, day).isoformat()
+        except ValueError:
+            return ""
+    match = re.search(r"(\d{1,2})\s+([a-z]+)\s+(\d{4})", text, re.IGNORECASE)
+    if match:
+        day = int(match.group(1))
+        month = ITALIAN_MONTHS.get(match.group(2).lower())
+        year = int(match.group(3))
+        if month:
+            try:
+                return date(year, month, day).isoformat()
+            except ValueError:
+                return ""
+    return ""
 
 
 def _parse_iso_date(value: str) -> Optional[datetime]:
@@ -213,6 +282,11 @@ class MonitorRun:
     detected_version: str = ""
     detected_reference: str = ""
     detected_document_url: str = ""
+    detected_package: str = ""
+    detected_package_date: str = ""
+    detected_status: str = ""
+    detected_news_date: str = ""
+    detected_news_url: str = ""
     summary: str = ""
     warning: str = ""
 
@@ -319,16 +393,68 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         nome="PST - documentazione servizi web",
         motore="procedurale_telematico",
         area="Telematico / servizi web",
-        official_url=PST_WEB_SERVICES_DOC_PAGE_URL,
-        monitor_url=PST_WEB_SERVICES_DOC_PAGE_URL,
+        official_url=PST_WEB_SERVICES_DOC_DETAIL_URL,
+        monitor_url=PST_WEB_SERVICES_DOC_DETAIL_URL,
         connector_kind="portal-docs",
         cadence="giornaliera",
         formats=["HTML", "PDF", "ZIP", "WSDL"],
         capability="Monitora la versione pubblicata della documentazione servizi web per software house e del catalogo WSDL allegato.",
         notes=(
             f"La pagina documentazione PST espone attualmente la documentazione servizi web versione {PST_WEB_SERVICES_DOC_VERSION} "
-            f"con PDF dedicato {PST_WEB_SERVICES_DOC_URL}."
+            f"con PDF dedicato {PST_WEB_SERVICES_DOC_URL} e catalogo {PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME}."
         ),
+    ),
+    "pst_xsd_sici": FonteUfficiale(
+        id="pst_xsd_sici",
+        nome="PST - XSD SICI",
+        motore="procedurale_telematico",
+        area="Telematico / XSD civile",
+        official_url=get_xsd_channel("SICI").download_page_url,
+        monitor_url=get_xsd_channel("SICI").download_page_url,
+        connector_kind="portal-xsd",
+        cadence="giornaliera",
+        formats=["HTML", "ZIP", "PDF"],
+        capability="Monitora pacchetto XSD SICI, changelog e stato di esercizio del civile.",
+        notes=get_xsd_channel("SICI").notes,
+    ),
+    "pst_xsd_sigp": FonteUfficiale(
+        id="pst_xsd_sigp",
+        nome="PST - XSD SIGP / Giudice di Pace",
+        motore="procedurale_telematico",
+        area="Telematico / XSD Giudice di Pace",
+        official_url=get_xsd_channel("SIGP").download_page_url,
+        monitor_url=get_xsd_channel("SIGP").download_page_url,
+        connector_kind="portal-xsd",
+        cadence="giornaliera",
+        formats=["HTML", "ZIP", "PDF"],
+        capability="Monitora pacchetto XSD SIGP e relativo stato di produzione.",
+        notes=get_xsd_channel("SIGP").notes,
+    ),
+    "pst_xsd_unep": FonteUfficiale(
+        id="pst_xsd_unep",
+        nome="PST - XSD UNEP",
+        motore="procedurale_telematico",
+        area="Telematico / XSD UNEP",
+        official_url=get_xsd_channel("UNEP").download_page_url,
+        monitor_url=get_xsd_channel("UNEP").download_page_url,
+        connector_kind="portal-xsd",
+        cadence="giornaliera",
+        formats=["HTML", "ZIP", "PDF"],
+        capability="Monitora pacchetto XSD UNEP e la sua entrata in esercizio.",
+        notes=get_xsd_channel("UNEP").notes,
+    ),
+    "pst_xsd_cassazione": FonteUfficiale(
+        id="pst_xsd_cassazione",
+        nome="PST - XSD Cassazione",
+        motore="procedurale_telematico",
+        area="Telematico / XSD Cassazione",
+        official_url=get_xsd_channel("CASSAZIONE").download_page_url,
+        monitor_url=get_xsd_channel("CASSAZIONE").download_page_url,
+        connector_kind="portal-xsd",
+        cadence="giornaliera",
+        formats=["HTML", "ZIP", "PDF"],
+        capability="Monitora pacchetto XSD del processo telematico di legittimita e stato di esercizio.",
+        notes=get_xsd_channel("CASSAZIONE").notes,
     ),
     "cnf": FonteUfficiale(
         id="cnf",
@@ -467,7 +593,14 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Isola PCT, PDP, PAT, ReGIndE, pagamenti, XSD, WSDL e regole tecniche.",
         output="Checklist tecniche, alert XSD/WSDL e conformita pre-invio.",
         value="Evita errori di deposito dovuti a specifiche tecniche o aggiornamenti di portale.",
-        source_ids=["pst_giustizia", "pst_servizi_web"],
+        source_ids=[
+            "pst_giustizia",
+            "pst_servizi_web",
+            "pst_xsd_sici",
+            "pst_xsd_sigp",
+            "pst_xsd_unep",
+            "pst_xsd_cassazione",
+        ],
     ),
     "professione_forense": MotoreLegale(
         id="professione_forense",
@@ -494,7 +627,22 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Schedula controlli distinti per fonte e genera alert utili, non solo notizie generiche.",
         output="Alert su contenuto modificato, nuovi documenti e nuove note tecniche.",
         value="Trasforma il gestionale in un assistente proattivo invece che in un archivio passivo.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=[
+            "normattiva",
+            "gazzetta_ufficiale",
+            "pst_giustizia",
+            "pst_servizi_web",
+            "pst_xsd_sici",
+            "pst_xsd_sigp",
+            "pst_xsd_unep",
+            "pst_xsd_cassazione",
+            "cnf",
+            "registro_mediazione",
+            "cassazione",
+            "corte_costituzionale",
+            "giustizia_amministrativa",
+            "eur_lex",
+        ],
     ),
     "audit_affidabilita": MotoreLegale(
         id="audit_affidabilita",
@@ -503,7 +651,22 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Registra query, fonti, versioni, warning e modello AI per ogni risposta assistita.",
         output="Tracce di audit consultabili e storicizzate.",
         value="Aumenta fiducia interna, debugging e responsabilita operativa.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex"],
+        source_ids=[
+            "normattiva",
+            "gazzetta_ufficiale",
+            "pst_giustizia",
+            "pst_servizi_web",
+            "pst_xsd_sici",
+            "pst_xsd_sigp",
+            "pst_xsd_unep",
+            "pst_xsd_cassazione",
+            "cnf",
+            "registro_mediazione",
+            "cassazione",
+            "corte_costituzionale",
+            "giustizia_amministrativa",
+            "eur_lex",
+        ],
     ),
 }
 
@@ -518,6 +681,10 @@ KEYWORD_TO_ENGINE: Dict[str, List[str]] = {
     "wsdl": ["procedurale_telematico", "monitoraggio_alert"],
     "software house": ["procedurale_telematico", "monitoraggio_alert"],
     "servizi web": ["procedurale_telematico", "monitoraggio_alert"],
+    "xsd": ["procedurale_telematico", "monitoraggio_alert"],
+    "sici": ["procedurale_telematico", "monitoraggio_alert"],
+    "sigp": ["procedurale_telematico", "monitoraggio_alert"],
+    "unep": ["procedurale_telematico", "monitoraggio_alert"],
     "gazzetta": ["fonti_ufficiali", "vigenza_versionamento"],
     "normattiva": ["fonti_ufficiali", "vigenza_versionamento"],
     "vigenza": ["vigenza_versionamento"],
@@ -556,6 +723,13 @@ KEYWORD_TO_SOURCE: Dict[str, List[str]] = {
     "servizi web": ["pst_servizi_web"],
     "software house": ["pst_servizi_web"],
     "wsdl": ["pst_servizi_web"],
+    "xsd": ["pst_xsd_sici", "pst_xsd_sigp", "pst_xsd_unep", "pst_xsd_cassazione"],
+    "sici": ["pst_xsd_sici"],
+    "sigp": ["pst_xsd_sigp"],
+    "giudice di pace": ["pst_xsd_sigp"],
+    "unep": ["pst_xsd_unep"],
+    "cassazione xsd": ["pst_xsd_cassazione"],
+    "xsd cassazione": ["pst_xsd_cassazione"],
     "cnf": ["cnf"],
     "deontolog": ["cnf"],
     "tariffario": ["cnf", "gazzetta_ufficiale"],
@@ -609,6 +783,7 @@ def _extract_pst_servizi_web_metadata(content: bytes, content_type: str, final_u
     detected_version = ""
     detected_reference = ""
     detected_document_url = ""
+    detected_package = ""
 
     title_match = PST_SERVIZI_WEB_TITLE_RE.search(text)
     if title_match:
@@ -627,11 +802,135 @@ def _extract_pst_servizi_web_metadata(content: bytes, content_type: str, final_u
     wsdl_match = PST_WSDL_CATALOG_RE.search(text)
     if wsdl_match:
         detected_reference = wsdl_match.group(1).strip()
+    wsdl_package_match = re.search(
+        r"(?P<url>https?://[^\s\"'>]*A1[_-]WSDL[_-]CATALOG[_-]v[0-9.]+[a-z]?\.zip|/PST/resources/cms/documents/A1[_-]WSDL[_-]CATALOG[_-]v[0-9.]+[a-z]?\.zip)",
+        raw_text,
+        re.IGNORECASE,
+    )
+    if wsdl_package_match:
+        detected_package = Path(urlparse(urljoin(final_url, wsdl_package_match.group("url"))).path).name
 
     return {
         "detected_version": detected_version,
         "detected_reference": detected_reference,
         "detected_document_url": detected_document_url,
+        "detected_package": detected_package,
+    }
+
+
+def _fetch_secondary_text(url: str, fetch: Optional[Callable[..., Any]], timeout: int) -> tuple[str, str]:
+    getter = fetch or requests.get
+    kwargs = {
+        "headers": {"User-Agent": USER_AGENT},
+        "timeout": timeout,
+        "allow_redirects": True,
+    }
+    try:
+        response = getter(url, **kwargs)
+    except TypeError:
+        kwargs.pop("allow_redirects", None)
+        response = getter(url, **kwargs)
+    final_url = str(getattr(response, "url", url) or url)
+    content = bytes(getattr(response, "content", b"") or b"")
+    return final_url, content.decode("utf-8", errors="ignore")
+
+
+def _detect_pst_xsd_status(text: str) -> str:
+    normalized = _normalize_label(text)
+    if any(_normalize_label(marker) in normalized for marker in PST_XSD_PRODUCTION_MARKERS):
+        return "production"
+    if any(_normalize_label(marker) in normalized for marker in PST_XSD_PREVIEW_MARKERS):
+        return "preview"
+    return ""
+
+
+def _extract_pst_xsd_metadata(
+    content: bytes,
+    content_type: str,
+    final_url: str,
+    *,
+    channel_key: str,
+    request_get: Optional[Callable[..., Any]] = None,
+    timeout: int = 15,
+) -> Dict[str, str]:
+    raw_text = (content or b"").decode("utf-8", errors="ignore")
+    try:
+        document = lxml_html.fromstring(content or b"")
+    except Exception:
+        document = None
+
+    channel = get_xsd_channel(channel_key)
+    links: list[dict[str, str]] = []
+    if document is not None:
+        for anchor in document.xpath("//a[@href]"):
+            href = urljoin(final_url, anchor.get("href", ""))
+            label = _clean_spaces(" ".join(anchor.xpath(".//text()")))
+            links.append({"label": label, "url": href})
+
+    package_link = next(
+        (
+            item
+            for item in links
+            if item["url"].lower().endswith(".zip")
+            and ("xsd" in item["label"].lower() or "xsd" in item["url"].lower())
+        ),
+        None,
+    )
+    changelog_link = next(
+        (
+            item
+            for item in links
+            if item["url"].lower().endswith(".pdf")
+            and (
+                "nota modifiche" in item["label"].lower()
+                or "schemi xsd" in item["label"].lower()
+            )
+        ),
+        None,
+    )
+    news_link = next(
+        (
+            item
+            for item in links
+            if "contentId=NWS" in item["url"]
+            and (
+                item["label"].lower() == "news"
+                or bool(PST_NEWS_DATE_RE.search(item["label"]))
+            )
+        ),
+        None,
+    )
+    if news_link is None and channel.status_source_news_url:
+        news_link = {"label": channel.status_source_news_date, "url": channel.status_source_news_url}
+
+    package_label = package_link["label"] if package_link else ""
+    package_url = package_link["url"] if package_link else channel.package_url
+    package_name = Path(urlparse(package_url).path).name if package_url else ""
+    package_date = _extract_pst_date(package_label) or channel.package_date
+
+    detected_status = ""
+    detected_news_date = ""
+    detected_news_url = news_link["url"] if news_link else ""
+    if news_link:
+        try:
+            news_final_url, news_text = _fetch_secondary_text(news_link["url"], request_get, timeout)
+            detected_news_url = news_final_url
+            detected_status = _detect_pst_xsd_status(news_text)
+            detected_news_date = _extract_pst_date(news_link["label"]) or _extract_pst_date(news_text)
+        except Exception:
+            detected_status = ""
+            detected_news_date = _extract_pst_date(news_link["label"])
+
+    return {
+        "detected_document_url": package_url,
+        "detected_package": package_name or package_label,
+        "detected_package_date": package_date,
+        "detected_reference": (
+            Path(urlparse(changelog_link["url"]).path).name if changelog_link else channel.changelog_name
+        ),
+        "detected_status": detected_status,
+        "detected_news_date": detected_news_date or channel.status_source_news_date,
+        "detected_news_url": detected_news_url,
     }
 
 
@@ -1140,6 +1439,11 @@ class GestioneLegalIntelligence:
             detected_version = ""
             detected_reference = ""
             detected_document_url = ""
+            detected_package = ""
+            detected_package_date = ""
+            detected_status = ""
+            detected_news_date = ""
+            detected_news_url = ""
 
             if status == "ok" and _detect_protection_page(final_url, content):
                 comparison_mode = "challenge_guard"
@@ -1166,6 +1470,23 @@ class GestioneLegalIntelligence:
                 detected_version = metadata.get("detected_version", "")
                 detected_reference = metadata.get("detected_reference", "")
                 detected_document_url = metadata.get("detected_document_url", "")
+                detected_package = metadata.get("detected_package", "")
+            elif status == "ok" and source_id in PST_XSD_SOURCE_CHANNELS:
+                metadata = _extract_pst_xsd_metadata(
+                    content,
+                    content_type,
+                    final_url,
+                    channel_key=PST_XSD_SOURCE_CHANNELS[source_id],
+                    request_get=fetch,
+                    timeout=self.timeout,
+                )
+                detected_reference = metadata.get("detected_reference", "")
+                detected_document_url = metadata.get("detected_document_url", "")
+                detected_package = metadata.get("detected_package", "")
+                detected_package_date = metadata.get("detected_package_date", "")
+                detected_status = metadata.get("detected_status", "")
+                detected_news_date = metadata.get("detected_news_date", "")
+                detected_news_url = metadata.get("detected_news_url", "")
 
             notes: List[str] = []
             if comparison_mode == "normalized_text":
@@ -1186,6 +1507,10 @@ class GestioneLegalIntelligence:
                 notes.append(f"versione {detected_version}")
             if detected_reference:
                 notes.append(f"WSDL catalog {detected_reference}")
+            if detected_package:
+                notes.append(f"pacchetto {detected_package}")
+            if detected_status:
+                notes.append(f"stato {detected_status}")
             summary = f"{label}: HTTP {status_code or 'n/d'} - hash {content_hash[:12]}"
             if notes:
                 summary += " - " + " - ".join(notes)
@@ -1207,6 +1532,11 @@ class GestioneLegalIntelligence:
                 "detected_version": detected_version,
                 "detected_reference": detected_reference,
                 "detected_document_url": detected_document_url,
+                "detected_package": detected_package,
+                "detected_package_date": detected_package_date,
+                "detected_status": detected_status,
+                "detected_news_date": detected_news_date,
+                "detected_news_url": detected_news_url,
                 "summary": summary,
                 "warning": warning,
             }
@@ -1234,7 +1564,7 @@ class GestioneLegalIntelligence:
         return "aggiornata" if age <= timedelta(days=3) else "stale"
 
     def _alert_kind_for_source(self, source_id: str) -> str:
-        if source_id in {"pst_giustizia", "pst_servizi_web"}:
+        if source_id in {"pst_giustizia", "pst_servizi_web", *PST_XSD_SOURCE_CHANNELS.keys()}:
             return "nuova_documentazione_tecnica"
         if source_id in {"normattiva", "gazzetta_ufficiale", "eur_lex"}:
             return "norma_o_testo_modificato"
@@ -1247,6 +1577,8 @@ class GestioneLegalIntelligence:
             return "Rilevata una variazione nella documentazione tecnica o software house del PST."
         if source.id == "pst_servizi_web":
             return "Rilevata una variazione nella pagina ufficiale della documentazione servizi web del PST."
+        if source.id in PST_XSD_SOURCE_CHANNELS:
+            return "Rilevata una variazione nel pacchetto XSD o nella news di esercizio del canale telematico."
         if source.id in {"normattiva", "gazzetta_ufficiale", "eur_lex"}:
             return "Rilevata una variazione su una fonte normativa ufficiale da riesaminare."
         if source.id == "cnf":
@@ -1381,6 +1713,44 @@ class GestioneLegalIntelligence:
                         now=current_time,
                     )
                 )
+            if source_id in PST_XSD_SOURCE_CHANNELS and run.status == "ok":
+                channel = get_xsd_channel(PST_XSD_SOURCE_CHANNELS[source_id])
+                package_mismatch = bool(
+                    getattr(run, "detected_package", "")
+                    and _normalize_label(getattr(run, "detected_package", "")) != _normalize_label(channel.package_name)
+                )
+                package_date_mismatch = bool(
+                    getattr(run, "detected_package_date", "")
+                    and getattr(run, "detected_package_date", "") != channel.package_date
+                )
+                status_mismatch = bool(
+                    getattr(run, "detected_status", "")
+                    and getattr(run, "detected_status", "") != channel.status
+                )
+                if package_mismatch or package_date_mismatch or status_mismatch:
+                    official_target = (
+                        getattr(run, "detected_news_url", "")
+                        or getattr(run, "detected_document_url", "")
+                        or source.official_url
+                    )
+                    alerts.append(
+                        self._create_alert(
+                            source_id=source_id,
+                            motore_id=source.motore,
+                            alert_type="xsd_canale_da_aggiornare",
+                            severity="alta",
+                            title=f"{source.nome}: canale da riallineare",
+                            details=(
+                                f"Il monitor ufficiale del canale {channel.key} espone "
+                                f"{getattr(run, 'detected_package', '') or 'un nuovo pacchetto'}"
+                                f"{' in stato ' + getattr(run, 'detected_status', '') if getattr(run, 'detected_status', '') else ''}, "
+                                f"mentre il catalogo interno e fermo a {channel.package_name} ({channel.status}). "
+                                "Aggiorna i validatori e il redattore del canale dedicato."
+                            ),
+                            official_url=official_target,
+                            now=current_time,
+                        )
+                    )
             self._save()
             return {"ok": run.status == "ok", "run": run.to_dict(), "alerts": [alert.to_dict() for alert in alerts]}
         except Exception as exc:
@@ -1913,6 +2283,11 @@ class GestioneLegalIntelligence:
                     "detected_version": getattr(run, "detected_version", ""),
                     "detected_reference": getattr(run, "detected_reference", ""),
                     "detected_document_url": getattr(run, "detected_document_url", ""),
+                    "detected_package": getattr(run, "detected_package", ""),
+                    "detected_package_date": getattr(run, "detected_package_date", ""),
+                    "detected_status": getattr(run, "detected_status", ""),
+                    "detected_news_date": getattr(run, "detected_news_date", ""),
+                    "detected_news_url": getattr(run, "detected_news_url", ""),
                     "summary": getattr(run, "summary", "Nessun controllo eseguito."),
                     "warning": getattr(run, "warning", ""),
                 }

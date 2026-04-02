@@ -6,8 +6,9 @@ raccolti in fase commerciale/contrattuale, in modo da ridurre click e duplicazio
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
+from pct.checklist_atti import CANALE_LABEL, get_template
 from pct.fascicoli import TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
 
@@ -20,6 +21,65 @@ _MAP_AREE_TO_TIPO = {
     "Stragiudiziale": TipoFascicolo.STRAGIUDIZIALE,
     "Lavoro e previdenza": TipoFascicolo.LAVORO,
     "Speciali": TipoFascicolo.ALTRO,
+}
+
+_CHECKLIST_TEMPLATE_BY_PRACTICE = {
+    "comparsa_risposta": "comparsa_risposta",
+    "decreto_ingiuntivo": "decreto_ingiuntivo",
+    "appello_civile": "ricorso_appello",
+    "opposizione_di": "opposizione_decreto_ingiuntivo",
+    "mediazione": "mediazione",
+    "ricorso_tributario": "ricorso_tributario",
+    "appello_tributario": "appello_tributario",
+    "nomina_difensore": "nomina_difensore",
+}
+
+_SMART_WORKFLOW_PROFILES: Dict[str, Dict[str, Any]] = {
+    "comparsa_risposta": {
+        "checklist": [
+            "verificare subito il termine di costituzione del convenuto almeno 70 giorni prima dell'udienza (art. 166 c.p.c.)",
+            "prendere posizione in modo chiaro e specifico sui fatti allegati dall'attore e definire eccezioni, riconvenzionale e mezzi di prova (art. 167 c.p.c.)",
+            "raccogliere copia della citazione notificata, procura alle liti e documenti difensivi da depositare con la comparsa",
+            "valutare immediatamente se occorre chiamare un terzo e chiedere lo spostamento dell'udienza nella stessa comparsa (art. 269 c.p.c.)",
+        ],
+        "activities": [
+            {
+                "title": "Verificare termine di costituzione e decadenze ex artt. 166-167 c.p.c.",
+                "description": (
+                    "Controllare la data della prima udienza, presidiare il termine di costituzione "
+                    "del convenuto e verificare da subito tutte le difese soggette a decadenza."
+                ),
+                "activity_type": "TERMINE_SCADENZA",
+                "due_in_days": 1,
+                "deadline_type": "TERMINE_PERENTORIO",
+                "perentorio": True,
+                "note": "Controllo intelligente iniziale: artt. 166 e 167 c.p.c. nel rito ordinario vigente.",
+            },
+            {
+                "title": "Acquisire citazione notificata, procura e documenti difensivi",
+                "description": (
+                    "Raccogliere la citazione notificata, la procura alle liti, i documenti offerti in "
+                    "comunicazione e gli elementi utili alla comparsa di risposta."
+                ),
+                "activity_type": "CONSULTAZIONE",
+                "due_in_days": 3,
+                "deadline_type": "ADEMPIMENTO",
+                "note": "Preparazione documentale iniziale per la comparsa e per il successivo deposito telematico.",
+            },
+            {
+                "title": "Impostare eccezioni, riconvenzionale e mezzi istruttori",
+                "description": (
+                    "Definire le prese di posizione sui fatti allegati dall'attore, le eccezioni "
+                    "processuali e di merito, l'eventuale riconvenzionale, la chiamata del terzo e i mezzi di prova."
+                ),
+                "activity_type": "DEPOSITO_ATTI",
+                "due_in_days": 5,
+                "deadline_type": "DEPOSITO_ATTO",
+                "perentorio": True,
+                "note": "Controllo intelligente iniziale: artt. 167 e 269 c.p.c.; verificare anche i documenti da offrire in comunicazione.",
+            },
+        ],
+    },
 }
 
 
@@ -58,6 +118,149 @@ def _titolo_default(nome_cliente: str, oggetto: str, tipo_label: str) -> str:
     return base
 
 
+def _normalize_oggetto_workflow(oggetto: str, tipo_label: str = "") -> str:
+    raw = str(oggetto or "").strip()
+    if not raw:
+        return tipo_label.strip()
+    prefixes = [
+        "conferimento incarico - ",
+        "preventivo professionale per ",
+        "preventivo per ",
+    ]
+    changed = True
+    while changed and raw:
+        changed = False
+        lower = raw.lower()
+        for prefix in prefixes:
+            if lower.startswith(prefix):
+                raw = raw[len(prefix):].strip(" -")
+                changed = True
+                break
+    if tipo_label and raw.lower() == tipo_label.lower():
+        return tipo_label
+    return raw or tipo_label.strip()
+
+
+def _merge_unique_rows(*groups: List[str]) -> List[str]:
+    rows: List[str] = []
+    seen = set()
+    for group in groups:
+        for item in group or []:
+            text = str(item or "").strip()
+            key = text.lower()
+            if not text or key in seen:
+                continue
+            seen.add(key)
+            rows.append(text)
+    return rows
+
+
+def _template_for_practice(id_pratica: str):
+    template_id = _CHECKLIST_TEMPLATE_BY_PRACTICE.get(id_pratica or "")
+    return get_template(template_id) if template_id else None
+
+
+def _template_checklist_rows(template, limit: int = 4) -> List[str]:
+    if not template:
+        return []
+    rows: List[str] = []
+    critical_rows = [item for item in template.checklist if getattr(item, "critico", False)]
+    for item in critical_rows[:limit]:
+        text = str(getattr(item, "testo", "")).strip()
+        note = str(getattr(item, "note", "")).strip()
+        if note:
+            text = f"{text} - {note}"
+        rows.append(text)
+    return rows
+
+
+def _template_required_documents_row(template, limit: int = 3) -> str:
+    if not template:
+        return ""
+    docs = [
+        str(doc.descrizione).strip()
+        for doc in template.documenti
+        if getattr(doc, "obbligatorio", False)
+    ][:limit]
+    if not docs:
+        return ""
+    return "raccogliere i documenti essenziali: " + ", ".join(docs)
+
+
+def _generic_activity_plan(template, checklist: List[str]) -> List[Dict[str, Any]]:
+    activities: List[Dict[str, Any]] = []
+    channel_label = CANALE_LABEL.get(getattr(template, "canale", ""), "")
+    if checklist:
+        activities.append(
+            {
+                "title": "Verificare il primo controllo iniziale della pratica",
+                "description": checklist[0],
+                "activity_type": "TERMINE_SCADENZA",
+                "due_in_days": 2,
+                "deadline_type": "ADEMPIMENTO",
+                "note": f"Canale operativo previsto: {channel_label}." if channel_label else "",
+            }
+        )
+    doc_row = _template_required_documents_row(template)
+    if doc_row:
+        activities.append(
+            {
+                "title": "Raccogliere i documenti essenziali",
+                "description": doc_row,
+                "activity_type": "CONSULTAZIONE",
+                "due_in_days": 4,
+                "deadline_type": "ADEMPIMENTO",
+                "note": "Controllo intelligente iniziale: documenti obbligatori del canale di lavoro selezionato.",
+            }
+        )
+    if len(checklist) > 1:
+        activities.append(
+            {
+                "title": "Impostare il primo adempimento operativo",
+                "description": checklist[1],
+                "activity_type": "DEPOSITO_ATTI",
+                "due_in_days": 7,
+                "deadline_type": "DEPOSITO_ATTO",
+                "note": f"Canale operativo: {channel_label}." if channel_label else "",
+            }
+        )
+    third_description = checklist[2] if len(checklist) > 2 else "Impostare le prossime scadenze e il primo passo di lavoro sul fascicolo."
+    activities.append(
+        {
+            "title": "Organizzare agenda, scadenze e primo piano di lavoro",
+            "description": third_description,
+            "activity_type": "ALTRO",
+            "due_in_days": 10,
+            "deadline_type": "ADEMPIMENTO",
+            "note": "Controllo intelligente iniziale: trasformare la checklist in attivita operative e scadenze monitorabili.",
+        }
+    )
+    return activities
+
+
+def _build_activity_plan(id_pratica: str, template, checklist: List[str]) -> List[Dict[str, Any]]:
+    smart = _SMART_WORKFLOW_PROFILES.get(id_pratica or "")
+    if smart:
+        return [dict(item) for item in smart.get("activities", [])]
+    return _generic_activity_plan(template, checklist)
+
+
+def _build_deadline_plan(activity_plan: List[Dict[str, Any]], titolo_fascicolo: str) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for item in activity_plan[:3]:
+        rows.append(
+            {
+                "title": str(item.get("title") or "Attivita iniziale").strip(),
+                "description": str(item.get("description") or f"Controllo iniziale per {titolo_fascicolo}.").strip(),
+                "due_in_days": int(item.get("due_in_days") or 3),
+                "deadline_type": str(item.get("deadline_type") or "ADEMPIMENTO").strip().upper(),
+                "perentorio": bool(item.get("perentorio")),
+                "note": str(item.get("note") or "Scadenza iniziale generata automaticamente dal workflow intelligente.").strip(),
+            }
+        )
+    return rows
+
+
 def build_fascicolo_onboarding(
     *,
     cliente: Any,
@@ -80,7 +283,10 @@ def build_fascicolo_onboarding(
     tipo_fascicolo = _infer_tipo_fascicolo(id_pratica=id_pratica, area_pratica=area_pratica, tipo_procedimento=tipo_procedimento)
 
     nome_cliente = getattr(cliente, "nome_completo", "") if cliente else ""
-    oggetto = getattr(sorgente, "oggetto", "") or (scheda.label if scheda else "")
+    oggetto = _normalize_oggetto_workflow(
+        getattr(sorgente, "oggetto", "") or "",
+        getattr(scheda, "label", "") if scheda else "",
+    ) or (scheda.label if scheda else "")
     avvocato_referente = (
         getattr(conferimento, "avvocato_referente", "")
         or getattr(cliente, "avvocato_referente", "")
@@ -92,13 +298,21 @@ def build_fascicolo_onboarding(
     source_number = getattr(sorgente, "numero", "")
     titolo = _titolo_default(nome_cliente, oggetto, scheda.label if scheda else tipo_procedimento)
 
-    checklist = list(getattr(scheda, "checklist_iniziale", []) or [])
+    template = _template_for_practice(id_pratica)
+    smart_profile = _SMART_WORKFLOW_PROFILES.get(id_pratica or "", {})
+    checklist = _merge_unique_rows(
+        list(smart_profile.get("checklist", []) or []),
+        _template_checklist_rows(template),
+        list(getattr(scheda, "checklist_iniziale", []) or []),
+    )
     if not checklist:
         checklist = [
-            "Verificare i dati essenziali di cliente, controparte e oggetto dell'incarico.",
-            "Collegare il fascicolo al preventivo e ai documenti iniziali gia disponibili.",
-            "Impostare subito le prossime scadenze e il primo passo operativo.",
+            "verificare i dati essenziali di cliente, controparte e oggetto dell'incarico",
+            "collegare il fascicolo al preventivo e ai documenti iniziali gia disponibili",
+            "impostare subito le prossime scadenze e il primo passo operativo",
         ]
+    attivita_iniziali = _build_activity_plan(id_pratica, template, checklist)
+    scadenze_iniziali = _build_deadline_plan(attivita_iniziali, oggetto or titolo)
 
     notes = [
         f"Apertura guidata da {source_label.lower()} {source_number}.".strip(),
@@ -107,6 +321,9 @@ def build_fascicolo_onboarding(
         "Checklist iniziale:",
     ]
     notes.extend([f"- {item}" for item in checklist])
+    if attivita_iniziali:
+        notes.append("Controlli intelligenti iniziali:")
+        notes.extend([f"- {item['title']}" for item in attivita_iniziali[:3]])
     note_text = "\n".join([line for line in notes if line]).strip()
 
     return {
@@ -124,4 +341,8 @@ def build_fascicolo_onboarding(
         "tipo_procedimento": tipo_procedimento,
         "id_pratica": id_pratica,
         "area_pratica": area_pratica,
+        "attivita_iniziali": attivita_iniziali,
+        "scadenze_iniziali": scadenze_iniziali,
+        "template_checklist_id": getattr(template, "id", ""),
+        "canale_operativo": CANALE_LABEL.get(getattr(template, "canale", ""), "") if template else "",
     }

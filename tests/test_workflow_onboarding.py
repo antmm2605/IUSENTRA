@@ -42,6 +42,42 @@ def test_build_fascicolo_onboarding_precompila_fascicolo_da_workflow():
     assert "Checklist iniziale" in onboarding["note"]
 
 
+def test_build_fascicolo_onboarding_comparsa_risposta_usa_controlli_normativi_specifici():
+    cliente = SimpleNamespace(
+        nome_completo="Moscato Marco",
+        avvocato_referente="Avv. Lucia Verdi",
+    )
+    conferimento = SimpleNamespace(
+        numero="2026/050",
+        id_pratica="comparsa_risposta",
+        area_pratica="Civile",
+        tipo_procedimento="Comparsa di costituzione e risposta",
+        oggetto="Conferimento incarico - Preventivo professionale per comparsa di costituzione e risposta",
+        avvocato_referente="Avv. Lucia Verdi",
+    )
+    preventivo = SimpleNamespace(
+        numero="2026/011",
+        id_pratica="comparsa_risposta",
+        area_pratica="Civile",
+        tipo_procedimento="Comparsa di costituzione e risposta",
+        valore_controversia=5201.0,
+        oggetto="Preventivo professionale per comparsa di costituzione e risposta",
+        creato_da="",
+    )
+
+    onboarding = build_fascicolo_onboarding(
+        cliente=cliente,
+        preventivo=preventivo,
+        conferimento=conferimento,
+    )
+
+    assert onboarding["titolo"] == "Moscato Marco - Comparsa di costituzione e risposta"
+    assert any("art. 166" in item.lower() for item in onboarding["checklist"])
+    assert any("art. 167" in item.lower() for item in onboarding["checklist"])
+    assert onboarding["attivita_iniziali"][0]["activity_type"] == "TERMINE_SCADENZA"
+    assert "166-167" in onboarding["attivita_iniziali"][0]["title"]
+
+
 def test_collega_fascicolo_aggiorna_preventivo_e_conferimento(tmp_path):
     db_path = tmp_path / "preventivi.json"
     gp = GestionePreventivi(str(db_path))

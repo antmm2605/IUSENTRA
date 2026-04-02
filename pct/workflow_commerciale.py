@@ -15,6 +15,38 @@ from pct.scadenziario import GestioneScadenziario, TipoTermine
 from pct.workflow_onboarding import build_fascicolo_onboarding
 
 
+_ATTIVITA_BY_KEY = {
+    "DEPOSITO_ATTI": TipoAttivita.DEPOSITO_ATTI,
+    "ISCRIZIONE_A_RUOLO": TipoAttivita.ISCRIZIONE_A_RUOLO,
+    "NOTIFICA": TipoAttivita.NOTIFICA,
+    "CONSULTAZIONE": TipoAttivita.CONSULTAZIONE,
+    "TERMINE_SCADENZA": TipoAttivita.TERMINE_SCADENZA,
+    "ACCESSO_ATTI": TipoAttivita.ACCESSO_ATTI,
+    "MEDIAZIONE": TipoAttivita.MEDIAZIONE,
+    "CTU": TipoAttivita.CTU,
+    "PROVVEDIMENTO": TipoAttivita.PROVVEDIMENTO,
+    "APPELLO": TipoAttivita.APPELLO,
+    "ESECUZIONE": TipoAttivita.ESECUZIONE,
+    "ACCORDO": TipoAttivita.ACCORDO,
+    "RINVIO": TipoAttivita.RINVIO,
+}
+
+_SCADENZA_BY_KEY = {
+    "DEPOSITO_MEMORIA": TipoTermine.DEPOSITO_MEMORIA,
+    "DEPOSITO_ATTO": TipoTermine.DEPOSITO_ATTO,
+    "NOTIFICA": TipoTermine.NOTIFICA,
+    "IMPUGNAZIONE": TipoTermine.IMPUGNAZIONE,
+    "RISPOSTA_ECCEZIONE": TipoTermine.RISPOSTA_ECCEZIONE,
+    "PAGAMENTO": TipoTermine.PAGAMENTO,
+    "PRESCRIZIONE": TipoTermine.PRESCRIZIONE,
+    "DECADENZA": TipoTermine.DECADENZA,
+    "ADEMPIMENTO": TipoTermine.ADEMPIMENTO,
+    "TERMINE_PERENTORIO": TipoTermine.TERMINE_PERENTORIO,
+    "TERMINE_ORDINATORIO": TipoTermine.TERMINE_ORDINATORIO,
+    "ALTRO": TipoTermine.ALTRO,
+}
+
+
 def workflow_channel_label(value: str) -> str:
     return "Portale cliente" if str(value or "").strip().upper() == "ONLINE" else "Studio"
 
@@ -165,15 +197,39 @@ def _titolo_attivita_checklist(text: str) -> str:
     return clean if len(clean) <= 90 else clean[:87].rstrip() + "..."
 
 
+def _tipo_attivita_from_key(value: str) -> TipoAttivita:
+    return _ATTIVITA_BY_KEY.get(str(value or "").strip().upper(), TipoAttivita.ALTRO)
+
+
+def _tipo_scadenza_from_key(value: str) -> TipoTermine:
+    return _SCADENZA_BY_KEY.get(str(value or "").strip().upper(), TipoTermine.ADEMPIMENTO)
+
+
 def _seed_attivita_iniziali(
     gf: GestioneFascicoli,
     id_fascicolo: str,
     *,
+    activity_plan: Optional[list[dict[str, Any]]] = None,
     checklist: list[str],
     avvocato: str = "",
 ) -> int:
     oggi = date.today().isoformat()
     created = 0
+    if activity_plan:
+        for item in activity_plan[:3]:
+            titolo = str(item.get("title") or "").strip()
+            descrizione = str(item.get("description") or "").strip() or titolo
+            gf.aggiungi_attivita(
+                id_fascicolo,
+                _tipo_attivita_from_key(item.get("activity_type", "")),
+                oggi,
+                _titolo_attivita_checklist(titolo or descrizione),
+                descrizione=descrizione,
+                note=str(item.get("note") or "Attivita iniziale generata automaticamente dal workflow commerciale intelligente."),
+                avvocato=avvocato,
+            )
+            created += 1
+        return created
     for item in checklist[:3]:
         gf.aggiungi_attivita(
             id_fascicolo,
@@ -192,9 +248,26 @@ def _seed_scadenze_iniziali(
     gs: GestioneScadenziario,
     id_fascicolo: str,
     *,
+    deadline_plan: Optional[list[dict[str, Any]]] = None,
     checklist: list[str],
     practice_label: str = "",
 ) -> int:
+    if deadline_plan:
+        created = 0
+        for item in deadline_plan[:3]:
+            giorni = int(item.get("due_in_days") or 3)
+            gs.nuova(
+                titolo=str(item.get("title") or "Scadenza iniziale").strip(),
+                tipo=_tipo_scadenza_from_key(item.get("deadline_type", "")),
+                data_scadenza=(date.today() + timedelta(days=giorni)).isoformat(),
+                id_fascicolo=id_fascicolo,
+                descrizione=str(item.get("description") or f"Controllo iniziale della pratica {practice_label or 'appena aperta'}.").strip(),
+                data_decorrenza=date.today().isoformat(),
+                note=str(item.get("note") or "Scadenza iniziale generata automaticamente dal workflow commerciale intelligente."),
+                perentorio=_bool(item.get("perentorio")),
+            )
+            created += 1
+        return created
     base_rows = [
         (
             "Verifica documentazione iniziale",
@@ -296,12 +369,14 @@ def apri_fascicolo_automatico(
     attivita_create = _seed_attivita_iniziali(
         gf,
         fasc.id,
+        activity_plan=list(prefill.get("attivita_iniziali", []) or []),
         checklist=checklist,
         avvocato=avvocato or prefill.get("avvocato_referente", ""),
     )
     scadenze_create = _seed_scadenze_iniziali(
         gs,
         fasc.id,
+        deadline_plan=list(prefill.get("scadenze_iniziali", []) or []),
         checklist=checklist,
         practice_label=prefill.get("oggetto") or prefill.get("titolo") or "",
     )

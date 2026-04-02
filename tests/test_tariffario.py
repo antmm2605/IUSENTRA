@@ -1,4 +1,4 @@
-from pct.tariffario import Fase, Grado, LivelloCompenso, Materia, calcola_compenso, livello_compenso_da_complessita
+from pct.tariffario import Fase, Grado, LivelloCompenso, Materia, calcola_compenso, livello_compenso_da_complessita, parse_numero_locale
 from pct.tariffario_catalogo import (
     TABELLE_SNAPSHOT_META,
     default_rule_for_practice,
@@ -186,7 +186,7 @@ def test_riepilogo_livello_massimo_calcola_bonus_e_spese():
     assert riepilogo["spese_generali"] == round((riepilogo["subtotale"] + riepilogo["bonus_telematico"]) * 0.15, 2)
 
 
-def test_valore_indeterminabile_usa_complessita_stimata_per_scaglione():
+def test_valore_zero_usa_il_primo_scaglione_reale_come_default():
     risultato = calcola_compenso(
         Materia.CIVILE_COGN,
         Grado.TRIBUNALE,
@@ -197,9 +197,16 @@ def test_valore_indeterminabile_usa_complessita_stimata_per_scaglione():
 
     assert risultato.complessita_stimata == "media"
     assert risultato.valore_input == 0
-    assert risultato.valore_calcolo == 156000.0
-    assert risultato.scaglione == "Da EUR 52.000 a EUR 260.000"
-    assert "valore non determinato" in risultato.note.lower()
+    assert risultato.valore_calcolo == 0.0
+    assert risultato.scaglione == "Fino a EUR 1.100 (o indeterminabile)"
+    assert "primo scaglione tabellare disponibile" in risultato.note.lower()
+
+
+def test_parse_numero_locale_accetta_separatori_migliaia_e_decimali():
+    assert parse_numero_locale("5.201") == 5201.0
+    assert parse_numero_locale("5.201,00") == 5201.0
+    assert parse_numero_locale("5,201.00") == 5201.0
+    assert parse_numero_locale("€ 5 201,50") == 5201.5
 
 
 def test_complessita_stimata_pilota_il_livello_compenso_operativo():

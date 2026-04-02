@@ -901,8 +901,8 @@
             <div class="row g-3">
               <div class="col-md-3" id="boxValoreControversia">
                 <label class="form-label fw-semibold">Valore pratica / controversia</label>
-                <input type="number" name="valore_controversia" id="inpValore" class="form-control"
-                       min="0" step="0.01" placeholder="0.00">
+                <input type="text" name="valore_controversia" id="inpValore" class="form-control"
+                       inputmode="decimal" autocomplete="off" placeholder="0,00">
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold">Regola tariffaria / competenza</label>
@@ -920,12 +920,12 @@
                   <option value="media" selected>Media</option>
                   <option value="alta">Alta</option>
                 </select>
-                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, guida anche lo scaglione prudenziale.</div>
+                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, HACS usa il primo scaglione reale disponibile.</div>
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-semibold">Tariffa oraria</label>
-                <input type="number" name="tariffa_oraria" id="inpTariffaOraria" class="form-control"
-                       min="0" step="0.01" placeholder="0.00">
+                <input type="text" name="tariffa_oraria" id="inpTariffaOraria" class="form-control"
+                       inputmode="decimal" autocomplete="off" placeholder="0,00">
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-semibold">Ore stimate</label>
@@ -934,8 +934,8 @@
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-semibold">Anticipazioni art. 15</label>
-                <input type="number" name="anticipazioni_art15" id="inpAnticipazioni" class="form-control"
-                       min="0" step="0.01" placeholder="0.00">
+                <input type="text" name="anticipazioni_art15" id="inpAnticipazioni" class="form-control"
+                       inputmode="decimal" autocomplete="off" placeholder="0,00">
               </div>
               <div class="col-md-3">
                 <label class="form-label fw-semibold">Avvocato referente</label>
@@ -1187,8 +1187,72 @@ let compactMode = window.localStorage.getItem(STORAGE_KEY_COMPACT) === '1';
 let favoriteTipologie = new Set(JSON.parse(window.localStorage.getItem(STORAGE_KEY_PREFERITE) || '[]'));
 
 function money(value) {
-  const num = Number(value || 0);
+  const num = parseLocaleNumber(value);
   return `€ ${num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function parseLocaleNumber(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  let cleaned = String(value)
+    .trim()
+    .replaceAll('€', '')
+    .replaceAll('EUR', '')
+    .replaceAll('eur', '')
+    .replace(/\s+/g, '')
+    .replaceAll("'", '');
+  cleaned = cleaned.replace(/[^0-9,.\-]/g, '');
+  if (!cleaned || cleaned === '-' || cleaned === '.' || cleaned === ',') return 0;
+
+  let normalized = cleaned;
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    normalized = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+      ? cleaned.replaceAll('.', '').replace(',', '.')
+      : cleaned.replaceAll(',', '');
+  } else if (cleaned.includes(',')) {
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      const last = parts.at(-1) || '';
+      normalized = (last.length === 1 || last.length === 2)
+        ? `${parts.slice(0, -1).join('')}.${last}`
+        : parts.join('');
+    } else {
+      const [before, after] = parts;
+      normalized = after.length === 1 || after.length === 2
+        ? `${before}.${after}`
+        : (after.length === 3 && before ? `${before}${after}` : `${before}.${after}`);
+    }
+  } else if (cleaned.includes('.')) {
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      const last = parts.at(-1) || '';
+      normalized = (last.length === 1 || last.length === 2)
+        ? `${parts.slice(0, -1).join('')}.${last}`
+        : parts.join('');
+    } else {
+      const [before, after] = parts;
+      normalized = after.length === 1 || after.length === 2
+        ? `${before}.${after}`
+        : (after.length === 3 && before ? `${before}${after}` : `${before}.${after}`);
+    }
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeMoneyFieldValue(input) {
+  if (!input) return;
+  const raw = String(input.value || '').trim();
+  if (!raw) return;
+  const parsed = parseLocaleNumber(raw);
+  input.value = parsed.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function bindLocalizedMoneyField(id) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.addEventListener('blur', () => normalizeMoneyFieldValue(input));
 }
 
 function escapeHtml(value) {
@@ -2103,7 +2167,7 @@ function applyWizardPrefill() {
         upsertVocePerRuolo(
           `manual-prefill-${index}`,
           row.descrizione,
-          Number(row.importo || 0),
+          parseLocaleNumber(row.importo || 0),
           row.tipo || 'Onorario',
         );
       });
@@ -2147,7 +2211,7 @@ function rowMarkup(desc = '', importo = '', tipo = 'Onorario', attrs = '') {
     <tr class="prev-voice-row" ${attrs}>
       <td><input type="text" name="voce_descr[]" class="form-control form-control-sm" value="${escapeHtml(desc)}" required></td>
       <td><select name="voce_tipo[]" class="form-select form-select-sm">${TIPI_VOCE.map((item) => `<option value="${item}" ${item === tipo ? 'selected' : ''}>${item}</option>`).join('')}</select></td>
-      <td><input type="number" name="voce_importo[]" class="form-control form-control-sm text-end voce-importo" min="0" step="0.01" value="${Number(importo || 0)}"></td>
+      <td><input type="number" name="voce_importo[]" class="form-control form-control-sm text-end voce-importo" min="0" step="0.01" value="${parseLocaleNumber(importo || 0)}"></td>
       <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="bi bi-trash"></i></button></td>
     </tr>`;
 }
@@ -2188,7 +2252,7 @@ function upsertVocePerRuolo(role, desc, importo, tipo = 'Onorario') {
   if (!row) row = addVoce(desc, importo, tipo, `data-role="${role}"`);
   row.querySelector('input[name="voce_descr[]"]').value = desc;
   row.querySelector('select[name="voce_tipo[]"]').value = tipo;
-  row.querySelector('input[name="voce_importo[]"]').value = Number(importo || 0);
+  row.querySelector('input[name="voce_importo[]"]').value = parseLocaleNumber(importo || 0);
   recalcTotals();
 }
 
@@ -2211,11 +2275,11 @@ function syncEsborsiRows() {
 
 function recalcTotals() {
   let imponibile = 0;
-  document.querySelectorAll('input[name="voce_importo[]"]').forEach((node) => { imponibile += Number(node.value || 0); });
+  document.querySelectorAll('input[name="voce_importo[]"]').forEach((node) => { imponibile += parseLocaleNumber(node.value || 0); });
   const cassa = document.getElementById('chkCassa').checked ? imponibile * 0.04 : 0;
   const baseIva = imponibile + cassa;
   const iva = document.getElementById('chkIva').checked ? baseIva * 0.22 : 0;
-  const anticipazioni = Number(document.getElementById('inpAnticipazioni').value || 0);
+  const anticipazioni = parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0);
   const totale = baseIva + iva + anticipazioni;
   document.getElementById('lblImponibile').textContent = money(imponibile);
   document.getElementById('lblCassa').textContent = money(cassa);
@@ -2238,7 +2302,7 @@ function buildEconomicLogPayload() {
   }));
   const manualVoci = Array.from(document.querySelectorAll('tr[data-role^="manual-"], tr[data-role^="manual-prefill-"]')).map((row) => ({
     descrizione: row.querySelector('input[name="voce_descr[]"]')?.value || '',
-    importo: Number(row.querySelector('input[name="voce_importo[]"]')?.value || 0),
+        importo: parseLocaleNumber(row.querySelector('input[name="voce_importo[]"]')?.value || 0),
     tipo: row.querySelector('select[name="voce_tipo[]"]')?.value || 'Onorario',
   })).filter((row) => row.descrizione.trim());
   return {
@@ -2253,13 +2317,13 @@ function buildEconomicLogPayload() {
     grado_sede: grado,
     regola_tariffaria: regola?.rule_code || '',
     complessita: document.getElementById('selComplessita').value || '',
-    valore_controversia: Number(document.getElementById('inpValore').value || 0),
+    valore_controversia: parseLocaleNumber(document.getElementById('inpValore').value || 0),
     bonus_telematico: document.getElementById('chkBonusTelematico').checked,
     spese_generali: document.getElementById('chkSpeseGenerali').checked,
-    perc_spese_generali: Number(document.getElementById('inpPercSpese').value || 15),
+    perc_spese_generali: parseLocaleNumber(document.getElementById('inpPercSpese').value || 15),
     applica_cpa: document.getElementById('chkCassa').checked,
     applica_iva: document.getElementById('chkIva').checked,
-    anticipazioni_art15: Number(document.getElementById('inpAnticipazioni').value || 0),
+    anticipazioni_art15: parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0),
     adr: {
       enabled: !!activeAdrTipologia(),
       accordo: !!(chkAdrAccordo && chkAdrAccordo.checked),
@@ -2288,7 +2352,7 @@ function syncCalcoloHiddenFields() {
 function buildQuery(idPratica = '', fasiOverride = null) {
   const params = new URLSearchParams();
   params.set('id_pratica', idPratica || tipologiaCorrente.id);
-  params.set('valore', document.getElementById('inpValore').value || 0);
+  params.set('valore', String(parseLocaleNumber(document.getElementById('inpValore').value || 0)));
   params.set('grado', document.getElementById('selGrado').value || '');
   params.set('regola_tariffaria', document.getElementById('selRegolaTariffaria').value || '');
   params.set('complessita', document.getElementById('selComplessita').value || 'media');
@@ -2297,7 +2361,7 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('perc_spese_generali', document.getElementById('inpPercSpese').value || '15');
   params.set('applica_cpa', document.getElementById('chkCassa').checked ? '1' : '0');
   params.set('applica_iva', document.getElementById('chkIva').checked ? '1' : '0');
-  params.set('anticipazioni', document.getElementById('inpAnticipazioni').value || '0');
+  params.set('anticipazioni', String(parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0)));
   const fasi = Array.isArray(fasiOverride)
     ? fasiOverride
     : Array.from(document.querySelectorAll('.fase-check:checked')).map((node) => node.value);
@@ -2324,8 +2388,8 @@ function renderRisultato(data) {
 }
 
 function renderRisultatoOrario() {
-  const tariffa = Number(document.getElementById('inpTariffaOraria').value || 0);
-  const ore = Number(document.getElementById('inpOreStimate').value || 0);
+  const tariffa = parseLocaleNumber(document.getElementById('inpTariffaOraria').value || 0);
+  const ore = parseLocaleNumber(document.getElementById('inpOreStimate').value || 0);
   const imponibile = tariffa * ore;
   ultimoCalcolo = { onorario_base: imponibile, totale: imponibile, scaglione: 'Compenso orario pattuito' };
   document.getElementById('kpiCompenso').textContent = money(imponibile);
@@ -2363,8 +2427,8 @@ async function calcolaPreventivo() {
   }
   const tipoCompenso = (tipologiaCorrente.tipo_compenso_default || '').toLowerCase();
   if (tipoCompenso.includes('orario')) {
-    const tariffa = Number(document.getElementById('inpTariffaOraria').value || 0);
-    const ore = Number(document.getElementById('inpOreStimate').value || 0);
+    const tariffa = parseLocaleNumber(document.getElementById('inpTariffaOraria').value || 0);
+    const ore = parseLocaleNumber(document.getElementById('inpOreStimate').value || 0);
     if (tariffa > 0 && ore > 0) {
       renderRisultatoOrario();
       return;
@@ -2493,6 +2557,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setChipButtonState(btnToggleAdvancedFilters, false);
     syncTipologiaToolbarPin();
   });
+  bindLocalizedMoneyField('inpValore');
+  bindLocalizedMoneyField('inpTariffaOraria');
+  bindLocalizedMoneyField('inpAnticipazioni');
   document.getElementById('wizardStep2Collapse').addEventListener('shown.bs.collapse', syncTipologiaToolbarPin);
   document.getElementById('wizardStep2Collapse').addEventListener('hidden.bs.collapse', resetTipologiaToolbarPin);
   document.getElementById('main')?.addEventListener('scroll', syncTipologiaToolbarPin, { passive: true });

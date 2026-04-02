@@ -10,6 +10,7 @@ nelle note del risultato.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
@@ -270,6 +271,83 @@ _COMPLESSITA_VIRTUAL_VALUE = {
     ComplessitaStimata.MEDIA: 156000.0,
     ComplessitaStimata.ALTA: 390000.0,
 }
+
+
+def parse_numero_locale(value: object, default: float = 0.0) -> float:
+    """Converte numeri digitati in formato locale/ibrido in float.
+
+    Esempi supportati:
+      - 5201
+      - "5.201"
+      - "5.201,00"
+      - "5,201.00"
+      - "€ 5 201,00"
+    """
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    raw = str(value).strip()
+    if not raw:
+        return default
+
+    cleaned = (
+        raw.replace("EUR", "")
+        .replace("eur", "")
+        .replace("€", "")
+        .replace("\u00a0", "")
+        .replace(" ", "")
+        .replace("'", "")
+    )
+    cleaned = re.sub(r"[^0-9,.\-]", "", cleaned)
+    if not cleaned or cleaned in {"-", ".", ","}:
+        return default
+
+    if "," in cleaned and "." in cleaned:
+        if cleaned.rfind(",") > cleaned.rfind("."):
+            normalized = cleaned.replace(".", "").replace(",", ".")
+        else:
+            normalized = cleaned.replace(",", "")
+    elif "," in cleaned:
+        parts = cleaned.split(",")
+        if len(parts) > 2:
+            last = parts[-1]
+            if len(last) in (1, 2):
+                normalized = "".join(parts[:-1]) + "." + last
+            else:
+                normalized = "".join(parts)
+        else:
+            before, after = parts
+            if len(after) in (1, 2):
+                normalized = before + "." + after
+            elif len(after) == 3 and before:
+                normalized = before + after
+            else:
+                normalized = before + "." + after
+    elif "." in cleaned:
+        parts = cleaned.split(".")
+        if len(parts) > 2:
+            last = parts[-1]
+            if len(last) in (1, 2):
+                normalized = "".join(parts[:-1]) + "." + last
+            else:
+                normalized = "".join(parts)
+        else:
+            before, after = parts
+            if len(after) in (1, 2):
+                normalized = before + "." + after
+            elif len(after) == 3 and before:
+                normalized = before + after
+            else:
+                normalized = before + "." + after
+    else:
+        normalized = cleaned
+
+    try:
+        return float(normalized)
+    except (TypeError, ValueError):
+        return default
 
 
 def _parse_complessita(value: ComplessitaStimata | str | None) -> ComplessitaStimata | None:
@@ -998,7 +1076,7 @@ def calcola_compenso(
     tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado, profile_code=profile_code)
     _variazioni = variazioni_fasi or {}
     _maggiorazioni = maggiorazioni_fasi or {}
-    valore_input = float(valore or 0.0)
+    valore_input = parse_numero_locale(valore, 0.0)
     valore_calcolo = valore_input
     complessita_norm = _parse_complessita(complessita)
     force_compenso_unico = bool(_PROFILE_TABLE_OVERRIDES.get(profile_code or "", {}).get("force_compenso_unico"))
@@ -1012,27 +1090,11 @@ def calcola_compenso(
     else:
         fasi_richieste = [fase.value for fase in fasi]
 
-    materie_con_scaglione_virtuale = {
-        Materia.CIVILE_COGN,
-        Materia.LAVORO,
-        Materia.PREVIDENZA,
-        Materia.ESEC_IMMO,
-        Materia.ESEC_MOB,
-        Materia.VOLONTARIA,
-        Materia.AMMINISTRATIVO,
-        Materia.TRIBUTARIO,
-        Materia.ARBITRATO,
-        Materia.CONTABILE,
-        Materia.GIURISDIZIONI_SUPERIORI,
-        Materia.AFFARI_IPOTECARI,
-        Materia.CRISI_IMPRESA,
-    }
-    if valore_calcolo <= 0 and materia in materie_con_scaglione_virtuale and complessita_norm:
-        valore_calcolo, _ = valore_virtuale_indeterminabile(complessita_norm)
+    if valore_calcolo <= 0 and tabella:
+        valore_calcolo = tabella[0].valore_da
         note_parts.append(
-            "Valore non determinato: per il calcolo HACS ha collocato la pratica nello scaglione "
-            f"compatibile con complessita {complessita_norm.value}, secondo la logica di valore "
-            "indeterminabile del D.M. 55/2014."
+            "Valore non determinato o pari a zero: per default HACS applica il primo scaglione tabellare disponibile. "
+            "La complessita stimata continua a incidere sulla forbice minimo / base / massimo del compenso."
         )
 
     sc = tabella[-1]

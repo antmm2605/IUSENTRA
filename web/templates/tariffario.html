@@ -368,9 +368,9 @@
             </div>
             <div class="col-lg-2">
               <label class="form-label fw-semibold">Valore controversia (EUR)</label>
-              <input type="number" id="inpValore" name="valore" class="form-control"
-                     min="0" step="0.01" value="{{ valore_str }}" placeholder="0.00">
-              <div class="form-text">Usa 0 per valore indeterminabile o per i profili senza scaglione economico.</div>
+              <input type="text" id="inpValore" name="valore" class="form-control"
+                     inputmode="decimal" autocomplete="off" value="{{ valore_str }}" placeholder="0,00">
+              <div class="form-text">Usa 0 se il valore non e ancora determinato: HACS applichera per default il primo scaglione tabellare disponibile.</div>
             </div>
 
             <div class="col-12">
@@ -414,7 +414,7 @@
                                   <option value="{{ row.value }}" {{ 'selected' if complessita_sel == row.value else '' }}>{{ row.label }}</option>
                                   {% endfor %}
                                 </select>
-                                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, guida anche lo scaglione prudenziale.</div>
+                                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, HACS usa il primo scaglione reale disponibile.</div>
                               </div>
                               <div class="col-md-6">
                                 <div class="form-check form-switch mb-2">
@@ -933,6 +933,64 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function parseLocaleNumber(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  let cleaned = String(value)
+    .trim()
+    .replaceAll('€', '')
+    .replaceAll('EUR', '')
+    .replaceAll('eur', '')
+    .replace(/\s+/g, '')
+    .replaceAll("'", '');
+  cleaned = cleaned.replace(/[^0-9,.\-]/g, '');
+  if (!cleaned || cleaned === '-' || cleaned === '.' || cleaned === ',') return 0;
+
+  let normalized = cleaned;
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    normalized = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+      ? cleaned.replaceAll('.', '').replace(',', '.')
+      : cleaned.replaceAll(',', '');
+  } else if (cleaned.includes(',')) {
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      const last = parts.at(-1) || '';
+      normalized = (last.length === 1 || last.length === 2)
+        ? `${parts.slice(0, -1).join('')}.${last}`
+        : parts.join('');
+    } else {
+      const [before, after] = parts;
+      normalized = after.length === 1 || after.length === 2
+        ? `${before}.${after}`
+        : (after.length === 3 && before ? `${before}${after}` : `${before}.${after}`);
+    }
+  } else if (cleaned.includes('.')) {
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      const last = parts.at(-1) || '';
+      normalized = (last.length === 1 || last.length === 2)
+        ? `${parts.slice(0, -1).join('')}.${last}`
+        : parts.join('');
+    } else {
+      const [before, after] = parts;
+      normalized = after.length === 1 || after.length === 2
+        ? `${before}.${after}`
+        : (after.length === 3 && before ? `${before}${after}` : `${before}.${after}`);
+    }
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeMoneyFieldValue(input) {
+  if (!input) return;
+  const raw = String(input.value || '').trim();
+  if (!raw) return;
+  const parsed = parseLocaleNumber(raw);
+  input.value = parsed.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function preferredGrade(gradi) {
   const ordine = [
     'Tribunale',
@@ -1303,8 +1361,10 @@ function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
     const selMateria = document.getElementById('selMateria');
     const selRegola = document.getElementById('selRegolaTariffaria');
     const selGrado = document.getElementById('selGrado');
+    const inpValore = document.getElementById('inpValore');
     selRegola.dataset.selected = REGOLA_SEL;
     selGrado.dataset.selected = GRADO_SEL;
+    inpValore?.addEventListener('blur', () => normalizeMoneyFieldValue(inpValore));
     renderRegole();
     renderGradi();
     renderFasi();

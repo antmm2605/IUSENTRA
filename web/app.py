@@ -2292,7 +2292,7 @@ def create_app(config: dict | None = None) -> Flask:
     def tariffario():
         from pct.economico_context import costruisci_contesto_economico, dump_log_calcolo
         from pct.motore_preventivo import catalogo_wizard, get_tipo_pratica, motore_calcola
-        from pct.tariffario import ComplessitaStimata, Fase, Grado, Materia, calcola_compenso, livello_compenso_da_complessita
+        from pct.tariffario import ComplessitaStimata, Fase, Grado, Materia, calcola_compenso, livello_compenso_da_complessita, parse_numero_locale
         from pct.tariffario_catalogo import (
             first_profile_for_materia,
             grade_catalog_by_materia,
@@ -2306,10 +2306,7 @@ def create_app(config: dict | None = None) -> Flask:
         from web.helpers import get_normative_tables
 
         def _parse_float(value, default=0.0):
-            try:
-                return float(str(value or default).replace(",", "."))
-            except (TypeError, ValueError):
-                return default
+            return parse_numero_locale(value, default)
 
         def _fase_key_from_value(fase_value: str) -> str:
             mapping = {
@@ -2490,7 +2487,7 @@ def create_app(config: dict | None = None) -> Flask:
             grado_sel = _preferred_grade(grade_defaults)
         complessita_sel = request.form.get("complessita", ComplessitaStimata.MEDIA.value).strip() or ComplessitaStimata.MEDIA.value
         livello_compenso_sel = livello_compenso_da_complessita(complessita_sel)
-        valore_str = request.form.get("valore", "0").replace(",", ".").strip()
+        valore_str = (request.form.get("valore", "0") or "0").strip()
         fasi_sel = request.form.getlist("fasi")
         bonus_tel = request.form.get("bonus_telematico") == "1"
         spese_gen = request.form.get("spese_generali", "1") == "1"

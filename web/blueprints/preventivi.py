@@ -21,11 +21,16 @@ from pct.economico_context import (
     riepilogo_contesto_economico,
     sincronizza_contesto_economico,
 )
+from pct.tariffario import parse_numero_locale
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
 
 # ---------------------------------------------------------------- helpers
+
+
+def _parse_numero(value, default: float = 0.0) -> float:
+    return parse_numero_locale(value, default)
 
 def _get_gp():
     from pct.preventivi import GestionePreventivi
@@ -255,7 +260,7 @@ def nuovo_preventivo(id_cliente: str = ""):
             try:
                 voci.append(VocePreventivo(
                     descrizione=desc,
-                    importo=float(imp or 0),
+                    importo=_parse_numero(imp, 0.0),
                     tipo=TipoVoce(tipo) if tipo else TipoVoce.ONORARIO,
                 ))
             except (ValueError, TypeError):
@@ -265,18 +270,9 @@ def nuovo_preventivo(id_cliente: str = ""):
             flash("Aggiungi almeno una voce.", "danger")
             return redirect(request.url)
 
-        try:
-            valore_controversia = float(f.get("valore_controversia") or 0)
-        except (ValueError, TypeError):
-            valore_controversia = 0.0
-        try:
-            tariffa_oraria = float(f.get("tariffa_oraria") or 0)
-        except (ValueError, TypeError):
-            tariffa_oraria = 0.0
-        try:
-            ore_stimate = float(f.get("ore_stimate") or 0)
-        except (ValueError, TypeError):
-            ore_stimate = 0.0
+        valore_controversia = _parse_numero(f.get("valore_controversia"), 0.0)
+        tariffa_oraria = _parse_numero(f.get("tariffa_oraria"), 0.0)
+        ore_stimate = _parse_numero(f.get("ore_stimate"), 0.0)
 
         cfg = current_app.config
         p = gp.crea_preventivo(
@@ -289,7 +285,7 @@ def nuovo_preventivo(id_cliente: str = ""):
             data_scadenza=f.get("data_scadenza", "").strip() or None,
             applica_cassa=bool(f.get("applica_cassa")),
             applica_iva=bool(f.get("applica_iva")),
-            anticipazioni_art15=float(f.get("anticipazioni_art15") or 0),
+            anticipazioni_art15=_parse_numero(f.get("anticipazioni_art15"), 0.0),
             note=f.get("note", "").strip(),
             tipo_compenso=f.get("tipo_compenso", "").strip(),
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
@@ -474,18 +470,9 @@ def nuovo_conferimento(id_cliente: str = ""):
             flash("Inserisci il nome dell'avvocato referente.", "danger")
             return redirect(request.url)
 
-        try:
-            compenso = float(f.get("compenso_pattuito", 0) or 0)
-        except (ValueError, TypeError):
-            compenso = 0.0
-        try:
-            tariffa_oraria_c = float(f.get("tariffa_oraria") or 0)
-        except (ValueError, TypeError):
-            tariffa_oraria_c = 0.0
-        try:
-            quota_palmario = float(f.get("quota_palmario_pct") or 0)
-        except (ValueError, TypeError):
-            quota_palmario = 0.0
+        compenso = _parse_numero(f.get("compenso_pattuito"), 0.0)
+        tariffa_oraria_c = _parse_numero(f.get("tariffa_oraria"), 0.0)
+        quota_palmario = _parse_numero(f.get("quota_palmario_pct"), 0.0)
         id_preventivo = f.get("id_preventivo", "").strip()
         id_fascicolo = f.get("id_fascicolo", "").strip()
         apri_fascicolo_guidato = bool(f.get("apri_fascicolo_guidato")) and not id_fascicolo
@@ -722,14 +709,14 @@ def ajax_parametri_dm55():
 
     tipo_proc        = request.args.get("tipo_procedimento", "")
     tipo_mediazione  = request.args.get("tipo_mediazione", "mediazione")
-    valore           = float(request.args.get("valore", 0) or 0)
+    valore           = _parse_numero(request.args.get("valore", 0), 0.0)
     fasi_raw         = request.args.get("fasi", "")
     grado_raw        = request.args.get("grado", "Tribunale")
     bonus_tel        = request.args.get("bonus_telematico", "0") == "1"
     incl_spese       = request.args.get("spese_generali", "0") == "1"
     complessita      = request.args.get("complessita", "media").strip() or "media"
     try:
-        perc_sg = float(request.args.get("perc_spese_generali", "15") or "15") / 100.0
+        perc_sg = _parse_numero(request.args.get("perc_spese_generali", "15"), 15.0) / 100.0
     except (ValueError, TypeError):
         perc_sg = 0.15
 
@@ -817,7 +804,7 @@ def ajax_parametri_dm55():
         raw_val = request.args.get(f"var_{k}")
         if raw_val is not None:
             try:
-                variazioni_fasi[fase_label] = 1.0 + (float(raw_val) / 100.0)
+                variazioni_fasi[fase_label] = 1.0 + (_parse_numero(raw_val, 0.0) / 100.0)
             except (ValueError, TypeError):
                 pass
 
@@ -987,7 +974,7 @@ def wizard_calcola():
 
     try:
         id_pratica = request.args.get("id_pratica", "")
-        valore = float(request.args.get("valore", 0) or 0)
+        valore = _parse_numero(request.args.get("valore", 0), 0.0)
         grado_raw = request.args.get("grado", "")
         regola_tariffaria = request.args.get("regola_tariffaria", "").strip()
         complessita = request.args.get("complessita", "media").strip() or "media"
@@ -995,12 +982,12 @@ def wizard_calcola():
         bonus_tel = request.args.get("bonus_telematico", "0") == "1"
         incl_spese = request.args.get("spese_generali", "1") == "1"
         try:
-            perc_sg = float(request.args.get("perc_spese_generali", "15") or "15") / 100.0
+            perc_sg = _parse_numero(request.args.get("perc_spese_generali", "15"), 15.0) / 100.0
         except (ValueError, TypeError):
             perc_sg = 0.15
         applica_cpa = request.args.get("applica_cpa", "1") == "1"
         applica_iva = request.args.get("applica_iva", "1") == "1"
-        anticipazioni = float(request.args.get("anticipazioni", 0) or 0)
+        anticipazioni = _parse_numero(request.args.get("anticipazioni", 0), 0.0)
 
         if not id_pratica:
             return jsonify({"errore": "id_pratica mancante"}), 200
@@ -1060,7 +1047,7 @@ def wizard_calcola():
             raw_val = request.args.get(f"var_{k}")
             if raw_val is not None:
                 try:
-                    variazioni_fasi[fase_label] = 1.0 + (float(raw_val) / 100.0)
+                    variazioni_fasi[fase_label] = 1.0 + (_parse_numero(raw_val, 0.0) / 100.0)
                 except (ValueError, TypeError):
                     pass
 
@@ -1175,7 +1162,7 @@ def wizard_genera():
         try:
             voci.append(VocePreventivo(
                 descrizione=desc,
-                importo=float(imp or 0),
+                importo=_parse_numero(imp, 0.0),
                 tipo=TipoVoce(tipo) if tipo else TipoVoce.ONORARIO,
             ))
         except (ValueError, TypeError):
@@ -1185,22 +1172,10 @@ def wizard_genera():
         flash("Aggiungi almeno una voce al preventivo.", "danger")
         return redirect(url_for("preventivi.wizard"))
 
-    try:
-        valore_controversia = float(f.get("valore_controversia") or 0)
-    except (ValueError, TypeError):
-        valore_controversia = 0.0
-    try:
-        tariffa_oraria = float(f.get("tariffa_oraria") or 0)
-    except (ValueError, TypeError):
-        tariffa_oraria = 0.0
-    try:
-        ore_stimate = float(f.get("ore_stimate") or 0)
-    except (ValueError, TypeError):
-        ore_stimate = 0.0
-    try:
-        anticipazioni = float(f.get("anticipazioni_art15") or 0)
-    except (ValueError, TypeError):
-        anticipazioni = 0.0
+    valore_controversia = _parse_numero(f.get("valore_controversia"), 0.0)
+    tariffa_oraria = _parse_numero(f.get("tariffa_oraria"), 0.0)
+    ore_stimate = _parse_numero(f.get("ore_stimate"), 0.0)
+    anticipazioni = _parse_numero(f.get("anticipazioni_art15"), 0.0)
 
     cfg = current_app.config
     log_calcolo = _contesto_log_wizard_da_form(f)
@@ -1235,7 +1210,7 @@ def wizard_genera():
         conferimento = None
         avvocato = f.get("avvocato_referente", "").strip() or cfg.get("STUDIO_NOME", "Studio Legale")
         try:
-            compenso_pattuito = float(f.get("compenso_pattuito") or p.totale)
+            compenso_pattuito = _parse_numero(f.get("compenso_pattuito"), p.totale)
         except (ValueError, TypeError):
             compenso_pattuito = p.totale
         conferimento = gp.crea_conferimento(

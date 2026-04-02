@@ -22,6 +22,7 @@
   font-size: .82rem;
   flex-shrink: 0;
 }
+.validation-issue + .validation-issue { margin-top: .5rem; }
 </style>
 {% endblock %}
 
@@ -257,6 +258,27 @@
 
   {# ── Step 3: Azioni ─────────────────────────────────────────────── #}
   <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+      <span><i class="bi bi-shield-check me-2 text-primary"></i>Verificatore pre-deposito</span>
+      <span class="badge bg-light text-dark border" id="vlOverall">in attesa</span>
+    </div>
+    <div class="card-body">
+      <div class="small text-muted mb-3" id="vlIntro">
+        Completa atto principale, tipo atto e registro per avviare il controllo guidato.
+      </div>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge bg-light text-dark border" id="vlSemGiuridico">Giuridico</span>
+        <span class="badge bg-light text-dark border" id="vlSemTecnico">Tecnico PST</span>
+        <span class="badge bg-light text-dark border" id="vlSemDocumentale">Documentale</span>
+      </div>
+      <div id="vlActionHint" class="alert alert-secondary small py-2 mb-3">
+        Il sistema abilita generazione busta e invio solo quando i blocchi sono risolti.
+      </div>
+      <div id="vlIssues" class="small"></div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <span class="step-badge bg-primary text-white">3</span>
       Invia o scarica
@@ -266,7 +288,8 @@
       {# — Invio via PEC — sempre visibile; demo=true finché PEC non configurata — #}
       {# TODO: sostituire avviaInvioPec(true) con avviaInvioPec(false) quando PEC studio attiva #}
       <div>
-        <button type="button" class="btn btn-success fw-semibold w-100" onclick="avviaInvioPec(true)">
+        <button type="button" class="btn btn-success fw-semibold w-100" id="btnInviaPecDiretto"
+                onclick="avviaInvioPec({{ 'false' if pec_tribunale and pec_configurata else 'true' }})">
           <i class="bi bi-send-fill me-2"></i>Invia ora via PEC
         </button>
         <div class="form-text text-center mt-1">
@@ -303,7 +326,7 @@
 
       {# — Modalità Demo — sempre visibile — #}
       <div>
-        <button type="button" class="btn btn-warning fw-semibold w-100" onclick="avviaInvioPec(true)">
+        <button type="button" class="btn btn-warning fw-semibold w-100" id="btnInviaPecDemo" onclick="avviaInvioPec(true)">
           <i class="bi bi-play-circle me-2"></i>Testa in Modalità Demo
         </button>
         <div class="form-text text-center mt-1">
@@ -314,7 +337,7 @@
       <div class="text-center text-muted small">— oppure —</div>
 
       <div>
-        <button type="button" class="btn btn-outline-primary w-100" onclick="avviaGeneraBusta()">
+        <button type="button" class="btn btn-outline-primary w-100" id="btnScaricaBustaEnc" onclick="avviaGeneraBusta()">
           <i class="bi bi-download me-2"></i>Scarica busta .enc
         </button>
         <div class="form-text text-center mt-1">
@@ -657,6 +680,9 @@
   <input type="hidden" name="tipo_atto" id="gb_tipo">
   <input type="hidden" name="codice_registro" id="gb_reg">
   <input type="hidden" name="oggetto" id="gb_ogg">
+  <input type="hidden" name="numero_rg" id="gb_numrg">
+  <input type="hidden" name="anno_rg" id="gb_annorg">
+  <input type="hidden" name="note" id="gb_note">
   <input type="hidden" name="atto_principale_id" id="gb_atto">
   {# demo_mode=1 per prove; impostare 0 (o rimuovere) quando dati reali attivi #}
   <input type="hidden" name="demo_mode" id="gb_demo" value="1">
@@ -679,12 +705,159 @@ let _pkcs11PendingAction = null;  // 'pec' | 'demo' | 'busta' — azione da eseg
 let _pkcs11TokenSlot = null;       // slot_id del token rilevato (server-side)
 let _lsTokenSlot = null;           // slot_id del token nel Local Signer
 let _firmaViaLS = false;           // true = usiamo Local Signer
+let _validationState = null;
+let _validationTimer = null;
 
 // Mappa doc_id → firmato (aggiornata dinamicamente dopo firma PKCS#11)
 const _docFirmato = {};
 {% for doc in fascicolo.documenti %}
 _docFirmato['{{ doc.id }}'] = {{ 'true' if doc.firmato_digitalmente else 'false' }};
 {% endfor %}
+
+function _stateBadgeClass(state) {
+  if (state === 'ok') return 'bg-success-subtle text-success border border-success-subtle';
+  if (state === 'warning') return 'bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+  if (state === 'blocco') return 'bg-danger-subtle text-danger border border-danger-subtle';
+  return 'bg-light text-dark border';
+}
+
+function _setActionButtonsDisabled(disabled) {
+  ['btnInviaPecDiretto', 'btnInviaPecDemo', 'btnScaricaBustaEnc', 'btnConfermaInvio'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !!disabled;
+  });
+}
+
+function _renderValidationIdle() {
+  _validationState = null;
+  document.getElementById('vlOverall').textContent = 'in attesa';
+  document.getElementById('vlOverall').className = 'badge bg-light text-dark border';
+  ['vlSemGiuridico', 'vlSemTecnico', 'vlSemDocumentale'].forEach(id => {
+    const el = document.getElementById(id);
+    el.className = 'badge bg-light text-dark border';
+  });
+  document.getElementById('vlSemGiuridico').textContent = 'Giuridico';
+  document.getElementById('vlSemTecnico').textContent = 'Tecnico PST';
+  document.getElementById('vlSemDocumentale').textContent = 'Documentale';
+  document.getElementById('vlIntro').textContent =
+    'Completa atto principale, tipo atto e registro per avviare il controllo guidato.';
+  document.getElementById('vlIssues').innerHTML = '';
+  document.getElementById('vlActionHint').className = 'alert alert-secondary small py-2 mb-3';
+  document.getElementById('vlActionHint').textContent =
+    'Il sistema abilita generazione busta e invio solo quando i blocchi sono risolti.';
+  _setActionButtonsDisabled(true);
+}
+
+function _renderValidationPending() {
+  document.getElementById('vlOverall').textContent = 'controllo...';
+  document.getElementById('vlOverall').className = 'badge bg-primary-subtle text-primary border border-primary-subtle';
+  document.getElementById('vlIntro').textContent = 'Verifica giuridica, tecnica e documentale in corso...';
+  _setActionButtonsDisabled(true);
+}
+
+function _renderValidation(run) {
+  _validationState = run;
+  const overall = run?.overall_state || 'warning';
+  const sem = run?.semaforo || {};
+  const issues = Array.isArray(run?.issues) ? run.issues : [];
+  const blockers = issues.filter(item => item.level === 'BLOCK');
+  const warnings = issues.filter(item => item.level === 'WARNING');
+
+  const overallEl = document.getElementById('vlOverall');
+  overallEl.textContent = overall === 'ok' ? 'verde' : overall;
+  overallEl.className = `badge ${_stateBadgeClass(overall)}`;
+
+  const giu = document.getElementById('vlSemGiuridico');
+  const tec = document.getElementById('vlSemTecnico');
+  const doc = document.getElementById('vlSemDocumentale');
+  giu.textContent = `Giuridico: ${sem.giuridico || 'ok'}`;
+  tec.textContent = `Tecnico PST: ${sem.tecnico_pst || 'ok'}`;
+  doc.textContent = `Documentale: ${sem.documentale || 'ok'}`;
+  giu.className = `badge ${_stateBadgeClass(sem.giuridico || 'ok')}`;
+  tec.className = `badge ${_stateBadgeClass(sem.tecnico_pst || 'ok')}`;
+  doc.className = `badge ${_stateBadgeClass(sem.documentale || 'ok')}`;
+
+  document.getElementById('vlIntro').textContent =
+    run?.profile_label
+      ? `Profilo attivo: ${run.profile_label}. Snapshot regole ${run?.snapshot?.procedural_kb_version || ''}`.trim()
+      : 'Profilo in verifica.';
+
+  const hint = document.getElementById('vlActionHint');
+  if (blockers.length > 0) {
+    hint.className = 'alert alert-danger small py-2 mb-3';
+    hint.textContent = `Deposito bloccato: ${blockers.length} blocco/i da risolvere prima di generare la busta.`;
+  } else if (warnings.length > 0) {
+    hint.className = 'alert alert-warning small py-2 mb-3';
+    hint.textContent = `Deposito consentito con ${warnings.length} warning da verificare.`;
+  } else {
+    hint.className = 'alert alert-success small py-2 mb-3';
+    hint.textContent = 'Controlli verdi: puoi generare busta e procedere al deposito.';
+  }
+
+  const issuesEl = document.getElementById('vlIssues');
+  if (issues.length === 0) {
+    issuesEl.innerHTML = '<div class="small text-success"><i class="bi bi-check-circle me-1"></i>Nessuna anomalia rilevata.</div>';
+  } else {
+    issuesEl.innerHTML = issues.slice(0, 6).map(issue => {
+      const tone = issue.level === 'BLOCK' ? 'danger' : (issue.level === 'WARNING' ? 'warning' : 'success');
+      return `
+        <div class="validation-issue border rounded p-2 bg-${tone}-subtle border-${tone}-subtle">
+          <div class="fw-semibold text-${tone}">${issue.title}</div>
+          <div class="text-muted">${issue.detail}</div>
+          <div class="mt-1"><strong>Correzione:</strong> ${issue.suggested_action || 'Verifica manualmente.'}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  _setActionButtonsDisabled(blockers.length > 0);
+}
+
+function _scheduleValidation(delay = 180) {
+  clearTimeout(_validationTimer);
+  _validationTimer = setTimeout(_aggiornaValidazioneDeposito, delay);
+}
+
+function _aggiornaValidazioneDeposito() {
+  if (!mainDocId && !document.getElementById('fTipoAtto').value) {
+    _renderValidationIdle();
+    return;
+  }
+  _renderValidationPending();
+  const d = _raccogliDati();
+  const fd = new FormData();
+  fd.append('tipo_atto', d.tipoAtto || '');
+  fd.append('codice_registro', d.codReg || '');
+  fd.append('oggetto', d.oggetto || '');
+  fd.append('numero_rg', d.nRG || '');
+  fd.append('anno_rg', d.aRG || '');
+  fd.append('note', d.note || '');
+  fd.append('atto_principale_id', mainDocId || '');
+  allegatiSet.forEach(aid => fd.append('allegati_ids', aid));
+
+  fetch("{{ url_for('api_deposito_valida', id_fasc=fascicolo.id) }}", {
+    method: 'POST',
+    body: fd,
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok || !data.validation) {
+        throw new Error(data.errore || 'Errore nel controllo pre-deposito.');
+      }
+      _renderValidation(data.validation);
+    })
+    .catch(err => {
+      document.getElementById('vlOverall').textContent = 'errore';
+      document.getElementById('vlOverall').className = 'badge bg-danger-subtle text-danger border border-danger-subtle';
+      document.getElementById('vlIntro').textContent = 'Controllo pre-deposito non disponibile.';
+      document.getElementById('vlIssues').innerHTML =
+        `<div class="validation-issue border rounded p-2 bg-danger-subtle border-danger-subtle small">${String(err)}</div>`;
+      document.getElementById('vlActionHint').className = 'alert alert-danger small py-2 mb-3';
+      document.getElementById('vlActionHint').textContent = 'Correggi il problema tecnico o ricarica la pagina.';
+      _setActionButtonsDisabled(true);
+    });
+}
 
 function _docMainFirmato() {
   return mainDocId && _docFirmato[mainDocId] === true;
@@ -1152,6 +1325,9 @@ function _eseguiGeneraBusta() {
   document.getElementById('gb_tipo').value = d.tipoAtto;
   document.getElementById('gb_reg').value  = d.codReg;
   document.getElementById('gb_ogg').value  = d.oggetto;
+  document.getElementById('gb_numrg').value = d.nRG;
+  document.getElementById('gb_annorg').value = d.aRG;
+  document.getElementById('gb_note').value = d.note;
   document.getElementById('gb_atto').value = mainDocId;
   const gbAll = document.getElementById('gb_allegati');
   gbAll.innerHTML = '';
@@ -1177,6 +1353,7 @@ function setMainDoc(id) {
   const btn = document.getElementById('btn_main_' + id);
   if (btn) { btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary'); }
   _aggiornaRiepilogo();
+  _scheduleValidation(40);
 }
 
 function toggleAllegato(id) {
@@ -1192,6 +1369,7 @@ function toggleAllegato(id) {
     if (btn) { btn.textContent = '✓ Allegato'; btn.classList.remove('btn-outline-success'); btn.classList.add('btn-success'); }
   }
   _aggiornaRiepilogo();
+  _scheduleValidation(40);
 }
 
 function _resetAllBtn(id) {
@@ -1218,6 +1396,15 @@ function _aggiornaRiepilogo() {
 function _validaForm() {
   if (!mainDocId) { alert('Seleziona l\'atto principale (clicca "Principale" su un documento).'); return false; }
   if (!document.getElementById('fTipoAtto').value) { alert('Seleziona il tipo di atto (Step 2).'); return false; }
+  if (!_validationState) { alert('Attendi il completamento del controllo pre-deposito.'); return false; }
+  const blockers = Array.isArray(_validationState.issues)
+    ? _validationState.issues.filter(item => item.level === 'BLOCK')
+    : [];
+  if (blockers.length > 0) {
+    const first = blockers[0];
+    alert(`${first.title}\n\n${first.suggested_action || first.detail || 'Correggi il blocco prima di procedere.'}`);
+    return false;
+  }
   return true;
 }
 
@@ -1268,12 +1455,16 @@ document.getElementById('btnConfermaInvio')?.addEventListener('click', function(
     method: 'POST', body: fd,
     headers: {'X-Requested-With': 'XMLHttpRequest'},
   })
-  .then(r => {
+  .then(async r => {
     if (r.redirected) { window.location = r.url; return; }
+    const data = await r.json().catch(() => null);
+    if (!r.ok || (data && data.ok === false)) {
+      throw new Error((data && data.errore) || 'Errore di invio del deposito.');
+    }
     window.location = "{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}";
   })
   .catch(err => {
-    alert('Errore: ' + err);
+    alert('Errore: ' + String(err?.message || err));
     btn.disabled = false;
     document.getElementById('invioProgress').style.display = 'none';
   });
@@ -1288,5 +1479,17 @@ function avviaGeneraBusta() {
   }
   _eseguiGeneraBusta();
 }
+
+['fTipoAtto', 'fRegistro', 'fNumRG', 'fAnnoRG'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', () => _scheduleValidation(40));
+});
+['fOggetto', 'fNote'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', () => _scheduleValidation(250));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  _renderValidationIdle();
+  _scheduleValidation(50);
+});
 </script>
 {% endblock %}

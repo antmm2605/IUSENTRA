@@ -346,6 +346,13 @@ def create_app(config: dict | None = None) -> Flask:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "tabelle_normative.json"),
         ),
     )
+    app.config["VALIDATION_RUNS_DB"] = cfg.get(
+        "VALIDATION_RUNS_DB",
+        os.getenv(
+            "PCT_VALIDATION_RUNS_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "validation_runs.json"),
+        ),
+    )
     # WhatsApp / notifiche
     app.config["TWILIO_SID"]     = os.getenv("PCT_TWILIO_SID", "")
     app.config["TWILIO_TOKEN"]   = os.getenv("PCT_TWILIO_TOKEN", "")
@@ -456,6 +463,80 @@ def create_app(config: dict | None = None) -> Flask:
                 archive_dir=_cfg_data_path("FASCICOLI_ARCH"),
             )
         return g._fascicoli
+
+    def get_deposito_guidato():
+        if not hasattr(g, "_deposito_guidato"):
+            from pct.deposito_guidato import OrchestratoreDepositoGuidato
+
+            g._deposito_guidato = OrchestratoreDepositoGuidato(
+                validation_db_path=_cfg_data_path("VALIDATION_RUNS_DB"),
+                office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
+            )
+        return g._deposito_guidato
+
+    def _documento_payload_per_validazione(gf: GestioneFascicoli, fasc: Fascicolo, doc_id: str) -> dict | None:
+        doc = next((item for item in fasc.documenti if item.id == doc_id), None)
+        if not doc:
+            return None
+        try:
+            percorso = str(gf.percorso_documento(fasc.id, doc_id))
+        except KeyError:
+            return None
+        return {
+            "id": doc.id,
+            "nome": doc.nome,
+            "tipo": doc.tipo.value if hasattr(doc.tipo, "value") else str(doc.tipo),
+            "percorso": percorso,
+            "dimensione_bytes": doc.dimensione_bytes,
+            "firmato_digitalmente": bool(doc.firmato_digitalmente),
+            "data_documento": doc.data_documento,
+        }
+
+    def _build_deposito_validation_context(form_like, fasc: Fascicolo, operatore: str = "") -> dict:
+        anno_rg_raw = (form_like.get("anno_rg", "") or "").strip()
+        return {
+            "tipo_atto": (form_like.get("tipo_atto", "ATTO_GENERICO") or "ATTO_GENERICO").strip(),
+            "codice_registro": (form_like.get("codice_registro", "RG") or "RG").strip(),
+            "oggetto": (form_like.get("oggetto", "") or fasc.titolo).strip(),
+            "numero_rg": (form_like.get("numero_rg", "") or fasc.numero_rg).strip(),
+            "anno_rg": int(anno_rg_raw) if anno_rg_raw.isdigit() else fasc.anno_rg,
+            "atto_principale_id": (form_like.get("atto_principale_id", "") or "").strip(),
+            "allegati_ids": list(form_like.getlist("allegati_ids")) if hasattr(form_like, "getlist") else list(form_like.get("allegati_ids", []) or []),
+            "note": (form_like.get("note", "") or "").strip(),
+            "operatore": operatore,
+        }
+
+    def _run_deposito_validation(
+        fasc: Fascicolo,
+        gf: GestioneFascicoli,
+        form_like,
+        operatore: str = "",
+    ):
+        ctx = _build_deposito_validation_context(form_like, fasc, operatore=operatore)
+        selected_ids = []
+        if ctx["atto_principale_id"]:
+            selected_ids.append(ctx["atto_principale_id"])
+        for doc_id in ctx["allegati_ids"]:
+            if doc_id and doc_id not in selected_ids:
+                selected_ids.append(doc_id)
+        selected_docs = [
+            payload
+            for doc_id in selected_ids
+            for payload in [_documento_payload_per_validazione(gf, fasc, doc_id)]
+            if payload
+        ]
+        all_docs = [
+            payload
+            for doc in fasc.documenti
+            for payload in [_documento_payload_per_validazione(gf, fasc, doc.id)]
+            if payload
+        ]
+        return get_deposito_guidato().valida(
+            fascicolo=fasc,
+            context=ctx,
+            selected_documents=selected_docs,
+            all_documents=all_docs,
+        )
 
     def _portale_ufficiale_label(fasc: Fascicolo) -> str:
         if fasc.tipo == TipoFascicolo.PENALE:
@@ -6629,6 +6710,25 @@ read -r -p "Premi Invio per chiudere..." _
 
     # ---- Wizard deposito telematico PCT
 
+    @app.route("/api/fascicoli/<id_fasc>/deposito/valida", methods=["POST"])
+    def api_deposito_valida(id_fasc):
+        try:
+            gf = get_fascicoli()
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
+            utente = getattr(g, "utente_corrente", None)
+            run = _run_deposito_validation(
+                fasc=fasc,
+                gf=gf,
+                form_like=request.form,
+                operatore=utente.username if utente else "",
+            )
+            return jsonify({"ok": True, "validation": run.to_dict()}), 200
+        except Exception as e:
+            app.logger.exception("Errore api_deposito_valida: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
     @app.route("/fascicoli/<id_fasc>/deposito/genera-busta", methods=["POST"])
     def deposito_genera_busta(id_fasc):
         """
@@ -6651,12 +6751,30 @@ read -r -p "Premi Invio per chiudere..." _
         tipo_atto       = f.get("tipo_atto", "ATTO").strip()
         codice_registro = f.get("codice_registro", "RG").strip()
         oggetto         = f.get("oggetto", "").strip() or fasc.titolo
+        numero_rg       = f.get("numero_rg", "").strip() or (fasc.numero_rg or None)
+        anno_rg_raw     = f.get("anno_rg", "").strip()
+        anno_rg         = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fasc.anno_rg or None)
         atto_id         = f.get("atto_principale_id", "").strip()
         allegati_ids    = request.form.getlist("allegati_ids")
 
+        validation = _run_deposito_validation(
+            fasc=fasc,
+            gf=gf,
+            form_like=request.form,
+            operatore=u.username if u else "",
+        )
+        blockers = [i for i in validation.issues if i.get("level") == "BLOCK"]
+        if blockers:
+            first = blockers[0]
+            flash(
+                f"Deposito bloccato: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
+                "danger",
+            )
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
+
         if not atto_id:
             flash("Seleziona l'atto principale da includere nella busta.", "danger")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+            return redirect(url_for("deposito_prepara", id_fasc=id_fasc))
 
         # Risolvi documento principale
         try:
@@ -6702,8 +6820,8 @@ read -r -p "Premi Invio per chiudere..." _
             tipo_atto=tipo_atto,
             atto_principale=atto_path,
             allegati=allegati_busta,
-            numero_rg=fasc.numero_rg or None,
-            anno_rg=fasc.anno_rg or None,
+            numero_rg=numero_rg,
+            anno_rg=anno_rg,
             operatore=u.username if u else "",
             cf_mittente="",
         )
@@ -6751,9 +6869,27 @@ read -r -p "Premi Invio per chiudere..." _
         tipo_atto       = f.get("tipo_atto", "ATTO").strip()
         codice_registro = f.get("codice_registro", "RG").strip()
         oggetto         = f.get("oggetto", "").strip() or fasc.titolo
+        numero_rg       = f.get("numero_rg", "").strip() or (fasc.numero_rg or None)
+        anno_rg_raw     = f.get("anno_rg", "").strip()
+        anno_rg         = int(anno_rg_raw) if anno_rg_raw.isdigit() else (fasc.anno_rg or None)
         atto_id         = f.get("atto_principale_id", "").strip()
         allegati_ids    = request.form.getlist("allegati_ids")
         note            = f.get("note", "").strip()
+
+        validation = _run_deposito_validation(
+            fasc=fasc,
+            gf=gf,
+            form_like=request.form,
+            operatore=u.username if u else "",
+        )
+        blockers = [i for i in validation.issues if i.get("level") == "BLOCK"]
+        if blockers:
+            first = blockers[0]
+            return jsonify({
+                "ok": False,
+                "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
+                "validation": validation.to_dict(),
+            }), 400
 
         if not atto_id:
             return jsonify({"ok": False, "errore": "Seleziona l'atto principale."}), 400
@@ -6827,8 +6963,8 @@ read -r -p "Premi Invio per chiudere..." _
                 tipo_atto=tipo_atto,
                 atto_principale=atto_path,
                 allegati=allegati_busta,
-                numero_rg=fasc.numero_rg or None,
-                anno_rg=fasc.anno_rg or None,
+                numero_rg=numero_rg,
+                anno_rg=anno_rg,
                 operatore=u.username if u else "",
                 cf_mittente=getattr(pec_cfg, "cf_mittente", "") or "",
             )
@@ -6867,8 +7003,8 @@ read -r -p "Premi Invio per chiudere..." _
                 )
                 client_pec = ClientPEC(config_pec)
                 oggetto_pec = (
-                    f"DEPOSITO TELEMATICO - {tipo_atto} - RG {fasc.numero_rg}/{fasc.anno_rg}"
-                    if fasc.numero_rg and fasc.anno_rg else
+                    f"DEPOSITO TELEMATICO - {tipo_atto} - RG {numero_rg}/{anno_rg}"
+                    if numero_rg and anno_rg else
                     f"DEPOSITO TELEMATICO - {tipo_atto} - {fasc.tribunale}"
                 )
                 ris = client_pec.invia_busta(
@@ -7038,6 +7174,21 @@ read -r -p "Premi Invio per chiudere..." _
         codice_ufficio   = f.get("codice_ufficio", "").strip()
         atto_id          = f.get("atto_principale_id", "").strip()
         allegati_ids     = request.form.getlist("allegati_ids")
+
+        validation = _run_deposito_validation(
+            fasc=fasc,
+            gf=gf,
+            form_like=request.form,
+            operatore=u.username if u else "",
+        )
+        blockers = [i for i in validation.issues if i.get("level") == "BLOCK"]
+        if blockers:
+            first = blockers[0]
+            return jsonify({
+                "ok": False,
+                "errore": f"{first.get('title')}. {first.get('suggested_action', '')}".strip(),
+                "validation": validation.to_dict(),
+            }), 400
 
         if not tribunale_nome:
             flash("Seleziona un ufficio giudiziario destinatario.", "danger")

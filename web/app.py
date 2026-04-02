@@ -2328,13 +2328,20 @@ def create_app(config: dict | None = None) -> Flask:
         def _preferred_grade(gradi: list[str]) -> str:
             ordine = [
                 "Tribunale",
+                "GIP / GUP",
+                "Tribunale monocratico",
+                "Tribunale collegiale",
+                "Corte d'Assise",
                 "Fuori giudizio",
                 "Procedura ADR",
                 "TAR",
                 "CGT di primo grado",
                 "Giudice di Pace",
                 "Corte d'Appello",
+                "Corte d'Appello penale",
+                "Corte d'Assise d'Appello",
                 "Corte di Cassazione",
+                "Tribunale di Sorveglianza",
                 "Consiglio di Stato",
                 "CGT di secondo grado",
             ]
@@ -2460,6 +2467,7 @@ def create_app(config: dict | None = None) -> Flask:
                     grado,
                     valore,
                     fasi,
+                    profile_code=(profilo_attivo or {}).get("profile_code", ""),
                     bonus_telematico=bonus_tel,
                     includi_spese_generali=spese_gen,
                     perc_spese_generali=max(0.0, perc_spese / 100.0),

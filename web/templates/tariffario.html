@@ -464,13 +464,20 @@ function escapeHtml(value) {
 function preferredGrade(gradi) {
   const ordine = [
     'Tribunale',
+    'GIP / GUP',
+    'Tribunale monocratico',
+    'Tribunale collegiale',
+    "Corte d'Assise",
     'Fuori giudizio',
     'Procedura ADR',
     'TAR',
     'CGT di primo grado',
     'Giudice di Pace',
     "Corte d'Appello",
+    "Corte d'Appello penale",
+    "Corte d'Assise d'Appello",
     'Corte di Cassazione',
+    'Tribunale di Sorveglianza',
     'Consiglio di Stato',
     'CGT di secondo grado',
   ];
@@ -517,7 +524,9 @@ function renderGradi() {
   const select = document.getElementById('selGrado');
   const rule = currentRule();
   const materia = document.getElementById('selMateria').value;
-  const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
+  const gradi = (rule?.allowed_grade_input_values && rule.allowed_grade_input_values.length)
+    ? rule.allowed_grade_input_values
+    : (GRADE_CATALOG[materia] || ['Tribunale']);
   const preferred = select.dataset.selected || GRADO_SEL || rule?.grado_input_value || preferredGrade(gradi);
   const selected = gradi.includes(preferred) ? preferred : (rule?.grado_input_value && gradi.includes(rule.grado_input_value) ? rule.grado_input_value : gradi[0]);
   select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');

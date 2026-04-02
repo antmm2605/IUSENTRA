@@ -378,13 +378,20 @@ function phaseLabel(key) {
 function preferredGrade(gradi) {
   const ordine = [
     'Tribunale',
+    'GIP / GUP',
+    'Tribunale monocratico',
+    'Tribunale collegiale',
+    "Corte d'Assise",
     'Fuori giudizio',
     'Procedura ADR',
     'TAR',
     'CGT di primo grado',
     'Giudice di Pace',
     "Corte d'Appello",
+    "Corte d'Appello penale",
+    "Corte d'Assise d'Appello",
     'Corte di Cassazione',
+    'Tribunale di Sorveglianza',
     'Consiglio di Stato',
     'CGT di secondo grado',
   ];
@@ -455,7 +462,9 @@ function renderGradiTariffari() {
     return;
   }
   const regola = currentRegolaTariffaria();
-  const gradi = tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale'];
+  const gradi = (regola?.allowed_grade_input_values && regola.allowed_grade_input_values.length)
+    ? regola.allowed_grade_input_values
+    : (tipologiaCorrente.gradi_consentiti || [tipologiaCorrente.grado_default || 'Tribunale']);
   const preferred = select.dataset.selected || WIZARD_PREFILL.grado || regola?.grado_input_value || tipologiaCorrente.grado_default || preferredGrade(gradi);
   const selected = gradi.includes(preferred) ? preferred : (regola?.grado_input_value && gradi.includes(regola.grado_input_value) ? regola.grado_input_value : gradi[0]);
   select.disabled = false;

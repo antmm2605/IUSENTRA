@@ -30,13 +30,21 @@ class Materia(str, Enum):
     STRAGIUD = "Stragiudiziale / Consulenza"
     MEDIAZIONE = "Mediazione (D.Lgs. 28/2010)"
     NEGOZIAZIONE_ASSISTITA = "Negoziazione Assistita (D.L. 132/2014)"
+    ARBITRATO = "Arbitrato"
 
 
 class Grado(str, Enum):
     GIUDICE_DI_PACE = "Giudice di Pace"
     TRIBUNALE = "Tribunale"
+    GIP_GUP = "GIP / GUP"
+    TRIBUNALE_MONOCRATICO = "Tribunale monocratico"
+    TRIBUNALE_COLLEGIALE = "Tribunale collegiale"
+    CORTE_ASSISE = "Corte d'Assise"
     CORTE_APPELLO = "Corte d'Appello"
+    CORTE_APPELLO_PENALE = "Corte d'Appello penale"
+    CORTE_ASSISE_APPELLO = "Corte d'Assise d'Appello"
     CASSAZIONE = "Corte di Cassazione"
+    TRIBUNALE_SORVEGLIANZA = "Tribunale di Sorveglianza"
     TAR = "TAR"
     CONSIGLIO_DI_STATO = "Consiglio di Stato"
     CGT_PRIMO_GRADO = "CGT di primo grado"
@@ -209,8 +217,15 @@ _PHASE_LABELS = {
 _GRADO_COEFF_APPROSSIMATI = {
     Grado.GIUDICE_DI_PACE: 1.0,
     Grado.TRIBUNALE: 1.0,
+    Grado.GIP_GUP: 1.0,
+    Grado.TRIBUNALE_MONOCRATICO: 1.0,
+    Grado.TRIBUNALE_COLLEGIALE: 1.0,
+    Grado.CORTE_ASSISE: 1.0,
     Grado.CORTE_APPELLO: 1.30,
+    Grado.CORTE_APPELLO_PENALE: 1.0,
+    Grado.CORTE_ASSISE_APPELLO: 1.0,
     Grado.CASSAZIONE: 1.60,
+    Grado.TRIBUNALE_SORVEGLIANZA: 1.0,
     Grado.TAR: 1.0,
     Grado.CONSIGLIO_DI_STATO: 1.0,
     Grado.CGT_PRIMO_GRADO: 1.0,
@@ -261,11 +276,28 @@ def _carica_snapshot() -> dict[str, dict[str, list[float | None]]]:
         return {}
 
 
-@lru_cache(maxsize=64)
-def _tabella_snapshot(codice: str) -> list[Scaglione]:
+def _snapshot_table(
+    codice: str,
+    *,
+    phase_aliases: Optional[dict[str, str]] = None,
+    single_label: str | None = None,
+) -> list[Scaglione]:
     raw = _carica_snapshot().get(codice, {})
     if not raw:
         return []
+    alias_map = phase_aliases or {}
+    if single_label:
+        fasi: Dict[str, ScaglioneFase] = {}
+        for fase_raw, valori in raw.items():
+            valore = next((item for item in valori if item is not None), None)
+            if valore is None:
+                continue
+            fase_label = alias_map.get(fase_raw, _PHASE_LABELS.get(fase_raw, fase_raw))
+            fasi[fase_label] = _sc(float(valore))
+        if not fasi:
+            return []
+        return [Scaglione(0.0, float("inf"), single_label, fasi)]
+
     max_count = max(
         (sum(1 for value in valori if value is not None) for valori in raw.values()),
         default=0,
@@ -280,10 +312,16 @@ def _tabella_snapshot(codice: str) -> list[Scaglione]:
             valore = valori[idx]
             if valore is None:
                 continue
-            fasi[_PHASE_LABELS.get(fase_raw, fase_raw)] = _sc(float(valore))
+            fase_label = alias_map.get(fase_raw, _PHASE_LABELS.get(fase_raw, fase_raw))
+            fasi[fase_label] = _sc(float(valore))
         if fasi:
             scaglioni.append(Scaglione(valore_da, valore_a, label, fasi))
     return scaglioni
+
+
+@lru_cache(maxsize=64)
+def _tabella_snapshot(codice: str) -> list[Scaglione]:
+    return _snapshot_table(codice)
 
 
 def _fallback_gdp() -> list[Scaglione]:
@@ -512,11 +550,114 @@ def _exact_or_fallback(codice: str, fallback_fn) -> tuple[list[Scaglione], bool]
     return fallback_fn(), False
 
 
+_PROFILE_TABLE_OVERRIDES: Dict[str, Dict[str, object]] = {
+    "civile_monitorio": {
+        "table_code": "A8",
+        "note": "Tabella 8 per procedimenti monitori.",
+        "force_compenso_unico": True,
+    },
+    "civile_convalida_locatizia": {
+        "table_code": "A5",
+        "note": "Tabella 5 per procedimenti per convalida locatizia.",
+    },
+    "esecuzione_precetto": {
+        "table_code": "A6",
+        "note": "Tabella 6 per atto di precetto.",
+        "force_compenso_unico": True,
+    },
+    "volontaria": {
+        "table_code": "A7",
+        "note": "Tabella 7 per procedimenti di volontaria giurisdizione.",
+        "force_compenso_unico": True,
+    },
+    "esecuzione_mobiliare": {
+        "table_code": "A16",
+        "note": "Tabella 16 per procedure esecutive mobiliari.",
+        "phase_aliases": {"Istruttoria": Fase.ESECUTIVA.value},
+    },
+    "esecuzione_presso_terzi": {
+        "table_code": "A17",
+        "note": "Tabella 17 per esecuzioni presso terzi, per consegna e rilascio, in forma specifica.",
+        "phase_aliases": {"Istruttoria": Fase.ESECUTIVA.value},
+    },
+    "esecuzione_immobiliare": {
+        "table_code": "A18",
+        "note": "Tabella 18 per procedure esecutive immobiliari.",
+        "phase_aliases": {"Istruttoria": Fase.ESECUTIVA.value},
+    },
+    "penale_indagini_preliminari": {
+        "table_code": "A15-2",
+        "note": "Tabella 15, colonna indagini preliminari.",
+        "single_label": "Penale - indagini preliminari",
+    },
+    "penale_udienza_preliminare": {
+        "table_code": "A15-6",
+        "note": "Tabella 15, colonna GIP/GUP.",
+        "single_label": "Penale - GIP/GUP",
+    },
+    "penale_monocratico": {
+        "table_code": "A15-7",
+        "note": "Tabella 15, colonna Tribunale monocratico.",
+        "single_label": "Penale - Tribunale monocratico",
+    },
+    "penale_collegiale": {
+        "table_code": "A15-8",
+        "note": "Tabella 15, colonna Tribunale collegiale.",
+        "single_label": "Penale - Tribunale collegiale",
+    },
+    "penale_assise": {
+        "table_code": "A15-9",
+        "note": "Tabella 15, colonna Corte d'Assise.",
+        "single_label": "Penale - Corte d'Assise",
+    },
+    "penale_appello": {
+        "table_code": "A15-10",
+        "note": "Tabella 15, colonna Corte d'Appello penale.",
+        "single_label": "Penale - Corte d'Appello",
+    },
+    "penale_sorveglianza": {
+        "table_code": "A15-11",
+        "note": "Tabella 15, colonna Tribunale di sorveglianza.",
+        "single_label": "Penale - Tribunale di sorveglianza",
+    },
+    "penale_assise_appello": {
+        "table_code": "A15-12",
+        "note": "Tabella 15, colonna Corte d'Assise d'Appello.",
+        "single_label": "Penale - Corte d'Assise d'Appello",
+    },
+    "penale_cassazione": {
+        "table_code": "A15-13",
+        "note": "Tabella 15, colonna Corte di Cassazione penale / magistrature superiori.",
+        "single_label": "Penale - Cassazione e magistrature superiori",
+    },
+    "arbitrato": {
+        "table_code": "A26",
+        "note": "Tabella 26 per arbitrato.",
+        "force_compenso_unico": True,
+    },
+}
+
+
 def _tabella_per_calcolo(
     materia: Materia,
     grado: Grado,
+    profile_code: str = "",
 ) -> tuple[list[Scaglione], float, str, bool, list[str]]:
     note: list[str] = []
+
+    override = _PROFILE_TABLE_OVERRIDES.get(profile_code or "")
+    if override:
+        table_code = str(override.get("table_code", "") or "")
+        tabella = _snapshot_table(
+            table_code,
+            phase_aliases=override.get("phase_aliases"),  # type: ignore[arg-type]
+            single_label=override.get("single_label"),  # type: ignore[arg-type]
+        )
+        if tabella:
+            note_text = str(override.get("note", "") or "").strip()
+            if note_text:
+                note.append(note_text)
+            return tabella, 1.0, table_code, True, note
 
     if grado == Grado.GIUDICE_DI_PACE:
         tabella, exact = _exact_or_fallback("A1", _fallback_gdp)
@@ -524,11 +665,28 @@ def _tabella_per_calcolo(
         return tabella, 1.0, "A1", exact, note
 
     if materia == Materia.PENALE:
-        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI.get(grado, 1.0)
-        note.append("Penale: HACS mantiene una tabella sintetica per assenza di scaglioni di valore nella UI attuale.")
-        if coeff != 1.0:
-            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} sul profilo penale sintetico.")
-        return _fallback_penale(), coeff, "PENALE", False, note
+        penal_map = {
+            Grado.FUORI_GIUDIZIO: ("A15-2", "Penale - indagini preliminari", "Tabella 15 per indagini preliminari."),
+            Grado.GIP_GUP: ("A15-6", "Penale - GIP/GUP", "Tabella 15 per udienza preliminare e attivita GIP/GUP."),
+            Grado.TRIBUNALE: ("A15-7", "Penale - Tribunale monocratico", "Tabella 15, profilo base penale davanti al Tribunale monocratico."),
+            Grado.TRIBUNALE_MONOCRATICO: ("A15-7", "Penale - Tribunale monocratico", "Tabella 15 per dibattimento penale monocratico."),
+            Grado.TRIBUNALE_COLLEGIALE: ("A15-8", "Penale - Tribunale collegiale", "Tabella 15 per dibattimento penale collegiale."),
+            Grado.CORTE_ASSISE: ("A15-9", "Penale - Corte d'Assise", "Tabella 15 per Corte d'Assise."),
+            Grado.CORTE_APPELLO: ("A15-10", "Penale - Corte d'Appello", "Tabella 15 per appello penale."),
+            Grado.CORTE_APPELLO_PENALE: ("A15-10", "Penale - Corte d'Appello", "Tabella 15 per appello penale."),
+            Grado.TRIBUNALE_SORVEGLIANZA: ("A15-11", "Penale - Tribunale di sorveglianza", "Tabella 15 per Tribunale di Sorveglianza."),
+            Grado.CORTE_ASSISE_APPELLO: ("A15-12", "Penale - Corte d'Assise d'Appello", "Tabella 15 per Corte d'Assise d'Appello."),
+            Grado.CASSAZIONE: ("A15-13", "Penale - Cassazione e magistrature superiori", "Tabella 15 per Corte di Cassazione penale e magistrature superiori."),
+        }
+        penal_profile = penal_map.get(grado)
+        if penal_profile:
+            codice, label, note_text = penal_profile
+            tabella = _snapshot_table(codice, single_label=label)
+            if tabella:
+                note.append(note_text)
+                return tabella, 1.0, codice, True, note
+        note.append("Penale: fallback sintetico usato solo in assenza di profilo o snapshot esatto.")
+        return _fallback_penale(), 1.0, "PENALE", False, note
 
     if materia == Materia.AMMINISTRATIVO:
         codice = "A21" if grado in {Grado.TRIBUNALE, Grado.TAR} else "A22"
@@ -537,62 +695,131 @@ def _tabella_per_calcolo(
         return tabella, 1.0, codice, exact, note
 
     if materia == Materia.TRIBUTARIO:
+        if grado == Grado.CASSAZIONE:
+            tabella = _tabella_snapshot("A13")
+            if tabella:
+                note.append("Tabella 13 per giudizi di legittimita in Cassazione, applicabile anche al tributario.")
+                return tabella, 1.0, "A13", True, note
         codice = "A23" if grado in {Grado.TRIBUNALE, Grado.CGT_PRIMO_GRADO} else "A24"
         tabella, exact = _exact_or_fallback(codice, _fallback_tributario)
-        coeff = 1.0 if grado in {Grado.TRIBUNALE, Grado.CGT_PRIMO_GRADO, Grado.CGT_SECONDO_GRADO} else _GRADO_COEFF_APPROSSIMATI.get(grado, 1.0)
-        if coeff != 1.0:
-            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} sul profilo tributario di impugnazione.")
-        else:
-            note.append(f"Tabella {codice[1:]} per giustizia tributaria.")
-        return tabella, coeff, codice, exact and coeff == 1.0, note
+        note.append(f"Tabella {codice[1:]} per giustizia tributaria.")
+        return tabella, 1.0, codice, exact, note
 
     if materia == Materia.STRAGIUD:
         tabella, exact = _exact_or_fallback("A25", _fallback_stragiudiziale)
         note.append("Tabella 25 per prestazioni stragiudiziali.")
         return tabella, 1.0, "A25", exact, note
 
+    if materia == Materia.ARBITRATO:
+        tabella = _tabella_snapshot("A26")
+        if tabella:
+            note.append("Tabella 26 per arbitrato.")
+            return tabella, 1.0, "A26", True, note
+        note.append("Tabella 26 non disponibile in snapshot: fallback civile analogico.")
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        return tabella, 1.0, "A2", exact, note
+
     if materia == Materia.MEDIAZIONE:
-        note.append("Tabella 25 (A25) — mediazione D.Lgs. 28/2010: ripartita in Attivazione (40%), Rivitalizzazione (35%), Conciliazione (25%).")
-        note.append("DM 147/2022: variazione +/-50% tassativa per fase.")
-        return _fallback_mediazione(), 1.0, "A25-MEDIAZIONE", False, note
+        tabella = _snapshot_table(
+            "A27",
+            phase_aliases={
+                "Introduttiva": Fase.ATTIVAZIONE.value,
+                "Istruttoria": Fase.RIVITALIZZAZIONE.value,
+                "Decisoria": Fase.CONCILIAZIONE.value,
+            },
+        )
+        if tabella:
+            note.append("Tabella 27 per mediazione civile e commerciale.")
+            return tabella, 1.0, "A27", True, note
+        note.append("Tabella 27 non disponibile in snapshot: usata ricostruzione ADR di fallback.")
+        return _fallback_mediazione(), 1.0, "A27", False, note
 
     if materia == Materia.NEGOZIAZIONE_ASSISTITA:
-        note.append("Tabella 25 (A25) — negoziazione assistita D.L. 132/2014: ripartita in Attivazione (40%), Negoziazione (35%), Conciliazione (25%).")
-        note.append("DM 147/2022: variazione +/-50% tassativa per fase.")
-        return _fallback_negoziazione_assistita(), 1.0, "A25-NEGOZIAZIONE", False, note
+        tabella = _snapshot_table(
+            "A27",
+            phase_aliases={
+                "Introduttiva": Fase.ATTIVAZIONE.value,
+                "Istruttoria": Fase.NEGOZIAZIONE_TRATTAZIONE.value,
+                "Decisoria": Fase.CONCILIAZIONE.value,
+            },
+        )
+        if tabella:
+            note.append("Tabella 27 per procedura di negoziazione assistita.")
+            return tabella, 1.0, "A27", True, note
+        note.append("Tabella 27 non disponibile in snapshot: usata ricostruzione ADR di fallback.")
+        return _fallback_negoziazione_assistita(), 1.0, "A27", False, note
 
     if materia == Materia.LAVORO:
+        if grado == Grado.CORTE_APPELLO:
+            tabella = _tabella_snapshot("A12")
+            if tabella:
+                note.append("Tabella 12 per giudizi innanzi alla Corte d'Appello, applicabile alle controversie di lavoro.")
+                return tabella, 1.0, "A12", True, note
+        if grado == Grado.CASSAZIONE:
+            tabella = _tabella_snapshot("A13")
+            if tabella:
+                note.append("Tabella 13 per giudizi in Cassazione, applicabile alle controversie di lavoro.")
+                return tabella, 1.0, "A13", True, note
         tabella, exact = _exact_or_fallback("A3", _fallback_lavoro)
-        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI[grado]
-        if coeff != 1.0:
-            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} su tabella lavoro di primo grado.")
-        else:
-            note.append("Tabella 3 per controversie di lavoro.")
-        return tabella, coeff, "A3", exact and coeff == 1.0, note
+        note.append("Tabella 3 per controversie di lavoro.")
+        return tabella, 1.0, "A3", exact, note
 
     if materia == Materia.PREVIDENZA:
+        if grado == Grado.CORTE_APPELLO:
+            tabella = _tabella_snapshot("A12")
+            if tabella:
+                note.append("Tabella 12 per giudizi innanzi alla Corte d'Appello, applicabile alla previdenza e assistenza.")
+                return tabella, 1.0, "A12", True, note
+        if grado == Grado.CASSAZIONE:
+            tabella = _tabella_snapshot("A13")
+            if tabella:
+                note.append("Tabella 13 per giudizi in Cassazione, applicabile alla previdenza e assistenza.")
+                return tabella, 1.0, "A13", True, note
         tabella, exact = _exact_or_fallback("A4", _fallback_lavoro)
-        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI[grado]
-        if coeff != 1.0:
-            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} su tabella previdenza di primo grado.")
-        else:
-            note.append("Tabella 4 per previdenza e assistenza.")
-        return tabella, coeff, "A4", exact and coeff == 1.0, note
+        note.append("Tabella 4 per previdenza e assistenza.")
+        return tabella, 1.0, "A4", exact, note
 
-    civile = {Materia.CIVILE_COGN, Materia.ESEC_IMMO, Materia.ESEC_MOB, Materia.VOLONTARIA}
-    if materia in civile:
+    if materia == Materia.ESEC_IMMO:
+        tabella = _snapshot_table("A18", phase_aliases={"Istruttoria": Fase.ESECUTIVA.value})
+        if tabella:
+            note.append("Tabella 18 per procedure esecutive immobiliari.")
+            return tabella, 1.0, "A18", True, note
+        note.append("Tabella 18 non disponibile in snapshot: fallback civile esecutivo.")
         tabella, exact = _exact_or_fallback("A2", _fallback_civile)
-        coeff = 1.0 if grado == Grado.TRIBUNALE else _GRADO_COEFF_APPROSSIMATI[grado]
-        if materia == Materia.CIVILE_COGN and coeff == 1.0:
-            note.append("Tabella 2 per giudizi civili ordinari di primo grado.")
-            return tabella, coeff, "A2", exact, note
-        if materia == Materia.CIVILE_COGN:
-            note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f} applicato alla tabella civile di primo grado.")
-        else:
-            note.append(f"Materia {materia.value}: la UI HACS la ricondduce ancora al profilo civile ordinario.")
-            if coeff != 1.0:
-                note.append(f"Grado {grado.value}: coefficiente ricostruttivo x{coeff:.2f}.")
-        return tabella, coeff, "A2", False, note
+        return tabella, 1.0, "A2", exact, note
+
+    if materia == Materia.ESEC_MOB:
+        tabella = _snapshot_table("A16", phase_aliases={"Istruttoria": Fase.ESECUTIVA.value})
+        if tabella:
+            note.append("Tabella 16 per procedure esecutive mobiliari.")
+            return tabella, 1.0, "A16", True, note
+        note.append("Tabella 16 non disponibile in snapshot: fallback civile esecutivo.")
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        return tabella, 1.0, "A2", exact, note
+
+    if materia == Materia.VOLONTARIA:
+        tabella = _tabella_snapshot("A7")
+        if tabella:
+            note.append("Tabella 7 per volontaria giurisdizione.")
+            return tabella, 1.0, "A7", True, note
+        note.append("Tabella 7 non disponibile in snapshot: fallback camerale.")
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        return tabella, 1.0, "A2", exact, note
+
+    if materia == Materia.CIVILE_COGN:
+        if grado == Grado.CORTE_APPELLO:
+            tabella = _tabella_snapshot("A12")
+            if tabella:
+                note.append("Tabella 12 per giudizi innanzi alla Corte d'Appello.")
+                return tabella, 1.0, "A12", True, note
+        if grado == Grado.CASSAZIONE:
+            tabella = _tabella_snapshot("A13")
+            if tabella:
+                note.append("Tabella 13 per giudizi in Cassazione.")
+                return tabella, 1.0, "A13", True, note
+        tabella, exact = _exact_or_fallback("A2", _fallback_civile)
+        note.append("Tabella 2 per giudizi civili ordinari di primo grado.")
+        return tabella, 1.0, "A2", exact, note
 
     tabella, exact = _exact_or_fallback("A2", _fallback_civile)
     return tabella, 1.0, "A2", exact, note
@@ -603,6 +830,7 @@ def calcola_compenso(
     grado: Grado,
     valore: float,
     fasi: List[Fase],
+    profile_code: str = "",
     bonus_telematico: bool = False,
     includi_spese_generali: bool = True,
     perc_spese_generali: float = 0.15,
@@ -616,14 +844,15 @@ def calcola_compenso(
             Consentito nell'intervallo [0.50, 1.50] per DM 147/2022 (±50%).
         perc_spese_generali: percentuale spese generali art. 2 DM 55/2014 (default 0.15 = 15%).
     """
-    tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado)
+    tabella, coeff, tabella_codice, esatto, note_parts = _tabella_per_calcolo(materia, grado, profile_code=profile_code)
     _variazioni = variazioni_fasi or {}
     valore_input = float(valore or 0.0)
     valore_calcolo = valore_input
     complessita_norm = _parse_complessita(complessita)
+    force_compenso_unico = bool(_PROFILE_TABLE_OVERRIDES.get(profile_code or "", {}).get("force_compenso_unico"))
 
     _mediaz = {Materia.MEDIAZIONE, Materia.NEGOZIAZIONE_ASSISTITA}
-    if materia == Materia.STRAGIUD:
+    if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         fasi_richieste = ["Compenso unico"]
     elif materia in _mediaz:
         # Per mediazione/negoziazione usa tutte le fasi della tabella nell'ordine
@@ -640,6 +869,7 @@ def calcola_compenso(
         Materia.VOLONTARIA,
         Materia.AMMINISTRATIVO,
         Materia.TRIBUTARIO,
+        Materia.ARBITRATO,
     }
     if valore_calcolo <= 0 and materia in materie_con_scaglione_virtuale and complessita_norm:
         valore_calcolo, _ = valore_virtuale_indeterminabile(complessita_norm)
@@ -690,7 +920,7 @@ def calcola_compenso(
         note_parts.append("Bonus telematico +30% applicato sul compenso base.")
     if materia == Materia.PENALE:
         note_parts.append("Valore di controversia non applicato al penale.")
-    if materia == Materia.STRAGIUD:
+    if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
     if _variazioni:
         note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")

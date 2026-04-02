@@ -24,7 +24,7 @@ from pct.tariffario import (
     RisultatoCalcolo,
     calcola_compenso,
 )
-from pct.tariffario_catalogo import default_rule_for_practice, rules_for_practice
+from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -115,6 +115,8 @@ class TipoPratica:
 _FASI_BASE      = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE]
 _FASI_STUDIO    = [Fase.STUDIO]
 _FASI_ESEC      = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ESECUTIVA]
+_FASI_ESEC_MOB  = [Fase.STUDIO, Fase.ESECUTIVA]
+_FASI_ESEC_INT  = [Fase.INTRODUTTIVA, Fase.ESECUTIVA]
 _FASI_PENALE    = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE]
 
 CATALOGO: List[TipoPratica] = [
@@ -195,7 +197,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=_FASI_BASE,
-        base_normativa="Tab. A2 DM 55/2014 × coeff. 1.30 — art. 339 c.p.c.",
+        base_normativa="Tab. A12 DM 55/2014 agg. DM 147/2022 — art. 339 c.p.c.",
     ),
     TipoPratica(
         id="cassazione_civile",
@@ -204,7 +206,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.CASSAZIONE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. A2 DM 55/2014 × coeff. 1.60 — art. 360 c.p.c.",
+        base_normativa="Tab. A13 DM 55/2014 agg. DM 147/2022 — art. 360 c.p.c.",
     ),
     TipoPratica(
         id="precetto",
@@ -213,7 +215,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
-        base_normativa="Tab. A2 DM 55/2014 — fase esecutiva — art. 480 c.p.c.",
+        base_normativa="Tab. A6 DM 55/2014 agg. DM 147/2022 — art. 480 c.p.c.",
     ),
     TipoPratica(
         id="pignoramento",
@@ -221,8 +223,8 @@ CATALOGO: List[TipoPratica] = [
         area="Civile",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
-        fasi_default=_FASI_ESEC,
-        base_normativa="Tab. A2 DM 55/2014 — fase esecutiva — art. 491 ss. c.p.c.",
+        fasi_default=_FASI_ESEC_MOB,
+        base_normativa="Tab. A16 DM 55/2014 agg. DM 147/2022 — procedure esecutive mobiliari",
     ),
     TipoPratica(
         id="esecuzione_mobiliare",
@@ -230,8 +232,8 @@ CATALOGO: List[TipoPratica] = [
         area="Civile",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
-        fasi_default=_FASI_ESEC,
-        base_normativa="Tab. A2 DM 55/2014 — esecuzione su beni mobili",
+        fasi_default=_FASI_ESEC_MOB,
+        base_normativa="Tab. A16 DM 55/2014 agg. DM 147/2022 — esecuzione su beni mobili",
     ),
     TipoPratica(
         id="esecuzione_immobiliare",
@@ -239,8 +241,8 @@ CATALOGO: List[TipoPratica] = [
         area="Civile",
         materia=Materia.ESEC_IMMO,
         grado_default=Grado.TRIBUNALE,
-        fasi_default=_FASI_ESEC,
-        base_normativa="Tab. A2 DM 55/2014 — esecuzione su beni immobili — art. 555 ss. c.p.c.",
+        fasi_default=_FASI_ESEC_INT,
+        base_normativa="Tab. A18 DM 55/2014 agg. DM 147/2022 — esecuzione su beni immobili — art. 555 ss. c.p.c.",
     ),
     TipoPratica(
         id="esecuzione_terzi",
@@ -248,8 +250,8 @@ CATALOGO: List[TipoPratica] = [
         area="Civile",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
-        fasi_default=_FASI_ESEC,
-        base_normativa="Tab. A2 DM 55/2014 — art. 543 c.p.c.",
+        fasi_default=_FASI_ESEC_INT,
+        base_normativa="Tab. A17 DM 55/2014 agg. DM 147/2022 — pignoramento presso terzi — art. 543 c.p.c.",
     ),
     TipoPratica(
         id="opposizione_esecutiva",
@@ -301,7 +303,7 @@ CATALOGO: List[TipoPratica] = [
         label="Procedimenti di famiglia / minori",
         area="Civile",
         materia=Materia.CIVILE_COGN,
-        grado_default=Grado.FUORI_GIUDIZIO,
+        grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
         base_normativa="Tab. A2 DM 55/2014 — D.Lgs. 149/2022 (riforma proc. civ.)",
     ),
@@ -312,7 +314,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. A2 DM 55/2014 — artt. 657 ss. c.p.c.",
+        base_normativa="Tab. A5 DM 55/2014 agg. DM 147/2022 — artt. 657 ss. c.p.c.",
     ),
     TipoPratica(
         id="risarcimento_danni",
@@ -360,7 +362,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.LAVORO,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=_FASI_BASE,
-        base_normativa="Tab. A3 DM 55/2014 × coeff. 1.30 — art. 434 c.p.c.",
+        base_normativa="Tab. A12 DM 55/2014 agg. DM 147/2022 — art. 434 c.p.c.",
     ),
     TipoPratica(
         id="previdenza",
@@ -423,9 +425,9 @@ CATALOGO: List[TipoPratica] = [
         label="Udienza preliminare",
         area="Penale",
         materia=Materia.PENALE,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.GIP_GUP,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. penale DM 55/2014 — art. 416 c.p.p.",
+        base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna GIP/GUP — art. 416 c.p.p.",
         richiede_valore=False,
         tipo_compenso_default="Compenso fisso",
     ),
@@ -434,9 +436,9 @@ CATALOGO: List[TipoPratica] = [
         label="Dibattimento penale",
         area="Penale",
         materia=Materia.PENALE,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TRIBUNALE_MONOCRATICO,
         fasi_default=_FASI_PENALE,
-        base_normativa="Tab. penale DM 55/2014 — artt. 470 ss. c.p.p.",
+        base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonne monocratico/collegiale/assise — artt. 470 ss. c.p.p.",
         richiede_valore=False,
         tipo_compenso_default="Compenso fisso",
     ),
@@ -445,9 +447,9 @@ CATALOGO: List[TipoPratica] = [
         label="Impugnazioni penali (appello)",
         area="Penale",
         materia=Materia.PENALE,
-        grado_default=Grado.CORTE_APPELLO,
+        grado_default=Grado.CORTE_APPELLO_PENALE,
         fasi_default=_FASI_PENALE,
-        base_normativa="Tab. penale DM 55/2014 × coeff. 1.30 — artt. 593 ss. c.p.p.",
+        base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonne appello/sorveglianza/assise appello — artt. 593 ss. c.p.p.",
         richiede_valore=False,
         tipo_compenso_default="Compenso fisso",
     ),
@@ -467,9 +469,9 @@ CATALOGO: List[TipoPratica] = [
         label="Costituzione parte civile",
         area="Penale",
         materia=Materia.PENALE,
-        grado_default=Grado.TRIBUNALE,
+        grado_default=Grado.TRIBUNALE_MONOCRATICO,
         fasi_default=_FASI_PENALE,
-        base_normativa="Tab. penale DM 55/2014 — artt. 74-101 c.p.p.",
+        base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna del rito penale applicabile — artt. 74-101 c.p.p.",
         richiede_valore=False,
         tipo_compenso_default="Compenso fisso",
     ),
@@ -549,7 +551,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.TRIBUTARIO,
         grado_default=Grado.CASSAZIONE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. A23/A24 DM 55/2014 × coeff. 1.60 — art. 62 D.Lgs. 546/1992",
+        base_normativa="Tab. A13 DM 55/2014 agg. DM 147/2022 — art. 62 D.Lgs. 546/1992",
     ),
     TipoPratica(
         id="autotutela",
@@ -693,10 +695,10 @@ CATALOGO: List[TipoPratica] = [
         id="arbitrato",
         label="Arbitrato",
         area="Speciali",
-        materia=Materia.CIVILE_COGN,
-        grado_default=Grado.TRIBUNALE,
-        fasi_default=_FASI_BASE,
-        base_normativa="Tab. A2 DM 55/2014 (applicazione analogica) — artt. 806 ss. c.p.c.",
+        materia=Materia.ARBITRATO,
+        grado_default=Grado.PROCEDURA_ADR,
+        fasi_default=[Fase.STUDIO],
+        base_normativa="Tab. A26 DM 55/2014 agg. DM 147/2022 — artt. 806 ss. c.p.c.",
     ),
     TipoPratica(
         id="domiciliazione",
@@ -1549,6 +1551,7 @@ def motore_calcola(
     id_pratica: str,
     valore_controversia: float = 0.0,
     grado: Optional[Grado] = None,
+    regola_tariffaria: str = "",
     fasi: Optional[List[Fase]] = None,
     livello_compenso: LivelloCompenso | str = LivelloCompenso.BASE,
     complessita: str = "",
@@ -1583,12 +1586,17 @@ def motore_calcola(
 
     _grado = grado if grado is not None else tp.grado_default
     _fasi  = fasi  if fasi  is not None else tp.fasi_default
+    regola_attiva = rule_lookup(regola_tariffaria) if regola_tariffaria else None
+    if not regola_attiva:
+        regola_attiva = default_rule_for_practice(id_pratica)
+    profile_code = str((regola_attiva or {}).get("profile_code", "") or "")
 
     calcolo = calcola_compenso(
         materia=tp.materia,
         grado=_grado,
         valore=valore_controversia,
         fasi=_fasi,
+        profile_code=profile_code,
         bonus_telematico=bonus_telematico,
         includi_spese_generali=includi_spese_generali,
         perc_spese_generali=perc_spese_generali,

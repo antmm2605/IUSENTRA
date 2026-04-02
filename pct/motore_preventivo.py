@@ -278,7 +278,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.VOLONTARIA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. A2 DM 55/2014 — art. 158 c.c. / art. 711 c.p.c.",
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — art. 473-bis.51 c.p.c. / art. 158 c.c.",
     ),
     TipoPratica(
         id="separazione_giudiziale",
@@ -287,7 +287,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
-        base_normativa="Tab. A2 DM 55/2014 — art. 151 c.c. / artt. 706 ss. c.p.c.",
+        base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — art. 473-bis.47 c.p.c. / art. 151 c.c.",
     ),
     TipoPratica(
         id="divorzio_congiunto",
@@ -296,7 +296,7 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.VOLONTARIA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
-        base_normativa="Tab. A2 DM 55/2014 — L. 898/1970 art. 4 co. 16",
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — art. 473-bis.51 c.p.c. / L. 898/1970 art. 4",
     ),
     TipoPratica(
         id="divorzio_giudiziale",
@@ -305,16 +305,25 @@ CATALOGO: List[TipoPratica] = [
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
-        base_normativa="Tab. A2 DM 55/2014 — L. 898/1970 art. 4",
+        base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — art. 473-bis.47 c.p.c. / L. 898/1970 art. 4",
     ),
     TipoPratica(
         id="procedimenti_famiglia",
-        label="Procedimenti di famiglia / minori",
+        label="Procedimento camerale di famiglia",
+        area="Civile",
+        materia=Materia.VOLONTARIA,
+        grado_default=Grado.TRIBUNALE,
+        fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+        base_normativa="Tab. A7 DM 55/2014 agg. DM 147/2022 — procedimenti camerali familiari ex artt. 473-bis ss. c.p.c.",
+    ),
+    TipoPratica(
+        id="procedimenti_minori",
+        label="Procedimenti relativi ai minori",
         area="Civile",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
-        base_normativa="Tab. A2 DM 55/2014 — D.Lgs. 149/2022 (riforma proc. civ.)",
+        base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — artt. 473-bis ss. c.p.c. / procedimenti relativi ai minori",
     ),
     TipoPratica(
         id="sfratto_morosita",
@@ -875,6 +884,10 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Notifica atto di citazione", "importo": 25.0},
     ],
     "procedimenti_famiglia": [
+        {"descrizione": "Diritti di segreteria ricorso camerale", "importo": 27.0},
+        {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
+    ],
+    "procedimenti_minori": [
         {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
         {"descrizione": "Contributo Unificato (se dovuto)", "importo": 98.0},
     ],
@@ -1055,6 +1068,7 @@ _URL_EQUO_COMPENSO = (
 _URL_DPR633 = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A1972-10-26%3B633"
 _URL_CPC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1940-10-28%3B1443"
 _URL_CC = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Aregio.decreto%3A1942-03-16%3B262"
+_URL_DLGS149 = "https://www.normattiva.it/eli/id/2022/10/17/22G00158/CONSOLIDATED/"
 _URL_CPP = (
     "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica"
     "%3A1988-09-22%3B447"
@@ -1211,6 +1225,10 @@ _SUMMARY_OVERRIDES = {
     "decreto_ingiuntivo": "Preventivo per il recupero monitorio del credito fondato su prova scritta, con stima delle fasi essenziali del procedimento.",
     "diffida": "Preventivo per attività stragiudiziale di diffida o messa in mora, con impostazione pronta per invio PEC o raccomandata.",
     "appello_civile": "Preventivo per impugnazione civile in secondo grado, con scelta guidata della regola tariffaria in base al giudice che ha emesso la sentenza impugnata.",
+    "separazione_consensuale": "Preventivo per procedimento congiunto di separazione personale, con logica tariffaria di volontaria giurisdizione e domanda congiunta.",
+    "divorzio_congiunto": "Preventivo per domanda congiunta di scioglimento o cessazione degli effetti civili del matrimonio, con compenso unico tabellare di volontaria giurisdizione.",
+    "procedimenti_famiglia": "Preventivo per procedimenti camerali di famiglia, da usare quando il rito resta non contenzioso o comunque camerale.",
+    "procedimenti_minori": "Preventivo per procedimenti relativi ai minori con struttura piu prudente sul rito contenzioso davanti al tribunale competente.",
     "cassazione_lavoro": "Preventivo per ricorso di legittimita in materia di lavoro, separato dal secondo grado per mantenere regola tariffaria e grado coerenti.",
     "mediazione": "Preventivo per assistenza in procedura di mediazione civile e commerciale con valorizzazione delle fasi ADR.",
     "negoziazione_assistita": "Preventivo per assistenza nella convenzione di negoziazione assistita e nelle fasi di trattativa e definizione.",
@@ -1230,6 +1248,10 @@ _WHEN_TO_USE_OVERRIDES = {
     "decreto_ingiuntivo": "Usalo quando il credito è documentato e il cliente vuole una prima azione monitoria con tempi e costi prevedibili.",
     "diffida": "Usalo nella fase di onboarding cliente quando prima della lite è opportuno tentare una richiesta formale ben tracciata.",
     "appello_civile": "Usalo quando devi impugnare una sentenza civile e vuoi scegliere subito se l'appello va al Tribunale o alla Corte d'Appello in base al giudice che ha pronunciato la decisione.",
+    "separazione_consensuale": "Usalo quando i coniugi hanno gia raggiunto un accordo e vuoi preimpostare un ricorso congiunto con logica camerale.",
+    "divorzio_congiunto": "Usalo quando la crisi familiare e gia definita in forma condivisa e vuoi stimare subito il compenso unico della domanda congiunta.",
+    "procedimenti_famiglia": "Usalo per procedimenti camerali familiari o per richieste non pienamente contenziose che non vuoi mescolare ai giudizi di separazione o divorzio.",
+    "procedimenti_minori": "Usalo quando il focus principale riguarda provvedimenti sui minori e preferisci una stima piu cauta sul rito davanti al tribunale competente.",
     "cassazione_lavoro": "Usalo quando il contenzioso di lavoro e gia arrivato alla fase di legittimita e non vuoi mescolare il ricorso per Cassazione con il giudizio di appello.",
     "mediazione": "Usalo quando la materia impone o rende utile un tentativo ADR prima del giudizio o in corso di causa.",
     "negoziazione_assistita": "Usalo quando la controversia richiede o consiglia una negoziazione assistita prima dell'azione giudiziale.",
@@ -1456,6 +1478,49 @@ def _normative_references_for(tp: TipoPratica) -> List[Dict[str, str]]:
                 "article": "artt. 2043 e 2054",
                 "description": "Responsabilita aquiliana e responsabilita da circolazione dei veicoli.",
                 "url": _URL_CC,
+            }
+        )
+    if tp.id in {
+        "separazione_consensuale",
+        "separazione_giudiziale",
+        "divorzio_congiunto",
+        "divorzio_giudiziale",
+        "procedimenti_famiglia",
+        "procedimenti_minori",
+    }:
+        refs.append(
+            {
+                "title": "D.Lgs. 10 ottobre 2022, n. 149",
+                "article": "Titolo IV-bis c.p.c. — persone, minorenni e famiglie",
+                "description": "Riforma Cartabia del rito famiglia e minori, con introduzione degli articoli 473-bis e seguenti del codice di procedura civile.",
+                "url": _URL_DLGS149,
+            }
+        )
+    if tp.id in {"separazione_consensuale", "divorzio_congiunto"}:
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 473-bis.51",
+                "description": "Disciplina del procedimento su domanda congiunta per i procedimenti in materia di persone, minorenni e famiglie.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id in {"separazione_giudiziale", "divorzio_giudiziale"}:
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 473-bis.47",
+                "description": "Base processuale del ricorso giudiziale nelle controversie familiari di crisi della coppia.",
+                "url": _URL_CPC,
+            }
+        )
+    if tp.id == "procedimenti_minori":
+        refs.append(
+            {
+                "title": "Codice di procedura civile",
+                "article": "art. 473-bis",
+                "description": "Il titolo IV-bis si applica ai procedimenti relativi allo stato delle persone, ai minorenni e alle famiglie attribuiti al giudice competente.",
+                "url": _URL_CPC,
             }
         )
     return refs

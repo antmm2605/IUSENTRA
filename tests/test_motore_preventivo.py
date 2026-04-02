@@ -172,3 +172,27 @@ def test_esecuzioni_distinguono_opposizione_all_esecuzione_e_agli_atti():
     assert opposizione_atti["label"] == "Opposizione agli atti esecutivi"
     assert "art. 617 c.p.c." in opposizione_atti["base_normativa"]
     assert {row["rule_code"] for row in opposizione_atti["regole_tariffarie"]} == {"civile_opposizione_atti_esecutivi"}
+
+
+def test_famiglia_e_volontaria_separano_consensuale_giudiziale_camerale_e_minori():
+    separazione_consensuale = redattore_preventivo_iniziale("separazione_consensuale")
+    separazione_giudiziale = redattore_preventivo_iniziale("separazione_giudiziale")
+    camerale = redattore_preventivo_iniziale("procedimenti_famiglia")
+    minori = redattore_preventivo_iniziale("procedimenti_minori")
+
+    assert separazione_consensuale["materia"] == "Volontaria giurisdizione"
+    assert "tab. a7" in separazione_consensuale["base_normativa"].lower()
+    assert {row["rule_code"] for row in separazione_consensuale["regole_tariffarie"]} == {"famiglia_separazione_consensuale"}
+
+    assert separazione_giudiziale["materia"] == "Civile di cognizione"
+    assert "tab. a2" in separazione_giudiziale["base_normativa"].lower()
+    assert {row["rule_code"] for row in separazione_giudiziale["regole_tariffarie"]} == {"famiglia_separazione_giudiziale"}
+
+    assert camerale["label"] == "Procedimento camerale di famiglia"
+    assert camerale["materia"] == "Volontaria giurisdizione"
+    assert {row["rule_code"] for row in camerale["regole_tariffarie"]} == {"famiglia_camerale"}
+
+    assert minori["label"] == "Procedimenti relativi ai minori"
+    assert minori["materia"] == "Civile di cognizione"
+    assert {row["rule_code"] for row in minori["regole_tariffarie"]} == {"famiglia_procedimenti_minori"}
+    assert any(ref["title"] == "D.Lgs. 10 ottobre 2022, n. 149" for ref in minori["normative_references"])

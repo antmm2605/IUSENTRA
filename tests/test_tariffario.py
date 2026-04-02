@@ -211,3 +211,22 @@ def test_profili_esecutivi_restano_allineati_a_precetto_e_presso_terzi():
     assert presso_terzi == {"esecuzione_presso_terzi"}
     assert profile_lookup_by_rule("esecuzione_precetto")["table_code"] == "A6"
     assert profile_lookup_by_rule("esecuzione_presso_terzi")["table_code"] == "A17"
+
+
+def test_famiglia_e_volontaria_non_collassano_piu_su_un_unico_contenitore():
+    separazione_consensuale = {row["rule_code"] for row in rules_for_practice("separazione_consensuale")}
+    separazione_giudiziale = {row["rule_code"] for row in rules_for_practice("separazione_giudiziale")}
+    divorzio_congiunto = {row["rule_code"] for row in rules_for_practice("divorzio_congiunto")}
+    camerale = {row["rule_code"] for row in rules_for_practice("procedimenti_famiglia")}
+    minori = {row["rule_code"] for row in rules_for_practice("procedimenti_minori")}
+
+    assert separazione_consensuale == {"famiglia_separazione_consensuale"}
+    assert separazione_giudiziale == {"famiglia_separazione_giudiziale"}
+    assert divorzio_congiunto == {"famiglia_divorzio_congiunto"}
+    assert camerale == {"famiglia_camerale"}
+    assert minori == {"famiglia_procedimenti_minori"}
+
+    assert default_rule_for_practice("procedimenti_famiglia")["rule_code"] == "famiglia_camerale"
+    assert default_rule_for_practice("procedimenti_minori")["rule_code"] == "famiglia_procedimenti_minori"
+    assert profile_lookup_by_rule("famiglia_camerale")["table_code"] == "A7"
+    assert profile_lookup_by_rule("famiglia_procedimenti_minori")["table_code"] == "A2"

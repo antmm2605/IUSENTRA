@@ -514,11 +514,12 @@
           {% if ns_portale.documenti %}
           <div class="mt-2">
             Sono gia' censiti <strong>{{ ns_portale.documenti }}</strong> documenti ufficiali
-            in <strong>{{ ns_portale.depositi }}</strong> deposit{% if ns_portale.depositi == 1 %}o{% else %}i{% endif %}
-            nella sezione <strong>Comunicazioni di cancelleria</strong>.
+            del fascicolo telematico in <strong>{{ ns_portale.depositi }}</strong>
+            deposit{% if ns_portale.depositi == 1 %}o{% else %}i{% endif %} portale.
           </div>
           <div class="mt-1">
-            Qui compariranno i file locali solo dopo l'acquisizione dei documenti gia' scaricati dal portale ufficiale.
+            Qui, in <strong>Documenti fascicolo</strong>, compariranno i file locali solo dopo
+            l'acquisizione dei documenti gia' scaricati dal portale ufficiale.
           </div>
           <div class="mt-3">
             <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
@@ -710,7 +711,7 @@
         </div>
       </div>
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
-        Ricevute PEC, esiti dei controlli automatici, comunicazioni di cancelleria e lotti ufficiali del canale {{ dep_portale_label }}.
+        Ricevute PEC, esiti dei controlli automatici e comunicazioni di cancelleria del canale {{ dep_portale_label }}.
       </div>
       <div class="card-body p-0">
         {% if WFS.comunicazioni_attivita %}
@@ -731,9 +732,9 @@
           {% endfor %}
         </div>
         {% endif %}
-        {% if fascicolo.depositi_pct %}
+        {% if WFS.comunicazioni_depositi %}
         <div class="list-group list-group-flush">
-          {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
+          {% for dep in WFS.comunicazioni_depositi|sort(attribute='timestamp', reverse=True) %}
           {# ── Calcolo fasi per il tracker ── #}
           {% set f4_ok = dep.ricevuta_accettazione | length > 0 %}
           {% set f5_ok = dep.ricevuta_consegna | length > 0 %}
@@ -814,6 +815,9 @@
                   {% if dep.documenti_portale %}
                   <span class="badge px-2 py-1 bg-light text-dark border" style="font-size:.72rem">
                     <i class="bi bi-files me-1"></i>{{ dep.documenti_portale|length }} metadati documento{% if dep.documenti_portale|length != 1 %}i{% endif %}
+                  </span>
+                  <span class="badge px-2 py-1 bg-light text-dark border" style="font-size:.72rem">
+                    <i class="bi bi-download me-1"></i>{{ dep.documenti_ids|length }}/{{ dep.documenti_portale|length }} file acquisiti
                   </span>
                   {% endif %}
                   {% if dep.nome_atto_principale %}
@@ -1042,7 +1046,7 @@
         {% elif not WFS.comunicazioni_attivita %}
         <div class="text-center py-4 px-3">
           <i class="bi {{ dep_icon }} fs-2 text-{{ dep_col }} opacity-25 d-block mb-2"></i>
-          <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
+          <div class="fw-semibold text-muted small mb-1">Nessuna comunicazione di cancelleria</div>
           <div class="text-muted" style="font-size:.78rem">{{ dep_hint }}</div>
           {% if 'Importato da PolisWeb' in (fascicolo.note or '') and ftipo == 'CIVILE' %}
           <div class="text-muted mt-2" style="font-size:.78rem">
@@ -1742,9 +1746,22 @@
         <div class="modal-body">
           <div class="alert alert-info small">
             Scarica prima i documenti dal canale ufficiale autenticato <strong>{{ pst_portale_label }}</strong>.
+            I dati restano separati nel fascicolo tra <strong>Attivita processuali</strong>,
+            <strong>Documenti fascicolo</strong>, <strong>Udienze e scadenze</strong>,
+            <strong>Comunicazioni di cancelleria</strong> e <strong>Istanze</strong>.
             HACS non esegue download autonomi: importa solo file già ottenuti dal portale ministeriale.
           </div>
           <div class="row g-3">
+            <div class="col-12">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnRaccogliDownloadPortale">
+                  <i class="bi bi-folder-symlink me-1"></i>Raccogli dai download recenti
+                </button>
+                <div class="small text-muted" id="pstImportLocalSignerStatus">
+                  Usa il Local Signer sul tuo PC per acquisire nel fascicolo i file già scaricati dal browser ufficiale.
+                </div>
+              </div>
+            </div>
             <div class="col-12">
               <label class="form-label fw-semibold">File o cartella già scaricati</label>
               <input type="file" name="files" id="pstImportInput" class="form-control"
@@ -2353,6 +2370,94 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
       window.setTimeout(function () {
         btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copia';
       }, 1600);
+    }
+  });
+})();
+
+const _LS_BASE_FASC = 'http://127.0.0.1:27272';
+const _PORTALE_DOCS_CATALOG = {{ portale_documenti_catalogo|tojson }};
+const _IMPORTA_PORTALE_API = "{{ url_for('api_importa_documenti_portale', id_fasc=fascicolo.id) }}";
+
+(function () {
+  const btn = document.getElementById('btnRaccogliDownloadPortale');
+  const status = document.getElementById('pstImportLocalSignerStatus');
+  const noteInput = document.querySelector('#modalImportaPortale input[name="note_importazione"]');
+  if (!btn || !status) return;
+
+  function setStatus(message, tone) {
+    status.className = 'small';
+    if (tone === 'danger') status.classList.add('text-danger');
+    else if (tone === 'success') status.classList.add('text-success');
+    else if (tone === 'info') status.classList.add('text-primary');
+    else status.classList.add('text-muted');
+    status.textContent = message;
+  }
+
+  if (!_PORTALE_DOCS_CATALOG.length) {
+    btn.disabled = true;
+    setStatus('Prima sincronizza i metadati documentali dal portale: poi potrai raccogliere i download recenti in modo assistito.', 'muted');
+    return;
+  }
+
+  btn.addEventListener('click', async function () {
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Raccolgo…';
+    setStatus('Controllo i download recenti sul tuo PC tramite Local Signer…', 'info');
+
+    try {
+      const signerResp = await fetch(_LS_BASE_FASC + '/downloads/raccogli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expected_documents: _PORTALE_DOCS_CATALOG,
+          max_age_hours: 168,
+          limit: 50
+        })
+      });
+      const signerData = await signerResp.json().catch(function () {
+        return { ok: false, errore: 'Risposta non valida del Local Signer.' };
+      });
+      if (!signerResp.ok || !signerData.ok) {
+        throw new Error(signerData.errore || 'Local Signer non raggiungibile o nessun file compatibile trovato.');
+      }
+
+      setStatus('Trovati ' + signerData.matched + ' file compatibili. Li importo nel fascicolo…', 'info');
+      const importResp = await fetch(_IMPORTA_PORTALE_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || ''
+        },
+        body: JSON.stringify({
+          note_importazione: (noteInput && noteInput.value.trim()) || 'raccolta assistita dai download recenti',
+          files: signerData.files || []
+        })
+      });
+      const importData = await importResp.json().catch(function () {
+        return { ok: false, errore: 'Risposta non valida del server HACS.' };
+      });
+      if (!importData.ok) {
+        throw new Error(importData.errore || 'Importazione nel fascicolo non riuscita.');
+      }
+
+      const agganciati = Number(importData.depositi_agganciati || 0);
+      let doneMsg = 'Importati ' + importData.documenti_importati + ' file nel fascicolo.';
+      if (agganciati > 0) {
+        doneMsg += ' ' + agganciati + ' deposit' + (agganciati === 1 ? 'o ufficiale agganciato.' : 'i ufficiali agganciati.');
+      }
+      if (importData.lotto_generico) {
+        doneMsg += ' Alcuni file sono stati registrati in un lotto locale.';
+      }
+      setStatus(doneMsg, 'success');
+      window.setTimeout(function () {
+        window.location.href = importData.redirect_url || window.location.href;
+      }, 900);
+    } catch (err) {
+      setStatus(err && err.message ? err.message : "Raccolta automatica non riuscita. Usa l'upload manuale o la cartella tecnica.", 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
     }
   });
 })();

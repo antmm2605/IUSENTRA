@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.4.1
+HACS Local Signer — v1.5.3
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -23,6 +23,7 @@ API:
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
     POST /pst/documenti          → documenti fascicolo PST (curl mTLS Windows)
+    POST /downloads/raccogli     → raccoglie file già scaricati nei download locali
     GET  /pst/status             → stato connettività PST
 
 Note sicurezza:
@@ -43,8 +44,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import unicodedata
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional
@@ -63,7 +65,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.2"
+VERSION = "1.5.3"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1213,6 +1215,172 @@ def _body_preview(body: str, limit: int = 240) -> str:
     return clean[:limit]
 
 
+def _normalizza_nome_download_match(nome: str) -> str:
+    testo = Path(str(nome or "")).name.strip().lower()
+    if not testo:
+        return ""
+    testo = re.sub(r"\s+\(\d+\)(?=(\.[^.]+)+$|$)", "", testo)
+    while True:
+        cambiato = False
+        for suffix in (".p7m", ".pdf", ".txt", ".eml", ".msg", ".xml", ".html", ".htm", ".zip"):
+            if testo.endswith(suffix):
+                testo = testo[: -len(suffix)]
+                cambiato = True
+        if not cambiato:
+            break
+    testo = unicodedata.normalize("NFKD", testo).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "", testo)
+
+
+def _score_download_match(file_key: str, expected_key: str) -> int:
+    if not file_key or not expected_key:
+        return 0
+    if file_key == expected_key:
+        return 100
+    if len(file_key) >= 10 and len(expected_key) >= 10:
+        if file_key in expected_key or expected_key in file_key:
+            return 80
+    return 0
+
+
+def _download_dirs_candidate(base_dir: str = "") -> list[Path]:
+    candidati: list[Path] = []
+    for raw in [
+        base_dir,
+        os.getenv("HACS_SIGNER_DOWNLOADS_DIR", ""),
+        str(Path.home() / "Downloads"),
+        str(Path(os.environ.get("USERPROFILE", "")) / "Downloads") if os.environ.get("USERPROFILE") else "",
+        str(Path(os.environ.get("OneDrive", "")) / "Downloads") if os.environ.get("OneDrive") else "",
+    ]:
+        testo = (raw or "").strip()
+        if not testo:
+            continue
+        path = Path(testo).expanduser()
+        if path.exists() and path.is_dir() and path not in candidati:
+            candidati.append(path)
+    return candidati
+
+
+def _raccogli_download_recenti(
+    expected_documents: list[dict],
+    *,
+    base_dir: str = "",
+    max_age_hours: int = 72,
+    limit: int = 25,
+    max_total_bytes: int = 64 * 1024 * 1024,
+) -> dict:
+    candidati = _download_dirs_candidate(base_dir)
+    if not candidati:
+        raise RuntimeError(
+            "Cartella Download non trovata sul computer locale. "
+            "Seleziona i file manualmente oppure configura il percorso locale dei download."
+        )
+
+    expected_index: list[dict] = []
+    for row in expected_documents or []:
+        nome = str((row or {}).get("nome") or "").strip()
+        key = _normalizza_nome_download_match(nome)
+        if not nome or not key:
+            continue
+        expected_index.append({
+            "nome": nome,
+            "key": key,
+            "id_deposito_esterno": str((row or {}).get("id_deposito_esterno") or "").strip(),
+            "id_deposito_pct": str((row or {}).get("id_deposito_pct") or "").strip(),
+            "tipo_atto": str((row or {}).get("tipo_atto") or "").strip(),
+            "id_documento_portale": str((row or {}).get("id_documento_portale") or "").strip(),
+            "data_deposito": str((row or {}).get("data_deposito") or "").strip(),
+        })
+
+    if not expected_index:
+        raise RuntimeError(
+            "Questo fascicolo non ha ancora metadati documentali ufficiali da confrontare. "
+            "Prima sincronizza i documenti dal portale e poi ripeti la raccolta automatica."
+        )
+
+    cutoff = datetime.now() - timedelta(hours=max(1, int(max_age_hours or 72)))
+    filesystem_candidates: list[Path] = []
+    for root in candidati:
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.name.lower() in {".ds_store", "thumbs.db"}:
+                continue
+            if path.suffix.lower() in {".crdownload", ".part", ".tmp"}:
+                continue
+            try:
+                modified_at = datetime.fromtimestamp(path.stat().st_mtime)
+            except OSError:
+                continue
+            if modified_at < cutoff:
+                continue
+            filesystem_candidates.append(path)
+
+    filesystem_candidates.sort(
+        key=lambda item: item.stat().st_mtime if item.exists() else 0,
+        reverse=True,
+    )
+
+    raccolti: list[dict] = []
+    seen_match_keys: set[str] = set()
+    total_bytes = 0
+
+    for path in filesystem_candidates:
+        file_key = _normalizza_nome_download_match(path.name)
+        if not file_key:
+            continue
+        best_match = None
+        best_score = 0
+        for expected in expected_index:
+            score = _score_download_match(file_key, expected["key"])
+            if score > best_score:
+                best_score = score
+                best_match = expected
+        if not best_match or best_score <= 0:
+            continue
+
+        dedupe_key = best_match.get("id_documento_portale") or (
+            f'{best_match.get("id_deposito_esterno", "")}:{best_match.get("key", "")}'
+        )
+        if dedupe_key in seen_match_keys:
+            continue
+
+        try:
+            payload = path.read_bytes()
+        except OSError:
+            continue
+        if not payload:
+            continue
+        if total_bytes + len(payload) > max_total_bytes:
+            break
+
+        modified_at = datetime.fromtimestamp(path.stat().st_mtime)
+        raccolti.append({
+            "nome": path.name,
+            "contenuto_b64": base64.b64encode(payload).decode("ascii"),
+            "origine": str(path),
+            "data_documento": modified_at.date().isoformat(),
+            "dimensione_bytes": len(payload),
+            "id_deposito_esterno": best_match.get("id_deposito_esterno", ""),
+            "id_deposito_pct": best_match.get("id_deposito_pct", ""),
+            "tipo_atto": best_match.get("tipo_atto", ""),
+            "id_documento_portale": best_match.get("id_documento_portale", ""),
+        })
+        seen_match_keys.add(dedupe_key)
+        total_bytes += len(payload)
+        if len(raccolti) >= max(1, int(limit or 25)):
+            break
+
+    return {
+        "files": raccolti,
+        "directories": [str(path) for path in candidati],
+        "matched": len(raccolti),
+        "expected": len(expected_index),
+        "total_bytes": total_bytes,
+        "cutoff": cutoff.isoformat(),
+    }
+
+
 def _http_errore_leggibile(status_code: int, body: str, url: str = "", content_type: str = "") -> str:
     host = _pst_host(url)
     preview = _body_preview(body)
@@ -2121,6 +2289,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_ricerca()
         elif path == "/pst/documenti":
             self._pst_documenti()
+        elif path == "/downloads/raccogli":
+            self._downloads_raccogli()
         else:
             self._send_json({"errore": "Not found"}, 404)
 
@@ -2662,6 +2832,36 @@ class _Handler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             log.error("Errore PST documenti: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _downloads_raccogli(self):
+        """
+        POST /downloads/raccogli
+        Body: {expected_documents:[...], base_dir?, max_age_hours?, limit?}
+        Response: {ok, files:[...], matched, expected, directories}
+        """
+        data = self._read_json()
+        expected_documents = data.get("expected_documents") or []
+        try:
+            esito = _raccogli_download_recenti(
+                expected_documents,
+                base_dir=str(data.get("base_dir") or "").strip(),
+                max_age_hours=int(data.get("max_age_hours") or 72),
+                limit=int(data.get("limit") or 25),
+            )
+            if not esito["files"]:
+                self._send_json({
+                    "ok": False,
+                    "errore": (
+                        "Nessun download recente compatibile trovato nelle cartelle locali. "
+                        "Scarica prima i file dal portale ufficiale nel browser e poi riprova."
+                    ),
+                    **esito,
+                }, 404)
+                return
+            self._send_json({"ok": True, **esito})
+        except Exception as e:
+            log.error("Errore raccolta download locali: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
 

@@ -34,6 +34,7 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
+from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
 from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, risolvi_ufficio
 
 # ---------------------------------------------------------------- PST endpoints
@@ -563,6 +564,7 @@ def _sincronizza_depositi_documentali_polisweb(
             note=descrizione,
             nome_atto_principale=gruppo["nome_atto_principale"],
             stato="IMPORTATO_DA_PST",
+            servizio_portale=SERVIZIO_PST_DOCUMENTI_FASCICOLO,
         )
     fascicolo_locale = gestione_fascicoli.get(fascicolo_locale.id) or fascicolo_locale
     return fascicolo_locale, len(gruppi), sum(len(gruppo["documenti_portale"]) for gruppo in gruppi)

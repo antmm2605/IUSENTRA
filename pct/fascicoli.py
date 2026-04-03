@@ -19,6 +19,8 @@ from typing import Optional, List
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
+from pct.pst_servizi_catalogo import SERVIZIO_PST_DOCUMENTI_FASCICOLO
+
 
 # ------------------------------------------------------------------ Enums
 
@@ -281,6 +283,7 @@ class EsitoDepositoPCT:
     id_deposito_esterno: str = ""                             # id busta/registro del portale ufficiale
     documenti_portale: List[dict] = field(default_factory=list)  # metadati documenti ufficiali
     fonte_portale: str = ""                                   # PolisWeb / PDP / PAT
+    servizio_portale: str = ""                                # servizio ufficiale sorgente (es. DocumentiFascicolo)
 
     def to_dict(self) -> dict:
         return {
@@ -303,6 +306,7 @@ class EsitoDepositoPCT:
             "id_deposito_esterno": self.id_deposito_esterno,
             "documenti_portale": self.documenti_portale,
             "fonte_portale": self.fonte_portale,
+            "servizio_portale": self.servizio_portale,
         }
 
     @classmethod
@@ -817,6 +821,8 @@ class GestioneFascicoli:
             registrato_da=registrato_da,
             documenti_ids=list(documenti_ids),
             nome_atto_principale=nome_atto_principale,
+            fonte_portale=fonte,
+            servizio_portale=SERVIZIO_PST_DOCUMENTI_FASCICOLO,
         )
         f.depositi_pct.append(esito)
 
@@ -839,6 +845,60 @@ class GestioneFascicoli:
         self._salva()
         return esito
 
+    def collega_documenti_a_deposito_portale(
+        self,
+        id_fasc: str,
+        id_dep: str,
+        documenti_ids: List[str],
+        *,
+        note: str = "",
+        registrato_da: str = "",
+    ) -> EsitoDepositoPCT:
+        """
+        Collega documenti già presenti nel fascicolo a un deposito ufficiale già censito.
+
+        Usa questo metodo quando i metadati del portale sono già stati importati
+        e successivamente vengono acquisiti i file binari corrispondenti.
+        """
+        f = self._get_o_errore(id_fasc)
+        dep = next((d for d in f.depositi_pct if d.id == id_dep), None)
+        if not dep:
+            raise KeyError(f"Deposito '{id_dep}' non trovato nel fascicolo.")
+        if not documenti_ids:
+            raise ValueError("Nessun documento da collegare al deposito ufficiale.")
+
+        doc_ids_presenti = {doc.id for doc in f.documenti}
+        nuovi_ids = [
+            doc_id for doc_id in documenti_ids
+            if doc_id in doc_ids_presenti and doc_id not in dep.documenti_ids
+        ]
+        if not nuovi_ids:
+            return dep
+
+        dep.documenti_ids.extend(nuovi_ids)
+        for doc in f.documenti:
+            if doc.id in nuovi_ids:
+                doc.id_deposito_pct = dep.id
+
+        descrizione = (
+            note.strip()
+            or f"{len(nuovi_ids)} documenti ufficiali acquisiti localmente."
+        )
+        att = AttivitaProcessuale(
+            id=uuid.uuid4().hex[:8].upper(),
+            tipo=TipoAttivita.CONSULTAZIONE,
+            data=date.today().isoformat(),
+            titolo=f"Acquisizione file ufficiali — {dep.tipo_atto or dep.fonte_portale or dep.id_deposito_esterno or dep.id}",
+            descrizione=descrizione,
+            esito=EsitoAttivita.NON_APPLICABILE,
+            id_deposito_pct=dep.id,
+            avvocato=registrato_da,
+        )
+        f.attivita.append(att)
+        f.modificato_il = datetime.now().isoformat()
+        self._salva()
+        return dep
+
     def sincronizza_deposito_portale(
         self,
         id_fasc: str,
@@ -853,6 +913,7 @@ class GestioneFascicoli:
         note: str = "",
         nome_atto_principale: str = "",
         stato: str = "IMPORTATO_DA_PST",
+        servizio_portale: str = "",
     ) -> EsitoDepositoPCT:
         """
         Registra o aggiorna nel fascicolo un deposito già visibile sul portale ufficiale.
@@ -951,6 +1012,7 @@ class GestioneFascicoli:
             dep.nome_atto_principale = nome_atto_principale or dep.nome_atto_principale
             dep.id_deposito_esterno = chiave_portale
             dep.fonte_portale = fonte or dep.fonte_portale
+            dep.servizio_portale = servizio_portale or dep.servizio_portale
             dep.documenti_portale = _merge_documenti_portale(dep.documenti_portale, documenti_norm)
             f.modificato_il = datetime.now().isoformat()
             self._salva()
@@ -969,6 +1031,7 @@ class GestioneFascicoli:
             id_deposito_esterno=chiave_portale,
             documenti_portale=documenti_norm,
             fonte_portale=fonte,
+            servizio_portale=servizio_portale,
         )
         f.depositi_pct.append(dep)
 

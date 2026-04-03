@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import json
 import os
@@ -509,6 +510,195 @@ def test_route_importa_documenti_portale_usa_inbox_temporanea(tmp_path):
     assert any(path.name.startswith(fascicolo.id + "_") for path in archivio_inbox.iterdir())
 
 
+def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 303/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="303",
+        anno_rg=2025,
+    )
+    deposito = gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-002",
+        tipo_atto="Sentenza",
+        data_deposito="2026-03-29",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-900",
+                "nome": "Sentenza definitiva.pdf.p7m",
+                "tipo": "PROVVEDIMENTO",
+                "data_deposito": "2026-03-29",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-002",
+                "tipo_atto": "Sentenza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/api/fascicoli/{fascicolo.id}/documenti/importa-portale",
+            json={
+                "note_importazione": "raccolta assistita",
+                "files": [
+                    {
+                        "nome": "Sentenza definitiva.pdf",
+                        "contenuto_b64": base64.b64encode(b"sentenza definitiva").decode("ascii"),
+                        "origine": "C:/Users/test/Downloads/Sentenza definitiva.pdf",
+                        "data_documento": "2026-03-29",
+                        "id_deposito_esterno": "BUSTA-PST-002",
+                        "id_deposito_pct": deposito.id,
+                        "id_documento_portale": "DOC-900",
+                        "tipo_atto": "Sentenza",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["documenti_importati"] == 1
+    assert data["depositi_agganciati"] == 1
+    assert not data["lotto_generico"]
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 1
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert fascicolo_reload.depositi_pct[0].documenti_ids == [fascicolo_reload.documenti[0].id]
+    assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
+    assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
+
+
+def test_route_importa_documenti_portale_aggancia_upload_al_deposito_ufficiale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 404/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="404",
+        anno_rg=2025,
+    )
+    deposito = gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-404",
+        tipo_atto="Sentenza",
+        data_deposito="2026-03-30",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-404",
+                "nome": "Sentenza definitiva.pdf.p7m",
+                "tipo": "PROVVEDIMENTO",
+                "data_deposito": "2026-03-30",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 16000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-404",
+                "tipo_atto": "Sentenza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/importa-portale",
+            data={
+                "note_importazione": "upload manuale dal browser ufficiale",
+                "files": (io.BytesIO(b"sentenza definitiva"), "Sentenza definitiva.pdf"),
+            },
+            content_type="multipart/form-data",
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 1
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert fascicolo_reload.depositi_pct[0].id == deposito.id
+    assert fascicolo_reload.depositi_pct[0].documenti_ids == [fascicolo_reload.documenti[0].id]
+    assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
+    assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
+
+
 def test_route_documenti_polisweb_consente_vista_completa_delle_buste(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -591,6 +781,76 @@ def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
     assert "Cartella tecnica locale del fascicolo" in body
     assert "pst_import" in body
     assert fascicolo.id in body
+
+
+def test_dettaglio_fascicolo_non_mescola_documenti_portale_con_comunicazioni(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 505/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="505",
+        anno_rg=2025,
+    )
+    gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-505",
+        tipo_atto="Memoria conclusionale",
+        data_deposito="2026-03-30",
+        mittente="avv.rossi@pec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-505",
+                "nome": "memoria conclusionale.pdf.p7m",
+                "tipo": "ATTO",
+                "data_deposito": "2026-03-30",
+                "mittente": "avv.rossi@pec.it",
+                "dimensione_bytes": 18000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-505",
+                "tipo_atto": "Memoria conclusionale",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "documenti ufficiali" in body
+    assert "Documenti fascicolo" in body
+    assert "nella sezione <strong>Comunicazioni di cancelleria</strong>" not in body
+    assert "Nessuna comunicazione di cancelleria" in body
 
 
 def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
@@ -739,6 +999,7 @@ def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(t
         ],
         registrato_da="admin",
         nome_atto_principale="memoria_conclusionale.pdf.p7m",
+        servizio_portale="DocumentiFascicolo",
     )
 
     app = create_app(cfg)
@@ -752,6 +1013,6 @@ def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(t
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
-    assert "Metadati PST" in body
     assert "memoria_conclusionale.pdf.p7m" in body
-    assert "ID portale BUSTA-PST-001" in body
+    assert "documenti ufficiali" in body
+    assert "Nessuna comunicazione di cancelleria" in body

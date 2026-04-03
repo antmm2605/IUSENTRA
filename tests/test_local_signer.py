@@ -479,6 +479,47 @@ def test_parse_qbuilder_documenti_xml_supporta_piu_return():
     assert {doc["id_documento"] for doc in documenti} == {"33581101", "33581102"}
 
 
+def test_normalizza_nome_download_match_rimuove_suffissi_e_duplicati():
+    module = _load_local_signer()
+
+    assert module._normalizza_nome_download_match("Sentenza definitiva (1).pdf.p7m") == "sentenzadefinitiva"
+    assert module._normalizza_nome_download_match("Verbale udienza.pdf") == "verbaleudienza"
+
+
+def test_raccogli_download_recenti_trova_file_attesi(tmp_path):
+    module = _load_local_signer()
+
+    sentenza = tmp_path / "Sentenza definitiva.pdf"
+    sentenza.write_bytes(b"sentenza")
+    verbale = tmp_path / "Verbale udienza (1).pdf"
+    verbale.write_bytes(b"verbale")
+    (tmp_path / "irrilevante.txt").write_bytes(b"altro")
+
+    esito = module._raccogli_download_recenti(
+        [
+            {
+                "nome": "Sentenza definitiva.pdf.p7m",
+                "id_deposito_esterno": "BUSTA-PST-001",
+                "id_deposito_pct": "DEP-001",
+                "id_documento_portale": "DOC-001",
+            },
+            {
+                "nome": "Verbale udienza.pdf",
+                "id_deposito_esterno": "BUSTA-PST-001",
+                "id_deposito_pct": "DEP-001",
+                "id_documento_portale": "DOC-002",
+            },
+        ],
+        base_dir=str(tmp_path),
+        max_age_hours=24,
+        limit=10,
+    )
+
+    assert esito["matched"] == 2
+    assert {item["id_documento_portale"] for item in esito["files"]} == {"DOC-001", "DOC-002"}
+    assert {item["id_deposito_pct"] for item in esito["files"]} == {"DEP-001"}
+
+
 def test_trova_libreria_prefers_candidate_with_detected_token():
     module = _load_local_signer()
 

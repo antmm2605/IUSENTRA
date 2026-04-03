@@ -7,12 +7,15 @@ Avvio:
 """
 
 import csv
+import base64
 import io
 import os
 import json
 import queue
+import re
 import shutil
 import threading
+import unicodedata
 import zipfile as _zipfile
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -113,6 +116,11 @@ from pct.reports import fascicolo_pdf, scadenze_pdf, faldone_pdf, lista_fascicol
 from pct.database import GestioneDatabase, bootstrap_moduli_monitorati
 from pct.sync import GestoreSincronizzazione, get_gestore
 from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
+from pct.pst_servizi_catalogo import (
+    SEZIONE_COMUNICAZIONI_CANCELLERIA,
+    SEZIONE_ISTANZE,
+    sezione_fascicolo_da_servizio_pst,
+)
 from pct import __version__ as APP_VERSION
 
 # ------------------------------------------------------------------ cifratura documenti (AES-256-GCM)
@@ -681,7 +689,26 @@ def create_app(config: dict | None = None) -> Flask:
         testo = _fascicolo_text(getattr(doc, "nome", ""), getattr(doc, "note", ""), getattr(doc, "tipo", ""))
         return "istanza" in testo
 
+    def _deposito_servizio_portale(dep) -> str:
+        return str(getattr(dep, "servizio_portale", "") or "").strip()
+
+    def _deposito_sezione_portale(dep) -> str:
+        servizio = _deposito_servizio_portale(dep)
+        return sezione_fascicolo_da_servizio_pst(servizio) if servizio else ""
+
+    def _deposito_ha_ricevute(dep) -> bool:
+        return any(
+            (
+                getattr(dep, "ricevuta_accettazione", ""),
+                getattr(dep, "ricevuta_consegna", ""),
+                getattr(dep, "ricevuta_controlli_automatici", ""),
+                getattr(dep, "ricevuta_cancelleria", ""),
+            )
+        )
+
     def _deposito_is_istanza(dep) -> bool:
+        if _deposito_sezione_portale(dep) == SEZIONE_ISTANZE:
+            return True
         testo = _fascicolo_text(
             getattr(dep, "tipo_atto", ""),
             getattr(dep, "messaggio", ""),
@@ -691,16 +718,23 @@ def create_app(config: dict | None = None) -> Flask:
         return "istanza" in testo
 
     def _deposito_is_comunicazione(dep) -> bool:
-        return any(
-            (
-                getattr(dep, "ricevuta_accettazione", ""),
-                getattr(dep, "ricevuta_consegna", ""),
-                getattr(dep, "ricevuta_controlli_automatici", ""),
-                getattr(dep, "ricevuta_cancelleria", ""),
-                getattr(dep, "documenti_portale", None),
-                getattr(dep, "fonte_portale", ""),
-            )
-        )
+        sezione_portale = _deposito_sezione_portale(dep)
+        if sezione_portale:
+            return sezione_portale == SEZIONE_COMUNICAZIONI_CANCELLERIA
+        if _deposito_ha_ricevute(dep):
+            return True
+        return str(getattr(dep, "stato", "") or "").strip().upper() in {
+            "INVIATO",
+            "ACCETTATO",
+            "ACCETTATO_PEC",
+            "CONSEGNATO",
+            "WARN_CONTROLLI",
+            "ERRORE_CONTROLLI",
+            "RIFIUTATO",
+            "ACCETTATO_CANCELLERIA",
+            "RIFIUTATO_CANCELLERIA",
+            "ERRORE",
+        }
 
     def _build_fascicolo_workspace(
         fasc: Fascicolo,
@@ -753,7 +787,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "documenti": len(documenti),
                 "attivita": len(attivita_processuali),
                 "udienze_scadenze": len(udienze_attivita) + len(termini) + len(appuntamenti),
-                "comunicazioni": len(comunicazioni_attivita) + max(len(comunicazioni_depositi), len(depositi)),
+                "comunicazioni": len(comunicazioni_attivita) + len(comunicazioni_depositi),
                 "istanze": len(istanze_documenti) + len(istanze_depositi),
             },
             "documenti_buckets": documenti_buckets,
@@ -1258,6 +1292,212 @@ def create_app(config: dict | None = None) -> Flask:
         shutil.move(str(cartella), str(destinazione))
         cartella.mkdir(parents=True, exist_ok=True)
         return str(destinazione)
+
+    def _normalizza_nome_match_portale(nome_file: str) -> str:
+        testo = Path(str(nome_file or "")).name.strip().lower()
+        if not testo:
+            return ""
+        testo = re.sub(r"\s+\(\d+\)(?=(\.[^.]+)+$|$)", "", testo)
+        while True:
+            cambiato = False
+            for suffix in (".p7m", ".pdf", ".txt", ".eml", ".msg", ".xml", ".html", ".htm", ".zip"):
+                if testo.endswith(suffix):
+                    testo = testo[: -len(suffix)]
+                    cambiato = True
+            if not cambiato:
+                break
+        testo = unicodedata.normalize("NFKD", testo).encode("ascii", "ignore").decode("ascii")
+        return re.sub(r"[^a-z0-9]+", "", testo)
+
+    def _catalogo_documenti_portale_fascicolo(fasc: Fascicolo) -> list[dict]:
+        catalogo: list[dict] = []
+        for dep in fasc.depositi_pct or []:
+            for pdoc in getattr(dep, "documenti_portale", []) or []:
+                nome = str((pdoc or {}).get("nome") or "").strip()
+                key = _normalizza_nome_match_portale(nome)
+                if not nome or not key:
+                    continue
+                catalogo.append({
+                    "id_deposito_pct": dep.id,
+                    "id_deposito_esterno": str(getattr(dep, "id_deposito_esterno", "") or "").strip(),
+                    "tipo_atto": str((pdoc or {}).get("tipo_atto") or getattr(dep, "tipo_atto", "") or "").strip(),
+                    "id_documento_portale": str((pdoc or {}).get("id_documento") or "").strip(),
+                    "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
+                    "nome": nome,
+                    "key": key,
+                })
+        return catalogo
+
+    def _match_catalogo_documento_portale(
+        fasc: Fascicolo,
+        item: dict,
+        catalogo: list[dict],
+    ) -> dict | None:
+        dep_ids_validi = {dep.id for dep in (fasc.depositi_pct or [])}
+        dep_pct = str(item.get("id_deposito_pct") or "").strip()
+        if dep_pct and dep_pct in dep_ids_validi:
+            return next((row for row in catalogo if row["id_deposito_pct"] == dep_pct), None)
+
+        doc_portale_id = str(item.get("id_documento_portale") or "").strip()
+        if doc_portale_id:
+            row = next((entry for entry in catalogo if entry["id_documento_portale"] == doc_portale_id), None)
+            if row:
+                return row
+
+        dep_esterno = str(item.get("id_deposito_esterno") or item.get("id_deposito") or "").strip()
+        if dep_esterno:
+            by_dep = [entry for entry in catalogo if entry["id_deposito_esterno"] == dep_esterno]
+            if len(by_dep) == 1:
+                return by_dep[0]
+            item_key = _normalizza_nome_match_portale(str(item.get("nome") or ""))
+            if item_key:
+                exact = [entry for entry in by_dep if entry["key"] == item_key]
+                if len(exact) == 1:
+                    return exact[0]
+
+        item_key = _normalizza_nome_match_portale(str(item.get("nome") or ""))
+        if len(item_key) < 8:
+            return None
+        exact = [entry for entry in catalogo if entry["key"] == item_key]
+        if len(exact) == 1:
+            return exact[0]
+        return None
+
+    def _importa_documenti_portale_items(
+        *,
+        gf: GestioneFascicoli,
+        fasc: Fascicolo,
+        items: list[dict],
+        note_importazione: str = "",
+        usa_staging: bool = False,
+        staging_dir: Path | None = None,
+    ) -> dict:
+        fonte = _portale_ufficiale_label(fasc)
+        u = g.utente_corrente
+        documenti_creati: list[dict] = []
+
+        for item in items:
+            nome = item.get("nome", "").strip()
+            payload = item.get("contenuto", b"")
+            if not nome or not payload:
+                continue
+            tipo_doc = _tipo_documento_da_nome_portale(nome)
+            note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
+            if note_importazione:
+                note_doc.append(note_importazione)
+            origine = (item.get("origine", "") or "").strip()
+            if origine and origine != nome:
+                note_doc.append(f"Origine: {origine}")
+            doc = _salva_documento_fascicolo(
+                gf=gf,
+                id_fasc=fasc.id,
+                nome_file=nome,
+                raw=payload,
+                tipo_doc=tipo_doc,
+                note=" | ".join(note_doc),
+                data_documento=item.get("data_documento", "") or date.today().isoformat(),
+                firmato=nome.lower().endswith(".p7m"),
+                caricato_da=u.username if u else "",
+            )
+            documenti_creati.append({"doc": doc, "item": item})
+
+        if not documenti_creati:
+            raise ValueError("I file selezionati non contengono documenti importabili.")
+
+        catalogo = _catalogo_documenti_portale_fascicolo(fasc)
+        docs_per_deposito: dict[str, list[str]] = {}
+        documenti_sfusi: list[str] = []
+        for entry in documenti_creati:
+            match = _match_catalogo_documento_portale(fasc, entry["item"], catalogo)
+            if match and match["id_deposito_pct"]:
+                docs_per_deposito.setdefault(match["id_deposito_pct"], []).append(entry["doc"].id)
+            else:
+                documenti_sfusi.append(entry["doc"].id)
+
+        depositi_agganciati: list[str] = []
+        for dep_id, doc_ids in docs_per_deposito.items():
+            dep = next((row for row in fasc.depositi_pct if row.id == dep_id), None)
+            if not dep:
+                documenti_sfusi.extend(doc_ids)
+                continue
+            descrizione_link = (
+                f"{len(doc_ids)} file ufficiali acquisiti localmente da {fonte}."
+                + (f" {note_importazione}" if note_importazione else "")
+            ).strip()
+            gf.collega_documenti_a_deposito_portale(
+                fasc.id,
+                dep_id,
+                doc_ids,
+                note=descrizione_link,
+                registrato_da=u.username if u else "",
+            )
+            depositi_agganciati.append(dep_id)
+
+        deposito_generico = None
+        if documenti_sfusi:
+            pec_tribunale = ""
+            if fasc.tribunale:
+                try:
+                    uff = ClientReGINde().cerca_ufficio_giudiziario(fasc.tribunale)
+                    pec_tribunale = uff.pec if uff else ""
+                except Exception:
+                    pec_tribunale = ""
+
+            docs_creati_index = {entry["doc"].id: entry["doc"] for entry in documenti_creati}
+            principali = [
+                docs_creati_index[doc_id].nome
+                for doc_id in documenti_sfusi
+                if docs_creati_index[doc_id].tipo
+                in {
+                    TipoDocumento.ATTO_GIUDIZIARIO,
+                    TipoDocumento.RICORSO,
+                    TipoDocumento.CITAZIONE,
+                    TipoDocumento.COMPARSA,
+                    TipoDocumento.MEMORIA,
+                    TipoDocumento.SENTENZA,
+                    TipoDocumento.ORDINANZA,
+                    TipoDocumento.DECRETO,
+                }
+            ]
+            principale = principali[0] if principali else docs_creati_index[documenti_sfusi[0]].nome
+            descrizione_lotto = (
+                f"{len(documenti_sfusi)} documenti ufficiali acquisiti da {fonte}."
+                + (f" {note_importazione}" if note_importazione else "")
+            ).strip()
+            deposito_generico = gf.registra_import_documenti_portale(
+                id_fasc=fasc.id,
+                fonte=fonte,
+                documenti_ids=documenti_sfusi,
+                tipo_atto=_tipo_lotto_portale(fasc),
+                note=descrizione_lotto,
+                registrato_da=u.username if u else "",
+                pec_destinatario=pec_tribunale,
+                nome_atto_principale=principale,
+            )
+
+        staging_archived = ""
+        if usa_staging and staging_dir is not None:
+            staging_archived = _archivia_staging_documenti_portale(staging_dir)
+
+        audit(
+            "fascicoli.documento.importa_portale",
+            "fascicolo",
+            fasc.id,
+            dettagli=(
+                f"{fonte}: {len(documenti_creati)} file — "
+                f"{len(depositi_agganciati)} depositi agganciati"
+                + (f", lotto {deposito_generico.id}" if deposito_generico else "")
+            ),
+        )
+        _sync.pubblica("modifica", "fascicoli", fasc.id, utente=u.username if u else "")
+
+        return {
+            "fonte": fonte,
+            "documenti_importati": len(documenti_creati),
+            "depositi_agganciati": depositi_agganciati,
+            "lotto_generico": deposito_generico.id if deposito_generico else "",
+            "staging_archived": staging_archived,
+        }
 
     def get_config_studio():
         from pct.config_studio import GestioneConfigStudio
@@ -6312,6 +6552,7 @@ read -r -p "Premi Invio per chiudere..." _
         pst_import_dir = _pst_import_dir_for_fascicolo(fasc)
         pst_import_dir.mkdir(parents=True, exist_ok=True)
         pst_import_pending = _pst_import_pending_count(fasc)
+        portale_documenti_catalogo = _catalogo_documenti_portale_fascicolo(fasc)
         polisweb_importato = "Importato da PolisWeb" in (fasc.note or "")
         ha_udienza_importata = any(
             getattr(att.tipo, "value", att.tipo) == "UDIENZA"
@@ -6369,6 +6610,7 @@ read -r -p "Premi Invio per chiudere..." _
             pst_import_pending=pst_import_pending,
             pst_portale_label=_portale_ufficiale_label(fasc),
             pst_import_dir=str(pst_import_dir),
+            portale_documenti_catalogo=portale_documenti_catalogo,
             polisweb_sync_needed=polisweb_sync_needed,
             responsabile_conformita=responsabile_conformita,
             oggi=date.today(),
@@ -6577,103 +6819,89 @@ read -r -p "Premi Invio per chiudere..." _
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
         try:
-            documenti_creati: list[Documento] = []
-            for item in items:
-                nome = item.get("nome", "").strip()
-                payload = item.get("contenuto", b"")
-                if not nome or not payload:
-                    continue
-                tipo_doc = _tipo_documento_da_nome_portale(nome)
-                note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
-                if note_importazione:
-                    note_doc.append(note_importazione)
-                origine = (item.get("origine", "") or "").strip()
-                if origine and origine != nome:
-                    note_doc.append(f"Origine: {origine}")
-                documenti_creati.append(
-                    _salva_documento_fascicolo(
-                        gf=gf,
-                        id_fasc=id_fasc,
-                        nome_file=nome,
-                        raw=payload,
-                        tipo_doc=tipo_doc,
-                        note=" | ".join(note_doc),
-                        data_documento=item.get("data_documento", "") or date.today().isoformat(),
-                        firmato=nome.lower().endswith(".p7m"),
-                        caricato_da=u.username if u else "",
-                    )
+            esito_import = _importa_documenti_portale_items(
+                gf=gf,
+                fasc=fasc,
+                items=items,
+                note_importazione=note_importazione,
+                usa_staging=usa_staging,
+                staging_dir=staging_dir if usa_staging else None,
+            )
+            agganciati = len(esito_import["depositi_agganciati"])
+            msg = f"Importati {esito_import['documenti_importati']} file ufficiali da {fonte}."
+            if agganciati:
+                msg += (
+                    f" {agganciati} deposit"
+                    + ("o ufficiale aggiornato." if agganciati == 1 else "i ufficiali aggiornati.")
                 )
-
-            if not documenti_creati:
-                flash("I file selezionati non contengono documenti importabili.", "warning")
-                return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-
-            pec_tribunale = ""
-            if fasc.tribunale:
-                try:
-                    uff = ClientReGINde().cerca_ufficio_giudiziario(fasc.tribunale)
-                    pec_tribunale = uff.pec if uff else ""
-                except Exception:
-                    pec_tribunale = ""
-
-            tipo_atto = _tipo_lotto_portale(fasc)
-            principale = next(
-                (
-                    doc.nome
-                    for doc in documenti_creati
-                    if doc.tipo
-                    in {
-                        TipoDocumento.ATTO_GIUDIZIARIO,
-                        TipoDocumento.RICORSO,
-                        TipoDocumento.CITAZIONE,
-                        TipoDocumento.COMPARSA,
-                        TipoDocumento.MEMORIA,
-                        TipoDocumento.SENTENZA,
-                        TipoDocumento.ORDINANZA,
-                        TipoDocumento.DECRETO,
-                    }
-                ),
-                documenti_creati[0].nome,
-            )
-            descrizione_lotto = (
-                f"{len(documenti_creati)} documenti ufficiali acquisiti da {fonte}."
-                + (f" {note_importazione}" if note_importazione else "")
-            ).strip()
-            deposito = gf.registra_import_documenti_portale(
-                id_fasc=id_fasc,
-                fonte=fonte,
-                documenti_ids=[doc.id for doc in documenti_creati],
-                tipo_atto=tipo_atto,
-                note=descrizione_lotto,
-                registrato_da=u.username if u else "",
-                pec_destinatario=pec_tribunale,
-                nome_atto_principale=principale,
-            )
-
-            staging_archived = ""
-            if usa_staging:
-                staging_archived = _archivia_staging_documenti_portale(staging_dir)
-
-            audit(
-                "fascicoli.documento.importa_portale",
-                "fascicolo",
-                id_fasc,
-                dettagli=f"{fonte}: {len(documenti_creati)} file — lotto {deposito.id}",
-            )
-            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
-            if staging_archived:
-                flash(
-                    f"Importati {len(documenti_creati)} file ufficiali da {fonte}. Inbox temporanea archiviata.",
-                    "success",
-                )
-            else:
-                flash(f"Importati {len(documenti_creati)} file ufficiali da {fonte}.", "success")
+            if esito_import["lotto_generico"]:
+                msg += " Alcuni file sono stati registrati in un lotto documentale locale."
+            if esito_import["staging_archived"]:
+                msg += " Inbox temporanea archiviata."
+            flash(msg, "success")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
         except Exception as e:
             app.logger.exception("Errore importa_documenti_portale %s: %s", id_fasc, e)
             flash(f"Errore importazione file ufficiali: {e}", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/api/fascicoli/<id_fasc>/documenti/importa-portale", methods=["POST"])
+    def api_importa_documenti_portale(id_fasc):
+        try:
+            gf = get_fascicoli()
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "errore": "Fascicolo non trovato."}), 200
+
+            data = request.get_json(silent=True) or {}
+            note_importazione = (data.get("note_importazione", "") or "").strip()
+            files = data.get("files") or []
+            items: list[dict] = []
+
+            for file_item in files:
+                nome = str((file_item or {}).get("nome") or "").strip()
+                contenuto_b64 = str((file_item or {}).get("contenuto_b64") or "").strip()
+                if not nome or not contenuto_b64:
+                    continue
+                try:
+                    payload = base64.b64decode(contenuto_b64)
+                except Exception:
+                    continue
+                espansi = _espandi_file_importato_portale(
+                    nome_file=nome,
+                    contenuto=payload,
+                    data_documento=str((file_item or {}).get("data_documento") or date.today().isoformat()),
+                    origine=str((file_item or {}).get("origine") or f"local-signer:{nome}"),
+                )
+                for item in espansi:
+                    item["id_deposito_esterno"] = str((file_item or {}).get("id_deposito_esterno") or "").strip()
+                    item["id_deposito_pct"] = str((file_item or {}).get("id_deposito_pct") or "").strip()
+                    item["id_documento_portale"] = str((file_item or {}).get("id_documento_portale") or "").strip()
+                    item["tipo_atto"] = str((file_item or {}).get("tipo_atto") or "").strip()
+                items.extend(espansi)
+
+            if not items:
+                return jsonify({"ok": False, "errore": "Nessun file valido ricevuto dal Local Signer."}), 200
+
+            esito_import = _importa_documenti_portale_items(
+                gf=gf,
+                fasc=fasc,
+                items=items,
+                note_importazione=note_importazione,
+            )
+            return jsonify({
+                "ok": True,
+                "documenti_importati": esito_import["documenti_importati"],
+                "depositi_agganciati": len(esito_import["depositi_agganciati"]),
+                "lotto_generico": esito_import["lotto_generico"],
+                "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc),
+            }), 200
+        except (ValueError, KeyError) as e:
+            return jsonify({"ok": False, "errore": str(e)}), 200
+        except Exception as e:
+            app.logger.exception("Errore api_importa_documenti_portale %s: %s", id_fasc, e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/scarica")
     def scarica_documento(id_fasc, id_doc):

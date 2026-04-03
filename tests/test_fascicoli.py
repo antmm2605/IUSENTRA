@@ -223,10 +223,61 @@ def test_registra_import_documenti_portale_collega_documenti_e_attivita(gf, fasc
     fascicolo = gf.get(fascicolo_base.id)
     assert esito.stato == "IMPORTATO_DA_PORTALE"
     assert len(fascicolo.depositi_pct) == 1
+    assert fascicolo.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
     assert fascicolo.documenti[0].id_deposito_pct == esito.id
     assert fascicolo.documenti[1].id_deposito_pct == esito.id
     assert any(
         att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == esito.id
+        for att in fascicolo.attivita
+    )
+
+
+def test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_ufficiale(gf, fascicolo_base):
+    dep = gf.sincronizza_deposito_portale(
+        fascicolo_base.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-001",
+        tipo_atto="Sentenza",
+        data_deposito="2026-03-29",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-001",
+                "nome": "sentenza definitiva.pdf",
+                "tipo": "PROVVEDIMENTO",
+                "data_deposito": "2026-03-29",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 20480,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-001",
+                "tipo_atto": "Sentenza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+    doc = gf.aggiungi_documento(
+        fascicolo_base.id,
+        "sentenza definitiva.pdf",
+        TipoDocumento.SENTENZA,
+        b"sentenza",
+    )
+
+    gf.collega_documenti_a_deposito_portale(
+        fascicolo_base.id,
+        dep.id,
+        [doc.id],
+        note="File ufficiale acquisito dal fascicolo locale",
+        registrato_da="admin",
+    )
+
+    fascicolo = gf.get(fascicolo_base.id)
+    deposito = fascicolo.depositi_pct[0]
+    assert deposito.documenti_ids == [doc.id]
+    assert deposito.servizio_portale == "DocumentiFascicolo"
+    assert fascicolo.documenti[0].id_deposito_pct == dep.id
+    assert any(
+        att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == dep.id
         for att in fascicolo.attivita
     )
 
@@ -264,12 +315,14 @@ def test_sincronizza_deposito_portale_registra_metadati_e_attivita(gf, fascicolo
             },
         ],
         registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
     )
 
     fascicolo = gf.get(fascicolo_base.id)
     assert esito.stato == "IMPORTATO_DA_PST"
     assert esito.id_deposito_esterno == "BUSTA-PST-001"
     assert esito.fonte_portale == "PolisWeb / PST"
+    assert esito.servizio_portale == "DocumentiFascicolo"
     assert len(esito.documenti_portale) == 2
     assert esito.documenti_portale[1]["disponibile"] is True
     assert len(fascicolo.depositi_pct) == 1
@@ -301,6 +354,7 @@ def test_sincronizza_deposito_portale_aggiorna_senza_duplicare(gf, fascicolo_bas
             }
         ],
         registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
     )
 
     esito_aggiornato = gf.sincronizza_deposito_portale(
@@ -335,11 +389,13 @@ def test_sincronizza_deposito_portale_aggiorna_senza_duplicare(gf, fascicolo_bas
             },
         ],
         registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
     )
 
     fascicolo = gf.get(fascicolo_base.id)
     assert len(fascicolo.depositi_pct) == 1
     assert esito_aggiornato.tipo_atto == "Sentenza definitiva"
+    assert esito_aggiornato.servizio_portale == "DocumentiFascicolo"
     assert len(esito_aggiornato.documenti_portale) == 2
     assert esito_aggiornato.documenti_portale[0]["nome"] in {"dispositivo.pdf", "sentenza.pdf"}
     assert len([att for att in fascicolo.attivita if att.id_deposito_pct == esito_aggiornato.id]) == 1

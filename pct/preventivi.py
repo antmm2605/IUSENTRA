@@ -159,6 +159,11 @@ class Preventivo:
     # Parametri incarico (art. 13 L. 247/2012 + D.M. 55/2014)
     id_pratica:            str   = ""    # slug tipologia motore preventivo
     area_pratica:          str   = ""    # macro-area pratica
+    area_tassonomica:      str   = ""
+    macro_area_tassonomica: str  = ""
+    sottobranca_tassonomica: str = ""
+    tassonomia_codice:     str   = ""
+    fonti_tassonomia:      List[Dict[str, Any]] = field(default_factory=list)
     tipo_compenso:        str   = ""    # es. "Compenso fisso", "Per fasi processuali (D.M. 55/2014)"
     tipo_procedimento:    str   = ""    # es. "Civile — fase di cognizione"
     valore_controversia:  float = 0.0  # €, 0 = indeterminabile
@@ -271,6 +276,11 @@ class ConferimentoIncarico:
     # Dati avvocato e modalità compenso
     id_pratica:               str   = ""
     area_pratica:             str   = ""
+    area_tassonomica:         str   = ""
+    macro_area_tassonomica:   str   = ""
+    sottobranca_tassonomica:  str   = ""
+    tassonomia_codice:        str   = ""
+    fonti_tassonomia:         List[Dict[str, Any]] = field(default_factory=list)
     numero_iscrizione_albo: str   = ""
     ordine_avvocati:        str   = ""
     tipo_compenso:          str   = ""
@@ -397,6 +407,11 @@ class GestionePreventivi:
                         note:           str = "",
                         id_pratica:           str   = "",
                         area_pratica:         str   = "",
+                        area_tassonomica:     str   = "",
+                        macro_area_tassonomica: str = "",
+                        sottobranca_tassonomica: str = "",
+                        tassonomia_codice:    str   = "",
+                        fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
                         tipo_compenso:       str   = "",
                         tipo_procedimento:   str   = "",
                         valore_controversia: float = 0.0,
@@ -424,6 +439,11 @@ class GestionePreventivi:
             note=note,
             id_pratica=id_pratica,
             area_pratica=area_pratica,
+            area_tassonomica=area_tassonomica,
+            macro_area_tassonomica=macro_area_tassonomica,
+            sottobranca_tassonomica=sottobranca_tassonomica,
+            tassonomia_codice=tassonomia_codice,
+            fonti_tassonomia=list(fonti_tassonomia or []),
             tipo_compenso=tipo_compenso,
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,
@@ -542,6 +562,11 @@ class GestionePreventivi:
                           note:               str = "",
                           id_pratica:             str   = "",
                           area_pratica:           str   = "",
+                          area_tassonomica:       str   = "",
+                          macro_area_tassonomica: str   = "",
+                          sottobranca_tassonomica: str  = "",
+                          tassonomia_codice:      str   = "",
+                          fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
                           numero_iscrizione_albo: str   = "",
                           ordine_avvocati:        str   = "",
                           tipo_compenso:          str   = "",
@@ -563,6 +588,16 @@ class GestionePreventivi:
                     id_pratica = preventivo.id_pratica
                 if not area_pratica:
                     area_pratica = preventivo.area_pratica
+                if not area_tassonomica:
+                    area_tassonomica = preventivo.area_tassonomica
+                if not macro_area_tassonomica:
+                    macro_area_tassonomica = preventivo.macro_area_tassonomica
+                if not sottobranca_tassonomica:
+                    sottobranca_tassonomica = preventivo.sottobranca_tassonomica
+                if not tassonomia_codice:
+                    tassonomia_codice = preventivo.tassonomia_codice
+                if not fonti_tassonomia:
+                    fonti_tassonomia = list(preventivo.fonti_tassonomia or [])
                 if not tipo_compenso:
                     tipo_compenso = preventivo.tipo_compenso
                 if not tipo_procedimento:
@@ -587,6 +622,11 @@ class GestionePreventivi:
             creato_da=creato_da,
             id_pratica=id_pratica,
             area_pratica=area_pratica,
+            area_tassonomica=area_tassonomica,
+            macro_area_tassonomica=macro_area_tassonomica,
+            sottobranca_tassonomica=sottobranca_tassonomica,
+            tassonomia_codice=tassonomia_codice,
+            fonti_tassonomia=list(fonti_tassonomia or []),
             numero_iscrizione_albo=numero_iscrizione_albo,
             ordine_avvocati=ordine_avvocati,
             tipo_compenso=tipo_compenso,

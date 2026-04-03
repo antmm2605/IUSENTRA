@@ -1,5 +1,12 @@
+from werkzeug.datastructures import MultiDict
+
+from pct.economico_context import carica_log_calcolo
 from pct.fascicoli import Fascicolo, TipoFascicolo
-from web.blueprints.preventivi import _area_pratica_da_fascicolo, _contesto_fascicolo_wizard
+from web.blueprints.preventivi import (
+    _area_pratica_da_fascicolo,
+    _contesto_fascicolo_wizard,
+    _contesto_log_wizard_da_form,
+)
 
 
 def _mk_fascicolo(tipo: TipoFascicolo, **overrides) -> Fascicolo:
@@ -46,3 +53,40 @@ def test_contesto_fascicolo_wizard_usa_titolo_quando_oggetto_manca():
 
     assert context["context_label"] == "Avviso di accertamento IMU"
     assert context["area_pratica"] == "Tributario"
+
+
+def test_contesto_log_wizard_da_form_conserva_tassonomia_e_fonti():
+    form = MultiDict(
+        {
+            "oggetto": "Licenziamento disciplinare",
+            "id_pratica": "licenziamento",
+            "area_pratica": "Civile",
+            "area_tassonomica": "Giudiziale",
+            "macro_area_tassonomica": "Diritto del Lavoro",
+            "sottobranca_tassonomica": "Lavoro subordinato, licenziamenti e differenze retributive",
+            "tassonomia_codice": "GIU_LAV_LAVORO",
+            "tipo_compenso": "Per fasi processuali (D.M. 55/2014)",
+            "tipo_procedimento": "Rito lavoro",
+            "grado_sede": "Tribunale",
+            "regola_tariffaria": "lavoro_subordinato",
+            "complessita": "media",
+            "valore_controversia": "15000",
+            "perc_spese_generali": "15",
+            "anticipazioni_art15": "43,50",
+            "fonti_tassonomia_json": (
+                '[{"title":"Codice di procedura civile","article":"rito lavoro","url":"https://www.normattiva.it/"},'
+                '{"title":"Ministero del Lavoro","article":"licenziamenti","url":"https://www.lavoro.gov.it/"}]'
+            ),
+        }
+    )
+
+    payload = carica_log_calcolo(_contesto_log_wizard_da_form(form))
+
+    assert payload["area_tassonomica"] == "Giudiziale"
+    assert payload["macro_area_tassonomica"] == "Diritto del Lavoro"
+    assert payload["sottobranca_tassonomica"] == "Lavoro subordinato, licenziamenti e differenze retributive"
+    assert payload["tassonomia_codice"] == "GIU_LAV_LAVORO"
+    assert payload["riferimenti_tassonomia"] == [
+        "Codice di procedura civile — rito lavoro",
+        "Ministero del Lavoro — licenziamenti",
+    ]

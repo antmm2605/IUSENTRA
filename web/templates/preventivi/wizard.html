@@ -244,6 +244,22 @@
     font-weight: 700;
     padding: .2rem .5rem;
   }
+  .prev-toolbar-taxonomy {
+    padding: .85rem 1rem 1rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1rem;
+    background: rgba(248, 250, 255, .82);
+    margin-bottom: .9rem;
+  }
+  .prev-toolbar-taxonomy .form-label {
+    margin-bottom: .3rem;
+    font-size: .82rem;
+  }
+  .prev-taxonomy-hint {
+    font-size: .82rem;
+    color: var(--bs-secondary-color);
+    margin-top: .55rem;
+  }
   .prev-ref-list,
   .prev-checklist {
     display: flex;
@@ -700,6 +716,11 @@
   <input type="hidden" name="from_page" value="{{ from_page }}">
   <input type="hidden" name="id_pratica" id="inpIdPratica">
   <input type="hidden" name="area_pratica" id="inpAreaPratica">
+  <input type="hidden" name="area_tassonomica" id="inpAreaTassonomica">
+  <input type="hidden" name="macro_area_tassonomica" id="inpMacroAreaTassonomica">
+  <input type="hidden" name="sottobranca_tassonomica" id="inpSottobrancaTassonomica">
+  <input type="hidden" name="tassonomia_codice" id="inpTassonomiaCodice">
+  <input type="hidden" name="fonti_tassonomia_json" id="inpFontiTassonomiaJson">
   <input type="hidden" name="tipo_compenso" id="inpTipoCompenso">
   <input type="hidden" name="tipo_procedimento" id="inpTipoProcedimento">
   <input type="hidden" name="grado_sede" id="inpGradoSede">
@@ -837,6 +858,30 @@
           <div class="prev-toolbar-shell" id="tipologiaToolbarShell">
             <div class="prev-toolbar-placeholder" id="tipologiaToolbarPlaceholder" aria-hidden="true"></div>
             <div class="prev-toolbar" id="tipologiaToolbar">
+            <div class="prev-toolbar-taxonomy">
+              <div class="prev-section-label mb-2">Classificazione tassonomica</div>
+              <div class="row g-2">
+                <div class="col-lg-4">
+                  <label class="form-label fw-semibold" for="selAreaTassonomica">Area tassonomica</label>
+                  <select id="selAreaTassonomica" class="form-select form-select-sm">
+                    <option value="">Tutte le aree</option>
+                  </select>
+                </div>
+                <div class="col-lg-4">
+                  <label class="form-label fw-semibold" for="selMacroAreaTassonomica">Macro-area</label>
+                  <select id="selMacroAreaTassonomica" class="form-select form-select-sm">
+                    <option value="">Tutte le macro-aree</option>
+                  </select>
+                </div>
+                <div class="col-lg-4">
+                  <label class="form-label fw-semibold" for="selSottobrancaTassonomica">Sottobranca</label>
+                  <select id="selSottobrancaTassonomica" class="form-select form-select-sm">
+                    <option value="">Tutte le sottobranche</option>
+                  </select>
+                </div>
+              </div>
+              <div class="prev-taxonomy-hint" id="taxonomySelectionHint">La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.</div>
+            </div>
             <div class="prev-toolbar-top">
               <div>
                 <div class="prev-section-label mb-2">Area pratica</div>
@@ -1185,6 +1230,182 @@ let compensationFilter = 'ALL';
 let showOnlyFavorites = false;
 let compactMode = window.localStorage.getItem(STORAGE_KEY_COMPACT) === '1';
 let favoriteTipologie = new Set(JSON.parse(window.localStorage.getItem(STORAGE_KEY_PREFERITE) || '[]'));
+let tassonomiaSelezione = { area: '', macro: '', sub: '' };
+
+function taxonomyMeta(item) {
+  return {
+    areaCode: String(item?.area_tassonomica_code || '').trim(),
+    areaLabel: String(item?.area_tassonomica || '').trim(),
+    macroCode: String(item?.macro_area_tassonomica_code || '').trim(),
+    macroLabel: String(item?.macro_area_tassonomica || '').trim(),
+    subCode: String(item?.sottobranca_tassonomica_code || '').trim(),
+    subLabel: String(item?.sottobranca_tassonomica || '').trim(),
+    nodeCode: String(item?.tassonomia_codice || '').trim(),
+    description: String(item?.tassonomia_descrizione || '').trim(),
+    sources: Array.isArray(item?.tassonomia_sources) ? item.tassonomia_sources : [],
+  };
+}
+
+function buildTaxonomyCatalog() {
+  const areaMap = new Map();
+  catalogoFlat.forEach((item) => {
+    const meta = taxonomyMeta(item);
+    if (!meta.areaCode || !meta.macroCode || !meta.subCode) return;
+    if (!areaMap.has(meta.areaCode)) {
+      areaMap.set(meta.areaCode, { code: meta.areaCode, label: meta.areaLabel, macros: new Map(), count: 0 });
+    }
+    const area = areaMap.get(meta.areaCode);
+    area.count += 1;
+    if (!area.macros.has(meta.macroCode)) {
+      area.macros.set(meta.macroCode, { code: meta.macroCode, label: meta.macroLabel, subs: new Map(), count: 0 });
+    }
+    const macro = area.macros.get(meta.macroCode);
+    macro.count += 1;
+    if (!macro.subs.has(meta.subCode)) {
+      macro.subs.set(meta.subCode, { code: meta.subCode, label: meta.subLabel, count: 0 });
+    }
+    macro.subs.get(meta.subCode).count += 1;
+  });
+  return Array.from(areaMap.values())
+    .map((area) => ({
+      ...area,
+      macros: Array.from(area.macros.values())
+        .map((macro) => ({
+          ...macro,
+          subs: Array.from(macro.subs.values()).sort((a, b) => a.label.localeCompare(b.label, 'it')),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'it')),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'it'));
+}
+
+const TAXONOMY_CATALOG = buildTaxonomyCatalog();
+
+function resolveTaxonomyPrefill(raw, level) {
+  const value = String(raw || '').trim().toLowerCase();
+  if (!value) return '';
+  if (level === 'area') {
+    const match = TAXONOMY_CATALOG.find((row) => row.code.toLowerCase() === value || row.label.toLowerCase() === value);
+    return match ? match.code : '';
+  }
+  if (level === 'macro') {
+    for (const area of TAXONOMY_CATALOG) {
+      const match = area.macros.find((row) => row.code.toLowerCase() === value || row.label.toLowerCase() === value);
+      if (match) return match.code;
+    }
+    return '';
+  }
+  for (const area of TAXONOMY_CATALOG) {
+    for (const macro of area.macros) {
+      const match = macro.subs.find((row) => row.code.toLowerCase() === value || row.label.toLowerCase() === value);
+      if (match) return match.code;
+    }
+  }
+  return '';
+}
+
+function currentTaxonomyNode() {
+  if (tipologiaCorrente) return taxonomyMeta(tipologiaCorrente);
+  const area = TAXONOMY_CATALOG.find((row) => row.code === tassonomiaSelezione.area) || null;
+  const macro = area?.macros.find((row) => row.code === tassonomiaSelezione.macro) || null;
+  const sub = macro?.subs.find((row) => row.code === tassonomiaSelezione.sub) || null;
+  return {
+    areaCode: area?.code || '',
+    areaLabel: area?.label || '',
+    macroCode: macro?.code || '',
+    macroLabel: macro?.label || '',
+    subCode: sub?.code || '',
+    subLabel: sub?.label || '',
+    nodeCode: '',
+    description: '',
+    sources: [],
+  };
+}
+
+function syncTaxonomyHiddenFields() {
+  const meta = currentTaxonomyNode();
+  document.getElementById('inpAreaTassonomica').value = meta.areaLabel || '';
+  document.getElementById('inpMacroAreaTassonomica').value = meta.macroLabel || '';
+  document.getElementById('inpSottobrancaTassonomica').value = meta.subLabel || '';
+  document.getElementById('inpTassonomiaCodice').value = meta.nodeCode || '';
+  document.getElementById('inpFontiTassonomiaJson').value = JSON.stringify(meta.sources || []);
+}
+
+function matchesTaxonomySelection(item) {
+  const meta = taxonomyMeta(item);
+  if (tassonomiaSelezione.area && meta.areaCode !== tassonomiaSelezione.area) return false;
+  if (tassonomiaSelezione.macro && meta.macroCode !== tassonomiaSelezione.macro) return false;
+  if (tassonomiaSelezione.sub && meta.subCode !== tassonomiaSelezione.sub) return false;
+  return true;
+}
+
+function matchingOperationalAreas() {
+  return Array.from(new Set(
+    catalogoFlat
+      .filter((item) => matchesTaxonomySelection(item))
+      .map((item) => item.area)
+      .filter(Boolean)
+  ));
+}
+
+function ensureOperationalAreaForTaxonomy() {
+  const matches = matchingOperationalAreas();
+  if (!matches.length) return;
+  if (!matches.includes(areaCorrente)) {
+    areaCorrente = matches[0];
+    document.getElementById('inpAreaPratica').value = areaCorrente;
+  }
+}
+
+function populateTaxonomySelect(select, rows, selectedValue, emptyLabel) {
+  if (!select) return;
+  select.innerHTML = `<option value="">${emptyLabel}</option>${rows.map((row) => `<option value="${escapeHtml(row.code)}">${escapeHtml(row.label)} (${row.count})</option>`).join('')}`;
+  select.value = rows.some((row) => row.code === selectedValue) ? selectedValue : '';
+}
+
+function renderTaxonomyFilters() {
+  const selArea = document.getElementById('selAreaTassonomica');
+  const selMacro = document.getElementById('selMacroAreaTassonomica');
+  const selSub = document.getElementById('selSottobrancaTassonomica');
+  const hint = document.getElementById('taxonomySelectionHint');
+  const areas = TAXONOMY_CATALOG;
+  const area = areas.find((row) => row.code === tassonomiaSelezione.area) || null;
+  const macros = area ? area.macros : areas.flatMap((row) => row.macros);
+  const macro = macros.find((row) => row.code === tassonomiaSelezione.macro) || null;
+  const subs = macro ? macro.subs : macros.flatMap((row) => row.subs);
+
+  populateTaxonomySelect(selArea, areas, tassonomiaSelezione.area, 'Tutte le aree');
+  populateTaxonomySelect(selMacro, macros, tassonomiaSelezione.macro, 'Tutte le macro-aree');
+  populateTaxonomySelect(selSub, subs, tassonomiaSelezione.sub, 'Tutte le sottobranche');
+
+  if (!areas.some((row) => row.code === tassonomiaSelezione.area)) tassonomiaSelezione.area = '';
+  if (!macros.some((row) => row.code === tassonomiaSelezione.macro)) tassonomiaSelezione.macro = '';
+  if (!subs.some((row) => row.code === tassonomiaSelezione.sub)) tassonomiaSelezione.sub = '';
+
+  const selectedItems = catalogoFlat.filter((item) => matchesTaxonomySelection(item));
+  const parts = [];
+  if (area?.label) parts.push(area.label);
+  if (macro?.label) parts.push(macro.label);
+  if (macro && !macro.subs.some((row) => row.code === tassonomiaSelezione.sub)) tassonomiaSelezione.sub = '';
+  if (subs.some((row) => row.code === tassonomiaSelezione.sub)) {
+    const sub = subs.find((row) => row.code === tassonomiaSelezione.sub);
+    if (sub?.label) parts.push(sub.label);
+  }
+  hint.textContent = parts.length
+    ? `${parts.join(' / ')} - ${selectedItems.length} tipologie compatibili nel catalogo operativo.`
+    : 'La tassonomia filtra il catalogo senza bloccare il libero scorrimento delle tipologie. La pratica selezionata conserva anche le fonti ufficiali aggregate.';
+}
+
+function applyTaxonomyFromPractice(item) {
+  const meta = taxonomyMeta(item);
+  tassonomiaSelezione = {
+    area: meta.areaCode || '',
+    macro: meta.macroCode || '',
+    sub: meta.subCode || '',
+  };
+  renderTaxonomyFilters();
+  syncTaxonomyHiddenFields();
+}
 
 function money(value) {
   const num = parseLocaleNumber(value);
@@ -1516,6 +1737,11 @@ function resetTipologiaSelection() {
   clearAccessorioRows();
   document.getElementById('inpIdPratica').value = '';
   document.getElementById('inpAreaPratica').value = areaCorrente || '';
+  document.getElementById('inpAreaTassonomica').value = '';
+  document.getElementById('inpMacroAreaTassonomica').value = '';
+  document.getElementById('inpSottobrancaTassonomica').value = '';
+  document.getElementById('inpTassonomiaCodice').value = '';
+  document.getElementById('inpFontiTassonomiaJson').value = '[]';
   document.getElementById('inpTipoCompenso').value = '';
   document.getElementById('inpTipoProcedimento').value = '';
   renderTipologie();
@@ -1559,9 +1785,10 @@ function impostaAreaPratica(area, { preferFirst = true } = {}) {
   areaCorrente = area;
   document.getElementById('inpAreaPratica').value = areaCorrente;
   renderAreaButtons();
+  renderTaxonomyFilters();
   renderTipologie();
   if (!tipologiaValidaPerArea(areaCorrente)) {
-    const primaTipologia = (CATALOGO[areaCorrente] || [])[0] || null;
+    const primaTipologia = (CATALOGO[areaCorrente] || []).find((item) => matchesTaxonomySelection(item)) || null;
     if (preferFirst && primaTipologia) {
       selezionaTipologia(primaTipologia.id, { autoAdvance: false });
     } else {
@@ -1733,7 +1960,7 @@ function renderAreaButtons() {
   const wrap = document.getElementById('areaButtons');
   wrap.innerHTML = '';
   AREE.forEach((area) => {
-    const total = (CATALOGO[area] || []).length;
+    const total = (CATALOGO[area] || []).filter((item) => matchesTaxonomySelection(item)).length;
     if (!total) return;
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -1750,6 +1977,7 @@ function renderTipologie() {
   const grid = document.getElementById('tipologiaGrid');
   const filtro = (document.getElementById('inpFiltroTipologie').value || '').trim().toLowerCase();
   let items = (CATALOGO[areaCorrente] || []).filter((item) => {
+    if (!matchesTaxonomySelection(item)) return false;
     if (!matchesCompensoFilter(item)) return false;
     if (showOnlyFavorites && !isFavoriteTipologia(item.id)) return false;
     if (!filtro) return true;
@@ -1805,33 +2033,34 @@ function selezionaTipologia(idTipologia, { autoAdvance = false } = {}) {
   if (!tipologiaCorrente) return;
   clearAccessorioRows();
   areaCorrente = tipologiaCorrente.area || areaCorrente;
-    document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
-    document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
-    document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
-    document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
-    const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
-    const selGrado = document.getElementById('selGrado');
-    const regolaPrefill = (tipologiaCorrente.regole_tariffarie || []).some((row) => row.rule_code === WIZARD_PREFILL.regola_tariffaria)
-      ? WIZARD_PREFILL.regola_tariffaria
-      : '';
-    selRegolaTariffaria.dataset.selected = regolaPrefill;
-    selGrado.dataset.selected = WIZARD_PREFILL.grado || tipologiaCorrente.grado_default || '';
-    renderAreaButtons();
-    renderTipologie();
-    aggiornaGradoDefault();
-    renderSchedaTipologia();
-    renderFasi();
-    renderEsborsi();
-    applicaSuggerimenti();
-    aggiornaVisibilitaValore();
-    aggiornaPlaceholderValore();
-    ultimoCalcolo = null;
-    if (autoAdvance) {
-      setWizardStep('wizardStep2Collapse', false);
-      setWizardStep('wizardStep3Collapse', true);
-      scrollWizardSection('wizardStep3Collapse');
-    }
+  document.getElementById('inpIdPratica').value = tipologiaCorrente.id;
+  document.getElementById('inpAreaPratica').value = tipologiaCorrente.area || areaCorrente;
+  document.getElementById('inpTipoCompenso').value = tipologiaCorrente.tipo_compenso_default;
+  document.getElementById('inpTipoProcedimento').value = tipologiaCorrente.label;
+  applyTaxonomyFromPractice(tipologiaCorrente);
+  const selRegolaTariffaria = document.getElementById('selRegolaTariffaria');
+  const selGrado = document.getElementById('selGrado');
+  const regolaPrefill = (tipologiaCorrente.regole_tariffarie || []).some((row) => row.rule_code === WIZARD_PREFILL.regola_tariffaria)
+    ? WIZARD_PREFILL.regola_tariffaria
+    : '';
+  selRegolaTariffaria.dataset.selected = regolaPrefill;
+  selGrado.dataset.selected = WIZARD_PREFILL.grado || tipologiaCorrente.grado_default || '';
+  renderAreaButtons();
+  renderTipologie();
+  aggiornaGradoDefault();
+  renderSchedaTipologia();
+  renderFasi();
+  renderEsborsi();
+  applicaSuggerimenti();
+  aggiornaVisibilitaValore();
+  aggiornaPlaceholderValore();
+  ultimoCalcolo = null;
+  if (autoAdvance) {
+    setWizardStep('wizardStep2Collapse', false);
+    setWizardStep('wizardStep3Collapse', true);
+    scrollWizardSection('wizardStep3Collapse');
   }
+}
 
 function renderSchedaTipologia() {
   const target = document.getElementById('schedaTipologia');
@@ -1840,6 +2069,7 @@ function renderSchedaTipologia() {
   const normativaBadge = document.getElementById('normativaBadgeCount');
   const checklistBadge = document.getElementById('checklistBadgeCount');
   const regola = currentRegolaTariffaria();
+  const taxonomy = taxonomyMeta(tipologiaCorrente);
   const grado = document.getElementById('selGrado').value || '';
   const ruleCompatible = regola?.rule_code && (!regola.allowed_grade_input_values || regola.allowed_grade_input_values.includes(grado));
   if (!tipologiaCorrente) {
@@ -1853,6 +2083,9 @@ function renderSchedaTipologia() {
   target.innerHTML = `
       <div class="prev-summary-chips">
         <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(tipologiaCorrente.area)}</span>
+        <span class="badge bg-secondary-subtle text-secondary-emphasis">${escapeHtml(taxonomy.areaLabel)}</span>
+        <span class="badge text-bg-light">${escapeHtml(taxonomy.macroLabel)}</span>
+        <span class="badge text-bg-light">${escapeHtml(taxonomy.subLabel)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.motore_label)}</span>
         <span class="badge text-bg-light">${escapeHtml(tipologiaCorrente.redattore_label)}</span>
         ${ruleCompatible ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(regola.label)}</span>` : ''}
@@ -1860,6 +2093,7 @@ function renderSchedaTipologia() {
       </div>
       <div class="prev-summary-title">${escapeHtml(tipologiaCorrente.label)}</div>
       <div class="prev-summary-desc">${escapeHtml(tipologiaCorrente.summary)}</div>
+      <div class="small text-muted mt-2">Classificazione: ${escapeHtml([taxonomy.areaLabel, taxonomy.macroLabel, taxonomy.subLabel].filter(Boolean).join(' / '))}</div>
       ${ruleCompatible && regola?.summary ? `<div class="small text-muted mt-2">${escapeHtml(regola.summary)}</div>` : ''}
       ${ruleCompatible && regola?.compliance_note ? `<div class="small text-muted mt-2"><i class="bi bi-shield-check me-1"></i>${escapeHtml(regola.compliance_note)}</div>` : ''}
       <div class="prev-note-box small mt-2">${escapeHtml(tipologiaCorrente.when_to_use)}</div>`;
@@ -1879,6 +2113,7 @@ function renderSchedaTipologia() {
   checklistBadge.textContent = String(checklistItems.length || 0);
   const normativeRefs = dedupeNormativeReferences([
     ...(ruleCompatible ? (regola?.normative_references || []) : []),
+    ...(tipologiaCorrente.tassonomia_sources || []),
     ...(tipologiaCorrente.normative_references || []),
     ...accessori.flatMap((accessorio) => accessorio.normative_references || []),
   ]);
@@ -2087,6 +2322,12 @@ function applyWizardPrefill() {
     prefillApplicato = true;
     return;
   }
+
+  tassonomiaSelezione.area = resolveTaxonomyPrefill(WIZARD_PREFILL.area_tassonomica, 'area');
+  tassonomiaSelezione.macro = resolveTaxonomyPrefill(WIZARD_PREFILL.macro_area_tassonomica, 'macro');
+  tassonomiaSelezione.sub = resolveTaxonomyPrefill(WIZARD_PREFILL.sottobranca_tassonomica, 'sub');
+  ensureOperationalAreaForTaxonomy();
+  renderTaxonomyFilters();
 
   if (WIZARD_PREFILL.area && (CATALOGO[WIZARD_PREFILL.area] || []).length) {
     impostaAreaPratica(WIZARD_PREFILL.area, { preferFirst: true });
@@ -2312,6 +2553,10 @@ function buildEconomicLogPayload() {
     id_pratica: document.getElementById('inpIdPratica').value || '',
     pratica_label: tipologiaCorrente?.label || '',
     area_pratica: document.getElementById('inpAreaPratica').value || '',
+    area_tassonomica: document.getElementById('inpAreaTassonomica').value || '',
+    macro_area_tassonomica: document.getElementById('inpMacroAreaTassonomica').value || '',
+    sottobranca_tassonomica: document.getElementById('inpSottobrancaTassonomica').value || '',
+    tassonomia_codice: document.getElementById('inpTassonomiaCodice').value || '',
     tipo_compenso: document.getElementById('inpTipoCompenso').value || '',
     tipo_procedimento: document.getElementById('inpTipoProcedimento').value || '',
     grado_sede: grado,
@@ -2333,14 +2578,17 @@ function buildEconomicLogPayload() {
     esborsi: esborsiSuggeritiAttivi(),
     manual_voci: manualVoci,
     riferimenti_normativi: dedupeNormativeReferences([
+      ...(tipologiaCorrente?.tassonomia_sources || []),
       ...(tipologiaCorrente?.normative_references || []),
       ...accessori.flatMap((row) => getTipologiaById(row.tipo_pratica_id)?.normative_references || []),
     ]).map((row) => `${row.title || ''}${row.article ? ' — ' + row.article : ''}`.trim()),
+    riferimenti_tassonomia: dedupeNormativeReferences(tipologiaCorrente?.tassonomia_sources || []).map((row) => `${row.title || ''}${row.article ? ' â€” ' + row.article : ''}`.trim()),
     risultato: ultimoCalcolo || {},
   };
 }
 
 function syncCalcoloHiddenFields() {
+  syncTaxonomyHiddenFields();
   document.getElementById('inpBonusTelematico').value = document.getElementById('chkBonusTelematico').checked ? '1' : '0';
   document.getElementById('inpSpeseGenerali').value = document.getElementById('chkSpeseGenerali').checked ? '1' : '0';
   document.getElementById('inpPercSpeseGenerali').value = document.getElementById('inpPercSpese').value || '15';
@@ -2586,6 +2834,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         calcolaPreventivo();
       }
     });
+  const selAreaTassonomica = document.getElementById('selAreaTassonomica');
+  const selMacroAreaTassonomica = document.getElementById('selMacroAreaTassonomica');
+  const selSottobrancaTassonomica = document.getElementById('selSottobrancaTassonomica');
+  const applyTaxonomyFilterChange = (level) => {
+    if (level === 'area') {
+      tassonomiaSelezione.area = selAreaTassonomica.value || '';
+      tassonomiaSelezione.macro = '';
+      tassonomiaSelezione.sub = '';
+    } else if (level === 'macro') {
+      tassonomiaSelezione.macro = selMacroAreaTassonomica.value || '';
+      tassonomiaSelezione.sub = '';
+    } else {
+      tassonomiaSelezione.sub = selSottobrancaTassonomica.value || '';
+    }
+    ensureOperationalAreaForTaxonomy();
+    renderTaxonomyFilters();
+    renderAreaButtons();
+    if (tipologiaCorrente && !matchesTaxonomySelection(tipologiaCorrente)) {
+      resetTipologiaSelection();
+    } else {
+      renderTipologie();
+      if (tipologiaCorrente) {
+        renderSchedaTipologia();
+      } else {
+        syncTaxonomyHiddenFields();
+      }
+    }
+  };
+  selAreaTassonomica.addEventListener('change', () => applyTaxonomyFilterChange('area'));
+  selMacroAreaTassonomica.addEventListener('change', () => applyTaxonomyFilterChange('macro'));
+  selSottobrancaTassonomica.addEventListener('change', () => applyTaxonomyFilterChange('sub'));
   document.getElementById('chkGeneraConferimento').addEventListener('change', syncWorkflowChecks);
   document.getElementById('selectFascicolo').addEventListener('change', (event) => {
     applicaContestoFascicolo(fascicoloById(event.target.value));
@@ -2593,6 +2872,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('inpOggetto').addEventListener('input', () => { oggettoToccato = true; });
   document.getElementById('inpNote').addEventListener('input', () => { noteToccate = true; });
+  renderTaxonomyFilters();
   const areaIniziale = (FASCICOLO_PRE && FASCICOLO_PRE.area_pratica) || areaCorrente;
   if (areaIniziale && (CATALOGO[areaIniziale] || []).length) {
     impostaAreaPratica(areaIniziale, { preferFirst: true });

@@ -26,6 +26,12 @@ from pct.tariffario import (
     livello_compenso_da_complessita,
 )
 from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
+from pct.tassonomia_preventivi import (
+    catalogo_fonti_tassonomia as _catalogo_fonti_tassonomia,
+    catalogo_tassonomia_preventivi as _catalogo_tassonomia_preventivi,
+    taxonomy_for_practice,
+    validate_taxonomy_coverage,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -75,6 +81,7 @@ class TipoPratica:
     def to_dict(self) -> dict:
         regole = rules_for_practice(self.id)
         regola_default = default_rule_for_practice(self.id)
+        tassonomia = taxonomy_for_practice(self.id, self.normative_references)
         gradi_consentiti = []
         for regola in regole:
             for grado in regola.get("allowed_grade_input_values", []) or []:
@@ -104,6 +111,15 @@ class TipoPratica:
             "normative_references": self.normative_references,
             "accessori_calcolo": self.accessori_calcolo,
             "variation_policy": self.variation_policy,
+            "area_tassonomica": tassonomia["area_label"],
+            "area_tassonomica_code": tassonomia["area_code"],
+            "macro_area_tassonomica": tassonomia["macro_label"],
+            "macro_area_tassonomica_code": tassonomia["macro_code"],
+            "sottobranca_tassonomica": tassonomia["sub_label"],
+            "sottobranca_tassonomica_code": tassonomia["sub_code"],
+            "tassonomia_codice": tassonomia["node_code"],
+            "tassonomia_descrizione": tassonomia["description"],
+            "tassonomia_sources": tassonomia["sources"],
             "fasi_default_keys": [_fase_key(f) for f in self.fasi_default],
             "gradi_consentiti": gradi_consentiti,
             "regola_tariffaria_default": regola_default.get("rule_code", "") if regola_default else "",
@@ -2232,6 +2248,18 @@ def catalogo_riferimenti_normativi() -> List[Dict[str, Any]]:
     rows = list(catalogo.values())
     rows.sort(key=lambda item: (item["title"], item["article"], item["url"]))
     return rows
+
+
+def catalogo_tassonomia_preventivi() -> List[Dict[str, Any]]:
+    return _catalogo_tassonomia_preventivi(CATALOGO)
+
+
+def catalogo_fonti_tassonomia() -> List[Dict[str, str]]:
+    return _catalogo_fonti_tassonomia(CATALOGO)
+
+
+def catalogo_tassonomia_incompleto() -> List[str]:
+    return validate_taxonomy_coverage(tp.id for tp in CATALOGO)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

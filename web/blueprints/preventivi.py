@@ -162,6 +162,15 @@ def _contesto_fascicolo_wizard(fascicolo) -> dict:
 def _contesto_log_wizard_da_form(form) -> str:
     raw = (form.get("log_calcolo", "") or "").strip()
     parsed = sincronizza_contesto_economico(raw)
+    riferimenti_tassonomia = []
+    raw_fonti_tassonomia = (form.get("fonti_tassonomia_json", "") or "").strip()
+    if raw_fonti_tassonomia:
+        try:
+            parsed_fonti = json.loads(raw_fonti_tassonomia)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            parsed_fonti = []
+        if isinstance(parsed_fonti, list):
+            riferimenti_tassonomia = parsed_fonti
     if parsed:
         return dump_log_calcolo(parsed)
     return dump_log_calcolo(
@@ -171,6 +180,10 @@ def _contesto_log_wizard_da_form(form) -> str:
             oggetto=form.get("oggetto", "").strip(),
             id_pratica=form.get("id_pratica", "").strip(),
             area_pratica=form.get("area_pratica", "").strip(),
+            area_tassonomica=form.get("area_tassonomica", "").strip(),
+            macro_area_tassonomica=form.get("macro_area_tassonomica", "").strip(),
+            sottobranca_tassonomica=form.get("sottobranca_tassonomica", "").strip(),
+            tassonomia_codice=form.get("tassonomia_codice", "").strip(),
             tipo_compenso=form.get("tipo_compenso", "").strip(),
             tipo_procedimento=form.get("tipo_procedimento", "").strip(),
             grado_sede=form.get("grado_sede", "").strip(),
@@ -185,6 +198,7 @@ def _contesto_log_wizard_da_form(form) -> str:
             applica_iva=bool(form.get("applica_iva")),
             anticipazioni_art15=form.get("anticipazioni_art15", "0"),
             adr_accordo=bool(form.get("adr_accordo")),
+            riferimenti_tassonomia=riferimenti_tassonomia,
         )
     )
 
@@ -1068,6 +1082,9 @@ def wizard():
     wizard_prefill = {
         "id_pratica": request.args.get("id_pratica", "").strip(),
         "area": area_prefill,
+        "area_tassonomica": request.args.get("area_tassonomica", "").strip(),
+        "macro_area_tassonomica": request.args.get("macro_area_tassonomica", "").strip(),
+        "sottobranca_tassonomica": request.args.get("sottobranca_tassonomica", "").strip(),
         "valore": request.args.get("valore", "").strip(),
         "grado": request.args.get("grado", "").strip(),
         "regola_tariffaria": request.args.get("regola_tariffaria", "").strip(),
@@ -1350,6 +1367,13 @@ def wizard_genera():
 
     cfg = current_app.config
     log_calcolo = _contesto_log_wizard_da_form(f)
+    raw_fonti_tassonomia = (f.get("fonti_tassonomia_json", "") or "").strip()
+    try:
+        fonti_tassonomia = json.loads(raw_fonti_tassonomia) if raw_fonti_tassonomia else []
+    except (TypeError, ValueError, json.JSONDecodeError):
+        fonti_tassonomia = []
+    if not isinstance(fonti_tassonomia, list):
+        fonti_tassonomia = []
     p = gp.crea_preventivo(
         id_cliente=id_cliente,
         oggetto=oggetto,
@@ -1364,6 +1388,11 @@ def wizard_genera():
         note=f.get("note", "").strip(),
         id_pratica=f.get("id_pratica", "").strip(),
         area_pratica=f.get("area_pratica", "").strip(),
+        area_tassonomica=f.get("area_tassonomica", "").strip(),
+        macro_area_tassonomica=f.get("macro_area_tassonomica", "").strip(),
+        sottobranca_tassonomica=f.get("sottobranca_tassonomica", "").strip(),
+        tassonomia_codice=f.get("tassonomia_codice", "").strip(),
+        fonti_tassonomia=fonti_tassonomia,
         tipo_compenso=f.get("tipo_compenso", "").strip(),
         tipo_procedimento=f.get("tipo_procedimento", "").strip(),
         valore_controversia=valore_controversia,
@@ -1394,6 +1423,11 @@ def wizard_genera():
             compenso_pattuito=compenso_pattuito,
             id_pratica=f.get("id_pratica", "").strip(),
             area_pratica=f.get("area_pratica", "").strip(),
+            area_tassonomica=f.get("area_tassonomica", "").strip(),
+            macro_area_tassonomica=f.get("macro_area_tassonomica", "").strip(),
+            sottobranca_tassonomica=f.get("sottobranca_tassonomica", "").strip(),
+            tassonomia_codice=f.get("tassonomia_codice", "").strip(),
+            fonti_tassonomia=fonti_tassonomia,
             tipo_compenso=f.get("tipo_compenso", "").strip(),
             tipo_procedimento=f.get("tipo_procedimento", "").strip(),
             informativa_art13_resa=bool(f.get("informativa_art13_resa")),

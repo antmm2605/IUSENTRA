@@ -479,6 +479,104 @@ def test_parse_qbuilder_documenti_xml_supporta_piu_return():
     assert {doc["id_documento"] for doc in documenti} == {"33581101", "33581102"}
 
 
+def test_parse_download_documento_response_multipart():
+    module = _load_local_signer()
+
+    body = (
+        b"--abc123\r\n"
+        b"Content-Type: text/xml\r\n"
+        b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+        b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><ns1:downloadDocumentoResponse xmlns:ns1='urn:BEAFascicoloInformatico-distr'>"
+        b"<return href ='cid:test-doc-1'/></ns1:downloadDocumentoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+        b"--abc123\r\n"
+        b"Content-Type: application/pdf\r\n"
+        b"Content-Transfer-Encoding: base64\r\n"
+        b"Content-ID: <test-doc-1>\r\n\r\n"
+        b"JVBERi0xLjcK\r\n"
+        b"--abc123--\r\n"
+    )
+
+    parsed = module._parse_download_documento_response(
+        body,
+        'multipart/related; boundary="abc123"',
+    )
+
+    assert "downloadDocumentoResponse" in parsed["soap_xml"]
+    assert parsed["content"].startswith(b"%PDF")
+    assert parsed["content_type"] == "application/pdf"
+    assert parsed["content_id"] == "test-doc-1"
+
+
+def test_pst_download_documento_payload_sicid_usa_profilo_e_allegato():
+    module = _load_local_signer()
+
+    profile_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns1:estraiProfiloDocumentoResponse xmlns:ns1="urn:BEAFascicoloInformatico-distr">
+      <return>
+        <idDocumento>33581101</idDocumento>
+        <idCat>33581101</idCat>
+        <nomeFileOriginale>31789737s.pdf</nomeFileOriginale>
+        <dataDeposito>2026-01-08T18:55:28Z</dataDeposito>
+      </return>
+    </ns1:estraiProfiloDocumentoResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+    raw_body = (
+        b"--abc123\r\n"
+        b"Content-Type: text/xml\r\n"
+        b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+        b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><ns1:downloadDocumentoResponse xmlns:ns1='urn:BEAFascicoloInformatico-distr'>"
+        b"<return href ='cid:test-doc-1'/></ns1:downloadDocumentoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+        b"--abc123\r\n"
+        b"Content-Type: application/pdf\r\n"
+        b"Content-Transfer-Encoding: base64\r\n"
+        b"Content-ID: <test-doc-1>\r\n\r\n"
+        b"JVBERi0xLjcK\r\n"
+        b"--abc123--\r\n"
+    )
+
+    calls = {"profile": 0, "download": 0}
+    orig_call = module._soap_call_curl
+    orig_raw = module._soap_call_curl_raw
+    try:
+        def _fake_call(*args, **kwargs):
+            calls["profile"] += 1
+            return profile_xml
+
+        def _fake_raw(*args, **kwargs):
+            calls["download"] += 1
+            return raw_body, 'Content-Type: multipart/related; boundary="abc123"'
+
+        module._soap_call_curl = _fake_call
+        module._soap_call_curl_raw = _fake_raw
+
+        payload = module._pst_download_documento_payload(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            id_documento="33581101",
+            nome_documento="SentenzaDefinitiva_33581101.pdf",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="MNTRRT64L01L063H",
+        )
+    finally:
+        module._soap_call_curl = orig_call
+        module._soap_call_curl_raw = orig_raw
+
+    assert calls["profile"] == 1
+    assert calls["download"] == 1
+    assert payload["id_documento_portale"] == "33581101"
+    assert payload["id_cat"] == "33581101"
+    assert payload["nome"] == "SentenzaDefinitiva_33581101.pdf"
+    assert payload["data_documento"] == "2026-01-08"
+    assert payload["content_type"] == "application/pdf"
+    assert payload["servizio_portale"] == "DocumentiFascicolo"
+    assert payload["contenuto_b64"].startswith("JVBERi0xLjcK")
+
+
 def test_normalizza_nome_download_match_rimuove_suffissi_e_duplicati():
     module = _load_local_signer()
 

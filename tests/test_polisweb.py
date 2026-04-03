@@ -11,7 +11,7 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.clienti import GestioneClienti
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.polisWeb import (
     ClientPolisWeb,
     ClientPolisWebDemo,
@@ -361,6 +361,72 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
 
     soggetti = gestione_soggetti.tutti()
     assert {s.nome_completo for s in soggetti} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
+
+
+def test_importa_fascicolo_esistente_promuove_rg_ufficiale_su_fascicolo_locale(tmp_path):
+    gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gestione_soggetti = GestioneSoggetti(
+        soggetti_path=str(tmp_path / "soggetti.json"),
+        parti_path=str(tmp_path / "parti.json"),
+    )
+
+    fascicolo_locale = gestione_fascicoli.nuovo(
+        titolo="Pratica interna da completare",
+        tipo=TipoFascicolo.CIVILE,
+    )
+    numero_interno = fascicolo_locale.numero
+
+    fascicolo_pw = FascicoloPolisWeb(
+        numero_rg="2048",
+        anno_rg=2026,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PENDENTE",
+        oggetto="Opposizione a decreto ingiuntivo",
+        sezione="CIVILE",
+        giudice="GIUDICE DEMO",
+        data_iscrizione="2026-03-15",
+        parti=["ROSSI MARIO", "BETA S.R.L."],
+        parti_dettaglio=[
+            {
+                "nome": "ROSSI MARIO",
+                "tipo": "ATTORE",
+                "codice_fiscale": "RSSMRA80A01H501U",
+            },
+            {
+                "nome": "BETA S.R.L.",
+                "tipo": "CONVENUTO",
+                "codice_fiscale": "12345678901",
+            },
+        ],
+        codice_ufficio="0800570094",
+        nome_ufficio="Tribunale di Palmi",
+    )
+
+    client = ClientPolisWebDemo()
+    risultato = client.sincronizza_fascicolo_esistente(
+        fascicolo_pw=fascicolo_pw,
+        fascicolo_locale=fascicolo_locale,
+        gestione_fascicoli=gestione_fascicoli,
+        gestione_clienti=gestione_clienti,
+        gestione_soggetti=gestione_soggetti,
+        avvocato_referente="admin",
+        documenti_pw=[],
+    )
+
+    assert risultato.successo is True
+    fascicolo = gestione_fascicoli.get(fascicolo_locale.id)
+    assert fascicolo is not None
+    assert fascicolo.numero == numero_interno
+    assert fascicolo.numero_rg == "2048"
+    assert fascicolo.anno_rg == 2026
+    assert fascicolo.rg_completo == "RG 2048/2026"
+    assert fascicolo.id_cliente
+    assert fascicolo.nome_cliente == "Rossi Mario"
 
 
 def test_create_app_default_soggetti_paths_follow_clienti_root(tmp_path):
@@ -781,6 +847,198 @@ def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
     assert "Cartella tecnica locale del fascicolo" in body
     assert "pst_import" in body
     assert fascicolo.id in body
+
+
+def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+    )
+    gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-1025",
+        tipo_atto="Sentenza",
+        data_deposito="2026-03-29",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-1025",
+                "nome": "SentenzaDefinitiva_33581101.pdf",
+                "tipo": "PROVVEDIMENTO",
+                "data_deposito": "2026-03-29",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-1025",
+                "tipo_atto": "Sentenza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Scarica dal portale ufficiale" in body
+    assert "/pst/download-documento" in body
+
+
+def test_dettaglio_fascicolo_segna_documento_portale_gia_importato(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 606/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="606",
+        anno_rg=2025,
+    )
+    deposito = gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-606",
+        tipo_atto="Sentenza",
+        data_deposito="2026-03-30",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-606",
+                "nome": "Sentenza definitiva.pdf",
+                "tipo": "PROVVEDIMENTO",
+                "data_deposito": "2026-03-30",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 16000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-606",
+                "tipo_atto": "Sentenza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Sentenza definitiva.pdf",
+        TipoDocumento.SENTENZA,
+        b"sentenza definitiva",
+        id_deposito_pct=deposito.id,
+        caricato_da="avvocato",
+    )
+    assert doc.id_deposito_pct == deposito.id
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert '"gia_importato": true' in body
+    assert "RG ufficiale" in body
+    assert "RG 606/2025" in body
+    assert f"Rif. interno {fascicolo.numero}" in body
+
+
+def test_lista_fascicoli_mostra_rg_come_riferimento_principale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 909/2026",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="909",
+        anno_rg=2026,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/fascicoli", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "RG 909/2026" in body
+    assert f"Interno {fascicolo.numero}" in body
 
 
 def test_dettaglio_fascicolo_non_mescola_documenti_portale_con_comunicazioni(tmp_path):

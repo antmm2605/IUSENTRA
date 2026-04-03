@@ -1310,8 +1310,19 @@ def create_app(config: dict | None = None) -> Flask:
         return re.sub(r"[^a-z0-9]+", "", testo)
 
     def _catalogo_documenti_portale_fascicolo(fasc: Fascicolo) -> list[dict]:
+        documenti_locali_per_deposito: dict[str, set[str]] = {}
+        for doc in fasc.documenti or []:
+            dep_id = str(getattr(doc, "id_deposito_pct", "") or "").strip()
+            if not dep_id:
+                continue
+            key = _normalizza_nome_match_portale(str(getattr(doc, "nome", "") or ""))
+            if not key:
+                continue
+            documenti_locali_per_deposito.setdefault(dep_id, set()).add(key)
+
         catalogo: list[dict] = []
         for dep in fasc.depositi_pct or []:
+            imported_keys = documenti_locali_per_deposito.get(dep.id, set())
             for pdoc in getattr(dep, "documenti_portale", []) or []:
                 nome = str((pdoc or {}).get("nome") or "").strip()
                 key = _normalizza_nome_match_portale(nome)
@@ -1325,6 +1336,7 @@ def create_app(config: dict | None = None) -> Flask:
                     "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "nome": nome,
                     "key": key,
+                    "gia_importato": key in imported_keys,
                 })
         return catalogo
 

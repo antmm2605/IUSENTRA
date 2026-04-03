@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% set fascicolo_ref_principale = fascicolo.rg_completo or fascicolo.numero %}
+{% set fascicolo_ref_interno = fascicolo.numero if fascicolo.rg_completo else "" %}
 {% block title %}Wizard completato — {{ tmpl.nome }}{% endblock %}
 
 {% block content %}
@@ -10,7 +12,7 @@
       <a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a>
     </li>
     <li class="breadcrumb-item">
-      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }}</a>
+      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo_ref_principale }}</a>
     </li>
     <li class="breadcrumb-item active">Wizard — {{ tmpl.nome }}</li>
   </ol>
@@ -34,6 +36,9 @@
       {{ fascicolo.titolo }}
       {% if fascicolo.rg_completo %}
         &mdash; <span class="font-monospace">{{ fascicolo.rg_completo }}</span>
+      {% endif %}
+      {% if fascicolo_ref_interno %}
+        <span class="ms-2">· interno <span class="font-monospace">{{ fascicolo_ref_interno }}</span></span>
       {% endif %}
     </div>
   </div>
@@ -269,7 +274,10 @@
             <i class="bi {{ _modal_icon }} me-2"></i>{{ _modal_titolo }}
           </h5>
           <div class="small mt-1 opacity-75">
-            {{ fascicolo.numero }} — {{ fascicolo.titolo }}
+            {{ fascicolo_ref_principale }} — {{ fascicolo.titolo }}
+            {% if fascicolo_ref_interno %}
+            · interno {{ fascicolo_ref_interno }}
+            {% endif %}
             {% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}
           </div>
         </div>
@@ -317,10 +325,18 @@
             <div class="row g-2 mb-4">
               <div class="col-6 col-sm-4">
                 <div class="bg-light rounded px-3 py-2 small">
-                  <div class="text-muted">Fascicolo</div>
-                  <strong class="font-monospace text-break">{{ fascicolo.numero }}</strong>
+                  <div class="text-muted">{% if fascicolo.rg_completo %}RG ufficiale{% else %}Fascicolo{% endif %}</div>
+                  <strong class="font-monospace text-break">{{ fascicolo_ref_principale }}</strong>
                 </div>
               </div>
+              {% if fascicolo_ref_interno %}
+              <div class="col-6 col-sm-4">
+                <div class="bg-light rounded px-3 py-2 small">
+                  <div class="text-muted">Rif. interno</div>
+                  <strong class="font-monospace text-break">{{ fascicolo_ref_interno }}</strong>
+                </div>
+              </div>
+              {% endif %}
               {% if fascicolo.tribunale %}
               <div class="col-6 col-sm-4">
                 <div class="bg-light rounded px-3 py-2 small">

@@ -241,4 +241,6 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Deposito" in html
+    assert "RG 1025/2024" in html
+    assert f"Interno {fasc.numero}" in html
     assert 'const correctionContext = {"active": false' in html

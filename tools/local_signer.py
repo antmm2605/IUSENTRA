@@ -46,6 +46,8 @@ import sys
 import tempfile
 import unicodedata
 import xml.etree.ElementTree as ET
+from email import policy
+from email.parser import BytesParser
 from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -1037,6 +1039,17 @@ def _pst_url_documenti(base_url: str) -> str:
     return f"{base_url.rstrip('/')}/ConsultazioneAvanzataDocumentiService"
 
 
+def _pst_registro_da_base_url(base_url: str) -> str:
+    raw = (base_url or "").strip()
+    if not raw:
+        return ""
+    marker = "/pda/pycons/"
+    if marker not in raw:
+        return ""
+    tail = raw.split(marker, 1)[1]
+    return tail.split("/", 1)[0].strip()
+
+
 def _risolvi_codice_ufficio_pst(codice_o_nome: str) -> str:
     if _risolvi_codice_ministero_hacs is not None:
         return _risolvi_codice_ministero_hacs(codice_o_nome)
@@ -1451,10 +1464,11 @@ def _estrai_fault_soap(xml_str: str) -> str:
     return " | ".join(part.strip() for part in fields if part and part.strip())
 
 
-def _soap_call_curl(url: str, soap_body: str,
-                    cert_thumbprint: Optional[str] = None,
-                    pkcs11_uri: Optional[str] = None,
-                    extra_headers: Optional[list[str]] = None) -> str:
+def _soap_call_curl_raw(url: str, soap_body: str,
+                        cert_thumbprint: Optional[str] = None,
+                        pkcs11_uri: Optional[str] = None,
+                        extra_headers: Optional[list[str]] = None,
+                        soap_action: str = "") -> tuple[bytes, str]:
     """
     Esegue una chiamata SOAP usando curl.
 
@@ -1486,7 +1500,7 @@ def _soap_call_curl(url: str, soap_body: str,
             "--dump-header", header_file,
             "-X", "POST",
             "-H", "Content-Type: text/xml; charset=utf-8",
-            "-H", 'SOAPAction: ""',
+            "-H", f'SOAPAction: "{soap_action}"',
             "--data", f"@{soap_file}",
         ]
         for header in extra_headers or []:
@@ -1512,15 +1526,15 @@ def _soap_call_curl(url: str, soap_body: str,
         cmd.append(url)
 
         result = subprocess.run(
-            cmd, capture_output=True, text=True,
-            timeout=PST_SOAP_MAX_TIME + 10, encoding="utf-8", errors="replace"
+            cmd, capture_output=True,
+            timeout=PST_SOAP_MAX_TIME + 10
         )
 
         if result.returncode != 0:
             raise RuntimeError(
                 _curl_errore_leggibile(
                     result.returncode,
-                    result.stderr,
+                    result.stderr.decode("utf-8", "replace"),
                     url,
                     timeout_sec=PST_SOAP_MAX_TIME,
                 )
@@ -1529,21 +1543,22 @@ def _soap_call_curl(url: str, soap_body: str,
         headers_text = Path(header_file).read_text(encoding="utf-8", errors="replace")
         status_code = _http_status_from_headers(headers_text)
         content_type = _http_header_value(headers_text, "Content-Type")
+        body_text = result.stdout.decode("utf-8", "replace")
         if status_code and status_code >= 400:
-            fault = _estrai_fault_soap(result.stdout)
+            fault = _estrai_fault_soap(body_text)
             if fault:
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             raise RuntimeError(
-                _http_errore_leggibile(status_code, result.stdout, url, content_type)
+                _http_errore_leggibile(status_code, body_text, url, content_type)
             )
-        if "html" in content_type.lower() and "<html" in result.stdout.lower():
+        if "html" in content_type.lower() and "<html" in body_text.lower():
             raise RuntimeError(
                 "Il PST ha restituito una pagina HTML anziché XML SOAP.\n"
                 "Verificare il certificato selezionato e il proxy PST configurato.\n"
-                f"Anteprima risposta: {_body_preview(result.stdout)}"
+                f"Anteprima risposta: {_body_preview(body_text)}"
             )
 
-        return result.stdout
+        return result.stdout, headers_text
 
     finally:
         try:
@@ -1554,6 +1569,22 @@ def _soap_call_curl(url: str, soap_body: str,
             os.unlink(header_file)
         except OSError:
             pass
+
+
+def _soap_call_curl(url: str, soap_body: str,
+                    cert_thumbprint: Optional[str] = None,
+                    pkcs11_uri: Optional[str] = None,
+                    extra_headers: Optional[list[str]] = None,
+                    soap_action: str = "") -> str:
+    body_bytes, _headers = _soap_call_curl_raw(
+        url=url,
+        soap_body=soap_body,
+        cert_thumbprint=cert_thumbprint,
+        pkcs11_uri=pkcs11_uri,
+        extra_headers=extra_headers,
+        soap_action=soap_action,
+    )
+    return body_bytes.decode("utf-8", "replace")
 
 
 def _pst_preflight_auth_curl(url: str,
@@ -2137,6 +2168,272 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
         return []
 
 
+def _parse_profilo_documento_xml(xml_str: str) -> dict:
+    try:
+        root = _strip_namespaces(ET.fromstring(_normalizza_xml_pst(xml_str)))
+
+        def _text(path: str) -> str:
+            el = root.find(path)
+            return (el.text or "").strip() if el is not None and el.text else ""
+
+        data_deposito = _normalizza_data_pst(
+            _text(".//dataDeposito")
+            or _text(".//dataCreazione")
+            or _text(".//dataAggiornamentoFascicolo")
+        )
+        return {
+            "id_documento": _text(".//idDocumento"),
+            "id_cat": _text(".//idCat"),
+            "content_id": _text(".//contentId"),
+            "nome_file_originale": _text(".//nomeFileOriginale"),
+            "codice_ufficio": _text(".//codiceUfficio"),
+            "data_documento": data_deposito,
+        }
+    except Exception as e:
+        log.warning("_parse_profilo_documento_xml: %s", e)
+        return {}
+
+
+def _normalizza_http_content_type(content_type: str) -> str:
+    header = (content_type or "").strip()
+    if ":" in header:
+        nome, valore = header.split(":", 1)
+        if nome.strip().lower() == "content-type":
+            header = valore.strip()
+    return header or "multipart/related"
+
+
+def _mime_headers_from_http_content_type(content_type: str) -> bytes:
+    header = _normalizza_http_content_type(content_type)
+    return (
+        f"Content-Type: {header}\r\n"
+        "MIME-Version: 1.0\r\n"
+        "\r\n"
+    ).encode("utf-8")
+
+
+def _parse_download_documento_response(body_bytes: bytes, content_type: str = "") -> dict:
+    raw = (body_bytes or b"").lstrip(b"\r\n")
+    if not raw:
+        raise RuntimeError("Il PST non ha restituito alcun contenuto per il download del documento.")
+
+    content_type_value = _normalizza_http_content_type(content_type)
+
+    if raw.startswith(b"--"):
+        raw = _mime_headers_from_http_content_type(content_type_value) + raw
+
+    msg = BytesParser(policy=policy.default).parsebytes(raw)
+    if not msg.is_multipart():
+        payload = msg.get_payload(decode=True) or b""
+        if payload:
+            return {
+                "soap_xml": "",
+                "content": payload,
+                "content_type": msg.get_content_type() or content_type_value or "application/octet-stream",
+                "content_id": "",
+            }
+        raise RuntimeError("Risposta PST non multipart e priva di allegato documento.")
+
+    soap_xml = ""
+    attachment_part = None
+    href_cid = ""
+
+    for part in msg.iter_parts():
+        ctype = (part.get_content_type() or "").lower()
+        payload = part.get_payload(decode=True) or b""
+        if ctype in {"text/xml", "application/soap+xml"}:
+            soap_xml = payload.decode("utf-8", "replace")
+            try:
+                root = _strip_namespaces(ET.fromstring(_normalizza_xml_pst(soap_xml)))
+                href = root.find(".//return")
+                href_cid = str((href.get("href") if href is not None else "") or "").strip()
+                if href_cid.lower().startswith("cid:"):
+                    href_cid = href_cid[4:].strip("<>")
+            except Exception:
+                href_cid = ""
+            continue
+        if attachment_part is None:
+            attachment_part = part
+
+    if href_cid:
+        for part in msg.iter_parts():
+            cid = str(part.get("Content-ID") or "").strip().strip("<>")
+            if cid == href_cid:
+                attachment_part = part
+                break
+
+    if attachment_part is None:
+        raise RuntimeError("Il PST ha restituito la risposta SOAP ma non l'allegato documento.")
+
+    payload = attachment_part.get_payload(decode=True) or b""
+    if not payload:
+        raise RuntimeError("L'allegato restituito dal PST è vuoto.")
+
+    return {
+        "soap_xml": soap_xml,
+        "content": payload,
+        "content_type": attachment_part.get_content_type() or content_type_value or "application/octet-stream",
+        "content_id": str(attachment_part.get("Content-ID") or "").strip().strip("<>"),
+        "filename": str(attachment_part.get_filename() or "").strip(),
+    }
+
+
+def _soap_bea_sicid_body(operation: str, parameters: list[tuple[str, str]], *, group: str, role: str = "AVV") -> str:
+    params_xml = "".join(
+        f"<{_esc(name)}>{_esc(str(value))}</{_esc(name)}>"
+        for name, value in parameters
+        if value not in ("", None)
+    )
+    body_inner = (
+        f'<impl:{_esc(operation)} xmlns:impl="urn:BEAFascicoloInformatico-distr">'
+        f"{params_xml}"
+        f"</impl:{_esc(operation)}>"
+    )
+    return _soap_qbuilder_envelope("urn:BEAFascicoloInformatico-distr", body_inner, role=role, group=group)
+
+
+def _soap_bea_siecic_body(operation: str, parameters: list[tuple[str, str]]) -> str:
+    params_xml = "".join(
+        f"<{_esc(name)}>{_esc(str(value))}</{_esc(name)}>"
+        for name, value in parameters
+        if value not in ("", None)
+    )
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:intf="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <intf:{_esc(operation)}>
+      {params_xml}
+    </intf:{_esc(operation)}>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+
+def _soap_sigp_download_body(id_repeatto: str) -> str:
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:y="urn:sigp-consultazioneDocumenti">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <y:downloadAtto>
+      <idrepeatto>{_esc(id_repeatto)}</idrepeatto>
+    </y:downloadAtto>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+
+def _pst_download_documento_payload(
+    *,
+    base_url: str,
+    codice_ufficio: str,
+    id_documento: str,
+    nome_documento: str,
+    cert_thumbprint: str,
+    cf_avvocato: str,
+    id_cat: str = "",
+    data_documento: str = "",
+    original: bool = True,
+) -> dict:
+    servizio = _pst_servizio_proxy(base_url)
+    url_documenti = _pst_url_documenti(base_url)
+    extra_headers: list[str] = []
+    soap_action = ""
+    profilo: dict = {}
+
+    if servizio == "JPW_SICID":
+        registro = _pst_registro_da_base_url(base_url)
+        if not cf_avvocato:
+            raise RuntimeError(
+                "Il download ufficiale del documento richiede il codice fiscale dell'avvocato nell'header X-WASP-User."
+            )
+        extra_headers = [f"X-WASP-User: {cf_avvocato}"]
+        if not id_cat:
+            profilo_xml = _soap_call_curl(
+                url=url_documenti,
+                soap_body=_soap_bea_sicid_body(
+                    "estraiProfiloDocumento",
+                    [
+                        ("idUtenteCorrente", cf_avvocato),
+                        ("idDoc", id_documento),
+                        ("registro", registro),
+                        ("ruoloApplicativo", "AVV"),
+                    ],
+                    group=codice_ufficio,
+                ),
+                cert_thumbprint=cert_thumbprint,
+                extra_headers=extra_headers,
+            )
+            profilo = _parse_profilo_documento_xml(profilo_xml)
+            id_cat = str(profilo.get("id_cat") or "").strip()
+        if not id_cat:
+            raise RuntimeError("Il PST non ha restituito l'identificativo idCat necessario al download del documento.")
+        soap_body = _soap_bea_sicid_body(
+            "downloadDocumento",
+            [
+                ("idUtenteCorrente", cf_avvocato),
+                ("idCat", id_cat),
+                ("original", "true" if original else "false"),
+            ],
+            group=codice_ufficio,
+        )
+    elif servizio == "JPW_SIECIC":
+        if not cf_avvocato:
+            raise RuntimeError(
+                "Il download ufficiale del documento richiede il codice fiscale dell'avvocato nell'header X-WASP-User."
+            )
+        extra_headers = [f"X-WASP-User: {cf_avvocato}"]
+        soap_body = _soap_bea_siecic_body(
+            "downloadDocumento",
+            [
+                ("idDoc", id_documento),
+                ("original", "true" if original else "false"),
+            ],
+        )
+        if not data_documento or not nome_documento:
+            profilo_xml = _soap_call_curl(
+                url=url_documenti,
+                soap_body=_soap_bea_siecic_body("estraiProfiloDocumento", [("idDoc", id_documento)]),
+                cert_thumbprint=cert_thumbprint,
+                extra_headers=extra_headers,
+            )
+            profilo = _parse_profilo_documento_xml(profilo_xml)
+    elif servizio == "JPW_SIGP":
+        soap_action = "downloadAtto"
+        soap_body = _soap_sigp_download_body(id_documento)
+    else:
+        raise RuntimeError(f"Servizio PST non supportato per il download diretto: {servizio or 'sconosciuto'}.")
+
+    body_bytes, headers_text = _soap_call_curl_raw(
+        url=url_documenti,
+        soap_body=soap_body,
+        cert_thumbprint=cert_thumbprint,
+        extra_headers=extra_headers,
+        soap_action=soap_action,
+    )
+    content_type = _http_header_value(headers_text, "Content-Type")
+    parsed = _parse_download_documento_response(body_bytes, content_type)
+
+    nome_finale = (nome_documento or "").strip()
+    if not nome_finale:
+        nome_finale = str(profilo.get("nome_file_originale") or "").strip()
+    if not nome_finale:
+        nome_finale = f"documento_{id_documento}"
+    if parsed["content"].startswith(b"%PDF") and not nome_finale.lower().endswith(".pdf"):
+        nome_finale += ".pdf"
+
+    return {
+        "nome": nome_finale,
+        "contenuto_b64": base64.b64encode(parsed["content"]).decode("ascii"),
+        "content_type": parsed.get("content_type") or "application/octet-stream",
+        "id_documento_portale": id_documento,
+        "id_cat": id_cat or str(profilo.get("id_cat") or "").strip(),
+        "data_documento": data_documento or str(profilo.get("data_documento") or "").strip(),
+        "nome_file_originale": str(profilo.get("nome_file_originale") or "").strip(),
+        "servizio_portale": "DocumentiFascicolo",
+    }
+
+
 def _arricchisci_fascicoli_con_profilo(
     fascicoli: list[dict],
     *,
@@ -2289,6 +2586,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_ricerca()
         elif path == "/pst/documenti":
             self._pst_documenti()
+        elif path == "/pst/download-documento":
+            self._pst_download_documento()
         elif path == "/downloads/raccogli":
             self._downloads_raccogli()
         else:
@@ -2832,6 +3131,74 @@ class _Handler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             log.error("Errore PST documenti: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pst_download_documento(self):
+        """
+        POST /pst/download-documento
+        Body: {
+            tribunale|codice_ufficio,
+            id_documento,
+            nome_documento?,
+            id_cat?,
+            data_documento?,
+            id_deposito_esterno?,
+            id_deposito_pct?,
+            tipo_atto?,
+            cf_avvocato?,
+            cert_thumbprint?,
+            original?
+        }
+        Response: {ok, file:{...}}
+        """
+        if not _curl_disponibile():
+            self._send_json({
+                "ok": False,
+                "errore": "curl non disponibile nel PATH",
+            }, 400)
+            return
+
+        data = self._read_json()
+        tribunale = (
+            str(data.get("tribunale") or data.get("codice_ufficio") or "").strip()
+        )
+        id_documento = str(data.get("id_documento") or "").strip()
+        nome_documento = str(data.get("nome_documento") or data.get("nome") or "").strip()
+
+        if not tribunale:
+            self._send_json({"ok": False, "errore": "Campo 'tribunale' obbligatorio."}, 400)
+            return
+        if not id_documento:
+            self._send_json({"ok": False, "errore": "Campo 'id_documento' obbligatorio."}, 400)
+            return
+
+        try:
+            base_url = _risolvi_base_pst_runtime(tribunale)
+            codice_pst = _risolvi_codice_ufficio_pst(tribunale)
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            file_payload = _pst_download_documento_payload(
+                base_url=base_url,
+                codice_ufficio=codice_pst,
+                id_documento=id_documento,
+                nome_documento=nome_documento,
+                cert_thumbprint=cert_thumbprint,
+                cf_avvocato=cf_avvocato,
+                id_cat=str(data.get("id_cat") or "").strip(),
+                data_documento=str(data.get("data_documento") or "").strip(),
+                original=(
+                    data.get("original", True)
+                    if isinstance(data.get("original", True), bool)
+                    else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                ),
+            )
+            file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
+            file_payload["id_deposito_esterno"] = str(data.get("id_deposito_esterno") or "").strip()
+            file_payload["id_deposito_pct"] = str(data.get("id_deposito_pct") or "").strip()
+            file_payload["tipo_atto"] = str(data.get("tipo_atto") or "").strip()
+            self._send_json({"ok": True, "file": file_payload})
+        except Exception as e:
+            log.error("Errore PST download documento: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _downloads_raccogli(self):

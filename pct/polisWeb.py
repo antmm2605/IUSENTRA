@@ -1067,6 +1067,10 @@ def _sincronizza_metadati_fascicolo_polisweb(
         campi_update["id_cliente"] = id_cliente
     if nome_cliente and not fascicolo_locale.nome_cliente:
         campi_update["nome_cliente"] = nome_cliente
+    if fascicolo_pw.numero_rg and fascicolo_pw.numero_rg != (getattr(fascicolo_locale, "numero_rg", "") or ""):
+        campi_update["numero_rg"] = fascicolo_pw.numero_rg
+    if fascicolo_pw.anno_rg and int(fascicolo_pw.anno_rg or 0) != int(getattr(fascicolo_locale, "anno_rg", 0) or 0):
+        campi_update["anno_rg"] = fascicolo_pw.anno_rg
     if fascicolo_pw.nome_ufficio and not fascicolo_locale.tribunale:
         campi_update["tribunale"] = fascicolo_pw.nome_ufficio
     if fascicolo_pw.oggetto and not fascicolo_locale.oggetto:

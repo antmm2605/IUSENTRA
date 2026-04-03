@@ -253,6 +253,55 @@ def test_riusa_certificato_windows_selezionato_per_chiamate_pst_successive():
     assert module._require_certificato_pst("FFEEDD22") == "FFEEDD22"
 
 
+def test_ping_windows_espone_certificati_store_anche_senza_token_pkcs11():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_trova = module._trova_libreria
+    orig_curl = module._curl_disponibile
+    orig_lista = module._windows_lista_certificati
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+
+    class _FakeHandler:
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module.sys.platform = "win32"
+        module._trova_libreria = lambda: None
+        module._curl_disponibile = lambda: True
+        module._windows_lista_certificati = lambda: [
+            {
+                "thumbprint": "AD98A31AFF1D88DE24C62969F26102D827C24E21",
+                "soggetto": "ROBERTO MONTAGNESE",
+                "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+                "scadenza": "2029-02-23",
+            }
+        ]
+        module._ultimo_certificato_windows = {
+            "thumbprint": "AD98A31AFF1D88DE24C62969F26102D827C24E21",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "scadenza": "2029-02-23",
+        }
+
+        module._Handler._ping(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._trova_libreria = orig_trova
+        module._curl_disponibile = orig_curl
+        module._windows_lista_certificati = orig_lista
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["certificati_windows"] == 1
+    assert payload["certificato_windows_selezionato"]["thumbprint"] == "AD98A31AFF1D88DE24C62969F26102D827C24E21"
+    assert "Certificate Store" in payload["nota_autenticazione"]
+
+
 def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
     module = _load_local_signer()
 

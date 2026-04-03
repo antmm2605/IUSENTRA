@@ -2647,6 +2647,182 @@ async function wizImporta(indice) {
   await _submitImportaPolisWeb(form, _fascicoloImportDataFromForm(form), null, _wizCertSel || _lsCertSel || null);
 }
 
+function _lsAggiornaUiDaPing(d) {
+  const tokenOk = !!(d?.ok && Array.isArray(d.token) && d.token.length > 0);
+  const certificatiWindows = Number(d?.certificati_windows || 0);
+  const certStoreOk = !!(d?.piattaforma === 'win32' && certificatiWindows > 0);
+  const fallbackLegacy = !!d?._fallback_certificati_windows;
+  const lsAttivo = !!d?.ok;
+  const erroreToken = d?.errore_token || d?.errore_libreria || null;
+  const bar = document.getElementById('pst-wizard-bar');
+  const badge = document.getElementById('badge-ls-attivo');
+  const lblTok = document.getElementById('lbl-ls-token');
+  const okBox = document.getElementById('ls-status-ok');
+  const okLabel = document.getElementById('ls-token-label');
+  if (bar) bar.style.removeProperty('display');
+
+  if (okBox && okBox.firstChild && okBox.firstChild.nodeType === Node.TEXT_NODE) {
+    okBox.firstChild.textContent = '';
+  }
+  if (okBox) {
+    const strong = okBox.querySelector('strong');
+    const strongHtml = strong ? strong.outerHTML : '<strong class="text-success">Local Signer attivo</strong>';
+    okBox.innerHTML = `${strongHtml} - Token PKCS#11 o certificato CNS/CIE Windows disponibili. La ricerca sara eseguita dal tuo PC con autenticazione mTLS.<div class="mt-1 small" id="ls-token-label"></div>`;
+  }
+
+  if (lsAttivo) {
+    const bannerDemo = document.getElementById('banner-demo');
+    if (bannerDemo) bannerDemo.classList.add('d-none');
+    const badgeDemo = document.getElementById('badge-demo-mode');
+    if (badgeDemo) badgeDemo.classList.add('d-none');
+  }
+
+  if (tokenOk) {
+    _lsDisponibile = true;
+    _lsTokenInfo = d.token[0];
+    _mostraLsStatus('ok');
+    const tok = _lsTokenInfo;
+    const lbl = document.getElementById('ls-token-label');
+    if (lbl) lbl.textContent = `Token: ${tok.label || tok.manufacturer || 'Token'} - slot ${tok.slot_id}`;
+    _aggiornaPulsantiCerca(true);
+    if (badge) badge.style.display = '';
+    if (lblTok) lblTok.textContent = `${tok.label || tok.manufacturer || 'Token'} - slot ${tok.slot_id}`;
+  } else if (lsAttivo && certStoreOk) {
+    _lsDisponibile = true;
+    _lsTokenInfo = null;
+    _mostraLsStatus('ok');
+    const lbl = document.getElementById('ls-token-label');
+    const certSel = d?.certificato_windows_selezionato || null;
+    const descr = certSel?.soggetto
+      ? `Certificato Windows selezionato: ${certSel.soggetto}${certSel.scadenza ? ` (scade ${certSel.scadenza})` : ''}`
+      : `Certificate Store Windows disponibile (${certificatiWindows} certificati). Alla ricerca verra chiesta la scelta del certificato CNS/CIE.${fallbackLegacy ? ' Rilevazione eseguita in modalita compatibile con Local Signer legacy.' : ''}`;
+    if (lbl) lbl.textContent = descr;
+    _aggiornaPulsantiCerca(true);
+    if (badge) badge.style.display = '';
+    if (lblTok) lblTok.textContent = certSel?.soggetto || 'Certificato Windows disponibile';
+  } else if (lsAttivo) {
+    _lsDisponibile = false;
+    _lsTokenInfo = null;
+    _mostraLsStatus('notoken');
+    const errEl = document.getElementById('ls-errore-msg');
+    if (errEl) {
+      errEl.textContent = erroreToken
+        ? erroreToken.split('\n')[0]
+        : 'Inserire smart card o token e riprovare.';
+    }
+    if (badge) badge.style.display = 'none';
+    if (lblTok) lblTok.textContent = '';
+    _aggiornaPulsantiCerca(false);
+  } else {
+    _lsDisponibile = false;
+    _lsTokenInfo = null;
+    _mostraLsStatus('missing');
+    if (badge) badge.style.display = 'none';
+    if (lblTok) lblTok.textContent = '';
+    _aggiornaPulsantiCerca(false);
+  }
+
+  return {
+    raw: d,
+    running: lsAttivo,
+    tokenOk,
+    certStoreOk,
+    ready: tokenOk || certStoreOk,
+    erroreToken,
+  };
+}
+
+async function _lsProbeCertificatiWindows(timeoutMs = 3000) {
+  try {
+    const resp = await fetch(_LS_BASE_PW + '/certificati', {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const data = await resp.json();
+    const certificati = Array.isArray(data?.certificati) ? data.certificati : [];
+    return {
+      ok: !!data?.ok,
+      count: certificati.length,
+      first: certificati[0] || null,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      count: 0,
+      first: null,
+      errore: String(err || ''),
+    };
+  }
+}
+
+async function verificaLocalSigner(opzioni = {}) {
+  const {
+    timeoutMs = 3000,
+    banner = true,
+    testo = 'Verifica Local Signer...'
+  } = opzioni;
+
+  const bannerLS = document.getElementById('banner-local-signer');
+  if (banner && bannerLS) bannerLS.classList.remove('d-none');
+  _lsSetDetectingText(testo);
+  _mostraLsStatus('detecting');
+
+  try {
+    const data = await _lsPing(timeoutMs);
+    const tokenOk = !!(data?.ok && Array.isArray(data.token) && data.token.length > 0);
+    const hasWindowsStoreInfo = Number(data?.certificati_windows || 0) > 0;
+    if (data?.ok && data?.piattaforma === 'win32' && !tokenOk && !hasWindowsStoreInfo) {
+      const probe = await _lsProbeCertificatiWindows(timeoutMs);
+      if (probe.ok && probe.count > 0) {
+        data.certificati_windows = probe.count;
+        data._fallback_certificati_windows = true;
+        if (!_lsCertSel && probe.first?.thumbprint) {
+          data.certificato_windows_selezionato = null;
+        }
+      }
+    }
+    return _lsAggiornaUiDaPing(data);
+  } catch (err) {
+    _lsDisponibile = false;
+    _mostraLsStatus('missing');
+    _aggiornaPulsantiCerca(false);
+    const bar = document.getElementById('pst-wizard-bar');
+    if (bar) bar.style.removeProperty('display');
+    return {
+      running: false,
+      tokenOk: false,
+      certStoreOk: false,
+      ready: false,
+      errore: String(err || ''),
+    };
+  }
+}
+
+async function cercaSuPst() {
+  const tribunale = document.getElementById('ufficio-value')?.value || '';
+  if (!tribunale) {
+    document.getElementById('ufficio-input')?.focus();
+    return;
+  }
+  const rg = document.querySelector('input[name="numero_rg"]')?.value || '';
+  const anno = document.querySelector('input[name="anno_rg"]')?.value || '';
+  const nomeParte = document.getElementById('nome-parte-input')?.value || '';
+  const cf = document.querySelector('input[name="cf_parte"]')?.value || '';
+  const stato = await _lsAssicuraAttivo();
+  if (!stato.running) {
+    _mostraErroreLocalSigner(
+      'Local Signer non attivo. Se e gia installato, consenti l avvio locale dal browser e riprova; altrimenti installalo una sola volta.'
+    );
+    return;
+  }
+  if (!stato.ready) {
+    _mostraErroreLocalSigner(
+      'Local Signer attivo ma token o certificato non ancora disponibili. Inserisci la smart card o il token CNS/CIE e riprova.'
+    );
+    return;
+  }
+  await _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf);
+}
+
 // Avvia configurazione installer e verifica Local Signer ad ogni caricamento pagina
 document.addEventListener('DOMContentLoaded', () => {
   _applicaInstallerLocalSigner();

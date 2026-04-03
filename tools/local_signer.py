@@ -63,7 +63,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.1"
+VERSION = "1.5.2"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2137,6 +2137,26 @@ class _Handler(BaseHTTPRequestHandler):
             "token":             [],
             "curl_disponibile":  _curl_disponibile(),
         }
+        if sys.platform == "win32":
+            try:
+                certs = _windows_lista_certificati()
+                resp["certificati_windows"] = len(certs)
+                cached = dict(_ultimo_certificato_windows or {})
+                if cached.get("thumbprint"):
+                    resp["certificato_windows_selezionato"] = {
+                        "thumbprint": cached.get("thumbprint"),
+                        "soggetto": cached.get("soggetto", ""),
+                        "emittente": cached.get("emittente", ""),
+                        "scadenza": cached.get("scadenza", ""),
+                    }
+                if certs:
+                    resp["nota_autenticazione"] = (
+                        "Su Windows la consultazione PST puo' usare anche il certificato "
+                        "selezionato dal Certificate Store, anche se il token PKCS#11 non "
+                        "viene rilevato nel ping."
+                    )
+            except Exception as e:
+                resp["errore_certificati_windows"] = str(e)
         if not lib:
             resp["errore_libreria"] = (
                 "Libreria PKCS#11 non trovata. "

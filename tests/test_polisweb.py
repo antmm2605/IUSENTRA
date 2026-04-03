@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -132,6 +133,54 @@ def test_polisweb_parse_qbuilder_documenti_xml():
     assert documenti[0].id_documento == "33581101"
     assert documenti[0].tipo == "SentenzaDefinitiva"
     assert documenti[0].nome == "Documento_33581101.pdf"
+
+
+def test_polisweb_parse_documenti_supporta_container_soap_annidato():
+    client = _client()
+
+    risposta = SimpleNamespace(
+        return_value="ignored",
+        return_=None,
+        returnData=None,
+        result=None,
+        returnContainer=SimpleNamespace(
+            documenti=SimpleNamespace(
+                documento=[
+                    SimpleNamespace(
+                        idDocumento="DOC-001",
+                        nomeFile="ricorso.pdf.p7m",
+                        tipoDocumento="ATTO",
+                        dataDeposito="2026-03-29",
+                        mittente="avv.demo@pec.it",
+                        dimensione="12000",
+                        disponibile="true",
+                        idDeposito="BUSTA-PST-001",
+                        tipoAtto="Ricorso introduttivo",
+                    ),
+                    SimpleNamespace(
+                        idDocumento="DOC-002",
+                        nomeFile="procura.pdf.p7m",
+                        tipoDocumento="ALLEGATO",
+                        dataDeposito="2026-03-29",
+                        mittente="avv.demo@pec.it",
+                        dimensione="8000",
+                        disponibile="true",
+                        idDeposito="BUSTA-PST-001",
+                        tipoAtto="Ricorso introduttivo",
+                    ),
+                ]
+            )
+        ),
+    )
+    setattr(risposta, "return", risposta.returnContainer)
+
+    documenti = client._parse_documenti(risposta)
+
+    assert len(documenti) == 2
+    assert documenti[0].id_documento == "DOC-001"
+    assert documenti[1].id_documento == "DOC-002"
+    assert {doc.id_deposito for doc in documenti} == {"BUSTA-PST-001"}
+    assert {doc.tipo_atto for doc in documenti} == {"Ricorso introduttivo"}
 
 
 def test_polisweb_filtro_parti_qbuilder_per_cf():
@@ -458,6 +507,44 @@ def test_route_importa_documenti_portale_usa_inbox_temporanea(tmp_path):
     assert fascicolo_reload.depositi_pct[0].stato == "IMPORTATO_DA_PORTALE"
     assert archivio_inbox.exists()
     assert any(path.name.startswith(fascicolo.id + "_") for path in archivio_inbox.iterdir())
+
+
+def test_route_documenti_polisweb_consente_vista_completa_delle_buste(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            "/polisWeb/documenti?codice_ufficio=0580010&numero_rg=1025&anno_rg=2026",
+            follow_redirects=True,
+        )
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Espandi tutto" in body
+    assert "Riduci" in body
+    assert 'data-bs-parent="#accordionDepositi"' not in body
+    assert "BUSTA-DI-001" in body
+    assert "BUSTA-MEM-004" in body
 
 
 def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):

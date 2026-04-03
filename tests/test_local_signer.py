@@ -353,6 +353,83 @@ def test_parse_qbuilder_documenti_xml():
     assert documenti[0]["mittente"] == "GIOVANNELLA MARIA ELENA"
 
 
+def test_parse_documenti_xml_supporta_container_annidato():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+  <soapenv:Body>
+    <ns1:consultazioneDocumentiResponse xmlns:ns1="urn:it:giustizia:pst">
+      <return>
+        <documenti>
+          <item>
+            <idDocumento>DOC-001</idDocumento>
+            <nomeFile>ricorso.pdf.p7m</nomeFile>
+            <tipoDocumento>ATTO</tipoDocumento>
+            <dataDeposito>29/03/2026 10:15:00.000</dataDeposito>
+            <mittente>avv.demo@pec.it</mittente>
+            <dimensione>12000</dimensione>
+            <idDeposito>BUSTA-PST-001</idDeposito>
+            <tipoAtto>Ricorso introduttivo</tipoAtto>
+            <disponibile>true</disponibile>
+          </item>
+          <item>
+            <idDocumento>DOC-002</idDocumento>
+            <nomeFile>procura.pdf.p7m</nomeFile>
+            <tipoDocumento>ALLEGATO</tipoDocumento>
+            <dataDeposito>29/03/2026 10:15:00.000</dataDeposito>
+            <mittente>avv.demo@pec.it</mittente>
+            <dimensione>8000</dimensione>
+            <idDeposito>BUSTA-PST-001</idDeposito>
+            <tipoAtto>Ricorso introduttivo</tipoAtto>
+            <disponibile>true</disponibile>
+          </item>
+        </documenti>
+      </return>
+    </ns1:consultazioneDocumentiResponse>
+  </soapenv:Body>
+</soapenv:Envelope>"""
+
+    documenti = module._parse_documenti_xml(xml)
+
+    assert len(documenti) == 2
+    assert documenti[0]["id_documento"] == "DOC-001"
+    assert documenti[1]["id_documento"] == "DOC-002"
+    assert {doc["id_deposito"] for doc in documenti} == {"BUSTA-PST-001"}
+    assert {doc["data_deposito"] for doc in documenti} == {"2026-03-29"}
+
+
+def test_parse_qbuilder_documenti_xml_supporta_piu_return():
+    module = _load_local_signer()
+
+    xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<SOAP-ENV:Body>
+<ns1:executeResponse xmlns:ns1="urn:CONS-SICC-BE">
+  <return available="1" time="2026-03-29 18:52:17" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType">
+    <ns2:row class="DocumentoFascicolo">
+      <ns2:property name="IDDOCUMENTO" type="string">33581101</ns2:property>
+      <ns2:property name="TIPO" type="string">Memoria</ns2:property>
+      <ns2:property name="DATADEPOSITO" type="date">08/01/2026 18:55:28.000</ns2:property>
+    </ns2:row>
+  </return>
+  <return available="1" time="2026-03-29 18:53:17" xmlns:ns2="urn:qbuilder-types" xsi:type="ns2:rowListType">
+    <ns2:row class="DocumentoFascicolo">
+      <ns2:property name="IDDOCUMENTO" type="string">33581102</ns2:property>
+      <ns2:property name="TIPO" type="string">Allegato</ns2:property>
+      <ns2:property name="DATADEPOSITO" type="date">08/01/2026 18:56:28.000</ns2:property>
+    </ns2:row>
+  </return>
+</ns1:executeResponse>
+</SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+
+    documenti = module._parse_documenti_xml(xml)
+
+    assert len(documenti) == 2
+    assert {doc["id_documento"] for doc in documenti} == {"33581101", "33581102"}
+
+
 def test_trova_libreria_prefers_candidate_with_detected_token():
     module = _load_local_signer()
 

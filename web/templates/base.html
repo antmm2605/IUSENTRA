@@ -769,6 +769,25 @@ function initPagination(tableId, selectId) {
 })();
 </script>
 <script>
+/* ---- Accordion buste documentali: espandi/riduci tutto ---- */
+(function () {
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-acc-action][data-acc-target]');
+    if (!btn || !window.bootstrap) return;
+
+    const root = document.getElementById(btn.dataset.accTarget);
+    if (!root) return;
+
+    const action = btn.dataset.accAction;
+    root.querySelectorAll('.accordion-collapse').forEach(function (panel) {
+      const collapse = bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false });
+      if (action === 'expand') collapse.show();
+      if (action === 'collapse') collapse.hide();
+    });
+  });
+})();
+</script>
+<script>
 // Badge email non lette nella sidebar
 (function() {
   const badge = document.getElementById('badgeEmailNonLette');

@@ -124,8 +124,15 @@ def _parse_qbuilder_row_list(xml_text: str) -> List[Dict[str, Any]]:
     for ret in root.findall(".//return"):
         for child in list(ret):
             tag = child.tag.split("}")[-1]
+            if tag == "subRows":
+                continue
             if tag == "row":
                 righe.append(_parse_qbuilder_row(child))
+                continue
+            for nested in list(child):
+                nested_tag = nested.tag.split("}")[-1]
+                if nested_tag == "row":
+                    righe.append(_parse_qbuilder_row(nested))
     return righe
 
 
@@ -237,6 +244,108 @@ def _map_qbuilder_documento(row: Dict[str, Any]) -> DocumentoPolisWeb:
         id_deposito=(row.get("IDBUSTA") or row.get("IDDEPOSITO") or "").strip(),
         tipo_atto=tipo,
     )
+
+
+_DOCUMENTO_SOAP_ATTRS = (
+    "idDocumento",
+    "id",
+    "nomeFile",
+    "nome",
+    "tipoDocumento",
+    "tipo",
+    "dataDeposito",
+    "mittente",
+    "cfMittente",
+    "dimensione",
+    "disponibile",
+    "idDeposito",
+    "idBusta",
+    "tipoAtto",
+    "descTipoAtto",
+    "tipoAtta",
+)
+
+
+def _soap_getattr(obj: Any, name: str) -> Any:
+    try:
+        return getattr(obj, name)
+    except Exception:
+        return None
+
+
+def _soap_documento_fields(obj: Any) -> Dict[str, Any]:
+    values: Dict[str, Any] = {}
+    if isinstance(obj, dict):
+        for name in _DOCUMENTO_SOAP_ATTRS:
+            value = obj.get(name)
+            if value not in (None, "", [], ()):
+                values[name] = value
+        return values
+
+    for name in _DOCUMENTO_SOAP_ATTRS:
+        value = _soap_getattr(obj, name)
+        if value not in (None, "", [], ()):
+            values[name] = value
+    return values
+
+
+def _is_soap_documento_item(obj: Any) -> bool:
+    fields = _soap_documento_fields(obj)
+    return any(
+        fields.get(name) not in (None, "")
+        for name in ("idDocumento", "nomeFile", "nome", "tipoDocumento", "tipo", "dataDeposito", "idDeposito", "idBusta")
+    )
+
+
+def _collect_soap_documenti(payload: Any) -> List[Any]:
+    items: List[Any] = []
+    stack: List[Any] = [payload]
+    seen: set[int] = set()
+    attr_candidates = (
+        "documenti",
+        "documento",
+        "return",
+        "return_",
+        "returns",
+        "item",
+        "items",
+        "listaDocumenti",
+        "elencoDocumenti",
+        "result",
+        "value",
+        "_value_1",
+    )
+
+    while stack:
+        current = stack.pop(0)
+        if current is None or isinstance(current, (str, bytes, int, float, bool)):
+            continue
+        if isinstance(current, (list, tuple, set)):
+            stack.extend(list(current))
+            continue
+
+        marker = id(current)
+        if marker in seen:
+            continue
+        seen.add(marker)
+
+        if _is_soap_documento_item(current):
+            items.append(current)
+            continue
+
+        if isinstance(current, dict):
+            for name in attr_candidates:
+                value = current.get(name)
+                if value not in (None, "", [], ()):
+                    stack.append(value)
+            continue
+
+        for name in attr_candidates:
+            value = _soap_getattr(current, name)
+            if value not in (None, "", [], ()):
+                stack.append(value)
+
+    return items
 
 
 def _matches_parte_filters(fascicolo: FascicoloPolisWeb, nome_parte: Optional[str], codice_fiscale_parte: Optional[str]) -> bool:
@@ -1750,23 +1859,42 @@ class ClientPolisWeb:
 
     def _parse_documenti(self, risposta: Any) -> List[DocumentoPolisWeb]:
         """Converte la risposta SOAP in lista di DocumentoPolisWeb."""
-        documenti = []
+        documenti: List[DocumentoPolisWeb] = []
+        visti: set[tuple[str, str, str, str, str, str]] = set()
         try:
-            items = risposta.documenti or risposta.documento or []
-            if not isinstance(items, list):
-                items = [items]
-            for item in items:
+            for item in _collect_soap_documenti(risposta):
+                fields = _soap_documento_fields(item)
+                disponibile_raw = fields.get('disponibile', True)
+                if isinstance(disponibile_raw, str):
+                    disponibile = disponibile_raw.strip().lower() != "false"
+                else:
+                    disponibile = bool(disponibile_raw)
+                try:
+                    dimensione = int(fields.get('dimensione', 0) or 0)
+                except (TypeError, ValueError):
+                    dimensione = 0
                 d = DocumentoPolisWeb(
-                    id_documento=str(getattr(item, 'idDocumento', '') or ''),
-                    nome=str(getattr(item, 'nomeFile', '') or ''),
-                    tipo=str(getattr(item, 'tipoDocumento', 'ATTO') or ''),
-                    data_deposito=_parse_data(getattr(item, 'dataDeposito', None)),
-                    mittente=str(getattr(item, 'mittente', '') or ''),
-                    dimensione_bytes=int(getattr(item, 'dimensione', 0) or 0),
-                    disponibile=bool(getattr(item, 'disponibile', True)),
-                    id_deposito=str(getattr(item, 'idBusta', getattr(item, 'idDeposito', '')) or ''),
-                    tipo_atto=str(getattr(item, 'tipoAtto', getattr(item, 'tipoAtta', '')) or ''),
+                    id_documento=str(fields.get('idDocumento', fields.get('id', '')) or ''),
+                    nome=str(fields.get('nomeFile', fields.get('nome', '')) or ''),
+                    tipo=str(fields.get('tipoDocumento', fields.get('tipo', 'ATTO')) or ''),
+                    data_deposito=_parse_data(fields.get('dataDeposito')),
+                    mittente=str(fields.get('mittente', fields.get('cfMittente', '')) or ''),
+                    dimensione_bytes=dimensione,
+                    disponibile=disponibile,
+                    id_deposito=str(fields.get('idBusta', fields.get('idDeposito', '')) or ''),
+                    tipo_atto=str(fields.get('tipoAtto', fields.get('descTipoAtto', fields.get('tipoAtta', ''))) or ''),
                 )
+                chiave = (
+                    d.id_documento,
+                    d.nome,
+                    d.tipo,
+                    d.data_deposito,
+                    d.mittente,
+                    d.id_deposito,
+                )
+                if chiave in visti:
+                    continue
+                visti.add(chiave)
                 documenti.append(d)
         except (AttributeError, TypeError, ValueError):
             pass

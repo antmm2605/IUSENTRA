@@ -26,9 +26,21 @@
     <span class="badge bg-warning text-dark ms-1 small"><i class="bi bi-cone me-1"></i>DEMO</span>
     {% endif %}
     {% if depositi %}
-    <span class="badge bg-secondary ms-auto">
-      {{ depositi|length }} atti · {{ documenti|length }} file totali
-    </span>
+    <div class="ms-auto d-flex align-items-center gap-2 flex-wrap justify-content-end">
+      <span class="badge bg-secondary">
+        {{ depositi|length }} atti · {{ documenti|length }} file totali
+      </span>
+      {% if depositi|length > 1 %}
+      <div class="btn-group btn-group-sm" role="group" aria-label="Controlli buste fascicolo">
+        <button type="button" class="btn btn-outline-secondary" data-acc-action="expand" data-acc-target="accordionDepositi">
+          Espandi tutto
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-acc-action="collapse" data-acc-target="accordionDepositi">
+          Riduci
+        </button>
+      </div>
+      {% endif %}
+    </div>
     {% endif %}
   </div>
 
@@ -130,8 +142,7 @@
 
       <div id="collapse-dep-{{ idx }}"
            class="accordion-collapse collapse {% if aperto %}show{% endif %}"
-           aria-labelledby="heading-dep-{{ idx }}"
-           data-bs-parent="#accordionDepositi">
+           aria-labelledby="heading-dep-{{ idx }}">
         <div class="accordion-body p-0">
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 small">
@@ -221,3 +232,4 @@
   {% endif %}
 
 {% endblock %}
+

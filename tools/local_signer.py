@@ -1715,10 +1715,18 @@ def _parse_qbuilder_row(row_el: ET.Element) -> dict:
 
 def _parse_qbuilder_row_list(xml_str: str) -> list[dict]:
     root = _strip_namespaces(ET.fromstring(_normalizza_xml_pst(xml_str)))
-    ritorno = next(root.iter("return"), None)
-    if ritorno is None:
-        return []
-    return [_parse_qbuilder_row(child) for child in list(ritorno) if child.tag == "row"]
+    righe: list[dict] = []
+    for ritorno in root.findall(".//return"):
+        for child in list(ritorno):
+            if child.tag == "subRows":
+                continue
+            if child.tag == "row":
+                righe.append(_parse_qbuilder_row(child))
+                continue
+            for nested in list(child):
+                if nested.tag == "row":
+                    righe.append(_parse_qbuilder_row(nested))
+    return righe
 
 
 def _qbuilder_numero_rg(valore: str) -> str:
@@ -1880,23 +1888,81 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
             return [_map_qbuilder_documento(row) for row in _parse_qbuilder_row_list(xml_clean)]
 
         root = _strip_namespaces(ET.fromstring(xml_clean))
-        documenti = []
-        for item in root.iter("documento"):
-            def _t(tag):
-                el = item.find(tag)
-                return (el.text or "").strip() if el is not None else ""
+        documenti: list[dict] = []
+        visti: set[tuple[str, str, str, str, str, str]] = set()
+        campi_documento = {
+            "iddocumento",
+            "id",
+            "nomefile",
+            "nome",
+            "tipo",
+            "tipodocumento",
+            "datadeposito",
+            "mittente",
+            "cfmittente",
+            "dimensione",
+            "iddeposito",
+            "idbusta",
+            "tipoatto",
+            "desctipoatto",
+            "disponibile",
+        }
 
-            documenti.append({
-                "id_documento": _t("idDocumento") or _t("id"),
-                "nome": _t("nomeFile") or _t("nome"),
-                "tipo": _t("tipo") or _t("tipoDocumento"),
-                "data_deposito": _t("dataDeposito"),
-                "mittente": _t("mittente") or _t("cfMittente"),
-                "dimensione_bytes": int(_t("dimensione") or 0),
-                "id_deposito": _t("idDeposito") or _t("idBusta"),
-                "tipo_atto": _t("tipoAtto") or _t("descTipoAtto"),
+        for item in root.iter():
+            children = list(item)
+            if not children:
+                continue
+
+            child_map: dict[str, str] = {}
+            for child in children:
+                tag = (child.tag or "").split("}")[-1].lower()
+                if tag not in child_map:
+                    child_map[tag] = (child.text or "").strip()
+
+            if not any(tag in child_map for tag in campi_documento):
+                continue
+
+            def _t(*tags):
+                for tag in tags:
+                    value = child_map.get(tag.lower(), "")
+                    if value:
+                        return value
+                return ""
+
+            try:
+                dimensione = int(_t("dimensione") or 0)
+            except ValueError:
+                dimensione = 0
+
+            documento = {
+                "id_documento": _t("idDocumento", "id"),
+                "nome": _t("nomeFile", "nome"),
+                "tipo": _t("tipo", "tipoDocumento"),
+                "data_deposito": _normalizza_data_pst(_t("dataDeposito")),
+                "mittente": _t("mittente", "cfMittente"),
+                "dimensione_bytes": dimensione,
+                "id_deposito": _t("idDeposito", "idBusta"),
+                "tipo_atto": _t("tipoAtto", "descTipoAtto"),
                 "disponibile": _t("disponibile").lower() != "false",
-            })
+            }
+            if not any(
+                documento[key]
+                for key in ("id_documento", "nome", "tipo", "data_deposito", "mittente", "id_deposito", "tipo_atto")
+            ):
+                continue
+
+            chiave = (
+                documento["id_documento"],
+                documento["nome"],
+                documento["tipo"],
+                documento["data_deposito"],
+                documento["mittente"],
+                documento["id_deposito"],
+            )
+            if chiave in visti:
+                continue
+            visti.add(chiave)
+            documenti.append(documento)
         return documenti
     except Exception as e:
         log.warning("_parse_documenti_xml: %s", e)

@@ -300,6 +300,179 @@ def test_migra_verso_sqlite_tabelle(db, tmp_path):
     conn.close()
     assert "clienti" in tables
 
+
+def test_migra_verso_sqlite_crea_base_strutturale_procedurale_e_forense(db, tmp_path):
+    dest = str(tmp_path / "migrato.db")
+    db.migra_verso_sqlite(dest)
+    conn = sqlite3.connect(dest)
+    tables = {
+        row[0]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    }
+    conn.close()
+
+    assert "macro_aree" in tables
+    assert "procedimenti" in tables
+    assert "atti" in tables
+    assert "procedimento_atto" in tables
+    assert "fascicoli_strutturati" in tables
+    assert "template_atto_versioni" in tables
+    assert "forense_versioni" in tables
+    assert "forense_tabelle" in tables
+    assert "forense_fasi" in tables
+    assert "forense_scaglioni_valore" in tables
+    assert "forense_parametri_compenso" in tables
+    assert "forense_spese_standard" in tables
+    assert "procedimento_tariffario_map" in tables
+    assert "pratiche_economiche" in tables
+    assert "preventivi" in tables
+    assert "preventivo_voci" in tables
+    assert "preventivo_accessori" in tables
+    assert "accordi_compenso" in tables
+    assert "preventivo_snapshot" in tables
+    assert "preventivo_accettazioni" in tables
+    assert "controlli_forensi" in tables
+    assert "preventivo_controllo_map" in tables
+
+
+def test_migra_verso_sqlite_seed_macro_aree_e_portali_base(db, tmp_path):
+    dest = str(tmp_path / "migrato.db")
+    db.migra_verso_sqlite(dest)
+    conn = sqlite3.connect(dest)
+
+    macro_codes = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM macro_aree").fetchall()
+    }
+    canali_codes = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM portali_riti").fetchall()
+    }
+    conn.close()
+
+    assert {
+        "civile",
+        "penale",
+        "amministrativo",
+        "costituzionale",
+        "commerciale",
+        "lavoro",
+        "tributario",
+        "processuale_civile",
+        "processuale_penale",
+        "unione_europea",
+        "internazionale",
+        "famiglia",
+        "societario",
+        "crisi_impresa",
+    }.issubset(macro_codes)
+    assert {
+        "PCT",
+        "PST",
+        "PAT",
+        "PTT",
+        "SIGIT",
+        "REGISTRO_IMPRESE",
+        "TELEMACO",
+        "DIRE",
+        "STRAGIUDIZIALE",
+        "CARTACEO",
+        "PEC",
+    }.issubset(canali_codes)
+
+
+def test_migra_verso_sqlite_seed_forense_minimo(db, tmp_path):
+    dest = str(tmp_path / "migrato.db")
+    db.migra_verso_sqlite(dest)
+    conn = sqlite3.connect(dest)
+
+    versioni = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM forense_versioni").fetchall()
+    }
+    fasi = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM forense_fasi").fetchall()
+    }
+    spese = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM forense_spese_standard").fetchall()
+    }
+    controlli = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM controlli_forensi").fetchall()
+    }
+    conn.close()
+
+    assert "DM55_2014_DM147_2022" in versioni
+    assert {
+        "FASE_STUDIO",
+        "FASE_INTRODUTTIVA",
+        "FASE_ISTRUTTORIA",
+        "FASE_DECISIONALE",
+        "FASE_ESECUTIVA",
+        "FASE_CAUTELARE",
+        "FASE_MONITORIA",
+        "FASE_IMPUGNAZIONE",
+        "FASE_STRAGIUDIZIALE",
+    }.issubset(fasi)
+    assert {
+        "SPESE_GENERALI_15",
+        "CPA_4",
+        "IVA_22",
+        "CU_DEFAULT",
+    }.issubset(spese)
+    assert {
+        "CHK_VALORE_PRATICA",
+        "CHK_SCAGLIONE",
+        "CHK_TABELLA_FORENSE",
+        "CHK_EQUO_COMPENSO",
+        "CHK_ACCESSORI",
+        "CHK_SNAPSHOT",
+        "CHK_ACCORDO_COMPENSO",
+        "CHK_PREVENTIVO_FIRMABILE",
+    }.issubset(controlli)
+
+
+def test_migra_verso_sqlite_base_forense_restando_strutturale_non_popola_mappe(db, tmp_path):
+    dest = str(tmp_path / "migrato.db")
+    db.migra_verso_sqlite(dest)
+    conn = sqlite3.connect(dest)
+    counts = conn.execute(
+        """
+        SELECT
+            (SELECT COUNT(*) FROM procedimenti),
+            (SELECT COUNT(*) FROM atti),
+            (SELECT COUNT(*) FROM allegati_obbligatori),
+            (SELECT COUNT(*) FROM controlli_conformita),
+            (SELECT COUNT(*) FROM procedimento_portale_rito),
+            (SELECT COUNT(*) FROM procedimento_atto),
+            (SELECT COUNT(*) FROM atto_allegato),
+            (SELECT COUNT(*) FROM atto_controllo),
+            (SELECT COUNT(*) FROM fascicoli_strutturati),
+            (SELECT COUNT(*) FROM template_atto_versioni),
+            (SELECT COUNT(*) FROM forense_tabelle),
+            (SELECT COUNT(*) FROM forense_scaglioni_valore),
+            (SELECT COUNT(*) FROM forense_parametri_compenso),
+            (SELECT COUNT(*) FROM forense_maggiorazioni_riduzioni),
+            (SELECT COUNT(*) FROM forense_regole_applicative),
+            (SELECT COUNT(*) FROM procedimento_tariffario_map),
+            (SELECT COUNT(*) FROM atto_fase_tariffaria_map),
+            (SELECT COUNT(*) FROM pratiche_economiche),
+            (SELECT COUNT(*) FROM preventivi),
+            (SELECT COUNT(*) FROM preventivo_voci),
+            (SELECT COUNT(*) FROM preventivo_accessori),
+            (SELECT COUNT(*) FROM accordi_compenso),
+            (SELECT COUNT(*) FROM preventivo_snapshot),
+            (SELECT COUNT(*) FROM preventivo_accettazioni),
+            (SELECT COUNT(*) FROM preventivo_controllo_map)
+        """
+    ).fetchone()
+    conn.close()
+
+    assert counts is not None
+    assert all(count == 0 for count in counts)
+
 def test_migra_percorso_db(db, tmp_path):
     dest = str(tmp_path / "migrato.db")
     risultato = db.migra_verso_sqlite(dest)

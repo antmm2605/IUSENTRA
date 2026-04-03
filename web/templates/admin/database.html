@@ -172,8 +172,10 @@
           </p>
         {% endif %}
         <div class="small text-muted mb-3">
-          La migrazione relazionale include i moduli core: clienti, fascicoli, appuntamenti, scadenze, messaggi, utenti e audit.
-          Gli altri moduli restano monitorati nel pannello e conservati nei rispettivi JSON versionati.
+          La migrazione relazionale include i moduli core e inizializza anche la base strutturale procedurale e forense:
+          macro aree, sottobranche, portali/riti, procedimenti, atti, allegati, controlli, tabelle ponte,
+          motore forense versionato, pratica economica, preventivi strutturati e snapshot.
+          In questa fase le strutture vengono create con seed minimo, senza associazioni automatiche ai cataloghi legacy.
         </div>
         <button class="btn btn-primary w-100" onclick="migraSQL()" id="btn-migra">
           <i class="bi bi-arrow-right-circle me-1"></i>

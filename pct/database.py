@@ -26,6 +26,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from pct.catalogo_strutturale import (
+    ensure_catalogo_strutturale_schema,
+    seed_catalogo_strutturale,
+)
+
 
 # ================================================================ Dataclasses
 
@@ -986,6 +991,16 @@ class GestioneDatabase:
 
             conn.execute("INSERT OR REPLACE INTO _meta VALUES(?,?)",
                          ("totale_record", str(sum(migrati.values()))))
+
+            ensure_catalogo_strutturale_schema(conn)
+            catalogo_counts = seed_catalogo_strutturale(conn)
+            conn.execute(
+                "INSERT OR REPLACE INTO _meta VALUES(?,?)",
+                ("catalogo_strutturale_json", json.dumps(catalogo_counts, ensure_ascii=False)),
+            )
+            avvisi.append(
+                "Base strutturale seedata automaticamente con moduli procedurali e forensi versionati, senza associazioni automatiche ai cataloghi legacy."
+            )
             conn.commit()
 
         except Exception as e:

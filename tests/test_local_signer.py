@@ -761,6 +761,30 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     assert "/polisWeb/local-signer/download" in body
 
 
+def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        login = c.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code in (302, 303)
+
+        r = c.get("/impostazioni?tab=firma")
+
+    assert r.status_code == 200
+    body = r.data.decode("utf-8")
+    assert "Scarica Local Signer" in body
+    assert "/polisWeb/local-signer/setup/windows" in body
+    assert "/polisWeb/local-signer/setup/macos" in body
+    assert "/polisWeb/local-signer/setup/linux" in body
+    assert "/polisWeb/local-signer/download" in body
+    assert "/polisWeb/local-signer/download/uffici" in body
+
+
 def test_installer_locale_windows_registra_protocollo_e_attesa_ping():
     script = (
         Path(__file__).resolve().parents[1]

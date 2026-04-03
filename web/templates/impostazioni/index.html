@@ -476,6 +476,69 @@
           </div>
         </div>
         <div class="col-12">
+          <div class="card border-0 shadow-sm" style="border-radius:14px; background:rgba(var(--bs-primary-rgb),.05);">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+                <div>
+                  <div class="fw-semibold mb-1">
+                    <i class="bi bi-download text-primary me-2"></i>Scarica Local Signer
+                  </div>
+                  <div class="text-muted small">
+                    Se il download da PolisWeb viene bloccato, usa questi installer diretti dalla tab Firma.
+                    Il pulsante Windows scarica automaticamente il miglior pacchetto disponibile:
+                    <code>SetupLocalSigner.exe</code> oppure lo script PowerShell compatibile.
+                  </div>
+                </div>
+                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                  Consigliato per PST / PolisWeb
+                </span>
+              </div>
+              <div class="row g-2 mt-1">
+                <div class="col-md-4">
+                  <a href="{{ url_for('polis_local_signer_setup_windows') }}"
+                     class="btn btn-primary w-100"
+                     target="_blank" rel="noopener"
+                     id="btn-local-signer-windows">
+                    <i class="bi bi-windows me-2"></i>Scarica per Windows
+                  </a>
+                </div>
+                <div class="col-md-4">
+                  <a href="{{ url_for('polis_local_signer_setup_macos') }}"
+                     class="btn btn-outline-secondary w-100"
+                     target="_blank" rel="noopener"
+                     id="btn-local-signer-macos">
+                    <i class="bi bi-apple me-2"></i>Scarica per macOS
+                  </a>
+                </div>
+                <div class="col-md-4">
+                  <a href="{{ url_for('polis_local_signer_setup_linux') }}"
+                     class="btn btn-outline-secondary w-100"
+                     target="_blank" rel="noopener"
+                     id="btn-local-signer-linux">
+                    <i class="bi bi-terminal me-2"></i>Scarica per Linux
+                  </a>
+                </div>
+              </div>
+              <div class="d-flex gap-2 flex-wrap mt-3">
+                <a href="{{ url_for('polis_local_signer_download') }}"
+                   class="btn btn-sm btn-outline-secondary"
+                   target="_blank" rel="noopener">
+                  <i class="bi bi-filetype-py me-1"></i>Script Python manuale
+                </a>
+                <a href="{{ url_for('polis_local_signer_download_uffici') }}"
+                   class="btn btn-sm btn-outline-secondary"
+                   target="_blank" rel="noopener">
+                  <i class="bi bi-building me-1"></i>Registro uffici PST
+                </a>
+                <a href="{{ url_for('polisWeb_home') }}"
+                   class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-shield-check me-1"></i>Apri PolisWeb
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
           <label class="form-label fw-semibold">
             Libreria PKCS#11 (.so / .dll)
             <button type="button" class="btn-help"
@@ -553,6 +616,49 @@ function switchFirmaFmt(fmt) {
   document.getElementById('sezione_pem').classList.toggle('d-none', fmt !== 'pem');
   document.getElementById('sezione_pkcs11').classList.toggle('d-none', fmt !== 'pkcs11');
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  let piattaforma = '';
+  if (ua.includes('windows')) piattaforma = 'windows';
+  else if (ua.includes('mac os') || ua.includes('macintosh')) piattaforma = 'macos';
+  else if (ua.includes('linux')) piattaforma = 'linux';
+
+  if (!piattaforma) return;
+
+  const mapping = {
+    windows: {
+      id: 'btn-local-signer-windows',
+      primary: 'btn-primary',
+      secondary: 'btn-outline-secondary',
+      label: 'Scarica per Windows (consigliato su questo PC)',
+    },
+    macos: {
+      id: 'btn-local-signer-macos',
+      primary: 'btn-primary',
+      secondary: 'btn-outline-secondary',
+      label: 'Scarica per macOS (consigliato su questo Mac)',
+    },
+    linux: {
+      id: 'btn-local-signer-linux',
+      primary: 'btn-primary',
+      secondary: 'btn-outline-secondary',
+      label: 'Scarica per Linux (consigliato su questo sistema)',
+    },
+  };
+
+  Object.entries(mapping).forEach(([key, cfg]) => {
+    const el = document.getElementById(cfg.id);
+    if (!el) return;
+    el.classList.remove(cfg.primary, cfg.secondary);
+    if (key === piattaforma) {
+      el.classList.add(cfg.primary);
+      el.innerHTML = el.innerHTML.replace(/Scarica per .*?(?=<|$)/, cfg.label);
+    } else {
+      el.classList.add(cfg.secondary);
+    }
+  });
+});
 
 function testaPkcs11() {
   const btn = document.getElementById('btnTestPkcs11');

@@ -1493,7 +1493,7 @@ function avviaGeneraBusta() {
   _eseguiGeneraBusta();
 }
 
-const correctionContext = {{ correction|tojson }};
+const correctionContext = {{ (correction_context or {})|tojson }};
 
 ['fTipoAtto', 'fRegistro', 'fNumRG', 'fAnnoRG'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', () => _scheduleValidation(40));

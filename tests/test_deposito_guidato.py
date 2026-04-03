@@ -191,3 +191,54 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
     assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
     assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+
+
+def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = gf.nuovo(
+        titolo="Deposito introduttivo demo",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        controparte="Alfa S.r.l.",
+        id_cliente="cli-1",
+    )
+    gf.aggiungi_documento(
+        fasc.id,
+        "atto_principale.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        _pdf_base(),
+        firmato=True,
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fasc.id}/deposito/prepara")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Deposito" in html
+    assert 'const correctionContext = {"active": false' in html

@@ -4379,8 +4379,14 @@ read -r -p "Premi Invio per chiudere..." _
                 fascicolo_target = gf.get(id_fasc_target)
                 if (
                     fascicolo_target
-                    and fascicolo_target.numero_rg == numero_rg_imp
-                    and fascicolo_target.anno_rg == anno_rg_imp
+                    and (
+                        not (fascicolo_target.numero_rg or "").strip()
+                        or fascicolo_target.numero_rg == numero_rg_imp
+                    )
+                    and (
+                        not int(getattr(fascicolo_target, "anno_rg", 0) or 0)
+                        or fascicolo_target.anno_rg == anno_rg_imp
+                    )
                     and (not fascicolo_target.tribunale or fascicolo_target.tribunale == nome_ufficio_imp)
                 ):
                     fc_esistente = fascicolo_target

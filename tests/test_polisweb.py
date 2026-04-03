@@ -1205,6 +1205,104 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
     assert {s.nome_completo for s in gestione_soggetti_reload.tutti()} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
 
 
+def test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="Fascicolo da sincronizzare (prova PST)",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/polisWeb/importa",
+            data={
+                "id_fasc": fascicolo.id,
+                "demo_mode": "1",
+                "numero_rg": "1025",
+                "anno_rg": "2024",
+                "ruolo": "CIVILE_COGNIZIONE",
+                "stato": "PENDENTE",
+                "oggetto": "Vendita di cose immobili",
+                "sezione": "CIVILE",
+                "giudice": "GIOVANNELLA MARIA ELENA",
+                "data_iscrizione": "05/09/2024 00:00:00.000",
+                "data_udienza": "12/12/2024 00:00:00.000",
+                "parti_json": json.dumps(["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"]),
+                "parti_dettaglio_json": json.dumps(
+                    [
+                        {"nome": "MONTAGNESE ELISABETTA", "tipo": "AP", "codice_fiscale": "MNTLBT49E47H558L"},
+                        {"nome": "STILLITANO FRANCESCO", "tipo": "AS", "codice_fiscale": "STLFNC45E26L063X"},
+                    ]
+                ),
+                "codice_ufficio": "0800570094",
+                "nome_ufficio": "",
+                "documenti_json": json.dumps(
+                    [
+                        {
+                            "id_documento": "DOC-1",
+                            "nome": "SentenzaDefinitiva_33581101.pdf",
+                            "tipo": "SentenzaDefinitiva",
+                            "data_deposito": "2026-01-08",
+                            "mittente": "GIOVANNELLA MARIA ELENA",
+                            "dimensione_bytes": 12345,
+                            "disponibile": True,
+                            "id_deposito": "DEP-1",
+                            "tipo_atto": "SentenzaDefinitiva",
+                        }
+                    ]
+                ),
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicoli = gestione_fascicoli_reload.tutti()
+    assert len(fascicoli) == 1
+
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.numero_rg == "1025"
+    assert fascicolo_reload.anno_rg == 2024
+    assert fascicolo_reload.tribunale == "Tribunale di Palmi"
+    assert fascicolo_reload.nome_cliente == "Montagnese Elisabetta"
+    assert fascicolo_reload.controparte == "Stillitano Francesco"
+    assert len(fascicolo_reload.depositi_pct) == 1
+    assert fascicolo_reload.depositi_pct[0].documenti_portale
+
+
 def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

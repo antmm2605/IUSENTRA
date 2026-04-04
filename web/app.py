@@ -6704,6 +6704,7 @@ read -r -p "Premi Invio per chiudere..." _
             fascicolo=fasc,
             cliente=cliente,
         )
+        cfg_firma = get_config_studio().config.firma
         workspace_fascicolo = _build_fascicolo_workspace(
             fasc,
             apps=apps,
@@ -6732,6 +6733,7 @@ read -r -p "Premi Invio per chiudere..." _
             portale_documenti_per_deposito=portale_documenti_per_deposito,
             polisweb_sync_needed=polisweb_sync_needed,
             responsabile_conformita=responsabile_conformita,
+            cfg_firma=cfg_firma,
             oggi=date.today(),
         )
 
@@ -7327,7 +7329,13 @@ read -r -p "Premi Invio per chiudere..." _
                 return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_id obbligatori."}), 400
             if not pin:
                 return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma in-device."}), 400
-            if formato != "cades":
+            cfg_firma = get_config_studio().config.firma
+            if getattr(cfg_firma, "configurato", False):
+                try:
+                    formato = cfg_firma.valida_formato_firma(formato)
+                except ValueError as e:
+                    return jsonify({"ok": False, "messaggio": str(e)}), 400
+            elif formato != "cades":
                 return jsonify({
                     "ok": False,
                     "messaggio": "La firma PKCS#11 supporta solo CAdES (.p7m). Per PAdES usare P12/PEM.",
@@ -7449,6 +7457,19 @@ read -r -p "Premi Invio per chiudere..." _
         try:
             if "file" in request.files and request.files["file"].filename:
                 file = request.files["file"]
+                cfg_firma = get_config_studio().config.firma
+                if getattr(cfg_firma, "configurato", False):
+                    est = Path(file.filename or "").suffix.lower()
+                    if est == ".pdf":
+                        formato_file = "pades"
+                    elif est in {".p7m", ".sig", ".pkcs7"}:
+                        formato_file = "cades"
+                    else:
+                        raise ValueError(
+                            "Formato file firmato non supportato. "
+                            "Usa un file .p7m (CAdES) oppure .pdf firmato (PAdES)."
+                        )
+                    cfg_firma.valida_formato_firma(formato_file)
                 note = request.form.get("note", "Versione firmata per deposito").strip()
                 gf.sostituisci_documento(
                     id_fasc=id_fasc,

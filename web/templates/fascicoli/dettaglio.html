@@ -360,7 +360,7 @@
                   {%- set _dep_cls = 'bg-success text-white' %}
                   {%- set _dep_icon = 'bi-check-circle-fill' %}
                   {%- set _dep_lbl = 'Accettato' %}
-                {%- elif _ds in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
+                {%- elif _ds == 'RIFIUTATO_CANCELLERIA' %}
                   {%- set _dep_cls = 'bg-danger text-white' %}
                   {%- set _dep_icon = 'bi-x-circle-fill' %}
                   {%- set _dep_lbl = 'Rifiutato' %}
@@ -837,7 +837,7 @@
           {% set f6_warn = dep.esito_controlli | default('') == 'WARN' %}
           {% set f7_ok = dep.ricevuta_cancelleria | default('') | length > 0 %}
           {% set is_accettato = dep.stato == 'ACCETTATO_CANCELLERIA' %}
-          {% set is_rifiutato = dep.stato in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
+          {% set is_rifiutato = dep.stato == 'RIFIUTATO_CANCELLERIA' %}
           {% set is_errore = dep.stato in ('ERRORE_CONTROLLI','ERRORE') %}
           {% set is_import_pst = dep.stato == 'IMPORTATO_DA_PST' %}
           {% set is_import_portale = dep.stato == 'IMPORTATO_DA_PORTALE' %}
@@ -1958,20 +1958,14 @@
             <div class="col-md-6">
               <label class="form-label fw-semibold">Stato</label>
               <select name="stato" class="form-select">
-                <optgroup label="Fasi ufficiali PCT">
-                  <option value="INVIATO">INVIATO — busta inviata</option>
-                  <option value="ACCETTATO_PEC">ACCETTATO_PEC — fase 4: accettazione PEC</option>
-                  <option value="CONSEGNATO" selected>CONSEGNATO — fase 5: consegnato al sistema</option>
-                  <option value="WARN_CONTROLLI">WARN_CONTROLLI — fase 6: anomalia non bloccante</option>
-                  <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI — fase 6: errore bloccante</option>
-                  <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA — fase 7: accettato ✓</option>
-                  <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA — fase 7: rifiutato</option>
-                </optgroup>
-                <optgroup label="Legacy">
-                  <option value="ACCETTATO">ACCETTATO (vecchio)</option>
-                  <option value="RIFIUTATO">RIFIUTATO (vecchio)</option>
-                  <option value="ERRORE">ERRORE (vecchio)</option>
-                </optgroup>
+                <option value="INVIATO">INVIATO — busta inviata</option>
+                <option value="ACCETTATO_PEC">ACCETTATO_PEC — fase 4: accettazione PEC</option>
+                <option value="CONSEGNATO" selected>CONSEGNATO — fase 5: consegnato al sistema</option>
+                <option value="WARN_CONTROLLI">WARN_CONTROLLI — fase 6: anomalia non bloccante</option>
+                <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI — fase 6: errore bloccante</option>
+                <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA — fase 7: accettato ✓</option>
+                <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA — fase 7: rifiutato</option>
+                <option value="ERRORE">ERRORE — errore tecnico / invio fallito</option>
               </select>
             </div>
             <div class="col-12">
@@ -2060,6 +2054,7 @@
 <div class="modal fade" id="modalFirma" tabindex="-1">
   <div class="modal-dialog modal-fullscreen-sm-down">
     <div class="modal-content">
+      {% set firma_formati = cfg_firma.formati_firma_consentiti if cfg_firma and cfg_firma.configurato else ['cades', 'pades'] %}
       <form method="post" enctype="multipart/form-data" id="firma-form">
         <div class="modal-header">
           <h5 class="modal-title">
@@ -2089,10 +2084,15 @@
               <span class="fw-normal text-muted small">(opzionale)</span>
             </label>
             <input type="file" name="file" id="firma-file-input" class="form-control"
-                   accept=".p7m,.pdf,.sig,.pkcs7">
+                   accept="{{ '.p7m,.sig,.pkcs7' ~ (',.pdf' if 'pades' in firma_formati else '') }}">
             <div class="form-text">
+              {% if 'pades' in firma_formati %}
               Formati accettati: <code>.p7m</code> (CAdES-BES), <code>.pdf</code> con firma PAdES.
               Se non carichi un file il documento viene semplicemente marcato come firmato.
+              {% else %}
+              Formato accettato: <code>.p7m</code> (CAdES-BES).
+              Con Aruba Key / PKCS#11 il gestionale accetta solo CAdES (.p7m).
+              {% endif %}
             </div>
           </div>
           <div>
@@ -2301,6 +2301,13 @@ function apriFirma(btn) {
 }
 
 // ---- Controlla ricevute deposito PCT (4 fasi) ----
+function statoCanonicoDeposito(stato) {
+  const s = String(stato || '').trim().toUpperCase();
+  if (s === 'ACCETTATO') return 'ACCETTATO_PEC';
+  if (s === 'RIFIUTATO') return 'RIFIUTATO_CANCELLERIA';
+  return s || 'INVIATO';
+}
+
 function controllaRicevute(idFasc, idDep, btn) {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -2316,23 +2323,24 @@ function controllaRicevute(idFasc, idDep, btn) {
       btn.disabled = false;
       return;
     }
-    const STATI_FINALI = ['ACCETTATO_CANCELLERIA','RIFIUTATO_CANCELLERIA',
-                          'ERRORE_CONTROLLI','RIFIUTATO','ERRORE'];
+    const stato = statoCanonicoDeposito(data.stato);
+    const STATI_FINALI = ['ACCETTATO_CANCELLERIA', 'RIFIUTATO_CANCELLERIA',
+                          'ERRORE_CONTROLLI', 'ERRORE'];
 
     /* Aggiorna badge stato principale */
     const badge = document.querySelector('.dep-stato-' + idDep);
     if (badge) {
-      badge.textContent = data.stato;
+      badge.textContent = stato;
       badge.className = badge.className.replace(/bg-\S+/g,'').replace(/text-\S+/g,'').trim();
-      if (data.stato === 'ACCETTATO_CANCELLERIA')
+      if (stato === 'ACCETTATO_CANCELLERIA')
         badge.classList.add('bg-success');
-      else if (['RIFIUTATO_CANCELLERIA','RIFIUTATO','ERRORE_CONTROLLI','ERRORE'].includes(data.stato))
+      else if (['RIFIUTATO_CANCELLERIA','ERRORE_CONTROLLI','ERRORE'].includes(stato))
         badge.classList.add('bg-danger');
-      else if (data.stato === 'WARN_CONTROLLI')
+      else if (stato === 'WARN_CONTROLLI')
         badge.classList.add('bg-warning','text-dark');
-      else if (data.stato === 'CONSEGNATO')
+      else if (stato === 'CONSEGNATO')
         badge.classList.add('bg-primary');
-      else if (['ACCETTATO_PEC','ACCETTATO'].includes(data.stato))
+      else if (stato === 'ACCETTATO_PEC')
         badge.classList.add('bg-info','text-dark');
       else
         badge.classList.add('bg-secondary');
@@ -2359,12 +2367,12 @@ function controllaRicevute(idFasc, idDep, btn) {
         faseBadge(ctrl_label, '',    data.ricevuta_controlli && ec==='OK',
                                      data.ricevuta_controlli && ec==='WARN',
                                      data.ricevuta_controlli && ec==='ERROR') + sep +
-        faseBadge('④','Cancelleria', data.stato==='ACCETTATO_CANCELLERIA',
+        faseBadge('④','Cancelleria', stato==='ACCETTATO_CANCELLERIA',
                                      false,
-                                     data.stato==='RIFIUTATO_CANCELLERIA');
+                                     stato==='RIFIUTATO_CANCELLERIA');
     }
 
-    if (STATI_FINALI.includes(data.stato)) {
+    if (STATI_FINALI.includes(stato)) {
       btn.remove();
     } else {
       btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
@@ -2394,7 +2402,7 @@ function apriModificaDeposito(dep) {
   // Popola i campi
   form.querySelector('[name=tipo_atto]').value = dep.tipo_atto || '';
   const statoSel = form.querySelector('[name=stato]');
-  if (statoSel) statoSel.value = dep.stato || 'INVIATO';
+  if (statoSel) statoSel.value = statoCanonicoDeposito(dep.stato);
   form.querySelector('[name=pec_destinatario]').value = dep.pec_destinatario || '';
   form.querySelector('[name=messaggio]').value = dep.messaggio || '';
   form.querySelector('[name=ricevuta_accettazione]').value = dep.ricevuta_accettazione || '';

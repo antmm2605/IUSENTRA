@@ -170,6 +170,34 @@ class ConfigFirma:
     def configurato(self) -> bool:
         return self.formato_attivo != "nessuno"
 
+    @property
+    def formati_firma_consentiti(self) -> list[str]:
+        """Restituisce i formati firma consentiti per il backend attivo."""
+        formato = self.formato_attivo
+        if formato == "pkcs11":
+            return ["cades"]
+        if formato in ("p12", "pem"):
+            return ["cades", "pades"]
+        return []
+
+    def valida_formato_firma(self, formato: str) -> str:
+        """Valida il formato richiesto rispetto al backend di firma attivo."""
+        valore = str(formato or "cades").strip().lower()
+        consentiti = self.formati_firma_consentiti
+        if not consentiti:
+            raise ValueError("Nessun backend di firma configurato.")
+        if valore not in consentiti:
+            if self.formato_attivo == "pkcs11":
+                raise ValueError(
+                    "Con Aruba Key / PKCS#11 è consentito solo CAdES (.p7m). "
+                    "Per PAdES usare una firma P12 o PEM."
+                )
+            raise ValueError(
+                f"Formato firma non consentito: {valore}. "
+                f"Consentiti: {', '.join(consentiti)}"
+            )
+        return valore
+
 
 @dataclass
 class ConfigSMTP:

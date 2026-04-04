@@ -4,13 +4,15 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from click.testing import CliRunner
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.busta import DatiBusta
 from pct.cli import cli
+from pct.config_studio import ConfigFirma, ConfigStudio, GestioneConfigStudio
 from pct.deposito import DepositoCivile
-from pct.fascicoli import EsitoDepositoPCT
+from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.firma import FirmaDigitale
 from pct.pec import ConfigPEC
 from web.app import create_app
@@ -256,6 +258,94 @@ def test_cmd_deposita_risolve_ufficio_prima_di_costruire_la_busta(tmp_path, monk
     assert catture["codice_ufficio"] == "0580010"
     assert catture["tribunale_arg"] == "0580010"
     assert "Tribunale di Milano (0580010)" in result.output
+
+
+def test_config_firma_pkcs11_consente_solo_cades(tmp_path):
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    cfg = ConfigFirma(pkcs11_library=str(libreria))
+
+    assert cfg.formato_attivo == "pkcs11"
+    assert cfg.formati_firma_consentiti == ["cades"]
+    assert cfg.valida_formato_firma("cades") == "cades"
+    with pytest.raises(ValueError, match="solo CAdES"):
+        cfg.valida_formato_firma("pades")
+
+
+def test_config_firma_p12_consente_cades_e_pades(tmp_path):
+    p12 = tmp_path / "firma.p12"
+    p12.write_bytes(b"fake")
+    cfg = ConfigFirma(p12_path=str(p12))
+
+    assert cfg.formato_attivo == "p12"
+    assert cfg.formati_firma_consentiti == ["cades", "pades"]
+    assert cfg.valida_formato_firma("pades") == "pades"
+
+
+def test_firma_documento_blocca_pdf_pades_con_backend_pkcs11(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(firma=ConfigFirma(pkcs11_library=str(libreria)))
+    )
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="deposito-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(titolo="Fascicolo test firma", tipo=TipoFascicolo.CIVILE)
+    doc = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-ORIG%",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "deposito-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        with open(tmp_path / "signed.pdf", "wb") as fh:
+            fh.write(b"%PDF-SIGNED%")
+        with open(tmp_path / "signed.pdf", "rb") as fh:
+            response = client.post(
+                f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/firma",
+                data={"file": (fh, "signed.pdf"), "note": "Upload PAdES"},
+                content_type="multipart/form-data",
+                follow_redirects=True,
+            )
+
+    assert response.status_code == 200
+    assert b"solo CAdES" in response.data
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert fascicolo_reload.documenti[0].nome == "atto.pdf"
+    assert fascicolo_reload.documenti[0].firmato_digitalmente is False
 
 
 def test_api_pkcs11_firma_documento_blocca_pades(tmp_path):

@@ -243,18 +243,65 @@ class DatiArchivio:
 
 # ------------------------------------------------------------------ Esito deposito PCT
 
-_STATI_DEPOSITO_PCT_LEGACY = {
+STATI_DEPOSITO_PCT_CANONICI = {
+    "INVIATO",
+    "ACCETTATO_PEC",
+    "CONSEGNATO",
+    "WARN_CONTROLLI",
+    "ERRORE_CONTROLLI",
+    "ACCETTATO_CANCELLERIA",
+    "RIFIUTATO_CANCELLERIA",
+    "ERRORE",
+    "IMPORTATO_DA_PORTALE",
+    "IMPORTATO_DA_PST",
+}
+
+_STATI_DEPOSITO_PCT_LEGACY_MAP = {
     "ACCETTATO": "ACCETTATO_PEC",
     "RIFIUTATO": "RIFIUTATO_CANCELLERIA",
 }
 
 
+def _normalizza_stato_deposito_pct(stato: str) -> str:
+    """Normalizza e valida gli stati deposito PCT verso il set canonico."""
+    valore = str(stato or "INVIATO").strip().upper()
+    valore = _STATI_DEPOSITO_PCT_LEGACY_MAP.get(valore, valore)
+    if valore not in STATI_DEPOSITO_PCT_CANONICI:
+        raise ValueError(f"Stato deposito non valido: {stato}")
+    return valore
+
+
 def normalizza_stato_deposito_pct(stato: str) -> str:
-    """Normalizza gli stati legacy dei depositi verso il flusso PCT esteso."""
-    valore = str(stato or "").strip().upper()
+    """Alias retrocompatibile della normalizzazione stati deposito PCT."""
+    return _normalizza_stato_deposito_pct(stato)
+
+
+def _normalizza_esito_controlli(esito: str) -> str:
+    """Normalizza e valida l'esito dei controlli automatici PCT."""
+    valore = str(esito or "").strip().upper()
     if not valore:
-        return "INVIATO"
-    return _STATI_DEPOSITO_PCT_LEGACY.get(valore, valore)
+        return ""
+    if valore not in {"OK", "WARN", "ERROR"}:
+        raise ValueError(f"Esito controlli non valido: {esito}")
+    return valore
+
+
+def _migra_payload_depositi_pct(payload_fascicolo: dict) -> bool:
+    """Migra in-place gli stati legacy dei depositi già salvati nel JSON."""
+    cambiato = False
+    for dep in payload_fascicolo.get("depositi_pct") or []:
+        stato_orig = dep.get("stato", "INVIATO")
+        stato_norm = _normalizza_stato_deposito_pct(stato_orig)
+        if stato_norm != stato_orig:
+            dep["stato"] = stato_norm
+            cambiato = True
+
+        esito_orig = dep.get("esito_controlli", "")
+        esito_norm = _normalizza_esito_controlli(esito_orig)
+        if esito_norm != esito_orig:
+            dep["esito_controlli"] = esito_norm
+            cambiato = True
+    return cambiato
 
 @dataclass
 class EsitoDepositoPCT:
@@ -329,7 +376,8 @@ class EsitoDepositoPCT:
         d = dict(d or {})
         if not d.get("id") and d.get("id_deposito"):
             d["id"] = d["id_deposito"]
-        d["stato"] = normalizza_stato_deposito_pct(d.get("stato", "INVIATO"))
+        d["stato"] = _normalizza_stato_deposito_pct(d.get("stato", "INVIATO"))
+        d["esito_controlli"] = _normalizza_esito_controlli(d.get("esito_controlli", ""))
         campi = {f for f in cls.__dataclass_fields__}
         return cls(**{k: v for k, v in d.items() if k in campi})
 
@@ -496,7 +544,12 @@ class GestioneFascicoli:
         if self.db_path.exists():
             with open(self.db_path, encoding="utf-8") as f:
                 raw = json.load(f)
+            migrato = False
+            for payload in raw.values():
+                migrato = _migra_payload_depositi_pct(payload) or migrato
             self._fascicoli = {k: Fascicolo.from_dict(v) for k, v in raw.items()}
+            if migrato:
+                self._salva()
 
     def _salva(self) -> None:
         with open(self.db_path, "w", encoding="utf-8") as f:
@@ -764,10 +817,12 @@ class GestioneFascicoli:
     ) -> EsitoDepositoPCT:
         """Registra nel fascicolo l'esito di un deposito telematico."""
         f = self._get_o_errore(id_fasc)
+        stato = _normalizza_stato_deposito_pct(stato)
+        esito_controlli = _normalizza_esito_controlli(esito_controlli)
         esito = EsitoDepositoPCT(
             id=uuid.uuid4().hex[:8].upper(),
             timestamp=datetime.now().isoformat(),
-            stato=normalizza_stato_deposito_pct(stato),
+            stato=stato,
             tipo_atto=tipo_atto,
             pec_destinatario=pec_destinatario,
             messaggio=messaggio,
@@ -1026,7 +1081,7 @@ class GestioneFascicoli:
         )
 
         if dep:
-            dep.stato = stato or dep.stato
+            dep.stato = _normalizza_stato_deposito_pct(stato or dep.stato)
             dep.timestamp = timestamp or dep.timestamp
             dep.tipo_atto = tipo_atto or dep.tipo_atto
             dep.pec_destinatario = mittente or dep.pec_destinatario or fonte
@@ -1045,7 +1100,7 @@ class GestioneFascicoli:
         dep = EsitoDepositoPCT(
             id=uuid.uuid4().hex[:8].upper(),
             timestamp=timestamp,
-            stato=stato,
+            stato=_normalizza_stato_deposito_pct(stato),
             tipo_atto=tipo_atto or "Deposito visibile su portale",
             pec_destinatario=mittente or fonte,
             messaggio=f"Metadati importati da {fonte}",
@@ -1100,12 +1155,12 @@ class GestioneFascicoli:
             raise KeyError(f"Deposito '{id_dep}' non trovato nel fascicolo.")
         dep.tipo_atto = tipo_atto
         dep.pec_destinatario = pec_destinatario
-        dep.stato = normalizza_stato_deposito_pct(stato)
+        dep.stato = _normalizza_stato_deposito_pct(stato)
         dep.messaggio = messaggio
         dep.ricevuta_accettazione = ricevuta_accettazione
         dep.ricevuta_consegna = ricevuta_consegna
         dep.ricevuta_controlli_automatici = ricevuta_controlli_automatici
-        dep.esito_controlli = esito_controlli
+        dep.esito_controlli = _normalizza_esito_controlli(esito_controlli)
         dep.ricevuta_cancelleria = ricevuta_cancelleria
         dep.note = note
         f.modificato_il = datetime.now().isoformat()

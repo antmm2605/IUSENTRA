@@ -14,6 +14,9 @@ from pct.fascicoli import (
     EsitoAttivita,
     AttivitaProcessuale,
     Documento,
+    EsitoDepositoPCT,
+    normalizza_stato_deposito_pct,
+    _normalizza_esito_controlli,
 )
 
 
@@ -230,6 +233,79 @@ def test_registra_import_documenti_portale_collega_documenti_e_attivita(gf, fasc
         att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == esito.id
         for att in fascicolo.attivita
     )
+
+
+def test_normalizza_stato_deposito_pct_migra_legacy():
+    assert normalizza_stato_deposito_pct("accettato") == "ACCETTATO_PEC"
+    assert normalizza_stato_deposito_pct("RIFIUTATO") == "RIFIUTATO_CANCELLERIA"
+    assert normalizza_stato_deposito_pct("importato_da_pst") == "IMPORTATO_DA_PST"
+
+
+def test_normalizza_stato_deposito_pct_rifiuta_valori_non_validi():
+    with pytest.raises(ValueError, match="Stato deposito non valido"):
+        normalizza_stato_deposito_pct("CHIUSO")
+
+
+def test_normalizza_esito_controlli_accetta_solo_valori_canonici():
+    assert _normalizza_esito_controlli("warn") == "WARN"
+    assert _normalizza_esito_controlli("") == ""
+    with pytest.raises(ValueError, match="Esito controlli non valido"):
+        _normalizza_esito_controlli("KO")
+
+
+def test_aggiungi_esito_deposito_normalizza_controlli(gf, fascicolo_base):
+    esito = gf.aggiungi_esito_deposito(
+        fascicolo_base.id,
+        tipo_atto="MEMORIA",
+        pec_destinatario="tribunale.milano@giustiziapec.it",
+        stato="accettato",
+        esito_controlli="warn",
+    )
+
+    assert esito.stato == "ACCETTATO_PEC"
+    assert esito.esito_controlli == "WARN"
+
+
+def test_caricamento_fascicoli_migra_stati_legacy_su_disco(tmp_path):
+    db_path = tmp_path / "fascicoli.json"
+    raw = {
+        "FASC1234": {
+            "id": "FASC1234",
+            "numero": "2026/001",
+            "titolo": "Migrazione depositi legacy",
+            "tipo": "CIVILE",
+            "stato": "APERTO",
+            "documenti": [],
+            "attivita": [],
+            "avanzamento": [],
+            "depositi_pct": [
+                {
+                    "id": "DEP00001",
+                    "timestamp": "2026-04-04T10:00:00",
+                    "stato": "ACCETTATO",
+                    "tipo_atto": "MEMORIA",
+                    "pec_destinatario": "tribunale.milano@giustiziapec.it",
+                    "esito_controlli": "warn",
+                }
+            ],
+        }
+    }
+    db_path.write_text(__import__("json").dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    gf = GestioneFascicoli(
+        db_path=str(db_path),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+
+    fascicolo = gf.get("FASC1234")
+    assert fascicolo is not None
+    assert fascicolo.depositi_pct[0].stato == "ACCETTATO_PEC"
+    assert fascicolo.depositi_pct[0].esito_controlli == "WARN"
+
+    persisted = __import__("json").loads(db_path.read_text(encoding="utf-8"))
+    assert persisted["FASC1234"]["depositi_pct"][0]["stato"] == "ACCETTATO_PEC"
+    assert persisted["FASC1234"]["depositi_pct"][0]["esito_controlli"] == "WARN"
 
 
 def test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_ufficiale(gf, fascicolo_base):

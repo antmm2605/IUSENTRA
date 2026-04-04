@@ -45,6 +45,24 @@ def _firma_upload_dir() -> Path:
     return cfg_path.parent / "firma_uploads"
 
 
+def _local_signer_meta() -> dict[str, str]:
+    tools_dir = Path(__file__).resolve().parents[2] / "tools"
+    source = (tools_dir / "local_signer.py").read_text(encoding="utf-8")
+    import re as _re
+
+    match = _re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
+    version = match.group(1) if match else "n.d."
+    return {
+        "version": version,
+        "download_page": "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma",
+        "windows_filename": f"SetupLocalSigner-{version}.exe",
+        "windows_script_filename": f"InstallaLocalSigner-{version}.ps1",
+        "macos_filename": f"InstallaLocalSigner-{version}.command",
+        "linux_filename": f"InstallaLocalSigner-{version}.run",
+        "python_filename": f"local_signer-{version}.py",
+    }
+
+
 def _salva_upload_firma(storage, prefix: str, allowed_exts: set[str]) -> str:
     if not storage or not getattr(storage, "filename", ""):
         return ""
@@ -230,6 +248,7 @@ def index():
         "impostazioni/index.html",
         cfg=cfg,
         tab_attivo=tab_attivo,
+        local_signer=_local_signer_meta(),
     )
 
 

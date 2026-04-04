@@ -18,6 +18,10 @@ def _load_local_signer():
     return module
 
 
+def _local_signer_version():
+    return _load_local_signer().VERSION
+
+
 def test_rileva_endpoint_pst_legacy():
     module = _load_local_signer()
 
@@ -663,14 +667,18 @@ def _cfg_web(tmp_path):
 def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/installa-windows")
 
     assert r.status_code == 200
-    assert "attachment; filename=\"installa_local_signer.ps1\"" in r.headers.get("Content-Disposition", "")
+    assert (
+        f'attachment; filename="InstallaLocalSigner-{version}.ps1"'
+        in r.headers.get("Content-Disposition", "")
+    )
     body = r.data.decode("utf-8")
-    assert "HACS Local Signer" in body
+    assert f"HACS Local Signer v{version}" in body
     assert "Invoke-WebRequest" in body
     assert "/polisWeb/local-signer/download" in body
     assert "hacs-local-signer" in body
@@ -680,13 +688,14 @@ def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
 def test_download_local_signer_python_e_pubblico(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/download")
 
     assert r.status_code == 200
     assert "attachment" in r.headers.get("Content-Disposition", "")
-    assert "local_signer.py" in r.headers.get("Content-Disposition", "")
+    assert f"local_signer-{version}.py" in r.headers.get("Content-Disposition", "")
     body = r.data.decode("utf-8")
     assert "HACS Local Signer" in body
     assert "def main()" in body
@@ -710,6 +719,7 @@ def test_download_registro_uffici_local_signer_e_pubblico(tmp_path):
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/windows")
@@ -718,32 +728,37 @@ def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     disposition = r.headers.get("Content-Disposition", "")
     assert "attachment;" in disposition
     assert (
-        "SetupLocalSigner.exe" in disposition
-        or "installa_local_signer.ps1" in disposition
+        f"SetupLocalSigner-{version}.exe" in disposition
+        or f"InstallaLocalSigner-{version}.ps1" in disposition
     )
 
 
 def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/windows-exe")
 
     assert r.status_code in (200, 404)
     if r.status_code == 200:
-        assert "SetupLocalSigner.exe" in r.headers.get("Content-Disposition", "")
+        assert f"SetupLocalSigner-{version}.exe" in r.headers.get("Content-Disposition", "")
 
 
 def test_installer_local_signer_macos_e_pubblico(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/macos")
 
     assert r.status_code == 200
-    assert 'attachment; filename="InstallaLocalSigner.command"' in r.headers.get("Content-Disposition", "")
+    assert (
+        f"InstallaLocalSigner-{version}.command"
+        in r.headers.get("Content-Disposition", "")
+    )
     body = r.data.decode("utf-8")
     assert "LaunchAgents" in body
     assert "/polisWeb/local-signer/download" in body
@@ -752,12 +767,16 @@ def test_installer_local_signer_macos_e_pubblico(tmp_path):
 def test_installer_local_signer_linux_e_pubblico(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         r = c.get("/polisWeb/local-signer/setup/linux")
 
     assert r.status_code == 200
-    assert 'attachment; filename="installa_local_signer.sh"' in r.headers.get("Content-Disposition", "")
+    assert (
+        f"InstallaLocalSigner-{version}.run"
+        in r.headers.get("Content-Disposition", "")
+    )
     body = r.data.decode("utf-8")
     assert "systemd/user" in body
     assert "/polisWeb/local-signer/download" in body
@@ -766,6 +785,7 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
 def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_path):
     from web.app import create_app
 
+    version = _local_signer_version()
     app = create_app(_cfg_web(tmp_path))
     with app.test_client() as c:
         login = c.post(
@@ -785,6 +805,10 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
     assert "/polisWeb/local-signer/setup/linux" in body
     assert "/polisWeb/local-signer/download" in body
     assert "/polisWeb/local-signer/download/uffici" in body
+    assert f"SetupLocalSigner-{version}.exe" in body
+    assert f"InstallaLocalSigner-{version}.command" in body
+    assert f"InstallaLocalSigner-{version}.run" in body
+    assert "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma" in body
 
 
 def test_impostazioni_firma_carica_p12_nel_volume_configurato(tmp_path):

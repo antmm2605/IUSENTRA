@@ -3921,11 +3921,60 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_signer_tools_dir() -> Path:
         return Path(__file__).parent.parent / "tools"
 
+    def _local_signer_dist_dir() -> Path:
+        return _local_signer_tools_dir() / "dist"
+
+    def _local_signer_source_path() -> Path:
+        return _local_signer_tools_dir() / "local_signer.py"
+
+    def _local_signer_version() -> str:
+        source = _local_signer_source_path().read_text(encoding="utf-8")
+        match = re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
+        if not match:
+            raise ValueError("Versione Local Signer non trovata in tools/local_signer.py")
+        return match.group(1)
+
+    def _local_signer_windows_exe_name() -> str:
+        return f"SetupLocalSigner-{_local_signer_version()}.exe"
+
+    def _local_signer_windows_ps1_name() -> str:
+        return f"InstallaLocalSigner-{_local_signer_version()}.ps1"
+
+    def _local_signer_macos_name() -> str:
+        return f"InstallaLocalSigner-{_local_signer_version()}.command"
+
+    def _local_signer_linux_name() -> str:
+        return f"InstallaLocalSigner-{_local_signer_version()}.run"
+
+    def _local_signer_python_name() -> str:
+        return f"local_signer-{_local_signer_version()}.py"
+
     def _local_signer_windows_exe_path() -> Path:
-        return _local_signer_tools_dir() / "dist" / "SetupLocalSigner.exe"
+        preferred = _local_signer_dist_dir() / _local_signer_windows_exe_name()
+        legacy = _local_signer_dist_dir() / "SetupLocalSigner.exe"
+        if preferred.exists():
+            return preferred
+        return legacy
 
     def _local_signer_uffici_path() -> Path:
         return Path(__file__).parent.parent / "pct" / "data" / "uffici_ministero.json"
+
+    def _local_signer_macos_installer_path() -> Path:
+        preferred = _local_signer_dist_dir() / _local_signer_macos_name()
+        legacy = _local_signer_dist_dir() / "InstallaLocalSigner.command"
+        if preferred.exists():
+            return preferred
+        return legacy
+
+    def _local_signer_linux_installer_path() -> Path:
+        preferred = _local_signer_dist_dir() / _local_signer_linux_name()
+        legacy_run = _local_signer_dist_dir() / "InstallaLocalSigner.run"
+        legacy = _local_signer_dist_dir() / "installa_local_signer.sh"
+        if preferred.exists():
+            return preferred
+        if legacy_run.exists():
+            return legacy_run
+        return legacy
 
     def _local_signer_allowed_origins(base_url: str) -> str:
         origini = {base_url.rstrip("/")}
@@ -3937,8 +3986,10 @@ def create_app(config: dict | None = None) -> Flask:
 
     def _render_local_signer_windows_ps1(base_url: str) -> str:
         allowed_origins = _local_signer_allowed_origins(base_url)
-        return f"""# HACS Local Signer - Installazione automatica Windows
+        version = _local_signer_version()
+        return f"""# HACS Local Signer v{version} - Installazione automatica Windows
 # Eseguire in PowerShell come utente normale (non richiede amministratore)
+# Punto ufficiale download: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma
 
 $ErrorActionPreference = 'Stop'
 $dir    = "$env:APPDATA\\HACS\\LocalSigner"
@@ -3951,8 +4002,9 @@ $starterVbs = "$dir\\\\start_local_signer.vbs"
 $pyExe  = "$venv\\\\Scripts\\\\python.exe"
 $pywExe = "$venv\\\\Scripts\\\\pythonw.exe"
 $allowedOrigins = "{allowed_origins}"
+$version = "{version}"
 
-Write-Host "HACS Local Signer - Installazione..." -ForegroundColor Cyan
+Write-Host "HACS Local Signer v$version - Installazione..." -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
@@ -4085,7 +4137,7 @@ for ($i = 0; $i -lt 15; $i++) {{
 
 Write-Host ""
 if ($online) {{
-    Write-Host "Installazione completata!" -ForegroundColor Green
+    Write-Host "Installazione completata! Local Signer v$version pronto." -ForegroundColor Green
     Write-Host "  Il Local Signer e' attivo su http://127.0.0.1:27272"
     Write-Host "  Si avviera' automaticamente ad ogni accesso Windows."
     Write-Host "  Da ora HACS puo' avviarlo automaticamente quando clicchi Cerca."
@@ -4101,18 +4153,20 @@ Read-Host "Premere Invio per chiudere"
 
     def _render_local_signer_macos_command(base_url: str) -> str:
         allowed_origins = _local_signer_allowed_origins(base_url)
+        version = _local_signer_version()
         return f"""#!/bin/bash
 set -euo pipefail
 
 BASE_URL="{base_url}"
 ALLOWED_ORIGINS="{allowed_origins}"
+VERSION="{version}"
 DIR="$HOME/Library/Application Support/HACS/LocalSigner"
 DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
 PY="$VENV/bin/python3"
 PLIST="$HOME/Library/LaunchAgents/it.hacs.local-signer.plist"
 
-echo "HACS Local Signer - Installazione macOS"
+echo "HACS Local Signer v$VERSION - Installazione macOS"
 
 mkdir -p "$DIR" "$DATA_DIR" "$(dirname "$PLIST")"
 
@@ -4160,19 +4214,22 @@ launchctl bootstrap "gui/$(id -u)" "$PLIST"
 launchctl kickstart -k "gui/$(id -u)/it.hacs.local-signer"
 
 echo
-echo "Installazione completata."
+echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
+echo "Pacchetto ufficiale sempre disponibile su: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma"
 echo "Tornare su HACS e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 """
 
     def _render_local_signer_linux_sh(base_url: str) -> str:
         allowed_origins = _local_signer_allowed_origins(base_url)
+        version = _local_signer_version()
         return f"""#!/usr/bin/env bash
 set -euo pipefail
 
 BASE_URL="{base_url}"
 ALLOWED_ORIGINS="{allowed_origins}"
+VERSION="{version}"
 DIR="${{XDG_DATA_HOME:-$HOME/.local/share}}/hacs/local-signer"
 DATA_DIR="$DIR/data"
 VENV="$DIR/.venv"
@@ -4180,7 +4237,7 @@ PY="$VENV/bin/python"
 SERVICE_DIR="${{XDG_CONFIG_HOME:-$HOME/.config}}/systemd/user"
 SERVICE="$SERVICE_DIR/hacs-local-signer.service"
 
-echo "HACS Local Signer - Installazione Linux"
+echo "HACS Local Signer v$VERSION - Installazione Linux"
 
 mkdir -p "$DIR" "$DATA_DIR" "$SERVICE_DIR"
 
@@ -4216,8 +4273,9 @@ systemctl --user daemon-reload
 systemctl --user enable --now hacs-local-signer.service
 
 echo
-echo "Installazione completata."
+echo "Installazione completata. Local Signer v$VERSION pronto."
 echo "Local Signer attivo su http://127.0.0.1:27272"
+echo "Pacchetto ufficiale sempre disponibile su: https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma"
 echo "Tornare su HACS e cliccare Riverifica."
 read -r -p "Premi Invio per chiudere..." _
 """
@@ -4233,7 +4291,7 @@ read -r -p "Premi Invio per chiudere..." _
             return send_file(
                 ls_path,
                 as_attachment=True,
-                download_name="local_signer.py",
+                download_name=_local_signer_python_name(),
                 mimetype="text/x-python",
             )
         except Exception as e:
@@ -4270,7 +4328,7 @@ read -r -p "Premi Invio per chiudere..." _
             return send_file(
                 exe_path,
                 as_attachment=True,
-                download_name="SetupLocalSigner.exe",
+                download_name=_local_signer_windows_exe_name(),
                 mimetype="application/octet-stream",
             )
         except Exception as e:
@@ -4285,13 +4343,13 @@ read -r -p "Premi Invio per chiudere..." _
             return send_file(
                 exe_path,
                 as_attachment=True,
-                download_name="SetupLocalSigner.exe",
+                download_name=_local_signer_windows_exe_name(),
                 mimetype="application/octet-stream",
             )
         return Response(
             _render_local_signer_windows_ps1(base_url),
             mimetype="text/plain; charset=utf-8",
-            headers={"Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'},
+            headers={"Content-Disposition": f'attachment; filename="{_local_signer_windows_ps1_name()}"'},
         )
 
     @app.route("/polisWeb/local-signer/installa-windows")
@@ -4305,7 +4363,7 @@ read -r -p "Premi Invio per chiudere..." _
                 _render_local_signer_windows_ps1(_get_base_url()),
                 mimetype="text/plain; charset=utf-8",
                 headers={
-                    "Content-Disposition": 'attachment; filename="installa_local_signer.ps1"'
+                    "Content-Disposition": f'attachment; filename="{_local_signer_windows_ps1_name()}"'
                 },
             )
         except Exception as e:
@@ -4316,10 +4374,18 @@ read -r -p "Premi Invio per chiudere..." _
     def polis_local_signer_setup_macos():
         """Serve l'installer macOS (.command) del Local Signer."""
         try:
+            installer_path = _local_signer_macos_installer_path()
+            if installer_path.exists():
+                return send_file(
+                    installer_path,
+                    as_attachment=True,
+                    download_name=_local_signer_macos_name(),
+                    mimetype="text/plain; charset=utf-8",
+                )
             return Response(
                 _render_local_signer_macos_command(_get_base_url()),
                 mimetype="text/plain; charset=utf-8",
-                headers={"Content-Disposition": 'attachment; filename="InstallaLocalSigner.command"'},
+                headers={"Content-Disposition": f'attachment; filename="{_local_signer_macos_name()}"'},
             )
         except Exception as e:
             app.logger.exception("Errore generazione installer macOS: %s", e)
@@ -4329,10 +4395,18 @@ read -r -p "Premi Invio per chiudere..." _
     def polis_local_signer_setup_linux():
         """Serve l'installer Linux (.sh) del Local Signer."""
         try:
+            installer_path = _local_signer_linux_installer_path()
+            if installer_path.exists():
+                return send_file(
+                    installer_path,
+                    as_attachment=True,
+                    download_name=_local_signer_linux_name(),
+                    mimetype="text/plain; charset=utf-8",
+                )
             return Response(
                 _render_local_signer_linux_sh(_get_base_url()),
                 mimetype="text/plain; charset=utf-8",
-                headers={"Content-Disposition": 'attachment; filename="installa_local_signer.sh"'},
+                headers={"Content-Disposition": f'attachment; filename="{_local_signer_linux_name()}"'},
             )
         except Exception as e:
             app.logger.exception("Errore generazione installer Linux: %s", e)

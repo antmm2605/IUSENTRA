@@ -132,6 +132,16 @@ python -m pytest tests/ -v
   - branch remoto usato da Railway
   - `railway.toml` con la stessa versione del codice locale
 
+**Local Signer — REGOLA OBBLIGATORIA:**
+- Ad ogni release del `Local Signer`, generare sempre contestualmente i pacchetti versionati per **Windows, macOS e Linux** nella cartella `tools/dist`.
+- I nomi file devono includere sempre la versione del signer (es. `SetupLocalSigner-1.5.5.exe`).
+- I pacchetti finali distribuiti all'utente devono essere presentati come **eseguibili**, non come semplici script:
+  - Windows → `.exe`
+  - macOS → installer eseguibile `.command`
+  - Linux → installer eseguibile `.run`
+- Il punto ufficiale e permanente di distribuzione dei pacchetti è:
+  `https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma`
+
 **Schema SemVer:**
 - `MAJOR.MINOR.PATCH`
 - Patch (+0.0.1): bug fix, correzioni dati, aggiornamenti documentazione

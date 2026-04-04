@@ -542,13 +542,21 @@
                   </div>
                   <div class="text-muted small">
                     Se il download da PolisWeb viene bloccato, usa questi installer diretti dalla tab Firma.
-                    Il pulsante Windows scarica automaticamente il miglior pacchetto disponibile:
-                    <code>SetupLocalSigner.exe</code> oppure lo script PowerShell compatibile.
+                    I pacchetti vengono generati contestualmente per Windows, macOS e Linux e restano sempre reperibili da
+                    <a href="{{ local_signer.download_page }}" target="_blank" rel="noopener">{{ local_signer.download_page }}</a>.
+                    Per Windows il pacchetto ufficiale e' sempre l'eseguibile
+                    <code>{{ local_signer.windows_filename }}</code>.
+                    Lo script PowerShell <code>{{ local_signer.windows_script_filename }}</code> resta solo come fallback tecnico legacy.
                   </div>
                 </div>
-                <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
-                  Consigliato per PST / PolisWeb
-                </span>
+                <div class="d-flex gap-2 flex-wrap">
+                  <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                    v{{ local_signer.version }}
+                  </span>
+                  <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                    Consigliato per PST / PolisWeb
+                  </span>
+                </div>
               </div>
               <div class="row g-2 mt-1">
                 <div class="col-md-4">
@@ -556,7 +564,7 @@
                      class="btn btn-primary w-100"
                      target="_blank" rel="noopener"
                      id="btn-local-signer-windows">
-                    <i class="bi bi-windows me-2"></i>Scarica per Windows
+                    <i class="bi bi-windows me-2"></i>Scarica per Windows · v{{ local_signer.version }}
                   </a>
                 </div>
                 <div class="col-md-4">
@@ -564,7 +572,7 @@
                      class="btn btn-outline-secondary w-100"
                      target="_blank" rel="noopener"
                      id="btn-local-signer-macos">
-                    <i class="bi bi-apple me-2"></i>Scarica per macOS
+                    <i class="bi bi-apple me-2"></i>Scarica per macOS · v{{ local_signer.version }}
                   </a>
                 </div>
                 <div class="col-md-4">
@@ -572,9 +580,17 @@
                      class="btn btn-outline-secondary w-100"
                      target="_blank" rel="noopener"
                      id="btn-local-signer-linux">
-                    <i class="bi bi-terminal me-2"></i>Scarica per Linux
+                    <i class="bi bi-terminal me-2"></i>Scarica per Linux · v{{ local_signer.version }}
                   </a>
                 </div>
+              </div>
+              <div class="small text-muted mt-2">
+                Pacchetti pubblicati:
+                <code>{{ local_signer.windows_filename }}</code>,
+                <code>{{ local_signer.macos_filename }}</code>,
+                <code>{{ local_signer.linux_filename }}</code>.
+                Su macOS e Linux vengono distribuiti come installer eseguibili rispettivamente
+                <code>.command</code> e <code>.run</code>.
               </div>
               <div class="d-flex gap-2 flex-wrap mt-3">
                 <a href="{{ url_for('polis_local_signer_download') }}"
@@ -688,19 +704,19 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'btn-local-signer-windows',
       primary: 'btn-primary',
       secondary: 'btn-outline-secondary',
-      label: 'Scarica per Windows (consigliato su questo PC)',
+      label: 'Scarica per Windows · v{{ local_signer.version }} (consigliato su questo PC)',
     },
     macos: {
       id: 'btn-local-signer-macos',
       primary: 'btn-primary',
       secondary: 'btn-outline-secondary',
-      label: 'Scarica per macOS (consigliato su questo Mac)',
+      label: 'Scarica per macOS · v{{ local_signer.version }} (consigliato su questo Mac)',
     },
     linux: {
       id: 'btn-local-signer-linux',
       primary: 'btn-primary',
       secondary: 'btn-outline-secondary',
-      label: 'Scarica per Linux (consigliato su questo sistema)',
+      label: 'Scarica per Linux · v{{ local_signer.version }} (consigliato su questo sistema)',
     },
   };
 

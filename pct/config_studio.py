@@ -136,10 +136,18 @@ class ConfigFirma:
 
     # ── Comune a tutti i formati ─────────────────────────────────────────────
     cf_avvocato: str = ""
+    backend_preferito: str = "auto"  # auto | pkcs11 | p12 | pem
+
+    @property
+    def backend_preferito_normalizzato(self) -> str:
+        valore = str(self.backend_preferito or "auto").strip().lower()
+        if valore in {"auto", "pkcs11", "p12", "pem"}:
+            return valore
+        return "auto"
 
     @property
     def formato_attivo(self) -> str:
-        """Restituisce il formato rilevato: 'pkcs11', 'p12', 'pem' o 'nessuno'."""
+        """Restituisce il backend rilevato tecnicamente: 'pkcs11', 'p12', 'pem' o 'nessuno'."""
         import os as _os
         from pct.firma_pkcs11 import libreria_disponibile as _lib_disp
         # PKCS#11: configurato se libreria specificata o auto-rilevata
@@ -167,13 +175,52 @@ class ConfigFirma:
         return _lib_disp() is not None
 
     @property
+    def backend_firma_effettivo(self) -> str:
+        """Restituisce il backend effettivo rispettando la scelta salvata dell'utente."""
+        import os as _os
+
+        preferito = self.backend_preferito_normalizzato
+        if preferito == "pkcs11":
+            if self.pkcs11_configurato:
+                return "pkcs11"
+            raise FileNotFoundError("PKCS#11 selezionato ma libreria/token non disponibili.")
+        if preferito == "p12":
+            if self.p12_path and _os.path.exists(self.p12_path):
+                return "p12"
+            raise FileNotFoundError("P12 selezionato ma file non disponibile.")
+        if preferito == "pem":
+            if (
+                self.cert_pem_path and self.key_pem_path
+                and _os.path.exists(self.cert_pem_path)
+                and _os.path.exists(self.key_pem_path)
+            ):
+                return "pem"
+            raise FileNotFoundError("PEM selezionato ma certificato/chiave non disponibili.")
+        return self.formato_attivo
+
+    @property
+    def backend_firma_effettivo_safe(self) -> str:
+        try:
+            return self.backend_firma_effettivo
+        except Exception:
+            return "nessuno"
+
+    @property
+    def backend_firma_errore(self) -> str:
+        try:
+            self.backend_firma_effettivo
+        except Exception as exc:
+            return str(exc)
+        return ""
+
+    @property
     def configurato(self) -> bool:
-        return self.formato_attivo != "nessuno"
+        return self.backend_firma_effettivo_safe != "nessuno"
 
     @property
     def formati_firma_consentiti(self) -> list[str]:
         """Restituisce i formati firma consentiti per il backend attivo."""
-        formato = self.formato_attivo
+        formato = self.backend_firma_effettivo_safe
         if formato == "pkcs11":
             return ["cades"]
         if formato in ("p12", "pem"):
@@ -183,11 +230,12 @@ class ConfigFirma:
     def valida_formato_firma(self, formato: str) -> str:
         """Valida il formato richiesto rispetto al backend di firma attivo."""
         valore = str(formato or "cades").strip().lower()
+        backend = self.backend_firma_effettivo
         consentiti = self.formati_firma_consentiti
         if not consentiti:
             raise ValueError("Nessun backend di firma configurato.")
         if valore not in consentiti:
-            if self.formato_attivo == "pkcs11":
+            if backend == "pkcs11":
                 raise ValueError(
                     "Con Aruba Key / PKCS#11 è consentito solo CAdES (.p7m). "
                     "Per PAdES usare una firma P12 o PEM."
@@ -314,7 +362,14 @@ class GestioneConfigStudio:
             firma=ConfigFirma(
                 p12_path=os.getenv("PCT_FIRMA_P12", ""),
                 password=os.getenv("PCT_FIRMA_PASSWORD", ""),
+                cert_pem_path=os.getenv("PCT_FIRMA_CERT", ""),
+                key_pem_path=os.getenv("PCT_FIRMA_KEY", ""),
+                key_pem_password=os.getenv("PCT_FIRMA_KEY_PASSWORD", ""),
+                pkcs11_library=os.getenv("PCT_PKCS11_LIBRARY", ""),
+                pkcs11_slot=os.getenv("PCT_PKCS11_SLOT", ""),
+                pkcs11_label=os.getenv("PCT_PKCS11_LABEL", ""),
                 cf_avvocato=os.getenv("PCT_CF_AVVOCATO", ""),
+                backend_preferito=os.getenv("PCT_FIRMA_BACKEND", "auto"),
             ),
             smtp=ConfigSMTP(
                 host=os.getenv("PCT_SMTP_HOST", ""),

@@ -158,6 +158,9 @@ def index():
             elif tab == "firma":
                 pwd = f.get("firma_password", "").strip()
                 key_pwd = f.get("firma_key_pem_password", "").strip()
+                backend_preferito = (f.get("firma_formato") or cfg.firma.backend_preferito or "auto").strip().lower()
+                if backend_preferito not in {"auto", "pkcs11", "p12", "pem"}:
+                    backend_preferito = "auto"
                 p12_path = f.get("firma_p12_path", "").strip()
                 cert_pem_path = f.get("firma_cert_pem_path", "").strip()
                 key_pem_path = f.get("firma_key_pem_path", "").strip()
@@ -184,6 +187,7 @@ def index():
                     pkcs11_label=f.get("pkcs11_label", "").strip(),
                     # Comune
                     cf_avvocato=f.get("firma_cf_avvocato", "").strip(),
+                    backend_preferito=backend_preferito,
                 )
             elif tab == "smtp":
                 pwd = f.get("smtp_password", "").strip()

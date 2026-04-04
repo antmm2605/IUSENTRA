@@ -13,7 +13,7 @@ from pct.cli import cli
 from pct.config_studio import ConfigFirma, ConfigStudio, GestioneConfigStudio
 from pct.deposito import DepositoCivile
 from pct.fascicoli import EsitoDepositoPCT, GestioneFascicoli, TipoDocumento, TipoFascicolo
-from pct.firma import FirmaDigitale
+from pct.firma import FirmaDigitale, crea_signer_da_config
 from pct.pec import ConfigPEC
 from web.app import create_app
 
@@ -282,6 +282,58 @@ def test_config_firma_p12_consente_cades_e_pades(tmp_path):
     assert cfg.valida_formato_firma("pades") == "pades"
 
 
+def test_config_firma_backend_preferito_prevale_su_rilevazione_tecnica(tmp_path):
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    p12 = tmp_path / "firma.p12"
+    p12.write_bytes(b"fake")
+    cfg = ConfigFirma(
+        backend_preferito="p12",
+        pkcs11_library=str(libreria),
+        p12_path=str(p12),
+    )
+
+    assert cfg.formato_attivo == "pkcs11"
+    assert cfg.backend_firma_effettivo == "p12"
+    assert cfg.formati_firma_consentiti == ["cades", "pades"]
+
+
+def test_config_firma_backend_preferito_non_fa_fallback_silenzioso(tmp_path):
+    p12 = tmp_path / "firma.p12"
+    p12.write_bytes(b"fake")
+    cfg = ConfigFirma(
+        backend_preferito="pkcs11",
+        p12_path=str(p12),
+    )
+
+    with pytest.raises(FileNotFoundError, match="PKCS#11 selezionato"):
+        _ = cfg.backend_firma_effettivo
+    assert cfg.backend_firma_effettivo_safe == "nessuno"
+    assert "PKCS#11 selezionato" in cfg.backend_firma_errore
+
+
+def test_crea_signer_da_config_rispetta_backend_preferito_pkcs11(tmp_path, monkeypatch):
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    cfg = ConfigFirma(backend_preferito="pkcs11", pkcs11_library=str(libreria))
+    catture = {}
+
+    class _FakeSigner:
+        pass
+
+    def _fake_da_config(config, pin=None):
+        catture["backend"] = config.backend_firma_effettivo
+        catture["pin"] = pin
+        return _FakeSigner()
+
+    monkeypatch.setattr("pct.firma_pkcs11.FirmaPKCS11.da_config", _fake_da_config)
+
+    signer = crea_signer_da_config(cfg, pin="123456")
+
+    assert isinstance(signer, _FakeSigner)
+    assert catture == {"backend": "pkcs11", "pin": "123456"}
+
+
 def test_firma_documento_blocca_pdf_pades_con_backend_pkcs11(tmp_path):
     cfg = _cfg_web(tmp_path)
     cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
@@ -350,6 +402,12 @@ def test_firma_documento_blocca_pdf_pades_con_backend_pkcs11(tmp_path):
 
 def test_api_pkcs11_firma_documento_blocca_pades(tmp_path):
     cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(firma=ConfigFirma(backend_preferito="pkcs11", pkcs11_library=str(libreria)))
+    )
     gu = GestioneUtenti(
         db_path=cfg["AUTH_DB"],
         audit_path=cfg["AUDIT_DB"],

@@ -3815,23 +3815,26 @@ def create_app(config: dict | None = None) -> Flask:
           'pkcs11' — token PKCS#11 locale, autenticazione gestita dal dispositivo
           'demo'   — nessun certificato, modalità demo offline
         """
-        # Controllo variabili d'ambiente (P12 / PEM)
-        if os.getenv("PCT_FIRMA_P12"):
-            return "reale"
-        if os.getenv("PCT_FIRMA_CERT") and os.getenv("PCT_FIRMA_KEY"):
-            return "reale"
         # Controllo config studio (impostazioni UI)
         try:
             cfg = get_config_studio().config.firma
-            fmt = cfg.formato_attivo
+            preferito = getattr(cfg, "backend_preferito_normalizzato", "auto")
+            fmt = getattr(cfg, "backend_firma_effettivo_safe", "nessuno")
             if fmt == "pkcs11":
                 # Token USB: la chiave privata non è esportabile e non è accessibile
                 # dal container Linux su Windows → autenticazione PST solo via browser
                 return "pkcs11"
             if fmt in ("p12", "pem"):
                 return "reale"
+            if preferito != "auto":
+                return "demo"
         except Exception:
             pass
+        # Fallback legacy su variabili d'ambiente solo in assenza di scelta esplicita
+        if os.getenv("PCT_FIRMA_P12"):
+            return "reale"
+        if os.getenv("PCT_FIRMA_CERT") and os.getenv("PCT_FIRMA_KEY"):
+            return "reale"
         return "demo"
 
     def _polis_demo_mode() -> bool:
@@ -7316,7 +7319,8 @@ read -r -p "Premi Invio per chiudere..." _
         Il PIN non viene mai salvato — viene usato una volta per la sessione e scartato.
         """
         try:
-            from pct.firma_pkcs11 import FirmaPKCS11, libreria_disponibile
+            from dataclasses import replace as _dc_replace
+            from pct.firma import crea_signer_da_config
 
             data          = request.get_json(force=True) or {}
             id_fasc       = data.get("fascicolo_id", "").strip()
@@ -7330,12 +7334,20 @@ read -r -p "Premi Invio per chiudere..." _
             if not pin:
                 return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma in-device."}), 400
             cfg_firma = get_config_studio().config.firma
-            if getattr(cfg_firma, "configurato", False):
-                try:
-                    formato = cfg_firma.valida_formato_firma(formato)
-                except ValueError as e:
-                    return jsonify({"ok": False, "messaggio": str(e)}), 400
-            elif formato != "cades":
+            try:
+                backend_firma = cfg_firma.backend_firma_effettivo
+            except (FileNotFoundError, ValueError) as e:
+                return jsonify({"ok": False, "messaggio": str(e)}), 400
+            if backend_firma != "pkcs11":
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "La firma in-device è disponibile solo quando il backend selezionato è Token PKCS#11.",
+                }), 400
+            try:
+                formato = cfg_firma.valida_formato_firma(formato)
+            except ValueError as e:
+                return jsonify({"ok": False, "messaggio": str(e)}), 400
+            if formato != "cades":
                 return jsonify({
                     "ok": False,
                     "messaggio": "La firma PKCS#11 supporta solo CAdES (.p7m). Per PAdES usare P12/PEM.",
@@ -7364,39 +7376,30 @@ read -r -p "Premi Invio per chiudere..." _
                 return jsonify({"ok": False,
                                 "messaggio": "File documento non trovato su disco."}), 404
 
-            # Config PKCS#11
-            cfg_studio = get_config_studio().config
-            firma_cfg  = cfg_studio.firma if cfg_studio else None
-            lib_path   = (
-                getattr(firma_cfg, "pkcs11_library", "") or libreria_disponibile()
-                if firma_cfg else libreria_disponibile()
-            )
-            if not lib_path:
-                return jsonify({
-                    "ok": False,
-                    "messaggio": "Libreria PKCS#11 non disponibile. Installare opensc.",
-                }), 500
-
             slot = None
             if slot_raw is not None:
                 try:
                     slot = int(slot_raw)
                 except (ValueError, TypeError):
                     pass
-            elif firma_cfg:
-                slot_cfg = getattr(firma_cfg, "pkcs11_slot", "")
+            elif cfg_firma:
+                slot_cfg = getattr(cfg_firma, "pkcs11_slot", "")
                 if str(slot_cfg).strip().isdigit():
                     slot = int(slot_cfg)
-
-            label = getattr(firma_cfg, "pkcs11_label", "") if firma_cfg else None
+            label = getattr(cfg_firma, "pkcs11_label", "") if cfg_firma else None
 
             # Leggi il documento
             with open(doc_path, "rb") as fh:
                 contenuto = fh.read()
 
             # Firma in-device (PIN usato e scartato in questa funzione)
-            with FirmaPKCS11(library_path=lib_path, slot_id=slot,
-                             pin=pin, label=label or None) as firma:
+            if slot is not None:
+                cfg_firma_runtime = _dc_replace(cfg_firma, pkcs11_slot=str(slot))
+            else:
+                cfg_firma_runtime = cfg_firma
+            if label:
+                cfg_firma_runtime = _dc_replace(cfg_firma_runtime, pkcs11_label=label)
+            with crea_signer_da_config(cfg_firma_runtime, pin=pin) as firma:
                 stato_cert = firma.verifica_scadenza()
                 if stato_cert["scaduto"]:
                     return jsonify({
@@ -8191,7 +8194,7 @@ read -r -p "Premi Invio per chiudere..." _
                 from pct.busta import BustaTelematica, DatiBusta, Allegato as AllegatoBusta
                 from pct.deposito import DepositoCivile
                 from pct.pec import ClientPEC, ConfigPEC
-                from pct.firma import FirmaDigitale
+                from pct.firma import crea_signer_da_config
                 import os as _os
 
                 # Risolvi percorsi documenti
@@ -8246,16 +8249,21 @@ read -r -p "Premi Invio per chiudere..." _
                 )
 
                 firma = None
-                if firma_cfg and getattr(firma_cfg, 'configurato', False):
-                    if getattr(firma_cfg, "formato_attivo", "").lower() == "pkcs11":
+                if firma_cfg:
+                    try:
+                        backend_firma = firma_cfg.backend_firma_effettivo
+                    except Exception as _fe:
+                        backend_firma = "nessuno"
+                        app.logger.warning("Backend firma non disponibile: %s", _fe)
+                    if backend_firma == "pkcs11":
                         app.logger.info(
-                            "Firma PKCS#11 configurata: il deposito web usa il flusso CAdES in-device dedicato."
+                            "Firma PKCS#11 selezionata: il deposito web usa il flusso CAdES in-device dedicato."
                         )
-                    else:
+                    elif backend_firma in ("p12", "pem"):
                         try:
-                            firma = FirmaDigitale.da_config(firma_cfg)
+                            firma = crea_signer_da_config(firma_cfg)
                         except Exception as _fe:
-                            app.logger.warning("FirmaDigitale non inizializzata: %s", _fe)
+                            app.logger.warning("Signer non inizializzato: %s", _fe)
 
                 output_dir = _os.getenv("PCT_DEPOSITI_DIR", "/data/depositi")
                 dep = DepositoCivile(config_pec=config_pec, firma=firma, output_dir=output_dir)

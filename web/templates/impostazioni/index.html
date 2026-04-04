@@ -326,18 +326,25 @@
     </div>
 
     {# Stato attuale #}
-    {% set fmt = cfg.firma.formato_attivo %}
-    <div class="alert alert-{{ 'success' if fmt != 'nessuno' else 'secondary' }} py-2 small mb-4">
-      <i class="bi bi-{{ 'patch-check-fill' if fmt != 'nessuno' else 'exclamation-circle' }} me-2"></i>
-      {% if fmt == 'pkcs11' %}
-        <strong>Formato attivo: Token PKCS#11</strong> — libreria trovata.
-        Inserisci Aruba Key e usa il PIN nella schermata di deposito.
-      {% elif fmt == 'p12' %}
-        <strong>Formato attivo: P12/PFX</strong> — file trovato su disco.
-      {% elif fmt == 'pem' %}
-        <strong>Formato attivo: PEM</strong> — certificato + chiave trovati su disco.
+    {% set backend_scelto = cfg.firma.backend_preferito_normalizzato %}
+    {% set backend_effettivo = cfg.firma.backend_firma_effettivo_safe %}
+    {% set backend_errore = cfg.firma.backend_firma_errore %}
+    {% set fmt = backend_scelto if backend_scelto != 'auto' else (backend_effettivo if backend_effettivo != 'nessuno' else 'p12') %}
+    <div class="alert alert-{{ 'warning' if backend_errore else ('success' if backend_effettivo != 'nessuno' else 'secondary') }} py-2 small mb-4">
+      <i class="bi bi-{{ 'exclamation-triangle-fill' if backend_errore else ('patch-check-fill' if backend_effettivo != 'nessuno' else 'exclamation-circle') }} me-2"></i>
+      {% if backend_errore %}
+        <strong>Scelta salvata: {{ 'Token PKCS#11' if backend_scelto == 'pkcs11' else ('P12/PFX' if backend_scelto == 'p12' else ('PEM' if backend_scelto == 'pem' else 'Auto')) }}</strong>
+        — {{ backend_errore }}.
+        Finché non correggi la configurazione, HACS non passerà automaticamente ad altri backend.
+      {% elif backend_effettivo == 'pkcs11' %}
+        <strong>Scelta salvata: Token PKCS#11</strong> — backend operativo attivo.
+        Aruba Key / Local Signer restano il canale predefinito; eventuali file P12/PEM presenti non vengono usati finché non cambi impostazione.
+      {% elif backend_effettivo == 'p12' %}
+        <strong>Scelta salvata: P12/PFX</strong> — file operativo trovato su disco.
+      {% elif backend_effettivo == 'pem' %}
+        <strong>Scelta salvata: PEM</strong> — certificato + chiave operativi trovati su disco.
       {% else %}
-        <strong>Nessun certificato configurato</strong> — PolisWeb funziona in modalità demo.
+        <strong>Nessun backend di firma attivo</strong> — salva una scelta qui sotto per uscire dalla modalità demo.
       {% endif %}
     </div>
 

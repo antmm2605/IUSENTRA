@@ -817,6 +817,7 @@ def test_impostazioni_firma_carica_p12_nel_volume_configurato(tmp_path):
 
     assert r.status_code in (302, 303)
     cfg = GestioneConfigStudio(str(studio_cfg)).config
+    assert cfg.firma.backend_preferito == "p12"
     assert cfg.firma.p12_path.endswith("/firma_uploads/firma.p12")
     assert Path(cfg.firma.p12_path).read_bytes() == b"contenuto-p12"
     assert cfg.firma.password == "segreta"

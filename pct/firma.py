@@ -6,7 +6,8 @@ Formati supportati:
   - PEM:      due file separati — .crt (certificato) + .key (chiave privata).
               La chiave può essere cifrata (con password) o in chiaro.
 
-Il formato viene selezionato automaticamente da FirmaDigitale.from_config().
+Il backend viene selezionato a partire dalla configurazione esplicita salvata
+nello studio.
 """
 
 import os
@@ -68,9 +69,8 @@ class FirmaDigitale:
         """
         Crea l'istanza giusta in base alla ConfigFirma disponibile.
 
-        Priorità:
-          1. P12 (se p12_path esiste su disco)
-          2. PEM (se cert_pem_path + key_pem_path esistono su disco)
+        La scelta segue `backend_preferito` e solo in modalità `auto`
+        ricade sul backend rilevato tecnicamente.
 
         Per PKCS#11 (Aruba Key) usare il backend dedicato FirmaPKCS11
         o il flusso in-device del Local Signer.
@@ -78,7 +78,7 @@ class FirmaDigitale:
         Raises:
             FileNotFoundError: se nessun formato è configurato/disponibile.
         """
-        fmt = cfg.formato_attivo
+        fmt = getattr(cfg, "backend_firma_effettivo", None) or cfg.formato_attivo
         if fmt == "p12":
             return cls(
                 p12_path=cfg.p12_path,
@@ -92,6 +92,11 @@ class FirmaDigitale:
                 cert_path=cfg.cert_pem_path,
                 key_path=cfg.key_pem_path,
                 key_password=pwd,
+            )
+        if fmt == "pkcs11":
+            raise ValueError(
+                "Backend PKCS#11 selezionato. "
+                "Usare pct.firma.crea_signer_da_config(..., pin=...) oppure il flusso Local Signer."
             )
         raise FileNotFoundError(
             "Nessun certificato di firma configurato. "
@@ -316,3 +321,19 @@ class FirmaDigitale:
                     pass
         else:
             raise ValueError(f"Formato non supportato: {formato}. Usare 'cades' o 'pades'.")
+
+
+def crea_signer_da_config(cfg, pin: Optional[str] = None):
+    """
+    Factory unica del backend firma a partire dalla configurazione studio.
+
+    - PKCS#11: restituisce `FirmaPKCS11` e richiede il PIN a runtime.
+    - P12/PEM: restituisce `FirmaDigitale`.
+    """
+    backend = getattr(cfg, "backend_firma_effettivo", None) or cfg.formato_attivo
+    if backend == "pkcs11":
+        if not pin:
+            raise ValueError("PIN obbligatorio per usare il backend PKCS#11.")
+        from pct.firma_pkcs11 import FirmaPKCS11
+        return FirmaPKCS11.da_config(cfg, pin=pin)
+    return FirmaDigitale.da_config(cfg)

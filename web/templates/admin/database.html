@@ -276,6 +276,7 @@
 {% block scripts %}
 <script>
 function fmtBytes(n) {
+  if (typeof n !== 'number' || Number.isNaN(n) || !Number.isFinite(n)) return '—';
   if (n < 1024) return n + ' B';
   if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
   return (n/1048576).toFixed(1) + ' MB';
@@ -345,12 +346,16 @@ async function ottimizza() {
     area.classList.remove('d-none');
 
     tbody.innerHTML = data.risultati.map(res => {
-      const risparmio = res.risparmio_bytes > 0
-        ? `<span class="text-success">-${fmtBytes(res.risparmio_bytes)} (${res.risparmio_pct}%)</span>`
+      const risparmioBytes = typeof res.risparmio_bytes === 'number' ? res.risparmio_bytes : 0;
+      const risparmioPct = typeof res.risparmio_pct === 'number' ? res.risparmio_pct : 0;
+      const ok = typeof res.ok === 'boolean' ? res.ok : !!res.riuscita;
+      const messaggio = res.messaggio || res.dettagli || 'Errore non specificato';
+      const risparmio = risparmioBytes > 0
+        ? `<span class="text-success">-${fmtBytes(risparmioBytes)} (${risparmioPct}%)</span>`
         : '<span class="text-muted">—</span>';
-      const esito = res.ok
+      const esito = ok
         ? '<span class="badge bg-success">OK</span>'
-        : `<span class="badge bg-danger" title="${res.messaggio}">Errore</span>`;
+        : `<span class="badge bg-danger" title="${messaggio}">Errore</span>`;
       return `<tr>
         <td>${res.modulo}</td>
         <td>${res.operazione}</td>
@@ -387,9 +392,7 @@ async function migraSQL() {
           <code>${data.percorso_db}</code>
           ${data.avvisi && data.avvisi.length ? '<ul class="mb-0 mt-1">' + data.avvisi.map(a=>`<li>${a}</li>`).join('') + '</ul>' : ''}
         </div>`;
-        if (!data.avvisi || data.avvisi.length === 0) {
-          setTimeout(() => location.reload(), 2000);
-        }
+        setTimeout(() => location.reload(), data.avvisi && data.avvisi.length ? 4000 : 2000);
       } else {
         out.innerHTML = `<div class="alert alert-danger py-2 small mt-2">
           <i class="bi bi-exclamation-circle me-1"></i>${data.messaggio}

@@ -845,6 +845,23 @@ def test_admin_database_get(client_admin):
     assert r.status_code == 200
     assert b"Database" in r.data
 
+
+def test_admin_database_get_rileva_ultimo_sqlite_migrato(client_admin):
+    backup_dir = Path(client_admin.application.config["BACKUP_DIR"])
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    db_path = backup_dir / "studio_legale_2026-04-05.db"
+    conn = sqlite3.connect(db_path)
+    conn.execute("CREATE TABLE clienti (id TEXT)")
+    conn.commit()
+    conn.close()
+
+    r = client_admin.get("/admin/database")
+
+    assert r.status_code == 200
+    html = r.get_data(as_text=True)
+    assert "Database SQLite già presente" in html
+
+
 def test_admin_database_verifica_json(client_admin):
     r = client_admin.get("/admin/database/verifica")
     assert r.status_code == 200
@@ -858,6 +875,10 @@ def test_admin_database_ottimizza_json(client_admin):
     data = r.get_json()
     assert data["ok"] is True
     assert "risultati" in data
+    assert data["risultati"]
+    assert "ok" in data["risultati"][0]
+    assert "bytes_prima" in data["risultati"][0]
+    assert "bytes_dopo" in data["risultati"][0]
 
 def test_admin_database_migra_json(client_admin):
     r = client_admin.post("/admin/database/migra")

@@ -2105,6 +2105,18 @@ def create_app(config: dict | None = None) -> Flask:
         _bootstrap_runtime_data_modules()
         return GestioneDatabase(_database_paths())
 
+    def _latest_sqlite_snapshot_path(backup_dir: str) -> str:
+        backup_path = Path(backup_dir or "./backup")
+        preferred = backup_path / "studio_legale.db"
+        if preferred.exists():
+            return str(preferred)
+        candidates = sorted(
+            backup_path.glob("studio_legale*.db"),
+            key=lambda item: item.stat().st_mtime,
+            reverse=True,
+        )
+        return str(candidates[0]) if candidates else str(preferred)
+
     _bootstrap_runtime_data_modules()
 
     # Singleton di sincronizzazione (uno per processo Flask)
@@ -10061,7 +10073,7 @@ read -r -p "Premi Invio per chiudere..." _
         statistiche = db.statistiche()
         uso = db.analisi_uso()
         sqlite_info = db.statistiche_sqlite(
-            os.path.join(app.config.get("BACKUP_DIR", "./backup"), "studio_legale.db")
+            _latest_sqlite_snapshot_path(app.config.get("BACKUP_DIR", "./backup"))
         )
         return render_template(
             "admin/database.html",
@@ -10111,9 +10123,18 @@ read -r -p "Premi Invio per chiudere..." _
                 {
                     "modulo": r.modulo,
                     "operazione": r.operazione,
+                    "ok": r.riuscita,
                     "riuscita": r.riuscita,
+                    "messaggio": r.dettagli,
                     "dettagli": r.dettagli,
                     "ms": r.ms,
+                    "bytes_prima": r.bytes_prima,
+                    "bytes_dopo": r.bytes_dopo,
+                    "risparmio_bytes": max(r.bytes_prima - r.bytes_dopo, 0),
+                    "risparmio_pct": round(
+                        ((r.bytes_prima - r.bytes_dopo) / r.bytes_prima) * 100,
+                        1,
+                    ) if r.bytes_prima and r.bytes_dopo <= r.bytes_prima else 0,
                 }
                 for r in risultati
             ],

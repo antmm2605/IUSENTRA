@@ -1,7 +1,7 @@
 import json
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from pct.tenant import DbMode, StudioLegale
+from pct.tenant import DbMode, GestioneTenant, StudioLegale
 from web.app import create_app
 
 
@@ -26,7 +26,7 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
     registry_path.write_text(
         json.dumps(
             {
-                "antonella-mammola": {
+                "studio-001": {
                     "slug": "antonella-mammola",
                     "nome": "Studio Antonella Mammola",
                     "piano": "PROFESSIONAL",
@@ -70,3 +70,29 @@ def test_admin_dettaglio_studio_renderizza_anche_con_db_legacy(tmp_path):
 
     assert resp.status_code == 200
     assert b"Antonella Mammola" in resp.data
+
+
+def test_gestione_tenant_get_supporta_registry_con_chiave_diversa_dallo_slug(tmp_path):
+    registry_path = tmp_path / "tenants.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "studio-001": {
+                    "slug": "antonella-mammola",
+                    "nome": "Studio Antonella Mammola",
+                    "piano": "PROFESSIONAL",
+                    "stato": "ATTIVO",
+                    "db_config": "LOCAL",
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    tm = GestioneTenant(str(registry_path))
+    studio = tm.get("antonella-mammola")
+
+    assert studio is not None
+    assert studio.slug == "antonella-mammola"

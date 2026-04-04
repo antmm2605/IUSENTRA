@@ -408,6 +408,21 @@ class GestioneDatabase:
         """
         self.percorsi = {k: Path(v) for k, v in percorsi.items() if v}
 
+    @staticmethod
+    def _search_index_documenti_table(conn: sqlite3.Connection) -> Optional[str]:
+        """Rileva il nome tabella documenti dell'indice di ricerca."""
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        if "documenti" in tables:
+            return "documenti"
+        if "search_documenti" in tables:
+            return "search_documenti"
+        return None
+
     def _moduli_monitorati(self) -> List[str]:
         """Ritorna i moduli JSON monitorati nel pannello admin."""
         chiavi = [
@@ -515,7 +530,10 @@ class GestioneDatabase:
                 sm_s.dimensione_bytes, sm_s.ultima_modifica = self._stat_file(search_p)
                 try:
                     conn = sqlite3.connect(str(search_p))
-                    row = conn.execute("SELECT COUNT(*) FROM documenti").fetchone()
+                    table_name = self._search_index_documenti_table(conn)
+                    if not table_name:
+                        raise RuntimeError("Tabella documenti non trovata nell'indice di ricerca")
+                    row = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
                     sm_s.record_totali = row[0] if row else 0
                     sm_s.stato = "OK"
                     conn.close()
@@ -791,22 +809,31 @@ class GestioneDatabase:
         search_p = self.percorsi.get("search_index")
         if search_p and search_p.exists():
             t0 = time.monotonic()
+            dim_pre = search_p.stat().st_size
             try:
                 conn = sqlite3.connect(str(search_p))
-                conn.execute("INSERT INTO documenti(documenti) VALUES('optimize')")
+                table_name = self._search_index_documenti_table(conn)
+                if not table_name:
+                    raise RuntimeError("Tabella documenti non trovata nell'indice di ricerca")
+                conn.execute(f"INSERT INTO {table_name}({table_name}) VALUES('optimize')")
                 conn.execute("VACUUM")
                 conn.execute("ANALYZE")
                 conn.commit()
                 conn.close()
+                dim_post = search_p.stat().st_size
                 ms = int((time.monotonic() - t0) * 1000)
                 risultati.append(RisultatoOttimizzazione(
                     modulo="search_index", operazione="VACUUM + ANALYZE + FTS optimize",
-                    riuscita=True, ms=ms,
+                    riuscita=True,
+                    ms=ms,
+                    bytes_prima=dim_pre,
+                    bytes_dopo=dim_post,
+                    dettagli=f"{_fmt_bytes(dim_pre)} → {_fmt_bytes(dim_post)}",
                 ))
             except Exception as e:
                 risultati.append(RisultatoOttimizzazione(
                     modulo="search_index", operazione="VACUUM",
-                    riuscita=False, dettagli=str(e),
+                    riuscita=False, dettagli=str(e), bytes_prima=dim_pre, bytes_dopo=dim_pre,
                 ))
 
         return risultati

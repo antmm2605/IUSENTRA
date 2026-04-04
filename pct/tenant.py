@@ -471,7 +471,15 @@ class GestioneTenant:
         return sorted(self._carica().values(), key=lambda s: s.nome.lower())
 
     def get(self, slug: str) -> Optional[StudioLegale]:
-        return self._carica().get(slug)
+        slug_norm = self._normalizza_slug(slug or "")
+        studi = self._carica()
+        studio = studi.get(slug_norm) or studi.get(slug)
+        if studio:
+            return studio
+        for candidato in studi.values():
+            if self._normalizza_slug(candidato.slug or "") == slug_norm:
+                return candidato
+        return None
 
     def get_by_id(self, id_studio: str) -> Optional[StudioLegale]:
         for s in self._carica().values():

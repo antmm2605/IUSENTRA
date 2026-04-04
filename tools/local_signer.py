@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.6"
+VERSION = "1.5.7"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -907,6 +907,19 @@ def _pick_preferred_windows_cert(
     if scored[0][0] > scored[1][0]:
         return scored[0][1]
     return None
+
+
+def _ping_query_preferences(path: str) -> dict:
+    query = parse_qs(urlparse(path).query or "")
+    prefer_cf = str((query.get("prefer_cf") or [""])[0] or "").strip()
+    if not prefer_cf:
+        prefer_cf = str(os.getenv("PCT_CF_AVVOCATO", "") or "").strip()
+    return {
+        "prefer_issuer": str((query.get("prefer_issuer") or [""])[0] or "").strip(),
+        "prefer_subject": str((query.get("prefer_subject") or [""])[0] or "").strip(),
+        "prefer_cf": prefer_cf,
+        "auto": str((query.get("auto") or ["1"])[0] or "").strip().lower() in {"1", "true", "yes", "on"},
+    }
 
 
 def _windows_seleziona_cert() -> Optional[dict]:
@@ -2963,6 +2976,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _ping(self):
         lib = _trova_libreria()
+        prefs = _ping_query_preferences(getattr(self, "path", ""))
         resp: dict = {
             "ok": True,
             "versione":          VERSION,
@@ -2978,14 +2992,24 @@ class _Handler(BaseHTTPRequestHandler):
             try:
                 certs = _windows_lista_certificati()
                 resp["certificati_windows"] = len(certs)
+                preferred = _pick_preferred_windows_cert(
+                    certs,
+                    prefer_issuer=prefs["prefer_issuer"],
+                    prefer_subject=prefs["prefer_subject"],
+                    prefer_cf=prefs["prefer_cf"],
+                    auto=prefs["auto"],
+                ) if certs else None
                 cached = dict(_ultimo_certificato_windows or {})
-                if cached.get("thumbprint"):
+                selected = preferred or cached
+                if selected.get("thumbprint"):
                     resp["certificato_windows_selezionato"] = {
-                        "thumbprint": cached.get("thumbprint"),
-                        "soggetto": cached.get("soggetto", ""),
-                        "emittente": cached.get("emittente", ""),
-                        "scadenza": cached.get("scadenza", ""),
+                        "thumbprint": selected.get("thumbprint"),
+                        "soggetto": selected.get("soggetto", ""),
+                        "emittente": selected.get("emittente", ""),
+                        "scadenza": selected.get("scadenza", ""),
                     }
+                if prefs["prefer_cf"]:
+                    resp["filtro_codice_fiscale"] = _estrai_codice_fiscale_testo(prefs["prefer_cf"])
                 if certs:
                     resp["nota_autenticazione"] = (
                         "Su Windows la consultazione PST puo' usare anche il certificato "

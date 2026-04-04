@@ -1686,7 +1686,13 @@ function _lsSetDetectingText(text) {
 }
 
 async function _lsPing(timeoutMs = 3000) {
-  const resp = await fetch(_LS_BASE_PW + '/ping', { signal: AbortSignal.timeout(timeoutMs) });
+  const params = new URLSearchParams();
+  if (_WIZ_CERT_PREFERENCES.auto) params.set('auto', '1');
+  if (_WIZ_CERT_PREFERENCES.preferIssuer) params.set('prefer_issuer', _WIZ_CERT_PREFERENCES.preferIssuer);
+  if (_WIZ_CERT_PREFERENCES.preferSubject) params.set('prefer_subject', _WIZ_CERT_PREFERENCES.preferSubject);
+  if (_WIZ_CERT_PREFERENCES.preferCf) params.set('prefer_cf', _WIZ_CERT_PREFERENCES.preferCf);
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  const resp = await fetch(_LS_BASE_PW + '/ping' + suffix, { signal: AbortSignal.timeout(timeoutMs) });
   return resp.json();
 }
 
@@ -2042,8 +2048,7 @@ function verificaLocalSignerLegacy() {
   if (bannerLS) bannerLS.classList.remove('d-none');
   _mostraLsStatus('detecting');
 
-  fetch(_LS_BASE_PW + '/ping', { signal: AbortSignal.timeout(3000) })
-    .then(r => r.json())
+  _lsPing(3000)
     .then(d => {
       // Determina lo stato: token presente, solo LS, o errore
       const tokenOk = d.ok && d.token && d.token.length > 0;

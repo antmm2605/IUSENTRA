@@ -308,6 +308,72 @@ def test_ping_windows_espone_certificati_store_anche_senza_token_pkcs11():
     assert "Certificate Store" in payload["nota_autenticazione"]
 
 
+def test_ping_windows_usa_il_filtro_cf_per_esporre_il_certificato_preferito():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_trova = module._trova_libreria
+    orig_curl = module._curl_disponibile
+    orig_lista = module._windows_lista_certificati
+    orig_cached = module._ultimo_certificato_windows
+    captured = {}
+
+    class _FakeHandler:
+        path = (
+            "/ping?auto=1"
+            "&prefer_issuer=ArubaPEC%20EU%20Authentica%20Certificates%20CA%20G1%7CArubaPEC%20EU%20Qualified%20Certificates%20CA%20G1"
+            "&prefer_subject=auth%7Cautentica%7Cclient"
+            "&prefer_cf=MNTRRT64L01L063H"
+        )
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module.sys.platform = "win32"
+        module._trova_libreria = lambda: None
+        module._curl_disponibile = lambda: True
+        module._windows_lista_certificati = lambda: [
+            {
+                "thumbprint": "QUAL-WRONG",
+                "soggetto": "ROBERTO MONTAGNESE",
+                "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:AAAAAA00A00A000A",
+                "codice_fiscale": "AAAAAA00A00A000A",
+                "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+                "scadenza": "2029-02-23",
+            },
+            {
+                "thumbprint": "AUTH-CF",
+                "soggetto": "ROBERTO MONTAGNESE",
+                "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+                "codice_fiscale": "MNTRRT64L01L063H",
+                "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+                "scadenza": "2029-02-23",
+            },
+        ]
+        module._ultimo_certificato_windows = {
+            "thumbprint": "QUAL-WRONG",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "scadenza": "2029-02-23",
+        }
+
+        module._Handler._ping(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._trova_libreria = orig_trova
+        module._curl_disponibile = orig_curl
+        module._windows_lista_certificati = orig_lista
+        module._ultimo_certificato_windows = orig_cached
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["filtro_codice_fiscale"] == "MNTRRT64L01L063H"
+    assert payload["certificato_windows_selezionato"]["thumbprint"] == "AUTH-CF"
+    assert payload["certificato_windows_selezionato"]["emittente"] == "ArubaPEC EU Authentica Certificates CA G1"
+
+
 def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
     module = _load_local_signer()
 

@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.5"
+VERSION = "1.5.6"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -591,7 +591,7 @@ def _cf_avvocato_pst(cf_avvocato: str, cert_thumbprint: Optional[str] = None) ->
     if explicit:
         return explicit
     cert = _trova_certificato_windows(cert_thumbprint)
-    for campo in ("soggetto", "emittente"):
+    for campo in ("codice_fiscale", "soggetto", "soggetto_completo", "emittente", "emittente_completo"):
         resolved = _estrai_codice_fiscale_testo(str(cert.get(campo) or ""))
         if resolved:
             return resolved
@@ -721,6 +721,9 @@ def _estrai_info_cert_ctx(crypt32, cert_ctx_addr: int) -> Optional[dict]:
         soggetto = _nome(0)
         emittente = _nome(CERT_NAME_ISSUER_FLAG)
         scadenza_iso = ""
+        soggetto_completo = ""
+        emittente_completo = ""
+        codice_fiscale = ""
 
         # Scadenza — parse DER con cryptography se disponibile
         if der:
@@ -729,6 +732,9 @@ def _estrai_info_cert_ctx(crypt32, cert_ctx_addr: int) -> Optional[dict]:
                 from cryptography.hazmat.backends import default_backend
                 cert_obj = cx509.load_der_x509_certificate(der, default_backend())
                 scadenza_iso = _format_cert_not_valid_after(cert_obj)
+                soggetto_completo = cert_obj.subject.rfc4514_string()
+                emittente_completo = cert_obj.issuer.rfc4514_string()
+                codice_fiscale = _estrai_codice_fiscale_testo(soggetto_completo)
                 if not soggetto:
                     cn = cert_obj.subject.get_attributes_for_oid(cx509.NameOID.COMMON_NAME)
                     soggetto = cn[0].value if cn else ""
@@ -741,8 +747,11 @@ def _estrai_info_cert_ctx(crypt32, cert_ctx_addr: int) -> Optional[dict]:
         return {
             "thumbprint": thumbprint,
             "soggetto":   soggetto,
+            "soggetto_completo": soggetto_completo,
             "emittente":  emittente,
+            "emittente_completo": emittente_completo,
             "scadenza":   scadenza_iso,
+            "codice_fiscale": codice_fiscale,
         }
 
     except Exception as e:
@@ -805,9 +814,25 @@ def _cert_preferred_score(
     cert: dict,
     issuer_keywords: list[str],
     subject_keywords: list[str],
+    prefer_cf: str = "",
 ) -> int:
-    issuer = _cert_match_normalized(cert.get("emittente", ""))
-    subject = _cert_match_normalized(cert.get("soggetto", ""))
+    issuer = _cert_match_normalized(
+        " ".join(
+            [
+                str(cert.get("emittente") or ""),
+                str(cert.get("emittente_completo") or ""),
+            ]
+        )
+    )
+    subject = _cert_match_normalized(
+        " ".join(
+            [
+                str(cert.get("soggetto") or ""),
+                str(cert.get("soggetto_completo") or ""),
+                str(cert.get("codice_fiscale") or ""),
+            ]
+        )
+    )
     score = 0
 
     for idx, keyword in enumerate(issuer_keywords):
@@ -821,6 +846,14 @@ def _cert_preferred_score(
         if hint in subject:
             score += 5
 
+    cf = _estrai_codice_fiscale_testo(prefer_cf)
+    if cf and cf in (
+        f"{cert.get('codice_fiscale', '')} "
+        f"{cert.get('soggetto', '')} "
+        f"{cert.get('soggetto_completo', '')}"
+    ).upper():
+        score += 500
+
     return score
 
 
@@ -829,11 +862,25 @@ def _pick_preferred_windows_cert(
     *,
     prefer_issuer: str = "",
     prefer_subject: str = "",
+    prefer_cf: str = "",
     auto: bool = False,
 ) -> Optional[dict]:
     lista = list(certs or [])
     if not lista:
         return None
+
+    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
+    if prefer_cf_norm:
+        matching_cf = [
+            cert for cert in lista
+            if prefer_cf_norm in (
+                f"{cert.get('codice_fiscale', '')} "
+                f"{cert.get('soggetto', '')} "
+                f"{cert.get('soggetto_completo', '')}"
+            ).upper()
+        ]
+        if matching_cf:
+            lista = matching_cf
 
     issuer_keywords = _cert_match_keywords(prefer_issuer)
     subject_keywords = _cert_match_keywords(prefer_subject)
@@ -847,7 +894,7 @@ def _pick_preferred_windows_cert(
 
     scored = []
     for cert in lista:
-        score = _cert_preferred_score(cert, issuer_keywords, subject_keywords)
+        score = _cert_preferred_score(cert, issuer_keywords, subject_keywords, prefer_cf=prefer_cf_norm)
         if score > 0:
             scored.append((score, cert))
 
@@ -3121,6 +3168,7 @@ class _Handler(BaseHTTPRequestHandler):
         query = parse_qs(urlparse(self.path).query or "")
         prefer_issuer = str((query.get("prefer_issuer") or [""])[0] or "").strip()
         prefer_subject = str((query.get("prefer_subject") or [""])[0] or "").strip()
+        prefer_cf = str((query.get("prefer_cf") or [""])[0] or "").strip()
         auto_select = str((query.get("auto") or ["0"])[0] or "").strip().lower() in {"1", "true", "yes", "on"}
 
         if sys.platform == "win32":
@@ -3129,6 +3177,7 @@ class _Handler(BaseHTTPRequestHandler):
                     _windows_lista_certificati(),
                     prefer_issuer=prefer_issuer,
                     prefer_subject=prefer_subject,
+                    prefer_cf=prefer_cf,
                     auto=auto_select,
                 )
                 auto_pick = cert is not None

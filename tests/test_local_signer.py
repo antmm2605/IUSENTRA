@@ -330,6 +330,58 @@ def test_estrai_codice_fiscale_dal_certificato_windows():
     assert module._cf_avvocato_pst("", "AABBCC11") == "MNTRRT64L01L063H"
 
 
+def test_cf_avvocato_pst_usa_subject_completo_quando_il_cf_non_e_nel_display_name():
+    module = _load_local_signer()
+
+    module._ultimo_certificato_windows = {
+        "thumbprint": "FFEEDD22",
+        "soggetto": "ROBERTO MONTAGNESE",
+        "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+        "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+    }
+
+    assert module._cf_avvocato_pst("", "FFEEDD22") == "MNTRRT64L01L063H"
+
+
+def test_pick_preferred_windows_cert_filtra_per_codice_fiscale_e_prefere_authentica():
+    module = _load_local_signer()
+
+    certs = [
+        {
+            "thumbprint": "QUAL-OTHER",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:AAAAAA00A00A000A",
+            "codice_fiscale": "AAAAAA00A00A000A",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+        },
+        {
+            "thumbprint": "AUTH-ROBERTO",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+            "codice_fiscale": "MNTRRT64L01L063H",
+            "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+        },
+        {
+            "thumbprint": "QUAL-ROBERTO",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+            "codice_fiscale": "MNTRRT64L01L063H",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+        },
+    ]
+
+    picked = module._pick_preferred_windows_cert(
+        certs,
+        prefer_issuer="ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1",
+        prefer_subject="auth|autentica|client",
+        prefer_cf="MNTRRT64L01L063H",
+        auto=True,
+    )
+
+    assert picked is not None
+    assert picked["thumbprint"] == "AUTH-ROBERTO"
+
+
 def test_costruisce_body_qbuilder_ricerca_per_tipo():
     module = _load_local_signer()
 
@@ -878,6 +930,37 @@ def test_polisweb_non_mostra_demo_se_pkcs11_e_configurato(tmp_path):
     assert 'name="server_demo_mode" value="1"' in body
     assert 'id="badge-demo-mode"' not in body
     assert 'id="banner-demo"' not in body
+
+
+def test_polisweb_passa_il_cf_configurato_alle_preferenze_certificato(tmp_path):
+    from pct.config_studio import GestioneConfigStudio
+    from web.app import create_app
+
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    cfg = gs.config
+    cfg.firma.pkcs11_library = str(dll_path)
+    cfg.firma.backend_preferito = "pkcs11"
+    cfg.firma.cf_avvocato = "MNTRRT64L01L063H"
+    gs.aggiorna(cfg)
+
+    app = create_app({**_cfg_web(tmp_path), "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as c:
+        login = c.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code in (302, 303)
+        r = c.get("/polisWeb")
+
+    assert r.status_code == 200
+    body = r.data.decode("utf-8")
+    assert 'preferCf: "MNTRRT64L01L063H"' in body
+    assert "Filtro automatico attivo sul codice fiscale" in body
 
 
 def test_polisweb_ricerca_non_torna_in_demo_se_pkcs11_e_configurato(tmp_path, monkeypatch):

@@ -778,8 +778,13 @@
                   <i class="bi bi-windows me-1"></i>Selettore nativo Windows
                 </span>
                 <div class="small text-muted mt-2">
-                  Se HACS trova un solo certificato Aruba compatibile lo seleziona automaticamente; altrimenti apre il selettore nativo Windows in primo piano.
+                  Se HACS trova un solo certificato Aruba compatibile con il codice fiscale configurato nelle impostazioni lo seleziona automaticamente; altrimenti apre il selettore nativo Windows in primo piano.
                 </div>
+                {% if cert_preferences.prefer_cf %}
+                <div class="small text-primary mt-1">
+                  <i class="bi bi-person-vcard me-1"></i>Filtro automatico attivo sul codice fiscale: <span class="font-monospace">{{ cert_preferences.prefer_cf }}</span>
+                </div>
+                {% endif %}
               </div>
 
               {# Spinner durante l'apertura dialog #}
@@ -1455,9 +1460,10 @@ const _LS_BASE_PW = 'http://127.0.0.1:27272';
 const _LS_PROTOCOL_URI = 'hacs-local-signer://start';
 const _PW_PKCS11_MODE = {{ 'true' if pkcs11_mode else 'false' }};
 const _WIZ_CERT_PREFERENCES = {
-  auto: true,
-  preferIssuer: 'ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1',
-  preferSubject: 'auth|autentica|client'
+  auto: {{ 'true' if cert_preferences.auto else 'false' }},
+  preferIssuer: {{ cert_preferences.prefer_issuer|tojson }},
+  preferSubject: {{ cert_preferences.prefer_subject|tojson }},
+  preferCf: {{ cert_preferences.prefer_cf|tojson }}
 };
 const _LS_INSTALLER_CFG = (() => {
   const el = document.getElementById('ls-installer-config');
@@ -1820,6 +1826,7 @@ async function _lsSelezionaCertificato() {
   if (_WIZ_CERT_PREFERENCES.auto) params.set('auto', '1');
   if (_WIZ_CERT_PREFERENCES.preferIssuer) params.set('prefer_issuer', _WIZ_CERT_PREFERENCES.preferIssuer);
   if (_WIZ_CERT_PREFERENCES.preferSubject) params.set('prefer_subject', _WIZ_CERT_PREFERENCES.preferSubject);
+  if (_WIZ_CERT_PREFERENCES.preferCf) params.set('prefer_cf', _WIZ_CERT_PREFERENCES.preferCf);
 
   const resp = await fetch(_LS_BASE_PW + '/seleziona-certificato?' + params.toString(), {
     signal: AbortSignal.timeout(120000),

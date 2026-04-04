@@ -3918,6 +3918,23 @@ def create_app(config: dict | None = None) -> Flask:
         """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
         return _polis_auth_mode() == "demo"
 
+    def _polis_cert_preferences() -> dict:
+        prefer_cf = ""
+        try:
+            cfg = get_config_studio().config
+            prefer_cf = (
+                str(getattr(cfg.firma, "cf_avvocato", "") or "").strip().upper()
+                or str(getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper()
+            )
+        except Exception:
+            prefer_cf = ""
+        return {
+            "auto": True,
+            "prefer_issuer": "ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1",
+            "prefer_subject": "auth|autentica|client",
+            "prefer_cf": prefer_cf,
+        }
+
     def _local_signer_tools_dir() -> Path:
         return Path(__file__).parent.parent / "tools"
 
@@ -4425,7 +4442,8 @@ read -r -p "Premi Invio per chiudere..." _
             return render_template("polisWeb.html", demo_mode=demo_mode,
                                    server_demo_mode=server_demo_mode,
                                    pkcs11_mode=pkcs11_mode,
-                                   fascicolo=fascicolo_ctx, id_fasc=id_fasc)
+                                   fascicolo=fascicolo_ctx, id_fasc=id_fasc,
+                                   cert_preferences=_polis_cert_preferences())
         except Exception as e:
             tb = "".join(_tb.format_exception(type(e), e, e.__traceback__))
             app.logger.error("ERRORE polisWeb_home:\n%s", tb)
@@ -4493,6 +4511,7 @@ read -r -p "Premi Invio per chiudere..." _
             pkcs11_mode=pkcs11_mode,
             fascicolo=fascicolo_ctx,
             id_fasc=id_fasc,
+            cert_preferences=_polis_cert_preferences(),
         )
 
     @app.route("/polisWeb/documenti", methods=["GET"])

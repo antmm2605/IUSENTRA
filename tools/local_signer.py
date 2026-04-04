@@ -870,6 +870,10 @@ def _pick_preferred_windows_cert(
         return None
 
     prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
+
+    # Se è richiesto un codice fiscale, l'auto-selezione deve lavorare
+    # SOLO sui certificati che contengono davvero quel CF.
+    # Se nessuno combacia, niente auto-pick: si aprirà il selettore Windows.
     if prefer_cf_norm:
         matching_cf = [
             cert for cert in lista
@@ -879,22 +883,37 @@ def _pick_preferred_windows_cert(
                 f"{cert.get('soggetto_completo', '')}"
             ).upper()
         ]
-        if matching_cf:
-            lista = matching_cf
+        if not matching_cf:
+            return None
+        lista = matching_cf
 
     issuer_keywords = _cert_match_keywords(prefer_issuer)
     subject_keywords = _cert_match_keywords(prefer_subject)
+
     if auto and not issuer_keywords:
         issuer_keywords = _cert_match_keywords(_PST_CERT_ISSUER_PRIORITIES)
     if auto and not subject_keywords:
         subject_keywords = _cert_match_keywords(_PST_CERT_SUBJECT_HINTS)
 
-    if not issuer_keywords and not subject_keywords:
+    # Se non ho keyword ma ho un CF valido, posso comunque scegliere
+    # tra i certificati già filtrati per CF.
+    if not issuer_keywords and not subject_keywords and not prefer_cf_norm:
         return None
 
     scored = []
     for cert in lista:
-        score = _cert_preferred_score(cert, issuer_keywords, subject_keywords, prefer_cf=prefer_cf_norm)
+        score = _cert_preferred_score(
+            cert,
+            issuer_keywords,
+            subject_keywords,
+            prefer_cf=prefer_cf_norm,
+        )
+
+        # Se sto scegliendo solo in base al CF, assegno un punteggio minimo
+        # per consentire la scelta del certificato unico compatibile.
+        if prefer_cf_norm and not issuer_keywords and not subject_keywords:
+            score = max(score, 1)
+
         if score > 0:
             scored.append((score, cert))
 
@@ -902,10 +921,15 @@ def _pick_preferred_windows_cert(
         return None
 
     scored.sort(key=lambda item: item[0], reverse=True)
+
     if len(scored) == 1:
         return scored[0][1]
+
+    # Se il primo è nettamente migliore, ok.
     if scored[0][0] > scored[1][0]:
         return scored[0][1]
+
+    # Parità: meglio non scegliere automaticamente.
     return None
 
 
@@ -922,66 +946,94 @@ def _ping_query_preferences(path: str) -> dict:
     }
 
 
-def _windows_seleziona_cert() -> Optional[dict]:
-    """
-    Apre la finestra nativa Windows di selezione certificato
-    (CryptUIDlgSelectCertificateFromStore) e restituisce il cert selezionato.
+def _pick_preferred_windows_cert(
+    certs: list[dict],
+    *,
+    prefer_issuer: str = "",
+    prefer_subject: str = "",
+    prefer_cf: str = "",
+    auto: bool = False,
+) -> Optional[dict]:
+    lista = list(certs or [])
+    if not lista:
+        return None
 
-    Blocca finché l'utente non sceglie un certificato o annulla.
-    Ritorna None se l'utente ha annullato.
-    Solo su Windows — RuntimeError su altre piattaforme.
-    """
-    if sys.platform != "win32":
-        raise RuntimeError("Selezione nativa disponibile solo su Windows")
+    prefer_cf_norm = _estrai_codice_fiscale_testo(prefer_cf)
 
-    import ctypes
+    if prefer_cf_norm:
+        matching_cf = [
+            cert for cert in lista
+            if prefer_cf_norm in (
+                f"{cert.get('codice_fiscale', '')} "
+                f"{cert.get('soggetto', '')} "
+                f"{cert.get('soggetto_completo', '')}"
+            ).upper()
+        ]
+        if not matching_cf:
+            return None
+        lista = matching_cf
 
-    crypt32 = ctypes.WinDLL("Crypt32.dll", use_last_error=True)
-    cryptui = ctypes.WinDLL("CryptUI.dll", use_last_error=True)
-    user32 = ctypes.WinDLL("User32.dll", use_last_error=True)
+    issuer_keywords = _cert_match_keywords(prefer_issuer)
+    subject_keywords = _cert_match_keywords(prefer_subject)
 
-    crypt32.CertOpenSystemStoreW.restype = ctypes.c_void_p
-    crypt32.CertOpenSystemStoreW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
-    crypt32.CertCloseStore.restype = ctypes.c_bool
-    crypt32.CertCloseStore.argtypes = [ctypes.c_void_p, ctypes.c_uint]
-    crypt32.CertFreeCertificateContext.restype = ctypes.c_bool
-    crypt32.CertFreeCertificateContext.argtypes = [ctypes.c_void_p]
+    if auto and not issuer_keywords:
+        issuer_keywords = _cert_match_keywords(_PST_CERT_ISSUER_PRIORITIES)
+    if auto and not subject_keywords:
+        subject_keywords = _cert_match_keywords(_PST_CERT_SUBJECT_HINTS)
 
-    cryptui.CryptUIDlgSelectCertificateFromStore.restype = ctypes.c_void_p
-    cryptui.CryptUIDlgSelectCertificateFromStore.argtypes = [
-        ctypes.c_void_p,   # HCERTSTORE
-        ctypes.c_void_p,   # HWND (NULL → desktop)
-        ctypes.c_wchar_p,  # pwszTitle
-        ctypes.c_wchar_p,  # pwszDisplayString
-        ctypes.c_uint,     # dwDontUseColumn
-        ctypes.c_uint,     # dwFlags
-        ctypes.c_void_p,   # pvReserved
-    ]
+    if not issuer_keywords and not subject_keywords and not prefer_cf_norm:
+        return None
 
-    h_store = crypt32.CertOpenSystemStoreW(None, "MY")
-    if not h_store:
-        raise RuntimeError(f"CertOpenSystemStoreW fallito (err {ctypes.get_last_error()})")
-
-    try:
-        user32.GetForegroundWindow.restype = ctypes.c_void_p
-        owner_hwnd = user32.GetForegroundWindow()
-        cert_ctx = cryptui.CryptUIDlgSelectCertificateFromStore(
-            h_store,
-            owner_hwnd,
-            "HACS — Seleziona certificato PST",
-            "Seleziona il certificato di autenticazione web\n"
-            "per il Portale Servizi Telematici (smart card o token CNS/CIE)",
-            0, 0, None,
+    scored = []
+    for cert in lista:
+        score = _cert_preferred_score(
+            cert,
+            issuer_keywords,
+            subject_keywords,
+            prefer_cf=prefer_cf_norm,
         )
-        if not cert_ctx:
-            return None  # Utente ha annullato
 
-        try:
-            return _estrai_info_cert_ctx(crypt32, cert_ctx)
-        finally:
-            crypt32.CertFreeCertificateContext(cert_ctx)
-    finally:
-        crypt32.CertCloseStore(h_store, 0)
+        issuer_norm = _cert_match_normalized(
+            " ".join([
+                str(cert.get("emittente") or ""),
+                str(cert.get("emittente_completo") or ""),
+            ])
+        )
+        subject_norm = _cert_match_normalized(
+            " ".join([
+                str(cert.get("soggetto") or ""),
+                str(cert.get("soggetto_completo") or ""),
+                str(cert.get("codice_fiscale") or ""),
+            ])
+        )
+
+        has_authentica = "authentica" in issuer_norm
+        has_web_hint = any(h in subject_norm for h in _PST_CERT_SUBJECT_HINTS)
+        is_only_qualified = ("qualified" in issuer_norm) and not has_authentica and not has_web_hint
+
+        # Se il certificato sembra solo "Qualified" e non da autenticazione web,
+        # non deve mai essere auto-selezionato per PST.
+        if is_only_qualified:
+            continue
+
+        if prefer_cf_norm and not issuer_keywords and not subject_keywords:
+            score = max(score, 1)
+
+        if score > 0:
+            scored.append((score, cert))
+
+    if not scored:
+        return None
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+
+    if len(scored) == 1:
+        return scored[0][1]
+
+    if scored[0][0] > scored[1][0]:
+        return scored[0][1]
+
+    return None
 
 
 def _close_pin_session_entry(entry: Optional[dict]) -> None:

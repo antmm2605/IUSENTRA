@@ -263,12 +263,27 @@
         {% set _modal_bg = "bg-dark" %}
         {% set _modal_titolo = "Deposito telematico PDP Penale" %}
         {% set _modal_icon = "bi-shield-fill" %}
+      {% elif tmpl.canale == "PTT_TRIBUTARIO" %}
+        {% set _modal_bg = "bg-warning" %}
+        {% set _modal_text = "text-dark" %}
+        {% set _modal_close = "" %}
+        {% set _modal_titolo = "Pre-deposito PTT Tributario" %}
+        {% set _modal_icon = "bi-receipt-cutoff" %}
       {% else %}
         {% set _modal_bg = "bg-success" %}
+        {% set _modal_text = "text-white" %}
+        {% set _modal_close = "btn-close-white" %}
         {% set _modal_titolo = "Deposito telematico PCT" %}
         {% set _modal_icon = "bi-send-fill" %}
       {% endif %}
-      <div class="modal-header {{ _modal_bg }} text-white py-3">
+      {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}
+        {% set _modal_text = "text-white" %}
+        {% set _modal_close = "btn-close-white" %}
+      {% elif tmpl.canale == "PDP_PENALE" %}
+        {% set _modal_text = "text-white" %}
+        {% set _modal_close = "btn-close-white" %}
+      {% endif %}
+      <div class="modal-header {{ _modal_bg }} {{ _modal_text }} py-3">
         <div>
           <h5 class="modal-title mb-0" id="modalDepositoLabel">
             <i class="bi {{ _modal_icon }} me-2"></i>{{ _modal_titolo }}
@@ -281,7 +296,7 @@
             {% if fascicolo.tribunale %} · {{ fascicolo.tribunale }}{% endif %}
           </div>
         </div>
-        <button type="button" class="btn-close btn-close-white"
+        <button type="button" class="btn-close {{ _modal_close }}"
                 data-bs-dismiss="modal" aria-label="Chiudi"></button>
       </div>
 
@@ -296,6 +311,7 @@
               <span class="d-none d-sm-inline">① Genera busta
                 {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}PAT
                 {% elif tmpl.canale == "PDP_PENALE" %}PDP
+                {% elif tmpl.canale == "PTT_TRIBUTARIO" %}PTT
                 {% else %}PCT{% endif %}
               </span>
               <span class="d-sm-none">① Genera</span>
@@ -358,6 +374,7 @@
             {# Form genera busta #}
             <form id="formGeneraBusta" method="POST"
                   action="{{ url_for('deposito_genera_busta', id_fasc=fascicolo.id) }}">
+              <input type="hidden" name="canale_deposito" value="{{ tmpl.canale }}">
 
               <div class="row g-3 mb-4">
                 <div class="col-12 col-sm-5">
@@ -385,6 +402,15 @@
                     <option value="RICHIESTA_RIESAME"{% if tmpl.tipo_atto_default == "RICHIESTA_RIESAME" %} selected{% endif %}>Richiesta di riesame</option>
                     <option value="OPPOSIZIONE"{% if tmpl.tipo_atto_default == "OPPOSIZIONE" %} selected{% endif %}>Opposizione</option>
                     <option value="MOTIVI_NUOVI"{% if tmpl.tipo_atto_default == "MOTIVI_NUOVI" %} selected{% endif %}>Motivi nuovi</option>
+                    <option value="DEPOSITO_DOCUMENTI"{% if tmpl.tipo_atto_default == "DEPOSITO_DOCUMENTI" %} selected{% endif %}>Deposito documenti</option>
+                    <option value="ALTRO"{% if tmpl.tipo_atto_default == "ALTRO" %} selected{% endif %}>Altro atto</option>
+                    {% elif tmpl.canale == "PTT_TRIBUTARIO" %}
+                    <option value="RICORSO"{% if tmpl.tipo_atto_default == "RICORSO" %} selected{% endif %}>Ricorso tributario</option>
+                    <option value="APPELLO"{% if tmpl.tipo_atto_default == "APPELLO" %} selected{% endif %}>Appello tributario</option>
+                    <option value="CONTRODEDUZIONI"{% if tmpl.tipo_atto_default == "CONTRODEDUZIONI" %} selected{% endif %}>Controdeduzioni</option>
+                    <option value="MEMORIA"{% if tmpl.tipo_atto_default == "MEMORIA" %} selected{% endif %}>Memoria difensiva</option>
+                    <option value="REPLICA"{% if tmpl.tipo_atto_default == "REPLICA" %} selected{% endif %}>Replica</option>
+                    <option value="ISTANZA"{% if tmpl.tipo_atto_default == "ISTANZA" %} selected{% endif %}>Istanza</option>
                     <option value="DEPOSITO_DOCUMENTI"{% if tmpl.tipo_atto_default == "DEPOSITO_DOCUMENTI" %} selected{% endif %}>Deposito documenti</option>
                     <option value="ALTRO"{% if tmpl.tipo_atto_default == "ALTRO" %} selected{% endif %}>Altro atto</option>
                     {% else %}
@@ -415,6 +441,9 @@
                     <option value="GIP">GIP</option>
                     <option value="GUP">GUP</option>
                     <option value="RGES">RGES</option>
+                    {% elif tmpl.canale == "PTT_TRIBUTARIO" %}
+                    <option value="PTT_RICORSI" selected>PTT_RICORSI</option>
+                    <option value="RGT">RGT</option>
                     {% else %}
                     <option value="RG" selected>RG</option>
                     <option value="RGNR">RGNR</option>
@@ -543,20 +572,32 @@
             </div>
 
             {# Nota stato PEC #}
-            {% if not pec_configurata %}
+            {% if not canale_reale_configurato %}
             <div class="alert alert-warning d-flex gap-2 align-items-start py-2 mt-3 mb-0">
               <i class="bi bi-play-circle flex-shrink-0 mt-1"></i>
               <div class="small">
+                {% if tmpl.canale == "PTT_TRIBUTARIO" %}
                 <strong>Modalità DEMO attiva.</strong>
-                Il bottone <em>Invia via PEC</em> simula l'invio senza connessione reale —
+                Il bottone <em>Simula invio SIGIT</em> verifica il lotto e registra il passaggio nel fascicolo senza invio reale.
+                Per un invio tributario reale serve una firma server-side <strong>P12</strong> o <strong>PEM</strong> in
+                <a href="{{ url_for('impostazioni.index') }}" class="fw-semibold">Impostazioni → Firma Digitale</a>.
+                {% else %}
+                <strong>Modalità DEMO attiva.</strong>
+                Il bottone <em>Invia via PEC</em> simula l'invio senza connessione reale — 
                 utile per testare il flusso. Per il deposito reale configura le credenziali in
                 <a href="{{ url_for('impostazioni.index') }}" class="fw-semibold">Impostazioni → PEC</a>.
+                {% endif %}
               </div>
             </div>
             {% else %}
             <div class="alert alert-success d-flex gap-2 align-items-start py-2 mt-3 mb-0">
               <i class="bi bi-send flex-shrink-0 mt-1"></i>
               <div class="small">
+                {% if tmpl.canale == "PTT_TRIBUTARIO" %}
+                <strong>Firma server-side disponibile.</strong>
+                Usa <em>{{ 'Invia a SIGIT' if canale_reale_configurato else 'Simula invio SIGIT' }}</em> per
+                validare il lotto tributario con il canale SIGIT/PTT.
+                {% else %}
                 <strong>PEC configurata.</strong>
                 Usa <em>Invia via PEC</em> per spedire la busta direttamente
                 {% if tmpl.canale == "PAT_AMMINISTRATIVO" %}al TAR / Consiglio di Stato,
@@ -565,6 +606,7 @@
                 oppure <em>Scarica busta</em> per caricarla nel portale PDP.
                 {% else %}al tribunale,
                 oppure <em>Scarica busta</em> per importarla in Consolle dell'Avvocato.
+                {% endif %}
                 {% endif %}
               </div>
             </div>
@@ -643,20 +685,34 @@
                 data-bs-dismiss="modal">Chiudi</button>
 
         <div class="ms-auto d-flex gap-2 flex-wrap" id="footerBtnsBusta">
-          {# Scarica busta .enc — sempre disponibile #}
+          {% if tmpl.canale == "PTT_TRIBUTARIO" %}
+          <button type="button"
+                  id="btnVerificaCanale"
+                  class="btn btn-outline-warning fw-semibold">
+            <i class="bi bi-shield-check me-1"></i>Verifica pre-deposito SIGIT
+          </button>
+          {% else %}
+          {# Scarica busta .enc — disponibile per il canale PCT tradizionale #}
           <button type="submit" form="formGeneraBusta"
                   id="btnScaricaBusta"
                   class="btn btn-outline-success fw-semibold">
             <i class="bi bi-download me-1"></i>Scarica busta (.enc)
           </button>
+          {% endif %}
 
-          {# Invia via PEC — sempre attivo; badge DEMO se PEC non configurata #}
+          {# Invio / simulazione canale #}
           <button type="button" id="btnInviaPec"
-                  class="btn btn-success fw-semibold">
+                  class="btn {% if tmpl.canale == 'PTT_TRIBUTARIO' %}btn-warning text-dark{% else %}btn-success{% endif %} fw-semibold">
             <span id="spinnerPec" class="spinner-border spinner-border-sm me-1 d-none"
                   role="status"></span>
-            <i class="bi bi-send-fill me-1" id="iconPec"></i>Invia via PEC
-            {% if not pec_configurata %}<span class="badge bg-warning text-dark ms-1">DEMO</span>{% endif %}
+            <i class="bi {% if tmpl.canale == 'PTT_TRIBUTARIO' %}bi-receipt-cutoff{% else %}bi-send-fill{% endif %} me-1" id="iconPec"></i>
+            {% if tmpl.canale == 'PTT_TRIBUTARIO' %}
+              {{ 'Invia a SIGIT' if canale_reale_configurato else 'Simula invio SIGIT' }}
+              {% if not canale_reale_configurato %}<span class="badge bg-dark text-white ms-1">DEMO</span>{% endif %}
+            {% else %}
+              Invia via PEC
+              {% if not pec_configurata %}<span class="badge bg-warning text-dark ms-1">DEMO</span>{% endif %}
+            {% endif %}
           </button>
         </div>
 
@@ -674,10 +730,12 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  const canaleDeposito = {{ tmpl.canale|tojson }};
   const tabBusta    = document.getElementById('tab-busta');
   const tabEsito    = document.getElementById('tab-esito');
   const footerBusta = document.getElementById('footerBtnsBusta');
   const btnEsito    = document.getElementById('btnFooterEsito');
+  const btnVerifica = document.getElementById('btnVerificaCanale');
 
   /* Swap footer in base al tab attivo */
   if (tabBusta && tabEsito) {
@@ -704,6 +762,61 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnPec = document.getElementById('btnInviaPec');
   if (!btnPec) return;
 
+  if (btnVerifica) {
+    btnVerifica.addEventListener('click', function () {
+      const form = document.getElementById('formGeneraBusta');
+      if (!form.reportValidity()) return;
+
+      btnVerifica.disabled = true;
+      btnVerifica.dataset.originalHtml = btnVerifica.dataset.originalHtml || btnVerifica.innerHTML;
+      btnVerifica.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verifico…';
+
+      const riquadro = document.getElementById('riquadroEsitoInvio');
+      riquadro.classList.add('d-none');
+      document.getElementById('esitoOk').classList.add('d-none');
+      document.getElementById('esitoOkDemo').classList.add('d-none');
+      document.getElementById('esitoErr').classList.add('d-none');
+
+      const fd = new FormData(form);
+      fetch('{{ url_for("api_deposito_valida", id_fasc=fascicolo.id) }}', {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      .then(r => r.json())
+      .then(data => {
+        riquadro.classList.remove('d-none');
+        if (data.ok && data.validation && data.validation.can_prepare_deposit) {
+          const okDemo = document.getElementById('esitoOkDemo');
+          okDemo.classList.remove('d-none');
+          document.getElementById('esitoIdBustaDemo').textContent = data.validation.profile_label || 'PTT';
+          document.getElementById('esitoPecDestDemo').textContent = data.validation.channel || 'PTT_TRIBUTARIO';
+          okDemo.querySelector('.fw-bold').textContent = 'Pre-deposito verificato';
+          okDemo.querySelector('.text-muted').innerHTML =
+            'Il lotto tributario supera i blocchi del preflight. Puoi procedere con la simulazione SIGIT o completare gli ultimi warning.';
+        } else {
+          const err = document.getElementById('esitoErr');
+          err.classList.remove('d-none');
+          document.getElementById('esitoErrMsg').textContent =
+            (data.validation && data.validation.issues && data.validation.issues.length
+              ? (data.validation.issues[0].title + '. ' + (data.validation.issues[0].suggested_action || ''))
+              : (data.errore || 'Validazione non riuscita.'));
+        }
+      })
+      .catch(e => {
+        const rq = document.getElementById('riquadroEsitoInvio');
+        rq.classList.remove('d-none');
+        const err = document.getElementById('esitoErr');
+        err.classList.remove('d-none');
+        document.getElementById('esitoErrMsg').textContent = 'Errore di rete: ' + e.message;
+      })
+      .finally(() => {
+        btnVerifica.disabled = false;
+        btnVerifica.innerHTML = btnVerifica.dataset.originalHtml;
+      });
+    });
+  }
+
   btnPec.addEventListener('click', function () {
     const form = document.getElementById('formGeneraBusta');
     if (!form.reportValidity()) return;
@@ -712,7 +825,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const spinner = document.getElementById('spinnerPec');
     const icon    = document.getElementById('iconPec');
     btnPec.disabled = true;
-    document.getElementById('btnScaricaBusta').disabled = true;
+    const btnScarica = document.getElementById('btnScaricaBusta');
+    if (btnScarica) btnScarica.disabled = true;
+    if (btnVerifica) btnVerifica.disabled = true;
     if (spinner) spinner.classList.remove('d-none');
     if (icon)    icon.classList.add('d-none');
 
@@ -739,12 +854,20 @@ document.addEventListener('DOMContentLoaded', function () {
           okDemo.classList.remove('d-none');
           document.getElementById('esitoIdBustaDemo').textContent = data.id_deposito || '—';
           document.getElementById('esitoPecDestDemo').textContent = data.pec_dest || '—';
+          okDemo.querySelector('.fw-bold').textContent =
+            canaleDeposito === 'PTT_TRIBUTARIO'
+              ? 'Simulazione SIGIT completata'
+              : 'Simulazione completata';
         } else {
           /* Invio reale */
           const ok = document.getElementById('esitoOk');
           ok.classList.remove('d-none');
           document.getElementById('esitoIdBusta').textContent = data.id_deposito || '—';
           document.getElementById('esitoPecDest').textContent = data.pec_dest || '—';
+          ok.querySelector('.fw-bold').textContent =
+            canaleDeposito === 'PTT_TRIBUTARIO'
+              ? 'Deposito SIGIT registrato'
+              : 'Deposito inviato via PEC';
         }
         /* Pre-compila tab Esito */
         if (inpTipo) inpTipo.value = data.tipo_atto || '';
@@ -770,7 +893,8 @@ document.addEventListener('DOMContentLoaded', function () {
     })
     .finally(() => {
       btnPec.disabled = false;
-      document.getElementById('btnScaricaBusta').disabled = false;
+      if (btnScarica) btnScarica.disabled = false;
+      if (btnVerifica) btnVerifica.disabled = false;
       if (spinner) spinner.classList.add('d-none');
       if (icon)    icon.classList.remove('d-none');
     });

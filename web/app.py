@@ -630,6 +630,8 @@ def create_app(config: dict | None = None) -> Flask:
             return "PDP"
         if fasc.tipo == TipoFascicolo.AMMINISTRATIVO:
             return "PAT"
+        if fasc.tipo == TipoFascicolo.TRIBUTARIO:
+            return "SIGIT / PTT"
         return "PolisWeb / PST"
 
     def _tipo_lotto_portale(fasc: Fascicolo) -> str:
@@ -637,7 +639,30 @@ def create_app(config: dict | None = None) -> Flask:
             return "Acquisizione documenti PDP"
         if fasc.tipo == TipoFascicolo.AMMINISTRATIVO:
             return "Acquisizione documenti PAT"
+        if fasc.tipo == TipoFascicolo.TRIBUTARIO:
+            return "Acquisizione documenti SIGIT"
         return "Acquisizione documenti PolisWeb"
+
+    def _infer_canale_deposito(fasc: Fascicolo, explicit: str = "") -> str:
+        canale = (explicit or "").strip().upper()
+        if canale:
+            return canale
+        if fasc.tipo == TipoFascicolo.PENALE:
+            return "PDP_PENALE"
+        if fasc.tipo == TipoFascicolo.AMMINISTRATIVO:
+            return "PAT_AMMINISTRATIVO"
+        if fasc.tipo == TipoFascicolo.TRIBUTARIO:
+            return "PTT_TRIBUTARIO"
+        return "PCT_TELEMATICO"
+
+    def _resolve_ufficio_destinatario(raw_value: str, *, tipo: str | None = None) -> dict | None:
+        try:
+            from pct.uffici_giudiziari import risolvi_ufficio
+
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            return risolvi_ufficio(raw_value, tipo=tipo, cache_path=cache_path)
+        except Exception:
+            return None
 
     def _pst_import_dir_for_fascicolo(fasc: Fascicolo) -> Path:
         return Path(app.config["PST_IMPORT_DIR"]) / fasc.id
@@ -8273,6 +8298,7 @@ read -r -p "Premi Invio per chiudere..." _
         atto_id         = f.get("atto_principale_id", "").strip()
         allegati_ids    = request.form.getlist("allegati_ids")
         note            = f.get("note", "").strip()
+        canale_deposito = _infer_canale_deposito(fasc, f.get("canale_deposito", ""))
 
         validation = _run_deposito_validation(
             fasc=fasc,
@@ -8297,6 +8323,138 @@ read -r -p "Premi Invio per chiudere..." _
             atto_path = str(gf.percorso_documento(id_fasc, atto_id))
         except KeyError:
             return jsonify({"ok": False, "errore": "Documento principale non trovato."}), 400
+
+        if canale_deposito == "PTT_TRIBUTARIO":
+            import json as _json
+            from pct.fascicoli import AttivitaProcessuale, EsitoAttivita, EsitoDepositoPCT
+            from pct.fascicoli import TIPO_ATTO_LABEL, _tipo_attivita_da_tipo_atto
+            from pct.sigit import ClientSIGIT, ClientSIGITDemo
+
+            raw_ufficio = f.get("codice_ufficio", "").strip() or fasc.tribunale or ""
+            ufficio = _resolve_ufficio_destinatario(raw_ufficio)
+            codice_commissione = str((ufficio or {}).get("codice") or raw_ufficio or "SCONOSCIUTO")
+            nome_commissione = str((ufficio or {}).get("nome") or fasc.tribunale or raw_ufficio or "Commissione tributaria")
+
+            cfg_studio = None
+            firma_cfg = None
+            backend_firma = "nessuno"
+            try:
+                cfg_studio = get_config_studio().config
+                firma_cfg = cfg_studio.firma if cfg_studio and hasattr(cfg_studio, "firma") else None
+                backend_firma = getattr(firma_cfg, "backend_firma_effettivo_safe", "nessuno") or "nessuno"
+            except Exception:
+                cfg_studio = None
+                firma_cfg = None
+
+            modalita_demo = True
+            client_sigit = ClientSIGITDemo()
+            try:
+                if backend_firma == "p12" and firma_cfg and getattr(firma_cfg, "p12_path", ""):
+                    client_sigit = ClientSIGIT(
+                        p12_path=firma_cfg.p12_path,
+                        p12_password=(getattr(firma_cfg, "password", "") or "").encode(),
+                        codice_fiscale_avvocato=getattr(firma_cfg, "cf_avvocato", "") or os.getenv("PCT_CF_AVVOCATO", ""),
+                    )
+                    modalita_demo = False
+                elif backend_firma == "pem" and firma_cfg and getattr(firma_cfg, "cert_pem_path", "") and getattr(firma_cfg, "key_pem_path", ""):
+                    key_password = (getattr(firma_cfg, "key_pem_password", "") or "").encode() or None
+                    client_sigit = ClientSIGIT(
+                        cert_pem_path=firma_cfg.cert_pem_path,
+                        key_pem_path=firma_cfg.key_pem_path,
+                        key_pem_password=key_password,
+                        codice_fiscale_avvocato=getattr(firma_cfg, "cf_avvocato", "") or os.getenv("PCT_CF_AVVOCATO", ""),
+                    )
+                    modalita_demo = False
+            except Exception as exc:
+                app.logger.warning("Fallback demo SIGIT per %s: %s", id_fasc, exc)
+                modalita_demo = True
+                client_sigit = ClientSIGITDemo()
+
+            risposta = client_sigit.deposita_atto(
+                codice_commissione=codice_commissione,
+                tipo_atto=tipo_atto,
+                atto_path=atto_path,
+                numero_rgt=numero_rg or "",
+                anno_rgt=anno_rg or 0,
+                oggetto=oggetto,
+            )
+            if str(risposta.get("codiceEsito", "")).strip() not in {"0", "OK"}:
+                return jsonify({
+                    "ok": False,
+                    "errore": risposta.get("descrizioneEsito") or "Deposito SIGIT non riuscito.",
+                    "validation": validation.to_dict(),
+                }), 400
+
+            id_dep = str(risposta.get("idDeposito") or _uuid.uuid4().hex[:8].upper())
+            ts = str(risposta.get("dataDeposito") or _dt.now().isoformat())
+            ricevuta_accettazione = _json.dumps(risposta.get("ricevutaAccettazione") or {}, ensure_ascii=False)
+            esito_controlli = risposta.get("esitoControlli") or {}
+            ricevuta_controlli = _json.dumps(esito_controlli, ensure_ascii=False)
+            esito_segreteria = risposta.get("esitoSegreteria") or {}
+            ricevuta_cancelleria = _json.dumps(esito_segreteria, ensure_ascii=False)
+            tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
+            atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)
+            label_atto = TIPO_ATTO_LABEL.get(tipo_atto, tipo_atto)
+            messaggio = (
+                f"{'[DEMO] ' if modalita_demo else ''}Deposito SIGIT {id_dep} per {nome_commissione}. "
+                f"Tipo atto: {tipo_atto}. Procedimento: {numero_rg or 'nuovo'}/{anno_rg or date.today().year}."
+            )
+
+            esito = EsitoDepositoPCT(
+                id=id_dep,
+                timestamp=ts,
+                stato=str(risposta.get("stato") or "INVIATO"),
+                tipo_atto=tipo_atto,
+                pec_destinatario=nome_commissione,
+                messaggio=messaggio,
+                ricevuta_accettazione=ricevuta_accettazione,
+                ricevuta_controlli_automatici=ricevuta_controlli,
+                esito_controlli=str(esito_controlli.get("codice") or ""),
+                ricevuta_cancelleria=ricevuta_cancelleria,
+                note=("[SIMULAZIONE DEMO SIGIT] " + note).strip() if modalita_demo else note,
+                registrato_da=u.username if u else "",
+                documenti_ids=tutti_ids,
+                nome_atto_principale=atto_doc.nome if atto_doc else "",
+            )
+            fasc.depositi_pct.append(esito)
+            for doc in fasc.documenti:
+                if doc.id in tutti_ids:
+                    doc.id_deposito_pct = id_dep
+            fasc.attivita.append(
+                AttivitaProcessuale(
+                    id=_uuid.uuid4().hex[:8].upper(),
+                    tipo=_tipo_attivita_da_tipo_atto(tipo_atto),
+                    data=date.today().isoformat(),
+                    titolo=f"Deposito telematico — {label_atto}",
+                    descrizione=(
+                        f"Tipo atto: {label_atto}. Canale: SIGIT / PTT. "
+                        f"Commissione: {nome_commissione}. Deposito: {id_dep}."
+                    ),
+                    esito=EsitoAttivita.IN_ATTESA,
+                    id_deposito_pct=id_dep,
+                    avvocato=u.username if u else "",
+                )
+            )
+            fasc.modificato_il = _dt.now().isoformat()
+            gf._salva()
+            audit(
+                "fascicoli.deposito.invia_sigit",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"Deposito {id_dep} — {tipo_atto} -> {nome_commissione}",
+            )
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+            return jsonify(
+                {
+                    "ok": True,
+                    "demo": modalita_demo,
+                    "id_deposito": id_dep,
+                    "pec_dest": nome_commissione,
+                    "tipo_atto": tipo_atto,
+                    "timestamp": ts,
+                    "validation": validation.to_dict(),
+                }
+            )
 
         # Allegati
         allegati_busta = []
@@ -10558,9 +10716,17 @@ read -r -p "Premi Invio per chiudere..." _
 
         # Verifica se PEC studio è configurata (per mostrare bottone invio diretto)
         pec_configurata = False
+        firma_backend = "nessuno"
+        canale_reale_configurato = False
         try:
             _cfg = get_config_studio().config
             pec_configurata = bool(_cfg and _cfg.pec and _cfg.pec.indirizzo and _cfg.pec.password)
+            firma_backend = getattr(getattr(_cfg, "firma", None), "backend_firma_effettivo_safe", "nessuno") or "nessuno"
+            canale_reale_configurato = (
+                firma_backend in {"p12", "pem"}
+                if tmpl.canale == "PTT_TRIBUTARIO"
+                else pec_configurata
+            )
         except Exception:
             pass
 
@@ -10573,6 +10739,8 @@ read -r -p "Premi Invio per chiudere..." _
             nome_cartella=nome_cartella,
             pec_tribunale=pec_tribunale,
             pec_configurata=pec_configurata,
+            firma_backend=firma_backend,
+            canale_reale_configurato=canale_reale_configurato,
             canale_label=CANALE_LABEL,
             canale_icon=CANALE_ICON,
             canale_col=CANALE_COL,

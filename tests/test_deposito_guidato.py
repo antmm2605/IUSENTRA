@@ -45,6 +45,17 @@ def _cfg_web(tmp_path: Path) -> dict:
     }
 
 
+def _doc_payload(gf: GestioneFascicoli, fasc_id: str, doc) -> dict:
+    return {
+        "id": doc.id,
+        "nome": doc.nome,
+        "tipo": doc.tipo.value,
+        "percorso": str(gf.percorso_documento(fasc_id, doc.id)),
+        "dimensione_bytes": doc.dimensione_bytes,
+        "firmato_digitalmente": doc.firmato_digitalmente,
+    }
+
+
 def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
     gf = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),
@@ -244,3 +255,169 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
     assert "RG 1025/2024" in html
     assert f"Interno {fasc.numero}" in html
     assert 'const correctionContext = {"active": false' in html
+
+
+def test_orchestratore_tributario_consente_prededeposito_con_nir(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Ricorso tributario demo",
+        tipo=TipoFascicolo.TRIBUTARIO,
+        tribunale="CPT Milano",
+        numero_rg="321",
+        anno_rg=2026,
+        controparte="Agenzia delle Entrate",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "ricorso_tributario.pdf.p7m",
+        TipoDocumento.RICORSO,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "procura_alle_liti.pdf",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+    )
+    notifica = gf.aggiungi_documento(
+        fasc.id,
+        "relata_notifica_ente.pdf",
+        TipoDocumento.NOTIFICA,
+        _pdf_base(),
+    )
+    contributo = gf.aggiungi_documento(
+        fasc.id,
+        "ricevuta_contributo_unificato.pdf",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+    )
+    indice = gf.aggiungi_documento(
+        fasc.id,
+        "indice_documenti.pdf",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+    )
+    nir = gf.aggiungi_documento(
+        fasc.id,
+        "NIR_nota_iscrizione_a_ruolo_firmata.pdf.p7m",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+        firmato=True,
+    )
+    docs = [
+        _doc_payload(gf, fasc.id, atto),
+        _doc_payload(gf, fasc.id, procura),
+        _doc_payload(gf, fasc.id, notifica),
+        _doc_payload(gf, fasc.id, contributo),
+        _doc_payload(gf, fasc.id, indice),
+        _doc_payload(gf, fasc.id, nir),
+    ]
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "RICORSO",
+            "codice_registro": "PTT_RICORSI",
+            "oggetto": "Ricorso tributario contro avviso di accertamento",
+            "numero_rg": "",
+            "anno_rg": "",
+            "atto_principale_id": atto.id,
+            "allegati_ids": [procura.id, notifica.id, contributo.id, indice.id, nir.id],
+            "operatore": "avv.rossi",
+        },
+        selected_documents=docs,
+        all_documents=docs,
+    )
+
+    codes = {issue["code"] for issue in run.issues}
+    assert run.channel == "PTT_TRIBUTARIO"
+    assert run.profile_id == "ricorso_tributario"
+    assert run.can_prepare_deposit is True
+    assert run.semaforo["giuridico"] != "blocco"
+    assert run.semaforo["tecnico_pst"] == "warning"
+    assert "nir_tributaria_mancante" not in codes
+    assert "canale_non_depositabile" not in codes
+    assert "schema_non_pct" not in codes
+    assert "schema_sigit_formweb" in codes
+
+
+def test_orchestratore_tributario_blocca_ricorso_senza_nir(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Ricorso tributario senza NIR",
+        tipo=TipoFascicolo.TRIBUTARIO,
+        tribunale="CPT Milano",
+        numero_rg="654",
+        anno_rg=2026,
+        controparte="Agenzia delle Entrate",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "ricorso_tributario.pdf.p7m",
+        TipoDocumento.RICORSO,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "procura_alle_liti.pdf",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+    )
+    notifica = gf.aggiungi_documento(
+        fasc.id,
+        "relata_notifica_ente.pdf",
+        TipoDocumento.NOTIFICA,
+        _pdf_base(),
+    )
+    contributo = gf.aggiungi_documento(
+        fasc.id,
+        "ricevuta_contributo_unificato.pdf",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+    )
+    docs = [
+        _doc_payload(gf, fasc.id, atto),
+        _doc_payload(gf, fasc.id, procura),
+        _doc_payload(gf, fasc.id, notifica),
+        _doc_payload(gf, fasc.id, contributo),
+    ]
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "RICORSO",
+            "codice_registro": "PTT_RICORSI",
+            "oggetto": "Ricorso tributario contro avviso di accertamento",
+            "numero_rg": "",
+            "anno_rg": "",
+            "atto_principale_id": atto.id,
+            "allegati_ids": [procura.id, notifica.id, contributo.id],
+            "operatore": "avv.rossi",
+        },
+        selected_documents=docs,
+        all_documents=docs,
+    )
+
+    assert run.can_prepare_deposit is False
+    assert run.semaforo["giuridico"] == "blocco"
+    assert any(issue["code"] == "nir_tributaria_mancante" for issue in run.issues)

@@ -18,6 +18,20 @@ from pct.pec import ConfigPEC
 from web.app import create_app
 
 
+def _pdf_base(pdfa_part: str = "2", pdfa_conf: str = "B") -> bytes:
+    xmp = (
+        b"<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>"
+        b"<x:xmpmeta xmlns:x='adobe:ns:meta/'>"
+        b"<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
+        b"<rdf:Description xmlns:pdfaid='http://www.aiim.org/pdfa/ns/id/'>"
+        b"<pdfaid:part>" + pdfa_part.encode() + b"</pdfaid:part>"
+        b"<pdfaid:conformance>" + pdfa_conf.encode() + b"</pdfaid:conformance>"
+        b"</rdf:Description></rdf:RDF></x:xmpmeta>"
+        b"<?xpacket end='w'?>"
+    )
+    return b"%PDF-1.4\n" + xmp + b"\n%%EOF"
+
+
 def _cfg_web(tmp_path: Path) -> dict:
     os.makedirs(str(tmp_path / "backup"), exist_ok=True)
     return {
@@ -40,6 +54,57 @@ def _cfg_web(tmp_path: Path) -> dict:
         "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
         "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
     }
+
+
+def _crea_fascicolo_tributario_pronto(gf: GestioneFascicoli):
+    fascicolo = gf.nuovo(
+        titolo="Ricorso tributario demo",
+        tipo=TipoFascicolo.TRIBUTARIO,
+        tribunale="CPT Milano",
+        numero_rg="321",
+        anno_rg=2026,
+        controparte="Agenzia delle Entrate",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fascicolo.id,
+        "ricorso_tributario.pdf.p7m",
+        TipoDocumento.RICORSO,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fascicolo.id,
+        "procura_alle_liti.pdf",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+    )
+    notifica = gf.aggiungi_documento(
+        fascicolo.id,
+        "relata_notifica_ente.pdf",
+        TipoDocumento.NOTIFICA,
+        _pdf_base(),
+    )
+    contributo = gf.aggiungi_documento(
+        fascicolo.id,
+        "ricevuta_contributo_unificato.pdf",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+    )
+    indice = gf.aggiungi_documento(
+        fascicolo.id,
+        "indice_documenti.pdf",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+    )
+    nir = gf.aggiungi_documento(
+        fascicolo.id,
+        "NIR_nota_iscrizione_a_ruolo_firmata.pdf.p7m",
+        TipoDocumento.ALLEGATO,
+        _pdf_base(),
+        firmato=True,
+    )
+    return fascicolo, atto, procura, notifica, contributo, indice, nir
 
 
 def test_salva_documento_firmato_pades_usa_i_bytes_passati(tmp_path):
@@ -547,3 +612,123 @@ def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkey
     assert all(doc.firmato_digitalmente for doc in fascicolo_reload.documenti[:2])
     assert fascicolo_reload.documenti[0].nome.endswith(".p7m")
     assert fascicolo_reload.documenti[1].nome.endswith(".p7m")
+
+
+def test_wizard_tributario_renderizza_prededeposito_sigit_demo(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="tributario-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo, *_ = _crea_fascicolo_tributario_pronto(gf)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "tributario-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            f"/fascicoli/{fascicolo.id}/wizard/ricorso_tributario/completa",
+            follow_redirects=True,
+        )
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Pre-deposito PTT Tributario" in body
+    assert "Verifica pre-deposito SIGIT" in body
+    assert "Simula invio SIGIT" in body
+    assert 'name="canale_deposito" value="PTT_TRIBUTARIO"' in body
+    assert "PTT_RICORSI" in body
+
+
+def test_deposito_invia_pec_tributario_demo_registra_esito(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="tributario-operatore",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo, atto, procura, notifica, contributo, indice, nir = _crea_fascicolo_tributario_pronto(gf)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "tributario-operatore", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fascicolo.id}/deposito/invia-pec",
+            data={
+                "canale_deposito": "PTT_TRIBUTARIO",
+                "codice_ufficio": "CPT030000",
+                "tipo_atto": "RICORSO",
+                "codice_registro": "PTT_RICORSI",
+                "oggetto": "Ricorso tributario contro avviso di accertamento",
+                "atto_principale_id": atto.id,
+                "allegati_ids": [
+                    procura.id,
+                    notifica.id,
+                    contributo.id,
+                    indice.id,
+                    nir.id,
+                ],
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["demo"] is True
+    assert payload["tipo_atto"] == "RICORSO"
+    assert payload["validation"]["channel"] == "PTT_TRIBUTARIO"
+    assert payload["validation"]["can_prepare_deposit"] is True
+    assert payload["pec_dest"]
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.depositi_pct) == 1
+    deposito = fascicolo_reload.depositi_pct[0]
+    assert deposito.id == payload["id_deposito"]
+    assert deposito.tipo_atto == "RICORSO"
+    assert deposito.stato == "INVIATO"
+    assert deposito.pec_destinatario == payload["pec_dest"]
+    assert set(deposito.documenti_ids) == {atto.id, procura.id, notifica.id, contributo.id, indice.id, nir.id}
+    assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
+    assert any(att.id_deposito_pct == deposito.id for att in fascicolo_reload.attivita)

@@ -733,17 +733,25 @@
       {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
       {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
       {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
-    {% elif ftipo == 'AMMINISTRATIVO' %}
-      {% set dep_icon      = 'bi-building' %}
-      {% set dep_col       = 'info' %}
-      {% set dep_label     = 'Depositi PAT Amministrativo' %}
-      {% set dep_portale_label = 'Consulta su PAT' %}
-      {% set dep_portale_url   = url_for('pat_home', id_fasc=fascicolo.id) %}
-      {% set dep_canali    = ['PAT_AMMINISTRATIVO', 'CARTACEO'] %}
-      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo (firma CAdES .p7m via PAT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
-    {% else %}
-      {% set dep_icon      = 'bi-send-fill' %}
-      {% set dep_col       = 'primary' %}
+      {% elif ftipo == 'AMMINISTRATIVO' %}
+        {% set dep_icon      = 'bi-building' %}
+        {% set dep_col       = 'info' %}
+        {% set dep_label     = 'Depositi PAT Amministrativo' %}
+        {% set dep_portale_label = 'Consulta su PAT' %}
+        {% set dep_portale_url   = url_for('pat_home', id_fasc=fascicolo.id) %}
+        {% set dep_canali    = ['PAT_AMMINISTRATIVO', 'CARTACEO'] %}
+        {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo (firma CAdES .p7m via PAT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% elif ftipo == 'TRIBUTARIO' %}
+        {% set dep_icon      = 'bi-receipt-cutoff' %}
+        {% set dep_col       = 'warning' %}
+        {% set dep_label     = 'Depositi PTT Tributario' %}
+        {% set dep_portale_label = 'Consulta su SIGIT' %}
+        {% set dep_portale_url   = url_for('sigit_home', id_fasc=fascicolo.id) %}
+        {% set dep_canali    = ['PTT_TRIBUTARIO', 'CARTACEO'] %}
+        {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito tributario (firma CAdES .p7m via SIGIT/PTT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+      {% else %}
+        {% set dep_icon      = 'bi-send-fill' %}
+        {% set dep_col       = 'primary' %}
       {% set dep_label     = 'Depositi telematici PCT' %}
       {% set dep_portale_label = 'Consulta su PolisWeb' %}
       {% set dep_portale_url   = url_for('polisWeb_home', id_fasc=fascicolo.id) %}
@@ -787,7 +795,7 @@
               <li>
                 <a class="dropdown-item small py-2"
                    href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=tmpl.id) }}">
-                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
+                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PTT_TRIBUTARIO':'bi-receipt-cutoff','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
                   {{ tmpl.nome }}
                 </a>
               </li>

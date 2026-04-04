@@ -55,6 +55,13 @@ LEVEL_OK = "OK"
 LEVEL_WARNING = "WARNING"
 LEVEL_BLOCK = "BLOCK"
 
+DEPOSIT_CHANNELS = {
+    "PCT_TELEMATICO",
+    "PDP_PENALE",
+    "PAT_AMMINISTRATIVO",
+    "PTT_TRIBUTARIO",
+}
+
 
 def _slug(text: str) -> str:
     norm = unicodedata.normalize("NFKD", text or "")
@@ -213,9 +220,17 @@ class ProceduralKnowledgeBase:
         return PROCEDURAL_KB_VERSION
 
     def resolve_profile(self, fascicolo: Fascicolo, tipo_atto: str) -> ProceduralProfile:
-        for profile in self._profiles:
-            if profile.matches_tipo_atto(tipo_atto):
-                return profile
+        matching = [profile for profile in self._profiles if profile.matches_tipo_atto(tipo_atto)]
+        fascicolo_tipo = fascicolo.tipo.value
+        typed_matches = [
+            profile
+            for profile in matching
+            if not profile.allowed_fascicolo_types or fascicolo_tipo in profile.allowed_fascicolo_types
+        ]
+        if typed_matches:
+            return typed_matches[0]
+        if matching:
+            return matching[0]
         return ProceduralProfile(
             id="atto_generico_pct",
             label="Atto generico PCT",
@@ -402,6 +417,144 @@ class ProceduralKnowledgeBase:
                     "usa il canale notificatorio/PEC e poi la successiva fase esecutiva."
                 ),
             ),
+            ProceduralProfile(
+                id="atto_difensivo_pdp",
+                label="Atto difensivo PDP Penale",
+                tipo_atto_codes=[
+                    "ATTO_DIFESA",
+                    "MEMORIA",
+                    "IMPUGNAZIONE",
+                    "APPELLO",
+                    "ISTANZA",
+                    "RICHIESTA_RIESAME",
+                    "OPPOSIZIONE",
+                    "MOTIVI_NUOVI",
+                    "DEPOSITO_DOCUMENTI",
+                    "NOMINA",
+                    "ALTRO",
+                ],
+                channel="PDP_PENALE",
+                materia="PENALE",
+                rito="deposito penale telematico",
+                giurisdizione="ordinaria penale",
+                grado="fase penale",
+                deposit_mode="portale_penale",
+                allowed_fascicolo_types=["PENALE"],
+                allowed_office_types=["PROCURA", "TRIBUNALE", "CORTE_APPELLO", "CORTE_CASSAZIONE"],
+                allowed_registries=["PDP_ATTI", "RGNR", "RG", "GIP", "GUP", "RGES"],
+                requires_procura=True,
+                required_fields=["tribunale", "oggetto"],
+                fonti=_profile_fonti(
+                    {
+                        "label": "D.M. 217/2023 - Portale deposito atti penali",
+                        "url": "https://www.gazzettaufficiale.it/eli/id/2023/12/30/23G00232/sg",
+                    }
+                ),
+                corrective_hint=(
+                    "Verifica che l'atto sia abilitato sul PDP per fase, ufficio penale e soggetto depositante."
+                ),
+            ),
+            ProceduralProfile(
+                id="ricorso_pat",
+                label="Ricorso / deposito PAT Amministrativo",
+                tipo_atto_codes=[
+                    "RICORSO",
+                    "APPELLO",
+                    "MEMORIA",
+                    "REPLICA",
+                    "MOTIVI_AGGIUNTI",
+                    "RICORSO_INCIDENTALE",
+                    "ISTANZA",
+                    "DEPOSITO_DOCUMENTI",
+                    "ALTRO",
+                ],
+                channel="PAT_AMMINISTRATIVO",
+                materia="AMMINISTRATIVO",
+                rito="processo amministrativo telematico",
+                giurisdizione="amministrativa",
+                grado="tar_cds",
+                deposit_mode="portale_pat",
+                allowed_fascicolo_types=["AMMINISTRATIVO"],
+                allowed_office_types=["TAR", "CDS", "CGARS"],
+                allowed_registries=["PAT_DEP", "RG"],
+                requires_procura=True,
+                requires_notification_proof=True,
+                required_fields=["tribunale", "oggetto", "controparte"],
+                fonti=_profile_fonti(
+                    {
+                        "label": "D.P.C.M. 16 febbraio 2016 - PAT",
+                        "url": "https://www.gazzettaufficiale.it/eli/id/2016/04/20/16A02974/sg",
+                    }
+                ),
+                corrective_hint=(
+                    "Conferma TAR/Consiglio di Stato competente, notifica e allegati richiesti dal SIGA/Formweb."
+                ),
+            ),
+            ProceduralProfile(
+                id="ricorso_tributario",
+                label="Ricorso / deposito PTT Tributario",
+                tipo_atto_codes=[
+                    "RICORSO",
+                    "RICORSO_TRIBUTARIO",
+                    "MEMORIA",
+                    "REPLICA",
+                    "CONTRODEDUZIONI",
+                    "ISTANZA",
+                    "DEPOSITO_DOCUMENTI",
+                    "ALTRO",
+                ],
+                channel="PTT_TRIBUTARIO",
+                materia="TRIBUTARIO",
+                rito="processo tributario telematico",
+                giurisdizione="tributaria",
+                grado="primo_grado",
+                deposit_mode="portale_sigit",
+                allowed_fascicolo_types=["TRIBUTARIO"],
+                allowed_office_types=["CPT", "CGT"],
+                allowed_registries=["PTT_RICORSI"],
+                requires_procura=True,
+                requires_contributo=True,
+                requires_notification_proof=True,
+                required_fields=["tribunale", "oggetto", "controparte"],
+                fonti=_profile_fonti(
+                    {
+                        "label": "D.M. 163/2013 - Processo tributario telematico",
+                        "url": "https://www.gazzettaufficiale.it/eli/id/2013/11/19/13A09382/sg",
+                    }
+                ),
+                corrective_hint=(
+                    "Per il PTT conferma CGT competente, notifica all'ente, contributo e NIR firmata prima della chiusura."
+                ),
+            ),
+            ProceduralProfile(
+                id="appello_tributario",
+                label="Appello PTT Tributario",
+                tipo_atto_codes=["APPELLO", "APPELLO_TRIBUTARIO"],
+                channel="PTT_TRIBUTARIO",
+                materia="TRIBUTARIO",
+                rito="processo tributario telematico",
+                giurisdizione="tributaria",
+                grado="secondo_grado",
+                deposit_mode="portale_sigit",
+                allowed_fascicolo_types=["TRIBUTARIO"],
+                allowed_office_types=["CGT"],
+                allowed_registries=["PTT_RICORSI"],
+                required_existing_rg=True,
+                requires_procura=True,
+                requires_contributo=True,
+                requires_notification_proof=True,
+                requires_sentenza_impugnata=True,
+                required_fields=["tribunale", "oggetto", "controparte"],
+                fonti=_profile_fonti(
+                    {
+                        "label": "D.Lgs. 546/1992 - Appello tributario",
+                        "url": "https://www.normattiva.it/eli/id/1992/12/31/092G0587/CONSOLIDATED/20240404",
+                    }
+                ),
+                corrective_hint=(
+                    "Per l'appello tributario verifica sentenza impugnata, termine breve/lungo e NIR firmata."
+                ),
+            ),
         ]
 
 
@@ -456,6 +609,10 @@ def _classify_documents(documenti: List[Dict[str, Any]]) -> Dict[str, List[Dict[
             )
         ],
         "indice": [d for d in documenti if _doc_matches(d, names=("indice", "indice deposito"))],
+        "nir": [
+            d for d in documenti
+            if _doc_matches(d, names=("nir", "nota iscrizione a ruolo", "nota_iscrizione_a_ruolo"))
+        ],
     }
 
 
@@ -653,7 +810,7 @@ class ValidatorNormativoRedazionale:
         selected_groups = _classify_documents(selected_documents)
         all_groups = _classify_documents(all_documents)
 
-        if profile.channel != "PCT_TELEMATICO":
+        if profile.channel not in DEPOSIT_CHANNELS:
             issues.append(
                 ValidationIssue(
                     service=SERVICE_GIURIDICO,
@@ -967,6 +1124,26 @@ class ValidatorNormativoRedazionale:
                 )
             )
 
+        if profile.channel == "PTT_TRIBUTARIO" and profile.deposit_mode == "portale_sigit":
+            tipo_atto_norm = _slug(context.get("tipo_atto") or "")
+            richiede_nir = tipo_atto_norm in {"ricorso", "ricorso tributario", "appello", "appello tributario"}
+            if richiede_nir and not all_groups["nir"]:
+                issues.append(
+                    ValidationIssue(
+                        service=SERVICE_GIURIDICO,
+                        level=LEVEL_BLOCK,
+                        code="nir_tributaria_mancante",
+                        title="NIR del PTT non rilevata",
+                        detail=(
+                            "Nel flusso tributario la Nota di Iscrizione a Ruolo generata dal portale MEF "
+                            "deve essere scaricata, firmata in CAdES e ricaricata prima della chiusura del deposito."
+                        ),
+                        source="D.M. 163/2013 / workflow SIGIT-PTT",
+                        suggested_action="Genera la NIR sul portale SIGIT, firmala e allegala al fascicolo prima del deposito.",
+                        field="allegati_ids",
+                    )
+                )
+
         if main_doc and _safe_int(main_doc.get("dimensione_bytes")) < 2048:
             issues.append(
                 ValidationIssue(
@@ -1157,6 +1334,40 @@ class ValidatorSchemiPST:
         selected_documents: List[Dict[str, Any]],
     ) -> List[ValidationIssue]:
         issues: List[ValidationIssue] = []
+        if profile.channel == "PTT_TRIBUTARIO":
+            issues.append(
+                ValidationIssue(
+                    service=SERVICE_TECNICO,
+                    level=LEVEL_WARNING,
+                    code="schema_sigit_formweb",
+                    title="Controllo tecnico PTT eseguito senza DatiAtto.xml",
+                    detail=(
+                        "Per il canale tributario la verifica tecnica non genera DatiAtto.xml o busta .enc: "
+                        "controlla coerenza di commissione, registro PTT e allegati richiesti dal portale SIGIT."
+                    ),
+                    source="SIGIT / PTT - workflow portale",
+                    suggested_action="Usa la simulazione SIGIT e conferma NIR, registro PTT_RICORSI e firma CAdES.",
+                    field="codice_registro",
+                )
+            )
+            return issues
+        if profile.channel in {"PAT_AMMINISTRATIVO", "PDP_PENALE"}:
+            issues.append(
+                ValidationIssue(
+                    service=SERVICE_TECNICO,
+                    level=LEVEL_WARNING,
+                    code="schema_portale_non_pct",
+                    title="Controllo tecnico eseguito sul canale portale dedicato",
+                    detail=(
+                        "Per questo canale il preflight conferma fascicolo, ufficio, registro e allegati, "
+                        "ma non genera il DatiAtto.xml del PCT civile."
+                    ),
+                    source="Workflow portali telematici dedicati",
+                    suggested_action="Completa la verifica documentale e usa la simulazione del canale dedicato.",
+                    field="tipo_atto",
+                )
+            )
+            return issues
         if profile.channel != "PCT_TELEMATICO":
             issues.append(
                 ValidationIssue(

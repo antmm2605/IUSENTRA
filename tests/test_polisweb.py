@@ -1375,6 +1375,153 @@ def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
     assert {s.nome_completo for s in gestione_soggetti_reload.tutti()} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
 
 
+def test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.polisWeb as polisweb_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    def _crea_client_non_atteso(*args, **kwargs):
+        raise AssertionError("crea_client non deve essere usato quando l'import arriva dal Local Signer.")
+
+    monkeypatch.setattr(polisweb_module, "crea_client", _crea_client_non_atteso)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/polisWeb/importa",
+            data={
+                "demo_mode": "0",
+                "canale_accesso_pst": "local_signer",
+                "numero_rg": "1025",
+                "anno_rg": "2024",
+                "ruolo": "CIVILE_COGNIZIONE",
+                "stato": "PENDENTE",
+                "oggetto": "Vendita di cose immobili",
+                "sezione": "CIVILE",
+                "giudice": "GIOVANNELLA MARIA ELENA",
+                "data_iscrizione": "05/09/2024 00:00:00.000",
+                "data_udienza": "12/12/2024 00:00:00.000",
+                "parti_json": json.dumps(["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"]),
+                "parti_dettaglio_json": json.dumps(
+                    [
+                        {"nome": "MONTAGNESE ELISABETTA", "tipo": "AP", "codice_fiscale": "MNTLBT49E47H558L"},
+                        {"nome": "STILLITANO FRANCESCO", "tipo": "AS", "codice_fiscale": "STLFNC45E26L063X"},
+                    ]
+                ),
+                "codice_ufficio": "0800570094",
+                "nome_ufficio": "",
+                "documenti_json": json.dumps(
+                    [
+                        {
+                            "id_documento": "DOC-1",
+                            "nome": "SentenzaDefinitiva_33581101.pdf",
+                            "tipo": "SentenzaDefinitiva",
+                            "data_deposito": "2026-01-08",
+                            "mittente": "GIOVANNELLA MARIA ELENA",
+                            "dimensione_bytes": 12345,
+                            "disponibile": True,
+                            "id_deposito": "DEP-1",
+                            "tipo_atto": "SentenzaDefinitiva",
+                        }
+                    ]
+                ),
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+    assert "Nessun certificato configurato per l'accesso al PST" not in response.data.decode("utf-8")
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicoli = gestione_fascicoli.tutti()
+    assert len(fascicoli) == 1
+
+    fascicolo = fascicoli[0]
+    assert fascicolo.numero_rg == "1025"
+    assert fascicolo.anno_rg == 2024
+    assert fascicolo.tribunale == "Tribunale di Palmi"
+    assert fascicolo.nome_cliente == "Montagnese Elisabetta"
+    assert len(fascicolo.depositi_pct) == 1
+    assert fascicolo.depositi_pct[0].documenti_portale
+
+
+def test_route_importa_polisweb_puo_aprire_subito_naviga_pst(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/polisWeb/importa",
+            data={
+                "demo_mode": "1",
+                "apri_portale": "1",
+                "numero_rg": "1025",
+                "anno_rg": "2024",
+                "ruolo": "CIVILE_COGNIZIONE",
+                "stato": "PENDENTE",
+                "oggetto": "Vendita di cose immobili",
+                "sezione": "CIVILE",
+                "giudice": "GIOVANNELLA MARIA ELENA",
+                "data_iscrizione": "05/09/2024 00:00:00.000",
+                "data_udienza": "12/12/2024 00:00:00.000",
+                "parti_json": json.dumps(["STILLITANO FRANCESCO", "BANCA ALFA S.P.A."]),
+                "parti_dettaglio_json": json.dumps(
+                    [
+                        {"nome": "STILLITANO FRANCESCO", "tipo": "ATTORE", "codice_fiscale": "STLFNC45E26L063X"},
+                        {"nome": "BANCA ALFA S.P.A.", "tipo": "CONVENUTO", "codice_fiscale": "12345678901"},
+                    ]
+                ),
+                "codice_ufficio": "0800570094",
+                "nome_ufficio": "",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert "open_pst_nav=1" in response.headers["Location"]
+
+
 def test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

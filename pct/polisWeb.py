@@ -2255,6 +2255,25 @@ class ClientPolisWebDemo(ClientPolisWeb):
         return busta1 + busta2 + busta3 + busta4
 
 
+class ClientPolisWebImportOnly(ClientPolisWebDemo):
+    """
+    Client logico per importazioni PST già autenticate dal browser / Local Signer.
+
+    Non richiede certificati lato server e non effettua consultazioni remote:
+    importa soltanto i metadati del fascicolo e gli eventuali documenti già
+    prelevati dal canale locale.
+    """
+
+    def _precarica_documenti_importazione(
+        self,
+        fascicolo_pw: FascicoloPolisWeb,
+        documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
+    ) -> tuple[List[DocumentoPolisWeb], List[str]]:
+        if documenti_pw is not None:
+            return list(documenti_pw), []
+        return [], []
+
+
 # ================================================================ Utils
 
 def _parse_data(valore: Any) -> str:

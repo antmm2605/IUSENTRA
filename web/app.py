@@ -4414,10 +4414,15 @@ read -r -p "Premi Invio per chiudere..." _
     def polisWeb_importa():
         """Importa una pratica PolisWeb come nuovo fascicolo nel gestionale."""
         import json as _json
-        from pct.polisWeb import crea_client, FascicoloPolisWeb, DocumentoPolisWeb, _parse_data
+        from pct.polisWeb import (
+            ClientPolisWebImportOnly,
+            DocumentoPolisWeb,
+            FascicoloPolisWeb,
+            _parse_data,
+            crea_client,
+        )
         from pct.uffici_giudiziari import risolvi_ufficio
         f = request.form
-        demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         u = g.utente_corrente
         try:
             def _as_bool(value):
@@ -4432,11 +4437,22 @@ read -r -p "Premi Invio per chiudere..." _
                     return False
                 return bool(value)
 
+            documenti_json_raw = f.get("documenti_json", "").strip()
+            documenti_prefetch_error = f.get("documenti_prefetch_error", "").strip()
+            canale_accesso_pst = str(f.get("canale_accesso_pst") or "").strip().lower()
+            import_locale_richiesto = (
+                canale_accesso_pst == "local_signer"
+                or bool(documenti_json_raw)
+                or bool(documenti_prefetch_error)
+            )
+            demo_mode = f.get("demo_mode") == "1"
+            if not import_locale_richiesto:
+                demo_mode = demo_mode or _polis_demo_mode()
+
             numero_rg_imp = f.get("numero_rg", "")
             anno_rg_imp   = int(f.get("anno_rg", 0) or 0)
             nome_ufficio_imp = f.get("nome_ufficio", "")
             codice_ufficio_imp = f.get("codice_ufficio", "")
-            documenti_prefetch_error = f.get("documenti_prefetch_error", "").strip()
             if not nome_ufficio_imp and codice_ufficio_imp:
                 ufficio = risolvi_ufficio(codice_ufficio_imp)
                 if isinstance(ufficio, dict):
@@ -4457,7 +4473,6 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=codice_ufficio_imp,
                 nome_ufficio=nome_ufficio_imp,
             )
-            documenti_json_raw = f.get("documenti_json", "").strip()
             documenti_pw = None
             if documenti_json_raw:
                 documenti_pw = []
@@ -4476,13 +4491,20 @@ read -r -p "Premi Invio per chiudere..." _
                             tipo_atto=str(row.get("tipo_atto") or "").strip(),
                         )
                     )
-            client = crea_client(demo=demo_mode)
+            usa_import_locale = not demo_mode and import_locale_richiesto
+            if demo_mode:
+                client = crea_client(demo=True)
+            elif usa_import_locale:
+                client = ClientPolisWebImportOnly()
+            else:
+                client = crea_client(demo=False)
             gf = get_fascicoli()
             gc = get_clienti()
             gs = get_soggetti()
 
             fc_esistente = None
             id_fasc_target = f.get("id_fasc", "").strip()
+            apri_portale = f.get("apri_portale") == "1"
             if id_fasc_target:
                 fascicolo_target = gf.get(id_fasc_target)
                 if (
@@ -4542,8 +4564,11 @@ read -r -p "Premi Invio per chiudere..." _
                     risultato.id_fascicolo_locale,
                     dettagli=f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg}",
                 )
-                return redirect(url_for("dettaglio_fascicolo",
-                                        id_fasc=risultato.id_fascicolo_locale))
+                return redirect(url_for(
+                    "dettaglio_fascicolo",
+                    id_fasc=risultato.id_fascicolo_locale,
+                    open_pst_nav="1" if apri_portale else None,
+                ))
             flash(risultato.messaggio, "danger")
         except Exception as e:
             flash(str(e), "danger")
@@ -6714,6 +6739,7 @@ read -r -p "Premi Invio per chiudere..." _
             cliente=cliente,
         )
         cfg_firma = get_config_studio().config.firma
+        open_pst_nav = request.args.get("open_pst_nav") == "1"
         workspace_fascicolo = _build_fascicolo_workspace(
             fasc,
             apps=apps,
@@ -6743,6 +6769,7 @@ read -r -p "Premi Invio per chiudere..." _
             polisweb_sync_needed=polisweb_sync_needed,
             responsabile_conformita=responsabile_conformita,
             cfg_firma=cfg_firma,
+            open_pst_nav=open_pst_nav,
             oggi=date.today(),
         )
 

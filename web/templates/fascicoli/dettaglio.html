@@ -53,7 +53,7 @@
   </div>
 </div>
 
-<div class="card shadow-sm mb-3">
+<div class="card shadow-sm mb-3" id="collegamenti-rapidi-fascicolo" style="scroll-margin-top:1rem">
   <div class="card-body py-2">
     <div class="d-flex flex-wrap gap-2 small">
       <a href="#sezione-profilo" class="btn btn-sm btn-outline-primary">
@@ -90,10 +90,15 @@
   <div class="col-lg-8">
 
     {# Profilo fascicolo #}
-    <div class="card shadow-sm mb-3" id="sezione-profilo">
+    <div class="card shadow-sm mb-3" id="sezione-profilo" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span><i class="bi bi-info-circle me-2 text-primary"></i>Profilo fascicolo</span>
-        <span class="badge bg-light text-dark border">ProfiloFascicolo</span>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
+          </a>
+          <span class="badge bg-light text-dark border">ProfiloFascicolo</span>
+        </div>
       </div>
       <div class="card-body">
         <div class="row g-3 small">
@@ -235,17 +240,22 @@
     {% endif %}
 
     {# ---- Attività processuali ---- #}
-    <div class="card shadow-sm mb-3" id="sezione-attivita-processuali">
+    <div class="card shadow-sm mb-3" id="sezione-attivita-processuali" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi bi-list-check me-2 text-primary"></i>
           Attività processuali
           <span class="badge bg-primary rounded-pill ms-1">{{ WFS.attivita_processuali|length }}</span>
         </span>
-        <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
-                data-bs-target="#modalAttivita">
-          <i class="bi bi-plus-lg me-1"></i>Aggiungi
-        </button>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary flex-shrink-0">
+            <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
+          </a>
+          <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
+                  data-bs-target="#modalAttivita">
+            <i class="bi bi-plus-lg me-1"></i>Aggiungi
+          </button>
+        </div>
       </div>
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
         Timeline procedurale del fascicolo: passaggi, adempimenti operativi e storico delle lavorazioni, separata da udienze, scadenze e comunicazioni di cancelleria.
@@ -297,7 +307,7 @@
     </div>
 
     {# ---- Documenti ---- #}
-    <div class="card shadow-sm mb-3" id="sezione-documenti-fascicolo">
+    <div class="card shadow-sm mb-3" id="sezione-documenti-fascicolo" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi bi-paperclip me-2 text-primary"></i>
@@ -305,6 +315,9 @@
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
         </span>
         <div class="d-flex gap-2 flex-wrap">
+            <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary flex-shrink-0">
+              <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
+            </a>
             <button class="btn btn-sm btn-outline-info flex-shrink-0" data-bs-toggle="modal"
                    data-bs-target="#modalNavigaPst">
               <i class="bi bi-diagram-3 me-1"></i>Naviga PST
@@ -639,16 +652,21 @@
     </div>
 
     {# ---- Udienze e scadenze ---- #}
-    <div class="card shadow-sm mb-3" id="sezione-udienze-scadenze">
+    <div class="card shadow-sm mb-3" id="sezione-udienze-scadenze" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi bi-calendar-event me-2 text-primary"></i>
           Udienze e scadenze
           <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.udienze_attivita|length) + (WFS.scadenze|length) + (WFS.appuntamenti|length) }}</span>
         </span>
-        <a href="{{ url_for('scadenziario', id_fascicolo=fascicolo.id) }}" class="btn btn-sm btn-outline-primary">
-          <i class="bi bi-calendar3 me-1"></i>Scadenziario
-        </a>
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
+          </a>
+          <a href="{{ url_for('scadenziario', id_fascicolo=fascicolo.id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-calendar3 me-1"></i>Scadenziario
+          </a>
+        </div>
       </div>
       <div class="card-body p-0">
         {% if WFS.udienze_attivita or WFS.scadenze or WFS.appuntamenti %}
@@ -730,7 +748,7 @@
       {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
     {% endif %}
 
-    <div class="card shadow-sm mb-3" id="sezione-comunicazioni-cancelleria">
+    <div class="card shadow-sm mb-3" id="sezione-comunicazioni-cancelleria" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span class="text-nowrap">
           <i class="bi {{ dep_icon }} me-2 text-{{ dep_col }}"></i>
@@ -741,6 +759,9 @@
           {% endif %}
         </span>
         <div class="d-flex gap-1 gap-sm-2 flex-wrap align-items-center">
+          <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
+          </a>
 
           {# Prepara atto: link diretto se 1 solo template, dropdown se multipli #}
           {% set ns_prep = namespace(wizard_tmpls=[]) %}
@@ -1186,15 +1207,20 @@
     </div>
 
     {# ---- Istanze ---- #}
-    <div class="card shadow-sm mb-3" id="sezione-istanze">
+    <div class="card shadow-sm mb-3" id="sezione-istanze" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <span>
           <i class="bi bi-journal-text me-2 text-primary"></i>Istanze
           <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.istanze_documenti|length) + (WFS.istanze_depositi|length) }}</span>
         </span>
-        {% if WFS.istanze_documenti %}
-        <span class="badge bg-light text-dark border">Documenti collegati</span>
-        {% endif %}
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
+          </a>
+          {% if WFS.istanze_documenti %}
+          <span class="badge bg-light text-dark border">Documenti collegati</span>
+          {% endif %}
+        </div>
       </div>
       <div class="card-body p-0">
         {% if WFS.istanze_documenti or WFS.istanze_depositi %}
@@ -1854,25 +1880,27 @@
 
 {# Modal: navigazione documenti ufficiali PST #}
 <div class="modal fade" id="modalNavigaPst" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
-    <div class="modal-content">
+  <div class="modal-dialog modal-xl modal-fullscreen-sm-down"
+       style="max-width:min(96vw, 1320px);height:min(calc(100dvh - 1rem), 980px);margin:.5rem auto">
+    <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
       <form method="post" enctype="multipart/form-data"
-            action="{{ url_for('importa_documenti_portale', id_fasc=fascicolo.id) }}">
+            action="{{ url_for('importa_documenti_portale', id_fasc=fascicolo.id) }}"
+            style="height:100%;display:flex;flex-direction:column">
         <div class="modal-header">
           <h5 class="modal-title">
             <i class="bi bi-diagram-3 me-2 text-info"></i>Naviga fascicolo PST
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <div class="alert alert-info small">
+        <div class="modal-body" style="flex:1 1 auto;overflow:hidden;min-height:0;display:flex;flex-direction:column;gap:1rem">
+          <div class="alert alert-info small mb-0 flex-shrink-0">
             HACS naviga il catalogo ufficiale dei documenti del canale <strong>{{ pst_portale_label }}</strong>,
             mantiene separati <strong>Attività processuali</strong>, <strong>Documenti fascicolo</strong>,
             <strong>Udienze e scadenze</strong>, <strong>Comunicazioni di cancelleria</strong> e <strong>Istanze</strong>,
             e usa il <strong>Local Signer</strong> per il download assistito dei file ufficiali.
           </div>
 
-          <div class="row g-3 mb-3">
+          <div class="row g-3 flex-shrink-0">
             <div class="col-md-4">
               <label class="form-label fw-semibold">Ricerca rapida</label>
               <input type="search" class="form-control" id="pstNavSearch"
@@ -1904,7 +1932,7 @@
             </div>
           </div>
 
-          <div class="border rounded overflow-hidden">
+          <div class="border rounded overflow-hidden d-flex flex-column shadow-sm" style="flex:1 1 auto;min-height:0">
             <div class="px-3 py-2 border-bottom bg-light-subtle d-flex justify-content-between align-items-center gap-2 flex-wrap">
               <div class="form-check mb-0">
                 <input type="checkbox" class="form-check-input" id="pstNavSelectAll">
@@ -1912,12 +1940,12 @@
               </div>
               <small class="text-muted" id="pstNavCounter"></small>
             </div>
-            <div id="pstNavTree" class="p-2" style="max-height:46vh; overflow:auto"></div>
+            <div id="pstNavTree" class="p-2" style="flex:1 1 auto;min-height:0;overflow:auto"></div>
           </div>
 
-          <div class="small mt-3" id="pstNavStatus"></div>
+          <div class="small flex-shrink-0" id="pstNavStatus"></div>
 
-          <div class="accordion mt-3" id="accPstImportManuale">
+          <div class="accordion flex-shrink-0" id="accPstImportManuale">
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed small fw-semibold" type="button"
@@ -1977,22 +2005,22 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer justify-content-between flex-wrap gap-2">
+        <div class="modal-footer justify-content-between flex-wrap gap-2 bg-body border-top" style="flex-shrink:0">
           <div class="d-flex gap-2 flex-wrap">
-            <button type="button" class="btn btn-outline-primary" id="pstDownloadAll">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="pstDownloadAll">
               Scarica tutto
             </button>
-            <button type="button" class="btn btn-outline-primary" id="pstDownloadSelected">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="pstDownloadSelected">
               Scarica selezionati
             </button>
-            <button type="button" class="btn btn-outline-success" id="pstImportSelected">
+            <button type="button" class="btn btn-outline-success btn-sm" id="pstImportSelected">
               Importa selezionati
             </button>
-            <button type="button" class="btn btn-success" id="pstDownloadImportSelected">
+            <button type="button" class="btn btn-success btn-sm" id="pstDownloadImportSelected">
               Scarica + importa
             </button>
           </div>
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Chiudi</button>
+          <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Chiudi</button>
         </div>
       </form>
     </div>
@@ -2646,6 +2674,8 @@ window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
   };
 });
 
+window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
+
 (function () {
   const modal = document.getElementById('modalNavigaPst');
   const tree = document.getElementById('pstNavTree');
@@ -2662,6 +2692,14 @@ window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
   const btnImportSelected = document.getElementById('pstImportSelected');
   const btnDownloadImportSelected = document.getElementById('pstDownloadImportSelected');
   if (!modal || !tree || !status) return;
+
+  if (window._PST_AUTO_OPEN) {
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+      }, 180);
+    }, { once: true });
+  }
 
   const stagedFiles = new Map();
   const selectedKeys = new Set();

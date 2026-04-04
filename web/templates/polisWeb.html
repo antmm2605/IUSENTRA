@@ -391,6 +391,7 @@
                     class="d-inline js-polisweb-importa-form"
                     onsubmit="return confirm('Importare RG {{ f.numero_rg }}/{{ f.anno_rg }} come nuovo fascicolo?')">
                 <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+                <input type="hidden" name="apri_portale" value="0">
                 <input type="hidden" name="numero_rg" value="{{ f.numero_rg }}">
                 <input type="hidden" name="anno_rg" value="{{ f.anno_rg }}">
                 <input type="hidden" name="ruolo" value="{{ f.ruolo }}">
@@ -406,8 +407,14 @@
                 <input type="hidden" name="nome_ufficio" value="{{ f.nome_ufficio }}">
                 <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
                 <button type="submit" class="btn btn-sm btn-primary"
+                        data-open-pst="0"
                         title="Importa come nuovo fascicolo nel gestionale">
                   <i class="bi bi-download me-1"></i>Importa
+                </button>
+                <button type="submit" class="btn btn-sm btn-outline-success"
+                        data-open-pst="1"
+                        title="Importa il fascicolo e apri subito la navigazione documentale PST">
+                  <i class="bi bi-diagram-3 me-1"></i>Importa + Naviga PST
                 </button>
               </form>
             </td>
@@ -2468,10 +2475,16 @@ async function wizEseguiRicerca() {
         <td class="small">${(f.parti || []).join(', ') || '—'}</td>
         <td><span class="badge ${f.stato==='PENDENTE'?'bg-success':'bg-secondary'} small">${f.stato || '—'}</span></td>
         <td>
-          <button type="button" class="btn btn-xs btn-outline-primary btn-sm"
-                  onclick="wizImporta(${idx})">
-            <i class="bi bi-download me-1"></i>Importa
-          </button>
+          <div class="d-flex flex-wrap gap-2 justify-content-end">
+            <button type="button" class="btn btn-xs btn-outline-primary btn-sm"
+                    onclick="wizImporta(${idx}, false)">
+              <i class="bi bi-download me-1"></i>Importa
+            </button>
+            <button type="button" class="btn btn-xs btn-outline-success btn-sm"
+                    onclick="wizImporta(${idx}, true)">
+              <i class="bi bi-diagram-3 me-1"></i>Importa + Naviga PST
+            </button>
+          </div>
         </td>
       </tr>`).join('');
     if (content) content.style.display = 'block';
@@ -2598,13 +2611,15 @@ async function _lsDocumentiPerImportazione(fascicolo, cert) {
 }
 
 async function _precaricaDocumentiImportazione(form, fascicolo, cert = null) {
-  form.querySelectorAll('input[name="documenti_json"], input[name="documenti_prefetch_error"]').forEach(el => el.remove());
+  form.querySelectorAll('input[name="documenti_json"], input[name="documenti_prefetch_error"], input[name="canale_accesso_pst"]').forEach(el => el.remove());
   if ((fascicolo.demo_mode || '') === '1') {
     return;
   }
-  if (!_lsDisponibile && !_lsCertSel && !cert && !_wizCertSel) {
+  const usaLocalSigner = !!(_lsDisponibile || _lsCertSel || cert || _wizCertSel);
+  if (!usaLocalSigner) {
     return;
   }
+  _appendHiddenToForm(form, 'canale_accesso_pst', 'local_signer');
   try {
     const certificato = cert || _wizCertSel || _lsCertSel || await _lsAssicuraCertificato();
     const documenti = await _lsDocumentiPerImportazione(fascicolo, certificato);
@@ -2619,6 +2634,8 @@ async function _precaricaDocumentiImportazione(form, fascicolo, cert = null) {
 }
 
 async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = null) {
+  const openPst = !!(button && button.dataset && button.dataset.openPst === '1');
+  _appendHiddenToForm(form, 'apri_portale', openPst ? '1' : '0');
   _setImportButtonLoading(button, 'Preimportazione completa...');
   try {
     await _precaricaDocumentiImportazione(form, fascicolo, cert);
@@ -2628,7 +2645,7 @@ async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = nul
   form.submit();
 }
 
-async function wizImporta(indice) {
+async function wizImporta(indice, openPst = false) {
   const fascicolo = _wizUltimiFascicoli[indice] || {};
   const form = document.createElement('form');
   form.method = 'POST';
@@ -2648,6 +2665,7 @@ async function wizImporta(indice) {
     ['nome_ufficio', fascicolo.nome_ufficio || ''],
     ['codice_ufficio', fascicolo.codice_ufficio || ''],
     ['demo_mode', '0'],
+    ['apri_portale', openPst ? '1' : '0'],
     ['id_fasc', '{{ id_fasc or "" }}'],
   ].forEach(([k, v]) => _appendHiddenToForm(form, k, v));
   document.body.appendChild(form);
@@ -2838,7 +2856,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.js-polisweb-importa-form').forEach(form => {
     form.addEventListener('submit', async ev => {
       ev.preventDefault();
-      const button = form.querySelector('button[type="submit"]');
+      const button = ev.submitter || form.querySelector('button[type="submit"]');
       await _submitImportaPolisWeb(form, _fascicoloImportDataFromForm(form), button, _lsCertSel || null);
     });
   });

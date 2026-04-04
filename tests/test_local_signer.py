@@ -917,3 +917,107 @@ def test_installer_locale_windows_registra_protocollo_e_attesa_ping():
     assert "start_local_signer.cmd" in script
     assert "Stop-LocalSignerProcesses" in script
     assert "Test-LocalSignerOnline" in script
+
+
+def test_firma_documento_riusa_sessione_pin_in_ram():
+    module = _load_local_signer()
+
+    class _FakeSigner:
+        def __init__(self):
+            self.calls = 0
+            self.closed = False
+            self.intestatario = "Avv. Test"
+            self.scadenza = __import__("datetime").datetime(2029, 2, 23, 12, 0, 0)
+
+        def firma_cades(self, documento, detached=False):
+            self.calls += 1
+            return documento + b".p7m"
+
+        def close(self):
+            self.closed = True
+
+    signer = _FakeSigner()
+    orig_create = module._create_pin_session
+    orig_cache = module._pin_session_cache
+    try:
+        module._pin_session_cache = {}
+
+        def _fake_create(lib_path, pin, slot_id=None):
+            dt = __import__("datetime")
+            now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
+            entry = {
+                "session_id": "sess-1",
+                "signer": signer,
+                "lib_path": lib_path,
+                "slot_id": slot_id if slot_id is not None else 0,
+                "created_at": now,
+                "last_used_at": now,
+                "expires_at": now + dt.timedelta(seconds=module.PIN_SESSION_TTL_SECONDS),
+            }
+            module._pin_session_cache["sess-1"] = entry
+            return "sess-1", signer
+
+        module._create_pin_session = _fake_create
+
+        firmato1, info1 = module._firma_documento("fake.dll", b"doc-1", "123456", 0)
+        firmato2, info2 = module._firma_documento("fake.dll", b"doc-2", "", 0, pin_session_id="sess-1")
+    finally:
+        module._create_pin_session = orig_create
+        module._pin_session_cache = orig_cache
+
+    assert firmato1.endswith(b".p7m")
+    assert firmato2.endswith(b".p7m")
+    assert info1["pin_session_id"] == "sess-1"
+    assert info2["pin_session_id"] == "sess-1"
+    assert info2["pin_session_cached"] is True
+    assert signer.calls == 2
+
+
+def test_download_documenti_batch_esegue_preflight_una_sola_volta():
+    module = _load_local_signer()
+
+    orig_preflight = module._pst_preflight_auth_curl
+    orig_download = module._pst_download_documento_payload
+    calls = {"preflight": 0, "download": []}
+
+    try:
+        def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None):
+            calls["preflight"] += 1
+            return {"ok": True, "nota": "warmup ok"}
+
+        def _fake_download(**kwargs):
+            calls["download"].append(kwargs["id_documento"])
+            return {
+                "nome": kwargs["nome_documento"] or f"documento_{kwargs['id_documento']}.pdf",
+                "contenuto_b64": "ZmFrZQ==",
+                "content_type": "application/pdf",
+                "id_documento_portale": kwargs["id_documento"],
+                "id_cat": kwargs.get("id_cat") or "",
+                "data_documento": kwargs.get("data_documento") or "",
+                "nome_file_originale": kwargs["nome_documento"] or "",
+                "servizio_portale": "DocumentiFascicolo",
+            }
+
+        module._pst_preflight_auth_curl = _fake_preflight
+        module._pst_download_documento_payload = _fake_download
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[
+                {"id_documento": "33581101", "nome_documento": "Sentenza.pdf"},
+                {"id_documento": "33393309", "nome_documento": "Verbale.pdf"},
+            ],
+            do_preflight=True,
+        )
+    finally:
+        module._pst_preflight_auth_curl = orig_preflight
+        module._pst_download_documento_payload = orig_download
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 2
+    assert esito["failures"] == []
+    assert calls["preflight"] == 1
+    assert calls["download"] == ["33581101", "33393309"]

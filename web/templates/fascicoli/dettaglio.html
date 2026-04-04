@@ -2587,42 +2587,47 @@ const _PST_FASCICOLO_CONTEXT = {
       const originalHtml = btnScarica.innerHTML;
       btnScarica.disabled = true;
       btn.disabled = true;
-      const files = [];
-      const failures = [];
 
       try {
-        for (let i = 0; i < queue.length; i += 1) {
-          const item = queue[i];
-          const displayName = item.nome || ('Documento ' + (i + 1));
-          btnScarica.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scarico ' + (i + 1) + '/' + queue.length;
-          setStatus('Scarico dal portale ufficiale: ' + displayName + ' (' + (i + 1) + '/' + queue.length + ')…', 'info');
+        btnScarica.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scarico lotto…';
+        setStatus('Avvio un lotto unico di download dal portale ufficiale tramite Local Signer, così riduco le richieste PIN ripetute…', 'info');
 
-          const signerResp = await fetch(_LS_BASE_FASC + '/pst/download-documento', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tribunale: _PST_FASCICOLO_CONTEXT.tribunale,
-              numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
-              anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
-              id_documento: item.id_documento_portale,
-              nome_documento: item.nome,
-              id_cat: item.id_cat || '',
-              data_documento: item.data_deposito || '',
-              id_deposito_esterno: item.id_deposito_esterno || '',
-              id_deposito_pct: item.id_deposito_pct || '',
-              tipo_atto: item.tipo_atto || '',
-              original: true
+        const signerResp = await fetch(_LS_BASE_FASC + '/pst/download-documenti-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tribunale: _PST_FASCICOLO_CONTEXT.tribunale,
+            numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
+            anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
+            preflight_auth: true,
+            documents: queue.map(function (item) {
+              return {
+                id_documento: item.id_documento_portale,
+                nome_documento: item.nome,
+                id_cat: item.id_cat || '',
+                data_documento: item.data_documento || item.data_deposito || '',
+                id_deposito_esterno: item.id_deposito_esterno || '',
+                id_deposito_pct: item.id_deposito_pct || '',
+                tipo_atto: item.tipo_atto || '',
+                original: true
+              };
             })
-          });
-          const signerData = await signerResp.json().catch(function () {
-            return { ok: false, errore: 'Risposta non valida del Local Signer.' };
-          });
-          if (!signerResp.ok || !signerData.ok || !signerData.file) {
-            failures.push(displayName + ': ' + (signerData.errore || 'download non riuscito'));
-            continue;
-          }
-          files.push(signerData.file);
+          })
+        });
+        const signerData = await signerResp.json().catch(function () {
+          return { ok: false, errore: 'Risposta non valida del Local Signer.' };
+        });
+        if (!signerResp.ok || !signerData.ok) {
+          throw new Error(signerData.errore || 'Download batch non riuscito dal portale ufficiale.');
         }
+
+        const files = Array.isArray(signerData.files) ? signerData.files : [];
+        const failures = Array.isArray(signerData.failures)
+          ? signerData.failures.map(function (item) {
+              const nome = item.nome_documento || item.id_documento || 'Documento';
+              return nome + ': ' + (item.errore || 'download non riuscito');
+            })
+          : [];
 
         if (!files.length) {
           throw new Error(failures[0] || 'Nessun documento scaricato dal portale ufficiale.');

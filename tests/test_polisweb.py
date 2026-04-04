@@ -914,7 +914,7 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
     body = response.data.decode("utf-8")
     assert response.status_code == 200
     assert "Scarica dal portale ufficiale" in body
-    assert "/pst/download-documento" in body
+    assert "/pst/download-documenti-batch" in body
 
 
 def test_dettaglio_fascicolo_segna_documento_portale_gia_importato(tmp_path):

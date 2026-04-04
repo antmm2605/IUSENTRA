@@ -722,6 +722,7 @@ const _LS_BASE = `http://127.0.0.1:${_LS_PORT}`;
 let _pkcs11PendingAction = null;  // 'pec' | 'demo' | 'busta' — azione da eseguire dopo firma
 let _pkcs11TokenSlot = null;       // slot_id del token rilevato (server-side)
 let _lsTokenSlot = null;           // slot_id del token nel Local Signer
+let _lsPinSessionId = null;        // sessione PIN temporanea in RAM nel Local Signer
 let _firmaViaLS = false;           // true = usiamo Local Signer
 let _validationState = null;
 let _validationTimer = null;
@@ -1058,7 +1059,8 @@ function avviaFirmaLocalSigner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documento: b64,
-          pin: pin,
+          pin: _lsPinSessionId ? '' : pin,
+          pin_session_id: _lsPinSessionId || '',
           slot_id: _lsTokenSlot,
         }),
       });
@@ -1066,6 +1068,7 @@ function avviaFirmaLocalSigner() {
     .then(r => r.json())
     .then(d => {
       if (!d.ok) throw new Error(d.errore || 'Errore firma');
+      _lsPinSessionId = d.pin_session_id || _lsPinSessionId;
       // 4. Carica il .p7m firmato sul server
       const firmataBytes = Uint8Array.from(atob(d.firmato_b64), c => c.charCodeAt(0));
       // Determina il nome: aggiungi .p7m se non c'è già
@@ -1097,6 +1100,7 @@ function avviaFirmaLocalSigner() {
       document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
     })
     .catch(e => {
+      if (String(e).includes('Sessione PIN')) _lsPinSessionId = null;
       document.getElementById('lsProgress').style.display = 'none';
       document.getElementById('lsErrorMsg').textContent = String(e);
       document.getElementById('lsError').style.display = '';

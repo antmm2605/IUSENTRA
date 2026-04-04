@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.3
+HACS Local Signer — v1.5.4
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -41,14 +41,16 @@ import json
 import logging
 import os
 import re
+import secrets
 import subprocess
 import sys
 import tempfile
+import threading
 import unicodedata
 import xml.etree.ElementTree as ET
 from email import policy
 from email.parser import BytesParser
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional
@@ -67,12 +69,14 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
 PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
 PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
+PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "900")), 60)
+PIN_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_MAX_ACTIVE", "4")), 1)
 LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
     "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS",
     os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
@@ -129,7 +133,13 @@ _DEFAULT_LIBS = [
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
 _uffici_snapshot_cache: Optional[dict[str, dict]] = None
+_pin_session_cache: dict[str, dict] = {}
+_pin_session_lock = threading.Lock()
 _LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def _utcnow_naive() -> datetime:
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _snapshot_paths() -> list[Path]:
@@ -824,8 +834,146 @@ def _windows_seleziona_cert() -> Optional[dict]:
         crypt32.CertCloseStore(h_store, 0)
 
 
+def _close_pin_session_entry(entry: Optional[dict]) -> None:
+    if not entry:
+        return
+    signer = entry.get("signer")
+    if signer is None:
+        return
+    try:
+        signer.close()
+    except Exception:
+        pass
+
+
+def _cleanup_pin_sessions(now: Optional[datetime] = None) -> int:
+    current = now or _utcnow_naive()
+    expired: list[dict] = []
+    with _pin_session_lock:
+        for session_id, entry in list(_pin_session_cache.items()):
+            if entry.get("expires_at") and entry["expires_at"] <= current:
+                expired.append(_pin_session_cache.pop(session_id))
+    for entry in expired:
+        _close_pin_session_entry(entry)
+    return len(_pin_session_cache)
+
+
+def _get_pin_session(session_id: str, *, refresh: bool = True) -> Optional[dict]:
+    sid = (session_id or "").strip()
+    if not sid:
+        return None
+
+    current = _utcnow_naive()
+    expired_entry: Optional[dict] = None
+    with _pin_session_lock:
+        entry = _pin_session_cache.get(sid)
+        if not entry:
+            return None
+        if entry.get("expires_at") and entry["expires_at"] <= current:
+            expired_entry = _pin_session_cache.pop(sid, None)
+            entry = None
+        elif refresh:
+            entry["last_used_at"] = current
+            entry["expires_at"] = current + timedelta(seconds=PIN_SESSION_TTL_SECONDS)
+    if expired_entry:
+        _close_pin_session_entry(expired_entry)
+    return entry
+
+
+def _drop_pin_session(session_id: str) -> None:
+    sid = (session_id or "").strip()
+    if not sid:
+        return
+    with _pin_session_lock:
+        entry = _pin_session_cache.pop(sid, None)
+    _close_pin_session_entry(entry)
+
+
+def _create_pin_session(lib_path: str, pin: str, slot_id: Optional[int] = None) -> tuple[str, object]:
+    if not pin:
+        raise RuntimeError("PIN obbligatorio per aprire la sessione locale del token.")
+
+    _cleanup_pin_sessions()
+
+    from pct.firma_pkcs11 import FirmaPKCS11
+
+    signer = FirmaPKCS11(
+        library_path=lib_path,
+        slot_id=slot_id if slot_id is not None else 0,
+        pin=pin,
+    )
+    # Forza l'apertura del token e il caricamento del certificato una sola volta.
+    signer.verifica_scadenza(giorni_preavviso=0)
+
+    created_at = _utcnow_naive()
+    entry = {
+        "session_id": secrets.token_urlsafe(18),
+        "signer": signer,
+        "lib_path": lib_path,
+        "slot_id": slot_id if slot_id is not None else 0,
+        "created_at": created_at,
+        "last_used_at": created_at,
+        "expires_at": created_at + timedelta(seconds=PIN_SESSION_TTL_SECONDS),
+    }
+
+    stale_entries: list[dict] = []
+    with _pin_session_lock:
+        _pin_session_cache[entry["session_id"]] = entry
+        if len(_pin_session_cache) > PIN_SESSION_MAX_ACTIVE:
+            overflow = sorted(
+                _pin_session_cache.values(),
+                key=lambda item: item.get("last_used_at") or item.get("created_at") or datetime.min,
+            )[:-PIN_SESSION_MAX_ACTIVE]
+            for stale in overflow:
+                removed = _pin_session_cache.pop(stale["session_id"], None)
+                if removed is not None:
+                    stale_entries.append(removed)
+    for stale in stale_entries:
+        _close_pin_session_entry(stale)
+
+    return entry["session_id"], signer
+
+
+def _firma_info_dict(intestatario: str, scadenza, *, pin_session_id: Optional[str] = None,
+                     pin_session_cached: bool = False) -> dict:
+    info = {
+        "intestatario": intestatario or "",
+        "scadenza": scadenza.strftime("%Y-%m-%d") if scadenza else "",
+    }
+    if pin_session_id:
+        info.update({
+            "pin_session_id": pin_session_id,
+            "pin_session_cached": pin_session_cached,
+            "pin_session_ttl_seconds": PIN_SESSION_TTL_SECONDS,
+        })
+    return info
+
+
+def _firma_documento_via_sessione(pin_session_id: str, documento: bytes) -> tuple[bytes, dict]:
+    entry = _get_pin_session(pin_session_id)
+    if not entry:
+        raise RuntimeError(
+            "Sessione PIN scaduta o non disponibile. Inserisci di nuovo il PIN per riaprire il token."
+        )
+
+    signer = entry["signer"]
+    try:
+        firmato = signer.firma_cades(documento, detached=False)
+        info = _firma_info_dict(
+            getattr(signer, "intestatario", "") or "",
+            getattr(signer, "scadenza", None),
+            pin_session_id=pin_session_id,
+            pin_session_cached=True,
+        )
+        return firmato, info
+    except Exception:
+        _drop_pin_session(pin_session_id)
+        raise
+
+
 def _firma_documento(lib_path: str, documento: bytes, pin: str,
-                     slot_id: Optional[int] = None) -> tuple[bytes, dict]:
+                     slot_id: Optional[int] = None,
+                     pin_session_id: Optional[str] = None) -> tuple[bytes, dict]:
     """
     Firma CAdES-BES il documento usando il token PKCS#11.
 
@@ -834,23 +982,28 @@ def _firma_documento(lib_path: str, documento: bytes, pin: str,
 
     Ritorna (firmato_bytes, info_dict).
     """
+    requested_session_id = (pin_session_id or "").strip()
+    if requested_session_id:
+        return _firma_documento_via_sessione(requested_session_id, documento)
+
     # Aggiungi la directory del progetto al path se possibile
     project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if project_dir not in sys.path:
         sys.path.insert(0, project_dir)
 
     try:
-        from pct.firma_pkcs11 import FirmaPKCS11
-        firma = FirmaPKCS11(
-            library_path=lib_path,
-            slot_id=slot_id if slot_id is not None else 0,
-            pin=pin,
+        session_id, firma = _create_pin_session(lib_path, pin, slot_id)
+        try:
+            firmato = firma.firma_cades(documento, detached=False)
+        except Exception:
+            _drop_pin_session(session_id)
+            raise
+        info = _firma_info_dict(
+            firma.intestatario or "",
+            firma.scadenza,
+            pin_session_id=session_id,
+            pin_session_cached=False,
         )
-        firmato = firma.firma_cades(documento, detached=False)
-        info = {
-            "intestatario": firma.intestatario or "",
-            "scadenza": firma.scadenza.strftime("%Y-%m-%d") if firma.scadenza else "",
-        }
         return firmato, info
     except ImportError:
         pass
@@ -2434,6 +2587,78 @@ def _pst_download_documento_payload(
     }
 
 
+def _pst_download_documenti_batch_payloads(
+    *,
+    base_url: str,
+    codice_ufficio: str,
+    cert_thumbprint: str,
+    cf_avvocato: str,
+    documenti: list[dict],
+    do_preflight: bool = True,
+) -> dict:
+    if not isinstance(documenti, list) or not documenti:
+        raise RuntimeError("Il lotto download richiede almeno un documento ufficiale.")
+
+    files: list[dict] = []
+    failures: list[dict] = []
+    preflight: Optional[dict] = None
+
+    if do_preflight:
+        preflight = _pst_preflight_auth_curl(
+            url=_pst_url_ricerca(base_url),
+            cert_thumbprint=cert_thumbprint,
+        )
+
+    for raw in documenti:
+        item = raw if isinstance(raw, dict) else {}
+        id_documento = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
+        nome_documento = str(item.get("nome_documento") or item.get("nome") or "").strip()
+        if not id_documento:
+            failures.append({
+                "id_documento": "",
+                "nome_documento": nome_documento,
+                "errore": "Identificativo documento mancante nel lotto PST.",
+            })
+            continue
+
+        try:
+            file_payload = _pst_download_documento_payload(
+                base_url=base_url,
+                codice_ufficio=codice_ufficio,
+                id_documento=id_documento,
+                nome_documento=nome_documento,
+                cert_thumbprint=cert_thumbprint,
+                cf_avvocato=cf_avvocato,
+                id_cat=str(item.get("id_cat") or "").strip(),
+                data_documento=str(item.get("data_documento") or item.get("data_deposito") or "").strip(),
+                original=(
+                    item.get("original", True)
+                    if isinstance(item.get("original", True), bool)
+                    else str(item.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                ),
+            )
+            file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
+            file_payload["id_deposito_esterno"] = str(item.get("id_deposito_esterno") or "").strip()
+            file_payload["id_deposito_pct"] = str(item.get("id_deposito_pct") or "").strip()
+            file_payload["tipo_atto"] = str(item.get("tipo_atto") or "").strip()
+            files.append(file_payload)
+        except Exception as e:
+            failures.append({
+                "id_documento": id_documento,
+                "nome_documento": nome_documento,
+                "errore": str(e),
+            })
+
+    return {
+        "ok": True,
+        "files": files,
+        "failures": failures,
+        "preflight": preflight,
+        "documenti_richiesti": len(documenti),
+        "documenti_scaricati": len(files),
+    }
+
+
 def _arricchisci_fascicoli_con_profilo(
     fascicoli: list[dict],
     *,
@@ -2588,6 +2813,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_documenti()
         elif path == "/pst/download-documento":
             self._pst_download_documento()
+        elif path == "/pst/download-documenti-batch":
+            self._pst_download_documenti_batch()
         elif path == "/downloads/raccogli":
             self._downloads_raccogli()
         else:
@@ -2605,6 +2832,8 @@ class _Handler(BaseHTTPRequestHandler):
             "libreria_presente": lib is not None,
             "token":             [],
             "curl_disponibile":  _curl_disponibile(),
+            "pin_sessioni_attive": _cleanup_pin_sessions(),
+            "pin_session_ttl_seconds": PIN_SESSION_TTL_SECONDS,
         }
         if sys.platform == "win32":
             try:
@@ -2898,7 +3127,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _firma(self):
         """
         POST /firma
-        Body: {documento: <base64>, pin: "...", slot_id?: 0}
+        Body: {documento: <base64>, pin?: "...", pin_session_id?: "...", slot_id?: 0}
         Response: {ok, firmato_b64, intestatario, scadenza, dimensione}
         """
         lib = _trova_libreria()
@@ -2916,18 +3145,25 @@ class _Handler(BaseHTTPRequestHandler):
         data = self._read_json()
         doc_b64 = data.get("documento")
         pin = data.get("pin", "")
+        pin_session_id = str(data.get("pin_session_id") or "").strip()
         slot_id = data.get("slot_id")
 
         if not doc_b64:
             self._send_json({"ok": False, "errore": "Campo 'documento' (base64) obbligatorio"}, 400)
             return
-        if not pin:
-            self._send_json({"ok": False, "errore": "PIN obbligatorio"}, 400)
+        if not pin and not pin_session_id:
+            self._send_json({"ok": False, "errore": "PIN o pin_session_id obbligatorio"}, 400)
             return
 
         try:
             documento = base64.b64decode(doc_b64)
-            firmato, info = _firma_documento(lib, documento, pin, slot_id)
+            firmato, info = _firma_documento(
+                lib,
+                documento,
+                pin,
+                slot_id,
+                pin_session_id=pin_session_id or None,
+            )
             self._send_json({
                 "ok": True,
                 "firmato_b64": base64.b64encode(firmato).decode(),
@@ -3199,6 +3435,56 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "file": file_payload})
         except Exception as e:
             log.error("Errore PST download documento: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pst_download_documenti_batch(self):
+        """
+        POST /pst/download-documenti-batch
+        Body: {
+            tribunale|codice_ufficio,
+            documents:[{id_documento, nome_documento?, ...}],
+            cert_thumbprint?,
+            cf_avvocato?,
+            preflight_auth?
+        }
+        Response: {ok, files:[...], failures:[...], preflight?}
+        """
+        if not _curl_disponibile():
+            self._send_json({
+                "ok": False,
+                "errore": "curl non disponibile nel PATH",
+            }, 400)
+            return
+
+        data = self._read_json()
+        tribunale = (
+            str(data.get("tribunale") or data.get("codice_ufficio") or "").strip()
+        )
+        documenti = data.get("documents") or data.get("documenti") or []
+
+        if not tribunale:
+            self._send_json({"ok": False, "errore": "Campo 'tribunale' obbligatorio."}, 400)
+            return
+        if not isinstance(documenti, list) or not documenti:
+            self._send_json({"ok": False, "errore": "Campo 'documents' obbligatorio."}, 400)
+            return
+
+        try:
+            base_url = _risolvi_base_pst_runtime(tribunale)
+            codice_pst = _risolvi_codice_ufficio_pst(tribunale)
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
+            esito = _pst_download_documenti_batch_payloads(
+                base_url=base_url,
+                codice_ufficio=codice_pst,
+                cert_thumbprint=cert_thumbprint,
+                cf_avvocato=cf_avvocato,
+                documenti=documenti,
+                do_preflight=bool(data.get("preflight_auth", True)),
+            )
+            self._send_json(esito)
+        except Exception as e:
+            log.error("Errore PST download batch documenti: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _downloads_raccogli(self):

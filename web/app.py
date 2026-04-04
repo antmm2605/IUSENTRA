@@ -969,6 +969,93 @@ def create_app(config: dict | None = None) -> Flask:
             return "ok"
         return _rc_normalize_status(fallback_state, default="block")
 
+    def _rc_issue_family(issue: dict) -> str:
+        haystack = " ".join(
+            filter(
+                None,
+                [
+                    str(issue.get("code") or "").lower(),
+                    str(issue.get("title") or "").lower(),
+                    str(issue.get("detail") or "").lower(),
+                ],
+            )
+        )
+        if "procura" in haystack:
+            return "procura"
+        if "notifica" in haystack or "relata" in haystack:
+            return "notifica"
+        if "contributo" in haystack:
+            return "contributo"
+        return ""
+
+    def _rc_issue_dedupe_rank(issue: dict) -> int:
+        family = _rc_issue_family(issue)
+        if not family:
+            return 100
+
+        code = str(issue.get("code") or "").strip().lower()
+        title = str(issue.get("title") or "").strip().lower()
+
+        specific_codes = {
+            "procura": {"citazione_procura_mancante"},
+            "notifica": {"citazione_relata_notifica_mancante"},
+            "contributo": {"citazione_contributo_non_rilevato"},
+        }
+        generic_codes = {
+            "procura": {"doc_procura_missing"},
+            "notifica": {"doc_notifica_missing"},
+            "contributo": {"doc_contributo_missing"},
+        }
+        selection_codes = {
+            "procura": {"procura_mancante"},
+            "notifica": {"prova_notifica_non_rilevata"},
+            "contributo": {"contributo_non_evidenziato"},
+        }
+
+        if code in specific_codes.get(family, set()):
+            return 0
+        if code in generic_codes.get(family, set()):
+            return 1
+        if code in selection_codes.get(family, set()):
+            return 2
+        if "non inclus" in title or "non selezion" in title:
+            return 2
+        if "non rilevat" in title:
+            return 1
+        return 50
+
+    def _rc_prune_redundant_corrections(corrections: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], set[str]]:
+        best_for_family: dict[str, tuple[int, int]] = {}
+        for index, correction in enumerate(corrections):
+            family = _rc_issue_family(correction)
+            if not family:
+                continue
+            rank = _rc_issue_dedupe_rank(correction)
+            current = best_for_family.get(family)
+            if current is None or rank < current[0]:
+                best_for_family[family] = (rank, index)
+
+        pruned: list[dict[str, Any]] = []
+        suppressed_titles: set[str] = set()
+        for index, correction in enumerate(corrections):
+            family = _rc_issue_family(correction)
+            if family:
+                _, best_index = best_for_family.get(family, (999, index))
+                if index != best_index:
+                    title = str(correction.get("title") or "").strip().lower()
+                    if title:
+                        suppressed_titles.add(title)
+                    continue
+            pruned.append(correction)
+        return pruned, suppressed_titles
+
+    def _rc_state_from_items(items: list[dict[str, Any]], *, default: str = "ok") -> str:
+        if any(str(item.get("state") or item.get("status") or "").strip() == "block" for item in items):
+            return "block"
+        if any(str(item.get("state") or item.get("status") or "").strip() == "warning" for item in items):
+            return "warning"
+        return default
+
     def _responsabile_issue_action_meta(
         id_fasc: str,
         issue: dict,
@@ -1184,6 +1271,9 @@ def create_app(config: dict | None = None) -> Flask:
             }
             for issue in summary.get("corrections", [])
         ]
+        summary["corrections"], suppressed_titles = _rc_prune_redundant_corrections(
+            list(summary.get("corrections") or [])
+        )
 
         gates = dict(summary.get("action_gates") or {})
         if gates.get("generate_final_act") and compile_url:
@@ -1237,6 +1327,7 @@ def create_app(config: dict | None = None) -> Flask:
         checklist: list[dict[str, Any]] = []
         checklist_seen: set[str] = set()
         groups: list[dict[str, Any]] = []
+        display_sections: dict[str, dict[str, Any]] = {}
         for section_key in section_order:
             section = dict((summary.get("sections") or {}).get(section_key) or {})
             section_meta = _rc_section_meta(
@@ -1246,10 +1337,13 @@ def create_app(config: dict | None = None) -> Flask:
                 compile_url=compile_url,
             )
             group_items: list[dict[str, Any]] = []
+            section_items: list[dict[str, str]] = []
             raw_items = list(section.get("items") or [])
             for index, item in enumerate(raw_items):
                 title = str(item.get("title") or "").strip()
                 if not title:
+                    continue
+                if title.lower() in suppressed_titles:
                     continue
                 normalized = _rc_normalize_status(item.get("state"))
                 correction = corrections_by_title.get(title.lower(), {})
@@ -1272,6 +1366,14 @@ def create_app(config: dict | None = None) -> Flask:
                     "_sort": (_rc_status_rank(normalized), index),
                 }
                 group_items.append(item_payload)
+                section_items.append(
+                    {
+                        "state": normalized,
+                        "title": title,
+                        "detail": str(item.get("detail") or "").strip(),
+                        "action": item_cta,
+                    }
+                )
                 checklist_key = title.lower()
                 if checklist_key not in checklist_seen:
                     checklist_seen.add(checklist_key)
@@ -1280,10 +1382,18 @@ def create_app(config: dict | None = None) -> Flask:
             group_items.sort(key=lambda row: row["_sort"])
             for row in group_items:
                 row.pop("_sort", None)
+            display_sections[section_key] = {
+                "label": str(section.get("label") or section_key.replace("_", " ").title()).strip(),
+                "state": _rc_state_from_items(
+                    section_items,
+                    default=_rc_normalize_status(section.get("state")),
+                ),
+                "items": section_items,
+            }
             groups.append(
                 {
-                    "title": str(section.get("label") or section_key.replace("_", " ").title()).strip(),
-                    "status": _rc_normalize_status(section.get("state")),
+                    "title": display_sections[section_key]["label"],
+                    "status": display_sections[section_key]["state"],
                     "items": group_items,
                 }
             )
@@ -1343,7 +1453,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "url": str(prepare_gate.get("url") or deposit_url).strip(),
             }
 
-        sections = summary.get("sections") or {}
+        sections = display_sections
         process_section = dict(sections.get("processuale") or {})
         document_section = dict(sections.get("documentale") or {})
         tech_section = dict(sections.get("tecnico_pst") or {})
@@ -1419,8 +1529,12 @@ def create_app(config: dict | None = None) -> Flask:
         ]
 
         general = dict(summary.get("general") or {})
+        visible_items = [item for group in groups for item in group.get("items", [])]
+        visible_blockers = sum(1 for item in visible_items if item.get("status") == "block")
+        visible_warnings = sum(1 for item in visible_items if item.get("status") == "warning")
+        visible_passed = sum(1 for item in visible_items if item.get("status") == "ok")
         deposit_ready = bool(prepare_gate.get("allowed")) if prepare_gate.get("applicable", True) else summary.get("overall_state") == "ok"
-        blocking_count = int(general.get("blocking_count") or 0)
+        blocking_count = visible_blockers or int(general.get("blocking_count") or 0)
         summary.update(
             {
                 "deposit_ready": deposit_ready,
@@ -1431,8 +1545,8 @@ def create_app(config: dict | None = None) -> Flask:
                 "modello_label": str(summary.get("model_name") or "").strip(),
                 "summary_text": str(summary.get("summary") or "").strip(),
                 "blockers_count": blocking_count,
-                "warnings_count": int(general.get("warning_count") or 0),
-                "passed_count": int(general.get("passed_count") or 0),
+                "warnings_count": visible_warnings or int(general.get("warning_count") or 0),
+                "passed_count": visible_passed or int(general.get("passed_count") or 0),
                 "missing_docs_count": len(summary.get("missing_documents") or []),
                 "ready_reason": (
                     "Deposito pronto: non risultano blocchi residui sul fascicolo."

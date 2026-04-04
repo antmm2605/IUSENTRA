@@ -154,15 +154,21 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Prossimo passo consigliato" in html
     assert "Checklist operativa del deposito" in html
     assert "Workflow deposito" in html
+    assert 'id="complianceChecklistBody"' in html
+    assert 'id="complianceWorkflowBody"' in html
+    assert 'data-compliance-accordion="#complianceChecklistBody"' in html
+    assert 'data-compliance-accordion="#complianceWorkflowBody"' in html
     assert "Espandi aree" in html
     assert "Riduci aree" in html
     assert "Controlli processuali" in html
     assert "Controlli documentali" in html
     assert "Controlli tecnici PST" in html
     assert "Controlli redazionali" in html
+    assert "Procura alle liti non rilevata" in html
+    assert "Procura / nomina difensore non rilevato" not in html
+    assert "Procura non inclusa nella selezione" not in html
     assert "Manca la data della prima comparizione" in html
     assert "Imposta prima udienza" in html
-    assert "Inserisci data notifica" in html
     assert "Carica procura" in html
     assert "Apri redattore guidato" in html
 

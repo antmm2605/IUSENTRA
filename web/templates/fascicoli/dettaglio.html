@@ -1312,6 +1312,20 @@
         transition: box-shadow .2s ease;
       }
 
+      .compliance-section-toggle {
+        width: 100%;
+        border: 0;
+        text-align: left;
+      }
+
+      .compliance-section-toggle .compliance-chevron {
+        transition: transform .2s ease;
+      }
+
+      .compliance-section-toggle[aria-expanded="true"] .compliance-chevron {
+        transform: rotate(180deg);
+      }
+
       .workflow-index {
         width: 34px;
         height: 34px;
@@ -1355,10 +1369,20 @@
           <div class="mt-3" id="complianceQuickLinks">
             <div class="small text-uppercase fw-semibold text-muted mb-2">Controlli rapidi</div>
             <div class="compliance-quick-links">
-              <button type="button" class="btn btn-sm btn-outline-secondary compliance-quick-link" data-compliance-scroll="#complianceChecklistSection">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary compliance-quick-link"
+                data-compliance-accordion="#complianceChecklistBody"
+                data-compliance-card="#complianceChecklistSection"
+              >
                 Checklist
               </button>
-              <button type="button" class="btn btn-sm btn-outline-secondary compliance-quick-link" data-compliance-scroll="#complianceWorkflowSection">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary compliance-quick-link"
+                data-compliance-accordion="#complianceWorkflowBody"
+                data-compliance-card="#complianceWorkflowSection"
+              >
                 Workflow
               </button>
               {% for group in rc.groups %}
@@ -1470,24 +1494,37 @@
                 <i class="bi bi-arrow-right-circle me-1"></i>
                 {{ rc.next_step.cta or 'Apri correzione' }}
               </a>
-              <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="collapse" data-bs-target="#complianceChecklist">
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm"
+                data-compliance-accordion="#complianceChecklistBody"
+                data-compliance-card="#complianceChecklistSection"
+              >
                 Vedi checklist
               </button>
             </div>
           </div>
         </div>
 
-        <div class="collapse show mb-3" id="complianceChecklist">
-          <div class="card border rounded-4">
-            <div class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2" id="complianceChecklistSection" style="scroll-margin-top:1rem">
-              <div>
-                <strong>Checklist operativa del deposito</strong>
-                <div class="small text-muted">Mostro i controlli prioritari; il dettaglio completo resta nelle aree sotto.</div>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
-                Torna ai controlli rapidi
-              </button>
+        <div class="card border rounded-4 mb-3" id="complianceChecklistSection" style="scroll-margin-top:1rem">
+          <button
+            type="button"
+            class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
+            data-bs-toggle="collapse"
+            data-bs-target="#complianceChecklistBody"
+            aria-expanded="true"
+            aria-controls="complianceChecklistBody"
+          >
+            <div>
+              <strong>Checklist operativa del deposito</strong>
+              <div class="small text-muted">Mostro i controlli prioritari; il dettaglio completo resta nelle aree sotto.</div>
             </div>
+            <span class="d-flex align-items-center gap-2">
+              <span class="badge text-bg-light border text-dark">{{ rc.checklist|length }}</span>
+              <i class="bi bi-chevron-down compliance-chevron"></i>
+            </span>
+          </button>
+          <div class="collapse show" id="complianceChecklistBody">
             <div class="list-group list-group-flush">
               {% for item in rc.checklist[:6] %}
               {% set tone = rc_status_map.get(item.status, 'secondary') %}
@@ -1530,20 +1567,34 @@
               <div class="list-group-item text-muted">Nessun controllo disponibile.</div>
               {% endfor %}
             </div>
+            <div class="card-footer bg-white border-0 pt-0 pb-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
+                Torna ai controlli rapidi
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="card border rounded-4 mb-3" id="complianceWorkflowSection" style="scroll-margin-top:1rem">
-          <div class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <button
+            type="button"
+            class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
+            data-bs-toggle="collapse"
+            data-bs-target="#complianceWorkflowBody"
+            aria-expanded="true"
+            aria-controls="complianceWorkflowBody"
+          >
             <div>
               <strong>Workflow deposito</strong>
               <div class="small text-muted">Passaggi operativi ordinati, con accesso rapido alla correzione migliore.</div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
-              Torna ai controlli rapidi
-            </button>
-          </div>
-          <div class="list-group list-group-flush">
+            <span class="d-flex align-items-center gap-2">
+              <span class="badge text-bg-light border text-dark">{{ rc.workflow|length }}</span>
+              <i class="bi bi-chevron-down compliance-chevron"></i>
+            </span>
+          </button>
+          <div class="collapse show" id="complianceWorkflowBody">
+            <div class="list-group list-group-flush">
             {% for step in rc.workflow %}
             {% set tone = rc_status_map.get(step.status, 'secondary') %}
             <div class="list-group-item py-3">
@@ -1571,6 +1622,12 @@
             {% else %}
             <div class="list-group-item text-muted">Nessuno step configurato.</div>
             {% endfor %}
+            </div>
+            <div class="card-footer bg-white border-0 pt-0 pb-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
+                Torna ai controlli rapidi
+              </button>
+            </div>
           </div>
         </div>
 
@@ -3551,7 +3608,11 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
 
   const expandBtn = document.getElementById('complianceExpandAll');
   const collapseBtn = document.getElementById('complianceCollapseAll');
-  const collapseTargets = Array.from(document.querySelectorAll('#accordionConformita .accordion-collapse'));
+  const collapseTargets = Array.from(
+    document.querySelectorAll(
+      '#complianceChecklistBody, #complianceWorkflowBody, #accordionConformita .accordion-collapse'
+    )
+  );
 
   if (expandBtn) {
     expandBtn.addEventListener('click', () => {

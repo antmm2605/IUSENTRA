@@ -2071,3 +2071,122 @@ def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
     assert response.data.startswith(b"%PDF-1.4")
+
+
+def test_route_home_sigit_mostra_selettore_cpt_cgt(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/sigit", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Ufficio giudiziario tributario" in body
+    assert 'data-tipo="CPT"' in body
+    assert 'data-tipo="CGT"' in body
+    assert 'id="commissione-value"' in body
+    assert "/api/uffici?q=" in body
+
+
+def test_route_documenti_sigit_raggruppa_buste_e_risolve_nome_commissione(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from pct.sigit import DocumentoSIGIT
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    class _FakeSIGITClient:
+        def consulta_documenti(self, codice_commissione, numero_rgt, anno_rgt):
+            return [
+                DocumentoSIGIT(
+                    "SIGIT-001",
+                    "ricorso_introduttivo.pdf.p7m",
+                    "RICORSO",
+                    "2026-02-18",
+                    "avv.demo@pec.it",
+                    210000,
+                    True,
+                    "",
+                    "Ricorso tributario",
+                ),
+                DocumentoSIGIT(
+                    "SIGIT-002",
+                    "allegato_fatture.pdf.p7m",
+                    "ALLEGATO",
+                    "2026-02-18",
+                    "avv.demo@pec.it",
+                    83000,
+                    True,
+                    "",
+                    "Ricorso tributario",
+                ),
+                DocumentoSIGIT(
+                    "SIGIT-003",
+                    "sentenza_primo_grado.pdf",
+                    "SENTENZA",
+                    "2026-05-04",
+                    "segreteria.tributaria@pec.mef.gov.it",
+                    54000,
+                    True,
+                    "BUSTA-SIGIT-003",
+                    "Sentenza",
+                ),
+            ]
+
+    monkeypatch.setattr("pct.sigit.crea_client_sigit", lambda demo=False: _FakeSIGITClient())
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            "/sigit/documenti?codice_commissione=CPT030000&numero_rgt=1234&anno_rgt=2026&demo_mode=1",
+            follow_redirects=True,
+        )
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Espandi tutto" in body
+    assert "Riduci" in body
+    assert 'data-bs-parent="#accordionDepositi"' not in body
+    assert "2 atti" in body
+    assert "3 file totali" in body
+    assert "ricorso_introduttivo.pdf.p7m" in body
+    assert "allegato_fatture.pdf.p7m" in body
+    assert "sentenza_primo_grado.pdf" in body
+    assert "BUSTA-SIGIT-003" in body
+    assert "CPT Milano" in body

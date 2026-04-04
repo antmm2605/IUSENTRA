@@ -403,17 +403,22 @@ class ClientSIGIT:
         return client
 
     def _risolvi_codice(self, nome_o_codice: str) -> str:
-        if nome_o_codice.isdigit():
-            return nome_o_codice
+        valore = (nome_o_codice or "").strip()
+        if not valore:
+            return ""
+        if valore.isdigit() or valore.upper().startswith(("CPT", "CGT")):
+            return valore
         # Ricerca nel bundle uffici (TAR/CGT non coperti da ReGINde)
         try:
             from pct.uffici_giudiziari import get_gestore
             gestore = get_gestore(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"))
-            uff = next((u for u in gestore.carica()
-                        if nome_o_codice.lower() in u.get("nome", "").lower()), None)
-            return uff["codice"] if uff else nome_o_codice
+            uffici = gestore.carica()
+            uff = next((u for u in uffici if u.get("codice", "").upper() == valore.upper()), None)
+            if not uff:
+                uff = next((u for u in uffici if valore.lower() in u.get("nome", "").lower()), None)
+            return uff["codice"] if uff else valore
         except Exception:
-            return nome_o_codice
+            return valore
 
     def _parse_fascicoli(self, risposta: Any) -> List[FascicoloSIGIT]:
         fascicoli = []

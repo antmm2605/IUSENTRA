@@ -3928,10 +3928,17 @@ def create_app(config: dict | None = None) -> Flask:
             )
         except Exception:
             prefer_cf = ""
+
+        if not prefer_cf:
+            prefer_cf = str(os.getenv("PCT_CF_AVVOCATO", "") or "").strip().upper()
+
+        match = re.search(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b", prefer_cf)
+        prefer_cf = match.group(1) if match else ""
+
         return {
             "auto": True,
-            "prefer_issuer": "ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1",
-            "prefer_subject": "auth|autentica|client",
+            "prefer_issuer": "ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1|ArubaPEC",
+            "prefer_subject": "auth|autent|autentica|client|tls|web",
             "prefer_cf": prefer_cf,
         }
 
@@ -5078,7 +5085,8 @@ read -r -p "Premi Invio per chiudere..." _
                                demo_mode=demo_mode,
                                id_fasc=id_fasc,
                                fascicolo=fascicolo,
-                               commissione_sel=None,
+                               commissione_sel="",
+                               commissione_sel_nome="",
                                numero_rgt=None,
                                anno_rgt=None,
                                materia=None,
@@ -5091,6 +5099,9 @@ read -r -p "Premi Invio per chiudere..." _
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         commissione   = f.get("commissione", "").strip()
+        if not commissione:
+            flash("Seleziona un ufficio giudiziario tributario.", "warning")
+            return redirect(url_for("sigit_home"))
         numero_rgt    = f.get("numero_rgt", "").strip() or None
         anno_rgt_str  = f.get("anno_rgt", "").strip()
         anno_rgt      = int(anno_rgt_str) if anno_rgt_str.isdigit() else None
@@ -5108,13 +5119,27 @@ read -r -p "Premi Invio per chiudere..." _
                 nome_ricorrente=nome_ricorrente,
                 tipo=materia,
             )
+            try:
+                from pct.uffici_giudiziari import get_gestore as _get_uff
+                _uff = next(
+                    (
+                        u for u in _get_uff(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")).carica()
+                        if u.get("codice") == commissione
+                    ),
+                    None,
+                )
+                commissione_sel_nome = _uff["nome"] if _uff else commissione
+            except Exception:
+                commissione_sel_nome = commissione
         except Exception as e:
             flash(str(e), "danger")
+            commissione_sel_nome = commissione
         return render_template("sigit.html",
                                demo_mode=demo_mode,
                                id_fasc=id_fasc,
                                fascicolo=fascicolo,
                                commissione_sel=commissione,
+                               commissione_sel_nome=commissione_sel_nome,
                                numero_rgt=numero_rgt or "",
                                anno_rgt=anno_rgt or "",
                                materia=materia or "",
@@ -5125,7 +5150,7 @@ read -r -p "Premi Invio per chiudere..." _
     @app.route("/sigit/documenti")
     def sigit_documenti():
         from pct.sigit import crea_client_sigit
-        demo_mode        = _polis_demo_mode()
+        demo_mode        = request.args.get("demo_mode") == "1" or _polis_demo_mode()
         codice_commissione = request.args.get("codice_commissione", "")
         numero_rgt       = request.args.get("numero_rgt", "")
         anno_rgt_str     = request.args.get("anno_rgt", "")
@@ -5135,11 +5160,24 @@ read -r -p "Premi Invio per chiudere..." _
         nome_commissione = codice_commissione
         try:
             client    = crea_client_sigit(demo=demo_mode)
-            documenti = client.recupera_documenti(
-                commissione=codice_commissione,
+            documenti = client.consulta_documenti(
+                codice_commissione=codice_commissione,
                 numero_rgt=numero_rgt,
                 anno_rgt=anno_rgt,
             )
+            try:
+                from pct.uffici_giudiziari import get_gestore as _get_uff
+                _uff = next(
+                    (
+                        u for u in _get_uff(os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")).carica()
+                        if u.get("codice") == codice_commissione
+                    ),
+                    None,
+                )
+                if _uff:
+                    nome_commissione = _uff["nome"]
+            except Exception:
+                pass
             # Raggruppa per id_deposito (regola buste CLAUDE.md)
             from collections import OrderedDict
             buste: dict = OrderedDict()

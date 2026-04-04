@@ -58,22 +58,36 @@
         <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
         <div class="row g-3">
 
-          {# ---- Commissione tributaria ---- #}
+          {# ---- Ufficio giudiziario tributario ---- #}
           <div class="col-md-5">
             <label class="form-label fw-semibold">
-              Commissione Tributaria <span class="text-danger">*</span>
+              Ufficio giudiziario tributario <span class="text-danger">*</span>
             </label>
             <div class="uff-tabs mb-1" id="commissione-tabs" role="tablist">
-              <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
-              <button type="button" class="uff-tab" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT - Primo grado</button>
+              <button type="button" class="uff-tab active" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT - Primo grado</button>
               <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT - Secondo grado</button>
             </div>
-            <div class="position-relative">
-              <input type="text" name="commissione" id="commissione-input" class="form-control"
-                     placeholder="es. Commissione Tributaria Milano…"
+            <div class="position-relative" id="commissione-wrap">
+              <div class="input-group">
+                <span class="input-group-text bg-white" id="commissione-tipo-icon">
+                  <i class="bi bi-receipt text-muted"></i>
+                </span>
+                <input type="text" id="commissione-input" class="form-control border-start-0 ps-0"
+                     placeholder="Cerca corte di giustizia tributaria..."
                      autocomplete="off"
-                     value="{{ commissione_sel or '' }}"
+                     value="{{ commissione_sel_nome or '' }}"
                      required>
+                <button type="button" class="btn btn-outline-secondary" id="commissione-clear"
+                        title="Cancella" style="display:none">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+              <div id="commissione-dropdown"></div>
+            </div>
+            <input type="hidden" name="commissione" id="commissione-value" value="{{ commissione_sel or '' }}">
+            <div id="commissione-sel-badge" class="mt-1" style="display:none">
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small"
+                    id="commissione-sel-label"></span>
             </div>
           </div>
 
@@ -290,7 +304,7 @@
             <i class="bi bi-key text-warning me-1"></i>Accesso
           </div>
           Usa le stesse credenziali CNS del PCT civile oppure accedi direttamente al
-          <a href="https://www.ptt.mef.gov.it" target="_blank" rel="noopener">portale PTT (ptt.mef.gov.it)</a>
+          <a href="https://sigit.giustiziatributaria.gov.it" target="_blank" rel="noopener">portale SIGIT / PTT</a>
           con SPID/CIE per il download degli atti.
         </div>
       </div>
@@ -338,25 +352,170 @@
   });
 })();
 
-// ---------------------------------------------------------------- Tipo commissione tabs
+// ---------------------------------------------------------------- Selettore uffici tributari CPT/CGT
 (function () {
-  const tabs  = document.getElementById('commissione-tabs');
-  const input = document.getElementById('commissione-input');
+  const input    = document.getElementById('commissione-input');
+  const hidden   = document.getElementById('commissione-value');
+  const dropdown = document.getElementById('commissione-dropdown');
+  const clearBtn = document.getElementById('commissione-clear');
+  const badge    = document.getElementById('commissione-sel-badge');
+  const badgeLbl = document.getElementById('commissione-sel-label');
+  const tabs     = document.getElementById('commissione-tabs');
+  const tipoIcon = document.getElementById('commissione-tipo-icon');
   if (!tabs || !input) return;
-  const PH = {
-    '': 'Cerca corte di giustizia tributaria...',
-    CPT: 'Commissione Prov. Tributaria (es. Milano)...',
-    CGT: 'Corte di Giustizia Tributaria II grado...',
+
+  const TIPO_ICONS = { CPT: 'bi-receipt', CGT: 'bi-receipt-cutoff' };
+  const TIPO_LABEL = { CPT: 'CPT - Primo grado', CGT: 'CGT - Secondo grado' };
+  const TIPO_PH = {
+    CPT: 'Cerca corte di giustizia tributaria di primo grado...',
+    CGT: 'Cerca corte di giustizia tributaria di secondo grado...',
   };
+  let tipoFiltro = hidden?.value?.toUpperCase().startsWith('CGT') ? 'CGT' : 'CPT';
+  let items = [], focusIdx = -1, timer = null;
+
+  function posiziona() {
+    const rect = input.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 4) + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
+    dropdown.style.maxHeight = Math.min(340, window.innerHeight - rect.bottom - 8) + 'px';
+  }
+
+  function renderDropdown(data) {
+    focusIdx = -1;
+    items = [];
+    posiziona();
+    if (!data.length) {
+      dropdown.innerHTML = `<div class="uff-empty"><i class="bi bi-search me-1"></i>Nessun ufficio trovato</div>`;
+      dropdown.classList.add('show');
+      return;
+    }
+    let html = '';
+    data.forEach(u => {
+      const idx = items.length;
+      items.push(u);
+      html += `<div class="uff-item" data-idx="${idx}" tabindex="-1">
+        <i class="bi ${TIPO_ICONS[u.tipo] || 'bi-receipt'} uff-icon"></i>
+        <div class="uff-body">
+          <div class="uff-nome">${u.nome}</div>
+          <div class="uff-sub">${u.distretto || ''}${u.pec ? ' · <span class="font-monospace small">' + u.pec + '</span>' : ''}</div>
+        </div>
+      </div>`;
+    });
+    dropdown.innerHTML = html;
+    dropdown.classList.add('show');
+    dropdown.querySelectorAll('.uff-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); seleziona(items[+el.dataset.idx]); });
+    });
+  }
+
+  function seleziona(u) {
+    input.value = u.nome;
+    hidden.value = u.codice;
+    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[u.tipo] || 'bi-receipt'} me-1"></i><strong>${u.nome}</strong> <span class="opacity-75">(${u.distretto || ''})</span>`;
+    badge.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+    input.setCustomValidity('');
+    chiudi();
+  }
+
+  function chiudi() {
+    dropdown.classList.remove('show');
+    focusIdx = -1;
+  }
+
+  function muoviFocus(dir) {
+    const els = dropdown.querySelectorAll('.uff-item');
+    if (!els.length) return;
+    els[focusIdx]?.classList.remove('focused');
+    focusIdx = (focusIdx + dir + els.length) % els.length;
+    els[focusIdx]?.classList.add('focused');
+    els[focusIdx]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function cerca(q) {
+    fetch(`/api/uffici?q=${encodeURIComponent(q)}&tipo=${tipoFiltro}`)
+      .then(r => r.json())
+      .then(renderDropdown)
+      .catch(() => chiudi());
+  }
+
+  function applicaTipoFiltro(tipo) {
+    tipoFiltro = tipo || 'CPT';
+    tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.toggle('active', t.dataset.tipo === tipoFiltro));
+    tipoIcon.innerHTML = `<i class="bi ${TIPO_ICONS[tipoFiltro] || 'bi-receipt'} text-muted"></i>`;
+    input.placeholder = TIPO_PH[tipoFiltro] || 'Cerca ufficio tributario...';
+  }
+
   tabs.querySelectorAll('.uff-tab').forEach(tab => {
     tab.addEventListener('click', e => {
       e.stopPropagation();
-      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      input.placeholder = PH[tab.dataset.tipo] || 'Cerca commissione…';
+      applicaTipoFiltro(tab.dataset.tipo);
+      if (input.value.trim().length >= 2) cerca(input.value.trim()); else chiudi();
       input.focus();
     });
   });
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    hidden.value = '';
+    badge.style.display = 'none';
+    clearBtn.style.display = q ? 'inline-flex' : 'none';
+    if (q.length < 2) { chiudi(); return; }
+    timer = setTimeout(() => cerca(q), 180);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); muoviFocus(+1); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); muoviFocus(-1); return; }
+    if (e.key === 'Enter') {
+      const els = dropdown.querySelectorAll('.uff-item');
+      if (focusIdx >= 0 && els[focusIdx]) { e.preventDefault(); seleziona(items[focusIdx]); }
+      return;
+    }
+    if (e.key === 'Escape') { chiudi(); }
+  });
+
+  input.closest('form').addEventListener('submit', function (e) {
+    if (!hidden.value && input.value.trim()) {
+      fetch(`/api/uffici?q=${encodeURIComponent(input.value.trim())}&tipo=${tipoFiltro}&limit=1`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.length) { seleziona(data[0]); this.submit(); }
+          else { input.setCustomValidity('Seleziona un ufficio dalla lista'); input.reportValidity(); }
+        });
+      e.preventDefault();
+      return;
+    }
+    if (!hidden.value) {
+      input.setCustomValidity('Seleziona un ufficio dalla lista');
+      input.reportValidity();
+      e.preventDefault();
+    }
+  });
+
+  input.addEventListener('input', () => input.setCustomValidity(''));
+  clearBtn?.addEventListener('click', () => {
+    input.value = '';
+    hidden.value = '';
+    badge.style.display = 'none';
+    clearBtn.style.display = 'none';
+    chiudi();
+    input.focus();
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('commissione-wrap')?.contains(e.target) && !tabs.contains(e.target)) chiudi();
+  });
+  window.addEventListener('scroll', () => { if (dropdown.classList.contains('show')) posiziona(); }, { passive: true });
+  window.addEventListener('resize', () => { if (dropdown.classList.contains('show')) posiziona(); }, { passive: true });
+  applicaTipoFiltro(tipoFiltro);
+  if (hidden.value && input.value) {
+    badgeLbl.innerHTML = `<i class="bi ${TIPO_ICONS[tipoFiltro] || 'bi-receipt'} me-1"></i><strong>${input.value}</strong>`;
+    badge.style.display = 'block';
+    clearBtn.style.display = 'inline-flex';
+  }
 })();
 </script>
 {% endblock %}

@@ -1402,6 +1402,8 @@ def create_app(config: dict | None = None) -> Flask:
                     "id_deposito_esterno": str(getattr(dep, "id_deposito_esterno", "") or "").strip(),
                     "tipo_atto": str((pdoc or {}).get("tipo_atto") or getattr(dep, "tipo_atto", "") or "").strip(),
                     "id_documento_portale": str((pdoc or {}).get("id_documento") or "").strip(),
+                    "id_cat": str((pdoc or {}).get("id_cat") or "").strip(),
+                    "data_documento": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "nome": nome,
                     "tipo": str((pdoc or {}).get("tipo") or "Documento").strip(),
@@ -1420,6 +1422,10 @@ def create_app(config: dict | None = None) -> Flask:
         grouped: dict[str, list[dict]] = {}
         for row in catalogo or []:
             dep_id = str(row.get("id_deposito_pct") or "").strip()
+            if not dep_id:
+                data_key = str(row.get("data_deposito") or "").strip()
+                mittente_key = str(row.get("mittente") or "").strip()
+                dep_id = f"__{data_key}__{mittente_key}"
             if not dep_id:
                 continue
             grouped.setdefault(dep_id, []).append(row)

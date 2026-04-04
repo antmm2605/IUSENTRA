@@ -305,13 +305,13 @@
           <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
         </span>
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-sm btn-outline-info flex-shrink-0" data-bs-toggle="modal"
-                  data-bs-target="#modalImportaPortale">
-            <i class="bi bi-inbox me-1"></i>Acquisisci portale
-            {% if pst_import_pending %}
-            <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
-            {% endif %}
-          </button>
+            <button class="btn btn-sm btn-outline-info flex-shrink-0" data-bs-toggle="modal"
+                   data-bs-target="#modalNavigaPst">
+              <i class="bi bi-diagram-3 me-1"></i>Naviga PST
+              {% if pst_import_pending %}
+              <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
+              {% endif %}
+            </button>
           <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
                   data-bs-target="#modalDocumento">
             <i class="bi bi-upload me-1"></i>Carica
@@ -615,10 +615,10 @@
             oppure acquisendo documenti gia' presenti nei download locali.
           </div>
           <div class="mt-3">
-            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                    data-bs-target="#modalImportaPortale">
-              <i class="bi bi-inbox me-1"></i>Scarica o acquisisci i file ufficiali
-            </button>
+              <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                     data-bs-target="#modalNavigaPst">
+                <i class="bi bi-diagram-3 me-1"></i>Naviga PST e acquisisci i file ufficiali
+              </button>
           </div>
           {% elif 'Importato da PolisWeb' in (fascicolo.note or '') %}
           <div class="mt-2">
@@ -627,10 +627,10 @@
             <a href="{{ url_for('polisWeb_home', id_fasc=fascicolo.id) }}" class="text-decoration-none">Consulta su PolisWeb</a>.
           </div>
           <div class="mt-3">
-            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                    data-bs-target="#modalImportaPortale">
-              <i class="bi bi-inbox me-1"></i>Scarica o acquisisci i file ufficiali
-            </button>
+              <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                     data-bs-target="#modalNavigaPst">
+                <i class="bi bi-diagram-3 me-1"></i>Naviga PST e acquisisci i file ufficiali
+              </button>
           </div>
           {% endif %}
         </div>
@@ -790,13 +790,13 @@
             <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">{{ dep_portale_label }}</span><span class="d-sm-none">Portale</span>
           </a>
 
-          <button class="btn btn-sm btn-outline-info fw-semibold" data-bs-toggle="modal"
-                  data-bs-target="#modalImportaPortale">
-            <i class="bi bi-inbox me-1"></i><span class="d-none d-sm-inline">Acquisisci</span>
-            {% if pst_import_pending %}
-            <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
-            {% endif %}
-          </button>
+            <button class="btn btn-sm btn-outline-info fw-semibold" data-bs-toggle="modal"
+                  data-bs-target="#modalNavigaPst">
+              <i class="bi bi-diagram-3 me-1"></i><span class="d-none d-sm-inline">Naviga PST</span>
+              {% if pst_import_pending %}
+              <span class="badge bg-info text-dark rounded-pill ms-1">{{ pst_import_pending }}</span>
+              {% endif %}
+            </button>
 
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                   data-bs-target="#modalDeposito">
@@ -1174,10 +1174,10 @@
             L'importazione da PolisWeb popola anagrafica e attività iniziali, ma non scarica automaticamente gli atti dal PST.
           </div>
           <div class="mt-3">
-            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                    data-bs-target="#modalImportaPortale">
-              <i class="bi bi-inbox me-1"></i>Acquisisci file ufficiali
-            </button>
+              <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                     data-bs-target="#modalNavigaPst">
+                <i class="bi bi-diagram-3 me-1"></i>Naviga PST
+              </button>
           </div>
           {% endif %}
         </div>
@@ -1852,86 +1852,147 @@
   </div>
 </div>
 
-{# Modal: acquisizione file ufficiali dal portale #}
-<div class="modal fade" id="modalImportaPortale" tabindex="-1">
-  <div class="modal-dialog modal-fullscreen-sm-down">
+{# Modal: navigazione documenti ufficiali PST #}
+<div class="modal fade" id="modalNavigaPst" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
     <div class="modal-content">
       <form method="post" enctype="multipart/form-data"
             action="{{ url_for('importa_documenti_portale', id_fasc=fascicolo.id) }}">
         <div class="modal-header">
           <h5 class="modal-title">
-            <i class="bi bi-inbox me-2 text-info"></i>Acquisisci file ufficiali
+            <i class="bi bi-diagram-3 me-2 text-info"></i>Naviga fascicolo PST
           </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           <div class="alert alert-info small">
-            HACS può acquisire i documenti ufficiali direttamente dal canale autenticato <strong>{{ pst_portale_label }}</strong>
-            tramite Local Signer e servizi web PST ufficiali.
-            I dati restano separati nel fascicolo tra <strong>Attivita processuali</strong>,
-            <strong>Documenti fascicolo</strong>, <strong>Udienze e scadenze</strong>,
-            <strong>Comunicazioni di cancelleria</strong> e <strong>Istanze</strong>.
-            In alternativa puoi ancora importare file già scaricati dal portale ministeriale.
+            HACS naviga il catalogo ufficiale dei documenti del canale <strong>{{ pst_portale_label }}</strong>,
+            mantiene separati <strong>Attività processuali</strong>, <strong>Documenti fascicolo</strong>,
+            <strong>Udienze e scadenze</strong>, <strong>Comunicazioni di cancelleria</strong> e <strong>Istanze</strong>,
+            e usa il <strong>Local Signer</strong> per il download assistito dei file ufficiali.
           </div>
-          <div class="row g-3">
-            <div class="col-12">
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <button type="button" class="btn btn-info btn-sm text-white" id="btnScaricaPortaleUfficiale">
-                  <i class="bi bi-cloud-download me-1"></i>Scarica dal portale ufficiale
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Ricerca rapida</label>
+              <input type="search" class="form-control" id="pstNavSearch"
+                     placeholder="Cerca documento, tipo, mittente...">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Sezione</label>
+              <select class="form-select" id="pstNavSection">
+                <option value="">Tutte le sezioni</option>
+                <option value="udienze">Udienze / verbali</option>
+                <option value="provvedimenti">Provvedimenti</option>
+                <option value="atti">Atti / documenti</option>
+                <option value="comunicazioni">Comunicazioni</option>
+                <option value="istanze">Istanze</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Stato acquisizione</label>
+              <select class="form-select" id="pstNavImportState">
+                <option value="">Tutti</option>
+                <option value="pending">Solo non acquisiti</option>
+                <option value="done">Solo già acquisiti</option>
+              </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="button" class="btn btn-outline-secondary w-100" id="pstNavSelectVisible">
+                Seleziona visibili
+              </button>
+            </div>
+          </div>
+
+          <div class="border rounded overflow-hidden">
+            <div class="px-3 py-2 border-bottom bg-light-subtle d-flex justify-content-between align-items-center gap-2 flex-wrap">
+              <div class="form-check mb-0">
+                <input type="checkbox" class="form-check-input" id="pstNavSelectAll">
+                <label class="form-check-label" for="pstNavSelectAll">Seleziona tutto</label>
+              </div>
+              <small class="text-muted" id="pstNavCounter"></small>
+            </div>
+            <div id="pstNavTree" class="p-2" style="max-height:46vh; overflow:auto"></div>
+          </div>
+
+          <div class="small mt-3" id="pstNavStatus"></div>
+
+          <div class="accordion mt-3" id="accPstImportManuale">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed small fw-semibold" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#pstImportManualeBody">
+                  Importazione manuale / inbox tecnica
                 </button>
-                <button type="button" class="btn btn-outline-primary btn-sm" id="btnRaccogliDownloadPortale">
-                  <i class="bi bi-folder-symlink me-1"></i>Raccogli dai download recenti
-                </button>
-                <div class="small text-muted" id="pstImportLocalSignerStatus">
-                  Usa il Local Signer sul tuo PC per scaricare i documenti ufficiali dentro HACS oppure per acquisire i file già presenti nei download locali.
+              </h2>
+              <div id="pstImportManualeBody" class="accordion-collapse collapse">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label fw-semibold">File o cartella già scaricati</label>
+                      <input type="file" name="files" id="pstImportInput" class="form-control"
+                             multiple webkitdirectory directory>
+                      <div class="form-text" id="pstImportHint">
+                        Puoi selezionare più file insieme oppure un'intera cartella del fascicolo già scaricata dal portale.
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label fw-semibold">Cartella tecnica locale del fascicolo</label>
+                      <div class="input-group">
+                        <input type="text" class="form-control font-monospace small" id="pstImportDirPath"
+                               value="{{ pst_import_dir }}" readonly>
+                        <button type="button" class="btn btn-outline-secondary" id="btnCopiaPstImportDir">
+                          <i class="bi bi-clipboard me-1"></i>Copia
+                        </button>
+                      </div>
+                      <div class="form-text">
+                        Se preferisci, puoi copiare qui dentro i file scaricati dal portale ufficiale e poi avviare l'acquisizione manuale.
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      {% if pst_import_pending %}
+                      <div class="alert alert-light border small mb-0">
+                        Nell'inbox tecnica del fascicolo ci sono già <strong>{{ pst_import_pending }}</strong> file pronti.
+                        Se lasci vuoto il campo sopra, HACS importerà quelli.
+                      </div>
+                      {% else %}
+                      <div class="alert alert-light border small mb-0">
+                        Se lasci il campo vuoto, HACS proverà a leggere l'inbox tecnica del fascicolo già predisposta in locale.
+                      </div>
+                      {% endif %}
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label fw-semibold">Note importazione</label>
+                      <input type="text" name="note_importazione" class="form-control"
+                             placeholder="Es. fascicolo completo scaricato dal portale ufficiale">
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                      <button type="submit" class="btn btn-info text-white">
+                        <i class="bi bi-database-add me-1"></i>Importa da file / cartella
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">File o cartella già scaricati</label>
-              <input type="file" name="files" id="pstImportInput" class="form-control"
-                     multiple webkitdirectory directory>
-              <div class="form-text" id="pstImportHint">
-                Puoi selezionare più file insieme oppure un'intera cartella del fascicolo già scaricata dal portale.
-              </div>
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Cartella tecnica locale del fascicolo</label>
-              <div class="input-group">
-                <input type="text" class="form-control font-monospace small" id="pstImportDirPath"
-                       value="{{ pst_import_dir }}" readonly>
-                <button type="button" class="btn btn-outline-secondary" id="btnCopiaPstImportDir">
-                  <i class="bi bi-clipboard me-1"></i>Copia
-                </button>
-              </div>
-              <div class="form-text">
-                Se preferisci, puoi copiare qui dentro i file scaricati dal portale ufficiale e poi avviare l'acquisizione lasciando vuoto il campo sopra.
-              </div>
-            </div>
-            <div class="col-12">
-              {% if pst_import_pending %}
-              <div class="alert alert-light border small mb-0">
-                Nell'inbox tecnica del fascicolo ci sono già <strong>{{ pst_import_pending }}</strong> file pronti.
-                Se lasci il campo sopra vuoto, HACS importerà quelli.
-              </div>
-              {% else %}
-              <div class="alert alert-light border small mb-0">
-                Se lasci il campo vuoto, HACS proverà a leggere l'inbox tecnica del fascicolo già predisposta in locale.
-              </div>
-              {% endif %}
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Note importazione</label>
-              <input type="text" name="note_importazione" class="form-control"
-                     placeholder="Es. fascicolo completo scaricato dal portale ufficiale">
-            </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
-          <button type="submit" class="btn btn-info text-white">
-            <i class="bi bi-database-add me-1"></i>Importa nel fascicolo
-          </button>
+        <div class="modal-footer justify-content-between flex-wrap gap-2">
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-primary" id="pstDownloadAll">
+              Scarica tutto
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="pstDownloadSelected">
+              Scarica selezionati
+            </button>
+            <button type="button" class="btn btn-outline-success" id="pstImportSelected">
+              Importa selezionati
+            </button>
+            <button type="button" class="btn btn-success" id="pstDownloadImportSelected">
+              Scarica + importa
+            </button>
+          </div>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Chiudi</button>
         </div>
       </form>
     </div>
@@ -2510,18 +2571,107 @@ document.getElementById('modalDeposito').addEventListener('show.bs.modal', funct
 const _LS_BASE_FASC = 'http://127.0.0.1:27272';
 const _PORTALE_DOCS_CATALOG = {{ portale_documenti_catalogo|tojson }};
 const _IMPORTA_PORTALE_API = "{{ url_for('api_importa_documenti_portale', id_fasc=fascicolo.id) }}";
+const _VISUALIZZA_DOC_TPL = "{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc='__DOC__') }}";
 const _PST_FASCICOLO_CONTEXT = {
   tribunale: {{ fascicolo.tribunale|tojson }},
   numero_rg: {{ fascicolo.numero_rg|tojson }},
   anno_rg: {{ fascicolo.anno_rg|tojson }}
 };
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildPstNavKey(item) {
+  const docId = String(item.id_documento_portale || item.id_documento || '').trim();
+  const depId = String(item.id_deposito_pct || item.id_deposito_esterno || '').trim();
+  const nome = String(item.nome || item.nome_documento || item.nome_file_originale || '').trim();
+  const data = String(item.data_documento || item.data_deposito || '').trim();
+  return [docId || nome, depId, data].join('::');
+}
+
+function sezionePstDaCatalogoItem(item) {
+  const tipoAtto = String(item.tipo_atto || item.tipo || '').toLowerCase();
+  const nome = String(item.nome || item.nome_documento || '').toLowerCase();
+  const testo = [tipoAtto, nome].join(' ');
+
+  if (testo.includes('istanza')) return 'istanze';
+  if (
+    testo.includes('verbaleudienza') ||
+    testo.includes('verbale udienza') ||
+    testo.includes('udienza') ||
+    testo.includes('verbale')
+  ) return 'udienze';
+  if (
+    testo.includes('ordinanza') ||
+    testo.includes('decreto') ||
+    testo.includes('sentenza') ||
+    testo.includes('provvedimento')
+  ) return 'provvedimenti';
+  if (
+    nome.endsWith('.eml') ||
+    nome.endsWith('.msg') ||
+    nome.endsWith('.xml') ||
+    nome.includes('ricevuta') ||
+    nome.includes('esito') ||
+    testo.includes('comunicazione') ||
+    testo.includes('pec')
+  ) return 'comunicazioni';
+  return 'atti';
+}
+
+window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
+  return {
+    key: buildPstNavKey(item),
+    id_documento: item.id_documento_portale || item.id_documento || '',
+    id_documento_portale: item.id_documento_portale || item.id_documento || '',
+    nome: item.nome || item.nome_documento || '',
+    tipo_atto: item.tipo_atto || item.tipo || '',
+    tipo: item.tipo || '',
+    data_documento: item.data_documento || item.data_deposito || '',
+    data_deposito: item.data_deposito || item.data_documento || '',
+    mittente: item.mittente || '',
+    gia_importato: !!item.gia_importato,
+    local_doc_id: item.local_doc_id || '',
+    local_doc_nome: item.local_doc_nome || '',
+    id_deposito_pct: item.id_deposito_pct || '',
+    id_deposito_esterno: item.id_deposito_esterno || '',
+    id_cat: item.id_cat || '',
+    sezione: sezionePstDaCatalogoItem(item)
+  };
+});
+
 (function () {
-  const btn = document.getElementById('btnRaccogliDownloadPortale');
-  const btnScarica = document.getElementById('btnScaricaPortaleUfficiale');
-  const status = document.getElementById('pstImportLocalSignerStatus');
-  const noteInput = document.querySelector('#modalImportaPortale input[name="note_importazione"]');
-  if (!btn || !status) return;
+  const modal = document.getElementById('modalNavigaPst');
+  const tree = document.getElementById('pstNavTree');
+  const status = document.getElementById('pstNavStatus');
+  const searchInput = document.getElementById('pstNavSearch');
+  const sectionSelect = document.getElementById('pstNavSection');
+  const importStateSelect = document.getElementById('pstNavImportState');
+  const selectVisibleBtn = document.getElementById('pstNavSelectVisible');
+  const selectAll = document.getElementById('pstNavSelectAll');
+  const counter = document.getElementById('pstNavCounter');
+  const noteInput = document.querySelector('#modalNavigaPst input[name="note_importazione"]');
+  const btnDownloadAll = document.getElementById('pstDownloadAll');
+  const btnDownloadSelected = document.getElementById('pstDownloadSelected');
+  const btnImportSelected = document.getElementById('pstImportSelected');
+  const btnDownloadImportSelected = document.getElementById('pstDownloadImportSelected');
+  if (!modal || !tree || !status) return;
+
+  const stagedFiles = new Map();
+  const selectedKeys = new Set();
+  const labels = {
+    udienze: 'Udienze / verbali',
+    provvedimenti: 'Provvedimenti',
+    atti: 'Atti / documenti',
+    comunicazioni: 'Comunicazioni',
+    istanze: 'Istanze'
+  };
 
   function setStatus(message, tone) {
     status.className = 'small';
@@ -2532,9 +2682,158 @@ const _PST_FASCICOLO_CONTEXT = {
     status.textContent = message;
   }
 
-  function pendingDocs() {
-    return (_PORTALE_DOCS_CATALOG || []).filter(function (item) {
+  function visualizzaUrl(item) {
+    if (!item.local_doc_id) return '';
+    return _VISUALIZZA_DOC_TPL.replace('__DOC__', item.local_doc_id);
+  }
+
+  function isStaged(item) {
+    return stagedFiles.has(item.key);
+  }
+
+  function filteredPstItems() {
+    const search = String(searchInput && searchInput.value || '').trim().toLowerCase();
+    const section = String(sectionSelect && sectionSelect.value || '').trim();
+    const importState = String(importStateSelect && importStateSelect.value || '').trim();
+
+    return (window._PST_NAV_ITEMS || []).filter(function (item) {
+      if (section && item.sezione !== section) return false;
+      if (importState === 'pending' && item.gia_importato) return false;
+      if (importState === 'done' && !item.gia_importato) return false;
+      if (!search) return true;
+      const haystack = [
+        item.nome,
+        item.tipo_atto,
+        item.tipo,
+        item.mittente,
+        item.id_deposito_esterno,
+        item.id_documento_portale
+      ].join(' ').toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+
+  function pendingItems(items) {
+    return (items || []).filter(function (item) {
       return item && !item.gia_importato;
+    });
+  }
+
+  function selectedPstItems(sourceItems) {
+    return (sourceItems || window._PST_NAV_ITEMS || []).filter(function (item) {
+      return selectedKeys.has(item.key);
+    });
+  }
+
+  function groupDepKey(item) {
+    return item.id_deposito_pct || item.id_deposito_esterno || ('__' + (item.data_documento || '') + '__' + (item.mittente || ''));
+  }
+
+  function groupPstItems(items) {
+    const groups = {};
+    (items || []).forEach(function (item) {
+      const section = item.sezione || 'atti';
+      const depKey = groupDepKey(item);
+      if (!groups[section]) groups[section] = {};
+      if (!groups[section][depKey]) groups[section][depKey] = [];
+      groups[section][depKey].push(item);
+    });
+    return groups;
+  }
+
+  function syncCounter(visibleItems) {
+    const visibleKeys = (visibleItems || []).map(function (item) { return item.key; });
+    const visibleSelected = visibleKeys.filter(function (key) { return selectedKeys.has(key); });
+    if (counter) {
+      counter.textContent = visibleSelected.length + ' selezionati | ' + visibleItems.length + ' visibili | ' + (window._PST_NAV_ITEMS || []).length + ' totali';
+    }
+    if (selectAll) {
+      selectAll.checked = !!visibleItems.length && visibleSelected.length === visibleItems.length;
+      selectAll.indeterminate = visibleSelected.length > 0 && visibleSelected.length < visibleItems.length;
+    }
+  }
+
+  function renderPstTree(items) {
+    const grouped = groupPstItems(items);
+    let html = '';
+
+    Object.keys(labels).forEach(function (section) {
+      const deps = grouped[section];
+      if (!deps) return;
+
+      html += '<div class="mb-3">';
+      html += '<div class="fw-semibold mb-2">' + labels[section] + '</div>';
+
+      Object.keys(deps).forEach(function (depKey) {
+        const rows = deps[depKey].slice().sort(function (a, b) {
+          return String(b.data_documento || '').localeCompare(String(a.data_documento || ''));
+        });
+        const allGroupSelected = rows.every(function (item) { return selectedKeys.has(item.key); });
+        const titolo = rows[0] && rows[0].tipo_atto ? rows[0].tipo_atto : 'Deposito PST';
+        const meta = [];
+        if (rows[0] && rows[0].data_documento) meta.push(rows[0].data_documento);
+        if (rows[0] && rows[0].mittente) meta.push(rows[0].mittente);
+
+        html += '<div class="border rounded mb-2">';
+        html += '<div class="px-3 py-2 bg-light d-flex justify-content-between align-items-start gap-2">';
+        html += '<div>';
+        html += '<div><strong>' + escapeHtml(titolo) + '</strong> <span class="text-muted">(' + rows.length + ')</span></div>';
+        if (meta.length) {
+          html += '<div class="small text-muted">' + escapeHtml(meta.join(' · ')) + '</div>';
+        }
+        html += '</div>';
+        html += '<div class="form-check m-0">';
+        html += '<input type="checkbox" class="form-check-input pst-group-check" data-dep="' + escapeHtml(depKey) + '"' + (allGroupSelected ? ' checked' : '') + '>';
+        html += '</div>';
+        html += '</div>';
+
+        rows.forEach(function (item) {
+          const badge = item.gia_importato
+            ? '<span class="badge text-bg-success">Già acquisito</span>'
+            : (isStaged(item)
+                ? '<span class="badge text-bg-primary">Scaricato in sessione</span>'
+                : '<span class="badge text-bg-secondary">Da acquisire</span>');
+          const checked = selectedKeys.has(item.key) ? ' checked' : '';
+          const viewLink = visualizzaUrl(item);
+
+          html += '<div class="px-3 py-2 border-top d-flex justify-content-between align-items-start gap-3 flex-wrap">';
+          html += '<div class="me-3 flex-grow-1">';
+          html += '<div class="form-check">';
+          html += '<input class="form-check-input pst-doc-check" type="checkbox" data-key="' + escapeHtml(item.key) + '" data-dep="' + escapeHtml(depKey) + '"' + checked + '>';
+          html += '<label class="form-check-label"><strong>' + escapeHtml(item.nome) + '</strong></label>';
+          html += '</div>';
+          html += '<div class="small text-muted ms-4">';
+          html += 'Tipo: ' + escapeHtml(item.tipo_atto || item.tipo || 'n.d.');
+          html += ' · Data: ' + escapeHtml(item.data_documento || 'n.d.');
+          if (item.mittente) {
+            html += ' · Mittente: ' + escapeHtml(item.mittente);
+          }
+          html += '</div>';
+          if (viewLink) {
+            html += '<div class="ms-4 mt-2"><a class="btn btn-sm btn-outline-primary" href="' + escapeHtml(viewLink) + '" target="_blank" rel="noopener">Visualizza nel fascicolo</a></div>';
+          }
+          html += '</div>';
+          html += '<div class="text-nowrap">' + badge + '</div>';
+          html += '</div>';
+        });
+
+        html += '</div>';
+      });
+
+      html += '</div>';
+    });
+
+    tree.innerHTML = html || '<div class="text-muted p-2">Nessun documento PST disponibile per i filtri correnti.</div>';
+    syncCounter(items || []);
+  }
+
+  function noteImportazione(defaultValue) {
+    return (noteInput && noteInput.value.trim()) || defaultValue;
+  }
+
+  function stageFiles(files) {
+    (files || []).forEach(function (file) {
+      stagedFiles.set(buildPstNavKey(file), file);
     });
   }
 
@@ -2546,7 +2845,7 @@ const _PST_FASCICOLO_CONTEXT = {
         'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || ''
       },
       body: JSON.stringify({
-        note_importazione: (noteInput && noteInput.value.trim()) || noteDefault,
+        note_importazione: noteImportazione(noteDefault),
         files: files || []
       })
     });
@@ -2560,7 +2859,7 @@ const _PST_FASCICOLO_CONTEXT = {
     const agganciati = Number(importData.depositi_agganciati || 0);
     let doneMsg = 'Importati ' + importData.documenti_importati + ' file nel fascicolo.';
     if (agganciati > 0) {
-      doneMsg += ' ' + agganciati + ' deposit' + (agganciati === 1 ? 'o ufficiale agganciato.' : 'i ufficiali agganciati.');
+      doneMsg += ' ' + agganciati + ' deposit' + (agganciati === 1 ? 'o ufficiale aggiornato.' : 'i ufficiali aggiornati.');
     }
     if (importData.lotto_generico) {
       doneMsg += ' Alcuni file sono stati registrati in un lotto locale.';
@@ -2571,126 +2870,274 @@ const _PST_FASCICOLO_CONTEXT = {
     }, 900);
   }
 
-  if (!_PORTALE_DOCS_CATALOG.length) {
-    btn.disabled = true;
-    if (btnScarica) btnScarica.disabled = true;
-    setStatus('Prima sincronizza i metadati documentali dal portale: poi potrai raccogliere i download recenti in modo assistito.', 'muted');
-    return;
+  async function pstBatchDownload(items) {
+    const signerResp = await fetch(_LS_BASE_FASC + '/pst/download-documenti-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tribunale: _PST_FASCICOLO_CONTEXT.tribunale,
+        numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
+        anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
+        preflight_auth: true,
+        documents: (items || []).map(function (item) {
+          return {
+            id_documento: item.id_documento_portale || item.id_documento || '',
+            nome_documento: item.nome || '',
+            id_cat: item.id_cat || '',
+            data_documento: item.data_documento || item.data_deposito || '',
+            id_deposito_esterno: item.id_deposito_esterno || '',
+            id_deposito_pct: item.id_deposito_pct || '',
+            tipo_atto: item.tipo_atto || '',
+            original: true
+          };
+        })
+      })
+    });
+    const signerData = await signerResp.json().catch(function () {
+      return { ok: false, errore: 'Risposta non valida del Local Signer.' };
+    });
+    if (!signerResp.ok || !signerData.ok) {
+      throw new Error(signerData.errore || 'Download batch PST fallito.');
+    }
+    return signerData;
   }
 
-  const docsPending = pendingDocs();
-  if (!docsPending.length && btnScarica) {
-    btnScarica.disabled = true;
-    setStatus('I documenti ufficiali censiti dal portale risultano già presenti nel fascicolo. Puoi usare la raccolta locale solo per riallineamenti manuali.', 'success');
+  async function raccogliDownloadRecenti(items) {
+    const signerResp = await fetch(_LS_BASE_FASC + '/downloads/raccogli', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expected_documents: items || [],
+        max_age_hours: 168,
+        limit: 50
+      })
+    });
+    const signerData = await signerResp.json().catch(function () {
+      return { ok: false, errore: 'Risposta non valida del Local Signer.' };
+    });
+    if (!signerResp.ok || !signerData.ok) {
+      throw new Error(signerData.errore || 'Nessun download locale compatibile trovato.');
+    }
+    return signerData;
   }
 
-  if (btnScarica) {
-    btnScarica.addEventListener('click', async function () {
-      const queue = pendingDocs();
-      if (!queue.length) {
-        setStatus('Non ci sono documenti ufficiali da scaricare: risultano già acquisiti nel fascicolo.', 'success');
-        return;
-      }
+  function setButtonsBusy(busy, activeButton, busyLabel) {
+    [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected].forEach(function (btn) {
+      if (!btn) return;
+      btn.disabled = busy;
+    });
+    if (activeButton && busyLabel) {
+      activeButton.dataset.originalHtml = activeButton.dataset.originalHtml || activeButton.innerHTML;
+      activeButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + busyLabel;
+    }
+    if (!busy) {
+      [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected].forEach(function (btn) {
+        if (btn && btn.dataset.originalHtml) {
+          btn.innerHTML = btn.dataset.originalHtml;
+        }
+      });
+    }
+  }
 
-      const originalHtml = btnScarica.innerHTML;
-      btnScarica.disabled = true;
-      btn.disabled = true;
+  async function scaricaDocumenti(items, options) {
+    const queue = pendingItems(items);
+    if (!queue.length) {
+      setStatus('I documenti selezionati risultano già acquisiti nel fascicolo.', 'success');
+      return [];
+    }
 
+    const signerData = await pstBatchDownload(queue);
+    const files = Array.isArray(signerData.files) ? signerData.files : [];
+    const failures = Array.isArray(signerData.failures) ? signerData.failures : [];
+    if (!files.length) {
+      throw new Error((failures[0] && failures[0].errore) || 'Nessun documento scaricato dal portale ufficiale.');
+    }
+
+    stageFiles(files);
+    renderPstTree(filteredPstItems());
+
+    let message = 'Scaricati ' + files.length + ' document' + (files.length === 1 ? 'o' : 'i') + ' dal portale ufficiale.';
+    if (failures.length) {
+      message += ' ' + failures.length + ' download non riuscit' + (failures.length === 1 ? 'o.' : 'i.');
+    }
+
+    if (options && options.importAfter) {
+      setStatus(message + ' Importo nel fascicolo…', 'info');
+      await importaFilesNelFascicolo(files, options.noteDefault || 'download ufficiale via Local Signer / PST');
+      return files;
+    }
+
+    setStatus(message + ' I file sono pronti per l’importazione selettiva nel fascicolo.', 'info');
+    return files;
+  }
+
+  async function importaDocumentiSelezionati(items) {
+    if (!items.length) {
+      setStatus('Seleziona almeno un documento del catalogo PST.', 'danger');
+      return;
+    }
+
+    const files = [];
+    const mancanti = [];
+    items.forEach(function (item) {
+      const staged = stagedFiles.get(item.key);
+      if (staged) files.push(staged);
+      else mancanti.push(item);
+    });
+
+    if (mancanti.length) {
+      setStatus('Raccolgo i download recenti per i documenti selezionati…', 'info');
+      const raccolti = await raccogliDownloadRecenti(mancanti);
+      const nuoviFiles = Array.isArray(raccolti.files) ? raccolti.files : [];
+      stageFiles(nuoviFiles);
+      nuoviFiles.forEach(function (file) { files.push(file); });
+      renderPstTree(filteredPstItems());
+    }
+
+    if (!files.length) {
+      throw new Error('Nessun file disponibile per l’importazione dei documenti selezionati.');
+    }
+
+    await importaFilesNelFascicolo(files, 'acquisizione selettiva via Naviga PST');
+  }
+
+  function initNavigator() {
+    renderPstTree(filteredPstItems());
+    if (!(window._PST_NAV_ITEMS || []).length) {
+      [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected].forEach(function (btn) {
+        if (btn) btn.disabled = true;
+      });
+      setStatus('Prima sincronizza i metadati documentali dal portale: poi potrai navigare il fascicolo PST e acquisire i file ufficiali.', 'muted');
+      return;
+    }
+
+    if (!pendingItems(window._PST_NAV_ITEMS).length) {
+      setStatus('Tutti i documenti ufficiali censiti dal portale risultano già acquisiti nel fascicolo.', 'success');
+    } else {
+      setStatus('Seleziona i documenti che vuoi scaricare o importare. Il Local Signer esegue il lotto usando il canale autenticato ufficiale.', 'muted');
+    }
+  }
+
+  [searchInput, sectionSelect, importStateSelect].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('input', function () {
+      renderPstTree(filteredPstItems());
+    });
+    el.addEventListener('change', function () {
+      renderPstTree(filteredPstItems());
+    });
+  });
+
+  if (selectVisibleBtn) {
+    selectVisibleBtn.addEventListener('click', function () {
+      filteredPstItems().forEach(function (item) {
+        selectedKeys.add(item.key);
+      });
+      renderPstTree(filteredPstItems());
+    });
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function () {
+      const visibleItems = filteredPstItems();
+      visibleItems.forEach(function (item) {
+        if (selectAll.checked) selectedKeys.add(item.key);
+        else selectedKeys.delete(item.key);
+      });
+      renderPstTree(visibleItems);
+    });
+  }
+
+  tree.addEventListener('change', function (event) {
+    const target = event.target;
+    const visibleItems = filteredPstItems();
+    if (target.classList.contains('pst-doc-check')) {
+      const key = target.getAttribute('data-key');
+      if (target.checked) selectedKeys.add(key);
+      else selectedKeys.delete(key);
+      syncCounter(visibleItems);
+      return;
+    }
+    if (target.classList.contains('pst-group-check')) {
+      const depKey = target.getAttribute('data-dep');
+      visibleItems.forEach(function (item) {
+        if (groupDepKey(item) === depKey) {
+          if (target.checked) selectedKeys.add(item.key);
+          else selectedKeys.delete(item.key);
+        }
+      });
+      renderPstTree(visibleItems);
+    }
+  });
+
+  if (btnDownloadAll) {
+    btnDownloadAll.addEventListener('click', async function () {
+      setButtonsBusy(true, btnDownloadAll, 'Scarico…');
       try {
-        btnScarica.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scarico lotto…';
-        setStatus('Avvio un lotto unico di download dal portale ufficiale tramite Local Signer, così riduco le richieste PIN ripetute…', 'info');
-
-        const signerResp = await fetch(_LS_BASE_FASC + '/pst/download-documenti-batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tribunale: _PST_FASCICOLO_CONTEXT.tribunale,
-            numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
-            anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
-            preflight_auth: true,
-            documents: queue.map(function (item) {
-              return {
-                id_documento: item.id_documento_portale,
-                nome_documento: item.nome,
-                id_cat: item.id_cat || '',
-                data_documento: item.data_documento || item.data_deposito || '',
-                id_deposito_esterno: item.id_deposito_esterno || '',
-                id_deposito_pct: item.id_deposito_pct || '',
-                tipo_atto: item.tipo_atto || '',
-                original: true
-              };
-            })
-          })
-        });
-        const signerData = await signerResp.json().catch(function () {
-          return { ok: false, errore: 'Risposta non valida del Local Signer.' };
-        });
-        if (!signerResp.ok || !signerData.ok) {
-          throw new Error(signerData.errore || 'Download batch non riuscito dal portale ufficiale.');
-        }
-
-        const files = Array.isArray(signerData.files) ? signerData.files : [];
-        const failures = Array.isArray(signerData.failures)
-          ? signerData.failures.map(function (item) {
-              const nome = item.nome_documento || item.id_documento || 'Documento';
-              return nome + ': ' + (item.errore || 'download non riuscito');
-            })
-          : [];
-
-        if (!files.length) {
-          throw new Error(failures[0] || 'Nessun documento scaricato dal portale ufficiale.');
-        }
-
-        let infoMsg = 'Scaricati ' + files.length + ' document' + (files.length === 1 ? 'o' : 'i') + ' dal portale ufficiale. Li importo nel fascicolo…';
-        if (failures.length) {
-          infoMsg += ' ' + failures.length + ' download non riuscit' + (failures.length === 1 ? 'o.' : 'i.');
-        }
-        setStatus(infoMsg, 'info');
-        await importaFilesNelFascicolo(files, 'download ufficiale via Local Signer / PST');
+        await scaricaDocumenti(pendingItems(window._PST_NAV_ITEMS || []), { importAfter: false });
       } catch (err) {
-        setStatus(err && err.message ? err.message : "Download ufficiale non riuscito. Usa l'import manuale o la raccolta dai download recenti.", 'danger');
+        setStatus(err && err.message ? err.message : 'Download PST non riuscito.', 'danger');
       } finally {
-        btnScarica.disabled = false;
-        btn.disabled = false;
-        btnScarica.innerHTML = originalHtml;
+        setButtonsBusy(false);
       }
     });
   }
 
-  btn.addEventListener('click', async function () {
-    const originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    if (btnScarica) btnScarica.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Raccolgo…';
-    setStatus('Controllo i download recenti sul tuo PC tramite Local Signer…', 'info');
-
-    try {
-      const signerResp = await fetch(_LS_BASE_FASC + '/downloads/raccogli', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expected_documents: pendingDocs(),
-          max_age_hours: 168,
-          limit: 50
-        })
-      });
-      const signerData = await signerResp.json().catch(function () {
-        return { ok: false, errore: 'Risposta non valida del Local Signer.' };
-      });
-      if (!signerResp.ok || !signerData.ok) {
-        throw new Error(signerData.errore || 'Local Signer non raggiungibile o nessun file compatibile trovato.');
+  if (btnDownloadSelected) {
+    btnDownloadSelected.addEventListener('click', async function () {
+      const items = selectedPstItems(window._PST_NAV_ITEMS || []);
+      if (!items.length) {
+        setStatus('Seleziona almeno un documento da scaricare.', 'danger');
+        return;
       }
+      setButtonsBusy(true, btnDownloadSelected, 'Scarico…');
+      try {
+        await scaricaDocumenti(items, { importAfter: false });
+      } catch (err) {
+        setStatus(err && err.message ? err.message : 'Download selezionato non riuscito.', 'danger');
+      } finally {
+        setButtonsBusy(false);
+      }
+    });
+  }
 
-      setStatus('Trovati ' + signerData.matched + ' file compatibili. Li importo nel fascicolo…', 'info');
-      await importaFilesNelFascicolo(signerData.files || [], 'raccolta assistita dai download recenti');
-    } catch (err) {
-      setStatus(err && err.message ? err.message : "Raccolta automatica non riuscita. Usa l'upload manuale o la cartella tecnica.", 'danger');
-    } finally {
-      btn.disabled = false;
-      if (btnScarica) btnScarica.disabled = false;
-      btn.innerHTML = originalHtml;
-    }
-  });
+  if (btnImportSelected) {
+    btnImportSelected.addEventListener('click', async function () {
+      const items = selectedPstItems(window._PST_NAV_ITEMS || []);
+      setButtonsBusy(true, btnImportSelected, 'Importo…');
+      try {
+        await importaDocumentiSelezionati(items);
+      } catch (err) {
+        setStatus(err && err.message ? err.message : 'Importazione selettiva non riuscita.', 'danger');
+      } finally {
+        setButtonsBusy(false);
+      }
+    });
+  }
+
+  if (btnDownloadImportSelected) {
+    btnDownloadImportSelected.addEventListener('click', async function () {
+      const items = selectedPstItems(window._PST_NAV_ITEMS || []);
+      if (!items.length) {
+        setStatus('Seleziona almeno un documento da scaricare e importare.', 'danger');
+        return;
+      }
+      setButtonsBusy(true, btnDownloadImportSelected, 'Scarico…');
+      try {
+        await scaricaDocumenti(items, {
+          importAfter: true,
+          noteDefault: 'download ufficiale via Naviga PST / Local Signer'
+        });
+      } catch (err) {
+        setStatus(err && err.message ? err.message : 'Scarica + importa non riuscito.', 'danger');
+      } finally {
+        setButtonsBusy(false);
+      }
+    });
+  }
+
+  modal.addEventListener('shown.bs.modal', initNavigator);
+  initNavigator();
 })();
 
 // ---- Deep link correttivi Responsabile di conformita ----

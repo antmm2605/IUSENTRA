@@ -351,8 +351,9 @@ def test_collega_documenti_a_deposito_portale_aggancia_file_locali_al_deposito_u
     deposito = fascicolo.depositi_pct[0]
     assert deposito.documenti_ids == [doc.id]
     assert deposito.servizio_portale == "DocumentiFascicolo"
+    assert "File ufficiale acquisito dal fascicolo locale" in deposito.note
     assert fascicolo.documenti[0].id_deposito_pct == dep.id
-    assert any(
+    assert not any(
         att.tipo == TipoAttivita.CONSULTAZIONE and att.id_deposito_pct == dep.id
         for att in fascicolo.attivita
     )

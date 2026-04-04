@@ -675,6 +675,7 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
     assert fascicolo_reload.depositi_pct[0].documenti_ids == [fascicolo_reload.documenti[0].id]
     assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
     assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
+    assert len(fascicolo_reload.attivita) == 1
 
 
 def test_route_importa_documenti_portale_aggancia_upload_al_deposito_ufficiale(tmp_path):
@@ -763,6 +764,7 @@ def test_route_importa_documenti_portale_aggancia_upload_al_deposito_ufficiale(t
     assert fascicolo_reload.depositi_pct[0].documenti_ids == [fascicolo_reload.documenti[0].id]
     assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
     assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
+    assert len(fascicolo_reload.attivita) == 1
 
 
 def test_route_documenti_polisweb_consente_vista_completa_delle_buste(tmp_path):
@@ -913,7 +915,9 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
-    assert "Scarica dal portale ufficiale" in body
+    assert "Naviga fascicolo PST" in body
+    assert "Scarica + importa" in body
+    assert "_PST_NAV_ITEMS" in body
     assert "/pst/download-documenti-batch" in body
 
 

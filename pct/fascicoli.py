@@ -959,21 +959,13 @@ class GestioneFascicoli:
             if doc.id in nuovi_ids:
                 doc.id_deposito_pct = dep.id
 
-        descrizione = (
-            note.strip()
-            or f"{len(nuovi_ids)} documenti ufficiali acquisiti localmente."
-        )
-        att = AttivitaProcessuale(
-            id=uuid.uuid4().hex[:8].upper(),
-            tipo=TipoAttivita.CONSULTAZIONE,
-            data=date.today().isoformat(),
-            titolo=f"Acquisizione file ufficiali — {dep.tipo_atto or dep.fonte_portale or dep.id_deposito_esterno or dep.id}",
-            descrizione=descrizione,
-            esito=EsitoAttivita.NON_APPLICABILE,
-            id_deposito_pct=dep.id,
-            avvocato=registrato_da,
-        )
-        f.attivita.append(att)
+        descrizione = note.strip()
+        if descrizione:
+            dep.note = " | ".join(
+                part for part in [dep.note.strip(), descrizione] if part
+            )
+        if registrato_da and not dep.registrato_da:
+            dep.registrato_da = registrato_da
         f.modificato_il = datetime.now().isoformat()
         self._salva()
         return dep
@@ -1021,6 +1013,7 @@ class GestioneFascicoli:
             row = dict(item or {})
             return {
                 "id_documento": str(row.get("id_documento") or "").strip(),
+                "id_cat": str(row.get("id_cat") or "").strip(),
                 "nome": str(row.get("nome") or "").strip(),
                 "tipo": str(row.get("tipo") or "").strip(),
                 "data_deposito": str(row.get("data_deposito") or "").strip(),

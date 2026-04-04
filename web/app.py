@@ -898,6 +898,77 @@ def create_app(config: dict | None = None) -> Flask:
             return "RICORSO"
         return "ATTO_GENERICO"
 
+    def _rc_normalize_status(value: str, *, default: str = "warning") -> str:
+        state = str(value or "").strip().lower()
+        if state in {"ok", "success", "passed", "pronto", "ready"}:
+            return "ok"
+        if state in {"warning", "warn", "avviso"}:
+            return "warning"
+        if state in {"blocco", "block", "blocked", "danger", "errore", "error"}:
+            return "block"
+        return default
+
+    def _rc_status_rank(value: str) -> int:
+        return {"block": 0, "warning": 1, "ok": 2}.get(_rc_normalize_status(value), 3)
+
+    def _rc_section_meta(
+        section_key: str,
+        *,
+        detail_url: str,
+        deposit_url: str,
+        compile_url: str,
+    ) -> dict[str, str]:
+        defaults = {
+            "processuale": {
+                "where": "Profilo fascicolo",
+                "url": f"{detail_url}#sezione-profilo",
+                "cta": "Apri profilo",
+            },
+            "documentale": {
+                "where": "Documenti fascicolo",
+                "url": f"{detail_url}#sezione-documenti-fascicolo",
+                "cta": "Apri allegati",
+            },
+            "tecnico_pst": {
+                "where": "Pre-deposito",
+                "url": deposit_url,
+                "cta": "Apri pre-deposito",
+            },
+            "redazionale": {
+                "where": "Redattore guidato",
+                "url": compile_url or f"{detail_url}#sezione-profilo",
+                "cta": "Apri redattore",
+            },
+        }
+        return defaults.get(
+            section_key,
+            {
+                "where": "Fascicolo",
+                "url": detail_url,
+                "cta": "Apri",
+            },
+        )
+
+    def _rc_first_section_message(section: dict, *, ok_fallback: str) -> str:
+        items = list(section.get("items") or [])
+        for wanted in ("blocco", "warning"):
+            row = next((item for item in items if str(item.get("state") or "") == wanted), None)
+            if row:
+                return str(row.get("detail") or row.get("action") or row.get("title") or "").strip()
+        row = next((item for item in items if str(item.get("state") or "") == "ok"), None)
+        if row:
+            return str(row.get("detail") or row.get("title") or ok_fallback).strip()
+        return ok_fallback
+
+    def _rc_gate_status(gate: dict, fallback_state: str) -> str:
+        if not gate:
+            return _rc_normalize_status(fallback_state)
+        if not gate.get("applicable", True):
+            return "ok"
+        if gate.get("allowed"):
+            return "ok"
+        return _rc_normalize_status(fallback_state, default="block")
+
     def _responsabile_issue_action_meta(
         id_fasc: str,
         issue: dict,
@@ -1147,9 +1218,233 @@ def create_app(config: dict | None = None) -> Flask:
             )
             gates["prepare_deposit"]["url_label"] = "Apri pre-deposito"
         if gates.get("close_review"):
-            gates["close_review"]["url"] = f"{detail_url}#accConformitaFascicolo"
+            gates["close_review"]["url"] = f"{detail_url}#sezione-responsabile-conformita"
             gates["close_review"]["url_label"] = "Rivedi controlli"
         summary["action_gates"] = gates
+
+        corrections = list(summary.get("corrections") or [])
+        corrections_by_title: dict[str, dict] = {}
+        corrections_by_service: dict[str, list[dict]] = {}
+        for correction in corrections:
+            title_key = str(correction.get("title") or "").strip().lower()
+            if title_key and title_key not in corrections_by_title:
+                corrections_by_title[title_key] = correction
+            service_key = str(correction.get("service") or "").strip().upper()
+            if service_key:
+                corrections_by_service.setdefault(service_key, []).append(correction)
+
+        section_order = ["processuale", "documentale", "tecnico_pst", "redazionale"]
+        checklist: list[dict[str, Any]] = []
+        checklist_seen: set[str] = set()
+        groups: list[dict[str, Any]] = []
+        for section_key in section_order:
+            section = dict((summary.get("sections") or {}).get(section_key) or {})
+            section_meta = _rc_section_meta(
+                section_key,
+                detail_url=detail_url,
+                deposit_url=deposit_url,
+                compile_url=compile_url,
+            )
+            group_items: list[dict[str, Any]] = []
+            raw_items = list(section.get("items") or [])
+            for index, item in enumerate(raw_items):
+                title = str(item.get("title") or "").strip()
+                if not title:
+                    continue
+                normalized = _rc_normalize_status(item.get("state"))
+                correction = corrections_by_title.get(title.lower(), {})
+                item_url = str(correction.get("action_url") or (section_meta["url"] if normalized != "ok" else "")).strip()
+                item_cta = str(
+                    correction.get("action_label")
+                    or correction.get("action")
+                    or (section_meta["cta"] if item_url else "")
+                ).strip()
+                item_payload = {
+                    "label": title,
+                    "title": title,
+                    "status": normalized,
+                    "note": str(item.get("detail") or "").strip(),
+                    "reason": str(item.get("detail") or "").strip(),
+                    "source": str(correction.get("source") or section.get("label") or "").strip(),
+                    "where": section_meta["where"],
+                    "url": item_url,
+                    "cta": item_cta,
+                    "_sort": (_rc_status_rank(normalized), index),
+                }
+                group_items.append(item_payload)
+                checklist_key = title.lower()
+                if checklist_key not in checklist_seen:
+                    checklist_seen.add(checklist_key)
+                    checklist.append(item_payload.copy())
+
+            group_items.sort(key=lambda row: row["_sort"])
+            for row in group_items:
+                row.pop("_sort", None)
+            groups.append(
+                {
+                    "title": str(section.get("label") or section_key.replace("_", " ").title()).strip(),
+                    "status": _rc_normalize_status(section.get("state")),
+                    "items": group_items,
+                }
+            )
+
+        checklist.sort(key=lambda row: row["_sort"])
+        for row in checklist:
+            row.pop("_sort", None)
+
+        def _first_correction_for_service(service_name: str) -> dict:
+            return dict((corrections_by_service.get(service_name) or [{}])[0] or {})
+
+        next_step_source = next(
+            (
+                correction
+                for correction in corrections
+                if _rc_normalize_status(correction.get("state")) == "block"
+            ),
+            None,
+        ) or next(
+            (
+                correction
+                for correction in corrections
+                if _rc_normalize_status(correction.get("state")) == "warning"
+            ),
+            None,
+        )
+        if next_step_source:
+            next_step = {
+                "title": str(
+                    next_step_source.get("action")
+                    or next_step_source.get("title")
+                    or "Apri correzione guidata"
+                ).strip(),
+                "reason": str(
+                    next_step_source.get("detail")
+                    or next_step_source.get("source")
+                    or summary.get("summary")
+                    or ""
+                ).strip(),
+                "cta": str(
+                    next_step_source.get("action_label")
+                    or next_step_source.get("action")
+                    or "Correggi"
+                ).strip(),
+                "url": str(next_step_source.get("action_url") or detail_url).strip(),
+            }
+        else:
+            prepare_gate = gates.get("prepare_deposit") or {}
+            next_step = {
+                "title": "Apri il pre-deposito tecnico",
+                "reason": str(
+                    prepare_gate.get("reason")
+                    or summary.get("summary")
+                    or "Rivedi il fascicolo prima del deposito."
+                ).strip(),
+                "cta": str(prepare_gate.get("url_label") or "Apri pre-deposito").strip(),
+                "url": str(prepare_gate.get("url") or deposit_url).strip(),
+            }
+
+        sections = summary.get("sections") or {}
+        process_section = dict(sections.get("processuale") or {})
+        document_section = dict(sections.get("documentale") or {})
+        tech_section = dict(sections.get("tecnico_pst") or {})
+        redaction_section = dict(sections.get("redazionale") or {})
+
+        generate_final_gate = dict(gates.get("generate_final_act") or {})
+        generate_xml_gate = dict(gates.get("generate_xml") or {})
+        prepare_gate = dict(gates.get("prepare_deposit") or {})
+        close_gate = dict(gates.get("close_review") or {})
+        document_correction = _first_correction_for_service("DOCUMENTALE")
+
+        workflow = [
+            {
+                "label": "Redazione atto",
+                "status": _rc_gate_status(generate_final_gate, redaction_section.get("state")),
+                "note": str(
+                    generate_final_gate.get("reason")
+                    or _rc_first_section_message(
+                        redaction_section,
+                        ok_fallback="Il blocco redazionale risulta coerente con il fascicolo.",
+                    )
+                ).strip(),
+                "url": str(generate_final_gate.get("url") or compile_url).strip(),
+                "cta": str(generate_final_gate.get("url_label") or "Apri redattore").strip(),
+            },
+            {
+                "label": "Allegati obbligatori",
+                "status": _rc_normalize_status(document_section.get("state")),
+                "note": _rc_first_section_message(
+                    document_section,
+                    ok_fallback="Gli allegati oggi richiesti risultano presenti o gia censiti.",
+                ),
+                "url": str(
+                    document_correction.get("action_url")
+                    or f"{detail_url}#sezione-documenti-fascicolo"
+                ).strip(),
+                "cta": str(
+                    document_correction.get("action_label")
+                    or document_correction.get("action")
+                    or "Apri allegati"
+                ).strip(),
+            },
+            {
+                "label": "XML ministeriale",
+                "status": _rc_gate_status(generate_xml_gate, tech_section.get("state")),
+                "note": str(
+                    generate_xml_gate.get("reason")
+                    or "Verifica i dati strutturati necessari alla generazione XML."
+                ).strip(),
+                "url": str(generate_xml_gate.get("url") or deposit_url).strip(),
+                "cta": str(generate_xml_gate.get("url_label") or "Completa XML").strip(),
+            },
+            {
+                "label": "Verifica tecnica PST",
+                "status": _rc_normalize_status(tech_section.get("state")),
+                "note": _rc_first_section_message(
+                    tech_section,
+                    ok_fallback="Nessun errore tecnico bloccante rilevato sui controlli PST.",
+                ),
+                "url": str(close_gate.get("url") or deposit_url).strip(),
+                "cta": str(close_gate.get("url_label") or "Rivedi").strip(),
+            },
+            {
+                "label": "Pre-deposito",
+                "status": _rc_gate_status(prepare_gate, summary.get("overall_state")),
+                "note": str(
+                    prepare_gate.get("reason")
+                    or "Riesegui il pre-deposito dopo le correzioni."
+                ).strip(),
+                "url": str(prepare_gate.get("url") or deposit_url).strip(),
+                "cta": str(prepare_gate.get("url_label") or "Apri pre-deposito").strip(),
+            },
+        ]
+
+        general = dict(summary.get("general") or {})
+        deposit_ready = bool(prepare_gate.get("allowed")) if prepare_gate.get("applicable", True) else summary.get("overall_state") == "ok"
+        blocking_count = int(general.get("blocking_count") or 0)
+        summary.update(
+            {
+                "deposit_ready": deposit_ready,
+                "is_blocking": blocking_count > 0,
+                "score": int(general.get("score") or 0),
+                "last_check_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "canale_label": str(summary.get("channel_label") or "").strip(),
+                "modello_label": str(summary.get("model_name") or "").strip(),
+                "summary_text": str(summary.get("summary") or "").strip(),
+                "blockers_count": blocking_count,
+                "warnings_count": int(general.get("warning_count") or 0),
+                "passed_count": int(general.get("passed_count") or 0),
+                "missing_docs_count": len(summary.get("missing_documents") or []),
+                "ready_reason": (
+                    "Deposito pronto: non risultano blocchi residui sul fascicolo."
+                    if deposit_ready
+                    else f"Deposito non pronto: {str(summary.get('summary') or '').strip()}"
+                ),
+                "next_step": next_step,
+                "checklist": checklist[:12],
+                "workflow": workflow,
+                "groups": groups,
+            }
+        )
         return summary
 
     def _fascicolo_form_correction_context() -> dict:

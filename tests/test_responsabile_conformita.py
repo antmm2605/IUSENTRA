@@ -149,11 +149,14 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Comunicazioni di cancelleria" in html
     assert "Istanze" in html
     assert "Responsabile di conformita" in html
+    assert "Deposito non pronto" in html
+    assert "Prossimo passo consigliato" in html
+    assert "Checklist operativa del deposito" in html
+    assert "Workflow deposito" in html
     assert "Controlli processuali" in html
     assert "Controlli documentali" in html
     assert "Controlli tecnici PST" in html
     assert "Controlli redazionali" in html
-    assert "Correzioni da effettuare" in html
     assert "Manca la data della prima comparizione" in html
     assert "Imposta prima udienza" in html
     assert "Inserisci data notifica" in html

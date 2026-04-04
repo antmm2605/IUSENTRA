@@ -805,6 +805,172 @@ def test_route_documenti_polisweb_consente_vista_completa_delle_buste(tmp_path):
     assert "BUSTA-MEM-004" in body
 
 
+def test_route_documenti_pdp_raggruppa_buste_e_fallback_senza_id(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from pct.pdp import DocumentoPDP
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    class _FakePDPClient:
+        def consulta_documenti(self, codice_ufficio, numero_rg, anno_rg):
+            return [
+                DocumentoPDP(
+                    "PDP-001",
+                    "richiesta_rinvio_giudizio.pdf.p7m",
+                    "RICHIESTA",
+                    "2026-03-10",
+                    "pm.demo@pec.it",
+                    189440,
+                    True,
+                    "",
+                    "Richiesta di rinvio a giudizio",
+                ),
+                DocumentoPDP(
+                    "PDP-002",
+                    "allegato_richiesta.pdf.p7m",
+                    "ALLEGATO",
+                    "2026-03-10",
+                    "pm.demo@pec.it",
+                    65432,
+                    True,
+                    "",
+                    "Richiesta di rinvio a giudizio",
+                ),
+                DocumentoPDP(
+                    "PDP-003",
+                    "decreto_che_dispone_giudizio.pdf.p7m",
+                    "DECRETO",
+                    "2026-04-22",
+                    "cancelleria.penale@pec.it",
+                    95000,
+                    True,
+                    "BUSTA-PDP-002",
+                    "Decreto che dispone il giudizio",
+                ),
+            ]
+
+    monkeypatch.setattr("pct.pdp.crea_client_pdp", lambda demo=False: _FakePDPClient())
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            "/pdp/documenti?codice_ufficio=0580010&numero_rg=4521&anno_rg=2026&demo_mode=1",
+            follow_redirects=True,
+        )
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Espandi tutto" in body
+    assert "Riduci" in body
+    assert 'data-bs-parent="#accordionDepositi"' not in body
+    assert "2 atti" in body
+    assert "3 file totali" in body
+    assert "richiesta_rinvio_giudizio.pdf.p7m" in body
+    assert "allegato_richiesta.pdf.p7m" in body
+    assert "decreto_che_dispone_giudizio.pdf.p7m" in body
+    assert "BUSTA-PDP-002" in body
+
+
+def test_route_documenti_pat_raggruppa_buste_e_fallback_senza_id(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from pct.pat import DocumentoPAT
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    class _FakePATClient:
+        def consulta_documenti(self, codice_ufficio, numero_ricorso, anno):
+            return [
+                DocumentoPAT(
+                    "PAT-001",
+                    "ricorso_principale.pdf.p7m",
+                    "RICORSO",
+                    "2026-02-28",
+                    "avv.demo@pec.it",
+                    312000,
+                    True,
+                    "",
+                    "Ricorso principale",
+                ),
+                DocumentoPAT(
+                    "PAT-002",
+                    "allegato_ricorso.pdf.p7m",
+                    "ALLEGATO",
+                    "2026-02-28",
+                    "avv.demo@pec.it",
+                    88000,
+                    True,
+                    "",
+                    "Ricorso principale",
+                ),
+                DocumentoPAT(
+                    "PAT-003",
+                    "ordinanza_cautelare.pdf.p7m",
+                    "ORDINANZA",
+                    "2026-03-10",
+                    "tar.demo@giustizia-amministrativa.it",
+                    48000,
+                    True,
+                    "BUSTA-PAT-003",
+                    "Ordinanza cautelare",
+                ),
+            ]
+
+    monkeypatch.setattr("pct.pat.crea_client_pat", lambda demo=False: _FakePATClient())
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(
+            "/pat/documenti?codice_ufficio=T0001&numero_ricorso=1876&anno=2026&demo_mode=1",
+            follow_redirects=True,
+        )
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Espandi tutto" in body
+    assert "Riduci" in body
+    assert 'data-bs-parent="#accordionDepositi"' not in body
+    assert "2 atti" in body
+    assert "3 file totali" in body
+    assert "ricorso_principale.pdf.p7m" in body
+    assert "allegato_ricorso.pdf.p7m" in body
+    assert "ordinanza_cautelare.pdf.p7m" in body
+    assert "BUSTA-PAT-003" in body
+
+
 def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

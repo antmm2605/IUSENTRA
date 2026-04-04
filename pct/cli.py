@@ -138,8 +138,22 @@ def cmd_deposita(atto, tribunale, oggetto, tipo_atto, allegato, rg, no_firma, no
         numero_rg, anno_str = rg.split("/", 1)
         anno_rg = int(anno_str) if anno_str.isdigit() else None
 
+    reginde = ClientReGINde()
+    tribunale_norm = tribunale.strip()
+    ufficio = (
+        reginde.ottieni_ufficio(tribunale_norm)
+        if tribunale_norm.isdigit()
+        else reginde.cerca_ufficio_giudiziario(tribunale_norm)
+    )
+    if not ufficio:
+        click.echo(
+            f"Errore: ufficio giudiziario '{tribunale}' non trovato nel registro ufficiale.",
+            err=True,
+        )
+        sys.exit(1)
+
     dati = DatiBusta(
-        codice_ufficio="",
+        codice_ufficio=ufficio.codice,
         codice_registro="CIVILE",
         oggetto=oggetto,
         tipo_atto=tipo_atto,
@@ -153,8 +167,8 @@ def cmd_deposita(atto, tribunale, oggetto, tipo_atto, allegato, rg, no_firma, no
 
     deposito = DepositoCivile(config_pec, firma=firma, output_dir=config["output_dir"])
 
-    click.echo(f"Avvio deposito presso Tribunale di {tribunale}...")
-    esito = deposito.deposita(dati, tribunale, attendi_ricevute=not no_ricevute)
+    click.echo(f"Avvio deposito presso {ufficio.nome} ({ufficio.codice})...")
+    esito = deposito.deposita(dati, ufficio.codice, attendi_ricevute=not no_ricevute)
 
     click.echo(f"\nEsito deposito:")
     click.echo(f"  ID:      {esito.id_deposito}")
@@ -2077,6 +2091,14 @@ def cmd_wa_template(tipo, nome_cliente, studio, titolo, data_ora, luogo,
 
 from .pagamenti import GestionePagamenti, StatoPagamento
 
+STATI_PAGAMENTO_VALIDI = [
+    StatoPagamento.ATTESO,
+    StatoPagamento.PAGATO,
+    StatoPagamento.FALLITO,
+    StatoPagamento.SCADUTO,
+    StatoPagamento.ANNULLATO,
+]
+
 
 def _pagamenti(db_dir="./pagamenti") -> GestionePagamenti:
     return GestionePagamenti(db_dir=db_dir)
@@ -2107,7 +2129,7 @@ def cmd_pag_config(db_dir):
 
 @grp_pagamenti.command("lista")
 @click.option("--stato", default="",
-              type=click.Choice([s.value for s in StatoPagamento] + [""]))
+              type=click.Choice(STATI_PAGAMENTO_VALIDI + [""]))
 @click.option("--dir", "db_dir", default="./pagamenti")
 def cmd_pag_lista(stato, db_dir):
     """Elenca i link di pagamento."""

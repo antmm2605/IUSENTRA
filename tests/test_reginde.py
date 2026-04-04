@@ -41,6 +41,13 @@ def test_ottieni_pec_per_codice(client):
     assert "@civile.ptel.giustiziacert.it" in pec
 
 
+def test_ottieni_ufficio_per_codice(client):
+    ufficio = client.ottieni_ufficio("0580010")
+    assert ufficio is not None
+    assert ufficio.codice == "0580010"
+    assert "Milano" in ufficio.nome
+
+
 def test_ottieni_pec_codice_inesistente(client):
     pec = client.ottieni_pec_ufficio("9999999")
     assert pec is None

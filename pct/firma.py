@@ -10,6 +10,7 @@ Il formato viene selezionato automaticamente da FirmaDigitale.from_config().
 """
 
 import os
+import tempfile
 from pathlib import Path
 from typing import Optional
 from cryptography.hazmat.primitives import hashes, serialization
@@ -71,8 +72,8 @@ class FirmaDigitale:
           1. P12 (se p12_path esiste su disco)
           2. PEM (se cert_pem_path + key_pem_path esistono su disco)
 
-        Per PKCS#11 (Aruba Key) usare FirmaPKCS11.da_config(cfg, pin=...) oppure
-        FirmaDigitale.da_config(cfg, pin=...) che reindirizza automaticamente.
+        Per PKCS#11 (Aruba Key) usare il backend dedicato FirmaPKCS11
+        o il flusso in-device del Local Signer.
 
         Raises:
             FileNotFoundError: se nessun formato è configurato/disponibile.
@@ -302,6 +303,16 @@ class FirmaDigitale:
                 f.write(firmato)
             return out
         elif formato == "pades":
-            return self.firma_pades(output_path.replace(".pdf", "_unsigned.pdf"), output_path)
+            suffix = Path(output_path).suffix or ".pdf"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                tmp.write(documento)
+                tmp_path = tmp.name
+            try:
+                return self.firma_pades(tmp_path, output_path)
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except FileNotFoundError:
+                    pass
         else:
             raise ValueError(f"Formato non supportato: {formato}. Usare 'cades' o 'pades'.")

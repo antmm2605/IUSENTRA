@@ -13,28 +13,16 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from dataclasses import dataclass, asdict
 
 from .busta import BustaTelematica, DatiBusta, Allegato
 from .pec import ClientPEC, ConfigPEC
 from .reginde import ClientReGINde
 from .firma import FirmaDigitale
+from .fascicoli import EsitoDepositoPCT, normalizza_stato_deposito_pct
 from .validazione import valida_documento_deposito
 from .rfc3161 import richiedi_timestamp, salva_token, TSA_URL_DEFAULT
 
-
-@dataclass
-class EsitoDeposito:
-    """Esito di un deposito telematico."""
-
-    id_deposito: str
-    timestamp: str
-    stato: str  # INVIATO | ACCETTATO | CONSEGNATO | RIFIUTATO | ERRORE
-    busta_path: str
-    pec_destinatario: str
-    messaggio: str = ""
-    ricevuta_accettazione: Optional[str] = None
-    ricevuta_consegna: Optional[str] = None
+EsitoDeposito = EsitoDepositoPCT
 
 
 class DepositoCivile:
@@ -59,6 +47,28 @@ class DepositoCivile:
         self.firma = firma
         self.output_dir = Path(output_dir)
         self.reginde = ClientReGINde()
+
+    def _risolvi_ufficio_destinazione(
+        self,
+        tribunale: str,
+        codice_ufficio: str = "",
+    ):
+        """Risolvi l'ufficio ufficiale prima di costruire la busta telematica."""
+        codice = str(codice_ufficio or "").strip()
+        if codice:
+            ufficio = self.reginde.ottieni_ufficio(codice)
+            if ufficio:
+                return ufficio
+
+        tribunale_norm = str(tribunale or "").strip()
+        if tribunale_norm and tribunale_norm.isdigit():
+            ufficio = self.reginde.ottieni_ufficio(tribunale_norm)
+            if ufficio:
+                return ufficio
+
+        if tribunale_norm:
+            return self.reginde.cerca_ufficio_giudiziario(tribunale_norm)
+        return None
 
     def deposita(
         self,
@@ -89,28 +99,36 @@ class DepositoCivile:
             esito_pdfa = valida_documento_deposito(dati.atto_principale, atto_principale=True)
             if not esito_pdfa["ok"]:
                 return EsitoDeposito(
-                    id_deposito=id_deposito,
+                    id=id_deposito,
                     timestamp=timestamp,
                     stato="ERRORE",
+                    tipo_atto=dati.tipo_atto,
                     busta_path="",
                     pec_destinatario="",
                     messaggio=(
                         "Deposito bloccato — atto principale non conforme: "
                         + "; ".join(esito_pdfa["errori"])
                     ),
+                    nome_atto_principale=Path(dati.atto_principale).name,
                 )
 
         # 1. Cerca PEC tribunale
-        ufficio = self.reginde.cerca_ufficio_giudiziario(tribunale)
+        ufficio = self._risolvi_ufficio_destinazione(
+            tribunale=tribunale,
+            codice_ufficio=dati.codice_ufficio,
+        )
         if not ufficio:
             return EsitoDeposito(
-                id_deposito=id_deposito,
+                id=id_deposito,
                 timestamp=timestamp,
                 stato="ERRORE",
+                tipo_atto=dati.tipo_atto,
                 busta_path="",
                 pec_destinatario="",
                 messaggio=f"Ufficio giudiziario '{tribunale}' non trovato nel registro.",
+                nome_atto_principale=Path(dati.atto_principale).name,
             )
+        dati.codice_ufficio = ufficio.codice
 
         # 2. Firma documenti (se firma disponibile)
         if self.firma:
@@ -118,12 +136,14 @@ class DepositoCivile:
             stato_cert = self.firma.verifica_scadenza()
             if stato_cert["scaduto"]:
                 return EsitoDeposito(
-                    id_deposito=id_deposito,
+                    id=id_deposito,
                     timestamp=timestamp,
                     stato="ERRORE",
+                    tipo_atto=dati.tipo_atto,
                     busta_path="",
                     pec_destinatario="",
                     messaggio=f"Deposito bloccato: {stato_cert['messaggio']}",
+                    nome_atto_principale=Path(dati.atto_principale).name,
                 )
             dati.atto_principale = self._firma_documento(dati.atto_principale)
             for allegato in dati.allegati:
@@ -156,12 +176,14 @@ class DepositoCivile:
 
         if not esito_invio["inviato"]:
             return EsitoDeposito(
-                id_deposito=id_deposito,
+                id=id_deposito,
                 timestamp=timestamp,
                 stato="ERRORE",
+                tipo_atto=dati.tipo_atto,
                 busta_path=busta_path,
                 pec_destinatario=ufficio.pec,
                 messaggio=f"Errore invio PEC: {esito_invio.get('errore')}",
+                nome_atto_principale=Path(dati.atto_principale).name,
             )
 
         # 5. Attendi ricevute
@@ -171,19 +193,22 @@ class DepositoCivile:
 
         stato = "INVIATO"
         if ricevute.get("accettazione"):
-            stato = "ACCETTATO"
+            stato = "ACCETTATO_PEC"
         if ricevute.get("consegna"):
             stato = "CONSEGNATO"
+        stato = normalizza_stato_deposito_pct(stato)
 
         return EsitoDeposito(
-            id_deposito=id_deposito,
+            id=id_deposito,
             timestamp=timestamp,
             stato=stato,
+            tipo_atto=dati.tipo_atto,
             busta_path=busta_path,
             pec_destinatario=ufficio.pec,
             messaggio="Deposito completato con successo.",
-            ricevuta_accettazione=ricevute.get("accettazione"),
-            ricevuta_consegna=ricevute.get("consegna"),
+            ricevuta_accettazione=ricevute.get("accettazione") or "",
+            ricevuta_consegna=ricevute.get("consegna") or "",
+            nome_atto_principale=Path(dati.atto_principale).name,
         )
 
     def _firma_documento(self, percorso: str) -> str:
@@ -215,8 +240,11 @@ class DepositoCivile:
         esito_dir = self.output_dir / esito.id_deposito
         esito_dir.mkdir(parents=True, exist_ok=True)
         esito_path = esito_dir / "esito.json"
+        payload = esito.to_dict() if hasattr(esito, "to_dict") else dict(vars(esito))
+        if "id" in payload and "id_deposito" not in payload:
+            payload["id_deposito"] = payload["id"]
         with open(esito_path, "w", encoding="utf-8") as f:
-            json.dump(asdict(esito), f, ensure_ascii=False, indent=2)
+            json.dump(payload, f, ensure_ascii=False, indent=2)
         return str(esito_path)
 
 

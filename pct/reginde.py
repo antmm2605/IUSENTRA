@@ -414,6 +414,16 @@ class ClientReGINde:
                 return d.get("pec")
         return None
 
+    def ottieni_ufficio(self, codice_ufficio: str) -> Optional[UfficioGiudiziario]:
+        """Restituisce l'ufficio giudiziario dato il codice ufficiale."""
+        codice = str(codice_ufficio or "").strip()
+        if not codice:
+            return None
+        for d in self._gestore.carica():
+            if d.get("codice") == codice:
+                return self._as_ufficio(d)
+        return None
+
     def elenca_uffici(
         self,
         distretto: Optional[str] = None,

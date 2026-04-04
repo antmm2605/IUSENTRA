@@ -7320,12 +7320,18 @@ read -r -p "Premi Invio per chiudere..." _
             id_fasc       = data.get("fascicolo_id", "").strip()
             id_doc        = data.get("documento_id", "").strip()
             pin           = data.get("pin", "")
+            formato       = str(data.get("formato") or "cades").strip().lower()
             slot_raw      = data.get("slot_id")
 
             if not id_fasc or not id_doc:
                 return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_id obbligatori."}), 400
             if not pin:
                 return jsonify({"ok": False, "messaggio": "PIN obbligatorio per la firma in-device."}), 400
+            if formato != "cades":
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "La firma PKCS#11 supporta solo CAdES (.p7m). Per PAdES usare P12/PEM.",
+                }), 400
 
             u  = g.utente_corrente
             gf = get_fascicoli()
@@ -8220,10 +8226,15 @@ read -r -p "Premi Invio per chiudere..." _
 
                 firma = None
                 if firma_cfg and getattr(firma_cfg, 'configurato', False):
-                    try:
-                        firma = FirmaDigitale.da_config(firma_cfg)
-                    except Exception as _fe:
-                        app.logger.warning("FirmaDigitale non inizializzata: %s", _fe)
+                    if getattr(firma_cfg, "formato_attivo", "").lower() == "pkcs11":
+                        app.logger.info(
+                            "Firma PKCS#11 configurata: il deposito web usa il flusso CAdES in-device dedicato."
+                        )
+                    else:
+                        try:
+                            firma = FirmaDigitale.da_config(firma_cfg)
+                        except Exception as _fe:
+                            app.logger.warning("FirmaDigitale non inizializzata: %s", _fe)
 
                 output_dir = _os.getenv("PCT_DEPOSITI_DIR", "/data/depositi")
                 dep = DepositoCivile(config_pec=config_pec, firma=firma, output_dir=output_dir)
@@ -8267,6 +8278,7 @@ read -r -p "Premi Invio per chiudere..." _
                     ricevuta_consegna=esito_dep.ricevuta_consegna or "",
                     note=note,
                     registrato_da=u.username if u else "",
+                    busta_path=esito_dep.busta_path,
                 )
 
             except Exception as _exc:

@@ -243,6 +243,19 @@ class DatiArchivio:
 
 # ------------------------------------------------------------------ Esito deposito PCT
 
+_STATI_DEPOSITO_PCT_LEGACY = {
+    "ACCETTATO": "ACCETTATO_PEC",
+    "RIFIUTATO": "RIFIUTATO_CANCELLERIA",
+}
+
+
+def normalizza_stato_deposito_pct(stato: str) -> str:
+    """Normalizza gli stati legacy dei depositi verso il flusso PCT esteso."""
+    valore = str(stato or "").strip().upper()
+    if not valore:
+        return "INVIATO"
+    return _STATI_DEPOSITO_PCT_LEGACY.get(valore, valore)
+
 @dataclass
 class EsitoDepositoPCT:
     """
@@ -284,6 +297,7 @@ class EsitoDepositoPCT:
     documenti_portale: List[dict] = field(default_factory=list)  # metadati documenti ufficiali
     fonte_portale: str = ""                                   # PolisWeb / PDP / PAT
     servizio_portale: str = ""                                # servizio ufficiale sorgente (es. DocumentiFascicolo)
+    busta_path: str = ""                                      # percorso busta .enc locale
 
     def to_dict(self) -> dict:
         return {
@@ -307,12 +321,22 @@ class EsitoDepositoPCT:
             "documenti_portale": self.documenti_portale,
             "fonte_portale": self.fonte_portale,
             "servizio_portale": self.servizio_portale,
+            "busta_path": self.busta_path,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "EsitoDepositoPCT":
+        d = dict(d or {})
+        if not d.get("id") and d.get("id_deposito"):
+            d["id"] = d["id_deposito"]
+        d["stato"] = normalizza_stato_deposito_pct(d.get("stato", "INVIATO"))
         campi = {f for f in cls.__dataclass_fields__}
         return cls(**{k: v for k, v in d.items() if k in campi})
+
+    @property
+    def id_deposito(self) -> str:
+        """Alias legacy del campo id usato dal vecchio motore deposito."""
+        return self.id
 
 
 # ------------------------------------------------------------------ Fascicolo
@@ -743,7 +767,7 @@ class GestioneFascicoli:
         esito = EsitoDepositoPCT(
             id=uuid.uuid4().hex[:8].upper(),
             timestamp=datetime.now().isoformat(),
-            stato=stato,
+            stato=normalizza_stato_deposito_pct(stato),
             tipo_atto=tipo_atto,
             pec_destinatario=pec_destinatario,
             messaggio=messaggio,
@@ -773,7 +797,7 @@ class GestioneFascicoli:
             tipo=tipo_att,
             data=date.today().isoformat(),
             titolo=f"Deposito telematico — {label}",
-            descrizione=f"Tipo atto: {label}. Stato: {stato}.",
+            descrizione=f"Tipo atto: {label}. Stato: {esito.stato}.",
             esito=EsitoAttivita.IN_ATTESA,
             id_deposito_pct=esito.id,
             avvocato=registrato_da,
@@ -1076,7 +1100,7 @@ class GestioneFascicoli:
             raise KeyError(f"Deposito '{id_dep}' non trovato nel fascicolo.")
         dep.tipo_atto = tipo_atto
         dep.pec_destinatario = pec_destinatario
-        dep.stato = stato
+        dep.stato = normalizza_stato_deposito_pct(stato)
         dep.messaggio = messaggio
         dep.ricevuta_accettazione = ricevuta_accettazione
         dep.ricevuta_consegna = ricevuta_consegna

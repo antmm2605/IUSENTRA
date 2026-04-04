@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import importlib.util
 import os
@@ -972,6 +973,107 @@ def test_firma_documento_riusa_sessione_pin_in_ram():
     assert info2["pin_session_id"] == "sess-1"
     assert info2["pin_session_cached"] is True
     assert signer.calls == 2
+
+
+def test_pick_preferred_windows_cert_privilegia_aruba_auth():
+    module = _load_local_signer()
+
+    certs = [
+        {
+            "thumbprint": "GENERIC-1",
+            "soggetto": "ROSSI MARIO",
+            "emittente": "Generic CA",
+            "scadenza": "2027-01-01",
+        },
+        {
+            "thumbprint": "QUAL-1",
+            "soggetto": "ROSSI MARIO",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+            "scadenza": "2029-02-23",
+        },
+        {
+            "thumbprint": "AUTH-1",
+            "soggetto": "ROSSI MARIO - AUTENTICAZIONE WEB",
+            "emittente": "ArubaPEC EU Authentica Certificates CA G1",
+            "scadenza": "2029-02-23",
+        },
+    ]
+
+    cert = module._pick_preferred_windows_cert(
+        certs,
+        prefer_issuer="ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1",
+        prefer_subject="auth|autenticazione|client",
+        auto=True,
+    )
+
+    assert cert is not None
+    assert cert["thumbprint"] == "AUTH-1"
+
+
+def test_firma_batch_riusa_sessione_pin_per_tutto_il_lotto():
+    module = _load_local_signer()
+
+    calls = []
+    captured = {}
+    orig_trova = module._trova_libreria
+    orig_firma = module._firma_documento
+
+    class _FakeHandler:
+        def __init__(self, payload):
+            self.payload = payload
+
+        def _read_json(self):
+            return self.payload
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._trova_libreria = lambda: "fake.dll"
+
+        def _fake_firma_documento(lib_path, documento, pin, slot_id, pin_session_id=None):
+            calls.append({
+                "lib_path": lib_path,
+                "documento": documento,
+                "pin": pin,
+                "slot_id": slot_id,
+                "pin_session_id": pin_session_id,
+            })
+            session_id = pin_session_id or "sess-1"
+            return documento + b".p7m", {
+                "pin_session_id": session_id,
+                "pin_session_cached": bool(pin_session_id),
+                "intestatario": "Avv. Test",
+                "scadenza": "2029-02-23",
+            }
+
+        module._firma_documento = _fake_firma_documento
+
+        handler = _FakeHandler(
+            {
+                "documenti": [
+                    {"documento": base64.b64encode(b"doc-1").decode(), "nome": "doc-1.pdf"},
+                    {"documento": base64.b64encode(b"doc-2").decode(), "nome": "doc-2.pdf"},
+                ],
+                "pin": "123456",
+                "slot_id": 0,
+            }
+        )
+
+        module._Handler._firma_batch(handler)
+    finally:
+        module._trova_libreria = orig_trova
+        module._firma_documento = orig_firma
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["firmati"] == 2
+    assert captured["payload"]["pin_session_id"] == "sess-1"
+    assert calls[0]["pin"] == "123456"
+    assert calls[0]["pin_session_id"] is None
+    assert calls[1]["pin"] == ""
+    assert calls[1]["pin_session_id"] == "sess-1"
 
 
 def test_download_documenti_batch_esegue_preflight_una_sola_volta():

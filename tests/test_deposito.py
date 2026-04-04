@@ -441,3 +441,109 @@ def test_api_pkcs11_firma_documento_blocca_pades(tmp_path):
     payload = response.get_json()
     assert payload["ok"] is False
     assert "solo CAdES" in payload["messaggio"]
+
+
+def test_api_pkcs11_firma_documenti_batch_usa_una_sola_sessione(tmp_path, monkeypatch):
+    cfg = _cfg_web(tmp_path)
+    cfg["STUDIO_CONFIG"] = str(tmp_path / "studio.json")
+    libreria = tmp_path / "bit4id.dll"
+    libreria.write_bytes(b"fake")
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(firma=ConfigFirma(backend_preferito="pkcs11", pkcs11_library=str(libreria)))
+    )
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="pkcs11-batch-admin",
+        password="Admin1234!",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="admin@example.com",
+    )
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gf.nuovo(titolo="Fascicolo test firma batch", tipo=TipoFascicolo.CIVILE)
+    doc1 = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto-1.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"%PDF-ORIG-1%",
+    )
+    doc2 = gf.aggiungi_documento(
+        fascicolo.id,
+        "atto-2.pdf",
+        TipoDocumento.ALLEGATO,
+        b"%PDF-ORIG-2%",
+    )
+
+    calls = {"pins": [], "salvati": []}
+
+    class _FakeSigner:
+        intestatario = "Avv. Batch"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def verifica_scadenza(self):
+            return {
+                "scaduto": False,
+                "scadenza": "2029-02-23",
+                "avviso_imminente": False,
+                "messaggio": "Certificato valido",
+            }
+
+        def salva_documento_firmato(self, contenuto, output_path, formato="cades"):
+            calls["salvati"].append({"output_path": output_path, "formato": formato})
+            Path(str(output_path) + ".p7m").write_bytes(contenuto + b".p7m")
+            return str(output_path) + ".p7m"
+
+    def _fake_crea_signer(cfg_firma, pin=None):
+        calls["pins"].append(pin)
+        return _FakeSigner()
+
+    monkeypatch.setattr("pct.firma.crea_signer_da_config", _fake_crea_signer)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "pkcs11-batch-admin", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/firma/pkcs11/firma-documenti-batch",
+            json={
+                "fascicolo_id": fascicolo.id,
+                "documento_ids": [doc1.id, doc2.id],
+                "pin": "12345678",
+                "formato": "cades",
+            },
+        )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["firmati"] == 2
+    assert payload["errori"] == 0
+    assert calls["pins"] == ["12345678"]
+    assert len(calls["salvati"]) == 2
+
+    gf_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gf_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert all(doc.firmato_digitalmente for doc in fascicolo_reload.documenti[:2])
+    assert fascicolo_reload.documenti[0].nome.endswith(".p7m")
+    assert fascicolo_reload.documenti[1].nome.endswith(".p7m")

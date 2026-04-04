@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.4
+HACS Local Signer — v1.5.5
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -20,6 +20,7 @@ API:
     GET  /certificati            → elenca certificati Windows MY store
     GET  /seleziona-certificato  → apre dialog nativo Windows di selezione cert
     POST /firma                  → firma documento CAdES-BES
+    POST /firma-batch            → firma più documenti con una sola sessione PIN
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
     POST /pst/documenti          → documenti fascicolo PST (curl mTLS Windows)
@@ -69,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.4"
+VERSION = "1.5.5"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -98,6 +99,18 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
 }
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
+_PST_CERT_ISSUER_PRIORITIES = (
+    "ArubaPEC EU Authentica Certificates CA G1",
+    "ArubaPEC EU Qualified Certificates CA G1",
+    "ArubaPEC",
+)
+_PST_CERT_SUBJECT_HINTS = (
+    "auth",
+    "autent",
+    "client",
+    "tls",
+    "web",
+)
 
 # ── Librerie PKCS#11 candidate ─────────────────────────────────────────────────
 _DEFAULT_LIBS = [
@@ -775,6 +788,80 @@ def _windows_lista_certificati() -> list[dict]:
         return []
 
 
+def _cert_match_normalized(value: str) -> str:
+    testo = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", " ", testo.lower()).strip()
+
+
+def _cert_match_keywords(raw: str | list[str] | tuple[str, ...]) -> list[str]:
+    if isinstance(raw, (list, tuple)):
+        parts = raw
+    else:
+        parts = re.split(r"[,\n;|]+", str(raw or ""))
+    return [item for item in (_cert_match_normalized(part) for part in parts) if item]
+
+
+def _cert_preferred_score(
+    cert: dict,
+    issuer_keywords: list[str],
+    subject_keywords: list[str],
+) -> int:
+    issuer = _cert_match_normalized(cert.get("emittente", ""))
+    subject = _cert_match_normalized(cert.get("soggetto", ""))
+    score = 0
+
+    for idx, keyword in enumerate(issuer_keywords):
+        if keyword and keyword in issuer:
+            score = max(score, 100 - (idx * 10))
+    for idx, keyword in enumerate(subject_keywords):
+        if keyword and keyword in subject:
+            score = max(score, 60 - (idx * 5))
+
+    for hint in _PST_CERT_SUBJECT_HINTS:
+        if hint in subject:
+            score += 5
+
+    return score
+
+
+def _pick_preferred_windows_cert(
+    certs: list[dict],
+    *,
+    prefer_issuer: str = "",
+    prefer_subject: str = "",
+    auto: bool = False,
+) -> Optional[dict]:
+    lista = list(certs or [])
+    if not lista:
+        return None
+
+    issuer_keywords = _cert_match_keywords(prefer_issuer)
+    subject_keywords = _cert_match_keywords(prefer_subject)
+    if auto and not issuer_keywords:
+        issuer_keywords = _cert_match_keywords(_PST_CERT_ISSUER_PRIORITIES)
+    if auto and not subject_keywords:
+        subject_keywords = _cert_match_keywords(_PST_CERT_SUBJECT_HINTS)
+
+    if not issuer_keywords and not subject_keywords:
+        return None
+
+    scored = []
+    for cert in lista:
+        score = _cert_preferred_score(cert, issuer_keywords, subject_keywords)
+        if score > 0:
+            scored.append((score, cert))
+
+    if not scored:
+        return None
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    if len(scored) == 1:
+        return scored[0][1]
+    if scored[0][0] > scored[1][0]:
+        return scored[0][1]
+    return None
+
+
 def _windows_seleziona_cert() -> Optional[dict]:
     """
     Apre la finestra nativa Windows di selezione certificato
@@ -791,6 +878,7 @@ def _windows_seleziona_cert() -> Optional[dict]:
 
     crypt32 = ctypes.WinDLL("Crypt32.dll", use_last_error=True)
     cryptui = ctypes.WinDLL("CryptUI.dll", use_last_error=True)
+    user32 = ctypes.WinDLL("User32.dll", use_last_error=True)
 
     crypt32.CertOpenSystemStoreW.restype = ctypes.c_void_p
     crypt32.CertOpenSystemStoreW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
@@ -815,9 +903,11 @@ def _windows_seleziona_cert() -> Optional[dict]:
         raise RuntimeError(f"CertOpenSystemStoreW fallito (err {ctypes.get_last_error()})")
 
     try:
+        user32.GetForegroundWindow.restype = ctypes.c_void_p
+        owner_hwnd = user32.GetForegroundWindow()
         cert_ctx = cryptui.CryptUIDlgSelectCertificateFromStore(
             h_store,
-            None,
+            owner_hwnd,
             "HACS — Seleziona certificato PST",
             "Seleziona il certificato di autenticazione web\n"
             "per il Portale Servizi Telematici (smart card o token CNS/CIE)",
@@ -2805,6 +2895,8 @@ class _Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/firma":
             self._firma()
+        elif path == "/firma-batch":
+            self._firma_batch()
         elif path == "/pst/preflight-auth":
             self._pst_preflight_auth()
         elif path == "/pst/ricerca":
@@ -3026,9 +3118,23 @@ class _Handler(BaseHTTPRequestHandler):
                  blocca finché l'utente sceglie o annulla.
         Linux:   restituisce info token PKCS#11 (fallback).
         """
+        query = parse_qs(urlparse(self.path).query or "")
+        prefer_issuer = str((query.get("prefer_issuer") or [""])[0] or "").strip()
+        prefer_subject = str((query.get("prefer_subject") or [""])[0] or "").strip()
+        auto_select = str((query.get("auto") or ["0"])[0] or "").strip().lower() in {"1", "true", "yes", "on"}
+
         if sys.platform == "win32":
             try:
-                cert = _windows_seleziona_cert()
+                cert = _pick_preferred_windows_cert(
+                    _windows_lista_certificati(),
+                    prefer_issuer=prefer_issuer,
+                    prefer_subject=prefer_subject,
+                    auto=auto_select,
+                )
+                auto_pick = cert is not None
+                if cert is None:
+                    cert = _windows_seleziona_cert()
+                    auto_pick = False
                 if cert is None:
                     self._send_json({
                         "ok": False,
@@ -3037,7 +3143,12 @@ class _Handler(BaseHTTPRequestHandler):
                     })
                 else:
                     _ricorda_certificato_windows(cert)
-                    self._send_json({"ok": True, "piattaforma": "win32", **cert})
+                    self._send_json({
+                        "ok": True,
+                        "piattaforma": "win32",
+                        "auto_selezionato": auto_pick,
+                        **cert,
+                    })
             except Exception as e:
                 log.error("_seleziona_certificato: %s", e)
                 self._send_json({"ok": False, "errore": str(e)})
@@ -3173,6 +3284,97 @@ class _Handler(BaseHTTPRequestHandler):
         except Exception as e:
             log.error("Errore firma: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _firma_batch(self):
+        """
+        POST /firma-batch
+        Body: {documenti:[{documento:<base64>, nome?}], pin?: "...", pin_session_id?: "...", slot_id?: 0}
+        Response: {ok, firmati, falliti, risultati:[...], pin_session_id?}
+        """
+        lib = _trova_libreria()
+        if not lib:
+            self._send_json({
+                "ok": False,
+                "errore": (
+                    "Libreria PKCS#11 non trovata. "
+                    "Verificare che il middleware PKCS#11 del dispositivo sia installato "
+                    "e che smart card/token o lettore siano presenti."
+                ),
+            }, 400)
+            return
+
+        data = self._read_json()
+        docs = data.get("documenti") or []
+        pin = data.get("pin", "")
+        slot_id = data.get("slot_id")
+        current_session_id = str(data.get("pin_session_id") or "").strip()
+
+        if not isinstance(docs, list) or not docs:
+            self._send_json({"ok": False, "errore": "Il batch richiede almeno un documento."}, 400)
+            return
+        if not pin and not current_session_id:
+            self._send_json({"ok": False, "errore": "PIN o pin_session_id obbligatorio"}, 400)
+            return
+
+        risultati = []
+        firmati = 0
+        falliti = 0
+
+        for idx, raw_doc in enumerate(docs):
+            item = raw_doc if isinstance(raw_doc, dict) else {}
+            doc_b64 = item.get("documento") or item.get("documento_b64")
+            nome = str(item.get("nome") or item.get("nome_documento") or f"documento_{idx + 1}").strip()
+            if not doc_b64:
+                risultati.append({
+                    "ok": False,
+                    "indice": idx,
+                    "nome": nome,
+                    "errore": "Campo 'documento' (base64) obbligatorio",
+                })
+                falliti += 1
+                continue
+
+            try:
+                documento = base64.b64decode(doc_b64)
+                firmato, info = _firma_documento(
+                    lib,
+                    documento,
+                    pin if not current_session_id else "",
+                    slot_id,
+                    pin_session_id=current_session_id or None,
+                )
+                current_session_id = str(info.get("pin_session_id") or current_session_id or "")
+                risultati.append({
+                    "ok": True,
+                    "indice": idx,
+                    "nome": nome,
+                    "firmato_b64": base64.b64encode(firmato).decode(),
+                    "dimensione": len(firmato),
+                    **info,
+                })
+                firmati += 1
+            except Exception as e:
+                current_session_id = ""
+                risultati.append({
+                    "ok": False,
+                    "indice": idx,
+                    "nome": nome,
+                    "errore": str(e),
+                })
+                falliti += 1
+                if "Sessione PIN scaduta" in str(e):
+                    break
+
+        payload = {
+            "ok": falliti == 0,
+            "firmati": firmati,
+            "falliti": falliti,
+            "risultati": risultati,
+        }
+        if current_session_id:
+            payload["pin_session_id"] = current_session_id
+            payload["pin_session_ttl_seconds"] = PIN_SESSION_TTL_SECONDS
+        self._send_json(payload, 200 if firmati or not falliti else 500)
 
     def _pst_preflight_auth(self):
         """

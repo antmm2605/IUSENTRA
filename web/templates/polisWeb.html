@@ -177,17 +177,33 @@
     <span class="text-muted small" id="lbl-ls-token"></span>
   </div>
 
+  <div class="alert alert-primary small d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <strong><i class="bi bi-stars me-1"></i>Percorso consigliato</strong>
+      Usa <strong>Importa pratiche dal PST</strong> per ricerca, selezione certificato e importazione guidata.
+      La ricerca manuale resta disponibile come fallback avanzato / compatibilità.
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-primary"
+            data-bs-toggle="collapse" data-bs-target="#manual-pst-search-body"
+            aria-expanded="{{ 'true' if fascicoli is defined or demo_mode or not pkcs11_mode else 'false' }}"
+            aria-controls="manual-pst-search-body">
+      <i class="bi bi-sliders me-1"></i>Ricerca manuale
+    </button>
+  </div>
+
   {# ---- Form ricerca (demo / P12 / PEM) ---- #}
-  <div class="card shadow-sm mb-4">
+  <div class="card shadow-sm mb-4 border-primary-subtle">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">
       <i class="bi bi-search text-primary"></i>Ricerca pratiche nel registro del tribunale
+      <span class="badge bg-light text-dark border">Fallback manuale</span>
       <button type="button" class="btn-help ms-1"
               data-bs-toggle="popover"
               data-bs-title="Come funziona la ricerca"
               data-bs-content="<p class='mb-1'>Cerca pratiche nel <strong>Portale Servizi Telematici (PST)</strong> tramite il servizio <em>RicercaFascicoliRegistro</em>.</p><ul><li>Seleziona l'ufficio e inserisci almeno N. RG oppure il nome di una parte.</li><li><strong>Modalità demo</strong>: dati di esempio, nessuna connessione reale.</li><li>Per il PST reale configura la firma in <em>Impostazioni → Firma Digitale</em>.</li></ul>">?</button>
     </div>
+    <div id="manual-pst-search-body" class="collapse {{ 'show' if fascicoli is defined or demo_mode or not pkcs11_mode else '' }}">
     <div class="card-body">
-      <form method="post" action="{{ url_for('polisWeb_ricerca') }}">
+      <form method="post" action="{{ url_for('polisWeb_ricerca') }}" id="polisweb-ricerca-manuale-form">
         <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
         <input type="hidden" name="server_demo_mode" value="{{ '1' if server_demo_mode else '0' }}">
         <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
@@ -320,6 +336,7 @@
         </div>
       </form>
     </div>
+    </div>
   </div>
 
   {# ---- Risultati ricerca ---- #}
@@ -416,6 +433,12 @@
                         title="Importa il fascicolo e apri subito la navigazione documentale PST">
                   <i class="bi bi-diagram-3 me-1"></i>Importa + Naviga PST
                 </button>
+                <button type="submit" class="btn btn-sm btn-primary"
+                        data-open-pst="1"
+                        data-acquire-all="1"
+                        title="Importa il fascicolo e avvia subito l'acquisizione completa dei documenti ufficiali">
+                  <i class="bi bi-cloud-arrow-down me-1"></i>Importa + acquisisci fascicolo
+                </button>
               </form>
             </td>
           </tr>
@@ -475,11 +498,13 @@
    4 step: Setup · Parametri · Certificato · Risultati
 ════════════════════════════════════════════════════════ #}
 <div class="modal fade" id="modalWizardPst" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
-    <div class="modal-content" style="min-height:520px;display:flex;flex-direction:column">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down" id="modalWizardPstDialog"
+       style="max-width:min(1240px,96vw);height:min(92vh,940px);margin:.75rem auto">
+    <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
 
       {# ── Header con step indicator ── #}
-      <div class="modal-header py-3" style="background:linear-gradient(135deg,#1a3a6b 0%,#2563eb 100%)">
+      <div class="modal-header py-3" id="wiz-drag-handle"
+           style="background:linear-gradient(135deg,#1a3a6b 0%,#2563eb 100%)">
         <div class="d-flex align-items-center gap-3 w-100">
           <div>
             <div class="text-white fw-bold fs-6" id="wiz-step-title">Passaggio 1</div>
@@ -493,11 +518,21 @@
             <span class="badge rounded-pill px-2 py-1" id="wiz-dot-3"
                   style="background:rgba(255,255,255,.3);color:#fff;font-size:.7rem">3</span>
           </div>
-          <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"></button>
+          <div class="d-none d-lg-flex gap-1 ms-2">
+            <button type="button" class="btn btn-sm btn-outline-light border-white-50 text-white"
+                    id="wiz-btn-drag" onclick="wizToggleDrag()" title="Attiva spostamento finestra">
+              <i class="bi bi-arrows-move"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-light border-white-50 text-white"
+                    id="wiz-btn-fullscreen" onclick="wizToggleFullscreen()" title="Apri a tutto schermo">
+              <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+          </div>
+          <button type="button" class="btn-close btn-close-white ms-1" data-bs-dismiss="modal"></button>
         </div>
       </div>
 
-      <div class="modal-body flex-grow-1 overflow-auto p-0">
+      <div class="modal-body p-0" style="flex:1 1 auto;overflow:auto">
 
         {# ──────────────── STEP 0: Setup Local Signer (solo se non attivo) ──────────────── #}
         <div id="wiz-step-setup" class="p-4" style="display:none">
@@ -596,20 +631,22 @@
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CGT">CGT</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-wiz-tipo="CPT">CPT</button>
               </div>
-              <div class="input-group">
-                <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" id="wiz-ufficio-input" class="form-control"
-                       placeholder="Cerca per città o nome…" autocomplete="off">
-                <button type="button" class="btn btn-outline-secondary" id="wiz-ufficio-clear"
-                        style="display:none" onclick="wizClearUfficio()">
-                  <i class="bi bi-x-lg"></i>
-                </button>
-              </div>
-              <div id="wiz-ufficio-dropdown"
-                   style="display:none;position:absolute;z-index:9999;background:#fff;
-                          border:1px solid #dee2e6;border-radius:8px;
-                          box-shadow:0 6px 20px rgba(0,0,0,.13);
-                          max-height:220px;overflow-y:auto;min-width:300px">
+              <div class="position-relative" id="wiz-ufficio-wrap">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-search text-muted"></i></span>
+                  <input type="text" id="wiz-ufficio-input" class="form-control"
+                         placeholder="Cerca per città o nome…" autocomplete="off">
+                  <button type="button" class="btn btn-outline-secondary" id="wiz-ufficio-clear"
+                          style="display:none" onclick="wizClearUfficio()">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+                <div id="wiz-ufficio-dropdown"
+                     style="display:none;position:fixed;z-index:1085;background:#fff;
+                            border:1px solid #dee2e6;border-radius:12px;
+                            box-shadow:0 12px 34px rgba(15,23,42,.18);
+                            max-height:260px;overflow-y:auto;min-width:320px">
+                </div>
               </div>
               <input type="hidden" id="wiz-ufficio-value">
               <div id="wiz-ufficio-badge" class="mt-1" style="display:none">
@@ -740,6 +777,9 @@
                 <span class="text-muted small ms-2">
                   <i class="bi bi-windows me-1"></i>Selettore nativo Windows
                 </span>
+                <div class="small text-muted mt-2">
+                  Se HACS trova un solo certificato Aruba compatibile lo seleziona automaticamente; altrimenti apre il selettore nativo Windows in primo piano.
+                </div>
               </div>
 
               {# Spinner durante l'apertura dialog #}
@@ -781,6 +821,9 @@
                     <div class="text-muted">
                       Scadenza: <span id="wiz-cert-scadenza" class="font-monospace">—</span>
                     </div>
+                    <div class="text-success mt-1" id="wiz-cert-auto-note" style="display:none">
+                      <i class="bi bi-magic me-1"></i>Certificato Aruba selezionato automaticamente da HACS.
+                    </div>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0"
                           onclick="wizApriPicker()" title="Cambia certificato">
@@ -821,7 +864,7 @@
               </span>
               <span class="badge bg-success"><i class="bi bi-usb-symbol me-1"></i>PST Reale</span>
             </div>
-            <div class="table-responsive" style="max-height:340px;overflow-y:auto">
+            <div class="table-responsive" style="max-height:min(56vh,560px);overflow-y:auto">
               <table class="table table-hover align-middle mb-0 small">
                 <thead class="table-light sticky-top">
                   <tr>
@@ -1410,6 +1453,12 @@ function eseguiVerificaVariazioni() {
 // Gira SEMPRE (non condizionale lato server) — il server non sa della Aruba Key Windows
 const _LS_BASE_PW = 'http://127.0.0.1:27272';
 const _LS_PROTOCOL_URI = 'hacs-local-signer://start';
+const _PW_PKCS11_MODE = {{ 'true' if pkcs11_mode else 'false' }};
+const _WIZ_CERT_PREFERENCES = {
+  auto: true,
+  preferIssuer: 'ArubaPEC EU Authentica Certificates CA G1|ArubaPEC EU Qualified Certificates CA G1',
+  preferSubject: 'auth|autentica|client'
+};
 const _LS_INSTALLER_CFG = (() => {
   const el = document.getElementById('ls-installer-config');
   return el ? {
@@ -1431,6 +1480,9 @@ const _LS_INSTALLER_CFG = (() => {
 let _lsDisponibile = false;
 let _lsTokenInfo = null;
 let _lsCertSel = null;
+let _wizModalMaximized = false;
+let _wizModalDragEnabled = false;
+let _wizModalDragState = null;
 
 function _lsPiattaformaClient() {
   const ua = (navigator.userAgent || '').toLowerCase();
@@ -1764,7 +1816,12 @@ async function avviaLocalSigner() {
 }
 
 async function _lsSelezionaCertificato() {
-  const resp = await fetch(_LS_BASE_PW + '/seleziona-certificato', {
+  const params = new URLSearchParams();
+  if (_WIZ_CERT_PREFERENCES.auto) params.set('auto', '1');
+  if (_WIZ_CERT_PREFERENCES.preferIssuer) params.set('prefer_issuer', _WIZ_CERT_PREFERENCES.preferIssuer);
+  if (_WIZ_CERT_PREFERENCES.preferSubject) params.set('prefer_subject', _WIZ_CERT_PREFERENCES.preferSubject);
+
+  const resp = await fetch(_LS_BASE_PW + '/seleziona-certificato?' + params.toString(), {
     signal: AbortSignal.timeout(120000),
   });
   const data = await resp.json();
@@ -1779,6 +1836,7 @@ async function _lsSelezionaCertificato() {
     scadenza:    data.scadenza   || '',
     token_slot:  data.token_slot ?? null,
     piattaforma: data.piattaforma || 'win32',
+    auto_selezionato: !!data.auto_selezionato,
   };
   return _lsCertSel;
 }
@@ -2047,14 +2105,190 @@ const _WIZ_STEPS = {
   3: { title: 'Passaggio 3',         sub: 'Risultati',                       dot: 3 },
 };
 
+function _wizModalEl() {
+  return document.getElementById('modalWizardPst');
+}
+
+function _wizDialogEl() {
+  return document.getElementById('modalWizardPstDialog');
+}
+
+function _wizDesktopMode() {
+  return window.innerWidth >= 992;
+}
+
+function _wizCenterDialog() {
+  const dialog = _wizDialogEl();
+  if (!dialog || !_wizDesktopMode() || _wizModalMaximized) return;
+  const rect = dialog.getBoundingClientRect();
+  const left = Math.max(12, Math.round((window.innerWidth - rect.width) / 2));
+  const top = Math.max(12, Math.round((window.innerHeight - rect.height) / 2));
+  dialog.style.left = left + 'px';
+  dialog.style.top = top + 'px';
+  dialog.dataset.left = String(left);
+  dialog.dataset.top = String(top);
+}
+
+function _wizSyncWindowButtons() {
+  const dragBtn = document.getElementById('wiz-btn-drag');
+  const fullBtn = document.getElementById('wiz-btn-fullscreen');
+  const handle = document.getElementById('wiz-drag-handle');
+  if (dragBtn) {
+    dragBtn.classList.toggle('active', _wizModalDragEnabled);
+    dragBtn.innerHTML = _wizModalDragEnabled
+      ? '<i class="bi bi-hand-index-thumb me-1"></i>Sposta'
+      : '<i class="bi bi-arrows-move"></i>';
+    dragBtn.title = _wizModalDragEnabled ? 'Spostamento attivo' : 'Attiva spostamento finestra';
+  }
+  if (fullBtn) {
+    fullBtn.innerHTML = _wizModalMaximized
+      ? '<i class="bi bi-fullscreen-exit"></i>'
+      : '<i class="bi bi-arrows-fullscreen"></i>';
+    fullBtn.title = _wizModalMaximized ? 'Ripristina finestra' : 'Apri a tutto schermo';
+  }
+  if (handle) {
+    handle.style.cursor = _wizModalDragEnabled && !_wizModalMaximized && _wizDesktopMode() ? 'move' : 'default';
+  }
+}
+
+function _wizApplyDialogMode() {
+  const dialog = _wizDialogEl();
+  if (!dialog) return;
+  const content = dialog.querySelector('.modal-content');
+  if (!_wizDesktopMode()) {
+    dialog.style.removeProperty('position');
+    dialog.style.removeProperty('inset');
+    dialog.style.removeProperty('left');
+    dialog.style.removeProperty('top');
+    dialog.style.removeProperty('width');
+    dialog.style.removeProperty('max-width');
+    dialog.style.removeProperty('height');
+    dialog.style.removeProperty('margin');
+    if (content) content.style.height = '100%';
+    _wizSyncWindowButtons();
+    return;
+  }
+
+  if (_wizModalMaximized) {
+    dialog.style.position = 'fixed';
+    dialog.style.inset = '0';
+    dialog.style.left = '0';
+    dialog.style.top = '0';
+    dialog.style.width = '100vw';
+    dialog.style.maxWidth = '100vw';
+    dialog.style.height = '100vh';
+    dialog.style.margin = '0';
+  } else if (_wizModalDragEnabled) {
+    dialog.style.position = 'fixed';
+    dialog.style.removeProperty('inset');
+    dialog.style.width = 'min(1240px, calc(100vw - 24px))';
+    dialog.style.maxWidth = 'min(1240px, calc(100vw - 24px))';
+    dialog.style.height = 'min(92vh, 940px)';
+    dialog.style.margin = '0';
+    if (!dialog.dataset.left || !dialog.dataset.top) {
+      _wizCenterDialog();
+    } else {
+      dialog.style.left = dialog.dataset.left + 'px';
+      dialog.style.top = dialog.dataset.top + 'px';
+    }
+  } else {
+    dialog.style.removeProperty('position');
+    dialog.style.removeProperty('inset');
+    dialog.style.removeProperty('left');
+    dialog.style.removeProperty('top');
+    dialog.style.width = 'min(1240px, calc(100vw - 24px))';
+    dialog.style.maxWidth = 'min(1240px, calc(100vw - 24px))';
+    dialog.style.height = 'min(92vh, 940px)';
+    dialog.style.margin = '.75rem auto';
+  }
+  if (content) content.style.height = '100%';
+  _wizSyncWindowButtons();
+}
+
+function _wizBindDialogInteractions() {
+  const modal = _wizModalEl();
+  const dialog = _wizDialogEl();
+  const handle = document.getElementById('wiz-drag-handle');
+  if (!modal || !dialog || !handle || modal.dataset.wizBound === '1') return;
+
+  handle.addEventListener('mousedown', function (event) {
+    if (!_wizModalDragEnabled || _wizModalMaximized || !_wizDesktopMode()) return;
+    if (event.target.closest('button')) return;
+    const rect = dialog.getBoundingClientRect();
+    _wizModalDragState = {
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    dialog.dataset.left = String(Math.round(rect.left));
+    dialog.dataset.top = String(Math.round(rect.top));
+    event.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function (event) {
+    if (!_wizModalDragState) return;
+    const rect = dialog.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const maxLeft = Math.max(12, window.innerWidth - width - 12);
+    const maxTop = Math.max(12, window.innerHeight - height - 12);
+    const left = Math.max(12, Math.min(event.clientX - _wizModalDragState.offsetX, maxLeft));
+    const top = Math.max(12, Math.min(event.clientY - _wizModalDragState.offsetY, maxTop));
+    dialog.style.left = left + 'px';
+    dialog.style.top = top + 'px';
+    dialog.dataset.left = String(Math.round(left));
+    dialog.dataset.top = String(Math.round(top));
+  });
+
+  document.addEventListener('mouseup', function () {
+    _wizModalDragState = null;
+  });
+
+  modal.addEventListener('shown.bs.modal', function () {
+    _wizApplyDialogMode();
+  });
+
+  modal.addEventListener('hidden.bs.modal', function () {
+    _wizModalDragEnabled = false;
+    _wizModalMaximized = false;
+    _wizModalDragState = null;
+    delete dialog.dataset.left;
+    delete dialog.dataset.top;
+    _wizApplyDialogMode();
+  });
+
+  window.addEventListener('resize', function () {
+    if (modal.classList.contains('show')) _wizApplyDialogMode();
+  }, { passive: true });
+
+  modal.dataset.wizBound = '1';
+  _wizApplyDialogMode();
+}
+
+function wizToggleFullscreen() {
+  _wizModalMaximized = !_wizModalMaximized;
+  if (_wizModalMaximized) {
+    _wizModalDragEnabled = false;
+  }
+  _wizApplyDialogMode();
+}
+
+function wizToggleDrag() {
+  _wizModalDragEnabled = !_wizModalDragEnabled;
+  if (_wizModalDragEnabled) {
+    _wizModalMaximized = false;
+  }
+  _wizApplyDialogMode();
+}
+
 async function apriWizardPst() {
+  _wizBindDialogInteractions();
   const stato = _lsDisponibile ? { running: true, tokenOk: true } : await _lsAssicuraAttivo();
   _wizStep = stato.running ? 1 : 0;
   _wizCertSel = _lsCertSel;
   _wizPinConfermato = false;
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
-  new bootstrap.Modal(document.getElementById('modalWizardPst')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalWizardPst')).show();
 }
 
 function _wizMostraStep(step) {
@@ -2233,61 +2467,112 @@ function wizClearUfficio() {
 
 // Autocomplete uffici nel wizard (riusa /api/uffici)
 (function() {
+  const wrap   = document.getElementById('wiz-ufficio-wrap');
   const inp    = document.getElementById('wiz-ufficio-input');
   const hidden = document.getElementById('wiz-ufficio-value');
   const dd     = document.getElementById('wiz-ufficio-dropdown');
   const badge  = document.getElementById('wiz-ufficio-badge');
   const clear  = document.getElementById('wiz-ufficio-clear');
   const lbl    = document.getElementById('wiz-ufficio-label');
+  const modal  = document.getElementById('modalWizardPst');
+  const modalBody = modal?.querySelector('.modal-body');
   if (!inp) return;
 
   let tipoFiltro = '';
+  let requestSeq = 0;
   document.getElementById('wiz-uff-tabs')?.querySelectorAll('[data-wiz-tipo]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-wiz-tipo]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       tipoFiltro = btn.dataset.wizTipo;
       if (inp.value.length >= 2) cerca(inp.value);
+      else chiudiDropdown();
     });
   });
 
+  function chiudiDropdown() {
+    dd.style.display = 'none';
+    dd.innerHTML = '';
+  }
+
+  function posizionaDropdown() {
+    if (dd.style.display === 'none' || !dd.childElementCount) return;
+    const rect = inp.getBoundingClientRect();
+    const left = Math.max(12, Math.round(rect.left));
+    const maxWidth = Math.max(320, window.innerWidth - left - 12);
+    const width = Math.min(Math.max(Math.round(rect.width), 360), maxWidth);
+    const top = Math.min(window.innerHeight - 12, Math.round(rect.bottom + 4));
+    const spazioSotto = Math.max(180, window.innerHeight - top - 12);
+    dd.style.left = left + 'px';
+    dd.style.top = top + 'px';
+    dd.style.width = width + 'px';
+    dd.style.maxHeight = Math.min(340, spazioSotto) + 'px';
+  }
+
+  function selezionaUfficio(u) {
+    inp.value = u.nome;
+    hidden.value = u.codice;
+    lbl.textContent = u.nome;
+    badge.style.display = 'block';
+    clear.style.display = '';
+    chiudiDropdown();
+  }
+
+  function renderLista(lista) {
+    dd.innerHTML = '';
+    if (!lista.length) {
+      chiudiDropdown();
+      return;
+    }
+    lista.slice(0, 12).forEach(u => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'w-100 text-start px-3 py-2 border-0 bg-white';
+      item.style.cssText = 'border-bottom:1px solid #eef2f7;transition:background .15s ease';
+      item.innerHTML = `
+        <div class="fw-semibold small">${u.nome || 'Ufficio giudiziario'}</div>
+        <div class="text-muted small">${u.tipo || 'n.d.'}${u.distretto ? ` · ${u.distretto}` : ''}</div>
+      `;
+      item.addEventListener('mouseenter', () => { item.style.background = '#f6f9ff'; });
+      item.addEventListener('mouseleave', () => { item.style.background = '#fff'; });
+      item.addEventListener('click', () => selezionaUfficio(u));
+      dd.appendChild(item);
+    });
+    dd.style.display = 'block';
+    posizionaDropdown();
+  }
+
   inp.addEventListener('input', () => {
-    if (inp.value.length >= 2) cerca(inp.value); else dd.style.display = 'none';
+    if (hidden.value && inp.value.trim() !== lbl.textContent) {
+      hidden.value = '';
+      badge.style.display = 'none';
+      clear.style.display = 'none';
+    }
+    if (inp.value.length >= 2) cerca(inp.value);
+    else chiudiDropdown();
+  });
+  inp.addEventListener('focus', () => {
+    if (inp.value.length >= 2 && dd.childElementCount) {
+      dd.style.display = 'block';
+      posizionaDropdown();
+    }
   });
 
   function cerca(q) {
+    const seq = ++requestSeq;
     const url = `/api/uffici?q=${encodeURIComponent(q)}${tipoFiltro ? '&tipo=' + tipoFiltro : ''}`;
     fetch(url).then(r => r.json()).then(lista => {
-      dd.innerHTML = '';
-      if (!lista.length) { dd.style.display = 'none'; return; }
-      lista.slice(0, 8).forEach(u => {
-        const item = document.createElement('div');
-        item.className = 'px-3 py-2 small';
-        item.style.cssText = 'cursor:pointer;border-bottom:1px solid #f0f0f0';
-        item.textContent = u.nome + (u.distretto ? ` (${u.distretto})` : '');
-        item.onmouseenter = () => item.style.background = '#f0f4ff';
-        item.onmouseleave = () => item.style.background = '';
-        item.onclick = () => {
-          inp.value = u.nome;
-          hidden.value = u.codice;
-          lbl.textContent = u.nome;
-          badge.style.display = 'block';
-          clear.style.display = '';
-          dd.style.display = 'none';
-        };
-        dd.appendChild(item);
-      });
-      // Posiziona dropdown
-      const rect = inp.getBoundingClientRect();
-      dd.style.top = (rect.bottom + window.scrollY) + 'px';
-      dd.style.left = (rect.left + window.scrollX) + 'px';
-      dd.style.width = rect.width + 'px';
-      dd.style.display = 'block';
-    }).catch(() => { dd.style.display = 'none'; });
+      if (seq !== requestSeq) return;
+      renderLista(Array.isArray(lista) ? lista : []);
+    }).catch(() => { chiudiDropdown(); });
   }
 
+  window.addEventListener('resize', posizionaDropdown, { passive: true });
+  window.addEventListener('scroll', posizionaDropdown, { passive: true, capture: true });
+  modalBody?.addEventListener('scroll', posizionaDropdown, { passive: true });
+  modal?.addEventListener('hidden.bs.modal', chiudiDropdown);
   document.addEventListener('click', e => {
-    if (!inp.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+    if (!wrap?.contains(e.target) && !dd.contains(e.target)) chiudiDropdown();
   });
 })();
 
@@ -2304,10 +2589,12 @@ function _wizResetCertUI() {
 function _wizMostraCertCard(cert) {
   const card  = document.getElementById('wiz-cert-selezionato');
   const btnAv = document.getElementById('wiz-btn-avanti');
+  const autoNote = document.getElementById('wiz-cert-auto-note');
   if (cert && cert.soggetto) {
     document.getElementById('wiz-cert-soggetto').textContent  = cert.soggetto || '—';
     document.getElementById('wiz-cert-emittente').textContent = cert.emittente || '—';
     document.getElementById('wiz-cert-scadenza').textContent  = cert.scadenza  || '—';
+    if (autoNote) autoNote.style.display = cert.auto_selezionato ? 'block' : 'none';
     if (card) card.style.display = 'block';
     if (btnAv) {
       btnAv.disabled = !_wizPinConfermato;
@@ -2319,6 +2606,7 @@ function _wizMostraCertCard(cert) {
     const bannerDemo = document.getElementById('banner-demo');
     if (bannerDemo) bannerDemo.style.display = 'none';
   } else {
+    if (autoNote) autoNote.style.display = 'none';
     if (card) card.style.display = 'none';
     if (btnAv) {
       btnAv.disabled = false;
@@ -2639,8 +2927,12 @@ async function _precaricaDocumentiImportazione(form, fascicolo, cert = null) {
 }
 
 async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = null) {
-  const openPst = !!(button && button.dataset && button.dataset.openPst === '1');
+  const openPst = !!(button && button.dataset && (button.dataset.openPst === '1' || button.dataset.acquireAll === '1'));
+  const acquireAll = !!(button && button.dataset && button.dataset.acquireAll === '1');
+  const preserveOriginalTree = !!(button && button.dataset && button.dataset.preserveOriginalTree === '1');
   _appendHiddenToForm(form, 'apri_portale', openPst ? '1' : '0');
+  _appendHiddenToForm(form, 'acquisisci_portale', acquireAll ? '1' : '0');
+  _appendHiddenToForm(form, 'mantieni_albero_originale', preserveOriginalTree ? '1' : '0');
   _setImportButtonLoading(button, 'Preimportazione completa...');
   try {
     await _precaricaDocumentiImportazione(form, fascicolo, cert);
@@ -2864,6 +3156,14 @@ document.addEventListener('DOMContentLoaded', () => {
   _applicaInstallerLocalSigner();
   _aggiornaPulsantiCerca(false);
   verificaLocalSigner();
+  const manualSearchForm = document.getElementById('polisweb-ricerca-manuale-form');
+  if (manualSearchForm) {
+    manualSearchForm.addEventListener('submit', async ev => {
+      if (!_PW_PKCS11_MODE) return;
+      ev.preventDefault();
+      await cercaSuPst();
+    });
+  }
   document.querySelectorAll('.js-polisweb-importa-form').forEach(form => {
     form.addEventListener('submit', async ev => {
       ev.preventDefault();

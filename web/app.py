@@ -7574,6 +7574,178 @@ read -r -p "Premi Invio per chiudere..." _
             app.logger.exception("Errore api_pkcs11_firma_documento: %s", e)
             return jsonify({"ok": False, "messaggio": str(e)})
 
+    @app.route("/api/firma/pkcs11/firma-documenti-batch", methods=["POST"])
+    def api_pkcs11_firma_documenti_batch():
+        """
+        Firma un lotto di documenti del fascicolo con una sola sessione PKCS#11.
+
+        Request JSON:
+          { fascicolo_id, documento_ids: [...], pin, slot_id?, formato? }
+
+        Response JSON:
+          { ok, firmati, saltati, errori, risultati: [...] }
+        """
+        try:
+            from dataclasses import replace as _dc_replace
+            from pct.firma import crea_signer_da_config
+
+            data = request.get_json(force=True) or {}
+            id_fasc = str(data.get("fascicolo_id") or "").strip()
+            documento_ids = [
+                str(item).strip()
+                for item in (data.get("documento_ids") or [])
+                if str(item).strip()
+            ]
+            pin = data.get("pin", "")
+            formato = str(data.get("formato") or "cades").strip().lower()
+            slot_raw = data.get("slot_id")
+
+            if not id_fasc or not documento_ids:
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "fascicolo_id e documento_ids obbligatori.",
+                }), 400
+            if not pin:
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "PIN obbligatorio per la firma batch in-device.",
+                }), 400
+
+            cfg_firma = get_config_studio().config.firma
+            try:
+                backend_firma = cfg_firma.backend_firma_effettivo
+            except (FileNotFoundError, ValueError) as e:
+                return jsonify({"ok": False, "messaggio": str(e)}), 400
+            if backend_firma != "pkcs11":
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "La firma batch in-device è disponibile solo quando il backend selezionato è Token PKCS#11.",
+                }), 400
+            try:
+                formato = cfg_firma.valida_formato_firma(formato)
+            except ValueError as e:
+                return jsonify({"ok": False, "messaggio": str(e)}), 400
+            if formato != "cades":
+                return jsonify({
+                    "ok": False,
+                    "messaggio": "La firma PKCS#11 supporta solo CAdES (.p7m). Per PAdES usare P12/PEM.",
+                }), 400
+
+            u = g.utente_corrente
+            gf = get_fascicoli()
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
+
+            slot = None
+            if slot_raw is not None:
+                try:
+                    slot = int(slot_raw)
+                except (ValueError, TypeError):
+                    pass
+            elif cfg_firma:
+                slot_cfg = getattr(cfg_firma, "pkcs11_slot", "")
+                if str(slot_cfg).strip().isdigit():
+                    slot = int(slot_cfg)
+            label = getattr(cfg_firma, "pkcs11_label", "") if cfg_firma else None
+
+            if slot is not None:
+                cfg_firma_runtime = _dc_replace(cfg_firma, pkcs11_slot=str(slot))
+            else:
+                cfg_firma_runtime = cfg_firma
+            if label:
+                cfg_firma_runtime = _dc_replace(cfg_firma_runtime, pkcs11_label=label)
+
+            risultati = []
+            firmati = 0
+            saltati = 0
+            errori = 0
+
+            with crea_signer_da_config(cfg_firma_runtime, pin=pin) as firma:
+                stato_cert = firma.verifica_scadenza()
+                if stato_cert["scaduto"]:
+                    return jsonify({"ok": False, "messaggio": stato_cert["messaggio"]}), 400
+
+                for id_doc in documento_ids:
+                    doc = next((d for d in fasc.documenti if d.id == id_doc), None)
+                    if not doc:
+                        risultati.append({
+                            "ok": False,
+                            "documento_id": id_doc,
+                            "messaggio": "Documento non trovato.",
+                        })
+                        errori += 1
+                        continue
+
+                    if doc.firmato_digitalmente:
+                        risultati.append({
+                            "ok": True,
+                            "documento_id": id_doc,
+                            "nome_firmato": doc.nome,
+                            "saltato": True,
+                            "messaggio": "Documento già firmato digitalmente.",
+                        })
+                        saltati += 1
+                        continue
+
+                    doc_path = gf.percorso_documento(id_fasc, id_doc)
+                    if not doc_path or not doc_path.exists():
+                        risultati.append({
+                            "ok": False,
+                            "documento_id": id_doc,
+                            "messaggio": "File documento non trovato su disco.",
+                        })
+                        errori += 1
+                        continue
+
+                    with open(doc_path, "rb") as fh:
+                        contenuto = fh.read()
+
+                    firma.salva_documento_firmato(contenuto, str(doc_path), formato="cades")
+                    firmato_path = str(doc_path) + ".p7m"
+
+                    nome_firmato = doc.nome if doc.nome.endswith(".p7m") else f"{doc.nome}.p7m"
+                    doc.nome = nome_firmato
+                    doc.firmato_digitalmente = True
+                    if os.path.exists(firmato_path):
+                        doc.dimensione_bytes = os.path.getsize(firmato_path)
+
+                    risultati.append({
+                        "ok": True,
+                        "documento_id": id_doc,
+                        "nome_firmato": nome_firmato,
+                        "messaggio": "Documento firmato con successo.",
+                    })
+                    firmati += 1
+
+            fasc.modificato_il = __import__("datetime").datetime.now().isoformat()
+            gf._salva()
+
+            audit(
+                "firma.pkcs11.batch",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"Firmati {firmati} documenti via PKCS#11 nel fascicolo {id_fasc}",
+            )
+            _sync.pubblica("modifica", "fascicoli", id_fasc, utente=u.username if u else "")
+
+            return jsonify({
+                "ok": errori == 0,
+                "firmati": firmati,
+                "saltati": saltati,
+                "errori": errori,
+                "intestatario": getattr(firma, "intestatario", ""),
+                "scadenza": stato_cert.get("scadenza", ""),
+                "avviso_scadenza": stato_cert.get("avviso_imminente", False),
+                "risultati": risultati,
+                "messaggio": (
+                    f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori."
+                ),
+            })
+        except Exception as e:
+            app.logger.exception("Errore api_pkcs11_firma_documenti_batch: %s", e)
+            return jsonify({"ok": False, "messaggio": str(e)})
+
     # ─────────────────────────────────────────────────────────────────────────
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/firma", methods=["POST"])

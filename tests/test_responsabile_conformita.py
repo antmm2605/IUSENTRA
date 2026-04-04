@@ -150,9 +150,12 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Istanze" in html
     assert "Responsabile di conformita" in html
     assert "Deposito non pronto" in html
+    assert "Controlli rapidi" in html
     assert "Prossimo passo consigliato" in html
     assert "Checklist operativa del deposito" in html
     assert "Workflow deposito" in html
+    assert "Espandi aree" in html
+    assert "Riduci aree" in html
     assert "Controlli processuali" in html
     assert "Controlli documentali" in html
     assert "Controlli tecnici PST" in html

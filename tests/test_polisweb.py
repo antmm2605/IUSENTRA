@@ -678,6 +678,97 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
     assert len(fascicolo_reload.attivita) == 1
 
 
+def test_api_importa_documenti_portale_puo_archiviare_albero_tecnico_originale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 404/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="404",
+        anno_rg=2025,
+    )
+    deposito = gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-404",
+        tipo_atto="VerbaleUdienza",
+        data_deposito="2026-03-29",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-404",
+                "nome": "VerbaleUdienza_404.pdf",
+                "tipo": "VERBALE",
+                "data_deposito": "2026-03-29",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 12000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-404",
+                "tipo_atto": "VerbaleUdienza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/api/fascicoli/{fascicolo.id}/documenti/importa-portale",
+            json={
+                "note_importazione": "acquisizione completa",
+                "mantieni_albero_originale": True,
+                "files": [
+                    {
+                        "nome": "VerbaleUdienza_404.pdf",
+                        "contenuto_b64": base64.b64encode(b"verbale udienza").decode("ascii"),
+                        "origine": "pst:JPW_SICID:DOC-404",
+                        "data_documento": "2026-03-29",
+                        "id_deposito_esterno": "BUSTA-PST-404",
+                        "id_deposito_pct": deposito.id,
+                        "id_documento_portale": "DOC-404",
+                        "tipo_atto": "VerbaleUdienza",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["albero_originale_salvato"] is True
+
+    archivio = Path(cfg["PST_IMPORT_DIR"]) / "_alberi_originali" / fascicolo.id
+    assert archivio.exists()
+    assert any(path.is_file() and path.name == "VerbaleUdienza_404.pdf" for path in archivio.rglob("*"))
+
+
 def test_route_importa_documenti_portale_aggancia_upload_al_deposito_ufficiale(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -1082,7 +1173,10 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
     body = response.data.decode("utf-8")
     assert response.status_code == 200
     assert "Naviga fascicolo PST" in body
-    assert "Scarica + importa" in body
+    assert "Scarica + importa selezionati" in body
+    assert "Acquisisci intero fascicolo" in body
+    assert "Conserva anche l'albero tecnico originale del portale" in body
+    assert "Acquisisci fascicolo" in body
     assert "_PST_NAV_ITEMS" in body
     assert "/pst/download-documenti-batch" in body
 
@@ -1520,6 +1614,65 @@ def test_route_importa_polisweb_puo_aprire_subito_naviga_pst(tmp_path):
 
     assert response.status_code == 302
     assert "open_pst_nav=1" in response.headers["Location"]
+
+
+def test_route_importa_polisweb_puo_avviare_subito_acquisizione_completa(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/polisWeb/importa",
+            data={
+                "demo_mode": "1",
+                "apri_portale": "1",
+                "acquisisci_portale": "1",
+                "mantieni_albero_originale": "1",
+                "numero_rg": "2048",
+                "anno_rg": "2025",
+                "ruolo": "CIVILE_COGNIZIONE",
+                "stato": "PENDENTE",
+                "oggetto": "Opposizione a decreto",
+                "sezione": "CIVILE",
+                "giudice": "GIUDICE TEST",
+                "data_iscrizione": "04/03/2025 00:00:00.000",
+                "data_udienza": "17/09/2025 00:00:00.000",
+                "parti_json": json.dumps(["ROSSI MARIO", "BANCA BETA S.P.A."]),
+                "parti_dettaglio_json": json.dumps(
+                    [
+                        {"nome": "ROSSI MARIO", "tipo": "ATTORE", "codice_fiscale": "RSSMRA80A01H501U"},
+                        {"nome": "BANCA BETA S.P.A.", "tipo": "CONVENUTO", "codice_fiscale": "12345678901"},
+                    ]
+                ),
+                "codice_ufficio": "0580910094",
+                "nome_ufficio": "",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert "open_pst_nav=1" in response.headers["Location"]
+    assert "auto_pst_acquire=1" in response.headers["Location"]
+    assert "preserve_pst_tree=1" in response.headers["Location"]
 
 
 def test_route_importa_polisweb_riaggancia_fascicolo_target_ripulito(tmp_path):

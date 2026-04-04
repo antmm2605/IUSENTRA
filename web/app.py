@@ -1293,6 +1293,77 @@ def create_app(config: dict | None = None) -> Flask:
         cartella.mkdir(parents=True, exist_ok=True)
         return str(destinazione)
 
+    def _slug_portale_chunk(value: str, fallback: str = "n.d.") -> str:
+        testo = str(value or "").strip()
+        if not testo:
+            return fallback
+        testo = unicodedata.normalize("NFKD", testo).encode("ascii", "ignore").decode("ascii")
+        testo = re.sub(r"[^a-zA-Z0-9._-]+", "-", testo).strip("-._").lower()
+        return testo or fallback
+
+    def _sezione_portale_server(item: dict) -> str:
+        tipo_atto = str(item.get("tipo_atto") or item.get("tipo") or "").lower()
+        nome = str(item.get("nome") or item.get("nome_documento") or "").lower()
+        testo = " ".join(part for part in (tipo_atto, nome) if part)
+        if "istanza" in testo:
+            return "istanze"
+        if any(token in testo for token in ("verbaleudienza", "verbale udienza", "udienza", "verbale")):
+            return "udienze"
+        if any(token in testo for token in ("ordinanza", "decreto", "sentenza", "provvedimento")):
+            return "provvedimenti"
+        if (
+            nome.endswith(".eml")
+            or nome.endswith(".msg")
+            or nome.endswith(".xml")
+            or "ricevuta" in nome
+            or "esito" in nome
+            or "comunicazione" in testo
+            or "pec" in testo
+        ):
+            return "comunicazioni"
+        return "atti"
+
+    def _scrivi_file_univoco(destinazione: Path, payload: bytes) -> Path:
+        destinazione.parent.mkdir(parents=True, exist_ok=True)
+        candidato = destinazione
+        indice = 1
+        while candidato.exists():
+            candidato = destinazione.with_name(
+                f"{destinazione.stem}_{indice}{destinazione.suffix}"
+            )
+            indice += 1
+        candidato.write_bytes(payload)
+        return candidato
+
+    def _salva_albero_originale_documenti_portale(fasc: Fascicolo, items: list[dict]) -> str:
+        if not items:
+            return ""
+        base_root = _pst_import_dir_for_fascicolo(fasc).parent / "_alberi_originali" / fasc.id
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        root = base_root / stamp
+        scritti = 0
+        for idx, item in enumerate(items, start=1):
+            nome = Path(str(item.get("nome") or f"documento_{idx}")).name or f"documento_{idx}"
+            payload = item.get("contenuto", b"")
+            if not payload:
+                continue
+            sezione = _slug_portale_chunk(_sezione_portale_server(item), "atti")
+            deposito_src = (
+                str(item.get("id_deposito_pct") or "").strip()
+                or str(item.get("id_deposito_esterno") or "").strip()
+                or "_".join(
+                    part for part in (
+                        str(item.get("data_documento") or "").strip(),
+                        str(item.get("tipo_atto") or "").strip(),
+                    ) if part
+                )
+            )
+            deposito = _slug_portale_chunk(deposito_src, "senza_deposito")
+            tipo = _slug_portale_chunk(str(item.get("tipo_atto") or Path(nome).stem), "documento")
+            _scrivi_file_univoco(root / sezione / f"{deposito}_{tipo}" / nome, payload)
+            scritti += 1
+        return str(root) if scritti else ""
+
     def _normalizza_nome_match_portale(nome_file: str) -> str:
         testo = Path(str(nome_file or "")).name.strip().lower()
         if not testo:
@@ -4505,6 +4576,8 @@ read -r -p "Premi Invio per chiudere..." _
             fc_esistente = None
             id_fasc_target = f.get("id_fasc", "").strip()
             apri_portale = f.get("apri_portale") == "1"
+            acquisisci_portale = f.get("acquisisci_portale") == "1"
+            mantieni_albero_originale = f.get("mantieni_albero_originale") == "1"
             if id_fasc_target:
                 fascicolo_target = gf.get(id_fasc_target)
                 if (
@@ -4567,7 +4640,9 @@ read -r -p "Premi Invio per chiudere..." _
                 return redirect(url_for(
                     "dettaglio_fascicolo",
                     id_fasc=risultato.id_fascicolo_locale,
-                    open_pst_nav="1" if apri_portale else None,
+                    open_pst_nav="1" if (apri_portale or acquisisci_portale) else None,
+                    auto_pst_acquire="1" if acquisisci_portale else None,
+                    preserve_pst_tree="1" if mantieni_albero_originale else None,
                 ))
             flash(risultato.messaggio, "danger")
         except Exception as e:
@@ -6740,6 +6815,8 @@ read -r -p "Premi Invio per chiudere..." _
         )
         cfg_firma = get_config_studio().config.firma
         open_pst_nav = request.args.get("open_pst_nav") == "1"
+        auto_pst_acquire = request.args.get("auto_pst_acquire") == "1"
+        preserve_pst_tree = request.args.get("preserve_pst_tree") == "1"
         workspace_fascicolo = _build_fascicolo_workspace(
             fasc,
             apps=apps,
@@ -6770,6 +6847,8 @@ read -r -p "Premi Invio per chiudere..." _
             responsabile_conformita=responsabile_conformita,
             cfg_firma=cfg_firma,
             open_pst_nav=open_pst_nav,
+            auto_pst_acquire=auto_pst_acquire,
+            preserve_pst_tree=preserve_pst_tree,
             oggi=date.today(),
         )
 
@@ -6944,6 +7023,7 @@ read -r -p "Premi Invio per chiudere..." _
         u = g.utente_corrente
         fonte = _portale_ufficiale_label(fasc)
         note_importazione = (request.form.get("note_importazione", "") or "").strip()
+        mantieni_albero_originale = str(request.form.get("mantieni_albero_originale") or "").strip().lower() in {"1", "true", "on", "si", "yes"}
         uploaded_items: list[dict] = []
 
         for storage in request.files.getlist("files"):
@@ -6976,6 +7056,9 @@ read -r -p "Premi Invio per chiudere..." _
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
         try:
+            albero_originale_salvato = ""
+            if mantieni_albero_originale and uploaded_items:
+                albero_originale_salvato = _salva_albero_originale_documenti_portale(fasc, uploaded_items)
             esito_import = _importa_documenti_portale_items(
                 gf=gf,
                 fasc=fasc,
@@ -6995,6 +7078,8 @@ read -r -p "Premi Invio per chiudere..." _
                 msg += " Alcuni file sono stati registrati in un lotto documentale locale."
             if esito_import["staging_archived"]:
                 msg += " Inbox temporanea archiviata."
+            if albero_originale_salvato:
+                msg += " Albero tecnico originale archiviato."
             flash(msg, "success")
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
@@ -7013,6 +7098,7 @@ read -r -p "Premi Invio per chiudere..." _
 
             data = request.get_json(silent=True) or {}
             note_importazione = (data.get("note_importazione", "") or "").strip()
+            mantieni_albero_originale = bool(data.get("mantieni_albero_originale"))
             files = data.get("files") or []
             items: list[dict] = []
 
@@ -7041,6 +7127,10 @@ read -r -p "Premi Invio per chiudere..." _
             if not items:
                 return jsonify({"ok": False, "errore": "Nessun file valido ricevuto dal Local Signer."}), 200
 
+            albero_originale_salvato = ""
+            if mantieni_albero_originale:
+                albero_originale_salvato = _salva_albero_originale_documenti_portale(fasc, items)
+
             esito_import = _importa_documenti_portale_items(
                 gf=gf,
                 fasc=fasc,
@@ -7052,6 +7142,7 @@ read -r -p "Premi Invio per chiudere..." _
                 "documenti_importati": esito_import["documenti_importati"],
                 "depositi_agganciati": len(esito_import["depositi_agganciati"]),
                 "lotto_generico": esito_import["lotto_generico"],
+                "albero_originale_salvato": bool(albero_originale_salvato),
                 "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc),
             }), 200
         except (ValueError, KeyError) as e:

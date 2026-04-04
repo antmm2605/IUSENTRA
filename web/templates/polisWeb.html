@@ -2484,6 +2484,11 @@ async function wizEseguiRicerca() {
                     onclick="wizImporta(${idx}, true)">
               <i class="bi bi-diagram-3 me-1"></i>Importa + Naviga PST
             </button>
+            <button type="button" class="btn btn-xs btn-primary btn-sm"
+                    onclick='wizImporta(${idx}, { openPst: true, acquireAll: true })'
+                    title="Importa il fascicolo e avvia subito l'acquisizione completa dei documenti ufficiali">
+              <i class="bi bi-cloud-arrow-down me-1"></i>Importa + acquisisci fascicolo
+            </button>
           </div>
         </td>
       </tr>`).join('');
@@ -2645,8 +2650,12 @@ async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = nul
   form.submit();
 }
 
-async function wizImporta(indice, openPst = false) {
+async function wizImporta(indice, options = {}) {
+  if (typeof options === 'boolean') {
+    options = { openPst: options };
+  }
   const fascicolo = _wizUltimiFascicoli[indice] || {};
+  const openPst = !!(options.openPst || options.acquireAll);
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '{{ url_for("polisWeb_importa") }}';
@@ -2666,6 +2675,8 @@ async function wizImporta(indice, openPst = false) {
     ['codice_ufficio', fascicolo.codice_ufficio || ''],
     ['demo_mode', '0'],
     ['apri_portale', openPst ? '1' : '0'],
+    ['acquisisci_portale', options.acquireAll ? '1' : '0'],
+    ['mantieni_albero_originale', options.preserveOriginalTree ? '1' : '0'],
     ['id_fasc', '{{ id_fasc or "" }}'],
   ].forEach(([k, v]) => _appendHiddenToForm(form, k, v));
   document.body.appendChild(form);

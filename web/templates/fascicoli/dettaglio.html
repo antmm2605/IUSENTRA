@@ -318,6 +318,9 @@
             <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary flex-shrink-0">
               <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
             </a>
+            <button type="button" class="btn btn-sm btn-info text-white flex-shrink-0" id="btnPstAcquireAllHeader">
+              <i class="bi bi-cloud-arrow-down me-1"></i><span class="d-none d-sm-inline">Acquisisci fascicolo</span><span class="d-sm-none">Acquisisci</span>
+            </button>
             <button class="btn btn-sm btn-outline-info flex-shrink-0" data-bs-toggle="modal"
                    data-bs-target="#modalNavigaPst">
               <i class="bi bi-diagram-3 me-1"></i>Naviga PST
@@ -1945,6 +1948,13 @@
 
           <div class="small flex-shrink-0" id="pstNavStatus"></div>
 
+          <div class="form-check form-switch small flex-shrink-0">
+            <input class="form-check-input" type="checkbox" id="pstPreserveOriginalTree">
+            <label class="form-check-label" for="pstPreserveOriginalTree">
+              Conserva anche l'albero tecnico originale del portale nell'archivio locale
+            </label>
+          </div>
+
           <div class="accordion flex-shrink-0" id="accPstImportManuale">
             <div class="accordion-item">
               <h2 class="accordion-header">
@@ -2017,7 +2027,10 @@
               Importa selezionati
             </button>
             <button type="button" class="btn btn-success btn-sm" id="pstDownloadImportSelected">
-              Scarica + importa
+              Scarica + importa selezionati
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="pstAcquireAll">
+              Acquisisci intero fascicolo
             </button>
           </div>
           <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Chiudi</button>
@@ -2675,6 +2688,8 @@ window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
 });
 
 window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
+window._PST_AUTO_ACQUIRE = {{ 'true' if auto_pst_acquire else 'false' }};
+window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
 
 (function () {
   const modal = document.getElementById('modalNavigaPst');
@@ -2687,15 +2702,30 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
   const selectAll = document.getElementById('pstNavSelectAll');
   const counter = document.getElementById('pstNavCounter');
   const noteInput = document.querySelector('#modalNavigaPst input[name="note_importazione"]');
+  const preserveOriginalTreeInput = document.getElementById('pstPreserveOriginalTree');
+  const btnAcquireAllHeader = document.getElementById('btnPstAcquireAllHeader');
   const btnDownloadAll = document.getElementById('pstDownloadAll');
   const btnDownloadSelected = document.getElementById('pstDownloadSelected');
   const btnImportSelected = document.getElementById('pstImportSelected');
   const btnDownloadImportSelected = document.getElementById('pstDownloadImportSelected');
+  const btnAcquireAll = document.getElementById('pstAcquireAll');
   if (!modal || !tree || !status) return;
 
   if (window._PST_AUTO_OPEN) {
+    if (window._PST_PRESERVE_TREE && preserveOriginalTreeInput) {
+      preserveOriginalTreeInput.checked = true;
+    }
     window.addEventListener('load', function () {
       setTimeout(function () {
+        if (window._PST_AUTO_ACQUIRE) {
+          const autoAcquireHandler = function () {
+            modal.removeEventListener('shown.bs.modal', autoAcquireHandler);
+            window.setTimeout(function () {
+              if (btnAcquireAll) btnAcquireAll.click();
+            }, 180);
+          };
+          modal.addEventListener('shown.bs.modal', autoAcquireHandler);
+        }
         bootstrap.Modal.getOrCreateInstance(modal).show();
       }, 180);
     }, { once: true });
@@ -2869,13 +2899,17 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
     return (noteInput && noteInput.value.trim()) || defaultValue;
   }
 
+  function mantieniAlberoOriginale() {
+    return !!(preserveOriginalTreeInput && preserveOriginalTreeInput.checked);
+  }
+
   function stageFiles(files) {
     (files || []).forEach(function (file) {
       stagedFiles.set(buildPstNavKey(file), file);
     });
   }
 
-  async function importaFilesNelFascicolo(files, noteDefault) {
+  async function importaFilesNelFascicolo(files, noteDefault, options) {
     const importResp = await fetch(_IMPORTA_PORTALE_API, {
       method: 'POST',
       headers: {
@@ -2884,6 +2918,7 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
       },
       body: JSON.stringify({
         note_importazione: noteImportazione(noteDefault),
+        mantieni_albero_originale: !!(options && options.preserveOriginalTree),
         files: files || []
       })
     });
@@ -2901,6 +2936,9 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
     }
     if (importData.lotto_generico) {
       doneMsg += ' Alcuni file sono stati registrati in un lotto locale.';
+    }
+    if (importData.albero_originale_salvato) {
+      doneMsg += ' Albero tecnico originale archiviato.';
     }
     setStatus(doneMsg, 'success');
     window.setTimeout(function () {
@@ -2960,7 +2998,7 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
   }
 
   function setButtonsBusy(busy, activeButton, busyLabel) {
-    [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected].forEach(function (btn) {
+    [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected, btnAcquireAll, btnAcquireAllHeader].forEach(function (btn) {
       if (!btn) return;
       btn.disabled = busy;
     });
@@ -2969,7 +3007,7 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
       activeButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + busyLabel;
     }
     if (!busy) {
-      [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected].forEach(function (btn) {
+      [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected, btnAcquireAll, btnAcquireAllHeader].forEach(function (btn) {
         if (btn && btn.dataset.originalHtml) {
           btn.innerHTML = btn.dataset.originalHtml;
         }
@@ -3001,7 +3039,11 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
 
     if (options && options.importAfter) {
       setStatus(message + ' Importo nel fascicolo…', 'info');
-      await importaFilesNelFascicolo(files, options.noteDefault || 'download ufficiale via Local Signer / PST');
+      await importaFilesNelFascicolo(
+        files,
+        options.noteDefault || 'download ufficiale via Local Signer / PST',
+        { preserveOriginalTree: !!options.preserveOriginalTree }
+      );
       return files;
     }
 
@@ -3036,13 +3078,17 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
       throw new Error('Nessun file disponibile per l’importazione dei documenti selezionati.');
     }
 
-    await importaFilesNelFascicolo(files, 'acquisizione selettiva via Naviga PST');
+    await importaFilesNelFascicolo(
+      files,
+      'acquisizione selettiva via Naviga PST',
+      { preserveOriginalTree: mantieniAlberoOriginale() }
+    );
   }
 
   function initNavigator() {
     renderPstTree(filteredPstItems());
     if (!(window._PST_NAV_ITEMS || []).length) {
-      [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected].forEach(function (btn) {
+      [btnDownloadAll, btnDownloadSelected, btnImportSelected, btnDownloadImportSelected, btnAcquireAll, btnAcquireAllHeader].forEach(function (btn) {
         if (btn) btn.disabled = true;
       });
       setStatus('Prima sincronizza i metadati documentali dal portale: poi potrai navigare il fascicolo PST e acquisire i file ufficiali.', 'muted');
@@ -3164,13 +3210,43 @@ window._PST_AUTO_OPEN = {{ 'true' if open_pst_nav else 'false' }};
       try {
         await scaricaDocumenti(items, {
           importAfter: true,
-          noteDefault: 'download ufficiale via Naviga PST / Local Signer'
+          noteDefault: 'download ufficiale via Naviga PST / Local Signer',
+          preserveOriginalTree: mantieniAlberoOriginale()
         });
       } catch (err) {
         setStatus(err && err.message ? err.message : 'Scarica + importa non riuscito.', 'danger');
       } finally {
         setButtonsBusy(false);
       }
+    });
+  }
+
+  if (btnAcquireAll) {
+    btnAcquireAll.addEventListener('click', async function () {
+      setButtonsBusy(true, btnAcquireAll, 'Acquisisco…');
+      try {
+        await scaricaDocumenti(window._PST_NAV_ITEMS || [], {
+          importAfter: true,
+          noteDefault: 'acquisizione integrale fascicolo via Naviga PST / Local Signer',
+          preserveOriginalTree: mantieniAlberoOriginale()
+        });
+      } catch (err) {
+        setStatus(err && err.message ? err.message : 'Acquisizione integrale del fascicolo non riuscita.', 'danger');
+      } finally {
+        setButtonsBusy(false);
+      }
+    });
+  }
+
+  if (btnAcquireAllHeader) {
+    btnAcquireAllHeader.addEventListener('click', function () {
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modal);
+      modalInstance.show();
+      window.setTimeout(function () {
+        if (btnAcquireAll) {
+          btnAcquireAll.click();
+        }
+      }, 180);
     });
   }
 

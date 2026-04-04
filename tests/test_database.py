@@ -19,6 +19,7 @@ from pct.database import (
     bootstrap_moduli_monitorati,
     _fmt_bytes,
 )
+from pct.search_index import IndiceRicerca
 
 
 # ================================================================ Fixtures
@@ -45,6 +46,48 @@ def percorsi(tmp_path):
          "tipo": "UDIENZA", "priorita": "ALTA", "perentorio": True, "completata": False},
     ]
     messaggi = [{"id": "m1", "oggetto": "Info", "id_cliente": "c1", "id_fascicolo": "f1"}]
+    privacy = {
+        "tr1": {
+            "id": "tr1",
+            "nome": "Gestione pratiche",
+            "finalita": "Assistenza legale",
+            "categoria_dati": "anagrafici, giudiziari",
+            "base_giuridica": "Contratto",
+            "soggetti_interessati": "clienti",
+            "destinatari": "interni studio",
+            "attivo": True,
+        }
+    }
+    notifiche = [
+        {
+            "ts": "2024-06-01T08:30:00",
+            "tipo": "promemoria_appuntamento",
+            "cliente": "Mario Rossi",
+            "numero": "+393331234567",
+            "esito": {"ok": True},
+            "utente": "admin",
+        }
+    ]
+    backup_registro = [
+        {
+            "id": "b1",
+            "timestamp": "2024-06-01T04:00:00",
+            "tipo": "COMPLETO",
+            "stato": "OK",
+            "percorso_file": "./backup/b1.zip",
+            "hash_file": "abc123",
+            "dimensione_bytes": 1024,
+            "num_file": 3,
+            "componenti": ["agenda", "fascicoli"],
+            "cifrato": False,
+        }
+    ]
+    backup_config = {
+        "directory_backup": str(tmp_path / "backup"),
+        "max_backup": 7,
+        "frequenza": "GIORNALIERA",
+        "backup_abilitato": True,
+    }
     utenti = [
         {"id": "u1", "username": "admin", "email": "admin@studio.it", "ruolo": "AMMINISTRATORE",
          "attivo": True, "password_hash": "$2b$12$fakehashfortest"},
@@ -67,6 +110,9 @@ def percorsi(tmp_path):
         "messaggi": str(base / "messaggi.json"),
         "utenti": str(base / "utenti.json"),
         "audit": str(base / "audit.json"),
+        "privacy": str(base / "privacy.json"),
+        "notifiche": str(base / "notifiche.json"),
+        "backup": str(base / "backup" / "registro.json"),
         "search_index": str(base / "search.db"),
     }
 
@@ -77,6 +123,26 @@ def percorsi(tmp_path):
     _scrivi_json(Path(paths["messaggi"]), messaggi)
     _scrivi_json(Path(paths["utenti"]), utenti)
     _scrivi_json(Path(paths["audit"]), audit)
+    _scrivi_json(Path(paths["privacy"]), privacy)
+    _scrivi_json(Path(paths["notifiche"]), notifiche)
+    _scrivi_json(Path(paths["backup"]), backup_registro)
+    _scrivi_json(Path(paths["backup"]).with_name("config.json"), backup_config)
+
+    idx = IndiceRicerca(paths["search_index"])
+    idx.indicizza(
+        tipo="fascicolo",
+        entity_id="f1",
+        titolo="Causa Rossi",
+        corpo="Vendita immobiliare e memoria ex art. 183",
+        meta={"numero": "2024/001"},
+    )
+    idx.set_ocr_cache("hash-ocr-1", "testo OCR")
+    idx._conn.execute(
+        "INSERT OR REPLACE INTO meta_indice(chiave, valore) VALUES (?, ?)",
+        ("ultimo_rebuild", "2024-06-01T00:00:00"),
+    )
+    idx._conn.commit()
+    idx._conn.close()
 
     return paths
 
@@ -163,12 +229,21 @@ def test_statistiche_include_modulo_extra_monitorato(tmp_path):
 
 def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
     paths = {
+        "appuntamenti": str(tmp_path / "agenda" / "appuntamenti.json"),
+        "audit": str(tmp_path / "auth" / "audit.json"),
         "calendar_sync": str(tmp_path / "agenda" / "calendar_sync.json"),
         "condivisioni": str(tmp_path / "clienti" / "condivisioni.json"),
+        "fascicoli": str(tmp_path / "fascicoli" / "fascicoli.json"),
+        "messaggi": str(tmp_path / "messaggi" / "storico.json"),
         "note_faldone": str(tmp_path / "clienti" / "note_faldone.json"),
+        "notifiche": str(tmp_path / "notifiche" / "log.json"),
+        "privacy": str(tmp_path / "privacy" / "registro.json"),
         "fatturazione": str(tmp_path / "fatturazione" / "parcelle.json"),
         "preventivi": str(tmp_path / "preventivi" / "preventivi.json"),
+        "search_index": str(tmp_path / "search" / "index.db"),
         "wizard_pro": str(tmp_path / "wizard_pro" / "sessioni.json"),
+        "utenti": str(tmp_path / "auth" / "utenti.json"),
+        "backup": str(tmp_path / "backup" / "registro.json"),
         "legal_intelligence": str(tmp_path / "intelligence" / "motori.json"),
         "normative_tables": str(tmp_path / "intelligence" / "tabelle_normative.json"),
         "validation_runs": str(tmp_path / "intelligence" / "validation_runs.json"),
@@ -180,8 +255,17 @@ def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
     creati = bootstrap_moduli_monitorati(paths)
 
     assert Path(paths["preventivi"]).exists()
+    assert json.loads(Path(paths["appuntamenti"]).read_text(encoding="utf-8")) == {}
+    assert json.loads(Path(paths["audit"]).read_text(encoding="utf-8")) == []
+    assert json.loads(Path(paths["fascicoli"]).read_text(encoding="utf-8")) == {}
+    assert json.loads(Path(paths["messaggi"]).read_text(encoding="utf-8")) == {}
+    assert json.loads(Path(paths["notifiche"]).read_text(encoding="utf-8")) == []
+    assert isinstance(json.loads(Path(paths["privacy"]).read_text(encoding="utf-8")), dict)
     assert json.loads(Path(paths["preventivi"]).read_text(encoding="utf-8")) == {}
+    assert json.loads(Path(paths["utenti"]).read_text(encoding="utf-8")) == {}
     assert json.loads((tmp_path / "preventivi" / "conferimenti.json").read_text(encoding="utf-8")) == {}
+    assert json.loads((tmp_path / "backup" / "registro.json").read_text(encoding="utf-8")) == []
+    assert "directory_backup" in json.loads((tmp_path / "backup" / "config.json").read_text(encoding="utf-8"))
     assert json.loads(Path(paths["calendar_sync"]).read_text(encoding="utf-8")) == {"profiles": []}
     assert json.loads(Path(paths["condivisioni"]).read_text(encoding="utf-8")) == {
         "cartelle": {},
@@ -193,8 +277,20 @@ def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
     assert "tables" in json.loads(Path(paths["normative_tables"]).read_text(encoding="utf-8"))
     assert "monitor_runs" in json.loads(Path(paths["legal_intelligence"]).read_text(encoding="utf-8"))
     assert "editor_layout" in json.loads(Path(paths["template_atti_prefs"]).read_text(encoding="utf-8"))
+    conn = sqlite3.connect(paths["search_index"])
+    search_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()
+    }
+    conn.close()
+    assert "meta_indice" in search_tables
+    assert "ocr_cache" in search_tables
     assert "preventivi" in creati
     assert "normative_tables" in creati
+    assert "privacy" in creati
+    assert "search_index" in creati
 
 
 # ================================================================ verifica_integrita()
@@ -299,6 +395,44 @@ def test_migra_verso_sqlite_tabelle(db, tmp_path):
     ).fetchall()}
     conn.close()
     assert "clienti" in tables
+    assert "moduli_dati" in tables
+    assert "privacy_trattamenti" in tables
+    assert "notifiche_log" in tables
+    assert "backup_records" in tables
+    assert "backup_config" in tables
+    assert "search_documenti" in tables
+    assert "search_meta_indice" in tables
+    assert "search_ocr_cache" in tables
+
+
+def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
+    dest = str(tmp_path / "migrato.db")
+    risultato = db.migra_verso_sqlite(dest)
+    assert risultato.record_migrati.get("privacy", 0) == 1
+    assert risultato.record_migrati.get("notifiche", 0) == 1
+    assert risultato.record_migrati.get("backup", 0) == 1
+    assert risultato.record_migrati.get("backup_config", 0) >= 1
+    assert risultato.record_migrati.get("search_index", 0) == 1
+
+    conn = sqlite3.connect(dest)
+    counts = conn.execute(
+        """
+        SELECT
+            (SELECT COUNT(*) FROM moduli_dati),
+            (SELECT COUNT(*) FROM privacy_trattamenti),
+            (SELECT COUNT(*) FROM notifiche_log),
+            (SELECT COUNT(*) FROM backup_records),
+            (SELECT COUNT(*) FROM backup_config),
+            (SELECT COUNT(*) FROM search_documenti),
+            (SELECT COUNT(*) FROM search_meta_indice),
+            (SELECT COUNT(*) FROM search_ocr_cache)
+        """
+    ).fetchone()
+    conn.close()
+
+    assert counts is not None
+    assert counts[0] >= 11
+    assert counts[1:] == (1, 1, 1, 4, 1, 1, 1)
 
 
 def test_migra_verso_sqlite_crea_base_strutturale_procedurale_e_forense(db, tmp_path):
@@ -624,9 +758,12 @@ def test_create_app_bootstrap_moduli_monitorati(tmp_path):
         "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),
+        "NOTIFICHE_LOG": str(tmp_path / "notifiche" / "log.json"),
+        "PRIVACY_DB": str(tmp_path / "privacy" / "registro.json"),
         "SEARCH_INDEX": str(tmp_path / "search" / "index.db"),
         "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
         "FASCICOLI_ARCH": str(tmp_path / "fascicoli" / "archivio"),
+        "BACKUP_DIR": str(tmp_path / "backup"),
         "PORTALE_DB": str(tmp_path / "portale" / "portali.json"),
         "FATTURAZIONE_DB": str(tmp_path / "fatturazione" / "parcelle.json"),
         "PREVENTIVI_DB": str(tmp_path / "preventivi" / "preventivi.json"),
@@ -647,6 +784,11 @@ def test_create_app_bootstrap_moduli_monitorati(tmp_path):
     create_app(cfg)
 
     assert Path(cfg["PREVENTIVI_DB"]).exists()
+    assert Path(cfg["NOTIFICHE_LOG"]).exists()
+    assert Path(cfg["PRIVACY_DB"]).exists()
+    assert Path(cfg["SEARCH_INDEX"]).exists()
+    assert Path(cfg["BACKUP_DIR"]).joinpath("registro.json").exists()
+    assert Path(cfg["BACKUP_DIR"]).joinpath("config.json").exists()
     assert Path(tmp_path / "preventivi" / "conferimenti.json").exists()
     assert Path(cfg["FATTURAZIONE_DB"]).exists()
     assert Path(cfg["EMAIL_CASELLA_DB"]).exists()
@@ -685,6 +827,8 @@ def client_admin(tmp_path):
         "AGENDA_DB": str(tmp_path / "agenda.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "NOTIFICHE_LOG": str(tmp_path / "notifiche.json"),
+        "PRIVACY_DB": str(tmp_path / "privacy.json"),
         "BACKUP_DIR": backup_dir,
         "SEARCH_INDEX": str(tmp_path / "search.db"),
         "FASCICOLI_DOCS": str(tmp_path / "docs"),

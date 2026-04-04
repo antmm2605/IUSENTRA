@@ -273,6 +273,100 @@ CREATE INDEX IF NOT EXISTS idx_audit_timestamp  ON audit_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_audit_utente     ON audit_log(id_utente);
 CREATE INDEX IF NOT EXISTS idx_audit_azione     ON audit_log(azione);
 CREATE INDEX IF NOT EXISTS idx_audit_esito      ON audit_log(esito);
+
+-- ---- Registro moduli dati
+CREATE TABLE IF NOT EXISTS moduli_dati (
+    nome              TEXT PRIMARY KEY,
+    percorso          TEXT NOT NULL,
+    storage_kind      TEXT NOT NULL DEFAULT 'json',
+    inizializzato_il  TEXT,
+    payload_json      TEXT DEFAULT '{}'
+);
+
+-- ---- Privacy (registro trattamenti GDPR)
+CREATE TABLE IF NOT EXISTS privacy_trattamenti (
+    id                        TEXT PRIMARY KEY,
+    nome                      TEXT NOT NULL,
+    finalita                  TEXT,
+    categoria_dati            TEXT,
+    base_giuridica            TEXT,
+    soggetti_interessati      TEXT,
+    destinatari               TEXT,
+    trasferimento_extra_ue    INTEGER DEFAULT 0,
+    paese_destinazione        TEXT,
+    termine_conservazione     TEXT,
+    misure_sicurezza          TEXT,
+    responsabile              TEXT,
+    attivo                    INTEGER DEFAULT 1,
+    note                      TEXT,
+    creato_il                 TEXT,
+    modificato_il             TEXT,
+    dati_json                 TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_privacy_attivo   ON privacy_trattamenti(attivo);
+CREATE INDEX IF NOT EXISTS idx_privacy_nome     ON privacy_trattamenti(nome);
+
+-- ---- Notifiche
+CREATE TABLE IF NOT EXISTS notifiche_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp      TEXT,
+    tipo           TEXT,
+    cliente        TEXT,
+    numero         TEXT,
+    utente         TEXT,
+    esito_json     TEXT DEFAULT '{}',
+    payload_json   TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_notifiche_ts     ON notifiche_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_notifiche_tipo   ON notifiche_log(tipo);
+
+-- ---- Backup
+CREATE TABLE IF NOT EXISTS backup_config (
+    chiave         TEXT PRIMARY KEY,
+    valore         TEXT,
+    payload_json   TEXT DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS backup_records (
+    id               TEXT PRIMARY KEY,
+    timestamp        TEXT NOT NULL,
+    tipo             TEXT NOT NULL,
+    stato            TEXT NOT NULL,
+    percorso_file    TEXT,
+    hash_file        TEXT,
+    dimensione_bytes INTEGER DEFAULT 0,
+    num_file         INTEGER DEFAULT 0,
+    componenti_json  TEXT DEFAULT '[]',
+    cifrato          INTEGER DEFAULT 0,
+    nota             TEXT,
+    errore           TEXT,
+    backup_base_id   TEXT,
+    dati_json        TEXT DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_backup_timestamp ON backup_records(timestamp);
+CREATE INDEX IF NOT EXISTS idx_backup_stato     ON backup_records(stato);
+CREATE INDEX IF NOT EXISTS idx_backup_tipo      ON backup_records(tipo);
+
+-- ---- Search index unificato
+CREATE VIRTUAL TABLE IF NOT EXISTS search_documenti USING fts5(
+    tipo UNINDEXED,
+    entity_id UNINDEXED,
+    titolo,
+    corpo,
+    meta UNINDEXED,
+    tokenize = 'unicode61 remove_diacritics 1'
+);
+
+CREATE TABLE IF NOT EXISTS search_meta_indice (
+    chiave TEXT PRIMARY KEY,
+    valore TEXT
+);
+
+CREATE TABLE IF NOT EXISTS search_ocr_cache (
+    hash_sha256  TEXT PRIMARY KEY,
+    testo        TEXT,
+    elaborato_il TEXT
+);
 """
 
 
@@ -299,6 +393,7 @@ class GestioneDatabase:
     MODULI_SQLITE = [
         "clienti", "fascicoli", "appuntamenti",
         "scadenze", "messaggi", "utenti", "audit",
+        "privacy", "notifiche", "backup",
     ]
 
     def __init__(self, percorsi: Dict[str, str]):
@@ -308,7 +403,8 @@ class GestioneDatabase:
         percorsi:
             Dizionario {nome_modulo: percorso_file_json}.
             Chiavi riconosciute: clienti, fascicoli, appuntamenti,
-            scadenze, messaggi, utenti, audit, search_index.
+            scadenze, messaggi, utenti, audit, privacy, notifiche,
+            backup, search_index.
         """
         self.percorsi = {k: Path(v) for k, v in percorsi.items() if v}
 
@@ -343,6 +439,18 @@ class GestioneDatabase:
             return [], f"JSON non valido: {e}"
         except Exception as e:
             return [], str(e)
+
+    def _leggi_json_grezzo(self, chiave: str) -> Tuple[Any, Optional[str]]:
+        """Legge un file JSON restituendo la struttura originale."""
+        p = self.percorsi.get(chiave)
+        if not p or not p.exists():
+            return None, None
+        try:
+            return json.loads(p.read_text("utf-8")), None
+        except json.JSONDecodeError as e:
+            return None, f"JSON non valido: {e}"
+        except Exception as e:
+            return None, str(e)
 
     def _stat_file(self, p: Path) -> Tuple[int, str]:
         """(dimensione_bytes, ultima_modifica_iso)"""
@@ -401,6 +509,7 @@ class GestioneDatabase:
                 nome="search_index",
                 percorso=str(search_p),
                 esiste=search_p.exists(),
+                migrabile_sqlite=True,
             )
             if search_p.exists():
                 sm_s.dimensione_bytes, sm_s.ultima_modifica = self._stat_file(search_p)
@@ -745,6 +854,17 @@ class GestioneDatabase:
                 "INSERT OR REPLACE INTO _meta VALUES(?,?)",
                 ("migrazione_il", datetime.now().isoformat()),
             )
+            for chiave, percorso in sorted(self.percorsi.items()):
+                storage_kind = "sqlite" if chiave == "search_index" else "json"
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO moduli_dati
+                    (nome, percorso, storage_kind, inizializzato_il)
+                    VALUES (?,?,?,?)
+                    """,
+                    (chiave, str(percorso), storage_kind, datetime.now().isoformat()),
+                )
+            migrati["moduli_dati"] = len(self.percorsi)
 
             # ---- Clienti
             clienti_raw, err = self._leggi_json("clienti")
@@ -989,6 +1109,200 @@ class GestioneDatabase:
                         errori.append(f"audit/{e.get('id','?')}: {ex}")
                 migrati["audit"] = al_count
 
+            # ---- Privacy
+            privacy_raw, err = self._leggi_json("privacy")
+            if err:
+                errori.append(f"privacy: {err}")
+            else:
+                p_count = 0
+                for trattamento in privacy_raw:
+                    try:
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO privacy_trattamenti
+                            (id, nome, finalita, categoria_dati, base_giuridica,
+                             soggetti_interessati, destinatari, trasferimento_extra_ue,
+                             paese_destinazione, termine_conservazione,
+                             misure_sicurezza, responsabile, attivo, note,
+                             creato_il, modificato_il, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                trattamento.get("id"),
+                                trattamento.get("nome", ""),
+                                trattamento.get("finalita", ""),
+                                trattamento.get("categoria_dati", ""),
+                                trattamento.get("base_giuridica", ""),
+                                trattamento.get("soggetti_interessati", trattamento.get("soggetti", "")),
+                                trattamento.get("destinatari", ""),
+                                1 if trattamento.get("trasferimento_extra_ue") else 0,
+                                trattamento.get("paese_destinazione", ""),
+                                trattamento.get("termine_conservazione", ""),
+                                trattamento.get("misure_sicurezza", ""),
+                                trattamento.get("responsabile", ""),
+                                1 if trattamento.get("attivo", True) else 0,
+                                trattamento.get("note", ""),
+                                trattamento.get("creato_il", ""),
+                                trattamento.get("modificato_il", ""),
+                                json.dumps(trattamento, ensure_ascii=False),
+                            ),
+                        )
+                        p_count += 1
+                    except Exception as ex:
+                        errori.append(f"privacy/{trattamento.get('id','?')}: {ex}")
+                migrati["privacy"] = p_count
+
+            # ---- Notifiche
+            notifiche_raw, err = self._leggi_json("notifiche")
+            if err:
+                errori.append(f"notifiche: {err}")
+            else:
+                n_count = 0
+                for entry in notifiche_raw:
+                    try:
+                        esito = entry.get("esito")
+                        payload = {k: v for k, v in entry.items() if k != "esito"}
+                        conn.execute(
+                            """
+                            INSERT INTO notifiche_log
+                            (timestamp, tipo, cliente, numero, utente, esito_json, payload_json)
+                            VALUES (?,?,?,?,?,?,?)
+                            """,
+                            (
+                                entry.get("ts", entry.get("timestamp", "")),
+                                entry.get("tipo", ""),
+                                entry.get("cliente", ""),
+                                entry.get("numero", ""),
+                                entry.get("utente", ""),
+                                json.dumps(esito or {}, ensure_ascii=False),
+                                json.dumps(payload, ensure_ascii=False),
+                            ),
+                        )
+                        n_count += 1
+                    except Exception as ex:
+                        errori.append(f"notifiche/{entry.get('ts','?')}: {ex}")
+                migrati["notifiche"] = n_count
+
+            # ---- Backup
+            backup_raw, err = self._leggi_json("backup")
+            if err:
+                errori.append(f"backup: {err}")
+            else:
+                b_count = 0
+                for record in backup_raw:
+                    try:
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO backup_records
+                            (id, timestamp, tipo, stato, percorso_file, hash_file,
+                             dimensione_bytes, num_file, componenti_json, cifrato,
+                             nota, errore, backup_base_id, dati_json)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """,
+                            (
+                                record.get("id"),
+                                record.get("timestamp", ""),
+                                record.get("tipo", "COMPLETO"),
+                                record.get("stato", "OK"),
+                                record.get("percorso_file", ""),
+                                record.get("hash_file", ""),
+                                int(record.get("dimensione_bytes", 0) or 0),
+                                int(record.get("num_file", 0) or 0),
+                                json.dumps(record.get("componenti", []), ensure_ascii=False),
+                                1 if record.get("cifrato") else 0,
+                                record.get("nota", ""),
+                                record.get("errore", ""),
+                                record.get("backup_base_id", ""),
+                                json.dumps(record, ensure_ascii=False),
+                            ),
+                        )
+                        b_count += 1
+                    except Exception as ex:
+                        errori.append(f"backup/{record.get('id','?')}: {ex}")
+                migrati["backup"] = b_count
+
+            backup_path = self.percorsi.get("backup")
+            if backup_path:
+                backup_cfg = backup_path.with_name("config.json")
+                if backup_cfg.exists():
+                    try:
+                        cfg_raw = json.loads(backup_cfg.read_text("utf-8"))
+                        cfg_count = 0
+                        for chiave, valore in cfg_raw.items():
+                            conn.execute(
+                                """
+                                INSERT OR REPLACE INTO backup_config
+                                (chiave, valore, payload_json)
+                                VALUES (?,?,?)
+                                """,
+                                (
+                                    str(chiave),
+                                    json.dumps(valore, ensure_ascii=False)
+                                    if isinstance(valore, (dict, list, bool))
+                                    else "" if valore is None else str(valore),
+                                    json.dumps({"chiave": chiave, "valore": valore}, ensure_ascii=False),
+                                ),
+                            )
+                            cfg_count += 1
+                        migrati["backup_config"] = cfg_count
+                    except Exception as ex:
+                        errori.append(f"backup_config: {ex}")
+
+            # ---- Search index
+            search_path = self.percorsi.get("search_index")
+            if search_path and search_path.exists():
+                try:
+                    src = sqlite3.connect(str(search_path))
+                    src.row_factory = sqlite3.Row
+
+                    doc_count = 0
+                    for row in src.execute(
+                        "SELECT tipo, entity_id, titolo, corpo, meta FROM documenti"
+                    ).fetchall():
+                        conn.execute(
+                            """
+                            INSERT INTO search_documenti(tipo, entity_id, titolo, corpo, meta)
+                            VALUES (?,?,?,?,?)
+                            """,
+                            (
+                                row["tipo"],
+                                row["entity_id"],
+                                row["titolo"],
+                                row["corpo"],
+                                row["meta"],
+                            ),
+                        )
+                        doc_count += 1
+                    migrati["search_index"] = doc_count
+
+                    meta_count = 0
+                    for row in src.execute(
+                        "SELECT chiave, valore FROM meta_indice"
+                    ).fetchall():
+                        conn.execute(
+                            "INSERT OR REPLACE INTO search_meta_indice(chiave, valore) VALUES (?,?)",
+                            (row["chiave"], row["valore"]),
+                        )
+                        meta_count += 1
+                    migrati["search_meta_indice"] = meta_count
+
+                    ocr_count = 0
+                    for row in src.execute(
+                        "SELECT hash_sha256, testo, elaborato_il FROM ocr_cache"
+                    ).fetchall():
+                        conn.execute(
+                            """
+                            INSERT OR REPLACE INTO search_ocr_cache(hash_sha256, testo, elaborato_il)
+                            VALUES (?,?,?)
+                            """,
+                            (row["hash_sha256"], row["testo"], row["elaborato_il"]),
+                        )
+                        ocr_count += 1
+                    migrati["search_ocr_cache"] = ocr_count
+                    src.close()
+                except Exception as ex:
+                    errori.append(f"search_index: {ex}")
+
             conn.execute("INSERT OR REPLACE INTO _meta VALUES(?,?)",
                          ("totale_record", str(sum(migrati.values()))))
 
@@ -1111,7 +1425,14 @@ class GestioneDatabase:
         try:
             conn = sqlite3.connect(str(p))
             tables = [r[0] for r in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '\\_%' ESCAPE '\\'"
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type='table'
+                  AND name NOT LIKE '\\_%' ESCAPE '\\'
+                  AND name NOT LIKE 'sqlite_%'
+                  AND name NOT LIKE 'search_documenti_%'
+                """
             ).fetchall()]
             stats = {}
             for t in tables:
@@ -1167,7 +1488,8 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
 
     Non sovrascrive mai file esistenti e usa, quando utile, la struttura minima
     corretta per evitare stati "Non trovato" dovuti solo a bootstrap non ancora
-    eseguiti.
+    eseguiti. Per backup e search crea anche le strutture tecniche minime
+    richieste in modalità operativa o SQL.
     """
     normalized = {
         str(nome or "").strip().lower(): str(path).strip()
@@ -1181,9 +1503,14 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
             created[nome] = path
 
     simple_payloads: Dict[str, Any] = {
+        "appuntamenti": {},
+        "audit": [],
         "calendar_sync": {"profiles": []},
         "condivisioni": {"cartelle": {}, "fascicoli": {}, "link": {}},
+        "fascicoli": {},
+        "messaggi": {},
         "note_faldone": {},
+        "notifiche": [],
         "email_casella": {},
         "fatturazione": {},
         "portale": {},
@@ -1191,6 +1518,7 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "soggetti": [],
         "soggetti_parti": {},
         "template_atti": {},
+        "utenti": {},
         "validation_runs": {"runs": []},
         "redaction_assistant": [],
         "wizard_pro": [],
@@ -1213,6 +1541,39 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
 
         GestionePreferenzeTemplateAtti(template_prefs_path).salva()
         created["template_atti_prefs"] = template_prefs_path
+
+    privacy_path = normalized.get("privacy")
+    if privacy_path and not Path(privacy_path).exists():
+        from pct.privacy import GestioneTrattamenti
+
+        GestioneTrattamenti(privacy_path)
+        created["privacy"] = privacy_path
+
+    backup_path = normalized.get("backup")
+    if backup_path:
+        backup_target = Path(backup_path)
+        changed = _bootstrap_json_file(str(backup_target), [])
+        if changed:
+            created["backup"] = str(backup_target)
+
+        backup_cfg = backup_target.with_name("config.json")
+        if not backup_cfg.exists():
+            from pct.backup import ConfigBackup
+
+            cfg = ConfigBackup(directory_backup=str(backup_target.parent))
+            backup_cfg.write_text(
+                json.dumps(cfg.to_dict(), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            created["backup_config"] = str(backup_cfg)
+
+    search_path = normalized.get("search_index")
+    if search_path and not Path(search_path).exists():
+        from pct.search_index import IndiceRicerca
+
+        indice = IndiceRicerca(search_path)
+        indice._conn.close()
+        created["search_index"] = search_path
 
     normative_path = normalized.get("normative_tables")
     if normative_path and not Path(normative_path).exists():

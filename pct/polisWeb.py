@@ -171,14 +171,22 @@ def _qbuilder_parti_dettaglio(row: Dict[str, Any]) -> List[Dict[str, str]]:
         if gruppo not in {"InfoParte", "Parte", "ParteProcessuale"}:
             continue
         for parte in righe:
-            cognome = (parte.get("COGNOME") or parte.get("COGNOMENOME") or "").strip()
+            cognome = (parte.get("COGNOME") or "").strip()
             nome = (parte.get("NOME") or "").strip()
-            full_name = (parte.get("NOMINATIVO") or f"{cognome} {nome}").strip()
+            cognome_nome = (parte.get("COGNOMENOME") or "").strip()
+            full_name = (parte.get("NOMINATIVO") or "").strip()
+            if not full_name:
+                if cognome and nome:
+                    full_name = f"{cognome} {nome}"
+                else:
+                    full_name = cognome_nome
             if not full_name:
                 continue
             dettagli.append(
                 {
                     "nome": re.sub(r"\s+", " ", full_name),
+                    "cognome": re.sub(r"\s+", " ", cognome),
+                    "nome_proprio": re.sub(r"\s+", " ", nome),
                     "tipo": (parte.get("TIPOPARTE") or parte.get("PARTE") or "").strip(),
                     "codice_fiscale": (parte.get("CODICEFISCALEPARTE") or parte.get("CODICEFISCALE") or "").strip(),
                     "avvocato": (parte.get("AVVOCATO") or parte.get("NOMEAVVOCATO") or "").strip(),
@@ -583,18 +591,40 @@ def _is_persona_giuridica(nome: str) -> bool:
     return any(ind in nome.upper() for ind in indicatori)
 
 
-def _split_nome_cognome(nome_completo: str) -> tuple[str, str]:
+def _split_nome_cognome(
+    nome_completo: str,
+    *,
+    cognome_hint: str = "",
+    nome_hint: str = "",
+) -> tuple[str, str]:
     """
-    Divide un nominativo PST ('COGNOME NOME') in (cognome, nome).
-    Euristica: ultimo token = nome, resto = cognome.
+    Divide un nominativo PST in (cognome, nome).
+
+    Se il portale espone già i campi strutturati li usa come fonte primaria.
+    In fallback applica due euristiche:
+    - tutto maiuscolo -> formato PST classico "COGNOME NOME"
+    - testo misto     -> formato più naturale "Nome Cognome"
     """
-    parti = nome_completo.strip().split()
+    def _normalize(value: str) -> str:
+        return re.sub(r"\s+", " ", (value or "").strip()).title()
+
+    cognome_hint = _normalize(cognome_hint)
+    nome_hint = _normalize(nome_hint)
+    if cognome_hint or nome_hint:
+        return cognome_hint, nome_hint
+
+    nome_completo = re.sub(r"\s+", " ", (nome_completo or "").strip())
+    parti = nome_completo.split()
     if not parti:
         return "", ""
     if len(parti) == 1:
         return parti[0].title(), ""
-    cognome = " ".join(p.title() for p in parti[:-1])
-    nome    = parti[-1].title()
+    if nome_completo.upper() == nome_completo:
+        cognome = " ".join(p.title() for p in parti[:-1])
+        nome = " ".join(p.title() for p in parti[-1:])
+    else:
+        nome = " ".join(p.title() for p in parti[:-1])
+        cognome = " ".join(p.title() for p in parti[-1:])
     return cognome, nome
 
 
@@ -621,6 +651,8 @@ def _iter_parti_pst(
         parti.append(
             {
                 "nome": nome,
+                "cognome": re.sub(r"\s+", " ", (dettaglio.get("cognome") or "").strip()),
+                "nome_proprio": re.sub(r"\s+", " ", (dettaglio.get("nome_proprio") or "").strip()),
                 "codice_fiscale": cf,
                 "tipo": (dettaglio.get("tipo") or "").strip(),
                 "avvocato": (dettaglio.get("avvocato") or "").strip(),
@@ -639,6 +671,8 @@ def _iter_parti_pst(
         parti.append(
             {
                 "nome": nome,
+                "cognome": "",
+                "nome_proprio": "",
                 "codice_fiscale": "",
                 "tipo": "",
                 "avvocato": "",
@@ -672,6 +706,9 @@ def _crea_cliente_pst(
     codice_fiscale: str,
     riferimento: str,
     portale: str,
+    *,
+    cognome_hint: str = "",
+    nome_hint: str = "",
 ):
     from pct.clienti import StatoCliente, TipoCliente
 
@@ -688,7 +725,11 @@ def _crea_cliente_pst(
             note=nota_auto,
         )
 
-    cognome, nome_pf = _split_nome_cognome(nome)
+    cognome, nome_pf = _split_nome_cognome(
+        nome,
+        cognome_hint=cognome_hint,
+        nome_hint=nome_hint,
+    )
     return gestione_clienti.nuovo(
         tipo=TipoCliente.PERSONA_FISICA,
         cognome=cognome,
@@ -731,6 +772,9 @@ def _crea_soggetto_pst(
     codice_fiscale: str = "",
     id_cliente: str = "",
     note: str = "",
+    *,
+    cognome_hint: str = "",
+    nome_hint: str = "",
 ):
     from pct.soggetti import TipoSoggetto
 
@@ -746,7 +790,11 @@ def _crea_soggetto_pst(
             note=note,
         )
 
-    cognome, nome_pf = _split_nome_cognome(nome)
+    cognome, nome_pf = _split_nome_cognome(
+        nome,
+        cognome_hint=cognome_hint,
+        nome_hint=nome_hint,
+    )
     return gestione_soggetti.crea(
         TipoSoggetto.PERSONA_FISICA,
         cognome=cognome,
@@ -755,6 +803,92 @@ def _crea_soggetto_pst(
         id_cliente=id_cliente,
         note=note,
     )
+
+
+def _allinea_cliente_pst(
+    gestione_clienti,
+    cliente,
+    *,
+    nome: str,
+    codice_fiscale: str = "",
+    cognome_hint: str = "",
+    nome_hint: str = "",
+):
+    from pct.clienti import TipoCliente
+
+    if cliente is None:
+        return None, False
+
+    nome = re.sub(r"\s+", " ", (nome or "").strip())
+    codice_fiscale = (codice_fiscale or "").strip().upper()
+    updates: Dict[str, str] = {}
+
+    if cliente.tipo == TipoCliente.PERSONA_GIURIDICA or _is_persona_giuridica(nome):
+        if nome and not getattr(cliente, "ragione_sociale", ""):
+            updates["ragione_sociale"] = nome
+        if codice_fiscale and not getattr(cliente, "codice_fiscale", ""):
+            updates["codice_fiscale"] = codice_fiscale
+    else:
+        cognome, nome_pf = _split_nome_cognome(
+            nome,
+            cognome_hint=cognome_hint,
+            nome_hint=nome_hint,
+        )
+        if cognome and getattr(cliente, "cognome", "") != cognome:
+            updates["cognome"] = cognome
+        if nome_pf and getattr(cliente, "nome", "") != nome_pf:
+            updates["nome"] = nome_pf
+        if codice_fiscale and getattr(cliente, "codice_fiscale", "") != codice_fiscale:
+            updates["codice_fiscale"] = codice_fiscale
+
+    if not updates:
+        return cliente, False
+    return gestione_clienti.aggiorna(cliente.id, **updates), True
+
+
+def _allinea_soggetto_pst(
+    gestione_soggetti,
+    soggetto,
+    *,
+    nome: str,
+    codice_fiscale: str = "",
+    cognome_hint: str = "",
+    nome_hint: str = "",
+    id_cliente: str = "",
+):
+    from pct.soggetti import TipoSoggetto
+
+    if soggetto is None:
+        return None, False
+
+    nome = re.sub(r"\s+", " ", (nome or "").strip())
+    codice_fiscale = (codice_fiscale or "").strip().upper()
+    updates: Dict[str, str] = {}
+
+    if soggetto.tipo == TipoSoggetto.PERSONA_GIURIDICA or _is_persona_giuridica(nome):
+        if nome and not getattr(soggetto, "ragione_sociale", ""):
+            updates["ragione_sociale"] = nome
+        if codice_fiscale and not getattr(soggetto, "codice_fiscale", ""):
+            updates["codice_fiscale"] = codice_fiscale
+    else:
+        cognome, nome_pf = _split_nome_cognome(
+            nome,
+            cognome_hint=cognome_hint,
+            nome_hint=nome_hint,
+        )
+        if cognome and getattr(soggetto, "cognome", "") != cognome:
+            updates["cognome"] = cognome
+        if nome_pf and getattr(soggetto, "nome", "") != nome_pf:
+            updates["nome"] = nome_pf
+        if codice_fiscale and getattr(soggetto, "codice_fiscale", "") != codice_fiscale:
+            updates["codice_fiscale"] = codice_fiscale
+
+    if id_cliente and getattr(soggetto, "id_cliente", "") != id_cliente:
+        updates["id_cliente"] = id_cliente
+
+    if not updates:
+        return soggetto, False
+    return gestione_soggetti.aggiorna(soggetto.id, **updates), True
 
 
 def _ruolo_parte_pst(idx: int, parte: Dict[str, str], id_cliente_principale: str, soggetto):
@@ -881,6 +1015,19 @@ def _riconcilia_parti_dettaglio_polisweb(
         nome_raw = parte["nome"]
         codice_fiscale = parte.get("codice_fiscale", "")
         trovato = _cerca_cliente_pst(gestione_clienti, nome_raw, codice_fiscale)
+        if trovato is not None:
+            trovato, aggiornato = _allinea_cliente_pst(
+                gestione_clienti,
+                trovato,
+                nome=nome_raw,
+                codice_fiscale=codice_fiscale,
+                cognome_hint=parte.get("cognome", ""),
+                nome_hint=parte.get("nome_proprio", ""),
+            )
+            if aggiornato:
+                avvisi.append(
+                    f"Anagrafica cliente riallineata ai dati PST: «{trovato.nome_completo}»."
+                )
 
         if trovato is None:
             try:
@@ -890,6 +1037,8 @@ def _riconcilia_parti_dettaglio_polisweb(
                     codice_fiscale=codice_fiscale,
                     riferimento=riferimento,
                     portale=portale,
+                    cognome_hint=parte.get("cognome", ""),
+                    nome_hint=parte.get("nome_proprio", ""),
                 )
                 avvisi.append(
                     f"Nuovo soggetto creato in anagrafica: "
@@ -929,6 +1078,19 @@ def _sincronizza_parti_pst_su_fascicolo(
         nome = parte["nome"]
         codice_fiscale = parte.get("codice_fiscale", "")
         cliente = _cerca_cliente_pst(gestione_clienti, nome, codice_fiscale)
+        if cliente is not None:
+            cliente, aggiornato_cliente = _allinea_cliente_pst(
+                gestione_clienti,
+                cliente,
+                nome=nome,
+                codice_fiscale=codice_fiscale,
+                cognome_hint=parte.get("cognome", ""),
+                nome_hint=parte.get("nome_proprio", ""),
+            )
+            if aggiornato_cliente:
+                avvisi.append(
+                    f"Anagrafica cliente riallineata ai dati PST: «{cliente.nome_completo}»."
+                )
         id_cliente_assoc = cliente.id if cliente else (id_cliente_principale if idx == 0 else "")
         soggetto = _cerca_soggetto_pst(
             gestione_soggetti=gestione_soggetti,
@@ -936,6 +1098,20 @@ def _sincronizza_parti_pst_su_fascicolo(
             codice_fiscale=codice_fiscale,
             id_cliente=id_cliente_assoc,
         )
+        if soggetto is not None:
+            soggetto, aggiornato_soggetto = _allinea_soggetto_pst(
+                gestione_soggetti,
+                soggetto,
+                nome=nome,
+                codice_fiscale=codice_fiscale,
+                cognome_hint=parte.get("cognome", ""),
+                nome_hint=parte.get("nome_proprio", ""),
+                id_cliente=id_cliente_assoc,
+            )
+            if aggiornato_soggetto:
+                avvisi.append(
+                    f"Anagrafica soggetto riallineata ai dati PST: «{soggetto.nome_completo}»."
+                )
 
         if soggetto is None:
             tipo_parte = (parte.get("tipo") or "").strip()
@@ -948,6 +1124,8 @@ def _sincronizza_parti_pst_su_fascicolo(
                 codice_fiscale=codice_fiscale,
                 id_cliente=id_cliente_assoc,
                 note=nota,
+                cognome_hint=parte.get("cognome", ""),
+                nome_hint=parte.get("nome_proprio", ""),
             )
             avvisi.append(f"Nuova parte creata nel database soggetti: «{soggetto.nome_completo}».")
 

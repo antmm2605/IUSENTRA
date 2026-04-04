@@ -1372,3 +1372,232 @@ def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(t
     assert "memoria_conclusionale.pdf.p7m" in body
     assert "documenti ufficiali" in body
     assert "Nessuna comunicazione di cancelleria" in body
+
+
+def test_sync_polisweb_riallinea_anagrafiche_persona_fisica_con_nome_misto(tmp_path):
+    from pct.clienti import TipoCliente
+    from pct.soggetti import TipoSoggetto
+
+    gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gestione_soggetti = GestioneSoggetti(
+        soggetti_path=str(tmp_path / "soggetti.json"),
+        parti_path=str(tmp_path / "parti.json"),
+    )
+
+    cliente_invertito = gestione_clienti.nuovo(
+        tipo=TipoCliente.PERSONA_FISICA,
+        nome="Montagnese",
+        cognome="Elisabetta",
+        codice_fiscale="MNTLBT49E47H558L",
+    )
+    soggetto_invertito = gestione_soggetti.crea(
+        TipoSoggetto.PERSONA_FISICA,
+        nome="Montagnese",
+        cognome="Elisabetta",
+        codice_fiscale="MNTLBT49E47H558L",
+        id_cliente=cliente_invertito.id,
+    )
+
+    fascicolo_locale = gestione_fascicoli.nuovo(
+        titolo="Fascicolo da sincronizzare",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+    )
+
+    fascicolo_pw = FascicoloPolisWeb(
+        numero_rg="1025",
+        anno_rg=2024,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PENDENTE",
+        oggetto="Vendita di cose immobili",
+        sezione="CIVILE",
+        giudice="GIOVANNELLA MARIA ELENA",
+        data_iscrizione="2024-09-05",
+        data_udienza="2024-12-12",
+        parti=["Elisabetta Montagnese", "Francesco Stillitano"],
+        parti_dettaglio=[
+            {
+                "nome": "Elisabetta Montagnese",
+                "nome_proprio": "Elisabetta",
+                "cognome": "Montagnese",
+                "tipo": "ATTORE",
+                "codice_fiscale": "MNTLBT49E47H558L",
+            },
+            {
+                "nome": "Francesco Stillitano",
+                "nome_proprio": "Francesco",
+                "cognome": "Stillitano",
+                "tipo": "CONVENUTO",
+                "codice_fiscale": "STLFNC45E26L063X",
+            },
+        ],
+        codice_ufficio="0800570094",
+        nome_ufficio="Tribunale di Palmi",
+    )
+
+    esito = ClientPolisWebDemo().sincronizza_fascicolo_esistente(
+        fascicolo_pw=fascicolo_pw,
+        fascicolo_locale=fascicolo_locale,
+        gestione_fascicoli=gestione_fascicoli,
+        gestione_clienti=gestione_clienti,
+        gestione_soggetti=gestione_soggetti,
+        avvocato_referente="admin",
+        documenti_pw=[],
+    )
+
+    assert esito.successo is True
+    cliente_reload = gestione_clienti.get(cliente_invertito.id)
+    soggetto_reload = next(s for s in gestione_soggetti.tutti() if s.id == soggetto_invertito.id)
+    fascicolo_reload = gestione_fascicoli.get(fascicolo_locale.id)
+
+    assert cliente_reload is not None
+    assert cliente_reload.nome == "Elisabetta"
+    assert cliente_reload.cognome == "Montagnese"
+    assert cliente_reload.nome_completo == "Montagnese Elisabetta"
+    assert soggetto_reload.nome == "Elisabetta"
+    assert soggetto_reload.cognome == "Montagnese"
+    assert fascicolo_reload.nome_cliente == "Montagnese Elisabetta"
+    assert fascicolo_reload.controparte == "Stillitano Francesco"
+
+
+def test_dettaglio_fascicolo_mostra_azioni_per_documento_ufficiale_acquisito(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 707/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="707",
+        anno_rg=2025,
+    )
+    deposito = gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-707",
+        tipo_atto="Sentenza",
+        data_deposito="2026-03-30",
+        mittente="cancelleria@tribunale.giustiziapec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-707",
+                "nome": "Sentenza definitiva.pdf.p7m",
+                "tipo": "PROVVEDIMENTO",
+                "data_deposito": "2026-03-30",
+                "mittente": "cancelleria@tribunale.giustiziapec.it",
+                "dimensione_bytes": 16000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-707",
+                "tipo_atto": "Sentenza",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "Sentenza definitiva.pdf.p7m",
+        TipoDocumento.SENTENZA,
+        b"sentenza firmata",
+        id_deposito_pct=deposito.id,
+        firmato=True,
+        caricato_da="avvocato",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Acquisito nel fascicolo" in body
+    assert f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/scarica" in body
+    assert f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza" in body
+
+
+def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):
+    from asn1crypto import cms, algos
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 808/2025",
+        tipo=TipoFascicolo.CIVILE,
+    )
+    pdf_bytes = b"%PDF-1.4\n% demo\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data", "content": pdf_bytes},
+            "signer_infos": [],
+        }
+    )
+    p7m_bytes = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "atto.pdf.p7m",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        p7m_bytes,
+        firmato=True,
+        caricato_da="avvocato",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza")
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert response.data.startswith(b"%PDF-1.4")

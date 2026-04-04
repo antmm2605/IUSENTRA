@@ -130,6 +130,89 @@
         <div class="text-muted small mb-1">Note</div>
         <div>{{ fascicolo.note }}</div>
         {% endif %}
+
+        {% if portale_documenti_per_deposito %}
+        <div class="border-top">
+          <div class="px-3 py-2 bg-info-subtle small fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-collection me-1"></i>Catalogo ufficiale documenti del portale</span>
+            <span class="badge bg-light text-dark border">
+              {{ ns_portale.documenti }} document{% if ns_portale.documenti == 1 %}o{% else %}i{% endif %} ·
+              {{ (portale_documenti_catalogo | selectattr('gia_importato') | list | length) }}/{{ ns_portale.documenti }} acquisiti
+            </span>
+          </div>
+          <div class="accordion accordion-flush" id="accDocumentiPortale">
+            {% for dep_id, dep_docs_catalogo in (portale_documenti_per_deposito or {}).items() %}
+            {% set dep_obj = fascicolo.depositi_pct | selectattr('id', 'equalto', dep_id) | first | default(None) %}
+            <div class="accordion-item border-0 border-bottom">
+              <h2 class="accordion-header">
+                <button class="accordion-button py-2 small fw-semibold {% if not loop.first %}collapsed{% endif %}"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#acc-portale-{{ dep_id }}"
+                        aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                  <i class="bi bi-box-seam me-2 text-info"></i>
+                  <span>{{ dep_obj.tipo_atto if dep_obj else 'Deposito ufficiale' }}</span>
+                  <span class="badge bg-secondary rounded-pill ms-2">{{ dep_docs_catalogo|length }}</span>
+                </button>
+              </h2>
+              <div id="acc-portale-{{ dep_id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+                <div class="accordion-body p-0">
+                  <div class="list-group list-group-flush small">
+                    {% for pdoc in dep_docs_catalogo %}
+                    <div class="list-group-item">
+                      <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                        <div class="flex-grow-1">
+                          <div class="fw-semibold text-break">{{ pdoc.nome or 'Documento ufficiale' }}</div>
+                          <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
+                            <span class="badge bg-light text-dark border">{{ pdoc.tipo or 'Documento' }}</span>
+                            <span class="badge {% if pdoc.disponibile %}bg-success{% else %}bg-secondary{% endif %}">
+                              {% if pdoc.disponibile %}Disponibile{% else %}Non disponibile{% endif %}
+                            </span>
+                            {% if pdoc.gia_importato %}
+                            <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">Acquisito nel fascicolo</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark border">Da acquisire</span>
+                            {% endif %}
+                          </div>
+                          <div class="text-muted mt-1" style="font-size:.74rem">
+                            {{ pdoc.data_deposito|fmt_data if pdoc.data_deposito else 'Data non indicata' }}
+                            {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
+                            {% if pdoc.dimensione_bytes %}
+                              ·
+                              {% if pdoc.dimensione_bytes < 1024 %}{{ pdoc.dimensione_bytes }} B
+                              {% elif pdoc.dimensione_bytes < 1048576 %}{{ (pdoc.dimensione_bytes/1024)|int }} KB
+                              {% else %}{{ "%.1f"|format(pdoc.dimensione_bytes/1048576) }} MB{% endif %}
+                            {% endif %}
+                          </div>
+                        </div>
+                        {% if pdoc.local_doc_id %}
+                        <div class="d-flex gap-1 flex-wrap">
+                          {% if pdoc.local_doc_previewabile %}
+                          <button type="button" class="btn btn-outline-primary btn-sm"
+                                  data-doc-nome="{{ pdoc.local_doc_nome }}"
+                                  data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  onclick="apriVisualizzatore(this)">
+                            <i class="bi bi-eye me-1"></i>Visualizza
+                          </button>
+                          {% endif %}
+                          <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                             class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-download me-1"></i>Scarica
+                          </a>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
 
@@ -249,7 +332,8 @@
 
         {# ── Macro riga documento (riusata nelle viste flat e accordion) ── #}
         {% macro _riga(doc) %}
-        {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
+        {% set nome_preview = doc.nome[:-4] if doc.nome.lower().endswith('.p7m') else doc.nome %}
+        {% set ext = nome_preview.rsplit('.',1)[-1].lower() if '.' in nome_preview else '' %}
         {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
         <tr>
           <td data-label="Nome" style="min-width:0">
@@ -940,7 +1024,8 @@
                 </div>
                 {% endif %}
 
-                {% if dep.documenti_portale %}
+                {% set dep_docs_catalogo = (portale_documenti_per_deposito or {}).get(dep.id, []) %}
+                {% if dep_docs_catalogo %}
                 <div class="mt-2">
                   <button class="btn btn-link btn-sm p-0 text-muted text-decoration-none"
                           type="button"
@@ -948,12 +1033,12 @@
                           data-bs-target="#dep-portale-docs-{{ dep.id }}"
                           aria-expanded="false">
                     <i class="bi bi-journal-text me-1"></i>
-                    {{ dep.documenti_portale | length }} metadati document{% if dep.documenti_portale | length == 1 %}o ufficiale{% else %}i ufficiali{% endif %}
+                    {{ dep_docs_catalogo | length }} metadati document{% if dep_docs_catalogo | length == 1 %}o ufficiale{% else %}i ufficiali{% endif %}
                     <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
                   </button>
                   <div class="collapse mt-1" id="dep-portale-docs-{{ dep.id }}">
                     <ul class="list-unstyled mb-0 ps-2 border-start border-2 border-info-subtle">
-                      {% for pdoc in dep.documenti_portale %}
+                      {% for pdoc in dep_docs_catalogo %}
                       <li class="py-1" style="font-size:.8rem">
                         <div class="d-flex align-items-start gap-2">
                           {% if pdoc.nome == dep.nome_atto_principale %}
@@ -970,6 +1055,15 @@
                               <span class="badge {% if pdoc.disponibile %}bg-success{% else %}bg-secondary{% endif %}" style="font-size:.68rem">
                                 {% if pdoc.disponibile %}Disponibile{% else %}Non disponibile{% endif %}
                               </span>
+                              {% if pdoc.gia_importato %}
+                              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle" style="font-size:.68rem">
+                                Acquisito nel fascicolo
+                              </span>
+                              {% else %}
+                              <span class="badge bg-light text-dark border" style="font-size:.68rem">
+                                Da acquisire
+                              </span>
+                              {% endif %}
                               {% if pdoc.dimensione_bytes %}
                               <span class="badge bg-light text-dark border" style="font-size:.68rem">
                                 {% if pdoc.dimensione_bytes < 1024 %}{{ pdoc.dimensione_bytes }} B
@@ -982,6 +1076,23 @@
                               {{ pdoc.data_deposito|fmt_data if pdoc.data_deposito else 'Data non indicata' }}
                               {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
                             </div>
+                            {% if pdoc.local_doc_id %}
+                            <div class="d-flex gap-1 flex-wrap mt-2">
+                              {% if pdoc.local_doc_previewabile %}
+                              <button type="button" class="btn btn-outline-primary btn-sm"
+                                      data-doc-nome="{{ pdoc.local_doc_nome }}"
+                                      data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      onclick="apriVisualizzatore(this)">
+                                <i class="bi bi-eye me-1"></i>Visualizza
+                              </button>
+                              {% endif %}
+                              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                 class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-download me-1"></i>Scarica
+                              </a>
+                            </div>
+                            {% endif %}
                           </div>
                         </div>
                       </li>
@@ -994,7 +1105,7 @@
                 {% if is_import_pst %}
                 <div class="alert alert-info py-1 px-2 mt-2 small mb-0">
                   <i class="bi bi-info-circle me-1"></i>
-                  Metadati ufficiali importati da PolisWeb. I file binari restano scaricabili solo dal portale ministeriale e possono poi essere acquisiti nel fascicolo.
+                  Metadati ufficiali importati da PolisWeb. I file binari possono essere acquisiti nel fascicolo dal canale autenticato del portale ufficiale tramite Local Signer.
                 </div>
                 {% elif is_import_portale %}
                 <div class="alert alert-info py-1 px-2 mt-2 small mb-0">

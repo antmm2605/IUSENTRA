@@ -1309,8 +1309,67 @@ def create_app(config: dict | None = None) -> Flask:
         testo = unicodedata.normalize("NFKD", testo).encode("ascii", "ignore").decode("ascii")
         return re.sub(r"[^a-z0-9]+", "", testo)
 
+    def _nome_preview_documento(nome_file: str) -> str:
+        nome = Path(str(nome_file or "")).name.strip()
+        if nome.lower().endswith(".p7m"):
+            nome = nome[:-4]
+        return nome
+
+    def _mime_preview_documento(nome_file: str, payload: bytes | None = None) -> tuple[str, str] | None:
+        nome_preview = _nome_preview_documento(nome_file)
+        lower = nome_preview.lower()
+
+        if payload:
+            if payload.startswith(b"%PDF"):
+                return "application/pdf", nome_preview or "documento.pdf"
+            if payload.startswith(b"\xff\xd8\xff"):
+                return "image/jpeg", nome_preview or "documento.jpg"
+            if payload.startswith(b"\x89PNG\r\n\x1a\n"):
+                return "image/png", nome_preview or "documento.png"
+            if payload.startswith((b"GIF87a", b"GIF89a")):
+                return "image/gif", nome_preview or "documento.gif"
+
+        if lower.endswith(".pdf"):
+            return "application/pdf", nome_preview
+        if lower.endswith((".jpg", ".jpeg")):
+            return "image/jpeg", nome_preview
+        if lower.endswith(".png"):
+            return "image/png", nome_preview
+        if lower.endswith(".gif"):
+            return "image/gif", nome_preview
+        return None
+
+    def _estrai_contenuto_p7m_per_preview(data: bytes) -> bytes | None:
+        try:
+            from asn1crypto import cms
+        except Exception:
+            return None
+
+        try:
+            content_info = cms.ContentInfo.load(data)
+            if content_info["content_type"].native != "signed_data":
+                return None
+            signed_data = content_info["content"]
+            encap = signed_data["encap_content_info"]
+            contenuto = encap["content"]
+            if contenuto is None:
+                return None
+            native = getattr(contenuto, "native", None)
+            if isinstance(native, bytes):
+                return native
+            if isinstance(contenuto, bytes):
+                return contenuto
+            if native is not None:
+                try:
+                    return bytes(native)
+                except Exception:
+                    return None
+        except Exception:
+            return None
+        return None
+
     def _catalogo_documenti_portale_fascicolo(fasc: Fascicolo) -> list[dict]:
-        documenti_locali_per_deposito: dict[str, set[str]] = {}
+        documenti_locali_per_deposito: dict[str, dict[str, list[Documento]]] = {}
         for doc in fasc.documenti or []:
             dep_id = str(getattr(doc, "id_deposito_pct", "") or "").strip()
             if not dep_id:
@@ -1318,16 +1377,26 @@ def create_app(config: dict | None = None) -> Flask:
             key = _normalizza_nome_match_portale(str(getattr(doc, "nome", "") or ""))
             if not key:
                 continue
-            documenti_locali_per_deposito.setdefault(dep_id, set()).add(key)
+            documenti_locali_per_deposito.setdefault(dep_id, {}).setdefault(key, []).append(doc)
 
         catalogo: list[dict] = []
         for dep in fasc.depositi_pct or []:
-            imported_keys = documenti_locali_per_deposito.get(dep.id, set())
+            imported_docs = documenti_locali_per_deposito.get(dep.id, {})
             for pdoc in getattr(dep, "documenti_portale", []) or []:
                 nome = str((pdoc or {}).get("nome") or "").strip()
                 key = _normalizza_nome_match_portale(nome)
                 if not nome or not key:
                     continue
+                docs_locali = list(imported_docs.get(key, []))
+                docs_locali.sort(
+                    key=lambda row: (
+                        getattr(row, "data_caricamento", "") or "",
+                        getattr(row, "nome", "") or "",
+                    ),
+                    reverse=True,
+                )
+                doc_locale = docs_locali[0] if docs_locali else None
+                preview_info = _mime_preview_documento(getattr(doc_locale, "nome", "") or nome)
                 catalogo.append({
                     "id_deposito_pct": dep.id,
                     "id_deposito_esterno": str(getattr(dep, "id_deposito_esterno", "") or "").strip(),
@@ -1335,10 +1404,36 @@ def create_app(config: dict | None = None) -> Flask:
                     "id_documento_portale": str((pdoc or {}).get("id_documento") or "").strip(),
                     "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "nome": nome,
+                    "tipo": str((pdoc or {}).get("tipo") or "Documento").strip(),
+                    "mittente": str((pdoc or {}).get("mittente") or "").strip(),
+                    "dimensione_bytes": int((pdoc or {}).get("dimensione_bytes") or 0),
+                    "disponibile": bool((pdoc or {}).get("disponibile", True)),
                     "key": key,
-                    "gia_importato": key in imported_keys,
+                    "gia_importato": bool(docs_locali),
+                    "local_doc_id": getattr(doc_locale, "id", "") if doc_locale else "",
+                    "local_doc_nome": getattr(doc_locale, "nome", "") if doc_locale else "",
+                    "local_doc_previewabile": bool(preview_info),
                 })
         return catalogo
+
+    def _gruppa_catalogo_documenti_portale(catalogo: list[dict]) -> dict[str, list[dict]]:
+        grouped: dict[str, list[dict]] = {}
+        for row in catalogo or []:
+            dep_id = str(row.get("id_deposito_pct") or "").strip()
+            if not dep_id:
+                continue
+            grouped.setdefault(dep_id, []).append(row)
+        for dep_id, items in grouped.items():
+            items.sort(
+                key=lambda item: (
+                    item.get("data_deposito") or "",
+                    item.get("nome") or "",
+                    item.get("id_documento_portale") or "",
+                ),
+                reverse=True,
+            )
+            grouped[dep_id] = items
+        return grouped
 
     def _match_catalogo_documento_portale(
         fasc: Fascicolo,
@@ -3740,8 +3835,8 @@ def create_app(config: dict | None = None) -> Flask:
         return "demo"
 
     def _polis_demo_mode() -> bool:
-        """True se non c'è un certificato P12/PEM per il SOAP mTLS (include modalità pkcs11)."""
-        return _polis_auth_mode() != "reale"
+        """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
+        return _polis_auth_mode() == "demo"
 
     def _local_signer_tools_dir() -> Path:
         return Path(__file__).parent.parent / "tools"
@@ -4168,11 +4263,13 @@ read -r -p "Premi Invio per chiudere..." _
         import traceback as _tb
         try:
             auth_mode = _polis_auth_mode()
-            demo_mode = auth_mode != "reale"
+            demo_mode = auth_mode == "demo"
+            server_demo_mode = auth_mode != "reale"
             pkcs11_mode = auth_mode == "pkcs11"
             id_fasc = request.args.get("id_fasc", "")
             fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
             return render_template("polisWeb.html", demo_mode=demo_mode,
+                                   server_demo_mode=server_demo_mode,
                                    pkcs11_mode=pkcs11_mode,
                                    fascicolo=fascicolo_ctx, id_fasc=id_fasc)
         except Exception as e:
@@ -4185,7 +4282,8 @@ read -r -p "Premi Invio per chiudere..." _
         f = request.form
         tribunale  = f.get("tribunale", "").strip()
         auth_mode  = _polis_auth_mode()
-        demo_mode  = f.get("demo_mode") == "1" or auth_mode != "reale"
+        server_demo_mode = f.get("server_demo_mode") == "1" or auth_mode != "reale"
+        demo_mode  = f.get("demo_mode") == "1" or auth_mode == "demo"
         pkcs11_mode = auth_mode == "pkcs11"
 
         if not tribunale:
@@ -4237,6 +4335,7 @@ read -r -p "Premi Invio per chiudere..." _
             nome_parte=nome_parte or "",
             cf_parte=cf_parte or "",
             demo_mode=demo_mode,
+            server_demo_mode=server_demo_mode,
             pkcs11_mode=pkcs11_mode,
             fascicolo=fascicolo_ctx,
             id_fasc=id_fasc,
@@ -6571,6 +6670,7 @@ read -r -p "Premi Invio per chiudere..." _
         pst_import_dir.mkdir(parents=True, exist_ok=True)
         pst_import_pending = _pst_import_pending_count(fasc)
         portale_documenti_catalogo = _catalogo_documenti_portale_fascicolo(fasc)
+        portale_documenti_per_deposito = _gruppa_catalogo_documenti_portale(portale_documenti_catalogo)
         polisweb_importato = "Importato da PolisWeb" in (fasc.note or "")
         ha_udienza_importata = any(
             getattr(att.tipo, "value", att.tipo) == "UDIENZA"
@@ -6629,6 +6729,7 @@ read -r -p "Premi Invio per chiudere..." _
             pst_portale_label=_portale_ufficiale_label(fasc),
             pst_import_dir=str(pst_import_dir),
             portale_documenti_catalogo=portale_documenti_catalogo,
+            portale_documenti_per_deposito=portale_documenti_per_deposito,
             polisweb_sync_needed=polisweb_sync_needed,
             responsabile_conformita=responsabile_conformita,
             oggi=date.today(),
@@ -6945,22 +7046,21 @@ read -r -p "Premi Invio per chiudere..." _
             fasc = gf.get(id_fasc)
             doc = next(d for d in fasc.documenti if d.id == id_doc)
             data = _decrypt_doc(percorso.read_bytes())
-            nome = doc.nome.lower()
-            if nome.endswith(".pdf"):
-                mime = "application/pdf"
-            elif nome.endswith((".jpg", ".jpeg")):
-                mime = "image/jpeg"
-            elif nome.endswith(".png"):
-                mime = "image/png"
-            elif nome.endswith(".gif"):
-                mime = "image/gif"
-            else:
-                # Formato non visualizzabile inline: scarica normalmente
+            preview_payload = data
+            preview_name = doc.nome
+            if doc.nome.lower().endswith(".p7m"):
+                contenuto_estratto = _estrai_contenuto_p7m_per_preview(data)
+                if contenuto_estratto:
+                    preview_payload = contenuto_estratto
+                    preview_name = _nome_preview_documento(doc.nome)
+            preview = _mime_preview_documento(preview_name, preview_payload)
+            if not preview:
                 return send_file(io.BytesIO(data), as_attachment=True, download_name=doc.nome)
+            mime, nome_download = preview
             audit("fascicoli.documento.visualizza", "fascicolo", id_fasc,
                   dettagli=f"doc {id_doc} — {doc.nome}")
-            return send_file(io.BytesIO(data), mimetype=mime, as_attachment=False,
-                             download_name=doc.nome)
+            return send_file(io.BytesIO(preview_payload), mimetype=mime, as_attachment=False,
+                             download_name=nome_download)
         except (KeyError, StopIteration, ValueError) as e:
             return str(e), 404
 

@@ -307,12 +307,23 @@
   <div class="card-body p-4">
     <h6 class="fw-bold mb-1"><i class="bi bi-pen-fill text-primary me-2"></i>Firma Digitale</h6>
     <p class="text-muted mb-3" style="font-size:.82rem;">
-      Certificato per la firma CAdES degli atti e per l'autenticazione al PST (PolisWeb).
+      Configura un solo canale operativo: Aruba Key / Local Signer, oppure un certificato esportabile P12/PFX, oppure PEM.
+      La firma CAdES degli atti e l'accesso PST usano il canale che scegli qui.
       Rilasciato da: Infocert, Namirial, Aruba, Poste Italiane, Intesa.
       <a href="{{ url_for('guida_firma_digitale') }}" class="ms-1">
         <i class="bi bi-book me-1"></i>Guida completa — come ottenerlo e configurarlo
       </a>
     </p>
+    <div class="alert alert-info py-2 small mb-4 d-flex gap-2">
+      <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+      <div>
+        <strong>Non servono tutti i formati.</strong>
+        Se usi già <strong>Aruba Key</strong> con <strong>Local Signer</strong>, il container
+        non deve avere un file <code>P12</code>/<code>PEM</code>: la chiave resta sul token o
+        nel middleware locale del PC. I campi P12/PEM qui sotto servono solo a chi possiede
+        un certificato esportabile e vuole usarlo lato server/container.
+      </div>
+    </div>
 
     {# Stato attuale #}
     {% set fmt = cfg.firma.formato_attivo %}
@@ -330,7 +341,7 @@
       {% endif %}
     </div>
 
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="_tab" value="firma">
 
       {# ── Selezione formato ── #}
@@ -375,6 +386,23 @@
 
       {# ── Sezione P12 ── #}
       <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt in ('pem', 'pkcs11') }}">
+        <div class="col-12">
+          <div class="alert alert-light border small mb-0">
+            <strong>Opzione server/container.</strong> Usala solo se possiedi già un file
+            <code>.p12</code>/<code>.pfx</code> esportabile. In alternativa, con Aruba Key è
+            preferibile il percorso <strong>Token PKCS#11 / Local Signer</strong>.
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Carica file P12/PFX nel container / volume dati</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-upload"></i></span>
+            <input type="file" name="firma_p12_file" class="form-control" accept=".p12,.pfx">
+          </div>
+          <div class="form-text">
+            Se selezioni un file qui, HACS lo salva nel volume dati e aggiorna automaticamente il percorso configurato.
+          </div>
+        </div>
         <div class="col-12">
           <label class="form-label fw-semibold">
             Percorso file P12/PFX
@@ -422,6 +450,16 @@
           </div>
         </div>
         <div class="col-12">
+          <label class="form-label fw-semibold">Carica certificato PEM nel container / volume dati</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-upload"></i></span>
+            <input type="file" name="firma_cert_pem_file" class="form-control" accept=".crt,.cer,.pem">
+          </div>
+          <div class="form-text">
+            Facoltativo: se caricato qui, HACS salva il certificato nel volume dati e aggiorna il percorso.
+          </div>
+        </div>
+        <div class="col-12">
           <label class="form-label fw-semibold">Percorso certificato (.crt / .pem)</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
@@ -430,6 +468,16 @@
                    placeholder="/data/config/firma.crt">
           </div>
           <div class="form-text">File che contiene il certificato pubblico (può includere la chain CA).</div>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Carica chiave privata PEM nel container / volume dati</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-upload"></i></span>
+            <input type="file" name="firma_key_pem_file" class="form-control" accept=".key,.pem">
+          </div>
+          <div class="form-text">
+            Facoltativo: se caricata qui, HACS salva la chiave nel volume dati e aggiorna il percorso.
+          </div>
         </div>
         <div class="col-12">
           <label class="form-label fw-semibold">Percorso chiave privata (.key / .pem)</label>
@@ -467,6 +515,8 @@
               <strong>Firma in-device — chiave privata mai estratta dal token.</strong><br>
               La firma avviene direttamente nell'Aruba Key (o altro token PKCS#11).
               Il PIN viene chiesto all'utente ad ogni operazione di firma e non viene mai salvato.<br>
+              <strong>Per questa modalità non serve un P12/PEM nel container.</strong> Il token resta sul PC o sul server
+              che ospita il middleware PKCS#11, mentre HACS usa il canale locale previsto.<br>
               <span class="text-muted">
                 Requisiti: <code>apt install pcscd opensc</code> sul server/Docker host ·
                 <code>pip install python-pkcs11 asn1crypto</code> ·

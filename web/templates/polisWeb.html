@@ -139,15 +139,19 @@
     <i class="bi bi-cone me-2"></i>
     <strong>Modalità demo solo come fallback offline.</strong>
     I risultati mostrati qui sono dati di esempio e non sostituiscono la ricerca reale sul PST.
-    Per accedere al PST reale configurare il certificato in
+    <strong>Configura uno solo dei canali reali supportati.</strong>
+    Se usi <strong>Aruba Key / token PKCS#11</strong>, basta questo canale:
+    non serve avere anche un file <code>P12</code>/<code>PEM</code> nel container,
+    perché per la consultazione reale HACS usa il <strong>Local Signer</strong> sul PC locale.
+    Puoi configurarlo in
     <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">Impostazioni → Firma Digitale</a>
-    oppure nel file <code>.env</code> — oppure installare il
-    <a href="{{ url_for('polis_local_signer_setup_windows') }}" class="alert-link" download id="ls-demo-install-link"><strong>Local Signer automatico</strong></a>
+    oppure installare il
+    <a href="{{ url_for('polis_local_signer_setup_windows') }}" class="alert-link" download id="ls-demo-install-link"><strong>Local Signer</strong></a>
     come servizio locale in avvio automatico.
     <ul class="mb-0 mt-1">
-      <li><strong>P12/PFX</strong>: <code>PCT_FIRMA_P12</code> + <code>PCT_FIRMA_PASSWORD</code></li>
-      <li><strong>PEM</strong>: <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code></li>
-      <li id="ls-demo-install-note"><strong>Local Signer</strong>: installazione desktop automatica da <code>/polisWeb</code>, avvio al login</li>
+      <li><strong>Aruba Key / token CNS</strong>: <span id="ls-demo-install-note">Local Signer desktop, senza copiare la chiave privata nel container</span></li>
+      <li><strong>P12/PFX</strong>: file esportabile montato o caricato nel container, con <code>PCT_FIRMA_P12</code> oppure da <code>Impostazioni → Firma</code></li>
+      <li><strong>PEM</strong>: certificato + chiave esportabili lato server, con <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code> oppure da <code>Impostazioni → Firma</code></li>
     </ul>
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   </div>
@@ -185,6 +189,7 @@
     <div class="card-body">
       <form method="post" action="{{ url_for('polisWeb_ricerca') }}">
         <input type="hidden" name="demo_mode" value="{{ '1' if demo_mode else '0' }}">
+        <input type="hidden" name="server_demo_mode" value="{{ '1' if server_demo_mode else '0' }}">
         <input type="hidden" name="id_fasc" value="{{ id_fasc or '' }}">
         <div class="row g-3">
           <div class="col-md-5">
@@ -431,9 +436,11 @@
           <div class="fw-semibold text-dark mb-1">
             <i class="bi bi-search text-primary me-1"></i>Consultazione fascicoli
           </div>
-          Ricerca pratiche nel registro del tribunale tramite web service SOAP PST
-          (<code>RicercaFascicoliRegistro</code>). Autenticazione con certificato P12.
-          Funziona per <strong>tutti i 140+ tribunali italiani</strong>.
+          Ricerca pratiche nel registro del tribunale tramite servizi PST
+          (<code>RicercaFascicoliRegistro</code>).
+          Su Windows con <strong>Aruba Key / Local Signer</strong> non serve alcun
+          <code>P12</code>/<code>PEM</code> nel container: l'autenticazione avviene dal PC locale.
+          In alternativa il gestionale supporta anche certificati esportabili lato server.
         </div>
         <div class="col-md-4">
           <div class="fw-semibold text-dark mb-1">

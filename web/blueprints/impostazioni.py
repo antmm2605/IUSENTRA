@@ -11,11 +11,13 @@ Routes:
 from __future__ import annotations
 
 from functools import wraps
+from pathlib import Path
 
 from flask import (
     Blueprint, current_app, flash, g, jsonify,
     redirect, render_template, request, url_for,
 )
+from werkzeug.utils import secure_filename
 
 impostazioni = Blueprint("impostazioni", __name__)
 
@@ -36,6 +38,29 @@ def _get_gestore():
     return GestioneConfigStudio(
         config_path=current_app.config.get("STUDIO_CONFIG", "./config/studio.json")
     )
+
+
+def _firma_upload_dir() -> Path:
+    cfg_path = Path(current_app.config.get("STUDIO_CONFIG", "./config/studio.json"))
+    return cfg_path.parent / "firma_uploads"
+
+
+def _salva_upload_firma(storage, prefix: str, allowed_exts: set[str]) -> str:
+    if not storage or not getattr(storage, "filename", ""):
+        return ""
+    filename = secure_filename(storage.filename or "")
+    suffix = Path(filename).suffix.lower()
+    if suffix not in allowed_exts:
+        allowed = ", ".join(sorted(allowed_exts))
+        raise ValueError(
+            f"Formato file non valido per {prefix.replace('_', ' ')}. "
+            f"Estensioni ammesse: {allowed}."
+        )
+    dest_dir = _firma_upload_dir()
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{prefix}{suffix}"
+    storage.save(dest)
+    return dest.as_posix()
 
 
 def _applica_ad_app(cfg):
@@ -104,76 +129,91 @@ def index():
             ConfigFirma, ConfigSMTP, ConfigWhatsApp, ConfigScheduler,
         )
         cfg = gs.config
-
-        if tab == "studio":
-            cfg.studio = ConfigDatiStudio(
-                nome=f.get("nome", "").strip(),
-                avvocato=f.get("avvocato", "").strip(),
-                piva=f.get("piva", "").strip(),
-                cf=f.get("cf", "").strip(),
-                indirizzo=f.get("indirizzo", "").strip(),
-                telefono=f.get("telefono", "").strip(),
-                email=f.get("email", "").strip(),
-                sito_web=f.get("sito_web", "").strip(),
-                iban=f.get("iban", "").strip(),
-                banca=f.get("banca", "").strip(),
-                codice_fiscale_avvocato=f.get("codice_fiscale_avvocato", "").strip(),
-            )
-        elif tab == "pec":
-            pwd = f.get("pec_password", "").strip()
-            cfg.pec = ConfigPEC(
-                indirizzo=f.get("pec_indirizzo", "").strip(),
-                password=pwd if pwd else cfg.pec.password,
-                smtp_host=f.get("pec_smtp_host", "smtp.pec.aruba.it").strip(),
-                smtp_port=int(f.get("pec_smtp_port", 465)),
-                imap_host=f.get("pec_imap_host", "imaps.pec.aruba.it").strip(),
-                imap_port=int(f.get("pec_imap_port", 993)),
-                use_ssl=bool(f.get("pec_use_ssl")),
-            )
-        elif tab == "firma":
-            pwd = f.get("firma_password", "").strip()
-            key_pwd = f.get("firma_key_pem_password", "").strip()
-            cfg.firma = ConfigFirma(
-                # P12
-                p12_path=f.get("firma_p12_path", "").strip(),
-                password=pwd if pwd else cfg.firma.password,
-                # PEM
-                cert_pem_path=f.get("firma_cert_pem_path", "").strip(),
-                key_pem_path=f.get("firma_key_pem_path", "").strip(),
-                key_pem_password=key_pwd if key_pwd else cfg.firma.key_pem_password,
-                # PKCS#11 (token USB — Aruba Key)
-                pkcs11_library=f.get("pkcs11_library", "").strip(),
-                pkcs11_slot=f.get("pkcs11_slot", "").strip(),
-                pkcs11_label=f.get("pkcs11_label", "").strip(),
-                # Comune
-                cf_avvocato=f.get("firma_cf_avvocato", "").strip(),
-            )
-        elif tab == "smtp":
-            pwd = f.get("smtp_password", "").strip()
-            cfg.smtp = ConfigSMTP(
-                host=f.get("smtp_host", "").strip(),
-                port=int(f.get("smtp_port", 587)),
-                username=f.get("smtp_username", "").strip(),
-                password=pwd if pwd else cfg.smtp.password,
-                from_address=f.get("smtp_from_address", "").strip(),
-                from_name=f.get("smtp_from_name", "").strip(),
-                use_tls=bool(f.get("smtp_use_tls")),
-            )
-        elif tab == "whatsapp":
-            tok = f.get("twilio_token", "").strip()
-            cfg.whatsapp = ConfigWhatsApp(
-                twilio_sid=f.get("twilio_sid", "").strip(),
-                twilio_token=tok if tok else cfg.whatsapp.twilio_token,
-                twilio_numero=f.get("twilio_numero", "").strip(),
-                callmebot_key=f.get("callmebot_key", "").strip(),
-            )
-        elif tab == "scheduler":
-            cfg.scheduler = ConfigScheduler(
-                backup_ora=f.get("backup_ora", "02:00").strip(),
-                wa_reminder_ora=f.get("wa_reminder_ora", "18:00").strip(),
-                backup_abilitato=bool(f.get("backup_abilitato")),
-                wa_reminder_abilitato=bool(f.get("wa_reminder_abilitato")),
-            )
+        try:
+            if tab == "studio":
+                cfg.studio = ConfigDatiStudio(
+                    nome=f.get("nome", "").strip(),
+                    avvocato=f.get("avvocato", "").strip(),
+                    piva=f.get("piva", "").strip(),
+                    cf=f.get("cf", "").strip(),
+                    indirizzo=f.get("indirizzo", "").strip(),
+                    telefono=f.get("telefono", "").strip(),
+                    email=f.get("email", "").strip(),
+                    sito_web=f.get("sito_web", "").strip(),
+                    iban=f.get("iban", "").strip(),
+                    banca=f.get("banca", "").strip(),
+                    codice_fiscale_avvocato=f.get("codice_fiscale_avvocato", "").strip(),
+                )
+            elif tab == "pec":
+                pwd = f.get("pec_password", "").strip()
+                cfg.pec = ConfigPEC(
+                    indirizzo=f.get("pec_indirizzo", "").strip(),
+                    password=pwd if pwd else cfg.pec.password,
+                    smtp_host=f.get("pec_smtp_host", "smtp.pec.aruba.it").strip(),
+                    smtp_port=int(f.get("pec_smtp_port", 465)),
+                    imap_host=f.get("pec_imap_host", "imaps.pec.aruba.it").strip(),
+                    imap_port=int(f.get("pec_imap_port", 993)),
+                    use_ssl=bool(f.get("pec_use_ssl")),
+                )
+            elif tab == "firma":
+                pwd = f.get("firma_password", "").strip()
+                key_pwd = f.get("firma_key_pem_password", "").strip()
+                p12_path = f.get("firma_p12_path", "").strip()
+                cert_pem_path = f.get("firma_cert_pem_path", "").strip()
+                key_pem_path = f.get("firma_key_pem_path", "").strip()
+                p12_upload = request.files.get("firma_p12_file")
+                cert_upload = request.files.get("firma_cert_pem_file")
+                key_upload = request.files.get("firma_key_pem_file")
+                if p12_upload and p12_upload.filename:
+                    p12_path = _salva_upload_firma(p12_upload, "firma", {".p12", ".pfx"})
+                if cert_upload and cert_upload.filename:
+                    cert_pem_path = _salva_upload_firma(cert_upload, "firma_cert", {".crt", ".cer", ".pem"})
+                if key_upload and key_upload.filename:
+                    key_pem_path = _salva_upload_firma(key_upload, "firma_key", {".key", ".pem"})
+                cfg.firma = ConfigFirma(
+                    # P12
+                    p12_path=p12_path,
+                    password=pwd if pwd else cfg.firma.password,
+                    # PEM
+                    cert_pem_path=cert_pem_path,
+                    key_pem_path=key_pem_path,
+                    key_pem_password=key_pwd if key_pwd else cfg.firma.key_pem_password,
+                    # PKCS#11 (token USB — Aruba Key)
+                    pkcs11_library=f.get("pkcs11_library", "").strip(),
+                    pkcs11_slot=f.get("pkcs11_slot", "").strip(),
+                    pkcs11_label=f.get("pkcs11_label", "").strip(),
+                    # Comune
+                    cf_avvocato=f.get("firma_cf_avvocato", "").strip(),
+                )
+            elif tab == "smtp":
+                pwd = f.get("smtp_password", "").strip()
+                cfg.smtp = ConfigSMTP(
+                    host=f.get("smtp_host", "").strip(),
+                    port=int(f.get("smtp_port", 587)),
+                    username=f.get("smtp_username", "").strip(),
+                    password=pwd if pwd else cfg.smtp.password,
+                    from_address=f.get("smtp_from_address", "").strip(),
+                    from_name=f.get("smtp_from_name", "").strip(),
+                    use_tls=bool(f.get("smtp_use_tls")),
+                )
+            elif tab == "whatsapp":
+                tok = f.get("twilio_token", "").strip()
+                cfg.whatsapp = ConfigWhatsApp(
+                    twilio_sid=f.get("twilio_sid", "").strip(),
+                    twilio_token=tok if tok else cfg.whatsapp.twilio_token,
+                    twilio_numero=f.get("twilio_numero", "").strip(),
+                    callmebot_key=f.get("callmebot_key", "").strip(),
+                )
+            elif tab == "scheduler":
+                cfg.scheduler = ConfigScheduler(
+                    backup_ora=f.get("backup_ora", "02:00").strip(),
+                    wa_reminder_ora=f.get("wa_reminder_ora", "18:00").strip(),
+                    backup_abilitato=bool(f.get("backup_abilitato")),
+                    wa_reminder_abilitato=bool(f.get("wa_reminder_abilitato")),
+                )
+        except ValueError as e:
+            flash(str(e), "danger")
+            return redirect(url_for("impostazioni.index", tab=tab))
 
         gs.aggiorna(cfg)
         _applica_ad_app(cfg)

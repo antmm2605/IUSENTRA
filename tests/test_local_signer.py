@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import importlib.util
 import os
 from pathlib import Path
@@ -783,6 +784,125 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
     assert "/polisWeb/local-signer/setup/linux" in body
     assert "/polisWeb/local-signer/download" in body
     assert "/polisWeb/local-signer/download/uffici" in body
+
+
+def test_impostazioni_firma_carica_p12_nel_volume_configurato(tmp_path):
+    from pct.config_studio import GestioneConfigStudio
+    from web.app import create_app
+
+    studio_cfg = tmp_path / "config" / "studio.json"
+    app = create_app({**_cfg_web(tmp_path), "STUDIO_CONFIG": str(studio_cfg)})
+
+    with app.test_client() as c:
+        login = c.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code in (302, 303)
+
+        r = c.post(
+            "/impostazioni",
+            data={
+                "_tab": "firma",
+                "firma_formato": "p12",
+                "firma_p12_path": "",
+                "firma_password": "segreta",
+                "firma_cf_avvocato": "RSSMRA80A01H501Z",
+                "firma_p12_file": (io.BytesIO(b"contenuto-p12"), "firma_professionista.p12"),
+            },
+            content_type="multipart/form-data",
+            follow_redirects=False,
+        )
+
+    assert r.status_code in (302, 303)
+    cfg = GestioneConfigStudio(str(studio_cfg)).config
+    assert cfg.firma.p12_path.endswith("/firma_uploads/firma.p12")
+    assert Path(cfg.firma.p12_path).read_bytes() == b"contenuto-p12"
+    assert cfg.firma.password == "segreta"
+    assert cfg.firma.cf_avvocato == "RSSMRA80A01H501Z"
+
+
+def test_polisweb_non_mostra_demo_se_pkcs11_e_configurato(tmp_path):
+    from pct.config_studio import GestioneConfigStudio
+    from web.app import create_app
+
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    cfg = gs.config
+    cfg.firma.pkcs11_library = str(dll_path)
+    gs.aggiorna(cfg)
+
+    app = create_app({**_cfg_web(tmp_path), "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as c:
+        login = c.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code in (302, 303)
+        r = c.get("/polisWeb")
+
+    assert r.status_code == 200
+    body = r.data.decode("utf-8")
+    assert 'name="demo_mode" value="0"' in body
+    assert 'name="server_demo_mode" value="1"' in body
+    assert 'id="badge-demo-mode"' not in body
+    assert 'id="banner-demo"' not in body
+
+
+def test_polisweb_ricerca_non_torna_in_demo_se_pkcs11_e_configurato(tmp_path, monkeypatch):
+    from pct.config_studio import GestioneConfigStudio
+    from web.app import create_app
+
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    cfg = gs.config
+    cfg.firma.pkcs11_library = str(dll_path)
+    gs.aggiorna(cfg)
+
+    chiamate_demo = []
+
+    class _ClientStub:
+        def ricerca_fascicoli(self, **kwargs):
+            return []
+
+    def _crea_client_stub(*args, **kwargs):
+        chiamate_demo.append(kwargs.get("demo"))
+        return _ClientStub()
+
+    monkeypatch.setattr("pct.polisWeb.crea_client", _crea_client_stub)
+
+    app = create_app({**_cfg_web(tmp_path), "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as c:
+        login = c.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=False,
+        )
+        assert login.status_code in (302, 303)
+        r = c.post(
+            "/polisWeb/ricerca",
+            data={
+                "tribunale": "0580010",
+                "demo_mode": "0",
+                "server_demo_mode": "1",
+            },
+        )
+
+    assert r.status_code == 200
+    assert chiamate_demo == [False]
+    body = r.data.decode("utf-8")
+    assert 'name="demo_mode" value="0"' in body
+    assert 'name="server_demo_mode" value="1"' in body
+    assert 'id="badge-demo-mode"' not in body
+    assert 'id="banner-demo"' not in body
 
 
 def test_installer_locale_windows_registra_protocollo_e_attesa_ping():

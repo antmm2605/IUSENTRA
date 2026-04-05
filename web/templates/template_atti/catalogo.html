@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+{% block title %}Catalogo Atti{% endblock %}
+{% block pct_modulo %}template_atti{% endblock %}
+
+{% block content %}
+<style>
+  .cat-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .cat-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.35rem;
+    background: linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(246,249,255,.96) 100%);
+    box-shadow: 0 .75rem 2rem rgba(15, 23, 42, .05);
+  }
+  .cat-hero-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1 1 24rem;
+  }
+  .cat-hero-icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 110, 253, .08);
+    color: var(--bs-primary);
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+  }
+  .cat-kicker {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--bs-secondary-color);
+    font-weight: 700;
+  }
+  .cat-title {
+    margin: .1rem 0 .35rem;
+    font-size: clamp(1.65rem, 2vw, 2.2rem);
+    line-height: 1.05;
+    font-weight: 700;
+    color: #1f3557;
+  }
+  .cat-sub {
+    margin: 0;
+    color: var(--bs-secondary-color);
+    max-width: 48rem;
+    font-size: .97rem;
+  }
+  .cat-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .75rem;
+  }
+
+  /* Toolbar */
+  .cat-toolbar {
+    padding: 1rem 1.1rem 1.1rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.1rem;
+    background: rgba(252, 253, 255, .96);
+    box-shadow: 0 .65rem 1.7rem rgba(15, 23, 42, .05);
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+  .cat-toolbar-search {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+  .cat-search-wrap {
+    flex: 1 1 18rem;
+    max-width: 34rem;
+    position: relative;
+  }
+  .cat-search-wrap .bi-search {
+    position: absolute;
+    left: .85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+  }
+  .cat-search-input {
+    padding-left: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, .15);
+    height: 2.65rem;
+    font-size: .95rem;
+    width: 100%;
+  }
+  .cat-search-input:focus {
+    border-color: rgba(13, 110, 253, .5);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, .1);
+    outline: none;
+  }
+  .cat-count-badge {
+    border-radius: 999px;
+    background: rgba(13, 110, 253, .08);
+    color: var(--bs-primary);
+    font-size: .78rem;
+    font-weight: 700;
+    padding: .3rem .7rem;
+    white-space: nowrap;
+  }
+  .cat-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+  .cat-chip {
+    border-radius: 999px;
+    border: 1px solid rgba(13, 110, 253, .2);
+    background: #fff;
+    color: #4a5e7a;
+    font-size: .84rem;
+    padding: .4rem .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    line-height: 1.25;
+  }
+  .cat-chip:hover {
+    background: rgba(13,110,253,.06);
+    border-color: rgba(13,110,253,.3);
+    color: var(--bs-primary);
+  }
+  .cat-chip.active {
+    background: rgba(13,110,253,.1);
+    border-color: rgba(13,110,253,.4);
+    color: var(--bs-primary);
+  }
+
+  /* Tab switch */
+  .cat-tab-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .3rem;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, .08);
+    background: rgba(255,255,255,.92);
+  }
+  .cat-tab-pill {
+    border: 0;
+    background: transparent;
+    color: #51627f;
+    font-size: .88rem;
+    line-height: 1;
+    padding: .5rem .85rem;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .cat-tab-pill.active {
+    background: #1f6fff;
+    color: #fff;
+    box-shadow: 0 .5rem 1.2rem rgba(31, 111, 255, .2);
+  }
+
+  /* Section label */
+  .cat-section-label {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--bs-secondary-color);
+    font-weight: 700;
+    margin-bottom: .6rem;
+  }
+
+  /* Model cards grid */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: .9rem;
+  }
+  .cat-card {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1.15rem;
+    background: #fff;
+    box-shadow: 0 .5rem 1.6rem rgba(15, 23, 42, .04);
+    padding: 1rem 1rem .9rem;
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    transition: box-shadow .15s, transform .15s;
+  }
+  .cat-card:hover {
+    box-shadow: 0 .9rem 2rem rgba(15, 23, 42, .09);
+    transform: translateY(-2px);
+  }
+  .cat-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: .65rem;
+  }
+  .cat-card-icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: .75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13, 110, 253, .08);
+    color: var(--bs-primary);
+    font-size: 1.05rem;
+    flex: 0 0 auto;
+  }
+  .cat-card-meta {
+    min-width: 0;
+  }
+  .cat-card-name {
+    font-weight: 700;
+    font-size: .92rem;
+    color: #1f3557;
+    line-height: 1.3;
+    margin-bottom: .15rem;
+  }
+  .cat-card-code {
+    display: inline-block;
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    padding: .12rem .45rem;
+    border-radius: .4rem;
+    background: #f0f4ff;
+    color: #4a6fa5;
+    border: 1px solid rgba(13,110,253,.12);
+    font-family: monospace;
+  }
+  .cat-card-area-badge {
+    font-size: .7rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border-radius: 999px;
+    color: var(--bs-secondary-color);
+    background: rgba(15, 23, 42, .05);
+    border: 1px solid rgba(15, 23, 42, .08);
+    display: inline-block;
+  }
+  .cat-card-footer {
+    margin-top: auto;
+    padding-top: .3rem;
+  }
+  .cat-card .btn-compile {
+    width: 100%;
+    border-radius: .85rem;
+    font-size: .88rem;
+    font-weight: 600;
+    padding: .5rem;
+  }
+
+  /* Empty state */
+  .cat-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--bs-secondary-color);
+  }
+  .cat-empty-icon {
+    font-size: 2.5rem;
+    opacity: .35;
+    margin-bottom: .75rem;
+  }
+
+  /* Area section */
+  .cat-area-section {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+  .cat-area-section[data-hidden="true"] {
+    display: none;
+  }
+
+  /* From-practice section */
+  .cat-pratica-card {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 .4rem 1.2rem rgba(15, 23, 42, .04);
+    padding: .85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+  .cat-pratica-title {
+    font-weight: 700;
+    font-size: .9rem;
+    color: #1f3557;
+  }
+  .cat-pratica-area {
+    font-size: .72rem;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+  .cat-pratica-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+  }
+
+  /* Mobile tweaks */
+  @media (max-width: 576px) {
+    .cat-chip-row {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: .2rem;
+    }
+    .cat-chip-row > * {
+      flex: 0 0 auto;
+    }
+    .cat-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  @media (max-width: 420px) {
+    .cat-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="cat-page">
+
+  {# ── Hero ── #}
+  <div class="cat-hero">
+    <div class="cat-hero-main">
+      <div class="cat-hero-icon">
+        <i class="bi bi-journals"></i>
+      </div>
+      <div>
+        <div class="cat-kicker">Compilatore Atti</div>
+        <h1 class="cat-title">Catalogo Atti</h1>
+        <p class="cat-sub">Tutti i modelli strutturati per area giuridica. Seleziona il tipo di atto e avvia il compilatore guidato.</p>
+      </div>
+    </div>
+    <div class="cat-hero-actions">
+      <div class="cat-tab-switch">
+        <button type="button" class="cat-tab-pill active" data-view="modelli">
+          <i class="bi bi-grid-3x3-gap me-1"></i>Per modello
+        </button>
+        <button type="button" class="cat-tab-pill" data-view="pratiche">
+          <i class="bi bi-diagram-2 me-1"></i>Da pratica
+        </button>
+      </div>
+      <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Template
+      </a>
+    </div>
+  </div>
+
+  {# ── Toolbar ── #}
+  <div class="cat-toolbar">
+    <div class="cat-toolbar-search">
+      <div class="cat-search-wrap">
+        <i class="bi bi-search"></i>
+        <input type="search" id="catSearch" class="cat-search-input form-control" placeholder="Cerca atto…" autocomplete="off">
+      </div>
+      <span class="cat-count-badge" id="catCount">{{ catalogo_flat|length }} modelli</span>
+    </div>
+    <div class="cat-chip-row" id="catAreaChips">
+      <button type="button" class="cat-chip active" data-area="ALL">Tutte le aree</button>
+      {% for grp in area_groups %}
+      <button type="button" class="cat-chip" data-area="{{ grp.area_key }}">
+        {{ grp.area_label }}
+        <span style="font-size:.7rem;opacity:.65;font-weight:500;margin-left:.2rem;">({{ grp.modelli|length }})</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── VIEW: modelli ── #}
+  <div id="viewModelli">
+    {% for grp in area_groups %}
+    <div class="cat-area-section mb-4" data-area="{{ grp.area_key }}" id="area-{{ grp.area_key }}">
+      <div class="cat-section-label">{{ grp.area_label }}</div>
+      <div class="cat-grid" id="grid-{{ grp.area_key }}">
+        {% for m in grp.modelli %}
+        <div class="cat-card" data-code="{{ m.code }}" data-name="{{ m.name|lower }}" data-area="{{ grp.area_key }}">
+          <div class="cat-card-top">
+            <div class="cat-card-icon">
+              {% if grp.area_key == 'PENALE' %}
+              <i class="bi bi-shield-exclamation"></i>
+              {% elif grp.area_key == 'FAMIGLIA' %}
+              <i class="bi bi-people"></i>
+              {% elif grp.area_key == 'LAVORO' %}
+              <i class="bi bi-briefcase"></i>
+              {% elif grp.area_key == 'SOCIETARIO' %}
+              <i class="bi bi-building"></i>
+              {% elif grp.area_key == 'IMMIGRAZIONE' %}
+              <i class="bi bi-globe-americas"></i>
+              {% elif grp.area_key == 'TRIBUTARIO' %}
+              <i class="bi bi-calculator"></i>
+              {% elif grp.area_key == 'AMMINISTRATIVO' %}
+              <i class="bi bi-bank"></i>
+              {% elif grp.area_key == 'STRAGIUDIZIALE' %}
+              <i class="bi bi-chat-square-text"></i>
+              {% else %}
+              <i class="bi bi-file-earmark-text"></i>
+              {% endif %}
+            </div>
+            <div class="cat-card-meta">
+              <div class="cat-card-name">{{ m.name }}</div>
+              <code class="cat-card-code">{{ m.code }}</code>
+            </div>
+          </div>
+          <div>
+            <span class="cat-card-area-badge">{{ grp.area_label }}</span>
+            {% if m.required_extra_fields is defined and m.required_extra_fields %}
+            <span class="cat-card-area-badge ms-1">{{ m.required_extra_fields|length }} campi</span>
+            {% endif %}
+          </div>
+          <div class="cat-card-footer">
+            <a href="{{ url_for('template_atti.compila', model_code=m.code) }}" class="btn btn-sm btn-primary btn-compile">
+              <i class="bi bi-play-circle me-1"></i>Compila atto
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div id="catEmptyState" class="cat-empty" style="display:none;">
+      <div class="cat-empty-icon"><i class="bi bi-search"></i></div>
+      <div class="fw-semibold mb-1">Nessun atto trovato</div>
+      <div class="small">Prova con una parola chiave diversa o rimuovi il filtro area.</div>
+    </div>
+  </div>
+
+  {# ── VIEW: da pratica ── #}
+  <div id="viewPratiche" style="display:none;">
+    {% if wizard_tipologie %}
+    <div class="mb-3">
+      <div class="cat-search-wrap" style="max-width:28rem;">
+        <i class="bi bi-search"></i>
+        <input type="search" id="praticaSearch" class="cat-search-input form-control" placeholder="Cerca pratica…" autocomplete="off">
+      </div>
+    </div>
+    <div class="cat-grid" id="praticaGrid">
+      {% for tip in wizard_tipologie %}
+      <div class="cat-pratica-card" data-pratica-name="{{ tip.label|lower }}" data-pratica-area="{{ tip.area }}">
+        <div class="cat-pratica-area">{{ tip.area.replace('_', ' ').title() }}</div>
+        <div class="cat-pratica-title">{{ tip.label }}</div>
+        <div class="cat-pratica-links">
+          {% for mo in tip.modelli_atti %}
+          <a href="{{ url_for('template_atti.compila', model_code=mo.code) }}"
+             class="btn btn-sm btn-outline-primary"
+             title="{{ mo.name }}">
+            <i class="bi bi-play-circle me-1"></i>{{ mo.name }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="cat-empty">
+      <div class="cat-empty-icon"><i class="bi bi-diagram-2"></i></div>
+      <div class="fw-semibold mb-1">Nessun mapping pratica → atti disponibile</div>
+      <div class="small">I modelli compilatore non sono ancora collegati alle tipologie del wizard preventivi.</div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>{# /cat-page #}
+
+<script>
+(function () {
+  'use strict';
+
+  const CATALOGO_FLAT = {{ catalogo_flat | tojson }};
+
+  /* ── View switch ── */
+  const viewModelli  = document.getElementById('viewModelli');
+  const viewPratiche = document.getElementById('viewPratiche');
+  const toolbar      = document.querySelector('.cat-toolbar');
+
+  document.querySelectorAll('.cat-tab-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cat-tab-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      if (view === 'pratiche') {
+        viewModelli.style.display  = 'none';
+        viewPratiche.style.display = '';
+        toolbar.style.display      = 'none';
+      } else {
+        viewModelli.style.display  = '';
+        viewPratiche.style.display = 'none';
+        toolbar.style.display      = '';
+      }
+    });
+  });
+
+  /* ── Area chips ── */
+  let currentArea = 'ALL';
+
+  document.querySelectorAll('#catAreaChips .cat-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#catAreaChips .cat-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentArea = chip.dataset.area;
+      applyFilters();
+    });
+  });
+
+  /* ── Search ── */
+  document.getElementById('catSearch').addEventListener('input', applyFilters);
+
+  function applyFilters() {
+    const q = (document.getElementById('catSearch').value || '').trim().toLowerCase();
+    let visible = 0;
+
+    // Show/hide area sections
+    document.querySelectorAll('#viewModelli .cat-area-section').forEach(section => {
+      const areaKey = section.dataset.area;
+      if (currentArea !== 'ALL' && currentArea !== areaKey) {
+        section.setAttribute('data-hidden', 'true');
+        return;
+      }
+      section.removeAttribute('data-hidden');
+
+      // Filter cards within this area
+      let areaVisible = 0;
+      section.querySelectorAll('.cat-card').forEach(card => {
+        const name = card.dataset.name || '';
+        const code = (card.dataset.code || '').toLowerCase();
+        const match = !q || name.includes(q) || code.includes(q);
+        card.style.display = match ? '' : 'none';
+        if (match) { areaVisible++; visible++; }
+      });
+
+      // Hide empty area sections when searching
+      if (q && areaVisible === 0) {
+        section.setAttribute('data-hidden', 'true');
+      }
+    });
+
+    // Update count badge
+    const total = currentArea === 'ALL' ? CATALOGO_FLAT.length
+      : CATALOGO_FLAT.filter(m => m.area === currentArea).length;
+    const countEl = document.getElementById('catCount');
+    countEl.textContent = q
+      ? `${visible} su ${total} modelli`
+      : `${total} modelli`;
+
+    // Empty state
+    document.getElementById('catEmptyState').style.display = visible === 0 ? '' : 'none';
+  }
+
+  /* ── Pratica search ── */
+  const praticaSearchEl = document.getElementById('praticaSearch');
+  if (praticaSearchEl) {
+    praticaSearchEl.addEventListener('input', () => {
+      const q = (praticaSearchEl.value || '').trim().toLowerCase();
+      document.querySelectorAll('#praticaGrid .cat-pratica-card').forEach(card => {
+        const name = card.dataset.praticaName || '';
+        card.style.display = (!q || name.includes(q)) ? '' : 'none';
+      });
+    });
+  }
+
+  /* Initial count */
+  applyFilters();
+}());
+</script>
+{% endblock %}

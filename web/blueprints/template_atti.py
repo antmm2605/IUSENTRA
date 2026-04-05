@@ -250,6 +250,75 @@ def lista():
     )
 
 
+# ================================================================ CATALOGO ATTI
+
+@template_atti.route("/catalogo", methods=["GET"])
+@_richiedi_login
+def catalogo():
+    from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE
+    from pct.motore_preventivo import catalogo_wizard
+
+    # Raggruppa i modelli del compilatore per area con metadati
+    area_groups: list[dict] = []
+    for area_key in AREA_ORDINE:
+        modelli = [m for m in MODELS if m["area"] == area_key]
+        if modelli:
+            area_groups.append({
+                "area_key": area_key,
+                "area_label": AREA_LABELS.get(area_key, area_key.title()),
+                "modelli": modelli,
+            })
+
+    # Catalogo piatto per JS (ricerca client-side)
+    catalogo_flat = []
+    for grp in area_groups:
+        for m in grp["modelli"]:
+            catalogo_flat.append({
+                "code":  m["code"],
+                "name":  m["name"],
+                "area":  grp["area_key"],
+                "area_label": grp["area_label"],
+                "url":   url_for("template_atti.compila", model_code=m["code"]),
+            })
+
+    # Tipologie del wizard preventivi con mapping verso atti (per la sezione "da pratica")
+    try:
+        from pct.motore_preventivo import catalogo_wizard as _cw
+        wizard_cat = _cw()
+    except Exception:
+        wizard_cat = {}
+    from pct.compilatore_atti import PRATICA_TO_MODELS, MODEL_INDEX
+    wizard_tipologie = []
+    for area_name, items in wizard_cat.items():
+        for tip in items:
+            pid = tip.get("id", "")
+            codes = PRATICA_TO_MODELS.get(pid, [])
+            modelli_atti = [{"code": c, "name": MODEL_INDEX[c]["name"]} for c in codes if c in MODEL_INDEX]
+            if modelli_atti:
+                wizard_tipologie.append({
+                    "id": pid,
+                    "label": tip.get("label", pid),
+                    "area": area_name,
+                    "modelli_atti": modelli_atti,
+                })
+
+    return render_template(
+        "template_atti/catalogo.html",
+        area_groups=area_groups,
+        catalogo_flat=catalogo_flat,
+        wizard_tipologie=wizard_tipologie,
+        oggi=date.today(),
+    )
+
+
+@template_atti.route("/api/modelli-per-pratica/<id_pratica>", methods=["GET"])
+@_richiedi_login
+def api_modelli_per_pratica(id_pratica: str):
+    from pct.compilatore_atti import get_modelli_per_pratica
+    modelli = get_modelli_per_pratica(id_pratica)
+    return jsonify([{"code": m["code"], "name": m["name"], "area": m["area"]} for m in modelli])
+
+
 # ================================================================ NUOVO TEMPLATE
 
 @template_atti.route("/nuovo", methods=["GET", "POST"])

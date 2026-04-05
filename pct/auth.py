@@ -339,11 +339,13 @@ class GestioneUtenti:
         secret_key: str = "",
         retention_days: int = 730,
         crea_admin_se_vuoto: bool = True,
+        ruolo_default: "RuoloUtente | None" = None,
     ):
         self.db_path = Path(db_path)
         self.audit_path = Path(audit_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._crea_admin_se_vuoto = crea_admin_se_vuoto
+        self._ruolo_default = ruolo_default
         self._secret = secret_key or secrets.token_hex(32)
         self._retention_days = retention_days
         self._utenti: Dict[str, Utente] = {}
@@ -418,11 +420,13 @@ class GestioneUtenti:
         return out.getvalue()
 
     def _crea_admin_default(self):
+        ruolo = self._ruolo_default or RuoloUtente.AMMINISTRATORE
+        nome = "Super Amministratore" if ruolo == RuoloUtente.SUPERADMIN else "Amministratore"
         admin = Utente(
             username="admin",
             email="admin@studio.local",
-            nome_completo="Amministratore",
-            ruolo=RuoloUtente.AMMINISTRATORE,
+            nome_completo=nome,
+            ruolo=ruolo,
             password_hash=self._hash_password("admin"),
         )
         self._utenti[admin.id] = admin

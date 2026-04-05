@@ -1533,6 +1533,7 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "appuntamenti": {},
         "audit": [],
         "calendar_sync": {"profiles": []},
+        "clienti": {},          # anagrafica.json — mancava dal bootstrap
         "condivisioni": {"cartelle": {}, "fascicoli": {}, "link": {}},
         "fascicoli": {},
         "messaggi": {},
@@ -1542,6 +1543,7 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "fatturazione": {},
         "portale": {},
         "preventivi": {},
+        "scadenze": {},          # scadenze.json — mancava dal bootstrap
         "soggetti": [],
         "soggetti_parti": {},
         "template_atti": {},

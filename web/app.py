@@ -2164,10 +2164,18 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_utenti() -> GestioneUtenti:
         if not hasattr(g, "_utenti"):
+            # In modalità multi-tenant, il primo utente globale deve essere SUPERADMIN
+            # per poter accedere al pannello /admin/ e creare studi.
+            ruolo_default = (
+                RuoloUtente.SUPERADMIN
+                if app.config.get("MULTI_TENANT")
+                else RuoloUtente.AMMINISTRATORE
+            )
             g._utenti = GestioneUtenti(
                 db_path=app.config["AUTH_DB"],
                 audit_path=app.config["AUDIT_DB"],
                 secret_key=app.secret_key,
+                ruolo_default=ruolo_default,
             )
         return g._utenti
 

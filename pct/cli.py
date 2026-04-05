@@ -2339,6 +2339,73 @@ def cmd_imp_studio(nome, avvocato, piva, cf, indirizzo, iban, config):
     click.echo(f"Dati studio aggiornati e salvati in {config}")
 
 
+@cli.command("crea-superadmin")
+@click.option("--username", default="admin", show_default=True, help="Username del superadmin")
+@click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True,
+              help="Password del superadmin")
+@click.option("--email", default="admin@studio.local", show_default=True, help="Email del superadmin")
+@click.option("--nome", default="Super Amministratore", show_default=True, help="Nome completo")
+@click.option("--auth-db", default="./auth/utenti.json", show_default=True,
+              envvar="PCT_AUTH_DB", help="Percorso file utenti JSON")
+@click.option("--forza", is_flag=True, default=False,
+              help="Aggiorna a SUPERADMIN anche se l'utente esiste già")
+def cmd_crea_superadmin(username, password, email, nome, auth_db, forza):
+    """Crea o promuove un utente SUPERADMIN per l'accesso al pannello /admin/.
+
+    Da eseguire una volta sola al primo avvio su una nuova installazione
+    multi-tenant, oppure per ripristinare l'accesso amministrativo.
+
+    Esempio:
+
+      pct crea-superadmin --username admin --auth-db ./data/auth/utenti.json
+    """
+    gu = GestioneUtenti(
+        db_path=auth_db,
+        secret_key=os.getenv("PCT_SECRET_KEY", "dev-secret-pct-2024"),
+        crea_admin_se_vuoto=False,
+    )
+
+    # Cerca utente esistente con lo stesso username
+    esistente = next((u for u in gu.lista() if u.username == username), None)
+
+    if esistente:
+        if esistente.ruolo == RuoloUtente.SUPERADMIN and not forza:
+            click.echo(f"L'utente '{username}' è già SUPERADMIN. Usa --forza per aggiornare.", err=True)
+            sys.exit(0)
+        # Promuovi a SUPERADMIN e aggiorna password/dati
+        gu.aggiorna(
+            esistente.id,
+            ruolo=RuoloUtente.SUPERADMIN,
+            nome_completo=nome,
+            email=email,
+        )
+        # Aggiorna password separatamente
+        from werkzeug.security import generate_password_hash
+        gu._utenti[esistente.id].password_hash = generate_password_hash(password)
+        gu._salva_utenti()
+        click.echo(f"Utente '{username}' promosso a SUPERADMIN.")
+    else:
+        # Crea nuovo utente SUPERADMIN
+        try:
+            gu.crea(
+                username=username,
+                password=password,
+                ruolo=RuoloUtente.SUPERADMIN,
+                nome_completo=nome,
+                email=email,
+            )
+            click.echo(f"Superadmin '{username}' creato con successo.")
+        except Exception as exc:
+            click.echo(f"Errore nella creazione: {exc}", err=True)
+            sys.exit(1)
+
+    click.echo(f"  Auth DB : {auth_db}")
+    click.echo(f"  Username: {username}")
+    click.echo(f"  Email   : {email}")
+    click.echo(f"  Ruolo   : SUPERADMIN")
+    click.echo("Accedi su /login e poi visita /admin/ per gestire gli studi.")
+
+
 def main():
     cli()
 

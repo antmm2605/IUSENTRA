@@ -675,6 +675,8 @@ class GestioneTenant:
             "notifiche", "pagamenti", "portale", "portale/uploads",
             "privacy", "condivisioni", "template_atti", "wizard_pro",
             "intelligence", "search",
+            # directory aggiuntive per moduli preventivi, email e soggetti
+            "preventivi", "email", "soggetti",
         ]:
             (base / subdir).mkdir(parents=True, exist_ok=True)
 
@@ -708,6 +710,12 @@ class GestioneTenant:
             "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",
             "REDACTION_ASSISTANT_DB": f"{base}/intelligence/assistente_redazionale.json",
+            # Percorsi aggiuntivi necessari per isolamento tenant completo
+            "NOTE_FALDONE_DB":   f"{base}/clienti/note_faldone.json",
+            "EMAIL_CASELLA_DB":  f"{base}/email/casella.json",
+            "PREVENTIVI_DB":     f"{base}/preventivi/preventivi.json",
+            "SOGGETTI_DB":       f"{base}/soggetti/soggetti.json",
+            "SOGGETTI_PARTI_DB": f"{base}/soggetti/soggetti_parti.json",
         }
 
     # ---- Helper

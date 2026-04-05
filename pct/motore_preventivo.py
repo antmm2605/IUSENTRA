@@ -40,6 +40,9 @@ from pct.tassonomia_preventivi import (
 
 AREE = [
     "Civile",
+    "Famiglia e persone",
+    "Lavoro e previdenza",
+    "Esecuzioni civili",
     "Penale",
     "Penale difensivo",
     "Amministrativo",
@@ -271,7 +274,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="precetto",
         label="Precetto",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
@@ -280,7 +283,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="pignoramento",
         label="Pignoramento mobiliare",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_ESEC_MOB,
@@ -289,7 +292,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="esecuzione_mobiliare",
         label="Esecuzione mobiliare",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_ESEC_MOB,
@@ -298,7 +301,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="esecuzione_immobiliare",
         label="Esecuzione immobiliare",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.ESEC_IMMO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_ESEC_INT,
@@ -307,7 +310,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="esecuzione_terzi",
         label="Esecuzione presso terzi (pignoramento c/terzi)",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.ESEC_MOB,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_ESEC_INT,
@@ -316,7 +319,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="opposizione_esecutiva",
         label="Opposizione all'esecuzione",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -325,7 +328,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="opposizione_atti_esecutivi",
         label="Opposizione agli atti esecutivi",
-        area="Civile",
+        area="Esecuzioni civili",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -334,7 +337,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="separazione_consensuale",
         label="Separazione consensuale",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -343,7 +346,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="separazione_giudiziale",
         label="Separazione giudiziale",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -352,7 +355,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="divorzio_congiunto",
         label="Divorzio congiunto",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -361,7 +364,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="divorzio_giudiziale",
         label="Divorzio giudiziale",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -370,7 +373,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="procedimenti_famiglia",
         label="Procedimento camerale di famiglia",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -379,7 +382,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="procedimenti_minori",
         label="Procedimenti relativi ai minori",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -388,7 +391,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="modifica_condizioni_famiglia",
         label="Modifica condizioni separazione / divorzio",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -397,7 +400,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="responsabilita_genitoriale",
         label="Responsabilita genitoriale e affidamento",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -406,7 +409,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="reclamo_famiglia_minori",
         label="Reclamo famiglia / minori",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -415,7 +418,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="appello_famiglia_minori",
         label="Appello famiglia / minori",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.CIVILE_COGN,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=_FASI_BASE,
@@ -424,7 +427,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="amministrazione_sostegno",
         label="Amministrazione di sostegno",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.GIUDICE_TUTELARE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -433,7 +436,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="nomina_amministratore_sostegno",
         label="Nomina amministratore di sostegno",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.GIUDICE_TUTELARE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -442,7 +445,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="modifica_revoca_ads",
         label="Modifica / revoca amministrazione di sostegno",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.GIUDICE_TUTELARE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -451,7 +454,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="tutela_curatela",
         label="Tutela / curatela ordinaria",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.GIUDICE_TUTELARE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -460,7 +463,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="reclamo_giudice_tutelare",
         label="Reclamo avverso decreto del giudice tutelare",
-        area="Civile",
+        area="Famiglia e persone",
         materia=Materia.VOLONTARIA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -490,7 +493,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="controversia_lavoro",
         label="Controversia di lavoro",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.LAVORO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -499,7 +502,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="licenziamento",
         label="Licenziamento (impugnazione)",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.LAVORO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -508,7 +511,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="differenze_retributive",
         label="Differenze retributive",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.LAVORO,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -517,7 +520,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="appello_lavoro",
         label="Appello in materia di lavoro",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.LAVORO,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=_FASI_BASE,
@@ -526,7 +529,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="cassazione_lavoro",
         label="Cassazione in materia di lavoro",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.LAVORO,
         grado_default=Grado.CASSAZIONE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -535,7 +538,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="previdenza",
         label="Previdenza (INPS / INAIL / fondi)",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.PREVIDENZA,
         grado_default=Grado.TRIBUNALE,
         fasi_default=_FASI_BASE,
@@ -544,7 +547,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="appello_previdenza",
         label="Appello previdenziale / assistenziale",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.PREVIDENZA,
         grado_default=Grado.CORTE_APPELLO,
         fasi_default=_FASI_BASE,
@@ -553,7 +556,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="cassazione_previdenza",
         label="Cassazione previdenziale / assistenziale",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.PREVIDENZA,
         grado_default=Grado.CASSAZIONE,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -562,7 +565,7 @@ CATALOGO: List[TipoPratica] = [
     TipoPratica(
         id="assistenza_previdenziale",
         label="Assistenza previdenziale / ricorso amministrativo",
-        area="Civile",
+        area="Lavoro e previdenza",
         materia=Materia.PREVIDENZA,
         grado_default=Grado.FUORI_GIUDIZIO,
         fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
@@ -1046,6 +1049,109 @@ CATALOGO.extend(
 
 CATALOGO.extend(
     [
+        # ── AMMINISTRATIVO (espansione) ─────────────────────────────────────
+        TipoPratica(
+            id="accesso_atti",
+            label="Accesso agli atti e documenti amministrativi",
+            area="Amministrativo",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.TAR,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="L. 7 agosto 1990 n. 241 artt. 22-28 — accesso documentale, civico e FOIA",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="silenzio_inadempimento",
+            label="Ricorso avverso silenzio-inadempimento della PA",
+            area="Amministrativo",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.TAR,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="D.Lgs. 104/2010 art. 117 c.p.a. — ricorso avverso il silenzio della PA",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="appalti_contratti_pubblici",
+            label="Appalti e contratti pubblici",
+            area="Amministrativo",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.TAR,
+            fasi_default=_FASI_BASE,
+            base_normativa="D.Lgs. 31 marzo 2023 n. 36 (Codice dei contratti pubblici) — impugnazione aggiudicazione e atti di gara",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="espropriazione_pu",
+            label="Espropriazione per pubblica utilita",
+            area="Amministrativo",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.TAR,
+            fasi_default=_FASI_BASE,
+            base_normativa="D.P.R. 8 giugno 2001 n. 327 (T.U. espropriazioni) — impugnazione decreto di esproprio e indennita",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="sanzioni_amministrative",
+            label="Opposizione a sanzioni amministrative",
+            area="Amministrativo",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.GIUDICE_DI_PACE,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="L. 24 novembre 1981 n. 689 artt. 22-23 — opposizione ad ordinanza-ingiunzione",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+
+        # ── TRIBUTARIO (espansione) ──────────────────────────────────────────
+        TipoPratica(
+            id="consulenza_tributaria",
+            label="Consulenza tributaria e pareri fiscali",
+            area="Tributario",
+            materia=Materia.TRIBUTARIO,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=_FASI_STUDIO,
+            base_normativa="L. 247/2012 art. 13 — consulenza in materia tributaria e fiscale",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="procedure_deflattive",
+            label="Procedure deflattive (acquiescenza, definizione agevolata, mediazione fiscale)",
+            area="Tributario",
+            materia=Materia.TRIBUTARIO,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="D.Lgs. 546/1992 artt. 17-bis e 48 — mediazione tributaria e definizione agevolata",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="concordato_biennale",
+            label="Concordato preventivo biennale (CPB)",
+            area="Tributario",
+            materia=Materia.TRIBUTARIO,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="D.Lgs. 13 giugno 2024 n. 13 artt. 6-22 — istituto del concordato preventivo biennale",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="contenzioso_doganale",
+            label="Contenzioso doganale e accise",
+            area="Tributario",
+            materia=Materia.TRIBUTARIO,
+            grado_default=Grado.CGT_PRIMO_GRADO,
+            fasi_default=_FASI_BASE,
+            base_normativa="D.Lgs. 546/1992 + D.P.R. 43/1973 (TULD) — ricorsi tributari in materia doganale e accise",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+
         # ── PENALE DIFENSIVO ────────────────────────────────────────────────
         TipoPratica(
             id="consulenza_difensiva",
@@ -1695,6 +1801,45 @@ _ESBORSI_TIPICI.update(
             {"descrizione": "Contributo unificato opposizione stato passivo (indicativo)", "importo": 518.0},
             {"descrizione": "Diritti di segreteria", "importo": 27.0},
         ],
+        # ── AMMINISTRATIVO (espansione) ──
+        "accesso_atti": [
+            {"descrizione": "Marca da bollo istanza accesso (€ 16)", "importo": 16.0},
+            {"descrizione": "Contributo unificato ricorso TAR (se dovuto)", "importo": 650.0},
+        ],
+        "silenzio_inadempimento": [
+            {"descrizione": "Contributo unificato ricorso silenzio TAR", "importo": 325.0},
+            {"descrizione": "Notifica ricorso", "importo": 25.0},
+        ],
+        "appalti_contratti_pubblici": [
+            {"descrizione": "Contributo unificato TAR appalti (base)", "importo": 2000.0},
+            {"descrizione": "Notifica ricorso impugnazione", "importo": 50.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+        "espropriazione_pu": [
+            {"descrizione": "Contributo unificato TAR (indicativo)", "importo": 650.0},
+            {"descrizione": "Perizia stima indennita (CTP)", "importo": 500.0},
+            {"descrizione": "Notifica ricorso", "importo": 25.0},
+        ],
+        "sanzioni_amministrative": [
+            {"descrizione": "Contributo unificato G.d.P. / Tribunale", "importo": 98.0},
+            {"descrizione": "Notifica opposizione", "importo": 25.0},
+        ],
+        # ── TRIBUTARIO (espansione) ──
+        "consulenza_tributaria": [
+            {"descrizione": "Ricerca normativa / circolari AgE (indicativa)", "importo": 20.0},
+        ],
+        "procedure_deflattive": [
+            {"descrizione": "Marca da bollo istanza definizione", "importo": 16.0},
+            {"descrizione": "Spese notifica istanza (se dovuta)", "importo": 15.0},
+        ],
+        "concordato_biennale": [
+            {"descrizione": "Software / banca dati ISA / CPB (indicativo)", "importo": 50.0},
+        ],
+        "contenzioso_doganale": [
+            {"descrizione": "Contributo unificato CGT (indicativo)", "importo": 98.0},
+            {"descrizione": "Notifica ricorso", "importo": 25.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
         # ── PENALE DIFENSIVO ──
         "consulenza_difensiva": [
             {"descrizione": "Accesso atti / copie fascicolo", "importo": 30.0},
@@ -1960,6 +2105,21 @@ _RIFERIMENTI_AREA: Dict[str, Dict[str, str]] = {
         "description": "Prestazioni stragiudiziali e strumenti ADR richiamati per la tipologia selezionata.",
         "url": _URL_MEDIAZIONE,
     },
+    "Famiglia e persone": {
+        "title": "Codice di procedura civile",
+        "description": "Riferimento processuale per procedimenti di famiglia, minori e volontaria giurisdizione.",
+        "url": _URL_CPC,
+    },
+    "Lavoro e previdenza": {
+        "title": "Codice di procedura civile",
+        "description": "Riferimento processuale del rito lavoro, previdenza e assistenza.",
+        "url": _URL_CPC,
+    },
+    "Esecuzioni civili": {
+        "title": "Codice di procedura civile",
+        "description": "Riferimento processuale per esecuzioni forzate, pignoramenti e opposizioni esecutive.",
+        "url": _URL_CPC,
+    },
     "Penale difensivo": {
         "title": "Codice di procedura penale",
         "description": "Riferimento processuale per la difesa penale nelle sue diverse fasi e gradi.",
@@ -1985,6 +2145,9 @@ _RIFERIMENTI_AREA: Dict[str, Dict[str, str]] = {
 _MOTORE_PER_AREA = {
     "Civile": "Motore parametrico giudiziale civile",
     "Lavoro e previdenza": "Motore parametrico lavoro e previdenza",
+    "Famiglia e persone": "Motore parametrico famiglia e persone",
+    "Lavoro e previdenza": "Motore parametrico lavoro e previdenza",
+    "Esecuzioni civili": "Motore parametrico esecuzioni civili",
     "Penale": "Motore parametrico penale",
     "Penale difensivo": "Motore parametrico penale difensivo",
     "Amministrativo": "Motore parametrico amministrativo",
@@ -1998,6 +2161,9 @@ _MOTORE_PER_AREA = {
 _REDATTORE_PER_AREA = {
     "Civile": "Redattore preventivo giudiziale civile",
     "Lavoro e previdenza": "Redattore preventivo rito lavoro",
+    "Famiglia e persone": "Redattore preventivo famiglia e persone",
+    "Lavoro e previdenza": "Redattore preventivo rito lavoro",
+    "Esecuzioni civili": "Redattore preventivo esecuzioni civili",
     "Penale": "Redattore preventivo penale",
     "Penale difensivo": "Redattore preventivo difensivo penale",
     "Amministrativo": "Redattore preventivo amministrativo",
@@ -2156,6 +2322,12 @@ def _summary_for(tp: TipoPratica) -> str:
     if tp.id in _SUMMARY_OVERRIDES:
         return _SUMMARY_OVERRIDES[tp.id]
     area = tp.area.lower()
+    if tp.area == "Famiglia e persone":
+        return f"Preventivo per {tp.label.lower()}, con compenso strutturato sulle fasi tipiche del procedimento familiare o di protezione della persona."
+    if tp.area == "Lavoro e previdenza":
+        return f"Preventivo per {tp.label.lower()}, con stima del compenso sulle fasi del rito lavoro e dei relativi gradi di impugnazione."
+    if tp.area == "Esecuzioni civili":
+        return f"Preventivo per {tp.label.lower()}, con compenso parametrato alle attivita esecutive, ai diritti di segreteria e alle spese vive tipiche."
     if tp.area == "Stragiudiziale":
         return f"Preventivo per {tp.label.lower()}, con impostazione immediata di attivita, tempi e spese vive tipiche."
     if tp.area == "Penale":
@@ -2189,6 +2361,12 @@ def _note_template_for(tp: TipoPratica) -> str:
     ]
     if tp.area == "Stragiudiziale":
         lines.append("Le attivita di trattativa o ADR ulteriori rispetto a quelle stimate formeranno oggetto di integrazione del preventivo.")
+    if tp.area == "Famiglia e persone":
+        lines.append("In caso di procedimento contenzioso con sviluppi imprevisti o richieste istruttorie aggiuntive, il compenso potra essere adeguato di conseguenza.")
+    if tp.area == "Lavoro e previdenza":
+        lines.append("Il compenso indicato si riferisce alla fase principale; eventuali impugnazioni successive (appello, Cassazione) formeranno oggetto di distinto preventivo.")
+    if tp.area == "Esecuzioni civili":
+        lines.append("Restano esclusi dal preventivo i diritti dell'Ufficiale Giudiziario, le spese di custodia dei beni pignorati e le perizie estimative, salvo diverso accordo.")
     if tp.area in {"Penale", "Penale difensivo"}:
         lines.append("Il compenso potra richiedere adeguamento in caso di udienze ulteriori, impugnazioni, incidenti o attivita investigative aggiuntive.")
     if tp.area == "Societario":
@@ -2210,6 +2388,15 @@ def _checklist_for(tp: TipoPratica) -> List[str]:
         checklist.append(_descrivi_fase(fase))
     if tp.area == "Stragiudiziale":
         checklist.append("definire se inserire fase di mediazione o negoziazione assistita")
+    if tp.area == "Famiglia e persone":
+        checklist.append("raccogliere certificati di matrimonio, atti di nascita dei figli e documentazione patrimoniale")
+        checklist.append("verificare se il procedimento e contenzioso o consensuale e pianificare la strategia")
+    if tp.area == "Lavoro e previdenza":
+        checklist.append("raccogliere contratto di lavoro, buste paga e comunicazioni datoriali")
+        checklist.append("verificare i termini di impugnazione stragiudiziale e giudiziale applicabili")
+    if tp.area == "Esecuzioni civili":
+        checklist.append("verificare la validita e esecutorieta del titolo esecutivo")
+        checklist.append("identificare i beni aggredibili e la residenza/sede del debitore")
     if tp.area == "Penale difensivo":
         checklist.append("acquisire copia del fascicolo dibattimentale o degli atti di indagine")
         checklist.append("verificare posizione cautelare e termini di fase")

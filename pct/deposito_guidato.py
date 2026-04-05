@@ -1754,3 +1754,44 @@ class OrchestratoreDepositoGuidato:
         )
         self.store.salva_run(run)
         return run
+
+
+# ================================================================
+# API di convenienza — integrazione con PracticeProfile
+# ================================================================
+
+def get_deposit_policy(practice_id: str) -> Optional[Any]:
+    """
+    Restituisce il DepositPolicy del PRACTICE_REGISTRY per la pratica indicata.
+
+    Utile per i validatori che devono sapere se una pratica richiede
+    DatiAtto.xml (PCT), mTLS (PDP/PAT), pre-deposito obbligatorio, ecc.
+    Restituisce None se la pratica non è nel registry.
+
+    Esempio::
+
+        policy = get_deposit_policy("comparsa_risposta")
+        if policy and policy.needs_ministerial_xml:
+            # valida DatiAtto.xml
+    """
+    try:
+        from pct.practice_profiles import get_practice_profile as _gpp
+        profile = _gpp(practice_id)
+        return profile.deposit_policy if profile else None
+    except Exception:
+        return None
+
+
+def get_conformity_binding(practice_id: str) -> Optional[Any]:
+    """
+    Restituisce il ConformityBinding del PRACTICE_REGISTRY per la pratica.
+
+    Consente ai validatori di conoscere i blocking_checks specifici
+    della pratica senza cablare logica per-practice nel validator.
+    """
+    try:
+        from pct.practice_profiles import get_practice_profile as _gpp
+        profile = _gpp(practice_id)
+        return profile.conformity if profile else None
+    except Exception:
+        return None

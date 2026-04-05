@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 from pct.economico_context import riepilogo_contesto_economico
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
+from pct.practice_profiles import get_practice_profile
 from pct.preventivi import GestionePreventivi
 from pct.scadenziario import GestioneScadenziario, TipoTermine
 from pct.workflow_onboarding import build_fascicolo_onboarding
@@ -160,6 +161,9 @@ def build_workflow_summary(
         next_step_key = "operativita"
         next_step_label = "La pratica è già operativa: puoi lavorare da fascicolo, agenda e atti."
 
+    # Arricchimento dal PracticeProfile centralizzato
+    pp = get_practice_profile(pratica_id) if pratica_id else None
+
     return {
         "channel": channel,
         "channel_label": workflow_channel_label(channel),
@@ -186,6 +190,21 @@ def build_workflow_summary(
             "tipo": onboarding.get("tipo", ""),
             "oggetto": onboarding.get("oggetto", ""),
             "valore_causa": onboarding.get("valore_causa", 0.0),
+        },
+        # Dati operativi dal PracticeProfile
+        "practice_profile": {
+            "practice_id": pp.practice_id if pp else pratica_id,
+            "channel": pp.channel if pp else "",
+            "registry": pp.registry if pp else "",
+            "grade": pp.grade if pp else "",
+            "office_scope": pp.office_scope if pp else "",
+            "rito": pp.rito if pp else "",
+            "taxonomy_path": pp.taxonomy_path if pp else [],
+            "requires_deposit": pp.requires_deposit if pp else False,
+            "requires_notification": pp.requires_notification if pp else False,
+            "checklist_template_id": pp.checklist_template_id if pp else "",
+            "workflow_profile_id": pp.workflow.workflow_profile_id if pp else "",
+            "next_step_hint": pp.workflow.next_step_hint if pp else "",
         },
     }
 

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from pct.checklist_atti import CANALE_LABEL, get_template
 from pct.fascicoli import TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
+from pct.practice_profiles import get_practice_profile
 
 
 _MAP_AREE_TO_TIPO = {
@@ -156,6 +157,10 @@ def _merge_unique_rows(*groups: List[str]) -> List[str]:
 
 
 def _template_for_practice(id_pratica: str):
+    # Prima controlla il registry centralizzato, poi il mapping legacy
+    profile = get_practice_profile(id_pratica or "")
+    if profile and profile.checklist_template_id:
+        return get_template(profile.checklist_template_id)
     template_id = _CHECKLIST_TEMPLATE_BY_PRACTICE.get(id_pratica or "")
     return get_template(template_id) if template_id else None
 
@@ -326,6 +331,13 @@ def build_fascicolo_onboarding(
         notes.extend([f"- {item['title']}" for item in attivita_iniziali[:3]])
     note_text = "\n".join([line for line in notes if line]).strip()
 
+    # Dati aggiuntivi dal registry centralizzato
+    profile = get_practice_profile(id_pratica) if id_pratica else None
+    canale_operativo = CANALE_LABEL.get(getattr(template, "canale", ""), "") if template else ""
+    if not canale_operativo and profile:
+        from pct.checklist_atti import CANALE_LABEL as _CL
+        canale_operativo = _CL.get(profile.channel, "")
+
     return {
         "source_label": source_label,
         "source_number": source_number,
@@ -344,5 +356,15 @@ def build_fascicolo_onboarding(
         "attivita_iniziali": attivita_iniziali,
         "scadenze_iniziali": scadenze_iniziali,
         "template_checklist_id": getattr(template, "id", ""),
-        "canale_operativo": CANALE_LABEL.get(getattr(template, "canale", ""), "") if template else "",
+        "canale_operativo": canale_operativo,
+        # campi arricchiti dal PracticeProfile
+        "practice_channel": profile.channel if profile else "",
+        "practice_registry": profile.registry if profile else "",
+        "practice_grade": profile.grade if profile else "",
+        "practice_office_scope": profile.office_scope if profile else "",
+        "practice_rito": profile.rito if profile else "",
+        "practice_taxonomy_path": profile.taxonomy_path if profile else [],
+        "practice_requires_deposit": profile.requires_deposit if profile else False,
+        "practice_workflow_profile_id": profile.workflow.workflow_profile_id if profile else "",
+        "practice_next_step_hint": profile.workflow.next_step_hint if profile else "",
     }

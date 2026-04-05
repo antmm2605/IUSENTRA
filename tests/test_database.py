@@ -532,6 +532,47 @@ def test_migra_verso_sqlite_seed_macro_aree_e_portali_base(db, tmp_path):
     }.issubset(canali_codes)
 
 
+def test_migra_verso_sqlite_seed_sottobranche_specifiche(db, tmp_path):
+    """Le 24 sottobranche del NODE_CATALOG devono essere seedate nel DB."""
+    dest = str(tmp_path / "migrato.db")
+    db.migra_verso_sqlite(dest)
+    conn = sqlite3.connect(dest)
+
+    sub_codes = {
+        row[0]
+        for row in conn.execute("SELECT codice FROM sottobranche").fetchall()
+    }
+    conn.close()
+
+    # Tutte e 24 le sottobranche specifiche del NODE_CATALOG
+    assert {
+        "COGNIZIONE_CREDITI",
+        "LOCAZIONI_SFRATTI",
+        "RESPONSABILITA_DANNI",
+        "ISTR_PREV_CAUTELARE",
+        "PARERI_DIFFIDE",
+        "RECUPERO_STRAGIUD_SINISTRI",
+        "FAMIGLIA_MINORI",
+        "LAVORO_SUBORDINATO",
+        "PREVIDENZA_ASSISTENZA",
+        "PENALE_ORDINARIO",
+        "GDP_MISURE_SORVEGLIANZA",
+        "TAR_CDS",
+        "CGT_PRIMO_SECONDO_GRADO",
+        "PUBBLICITA_TAVOLARE",
+        "ESECUZIONE_CIVILE",
+        "ADS_TUTELA_CURATELA",
+        "MEDIAZIONE_CIVILE",
+        "NEGOZIAZIONE_ASSISTITA",
+        "ARBITRATO_RITUALE_IRRITUALE",
+        "CONSULENZA_CONTRATTI",
+        "DOMICILIAZIONE_E_TEMPO",
+        "CORTE_DEI_CONTI",
+        "CORTE_COST_CEDU_CGUE",
+        "LIQUIDAZIONE_E_PASSIVO",
+    }.issubset(sub_codes)
+
+
 def test_migra_verso_sqlite_seed_forense_minimo(db, tmp_path):
     dest = str(tmp_path / "migrato.db")
     db.migra_verso_sqlite(dest)

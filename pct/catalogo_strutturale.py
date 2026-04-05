@@ -721,6 +721,77 @@ MACRO_AREAS = [
 ]
 
 
+# Mapping macro_code del NODE_CATALOG → codice MACRO_AREAS nel DB
+# Usato da _seed_sottobranche_specifiche() per risolvere l'FK macro_area_id
+_NODE_MACRO_TO_AREA = {
+    "CIV":     "civile",
+    "PEN":     "penale",
+    "AMM":     "amministrativo",
+    "LAV":     "lavoro",
+    "TRB":     "tributario",
+    "FAM":     "famiglia",
+    "PRE":     "previdenza_assistenza",
+    "ESE_CIV": "esecuzione_civile",
+    "MED":     "mediazione",
+    "NEG":     "negoziazione_assistita",
+    "ARB":     "arbitrato",
+    "VG":      "volontaria_giurisdizione",
+    "CONT":    "corte_dei_conti",
+    "SUP":     "giurisdizioni_superiori",
+    "CONS":    "consulenza_contrattualistica",
+    "VAR":     "servizi_professionali",
+    "IMM":     "immobiliare_tavolare",
+    "CRI":     "crisi_impresa",
+}
+
+# Sottobranche specifiche derivate dal NODE_CATALOG di tassonomia_preventivi.py
+# Formato: (sub_code, sub_label, node_macro_code, descrizione, ordinamento)
+SOTTOBRANCHE_SPECIFICHE: list[tuple[str, str, str, str, int]] = [
+    # ── GIU / CIV ────────────────────────────────────────────────────────────
+    ("COGNIZIONE_CREDITI",      "Crediti, monitori e cognizione ordinaria",         "CIV", "Cognizione civile ordinaria, monitoria, impugnazioni e procedure di ingiunzione.", 10),
+    ("LOCAZIONI_SFRATTI",       "Locazioni e sfratti",                              "CIV", "Convalide di sfratto, procedimenti di morosità e contenzioso locatizio.", 20),
+    ("RESPONSABILITA_DANNI",    "Responsabilità civile e risarcimento",             "CIV", "Danni contrattuali ed extracontrattuali, sinistri e responsabilità professionale.", 30),
+    ("ISTR_PREV_CAUTELARE",     "Istruzione preventiva e cautelari civili",         "CIV", "ATP, istruzione preventiva, sequestri, inibitorie e misure cautelari civili.", 40),
+    ("PARERI_DIFFIDE",          "Pareri civili, diffide e primo inquadramento",     "CIV", "Ingressi consulenziali civili a bassa strutturazione processuale.", 50),
+    ("RECUPERO_STRAGIUD_SINISTRI", "Recupero crediti stragiudiziale e sinistri",   "CIV", "Attività preparatorie, recupero bonario, gestione sinistri fuori giudizio.", 60),
+    # ── GIU / FAM ────────────────────────────────────────────────────────────
+    ("FAMIGLIA_MINORI",         "Separazione, divorzio, minori e reclami",          "FAM", "Procedimenti in materia di persone, minori, responsabilità genitoriale e famiglie.", 10),
+    # ── GIU / LAV ────────────────────────────────────────────────────────────
+    ("LAVORO_SUBORDINATO",      "Lavoro subordinato, licenziamenti e diff. retributive", "LAV", "Rito lavoro di primo grado, impugnazioni e procedure collettive.", 10),
+    # ── GIU / PRE ────────────────────────────────────────────────────────────
+    ("PREVIDENZA_ASSISTENZA",   "INPS, INAIL, assistenza e ricorsi amministrativi", "PRE", "Contenzioso previdenziale, invalidità civile e fasi amministrative collegate.", 10),
+    # ── GIU / PEN ────────────────────────────────────────────────────────────
+    ("PENALE_ORDINARIO",        "Indagini, udienza preliminare, dibattimento e impugnazioni", "PEN", "Procedimento penale ordinario e costituzione di parte civile.", 10),
+    ("GDP_MISURE_SORVEGLIANZA", "Giudice di pace penale, misure cautelari e sorveglianza",   "PEN", "Rami penali speciali: GDP, misure cautelari, indagini difensive, sorveglianza.", 20),
+    # ── GIU / AMM ────────────────────────────────────────────────────────────
+    ("TAR_CDS",                 "TAR, Consiglio di Stato e ottemperanza",           "AMM", "Giudizio amministrativo di primo grado, cautelare, appello e ottemperanza.", 10),
+    # ── GIU / TRB ────────────────────────────────────────────────────────────
+    ("CGT_PRIMO_SECONDO_GRADO", "Corti di giustizia tributaria e definizioni",      "TRB", "Ricorsi tributari, appelli, cassazione e strumenti deflattivi del contenzioso.", 10),
+    # ── GIU / IMM ────────────────────────────────────────────────────────────
+    ("PUBBLICITA_TAVOLARE",     "Iscrizioni ipotecarie e pubblicità tavolare",      "IMM", "Affari tavolari, iscrizioni e pubblicità immobiliare giudiziale.", 10),
+    # ── ESE / ESE_CIV ────────────────────────────────────────────────────────
+    ("ESECUZIONE_CIVILE",       "Precetti, pignoramenti e opposizioni esecutive",   "ESE_CIV", "Esecuzioni civili mobiliari, immobiliari, presso terzi e opposizioni.", 10),
+    # ── VOL / VG ─────────────────────────────────────────────────────────────
+    ("ADS_TUTELA_CURATELA",     "Amministrazione di sostegno, tutela e curatela",   "VG", "Procedimenti davanti al giudice tutelare e reclami collegati.", 10),
+    # ── ADR / MED ────────────────────────────────────────────────────────────
+    ("MEDIAZIONE_CIVILE",       "Mediazione civile e commerciale",                  "MED", "Mediazione obbligatoria, delegata o facoltativa ex D.Lgs. 28/2010.", 10),
+    # ── ADR / NEG ────────────────────────────────────────────────────────────
+    ("NEGOZIAZIONE_ASSISTITA",  "Convenzioni e accordi assistiti",                  "NEG", "Negoziazione assistita stragiudiziale ex D.L. 132/2014.", 10),
+    # ── ARB / ARB ────────────────────────────────────────────────────────────
+    ("ARBITRATO_RITUALE_IRRITUALE", "Arbitrato rituale e irrituale",                "ARB", "Gestione del procedimento arbitrale, lodo e impugnazioni.", 10),
+    # ── STR / CONS ───────────────────────────────────────────────────────────
+    ("CONSULENZA_CONTRATTI",    "Pareri, trattative, contratti e transazioni",      "CONS", "Assistenza consulenziale e contrattuale fuori giudizio.", 10),
+    # ── SPE / VAR ────────────────────────────────────────────────────────────
+    ("DOMICILIAZIONE_E_TEMPO",  "Domiciliazioni, attività a tempo e procedure varie", "VAR", "Prestazioni professionali non rigidamente tipizzate dal rito.", 10),
+    # ── SPE / CONT ───────────────────────────────────────────────────────────
+    ("CORTE_DEI_CONTI",         "Giudizi innanzi alla Corte dei Conti",             "CONT", "Giurisdizione contabile e responsabilità amministrativo-contabile.", 10),
+    # ── SPE / SUP ────────────────────────────────────────────────────────────
+    ("CORTE_COST_CEDU_CGUE",    "Corte costituzionale, CEDU e CGUE",               "SUP", "Giurisdizioni superiori, sovranazionali e rinvii pregiudiziali.", 10),
+    # ── SPE / CRI ────────────────────────────────────────────────────────────
+    ("LIQUIDAZIONE_E_PASSIVO",  "Liquidazione giudiziale e accertamento del passivo", "CRI", "Procedure concorsuali CCII: liquidazione, stato passivo e concordato.", 10),
+]
+
+
 PORTALI_RITI_BASE = [
     ("PCT", "PCT", "canale", "Canale del processo civile telematico.", "PCT"),
     ("PST", "PST", "portale", "Portale dei Servizi Telematici del Ministero della Giustizia.", "PST"),
@@ -808,6 +879,33 @@ def _seed_sottobranche(conn: sqlite3.Connection, macro_ids: dict[str, int]) -> d
         str(codice): int(pk)
         for pk, codice in conn.execute("SELECT id, codice FROM sottobranche").fetchall()
     }
+
+
+def _seed_sottobranche_specifiche(conn: sqlite3.Connection, macro_ids: dict[str, int]) -> int:
+    """Popola le 24 sottobranche specifiche derivate da NODE_CATALOG.
+
+    Queste sottobranche rappresentano le classificazioni reali usate dal wizard
+    preventivi (tassonomia_preventivi.py) e coprono il 100% dei TipoPratica.
+    Vengono aggiunte DOPO le sottobranche generiche (_generale) già seedate.
+    """
+    now = datetime.now().isoformat()
+    inseriti = 0
+    for sub_code, sub_label, node_macro, descrizione, ordine in SOTTOBRANCHE_SPECIFICHE:
+        area_codice = _NODE_MACRO_TO_AREA.get(node_macro)
+        if area_codice is None:
+            continue
+        macro_id = macro_ids.get(area_codice)
+        if macro_id is None:
+            continue
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO sottobranche(macro_area_id, codice, nome, descrizione, ordinamento, updated_at)
+            VALUES(?,?,?,?,?,?)
+            """,
+            (macro_id, sub_code, sub_label, descrizione, ordine, now),
+        )
+        inseriti += conn.execute("SELECT changes()").fetchone()[0]
+    return inseriti
 
 
 def _seed_portali_riti(conn: sqlite3.Connection) -> dict[str, int]:
@@ -917,7 +1015,8 @@ def seed_catalogo_strutturale(conn: sqlite3.Connection) -> dict[str, int]:
     ensure_catalogo_strutturale_schema(conn)
 
     macro_ids = _seed_macro_aree(conn)
-    _seed_sottobranche(conn, macro_ids)
+    _seed_sottobranche(conn, macro_ids)          # sottobranche generiche (X_generale)
+    _seed_sottobranche_specifiche(conn, macro_ids)  # 24 sottobranche NODE_CATALOG
     _seed_portali_riti(conn)
     versioni = _seed_forense_versioni(conn)
     _seed_forense_fasi(conn)

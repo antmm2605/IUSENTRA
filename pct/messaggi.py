@@ -347,21 +347,72 @@ class GestioneMessaggi:
         self,
         config: ConfigMessaggistica,
         db_path: str = "./messaggi/storico.json",
+        studio_db=None,
     ):
         self.config = config
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._messaggi: dict[str, Messaggio] = {}
         self._carica()
 
     # ---------------------------------------------------------------- I/O
 
     def _carica(self) -> None:
+        if self._studio_db is not None:
+            import json as _json
+            try:
+                rows = self._studio_db.conn.execute(
+                    "SELECT * FROM messaggi"
+                ).fetchall()
+                self._messaggi = {}
+                for row in rows:
+                    d = dict(row)
+                    dati = d.get("dati_json")
+                    try:
+                        payload = _json.loads(dati) if dati else d
+                        m = Messaggio.from_dict(payload)
+                        self._messaggi[m.id] = m
+                    except Exception:
+                        pass
+            except Exception:
+                self._messaggi = {}
+            return
         from pct import cache as _cache
         raw = _cache.load(self.db_path)
         self._messaggi = {k: Messaggio.from_dict(v) for k, v in raw.items()}
 
     def _salva(self) -> None:
+        if self._studio_db is not None:
+            import json as _json
+
+            def _insert(conn, m):
+                d = m.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO messaggi
+                    (id, canale, stato, oggetto, corpo,
+                     email_destinatario, telefono_destinatario,
+                     id_cliente, id_fascicolo, tipo_automazione,
+                     inviato_il, errore_invio, creato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        m.id, m.canale.value, m.stato.value,
+                        m.oggetto, m.corpo,
+                        m.email_destinatario, m.telefono_destinatario,
+                        m.id_cliente or None,
+                        m.id_fascicolo or None,
+                        m.tipo_automazione,
+                        m.inviato_il,
+                        m.errore,
+                        m.creato_il,
+                        _json.dumps(d, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("messaggi", list(self._messaggi.values()), _insert)
+            return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._messaggi.items()})
 

@@ -49,30 +49,75 @@ class TrattamentoDati:
 
 
 class GestioneTrattamenti:
-    """Repository JSON per il Registro dei Trattamenti."""
+    """Repository per il Registro dei Trattamenti (JSON o SQLite)."""
 
-    def __init__(self, db_path: str = "./privacy/registro.json"):
+    def __init__(self, db_path: str = "./privacy/registro.json", studio_db=None):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._trattamenti: dict[str, TrattamentoDati] = {}
         self._carica()
         if not self._trattamenti:
             self._crea_default()
 
     def _carica(self):
-        if self.db_path.exists():
+        if self._studio_db is not None:
             try:
-                raw = json.loads(self.db_path.read_text("utf-8"))
-                self._trattamenti = {k: TrattamentoDati.from_dict(v) for k, v in raw.items()}
+                rows = self._studio_db.conn.execute(
+                    "SELECT dati_json FROM privacy_trattamenti"
+                ).fetchall()
+                self._trattamenti = {}
+                for row in rows:
+                    dati = row[0] if row[0] else None
+                    if dati:
+                        try:
+                            t = TrattamentoDati.from_dict(json.loads(dati))
+                            self._trattamenti[t.id] = t
+                        except Exception:
+                            pass
             except Exception:
                 self._trattamenti = {}
+            return
+        from pct import cache as _cache
+        try:
+            raw = _cache.load(self.db_path)
+            self._trattamenti = {k: TrattamentoDati.from_dict(v) for k, v in raw.items()}
+        except Exception:
+            self._trattamenti = {}
 
     def _salva(self):
-        self.db_path.write_text(
-            json.dumps({k: v.to_dict() for k, v in self._trattamenti.items()},
-                       indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        if self._studio_db is not None:
+            def _insert(conn, t):
+                d = t.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO privacy_trattamenti
+                    (id, nome, finalita, categoria_dati, base_giuridica,
+                     soggetti_interessati, destinatari, trasferimento_extra_ue,
+                     paese_destinazione, termine_conservazione,
+                     misure_sicurezza, responsabile, attivo, note,
+                     creato_il, modificato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        t.id, t.nome, t.finalita, t.categoria_dati,
+                        t.base_giuridica, t.soggetti_interessati,
+                        t.destinatari,
+                        1 if t.trasferimento_extra_ue else 0,
+                        t.paese_destinazione, t.termine_conservazione,
+                        t.misure_sicurezza, t.responsabile,
+                        1 if t.attivo else 0, t.note,
+                        t.creato_il, t.modificato_il,
+                        json.dumps(d, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella(
+                "privacy_trattamenti", list(self._trattamenti.values()), _insert
+            )
+            return
+        from pct import cache as _cache
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._trattamenti.items()})
 
     def _crea_default(self):
         """Popola il registro con i trattamenti tipici di uno studio legale."""

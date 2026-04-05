@@ -529,18 +529,59 @@ class GestioneFascicoli:
         db_path: str = "./fascicoli/fascicoli.json",
         documents_dir: str = "./fascicoli/documenti",
         archive_dir: str = "./fascicoli/archivio",
+        studio_db=None,
     ):
         self.db_path = Path(db_path)
         self.documents_dir = Path(documents_dir)
         self.archive_dir = Path(archive_dir)
         for d in (self.db_path.parent, self.documents_dir, self.archive_dir):
             d.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._fascicoli: dict[str, Fascicolo] = {}
         self._carica()
 
     # ---------------------------------------------------------------- I/O
 
+    @staticmethod
+    def _row_to_fascicolo(row) -> Optional["Fascicolo"]:
+        """Ricostruisce un Fascicolo da una riga SQLite (dict o sqlite3.Row)."""
+        import json as _json
+        try:
+            d = dict(row)
+            dati = d.get("dati_json")
+            if dati:
+                payload = _json.loads(dati)
+            else:
+                # Fallback colonne: ricostruisce i campi complessi dai JSON figli
+                payload = d.copy()
+                payload["attivita"] = _json.loads(d.get("attivita_json") or "[]")
+                payload["documenti"] = _json.loads(d.get("documenti_json") or "[]")
+                payload["depositi_pct"] = _json.loads(d.get("scadenze_json") or "[]")
+                for k in ("attivita_json", "documenti_json", "scadenze_json", "dati_json"):
+                    payload.pop(k, None)
+            _migra_payload_depositi_pct(payload)
+            return Fascicolo.from_dict(payload)
+        except Exception:
+            return None
+
     def _carica(self) -> None:
+        if self._studio_db is not None:
+            import sqlite3 as _sqlite3
+            rows = self._studio_db.conn.execute(
+                "SELECT * FROM fascicoli"
+            ).fetchall()
+            self._fascicoli = {}
+            migrato = False
+            for row in rows:
+                f = self._row_to_fascicolo(row)
+                if f:
+                    self._fascicoli[f.id] = f
+                    # Se era dati_json NULL (primo carico post-migrazione) → riscrivi
+                    if not dict(row).get("dati_json"):
+                        migrato = True
+            if migrato:
+                self._salva()
+            return
         from pct import cache as _cache
         raw = _cache.load(self.db_path)
         migrato = False
@@ -551,6 +592,39 @@ class GestioneFascicoli:
             self._salva()
 
     def _salva(self) -> None:
+        if self._studio_db is not None:
+            import json as _json
+
+            def _insert(conn, f):
+                d = f.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO fascicoli
+                    (id, numero, titolo, tipo, stato, id_cliente, nome_cliente,
+                     tribunale, sezione, giudice, numero_rg, anno_rg,
+                     controparte, avvocato_referente, avvocato_dominus,
+                     data_apertura, data_chiusura, oggetto, note, creato_il,
+                     attivita_json, documenti_json, scadenze_json, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        f.id, f.numero, f.titolo,
+                        f.tipo.value, f.stato.value,
+                        f.id_cliente or None, f.nome_cliente,
+                        f.tribunale, f.sezione, f.giudice,
+                        f.numero_rg, str(f.anno_rg) if f.anno_rg else "",
+                        f.controparte, f.avvocato_referente, f.avvocato_dominus,
+                        f.data_apertura, f.data_chiusura,
+                        f.oggetto, f.note, f.creato_il,
+                        _json.dumps(d.get("attivita", []), ensure_ascii=False),
+                        _json.dumps(d.get("documenti", []), ensure_ascii=False),
+                        _json.dumps(d.get("depositi_pct", []), ensure_ascii=False),
+                        _json.dumps(d, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("fascicoli", list(self._fascicoli.values()), _insert)
+            return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
 

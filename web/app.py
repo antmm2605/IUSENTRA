@@ -238,6 +238,8 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = os.getenv("PCT_HTTPS", "").lower() in ("1", "true", "yes")
+    # SQLite mode: PCT_SQLITE_MODE=1 sostituisce il backend JSON con SQLite per i 7 moduli core
+    app.config["SQLITE_MODE"] = os.getenv("PCT_SQLITE_MODE", "").lower() in ("1", "true", "yes")
 
     cfg = config or {}
     app.config["AGENDA_DB"] = cfg.get(
@@ -524,9 +526,28 @@ def create_app(config: dict | None = None) -> Flask:
             )
         return created
 
+    def get_studio_db():
+        """
+        Restituisce l'istanza StudioDB per il tenant corrente,
+        oppure None se PCT_SQLITE_MODE non è attivo.
+
+        Il percorso di studio.db è derivato dalla root dei dati del tenant:
+        es. /data/clienti/anagrafica.json → /data/studio.db
+        """
+        if not app.config.get("SQLITE_MODE"):
+            return None
+        if not hasattr(g, "_studio_db"):
+            from pct.storage import StudioDB
+            db_path = _cfg_data_path("CLIENTI_DB")
+            g._studio_db = StudioDB.from_data_path(db_path)
+        return g._studio_db
+
     def get_agenda() -> Agenda:
         if not hasattr(g, "_agenda"):
-            g._agenda = Agenda(db_path=_cfg_data_path("AGENDA_DB"))
+            g._agenda = Agenda(
+                db_path=_cfg_data_path("AGENDA_DB"),
+                studio_db=get_studio_db(),
+            )
         return g._agenda
 
     def get_calendar_sync():
@@ -537,7 +558,10 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_clienti() -> GestioneClienti:
         if not hasattr(g, "_clienti"):
-            g._clienti = GestioneClienti(db_path=_cfg_data_path("CLIENTI_DB"))
+            g._clienti = GestioneClienti(
+                db_path=_cfg_data_path("CLIENTI_DB"),
+                studio_db=get_studio_db(),
+            )
         return g._clienti
 
     def get_fascicoli() -> GestioneFascicoli:
@@ -546,6 +570,7 @@ def create_app(config: dict | None = None) -> Flask:
                 db_path=_cfg_data_path("FASCICOLI_DB"),
                 documents_dir=_cfg_data_path("FASCICOLI_DOCS"),
                 archive_dir=_cfg_data_path("FASCICOLI_ARCH"),
+                studio_db=get_studio_db(),
             )
         return g._fascicoli
 
@@ -2147,7 +2172,11 @@ def create_app(config: dict | None = None) -> Flask:
             ),
             studio_nome=app.config.get("STUDIO_NOME", "Studio Legale"),
         )
-        return GestioneMessaggi(config=cfg, db_path=app.config["MESSAGGI_DB"])
+        return GestioneMessaggi(
+            config=cfg,
+            db_path=app.config["MESSAGGI_DB"],
+            studio_db=get_studio_db(),
+        )
 
     def get_backup() -> GestioneBackup:
         data_paths = {
@@ -2176,12 +2205,16 @@ def create_app(config: dict | None = None) -> Flask:
                 audit_path=app.config["AUDIT_DB"],
                 secret_key=app.secret_key,
                 ruolo_default=ruolo_default,
+                studio_db=get_studio_db(),
             )
         return g._utenti
 
     def get_scadenziario() -> GestioneScadenziario:
         if not hasattr(g, "_scadenziario"):
-            g._scadenziario = GestioneScadenziario(db_path=_cfg_data_path("SCADENZIARIO_DB"))
+            g._scadenziario = GestioneScadenziario(
+                db_path=_cfg_data_path("SCADENZIARIO_DB"),
+                studio_db=get_studio_db(),
+            )
         return g._scadenziario
 
     def get_soggetti() -> GestioneSoggetti:
@@ -2199,7 +2232,10 @@ def create_app(config: dict | None = None) -> Flask:
 
     def get_trattamenti() -> GestioneTrattamenti:
         if not hasattr(g, "_trattamenti"):
-            g._trattamenti = GestioneTrattamenti(db_path=app.config["PRIVACY_DB"])
+            g._trattamenti = GestioneTrattamenti(
+                db_path=app.config["PRIVACY_DB"],
+                studio_db=get_studio_db(),
+            )
         return g._trattamenti
 
     def get_condivisioni() -> GestioneCondivisioni:
@@ -10364,6 +10400,47 @@ read -r -p "Premi Invio per chiudere..." _
             "avvisi": risultato.avvisi,
             "durata_secondi": round(risultato.ms / 1000, 3),
         })
+
+    @app.route("/admin/database/attiva-sqlite", methods=["POST"])
+    def admin_database_attiva_sqlite():
+        """
+        Crea studio.db nella root dei dati del tenant e importa tutti i dati JSON.
+
+        Dopo questa operazione impostare PCT_SQLITE_MODE=1 come variabile
+        d'ambiente per attivare il backend SQLite come storage primario.
+        Se PCT_SQLITE_MODE è già attivo, la route ricarica la cache del DB.
+        """
+        u = g.utente_corrente
+        if not u or not u.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        try:
+            from pct.storage import StudioDB
+            db_clienti = _cfg_data_path("CLIENTI_DB")
+            studio_db = StudioDB.from_data_path(db_clienti)
+            percorso_db = str(studio_db.db_path)
+
+            # Migra i dati JSON verso studio.db
+            gdb = get_database()
+            risultato = gdb.migra_verso_sqlite(percorso_db)
+
+            # Invalida la cache pct.cache per forzare rilettura
+            from pct import cache as _cache
+            _cache.invalidate(percorso_db)
+
+            audit("database.attiva_sqlite", risorsa_tipo="db", risorsa_id=percorso_db)
+            totale = sum(risultato.record_migrati.values()) if risultato.record_migrati else 0
+            return jsonify({
+                "ok": risultato.riuscita,
+                "percorso_db": percorso_db,
+                "record_migrati": totale,
+                "per_modulo": risultato.record_migrati,
+                "errori": risultato.errori,
+                "avvisi": risultato.avvisi,
+                "istruzione": "Imposta PCT_SQLITE_MODE=1 come variabile d'ambiente per attivare SQLite come storage primario.",
+            })
+        except Exception as e:
+            app.logger.exception("Errore attivazione SQLite: %s", e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
 
     # ================================================================ REGISTRO TRATTAMENTI (GDPR Art. 30)
 

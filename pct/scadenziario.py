@@ -404,15 +404,39 @@ class GestioneScadenziario:
     Gestisce il registro scadenze legali dello studio.
     """
 
-    def __init__(self, db_path: str = "./scadenziario/scadenze.json"):
+    def __init__(self, db_path: str = "./scadenziario/scadenze.json", studio_db=None):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._scadenze: Dict[str, Scadenza] = {}
         self._carica()
 
     # ---- persistenza
 
     def _carica(self):
+        if self._studio_db is not None:
+            import json as _json
+            try:
+                rows = self._studio_db.conn.execute(
+                    "SELECT * FROM scadenze"
+                ).fetchall()
+                self._scadenze = {}
+                for row in rows:
+                    d = dict(row)
+                    dati = d.get("dati_json")
+                    try:
+                        payload = _json.loads(dati) if dati else d
+                        if not dati:
+                            payload["giorni_preavviso"] = _json.loads(d.get("giorni_preavviso") or "[]")
+                            payload["avvisi_inviati"] = _json.loads(d.get("avvisi_inviati") or "[]")
+                            payload.pop("dati_json", None)
+                        s = Scadenza.from_dict(payload)
+                        self._scadenze[s.id] = s
+                    except Exception:
+                        pass
+            except Exception:
+                self._scadenze = {}
+            return
         from pct import cache as _cache
         try:
             raw = _cache.load(self.db_path)
@@ -421,6 +445,37 @@ class GestioneScadenziario:
             self._scadenze = {}
 
     def _salva(self):
+        if self._studio_db is not None:
+            import json as _json
+
+            def _insert(conn, s):
+                d = s.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO scadenze
+                    (id, tipo, stato, titolo, data_scadenza, priorita, perentorio,
+                     note, id_fascicolo, id_appuntamento, id_utente,
+                     giorni_preavviso, avvisi_inviati, completata_il, creato_il,
+                     dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        s.id, s.tipo.value, s.stato.value, s.titolo,
+                        s.data_scadenza, s.priorita.value,
+                        1 if s.perentorio else 0,
+                        s.note,
+                        s.id_fascicolo or None,
+                        s.id_appuntamento or None,
+                        s.id_utente_responsabile,
+                        _json.dumps(s.giorni_preavviso, ensure_ascii=False),
+                        _json.dumps(s.avvisi_inviati, ensure_ascii=False),
+                        s.completata_il, s.creata_il,
+                        _json.dumps(d, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("scadenze", list(self._scadenze.values()), _insert)
+            return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._scadenze.items()})
 

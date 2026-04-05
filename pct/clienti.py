@@ -276,20 +276,58 @@ class GestioneClienti:
     Persistenza su file JSON locale.
     """
 
-    def __init__(self, db_path: str = "./clienti/anagrafica.json"):
+    def __init__(
+        self,
+        db_path: str = "./clienti/anagrafica.json",
+        studio_db=None,
+    ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._clienti: dict[str, Cliente] = {}
         self._carica()
 
     # ---------------------------------------------------------------- I/O
 
     def _carica(self) -> None:
+        if self._studio_db is not None:
+            rows = self._studio_db.carica_tabella("clienti")
+            self._clienti = {}
+            for d in rows:
+                try:
+                    c = Cliente.from_dict(d)
+                    self._clienti[c.id] = c
+                except Exception:
+                    pass
+            return
         from pct import cache as _cache
         raw = _cache.load(self.db_path)
         self._clienti = {k: Cliente.from_dict(v) for k, v in raw.items()}
 
     def _salva(self) -> None:
+        if self._studio_db is not None:
+            import json as _json
+            def _insert(conn, c):
+                d = c.to_dict()
+                rec = d.get("recapiti") or {}
+                conn.execute("""
+                    INSERT INTO clienti
+                    (id, tipo, stato, cognome, nome, ragione_sociale,
+                     codice_fiscale, partita_iva, email, telefono, note,
+                     creato_il, modificato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """, (
+                    c.id, c.tipo.value, c.stato.value,
+                    c.cognome, c.nome, c.ragione_sociale,
+                    c.codice_fiscale, c.partita_iva,
+                    rec.get("email_principale", "") if isinstance(rec, dict) else "",
+                    rec.get("telefono_principale", "") if isinstance(rec, dict) else "",
+                    c.note, c.creato_il,
+                    __import__("datetime").datetime.now().isoformat(),
+                    _json.dumps(d, ensure_ascii=False),
+                ))
+            self._studio_db.salva_tabella("clienti", list(self._clienti.values()), _insert)
+            return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._clienti.items()})
 

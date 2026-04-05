@@ -340,10 +340,12 @@ class GestioneUtenti:
         retention_days: int = 730,
         crea_admin_se_vuoto: bool = True,
         ruolo_default: "RuoloUtente | None" = None,
+        studio_db=None,
     ):
         self.db_path = Path(db_path)
         self.audit_path = Path(audit_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._crea_admin_se_vuoto = crea_admin_se_vuoto
         self._ruolo_default = ruolo_default
         self._secret = secret_key or secrets.token_hex(32)
@@ -357,6 +359,43 @@ class GestioneUtenti:
     # ---- persistenza
 
     def _carica(self):
+        if self._studio_db is not None:
+            import json as _json
+            # Utenti
+            try:
+                rows = self._studio_db.conn.execute(
+                    "SELECT id, username, email, nome_completo, ruolo, "
+                    "password_hash, attivo, permessi_extra, permessi_negati, "
+                    "creato_il, ultimo_accesso FROM utenti"
+                ).fetchall()
+                self._utenti = {}
+                for row in rows:
+                    d = dict(row)
+                    d["permessi_extra"] = _json.loads(d.get("permessi_extra") or "[]")
+                    d["permessi_negati"] = _json.loads(d.get("permessi_negati") or "[]")
+                    d["attivo"] = bool(d.get("attivo", 1))
+                    try:
+                        u = Utente.from_dict(d)
+                        self._utenti[u.id] = u
+                    except Exception:
+                        pass
+            except Exception:
+                self._utenti = {}
+            # Audit log
+            try:
+                rows = self._studio_db.conn.execute(
+                    "SELECT id, timestamp, id_utente, username, azione, "
+                    "risorsa_tipo, risorsa_id, dettagli, ip, esito FROM audit_log"
+                ).fetchall()
+                self._audit = []
+                for row in rows:
+                    try:
+                        self._audit.append(EventoAudit.from_dict(dict(row)))
+                    except Exception:
+                        pass
+            except Exception:
+                self._audit = []
+            return
         from pct import cache as _cache
         try:
             raw = _cache.load(self.db_path)
@@ -370,10 +409,57 @@ class GestioneUtenti:
             self._audit = []
 
     def _salva_utenti(self):
+        if self._studio_db is not None:
+            import json as _json
+
+            def _insert(conn, u):
+                conn.execute(
+                    """
+                    INSERT INTO utenti
+                    (id, username, email, nome_completo, ruolo, password_hash,
+                     attivo, permessi_extra, permessi_negati, creato_il, ultimo_accesso)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        u.id, u.username, u.email, u.nome_completo,
+                        u.ruolo.value, u.password_hash,
+                        1 if u.attivo else 0,
+                        _json.dumps(u.permessi_extra or [], ensure_ascii=False),
+                        _json.dumps(u.permessi_negati or [], ensure_ascii=False),
+                        u.creato_il, u.ultimo_accesso,
+                    ),
+                )
+
+            self._studio_db.salva_tabella("utenti", list(self._utenti.values()), _insert)
+            return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._utenti.items()})
 
     def _salva_audit(self):
+        if self._studio_db is not None:
+            import json as _json
+            cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
+            recenti = [e for e in self._audit if e.timestamp >= cutoff]
+            recenti = recenti[-10000:]
+            self._audit = recenti
+
+            def _insert(conn, e):
+                conn.execute(
+                    """
+                    INSERT INTO audit_log
+                    (id, timestamp, id_utente, username, azione,
+                     risorsa_tipo, risorsa_id, dettagli, ip, esito)
+                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        e.id, e.timestamp, e.id_utente, e.username,
+                        e.azione, e.risorsa_tipo, e.risorsa_id,
+                        e.dettagli, e.ip, e.esito,
+                    ),
+                )
+
+            self._studio_db.salva_tabella("audit_log", recenti, _insert)
+            return
         from pct import cache as _cache
         cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
         recenti = [e for e in self._audit if e.timestamp >= cutoff]

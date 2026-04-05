@@ -99,20 +99,66 @@ class Agenda:
     Supporta ricerca per data, cliente, tipo e stato.
     """
 
-    def __init__(self, db_path: str = "./agenda/appuntamenti.json"):
+    def __init__(self, db_path: str = "./agenda/appuntamenti.json", studio_db=None):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._studio_db = studio_db
         self._appuntamenti: dict[str, Appuntamento] = {}
         self._carica()
 
     # ------------------------------------------------------------------ I/O
 
     def _carica(self) -> None:
+        if self._studio_db is not None:
+            import json as _json
+            try:
+                rows = self._studio_db.conn.execute(
+                    "SELECT * FROM appuntamenti"
+                ).fetchall()
+                self._appuntamenti = {}
+                for row in rows:
+                    d = dict(row)
+                    dati = d.get("dati_json")
+                    try:
+                        payload = _json.loads(dati) if dati else d
+                        a = Appuntamento.from_dict(payload)
+                        self._appuntamenti[a.id] = a
+                    except Exception:
+                        pass
+            except Exception:
+                self._appuntamenti = {}
+            return
         from pct import cache as _cache
         dati = _cache.load(self.db_path)
         self._appuntamenti = {k: Appuntamento.from_dict(v) for k, v in dati.items()}
 
     def _salva(self) -> None:
+        if self._studio_db is not None:
+            import json as _json
+
+            def _insert(conn, a):
+                d = a.to_dict()
+                conn.execute(
+                    """
+                    INSERT INTO appuntamenti
+                    (id, tipo, stato, titolo, data_ora, durata_minuti, luogo,
+                     descrizione, cliente, cf_cliente, procedimento, tribunale,
+                     note, creato_il, dati_json)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        a.id, a.tipo.value, a.stato.value, a.titolo,
+                        a.data_ora, a.durata_minuti, a.luogo,
+                        a.note,  # descrizione = note per compatibilità schema
+                        a.cliente, a.cf_cliente,
+                        a.procedimento, a.tribunale,
+                        a.note, a.creato_il,
+                        _json.dumps(d, ensure_ascii=False),
+                    ),
+                )
+
+            self._studio_db.salva_tabella("appuntamenti", list(self._appuntamenti.values()), _insert)
+            return
         from pct import cache as _cache
         _cache.save(self.db_path, {k: v.to_dict() for k, v in self._appuntamenti.items()})
 

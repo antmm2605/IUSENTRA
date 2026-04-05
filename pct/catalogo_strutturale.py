@@ -702,6 +702,10 @@ MACRO_AREAS = [
     ("famiglia", "Famiglia", "Persone, minori, responsabilità genitoriale e volontaria."),
     ("societario", "Societario", "Società, Registro Imprese e pratiche camerali."),
     ("crisi_impresa", "Crisi d'impresa", "Concorsuale, composizione negoziata e crisi."),
+    # Macro-aree aggiunte — allineamento con 02_macro_aree.sql
+    ("penale_difensivo", "Diritto Penale difensivo", "Difesa dell'imputato, indagini difensive, udienza preliminare, dibattimento, impugnazioni, esecuzione penale e misure di prevenzione."),
+    ("societario_commerciale", "Diritto Societario & Commerciale", "Società di capitali e persone, M&A, governance, impugnazione delibere, contratti commerciali, startup e joint venture."),
+    ("immigrazione", "Immigrazione & Cittadinanza", "Permessi di soggiorno, cittadinanza, protezione internazionale, ricongiungimento familiare ed espulsioni."),
 ]
 
 

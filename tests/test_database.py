@@ -499,6 +499,9 @@ def test_migra_verso_sqlite_seed_macro_aree_e_portali_base(db, tmp_path):
         "famiglia",
         "societario",
         "crisi_impresa",
+        "penale_difensivo",
+        "societario_commerciale",
+        "immigrazione",
     }.issubset(macro_codes)
     assert {
         "PCT",

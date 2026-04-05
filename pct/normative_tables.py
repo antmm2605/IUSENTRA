@@ -204,8 +204,8 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "agenzia_entrate_fec": FonteOperativa(
         code="agenzia_entrate_fec",
-        title="Agenzia delle Entrate - Fatture e Corrispettivi",
-        url="https://www1.agenziaentrate.gov.it/web_app_entrate/fatturazione_elettronica.html",
+        title="Agenzia delle Entrate - Fatturazione elettronica",
+        url="https://www.agenziaentrate.gov.it/portale/aree-tematiche/fatturazione-elettronica",
         note="Portale ufficiale per predisposizione, trasmissione e consultazione delle fatture elettroniche.",
     ),
     "fatturapa_specifiche": FonteOperativa(
@@ -313,8 +313,8 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "bancaditalia_tassi_usura": FonteOperativa(
         code="bancaditalia_tassi_usura",
-        title="Banca d'Italia - rilevazione tassi usura",
-        url="https://www.bancaditalia.it/compiti/stabilita-finanziaria/usura/",
+        title="Banca d'Italia - TEGM e soglie antiusura",
+        url="https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/",
         note=(
             "Pubblicazione trimestrale dei TEGM (Tassi Effettivi Globali Medi) e soglie antiusura "
             "ai sensi della L. 108/1996. I tassi soglia = TEGM × 1,25 + 4 punti percentuali. "
@@ -324,9 +324,9 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "mef_decreto_usura": FonteOperativa(
         code="mef_decreto_usura",
-        title="MEF - decreto trimestrale tassi usura",
-        url="https://www.mef.gov.it/uffici/uv/ufficio-finanziamento-pubblico/interesse-tassi-cambio/index.html",
-        note="Decreto MEF che fissa trimestralmente i TEGM e le soglie antiusura per categoria di operazione.",
+        title="MEF - rilevazione trimestrale tassi soglia usura",
+        url="https://www.dt.mef.gov.it/it/attivita_istituzionali/sistema_bancario_finanziario/anti_usura/categorie_creditizie/",
+        note="Sezione MEF Dipartimento del Tesoro con i decreti trimestrali TEGM e soglie antiusura per categoria di operazione.",
         change_detection="availability_only",
     ),
     # ── ISTAT ────────────────────────────────────────────────────────────────
@@ -339,11 +339,12 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     "istat_indici_prezzi": FonteOperativa(
         code="istat_indici_prezzi",
         title="ISTAT - indici dei prezzi al consumo (FOI e NIC)",
-        url="https://www.istat.it/it/prezzi/prezzi-al-consumo/dati-e-pubblicazioni/",
+        url="https://www.istat.it/notizia/indice-dei-prezzi-per-le-rivalutazioni-monetarie/",
         note=(
             "Comunicati mensili ISTAT con indice FOI (famiglie di operai e impiegati, per adeguamento "
             "canoni di locazione ex L. 392/1978) e NIC (per rivalutazioni monetarie generali, assegni "
-            "divorzili, liquidazioni). Aggiornati ogni mese intorno al 15."
+            "divorzili, liquidazioni). Aggiornati ogni mese intorno al 15. "
+            "Dal gennaio 2026 base di riferimento 2025=100 (ECOICOP v2)."
         ),
         change_detection="availability_only",
     ),
@@ -356,8 +357,8 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     ),
     "cassa_forense_contributi_2026": FonteOperativa(
         code="cassa_forense_contributi_2026",
-        title="Cassa Forense - contributi 2026",
-        url="https://www.cassaforense.it/contributi/",
+        title="Cassa Forense - contributi minimi obbligatori 2026",
+        url="https://www.cassaforense.it/contributi-minimi-obbligatori/",
         note=(
             "Contributo soggettivo: 14,5% sul reddito netto professionale, minimo EUR 2.725. "
             "Contributo integrativo: 4% sui compensi (addebitabile al cliente ex L. 576/1980). "
@@ -395,11 +396,23 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
     "anac_soglie_2024": FonteOperativa(
         code="anac_soglie_2024",
         title="ANAC - soglie di rilevanza europea appalti 2024-2025",
-        url="https://www.anticorruzione.it/-/comunicato-del-presidente-del-15-gennaio-2024-n-40",
+        url="https://www.anticorruzione.it/",
         note=(
-            "Soglie di rilevanza europea: lavori EUR 5.538.000, forniture/servizi PA centrale EUR 143.000, "
+            "Soglie di rilevanza europea in vigore dal 1 gennaio 2024 (Reg. UE 2023/2469): "
+            "lavori EUR 5.538.000, forniture/servizi PA centrale EUR 143.000, "
             "altre stazioni appaltanti EUR 221.000, enti aggiudicatori EUR 443.000. "
-            "In vigore dal 1 gennaio 2024. Aggiornate ogni 2 anni dalla Commissione europea."
+            "Scadute il 31 dicembre 2025 — sostituite dalle soglie 2026-2027."
+        ),
+    ),
+    "anac_soglie_2026": FonteOperativa(
+        code="anac_soglie_2026",
+        title="ANAC - soglie di rilevanza europea appalti 2026-2027",
+        url="https://www.anticorruzione.it/",
+        note=(
+            "Soglie di rilevanza europea in vigore dal 1 gennaio 2026 (Reg. UE 2025/2150, 2025/2151, 2025/2152): "
+            "lavori EUR 5.404.000, forniture/servizi PA centrale EUR 140.000, "
+            "altre stazioni appaltanti EUR 216.000, enti aggiudicatori EUR 432.000. "
+            "Aggiornate ogni 2 anni dalla Commissione europea."
         ),
     ),
     # ── Senato ────────────────────────────────────────────────────────────────
@@ -928,8 +941,9 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "note": (
                     "Soglia = TEGM × 1,25 + 4 pp (L. 108/1996 come mod. D.L. 70/2011). "
                     "Dati seed Q1 2026 — verificare e aggiornare ogni trimestre da "
-                    "https://www.bancaditalia.it/compiti/stabilita-finanziaria/usura/ "
-                    "e relativo decreto MEF in G.U."
+                    "https://www.bancaditalia.it/compiti/vigilanza/compiti-vigilanza/tegm/ "
+                    "e relativo decreto MEF in "
+                    "https://www.dt.mef.gov.it/it/attivita_istituzionali/sistema_bancario_finanziario/anti_usura/categorie_creditizie/"
                 ),
                 "formula": "soglia = tegm * 1.25 + 4",
                 "aggiornamento": "trimestrale",
@@ -1162,7 +1176,7 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "defaults": {
                 "note": (
                     "Aggiornare annualmente con la circolare Cassa Forense da "
-                    "https://www.cassaforense.it/contributi/"
+                    "https://www.cassaforense.it/contributi-minimi-obbligatori/"
                 ),
                 "aggiornamento": "annuale",
             },
@@ -1181,35 +1195,57 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 "Rilevanti per studi che assistono imprese in gare pubbliche, concessioni e appalti."
             ),
             "strategy": "seed_mirror",
-            "source_codes": ["anac_portale", "anac_soglie_2024", "dlgs_36_2023_contratti"],
+            "source_codes": ["anac_portale", "anac_soglie_2024", "anac_soglie_2026", "dlgs_36_2023_contratti"],
             "watch_source_ids": ["anac", "eur_lex", "gazzetta_ufficiale"],
             "rows": [
-                # Soglie vigenti dal 1 gennaio 2024 (Reg. UE 2023/2469)
+                # Soglie 2024-2025 (Reg. UE 2023/2469) — scadute il 31/12/2025
                 {"category": "lavori", "threshold_eur": 5538000.0,
-                 "start": "2024-01-01", "end": None,
-                 "label": "Lavori - soglia rilevanza europea",
-                 "note": "Art. 14 co. 1 lett. a D.Lgs. 36/2023"},
+                 "start": "2024-01-01", "end": "2025-12-31",
+                 "label": "Lavori - soglia rilevanza europea 2024-2025",
+                 "note": "Art. 14 co. 1 lett. a D.Lgs. 36/2023 — Reg. UE 2023/2469"},
                 {"category": "forniture_servizi_pa_centrale", "threshold_eur": 143000.0,
-                 "start": "2024-01-01", "end": None,
-                 "label": "Forniture e servizi - PA centrale",
-                 "note": "Art. 14 co. 1 lett. b D.Lgs. 36/2023"},
+                 "start": "2024-01-01", "end": "2025-12-31",
+                 "label": "Forniture e servizi - PA centrale 2024-2025",
+                 "note": "Art. 14 co. 1 lett. b D.Lgs. 36/2023 — Reg. UE 2023/2469"},
                 {"category": "forniture_servizi_altre_sa", "threshold_eur": 221000.0,
-                 "start": "2024-01-01", "end": None,
-                 "label": "Forniture e servizi - altre stazioni appaltanti",
-                 "note": "Art. 14 co. 1 lett. c D.Lgs. 36/2023"},
+                 "start": "2024-01-01", "end": "2025-12-31",
+                 "label": "Forniture e servizi - altre stazioni appaltanti 2024-2025",
+                 "note": "Art. 14 co. 1 lett. c D.Lgs. 36/2023 — Reg. UE 2023/2469"},
                 {"category": "forniture_servizi_enti_aggiudicatori", "threshold_eur": 443000.0,
-                 "start": "2024-01-01", "end": None,
-                 "label": "Forniture e servizi - enti aggiudicatori",
-                 "note": "Art. 114 co. 1 D.Lgs. 36/2023"},
+                 "start": "2024-01-01", "end": "2025-12-31",
+                 "label": "Forniture e servizi - enti aggiudicatori 2024-2025",
+                 "note": "Art. 114 co. 1 D.Lgs. 36/2023 — Reg. UE 2023/2469"},
+                {"category": "concessioni", "threshold_eur": 5538000.0,
+                 "start": "2024-01-01", "end": "2025-12-31",
+                 "label": "Concessioni di lavori e servizi 2024-2025",
+                 "note": "Art. 177 co. 1 D.Lgs. 36/2023 — Reg. UE 2023/2469"},
+                # Soglie 2026-2027 (Reg. UE 2025/2150, 2025/2151, 2025/2152) — in vigore dal 01/01/2026
+                {"category": "lavori", "threshold_eur": 5404000.0,
+                 "start": "2026-01-01", "end": None,
+                 "label": "Lavori - soglia rilevanza europea 2026-2027",
+                 "note": "Art. 14 co. 1 lett. a D.Lgs. 36/2023 — Reg. UE 2025/2150"},
+                {"category": "forniture_servizi_pa_centrale", "threshold_eur": 140000.0,
+                 "start": "2026-01-01", "end": None,
+                 "label": "Forniture e servizi - PA centrale 2026-2027",
+                 "note": "Art. 14 co. 1 lett. b D.Lgs. 36/2023 — Reg. UE 2025/2151"},
+                {"category": "forniture_servizi_altre_sa", "threshold_eur": 216000.0,
+                 "start": "2026-01-01", "end": None,
+                 "label": "Forniture e servizi - altre stazioni appaltanti 2026-2027",
+                 "note": "Art. 14 co. 1 lett. c D.Lgs. 36/2023 — Reg. UE 2025/2151"},
+                {"category": "forniture_servizi_enti_aggiudicatori", "threshold_eur": 432000.0,
+                 "start": "2026-01-01", "end": None,
+                 "label": "Forniture e servizi - enti aggiudicatori 2026-2027",
+                 "note": "Art. 114 co. 1 D.Lgs. 36/2023 — Reg. UE 2025/2152"},
+                {"category": "concessioni", "threshold_eur": 5404000.0,
+                 "start": "2026-01-01", "end": None,
+                 "label": "Concessioni di lavori e servizi 2026-2027",
+                 "note": "Art. 177 co. 1 D.Lgs. 36/2023 — Reg. UE 2025/2150"},
+                # Servizi sociali (soglia nazionale, invariata)
                 {"category": "servizi_sociali", "threshold_eur": 750000.0,
                  "start": "2024-01-01", "end": None,
                  "label": "Servizi sociali e specifici",
-                 "note": "Art. 14 co. 6 D.Lgs. 36/2023"},
-                {"category": "concessioni", "threshold_eur": 5538000.0,
-                 "start": "2024-01-01", "end": None,
-                 "label": "Concessioni di lavori e servizi",
-                 "note": "Art. 177 co. 1 D.Lgs. 36/2023"},
-                # Sotto-soglia ANAC (affidamenti diretti / procedure negoziate)
+                 "note": "Art. 14 co. 6 D.Lgs. 36/2023 — soglia nazionale invariata"},
+                # Sotto-soglia ANAC (affidamenti diretti / procedure negoziate — soglie nazionali, invariate)
                 {"category": "affidamento_diretto_lavori", "threshold_eur": 150000.0,
                  "start": "2024-01-01", "end": None,
                  "label": "Affidamento diretto - lavori",
@@ -1221,14 +1257,14 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             ],
             "defaults": {
                 "note": (
-                    "Soglie vigenti dal 1 gennaio 2024 (Reg. UE 2023/2469). "
-                    "Aggiornare ogni 2 anni con il regolamento delegato UE e il comunicato ANAC da "
+                    "Soglie vigenti dal 1 gennaio 2026 (Reg. UE 2025/2150-2152). "
+                    "Aggiornare ogni 2 anni con il regolamento delegato UE e comunicato ANAC da "
                     "https://www.anticorruzione.it/"
                 ),
                 "aggiornamento": "biennale",
             },
-            "published_at": "2024-01-15",
-            "effective_from": "2024-01-01",
+            "published_at": "2026-01-01",
+            "effective_from": "2026-01-01",
         },
     }
     reference_definition = canonical_reference_catalog_definition()

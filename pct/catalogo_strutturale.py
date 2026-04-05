@@ -702,10 +702,22 @@ MACRO_AREAS = [
     ("famiglia", "Famiglia", "Persone, minori, responsabilità genitoriale e volontaria."),
     ("societario", "Societario", "Società, Registro Imprese e pratiche camerali."),
     ("crisi_impresa", "Crisi d'impresa", "Concorsuale, composizione negoziata e crisi."),
-    # Macro-aree aggiunte — allineamento con 02_macro_aree.sql
+    # ── Macro-aree aggiunte — allineamento con 02_macro_aree.sql ──
     ("penale_difensivo", "Diritto Penale difensivo", "Difesa dell'imputato, indagini difensive, udienza preliminare, dibattimento, impugnazioni, esecuzione penale e misure di prevenzione."),
     ("societario_commerciale", "Diritto Societario & Commerciale", "Società di capitali e persone, M&A, governance, impugnazione delibere, contratti commerciali, startup e joint venture."),
-    ("immigrazione", "Immigrazione & Cittadinanza", "Permessi di soggiorno, cittadinanza, protezione internazionale, ricongiungimento familiare ed espulsioni."),
+    ("immigrazione_cittadinanza", "Immigrazione & Cittadinanza", "Permessi di soggiorno, cittadinanza, protezione internazionale, ricongiungimento familiare ed espulsioni."),
+    # ── Macro-aree procedurali — allineamento con NODE_CATALOG (tassonomia_preventivi.py) ──
+    ("esecuzione_civile", "Esecuzione civile", "Precetti, pignoramenti mobiliari, immobiliari e presso terzi; opposizioni esecutive."),
+    ("previdenza_assistenza", "Previdenza & Assistenza", "Ricorsi INPS, INAIL, assistenza sociale e previdenza complementare."),
+    ("mediazione", "Mediazione civile e commerciale", "Mediazione obbligatoria e facoltativa ex D.Lgs. 28/2010; ADR civile e commerciale."),
+    ("negoziazione_assistita", "Negoziazione assistita", "Convenzioni ex D.L. 132/2014; accordi negoziati in materia civile, famiglia e lavoro."),
+    ("arbitrato", "Arbitrato", "Arbitrato rituale e irrituale; clausole compromissorie; lodi arbitrali."),
+    ("volontaria_giurisdizione", "Volontaria giurisdizione", "Amministrazione di sostegno, tutela, curatela, autorizzazioni del giudice tutelare."),
+    ("corte_dei_conti", "Giustizia contabile", "Giudizi di responsabilità erariale e pensionistici innanzi alla Corte dei Conti."),
+    ("giurisdizioni_superiori", "Giurisdizioni superiori", "Corte Costituzionale, CEDU, CGUE e rinvii pregiudiziali europei."),
+    ("consulenza_contrattualistica", "Consulenza e contrattualistica", "Pareri legali, redazione e revisione contratti, trattative, transazioni stragiudiziali."),
+    ("servizi_professionali", "Servizi professionali", "Domiciliazioni, attività a tempo, procedure particolari e servizi vari."),
+    ("immobiliare_tavolare", "Diritto immobiliare & Tavolare", "Compravendite, locazioni, iscrizioni ipotecarie, pubblicità tavolare e urbanistica."),
 ]
 
 

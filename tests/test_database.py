@@ -485,6 +485,7 @@ def test_migra_verso_sqlite_seed_macro_aree_e_portali_base(db, tmp_path):
     conn.close()
 
     assert {
+        # Macro-aree dominio legale (14 storiche)
         "civile",
         "penale",
         "amministrativo",
@@ -499,9 +500,22 @@ def test_migra_verso_sqlite_seed_macro_aree_e_portali_base(db, tmp_path):
         "famiglia",
         "societario",
         "crisi_impresa",
+        # Macro-aree aggiunte (v2.109.6)
         "penale_difensivo",
         "societario_commerciale",
-        "immigrazione",
+        "immigrazione_cittadinanza",
+        # Macro-aree procedurali — allineamento NODE_CATALOG (v2.109.7)
+        "esecuzione_civile",
+        "previdenza_assistenza",
+        "mediazione",
+        "negoziazione_assistita",
+        "arbitrato",
+        "volontaria_giurisdizione",
+        "corte_dei_conti",
+        "giurisdizioni_superiori",
+        "consulenza_contrattualistica",
+        "servizi_professionali",
+        "immobiliare_tavolare",
     }.issubset(macro_codes)
     assert {
         "PCT",

@@ -1,20 +1,20 @@
 -- ============================================================
---  TASSONOMIA GIURIDICA — 02  MACRO_AREE (16)
+--  TASSONOMIA GIURIDICA — 02  MACRO_AREE (27)
 --
 --  Livello 2: branche del diritto all'interno di ciascuna Area.
 --  Ogni macro-area è associata ai codici Cassazione e STOP-CNR
 --  per allineamento con i registri statistici ufficiali.
 --
 --  Distribuzioni per Area:
---    GIU  (id=1) → CIV, LAV, FAM, AMM, TRB, PRE, PEN_CIV, IMM  (8)
---    ESE  (id=4) → ESE_CIV, CRI                                   (2)
---    ADR  (id=3) → MED, NEG                                        (2)
---    VOL  (id=5) → VG_PROC                                         (1)
---    ARB  (id=6) → ARB_PROC                                        (1)
---    TEC  (id=7) → DIG, COM                                        (2)
---
---  Nota: STR (id=2) non ha macro_aree proprie — le pratiche
---  stragiudiziali si classificano sotto la macro-area di merito.
+--    GIU  (id=1) → CIV, LAV, FAM, AMM, TRB, PRE, PEN_CIV, IMM, PEN, SOC, MIG  (11)
+--    STR  (id=2) → CONS, REC_STR, PAR                                            (3)
+--    ADR  (id=3) → MED, NEG                                                       (2)
+--    ESE  (id=4) → ESE_CIV, CRI                                                   (2)
+--    VOL  (id=5) → VG_PROC                                                        (1)
+--    ARB  (id=6) → ARB_PROC                                                       (1)
+--    TEC  (id=7) → DIG, COM                                                       (2)
+--    SPE  (id=8) → CONT, SUP, VAR                                                 (3)
+--  Totale: 25 macro-aree + indice (copertura 100% NODE_CATALOG)
 -- ============================================================
 
 INSERT INTO macro_aree (id, codice, nome, area_id, codice_cassazione, codice_stop_cnr, descrizione, ordine) VALUES
@@ -69,6 +69,22 @@ INSERT INTO macro_aree (id, codice, nome, area_id, codice_cassazione, codice_sto
 (118, 'SOC',     'Diritto Societario & Commerciale', 1, '001-003', 'B05',
     'Società di capitali e persone, M&A, governance, impugnazione delibere, contratti commerciali, startup, joint venture', 10),
 (119, 'MIG',     'Immigrazione & Cittadinanza',      1, NULL,      'E03',
-    'Permessi soggiorno, cittadinanza, protezione internazionale, ricongiungimento familiare, espulsioni', 11)
+    'Permessi soggiorno, cittadinanza, protezione internazionale, ricongiungimento familiare, espulsioni', 11),
+
+-- ── Area STR: Stragiudiziale ─────────────────────────────────
+(120, 'CONS',    'Consulenza & Contrattualistica',   2, NULL,      'A01',
+    'Pareri legali, redazione contratti, revisione, assistenza trattative e transazioni', 1),
+(121, 'REC_STR', 'Recupero crediti stragiudiziale',  2, NULL,      'C01',
+    'Diffide, messe in mora, recupero bonario crediti e sinistri stradali', 2),
+(122, 'PAR',     'Pareri e consulenze spot',         2, NULL,      'A02',
+    'Pareri occasionali, primo inquadramento e consulenze tecniche di parte', 3),
+
+-- ── Area SPE: Giurisdizioni e servizi speciali ───────────────
+(123, 'CONT',    'Giustizia Contabile',              8, '301',     'H01',
+    'Responsabilità erariale e pensionistica innanzi alla Corte dei Conti', 1),
+(124, 'SUP',     'Giurisdizioni superiori',          8, '401',     'H02',
+    'Corte Costituzionale, CEDU, CGUE, rinvii pregiudiziali europei', 2),
+(125, 'VAR',     'Servizi professionali vari',       8, NULL,      'A99',
+    'Domiciliazioni, attività a tempo, procedure particolari e incarichi speciali', 3)
 
 ON CONFLICT (id) DO NOTHING;

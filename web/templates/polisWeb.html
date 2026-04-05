@@ -400,8 +400,18 @@
                           numero_rg=f.numero_rg,
                           anno_rg=f.anno_rg) }}"
                  class="btn btn-sm btn-outline-secondary"
-                 title="Visualizza documenti nel fascicolo telematico">
+                 title="Visualizza documenti nel fascicolo telematico (vista elenco)">
                 <i class="bi bi-files"></i>
+              </a>
+              {# Link wizard fascicolo (5 sezioni) #}
+              <a href="{{ url_for('polisWeb_fascicolo_wizard',
+                          codice_ufficio=f.codice_ufficio,
+                          numero_rg=f.numero_rg,
+                          anno_rg=f.anno_rg,
+                          id_fasc=id_fasc or '') }}"
+                 class="btn btn-sm btn-outline-info"
+                 title="Naviga il fascicolo suddiviso per sezioni (wizard 5 fasi)">
+                <i class="bi bi-diagram-3 me-1"></i>Wizard
               </a>
               {# Form importazione #}
               <form method="post" action="{{ url_for('polisWeb_importa') }}"

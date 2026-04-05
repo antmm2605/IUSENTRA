@@ -5029,6 +5029,78 @@ read -r -p "Premi Invio per chiudere..." _
             demo_mode=demo_mode,
         )
 
+    @app.route("/polisWeb/fascicolo-wizard", methods=["GET"])
+    def polisWeb_fascicolo_wizard():
+        """Wizard fascicolo PST — naviga le 5 sezioni del fascicolo telematico."""
+        codice_ufficio = request.args.get("codice_ufficio", "")
+        numero_rg      = request.args.get("numero_rg", "")
+        auth_mode      = _polis_auth_mode()
+        demo_mode      = auth_mode != "reale"
+        id_fasc        = request.args.get("id_fasc", "")
+        sezione_attiva = request.args.get("sezione", "attivita_processuali")
+
+        try:
+            anno_rg = int(request.args.get("anno_rg", 0) or 0)
+        except (ValueError, TypeError):
+            anno_rg = 0
+
+        fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
+
+        try:
+            from pct.polisWeb import (
+                PST_SEZIONI_WIZARD,
+                crea_client,
+                raggruppa_per_sezioni_wizard,
+            )
+            client = crea_client(demo=demo_mode)
+            documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
+        except Exception as e:
+            app.logger.exception("Errore polisWeb_fascicolo_wizard: %s", e)
+            flash(str(e), "danger")
+            return redirect(url_for("polisWeb_home"))
+
+        # Risolvi nome ufficio
+        nome_ufficio = codice_ufficio
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+            _uff = next(
+                (u for u in _get_uff(
+                    os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+                ).carica() if u.get("codice") == codice_ufficio),
+                None,
+            )
+            nome_ufficio = _uff["nome"] if _uff else codice_ufficio
+        except Exception:
+            pass
+
+        sezioni_dati = raggruppa_per_sezioni_wizard(documenti)
+        # Conta totali per sezione (per badge)
+        sezioni_conteggi = {sid: sum(len(dep["documenti"]) for dep in deps) for sid, deps in sezioni_dati.items()}
+        n_tot = len(documenti)
+
+        # Valida sezione attiva
+        sezioni_ids = [s["id"] for s in PST_SEZIONI_WIZARD]
+        if sezione_attiva not in sezioni_ids:
+            sezione_attiva = sezioni_ids[0]
+
+        return render_template(
+            "pst_wizard.html",
+            documenti=documenti,
+            sezioni_wizard=PST_SEZIONI_WIZARD,
+            sezioni_dati=sezioni_dati,
+            sezioni_conteggi=sezioni_conteggi,
+            sezione_attiva=sezione_attiva,
+            numero_rg=numero_rg,
+            anno_rg=anno_rg,
+            codice_ufficio=codice_ufficio,
+            nome_ufficio=nome_ufficio,
+            demo_mode=demo_mode,
+            fascicolo=fascicolo_ctx,
+            id_fasc=id_fasc,
+            n_tot=n_tot,
+            oggi=date.today(),
+        )
+
     @app.route("/polisWeb/importa", methods=["POST"])
     def polisWeb_importa():
         """Importa una pratica PolisWeb come nuovo fascicolo nel gestionale."""

@@ -2276,6 +2276,115 @@ class ClientPolisWebImportOnly(ClientPolisWebDemo):
 
 # ================================================================ Utils
 
+
+# Sezioni wizard fascicolo PST (usate da classifica_sezione_pst e dal template pst_wizard.html)
+PST_SEZIONI_WIZARD: List[Dict[str, Any]] = [
+    {
+        "id": "attivita_processuali",
+        "label": "Attività processuali",
+        "icon": "bi-file-earmark-arrow-up-fill",
+        "colore": "primary",
+        "descrizione": "Atti depositati dalle parti: ricorsi, citazioni, memorie, opposizioni, comparse.",
+    },
+    {
+        "id": "documenti_fascicolo",
+        "label": "Documenti fascicolo",
+        "icon": "bi-paperclip",
+        "colore": "secondary",
+        "descrizione": "Allegati, indici documenti e file di corredo ai depositi.",
+    },
+    {
+        "id": "udienze_scadenze",
+        "label": "Udienze e scadenze",
+        "icon": "bi-calendar-event-fill",
+        "colore": "info",
+        "descrizione": "Verbali di udienza, calendari e scadenze processuali.",
+    },
+    {
+        "id": "comunicazioni_cancelleria",
+        "label": "Comunicazioni di cancelleria",
+        "icon": "bi-megaphone-fill",
+        "colore": "success",
+        "descrizione": "Provvedimenti, decreti, sentenze, ordinanze e comunicazioni della cancelleria.",
+    },
+    {
+        "id": "istanze",
+        "label": "Istanze",
+        "icon": "bi-envelope-paper-fill",
+        "colore": "warning",
+        "descrizione": "Istanze, richieste e relativi esiti presenti sul portale.",
+    },
+]
+
+_PST_SEZIONE_ID_MAP = {s["id"]: s for s in PST_SEZIONI_WIZARD}
+
+
+def classifica_sezione_pst(doc: "DocumentoPolisWeb") -> str:
+    """
+    Classifica un DocumentoPolisWeb nella sezione wizard corrispondente.
+    Ritorna uno degli id: attivita_processuali | documenti_fascicolo |
+                          udienze_scadenze | comunicazioni_cancelleria | istanze
+
+    La logica è allineata con sezionePstDaCatalogoItem() in dettaglio.html.
+    """
+    tipo_atto = (doc.tipo_atto or doc.tipo or "").lower()
+    nome = (doc.nome or "").lower()
+    mittente = (doc.mittente or "").lower()
+    testo = f"{tipo_atto} {nome}"
+
+    if "istanza" in testo:
+        return "istanze"
+
+    if any(k in testo for k in ("verbale udienza", "verbaleudienza", "verbale", "udienza")):
+        return "udienze_scadenze"
+
+    if any(k in testo for k in ("ordinanza", "decreto", "sentenza", "provvedimento")):
+        return "comunicazioni_cancelleria"
+    if doc.tipo in ("PROVVEDIMENTO",):
+        return "comunicazioni_cancelleria"
+    if "cancelleria" in mittente:
+        return "comunicazioni_cancelleria"
+
+    if any(nome.endswith(ext) for ext in (".eml", ".msg", ".xml")):
+        return "comunicazioni_cancelleria"
+    if any(k in testo for k in ("comunicazione", "pec", "ricevuta", "esito")):
+        return "comunicazioni_cancelleria"
+
+    if doc.tipo in ("ALLEGATO", "INDICE"):
+        return "documenti_fascicolo"
+
+    return "attivita_processuali"
+
+
+def raggruppa_per_sezioni_wizard(
+    documenti: List["DocumentoPolisWeb"],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Raggruppa una lista di DocumentoPolisWeb per sezione wizard e per deposito.
+
+    Ritorna un dict: {sezione_id: [{id_deposito, tipo_atto, data_deposito, mittente, documenti[]}]}
+    """
+    from collections import OrderedDict
+
+    sezioni: Dict[str, OrderedDict] = {s["id"]: OrderedDict() for s in PST_SEZIONI_WIZARD}
+
+    for doc in sorted(documenti, key=lambda d: d.data_deposito or "", reverse=True):
+        sezione_id = classifica_sezione_pst(doc)
+        chiave = doc.id_deposito or f"__{doc.data_deposito}__{doc.mittente}"
+        gruppi = sezioni[sezione_id]
+        if chiave not in gruppi:
+            gruppi[chiave] = {
+                "id_deposito": doc.id_deposito or chiave,
+                "tipo_atto": doc.tipo_atto or doc.tipo.replace("_", " ").title(),
+                "data_deposito": doc.data_deposito,
+                "mittente": doc.mittente,
+                "documenti": [],
+            }
+        gruppi[chiave]["documenti"].append(doc)
+
+    return {sid: list(gruppi.values()) for sid, gruppi in sezioni.items()}
+
+
 def _parse_data(valore: Any) -> str:
     """Converte una data SOAP in stringa ISO YYYY-MM-DD."""
     if not valore:

@@ -1282,6 +1282,7 @@
     {% set rc_status_map = {'ok':'success','warning':'warning','block':'danger'} %}
     {% set rc_status = rc.deposit_ready and 'PRONTO' or 'NON PRONTO' %}
     {% set rc_status_class = rc.deposit_ready and 'success' or 'danger' %}
+    {% set rc_alert_class = 'success' if rc.deposit_ready else ('danger' if rc.is_blocking else 'warning') %}
     <style>
       .compliance-panel .card-header,
       .compliance-panel .card,
@@ -1293,9 +1294,7 @@
         background: linear-gradient(180deg, rgba(248,249,250,0.9), rgba(255,255,255,1));
       }
 
-      .compliance-next-step {
-        background: #fff5f5;
-      }
+
 
       .compliance-quick-links {
         display: flex;
@@ -1478,7 +1477,7 @@
           </div>
         </div>
 
-        <div class="alert alert-danger border-0 rounded-4 mb-3 compliance-next-step">
+        <div class="alert alert-{{ rc_alert_class }} border-0 rounded-4 mb-3">
           <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
             <div>
               <div class="text-uppercase small fw-semibold mb-1">Prossimo passo consigliato</div>
@@ -1490,13 +1489,13 @@
               </div>
             </div>
             <div class="d-flex gap-2">
-              <a href="{{ rc.next_step.url or '#sezione-documenti-fascicolo' }}" class="btn btn-danger btn-sm">
+              <a href="{{ rc.next_step.url or '#sezione-documenti-fascicolo' }}" class="btn btn-{{ rc_alert_class }} btn-sm">
                 <i class="bi bi-arrow-right-circle me-1"></i>
                 {{ rc.next_step.cta or 'Apri correzione' }}
               </a>
               <button
                 type="button"
-                class="btn btn-outline-danger btn-sm"
+                class="btn btn-outline-{{ rc_alert_class }} btn-sm"
                 data-compliance-accordion="#complianceChecklistBody"
                 data-compliance-card="#complianceChecklistSection"
               >
@@ -1526,7 +1525,7 @@
           </button>
           <div class="collapse show" id="complianceChecklistBody">
             <div class="list-group list-group-flush">
-              {% for item in rc.checklist[:6] %}
+              {% for item in rc.checklist %}
               {% set tone = rc_status_map.get(item.status, 'secondary') %}
               <div class="list-group-item py-3">
                 <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">

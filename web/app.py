@@ -951,7 +951,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     def _rc_first_section_message(section: dict, *, ok_fallback: str) -> str:
         items = list(section.get("items") or [])
-        for wanted in ("blocco", "warning"):
+        for wanted in ("block", "warning"):
             row = next((item for item in items if str(item.get("state") or "") == wanted), None)
             if row:
                 return str(row.get("detail") or row.get("action") or row.get("title") or "").strip()

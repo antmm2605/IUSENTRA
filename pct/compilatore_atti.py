@@ -974,6 +974,408 @@ MODEL_SUGGESTED_CLAUSES_OVERRIDES: dict[str, list[str]] = {
 }
 
 
+# Documenti essenziali per ciascun modello — mostrati nel Catalogo Atti.
+# Massimo 3 voci per modello: identificano i documenti senza i quali l'atto
+# non può essere redatto o depositato correttamente.
+MODEL_ESSENTIAL_DOCS: dict[str, list[str]] = {
+    # ── STRAGIUDIZIALE ──────────────────────────────────────────────────────
+    "STR_DIFF_001": [
+        "Contratto, ordine o titolo del rapporto da cui nasce l'obbligazione.",
+        "Prove dell'inadempimento (fatture, corrispondenza, solleciti precedenti).",
+    ],
+    "STR_MM_001": [
+        "Contratto o rapporto costituente l'obbligazione.",
+        "Documentazione del credito o della prestazione richiesta.",
+    ],
+    "STR_RDP_001": [
+        "Fatture, estratti conto o contratto comprovante il credito.",
+        "Documentazione su scadenza del credito e interessi maturati.",
+    ],
+    "STR_SOLL_001": [
+        "Copia della richiesta o diffida precedente con prova di trasmissione.",
+        "Documentazione dell'inadempimento o dell'obbligazione residua.",
+    ],
+    "STR_COM_001": [
+        "Documenti richiamati nel testo della comunicazione.",
+    ],
+    "STR_CONTEST_001": [
+        "Prove dei fatti contestati (documenti, corrispondenza, fotografie).",
+        "Contratto o titolo del rapporto contestato.",
+    ],
+    "STR_RISDIFF_001": [
+        "Copia della diffida ricevuta.",
+        "Documentazione a supporto della posizione del cliente.",
+    ],
+    "STR_INVAD_001": [
+        "Contratto o accordo da cui nasce l'obbligo inadempiuto.",
+        "Prove dell'inadempimento o del ritardo.",
+    ],
+    "STR_PTR_001": [
+        "Documentazione della controversia sottostante.",
+        "Eventuale perizia o valutazione economica a supporto della proposta.",
+    ],
+    "STR_ATR_001": [
+        "Documentazione della controversia e della trattativa.",
+        "Bozza delle condizioni concordate tra le parti.",
+    ],
+    "STR_PAR_001": [
+        "Documentazione sottoposta a parere.",
+        "Quesito scritto del cliente.",
+    ],
+    "STR_INC_001": [
+        "Documento di identità del cliente.",
+        "Informativa privacy firmata dal cliente.",
+    ],
+    "STR_PREV_001": [
+        "Mandato o richiesta scritta del cliente.",
+        "Eventuale documentazione di pratica di riferimento.",
+    ],
+    # ── CIVILE ──────────────────────────────────────────────────────────────
+    "CIV_CIT_001": [
+        "Procura alle liti firmata e documento di identità del cliente.",
+        "Titolo o contratto, fatture, diffide stragiudiziali e corrispondenza richiamati nell'atto.",
+    ],
+    "CIV_COM_001": [
+        "Procura alle liti e copia del fascicolo notificato (atto di citazione).",
+        "Documenti a supporto delle eccezioni e della difesa nel merito.",
+    ],
+    "CIV_RDI_001": [
+        "Prova scritta del credito: contratto, fatture, DDT, estratto autentico.",
+        "Documentazione sulla scadenza del credito e sugli interessi richiesti.",
+    ],
+    "CIV_OPPDI_001": [
+        "Copia del decreto ingiuntivo opposto.",
+        "Documentazione a supporto dell'opposizione (contratto, pagamenti, vizi formali).",
+    ],
+    "CIV_MEM_001": [
+        "Documenti richiamati nella memoria.",
+        "Eventuali nuovi documenti da produrre in giudizio.",
+    ],
+    "CIV_IST_001": [
+        "Procura o nomina del difensore.",
+        "Documentazione a supporto dell'istanza.",
+    ],
+    "CIV_DEPDOC_001": [
+        "Elenco numerato dei documenti da depositare.",
+        "Indice allegati con corrispondenza tra atto e fascicolo.",
+    ],
+    "CIV_CONCL_001": [
+        "Fascicolo di parte con tutti i documenti prodotti.",
+        "Eventuali note d'udienza e verbali rilevanti.",
+    ],
+    "CIV_REPL_001": [
+        "Comparsa conclusionale avversaria a cui si replica.",
+        "Eventuali nuovi documenti ammessi in giudizio.",
+    ],
+    "CIV_APP_001": [
+        "Sentenza impugnata (copia autentica o conforme).",
+        "Atti del primo grado rilevanti per i motivi di appello.",
+    ],
+    "CIV_PREC_001": [
+        "Titolo esecutivo (sentenza, decreto ingiuntivo, atto notarile).",
+        "Prova della notifica del titolo esecutivo.",
+    ],
+    "CIV_PPT_001": [
+        "Titolo esecutivo e precetto notificati.",
+        "Documentazione del credito pignorando.",
+    ],
+    "CIV_OPESE_001": [
+        "Titolo esecutivo contestato.",
+        "Documentazione a supporto dei motivi di opposizione all'esecuzione.",
+    ],
+    "CIV_OPATTESE_001": [
+        "Atto esecutivo impugnato e prova di conoscenza o notifica.",
+        "Documentazione dei vizi procedurali denunciati.",
+    ],
+    "CIV_RCAUT_001": [
+        "Documentazione del fumus boni iuris.",
+        "Prove del periculum in mora (urgenza e pregiudizio imminente).",
+    ],
+    "CIV_ICAUT_001": [
+        "Prova del procedimento principale in corso.",
+        "Documentazione dell'urgenza e del pregiudizio imminente.",
+    ],
+    "CIV_LAVRIC_001": [
+        "Contratto di lavoro e buste paga recenti.",
+        "Prove a sostegno delle pretese del lavoratore.",
+    ],
+    "CIV_LAVMEM_001": [
+        "Contratto di lavoro e documentazione del rapporto.",
+        "Documenti a difesa delle eccezioni del resistente.",
+    ],
+    "CIV_SFRINT_001": [
+        "Contratto di locazione.",
+        "Documentazione dei canoni insoluti o della causa di sfratto.",
+    ],
+    "CIV_CONVSFR_001": [
+        "Contratto di locazione.",
+        "Documentazione dei canoni insoluti o della scadenza contrattuale.",
+    ],
+    # ── PENALE ──────────────────────────────────────────────────────────────
+    "PEN_NOM_001": [
+        "Nomina sottoscritta dall'assistito.",
+        "Documento di identità dell'assistito.",
+    ],
+    "PEN_MEM_001": [
+        "Documenti difensivi a supporto (verbali, relazioni, perizie).",
+        "Copia degli atti del procedimento rilevanti.",
+    ],
+    "PEN_IST_001": [
+        "Documentazione a supporto dell'istanza.",
+        "Eventuali verbali o provvedimenti richiamati.",
+    ],
+    "PEN_RINV_001": [
+        "Prova della causa di rinvio (certificato medico, documentazione impeditiva).",
+    ],
+    "PEN_COPIE_001": [
+        "Nomina del difensore o delega.",
+        "Riferimento al procedimento e agli atti richiesti.",
+    ],
+    "PEN_DEPDOC_001": [
+        "Elenco numerato dei documenti da depositare.",
+        "Nomina del difensore agli atti del procedimento.",
+    ],
+    "PEN_OPPDP_001": [
+        "Copia del decreto penale di condanna.",
+        "Documentazione a supporto dell'opposizione.",
+    ],
+    "PEN_IMP_001": [
+        "Provvedimento impugnato (sentenza, ordinanza).",
+        "Prova della notifica o della conoscenza del provvedimento.",
+    ],
+    "PEN_PM_001": [
+        "Documentazione a supporto dell'istanza al PM.",
+        "Nomina del difensore agli atti.",
+    ],
+    "PEN_DISSEQ_001": [
+        "Verbale di sequestro.",
+        "Documentazione dei motivi del dissequestro.",
+    ],
+    "PEN_NOTEUD_001": [
+        "Verbale dell'udienza e atti del dibattimento rilevanti.",
+    ],
+    # ── AMMINISTRATIVO ───────────────────────────────────────────────────────
+    "AMM_RIC_001": [
+        "Provvedimento amministrativo impugnato (delibera, atto, diniego).",
+        "Prova della notifica o della piena conoscenza dell'atto impugnato.",
+    ],
+    "AMM_MOTAGG_001": [
+        "Nuovo atto amministrativo impugnato con i motivi aggiunti.",
+        "Documentazione a supporto dei nuovi motivi.",
+    ],
+    "AMM_ICAUT_001": [
+        "Provvedimento impugnato nel giudizio principale.",
+        "Prove del pregiudizio grave e irreparabile.",
+    ],
+    "AMM_MEM_001": [
+        "Memoria avversaria a cui si risponde.",
+        "Documentazione a supporto delle difese.",
+    ],
+    "AMM_DEPDOC_001": [
+        "Elenco numerato dei documenti da depositare.",
+        "Indice deposito con riferimento al giudizio amministrativo.",
+    ],
+    "AMM_NOTEUD_001": [
+        "Atti dell'udienza e verbali rilevanti.",
+        "Documentazione sulle questioni da trattare in udienza.",
+    ],
+    "AMM_APPCDS_001": [
+        "Sentenza TAR impugnata.",
+        "Atti del giudizio di primo grado rilevanti per l'appello.",
+    ],
+    "AMM_APPCAUT_001": [
+        "Ordinanza cautelare impugnata.",
+        "Prove dell'urgenza e dei motivi dell'appello cautelare.",
+    ],
+    "AMM_SEG_001": [
+        "Documentazione a supporto dell'istanza di segreteria.",
+        "Eventuale delega o procura specifica.",
+    ],
+    # ── TRIBUTARIO ───────────────────────────────────────────────────────────
+    "TRIB_RIC_001": [
+        "Atto tributario impugnato (avviso di accertamento, cartella, atto di irrogazione).",
+        "Prova della notifica dell'atto tributario.",
+    ],
+    "TRIB_CONTRO_001": [
+        "Ricorso tributario del contribuente.",
+        "Documentazione fiscale e contabile a supporto delle difese.",
+    ],
+    "TRIB_SOSP_001": [
+        "Atto tributario impugnato e ricorso principale.",
+        "Prove del danno grave e irreparabile.",
+    ],
+    "TRIB_MEMILL_001": [
+        "Atti del giudizio (ricorso, controdeduzioni, memoria avversaria).",
+        "Documentazione fiscale e contabile integrativa.",
+    ],
+    "TRIB_DEPDOC_001": [
+        "Elenco numerato dei documenti da depositare.",
+        "Indice deposito con riferimento al giudizio tributario.",
+    ],
+    "TRIB_APP_001": [
+        "Sentenza della Corte tributaria di primo grado.",
+        "Atti del giudizio di primo grado rilevanti per l'appello.",
+    ],
+    "TRIB_CONTROAPP_001": [
+        "Atto di appello tributario dell'avversario.",
+        "Documentazione fiscale a supporto delle difese in appello.",
+    ],
+    "TRIB_IST_001": [
+        "Documentazione a supporto dell'istanza (atto tributario, quietanze, domande precedenti).",
+    ],
+    # ── FAMIGLIA E PERSONE ───────────────────────────────────────────────────
+    "FAM_SEPC_001": [
+        "Certificato di matrimonio.",
+        "Certificati di nascita dei figli e documentazione economica dei coniugi.",
+    ],
+    "FAM_SEPG_001": [
+        "Certificato di matrimonio e certificati di nascita dei figli.",
+        "Documentazione economico-patrimoniale e prove a sostegno delle domande.",
+    ],
+    "FAM_DIVC_001": [
+        "Certificato di matrimonio e sentenza/verbale di separazione.",
+        "Certificati di nascita dei figli e documentazione economica aggiornata.",
+    ],
+    "FAM_DIVG_001": [
+        "Certificato di matrimonio e sentenza/verbale di separazione.",
+        "Documentazione redditi e patrimoni aggiornata dei coniugi.",
+    ],
+    "FAM_MOD_001": [
+        "Sentenza o verbale del procedimento da modificare.",
+        "Documentazione delle sopravvenienze (variazione redditi, esigenze del minore).",
+    ],
+    "FAM_AFF_001": [
+        "Certificati di nascita dei figli.",
+        "Documentazione sulla situazione familiare e capacità genitoriali.",
+    ],
+    "FAM_ADS_001": [
+        "Documentazione medica sulla condizione del beneficiario.",
+        "Documentazione patrimoniale del beneficiario.",
+    ],
+    "FAM_MADS_001": [
+        "Provvedimento di amministrazione di sostegno in vigore.",
+        "Documentazione delle mutate condizioni del beneficiario.",
+    ],
+    "FAM_TUT_001": [
+        "Documentazione medica e psicologica sulla condizione del soggetto.",
+        "Eventuale decreto del giudice tutelare precedente.",
+    ],
+    "FAM_REC_001": [
+        "Provvedimento impugnato (sentenza, decreto, ordinanza).",
+        "Atti del procedimento di prime cure rilevanti.",
+    ],
+    "FAM_MEMO_001": [
+        "Memoria avversaria o atti del procedimento cui si risponde.",
+        "Documentazione a supporto delle difese e degli interessi del minore.",
+    ],
+    # ── LAVORO E PREVIDENZA ──────────────────────────────────────────────────
+    "LAV_IMPLIC_001": [
+        "Lettera di licenziamento.",
+        "Contratto di lavoro, buste paga e eventuale contestazione disciplinare.",
+    ],
+    "LAV_RIC_001": [
+        "Contratto di lavoro e buste paga.",
+        "Documentazione a supporto delle pretese (cedolini, comunicazioni).",
+    ],
+    "LAV_MEM_001": [
+        "Ricorso del lavoratore e documentazione prodotta in giudizio.",
+        "Documentazione a difesa del datore di lavoro.",
+    ],
+    "LAV_APP_001": [
+        "Sentenza del Tribunale del Lavoro impugnata.",
+        "Atti del giudizio di primo grado rilevanti.",
+    ],
+    "LAV_DISC_001": [
+        "Lettera di contestazione disciplinare.",
+        "Risposta del lavoratore e contratto di lavoro/CCNL applicato.",
+    ],
+    "LAV_PREV_001": [
+        "Provvedimento di rigetto o diniego dell'ente previdenziale.",
+        "Documentazione medico-sanitaria o contributiva a supporto.",
+    ],
+    "LAV_APPPREV_001": [
+        "Sentenza del Tribunale del Lavoro (sezione previdenziale) impugnata.",
+        "Documentazione medica o contributiva rilevante per l'appello.",
+    ],
+    "LAV_ISTAMM_001": [
+        "Documentazione a supporto (cartelle contributive, certificati medici).",
+        "Eventuale domanda amministrativa precedente già presentata.",
+    ],
+    # ── SOCIETARIO E COMMERCIALE ─────────────────────────────────────────────
+    "SOC_PAR_001": [
+        "Documentazione societaria sottoposta a parere (statuto, visure, delibere).",
+        "Quesito scritto del cliente.",
+    ],
+    "SOC_CONT_001": [
+        "Bozza o schema del contratto da definire.",
+        "Documentazione sottostante (capitolato, offerta, corrispondenza precontrattuale).",
+    ],
+    "SOC_MEM_001": [
+        "Atti del giudizio societario (ricorso, atti avversari).",
+        "Documentazione societaria rilevante (visure, delibere, bilanci).",
+    ],
+    "SOC_RIC_001": [
+        "Visura camerale della società.",
+        "Documentazione del credito o della pretesa (contratto, delibere, verbali).",
+    ],
+    "SOC_RESP_001": [
+        "Documentazione sull'operato degli organi sociali contestati (verbali CDA, bilanci, delibere).",
+        "Visura camerale aggiornata.",
+    ],
+    "SOC_OPSTR_001": [
+        "Documentazione dell'operazione straordinaria (atti preliminari, perizie, valutazioni).",
+        "Statuto e visura camerale della società.",
+    ],
+    "SOC_DUEDIL_001": [
+        "Contratto da analizzare.",
+        "Documentazione societaria (visura, bilanci, delibere, contratti correlati).",
+    ],
+    # ── IMMIGRAZIONE ─────────────────────────────────────────────────────────
+    "IMM_PERMSOG_001": [
+        "Permesso di soggiorno scaduto o provvedimento di diniego.",
+        "Documentazione di integrazione (contratto di lavoro, residenza, certificati scolastici).",
+    ],
+    "IMM_PROT_001": [
+        "Verbale dell'audizione davanti alla Commissione Territoriale.",
+        "Documentazione sulla situazione nel paese di origine (COI, report internazionali).",
+    ],
+    "IMM_EXPUL_001": [
+        "Provvedimento di espulsione o respingimento impugnato.",
+        "Documentazione di integrazione e soggiorno regolare precedente.",
+    ],
+    "IMM_CITTA_001": [
+        "Decreto di rigetto della domanda di cittadinanza.",
+        "Documentazione sull'integrazione e sui requisiti (residenza, fedina penale, redditi).",
+    ],
+    "IMM_RIUN_001": [
+        "Documentazione sul richiedente (permesso di soggiorno, redditi, alloggio idoneo).",
+        "Documentazione sui familiari da ricongiungere (atti di nascita, stato di famiglia).",
+    ],
+}
+
+
+def get_essential_docs(model_code: str) -> list[str]:
+    """Restituisce i documenti essenziali per un modello (max 3 voci).
+    Se non presenti override specifici, torna ai documenti base dell'area."""
+    docs = MODEL_ESSENTIAL_DOCS.get(model_code)
+    if docs:
+        return list(docs)
+    model = MODEL_INDEX.get(model_code, {})
+    area = model.get("area", "")
+    area_base = {
+        "STRAGIUDIZIALE": ["Documenti richiamati nei fatti e nelle conclusioni.", "Corrispondenza o PEC utile a provare notifiche o diffide."],
+        "CIVILE": ["Procura alle liti.", "Documenti prodotti in giudizio o da produrre con l'atto."],
+        "PENALE": ["Nomina del difensore.", "Documentazione difensiva e atti del procedimento richiamati."],
+        "AMMINISTRATIVO": ["Provvedimento impugnato e prova della sua comunicazione.", "Documentazione amministrativa a fondamento della domanda."],
+        "TRIBUTARIO": ["Atto tributario impugnato e prova della notifica.", "Documentazione contabile e fiscale richiamata nel ricorso."],
+        "FAMIGLIA": ["Documentazione anagrafica (certificati di matrimonio, nascita).", "Documentazione economico-patrimoniale delle parti."],
+        "LAVORO": ["Contratto di lavoro e documentazione del rapporto.", "Prove a supporto delle pretese o delle eccezioni."],
+        "SOCIETARIO": ["Visura camerale e documentazione societaria.", "Documentazione contrattuale o del contenzioso."],
+        "IMMIGRAZIONE": ["Provvedimento o atto impugnato.", "Documentazione personale e di integrazione del richiedente."],
+    }
+    return list(area_base.get(area, ["Documenti richiamati nell'atto."]))
+
+
 def _build_validation_rules_for_fields(field_names: Iterable[str]) -> list[dict[str, str]]:
     rules: list[dict[str, str]] = []
     for name in field_names:
@@ -1075,6 +1477,7 @@ def _build_model_schema(model: dict[str, Any]) -> dict[str, Any]:
             _base_suggested_clauses(model["code"], model["area"])
             + MODEL_SUGGESTED_CLAUSES_OVERRIDES.get(model["code"], [])
         ),
+        "essential_docs": get_essential_docs(model["code"]),
     }
 
 

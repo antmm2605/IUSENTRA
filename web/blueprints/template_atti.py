@@ -255,13 +255,16 @@ def lista():
 @template_atti.route("/catalogo", methods=["GET"])
 @_richiedi_login
 def catalogo():
-    from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE
+    from pct.compilatore_atti import MODELS, AREA_LABELS, AREA_ORDINE, get_essential_docs
     from pct.motore_preventivo import catalogo_wizard
 
     # Raggruppa i modelli del compilatore per area con metadati
     area_groups: list[dict] = []
     for area_key in AREA_ORDINE:
-        modelli = [m for m in MODELS if m["area"] == area_key]
+        modelli = []
+        for m in MODELS:
+            if m["area"] == area_key:
+                modelli.append({**m, "essential_docs": get_essential_docs(m["code"])})
         if modelli:
             area_groups.append({
                 "area_key": area_key,

@@ -268,6 +268,48 @@
     font-weight: 600;
     padding: .5rem;
   }
+  .cat-card-docs {
+    border-top: 1px solid rgba(15,23,42,.06);
+    padding-top: .5rem;
+    margin-top: .1rem;
+  }
+  .cat-card-docs-title {
+    font-size: .67rem;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--bs-secondary-color);
+    font-weight: 700;
+    margin-bottom: .3rem;
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+  }
+  .cat-card-docs-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: .22rem;
+  }
+  .cat-card-docs-list li {
+    font-size: .78rem;
+    color: #4a5e7a;
+    line-height: 1.35;
+    display: flex;
+    align-items: flex-start;
+    gap: .35rem;
+  }
+  .cat-card-docs-list li::before {
+    content: "";
+    display: inline-block;
+    width: .32rem;
+    height: .32rem;
+    border-radius: 50%;
+    background: rgba(13,110,253,.45);
+    flex: 0 0 auto;
+    margin-top: .42rem;
+  }
 
   /* Empty state */
   .cat-empty {
@@ -431,6 +473,18 @@
             <span class="cat-card-area-badge ms-1">{{ m.required_extra_fields|length }} campi</span>
             {% endif %}
           </div>
+          {% if m.essential_docs %}
+          <div class="cat-card-docs">
+            <div class="cat-card-docs-title">
+              <i class="bi bi-paperclip" style="font-size:.72rem;"></i>Documenti essenziali
+            </div>
+            <ul class="cat-card-docs-list">
+              {% for doc in m.essential_docs %}
+              <li>{{ doc }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
           <div class="cat-card-footer">
             <a href="{{ url_for('template_atti.compila', model_code=m.code) }}" class="btn btn-sm btn-primary btn-compile">
               <i class="bi bi-play-circle me-1"></i>Compila atto

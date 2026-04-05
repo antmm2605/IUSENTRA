@@ -2939,7 +2939,24 @@ def load_tariffario_snapshot() -> Dict[str, Dict[str, List[Optional[float]]]]:
 
 def _labels_for_table(raw_table: Mapping[str, Iterable[Optional[float]]]) -> List[tuple[float, float, str]]:
     max_count = max((sum(1 for value in values if value is not None) for values in raw_table.values()), default=0)
-    return _LABELS_3 if max_count <= 3 else _LABELS_7
+    if max_count <= 3:
+        return list(_LABELS_3)
+    labels = list(_LABELS_7)
+    # Verifica regresso al 7° scaglione: se il compenso medio dell'indice 6 è
+    # inferiore a quello dell'indice 5, il 7° valore è il "valore indeterminabile"
+    # (DM 55/2014 art. 5) e non un genuino scaglione progressivo.
+    # Si rimuove il 7° e si apre il 6° a infinito (coerente con _snapshot_table).
+    all_vals = [list(v) for v in raw_table.values()]
+    valori_sc6 = [float(v[5]) for v in all_vals if len(v) > 5 and v[5] is not None]
+    valori_sc7 = [float(v[6]) for v in all_vals if len(v) > 6 and v[6] is not None]
+    if valori_sc6 and valori_sc7:
+        media6 = sum(valori_sc6) / len(valori_sc6)
+        media7 = sum(valori_sc7) / len(valori_sc7)
+        if media7 < media6 * 0.95:
+            da, _, lbl = labels[5]
+            labels[5] = (da, float("inf"), lbl)
+            labels = labels[:6]
+    return labels
 
 
 def _reference_by_code(reference_code: str) -> Dict[str, Any]:

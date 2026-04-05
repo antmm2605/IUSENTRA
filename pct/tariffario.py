@@ -432,6 +432,31 @@ def _snapshot_table(
             fasi[fase_label] = _sc(float(valore))
         if fasi:
             scaglioni.append(Scaglione(valore_da, valore_a, label, fasi))
+
+    # Il DM 55/2014 (e DM 147/2022) pubblica in alcune tabelle un 7° valore che
+    # rappresenta il compenso per controversie a «valore indeterminabile» (art. 5
+    # co. 1), non il compenso progressivo del 7° scaglione. Questo valore è
+    # tipicamente inferiore al 6° (260k-520k) perché calcolato su un valore medio
+    # stimato. Se il compenso medio dell'ultimo scaglione risulta inferiore a quello
+    # del penultimo, il dato non è un genuino 7° scaglione progressivo: si elimina
+    # l'ultimo e si estende il penultimo fino a float("inf"), garantendo che cause
+    # con valore > 520.000 EUR ricevano il compenso del 6° scaglione (corretto) e
+    # non un importo anomalmente ridotto.
+    if len(scaglioni) >= 2:
+        _media_sc = lambda sc: (
+            sum(sf.base for sf in sc.fasi.values()) / len(sc.fasi) if sc.fasi else 0.0
+        )
+        if _media_sc(scaglioni[-1]) < _media_sc(scaglioni[-2]) * 0.95:
+            scaglioni.pop()
+            ultimo = scaglioni[-1]
+            # Riapre l'ultimo scaglione mantenuto fino a infinito
+            scaglioni[-1] = Scaglione(
+                ultimo.valore_da,
+                float("inf"),
+                ultimo.label,
+                ultimo.fasi,
+            )
+
     return scaglioni
 
 
@@ -1141,6 +1166,12 @@ def calcola_compenso(
         note_parts.append("Bonus telematico +30% applicato sul compenso base.")
     if materia == Materia.PENALE:
         note_parts.append("Valore di controversia non applicato al penale.")
+    if valore_calcolo > 520000 and materia != Materia.PENALE:
+        note_parts.append(
+            "Valore superiore a EUR 520.000: applicati i valori del 6° scaglione tabellare "
+            "(DM 147/2022). Per controversie di valore molto elevato il compenso è liberamente "
+            "determinabile tra le parti nei limiti dell'equo compenso (L. 49/2023)."
+        )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
     if _variazioni:

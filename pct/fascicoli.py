@@ -541,24 +541,18 @@ class GestioneFascicoli:
     # ---------------------------------------------------------------- I/O
 
     def _carica(self) -> None:
-        if self.db_path.exists():
-            with open(self.db_path, encoding="utf-8") as f:
-                raw = json.load(f)
-            migrato = False
-            for payload in raw.values():
-                migrato = _migra_payload_depositi_pct(payload) or migrato
-            self._fascicoli = {k: Fascicolo.from_dict(v) for k, v in raw.items()}
-            if migrato:
-                self._salva()
+        from pct import cache as _cache
+        raw = _cache.load(self.db_path)
+        migrato = False
+        for payload in raw.values():
+            migrato = _migra_payload_depositi_pct(payload) or migrato
+        self._fascicoli = {k: Fascicolo.from_dict(v) for k, v in raw.items()}
+        if migrato:
+            self._salva()
 
     def _salva(self) -> None:
-        with open(self.db_path, "w", encoding="utf-8") as f:
-            json.dump(
-                {k: v.to_dict() for k, v in self._fascicoli.items()},
-                f,
-                ensure_ascii=False,
-                indent=2,
-            )
+        from pct import cache as _cache
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._fascicoli.items()})
 
     def segna_ocr_estratto(self, id_fasc: str, id_doc: str) -> None:
         """Segna un documento come indicizzato via OCR e persiste."""

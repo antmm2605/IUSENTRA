@@ -357,35 +357,29 @@ class GestioneUtenti:
     # ---- persistenza
 
     def _carica(self):
-        if self.db_path.exists():
-            try:
-                raw = json.loads(self.db_path.read_text("utf-8"))
-                self._utenti = {k: Utente.from_dict(v) for k, v in raw.items()}
-            except Exception:
-                self._utenti = {}
-        if self.audit_path.exists():
-            try:
-                raw = json.loads(self.audit_path.read_text("utf-8"))
-                self._audit = [EventoAudit.from_dict(e) for e in raw]
-            except Exception:
-                self._audit = []
+        from pct import cache as _cache
+        try:
+            raw = _cache.load(self.db_path)
+            self._utenti = {k: Utente.from_dict(v) for k, v in raw.items()}
+        except Exception:
+            self._utenti = {}
+        try:
+            raw_audit = _cache.load(self.audit_path, default=[])
+            self._audit = [EventoAudit.from_dict(e) for e in raw_audit]
+        except Exception:
+            self._audit = []
 
     def _salva_utenti(self):
-        self.db_path.write_text(
-            json.dumps({k: v.to_dict() for k, v in self._utenti.items()},
-                       indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        from pct import cache as _cache
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._utenti.items()})
 
     def _salva_audit(self):
+        from pct import cache as _cache
         cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
         recenti = [e for e in self._audit if e.timestamp >= cutoff]
         recenti = recenti[-10000:]  # hard cap di sicurezza
         self._audit = recenti
-        self.audit_path.write_text(
-            json.dumps([e.to_dict() for e in recenti], indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        _cache.save(self.audit_path, [e.to_dict() for e in recenti])
 
     def esporta_audit_csv(
         self,

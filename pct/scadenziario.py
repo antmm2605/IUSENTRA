@@ -413,19 +413,16 @@ class GestioneScadenziario:
     # ---- persistenza
 
     def _carica(self):
-        if self.db_path.exists():
-            try:
-                raw = json.loads(self.db_path.read_text("utf-8"))
-                self._scadenze = {k: Scadenza.from_dict(v) for k, v in raw.items()}
-            except Exception:
-                self._scadenze = {}
+        from pct import cache as _cache
+        try:
+            raw = _cache.load(self.db_path)
+            self._scadenze = {k: Scadenza.from_dict(v) for k, v in raw.items()}
+        except Exception:
+            self._scadenze = {}
 
     def _salva(self):
-        self.db_path.write_text(
-            json.dumps({k: v.to_dict() for k, v in self._scadenze.items()},
-                       indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        from pct import cache as _cache
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._scadenze.items()})
 
     # ---- CRUD
 

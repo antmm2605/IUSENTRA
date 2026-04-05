@@ -1280,12 +1280,9 @@ class GestioneTabelleNormative:
         self._ensure_seeded()
 
     def _load(self) -> None:
-        path = Path(self.db_path)
-        if not path.exists():
-            return
+        from pct import cache as _cache
         try:
-            with path.open(encoding="utf-8") as fh:
-                raw = json.load(fh)
+            raw = _cache.load(self.db_path, default={})
             self._data["tables"] = dict(raw.get("tables") or {})
             self._data["sync_runs"] = list(raw.get("sync_runs") or [])
             self._data["source_checks"] = dict(raw.get("source_checks") or {})
@@ -1293,10 +1290,9 @@ class GestioneTabelleNormative:
             self._data = {"tables": {}, "sync_runs": [], "source_checks": {}}
 
     def _save(self) -> None:
-        path = Path(self.db_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as fh:
-            json.dump(self._data, fh, ensure_ascii=False, indent=2)
+        from pct import cache as _cache
+        # indent=None: file fino a 6 MB, non serve leggibilità umana
+        _cache.save(self.db_path, self._data, indent=None)
 
     def _ensure_seeded(self) -> None:
         seed_time = datetime.now()

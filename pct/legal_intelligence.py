@@ -1208,12 +1208,9 @@ class GestioneLegalIntelligence:
         self._load()
 
     def _load(self) -> None:
-        path = Path(self.db_path)
-        if not path.exists():
-            return
+        from pct import cache as _cache
         try:
-            with path.open(encoding="utf-8") as fh:
-                raw = json.load(fh)
+            raw = _cache.load(self.db_path, default={})
             self._data["monitor_runs"] = [
                 MonitorRun.from_dict(item).to_dict() for item in (raw.get("monitor_runs") or [])
             ]
@@ -1227,10 +1224,9 @@ class GestioneLegalIntelligence:
             self._data = {"monitor_runs": [], "alerts": [], "audit_traces": []}
 
     def _save(self) -> None:
-        path = Path(self.db_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as fh:
-            json.dump(self._data, fh, ensure_ascii=False, indent=2)
+        from pct import cache as _cache
+        # indent=None: file fino a 2.9 MB, non serve leggibilità umana
+        _cache.save(self.db_path, self._data, indent=None)
 
     def _append_limited(self, key: str, payload: Dict[str, Any], limit: int) -> None:
         self._data.setdefault(key, []).append(payload)

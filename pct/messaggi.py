@@ -357,15 +357,13 @@ class GestioneMessaggi:
     # ---------------------------------------------------------------- I/O
 
     def _carica(self) -> None:
-        if self.db_path.exists():
-            with open(self.db_path, encoding="utf-8") as f:
-                raw = json.load(f)
-            self._messaggi = {k: Messaggio.from_dict(v) for k, v in raw.items()}
+        from pct import cache as _cache
+        raw = _cache.load(self.db_path)
+        self._messaggi = {k: Messaggio.from_dict(v) for k, v in raw.items()}
 
     def _salva(self) -> None:
-        with open(self.db_path, "w", encoding="utf-8") as f:
-            json.dump({k: v.to_dict() for k, v in self._messaggi.items()},
-                      f, ensure_ascii=False, indent=2)
+        from pct import cache as _cache
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._messaggi.items()})
 
     # ---------------------------------------------------------------- Invio email
 

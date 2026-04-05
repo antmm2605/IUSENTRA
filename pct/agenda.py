@@ -108,21 +108,13 @@ class Agenda:
     # ------------------------------------------------------------------ I/O
 
     def _carica(self) -> None:
-        if self.db_path.exists():
-            with open(self.db_path, encoding="utf-8") as f:
-                dati = json.load(f)
-            self._appuntamenti = {
-                k: Appuntamento.from_dict(v) for k, v in dati.items()
-            }
+        from pct import cache as _cache
+        dati = _cache.load(self.db_path)
+        self._appuntamenti = {k: Appuntamento.from_dict(v) for k, v in dati.items()}
 
     def _salva(self) -> None:
-        with open(self.db_path, "w", encoding="utf-8") as f:
-            json.dump(
-                {k: v.to_dict() for k, v in self._appuntamenti.items()},
-                f,
-                ensure_ascii=False,
-                indent=2,
-            )
+        from pct import cache as _cache
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._appuntamenti.items()})
 
     # ------------------------------------------------------------------ CRUD
 

@@ -41,8 +41,11 @@ from pct.tassonomia_preventivi import (
 AREE = [
     "Civile",
     "Penale",
+    "Penale difensivo",
     "Amministrativo",
     "Tributario",
+    "Societario",
+    "Immigrazione",
     "Stragiudiziale",
     "Speciali",
 ]
@@ -1041,6 +1044,298 @@ CATALOGO.extend(
     ]
 )
 
+CATALOGO.extend(
+    [
+        # ── PENALE DIFENSIVO ────────────────────────────────────────────────
+        TipoPratica(
+            id="consulenza_difensiva",
+            label="Consulenza difensiva penale",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=_FASI_STUDIO,
+            base_normativa="Tab. penale DM 55/2014 agg. DM 147/2022 — consulenza e parere difensivo",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_indagini",
+            label="Difesa nella fase delle indagini preliminari",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — fase investigativa — artt. 21 ss. disp. att. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_gup",
+            label="Difesa davanti al GUP / Udienza preliminare",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.GIP_GUP,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna GUP — artt. 416 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_monocratico",
+            label="Difesa dibattimentale — Tribunale monocratico",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.TRIBUNALE_MONOCRATICO,
+            fasi_default=_FASI_PENALE,
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna monocratico — artt. 470 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_collegiale",
+            label="Difesa dibattimentale — Tribunale collegiale",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.TRIBUNALE_COLLEGIALE,
+            fasi_default=_FASI_PENALE,
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna collegiale — artt. 470 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_assise",
+            label="Difesa davanti alla Corte d'Assise",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.CORTE_ASSISE,
+            fasi_default=_FASI_PENALE,
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna assise — artt. 5 e 470 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="riti_alternativi",
+            label="Riti alternativi (abbreviato, patteggiamento, oblazione)",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.GIP_GUP,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — riti speciali — artt. 438 ss., 444 ss., 162 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_appello_penale",
+            label="Difesa in appello penale",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.CORTE_APPELLO_PENALE,
+            fasi_default=_FASI_PENALE,
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — colonna appello — artt. 593 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_cassazione_penale",
+            label="Difesa in Cassazione penale",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.CASSAZIONE,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. penale DM 55/2014 × coeff. 1.60 — art. 606 c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_cautelari",
+            label="Difesa dalle misure cautelari",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.GIP_GUP,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — cautelari personali e reali — artt. 272 ss. e 321 ss. c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_sorveglianza",
+            label="Difesa in sede di sorveglianza",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.TRIBUNALE_SORVEGLIANZA,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — sorveglianza — L. 354/1975 ord. penitenziario.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="assistenza_vittima_reato",
+            label="Assistenza alla vittima / parte offesa",
+            area="Penale difensivo",
+            materia=Materia.PENALE,
+            grado_default=Grado.TRIBUNALE_MONOCRATICO,
+            fasi_default=_FASI_PENALE,
+            base_normativa="Tab. A15 DM 55/2014 agg. DM 147/2022 — parte civile — artt. 74-101 c.p.p.",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+
+        # ── SOCIETARIO ──────────────────────────────────────────────────────
+        TipoPratica(
+            id="consulenza_societaria",
+            label="Consulenza e pareri societari",
+            area="Societario",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=_FASI_STUDIO,
+            base_normativa="L. 247/2012 art. 13 — consulenza societaria e commerciale",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="costituzione_modifica_societa",
+            label="Costituzione e modifica di societa",
+            area="Societario",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="Artt. 2247 ss. c.c. — atti costitutivi e modifiche statutarie",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="governance_societaria",
+            label="Governance societaria (assemblee, CdA, patti parasociali)",
+            area="Societario",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="Artt. 2380 ss. c.c. — organi societari, patti parasociali e governance",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="contratti_commerciali",
+            label="Contratti commerciali (redazione / negoziazione)",
+            area="Societario",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="Artt. 1321 ss. c.c. — contratti tipici e atipici commerciali",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="contenzioso_societario",
+            label="Contenzioso societario giudiziale",
+            area="Societario",
+            materia=Materia.CIVILE_COGN,
+            grado_default=Grado.TRIBUNALE,
+            fasi_default=_FASI_BASE,
+            base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — artt. 2379 ss. e 2476 ss. c.c.",
+        ),
+        TipoPratica(
+            id="responsabilita_organi_sociali",
+            label="Responsabilita organi sociali",
+            area="Societario",
+            materia=Materia.CIVILE_COGN,
+            grado_default=Grado.TRIBUNALE,
+            fasi_default=_FASI_BASE,
+            base_normativa="Tab. A2 DM 55/2014 agg. DM 147/2022 — artt. 2392-2395 c.c. (SpA) / 2476 c.c. (SRL)",
+        ),
+        TipoPratica(
+            id="operazioni_straordinarie",
+            label="Operazioni straordinarie (M&A, fusioni, scissioni)",
+            area="Societario",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
+            base_normativa="Artt. 2501 ss. c.c. (fusione), 2506 ss. (scissione) — due diligence e contratti M&A",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+
+        # ── IMMIGRAZIONE ────────────────────────────────────────────────────
+        TipoPratica(
+            id="consulenza_immigrazione",
+            label="Consulenza immigrazione e cittadinanza",
+            area="Immigrazione",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=_FASI_STUDIO,
+            base_normativa="L. 247/2012 art. 13 — consulenza in materia di immigrazione e cittadinanza",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="permesso_soggiorno",
+            label="Permesso di soggiorno (rilascio / rinnovo / conversione)",
+            area="Immigrazione",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="D.Lgs. 286/1998 artt. 5-6 (TUI) — permesso di soggiorno",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="protezione_internazionale",
+            label="Protezione internazionale e asilo politico",
+            area="Immigrazione",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.TRIBUNALE,
+            fasi_default=_FASI_BASE,
+            base_normativa="D.Lgs. 19/11/2007 n. 251 — status rifugiato e protezione sussidiaria (Direttiva 2004/83/CE)",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="difesa_espulsione_rimpatrio",
+            label="Difesa da espulsione e rimpatrio",
+            area="Immigrazione",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.TRIBUNALE,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE],
+            base_normativa="D.Lgs. 286/1998 artt. 13-14 (TUI) — espulsione prefettizia e trattenimento CIE",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="ricongiungimento_familiare",
+            label="Ricongiungimento familiare",
+            area="Immigrazione",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="D.Lgs. 286/1998 artt. 28-30 (TUI) — nulla osta al ricongiungimento familiare",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="cittadinanza_italiana",
+            label="Acquisto / recupero cittadinanza italiana",
+            area="Immigrazione",
+            materia=Materia.AMMINISTRATIVO,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA],
+            base_normativa="L. 5 febbraio 1992 n. 91 — acquisto, perdita e riacquisto della cittadinanza italiana",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+        TipoPratica(
+            id="visto_lavoro_ingresso",
+            label="Visto d'ingresso per lavoro, studio o ricongiungimento",
+            area="Immigrazione",
+            materia=Materia.STRAGIUD,
+            grado_default=Grado.FUORI_GIUDIZIO,
+            fasi_default=[Fase.STUDIO, Fase.INTRODUTTIVA],
+            base_normativa="D.Lgs. 286/1998 artt. 22-27 (TUI) — visti per lavoro subordinato, autonomo e studio",
+            richiede_valore=False,
+            tipo_compenso_default="Compenso fisso",
+        ),
+    ]
+)
+
 # Indice rapido id → TipoPratica
 _IDX: Dict[str, TipoPratica] = {tp.id: tp for tp in CATALOGO}
 
@@ -1400,6 +1695,114 @@ _ESBORSI_TIPICI.update(
             {"descrizione": "Contributo unificato opposizione stato passivo (indicativo)", "importo": 518.0},
             {"descrizione": "Diritti di segreteria", "importo": 27.0},
         ],
+        # ── PENALE DIFENSIVO ──
+        "consulenza_difensiva": [
+            {"descrizione": "Accesso atti / copie fascicolo", "importo": 30.0},
+        ],
+        "difesa_indagini": [
+            {"descrizione": "Investigazioni difensive / acquisizione documenti", "importo": 80.0},
+            {"descrizione": "Accesso atti / copie fascicolo", "importo": 30.0},
+        ],
+        "difesa_gup": [
+            {"descrizione": "Copie atti udienza preliminare", "importo": 20.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+        "difesa_monocratico": [
+            {"descrizione": "Copie fascicolo dibattimentale", "importo": 50.0},
+            {"descrizione": "Accesso atti", "importo": 20.0},
+        ],
+        "difesa_collegiale": [
+            {"descrizione": "Copie fascicolo dibattimentale", "importo": 50.0},
+            {"descrizione": "Accesso atti", "importo": 20.0},
+        ],
+        "difesa_assise": [
+            {"descrizione": "Copie fascicolo dibattimentale", "importo": 80.0},
+            {"descrizione": "CTP (consulente tecnico di parte)", "importo": 300.0},
+        ],
+        "riti_alternativi": [
+            {"descrizione": "Copie atti per rito speciale", "importo": 20.0},
+        ],
+        "difesa_appello_penale": [
+            {"descrizione": "Estratto sentenza impugnata", "importo": 20.0},
+            {"descrizione": "Copie atti per appello", "importo": 30.0},
+        ],
+        "difesa_cassazione_penale": [
+            {"descrizione": "Estratto sentenza appellata", "importo": 20.0},
+            {"descrizione": "Copie atti per Cassazione", "importo": 40.0},
+        ],
+        "difesa_cautelari": [
+            {"descrizione": "Copie atti cautelari", "importo": 20.0},
+            {"descrizione": "Notifiche / accessi urgenti", "importo": 15.0},
+        ],
+        "difesa_sorveglianza": [
+            {"descrizione": "Copie atti esecutivi penali", "importo": 20.0},
+        ],
+        "assistenza_vittima_reato": [
+            {"descrizione": "Accesso atti / copie fascicolo", "importo": 30.0},
+        ],
+        # ── SOCIETARIO ──
+        "consulenza_societaria": [
+            {"descrizione": "Ricerca giurisprudenziale / banche dati", "importo": 30.0},
+        ],
+        "costituzione_modifica_societa": [
+            {"descrizione": "Onorario notarile (indicativo)", "importo": 800.0},
+            {"descrizione": "Tasse CCIAA iscrizione", "importo": 90.0},
+            {"descrizione": "Diritti di segreteria registro imprese", "importo": 50.0},
+        ],
+        "governance_societaria": [
+            {"descrizione": "Bollo verbali assemblea (se dovuto)", "importo": 32.0},
+            {"descrizione": "Deposito atti al registro imprese", "importo": 50.0},
+        ],
+        "contratti_commerciali": [
+            {"descrizione": "Bollo contratto (€ 16 ogni 4 facciate)", "importo": 32.0},
+            {"descrizione": "Raccomandata / PEC", "importo": 10.0},
+        ],
+        "contenzioso_societario": [
+            {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
+            {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+        "responsabilita_organi_sociali": [
+            {"descrizione": "Contributo Unificato (indicativo)", "importo": 392.0},
+            {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
+            {"descrizione": "Diritti di segreteria", "importo": 27.0},
+        ],
+        "operazioni_straordinarie": [
+            {"descrizione": "Onorario notarile fusione/scissione (indicativo)", "importo": 2000.0},
+            {"descrizione": "Tasse CCIAA", "importo": 200.0},
+        ],
+        # ── IMMIGRAZIONE ──
+        "consulenza_immigrazione": [
+            {"descrizione": "Ricerca normativa / circolari ministeriali", "importo": 20.0},
+        ],
+        "permesso_soggiorno": [
+            {"descrizione": "Marca da bollo istanza (€ 16)", "importo": 16.0},
+            {"descrizione": "Contributo rilascio permesso (€ 30-200)", "importo": 80.0},
+            {"descrizione": "Spese postali / raccomandata", "importo": 10.0},
+        ],
+        "protezione_internazionale": [
+            {"descrizione": "Contributo unificato ricorso (se dovuto)", "importo": 98.0},
+            {"descrizione": "Notifica ricorso", "importo": 25.0},
+            {"descrizione": "Traduzione documenti stranieri (indicativa)", "importo": 80.0},
+        ],
+        "difesa_espulsione_rimpatrio": [
+            {"descrizione": "Contributo unificato ricorso (se dovuto)", "importo": 98.0},
+            {"descrizione": "Notifica ricorso urgente", "importo": 25.0},
+        ],
+        "ricongiungimento_familiare": [
+            {"descrizione": "Marca da bollo istanza", "importo": 16.0},
+            {"descrizione": "Traduzione documenti stranieri (indicativa)", "importo": 100.0},
+            {"descrizione": "Spese consolari / apostille (indicative)", "importo": 60.0},
+        ],
+        "cittadinanza_italiana": [
+            {"descrizione": "Marca da bollo istanza", "importo": 16.0},
+            {"descrizione": "Contributo per cittadinanza (€ 250)", "importo": 250.0},
+            {"descrizione": "Traduzione / apostille documenti stranieri", "importo": 120.0},
+        ],
+        "visto_lavoro_ingresso": [
+            {"descrizione": "Diritti consolari (indicativi)", "importo": 116.0},
+            {"descrizione": "Spese sportello unico lavoro / prefettura", "importo": 20.0},
+        ],
     }
 )
 
@@ -1443,6 +1846,12 @@ _URL_DM150_MEDIAZIONE = (
 )
 _URL_CODICE_ASSICURAZIONI = (
     "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2005-09-07%3B209"
+)
+_URL_TUI = (
+    "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A1998-07-25%3B286"
+)
+_URL_L91_1992 = (
+    "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1992-02-05%3B91"
 )
 
 _RIF_MEDIAZIONE_LOCAZIONE = [
@@ -1551,6 +1960,21 @@ _RIFERIMENTI_AREA: Dict[str, Dict[str, str]] = {
         "description": "Prestazioni stragiudiziali e strumenti ADR richiamati per la tipologia selezionata.",
         "url": _URL_MEDIAZIONE,
     },
+    "Penale difensivo": {
+        "title": "Codice di procedura penale",
+        "description": "Riferimento processuale per la difesa penale nelle sue diverse fasi e gradi.",
+        "url": _URL_CPP,
+    },
+    "Societario": {
+        "title": "Codice civile",
+        "description": "Riferimento normativo base per diritto societario e commerciale (artt. 2247 ss. c.c.).",
+        "url": _URL_CC,
+    },
+    "Immigrazione": {
+        "title": "D.Lgs. 25 luglio 1998, n. 286",
+        "description": "Testo Unico sull'immigrazione — fonte principale per soggiorno, espulsione, ricongiungimento e lavoro straniero.",
+        "url": _URL_TUI,
+    },
     "Speciali": {
         "title": "Accordo professionale e criteri analogici",
         "description": "Prestazioni speciali o atipiche con compenso pattizio o applicazione analogica dei parametri.",
@@ -1562,8 +1986,11 @@ _MOTORE_PER_AREA = {
     "Civile": "Motore parametrico giudiziale civile",
     "Lavoro e previdenza": "Motore parametrico lavoro e previdenza",
     "Penale": "Motore parametrico penale",
+    "Penale difensivo": "Motore parametrico penale difensivo",
     "Amministrativo": "Motore parametrico amministrativo",
     "Tributario": "Motore parametrico tributario",
+    "Societario": "Motore preventivo societario e commerciale",
+    "Immigrazione": "Motore preventivo immigrazione e cittadinanza",
     "Stragiudiziale": "Motore preventivo stragiudiziale / ADR",
     "Speciali": "Motore preventivo speciale e pattizio",
 }
@@ -1572,8 +1999,11 @@ _REDATTORE_PER_AREA = {
     "Civile": "Redattore preventivo giudiziale civile",
     "Lavoro e previdenza": "Redattore preventivo rito lavoro",
     "Penale": "Redattore preventivo penale",
+    "Penale difensivo": "Redattore preventivo difensivo penale",
     "Amministrativo": "Redattore preventivo amministrativo",
     "Tributario": "Redattore preventivo tributario",
+    "Societario": "Redattore preventivo societario",
+    "Immigrazione": "Redattore preventivo immigrazione",
     "Stragiudiziale": "Redattore preventivo stragiudiziale",
     "Speciali": "Redattore preventivo personalizzato",
 }
@@ -1730,6 +2160,12 @@ def _summary_for(tp: TipoPratica) -> str:
         return f"Preventivo per {tp.label.lower()}, con impostazione immediata di attivita, tempi e spese vive tipiche."
     if tp.area == "Penale":
         return f"Preventivo per {tp.label.lower()} in ambito penale, con compenso strutturato sulle fasi difensive effettivamente prevedibili."
+    if tp.area == "Penale difensivo":
+        return f"Preventivo per {tp.label.lower()}, con compenso calibrato sulle fasi difensive dell'imputato e le specificita del rito applicabile."
+    if tp.area == "Societario":
+        return f"Preventivo per {tp.label.lower()}, con stima del compenso sulle attivita stragiudiziali e/o contenziose di diritto societario e commerciale."
+    if tp.area == "Immigrazione":
+        return f"Preventivo per {tp.label.lower()}, con compenso tarato sulle fasi amministrative, le traduzioni e gli adempimenti burocratici tipici del procedimento."
     return f"Preventivo per {tp.label.lower()} in area {area}, con compenso guidato dai parametri forensi e dalle fasi standard della pratica."
 
 
@@ -1753,8 +2189,12 @@ def _note_template_for(tp: TipoPratica) -> str:
     ]
     if tp.area == "Stragiudiziale":
         lines.append("Le attivita di trattativa o ADR ulteriori rispetto a quelle stimate formeranno oggetto di integrazione del preventivo.")
-    if tp.area == "Penale":
+    if tp.area in {"Penale", "Penale difensivo"}:
         lines.append("Il compenso potra richiedere adeguamento in caso di udienze ulteriori, impugnazioni, incidenti o attivita investigative aggiuntive.")
+    if tp.area == "Societario":
+        lines.append("Le attivita di negoziazione, due diligence o assistenza a operazioni straordinarie ulteriori rispetto a quelle stimate formeranno oggetto di integrazione.")
+    if tp.area == "Immigrazione":
+        lines.append("Restano a carico del cliente i diritti consolari, le spese di traduzione giurata e apostille dei documenti stranieri, salvo diverso accordo.")
     lines.append("Informativa resa ai sensi dell'art. 13 L. 247/2012 e dei parametri forensi vigenti.")
     return "\n".join(lines)
 
@@ -1770,6 +2210,15 @@ def _checklist_for(tp: TipoPratica) -> List[str]:
         checklist.append(_descrivi_fase(fase))
     if tp.area == "Stragiudiziale":
         checklist.append("definire se inserire fase di mediazione o negoziazione assistita")
+    if tp.area == "Penale difensivo":
+        checklist.append("acquisire copia del fascicolo dibattimentale o degli atti di indagine")
+        checklist.append("verificare posizione cautelare e termini di fase")
+    if tp.area == "Societario":
+        checklist.append("raccogliere visura camerale e statuto societario aggiornati")
+        checklist.append("verificare eventuali patti parasociali e precedenti assemblee rilevanti")
+    if tp.area == "Immigrazione":
+        checklist.append("raccogliere documenti di identita e soggiorno del cliente")
+        checklist.append("verificare stato delle pratiche in corso presso Questura / Prefettura")
     if tp.id == "sfratto_morosita":
         checklist.append("verificare subito la mediazione civile obbligatoria in materia di locazione")
     return checklist

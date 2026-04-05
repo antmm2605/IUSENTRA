@@ -304,6 +304,142 @@ FONTI_OPERATIVE: Dict[str, FonteOperativa] = {
         url="https://www.gazzettaufficiale.it/eli/gu/2002/08/05/182/sg/pdf",
         note="Importi vigenti delle vacazioni: EUR 14,68 la prima e EUR 8,15 le successive.",
     ),
+    # ── Banca d'Italia ──────────────────────────────────────────────────────
+    "bancaditalia_portale": FonteOperativa(
+        code="bancaditalia_portale",
+        title="Banca d'Italia - portale ufficiale",
+        url="https://www.bancaditalia.it/",
+        note="Fonte primaria per tassi, usura, accertamenti bancari e normativa di settore.",
+    ),
+    "bancaditalia_tassi_usura": FonteOperativa(
+        code="bancaditalia_tassi_usura",
+        title="Banca d'Italia - rilevazione tassi usura",
+        url="https://www.bancaditalia.it/compiti/stabilita-finanziaria/usura/",
+        note=(
+            "Pubblicazione trimestrale dei TEGM (Tassi Effettivi Globali Medi) e soglie antiusura "
+            "ai sensi della L. 108/1996. I tassi soglia = TEGM × 1,25 + 4 punti percentuali. "
+            "Rilevante per mutui, leasing, aperture di credito e prestiti personali."
+        ),
+        change_detection="availability_only",
+    ),
+    "mef_decreto_usura": FonteOperativa(
+        code="mef_decreto_usura",
+        title="MEF - decreto trimestrale tassi usura",
+        url="https://www.mef.gov.it/uffici/uv/ufficio-finanziamento-pubblico/interesse-tassi-cambio/index.html",
+        note="Decreto MEF che fissa trimestralmente i TEGM e le soglie antiusura per categoria di operazione.",
+        change_detection="availability_only",
+    ),
+    # ── ISTAT ────────────────────────────────────────────────────────────────
+    "istat_portale": FonteOperativa(
+        code="istat_portale",
+        title="ISTAT - portale ufficiale",
+        url="https://www.istat.it/",
+        note="Fonte primaria per indici dei prezzi al consumo, rivalutazioni monetarie e statistiche nazionali.",
+    ),
+    "istat_indici_prezzi": FonteOperativa(
+        code="istat_indici_prezzi",
+        title="ISTAT - indici dei prezzi al consumo (FOI e NIC)",
+        url="https://www.istat.it/it/prezzi/prezzi-al-consumo/dati-e-pubblicazioni/",
+        note=(
+            "Comunicati mensili ISTAT con indice FOI (famiglie di operai e impiegati, per adeguamento "
+            "canoni di locazione ex L. 392/1978) e NIC (per rivalutazioni monetarie generali, assegni "
+            "divorzili, liquidazioni). Aggiornati ogni mese intorno al 15."
+        ),
+        change_detection="availability_only",
+    ),
+    # ── Cassa Forense ────────────────────────────────────────────────────────
+    "cassa_forense_portale": FonteOperativa(
+        code="cassa_forense_portale",
+        title="Cassa Forense - portale ufficiale",
+        url="https://www.cassaforense.it/",
+        note="Fonte primaria per contributi previdenziali avvocati, aliquote, minimali e comunicati annuali.",
+    ),
+    "cassa_forense_contributi_2026": FonteOperativa(
+        code="cassa_forense_contributi_2026",
+        title="Cassa Forense - contributi 2026",
+        url="https://www.cassaforense.it/contributi/",
+        note=(
+            "Contributo soggettivo: 14,5% sul reddito netto professionale, minimo EUR 2.725. "
+            "Contributo integrativo: 4% sui compensi (addebitabile al cliente ex L. 576/1980). "
+            "Contributo di maternita/assistenza: EUR 191. Fonte: comunicato ufficiale Cassa Forense 2026."
+        ),
+        change_detection="availability_only",
+    ),
+    # ── Corte dei Conti ──────────────────────────────────────────────────────
+    "corte_conti_portale": FonteOperativa(
+        code="corte_conti_portale",
+        title="Corte dei Conti - portale ufficiale",
+        url="https://www.corteconti.it/",
+        note="Fonte primaria per giurisprudenza contabile, sezioni regionali e sentenze su responsabilita erariale.",
+    ),
+    # ── Ministero del Lavoro ──────────────────────────────────────────────────
+    "ministero_lavoro_portale": FonteOperativa(
+        code="ministero_lavoro_portale",
+        title="Ministero del Lavoro e delle Politiche Sociali - portale ufficiale",
+        url="https://www.lavoro.gov.it/",
+        note=(
+            "Fonte primaria per CCNL, circolari lavoro, tutela minori, collocamento disabili "
+            "e normativa previdenziale/assistenziale."
+        ),
+    ),
+    # ── ANAC ─────────────────────────────────────────────────────────────────
+    "anac_portale": FonteOperativa(
+        code="anac_portale",
+        title="ANAC - Autorita Nazionale Anticorruzione",
+        url="https://www.anticorruzione.it/",
+        note=(
+            "Fonte primaria per appalti pubblici (D.Lgs. 36/2023 Codice dei Contratti), "
+            "commissioni ANAC, bandi tipo e soglie di rilevanza comunitaria."
+        ),
+    ),
+    "anac_soglie_2024": FonteOperativa(
+        code="anac_soglie_2024",
+        title="ANAC - soglie di rilevanza europea appalti 2024-2025",
+        url="https://www.anticorruzione.it/-/comunicato-del-presidente-del-15-gennaio-2024-n-40",
+        note=(
+            "Soglie di rilevanza europea: lavori EUR 5.538.000, forniture/servizi PA centrale EUR 143.000, "
+            "altre stazioni appaltanti EUR 221.000, enti aggiudicatori EUR 443.000. "
+            "In vigore dal 1 gennaio 2024. Aggiornate ogni 2 anni dalla Commissione europea."
+        ),
+    ),
+    # ── Senato ────────────────────────────────────────────────────────────────
+    "senato_portale": FonteOperativa(
+        code="senato_portale",
+        title="Senato della Repubblica - portale ufficiale",
+        url="https://www.senato.it/",
+        note="Fonte per iter legislativo, disegni di legge, commissioni e testi approvati.",
+    ),
+    # ── Corte EDU / CEDU ─────────────────────────────────────────────────────
+    "cedu_portale": FonteOperativa(
+        code="cedu_portale",
+        title="Corte europea dei diritti dell'uomo (CEDU)",
+        url="https://www.echr.coe.int/",
+        note=(
+            "Fonte primaria per sentenze CEDU rilevanti per il diritto italiano (equo processo, "
+            "liberta personale, privacy, proprieta). Ricerca in HUDOC: https://hudoc.echr.coe.int/"
+        ),
+    ),
+    # ── Normativa antiusura (L. 108/1996) ────────────────────────────────────
+    "legge_108_1996_usura": FonteOperativa(
+        code="legge_108_1996_usura",
+        title="L. 108/1996 - disciplina antiusura",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1996-03-07%3B108%21vig=",
+        note="Base normativa per usura, soglie antiusura e criteri di determinazione dei TEGM.",
+    ),
+    # ── Normativa canoni di locazione ─────────────────────────────────────────
+    "legge_431_1998_locazioni": FonteOperativa(
+        code="legge_431_1998_locazioni",
+        title="L. 431/1998 - locazioni abitative",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1998-12-09%3B431%21vig=",
+        note="Disciplina delle locazioni ad uso abitativo con aggiornamento ISTAT FOI.",
+    ),
+    # ── Codice dei Contratti Pubblici ─────────────────────────────────────────
+    "dlgs_36_2023_contratti": FonteOperativa(
+        code="dlgs_36_2023_contratti",
+        title="D.Lgs. 36/2023 - Codice dei contratti pubblici",
+        url="https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2023-03-31%3B36%21vig=",
+        note="Testo vigente del Codice dei contratti pubblici (in vigore dal 1 luglio 2023), rilevante per studi che assistono in appalti e concessioni.",
+    ),
 }
 
 
@@ -331,6 +467,16 @@ def _watch_source_ids_for_url(url: str) -> List[str]:
         ("agenziaentrate.gov.it", "agenzia_entrate"),
         ("www1.agenziaentrate.gov.it", "agenzia_entrate"),
         ("inps.it", "gazzetta_ufficiale"),
+        ("bancaditalia.it", "bancaditalia"),
+        ("mef.gov.it", "bancaditalia"),
+        ("istat.it", "istat"),
+        ("cassaforense.it", "cassa_forense"),
+        ("corteconti.it", "corte_conti"),
+        ("lavoro.gov.it", "ministero_lavoro"),
+        ("anticorruzione.it", "anac"),
+        ("senato.it", "senato"),
+        ("echr.coe.int", "cedu"),
+        ("hudoc.echr.coe.int", "cedu"),
     )
     for needle, source_id in mapping:
         if needle in value and source_id not in source_ids:
@@ -351,6 +497,14 @@ def _source_codes_for_watch_ids(source_ids: Iterable[str]) -> List[str]:
         "eur_lex": "eur_lex_portale",
         "agenzia_entrate": "agenzia_entrate_fec",
         "fatturapa": "fatturapa_specifiche",
+        "bancaditalia": "bancaditalia_portale",
+        "istat": "istat_portale",
+        "cassa_forense": "cassa_forense_portale",
+        "corte_conti": "corte_conti_portale",
+        "ministero_lavoro": "ministero_lavoro_portale",
+        "anac": "anac_portale",
+        "senato": "senato_portale",
+        "cedu": "cedu_portale",
     }
     rows: List[str] = []
     for source_id in source_ids or []:
@@ -716,6 +870,365 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
             "rows": tariffario_fatturazione_rows(),
             "published_at": "2026-04-01",
             "effective_from": "2026-04-01",
+        },
+        # ── Tassi usura ───────────────────────────────────────────────────────
+        "tasso_usura": {
+            "id": "tasso_usura",
+            "title": "Tassi usura - soglie antiusura trimestrali",
+            "category": "tassi",
+            "description": (
+                "Soglie antiusura trimestrali per categoria di operazione, calcolate come TEGM × 1,25 + 4 pp "
+                "ai sensi della L. 108/1996. Aggiornate trimestralmente da MEF/Banca d'Italia e pubblicate "
+                "in Gazzetta Ufficiale. Rilevanti per mutui, leasing, aperture di credito, prestiti personali "
+                "e valutazione di nullita di clausole contrattuali per usura."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["legge_108_1996_usura", "bancaditalia_tassi_usura", "mef_decreto_usura"],
+            "watch_source_ids": ["bancaditalia", "gazzetta_ufficiale"],
+            "rows": [
+                # Dati Q1 2026 (vigenti 01/01/2026 – 31/03/2026) da comunicato Banca d'Italia
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "aperture_credito_cc_fino_5000", "tegm": 13.11, "soglia": 20.39,
+                 "label": "Aperture di credito in c/c ≤ EUR 5.000"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "aperture_credito_cc_oltre_5000", "tegm": 10.54, "soglia": 17.18,
+                 "label": "Aperture di credito in c/c > EUR 5.000"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "factoring", "tegm": 5.23, "soglia": 10.54,
+                 "label": "Factoring"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "credito_personale", "tegm": 12.78, "soglia": 19.98,
+                 "label": "Credito personale"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "credito_finalizzato", "tegm": 11.42, "soglia": 18.28,
+                 "label": "Credito finalizzato"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "mutui_ipotecari_fisso", "tegm": 4.61, "soglia": 9.76,
+                 "label": "Mutui ipotecari a tasso fisso"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "mutui_ipotecari_variabile", "tegm": 4.41, "soglia": 9.51,
+                 "label": "Mutui ipotecari a tasso variabile"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "leasing_immobiliare_fisso", "tegm": 4.82, "soglia": 10.03,
+                 "label": "Leasing immobiliare a tasso fisso"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "leasing_immobiliare_variabile", "tegm": 4.47, "soglia": 9.59,
+                 "label": "Leasing immobiliare a tasso variabile"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "leasing_mobiliare_fisso", "tegm": 8.61, "soglia": 14.76,
+                 "label": "Leasing mobiliare a tasso fisso"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "leasing_mobiliare_variabile", "tegm": 5.71, "soglia": 11.14,
+                 "label": "Leasing mobiliare a tasso variabile"},
+                {"quarter": "2026-Q1", "start": "2026-01-01", "end": "2026-03-31",
+                 "category": "carte_credito_revolving", "tegm": 19.37, "soglia": 28.21,
+                 "label": "Carte di credito revolving"},
+            ],
+            "defaults": {
+                "note": (
+                    "Soglia = TEGM × 1,25 + 4 pp (L. 108/1996 come mod. D.L. 70/2011). "
+                    "Dati seed Q1 2026 — verificare e aggiornare ogni trimestre da "
+                    "https://www.bancaditalia.it/compiti/stabilita-finanziaria/usura/ "
+                    "e relativo decreto MEF in G.U."
+                ),
+                "formula": "soglia = tegm * 1.25 + 4",
+                "aggiornamento": "trimestrale",
+            },
+            "published_at": "2025-12-31",
+            "effective_from": "2026-01-01",
+        },
+        # ── Tassi BCE ─────────────────────────────────────────────────────────
+        "tasso_bce": {
+            "id": "tasso_bce",
+            "title": "Tassi BCE - operazioni di rifinanziamento principali",
+            "category": "tassi",
+            "description": (
+                "Tassi di interesse BCE sulle operazioni di rifinanziamento principali. "
+                "Rilevanti per il calcolo degli interessi moratori ex D.Lgs. 231/2002 "
+                "e per la valutazione di clausole di indicizzazione."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["bancaditalia_portale"],
+            "watch_source_ids": ["bancaditalia", "gazzetta_ufficiale"],
+            "rows": [
+                {"start": "2024-06-12", "end": "2024-09-17", "rate": 4.25,
+                 "label": "BCE operazioni principali rifinanziamento — dal 12/06/2024"},
+                {"start": "2024-09-18", "end": "2024-10-22", "rate": 3.65,
+                 "label": "BCE operazioni principali rifinanziamento — dal 18/09/2024"},
+                {"start": "2024-10-23", "end": "2024-12-17", "rate": 3.40,
+                 "label": "BCE operazioni principali rifinanziamento — dal 23/10/2024"},
+                {"start": "2024-12-18", "end": "2025-01-29", "rate": 3.15,
+                 "label": "BCE operazioni principali rifinanziamento — dal 18/12/2024"},
+                {"start": "2025-01-30", "end": "2025-03-05", "rate": 2.90,
+                 "label": "BCE operazioni principali rifinanziamento — dal 30/01/2025"},
+                {"start": "2025-03-06", "end": "2025-04-16", "rate": 2.65,
+                 "label": "BCE operazioni principali rifinanziamento — dal 06/03/2025"},
+                {"start": "2025-04-17", "end": "2025-06-10", "rate": 2.40,
+                 "label": "BCE operazioni principali rifinanziamento — dal 17/04/2025"},
+                {"start": "2025-06-11", "end": None, "rate": 2.15,
+                 "label": "BCE operazioni principali rifinanziamento — dal 11/06/2025"},
+            ],
+            "defaults": {
+                "note": (
+                    "Tasso BCE sulle operazioni di rifinanziamento principali. "
+                    "Aggiornare dopo ogni decisione del Consiglio direttivo BCE "
+                    "da https://www.bancaditalia.it/compiti/politica-monetaria/tassi-interesse/"
+                ),
+                "aggiornamento": "variabile (decisioni BCE)",
+            },
+            "published_at": "2025-06-11",
+            "effective_from": "2024-06-12",
+        },
+        # ── ISTAT FOI ─────────────────────────────────────────────────────────
+        "istat_foi": {
+            "id": "istat_foi",
+            "title": "ISTAT - Indice FOI (famiglie di operai e impiegati)",
+            "category": "indici_rivalutazione",
+            "description": (
+                "Indice ISTAT dei prezzi al consumo per le famiglie di operai e impiegati (FOI), "
+                "al netto dei tabacchi. Utilizzato per l'aggiornamento dei canoni di locazione "
+                "ad uso abitativo (L. 431/1998 e L. 392/1978) e per adeguamenti contrattuali. "
+                "Comunicato mensile ISTAT — aggiornato ogni mese intorno al 15."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["istat_indici_prezzi", "legge_431_1998_locazioni"],
+            "watch_source_ids": ["istat", "normattiva"],
+            "rows": [
+                # Indici FOI (base 2015=100) — anno su anno
+                {"year": 2023, "month": 1, "index": 118.6, "variation_yoy": 10.7},
+                {"year": 2023, "month": 2, "index": 119.2, "variation_yoy": 9.7},
+                {"year": 2023, "month": 3, "index": 119.6, "variation_yoy": 8.3},
+                {"year": 2023, "month": 4, "index": 119.9, "variation_yoy": 8.5},
+                {"year": 2023, "month": 5, "index": 120.2, "variation_yoy": 8.0},
+                {"year": 2023, "month": 6, "index": 120.2, "variation_yoy": 6.7},
+                {"year": 2023, "month": 7, "index": 120.9, "variation_yoy": 6.3},
+                {"year": 2023, "month": 8, "index": 121.1, "variation_yoy": 5.5},
+                {"year": 2023, "month": 9, "index": 120.9, "variation_yoy": 5.3},
+                {"year": 2023, "month": 10, "index": 120.9, "variation_yoy": 1.8},
+                {"year": 2023, "month": 11, "index": 120.6, "variation_yoy": 0.7},
+                {"year": 2023, "month": 12, "index": 120.7, "variation_yoy": 0.6},
+                {"year": 2024, "month": 1, "index": 120.8, "variation_yoy": 0.2},
+                {"year": 2024, "month": 2, "index": 121.0, "variation_yoy": 0.7},
+                {"year": 2024, "month": 3, "index": 121.2, "variation_yoy": 1.3},
+                {"year": 2024, "month": 4, "index": 121.5, "variation_yoy": 0.9},
+                {"year": 2024, "month": 5, "index": 121.7, "variation_yoy": 0.8},
+                {"year": 2024, "month": 6, "index": 121.7, "variation_yoy": 0.9},
+                {"year": 2024, "month": 7, "index": 122.1, "variation_yoy": 1.0},
+                {"year": 2024, "month": 8, "index": 122.0, "variation_yoy": 1.2},
+                {"year": 2024, "month": 9, "index": 122.1, "variation_yoy": 0.8},
+                {"year": 2024, "month": 10, "index": 122.4, "variation_yoy": 0.9},
+                {"year": 2024, "month": 11, "index": 122.5, "variation_yoy": 1.5},
+                {"year": 2024, "month": 12, "index": 122.8, "variation_yoy": 1.7},
+                {"year": 2025, "month": 1, "index": 123.2, "variation_yoy": 2.0},
+                {"year": 2025, "month": 2, "index": 123.4, "variation_yoy": 2.0},
+                {"year": 2025, "month": 3, "index": 123.3, "variation_yoy": 1.7},
+            ],
+            "defaults": {
+                "base_year": 2015,
+                "note": (
+                    "Indice base 2015=100, al netto dei tabacchi. "
+                    "Aggiornare mensilmente con i dati ISTAT da "
+                    "https://www.istat.it/it/prezzi/prezzi-al-consumo/"
+                ),
+                "aggiornamento": "mensile",
+            },
+            "published_at": "2025-04-15",
+            "effective_from": "2023-01-01",
+        },
+        # ── ISTAT NIC ─────────────────────────────────────────────────────────
+        "istat_nic": {
+            "id": "istat_nic",
+            "title": "ISTAT - Indice NIC (prezzi al consumo per l'intera collettivita nazionale)",
+            "category": "indici_rivalutazione",
+            "description": (
+                "Indice ISTAT NIC dei prezzi al consumo per l'intera collettivita nazionale, "
+                "comprensivo dei tabacchi. Utilizzato per rivalutazione monetaria generale, "
+                "assegni divorzili (L. 898/1970), liquidazioni, pensioni e adeguamenti contrattuali. "
+                "Comunicato mensile ISTAT — aggiornato ogni mese."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["istat_indici_prezzi"],
+            "watch_source_ids": ["istat"],
+            "rows": [
+                {"year": 2023, "month": 1, "index": 118.9, "variation_yoy": 11.6},
+                {"year": 2023, "month": 2, "index": 119.5, "variation_yoy": 9.8},
+                {"year": 2023, "month": 3, "index": 119.9, "variation_yoy": 8.3},
+                {"year": 2023, "month": 4, "index": 120.3, "variation_yoy": 8.7},
+                {"year": 2023, "month": 5, "index": 120.6, "variation_yoy": 7.6},
+                {"year": 2023, "month": 6, "index": 120.6, "variation_yoy": 6.4},
+                {"year": 2023, "month": 7, "index": 121.3, "variation_yoy": 6.0},
+                {"year": 2023, "month": 8, "index": 121.5, "variation_yoy": 5.4},
+                {"year": 2023, "month": 9, "index": 121.4, "variation_yoy": 5.3},
+                {"year": 2023, "month": 10, "index": 121.4, "variation_yoy": 1.8},
+                {"year": 2023, "month": 11, "index": 121.2, "variation_yoy": 0.7},
+                {"year": 2023, "month": 12, "index": 121.3, "variation_yoy": 0.6},
+                {"year": 2024, "month": 1, "index": 121.4, "variation_yoy": 0.8},
+                {"year": 2024, "month": 2, "index": 121.6, "variation_yoy": 0.8},
+                {"year": 2024, "month": 3, "index": 121.8, "variation_yoy": 1.2},
+                {"year": 2024, "month": 4, "index": 122.1, "variation_yoy": 0.9},
+                {"year": 2024, "month": 5, "index": 122.3, "variation_yoy": 0.8},
+                {"year": 2024, "month": 6, "index": 122.3, "variation_yoy": 0.9},
+                {"year": 2024, "month": 7, "index": 122.7, "variation_yoy": 1.1},
+                {"year": 2024, "month": 8, "index": 122.7, "variation_yoy": 1.1},
+                {"year": 2024, "month": 9, "index": 122.8, "variation_yoy": 0.7},
+                {"year": 2024, "month": 10, "index": 123.1, "variation_yoy": 0.9},
+                {"year": 2024, "month": 11, "index": 123.3, "variation_yoy": 1.5},
+                {"year": 2024, "month": 12, "index": 123.6, "variation_yoy": 1.4},
+                {"year": 2025, "month": 1, "index": 124.1, "variation_yoy": 2.2},
+                {"year": 2025, "month": 2, "index": 124.3, "variation_yoy": 2.2},
+                {"year": 2025, "month": 3, "index": 124.2, "variation_yoy": 1.9},
+            ],
+            "defaults": {
+                "base_year": 2015,
+                "note": (
+                    "Indice base 2015=100. Aggiornare mensilmente con i dati ISTAT da "
+                    "https://www.istat.it/it/prezzi/prezzi-al-consumo/"
+                ),
+                "aggiornamento": "mensile",
+            },
+            "published_at": "2025-04-15",
+            "effective_from": "2023-01-01",
+        },
+        # ── Contributi Cassa Forense ───────────────────────────────────────────
+        "contributi_cassa_forense": {
+            "id": "contributi_cassa_forense",
+            "title": "Contributi Cassa Forense",
+            "category": "previdenza",
+            "description": (
+                "Aliquote e minimali contributivi Cassa Forense per anno. "
+                "Comprende: contributo soggettivo (% sul reddito netto), contributo integrativo "
+                "(% sui compensi, addebitabile al cliente ex L. 576/1980), contributo di maternita "
+                "e assistenza. Fonte ufficiale: comunicati annuali Cassa Forense."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["cassa_forense_portale", "cassa_forense_contributi_2026", "cassa_forense_art11"],
+            "watch_source_ids": ["cassa_forense", "gazzetta_ufficiale"],
+            "rows": [
+                {
+                    "year": 2025,
+                    "tipo": "soggettivo",
+                    "aliquota": 15.0,
+                    "minimo_eur": 2625.0,
+                    "base": "reddito_netto_professionale",
+                    "label": "Contributo soggettivo 2025",
+                    "note": "Aliquota 15% sul reddito netto professionale. Minimo EUR 2.625.",
+                },
+                {
+                    "year": 2025,
+                    "tipo": "integrativo",
+                    "aliquota": 4.0,
+                    "minimo_eur": 700.0,
+                    "base": "compensi_lordi",
+                    "label": "Contributo integrativo 2025",
+                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 700.",
+                },
+                {
+                    "year": 2025,
+                    "tipo": "maternita_assistenza",
+                    "aliquota": 0.0,
+                    "minimo_eur": 183.0,
+                    "base": "importo_fisso",
+                    "label": "Contributo maternita/assistenza 2025",
+                    "note": "Importo fisso EUR 183 annuo.",
+                },
+                {
+                    "year": 2026,
+                    "tipo": "soggettivo",
+                    "aliquota": 14.5,
+                    "minimo_eur": 2725.0,
+                    "base": "reddito_netto_professionale",
+                    "label": "Contributo soggettivo 2026",
+                    "note": "Aliquota 14,5% sul reddito netto professionale. Minimo EUR 2.725.",
+                },
+                {
+                    "year": 2026,
+                    "tipo": "integrativo",
+                    "aliquota": 4.0,
+                    "minimo_eur": 725.0,
+                    "base": "compensi_lordi",
+                    "label": "Contributo integrativo 2026",
+                    "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 725.",
+                },
+                {
+                    "year": 2026,
+                    "tipo": "maternita_assistenza",
+                    "aliquota": 0.0,
+                    "minimo_eur": 191.0,
+                    "base": "importo_fisso",
+                    "label": "Contributo maternita/assistenza 2026",
+                    "note": "Importo fisso EUR 191 annuo.",
+                },
+            ],
+            "defaults": {
+                "note": (
+                    "Aggiornare annualmente con la circolare Cassa Forense da "
+                    "https://www.cassaforense.it/contributi/"
+                ),
+                "aggiornamento": "annuale",
+            },
+            "published_at": "2025-12-01",
+            "effective_from": "2025-01-01",
+        },
+        # ── Soglie appalti pubblici (ANAC) ────────────────────────────────────
+        "soglie_appalti_anac": {
+            "id": "soglie_appalti_anac",
+            "title": "Soglie di rilevanza europea - appalti pubblici",
+            "category": "appalti_pubblici",
+            "description": (
+                "Soglie di rilevanza europea per contratti pubblici di lavori, servizi e forniture "
+                "ai sensi del D.Lgs. 36/2023 (Codice dei Contratti Pubblici). "
+                "Aggiornate ogni due anni dalla Commissione europea con regolamento delegato UE. "
+                "Rilevanti per studi che assistono imprese in gare pubbliche, concessioni e appalti."
+            ),
+            "strategy": "seed_mirror",
+            "source_codes": ["anac_portale", "anac_soglie_2024", "dlgs_36_2023_contratti"],
+            "watch_source_ids": ["anac", "eur_lex", "gazzetta_ufficiale"],
+            "rows": [
+                # Soglie vigenti dal 1 gennaio 2024 (Reg. UE 2023/2469)
+                {"category": "lavori", "threshold_eur": 5538000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Lavori - soglia rilevanza europea",
+                 "note": "Art. 14 co. 1 lett. a D.Lgs. 36/2023"},
+                {"category": "forniture_servizi_pa_centrale", "threshold_eur": 143000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Forniture e servizi - PA centrale",
+                 "note": "Art. 14 co. 1 lett. b D.Lgs. 36/2023"},
+                {"category": "forniture_servizi_altre_sa", "threshold_eur": 221000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Forniture e servizi - altre stazioni appaltanti",
+                 "note": "Art. 14 co. 1 lett. c D.Lgs. 36/2023"},
+                {"category": "forniture_servizi_enti_aggiudicatori", "threshold_eur": 443000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Forniture e servizi - enti aggiudicatori",
+                 "note": "Art. 114 co. 1 D.Lgs. 36/2023"},
+                {"category": "servizi_sociali", "threshold_eur": 750000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Servizi sociali e specifici",
+                 "note": "Art. 14 co. 6 D.Lgs. 36/2023"},
+                {"category": "concessioni", "threshold_eur": 5538000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Concessioni di lavori e servizi",
+                 "note": "Art. 177 co. 1 D.Lgs. 36/2023"},
+                # Sotto-soglia ANAC (affidamenti diretti / procedure negoziate)
+                {"category": "affidamento_diretto_lavori", "threshold_eur": 150000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Affidamento diretto - lavori",
+                 "note": "Art. 50 co. 1 lett. a D.Lgs. 36/2023"},
+                {"category": "affidamento_diretto_forniture_servizi", "threshold_eur": 140000.0,
+                 "start": "2024-01-01", "end": None,
+                 "label": "Affidamento diretto - forniture e servizi",
+                 "note": "Art. 50 co. 1 lett. b D.Lgs. 36/2023"},
+            ],
+            "defaults": {
+                "note": (
+                    "Soglie vigenti dal 1 gennaio 2024 (Reg. UE 2023/2469). "
+                    "Aggiornare ogni 2 anni con il regolamento delegato UE e il comunicato ANAC da "
+                    "https://www.anticorruzione.it/"
+                ),
+                "aggiornamento": "biennale",
+            },
+            "published_at": "2024-01-15",
+            "effective_from": "2024-01-01",
         },
     }
     reference_definition = canonical_reference_catalog_definition()

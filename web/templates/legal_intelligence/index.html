@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Motori Legali{% endblock %}
 
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+    new bootstrap.Tooltip(el, { trigger: 'hover focus' });
+  });
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="ds-ph mb-4">
   <div class="ds-ph-icon"><i class="bi bi-diagram-3"></i></div>
@@ -284,15 +294,33 @@
       <div class="fw-semibold"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
       <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle | {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
     </div>
+    {% set n_verifica = snapshot.normative_tables.tabelle | selectattr('sync_status', 'equalto', 'verifica_richiesta') | list | length %}
+    {% if n_verifica > 0 %}
+    <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3" style="border-radius:10px;font-size:.93em;">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+      <div>
+        <strong>{{ n_verifica }} tabella{% if n_verifica > 1 %}e{% endif %} in stato "verifica richiesta"</strong> —
+        il sistema ha rilevato una modifica nella fonte ufficiale corrispondente rispetto all'ultima acquisizione.
+        I dati in uso sono quelli dell'ultimo seed valido (nessuna interruzione operativa).
+        <strong>Cosa fare:</strong> verifica il contenuto aggiornato sulla fonte ufficiale indicata, poi clicca
+        <em>"Esegui sync"</em> per aggiornare e azzerare l'alert.
+        Il sync automatico giornaliero (ore 04:30) rieseguirà il controllo ogni notte.
+      </div>
+    </div>
+    {% endif %}
     <div class="table-responsive">
       <table class="table align-middle">
         <thead>
           <tr>
             <th>Tabella</th>
             <th>Categoria</th>
-            <th>Stato</th>
+            <th>
+              Stato
+              <i class="bi bi-question-circle text-muted ms-1" data-bs-toggle="tooltip"
+                 title="sincronizzata = OK aggiornata · verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sync per confermare · errore = fonte non raggiungibile"></i>
+            </th>
             <th>Ultimo sync</th>
-            <th>Warning</th>
+            <th>Note / Warning</th>
           </tr>
         </thead>
         <tbody>
@@ -302,11 +330,25 @@
               <div class="fw-semibold">{{ row.title }}</div>
               <div class="small text-muted">{{ row.id }}</div>
             </td>
-            <td class="small">{{ row.category }}</td>
+            <td class="small">{{ row.category|replace('_', ' ') }}</td>
             <td>
-              <span class="badge {% if row.sync_status == 'sincronizzata' %}text-bg-success{% elif row.sync_status == 'verifica_richiesta' %}text-bg-warning{% else %}text-bg-danger{% endif %}">
-                {{ row.sync_status|replace('_', ' ') }}
+              {% if row.sync_status == 'sincronizzata' %}
+              <span class="badge text-bg-success">
+                <i class="bi bi-check-circle me-1"></i>sincronizzata
               </span>
+              {% elif row.sync_status == 'verifica_richiesta' %}
+              <span class="badge text-bg-warning"
+                    data-bs-toggle="tooltip"
+                    title="La fonte ufficiale è cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sync normativo' per verificare e aggiornare.">
+                <i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta
+              </span>
+              {% else %}
+              <span class="badge text-bg-danger"
+                    data-bs-toggle="tooltip"
+                    title="{{ row.sync_status|replace('_', ' ') }}: {{ row.last_warning or 'fonte non raggiungibile' }}">
+                <i class="bi bi-x-circle me-1"></i>{{ row.sync_status|replace('_', ' ') }}
+              </span>
+              {% endif %}
             </td>
             <td class="small">
               {% if row.last_synced_at %}

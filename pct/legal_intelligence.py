@@ -564,6 +564,120 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         capability="Tracciato XML ufficiale FPR12/FPA12 e controlli extra-schema.",
         notes="Base tecnica ufficiale per XML FatturaPA, caricamento su SdI e provider cloud.",
     ),
+    # ── Banca d'Italia ────────────────────────────────────────────────────────
+    "bancaditalia": FonteUfficiale(
+        id="bancaditalia",
+        nome="Banca d'Italia",
+        motore="tassi_finanziari",
+        area="Tassi / Finanza",
+        official_url="https://www.bancaditalia.it/",
+        monitor_url="https://www.bancaditalia.it/compiti/stabilita-finanziaria/usura/",
+        connector_kind="portal",
+        cadence="trimestrale",
+        formats=["HTML", "PDF", "XLS"],
+        capability="TEGM e soglie antiusura trimestrali, tasso BCE e tassi di riferimento.",
+        notes=(
+            "Fonte primaria per: tassi usura (L. 108/1996), tasso BCE per mora 231/2002, "
+            "tassi di riferimento bancari. Decreto MEF pubblicato ogni trimestre in G.U."
+        ),
+    ),
+    # ── ISTAT ─────────────────────────────────────────────────────────────────
+    "istat": FonteUfficiale(
+        id="istat",
+        nome="ISTAT - Indici dei prezzi al consumo",
+        motore="tassi_finanziari",
+        area="Indici / Rivalutazione",
+        official_url="https://www.istat.it/",
+        monitor_url="https://www.istat.it/it/prezzi/prezzi-al-consumo/",
+        connector_kind="portal",
+        cadence="mensile",
+        formats=["HTML", "XLS", "CSV"],
+        capability="Indici FOI (locazioni abitative), NIC (rivalutazioni generali) e inflazione.",
+        notes=(
+            "FOI: adeguamento canoni locazione ex L. 431/1998. "
+            "NIC: rivalutazione assegni divorzili, liquidazioni, pensioni. "
+            "Comunicato mensile ISTAT intorno al 15 del mese successivo."
+        ),
+    ),
+    # ── Cassa Forense ─────────────────────────────────────────────────────────
+    "cassa_forense": FonteUfficiale(
+        id="cassa_forense",
+        nome="Cassa Forense",
+        motore="previdenza_forense",
+        area="Previdenza forense",
+        official_url="https://www.cassaforense.it/",
+        monitor_url="https://www.cassaforense.it/contributi/",
+        connector_kind="portal",
+        cadence="annuale",
+        formats=["HTML", "PDF"],
+        capability="Aliquote e minimali contributi previdenziali avvocati, comunicati annuali.",
+        notes=(
+            "Contributo soggettivo (% reddito netto), integrativo (% compensi, addebitabile al cliente), "
+            "maternita/assistenza (importo fisso). Fonte obbligatoria per preventivi e parcelle."
+        ),
+    ),
+    # ── Corte dei Conti ───────────────────────────────────────────────────────
+    "corte_conti": FonteUfficiale(
+        id="corte_conti",
+        nome="Corte dei Conti",
+        motore="giurisprudenza_orientamenti",
+        area="Giurisprudenza contabile",
+        official_url="https://www.corteconti.it/",
+        monitor_url="https://www.corteconti.it/",
+        connector_kind="portal",
+        cadence="giornaliera",
+        formats=["HTML", "PDF"],
+        capability="Giurisprudenza contabile, responsabilita erariale, sezioni regionali.",
+        notes="Rilevante per fascicoli con enti pubblici, appalti e responsabilita amministrativa.",
+    ),
+    # ── Ministero del Lavoro ──────────────────────────────────────────────────
+    "ministero_lavoro": FonteUfficiale(
+        id="ministero_lavoro",
+        nome="Ministero del Lavoro e delle Politiche Sociali",
+        motore="fonti_ufficiali",
+        area="Lavoro / Previdenza",
+        official_url="https://www.lavoro.gov.it/",
+        monitor_url="https://www.lavoro.gov.it/",
+        connector_kind="portal",
+        cadence="giornaliera",
+        formats=["HTML", "PDF"],
+        capability="Circolari lavoro, CCNL, tutela minori, collocamento disabili.",
+        notes="Utile per fascicoli di lavoro, separazioni con figli, infortuni e previdenza.",
+    ),
+    # ── ANAC ──────────────────────────────────────────────────────────────────
+    "anac": FonteUfficiale(
+        id="anac",
+        nome="ANAC - Autorita Nazionale Anticorruzione",
+        motore="fonti_ufficiali",
+        area="Appalti pubblici",
+        official_url="https://www.anticorruzione.it/",
+        monitor_url="https://www.anticorruzione.it/",
+        connector_kind="portal",
+        cadence="giornaliera",
+        formats=["HTML", "PDF"],
+        capability="Soglie rilevanza europea, bandi tipo, commissioni e codice contratti.",
+        notes=(
+            "Fonte primaria per D.Lgs. 36/2023 (Codice Contratti Pubblici), soglie aggiornate "
+            "ogni 2 anni dalla Commissione europea. Rilevante per studi che assistono in appalti."
+        ),
+    ),
+    # ── Corte EDU / CEDU ─────────────────────────────────────────────────────
+    "cedu": FonteUfficiale(
+        id="cedu",
+        nome="Corte europea dei diritti dell'uomo (CEDU)",
+        motore="giurisprudenza_orientamenti",
+        area="Giurisprudenza europea",
+        official_url="https://www.echr.coe.int/",
+        monitor_url="https://hudoc.echr.coe.int/",
+        connector_kind="portal-rss",
+        cadence="giornaliera",
+        formats=["HTML", "PDF"],
+        capability="Sentenze CEDU rilevanti per il diritto italiano su equo processo, liberta, privacy.",
+        notes=(
+            "Ricerca in HUDOC (hudoc.echr.coe.int). Filtrare per 'Italy' come Respondent State. "
+            "Rilevante per ricorsi ex art. 6 CEDU, art. 8 (privacy), art. 1 Prot. 1 (proprieta)."
+        ),
+    ),
 }
 
 
@@ -575,7 +689,12 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Raccoglie, verifica e indicizza solo fonti istituzionali con URL, hash e data di acquisizione.",
         output="Catalogo fonti, hash, data pubblicazione, data acquisizione.",
         value="Evita fonti non ufficiali e rende verificabile ogni contenuto monitorato.",
-        source_ids=["normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "cnf", "registro_mediazione", "cassazione", "corte_costituzionale", "giustizia_amministrativa", "eur_lex", "agenzia_entrate", "fatturapa"],
+        source_ids=[
+            "normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web",
+            "cnf", "registro_mediazione", "cassazione", "corte_costituzionale",
+            "giustizia_amministrativa", "eur_lex", "agenzia_entrate", "fatturapa",
+            "ministero_lavoro", "anac",
+        ],
     ),
     "vigenza_versionamento": MotoreLegale(
         id="vigenza_versionamento",
@@ -618,7 +737,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         descrizione="Tiene la giurisprudenza distinta dalla normativa e la collega agli articoli coinvolti.",
         output="Orientamenti, massime, principi di diritto e collegamenti normativi.",
         value="Supporta strategia, confronto orientamenti e aggiornamento ragionato.",
-        source_ids=["cassazione", "corte_costituzionale", "giustizia_amministrativa"],
+        source_ids=["cassazione", "corte_costituzionale", "giustizia_amministrativa", "corte_conti", "cedu"],
     ),
     "monitoraggio_alert": MotoreLegale(
         id="monitoraggio_alert",
@@ -628,20 +747,12 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         output="Alert su contenuto modificato, nuovi documenti e nuove note tecniche.",
         value="Trasforma il gestionale in un assistente proattivo invece che in un archivio passivo.",
         source_ids=[
-            "normattiva",
-            "gazzetta_ufficiale",
-            "pst_giustizia",
-            "pst_servizi_web",
-            "pst_xsd_sici",
-            "pst_xsd_sigp",
-            "pst_xsd_unep",
-            "pst_xsd_cassazione",
-            "cnf",
-            "registro_mediazione",
-            "cassazione",
-            "corte_costituzionale",
-            "giustizia_amministrativa",
-            "eur_lex",
+            "normattiva", "gazzetta_ufficiale",
+            "pst_giustizia", "pst_servizi_web",
+            "pst_xsd_sici", "pst_xsd_sigp", "pst_xsd_unep", "pst_xsd_cassazione",
+            "cnf", "registro_mediazione",
+            "cassazione", "corte_costituzionale", "giustizia_amministrativa",
+            "eur_lex", "bancaditalia", "istat", "cassa_forense", "anac",
         ],
     ),
     "audit_affidabilita": MotoreLegale(
@@ -652,21 +763,44 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         output="Tracce di audit consultabili e storicizzate.",
         value="Aumenta fiducia interna, debugging e responsabilita operativa.",
         source_ids=[
-            "normattiva",
-            "gazzetta_ufficiale",
-            "pst_giustizia",
-            "pst_servizi_web",
-            "pst_xsd_sici",
-            "pst_xsd_sigp",
-            "pst_xsd_unep",
-            "pst_xsd_cassazione",
-            "cnf",
-            "registro_mediazione",
-            "cassazione",
-            "corte_costituzionale",
-            "giustizia_amministrativa",
-            "eur_lex",
+            "normattiva", "gazzetta_ufficiale",
+            "pst_giustizia", "pst_servizi_web",
+            "pst_xsd_sici", "pst_xsd_sigp", "pst_xsd_unep", "pst_xsd_cassazione",
+            "cnf", "registro_mediazione",
+            "cassazione", "corte_costituzionale", "giustizia_amministrativa",
+            "eur_lex", "bancaditalia", "istat", "cassa_forense",
         ],
+    ),
+    # ── Nuovi motori ──────────────────────────────────────────────────────────
+    "tassi_finanziari": MotoreLegale(
+        id="tassi_finanziari",
+        nome="Motore Tassi Finanziari e Rivalutazioni",
+        short_name="Tassi / ISTAT",
+        descrizione=(
+            "Centralizza tassi usura (L. 108/1996), tasso BCE, mora commerciale (D.Lgs. 231/2002), "
+            "interessi legali e indici ISTAT FOI/NIC per rivalutazioni e adeguamento canoni."
+        ),
+        output="Tabelle tassi aggiornate per calcolo interessi, usura, rivalutazione e adeguamento locazioni.",
+        value=(
+            "Evita errori di calcolo su interessi moratori, soglie usura e rivalutazioni monetarie "
+            "con dati sempre verificabili su fonti ufficiali Banca d'Italia e ISTAT."
+        ),
+        source_ids=["bancaditalia", "istat", "gazzetta_ufficiale"],
+    ),
+    "previdenza_forense": MotoreLegale(
+        id="previdenza_forense",
+        nome="Motore Previdenza Forense",
+        short_name="Cassa Forense",
+        descrizione=(
+            "Gestisce aliquote e minimali contributivi Cassa Forense (soggettivo, integrativo, "
+            "maternita) con aggiornamento annuale. Integra con parcelle e preventivi."
+        ),
+        output="Aliquote annuali Cassa Forense, minimali, contributo integrativo addebitabile al cliente.",
+        value=(
+            "Rende trasparente e corretto il calcolo del contributo integrativo in preventivi e parcelle, "
+            "evitando errori su aliquote cambiate e minimali annuali."
+        ),
+        source_ids=["cassa_forense", "gazzetta_ufficiale", "cnf"],
     ),
 }
 
@@ -709,6 +843,41 @@ KEYWORD_TO_ENGINE: Dict[str, List[str]] = {
     "orientament": ["giurisprudenza_orientamenti"],
     "eur-lex": ["fonti_ufficiali", "vigenza_versionamento"],
     "ue": ["fonti_ufficiali", "vigenza_versionamento"],
+    # tassi finanziari
+    "usura": ["tassi_finanziari", "monitoraggio_alert"],
+    "tasso usura": ["tassi_finanziari", "monitoraggio_alert"],
+    "tegm": ["tassi_finanziari"],
+    "tasso bce": ["tassi_finanziari"],
+    "mora commerciale": ["tassi_finanziari"],
+    "interessi moratori": ["tassi_finanziari"],
+    "interesse legale": ["tassi_finanziari"],
+    "istat": ["tassi_finanziari"],
+    "rivalutazione": ["tassi_finanziari"],
+    "foi": ["tassi_finanziari"],
+    "nic": ["tassi_finanziari"],
+    "canone locazione": ["tassi_finanziari"],
+    "adeguamento istat": ["tassi_finanziari"],
+    "banca d'italia": ["tassi_finanziari"],
+    "bancaditalia": ["tassi_finanziari"],
+    # previdenza forense
+    "cassa forense": ["previdenza_forense"],
+    "contributo integrativo": ["previdenza_forense"],
+    "contributo soggettivo": ["previdenza_forense"],
+    "contributi avvocato": ["previdenza_forense"],
+    "previdenza forense": ["previdenza_forense"],
+    # appalti pubblici
+    "appalto": ["fonti_ufficiali"],
+    "appalti": ["fonti_ufficiali"],
+    "gara pubblica": ["fonti_ufficiali"],
+    "anac": ["fonti_ufficiali"],
+    "soglia rilevanza": ["fonti_ufficiali"],
+    "codice contratti": ["fonti_ufficiali"],
+    # corte dei conti e CEDU
+    "corte dei conti": ["giurisprudenza_orientamenti"],
+    "responsabilita erariale": ["giurisprudenza_orientamenti"],
+    "cedu": ["giurisprudenza_orientamenti"],
+    "corte europea": ["giurisprudenza_orientamenti"],
+    "equo processo": ["giurisprudenza_orientamenti"],
 }
 
 
@@ -745,6 +914,29 @@ KEYWORD_TO_SOURCE: Dict[str, List[str]] = {
     "consiglio di stato": ["giustizia_amministrativa"],
     "eur-lex": ["eur_lex"],
     "ue": ["eur_lex"],
+    # tassi
+    "usura": ["bancaditalia"],
+    "tasso usura": ["bancaditalia"],
+    "tegm": ["bancaditalia"],
+    "tasso bce": ["bancaditalia"],
+    "banca d'italia": ["bancaditalia"],
+    "istat": ["istat"],
+    "foi": ["istat"],
+    "nic": ["istat"],
+    "rivalutazione": ["istat"],
+    # previdenza forense
+    "cassa forense": ["cassa_forense"],
+    "contributo integrativo": ["cassa_forense"],
+    "contributo soggettivo": ["cassa_forense"],
+    # giurisprudenza
+    "corte dei conti": ["corte_conti"],
+    "responsabilita erariale": ["corte_conti"],
+    "cedu": ["cedu"],
+    "corte europea dei diritti": ["cedu"],
+    # appalti
+    "anac": ["anac"],
+    "appalti": ["anac"],
+    "soglia rilevanza": ["anac"],
 }
 
 

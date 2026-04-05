@@ -194,6 +194,13 @@ def start_scheduler(app):
                 "corte_costituzionale",
                 "giustizia_amministrativa",
                 "eur_lex",
+                "bancaditalia",
+                "istat",
+                "cassa_forense",
+                "corte_conti",
+                "ministero_lavoro",
+                "anac",
+                "cedu",
             ],
             "daily",
         )
@@ -201,6 +208,37 @@ def start_scheduler(app):
     @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=15), id="legal_monitor_pst")
     def _legal_monitor_pst():
         _run_legal_monitor(["pst_giustizia"], "pst")
+
+    # ---- Sync tabelle normative giornaliero (ogni giorno alle 04:30) ----
+    # Sincronizza tutte le tabelle (tassi, indici ISTAT, Cassa Forense, soglie appalti, ecc.)
+    @scheduler.scheduled_job(CronTrigger(hour=4, minute=30), id="sync_tabelle_normative_daily")
+    def _sync_tabelle_normative():
+        with app.app_context():
+            try:
+                from pct.legal_intelligence import GestioneLegalIntelligence
+
+                gestore = GestioneLegalIntelligence(
+                    db_path=app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json"),
+                    normative_db_path=app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json"),
+                )
+                report = gestore.sync_normative_tables()
+                updated = report.get("updated", 0)
+                review = report.get("review_required", 0)
+                errors = report.get("errors", 0)
+                logger.info(
+                    "[scheduler] Sync tabelle normative: %d aggiornate, %d da verificare, %d errori",
+                    updated,
+                    review,
+                    errors,
+                )
+                if review:
+                    logger.warning(
+                        "[scheduler] %d tabelle normative richiedono verifica manuale "
+                        "(la fonte e cambiata — accedere a /legal-intelligence per dettagli)",
+                        review,
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Sync tabelle normative fallito: %s", e)
 
     def _calendar_sync_targets():
         if app.config.get("MULTI_TENANT"):

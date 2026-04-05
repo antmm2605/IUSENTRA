@@ -1650,6 +1650,157 @@ class GestioneTabelleNormative:
             "successiva": amounts.get("successiva", 0.0),
         }
 
+    # ── Helper: Cassa Forense ────────────────────────────────────────────────
+
+    def cassa_forense_aliquota_integrativa(self, year: Optional[int] = None) -> float:
+        """Aliquota contributo integrativo Cassa Forense per l'anno indicato (default: anno corrente).
+        Restituisce la percentuale (es. 4.0 per il 4%).
+        Fallback: 4.0% se tabella non disponibile."""
+        try:
+            rows = self.rows("contributi_cassa_forense")
+            target_year = year or date.today().year
+            candidates = [r for r in rows if int(r.get("year", 0)) == target_year and r.get("tipo") == "integrativo"]
+            if not candidates:
+                candidates = [r for r in rows if r.get("tipo") == "integrativo"]
+                if candidates:
+                    candidates.sort(key=lambda r: int(r.get("year", 0)), reverse=True)
+            if candidates:
+                return float(candidates[0].get("aliquota", 4.0))
+        except Exception:
+            pass
+        return 4.0
+
+    def cassa_forense_minimo_integrativo(self, year: Optional[int] = None) -> float:
+        """Minimo del contributo integrativo Cassa Forense per l'anno. Fallback: 700."""
+        try:
+            rows = self.rows("contributi_cassa_forense")
+            target_year = year or date.today().year
+            candidates = [r for r in rows if int(r.get("year", 0)) == target_year and r.get("tipo") == "integrativo"]
+            if not candidates:
+                candidates = [r for r in rows if r.get("tipo") == "integrativo"]
+                if candidates:
+                    candidates.sort(key=lambda r: int(r.get("year", 0)), reverse=True)
+            if candidates:
+                return float(candidates[0].get("minimo_eur", 700.0))
+        except Exception:
+            pass
+        return 700.0
+
+    def contributi_cassa_forense_anno(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Tutti i contributi Cassa Forense per l'anno indicato."""
+        try:
+            rows = self.rows("contributi_cassa_forense")
+            target_year = year or date.today().year
+            candidates = [r for r in rows if int(r.get("year", 0)) == target_year]
+            if candidates:
+                return candidates
+            # Ultimo anno disponibile
+            candidates = sorted(rows, key=lambda r: int(r.get("year", 0)), reverse=True)
+            if candidates:
+                max_year = int(candidates[0].get("year", 0))
+                return [r for r in candidates if int(r.get("year", 0)) == max_year]
+        except Exception:
+            pass
+        return []
+
+    # ── Helper: ISTAT ────────────────────────────────────────────────────────
+
+    def istat_index(self, kind: str, year: int, month: int) -> Optional[float]:
+        """Indice ISTAT (FOI o NIC) per il mese indicato. Restituisce None se non disponibile."""
+        table_id = "istat_foi" if kind == "foi" else "istat_nic"
+        try:
+            for row in self.rows(table_id):
+                if int(row.get("year", 0)) == year and int(row.get("month", 0)) == month:
+                    return float(row["index"])
+        except Exception:
+            pass
+        return None
+
+    def istat_last_available(self, kind: str) -> Optional[Dict[str, Any]]:
+        """Ultimo indice ISTAT disponibile nella tabella."""
+        table_id = "istat_foi" if kind == "foi" else "istat_nic"
+        try:
+            rows = self.rows(table_id)
+            if rows:
+                return max(rows, key=lambda r: (int(r.get("year", 0)), int(r.get("month", 0))))
+        except Exception:
+            pass
+        return None
+
+    def istat_variation_yoy(self, kind: str, year: int, month: int) -> Optional[float]:
+        """Variazione annua % ISTAT per il mese indicato."""
+        table_id = "istat_foi" if kind == "foi" else "istat_nic"
+        try:
+            for row in self.rows(table_id):
+                if int(row.get("year", 0)) == year and int(row.get("month", 0)) == month:
+                    return float(row.get("variation_yoy", 0.0))
+        except Exception:
+            pass
+        return None
+
+    # ── Helper: Tassi usura ───────────────────────────────────────────────────
+
+    def usura_categorie(self) -> List[Dict[str, Any]]:
+        """Elenco categorie di credito con TEGM e soglia usura (dati più recenti per ogni categoria)."""
+        try:
+            rows = self.rows("tasso_usura")
+            if not rows:
+                return []
+            # Prendi il quarter più recente
+            latest_quarter = max(rows, key=lambda r: r.get("quarter", ""), default=None)
+            if not latest_quarter:
+                return []
+            quarter = latest_quarter["quarter"]
+            return [r for r in rows if r.get("quarter") == quarter]
+        except Exception:
+            return []
+
+    def usura_soglia_per_categoria(self, category: str, on_date: Optional[date] = None) -> Optional[Dict[str, Any]]:
+        """Soglia usura per la categoria e data indicata."""
+        try:
+            rows = self.rows("tasso_usura")
+            if not rows:
+                return None
+            target = on_date or date.today()
+            # Filtra per data
+            valid = [
+                r for r in rows
+                if r.get("category") == category
+                and (_parse_date(r.get("start")) or date.min) <= target
+                and (not r.get("end") or (_parse_date(r.get("end")) or date.max) >= target)
+            ]
+            if valid:
+                return valid[0]
+            # Fallback al più recente per categoria
+            candidates = [r for r in rows if r.get("category") == category]
+            if candidates:
+                return max(candidates, key=lambda r: r.get("quarter", ""))
+        except Exception:
+            pass
+        return None
+
+    # ── Helper: Tassi BCE ─────────────────────────────────────────────────────
+
+    def tasso_bce(self, on_date: Optional[date] = None) -> Optional[Dict[str, Any]]:
+        """Tasso BCE operazioni principali di rifinanziamento per la data indicata."""
+        try:
+            rows = self.rows("tasso_bce")
+            if not rows:
+                return None
+            target = on_date or date.today()
+            valid = [
+                r for r in rows
+                if (_parse_date(r.get("start")) or date.min) <= target
+                and (not r.get("end") or (_parse_date(r.get("end")) or date.max) >= target)
+            ]
+            if valid:
+                return valid[0]
+            # Più recente
+            return max(rows, key=lambda r: r.get("start", ""))
+        except Exception:
+            pass
+        return None
+
     def sync_from_canonical(
         self,
         *,

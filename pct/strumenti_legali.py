@@ -89,6 +89,10 @@ class GestioneStrumentiLegali:
             {"id": "nota_credito", "title": "Nota di precisazione del credito", "subtitle": "Bozza professionale con capitale, interessi, spese, CPA, IVA e residuo.", "icon": "bi-file-earmark-ruled"},
             {"id": "pignoramento", "title": "Simulatore pignoramento stipendio / pensione", "subtitle": "Ordinario, esattoriale e alimentare con soglia pensione 2026 gia aggiornata.", "icon": "bi-cash-stack"},
             {"id": "ctu", "title": "CTU, vacazioni e compensi ausiliari", "subtitle": "Vacazioni vigenti, spese documentate e accessori professionali.", "icon": "bi-journal-medical"},
+            {"id": "rivalutazione_istat", "title": "Rivalutazione monetaria ISTAT", "subtitle": "Calcolo FOI / NIC per danni, assegni divorzili, liquidazioni e adeguamenti.", "icon": "bi-graph-up-arrow"},
+            {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock"},
+            {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso applicato con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation"},
+            {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternita: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge"},
         ]
 
     def build_prefill(
@@ -191,6 +195,28 @@ class GestioneStrumentiLegali:
             "ctu_spese": "",
             "ctu_cpa_perc": "4",
             "ctu_iva_perc": "22",
+            # Rivalutazione ISTAT
+            "riv_importo": prefill.get("valore_causa", ""),
+            "riv_tipo": "nic",
+            "riv_anno_base": "",
+            "riv_mese_base": "",
+            "riv_anno_fine": "",
+            "riv_mese_fine": "",
+            # Adeguamento canone locazione
+            "loc_canone": "",
+            "loc_perc_adeguamento": "75",
+            "loc_anno_base": "",
+            "loc_mese_base": "",
+            "loc_anno_fine": "",
+            "loc_mese_fine": "",
+            # Verifica usura
+            "usura_tasso": "",
+            "usura_categoria": "credito_personale",
+            "usura_data": today,
+            # Contributi Cassa Forense
+            "cf_anno": str(_today().year),
+            "cf_reddito": "",
+            "cf_compensi": "",
         }
         if posted:
             for key in defaults:
@@ -631,6 +657,342 @@ class GestioneStrumentiLegali:
             "cpa": cpa,
             "iva": iva,
             "totale": totale,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    # ── Nuovi strumenti intelligenti ─────────────────────────────────────────
+
+    def calcola_rivalutazione_istat(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Rivalutazione monetaria con indici ISTAT FOI o NIC."""
+        importo = _safe_float(payload.get("riv_importo"))
+        tipo = _clean_text(payload.get("riv_tipo") or "nic").lower()
+        if tipo not in ("foi", "nic"):
+            tipo = "nic"
+        anno_base = _safe_int(payload.get("riv_anno_base"))
+        mese_base = _safe_int(payload.get("riv_mese_base"))
+        anno_fine = _safe_int(payload.get("riv_anno_fine"))
+        mese_fine = _safe_int(payload.get("riv_mese_fine"))
+
+        if importo <= 0:
+            raise ValueError("Inserisci un importo positivo.")
+        if not (anno_base and mese_base):
+            raise ValueError("Indica anno e mese di riferimento base.")
+        if not (anno_fine and mese_fine):
+            raise ValueError("Indica anno e mese di rivalutazione finale.")
+        if not (1 <= mese_base <= 12) or not (1 <= mese_fine <= 12):
+            raise ValueError("Il mese deve essere compreso tra 1 e 12.")
+
+        indice_base = self.norme.istat_index(tipo, anno_base, mese_base)
+        indice_fine = self.norme.istat_index(tipo, anno_fine, mese_fine)
+
+        tipo_label = "FOI (famiglie di operai e impiegati)" if tipo == "foi" else "NIC (intera collettivita nazionale)"
+        source_code = "istat_indici_prezzi"
+        sources = self._sources_for_codes(source_code, "istat_portale")
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if indice_base is None:
+            last = self.norme.istat_last_available(tipo)
+            raise ValueError(
+                f"Indice ISTAT {tipo.upper()} non disponibile per {mese_base:02d}/{anno_base}. "
+                f"Dati disponibili fino a {last.get('month', '?'):02d}/{last.get('year', '?') if last else '?'}. "
+                f"Aggiorna la tabella normativa {tipo.upper()} da /legal-intelligence."
+            )
+        if indice_fine is None:
+            last = self.norme.istat_last_available(tipo)
+            raise ValueError(
+                f"Indice ISTAT {tipo.upper()} non disponibile per {mese_fine:02d}/{anno_fine}. "
+                f"Dati disponibili fino a {last.get('month', '?'):02d}/{last.get('year', '?') if last else '?'}. "
+                f"Aggiorna la tabella normativa {tipo.upper()} da /legal-intelligence."
+            )
+
+        variazione_perc = round(((indice_fine / indice_base) - 1) * 100, 4)
+        importo_rivalutato = round(importo * (indice_fine / indice_base), 2)
+        differenza = round(importo_rivalutato - importo, 2)
+
+        mesi = {1:"gennaio",2:"febbraio",3:"marzo",4:"aprile",5:"maggio",6:"giugno",
+                7:"luglio",8:"agosto",9:"settembre",10:"ottobre",11:"novembre",12:"dicembre"}
+        notes.append(
+            f"Formula: {importo:,.2f} × ({indice_fine} / {indice_base}) = {importo_rivalutato:,.2f} EUR."
+        )
+        notes.append(
+            f"Indici ISTAT {tipo.upper()} base 2015=100: "
+            f"{mesi.get(mese_base,mese_base)}/{anno_base} = {indice_base}, "
+            f"{mesi.get(mese_fine,mese_fine)}/{anno_fine} = {indice_fine}."
+        )
+        if tipo == "nic":
+            notes.append("Indice NIC: rivalutazione monetaria generale, assegni divorzili (art. 9 L. 898/1970), liquidazioni.")
+        else:
+            notes.append("Indice FOI (al netto dei tabacchi): adeguamento canoni locazione (L. 431/1998 art. 24, L. 392/1978).")
+
+        if variazione_perc < 0:
+            warnings.append("La variazione e negativa (deflazione nel periodo): l'importo rivalutato e inferiore a quello originale.")
+
+        return {
+            "importo_originale": round(importo, 2),
+            "importo_rivalutato": importo_rivalutato,
+            "differenza": differenza,
+            "variazione_perc": variazione_perc,
+            "indice_base": indice_base,
+            "indice_fine": indice_fine,
+            "tipo": tipo,
+            "tipo_label": tipo_label,
+            "anno_base": anno_base,
+            "mese_base": mese_base,
+            "anno_fine": anno_fine,
+            "mese_fine": mese_fine,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    def calcola_adeguamento_canone(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Adeguamento annuale del canone di locazione con indice ISTAT FOI (L. 431/1998)."""
+        canone = _safe_float(payload.get("loc_canone"))
+        perc_adeguamento = _safe_float(payload.get("loc_perc_adeguamento"), 75.0)
+        anno_base = _safe_int(payload.get("loc_anno_base"))
+        mese_base = _safe_int(payload.get("loc_mese_base"))
+        anno_fine = _safe_int(payload.get("loc_anno_fine"))
+        mese_fine = _safe_int(payload.get("loc_mese_fine"))
+
+        if canone <= 0:
+            raise ValueError("Inserisci un canone mensile positivo.")
+        if not (anno_base and mese_base):
+            raise ValueError("Indica anno e mese di stipula o ultimo aggiornamento.")
+        if not (anno_fine and mese_fine):
+            raise ValueError("Indica anno e mese di calcolo aggiornamento.")
+        if not (1 <= mese_base <= 12) or not (1 <= mese_fine <= 12):
+            raise ValueError("Il mese deve essere compreso tra 1 e 12.")
+        if not (0 < perc_adeguamento <= 100):
+            perc_adeguamento = 75.0
+
+        indice_base = self.norme.istat_index("foi", anno_base, mese_base)
+        indice_fine = self.norme.istat_index("foi", anno_fine, mese_fine)
+        sources = self._sources_for_codes("istat_indici_prezzi", "legge_431_1998_locazioni")
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if indice_base is None or indice_fine is None:
+            last = self.norme.istat_last_available("foi")
+            last_label = f"{last.get('month', '?'):02d}/{last.get('year', '?')}" if last else "n/d"
+            raise ValueError(
+                f"Indici ISTAT FOI non disponibili per il periodo indicato (dati fino a {last_label}). "
+                "Aggiorna la tabella da /legal-intelligence."
+            )
+
+        variazione_foi = round(((indice_fine / indice_base) - 1) * 100, 4)
+        variazione_applicata = round(variazione_foi * perc_adeguamento / 100.0, 4)
+        incremento = round(canone * variazione_applicata / 100.0, 2)
+        canone_aggiornato = round(canone + incremento, 2)
+        canone_annuo = round(canone * 12, 2)
+        canone_annuo_aggiornato = round(canone_aggiornato * 12, 2)
+
+        mesi = {1:"gen",2:"feb",3:"mar",4:"apr",5:"mag",6:"giu",
+                7:"lug",8:"ago",9:"set",10:"ott",11:"nov",12:"dic"}
+        notes.append(
+            f"Variazione FOI {mesi.get(mese_base)}/{anno_base}→{mesi.get(mese_fine)}/{anno_fine}: "
+            f"{variazione_foi:+.2f}% × {perc_adeguamento:.0f}% = {variazione_applicata:+.2f}% applicato."
+        )
+        notes.append(
+            f"Formula: {canone:.2f} + ({canone:.2f} × {variazione_applicata:.4f}/100) = {canone_aggiornato:.2f} EUR/mese."
+        )
+        if perc_adeguamento == 75.0:
+            notes.append("Contratti liberi 4+4 (L. 431/1998 art. 1): aggiornamento al 75% della variazione FOI. Verificare il testo contrattuale.")
+        elif perc_adeguamento == 100.0:
+            notes.append("Applicato il 100% della variazione FOI (contratti ad uso transitorio o patto specifico).")
+
+        if variazione_foi < 0:
+            warnings.append("La variazione FOI e negativa: il canone non puo essere ridotto in applicazione dell'adeguamento (salvo patto contrario).")
+
+        return {
+            "canone_originale": round(canone, 2),
+            "canone_aggiornato": canone_aggiornato,
+            "incremento_mensile": incremento,
+            "canone_annuo": canone_annuo,
+            "canone_annuo_aggiornato": canone_annuo_aggiornato,
+            "variazione_foi": variazione_foi,
+            "variazione_applicata": variazione_applicata,
+            "perc_adeguamento": perc_adeguamento,
+            "indice_base": indice_base,
+            "indice_fine": indice_fine,
+            "anno_base": anno_base,
+            "mese_base": mese_base,
+            "anno_fine": anno_fine,
+            "mese_fine": mese_fine,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    def verifica_soglia_usura(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Verifica se un tasso applicato supera la soglia antiusura (L. 108/1996)."""
+        tasso_applicato = _safe_float(payload.get("usura_tasso"))
+        categoria = _clean_text(payload.get("usura_categoria") or "credito_personale")
+        data_operazione = _parse_date(payload.get("usura_data")) or _today()
+
+        if tasso_applicato < 0:
+            raise ValueError("Inserisci un tasso percentuale non negativo.")
+
+        soglia_data = self.norme.usura_soglia_per_categoria(categoria, data_operazione)
+        categorie_disponibili = self.norme.usura_categorie()
+        sources = self._sources_for_codes("legge_108_1996_usura", "bancaditalia_tassi_usura", "mef_decreto_usura")
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if not soglia_data:
+            categorie_labels = [f"{c['category']} — {c['label']}" for c in categorie_disponibili]
+            raise ValueError(
+                f"Categoria '{categoria}' non trovata nella tabella usura. "
+                f"Categorie disponibili: {', '.join(categorie_labels[:5])}."
+            )
+
+        tegm = float(soglia_data.get("tegm", 0.0))
+        soglia = float(soglia_data.get("soglia", 0.0))
+        categoria_label = soglia_data.get("label", categoria)
+        quarter = soglia_data.get("quarter", "")
+
+        supera_soglia = tasso_applicato > soglia
+        margine = round(soglia - tasso_applicato, 4)
+        esito = "USURARIO" if supera_soglia else "REGOLARE"
+        esito_classe = "danger" if supera_soglia else "success"
+
+        notes.append(
+            f"TEGM {quarter}: {tegm:.2f}%. Soglia = {tegm:.2f}% × 1,25 + 4 = {soglia:.2f}%."
+        )
+        notes.append(
+            f"Tasso applicato {tasso_applicato:.2f}% {'SUPERA' if supera_soglia else 'rispetta'} la soglia antiusura di {soglia:.2f}%."
+        )
+
+        if supera_soglia:
+            eccesso = round(tasso_applicato - soglia, 4)
+            warnings.append(
+                f"Il tasso applicato ({tasso_applicato:.2f}%) supera la soglia usura ({soglia:.2f}%) "
+                f"di {eccesso:.2f} punti. Rischio nullita della clausola ex art. 1815 c.c. e L. 108/1996."
+            )
+        else:
+            notes.append(
+                f"Margine rispetto alla soglia: {abs(margine):.2f} punti percentuali sotto il limite."
+            )
+
+        notes.append(
+            "L. 108/1996 come mod. D.L. 70/2011: soglia = TEGM × 1,25 + 4 pp. "
+            "Verificare sempre il TEGM vigente al momento della stipula del contratto."
+        )
+
+        # Tutte le categorie per confronto
+        categorie_rows = [
+            {
+                "category": c["category"],
+                "label": c["label"],
+                "tegm": float(c.get("tegm", 0)),
+                "soglia": float(c.get("soglia", 0)),
+                "is_selected": c["category"] == categoria,
+            }
+            for c in categorie_disponibili
+        ]
+
+        return {
+            "tasso_applicato": tasso_applicato,
+            "categoria": categoria,
+            "categoria_label": categoria_label,
+            "tegm": tegm,
+            "soglia": soglia,
+            "quarter": quarter,
+            "supera_soglia": supera_soglia,
+            "margine": margine,
+            "esito": esito,
+            "esito_classe": esito_classe,
+            "categorie": categorie_rows,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    def calcola_contributi_cassa_forense(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Calcola contributi Cassa Forense per l'anno e i dati reddituali indicati."""
+        anno = _safe_int(payload.get("cf_anno")) or _today().year
+        reddito = _safe_float(payload.get("cf_reddito"))
+        compensi = _safe_float(payload.get("cf_compensi"))
+
+        contributi = self.norme.contributi_cassa_forense_anno(anno)
+        sources = self._sources_for_codes("cassa_forense_portale", "cassa_forense_contributi_2026", "cassa_forense_art11")
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if not contributi:
+            raise ValueError(
+                f"Dati Cassa Forense non disponibili per il {anno}. "
+                "Aggiorna la tabella da /legal-intelligence."
+            )
+
+        rows_anno = contributi
+        result_rows: List[Dict[str, Any]] = []
+        totale = 0.0
+
+        for r in rows_anno:
+            tipo = r.get("tipo", "")
+            aliquota = float(r.get("aliquota", 0.0))
+            minimo = float(r.get("minimo_eur", 0.0))
+            label = r.get("label", tipo)
+            note_row = r.get("note", "")
+            base = r.get("base", "")
+            calcolato = 0.0
+            base_usata = 0.0
+
+            if tipo == "soggettivo" and reddito > 0:
+                base_usata = reddito
+                calcolato = round(reddito * aliquota / 100.0, 2)
+                if calcolato < minimo:
+                    notes.append(f"{label}: calcolato {calcolato:.2f} EUR < minimo {minimo:.2f} EUR → applicato il minimo.")
+                    calcolato = minimo
+            elif tipo == "integrativo" and compensi > 0:
+                base_usata = compensi
+                calcolato = round(compensi * aliquota / 100.0, 2)
+                if calcolato < minimo:
+                    notes.append(f"{label}: calcolato {calcolato:.2f} EUR < minimo {minimo:.2f} EUR → applicato il minimo.")
+                    calcolato = minimo
+            elif tipo == "maternita_assistenza":
+                calcolato = minimo
+                base_usata = 0.0
+            elif tipo == "soggettivo" and reddito <= 0:
+                calcolato = minimo
+                notes.append(f"{label}: reddito non indicato, applicato il minimo di iscrizione {minimo:.2f} EUR.")
+            elif tipo == "integrativo" and compensi <= 0:
+                calcolato = minimo
+                notes.append(f"{label}: compensi non indicati, applicato il minimo {minimo:.2f} EUR.")
+
+            totale += calcolato
+            result_rows.append({
+                "tipo": tipo,
+                "label": label,
+                "aliquota": aliquota,
+                "minimo_eur": minimo,
+                "base_usata": round(base_usata, 2),
+                "calcolato": round(calcolato, 2),
+                "base": base,
+                "note": note_row,
+            })
+
+        # Nota su contributo integrativo (addebitabile al cliente)
+        integrativo = next((r for r in result_rows if r["tipo"] == "integrativo"), None)
+        if integrativo:
+            notes.append(
+                f"Il contributo integrativo ({integrativo['aliquota']:.0f}%) e addebitabile al cliente "
+                "in aggiunta al compenso ex art. 11 L. 576/1980."
+            )
+        notes.append(
+            "Scadenza dichiarazione e pagamento: 31 ottobre dell'anno successivo (Cassa Forense). "
+            "Verificare eventuali rateizzazioni o esoneri previsti dal regolamento vigente."
+        )
+
+        return {
+            "anno": anno,
+            "reddito": round(reddito, 2),
+            "compensi": round(compensi, 2),
+            "contributi": result_rows,
+            "totale": round(totale, 2),
             "notes": notes,
             "warnings": warnings,
             "sources": sources,

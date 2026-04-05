@@ -88,6 +88,14 @@ def index():
                 results[active_tool] = gestore.simula_pignoramento(request.form)
             elif active_tool == "ctu":
                 results[active_tool] = gestore.calcola_ctu(request.form)
+            elif active_tool == "rivalutazione_istat":
+                results[active_tool] = gestore.calcola_rivalutazione_istat(request.form)
+            elif active_tool == "canone_locazione":
+                results[active_tool] = gestore.calcola_adeguamento_canone(request.form)
+            elif active_tool == "usura":
+                results[active_tool] = gestore.verifica_soglia_usura(request.form)
+            elif active_tool == "contributi_cassa_forense":
+                results[active_tool] = gestore.calcola_contributi_cassa_forense(request.form)
             else:
                 flash("Strumento richiesto non riconosciuto.", "warning")
         except ValueError as exc:
@@ -161,3 +169,59 @@ def api_pignoramento():
 @_richiedi_login
 def api_ctu():
     return _json_result("calcola_ctu")
+
+
+@strumenti_legali.route("/api/rivalutazione-istat", methods=["POST"])
+@_richiedi_login
+def api_rivalutazione_istat():
+    return _json_result("calcola_rivalutazione_istat")
+
+
+@strumenti_legali.route("/api/canone-locazione", methods=["POST"])
+@_richiedi_login
+def api_canone_locazione():
+    return _json_result("calcola_adeguamento_canone")
+
+
+@strumenti_legali.route("/api/usura", methods=["POST"])
+@_richiedi_login
+def api_usura():
+    return _json_result("verifica_soglia_usura")
+
+
+@strumenti_legali.route("/api/contributi-cassa-forense", methods=["POST"])
+@_richiedi_login
+def api_contributi_cassa_forense():
+    return _json_result("calcola_contributi_cassa_forense")
+
+
+@strumenti_legali.route("/api/istat-categorie", methods=["GET"])
+@_richiedi_login
+def api_istat_categorie():
+    """Restituisce l'ultimo mese ISTAT disponibile per FOI e NIC."""
+    try:
+        from pct.normative_tables import GestioneTabelleNormative
+        nt = GestioneTabelleNormative(
+            db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
+        )
+        return jsonify({
+            "ok": True,
+            "foi_last": nt.istat_last_available("foi"),
+            "nic_last": nt.istat_last_available("nic"),
+        })
+    except Exception as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 200
+
+
+@strumenti_legali.route("/api/usura-categorie", methods=["GET"])
+@_richiedi_login
+def api_usura_categorie():
+    """Elenco categorie di credito con soglie usura correnti."""
+    try:
+        from pct.normative_tables import GestioneTabelleNormative
+        nt = GestioneTabelleNormative(
+            db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
+        )
+        return jsonify({"ok": True, "categorie": nt.usura_categorie()})
+    except Exception as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 200

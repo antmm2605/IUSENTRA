@@ -119,7 +119,24 @@ class Parcella:
 
     @property
     def cassa_forense(self) -> float:
-        return round(self.imponibile * 0.04, 2) if self.applica_cassa else 0.0
+        return round(self.imponibile * self._aliquota_cassa(), 2) if self.applica_cassa else 0.0
+
+    def _aliquota_cassa(self) -> float:
+        """Aliquota contributo integrativo Cassa Forense letta dalla tabella normativa.
+        Fallback: 0.04 (4%) se la tabella non è disponibile."""
+        try:
+            from pct.normative_tables import GestioneTabelleNormative
+            year = None
+            if self.data_emissione:
+                try:
+                    from datetime import datetime as _dt
+                    year = _dt.fromisoformat(self.data_emissione).year
+                except Exception:
+                    pass
+            nt = GestioneTabelleNormative()
+            return nt.cassa_forense_aliquota_integrativa(year) / 100.0
+        except Exception:
+            return 0.04
 
     @property
     def base_iva(self) -> float:

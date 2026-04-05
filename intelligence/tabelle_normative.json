@@ -78258,6 +78258,1458 @@
           "notes": []
         }
       ]
+    },
+    "tasso_usura": {
+      "id": "tasso_usura",
+      "title": "Tassi usura - soglie antiusura trimestrali",
+      "category": "tassi",
+      "description": "Soglie antiusura trimestrali per categoria di operazione, calcolate come TEGM × 1,25 + 4 pp ai sensi della L. 108/1996. Aggiornate trimestralmente da MEF/Banca d'Italia e pubblicate in Gazzetta Ufficiale. Rilevanti per mutui, leasing, aperture di credito, prestiti personali e valutazione di nullita di clausole contrattuali per usura.",
+      "strategy": "seed_mirror",
+      "defaults": {
+        "note": "Soglia = TEGM × 1,25 + 4 pp (L. 108/1996 come mod. D.L. 70/2011). Dati seed Q1 2026 — verificare e aggiornare ogni trimestre da https://www.bancaditalia.it/compiti/stabilita-finanziaria/usura/ e relativo decreto MEF in G.U.",
+        "formula": "soglia = tegm * 1.25 + 4",
+        "aggiornamento": "trimestrale"
+      },
+      "source_codes": [
+        "legge_108_1996_usura",
+        "bancaditalia_tassi_usura",
+        "mef_decreto_usura"
+      ],
+      "watch_source_ids": [
+        "bancaditalia",
+        "gazzetta_ufficiale"
+      ],
+      "sync_status": "sincronizzata",
+      "last_synced_at": "2026-04-05T21:53:29",
+      "last_source_change_at": "",
+      "last_warning": "",
+      "rows": [
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "aperture_credito_cc_fino_5000",
+          "tegm": 13.11,
+          "soglia": 20.39,
+          "label": "Aperture di credito in c/c ≤ EUR 5.000"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "aperture_credito_cc_oltre_5000",
+          "tegm": 10.54,
+          "soglia": 17.18,
+          "label": "Aperture di credito in c/c > EUR 5.000"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "factoring",
+          "tegm": 5.23,
+          "soglia": 10.54,
+          "label": "Factoring"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "credito_personale",
+          "tegm": 12.78,
+          "soglia": 19.98,
+          "label": "Credito personale"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "credito_finalizzato",
+          "tegm": 11.42,
+          "soglia": 18.28,
+          "label": "Credito finalizzato"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "mutui_ipotecari_fisso",
+          "tegm": 4.61,
+          "soglia": 9.76,
+          "label": "Mutui ipotecari a tasso fisso"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "mutui_ipotecari_variabile",
+          "tegm": 4.41,
+          "soglia": 9.51,
+          "label": "Mutui ipotecari a tasso variabile"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "leasing_immobiliare_fisso",
+          "tegm": 4.82,
+          "soglia": 10.03,
+          "label": "Leasing immobiliare a tasso fisso"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "leasing_immobiliare_variabile",
+          "tegm": 4.47,
+          "soglia": 9.59,
+          "label": "Leasing immobiliare a tasso variabile"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "leasing_mobiliare_fisso",
+          "tegm": 8.61,
+          "soglia": 14.76,
+          "label": "Leasing mobiliare a tasso fisso"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "leasing_mobiliare_variabile",
+          "tegm": 5.71,
+          "soglia": 11.14,
+          "label": "Leasing mobiliare a tasso variabile"
+        },
+        {
+          "quarter": "2026-Q1",
+          "start": "2026-01-01",
+          "end": "2026-03-31",
+          "category": "carte_credito_revolving",
+          "tegm": 19.37,
+          "soglia": 28.21,
+          "label": "Carte di credito revolving"
+        }
+      ],
+      "versions": [
+        {
+          "id": "tasso_usura:2026-04-01:49ae73426049",
+          "label": "Seed ufficiale 2026-04-01",
+          "created_at": "2026-04-05T21:53:29",
+          "effective_from": "2026-01-01",
+          "effective_to": "",
+          "published_at": "2025-12-31",
+          "acquired_at": "2026-04-05T21:53:29",
+          "status": "active",
+          "origin": "bootstrap",
+          "data_hash": "49ae73426049a75b9ece6f9274d80fcb30dbc6bfa3587cdfdc861c55774c8508",
+          "rows": [
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "aperture_credito_cc_fino_5000",
+              "tegm": 13.11,
+              "soglia": 20.39,
+              "label": "Aperture di credito in c/c ≤ EUR 5.000"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "aperture_credito_cc_oltre_5000",
+              "tegm": 10.54,
+              "soglia": 17.18,
+              "label": "Aperture di credito in c/c > EUR 5.000"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "factoring",
+              "tegm": 5.23,
+              "soglia": 10.54,
+              "label": "Factoring"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "credito_personale",
+              "tegm": 12.78,
+              "soglia": 19.98,
+              "label": "Credito personale"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "credito_finalizzato",
+              "tegm": 11.42,
+              "soglia": 18.28,
+              "label": "Credito finalizzato"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "mutui_ipotecari_fisso",
+              "tegm": 4.61,
+              "soglia": 9.76,
+              "label": "Mutui ipotecari a tasso fisso"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "mutui_ipotecari_variabile",
+              "tegm": 4.41,
+              "soglia": 9.51,
+              "label": "Mutui ipotecari a tasso variabile"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "leasing_immobiliare_fisso",
+              "tegm": 4.82,
+              "soglia": 10.03,
+              "label": "Leasing immobiliare a tasso fisso"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "leasing_immobiliare_variabile",
+              "tegm": 4.47,
+              "soglia": 9.59,
+              "label": "Leasing immobiliare a tasso variabile"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "leasing_mobiliare_fisso",
+              "tegm": 8.61,
+              "soglia": 14.76,
+              "label": "Leasing mobiliare a tasso fisso"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "leasing_mobiliare_variabile",
+              "tegm": 5.71,
+              "soglia": 11.14,
+              "label": "Leasing mobiliare a tasso variabile"
+            },
+            {
+              "quarter": "2026-Q1",
+              "start": "2026-01-01",
+              "end": "2026-03-31",
+              "category": "carte_credito_revolving",
+              "tegm": 19.37,
+              "soglia": 28.21,
+              "label": "Carte di credito revolving"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    "tasso_bce": {
+      "id": "tasso_bce",
+      "title": "Tassi BCE - operazioni di rifinanziamento principali",
+      "category": "tassi",
+      "description": "Tassi di interesse BCE sulle operazioni di rifinanziamento principali. Rilevanti per il calcolo degli interessi moratori ex D.Lgs. 231/2002 e per la valutazione di clausole di indicizzazione.",
+      "strategy": "seed_mirror",
+      "defaults": {
+        "note": "Tasso BCE sulle operazioni di rifinanziamento principali. Aggiornare dopo ogni decisione del Consiglio direttivo BCE da https://www.bancaditalia.it/compiti/politica-monetaria/tassi-interesse/",
+        "aggiornamento": "variabile (decisioni BCE)"
+      },
+      "source_codes": [
+        "bancaditalia_portale"
+      ],
+      "watch_source_ids": [
+        "bancaditalia",
+        "gazzetta_ufficiale"
+      ],
+      "sync_status": "sincronizzata",
+      "last_synced_at": "2026-04-05T21:53:29",
+      "last_source_change_at": "",
+      "last_warning": "",
+      "rows": [
+        {
+          "start": "2024-06-12",
+          "end": "2024-09-17",
+          "rate": 4.25,
+          "label": "BCE operazioni principali rifinanziamento — dal 12/06/2024"
+        },
+        {
+          "start": "2024-09-18",
+          "end": "2024-10-22",
+          "rate": 3.65,
+          "label": "BCE operazioni principali rifinanziamento — dal 18/09/2024"
+        },
+        {
+          "start": "2024-10-23",
+          "end": "2024-12-17",
+          "rate": 3.4,
+          "label": "BCE operazioni principali rifinanziamento — dal 23/10/2024"
+        },
+        {
+          "start": "2024-12-18",
+          "end": "2025-01-29",
+          "rate": 3.15,
+          "label": "BCE operazioni principali rifinanziamento — dal 18/12/2024"
+        },
+        {
+          "start": "2025-01-30",
+          "end": "2025-03-05",
+          "rate": 2.9,
+          "label": "BCE operazioni principali rifinanziamento — dal 30/01/2025"
+        },
+        {
+          "start": "2025-03-06",
+          "end": "2025-04-16",
+          "rate": 2.65,
+          "label": "BCE operazioni principali rifinanziamento — dal 06/03/2025"
+        },
+        {
+          "start": "2025-04-17",
+          "end": "2025-06-10",
+          "rate": 2.4,
+          "label": "BCE operazioni principali rifinanziamento — dal 17/04/2025"
+        },
+        {
+          "start": "2025-06-11",
+          "end": null,
+          "rate": 2.15,
+          "label": "BCE operazioni principali rifinanziamento — dal 11/06/2025"
+        }
+      ],
+      "versions": [
+        {
+          "id": "tasso_bce:2026-04-01:cbc73a026c8d",
+          "label": "Seed ufficiale 2026-04-01",
+          "created_at": "2026-04-05T21:53:29",
+          "effective_from": "2024-06-12",
+          "effective_to": "",
+          "published_at": "2025-06-11",
+          "acquired_at": "2026-04-05T21:53:29",
+          "status": "active",
+          "origin": "bootstrap",
+          "data_hash": "cbc73a026c8d6f7de405a49bd82215b2e0420d20d36a9704b278159e564865d1",
+          "rows": [
+            {
+              "start": "2024-06-12",
+              "end": "2024-09-17",
+              "rate": 4.25,
+              "label": "BCE operazioni principali rifinanziamento — dal 12/06/2024"
+            },
+            {
+              "start": "2024-09-18",
+              "end": "2024-10-22",
+              "rate": 3.65,
+              "label": "BCE operazioni principali rifinanziamento — dal 18/09/2024"
+            },
+            {
+              "start": "2024-10-23",
+              "end": "2024-12-17",
+              "rate": 3.4,
+              "label": "BCE operazioni principali rifinanziamento — dal 23/10/2024"
+            },
+            {
+              "start": "2024-12-18",
+              "end": "2025-01-29",
+              "rate": 3.15,
+              "label": "BCE operazioni principali rifinanziamento — dal 18/12/2024"
+            },
+            {
+              "start": "2025-01-30",
+              "end": "2025-03-05",
+              "rate": 2.9,
+              "label": "BCE operazioni principali rifinanziamento — dal 30/01/2025"
+            },
+            {
+              "start": "2025-03-06",
+              "end": "2025-04-16",
+              "rate": 2.65,
+              "label": "BCE operazioni principali rifinanziamento — dal 06/03/2025"
+            },
+            {
+              "start": "2025-04-17",
+              "end": "2025-06-10",
+              "rate": 2.4,
+              "label": "BCE operazioni principali rifinanziamento — dal 17/04/2025"
+            },
+            {
+              "start": "2025-06-11",
+              "end": null,
+              "rate": 2.15,
+              "label": "BCE operazioni principali rifinanziamento — dal 11/06/2025"
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    "istat_foi": {
+      "id": "istat_foi",
+      "title": "ISTAT - Indice FOI (famiglie di operai e impiegati)",
+      "category": "indici_rivalutazione",
+      "description": "Indice ISTAT dei prezzi al consumo per le famiglie di operai e impiegati (FOI), al netto dei tabacchi. Utilizzato per l'aggiornamento dei canoni di locazione ad uso abitativo (L. 431/1998 e L. 392/1978) e per adeguamenti contrattuali. Comunicato mensile ISTAT — aggiornato ogni mese intorno al 15.",
+      "strategy": "seed_mirror",
+      "defaults": {
+        "base_year": 2015,
+        "note": "Indice base 2015=100, al netto dei tabacchi. Aggiornare mensilmente con i dati ISTAT da https://www.istat.it/it/prezzi/prezzi-al-consumo/",
+        "aggiornamento": "mensile"
+      },
+      "source_codes": [
+        "istat_indici_prezzi",
+        "legge_431_1998_locazioni"
+      ],
+      "watch_source_ids": [
+        "istat",
+        "normattiva"
+      ],
+      "sync_status": "sincronizzata",
+      "last_synced_at": "2026-04-05T21:53:29",
+      "last_source_change_at": "",
+      "last_warning": "",
+      "rows": [
+        {
+          "year": 2023,
+          "month": 1,
+          "index": 118.6,
+          "variation_yoy": 10.7
+        },
+        {
+          "year": 2023,
+          "month": 2,
+          "index": 119.2,
+          "variation_yoy": 9.7
+        },
+        {
+          "year": 2023,
+          "month": 3,
+          "index": 119.6,
+          "variation_yoy": 8.3
+        },
+        {
+          "year": 2023,
+          "month": 4,
+          "index": 119.9,
+          "variation_yoy": 8.5
+        },
+        {
+          "year": 2023,
+          "month": 5,
+          "index": 120.2,
+          "variation_yoy": 8.0
+        },
+        {
+          "year": 2023,
+          "month": 6,
+          "index": 120.2,
+          "variation_yoy": 6.7
+        },
+        {
+          "year": 2023,
+          "month": 7,
+          "index": 120.9,
+          "variation_yoy": 6.3
+        },
+        {
+          "year": 2023,
+          "month": 8,
+          "index": 121.1,
+          "variation_yoy": 5.5
+        },
+        {
+          "year": 2023,
+          "month": 9,
+          "index": 120.9,
+          "variation_yoy": 5.3
+        },
+        {
+          "year": 2023,
+          "month": 10,
+          "index": 120.9,
+          "variation_yoy": 1.8
+        },
+        {
+          "year": 2023,
+          "month": 11,
+          "index": 120.6,
+          "variation_yoy": 0.7
+        },
+        {
+          "year": 2023,
+          "month": 12,
+          "index": 120.7,
+          "variation_yoy": 0.6
+        },
+        {
+          "year": 2024,
+          "month": 1,
+          "index": 120.8,
+          "variation_yoy": 0.2
+        },
+        {
+          "year": 2024,
+          "month": 2,
+          "index": 121.0,
+          "variation_yoy": 0.7
+        },
+        {
+          "year": 2024,
+          "month": 3,
+          "index": 121.2,
+          "variation_yoy": 1.3
+        },
+        {
+          "year": 2024,
+          "month": 4,
+          "index": 121.5,
+          "variation_yoy": 0.9
+        },
+        {
+          "year": 2024,
+          "month": 5,
+          "index": 121.7,
+          "variation_yoy": 0.8
+        },
+        {
+          "year": 2024,
+          "month": 6,
+          "index": 121.7,
+          "variation_yoy": 0.9
+        },
+        {
+          "year": 2024,
+          "month": 7,
+          "index": 122.1,
+          "variation_yoy": 1.0
+        },
+        {
+          "year": 2024,
+          "month": 8,
+          "index": 122.0,
+          "variation_yoy": 1.2
+        },
+        {
+          "year": 2024,
+          "month": 9,
+          "index": 122.1,
+          "variation_yoy": 0.8
+        },
+        {
+          "year": 2024,
+          "month": 10,
+          "index": 122.4,
+          "variation_yoy": 0.9
+        },
+        {
+          "year": 2024,
+          "month": 11,
+          "index": 122.5,
+          "variation_yoy": 1.5
+        },
+        {
+          "year": 2024,
+          "month": 12,
+          "index": 122.8,
+          "variation_yoy": 1.7
+        },
+        {
+          "year": 2025,
+          "month": 1,
+          "index": 123.2,
+          "variation_yoy": 2.0
+        },
+        {
+          "year": 2025,
+          "month": 2,
+          "index": 123.4,
+          "variation_yoy": 2.0
+        },
+        {
+          "year": 2025,
+          "month": 3,
+          "index": 123.3,
+          "variation_yoy": 1.7
+        }
+      ],
+      "versions": [
+        {
+          "id": "istat_foi:2026-04-01:b4dae2d570e2",
+          "label": "Seed ufficiale 2026-04-01",
+          "created_at": "2026-04-05T21:53:29",
+          "effective_from": "2023-01-01",
+          "effective_to": "",
+          "published_at": "2025-04-15",
+          "acquired_at": "2026-04-05T21:53:29",
+          "status": "active",
+          "origin": "bootstrap",
+          "data_hash": "b4dae2d570e2d999521133c492dea47b8694890e6c6ecf18afcb8c003e33b7c8",
+          "rows": [
+            {
+              "year": 2023,
+              "month": 1,
+              "index": 118.6,
+              "variation_yoy": 10.7
+            },
+            {
+              "year": 2023,
+              "month": 2,
+              "index": 119.2,
+              "variation_yoy": 9.7
+            },
+            {
+              "year": 2023,
+              "month": 3,
+              "index": 119.6,
+              "variation_yoy": 8.3
+            },
+            {
+              "year": 2023,
+              "month": 4,
+              "index": 119.9,
+              "variation_yoy": 8.5
+            },
+            {
+              "year": 2023,
+              "month": 5,
+              "index": 120.2,
+              "variation_yoy": 8.0
+            },
+            {
+              "year": 2023,
+              "month": 6,
+              "index": 120.2,
+              "variation_yoy": 6.7
+            },
+            {
+              "year": 2023,
+              "month": 7,
+              "index": 120.9,
+              "variation_yoy": 6.3
+            },
+            {
+              "year": 2023,
+              "month": 8,
+              "index": 121.1,
+              "variation_yoy": 5.5
+            },
+            {
+              "year": 2023,
+              "month": 9,
+              "index": 120.9,
+              "variation_yoy": 5.3
+            },
+            {
+              "year": 2023,
+              "month": 10,
+              "index": 120.9,
+              "variation_yoy": 1.8
+            },
+            {
+              "year": 2023,
+              "month": 11,
+              "index": 120.6,
+              "variation_yoy": 0.7
+            },
+            {
+              "year": 2023,
+              "month": 12,
+              "index": 120.7,
+              "variation_yoy": 0.6
+            },
+            {
+              "year": 2024,
+              "month": 1,
+              "index": 120.8,
+              "variation_yoy": 0.2
+            },
+            {
+              "year": 2024,
+              "month": 2,
+              "index": 121.0,
+              "variation_yoy": 0.7
+            },
+            {
+              "year": 2024,
+              "month": 3,
+              "index": 121.2,
+              "variation_yoy": 1.3
+            },
+            {
+              "year": 2024,
+              "month": 4,
+              "index": 121.5,
+              "variation_yoy": 0.9
+            },
+            {
+              "year": 2024,
+              "month": 5,
+              "index": 121.7,
+              "variation_yoy": 0.8
+            },
+            {
+              "year": 2024,
+              "month": 6,
+              "index": 121.7,
+              "variation_yoy": 0.9
+            },
+            {
+              "year": 2024,
+              "month": 7,
+              "index": 122.1,
+              "variation_yoy": 1.0
+            },
+            {
+              "year": 2024,
+              "month": 8,
+              "index": 122.0,
+              "variation_yoy": 1.2
+            },
+            {
+              "year": 2024,
+              "month": 9,
+              "index": 122.1,
+              "variation_yoy": 0.8
+            },
+            {
+              "year": 2024,
+              "month": 10,
+              "index": 122.4,
+              "variation_yoy": 0.9
+            },
+            {
+              "year": 2024,
+              "month": 11,
+              "index": 122.5,
+              "variation_yoy": 1.5
+            },
+            {
+              "year": 2024,
+              "month": 12,
+              "index": 122.8,
+              "variation_yoy": 1.7
+            },
+            {
+              "year": 2025,
+              "month": 1,
+              "index": 123.2,
+              "variation_yoy": 2.0
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "index": 123.4,
+              "variation_yoy": 2.0
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "index": 123.3,
+              "variation_yoy": 1.7
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    "istat_nic": {
+      "id": "istat_nic",
+      "title": "ISTAT - Indice NIC (prezzi al consumo per l'intera collettivita nazionale)",
+      "category": "indici_rivalutazione",
+      "description": "Indice ISTAT NIC dei prezzi al consumo per l'intera collettivita nazionale, comprensivo dei tabacchi. Utilizzato per rivalutazione monetaria generale, assegni divorzili (L. 898/1970), liquidazioni, pensioni e adeguamenti contrattuali. Comunicato mensile ISTAT — aggiornato ogni mese.",
+      "strategy": "seed_mirror",
+      "defaults": {
+        "base_year": 2015,
+        "note": "Indice base 2015=100. Aggiornare mensilmente con i dati ISTAT da https://www.istat.it/it/prezzi/prezzi-al-consumo/",
+        "aggiornamento": "mensile"
+      },
+      "source_codes": [
+        "istat_indici_prezzi"
+      ],
+      "watch_source_ids": [
+        "istat"
+      ],
+      "sync_status": "sincronizzata",
+      "last_synced_at": "2026-04-05T21:53:29",
+      "last_source_change_at": "",
+      "last_warning": "",
+      "rows": [
+        {
+          "year": 2023,
+          "month": 1,
+          "index": 118.9,
+          "variation_yoy": 11.6
+        },
+        {
+          "year": 2023,
+          "month": 2,
+          "index": 119.5,
+          "variation_yoy": 9.8
+        },
+        {
+          "year": 2023,
+          "month": 3,
+          "index": 119.9,
+          "variation_yoy": 8.3
+        },
+        {
+          "year": 2023,
+          "month": 4,
+          "index": 120.3,
+          "variation_yoy": 8.7
+        },
+        {
+          "year": 2023,
+          "month": 5,
+          "index": 120.6,
+          "variation_yoy": 7.6
+        },
+        {
+          "year": 2023,
+          "month": 6,
+          "index": 120.6,
+          "variation_yoy": 6.4
+        },
+        {
+          "year": 2023,
+          "month": 7,
+          "index": 121.3,
+          "variation_yoy": 6.0
+        },
+        {
+          "year": 2023,
+          "month": 8,
+          "index": 121.5,
+          "variation_yoy": 5.4
+        },
+        {
+          "year": 2023,
+          "month": 9,
+          "index": 121.4,
+          "variation_yoy": 5.3
+        },
+        {
+          "year": 2023,
+          "month": 10,
+          "index": 121.4,
+          "variation_yoy": 1.8
+        },
+        {
+          "year": 2023,
+          "month": 11,
+          "index": 121.2,
+          "variation_yoy": 0.7
+        },
+        {
+          "year": 2023,
+          "month": 12,
+          "index": 121.3,
+          "variation_yoy": 0.6
+        },
+        {
+          "year": 2024,
+          "month": 1,
+          "index": 121.4,
+          "variation_yoy": 0.8
+        },
+        {
+          "year": 2024,
+          "month": 2,
+          "index": 121.6,
+          "variation_yoy": 0.8
+        },
+        {
+          "year": 2024,
+          "month": 3,
+          "index": 121.8,
+          "variation_yoy": 1.2
+        },
+        {
+          "year": 2024,
+          "month": 4,
+          "index": 122.1,
+          "variation_yoy": 0.9
+        },
+        {
+          "year": 2024,
+          "month": 5,
+          "index": 122.3,
+          "variation_yoy": 0.8
+        },
+        {
+          "year": 2024,
+          "month": 6,
+          "index": 122.3,
+          "variation_yoy": 0.9
+        },
+        {
+          "year": 2024,
+          "month": 7,
+          "index": 122.7,
+          "variation_yoy": 1.1
+        },
+        {
+          "year": 2024,
+          "month": 8,
+          "index": 122.7,
+          "variation_yoy": 1.1
+        },
+        {
+          "year": 2024,
+          "month": 9,
+          "index": 122.8,
+          "variation_yoy": 0.7
+        },
+        {
+          "year": 2024,
+          "month": 10,
+          "index": 123.1,
+          "variation_yoy": 0.9
+        },
+        {
+          "year": 2024,
+          "month": 11,
+          "index": 123.3,
+          "variation_yoy": 1.5
+        },
+        {
+          "year": 2024,
+          "month": 12,
+          "index": 123.6,
+          "variation_yoy": 1.4
+        },
+        {
+          "year": 2025,
+          "month": 1,
+          "index": 124.1,
+          "variation_yoy": 2.2
+        },
+        {
+          "year": 2025,
+          "month": 2,
+          "index": 124.3,
+          "variation_yoy": 2.2
+        },
+        {
+          "year": 2025,
+          "month": 3,
+          "index": 124.2,
+          "variation_yoy": 1.9
+        }
+      ],
+      "versions": [
+        {
+          "id": "istat_nic:2026-04-01:1f1a15eff8e1",
+          "label": "Seed ufficiale 2026-04-01",
+          "created_at": "2026-04-05T21:53:29",
+          "effective_from": "2023-01-01",
+          "effective_to": "",
+          "published_at": "2025-04-15",
+          "acquired_at": "2026-04-05T21:53:29",
+          "status": "active",
+          "origin": "bootstrap",
+          "data_hash": "1f1a15eff8e1a907ef607d37b6f6d2865baab52ec994a3c2272f3e4201ab4301",
+          "rows": [
+            {
+              "year": 2023,
+              "month": 1,
+              "index": 118.9,
+              "variation_yoy": 11.6
+            },
+            {
+              "year": 2023,
+              "month": 2,
+              "index": 119.5,
+              "variation_yoy": 9.8
+            },
+            {
+              "year": 2023,
+              "month": 3,
+              "index": 119.9,
+              "variation_yoy": 8.3
+            },
+            {
+              "year": 2023,
+              "month": 4,
+              "index": 120.3,
+              "variation_yoy": 8.7
+            },
+            {
+              "year": 2023,
+              "month": 5,
+              "index": 120.6,
+              "variation_yoy": 7.6
+            },
+            {
+              "year": 2023,
+              "month": 6,
+              "index": 120.6,
+              "variation_yoy": 6.4
+            },
+            {
+              "year": 2023,
+              "month": 7,
+              "index": 121.3,
+              "variation_yoy": 6.0
+            },
+            {
+              "year": 2023,
+              "month": 8,
+              "index": 121.5,
+              "variation_yoy": 5.4
+            },
+            {
+              "year": 2023,
+              "month": 9,
+              "index": 121.4,
+              "variation_yoy": 5.3
+            },
+            {
+              "year": 2023,
+              "month": 10,
+              "index": 121.4,
+              "variation_yoy": 1.8
+            },
+            {
+              "year": 2023,
+              "month": 11,
+              "index": 121.2,
+              "variation_yoy": 0.7
+            },
+            {
+              "year": 2023,
+              "month": 12,
+              "index": 121.3,
+              "variation_yoy": 0.6
+            },
+            {
+              "year": 2024,
+              "month": 1,
+              "index": 121.4,
+              "variation_yoy": 0.8
+            },
+            {
+              "year": 2024,
+              "month": 2,
+              "index": 121.6,
+              "variation_yoy": 0.8
+            },
+            {
+              "year": 2024,
+              "month": 3,
+              "index": 121.8,
+              "variation_yoy": 1.2
+            },
+            {
+              "year": 2024,
+              "month": 4,
+              "index": 122.1,
+              "variation_yoy": 0.9
+            },
+            {
+              "year": 2024,
+              "month": 5,
+              "index": 122.3,
+              "variation_yoy": 0.8
+            },
+            {
+              "year": 2024,
+              "month": 6,
+              "index": 122.3,
+              "variation_yoy": 0.9
+            },
+            {
+              "year": 2024,
+              "month": 7,
+              "index": 122.7,
+              "variation_yoy": 1.1
+            },
+            {
+              "year": 2024,
+              "month": 8,
+              "index": 122.7,
+              "variation_yoy": 1.1
+            },
+            {
+              "year": 2024,
+              "month": 9,
+              "index": 122.8,
+              "variation_yoy": 0.7
+            },
+            {
+              "year": 2024,
+              "month": 10,
+              "index": 123.1,
+              "variation_yoy": 0.9
+            },
+            {
+              "year": 2024,
+              "month": 11,
+              "index": 123.3,
+              "variation_yoy": 1.5
+            },
+            {
+              "year": 2024,
+              "month": 12,
+              "index": 123.6,
+              "variation_yoy": 1.4
+            },
+            {
+              "year": 2025,
+              "month": 1,
+              "index": 124.1,
+              "variation_yoy": 2.2
+            },
+            {
+              "year": 2025,
+              "month": 2,
+              "index": 124.3,
+              "variation_yoy": 2.2
+            },
+            {
+              "year": 2025,
+              "month": 3,
+              "index": 124.2,
+              "variation_yoy": 1.9
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    "contributi_cassa_forense": {
+      "id": "contributi_cassa_forense",
+      "title": "Contributi Cassa Forense",
+      "category": "previdenza",
+      "description": "Aliquote e minimali contributivi Cassa Forense per anno. Comprende: contributo soggettivo (% sul reddito netto), contributo integrativo (% sui compensi, addebitabile al cliente ex L. 576/1980), contributo di maternita e assistenza. Fonte ufficiale: comunicati annuali Cassa Forense.",
+      "strategy": "seed_mirror",
+      "defaults": {
+        "note": "Aggiornare annualmente con la circolare Cassa Forense da https://www.cassaforense.it/contributi/",
+        "aggiornamento": "annuale"
+      },
+      "source_codes": [
+        "cassa_forense_portale",
+        "cassa_forense_contributi_2026",
+        "cassa_forense_art11"
+      ],
+      "watch_source_ids": [
+        "cassa_forense",
+        "gazzetta_ufficiale"
+      ],
+      "sync_status": "sincronizzata",
+      "last_synced_at": "2026-04-05T21:53:29",
+      "last_source_change_at": "",
+      "last_warning": "",
+      "rows": [
+        {
+          "year": 2025,
+          "tipo": "soggettivo",
+          "aliquota": 15.0,
+          "minimo_eur": 2625.0,
+          "base": "reddito_netto_professionale",
+          "label": "Contributo soggettivo 2025",
+          "note": "Aliquota 15% sul reddito netto professionale. Minimo EUR 2.625."
+        },
+        {
+          "year": 2025,
+          "tipo": "integrativo",
+          "aliquota": 4.0,
+          "minimo_eur": 700.0,
+          "base": "compensi_lordi",
+          "label": "Contributo integrativo 2025",
+          "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 700."
+        },
+        {
+          "year": 2025,
+          "tipo": "maternita_assistenza",
+          "aliquota": 0.0,
+          "minimo_eur": 183.0,
+          "base": "importo_fisso",
+          "label": "Contributo maternita/assistenza 2025",
+          "note": "Importo fisso EUR 183 annuo."
+        },
+        {
+          "year": 2026,
+          "tipo": "soggettivo",
+          "aliquota": 14.5,
+          "minimo_eur": 2725.0,
+          "base": "reddito_netto_professionale",
+          "label": "Contributo soggettivo 2026",
+          "note": "Aliquota 14,5% sul reddito netto professionale. Minimo EUR 2.725."
+        },
+        {
+          "year": 2026,
+          "tipo": "integrativo",
+          "aliquota": 4.0,
+          "minimo_eur": 725.0,
+          "base": "compensi_lordi",
+          "label": "Contributo integrativo 2026",
+          "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 725."
+        },
+        {
+          "year": 2026,
+          "tipo": "maternita_assistenza",
+          "aliquota": 0.0,
+          "minimo_eur": 191.0,
+          "base": "importo_fisso",
+          "label": "Contributo maternita/assistenza 2026",
+          "note": "Importo fisso EUR 191 annuo."
+        }
+      ],
+      "versions": [
+        {
+          "id": "contributi_cassa_forense:2026-04-01:3db84ff5382e",
+          "label": "Seed ufficiale 2026-04-01",
+          "created_at": "2026-04-05T21:53:29",
+          "effective_from": "2025-01-01",
+          "effective_to": "",
+          "published_at": "2025-12-01",
+          "acquired_at": "2026-04-05T21:53:29",
+          "status": "active",
+          "origin": "bootstrap",
+          "data_hash": "3db84ff5382e258d0aceb9c27ea96070cf6ab4cb01c27318a10636697ee8927a",
+          "rows": [
+            {
+              "year": 2025,
+              "tipo": "soggettivo",
+              "aliquota": 15.0,
+              "minimo_eur": 2625.0,
+              "base": "reddito_netto_professionale",
+              "label": "Contributo soggettivo 2025",
+              "note": "Aliquota 15% sul reddito netto professionale. Minimo EUR 2.625."
+            },
+            {
+              "year": 2025,
+              "tipo": "integrativo",
+              "aliquota": 4.0,
+              "minimo_eur": 700.0,
+              "base": "compensi_lordi",
+              "label": "Contributo integrativo 2025",
+              "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 700."
+            },
+            {
+              "year": 2025,
+              "tipo": "maternita_assistenza",
+              "aliquota": 0.0,
+              "minimo_eur": 183.0,
+              "base": "importo_fisso",
+              "label": "Contributo maternita/assistenza 2025",
+              "note": "Importo fisso EUR 183 annuo."
+            },
+            {
+              "year": 2026,
+              "tipo": "soggettivo",
+              "aliquota": 14.5,
+              "minimo_eur": 2725.0,
+              "base": "reddito_netto_professionale",
+              "label": "Contributo soggettivo 2026",
+              "note": "Aliquota 14,5% sul reddito netto professionale. Minimo EUR 2.725."
+            },
+            {
+              "year": 2026,
+              "tipo": "integrativo",
+              "aliquota": 4.0,
+              "minimo_eur": 725.0,
+              "base": "compensi_lordi",
+              "label": "Contributo integrativo 2026",
+              "note": "4% sui compensi lordi fatturati, addebitabile al cliente ex L. 576/1980. Minimo EUR 725."
+            },
+            {
+              "year": 2026,
+              "tipo": "maternita_assistenza",
+              "aliquota": 0.0,
+              "minimo_eur": 191.0,
+              "base": "importo_fisso",
+              "label": "Contributo maternita/assistenza 2026",
+              "note": "Importo fisso EUR 191 annuo."
+            }
+          ],
+          "notes": []
+        }
+      ]
+    },
+    "soglie_appalti_anac": {
+      "id": "soglie_appalti_anac",
+      "title": "Soglie di rilevanza europea - appalti pubblici",
+      "category": "appalti_pubblici",
+      "description": "Soglie di rilevanza europea per contratti pubblici di lavori, servizi e forniture ai sensi del D.Lgs. 36/2023 (Codice dei Contratti Pubblici). Aggiornate ogni due anni dalla Commissione europea con regolamento delegato UE. Rilevanti per studi che assistono imprese in gare pubbliche, concessioni e appalti.",
+      "strategy": "seed_mirror",
+      "defaults": {
+        "note": "Soglie vigenti dal 1 gennaio 2024 (Reg. UE 2023/2469). Aggiornare ogni 2 anni con il regolamento delegato UE e il comunicato ANAC da https://www.anticorruzione.it/",
+        "aggiornamento": "biennale"
+      },
+      "source_codes": [
+        "anac_portale",
+        "anac_soglie_2024",
+        "dlgs_36_2023_contratti"
+      ],
+      "watch_source_ids": [
+        "anac",
+        "eur_lex",
+        "gazzetta_ufficiale"
+      ],
+      "sync_status": "sincronizzata",
+      "last_synced_at": "2026-04-05T21:53:29",
+      "last_source_change_at": "",
+      "last_warning": "",
+      "rows": [
+        {
+          "category": "lavori",
+          "threshold_eur": 5538000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Lavori - soglia rilevanza europea",
+          "note": "Art. 14 co. 1 lett. a D.Lgs. 36/2023"
+        },
+        {
+          "category": "forniture_servizi_pa_centrale",
+          "threshold_eur": 143000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Forniture e servizi - PA centrale",
+          "note": "Art. 14 co. 1 lett. b D.Lgs. 36/2023"
+        },
+        {
+          "category": "forniture_servizi_altre_sa",
+          "threshold_eur": 221000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Forniture e servizi - altre stazioni appaltanti",
+          "note": "Art. 14 co. 1 lett. c D.Lgs. 36/2023"
+        },
+        {
+          "category": "forniture_servizi_enti_aggiudicatori",
+          "threshold_eur": 443000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Forniture e servizi - enti aggiudicatori",
+          "note": "Art. 114 co. 1 D.Lgs. 36/2023"
+        },
+        {
+          "category": "servizi_sociali",
+          "threshold_eur": 750000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Servizi sociali e specifici",
+          "note": "Art. 14 co. 6 D.Lgs. 36/2023"
+        },
+        {
+          "category": "concessioni",
+          "threshold_eur": 5538000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Concessioni di lavori e servizi",
+          "note": "Art. 177 co. 1 D.Lgs. 36/2023"
+        },
+        {
+          "category": "affidamento_diretto_lavori",
+          "threshold_eur": 150000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Affidamento diretto - lavori",
+          "note": "Art. 50 co. 1 lett. a D.Lgs. 36/2023"
+        },
+        {
+          "category": "affidamento_diretto_forniture_servizi",
+          "threshold_eur": 140000.0,
+          "start": "2024-01-01",
+          "end": null,
+          "label": "Affidamento diretto - forniture e servizi",
+          "note": "Art. 50 co. 1 lett. b D.Lgs. 36/2023"
+        }
+      ],
+      "versions": [
+        {
+          "id": "soglie_appalti_anac:2026-04-01:d6b21c64eb3d",
+          "label": "Seed ufficiale 2026-04-01",
+          "created_at": "2026-04-05T21:53:29",
+          "effective_from": "2024-01-01",
+          "effective_to": "",
+          "published_at": "2024-01-15",
+          "acquired_at": "2026-04-05T21:53:29",
+          "status": "active",
+          "origin": "bootstrap",
+          "data_hash": "d6b21c64eb3d29870fc1173fb36843fc48c68b5527b86af443aa043d8fbeb5ea",
+          "rows": [
+            {
+              "category": "lavori",
+              "threshold_eur": 5538000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Lavori - soglia rilevanza europea",
+              "note": "Art. 14 co. 1 lett. a D.Lgs. 36/2023"
+            },
+            {
+              "category": "forniture_servizi_pa_centrale",
+              "threshold_eur": 143000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Forniture e servizi - PA centrale",
+              "note": "Art. 14 co. 1 lett. b D.Lgs. 36/2023"
+            },
+            {
+              "category": "forniture_servizi_altre_sa",
+              "threshold_eur": 221000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Forniture e servizi - altre stazioni appaltanti",
+              "note": "Art. 14 co. 1 lett. c D.Lgs. 36/2023"
+            },
+            {
+              "category": "forniture_servizi_enti_aggiudicatori",
+              "threshold_eur": 443000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Forniture e servizi - enti aggiudicatori",
+              "note": "Art. 114 co. 1 D.Lgs. 36/2023"
+            },
+            {
+              "category": "servizi_sociali",
+              "threshold_eur": 750000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Servizi sociali e specifici",
+              "note": "Art. 14 co. 6 D.Lgs. 36/2023"
+            },
+            {
+              "category": "concessioni",
+              "threshold_eur": 5538000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Concessioni di lavori e servizi",
+              "note": "Art. 177 co. 1 D.Lgs. 36/2023"
+            },
+            {
+              "category": "affidamento_diretto_lavori",
+              "threshold_eur": 150000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Affidamento diretto - lavori",
+              "note": "Art. 50 co. 1 lett. a D.Lgs. 36/2023"
+            },
+            {
+              "category": "affidamento_diretto_forniture_servizi",
+              "threshold_eur": 140000.0,
+              "start": "2024-01-01",
+              "end": null,
+              "label": "Affidamento diretto - forniture e servizi",
+              "note": "Art. 50 co. 1 lett. b D.Lgs. 36/2023"
+            }
+          ],
+          "notes": []
+        }
+      ]
     }
   },
   "sync_runs": [
@@ -78288,6 +79740,23 @@
         "tariffario_forense_riferimenti",
         "tariffario_forense_fatturazione",
         "riferimenti_normativi_catalogo"
+      ]
+    },
+    {
+      "id": "2e2035b987844a31b0e2c41734f519e5",
+      "created_at": "2026-04-05T21:53:29",
+      "status": "bootstrap_incrementale",
+      "processed_tables": 24,
+      "created": 6,
+      "updated": 0,
+      "review_required": 0,
+      "tables": [
+        "tasso_usura",
+        "tasso_bce",
+        "istat_foi",
+        "istat_nic",
+        "contributi_cassa_forense",
+        "soglie_appalti_anac"
       ]
     }
   ],

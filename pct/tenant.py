@@ -714,8 +714,8 @@ class GestioneTenant:
             "NOTE_FALDONE_DB":   f"{base}/clienti/note_faldone.json",
             "EMAIL_CASELLA_DB":  f"{base}/email/casella.json",
             "PREVENTIVI_DB":     f"{base}/preventivi/preventivi.json",
-            "SOGGETTI_DB":       f"{base}/soggetti/soggetti.json",
-            "SOGGETTI_PARTI_DB": f"{base}/soggetti/soggetti_parti.json",
+            "SOGGETTI_DB":       f"{base}/soggetti/anagrafica.json",
+            "SOGGETTI_PARTI_DB": f"{base}/soggetti/parti.json",
         }
 
     # ---- Helper

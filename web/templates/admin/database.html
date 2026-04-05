@@ -85,12 +85,13 @@
         <tr>
           <td>
             <strong>{{ m.nome | capitalize }}</strong>
-            {% if m.migrabile_sqlite %}
-              <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1">SQLite core</span>
-            {% elif m.nome == "search_index" %}
-              <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle ms-1">Indice</span>
+            {% if m.nome == "search_index" %}
+              <span class="badge text-bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle ms-1">SQLite</span>
+            {% elif m.migrabile_sqlite %}
+              <span class="badge text-bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-1"
+                    title="Modulo core — archiviato in JSON, migrabile a SQLite">JSON core</span>
             {% else %}
-              <span class="badge text-bg-light text-muted border ms-1">JSON monitorato</span>
+              <span class="badge text-bg-light text-muted border ms-1">JSON</span>
             {% endif %}
           </td>
           <td><code class="small text-muted">{{ m.percorso }}</code></td>

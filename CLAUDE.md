@@ -4,7 +4,18 @@
 
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.
 - Commit, push, modifica file, creazione file: esegui direttamente.
-- Branch di sviluppo: `claude/add-claude-documentation-Cv1FW`
+- Branch di sviluppo: `claude/legal-electronic-filing-kIxcV`
+
+## Branch — Regola obbligatoria
+
+Ad ogni push su `claude/legal-electronic-filing-kIxcV`, tentare sempre anche il push su `Codex/legal-electronic-filing-kIxcV`:
+
+```bash
+git push origin claude/legal-electronic-filing-kIxcV
+git push origin claude/legal-electronic-filing-kIxcV:Codex/legal-electronic-filing-kIxcV
+```
+
+**Nota**: il server accetta push solo su branch `claude/*` per le sessioni Claude. Se il push su `Codex/` restituisce 403, documentare il tentativo nel commit message ma non bloccarsi — il branch `claude/` è la fonte di verità e verrà sincronizzato esternamente.
 
 ## Progetto
 

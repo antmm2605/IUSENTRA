@@ -435,6 +435,16 @@ class Fascicolo:
     note: str = ""
     note_riservate: str = ""
 
+    # --- Sorgente / sincronizzazione portali
+    source: str = ""                    # PST | PDP | PAT | PTT
+    source_external_id: str = ""        # chiave esterna stabile del fascicolo sul portale
+    last_sync_at: str = ""              # ISO datetime ultimo allineamento
+    sync_status: str = ""               # IMPORTATO | SINCRONIZZATO | DA_VERIFICARE
+    import_log_id: str = ""             # id log acquisizione guidata
+    has_conflicts: bool = False
+    document_sync_enabled: bool = False
+    events_sync_enabled: bool = False
+
     # --- Archivio
     archivio: Optional[DatiArchivio] = None
 

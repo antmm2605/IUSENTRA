@@ -1,0 +1,859 @@
+{% extends "base.html" %}
+{% block title %}{{ spec.title }}{% endblock %}
+{% block pct_modulo %}{{ spec.id }}{% endblock %}
+
+{% block content %}
+<style>
+  .aw-shell{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:1.25rem}
+  .aw-steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem}
+  .aw-chip{border:1px solid var(--bs-border-color);border-radius:999px;padding:.7rem .85rem;background:#fff;display:flex;gap:.65rem;align-items:flex-start}
+  .aw-chip.active{border-color:var(--bs-{{ spec.color }});box-shadow:0 0 0 .16rem rgba(var(--bs-{{ spec.color }}-rgb),.14)}
+  .aw-chip.done{background:rgba(var(--bs-success-rgb),.08);border-color:rgba(var(--bs-success-rgb),.22)}
+  .aw-num{width:28px;height:28px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;background:rgba(var(--bs-{{ spec.color }}-rgb),.14);color:var(--bs-{{ spec.color }});flex:0 0 28px}
+  .aw-pane{display:none}.aw-pane.active{display:block}
+  .aw-box,.aw-result,.aw-issue{border:1px solid var(--bs-border-color);border-radius:1rem;background:#fff}
+  .aw-box{padding:1rem}.aw-result{padding:1rem}.aw-issue{padding:.85rem 1rem}
+  .aw-sticky{position:sticky;top:88px;align-self:start}
+  .aw-result.selected{border-color:var(--bs-{{ spec.color }});box-shadow:0 0 0 .18rem rgba(var(--bs-{{ spec.color }}-rgb),.12)}
+  .aw-danger{background:rgba(var(--bs-danger-rgb),.08);border-color:rgba(var(--bs-danger-rgb),.2)}
+  .aw-warning{background:rgba(var(--bs-warning-rgb),.14);border-color:rgba(var(--bs-warning-rgb),.28)}
+  .aw-success{background:rgba(var(--bs-success-rgb),.08);border-color:rgba(var(--bs-success-rgb),.2)}
+  @media (max-width:1199.98px){.aw-shell{grid-template-columns:1fr}.aw-sticky{position:static}}
+  @media (max-width:767.98px){.aw-steps{grid-template-columns:1fr}}
+</style>
+
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+  <div>
+    <div class="d-flex gap-2 align-items-center mb-2">
+      <span class="badge text-bg-{{ spec.color }}"><i class="bi {{ spec.icon }} me-1"></i>{{ spec.label }}</span>
+      <span class="badge bg-light text-dark border">Acquisizione guidata</span>
+    </div>
+    <h1 class="h3 mb-1">{{ spec.title }}</h1>
+    <p class="text-muted mb-0">{{ spec.subtitle }}</p>
+  </div>
+  <a href="{{ url_for(spec.home_endpoint) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Torna al portale</a>
+</div>
+
+<div class="aw-steps mb-4" id="awSteps"></div>
+
+<div class="aw-shell">
+  <div class="d-flex flex-column gap-3">
+    <section class="aw-pane active" data-step="1"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+        <div><h2 class="h5 mb-1">Step 1 — Accesso e sorgente</h2><p class="text-muted mb-0">Verifica canale di accesso, certificato attivo e stato connessione.</p></div>
+        <div class="d-flex gap-2"><button class="btn btn-outline-{{ spec.color }}" type="button" id="awTest">Test connessione</button><button class="btn btn-{{ spec.color }}" type="button" id="awGoSearch">Continua</button></div>
+      </div>
+      <div class="row g-3" id="awAccessGrid"></div>
+      <div class="alert alert-light border rounded-4 mt-3 mb-0" id="awAccessNote"></div>
+    </div></div></section>
+
+    <section class="aw-pane" data-step="2"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+        <div><h2 class="h5 mb-1">Step 2 — Ricerca fascicolo</h2><p class="text-muted mb-0">Trova il fascicolo giusto con ufficio, RG, parti e filtri rapidi.</p></div>
+        <button class="btn btn-{{ spec.color }}" type="button" id="awSearch">Cerca</button>
+      </div>
+      <div class="row g-3">
+        <div class="col-xl-4"><label class="form-label fw-semibold">Ufficio giudiziario</label><div class="position-relative"><input class="form-control" id="awOfficeInput" placeholder="Cerca ufficio, città o sezione..."><input type="hidden" id="awOfficeValue"><div class="list-group position-absolute start-0 end-0 mt-1 shadow-sm" style="display:none;z-index:20" id="awOfficeDropdown"></div></div><div class="form-text" id="awOfficeHelp"></div></div>
+        <div class="col-md-3 col-xl-2"><label class="form-label fw-semibold">Numero</label><input class="form-control" id="awNumero" placeholder="es. 1234"></div>
+        <div class="col-md-3 col-xl-2"><label class="form-label fw-semibold">Anno</label><input class="form-control" id="awAnno" type="number" min="1990" max="{{ oggi.year }}" placeholder="{{ oggi.year }}"></div>
+        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Parte assistita / soggetto principale</label><input class="form-control" id="awAssistito" placeholder="Parte, imputato, ricorrente..."></div>
+        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Controparte / resistente</label><input class="form-control" id="awControparte" placeholder="Controparte, parte offesa, resistente..."></div>
+        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Codice fiscale / P.IVA</label><input class="form-control" id="awCf" placeholder="Codice fiscale o partita IVA"></div>
+        <div class="col-md-6 col-xl-4"><label class="form-label fw-semibold">Oggetto / materia</label><input class="form-control" id="awOggetto" placeholder="Oggetto, materia, reato..."></div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3 mb-3" id="awQuickFilters">{% for filtro in spec.quick_filters %}<button type="button" class="btn btn-sm btn-outline-secondary awQuick" data-filter="{{ filtro }}">{{ filtro|capitalize }}</button>{% endfor %}</div>
+      <div class="d-flex justify-content-between align-items-center mb-2"><h3 class="h6 mb-0">Risultati trovati</h3><small class="text-muted" id="awResultsMeta">Nessuna ricerca eseguita.</small></div>
+      <div class="d-flex flex-column gap-3" id="awResults"></div>
+    </div></div></section>
+
+    <section class="aw-pane" data-step="3"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 3 — Anteprima dati trovati</h2><p class="text-muted mb-0">Controlla dati fascicolo, parti, eventi e documenti disponibili.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoSelection">Continua</button></div>
+      <ul class="nav nav-pills gap-2 mb-3" id="awPreviewTabs"></ul>
+      <div id="awPreview"></div>
+    </div></div></section>
+
+    <section class="aw-pane" data-step="4"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 4 — Scelta contenuti da importare</h2><p class="text-muted mb-0">Seleziona cosa importare e con quali regole di sicurezza.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoMapping">Continua</button></div>
+      <div class="row g-3" id="awSelectionGrid"></div>
+    </div></div></section>
+
+    <section class="aw-pane" data-step="5"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
+      <div class="row g-3">
+        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" checked><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
+        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing"><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l’origine telematica.</div></label></div>
+        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing"><span class="form-check-label fw-semibold">Aggiorna pratica esistente</span></div><div class="small text-muted">Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.</div></label></div>
+        <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale target</label><select class="form-select" id="awTarget"></select><div class="form-text">Il sistema propone i fascicoli compatibili per RG, ufficio e parti.</div></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Procedimento</label><input class="form-control" id="awProc"></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Materia</label><input class="form-control" id="awMateria"></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Grado</label><input class="form-control" id="awGrado"></div>
+      </div>
+    </div></div></section>
+
+    <section class="aw-pane" data-step="6"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 6 — Controllo e conflitti</h2><p class="text-muted mb-0">Semafori chiari, duplicati, campi mancanti e decisione finale.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoImport">Vai all’importazione</button></div>
+      <div class="row g-3 mb-3"><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Punteggio</div><div class="h2 mb-0" id="awScore">—</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Blocchi</div><div class="h2 mb-0 text-danger" id="awBlockers">—</div></div></div><div class="col-md-4"><div class="aw-box"><div class="small text-muted">Avvisi</div><div class="h2 mb-0 text-warning" id="awWarnings">—</div></div></div></div>
+      <div class="alert alert-light border rounded-4" id="awAnalysisSummary">Nessuna analisi eseguita.</div>
+      <div class="row g-3"><div class="col-lg-6"><div class="d-flex flex-column gap-2" id="awIssues"></div></div><div class="col-lg-6"><div class="d-flex flex-column gap-2 mb-3" id="awOk"></div><div class="aw-box bg-light-subtle" id="awMatches"></div></div></div>
+    </div></div></section>
+
+    <section class="aw-pane" data-step="7"><div class="card shadow-sm border-0"><div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
+      <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
+      <div class="d-flex flex-wrap gap-2" id="awImportActions"></div>
+    </div></div></section>
+  </div>
+
+  <aside class="aw-sticky">
+    <div class="card shadow-sm border-0"><div class="card-header bg-light-subtle"><div class="small text-muted text-uppercase fw-semibold">Riepilogo sempre visibile</div><div class="fw-semibold">Fascicolo selezionato e piano di acquisizione</div></div><div class="card-body">
+      <ul class="list-unstyled small mb-3" id="awSidebarList"></ul>
+      <div class="d-flex flex-wrap gap-2 mb-3" id="awSidebarPills"></div>
+      <div class="small text-muted" id="awSidebarNote">Seleziona un fascicolo per vedere il riepilogo operativo.</div>
+    </div></div>
+  </aside>
+</div>
+
+<script>
+const AW_BOOT = {{ {"portale": wizard_portale, "spec": spec, "status": wizard_status, "statusUrl": url_for('api_portale_acquisizione_status', portale=wizard_portale), "searchUrl": url_for('api_portale_acquisizione_search', portale=wizard_portale), "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale), "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale), "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale)}|tojson }};
+const AW_STATE = { step:1, quick:'', status:AW_BOOT.status, results:[], selection:null, preview:null, analysis:null, importResult:null, previewTab:'dati' };
+let AW_PST_CERT = null;
+const AW_STEPS = [
+  {id:1,t:'Accesso',s:'Sorgente e connessione'},
+  {id:2,t:'Ricerca',s:'Trova il fascicolo'},
+  {id:3,t:'Anteprima',s:'Verifica dati trovati'},
+  {id:4,t:'Selezione',s:'Scegli cosa importare'},
+  {id:5,t:'Mappatura',s:'Collega al gestionale'},
+  {id:6,t:'Verifica',s:'Conflitti e semafori'},
+  {id:7,t:'Importa',s:'Acquisizione finale'},
+];
+const AW_PST_LS_BASE = 'http://127.0.0.1:27272';
+const AW_PST_CERT_KEY = `hacs-aw-pst-cert-${AW_BOOT.portale}`;
+function awJson(url, options = {}) {
+  return fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }).then(r => r.json());
+}
+function awEscape(v) { return String(v ?? '').replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function awToneCls(tone) { return tone === 'danger' ? 'aw-issue aw-danger' : tone === 'warning' ? 'aw-issue aw-warning' : 'aw-issue aw-success'; }
+function awBadgeCls(tone) { return tone === 'danger' ? 'danger' : tone === 'warning' ? 'warning text-dark' : 'success'; }
+function awFormatDate(value) {
+  if (!value) return 'n.d.';
+  try {
+    return new Date(value).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: value.includes('T') ? 'short' : undefined });
+  } catch (_) {
+    return value;
+  }
+}
+function awLoadPstCert() {
+  try {
+    AW_PST_CERT = JSON.parse(sessionStorage.getItem(AW_PST_CERT_KEY) || 'null');
+  } catch (_) {
+    AW_PST_CERT = null;
+  }
+}
+function awSavePstCert(cert) {
+  AW_PST_CERT = cert || null;
+  try {
+    if (AW_PST_CERT) sessionStorage.setItem(AW_PST_CERT_KEY, JSON.stringify(AW_PST_CERT));
+    else sessionStorage.removeItem(AW_PST_CERT_KEY);
+  } catch (_) {}
+}
+function awGoStep(step) {
+  AW_STATE.step = step;
+  document.querySelectorAll('.aw-pane').forEach(el => el.classList.toggle('active', Number(el.dataset.step) === step));
+  awRenderSteps();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function awRenderSteps() {
+  const root = document.getElementById('awSteps');
+  root.innerHTML = AW_STEPS.map(step => `
+    <button type="button" class="aw-chip ${step.id === AW_STATE.step ? 'active' : ''} ${step.id < AW_STATE.step ? 'done' : ''}" data-aw-step="${step.id}">
+      <span class="aw-num">${step.id < AW_STATE.step ? '<i class="bi bi-check-lg"></i>' : step.id}</span>
+      <span><strong class="d-block small">${step.t}</strong><span class="small text-muted">${step.s}</span></span>
+    </button>`).join('');
+  root.querySelectorAll('[data-aw-step]').forEach(btn => btn.addEventListener('click', () => awGoStep(Number(btn.dataset.awStep))));
+}
+function awCurrentQuery() {
+  return {
+    ufficio_codice: document.getElementById('awOfficeValue').value,
+    numero: document.getElementById('awNumero').value.trim(),
+    anno: document.getElementById('awAnno').value.trim(),
+    assistito: document.getElementById('awAssistito').value.trim(),
+    controparte: document.getElementById('awControparte').value.trim(),
+    cf: document.getElementById('awCf').value.trim(),
+    oggetto: document.getElementById('awOggetto').value.trim(),
+    quick_filter: AW_STATE.quick || '',
+  };
+}
+async function awRefreshStatus() {
+  const data = await awJson(AW_BOOT.statusUrl);
+  if (data.ok) AW_STATE.status = data.status;
+  if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
+    try {
+      const ping = await awLsPing();
+      AW_STATE.status.local_signer = ping;
+      if (ping?.certificato_windows_selezionato) {
+        awSavePstCert({
+          thumbprint: ping.certificato_windows_selezionato.thumbprint,
+          soggetto: ping.certificato_windows_selezionato.soggetto,
+          emittente: ping.certificato_windows_selezionato.emittente,
+          scadenza: ping.certificato_windows_selezionato.scadenza,
+          auto_selezionato: true,
+        });
+      }
+    } catch (err) {
+      AW_STATE.status.local_signer_error = String(err);
+    }
+  }
+  awRenderAccess();
+}
+async function awLsPing() {
+  const prefs = AW_STATE.status.cert_preferences || {};
+  const params = new URLSearchParams();
+  if (prefs.auto) params.set('auto', '1');
+  if (prefs.prefer_issuer) params.set('prefer_issuer', prefs.prefer_issuer);
+  if (prefs.prefer_subject) params.set('prefer_subject', prefs.prefer_subject);
+  if (prefs.prefer_cf) params.set('prefer_cf', prefs.prefer_cf);
+  const resp = await fetch(`${AW_PST_LS_BASE}/ping?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
+  return resp.json();
+}
+async function awLsSelectCert() {
+  const prefs = AW_STATE.status.cert_preferences || {};
+  const params = new URLSearchParams();
+  if (prefs.auto) params.set('auto', '1');
+  if (prefs.prefer_issuer) params.set('prefer_issuer', prefs.prefer_issuer);
+  if (prefs.prefer_subject) params.set('prefer_subject', prefs.prefer_subject);
+  if (prefs.prefer_cf) params.set('prefer_cf', prefs.prefer_cf);
+  const resp = await fetch(`${AW_PST_LS_BASE}/seleziona-certificato?${params.toString()}`, { signal: AbortSignal.timeout(120000) });
+  const data = await resp.json();
+  if (!data.ok) throw new Error(data.errore || 'Selezione certificato non riuscita');
+  awSavePstCert({ thumbprint: data.thumbprint, soggetto: data.soggetto, emittente: data.emittente, scadenza: data.scadenza, auto_selezionato: !!data.auto_selezionato });
+  return AW_PST_CERT;
+}
+async function awPstSearchViaLocalSigner(query) {
+  if (!AW_PST_CERT) await awLsSelectCert();
+  const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
+    method: 'POST',
+    body: JSON.stringify({
+      tribunale: query.ufficio_codice || '',
+      numero_rg: query.numero || '',
+      anno_rg: query.anno || '',
+      nome_parte: query.assistito || query.controparte || '',
+      cf_parte: query.cf || '',
+      cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+      cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+    }),
+  });
+  if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
+  return (data.fascicoli || []).map(row => ({
+    external_id: `${row.codice_ufficio || query.ufficio_codice}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
+    numero: row.numero_rg || '',
+    anno: Number(row.anno_rg || 0),
+    ufficio_codice: row.codice_ufficio || query.ufficio_codice || '',
+    ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
+    procedimento: row.ruolo || '',
+    sezione: row.sezione || '',
+    stato: row.stato || '',
+    oggetto: row.oggetto || '',
+    parti: Array.isArray(row.parti) ? row.parti : [],
+    controparti: [],
+    ultima_attivita: row.data_udienza || row.data_iscrizione || '',
+    payload: row,
+  }));
+}
+async function awPstPreviewViaLocalSigner(selection) {
+  if (!AW_PST_CERT) await awLsSelectCert();
+  const data = await awJson(`${AW_PST_LS_BASE}/pst/documenti`, {
+    method: 'POST',
+    body: JSON.stringify({
+      codice_ufficio: selection.ufficio_codice,
+      numero_rg: selection.numero,
+      anno_rg: selection.anno,
+      cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+      cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+    }),
+  });
+  if (!data.ok) throw new Error(data.errore || 'Anteprima documenti PST non riuscita');
+  return data.documenti || [];
+}
+function awRenderAccess() {
+  const status = AW_STATE.status || {};
+  const signer = status.local_signer || {};
+  const cards = [
+    {
+      title: 'Portale e sorgente',
+      value: awEscape(AW_BOOT.spec.label),
+      detail: `${awEscape(AW_BOOT.spec.source_label)} - ${awEscape(status.environment_label || 'Produzione guidata')}`,
+      tone: 'success',
+    },
+    {
+      title: 'Profilo operativo',
+      value: awEscape(status.avvocato || 'Profilo non rilevato'),
+      detail: status.codice_fiscale_avvocato ? `CF ${awEscape(status.codice_fiscale_avvocato)}` : 'Codice fiscale non configurato',
+      tone: status.codice_fiscale_avvocato ? 'success' : 'warning',
+    },
+    {
+      title: 'Certificato attivo',
+      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || status.backend_firma || 'Da verificare'),
+      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Selezione via Local Signer / Windows' : 'Certificato lato server / portale'),
+      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || status.backend_firma !== 'nessuno') ? 'success' : 'warning',
+    },
+    {
+      title: 'Stato connessione',
+      value: awEscape(status.status_text || 'Da testare'),
+      detail: status.last_sync_at ? `Ultimo log ${awFormatDate(status.last_sync_at)}` : 'Nessun import guidato registrato',
+      tone: status.test_ok ? 'success' : 'warning',
+    },
+  ];
+  document.getElementById('awAccessGrid').innerHTML = cards.map(card => `
+    <div class="col-md-6 col-xl-3">
+      <div class="aw-box h-100">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <div class="small text-muted text-uppercase fw-semibold">${card.title}</div>
+          <span class="badge text-bg-${awBadgeCls(card.tone)}">${card.tone === 'success' ? 'OK' : 'Verifica'}</span>
+        </div>
+        <div class="fw-semibold mb-1">${card.value}</div>
+        <div class="small text-muted">${card.detail}</div>
+      </div>
+    </div>`).join('');
+  const note = [];
+  if (status.pkcs11_mode) note.push('Ricerca PST reale tramite Local Signer e certificato Windows, senza usare la chiave privata nel server.');
+  if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
+  if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
+  if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
+  document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l’accesso e continua con la ricerca del fascicolo.';
+}
+async function awRunSearch() {
+  const meta = document.getElementById('awResultsMeta');
+  const root = document.getElementById('awResults');
+  meta.textContent = 'Ricerca in corso...';
+  root.innerHTML = '<div class="aw-box text-muted">Sto interrogando il portale e preparando i risultati utili alla verifica.</div>';
+  try {
+    const query = awCurrentQuery();
+    let results = [];
+    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+      results = await awPstSearchViaLocalSigner(query);
+    } else {
+      const data = await awJson(AW_BOOT.searchUrl, { method: 'POST', body: JSON.stringify(query) });
+      if (!data.ok) throw new Error(data.errore || 'Ricerca non riuscita');
+      results = data.results || [];
+    }
+    AW_STATE.results = results;
+    AW_STATE.selection = null;
+    AW_STATE.preview = null;
+    AW_STATE.analysis = null;
+    AW_STATE.importResult = null;
+    awRenderResults();
+    awRenderPreview();
+    awRenderSelectionOptions();
+    awRenderAnalysis();
+    awRenderSidebar();
+  } catch (err) {
+    AW_STATE.results = [];
+    meta.textContent = 'Ricerca non riuscita';
+    root.innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
+  }
+}
+function awRenderResults() {
+  const root = document.getElementById('awResults');
+  const meta = document.getElementById('awResultsMeta');
+  if (!AW_STATE.results.length) {
+    meta.textContent = 'Nessun risultato disponibile.';
+    root.innerHTML = '<div class="aw-box text-muted">Usa ricerca intelligente, filtri rapidi e ufficio giudiziario per trovare il fascicolo giusto.</div>';
+    return;
+  }
+  meta.textContent = `${AW_STATE.results.length} fascicolo/i trovati`;
+  root.innerHTML = AW_STATE.results.map((row, index) => `
+    <div class="aw-result ${AW_STATE.selection && AW_STATE.selection.external_id === row.external_id ? 'border border-' + AW_BOOT.spec.color : ''}">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div class="flex-grow-1">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span class="badge text-bg-light border">${awEscape(row.ufficio_nome || row.ufficio_codice || 'Ufficio')}</span>
+            <strong>RG ${awEscape(row.numero)}/${awEscape(row.anno)}</strong>
+            <span class="badge text-bg-secondary">${awEscape(row.procedimento || 'Procedimento')}</span>
+            ${row.stato ? `<span class="badge text-bg-light border">${awEscape(row.stato)}</span>` : ''}
+          </div>
+          <div class="fw-semibold mb-1">${awEscape(row.oggetto || 'Oggetto non disponibile')}</div>
+          <div class="small text-muted mb-1">${awEscape((row.parti || []).slice(0, 3).join(' - ') || 'Parti non disponibili')}</div>
+          <div class="small text-muted">Ultimo aggiornamento: ${awEscape(row.ultima_attivita || 'n.d.')} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">Anteprima</button>
+          <button type="button" class="btn btn-sm btn-${AW_BOOT.spec.color}" data-aw-select="${index}">Seleziona</button>
+        </div>
+      </div>
+    </div>`).join('');
+  root.querySelectorAll('[data-aw-preview]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awPreview), true)));
+  root.querySelectorAll('[data-aw-select]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awSelect), true)));
+}
+async function awSelectResult(index, jumpPreview) {
+  const selection = AW_STATE.results[index];
+  if (!selection) return;
+  AW_STATE.selection = selection;
+  AW_STATE.preview = null;
+  AW_STATE.analysis = null;
+  AW_STATE.importResult = null;
+  AW_STATE.previewTab = 'dati';
+  document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando l’anteprima del fascicolo e dei documenti disponibili...</div>';
+  awRenderSidebar();
+  try {
+    const payload = { selection };
+    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+      payload.documenti = await awPstPreviewViaLocalSigner(selection);
+    }
+    const data = await awJson(AW_BOOT.previewUrl, { method: 'POST', body: JSON.stringify(payload) });
+    if (!data.ok) throw new Error(data.errore || 'Anteprima non disponibile');
+    AW_STATE.preview = data.preview || null;
+    awRenderResults();
+    awRenderPreview();
+    awRenderSelectionOptions();
+    awRenderAnalysis();
+    awRenderSidebar();
+    await awWarmAnalysis();
+    if (jumpPreview) awGoStep(3);
+  } catch (err) {
+    document.getElementById('awPreview').innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
+  }
+}
+function awRenderPreview() {
+  const tabs = document.getElementById('awPreviewTabs');
+  const root = document.getElementById('awPreview');
+  if (!AW_STATE.preview) {
+    tabs.innerHTML = '';
+    root.innerHTML = '<div class="aw-box text-muted">Seleziona un risultato per vedere dati fascicolo, parti, eventi e documenti prima di importare.</div>';
+    return;
+  }
+  const preview = AW_STATE.preview;
+  const defs = [
+    { id: 'dati', label: 'Dati fascicolo' },
+    { id: 'parti', label: 'Parti e difensori' },
+    { id: 'eventi', label: 'Eventi e udienze' },
+    { id: 'documenti', label: 'Documenti disponibili' },
+  ];
+  tabs.innerHTML = defs.map(tab => `<li class="nav-item"><button type="button" class="nav-link ${AW_STATE.previewTab === tab.id ? 'active' : ''}" data-aw-tab="${tab.id}">${tab.label}</button></li>`).join('');
+  tabs.querySelectorAll('[data-aw-tab]').forEach(btn => btn.addEventListener('click', () => { AW_STATE.previewTab = btn.dataset.awTab; awRenderPreview(); }));
+  const identity = preview.identity || {};
+  if (AW_STATE.previewTab === 'dati') {
+    root.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Oggetto</div><div class="fw-semibold">${awEscape(identity.oggetto || 'Oggetto non disponibile')}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(identity.data_iscrizione || 'n.d.')}<br>Ultima attivita: ${awEscape(identity.ultima_attivita || 'n.d.')}<br>Prossima udienza: ${awEscape(identity.data_udienza || 'n.d.')}</div></div></div>
+      </div>`;
+    return;
+  }
+  if (AW_STATE.previewTab === 'parti') {
+    root.innerHTML = `
+      <div class="row g-3">
+        <div class="col-lg-6"><div class="aw-box h-100"><div class="fw-semibold mb-2">Parti principali</div>${(preview.parti || []).length ? `<ul class="mb-0 small">${preview.parti.map(x => `<li>${awEscape(x)}</li>`).join('')}</ul>` : '<div class="text-muted small">Nessuna parte rilevata.</div>'}</div></div>
+        <div class="col-lg-6"><div class="aw-box h-100"><div class="fw-semibold mb-2">Controparti / resistenti</div>${(preview.controparti || []).length ? `<ul class="mb-0 small">${preview.controparti.map(x => `<li>${awEscape(x)}</li>`).join('')}</ul>` : '<div class="text-muted small">Nessuna controparte rilevata.</div>'}</div></div>
+        <div class="col-12"><div class="aw-box"><div class="fw-semibold mb-2">Difensori</div>${(preview.difensori || []).length ? `<div class="d-flex flex-wrap gap-2">${preview.difensori.map(x => `<span class="badge text-bg-light border">${awEscape(x)}</span>`).join('')}</div>` : '<div class="text-muted small">Il portale non espone difensori strutturati per questo fascicolo.</div>'}</div></div>
+      </div>`;
+    return;
+  }
+  if (AW_STATE.previewTab === 'eventi') {
+    root.innerHTML = `
+      <div class="aw-box">
+        ${(preview.eventi || []).length ? (preview.eventi || []).map(ev => `
+          <div class="d-flex justify-content-between align-items-start gap-3 border-bottom py-2">
+            <div><div class="fw-semibold">${awEscape(ev.label)}</div><div class="small text-muted">${awEscape(ev.tipo || 'evento')}</div></div>
+            <div class="small">${awEscape(ev.data || 'n.d.')}</div>
+          </div>`).join('') : '<div class="text-muted small">Nessun evento strutturato disponibile.</div>'}
+      </div>`;
+    return;
+  }
+  root.innerHTML = `
+    <div class="d-flex flex-column gap-3">
+      ${(preview.depositi || []).length ? preview.depositi.map(dep => `
+        <div class="aw-box">
+          <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+            <div><div class="fw-semibold">${awEscape(dep.tipo_atto || dep.id_deposito || 'Deposito')}</div><div class="small text-muted">${awEscape(dep.data_deposito || 'n.d.')} ${dep.mittente ? `- ${awEscape(dep.mittente)}` : ''}</div></div>
+            <span class="badge text-bg-light border">${(dep.documenti || []).length} file</span>
+          </div>
+          <div class="small">${(dep.documenti || []).map(doc => `<div class="d-flex justify-content-between gap-2 py-1 border-top"><span>${awEscape(doc.nome || doc.id_documento)}</span><span class="text-muted">${awEscape(doc.tipo_atto || doc.tipo || '')}</span></div>`).join('')}</div>
+        </div>`).join('') : '<div class="aw-box text-muted">Nessun documento disponibile dal portale per questo fascicolo.</div>'}
+    </div>`;
+}
+function awSelectionValue(id, fallback) {
+  const el = document.getElementById(id);
+  return el ? el.checked : fallback;
+}
+function awRenderSelectionOptions() {
+  const root = document.getElementById('awSelectionGrid');
+  if (!AW_STATE.preview) {
+    root.innerHTML = '<div class="col-12"><div class="aw-box text-muted">L’anteprima attiva sblocca la selezione modulare di dati, eventi, documenti e sincronizzazioni successive.</div></div>';
+    return;
+  }
+  const counts = AW_STATE.preview.counts || {};
+  const boxes = [
+    ['importa_dati_pratica', 'Dati anagrafici pratica', counts.parti || 0, 'Crea una pratica pulita con RG, oggetto, ufficio e stato.'],
+    ['importa_parti', 'Parti e soggetti', counts.parti || 0, 'Importa assistiti, controparti e relazioni soggetto/pratica.'],
+    ['importa_difensori', 'Difensori', counts.difensori || 0, 'Conserva eventuali difensori strutturati dal portale.'],
+    ['importa_eventi', 'Eventi e cronologia', counts.eventi || 0, 'Integra eventi rilevanti e timeline portale.'],
+    ['importa_udienze', 'Udienze', counts.udienze || 0, 'Rende governabile il calendario processuale.'],
+    ['importa_scadenze', 'Scadenze', counts.udienze || 0, 'Trasforma le date strutturate in scadenziario interno.'],
+    ['importa_documenti', 'Documenti e allegati', counts.documenti || 0, 'Popola archivio documentale e vista a buste.'],
+    ['importa_provvedimenti', 'Provvedimenti', counts.provvedimenti || 0, 'Evidenzia sentenze, ordinanze e decreti.'],
+    ['importa_cronologia_depositi', 'Cronologia depositi', counts.depositi || 0, 'Mantiene tracciata l’origine telematica.'],
+    ['importa_esiti_telematici', 'Esiti telematici', counts.esiti || 0, 'Utile per monitorare stato e ricevute.'],
+  ];
+  root.innerHTML = `
+    ${boxes.map(([key, label, count, note]) => `
+      <div class="col-lg-6">
+        <label class="aw-box h-100 d-block">
+          <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="${key}" ${awSelectionValue(key, true) ? 'checked' : ''}>
+            <span class="form-check-label fw-semibold">${label}</span>
+          </div>
+          <div class="small text-muted mb-1">${note}</div>
+          <div class="small"><strong>${count}</strong> elemento/i stimati</div>
+        </label>
+      </div>`).join('')}
+      <div class="col-12">
+        <div class="aw-box bg-light-subtle">
+          <div class="fw-semibold mb-2">Opzioni avanzate di importazione</div>
+          <div class="row g-2 small">
+            ${[
+              ['solo_nuovi', 'Importa solo nuovi elementi', true],
+              ['aggiorna_pratica_esistente', 'Consenti aggiornamento pratica esistente', false],
+              ['sovrascrivi_solo_vuoti', 'Sovrascrivi solo campi vuoti', true],
+              ['non_toccare_note_interne', 'Non toccare note interne', true],
+              ['non_duplicare_documenti', 'Non duplicare documenti', true],
+              ['conserva_log_origine_pst', 'Conserva log origine portale', true],
+            ].map(([key, label, checked]) => `
+              <div class="col-md-6 col-xl-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="${key}" ${awSelectionValue(key, checked) ? 'checked' : ''}>
+                  <label class="form-check-label" for="${key}">${label}</label>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+}
+function awCurrentOptions() {
+  return {
+    importa_dati_pratica: awSelectionValue('importa_dati_pratica', true),
+    importa_parti: awSelectionValue('importa_parti', true),
+    importa_difensori: awSelectionValue('importa_difensori', true),
+    importa_eventi: awSelectionValue('importa_eventi', true),
+    importa_udienze: awSelectionValue('importa_udienze', true),
+    importa_scadenze: awSelectionValue('importa_scadenze', true),
+    importa_documenti: awSelectionValue('importa_documenti', true),
+    importa_provvedimenti: awSelectionValue('importa_provvedimenti', true),
+    importa_cronologia_depositi: awSelectionValue('importa_cronologia_depositi', true),
+    importa_esiti_telematici: awSelectionValue('importa_esiti_telematici', true),
+    solo_nuovi: awSelectionValue('solo_nuovi', true),
+    aggiorna_pratica_esistente: awSelectionValue('aggiorna_pratica_esistente', false),
+    sovrascrivi_solo_vuoti: awSelectionValue('sovrascrivi_solo_vuoti', true),
+    non_toccare_note_interne: awSelectionValue('non_toccare_note_interne', true),
+    non_duplicare_documenti: awSelectionValue('non_duplicare_documenti', true),
+    conserva_log_origine_pst: awSelectionValue('conserva_log_origine_pst', true),
+  };
+}
+function awCurrentMapping() {
+  return {
+    mode: document.querySelector('input[name="awMapMode"]:checked')?.value || 'create_new',
+    target_fascicolo_id: document.getElementById('awTarget')?.value || '',
+    procedimento: document.getElementById('awProc')?.value.trim() || '',
+    materia: document.getElementById('awMateria')?.value.trim() || '',
+    grado: document.getElementById('awGrado')?.value.trim() || '',
+  };
+}
+function awRenderMappingMatches() {
+  const analysis = AW_STATE.analysis || {};
+  const target = document.getElementById('awTarget');
+  if (!target) return;
+  const current = target.value;
+  const matches = analysis.existing_matches || [];
+  target.innerHTML = `<option value="">${matches.length ? 'Seleziona fascicolo compatibile' : 'Nessun fascicolo compatibile rilevato'}</option>` +
+    matches.map(match => `<option value="${awEscape(match.id)}">${awEscape(match.numero)} - ${awEscape(match.titolo)} ${match.rg_completo ? `(${awEscape(match.rg_completo)})` : ''}</option>`).join('');
+  if (matches.some(match => match.id === current)) target.value = current;
+  target.disabled = awCurrentMapping().mode === 'create_new';
+  const box = document.getElementById('awMatches');
+  box.innerHTML = matches.length
+    ? `<div class="fw-semibold mb-2">Pratiche locali compatibili</div>${matches.map(match => `<div class="small border-top pt-2 mt-2"><strong>${awEscape(match.numero)}</strong> - ${awEscape(match.titolo)}<br><span class="text-muted">${awEscape(match.rg_completo || '')} ${match.source ? `- Origine ${awEscape(match.source)}` : ''}</span></div>`).join('')}`
+    : '<div class="small text-muted">Nessun fascicolo locale compatibile rilevato: creare una nuova pratica e il flusso più pulito.</div>';
+}
+async function awWarmAnalysis() {
+  if (!AW_STATE.selection || !AW_STATE.preview) return;
+  try {
+    const data = await awJson(AW_BOOT.analyzeUrl, {
+      method: 'POST',
+      body: JSON.stringify({
+        selection: AW_STATE.selection,
+        preview: AW_STATE.preview,
+        options: awCurrentOptions(),
+        mapping: awCurrentMapping(),
+      }),
+    });
+    if (data.ok) {
+      AW_STATE.analysis = data.analysis || null;
+      awRenderMappingMatches();
+      awRenderAnalysis();
+      awRenderSidebar();
+    }
+  } catch (_) {}
+}
+async function awRunAnalysis(advance) {
+  if (!AW_STATE.selection || !AW_STATE.preview) {
+    alert('Seleziona prima un fascicolo e completa l’anteprima.');
+    return;
+  }
+  document.getElementById('awAnalysisSummary').textContent = 'Analisi conflitti in corso...';
+  const data = await awJson(AW_BOOT.analyzeUrl, {
+    method: 'POST',
+    body: JSON.stringify({
+      selection: AW_STATE.selection,
+      preview: AW_STATE.preview,
+      options: awCurrentOptions(),
+      mapping: awCurrentMapping(),
+    }),
+  });
+  if (!data.ok) {
+    document.getElementById('awAnalysisSummary').innerHTML = `<span class="text-danger">${awEscape(data.errore || 'Analisi non riuscita')}</span>`;
+    return;
+  }
+  AW_STATE.analysis = data.analysis || null;
+  awRenderMappingMatches();
+  awRenderAnalysis();
+  awRenderSidebar();
+  if (advance) awGoStep(6);
+}
+function awRenderAnalysis() {
+  const analysis = AW_STATE.analysis;
+  const summary = document.getElementById('awAnalysisSummary');
+  const issues = document.getElementById('awIssues');
+  const ok = document.getElementById('awOk');
+  const score = document.getElementById('awScore');
+  const blockers = document.getElementById('awBlockers');
+  const warnings = document.getElementById('awWarnings');
+  const goImport = document.getElementById('awGoImport');
+  const importBtn = document.getElementById('awImport');
+  if (!analysis) {
+    summary.textContent = 'Nessuna analisi eseguita.';
+    issues.innerHTML = '<div class="aw-box text-muted">La verifica evidenziera blocchi, warning e possibili duplicati prima dell’importazione.</div>';
+    ok.innerHTML = '';
+    score.textContent = '—';
+    blockers.textContent = '—';
+    warnings.textContent = '—';
+    goImport.disabled = true;
+    importBtn.disabled = true;
+    return;
+  }
+  score.textContent = analysis.score ?? '—';
+  blockers.textContent = (analysis.blockers || []).length;
+  warnings.textContent = (analysis.warnings || []).length;
+  summary.innerHTML = `<strong>${awEscape(analysis.summary_text || '')}</strong><br><span class="small text-muted">Prossimo passo: ${awEscape(analysis.next_step?.label || 'Nessuno')}</span>`;
+  const list = [...(analysis.blockers || []), ...(analysis.warnings || [])];
+  issues.innerHTML = list.length ? list.map(item => `<div class="${awToneCls(item.tone)}"><div class="fw-semibold">${awEscape(item.label)}</div><div class="small">${awEscape(item.detail || '')}</div></div>`).join('') : '<div class="aw-box text-success">Nessun conflitto bloccante rilevato.</div>';
+  ok.innerHTML = (analysis.ok || []).map(item => `<div class="${awToneCls(item.tone)}"><div class="fw-semibold">${awEscape(item.label)}</div><div class="small">${awEscape(item.detail || '')}</div></div>`).join('');
+  const canImport = !(analysis.blockers || []).length;
+  goImport.disabled = !canImport;
+  importBtn.disabled = !canImport;
+}
+async function awStartImport() {
+  if (!AW_STATE.selection || !AW_STATE.preview) {
+    alert('Completa ricerca, anteprima e verifica prima dell’importazione.');
+    return;
+  }
+  if ((AW_STATE.analysis?.blockers || []).length) {
+    alert('Sono presenti blocchi da risolvere prima dell’importazione.');
+    return;
+  }
+  const state = document.getElementById('awImportState');
+  const actions = document.getElementById('awImportActions');
+  state.innerHTML = 'Importazione guidata in corso...';
+  actions.innerHTML = '';
+  const data = await awJson(AW_BOOT.importUrl, {
+    method: 'POST',
+    body: JSON.stringify({
+      selection: AW_STATE.selection,
+      preview: AW_STATE.preview,
+      options: awCurrentOptions(),
+      mapping: awCurrentMapping(),
+    }),
+  });
+  if (!data.ok) {
+    state.innerHTML = `<span class="text-danger">${awEscape(data.errore || 'Importazione non riuscita')}</span>`;
+    return;
+  }
+  AW_STATE.importResult = data.result || null;
+  const summary = AW_STATE.importResult?.summary || {};
+  state.innerHTML = `
+    <div class="alert alert-success rounded-4 mb-0">
+      <div class="fw-semibold mb-1">${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
+      <div class="small">
+        Documenti importati: ${awEscape(summary.documenti || 0)} -
+        Depositi censiti: ${awEscape(summary.depositi || 0)} -
+        Eventi generati: ${awEscape(summary.eventi_generati || 0)} -
+        Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} -
+        Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
+      </div>
+      <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
+    </div>`;
+  actions.innerHTML = [
+    ['Apri quadro pratica', AW_STATE.importResult?.quadro_url, AW_BOOT.spec.color],
+    ['Apri fascicolo', AW_STATE.importResult?.dettaglio_url, 'outline-' + AW_BOOT.spec.color],
+    ['Apri documenti', AW_STATE.importResult?.documenti_url, 'outline-' + AW_BOOT.spec.color],
+    ['Apri timeline', AW_STATE.importResult?.timeline_url, 'outline-' + AW_BOOT.spec.color],
+    ['Apri scadenziario', AW_STATE.importResult?.scadenziario_url, 'outline-' + AW_BOOT.spec.color],
+  ].filter(([, url]) => !!url).map(([label, url, cls]) => `<a class="btn btn-${cls}" href="${url}">${label}</a>`).join('');
+  awRenderSidebar();
+}
+function awRenderSidebar() {
+  const list = document.getElementById('awSidebarList');
+  const pills = document.getElementById('awSidebarPills');
+  const note = document.getElementById('awSidebarNote');
+  if (!AW_STATE.selection) {
+    list.innerHTML = '<li class="text-muted">Nessun fascicolo selezionato.</li>';
+    pills.innerHTML = '';
+    note.textContent = 'Seleziona un fascicolo per vedere riepilogo, warning e piano di importazione.';
+    return;
+  }
+  const selection = AW_STATE.selection;
+  const counts = AW_STATE.preview?.counts || {};
+  list.innerHTML = [
+    ['Portale', AW_BOOT.spec.label],
+    ['Ufficio', selection.ufficio_nome || selection.ufficio_codice || 'n.d.'],
+    ['RG', `${selection.numero || 'n.d.'}/${selection.anno || 'n.d.'}`],
+    ['Procedimento', selection.procedimento || 'n.d.'],
+    ['Parti', (selection.parti || []).slice(0, 2).join(' - ') || 'n.d.'],
+  ].map(([label, value]) => `<li class="mb-2"><div class="text-muted">${label}</div><div class="fw-semibold">${awEscape(value)}</div></li>`).join('');
+  pills.innerHTML = [
+    ['Documenti', counts.documenti || 0],
+    ['Eventi', counts.eventi || 0],
+    ['Udienze', counts.udienze || 0],
+    ['Provvedimenti', counts.provvedimenti || 0],
+  ].map(([label, count]) => `<span class="badge text-bg-light border">${label}: ${awEscape(count)}</span>`).join('');
+  if (AW_STATE.importResult?.summary) {
+    note.textContent = `Import completato. Pratica ${AW_STATE.importResult.summary.numero_pratica || ''} pronta per essere governata dal gestionale.`;
+  } else if (AW_STATE.analysis?.next_step) {
+    note.textContent = `${AW_STATE.analysis.next_step.label}: ${AW_STATE.analysis.next_step.detail || ''}`;
+  } else {
+    note.textContent = 'Completa selezione, mappatura e verifica: il sistema guidera importazione e sincronizzazione futura.';
+  }
+}
+function awBindQuickFilters() {
+  document.querySelectorAll('.awQuick').forEach(btn => {
+    btn.addEventListener('click', () => {
+      AW_STATE.quick = AW_STATE.quick === btn.dataset.filter ? '' : btn.dataset.filter;
+      document.querySelectorAll('.awQuick').forEach(node => node.classList.toggle('active', node.dataset.filter === AW_STATE.quick));
+    });
+  });
+}
+function awInitOfficeAutocomplete() {
+  const input = document.getElementById('awOfficeInput');
+  const value = document.getElementById('awOfficeValue');
+  const dropdown = document.getElementById('awOfficeDropdown');
+  const help = document.getElementById('awOfficeHelp');
+  const allowedMap = {
+    pst: null,
+    pdp: null,
+    pat: new Set(['TAR', 'CDS', 'CGARS']),
+    ptt: new Set(['CPT', 'CGT']),
+  };
+  const allowed = allowedMap[AW_BOOT.portale];
+  help.textContent = AW_BOOT.portale === 'ptt'
+    ? 'Sono ammessi solo uffici tributari CPT e CGT.'
+    : (AW_BOOT.portale === 'pat' ? 'Sono ammessi TAR, Consiglio di Stato e CGARS.' : 'Seleziona l’ufficio corretto per limitare i risultati.');
+  let timer = null;
+  function closeDrop() {
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+  }
+  function choose(item) {
+    input.value = item.nome || item.codice || '';
+    value.value = item.codice || '';
+    closeDrop();
+  }
+  input.addEventListener('input', () => {
+    value.value = '';
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) return closeDrop();
+    timer = setTimeout(async () => {
+      try {
+        const resp = await fetch(`/api/uffici?q=${encodeURIComponent(q)}`);
+        const data = await resp.json();
+        const rows = Array.isArray(data) ? data : [];
+        const filtered = rows.filter(item => !allowed || allowed.has(String(item.tipo || '').toUpperCase())).slice(0, 12);
+        if (!filtered.length) {
+          dropdown.innerHTML = '<div class="list-group-item small text-muted">Nessun ufficio coerente con il portale selezionato.</div>';
+          dropdown.style.display = '';
+          return;
+        }
+        dropdown.innerHTML = filtered.map(item => `<button type="button" class="list-group-item list-group-item-action" data-code="${awEscape(item.codice || '')}" data-name="${awEscape(item.nome || '')}"><div class="fw-semibold">${awEscape(item.nome || item.codice || '')}</div><div class="small text-muted">${awEscape(item.tipo || '')}${item.distretto ? ` - ${awEscape(item.distretto)}` : ''}</div></button>`).join('');
+        dropdown.style.display = '';
+        dropdown.querySelectorAll('[data-code]').forEach(btn => btn.addEventListener('click', () => choose({ codice: btn.dataset.code, nome: btn.dataset.name })));
+      } catch (_) {
+        closeDrop();
+      }
+    }, 180);
+  });
+  document.addEventListener('click', event => {
+    if (!input.parentElement.contains(event.target)) closeDrop();
+  });
+}
+function awBindActions() {
+  document.getElementById('awTest').addEventListener('click', async () => {
+    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
+      try { await awLsSelectCert(); } catch (err) { alert(String(err)); }
+    }
+    await awRefreshStatus();
+  });
+  document.getElementById('awGoSearch').addEventListener('click', async () => {
+    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
+      try { await awLsSelectCert(); } catch (err) { alert(String(err)); return; }
+      await awRefreshStatus();
+    }
+    awGoStep(2);
+  });
+  document.getElementById('awSearch').addEventListener('click', awRunSearch);
+  ['awNumero', 'awAnno', 'awAssistito', 'awControparte', 'awCf', 'awOggetto'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        awRunSearch();
+      }
+    });
+  });
+  document.getElementById('awGoSelection').addEventListener('click', () => {
+    if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
+    awGoStep(4);
+  });
+  document.getElementById('awGoMapping').addEventListener('click', async () => {
+    if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
+    awGoStep(5);
+    await awWarmAnalysis();
+  });
+  document.querySelectorAll('input[name="awMapMode"]').forEach(radio => radio.addEventListener('change', () => {
+    awRenderMappingMatches();
+    awWarmAnalysis();
+  }));
+  document.getElementById('awTarget').addEventListener('change', awWarmAnalysis);
+  document.getElementById('awProc').addEventListener('change', awWarmAnalysis);
+  document.getElementById('awMateria').addEventListener('change', awWarmAnalysis);
+  document.getElementById('awGrado').addEventListener('change', awWarmAnalysis);
+  document.getElementById('awAnalyze').addEventListener('click', () => awRunAnalysis(true));
+  document.getElementById('awGoImport').addEventListener('click', () => {
+    if ((AW_STATE.analysis?.blockers || []).length) return alert('Risolvi prima i blocchi evidenziati.');
+    awGoStep(7);
+  });
+  document.getElementById('awImport').addEventListener('click', awStartImport);
+}
+document.addEventListener('DOMContentLoaded', async () => {
+  awLoadPstCert();
+  awRenderSteps();
+  awRenderAccess();
+  awRenderResults();
+  awRenderPreview();
+  awRenderSelectionOptions();
+  awRenderAnalysis();
+  awRenderSidebar();
+  awBindQuickFilters();
+  awInitOfficeAutocomplete();
+  awBindActions();
+  await awRefreshStatus();
+});
+</script>
+{% endblock %}

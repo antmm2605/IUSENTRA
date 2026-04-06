@@ -43,6 +43,16 @@
     {% endfor %}
   {% endwith %}
 
+  <div class="alert alert-danger-subtle border border-danger-subtle rounded-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <strong><i class="bi bi-stars me-1"></i>Percorso consigliato</strong>
+      Usa <strong>Acquisizione guidata</strong> per cercare il fascicolo giusto, verificare conflitti e trasformarlo in una pratica pulita nel gestionale.
+    </div>
+    <a class="btn btn-danger" href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}">
+      <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
+    </a>
+  </div>
+
   {# ---- Form ricerca ---- #}
   <div class="card shadow-sm mb-4">
     <div class="card-header fw-semibold d-flex align-items-center gap-2">

@@ -316,6 +316,10 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["PORTALE_UPLOADS"] = cfg.get(
         "PORTALE_UPLOADS", os.getenv("PCT_PORTALE_UPLOADS", "./portale/uploads")
     )
+    app.config["PORTALE_IMPORT_LOG_DB"] = cfg.get(
+        "PORTALE_IMPORT_LOG_DB",
+        os.getenv("PCT_PORTALE_IMPORT_LOG_DB", "./portale/import_log.json"),
+    )
     app.config["FATTURAZIONE_DB"] = cfg.get(
         "FATTURAZIONE_DB", os.getenv("PCT_FATTURAZIONE_DB", "./fatturazione/parcelle.json")
     )
@@ -4375,6 +4379,109 @@ def create_app(config: dict | None = None) -> Flask:
             oggi=date.today(),
         )
 
+    # ---------------------------------------------------------------- Portali — Acquisizione guidata fascicoli
+
+    @app.route("/portali/<portale>/acquisizione", methods=["GET"])
+    def portale_acquisizione_wizard(portale: str):
+        try:
+            spec = _spec_portale_acquisizione(portale)
+        except KeyError:
+            flash("Portale non supportato.", "warning")
+            return redirect(url_for("dashboard"))
+        return render_template(
+            "portale/acquisizione_wizard.html",
+            spec=spec,
+            wizard_status=_build_access_status_payload(portale),
+            wizard_portale=portale,
+            oggi=date.today(),
+        )
+
+    @app.route("/polisWeb/acquisizione", methods=["GET"])
+    def polisweb_acquisizione_redirect():
+        return redirect(url_for("portale_acquisizione_wizard", portale="pst"))
+
+    @app.route("/pdp/acquisizione", methods=["GET"])
+    def pdp_acquisizione_redirect():
+        return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
+
+    @app.route("/pat/acquisizione", methods=["GET"])
+    def pat_acquisizione_redirect():
+        return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
+
+    @app.route("/sigit/acquisizione", methods=["GET"])
+    def sigit_acquisizione_redirect():
+        return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
+
+    @app.route("/api/portali/<portale>/acquisizione/status", methods=["GET"])
+    def api_portale_acquisizione_status(portale: str):
+        try:
+            return jsonify({"ok": True, "status": _build_access_status_payload(portale)})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_status(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e), "status": {}}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/search", methods=["POST"])
+    def api_portale_acquisizione_search(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            risultati = _search_fascicoli_portale_server(portale, data)
+            return jsonify({"ok": True, "results": risultati})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_search(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e), "results": []}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/preview", methods=["POST"])
+    def api_portale_acquisizione_preview(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            selection = dict(data.get("selection") or {})
+            if not selection:
+                raise ValueError("Fascicolo non selezionato.")
+            documenti = data.get("documenti")
+            if not isinstance(documenti, list):
+                documenti = _preview_documenti_portale_server(portale, selection)
+            preview = _build_portale_preview(portale, selection, documenti)
+            return jsonify({"ok": True, "preview": preview})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_preview(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e), "preview": {}}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/analyze", methods=["POST"])
+    def api_portale_acquisizione_analyze(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            selection = dict(data.get("selection") or {})
+            preview = dict(data.get("preview") or {})
+            if not selection or not preview:
+                raise ValueError("Selezione o anteprima mancanti.")
+            options = _coerce_import_options(dict(data.get("options") or {}))
+            mapping = _coerce_mapping(dict(data.get("mapping") or {}))
+            analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
+            return jsonify({"ok": True, "analysis": analysis})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_analyze(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e), "analysis": {}}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/import", methods=["POST"])
+    def api_portale_acquisizione_import(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            selection = dict(data.get("selection") or {})
+            preview = dict(data.get("preview") or {})
+            if not selection or not preview:
+                raise ValueError("Selezione o anteprima mancanti.")
+            options = _coerce_import_options(dict(data.get("options") or {}))
+            mapping = _coerce_mapping(dict(data.get("mapping") or {}))
+            result = _importa_o_collega_fascicolo_portale(portale, selection, preview, options, mapping)
+            return jsonify({"ok": True, **result})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
     # ---------------------------------------------------------------- PolisWeb — Consultazione e importazione fascicoli
 
     def _polis_auth_mode() -> str:
@@ -4433,6 +4540,977 @@ def create_app(config: dict | None = None) -> Flask:
             "prefer_subject": "auth|autent|autentica|client|tls|web",
             "prefer_cf": prefer_cf,
         }
+
+    _PORTALE_ACQUISIZIONE_SPECS: dict[str, dict[str, Any]] = {
+        "pst": {
+            "id": "pst",
+            "label": "PST / PolisWeb",
+            "title": "Importa pratica da PST",
+            "subtitle": "Ricerca, verifica e acquisizione guidata del fascicolo telematico",
+            "color": "primary",
+            "icon": "bi-building-fill-check",
+            "home_endpoint": "polisWeb_home",
+            "source_label": "Portale Servizi Telematici",
+            "requires_local_signer": True,
+            "quick_filters": ["civile", "lavoro", "famiglia", "esecuzioni", "volontaria", "recenti"],
+        },
+        "pdp": {
+            "id": "pdp",
+            "label": "PDP Penale",
+            "title": "Importa pratica da PDP Penale",
+            "subtitle": "Ricerca, verifica e integrazione guidata del fascicolo penale",
+            "color": "danger",
+            "icon": "bi-shield-exclamation",
+            "home_endpoint": "pdp_home",
+            "source_label": "Portale Deposito Atti Penale",
+            "requires_local_signer": False,
+            "quick_filters": ["dibattimento", "gip", "gup", "esecuzioni", "attivi", "recenti"],
+        },
+        "pat": {
+            "id": "pat",
+            "label": "PAT Amministrativo",
+            "title": "Importa pratica da PAT",
+            "subtitle": "Acquisizione guidata del fascicolo amministrativo con verifica conflitti",
+            "color": "success",
+            "icon": "bi-building-check",
+            "home_endpoint": "pat_home",
+            "source_label": "Processo Amministrativo Telematico",
+            "requires_local_signer": False,
+            "quick_filters": ["appalti", "urbanistica", "personale", "tributi", "attivi", "recenti"],
+        },
+        "ptt": {
+            "id": "ptt",
+            "label": "PTT Tributario",
+            "title": "Importa pratica da PTT",
+            "subtitle": "Acquisizione guidata del fascicolo tributario con controllo dati e scadenze",
+            "color": "warning",
+            "icon": "bi-receipt-cutoff",
+            "home_endpoint": "sigit_home",
+            "source_label": "Processo Tributario Telematico",
+            "requires_local_signer": False,
+            "quick_filters": ["iva", "irpef", "imu", "registro", "attivi", "recenti"],
+        },
+    }
+
+    def _spec_portale_acquisizione(portale: str) -> dict[str, Any]:
+        spec = _PORTALE_ACQUISIZIONE_SPECS.get((portale or "").strip().lower())
+        if not spec:
+            raise KeyError(f"Portale non supportato: {portale}")
+        return spec
+
+    def _portale_import_log_path() -> Path:
+        return Path(_cfg_data_path("PORTALE_IMPORT_LOG_DB"))
+
+    def _read_json_list(path: Path) -> list[dict]:
+        if not path.exists():
+            return []
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8") or "[]")
+        except Exception:
+            return []
+        return raw if isinstance(raw, list) else []
+
+    def _write_json_list(path: Path, rows: list[dict]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _new_import_log_id(portale: str) -> str:
+        return f"{portale.upper()}-{datetime.now().strftime('%Y%m%d%H%M%S')}-{os.urandom(3).hex().upper()}"
+
+    def _append_portale_import_log(entry: dict[str, Any]) -> str:
+        path = _portale_import_log_path()
+        rows = _read_json_list(path)
+        payload = dict(entry)
+        log_id = str(payload.get("id") or _new_import_log_id(str(payload.get("portale") or "PORT")))
+        payload["id"] = log_id
+        payload.setdefault("created_at", datetime.now().isoformat())
+        rows.append(payload)
+        _write_json_list(path, rows)
+        return log_id
+
+    def _last_portale_import_log(portale: str) -> dict[str, Any]:
+        sorgente = _portale_source_name(portale).strip().upper()
+        for row in reversed(_read_json_list(_portale_import_log_path())):
+            if str(row.get("portale") or "").strip().upper() == sorgente:
+                return dict(row)
+        return {}
+
+    def _resolve_ufficio_nome(codice: str) -> str:
+        codice = str(codice or "").strip()
+        if not codice:
+            return ""
+        try:
+            from pct.uffici_giudiziari import get_gestore as _get_uff
+
+            cache_path = os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json")
+            uff = next((u for u in _get_uff(cache_path).carica() if u.get("codice") == codice), None)
+            return str((uff or {}).get("nome") or codice).strip()
+        except Exception:
+            return codice
+
+    def _portale_source_name(portale: str) -> str:
+        return {
+            "pst": "PST",
+            "pdp": "PDP",
+            "pat": "PAT",
+            "ptt": "PTT",
+        }.get((portale or "").strip().lower(), (portale or "").upper())
+
+    def _normalize_portale_documents(documenti: list[dict]) -> list[dict]:
+        rows: list[dict] = []
+        for row in documenti or []:
+            item = dict(row or {})
+            rows.append(
+                {
+                    "id_documento": str(item.get("id_documento") or "").strip(),
+                    "nome": str(item.get("nome") or item.get("nome_documento") or "").strip(),
+                    "tipo": str(item.get("tipo") or "").strip(),
+                    "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
+                    "data_deposito": str(item.get("data_deposito") or item.get("data_documento") or "").strip(),
+                    "mittente": str(item.get("mittente") or "").strip(),
+                    "dimensione_bytes": int(item.get("dimensione_bytes") or 0),
+                    "disponibile": bool(item.get("disponibile", True)),
+                    "id_deposito": str(item.get("id_deposito") or item.get("id_deposito_esterno") or "").strip(),
+                    "id_cat": str(item.get("id_cat") or "").strip(),
+                }
+            )
+        rows.sort(
+            key=lambda doc: (
+                doc.get("data_deposito") or "",
+                doc.get("nome") or "",
+                doc.get("id_documento") or "",
+            ),
+            reverse=True,
+        )
+        return rows
+
+    def _group_portale_documents(documenti: list[dict]) -> list[dict]:
+        from collections import OrderedDict
+
+        gruppi: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
+        for doc in _normalize_portale_documents(documenti):
+            chiave = doc["id_deposito"] or f"__{doc['data_deposito']}__{doc['mittente']}"
+            group = gruppi.setdefault(
+                chiave,
+                {
+                    "id_deposito": chiave,
+                    "tipo_atto": doc.get("tipo_atto") or doc.get("tipo") or "Deposito",
+                    "data_deposito": doc.get("data_deposito") or "",
+                    "mittente": doc.get("mittente") or "",
+                    "documenti": [],
+                },
+            )
+            group["documenti"].append(doc)
+        return list(gruppi.values())
+
+    def _serialize_portale_search_item(portale: str, fascicolo: Any) -> dict[str, Any]:
+        portale = (portale or "").lower()
+        if portale == "pst":
+            payload = {
+                "numero_rg": fascicolo.numero_rg,
+                "anno_rg": fascicolo.anno_rg,
+                "ruolo": fascicolo.ruolo,
+                "stato": fascicolo.stato,
+                "oggetto": fascicolo.oggetto,
+                "sezione": fascicolo.sezione,
+                "giudice": fascicolo.giudice,
+                "data_iscrizione": fascicolo.data_iscrizione,
+                "data_udienza": fascicolo.data_udienza,
+                "parti": list(fascicolo.parti or []),
+                "parti_dettaglio": list(fascicolo.parti_dettaglio or []),
+                "note": fascicolo.note,
+                "codice_ufficio": fascicolo.codice_ufficio,
+                "nome_ufficio": fascicolo.nome_ufficio,
+            }
+            numero = fascicolo.numero_rg
+            anno = fascicolo.anno_rg
+            uff_cod = fascicolo.codice_ufficio
+            uff_nome = fascicolo.nome_ufficio
+            procedimento = fascicolo.ruolo.replace("_", " ").title()
+            oggetto = fascicolo.oggetto
+            assistiti = list(fascicolo.parti or [])
+            controparti = []
+            ultima_attivita = fascicolo.data_udienza or fascicolo.data_iscrizione
+            stato = fascicolo.stato
+        elif portale == "pdp":
+            payload = {
+                "numero_rg": fascicolo.numero_rg,
+                "anno_rg": fascicolo.anno_rg,
+                "tipo_registro": fascicolo.tipo_registro,
+                "fase": fascicolo.fase,
+                "stato": fascicolo.stato,
+                "reato": fascicolo.reato,
+                "sezione": fascicolo.sezione,
+                "giudice": fascicolo.giudice,
+                "data_iscrizione": fascicolo.data_iscrizione,
+                "data_udienza": fascicolo.data_udienza,
+                "imputati": list(fascicolo.imputati or []),
+                "parti_offese": list(fascicolo.parti_offese or []),
+                "note": fascicolo.note,
+                "codice_ufficio": fascicolo.codice_ufficio,
+                "nome_ufficio": fascicolo.nome_ufficio,
+            }
+            numero = fascicolo.numero_rg
+            anno = fascicolo.anno_rg
+            uff_cod = fascicolo.codice_ufficio
+            uff_nome = fascicolo.nome_ufficio
+            procedimento = fascicolo.tipo_registro
+            oggetto = fascicolo.reato
+            assistiti = list(fascicolo.imputati or [])
+            controparti = list(fascicolo.parti_offese or [])
+            ultima_attivita = fascicolo.data_udienza or fascicolo.data_iscrizione
+            stato = fascicolo.stato
+        elif portale == "pat":
+            payload = {
+                "numero_ricorso": fascicolo.numero_ricorso,
+                "anno": fascicolo.anno,
+                "tipo": fascicolo.tipo,
+                "stato": fascicolo.stato,
+                "materia": fascicolo.materia,
+                "sezione": fascicolo.sezione,
+                "giudice_relatore": fascicolo.giudice_relatore,
+                "data_deposito": fascicolo.data_deposito,
+                "data_udienza": fascicolo.data_udienza,
+                "ricorrenti": list(fascicolo.ricorrenti or []),
+                "resistenti": list(fascicolo.resistenti or []),
+                "controinteressati": list(getattr(fascicolo, "controinteressati", []) or []),
+                "oggetto": fascicolo.oggetto,
+                "note": fascicolo.note,
+                "codice_ufficio": fascicolo.codice_ufficio,
+                "nome_ufficio": fascicolo.nome_ufficio,
+            }
+            numero = fascicolo.numero_ricorso
+            anno = fascicolo.anno
+            uff_cod = fascicolo.codice_ufficio
+            uff_nome = fascicolo.nome_ufficio
+            procedimento = fascicolo.tipo
+            oggetto = fascicolo.oggetto or fascicolo.materia
+            assistiti = list(fascicolo.ricorrenti or [])
+            controparti = list(fascicolo.resistenti or [])
+            ultima_attivita = fascicolo.data_udienza or fascicolo.data_deposito
+            stato = fascicolo.stato
+        else:
+            payload = {
+                "numero_rgt": fascicolo.numero_rgt,
+                "anno_rgt": fascicolo.anno_rgt,
+                "tipo": fascicolo.tipo,
+                "stato": fascicolo.stato,
+                "materia": fascicolo.materia,
+                "sezione": fascicolo.sezione,
+                "giudice_relatore": fascicolo.giudice_relatore,
+                "data_deposito": fascicolo.data_deposito,
+                "data_udienza": fascicolo.data_udienza,
+                "ricorrenti": list(fascicolo.ricorrenti or []),
+                "resistenti": list(fascicolo.resistenti or []),
+                "oggetto_controversia": fascicolo.oggetto_controversia,
+                "valore_controversia": getattr(fascicolo, "valore_controversia", 0.0),
+                "note": fascicolo.note,
+                "codice_commissione": fascicolo.codice_commissione,
+                "nome_commissione": fascicolo.nome_commissione,
+            }
+            numero = fascicolo.numero_rgt
+            anno = fascicolo.anno_rgt
+            uff_cod = fascicolo.codice_commissione
+            uff_nome = fascicolo.nome_commissione
+            procedimento = fascicolo.tipo
+            oggetto = fascicolo.oggetto_controversia or fascicolo.materia
+            assistiti = list(fascicolo.ricorrenti or [])
+            controparti = list(fascicolo.resistenti or [])
+            ultima_attivita = fascicolo.data_udienza or fascicolo.data_deposito
+            stato = fascicolo.stato
+
+        return {
+            "external_id": f"{uff_cod}:{numero}:{anno}:{procedimento}",
+            "numero": str(numero or "").strip(),
+            "anno": int(anno or 0),
+            "ufficio_codice": str(uff_cod or "").strip(),
+            "ufficio_nome": str(uff_nome or _resolve_ufficio_nome(str(uff_cod or ""))).strip(),
+            "procedimento": str(procedimento or "").strip(),
+            "sezione": str(payload.get("sezione") or "").strip(),
+            "stato": str(stato or "").strip(),
+            "oggetto": str(oggetto or "").strip(),
+            "parti": assistiti,
+            "controparti": controparti,
+            "ultima_attivita": str(ultima_attivita or "").strip(),
+            "payload": payload,
+        }
+
+    def _build_portale_preview(portale: str, selection: dict[str, Any], documenti: list[dict]) -> dict[str, Any]:
+        payload = dict((selection or {}).get("payload") or {})
+        docs = _normalize_portale_documents(documenti or [])
+        depositi = _group_portale_documents(docs)
+        provvedimenti_count = sum(
+            1
+            for doc in docs
+            if any(token in (doc.get("tipo_atto") or doc.get("tipo") or "").upper() for token in ("SENTENZA", "ORDINANZA", "DECRETO", "PROVVEDIMENTO"))
+        )
+        data_iscrizione = str(payload.get("data_iscrizione") or payload.get("data_deposito") or "").strip()
+        data_udienza = str(payload.get("data_udienza") or "").strip()
+        eventi = []
+        if data_iscrizione:
+            eventi.append({"label": "Iscrizione / deposito originario", "data": data_iscrizione, "tipo": "iscrizione"})
+        if data_udienza:
+            eventi.append({"label": "Udienza rilevata", "data": data_udienza, "tipo": "udienza"})
+        return {
+            "identity": {
+                "numero": str(selection.get("numero") or "").strip(),
+                "anno": int(selection.get("anno") or 0),
+                "ufficio_nome": str(selection.get("ufficio_nome") or "").strip(),
+                "ufficio_codice": str(selection.get("ufficio_codice") or "").strip(),
+                "procedimento": str(selection.get("procedimento") or "").strip(),
+                "sezione": str(selection.get("sezione") or "").strip(),
+                "oggetto": str(selection.get("oggetto") or "").strip(),
+                "stato": str(selection.get("stato") or "").strip(),
+                "data_iscrizione": data_iscrizione,
+                "data_udienza": data_udienza,
+                "ultima_attivita": str(selection.get("ultima_attivita") or "").strip(),
+            },
+            "parti": list(selection.get("parti") or []),
+            "controparti": list(selection.get("controparti") or []),
+            "difensori": [x for x in list(payload.get("difensori") or []) if str(x).strip()],
+            "eventi": eventi,
+            "documenti": docs,
+            "depositi": depositi,
+            "counts": {
+                "parti": len(list(selection.get("parti") or [])) + len(list(selection.get("controparti") or [])),
+                "difensori": len(list(payload.get("difensori") or [])),
+                "eventi": len(eventi),
+                "udienze": 1 if data_udienza else 0,
+                "documenti": len(docs),
+                "provvedimenti": provvedimenti_count,
+                "depositi": len(depositi),
+                "esiti": len(depositi),
+            },
+        }
+
+    def _find_matching_fascicoli_locali(selection: dict[str, Any]) -> list[dict[str, Any]]:
+        matches: list[dict[str, Any]] = []
+        numero = str(selection.get("numero") or "").strip()
+        anno = int(selection.get("anno") or 0)
+        ufficio_nome = str(selection.get("ufficio_nome") or "").strip().upper()
+        tokens = [token.strip().upper() for token in list(selection.get("parti") or [])[:2] if token.strip()]
+        for fasc in get_fascicoli().tutti():
+            same_rg = numero and fasc.numero_rg == numero and int(getattr(fasc, "anno_rg", 0) or 0) == anno
+            same_ufficio = ufficio_nome and str(fasc.tribunale or "").strip().upper() == ufficio_nome
+            text_hit = any(token in str(fasc.titolo or "").upper() for token in tokens)
+            if same_rg or (same_ufficio and text_hit):
+                matches.append(
+                    {
+                        "id": fasc.id,
+                        "numero": fasc.numero,
+                        "titolo": fasc.titolo,
+                        "rg_completo": fasc.rg_completo,
+                        "tribunale": fasc.tribunale,
+                        "stato": fasc.stato.value,
+                        "source": getattr(fasc, "source", "") or "",
+                    }
+                )
+        return matches
+
+    def _coerce_import_options(data: dict[str, Any]) -> dict[str, bool]:
+        def _b(key: str, default: bool = False) -> bool:
+            value = data.get(key, default)
+            if isinstance(value, bool):
+                return value
+            return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s", "on"}
+
+        return {
+            "importa_dati_pratica": _b("importa_dati_pratica", True),
+            "importa_parti": _b("importa_parti", True),
+            "importa_difensori": _b("importa_difensori", True),
+            "importa_eventi": _b("importa_eventi", True),
+            "importa_udienze": _b("importa_udienze", True),
+            "importa_scadenze": _b("importa_scadenze", True),
+            "importa_documenti": _b("importa_documenti", True),
+            "importa_provvedimenti": _b("importa_provvedimenti", True),
+            "importa_cronologia_depositi": _b("importa_cronologia_depositi", True),
+            "importa_esiti_telematici": _b("importa_esiti_telematici", True),
+            "solo_nuovi": _b("solo_nuovi", True),
+            "aggiorna_pratica_esistente": _b("aggiorna_pratica_esistente", False),
+            "sovrascrivi_solo_vuoti": _b("sovrascrivi_solo_vuoti", True),
+            "non_toccare_note_interne": _b("non_toccare_note_interne", True),
+            "non_duplicare_documenti": _b("non_duplicare_documenti", True),
+            "conserva_log_origine_pst": _b("conserva_log_origine_pst", True),
+        }
+
+    def _coerce_mapping(data: dict[str, Any]) -> dict[str, str]:
+        return {
+            "mode": str(data.get("mode") or "create_new").strip() or "create_new",
+            "target_fascicolo_id": str(data.get("target_fascicolo_id") or "").strip(),
+            "area_pratica": str(data.get("area_pratica") or "").strip(),
+            "materia": str(data.get("materia") or "").strip(),
+            "procedimento": str(data.get("procedimento") or "").strip(),
+            "grado": str(data.get("grado") or "").strip(),
+            "stato_iniziale": str(data.get("stato_iniziale") or "").strip(),
+        }
+
+    def _analyze_portale_import(
+        portale: str,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        options: dict[str, bool],
+        mapping: dict[str, str],
+    ) -> dict[str, Any]:
+        blockers: list[dict[str, Any]] = []
+        warnings: list[dict[str, Any]] = []
+        oks: list[dict[str, Any]] = []
+        candidates = _find_matching_fascicoli_locali(selection)
+        counts = dict(preview.get("counts") or {})
+        mode = mapping.get("mode") or "create_new"
+        target_id = mapping.get("target_fascicolo_id") or ""
+
+        if not selection.get("ufficio_codice"):
+            blockers.append({"label": "Ufficio giudiziario mancante", "detail": "Seleziona un ufficio valido prima di proseguire.", "tone": "danger"})
+        else:
+            oks.append({"label": "Ufficio giudiziario risolto", "detail": selection.get("ufficio_nome") or selection.get("ufficio_codice"), "tone": "success"})
+
+        if not selection.get("numero") or not selection.get("anno"):
+            blockers.append({"label": "RG incompleto", "detail": "Numero e anno del fascicolo sono obbligatori per una pratica governabile.", "tone": "danger"})
+        else:
+            oks.append({"label": "Identità fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
+
+        if options.get("importa_parti") and counts.get("parti", 0) <= 0:
+            blockers.append({"label": "Parti non disponibili", "detail": "Il fascicolo remoto non espone parti sufficienti per l'importazione guidata.", "tone": "danger"})
+        elif counts.get("parti", 0) > 0:
+            oks.append({"label": "Parti rilevate", "detail": f"{counts.get('parti', 0)} soggetti disponibili", "tone": "success"})
+
+        if options.get("importa_documenti") and counts.get("documenti", 0) == 0:
+            warnings.append({"label": "Nessun documento disponibile", "detail": "Puoi importare la pratica anche senza documenti, ma la vista fascicolo resterà parziale.", "tone": "warning"})
+        elif counts.get("documenti", 0) > 0:
+            oks.append({"label": "Catalogo documentale disponibile", "detail": f"{counts.get('documenti', 0)} documenti / {counts.get('depositi', 0)} buste", "tone": "success"})
+
+        if mode in {"attach_existing", "update_existing"} and not target_id:
+            blockers.append({"label": "Pratica locale non selezionata", "detail": "Per collegare o aggiornare devi scegliere un fascicolo esistente.", "tone": "danger"})
+
+        if mode == "create_new" and candidates:
+            warnings.append({"label": "Possibile duplicato locale", "detail": f"Esistono {len(candidates)} fascicoli con RG o parti compatibili.", "tone": "warning"})
+
+        if options.get("importa_scadenze") and not preview.get("identity", {}).get("data_udienza"):
+            warnings.append({"label": "Nessuna udienza importabile", "detail": "Il portale non espone una prossima udienza da tradurre in scadenziario.", "tone": "warning"})
+
+        score = max(0, min(100, 100 - len(blockers) * 18 - len(warnings) * 7))
+        status = "ok" if not blockers and not warnings else ("warning" if not blockers else "block")
+        return {
+            "status": status,
+            "score": score,
+            "blockers": blockers,
+            "warnings": warnings,
+            "ok": oks,
+            "existing_matches": candidates,
+            "summary_text": (
+                "Importazione pronta: nessun blocco rilevato."
+                if not blockers
+                else f"Risolvi {len(blockers)} blocchi e verifica {len(warnings)} avvisi prima dell'importazione."
+            ),
+            "next_step": blockers[0] if blockers else (warnings[0] if warnings else {"label": "Pronto per importare", "detail": "Puoi procedere con l'acquisizione guidata.", "tone": "success"}),
+        }
+
+    def _selection_to_fascicolo_dataclass(portale: str, selection: dict[str, Any]) -> Any:
+        payload = dict((selection or {}).get("payload") or {})
+        if portale == "pst":
+            from pct.polisWeb import FascicoloPolisWeb
+
+            return FascicoloPolisWeb(
+                numero_rg=str(payload.get("numero_rg") or selection.get("numero") or "").strip(),
+                anno_rg=int(payload.get("anno_rg") or selection.get("anno") or 0),
+                ruolo=str(payload.get("ruolo") or selection.get("procedimento") or "").strip(),
+                stato=str(payload.get("stato") or selection.get("stato") or "").strip(),
+                oggetto=str(payload.get("oggetto") or selection.get("oggetto") or "").strip(),
+                sezione=str(payload.get("sezione") or selection.get("sezione") or "").strip(),
+                giudice=str(payload.get("giudice") or "").strip(),
+                data_iscrizione=str(payload.get("data_iscrizione") or "").strip(),
+                data_udienza=str(payload.get("data_udienza") or "").strip(),
+                parti=list(payload.get("parti") or selection.get("parti") or []),
+                parti_dettaglio=list(payload.get("parti_dettaglio") or []),
+                note=str(payload.get("note") or "").strip(),
+                codice_ufficio=str(payload.get("codice_ufficio") or selection.get("ufficio_codice") or "").strip(),
+                nome_ufficio=str(payload.get("nome_ufficio") or selection.get("ufficio_nome") or "").strip(),
+            )
+        if portale == "pdp":
+            from pct.pdp import FascicoloPDP
+
+            return FascicoloPDP(
+                numero_rg=str(payload.get("numero_rg") or selection.get("numero") or "").strip(),
+                anno_rg=int(payload.get("anno_rg") or selection.get("anno") or 0),
+                tipo_registro=str(payload.get("tipo_registro") or selection.get("procedimento") or "").strip(),
+                fase=str(payload.get("fase") or "").strip(),
+                stato=str(payload.get("stato") or selection.get("stato") or "").strip(),
+                reato=str(payload.get("reato") or selection.get("oggetto") or "").strip(),
+                sezione=str(payload.get("sezione") or selection.get("sezione") or "").strip(),
+                giudice=str(payload.get("giudice") or "").strip(),
+                data_iscrizione=str(payload.get("data_iscrizione") or "").strip(),
+                data_udienza=str(payload.get("data_udienza") or "").strip(),
+                imputati=list(payload.get("imputati") or selection.get("parti") or []),
+                parti_offese=list(payload.get("parti_offese") or selection.get("controparti") or []),
+                note=str(payload.get("note") or "").strip(),
+                codice_ufficio=str(payload.get("codice_ufficio") or selection.get("ufficio_codice") or "").strip(),
+                nome_ufficio=str(payload.get("nome_ufficio") or selection.get("ufficio_nome") or "").strip(),
+            )
+        if portale == "pat":
+            from pct.pat import FascicoloPAT
+
+            return FascicoloPAT(
+                numero_ricorso=str(payload.get("numero_ricorso") or selection.get("numero") or "").strip(),
+                anno=int(payload.get("anno") or selection.get("anno") or 0),
+                tipo=str(payload.get("tipo") or selection.get("procedimento") or "").strip(),
+                stato=str(payload.get("stato") or selection.get("stato") or "").strip(),
+                materia=str(payload.get("materia") or "").strip(),
+                sezione=str(payload.get("sezione") or selection.get("sezione") or "").strip(),
+                giudice_relatore=str(payload.get("giudice_relatore") or "").strip(),
+                data_deposito=str(payload.get("data_deposito") or payload.get("data_iscrizione") or "").strip(),
+                data_udienza=str(payload.get("data_udienza") or "").strip(),
+                ricorrenti=list(payload.get("ricorrenti") or selection.get("parti") or []),
+                resistenti=list(payload.get("resistenti") or selection.get("controparti") or []),
+                controinteressati=list(payload.get("controinteressati") or []),
+                oggetto=str(payload.get("oggetto") or selection.get("oggetto") or "").strip(),
+                note=str(payload.get("note") or "").strip(),
+                codice_ufficio=str(payload.get("codice_ufficio") or selection.get("ufficio_codice") or "").strip(),
+                nome_ufficio=str(payload.get("nome_ufficio") or selection.get("ufficio_nome") or "").strip(),
+            )
+        from pct.sigit import FascicoloSIGIT
+
+        return FascicoloSIGIT(
+            numero_rgt=str(payload.get("numero_rgt") or selection.get("numero") or "").strip(),
+            anno_rgt=int(payload.get("anno_rgt") or selection.get("anno") or 0),
+            tipo=str(payload.get("tipo") or selection.get("procedimento") or "").strip(),
+            stato=str(payload.get("stato") or selection.get("stato") or "").strip(),
+            materia=str(payload.get("materia") or "").strip(),
+            sezione=str(payload.get("sezione") or selection.get("sezione") or "").strip(),
+            giudice_relatore=str(payload.get("giudice_relatore") or "").strip(),
+            data_deposito=str(payload.get("data_deposito") or payload.get("data_iscrizione") or "").strip(),
+            data_udienza=str(payload.get("data_udienza") or "").strip(),
+            ricorrenti=list(payload.get("ricorrenti") or selection.get("parti") or []),
+            resistenti=list(payload.get("resistenti") or selection.get("controparti") or []),
+            oggetto_controversia=str(payload.get("oggetto_controversia") or selection.get("oggetto") or "").strip(),
+            valore_controversia=float(payload.get("valore_controversia") or 0),
+            note=str(payload.get("note") or "").strip(),
+            codice_commissione=str(payload.get("codice_commissione") or selection.get("ufficio_codice") or "").strip(),
+            nome_commissione=str(payload.get("nome_commissione") or selection.get("ufficio_nome") or "").strip(),
+        )
+
+    def _documents_to_portale_dataclasses(portale: str, rows: list[dict]) -> list[Any]:
+        docs = _normalize_portale_documents(rows)
+        if portale != "pst":
+            return []
+        from pct.polisWeb import DocumentoPolisWeb
+
+        return [
+            DocumentoPolisWeb(
+                id_documento=row["id_documento"],
+                nome=row["nome"],
+                tipo=row["tipo"],
+                data_deposito=row["data_deposito"],
+                mittente=row["mittente"],
+                dimensione_bytes=row["dimensione_bytes"],
+                disponibile=row["disponibile"],
+                id_deposito=row["id_deposito"],
+                tipo_atto=row["tipo_atto"],
+            )
+            for row in docs
+        ]
+
+    def _sync_portale_metadata_on_fascicolo(
+        portale: str,
+        id_fasc: str,
+        preview: dict[str, Any],
+        registrato_da: str = "",
+    ) -> int:
+        gf = get_fascicoli()
+        synced = 0
+        for deposito in list(preview.get("depositi") or []):
+            docs = list(deposito.get("documenti") or [])
+            if not docs:
+                continue
+            gf.sincronizza_deposito_portale(
+                id_fasc,
+                fonte=_portale_source_name(portale),
+                id_deposito_esterno=str(deposito.get("id_deposito") or "").strip(),
+                tipo_atto=str(deposito.get("tipo_atto") or "").strip(),
+                data_deposito=str(deposito.get("data_deposito") or "").strip(),
+                mittente=str(deposito.get("mittente") or "").strip(),
+                documenti_portale=docs,
+                registrato_da=registrato_da,
+                note=f"Catalogo ufficiale importato da {_portale_source_name(portale)}",
+                nome_atto_principale=str((docs[0] or {}).get("nome") or "").strip(),
+                stato="IMPORTATO_DA_PORTALE",
+                servizio_portale="DocumentiFascicolo",
+            )
+            synced += 1
+        return synced
+
+    def _sync_udienza_e_scadenza(
+        id_fasc: str,
+        preview: dict[str, Any],
+        *,
+        crea_attivita: bool,
+        crea_scadenza: bool,
+        avvocato: str = "",
+    ) -> dict[str, int]:
+        gf = get_fascicoli()
+        gs = get_scadenziario()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            return {"attivita": 0, "scadenze": 0}
+        data_udienza = str(preview.get("identity", {}).get("data_udienza") or "").strip()
+        if not data_udienza:
+            return {"attivita": 0, "scadenze": 0}
+        created = {"attivita": 0, "scadenze": 0}
+        if crea_attivita:
+            exists = any(att.tipo == TipoAttivita.UDIENZA and att.data == data_udienza for att in fasc.attivita)
+            if not exists:
+                gf.aggiungi_attivita(
+                    id_fasc,
+                    tipo=TipoAttivita.UDIENZA,
+                    data=data_udienza,
+                    titolo="Udienza sincronizzata da portale",
+                    descrizione=f"Evento importato da {fasc.source or 'portale'}",
+                    avvocato=avvocato,
+                )
+                created["attivita"] += 1
+        if crea_scadenza:
+            exists = [
+                sc for sc in gs.tutte(id_fascicolo=id_fasc, solo_aperte=False)
+                if sc.data_scadenza == data_udienza and "udienza" in sc.titolo.lower()
+            ]
+            if not exists:
+                gs.nuova(
+                    titolo="Udienza da portale",
+                    tipo=TipoTermine.UDIENZA,
+                    data_scadenza=data_udienza,
+                    id_fascicolo=id_fasc,
+                    descrizione=f"Scadenza generata da sincronizzazione {fasc.source or 'portale'}",
+                    id_utente_responsabile=getattr(g.utente_corrente, "id", "") if getattr(g, "utente_corrente", None) else "",
+                )
+                created["scadenze"] += 1
+        return created
+
+    def _update_fascicolo_sync_metadata(
+        id_fasc: str,
+        *,
+        portale: str,
+        selection: dict[str, Any],
+        import_log_id: str,
+        has_conflicts: bool,
+        document_sync_enabled: bool,
+        events_sync_enabled: bool,
+        sync_status: str,
+    ) -> Fascicolo:
+        return get_fascicoli().aggiorna(
+            id_fasc,
+            source=_portale_source_name(portale),
+            source_external_id=str(selection.get("external_id") or "").strip(),
+            last_sync_at=datetime.now().isoformat(),
+            sync_status=sync_status,
+            import_log_id=import_log_id,
+            has_conflicts=has_conflicts,
+            document_sync_enabled=document_sync_enabled,
+            events_sync_enabled=events_sync_enabled,
+        )
+
+    def _importa_o_collega_fascicolo_portale(
+        portale: str,
+        selection: dict[str, Any],
+        preview: dict[str, Any],
+        options: dict[str, bool],
+        mapping: dict[str, str],
+    ) -> dict[str, Any]:
+        user_name = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
+        selection_dc = _selection_to_fascicolo_dataclass(portale, selection)
+        analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
+        if analysis["blockers"]:
+            raise ValueError("Sono presenti blocchi da risolvere prima dell'importazione.")
+
+        log_id = _append_portale_import_log(
+            {
+                "portale": _portale_source_name(portale),
+                "selection": selection,
+                "preview_counts": preview.get("counts") or {},
+                "options": options,
+                "mapping": mapping,
+                "analysis": analysis,
+                "utente": user_name,
+            }
+        )
+
+        gf = get_fascicoli()
+        gc = get_clienti()
+        gsog = get_soggetti()
+        mode = mapping.get("mode") or "create_new"
+        target_id = mapping.get("target_fascicolo_id") or ""
+        id_fasc = ""
+        created = False
+
+        if mode == "create_new":
+            if portale == "pst":
+                from pct.polisWeb import ClientPolisWebImportOnly, crea_client
+
+                if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+                    client = ClientPolisWebImportOnly()
+                else:
+                    client = crea_client(demo=_polis_demo_mode())
+                documenti_pw = _documents_to_portale_dataclasses(portale, preview.get("documenti") or []) if options.get("importa_documenti") else None
+                risultato = client.importa_fascicolo(
+                    fascicolo_pw=selection_dc,
+                    gestione_fascicoli=gf,
+                    gestione_clienti=gc,
+                    avvocato_referente=user_name,
+                    gestione_soggetti=gsog,
+                    documenti_pw=documenti_pw,
+                )
+            elif portale == "pdp":
+                from pct.pdp import crea_client_pdp
+
+                risultato = crea_client_pdp(demo=_polis_demo_mode()).importa_fascicolo(selection_dc, gf, gc, user_name)
+            elif portale == "pat":
+                from pct.pat import crea_client_pat
+
+                risultato = crea_client_pat(demo=_polis_demo_mode()).importa_fascicolo(selection_dc, gf, gc, user_name)
+            else:
+                from pct.sigit import crea_client_sigit
+
+                risultato = crea_client_sigit(demo=_polis_demo_mode()).importa_fascicolo(selection_dc, gf, gc, user_name)
+            if not risultato.successo or not risultato.id_fascicolo_locale:
+                raise ValueError(risultato.messaggio or "Importazione non riuscita.")
+            id_fasc = risultato.id_fascicolo_locale
+            created = True
+        else:
+            target = gf.get(target_id)
+            if not target:
+                raise ValueError("Fascicolo locale selezionato non trovato.")
+            if portale == "pst":
+                from pct.polisWeb import ClientPolisWebImportOnly, crea_client
+
+                if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+                    client = ClientPolisWebImportOnly()
+                else:
+                    client = crea_client(demo=_polis_demo_mode())
+                documenti_pw = _documents_to_portale_dataclasses(portale, preview.get("documenti") or []) if options.get("importa_documenti") else None
+                risultato = client.sincronizza_fascicolo_esistente(
+                    fascicolo_pw=selection_dc,
+                    fascicolo_locale=target,
+                    gestione_fascicoli=gf,
+                    gestione_clienti=gc,
+                    avvocato_referente=user_name,
+                    gestione_soggetti=gsog,
+                    documenti_pw=documenti_pw,
+                )
+                if not risultato.successo or not risultato.id_fascicolo_locale:
+                    raise ValueError(risultato.messaggio or "Sincronizzazione PST non riuscita.")
+                id_fasc = risultato.id_fascicolo_locale
+            else:
+                identity = preview.get("identity") or {}
+                preserve_blank = options.get("sovrascrivi_solo_vuoti", True)
+
+                def _take(current: Any, incoming: Any) -> Any:
+                    if preserve_blank and str(current or "").strip():
+                        return current
+                    return incoming
+
+                update_fields = {
+                    "tribunale": _take(target.tribunale, identity.get("ufficio_nome") or target.tribunale),
+                    "numero_rg": _take(target.numero_rg, selection.get("numero") or target.numero_rg),
+                    "anno_rg": target.anno_rg or int(selection.get("anno") or 0),
+                    "oggetto": _take(target.oggetto, identity.get("oggetto") or target.oggetto),
+                    "sezione": _take(target.sezione, identity.get("sezione") or target.sezione),
+                    "giudice": _take(target.giudice, selection.get("payload", {}).get("giudice") or selection.get("payload", {}).get("giudice_relatore") or target.giudice),
+                }
+                if not options.get("non_toccare_note_interne", True):
+                    nota_import = f"Sincronizzato da {_portale_source_name(portale)} il {date.today().isoformat()}"
+                    update_fields["note"] = " | ".join(part for part in [target.note.strip(), nota_import] if part)
+                gf.aggiorna(target.id, **update_fields)
+                gf.registra_onboarding(
+                    target.id,
+                    f"Acquisizione guidata da {_portale_source_name(portale)}",
+                    note=f"Import log {log_id}",
+                    avvocato=user_name,
+                )
+                id_fasc = target.id
+
+        if options.get("importa_documenti"):
+            _sync_portale_metadata_on_fascicolo(portale, id_fasc, preview, registrato_da=user_name)
+
+        udienza_result = _sync_udienza_e_scadenza(
+            id_fasc,
+            preview,
+            crea_attivita=options.get("importa_eventi") or options.get("importa_udienze"),
+            crea_scadenza=options.get("importa_scadenze", False),
+            avvocato=user_name,
+        )
+
+        _update_fascicolo_sync_metadata(
+            id_fasc,
+            portale=portale,
+            selection=selection,
+            import_log_id=log_id,
+            has_conflicts=bool(analysis["warnings"]),
+            document_sync_enabled=options.get("importa_documenti", False),
+            events_sync_enabled=options.get("importa_eventi", False) or options.get("importa_udienze", False),
+            sync_status="IMPORTATO" if created else "SINCRONIZZATO",
+        )
+
+        fasc = gf.get(id_fasc)
+        return {
+            "id_fascicolo": id_fasc,
+            "created": created,
+            "import_log_id": log_id,
+            "quadro_url": url_for("quadro_fascicolo", id_fasc=id_fasc),
+            "dettaglio_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc),
+            "scadenziario_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-udienze-scadenze",
+            "timeline_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-attivita",
+            "documenti_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-documenti",
+            "summary": {
+                "numero_pratica": getattr(fasc, "numero", ""),
+                "titolo": getattr(fasc, "titolo", ""),
+                "documenti": int(preview.get("counts", {}).get("documenti", 0) or 0),
+                "depositi": int(preview.get("counts", {}).get("depositi", 0) or 0),
+                "scadenze_generate": udienza_result["scadenze"],
+                "eventi_generati": udienza_result["attivita"],
+                "conflitti_risolti": len(analysis["warnings"]),
+            },
+        }
+
+    def _build_access_status_payload(portale: str) -> dict[str, Any]:
+        spec = _spec_portale_acquisizione(portale)
+        cfg = get_config_studio().config
+        firma_cfg = cfg.firma
+        auth_mode = _polis_auth_mode()
+        demo_mode = auth_mode == "demo" if portale == "pst" else _polis_demo_mode()
+        ultimo_log = _last_portale_import_log(portale)
+        return {
+            "portale": portale,
+            "spec": spec,
+            "avvocato": str(getattr(cfg.studio, "nome_avvocato", "") or getattr(g.utente_corrente, "username", "") or "").strip(),
+            "codice_fiscale_avvocato": str(getattr(firma_cfg, "cf_avvocato", "") or getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper(),
+            "backend_firma": str(getattr(firma_cfg, "backend_firma_effettivo_safe", "nessuno") or "").strip(),
+            "auth_mode": auth_mode if portale == "pst" else ("demo" if demo_mode else "reale"),
+            "demo_mode": demo_mode,
+            "pkcs11_mode": auth_mode == "pkcs11" if portale == "pst" else False,
+            "cert_preferences": _polis_cert_preferences() if portale == "pst" else {},
+            "status_text": "Connessione pronta" if not demo_mode else "Modalità demo / fallback",
+            "test_ok": not demo_mode,
+            "last_sync_at": str(ultimo_log.get("created_at") or "").strip(),
+            "last_import_log_id": str(ultimo_log.get("id") or "").strip(),
+            "environment_label": "Produzione guidata" if not demo_mode else "Simulazione / compatibilita",
+        }
+
+    def _search_fascicoli_portale_server(portale: str, query: dict[str, Any]) -> list[dict[str, Any]]:
+        portale = (portale or "").strip().lower()
+        numero = str(query.get("numero") or "").strip() or None
+        anno_raw = str(query.get("anno") or "").strip()
+        anno = int(anno_raw) if anno_raw.isdigit() else None
+        assistito = str(query.get("assistito") or "").strip() or None
+        controparte = str(query.get("controparte") or "").strip() or None
+        cf = str(query.get("cf") or "").strip() or None
+        oggetto = str(query.get("oggetto") or "").strip().lower()
+        stato_filter = str(query.get("stato") or "").strip().lower()
+        quick = str(query.get("quick_filter") or "").strip().lower()
+
+        if portale == "pst":
+            if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+                raise ValueError("Per PST con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+            from pct.polisWeb import crea_client
+
+            ufficio = str(query.get("ufficio_codice") or "").strip()
+            if not ufficio:
+                raise ValueError("Seleziona un ufficio giudiziario.")
+            fascicoli = crea_client(demo=_polis_demo_mode()).ricerca_fascicoli(
+                tribunale=ufficio,
+                numero_rg=numero,
+                anno_rg=anno,
+                nome_parte=assistito or controparte,
+                codice_fiscale_parte=cf,
+            )
+        elif portale == "pdp":
+            from pct.pdp import crea_client_pdp
+
+            ufficio = str(query.get("ufficio_codice") or "").strip()
+            if not ufficio:
+                raise ValueError("Seleziona un ufficio giudiziario.")
+            fascicoli = crea_client_pdp(demo=_polis_demo_mode()).ricerca_fascicoli(
+                ufficio=ufficio,
+                numero_rg=numero,
+                anno_rg=anno,
+                nome_imputato=assistito,
+                tipo_registro=str(query.get("registro") or "").strip() or None,
+            )
+        elif portale == "pat":
+            from pct.pat import crea_client_pat
+
+            ufficio = str(query.get("ufficio_codice") or "").strip()
+            if not ufficio:
+                raise ValueError("Seleziona un ufficio giudiziario.")
+            fascicoli = crea_client_pat(demo=_polis_demo_mode()).ricerca_fascicoli(
+                ufficio=ufficio,
+                numero_ricorso=numero,
+                anno=anno,
+                nome_ricorrente=assistito,
+                materia=str(query.get("materia") or "").strip() or None,
+            )
+        else:
+            from pct.sigit import crea_client_sigit
+
+            ufficio = str(query.get("ufficio_codice") or "").strip()
+            if not ufficio:
+                raise ValueError("Seleziona un ufficio giudiziario tributario.")
+            fascicoli = crea_client_sigit(demo=_polis_demo_mode()).ricerca_fascicoli(
+                commissione=ufficio,
+                numero_rgt=numero,
+                anno_rgt=anno,
+                nome_ricorrente=assistito,
+                tipo=str(query.get("materia") or "").strip() or None,
+            )
+
+        rows = [_serialize_portale_search_item(portale, fascicolo) for fascicolo in fascicoli]
+        if oggetto:
+            rows = [row for row in rows if oggetto in str(row.get("oggetto") or "").lower()]
+        if stato_filter:
+            rows = [row for row in rows if stato_filter in str(row.get("stato") or "").lower()]
+        if quick:
+            rows = [
+                row for row in rows
+                if quick in str(row.get("procedimento") or "").lower()
+                or quick in str(row.get("oggetto") or "").lower()
+                or quick in str(row.get("stato") or "").lower()
+            ]
+        return rows
+
+    def _preview_documenti_portale_server(portale: str, selection: dict[str, Any]) -> list[dict]:
+        portale = (portale or "").strip().lower()
+        if portale == "pst":
+            if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+                raise ValueError("Anteprima documenti PST via browser locale richiesta.")
+            from pct.polisWeb import crea_client
+
+            docs = crea_client(demo=_polis_demo_mode()).consulta_documenti(
+                str(selection.get("ufficio_codice") or "").strip(),
+                str(selection.get("numero") or "").strip(),
+                int(selection.get("anno") or 0),
+            )
+        elif portale == "pdp":
+            from pct.pdp import crea_client_pdp
+
+            docs = crea_client_pdp(demo=_polis_demo_mode()).consulta_documenti(
+                str(selection.get("ufficio_codice") or "").strip(),
+                str(selection.get("numero") or "").strip(),
+                int(selection.get("anno") or 0),
+            )
+        elif portale == "pat":
+            from pct.pat import crea_client_pat
+
+            docs = crea_client_pat(demo=_polis_demo_mode()).consulta_documenti(
+                str(selection.get("ufficio_codice") or "").strip(),
+                str(selection.get("numero") or "").strip(),
+                int(selection.get("anno") or 0),
+            )
+        else:
+            from pct.sigit import crea_client_sigit
+
+            docs = crea_client_sigit(demo=_polis_demo_mode()).consulta_documenti(
+                str(selection.get("ufficio_codice") or "").strip(),
+                str(selection.get("numero") or "").strip(),
+                int(selection.get("anno") or 0),
+            )
+        return [dict(vars(doc)) for doc in docs]
 
     def _local_signer_tools_dir() -> Path:
         return Path(__file__).parent.parent / "tools"

@@ -728,6 +728,26 @@ let _firmaViaLS = false;           // true = usiamo Local Signer
 let _validationState = null;
 let _validationTimer = null;
 
+function _lsPinSessionKey() {
+  return 'hacs_ls_pin_session';
+}
+
+function _lsLoadPinSession() {
+  try {
+    _lsPinSessionId = sessionStorage.getItem(_lsPinSessionKey()) || null;
+  } catch (_) {
+    _lsPinSessionId = null;
+  }
+}
+
+function _lsSavePinSession(id) {
+  _lsPinSessionId = id || null;
+  try {
+    if (_lsPinSessionId) sessionStorage.setItem(_lsPinSessionKey(), _lsPinSessionId);
+    else sessionStorage.removeItem(_lsPinSessionKey());
+  } catch (_) {}
+}
+
 // Mappa doc_id → firmato (aggiornata dinamicamente dopo firma PKCS#11)
 const _docFirmato = {};
 {% for doc in fascicolo.documenti %}
@@ -1069,7 +1089,7 @@ function avviaFirmaLocalSigner() {
     .then(r => r.json())
     .then(d => {
       if (!d.ok) throw new Error(d.errore || 'Errore firma');
-      _lsPinSessionId = d.pin_session_id || _lsPinSessionId;
+      _lsSavePinSession(d.pin_session_id || _lsPinSessionId);
       // 4. Carica il .p7m firmato sul server
       const firmataBytes = Uint8Array.from(atob(d.firmato_b64), c => c.charCodeAt(0));
       // Determina il nome: aggiungi .p7m se non c'è già
@@ -1101,7 +1121,7 @@ function avviaFirmaLocalSigner() {
       document.getElementById('btnContinuaDopoFirma').classList.remove('d-none');
     })
     .catch(e => {
-      if (String(e).includes('Sessione PIN')) _lsPinSessionId = null;
+      if (String(e).includes('Sessione PIN')) _lsSavePinSession(null);
       document.getElementById('lsProgress').style.display = 'none';
       document.getElementById('lsErrorMsg').textContent = String(e);
       document.getElementById('lsError').style.display = '';
@@ -1513,6 +1533,7 @@ const correctionContext = {{ (correction_context or {})|tojson }};
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  _lsLoadPinSession();
   if (correctionContext && correctionContext.active) {
     const tipo = correctionContext.prefill_tipo_atto || '';
     const registro = correctionContext.prefill_registro || '';

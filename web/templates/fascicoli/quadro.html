@@ -120,6 +120,71 @@
       </div>
 
     </div>
+
+    {% set source_portale = (fascicolo.source or '')|lower %}
+    <div class="row g-3 mt-1">
+      <div class="col-12">
+        <div class="border rounded p-3">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-2">
+            <strong class="d-block"><i class="bi bi-arrow-repeat me-1"></i>Stato sincronizzazione</strong>
+            {% if fascicolo.sync_status %}
+              <span class="badge bg-{{ 'success' if fascicolo.sync_status in ['IMPORTATO', 'SINCRONIZZATO'] else ('warning' if fascicolo.sync_status in ['DA_VERIFICARE', 'PARZIALE'] else 'secondary') }}">
+                {{ fascicolo.sync_status.replace('_', ' ') }}
+              </span>
+            {% endif %}
+          </div>
+          <div class="row g-3 small">
+            <div class="col-md-3">
+              <div class="text-muted">Origine</div>
+              <div class="fw-semibold">{{ fascicolo.source or 'Locale' }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted">ID esterno</div>
+              <div class="fw-semibold">{{ fascicolo.source_external_id or '—' }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted">Ultima sincronizzazione</div>
+              <div class="fw-semibold">{{ fascicolo.last_sync_at|fmt_data if fascicolo.last_sync_at else '—' }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted">Import log</div>
+              <div class="fw-semibold">{{ fascicolo.import_log_id or '—' }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted">Documenti sync</div>
+              <div class="fw-semibold">{{ 'Attiva' if fascicolo.document_sync_enabled else 'Non attiva' }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted">Eventi sync</div>
+              <div class="fw-semibold">{{ 'Attiva' if fascicolo.events_sync_enabled else 'Non attiva' }}</div>
+            </div>
+            <div class="col-md-6">
+              <div class="text-muted">Anomalie</div>
+              <div class="fw-semibold">{{ 'Conflitti da verificare' if fascicolo.has_conflicts else 'Nessun conflitto aperto' }}</div>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-folder2-open me-1"></i>Apri fascicolo
+            </a>
+            {% if source_portale in ['pst', 'pdp', 'pat', 'ptt'] %}
+            <a href="{{ url_for('portale_acquisizione_wizard', portale=source_portale) }}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-repeat me-1"></i>Sincronizza di nuovo
+            </a>
+            {% endif %}
+            <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-documenti" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-files me-1"></i>Apri documenti
+            </a>
+            <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-attivita" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-clock-history me-1"></i>Apri timeline
+            </a>
+            <a href="{{ url_for('deposito_prepara', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-success">
+              <i class="bi bi-send me-1"></i>Prepara deposito
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

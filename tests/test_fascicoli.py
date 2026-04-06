@@ -609,3 +609,29 @@ def test_statistiche(gf, fascicolo_base):
     assert stats["totale"] == 2
     assert stats["archiviati"] == 1
     assert stats["attivi"] >= 1
+
+
+def test_fascicolo_serializza_metadati_sync_portale(gf, fascicolo_base):
+    aggiornato = gf.aggiorna(
+        fascicolo_base.id,
+        source="PST",
+        source_external_id="0800570094:1025:2024:CIVILE",
+        last_sync_at="2026-04-06T10:45:00",
+        sync_status="SINCRONIZZATO",
+        import_log_id="PST-20260406104500-ABC123",
+        has_conflicts=True,
+        document_sync_enabled=True,
+        events_sync_enabled=True,
+    )
+
+    data = aggiornato.to_dict()
+    ripristinato = Fascicolo.from_dict(data)
+
+    assert ripristinato.source == "PST"
+    assert ripristinato.source_external_id == "0800570094:1025:2024:CIVILE"
+    assert ripristinato.last_sync_at == "2026-04-06T10:45:00"
+    assert ripristinato.sync_status == "SINCRONIZZATO"
+    assert ripristinato.import_log_id == "PST-20260406104500-ABC123"
+    assert ripristinato.has_conflicts is True
+    assert ripristinato.document_sync_enabled is True
+    assert ripristinato.events_sync_enabled is True

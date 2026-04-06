@@ -2190,3 +2190,79 @@ def test_route_documenti_sigit_raggruppa_buste_e_risolve_nome_commissione(tmp_pa
     assert "sentenza_primo_grado.pdf" in body
     assert "BUSTA-SIGIT-003" in body
     assert "CPT Milano" in body
+
+
+def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        for portale, titolo in [
+            ("pst", "Importa pratica da PST"),
+            ("pdp", "Importa pratica da PDP Penale"),
+            ("pat", "Importa pratica da PAT"),
+            ("ptt", "Importa pratica da PTT"),
+        ]:
+            response = client.get(f"/portali/{portale}/acquisizione", follow_redirects=True)
+            body = response.data.decode("utf-8")
+            assert response.status_code == 200
+            assert titolo in body
+            assert "Step 1" in body
+            assert "Step 7" in body
+            assert "Riepilogo sempre visibile" in body
+
+
+def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        checks = [
+            ("/polisWeb", "/portali/pst/acquisizione"),
+            ("/pdp", "/portali/pdp/acquisizione"),
+            ("/pat", "/portali/pat/acquisizione"),
+            ("/sigit", "/portali/ptt/acquisizione"),
+        ]
+        for route, expected in checks:
+            response = client.get(route, follow_redirects=True)
+            body = response.data.decode("utf-8")
+            assert response.status_code == 200
+            assert expected in body

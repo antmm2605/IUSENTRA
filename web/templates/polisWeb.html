@@ -166,11 +166,12 @@
   {% endwith %}
 
   {# ---- Pulsante wizard PST (sempre visibile, JS lo attiva quando LS disponibile) ---- #}
-  <div class="d-flex align-items-center gap-2 mb-3" id="pst-wizard-bar" style="display:none!important">
-    <button type="button" class="btn btn-primary"
-            id="btn-apri-wizard-pst" onclick="apriWizardPst()">
+  <div class="d-flex align-items-center gap-2 mb-3" id="pst-wizard-bar">
+    <a class="btn btn-primary"
+       id="btn-apri-wizard-pst"
+       href="{{ url_for('portale_acquisizione_wizard', portale='pst') }}">
       <i class="bi bi-usb-symbol me-2"></i>Importa pratiche dal PST
-    </button>
+    </a>
     <span class="badge bg-success" id="badge-ls-attivo" style="display:none">
       <i class="bi bi-check-circle me-1"></i>Local Signer attivo
     </span>

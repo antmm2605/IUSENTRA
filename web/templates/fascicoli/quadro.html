@@ -70,13 +70,13 @@
               Oggetto: {{ preventivo.oggetto[:80] }}
             </div>
             {% endif %}
-            <a href="{{ url_for('dettaglio_preventivo', id_preventivo=preventivo.id) }}"
+            <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=preventivo.id) }}"
                class="btn btn-sm btn-outline-warning mt-2">
               <i class="bi bi-eye me-1"></i>Apri preventivo
             </a>
           {% else %}
             <div class="text-muted small">Nessun preventivo associato.</div>
-            <a href="{{ url_for('nuovo_preventivo') }}?id_fascicolo={{ fascicolo.id }}"
+            <a href="{{ url_for('preventivi.nuovo_preventivo') }}?id_fascicolo={{ fascicolo.id }}"
                class="btn btn-sm btn-outline-secondary mt-2">
               <i class="bi bi-plus me-1"></i>Crea preventivo
             </a>
@@ -103,14 +103,14 @@
               Onorario pattuito: <strong>€ {{ "%.2f"|format(importo_conferimento) }}</strong>
             </div>
             {% endif %}
-            <a href="{{ url_for('dettaglio_preventivo', id_preventivo=conferimento.id) }}"
+            <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=conferimento.id) }}"
                class="btn btn-sm btn-outline-success mt-2">
               <i class="bi bi-eye me-1"></i>Apri conferimento
             </a>
           {% else %}
             <div class="text-muted small">Incarico non ancora conferito formalmente.</div>
             {% if preventivo %}
-            <a href="{{ url_for('converti_in_conferimento', id_preventivo=preventivo.id) }}"
+            <a href="{{ url_for('preventivi.nuovo_conferimento', id_cliente=fascicolo.id_cliente or '') }}?id_preventivo={{ preventivo.id }}"
                class="btn btn-sm btn-outline-secondary mt-2">
               <i class="bi bi-arrow-right-circle me-1"></i>Converti in conferimento
             </a>

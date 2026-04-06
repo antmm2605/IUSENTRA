@@ -146,10 +146,11 @@ exit /b 0
     $cmd = $cmd.Replace('__ALLOWED_ORIGINS__', $allowedOrigins)
     Set-Content -Path $starterCmd -Value $cmd -Encoding ASCII
 
-    $vbs = @"
+    $vbs = @'
 Set shell = CreateObject("WScript.Shell")
-shell.Run Chr(34) & "$starterCmd" & Chr(34) & " --background", 0, False
-"@
+shell.Run Chr(34) & "__STARTER_CMD__" & Chr(34) & " --background", 0, False
+'@
+    $vbs = $vbs.Replace('__STARTER_CMD__', $starterCmd)
     Set-Content -Path $starterVbs -Value $vbs -Encoding ASCII
 }
 

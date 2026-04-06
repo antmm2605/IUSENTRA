@@ -151,8 +151,14 @@ def build_windows_exe(version: str) -> bytes:
         f"Punto ufficiale download: {DOWNLOAD_PAGE}\n"
     )
 
+    # Converti PS1 in CRLF: PowerShell su Windows richiede \r\n per riconoscere
+    # i delimitatori dei here-string (@"..."@ e @'...'@). Se il file ha LF puri
+    # (generato su Linux/macOS), il parser PS non chiude il here-string e lancia
+    # "AmpersandNotAllowed" / "missing string terminator".
+    ps1_crlf = INSTALL_PS1.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+
     files_to_pack = [
-        ("installa_local_signer_locale.ps1", INSTALL_PS1.read_bytes()),
+        ("installa_local_signer_locale.ps1", ps1_crlf),
         ("local_signer.py",                  LS_PY.read_bytes()),
         ("requirements_local_signer.txt",    REQS_TXT.read_bytes()),
         ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),

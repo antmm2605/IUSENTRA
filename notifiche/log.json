@@ -1,0 +1,14 @@
+[
+  {
+    "ts": "2026-03-17T17:33:17.027518",
+    "tipo": "libero",
+    "cliente": "Moscato Marco",
+    "numero": "+393474940097",
+    "esito": {
+      "ok": null,
+      "wa_link": "https://wa.me/393474940097?text=Gentile%20Moscato%20Marco%2C%0A%0Aadsdasdasd%0A%0A%E2%80%94%20Studio%20Legale%20PCT",
+      "info": "Nessuna API configurata — usa il link per inviare manualmente."
+    },
+    "utente": "admin"
+  }
+]

@@ -5677,11 +5677,11 @@ def create_app(config: dict | None = None) -> Flask:
         return f"local_signer-{_local_signer_version()}.py"
 
     def _local_signer_windows_exe_path() -> Path:
-        preferred = _local_signer_dist_dir() / _local_signer_windows_exe_name()
-        legacy = _local_signer_dist_dir() / "SetupLocalSigner.exe"
-        if preferred.exists():
-            return preferred
-        return legacy
+        # Restituisce solo il path dell'exe versionato (es. SetupLocalSigner-1.5.10.exe).
+        # NON cade in fallback sul generico SetupLocalSigner.exe (potrebbe essere
+        # una versione precedente) — se l'exe versionato non esiste il chiamante
+        # deve usare la PS1 offline.
+        return _local_signer_dist_dir() / _local_signer_windows_exe_name()
 
     def _local_signer_uffici_path() -> Path:
         return Path(__file__).parent.parent / "pct" / "data" / "uffici_ministero.json"

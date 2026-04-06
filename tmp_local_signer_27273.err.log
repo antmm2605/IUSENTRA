@@ -1,0 +1,4 @@
+00:46:19 [LocalSigner] INFO DLL trovata via glob: C:\Windows\System32\bit4xpki.dll
+00:46:19 [LocalSigner] INFO PKCS#11 fallback su prima libreria disponibile: C:\Windows\System32\bit4xpki.dll
+00:47:17 [LocalSigner] ERROR Errore PST download documento: Timeout connessione a ext.processotelematico.giustizia.it (90s).
+Il servizio PST potrebbe essere sovraccarico. Riprovare tra qualche minuto.

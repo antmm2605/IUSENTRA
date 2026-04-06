@@ -1,0 +1,8 @@
+22:31:31 [LocalSigner] INFO DLL trovata via glob: C:\Windows\System32\bit4xpki.dll
+22:31:31 [LocalSigner] INFO PKCS#11 fallback su prima libreria disponibile: C:\Windows\System32\bit4xpki.dll
+22:33:01 [LocalSigner] ERROR Errore PST ricerca: Timeout connessione a ext.processotelematico.giustizia.it (90s).
+Il servizio PST potrebbe essere sovraccarico. Riprovare tra qualche minuto.
+22:33:08 [LocalSigner] ERROR Errore PST documenti: Timeout connessione a ext.processotelematico.giustizia.it (90s).
+Il servizio PST potrebbe essere sovraccarico. Riprovare tra qualche minuto.
+22:33:48 [LocalSigner] ERROR Errore PST ricerca: Timeout connessione a ext.processotelematico.giustizia.it (90s).
+Il servizio PST potrebbe essere sovraccarico. Riprovare tra qualche minuto.

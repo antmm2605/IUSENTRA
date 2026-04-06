@@ -257,6 +257,58 @@ python -m pytest tests/test_fascicoli.py -v
 3. **Verifica scadenza certificato** deve essere chiamata prima di qualsiasi firma in `DepositoCivile.deposita()`
 4. **Risposta `deposita_atto`** deve sempre contenere: `codiceEsito`, `idDeposito`, `dataDeposito`, `stato`, `ricevutaAccettazione`, `esitoControlli`, `esitoCancelleria` — sia per PDP che per PAT
 
+## Local Signer — Eseguibili per utenti finali
+
+**L'utente non sa installare Python o eseguire script.** Gli eseguibili vanno sempre rigenerati quando `tools/local_signer.py` o `tools/requirements_local_signer.txt` cambiano.
+
+### File distribuiti in `tools/dist/`
+
+| File | Piattaforma | Come l'utente lo esegue |
+|------|-------------|------------------------|
+| `SetupLocalSigner-<ver>.ps1` | **Windows** | Tasto destro → "Esegui con PowerShell" (installer offline self-contained, non richiede internet) |
+| `InstallaLocalSigner-<ver>.command` | **macOS** | Doppio clic in Finder (richiede internet per scaricare dipendenze) |
+| `InstallaLocalSigner-<ver>.run` | **Linux** | `bash InstallaLocalSigner-<ver>.run` in terminale (richiede internet) |
+
+### Come rigenerare gli eseguibili
+
+```bash
+cd /home/user/hacs
+python3 tools/build_dist.py
+```
+
+Con URL personalizzato (es. istanza Railway diversa da quella di default):
+```bash
+python3 tools/build_dist.py --base-url https://mio-server.example.com
+```
+
+Solo macOS + Linux (salta Windows, più veloce):
+```bash
+python3 tools/build_dist.py --no-windows
+```
+
+### Regola obbligatoria — quando rigenerare
+
+**Rigenerare SEMPRE** `tools/dist/` nei seguenti casi:
+1. Modifica a `tools/local_signer.py` (qualsiasi patch)
+2. Modifica a `tools/requirements_local_signer.txt`
+3. Modifica a `tools/installa_local_signer_locale.ps1`
+4. Bump di versione del Local Signer (`VERSION` in `local_signer.py`)
+
+Dopo la rigenerazione, committare tutti i file in `tools/dist/` insieme alla modifica sorgente.
+
+### Istruzioni da dare all'utente (copia-incolla)
+
+**Windows:**
+> Scarica `SetupLocalSigner-X.Y.Z.ps1`, fai tasto destro sul file e scegli **"Esegui con PowerShell"**. Se Windows chiede conferma di sicurezza, clicca "Esegui comunque". L'installazione è automatica e non richiede internet.
+
+**Mac:**
+> Scarica `InstallaLocalSigner-X.Y.Z.command`, aprilo con doppio clic dal Finder. Se macOS blocca il file, vai in **Preferenze di Sistema → Privacy e Sicurezza** e clicca "Apri comunque".
+
+**Linux:**
+> Scarica `InstallaLocalSigner-X.Y.Z.run`, apri un terminale nella stessa cartella ed esegui: `bash InstallaLocalSigner-X.Y.Z.run`
+
+Dopo l'installazione su tutte le piattaforme: tornare su HACS → Impostazioni → Firma digitale e cliccare **"Riverifica"**.
+
 ## Convenzioni
 
 - Messaggi di commit in italiano, descrittivi

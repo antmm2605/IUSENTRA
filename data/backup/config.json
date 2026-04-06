@@ -1,0 +1,14 @@
+{
+  "directory_backup": "/data/backup",
+  "percorsi_dati": [],
+  "max_backup": 10,
+  "password": "",
+  "frequenza": "GIORNALIERA",
+  "ora_esecuzione": "02:00",
+  "backup_abilitato": false,
+  "includi_agenda": true,
+  "includi_clienti": true,
+  "includi_fascicoli": true,
+  "includi_messaggi": true,
+  "includi_documenti": true
+}

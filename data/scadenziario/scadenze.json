@@ -1,0 +1,71 @@
+{
+  "a9a9f49d-178c-4d93-b97f-ca87431923cc": {
+    "id": "a9a9f49d-178c-4d93-b97f-ca87431923cc",
+    "id_fascicolo": "8804C177",
+    "id_appuntamento": "",
+    "tipo": "ADEMPIMENTO",
+    "priorita": "CRITICA",
+    "stato": "APERTO",
+    "titolo": "Verificare il primo controllo iniziale della pratica",
+    "descrizione": "Ufficio (Corte d'Appello) abilitato al deposito telematico PCT verificato",
+    "data_decorrenza": "2026-04-03",
+    "data_scadenza": "2026-04-05",
+    "giorni_preavviso": [
+      7,
+      3,
+      1
+    ],
+    "avvisi_inviati": [],
+    "id_utente_responsabile": "",
+    "note": "Canale operativo previsto: Deposito telematico PCT.",
+    "creata_il": "2026-04-03T09:28:30.091206",
+    "completata_il": "",
+    "perentorio": false
+  },
+  "89184ed8-3fea-4f58-a612-4763d5bbcd8c": {
+    "id": "89184ed8-3fea-4f58-a612-4763d5bbcd8c",
+    "id_fascicolo": "8804C177",
+    "id_appuntamento": "",
+    "tipo": "ADEMPIMENTO",
+    "priorita": "ALTA",
+    "stato": "APERTO",
+    "titolo": "Raccogliere i documenti essenziali",
+    "descrizione": "raccogliere i documenti essenziali: Atto di appello, Procura alle liti per il grado di appello, Copia autentica della sentenza impugnata (art. 348 c.p.c.)",
+    "data_decorrenza": "2026-04-03",
+    "data_scadenza": "2026-04-07",
+    "giorni_preavviso": [
+      7,
+      3,
+      1
+    ],
+    "avvisi_inviati": [],
+    "id_utente_responsabile": "",
+    "note": "Controllo intelligente iniziale: documenti obbligatori del canale di lavoro selezionato.",
+    "creata_il": "2026-04-03T09:28:30.093575",
+    "completata_il": "",
+    "perentorio": false
+  },
+  "102e5678-1fca-44a6-9eb2-166f533af62b": {
+    "id": "102e5678-1fca-44a6-9eb2-166f533af62b",
+    "id_fascicolo": "8804C177",
+    "id_appuntamento": "",
+    "tipo": "DEPOSITO_ATTO",
+    "priorita": "ALTA",
+    "stato": "APERTO",
+    "titolo": "Impostare il primo adempimento operativo",
+    "descrizione": "Firma digitale valida e non scaduta",
+    "data_decorrenza": "2026-04-03",
+    "data_scadenza": "2026-04-10",
+    "giorni_preavviso": [
+      7,
+      3,
+      1
+    ],
+    "avvisi_inviati": [],
+    "id_utente_responsabile": "",
+    "note": "Canale operativo: Deposito telematico PCT.",
+    "creata_il": "2026-04-03T09:28:30.099579",
+    "completata_il": "",
+    "perentorio": false
+  }
+}

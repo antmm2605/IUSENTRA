@@ -1,0 +1,20 @@
+{
+  "93bfe2d0-31fe-4394-8eca-3b9540a791b7": {
+    "id": "93bfe2d0-31fe-4394-8eca-3b9540a791b7",
+    "username": "admin",
+    "email": "admin@studio.local",
+    "nome_completo": "Amministratore",
+    "ruolo": "AMMINISTRATORE",
+    "password_hash": "scrypt:32768:8:1$biAi0OU8WehsBOM7$ef23164d5615f8cb6d5a6a9e21b59c952e2b8e7c3cd63ddb56179ec6487d816c8456980405fb96e394785faaa070ff87978af755515cc4f44e751c2a1df8c398",
+    "attivo": true,
+    "creato_il": "2026-03-23T14:58:38.159394",
+    "ultimo_accesso": "2026-03-24T08:33:41.429658",
+    "reset_token": "",
+    "reset_token_scade": "",
+    "permessi_extra": [],
+    "permessi_negati": [],
+    "tenant_slug": "",
+    "totp_secret": "",
+    "totp_attivato": false
+  }
+}

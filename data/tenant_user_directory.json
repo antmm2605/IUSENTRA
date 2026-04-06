@@ -1,0 +1,34 @@
+{
+  "generated_at": "2026-04-03T19:17:37.221544",
+  "users": {
+    "antmm26051975": {
+      "user_id": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+      "username": "antmm26051975",
+      "email": "mammolantonella@gmail.com",
+      "tenant_id": "6b4fde33-a390-454c-b981-1492c1f15633",
+      "tenant_slug": "antonella-mammola",
+      "tenant_storage_key": "tenant-8bf98719c459",
+      "studio_nome": "Antonella Mammola",
+      "auth_db": "data\\tenants\\tenant-8bf98719c459/auth/utenti.json",
+      "audit_db": "data\\tenants\\tenant-8bf98719c459/auth/audit.json",
+      "ruolo": "AMMINISTRATORE",
+      "attivo": true
+    }
+  },
+  "emails": {
+    "mammolantonella@gmail.com": {
+      "user_id": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+      "username": "antmm26051975",
+      "email": "mammolantonella@gmail.com",
+      "tenant_id": "6b4fde33-a390-454c-b981-1492c1f15633",
+      "tenant_slug": "antonella-mammola",
+      "tenant_storage_key": "tenant-8bf98719c459",
+      "studio_nome": "Antonella Mammola",
+      "auth_db": "data\\tenants\\tenant-8bf98719c459/auth/utenti.json",
+      "audit_db": "data\\tenants\\tenant-8bf98719c459/auth/audit.json",
+      "ruolo": "AMMINISTRATORE",
+      "attivo": true
+    }
+  },
+  "conflicts": []
+}

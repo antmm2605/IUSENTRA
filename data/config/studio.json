@@ -1,0 +1,57 @@
+{
+  "studio": {
+    "nome": "Studio Legale Montagnese",
+    "avvocato": "Avv. Roberto Montagnese",
+    "piva": "01301790802",
+    "cf": "MNTRRT64L01L063H",
+    "indirizzo": "Via NINO BIXIO 4, 89029 - TAURIANOVA (RC)",
+    "telefono": "+393384626697",
+    "email": "r.montagnese@tiscali.it",
+    "sito_web": "",
+    "iban": "",
+    "banca": "",
+    "codice_fiscale_avvocato": "MNTRRT64L01L063H"
+  },
+  "pec": {
+    "indirizzo": "seidonnesas@legalmail.it",
+    "password": "ENC:gAAAAABp0WQRrwwEb8tc1XSTEKNP0ITnalnPESDMajDbMWFe1WZnLT7px_e4gAEcBQ6Q4K2a7gVItQ1L4Moa6yk0WUAQn2Syag==",
+    "smtp_host": "sendm.cert.legalmail.it",
+    "smtp_port": 465,
+    "imap_host": "mbox.cert.legalmail.it",
+    "imap_port": 993,
+    "use_ssl": true
+  },
+  "firma": {
+    "p12_path": "",
+    "password": "",
+    "cert_pem_path": "",
+    "key_pem_path": "",
+    "key_pem_password": "",
+    "pkcs11_library": "",
+    "pkcs11_slot": "",
+    "pkcs11_label": "",
+    "cf_avvocato": "MNTRRT64L01L063H",
+    "backend_preferito": "pkcs11"
+  },
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "antmm2605@gmail.com",
+    "password": "ENC:gAAAAABp0WQRYcz17bQ7Ab-AelQcQmzCFzr2IcN6sVqZF-36u6J5Gme6elIlZDRbNE2R79MPZB43nGMf473_cl_AI_u5OXXv_4VMQUJsRQBwhOgpZj6jCnU=",
+    "from_address": "antmm2605@gmail.com",
+    "from_name": "HACS - Studio Legale PCT",
+    "use_tls": true
+  },
+  "whatsapp": {
+    "twilio_sid": "",
+    "twilio_token": "",
+    "twilio_numero": "",
+    "callmebot_key": ""
+  },
+  "scheduler": {
+    "backup_ora": "02:00",
+    "wa_reminder_ora": "18:00",
+    "backup_abilitato": true,
+    "wa_reminder_abilitato": false
+  }
+}

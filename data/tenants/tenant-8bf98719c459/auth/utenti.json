@@ -1,0 +1,21 @@
+{
+  "9dd376f8-3ffd-44ce-801a-a8508222c320": {
+    "id": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "email": "mammolantonella@gmail.com",
+    "nome_completo": "Antonella Mammola",
+    "ruolo": "AMMINISTRATORE",
+    "password_hash": "scrypt:32768:8:1$G6uwIybx2VsZIL12$c2364f45c8d8289f6581b71b9958f8c316480e6fcf338ae97bf7529f10493586e8d95c1f3751659ac35e635c55875fcd7f88230549afe7acca4d18f59f0b403b",
+    "attivo": true,
+    "creato_il": "2026-04-03T13:48:40.369910",
+    "ultimo_accesso": "2026-04-03T16:32:31.650125",
+    "reset_token": "",
+    "reset_token_scade": "",
+    "permessi_extra": [],
+    "permessi_negati": [],
+    "tenant_slug": "antonella-mammola",
+    "tenant_id": "6b4fde33-a390-454c-b981-1492c1f15633",
+    "totp_secret": "",
+    "totp_attivato": false
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "76A4611E": {
+    "id": "76A4611E",
+    "tipo": "PERSONA_FISICA",
+    "stato": "ATTIVO",
+    "nome": "Marco",
+    "cognome": "Moscato",
+    "codice_fiscale": "",
+    "data_nascita": "",
+    "luogo_nascita": "",
+    "provincia_nascita": "RC",
+    "nazionalita": "Italiana",
+    "sesso": "",
+    "ragione_sociale": "",
+    "partita_iva": "",
+    "forma_giuridica": "",
+    "codice_ateco": "",
+    "data_costituzione": "",
+    "rappresentante_legale": "",
+    "cf_rappresentante": "",
+    "indirizzo_residenza": {
+      "via": "Via Vanvitelli",
+      "civico": "25",
+      "cap": "89029",
+      "comune": "",
+      "provincia": "",
+      "nazione": "Italia"
+    },
+    "indirizzo_domicilio": {
+      "via": "",
+      "civico": "",
+      "cap": "",
+      "comune": "",
+      "provincia": "",
+      "nazione": "Italia"
+    },
+    "indirizzo_sede_legale": {
+      "via": "",
+      "civico": "",
+      "cap": "",
+      "comune": "",
+      "provincia": "",
+      "nazione": "Italia"
+    },
+    "recapiti": {
+      "telefono": "+393474940097",
+      "cellulare": "",
+      "email": "antmm2605@gmail.com",
+      "pec": "antmm2605@gmail.com",
+      "fax": "",
+      "sito_web": ""
+    },
+    "documento": {
+      "tipo": "CARTA_IDENTITA",
+      "numero": "",
+      "rilasciato_da": "",
+      "data_rilascio": "",
+      "data_scadenza": ""
+    },
+    "avvocato_referente": "",
+    "data_prima_acquisizione": "2026-03-23",
+    "provenienza": "",
+    "note": "",
+    "note_riservate": "",
+    "procedimenti": [],
+    "tag": [],
+    "consenso_trattamento": false,
+    "data_consenso": "",
+    "modalita_consenso": "",
+    "creato_il": "2026-03-23T15:00:12.271454",
+    "modificato_il": "2026-03-23T15:00:12.275262"
+  }
+}

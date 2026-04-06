@@ -1,0 +1,24 @@
+{
+  "FF8BF84E": {
+    "id": "FF8BF84E",
+    "canale": "EMAIL",
+    "stato": "INVIATO",
+    "id_cliente": "",
+    "nome_destinatario": "",
+    "email_destinatario": "sanleoresidence@gmail.com",
+    "telefono_destinatario": "",
+    "oggetto": "dd",
+    "corpo": "x",
+    "corpo_html": "",
+    "allegati": [],
+    "tipo_automazione": "",
+    "id_fascicolo": "",
+    "id_appuntamento": "",
+    "sid_esterno": "",
+    "errore": "",
+    "note": "",
+    "creato_il": "2026-03-25T17:08:32.213600",
+    "inviato_il": "2026-03-25T17:08:33.960219",
+    "schedulato_per": ""
+  }
+}

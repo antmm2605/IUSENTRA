@@ -1,0 +1,86 @@
+[
+  {
+    "id": "c7deb164-47ca-4f81-b80a-fa2724280fab",
+    "timestamp": "2026-04-03T13:46:52.343027",
+    "id_utente": "",
+    "username": "admin",
+    "azione": "auth.login_fallito",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "ERRORE"
+  },
+  {
+    "id": "ddea6be2-11f7-4711-a0cb-ca9223aac0f8",
+    "timestamp": "2026-04-03T13:47:36.624492",
+    "id_utente": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "azione": "auth.login",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "19234d6a-64e9-4157-9b76-4e3cfc8a872e",
+    "timestamp": "2026-04-03T15:22:20.930366",
+    "id_utente": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "azione": "auth.logout",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "c08b389a-a4e0-4996-87d2-366ed9da7a33",
+    "timestamp": "2026-04-03T15:22:36.329927",
+    "id_utente": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "azione": "auth.login",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "abc3e1d0-8ced-4db5-b5d9-50075e5c4cce",
+    "timestamp": "2026-04-03T15:23:15.237575",
+    "id_utente": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "azione": "auth.logout",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "79696c4f-9e3b-4f0d-a3c3-5cf2cd361aae",
+    "timestamp": "2026-04-03T16:31:49.315231",
+    "id_utente": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "azione": "auth.login",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "eba50f49-c69d-4def-8011-98a76b545085",
+    "timestamp": "2026-04-03T16:32:16.748061",
+    "id_utente": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "azione": "auth.logout",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  }
+]

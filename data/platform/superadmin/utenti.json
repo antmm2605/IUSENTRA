@@ -1,0 +1,21 @@
+{
+  "9e6b93fb-7993-4162-abfe-1740cf1e13e2": {
+    "id": "9e6b93fb-7993-4162-abfe-1740cf1e13e2",
+    "username": "antmm2605",
+    "email": "antmm2605@gmail.com",
+    "nome_completo": "Amministatorsuper",
+    "ruolo": "SUPERADMIN",
+    "password_hash": "scrypt:32768:8:1$j9OkGuE6HGVyAzf3$07e3432500bb4f8bde7e5b7573668d800a93ac94bc274ca1447b98b5a12a3e80b231a68b9d2a5a4b8ff38b45ad24de461a9d87fcfb67afb39e50ec2d87f15786",
+    "attivo": true,
+    "creato_il": "2026-04-03T13:47:27.367962",
+    "ultimo_accesso": "2026-04-03T16:31:49.311824",
+    "reset_token": "",
+    "reset_token_scade": "",
+    "permessi_extra": [],
+    "permessi_negati": [],
+    "tenant_slug": "",
+    "tenant_id": "",
+    "totp_secret": "",
+    "totp_attivato": false
+  }
+}

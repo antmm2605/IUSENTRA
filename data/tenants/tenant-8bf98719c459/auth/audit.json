@@ -1,0 +1,74 @@
+[
+  {
+    "id": "e3cf4b10-50ac-4ff2-9df1-88c5d8f37d5b",
+    "timestamp": "2026-04-03T15:23:30.567390",
+    "id_utente": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "azione": "auth.login",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "eb8a3fa0-b708-42d8-8311-54f925772445",
+    "timestamp": "2026-04-03T15:23:55.045536",
+    "id_utente": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "azione": "database.migra_sqlite",
+    "risorsa_tipo": "db",
+    "risorsa_id": "/data/backup/studio_legale_2026-04-03.db",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "17aa65db-ae23-4522-940f-45da1845086a",
+    "timestamp": "2026-04-03T15:24:05.039707",
+    "id_utente": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "azione": "database.ottimizza",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "9c38792e-0eb6-4bbf-9b34-4b1cdc633437",
+    "timestamp": "2026-04-03T15:24:09.850600",
+    "id_utente": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "azione": "database.verifica_integrita",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "5d597a5b-90c8-4515-936b-e6b9c4374f40",
+    "timestamp": "2026-04-03T16:31:27.802454",
+    "id_utente": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "azione": "auth.logout",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  },
+  {
+    "id": "8d119372-bd91-44df-8d8c-086fa967074f",
+    "timestamp": "2026-04-03T16:32:31.653437",
+    "id_utente": "9dd376f8-3ffd-44ce-801a-a8508222c320",
+    "username": "antmm26051975",
+    "azione": "auth.login",
+    "risorsa_tipo": "",
+    "risorsa_id": "",
+    "dettagli": "",
+    "ip": "172.18.0.1",
+    "esito": "OK"
+  }
+]

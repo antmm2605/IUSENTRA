@@ -100,12 +100,13 @@ function Test-LocalSignerOnline {
 }
 
 function Stop-LocalSignerProcesses {
-    $needle = $pythonScript.Replace('\', '\\')
+    # Match su *local_signer* (path esatto o variante) per non dipendere
+    # da come il processo e' stato avviato (Task Scheduler, .vbs, cmd, ecc.)
     Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
         Where-Object {
             $_.Name -in @("python.exe", "pythonw.exe") -and
             $_.CommandLine -and
-            $_.CommandLine -like "*$pythonScript*"
+            $_.CommandLine -like "*local_signer*"
         } |
         ForEach-Object {
             try {
@@ -113,6 +114,12 @@ function Stop-LocalSignerProcesses {
             } catch {
             }
         }
+    # Aspetta che la porta 27272 venga liberata (max 3s)
+    for ($i = 0; $i -lt 6; $i++) {
+        $conn = Get-NetTCPConnection -LocalPort 27272 -ErrorAction SilentlyContinue
+        if (-not $conn) { break }
+        Start-Sleep -Milliseconds 500
+    }
 }
 
 function Write-LocalSignerLaunchers {
@@ -263,8 +270,15 @@ Register-ScheduledTask `
 
 Write-Step "Avvio subito il servizio in background..."
 Stop-LocalSignerProcesses
-Start-Sleep -Milliseconds 500
-Start-Process -WindowStyle Hidden -FilePath $starterCmd -ArgumentList @("--background")
+# Avvia pythonw direttamente, senza passare per start_local_signer.cmd
+# (lo starter ha un bail-out che salterebbe il riavvio se il vecchio processo
+# e' ancora in ascolto — qui invece siamo certi che sia stato fermato)
+if (Test-Path $pythonwExe) {
+    $env:PCT_LOCAL_SIGNER_ALLOWED_ORIGINS = $defaultAllowedOrigins
+    Start-Process -WindowStyle Hidden -FilePath $pythonwExe -ArgumentList $pythonScript
+} else {
+    Start-Process -WindowStyle Hidden -FilePath $starterCmd -ArgumentList @("--background")
+}
 
 Write-Step "Attendo che il servizio risponda su 127.0.0.1:27272..."
 $online = Wait-LocalSigner

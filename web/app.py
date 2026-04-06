@@ -5660,6 +5660,13 @@ def create_app(config: dict | None = None) -> Flask:
     def _local_signer_windows_ps1_name() -> str:
         return f"InstallaLocalSigner-{_local_signer_version()}.ps1"
 
+    def _local_signer_windows_offline_ps1_name() -> str:
+        """PS1 offline self-contained (generato da build_dist.py) — alternativa all'EXE."""
+        return f"SetupLocalSigner-{_local_signer_version()}.ps1"
+
+    def _local_signer_windows_offline_ps1_path() -> Path:
+        return _local_signer_dist_dir() / _local_signer_windows_offline_ps1_name()
+
     def _local_signer_macos_name() -> str:
         return f"InstallaLocalSigner-{_local_signer_version()}.command"
 
@@ -6056,7 +6063,12 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/polisWeb/local-signer/setup/windows")
     def polis_local_signer_setup_windows():
-        """Serve il miglior installer Windows disponibile: .exe, altrimenti PowerShell."""
+        """
+        Serve il miglior installer Windows disponibile:
+          1. .exe IExpress offline (se presente in tools/dist/)
+          2. .ps1 offline self-contained (generato da build_dist.py, file embedded come b64)
+          3. .ps1 online (generato dinamicamente, scarica file dal server al momento)
+        """
         exe_path = _local_signer_windows_exe_path()
         base_url = _get_base_url()
         if exe_path.exists():
@@ -6066,6 +6078,16 @@ read -r -p "Premi Invio per chiudere..." _
                 download_name=_local_signer_windows_exe_name(),
                 mimetype="application/octet-stream",
             )
+        # PS1 offline self-contained (build_dist.py)
+        offline_ps1 = _local_signer_windows_offline_ps1_path()
+        if offline_ps1.exists():
+            return send_file(
+                offline_ps1,
+                as_attachment=True,
+                download_name=_local_signer_windows_offline_ps1_name(),
+                mimetype="text/plain; charset=utf-8",
+            )
+        # Fallback: PS1 online (scarica dal server)
         return Response(
             _render_local_signer_windows_ps1(base_url),
             mimetype="text/plain; charset=utf-8",

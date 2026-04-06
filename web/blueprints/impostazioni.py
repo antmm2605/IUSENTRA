@@ -47,15 +47,34 @@ def _firma_upload_dir() -> Path:
 
 def _local_signer_meta() -> dict[str, str]:
     tools_dir = Path(__file__).resolve().parents[2] / "tools"
+    dist_dir  = tools_dir / "dist"
     source = (tools_dir / "local_signer.py").read_text(encoding="utf-8")
     import re as _re
 
     match = _re.search(r'(?m)^VERSION\s*=\s*"([^"]+)"', source)
     version = match.group(1) if match else "n.d."
+
+    # Determina il filename Windows mostrato in UI:
+    # se c'è il .exe IExpress → mostra .exe
+    # se c'è il .ps1 offline → mostra .ps1
+    # altrimenti → mostra .ps1 (online, generato al volo)
+    win_exe  = dist_dir / f"SetupLocalSigner-{version}.exe"
+    win_ps1  = dist_dir / f"SetupLocalSigner-{version}.ps1"
+    if win_exe.exists():
+        windows_filename = win_exe.name
+        windows_tipo     = "exe"
+    elif win_ps1.exists():
+        windows_filename = win_ps1.name
+        windows_tipo     = "ps1_offline"
+    else:
+        windows_filename = f"InstallaLocalSigner-{version}.ps1"
+        windows_tipo     = "ps1_online"
+
     return {
         "version": version,
         "download_page": "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma",
-        "windows_filename": f"SetupLocalSigner-{version}.exe",
+        "windows_filename": windows_filename,
+        "windows_tipo": windows_tipo,
         "windows_script_filename": f"InstallaLocalSigner-{version}.ps1",
         "macos_filename": f"InstallaLocalSigner-{version}.command",
         "linux_filename": f"InstallaLocalSigner-{version}.run",

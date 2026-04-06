@@ -10,6 +10,7 @@ target/
 tools/dist/*
 !tools/dist/SetupLocalSigner.exe
 !tools/dist/SetupLocalSigner-*.exe
+!tools/dist/SetupLocalSigner-*.ps1
 !tools/dist/InstallaLocalSigner-*.command
 !tools/dist/InstallaLocalSigner-*.run
 !tools/dist/LocalSigner-*.txt

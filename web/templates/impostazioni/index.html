@@ -541,12 +541,16 @@
                     <i class="bi bi-download text-primary me-2"></i>Scarica Local Signer
                   </div>
                   <div class="text-muted small">
-                    Se il download da PolisWeb viene bloccato, usa questi installer diretti dalla tab Firma.
-                    I pacchetti vengono generati contestualmente per Windows, macOS e Linux e restano sempre reperibili da
+                    Installer ufficiali v{{ local_signer.version }} per Windows, macOS e Linux.
+                    Punto di distribuzione permanente:
                     <a href="{{ local_signer.download_page }}" target="_blank" rel="noopener">{{ local_signer.download_page }}</a>.
-                    Per Windows il pacchetto ufficiale e' sempre l'eseguibile
-                    <code>{{ local_signer.windows_filename }}</code>.
-                    Lo script PowerShell <code>{{ local_signer.windows_script_filename }}</code> resta solo come fallback tecnico legacy.
+                    {% if local_signer.windows_tipo == 'exe' %}
+                      Per Windows: doppio clic su <code>{{ local_signer.windows_filename }}</code> e segui le istruzioni.
+                    {% elif local_signer.windows_tipo == 'ps1_offline' %}
+                      Per Windows: tasto destro su <code>{{ local_signer.windows_filename }}</code> → <em>Esegui con PowerShell</em>. Installer offline — non richiede connessione internet.
+                    {% else %}
+                      Per Windows: il file <code>{{ local_signer.windows_filename }}</code> è uno script PowerShell che scarica e configura automaticamente il servizio.
+                    {% endif %}
                   </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
@@ -564,10 +568,18 @@
                      class="btn btn-primary w-100"
                      target="_blank" rel="noopener"
                      id="btn-local-signer-windows">
-                    <i class="bi bi-windows me-2"></i>Scarica per Windows · v{{ local_signer.version }}
+                    <i class="bi bi-windows me-2"></i>
+                    {% if local_signer.windows_tipo == 'exe' %}Installer Windows · v{{ local_signer.version }}
+                    {% elif local_signer.windows_tipo == 'ps1_offline' %}Installer Windows offline · v{{ local_signer.version }}
+                    {% else %}Script PowerShell Windows · v{{ local_signer.version }}{% endif %}
                   </a>
                   <div class="small text-muted mt-1 text-center">
-                    File ufficiale: <code>{{ local_signer.windows_filename }}</code>
+                    <code>{{ local_signer.windows_filename }}</code>
+                    {% if local_signer.windows_tipo == 'ps1_offline' %}
+                      <br><span class="text-success">✓ Offline — tutti i file inclusi</span>
+                    {% elif local_signer.windows_tipo == 'ps1_online' %}
+                      <br><span class="text-muted">Richiede connessione a internet</span>
+                    {% endif %}
                   </div>
                 </div>
                 <div class="col-md-4">

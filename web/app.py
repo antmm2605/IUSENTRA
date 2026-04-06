@@ -1642,6 +1642,44 @@ def create_app(config: dict | None = None) -> Flask:
             return TipoDocumento.ATTO_GIUDIZIARIO
         return TipoDocumento.ALLEGATO
 
+    def _tipo_documento_da_item_portale(item: dict) -> TipoDocumento:
+        nome = str(item.get("nome") or item.get("nome_documento") or "").strip()
+        tipo_atto = str(item.get("tipo_atto") or "").strip()
+        tipo = str(item.get("tipo") or "").strip()
+        testo = _fascicolo_text(nome, tipo_atto, tipo)
+        sezione = _sezione_portale_server(item)
+
+        if "procura" in testo:
+            return TipoDocumento.PROCURA
+        if "sentenza" in testo:
+            return TipoDocumento.SENTENZA
+        if "ordinanza" in testo:
+            return TipoDocumento.ORDINANZA
+        if "decreto" in testo:
+            return TipoDocumento.DECRETO
+        if any(token in testo for token in ("verbale udienza", "verbaleudienza", "verbale", "udienza")):
+            return TipoDocumento.VERBALE
+        if "memoria" in testo:
+            return TipoDocumento.MEMORIA
+        if "ricorso" in testo:
+            return TipoDocumento.RICORSO
+        if "citazione" in testo:
+            return TipoDocumento.CITAZIONE
+        if "comparsa" in testo:
+            return TipoDocumento.COMPARSA
+        if "notifica" in testo:
+            return TipoDocumento.NOTIFICA
+        if any(token in testo for token in ("ricevuta", "accettazione", "consegna", "esito", "comunicazione", "pec")):
+            return TipoDocumento.COMUNICAZIONE
+        if sezione == "comunicazioni":
+            return TipoDocumento.COMUNICAZIONE
+        if sezione == "udienze":
+            return TipoDocumento.VERBALE
+        if sezione == "istanze":
+            return TipoDocumento.ALLEGATO
+
+        return _tipo_documento_da_nome_portale(nome)
+
     def _espandi_file_importato_portale(
         nome_file: str,
         contenuto: bytes,
@@ -1828,6 +1866,35 @@ def create_app(config: dict | None = None) -> Flask:
             _scrivi_file_univoco(root / sezione / f"{deposito}_{tipo}" / nome, payload)
             scritti += 1
         return str(root) if scritti else ""
+
+    def _decode_portale_downloaded_items(files: list[dict]) -> list[dict]:
+        items: list[dict] = []
+        for file_item in files or []:
+            nome = str((file_item or {}).get("nome") or "").strip()
+            contenuto_b64 = str((file_item or {}).get("contenuto_b64") or "").strip()
+            if not nome or not contenuto_b64:
+                continue
+            try:
+                payload = base64.b64decode(contenuto_b64)
+            except Exception:
+                continue
+            espansi = _espandi_file_importato_portale(
+                nome_file=nome,
+                contenuto=payload,
+                data_documento=str((file_item or {}).get("data_documento") or date.today().isoformat()),
+                origine=str((file_item or {}).get("origine") or f"local-signer:{nome}"),
+            )
+            for item in espansi:
+                item["id_deposito_esterno"] = str((file_item or {}).get("id_deposito_esterno") or "").strip()
+                item["id_deposito_pct"] = str((file_item or {}).get("id_deposito_pct") or "").strip()
+                item["id_documento_portale"] = str((file_item or {}).get("id_documento_portale") or "").strip()
+                item["tipo_atto"] = str((file_item or {}).get("tipo_atto") or "").strip()
+                item["tipo"] = str((file_item or {}).get("tipo") or "").strip()
+                item["id_cat"] = str((file_item or {}).get("id_cat") or "").strip()
+                item["content_type"] = str((file_item or {}).get("content_type") or "").strip()
+                item["nome_file_originale"] = str((file_item or {}).get("nome_file_originale") or "").strip()
+            items.extend(espansi)
+        return items
 
     def _normalizza_nome_match_portale(nome_file: str) -> str:
         testo = Path(str(nome_file or "")).name.strip().lower()
@@ -2030,13 +2097,16 @@ def create_app(config: dict | None = None) -> Flask:
             payload = item.get("contenuto", b"")
             if not nome or not payload:
                 continue
-            tipo_doc = _tipo_documento_da_nome_portale(nome)
+            tipo_doc = _tipo_documento_da_item_portale(item)
             note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
             if note_importazione:
                 note_doc.append(note_importazione)
             origine = (item.get("origine", "") or "").strip()
             if origine and origine != nome:
                 note_doc.append(f"Origine: {origine}")
+            tipo_atto = str(item.get("tipo_atto") or item.get("tipo") or "").strip()
+            if tipo_atto:
+                note_doc.append(f"Tipo atto portale: {tipo_atto}")
             doc = _salva_documento_fascicolo(
                 gf=gf,
                 id_fasc=fasc.id,
@@ -4476,8 +4546,17 @@ def create_app(config: dict | None = None) -> Flask:
                 raise ValueError("Selezione o anteprima mancanti.")
             options = _coerce_import_options(dict(data.get("options") or {}))
             mapping = _coerce_mapping(dict(data.get("mapping") or {}))
-            result = _importa_o_collega_fascicolo_portale(portale, selection, preview, options, mapping)
-            return jsonify({"ok": True, **result})
+            downloaded_files_raw = data.get("downloaded_files")
+            downloaded_files = downloaded_files_raw if isinstance(downloaded_files_raw, list) else []
+            result = _importa_o_collega_fascicolo_portale(
+                portale,
+                selection,
+                preview,
+                options,
+                mapping,
+                downloaded_files=downloaded_files,
+            )
+            return jsonify({"ok": True, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_import(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e)}), 200
@@ -4931,6 +5010,7 @@ def create_app(config: dict | None = None) -> Flask:
             "non_toccare_note_interne": _b("non_toccare_note_interne", True),
             "non_duplicare_documenti": _b("non_duplicare_documenti", True),
             "conserva_log_origine_pst": _b("conserva_log_origine_pst", True),
+            "mantieni_albero_originale": _b("mantieni_albero_originale", False),
         }
 
     def _coerce_mapping(data: dict[str, Any]) -> dict[str, str]:
@@ -5213,6 +5293,7 @@ def create_app(config: dict | None = None) -> Flask:
         preview: dict[str, Any],
         options: dict[str, bool],
         mapping: dict[str, str],
+        downloaded_files: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         user_name = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
         selection_dc = _selection_to_fascicolo_dataclass(portale, selection)
@@ -5326,8 +5407,38 @@ def create_app(config: dict | None = None) -> Flask:
                 )
                 id_fasc = target.id
 
+        import_result: dict[str, Any] = {
+            "documenti_importati": 0,
+            "depositi_agganciati": [],
+            "lotto_generico": "",
+            "staging_archived": "",
+        }
+        albero_originale_salvato = ""
         if options.get("importa_documenti"):
             _sync_portale_metadata_on_fascicolo(portale, id_fasc, preview, registrato_da=user_name)
+            files = list(downloaded_files or [])
+            counts = preview.get("counts") or {}
+            documenti_attesi = int(counts.get("documenti", 0) or 0)
+            if files:
+                fasc_import = gf.get(id_fasc)
+                if not fasc_import:
+                    raise ValueError("Fascicolo importato non trovato durante l'acquisizione documenti.")
+                decoded_items = _decode_portale_downloaded_items(files)
+                if not decoded_items:
+                    raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
+                if options.get("mantieni_albero_originale"):
+                    albero_originale_salvato = _salva_albero_originale_documenti_portale(fasc_import, decoded_items)
+                import_result = _importa_documenti_portale_items(
+                    gf=gf,
+                    fasc=fasc_import,
+                    items=decoded_items,
+                    note_importazione=f"Acquisizione guidata da {_portale_source_name(portale)}",
+                )
+            elif portale == "pst" and documenti_attesi > 0:
+                raise ValueError(
+                    "Hai scelto di importare i documenti, ma il wizard non ha ricevuto alcun file scaricato dal portale. "
+                    "Riprova l'acquisizione con download batch attivo."
+                )
 
         udienza_result = _sync_udienza_e_scadenza(
             id_fasc,
@@ -5361,11 +5472,14 @@ def create_app(config: dict | None = None) -> Flask:
             "summary": {
                 "numero_pratica": getattr(fasc, "numero", ""),
                 "titolo": getattr(fasc, "titolo", ""),
-                "documenti": int(preview.get("counts", {}).get("documenti", 0) or 0),
-                "depositi": int(preview.get("counts", {}).get("depositi", 0) or 0),
+                "documenti": int(import_result.get("documenti_importati", 0) or 0),
+                "depositi": len(import_result.get("depositi_agganciati") or [])
+                or int(preview.get("counts", {}).get("depositi", 0) or 0),
                 "scadenze_generate": udienza_result["scadenze"],
                 "eventi_generati": udienza_result["attivita"],
                 "conflitti_risolti": len(analysis["warnings"]),
+                "lotto_generico": str(import_result.get("lotto_generico") or ""),
+                "albero_originale_salvato": bool(albero_originale_salvato),
             },
         }
 
@@ -8977,29 +9091,7 @@ read -r -p "Premi Invio per chiudere..." _
             note_importazione = (data.get("note_importazione", "") or "").strip()
             mantieni_albero_originale = bool(data.get("mantieni_albero_originale"))
             files = data.get("files") or []
-            items: list[dict] = []
-
-            for file_item in files:
-                nome = str((file_item or {}).get("nome") or "").strip()
-                contenuto_b64 = str((file_item or {}).get("contenuto_b64") or "").strip()
-                if not nome or not contenuto_b64:
-                    continue
-                try:
-                    payload = base64.b64decode(contenuto_b64)
-                except Exception:
-                    continue
-                espansi = _espandi_file_importato_portale(
-                    nome_file=nome,
-                    contenuto=payload,
-                    data_documento=str((file_item or {}).get("data_documento") or date.today().isoformat()),
-                    origine=str((file_item or {}).get("origine") or f"local-signer:{nome}"),
-                )
-                for item in espansi:
-                    item["id_deposito_esterno"] = str((file_item or {}).get("id_deposito_esterno") or "").strip()
-                    item["id_deposito_pct"] = str((file_item or {}).get("id_deposito_pct") or "").strip()
-                    item["id_documento_portale"] = str((file_item or {}).get("id_documento_portale") or "").strip()
-                    item["tipo_atto"] = str((file_item or {}).get("tipo_atto") or "").strip()
-                items.extend(espansi)
+            items = _decode_portale_downloaded_items(files)
 
             if not items:
                 return jsonify({"ok": False, "errore": "Nessun file valido ricevuto dal Local Signer."}), 200

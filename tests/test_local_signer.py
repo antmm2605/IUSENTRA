@@ -701,6 +701,63 @@ def test_pst_download_documento_payload_sicid_usa_profilo_e_allegato():
     assert payload["contenuto_b64"].startswith("JVBERi0xLjcK")
 
 
+def test_pst_download_documento_payload_preserva_nome_p7m_quando_il_payload_e_firmato():
+    module = _load_local_signer()
+
+    profile_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+  <SOAP-ENV:Body>
+    <ns1:estraiProfiloDocumentoResponse xmlns:ns1="urn:BEAFascicoloInformatico-distr">
+      <return>
+        <idDocumento>33581102</idDocumento>
+        <idCat>33581102</idCat>
+        <nomeFileOriginale>verbale.pdf</nomeFileOriginale>
+        <dataDeposito>2026-01-21T13:47:02Z</dataDeposito>
+      </return>
+    </ns1:estraiProfiloDocumentoResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>"""
+    raw_body = (
+        b"--signed\r\n"
+        b"Content-Type: text/xml\r\n"
+        b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+        b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+        b"<SOAP-ENV:Body><ns1:downloadDocumentoResponse xmlns:ns1='urn:BEAFascicoloInformatico-distr'>"
+        b"<return href ='cid:test-doc-2'/></ns1:downloadDocumentoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+        b"--signed\r\n"
+        b"Content-Type: application/pkcs7-mime\r\n"
+        b"Content-Disposition: attachment; filename=\"VerbaleUdienza_29740536.pdf.p7m\"\r\n"
+        b"Content-Transfer-Encoding: base64\r\n"
+        b"Content-ID: <test-doc-2>\r\n\r\n"
+        b"ZmFrZS1wN20=\r\n"
+        b"--signed--\r\n"
+    )
+
+    orig_call = module._soap_call_curl
+    orig_raw = module._soap_call_curl_raw
+    try:
+        module._soap_call_curl = lambda *args, **kwargs: profile_xml
+        module._soap_call_curl_raw = lambda *args, **kwargs: (
+            raw_body,
+            'Content-Type: multipart/related; boundary="signed"',
+        )
+
+        payload = module._pst_download_documento_payload(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            id_documento="33581102",
+            nome_documento="VerbaleUdienza_29740536.pdf",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="MNTRRT64L01L063H",
+        )
+    finally:
+        module._soap_call_curl = orig_call
+        module._soap_call_curl_raw = orig_raw
+
+    assert payload["nome"] == "VerbaleUdienza_29740536.pdf.p7m"
+    assert payload["content_type"] == "application/pkcs7-mime"
+
+
 def test_normalizza_nome_download_match_rimuove_suffissi_e_duplicati():
     module = _load_local_signer()
 
@@ -1257,7 +1314,7 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
     calls = {"preflight": 0, "download": []}
 
     try:
-        def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None):
+        def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None, cookie_file=None):
             calls["preflight"] += 1
             return {"ok": True, "nota": "warmup ok"}
 

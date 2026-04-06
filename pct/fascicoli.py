@@ -172,6 +172,15 @@ class Documento:
     # #7 — Storico versioni (versioni precedenti del documento)
     versioni: List["DocumentoVersione"] = field(default_factory=list)
 
+    @property
+    def firmato(self) -> bool:
+        """Alias retrocompatibile usato da template e viste legacy."""
+        return bool(self.firmato_digitalmente)
+
+    @firmato.setter
+    def firmato(self, value: bool) -> None:
+        self.firmato_digitalmente = bool(value)
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["tipo"] = self.tipo.value

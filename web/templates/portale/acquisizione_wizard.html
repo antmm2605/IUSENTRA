@@ -98,7 +98,14 @@
     </div></div></section>
 
     <section class="aw-pane" data-step="7"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 7 — Importazione finale</h2><p class="text-muted mb-0">Conferma l’acquisizione, importa i file reali e apri subito il quadro della pratica importata.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awImport">Importa</button></div>
+      <div class="aw-box bg-light-subtle mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="mantieni_albero_originale">
+          <label class="form-check-label fw-semibold" for="mantieni_albero_originale">Conserva anche l'albero tecnico originale del portale</label>
+        </div>
+        <div class="small text-muted mt-2">Se attivo, HACS archivia anche la struttura tecnica originale dei file scaricati dal portale, oltre a ripartirli nelle sezioni corrette della UI.</div>
+      </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
       <div class="d-flex flex-wrap gap-2" id="awImportActions"></div>
     </div></div></section>
@@ -117,6 +124,7 @@
 const AW_BOOT = {{ {"portale": wizard_portale, "spec": spec, "status": wizard_status, "statusUrl": url_for('api_portale_acquisizione_status', portale=wizard_portale), "searchUrl": url_for('api_portale_acquisizione_search', portale=wizard_portale), "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale), "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale), "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale)}|tojson }};
 const AW_STATE = { step:1, quick:'', status:AW_BOOT.status, results:[], selection:null, preview:null, analysis:null, importResult:null, previewTab:'dati' };
 let AW_PST_CERT = null;
+let AW_PST_SESSION = null;
 const AW_STEPS = [
   {id:1,t:'Accesso',s:'Sorgente e connessione'},
   {id:2,t:'Ricerca',s:'Trova il fascicolo'},
@@ -128,6 +136,7 @@ const AW_STEPS = [
 ];
 const AW_PST_LS_BASE = 'http://127.0.0.1:27272';
 const AW_PST_CERT_KEY = `hacs-aw-pst-cert-${AW_BOOT.portale}`;
+const AW_PST_SESSION_KEY = `hacs-aw-pst-session-${AW_BOOT.portale}`;
 function awJson(url, options = {}) {
   return fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }).then(r => r.json());
 }
@@ -149,12 +158,94 @@ function awLoadPstCert() {
     AW_PST_CERT = null;
   }
 }
+function awLoadPstSession() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(AW_PST_SESSION_KEY) || 'null');
+    if (!saved || !saved.session_id) {
+      AW_PST_SESSION = null;
+      return;
+    }
+    if (saved.expires_at && Number(saved.expires_at) < Date.now()) {
+      sessionStorage.removeItem(AW_PST_SESSION_KEY);
+      AW_PST_SESSION = null;
+      return;
+    }
+    AW_PST_SESSION = saved;
+  } catch (_) {
+    AW_PST_SESSION = null;
+  }
+}
 function awSavePstCert(cert) {
+  const previousThumb = String(AW_PST_CERT?.thumbprint || '').toUpperCase();
   AW_PST_CERT = cert || null;
   try {
     if (AW_PST_CERT) sessionStorage.setItem(AW_PST_CERT_KEY, JSON.stringify(AW_PST_CERT));
     else sessionStorage.removeItem(AW_PST_CERT_KEY);
   } catch (_) {}
+  const currentThumb = String(AW_PST_CERT?.thumbprint || '').toUpperCase();
+  if (previousThumb && currentThumb && previousThumb !== currentThumb) awClearPstSession();
+}
+function awSavePstSession(session) {
+  AW_PST_SESSION = session || null;
+  try {
+    if (AW_PST_SESSION) sessionStorage.setItem(AW_PST_SESSION_KEY, JSON.stringify(AW_PST_SESSION));
+    else sessionStorage.removeItem(AW_PST_SESSION_KEY);
+  } catch (_) {}
+}
+function awClearPstSession() {
+  awSavePstSession(null);
+}
+function awRememberPstSession(data, tribunale) {
+  const sid = String(data?.pst_session_id || '').trim();
+  if (!sid) return null;
+  const ttl = Number(data?.pst_session_ttl_seconds || 900);
+  const saved = {
+    session_id: sid,
+    tribunale: String(tribunale || data?.tribunale || '').trim(),
+    cert_thumbprint: String(AW_PST_CERT?.thumbprint || '').trim(),
+    expires_at: Date.now() + (ttl * 1000),
+  };
+  awSavePstSession(saved);
+  return saved;
+}
+function awHasActivePstSession(tribunale) {
+  if (!AW_PST_SESSION?.session_id) return false;
+  if (AW_PST_SESSION.expires_at && Number(AW_PST_SESSION.expires_at) < Date.now()) {
+    awClearPstSession();
+    return false;
+  }
+  const sessionThumb = String(AW_PST_SESSION.cert_thumbprint || '').toUpperCase();
+  const currentThumb = String(AW_PST_CERT?.thumbprint || '').toUpperCase();
+  if (sessionThumb && currentThumb && sessionThumb !== currentThumb) {
+    awClearPstSession();
+    return false;
+  }
+  const wantedTribunale = String(tribunale || '').trim();
+  const sessionTribunale = String(AW_PST_SESSION.tribunale || '').trim();
+  if (wantedTribunale && sessionTribunale && sessionTribunale !== wantedTribunale) return false;
+  return true;
+}
+function awIsPstSessionExpiredError(err) {
+  const text = String(err || '');
+  return text.includes('Sessione accesso PST scaduta') || text.includes('riaprire il canale autenticato');
+}
+async function awEnsurePstPortalSession(tribunale, { force = false } = {}) {
+  const ufficio = String(tribunale || '').trim();
+  if (!ufficio) throw new Error('Seleziona prima l’ufficio giudiziario del fascicolo.');
+  if (!AW_PST_CERT) await awLsSelectCert();
+  if (!force && awHasActivePstSession(ufficio)) return AW_PST_SESSION;
+  const data = await awJson(`${AW_PST_LS_BASE}/pst/preflight-auth`, {
+    method: 'POST',
+    body: JSON.stringify({
+      tribunale: ufficio,
+      cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+      cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      pst_session_id: !force && AW_PST_SESSION?.session_id ? AW_PST_SESSION.session_id : '',
+      force_auth: !!force,
+    }),
+  });
+  if (!data.ok) throw new Error(data.errore || 'Apertura sessione PST non riuscita');
+  return awRememberPstSession(data, ufficio) || AW_PST_SESSION;
 }
 function awGoStep(step) {
   AW_STATE.step = step;
@@ -228,51 +319,129 @@ async function awLsSelectCert() {
   awSavePstCert({ thumbprint: data.thumbprint, soggetto: data.soggetto, emittente: data.emittente, scadenza: data.scadenza, auto_selezionato: !!data.auto_selezionato });
   return AW_PST_CERT;
 }
-async function awPstSearchViaLocalSigner(query) {
-  if (!AW_PST_CERT) await awLsSelectCert();
-  const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
-    method: 'POST',
-    body: JSON.stringify({
-      tribunale: query.ufficio_codice || '',
-      numero_rg: query.numero || '',
-      anno_rg: query.anno || '',
-      nome_parte: query.assistito || query.controparte || '',
-      cf_parte: query.cf || '',
-      cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
-      cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-    }),
-  });
-  if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
-  return (data.fascicoli || []).map(row => ({
-    external_id: `${row.codice_ufficio || query.ufficio_codice}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
-    numero: row.numero_rg || '',
-    anno: Number(row.anno_rg || 0),
-    ufficio_codice: row.codice_ufficio || query.ufficio_codice || '',
-    ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
-    procedimento: row.ruolo || '',
-    sezione: row.sezione || '',
-    stato: row.stato || '',
-    oggetto: row.oggetto || '',
-    parti: Array.isArray(row.parti) ? row.parti : [],
-    controparti: [],
-    ultima_attivita: row.data_udienza || row.data_iscrizione || '',
-    payload: row,
-  }));
+async function awPstSearchViaLocalSigner(query, retry = true) {
+  const tribunale = String(query.ufficio_codice || '').trim();
+  await awEnsurePstPortalSession(tribunale);
+  try {
+    const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tribunale,
+        numero_rg: query.numero || '',
+        anno_rg: query.anno || '',
+        nome_parte: query.assistito || query.controparte || '',
+        cf_parte: query.cf || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+        pst_session_id: AW_PST_SESSION?.session_id || '',
+      }),
+    });
+    if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
+    awRememberPstSession(data, tribunale);
+    return (data.fascicoli || []).map(row => ({
+      external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
+      numero: row.numero_rg || '',
+      anno: Number(row.anno_rg || 0),
+      ufficio_codice: row.codice_ufficio || tribunale || '',
+      ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
+      procedimento: row.ruolo || '',
+      sezione: row.sezione || '',
+      stato: row.stato || '',
+      oggetto: row.oggetto || '',
+      parti: Array.isArray(row.parti) ? row.parti : [],
+      controparti: [],
+      ultima_attivita: row.data_udienza || row.data_iscrizione || '',
+      payload: row,
+    }));
+  } catch (err) {
+    if (retry && awIsPstSessionExpiredError(err)) {
+      awClearPstSession();
+      return awPstSearchViaLocalSigner(query, false);
+    }
+    throw err;
+  }
 }
-async function awPstPreviewViaLocalSigner(selection) {
-  if (!AW_PST_CERT) await awLsSelectCert();
-  const data = await awJson(`${AW_PST_LS_BASE}/pst/documenti`, {
-    method: 'POST',
-    body: JSON.stringify({
-      codice_ufficio: selection.ufficio_codice,
-      numero_rg: selection.numero,
-      anno_rg: selection.anno,
-      cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
-      cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-    }),
-  });
-  if (!data.ok) throw new Error(data.errore || 'Anteprima documenti PST non riuscita');
-  return data.documenti || [];
+async function awPstPreviewViaLocalSigner(selection, retry = true) {
+  const tribunale = String(selection?.ufficio_codice || '').trim();
+  await awEnsurePstPortalSession(tribunale);
+  try {
+    const data = await awJson(`${AW_PST_LS_BASE}/pst/documenti`, {
+      method: 'POST',
+      body: JSON.stringify({
+        codice_ufficio: selection.ufficio_codice,
+        numero_rg: selection.numero,
+        anno_rg: selection.anno,
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+        pst_session_id: AW_PST_SESSION?.session_id || '',
+      }),
+    });
+    if (!data.ok) throw new Error(data.errore || 'Anteprima documenti PST non riuscita');
+    awRememberPstSession(data, tribunale);
+    return data.documenti || [];
+  } catch (err) {
+    if (retry && awIsPstSessionExpiredError(err)) {
+      awClearPstSession();
+      return awPstPreviewViaLocalSigner(selection, false);
+    }
+    throw err;
+  }
+}
+function awPreviewDocuments() {
+  if (Array.isArray(AW_STATE.preview?.documenti) && AW_STATE.preview.documenti.length) return AW_STATE.preview.documenti;
+  const grouped = Array.isArray(AW_STATE.preview?.depositi) ? AW_STATE.preview.depositi : [];
+  return grouped.flatMap(dep => (dep.documenti || []).map(doc => ({
+    ...doc,
+    id_deposito_pct: doc.id_deposito_pct || dep.id_deposito_pct || '',
+    id_deposito_esterno: doc.id_deposito_esterno || dep.id_deposito_esterno || dep.id_deposito || '',
+    tipo_atto: doc.tipo_atto || dep.tipo_atto || '',
+    data_deposito: doc.data_deposito || dep.data_deposito || '',
+    mittente: doc.mittente || dep.mittente || '',
+  })));
+}
+async function awPstDownloadSelectionViaLocalSigner(retry = true) {
+  const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
+  await awEnsurePstPortalSession(tribunale);
+  const previewDocs = awPreviewDocuments();
+  if (!previewDocs.length) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
+  const documents = previewDocs
+    .map(item => ({
+      id_documento: item.id_documento || item.id_documento_portale || '',
+      nome_documento: item.nome || item.nome_documento || '',
+      id_cat: item.id_cat || '',
+      data_documento: item.data_documento || item.data_deposito || '',
+      id_deposito_esterno: item.id_deposito_esterno || item.id_deposito || '',
+      id_deposito_pct: item.id_deposito_pct || '',
+      tipo_atto: item.tipo_atto || '',
+      tipo: item.tipo || '',
+      original: true,
+    }))
+    .filter(item => item.id_documento);
+  if (!documents.length) {
+    throw new Error('Il fascicolo selezionato non espone identificativi validi per il download dei documenti.');
+  }
+  try {
+    const data = await awJson(`${AW_PST_LS_BASE}/pst/download-documenti-batch`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tribunale,
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+        pst_session_id: AW_PST_SESSION?.session_id || '',
+        preflight_auth: false,
+        documents,
+      }),
+    });
+    if (!data.ok) throw new Error(data.errore || 'Download batch PST non riuscito');
+    awRememberPstSession(data, tribunale);
+    return data;
+  } catch (err) {
+    if (retry && awIsPstSessionExpiredError(err)) {
+      awClearPstSession();
+      return awPstDownloadSelectionViaLocalSigner(false);
+    }
+    throw err;
+  }
 }
 function awRenderAccess() {
   const status = AW_STATE.status || {};
@@ -318,6 +487,7 @@ function awRenderAccess() {
   if (status.pkcs11_mode) note.push('Ricerca PST reale tramite Local Signer e certificato Windows, senza usare la chiave privata nel server.');
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
+  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');
   if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
   document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l’accesso e continua con la ricerca del fascicolo.';
 }
@@ -548,6 +718,7 @@ function awCurrentOptions() {
     non_toccare_note_interne: awSelectionValue('non_toccare_note_interne', true),
     non_duplicare_documenti: awSelectionValue('non_duplicare_documenti', true),
     conserva_log_origine_pst: awSelectionValue('conserva_log_origine_pst', true),
+    mantieni_albero_originale: awSelectionValue('mantieni_albero_originale', false),
   };
 }
 function awCurrentMapping() {
@@ -605,8 +776,9 @@ async function awRunAnalysis(advance) {
     body: JSON.stringify({
       selection: AW_STATE.selection,
       preview: AW_STATE.preview,
-      options: awCurrentOptions(),
+      options,
       mapping: awCurrentMapping(),
+      downloaded_files: downloadedFiles,
     }),
   });
   if (!data.ok) {
@@ -664,21 +836,40 @@ async function awStartImport() {
   const actions = document.getElementById('awImportActions');
   state.innerHTML = 'Importazione guidata in corso...';
   actions.innerHTML = '';
+  const options = awCurrentOptions();
+  let downloadedFiles = [];
+  let downloadSummary = null;
+  try {
+    if (AW_BOOT.portale === 'pst' && options.importa_documenti && Number(AW_STATE.preview?.counts?.documenti || 0) > 0) {
+      state.innerHTML = 'Apertura sessione PST e download batch dei file ufficiali in corso...';
+      downloadSummary = await awPstDownloadSelectionViaLocalSigner();
+      downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
+      if (!downloadedFiles.length) {
+        throw new Error('Il portale non ha restituito file scaricabili per il fascicolo selezionato.');
+      }
+      state.innerHTML = `Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} file ricevuti dal portale.`;
+    }
+  } catch (err) {
+    state.innerHTML = `<span class="text-danger">${awEscape(String(err))}</span>`;
+    return;
+  }
   const data = await awJson(AW_BOOT.importUrl, {
     method: 'POST',
     body: JSON.stringify({
       selection: AW_STATE.selection,
       preview: AW_STATE.preview,
-      options: awCurrentOptions(),
+      options,
       mapping: awCurrentMapping(),
+      downloaded_files: downloadedFiles,
     }),
   });
   if (!data.ok) {
     state.innerHTML = `<span class="text-danger">${awEscape(data.errore || 'Importazione non riuscita')}</span>`;
     return;
   }
-  AW_STATE.importResult = data.result || null;
+  AW_STATE.importResult = data.result || data || null;
   const summary = AW_STATE.importResult?.summary || {};
+  const failureCount = Number(downloadSummary?.failures?.length || 0);
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
       <div class="fw-semibold mb-1">${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
@@ -689,6 +880,8 @@ async function awStartImport() {
         Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} -
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
+      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} file ufficiali scaricati dal portale${failureCount ? ` - ${awEscape(failureCount)} download da verificare` : ''}.</div>` : ''}
+      ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
   actions.innerHTML = [
@@ -843,6 +1036,7 @@ function awBindActions() {
 }
 document.addEventListener('DOMContentLoaded', async () => {
   awLoadPstCert();
+  awLoadPstSession();
   awRenderSteps();
   awRenderAccess();
   awRenderResults();

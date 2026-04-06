@@ -122,7 +122,20 @@
 
 <script>
 const AW_BOOT = {{ {"portale": wizard_portale, "spec": spec, "status": wizard_status, "statusUrl": url_for('api_portale_acquisizione_status', portale=wizard_portale), "searchUrl": url_for('api_portale_acquisizione_search', portale=wizard_portale), "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale), "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale), "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale)}|tojson }};
-const AW_STATE = { step:1, quick:'', status:AW_BOOT.status, results:[], selection:null, preview:null, analysis:null, importResult:null, previewTab:'dati' };
+const AW_STATE = {
+  step:1,
+  quick:'',
+  status:AW_BOOT.status,
+  results:[],
+  selection:null,
+  preview:null,
+  analysis:null,
+  importResult:null,
+  previewTab:'dati',
+  downloadedFiles:[],
+  downloadSummary:null,
+  downloadCacheKey:'',
+};
 let AW_PST_CERT = null;
 let AW_PST_SESSION = null;
 const AW_STEPS = [
@@ -399,6 +412,27 @@ function awPreviewDocuments() {
     mittente: doc.mittente || dep.mittente || '',
   })));
 }
+function awCurrentDownloadKey() {
+  const selectionKey = String(AW_STATE.selection?.external_id || '').trim();
+  const docs = awPreviewDocuments().map(item => ({
+    id_documento: item.id_documento || item.id_documento_portale || '',
+    id_cat: item.id_cat || '',
+    id_deposito: item.id_deposito || item.id_deposito_esterno || item.id_deposito_pct || '',
+    nome: item.nome || item.nome_documento || '',
+  }));
+  return JSON.stringify({ selectionKey, docs });
+}
+function awFormatDownloadFailures(failures) {
+  const rows = Array.isArray(failures) ? failures.filter(Boolean) : [];
+  if (!rows.length) return '';
+  const preview = rows.slice(0, 4).map(item => {
+    const nome = item.nome_documento || item.id_documento || 'documento';
+    const errore = item.errore || 'errore sconosciuto';
+    return `${nome}: ${errore}`;
+  }).join(' | ');
+  const extra = rows.length > 4 ? ` (+${rows.length - 4} altri)` : '';
+  return `${preview}${extra}`;
+}
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
   await awEnsurePstPortalSession(tribunale);
@@ -442,6 +476,36 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
     }
     throw err;
   }
+}
+async function awEnsurePstDownloadedFiles({ force = false } = {}) {
+  const options = awCurrentOptions();
+  if (!options.importa_documenti) {
+    AW_STATE.downloadedFiles = [];
+    AW_STATE.downloadSummary = null;
+    AW_STATE.downloadCacheKey = '';
+    return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
+  }
+  const cacheKey = awCurrentDownloadKey();
+  if (!force && AW_STATE.downloadSummary && AW_STATE.downloadCacheKey === cacheKey) {
+    return AW_STATE.downloadSummary;
+  }
+  const summary = await awPstDownloadSelectionViaLocalSigner();
+  const files = Array.isArray(summary.files) ? summary.files : [];
+  const failures = Array.isArray(summary.failures) ? summary.failures : [];
+  AW_STATE.downloadedFiles = files;
+  AW_STATE.downloadSummary = { ...summary, files, failures };
+  AW_STATE.downloadCacheKey = cacheKey;
+  if (!files.length) {
+    throw new Error(
+      failures.length
+        ? `Il portale non ha restituito file scaricabili. ${awFormatDownloadFailures(failures)}`
+        : 'Il portale non ha restituito file scaricabili per il fascicolo selezionato.'
+    );
+  }
+  if (failures.length) {
+    throw new Error(`Il download PST non e' completo: ${files.length}/${summary.documenti_richiesti || files.length} file ricevuti. ${awFormatDownloadFailures(failures)}`);
+  }
+  return AW_STATE.downloadSummary;
 }
 function awRenderAccess() {
   const status = AW_STATE.status || {};
@@ -562,6 +626,9 @@ async function awSelectResult(index, jumpPreview) {
   AW_STATE.analysis = null;
   AW_STATE.importResult = null;
   AW_STATE.previewTab = 'dati';
+  AW_STATE.downloadedFiles = [];
+  AW_STATE.downloadSummary = null;
+  AW_STATE.downloadCacheKey = '';
   document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando l’anteprima del fascicolo e dei documenti disponibili...</div>';
   awRenderSidebar();
   try {
@@ -776,9 +843,9 @@ async function awRunAnalysis(advance) {
     body: JSON.stringify({
       selection: AW_STATE.selection,
       preview: AW_STATE.preview,
-      options,
+      options: awCurrentOptions(),
       mapping: awCurrentMapping(),
-      downloaded_files: downloadedFiles,
+      downloaded_files: Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [],
     }),
   });
   if (!data.ok) {
@@ -837,16 +904,13 @@ async function awStartImport() {
   state.innerHTML = 'Importazione guidata in corso...';
   actions.innerHTML = '';
   const options = awCurrentOptions();
-  let downloadedFiles = [];
+  let downloadedFiles = Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [];
   let downloadSummary = null;
   try {
     if (AW_BOOT.portale === 'pst' && options.importa_documenti && Number(AW_STATE.preview?.counts?.documenti || 0) > 0) {
       state.innerHTML = 'Apertura sessione PST e download batch dei file ufficiali in corso...';
-      downloadSummary = await awPstDownloadSelectionViaLocalSigner();
+      downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
-      if (!downloadedFiles.length) {
-        throw new Error('Il portale non ha restituito file scaricabili per il fascicolo selezionato.');
-      }
       state.innerHTML = `Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} file ricevuti dal portale.`;
     }
   } catch (err) {
@@ -905,6 +969,7 @@ function awRenderSidebar() {
   }
   const selection = AW_STATE.selection;
   const counts = AW_STATE.preview?.counts || {};
+  const options = awCurrentOptions();
   list.innerHTML = [
     ['Portale', AW_BOOT.spec.label],
     ['Ufficio', selection.ufficio_nome || selection.ufficio_codice || 'n.d.'],
@@ -917,7 +982,8 @@ function awRenderSidebar() {
     ['Eventi', counts.eventi || 0],
     ['Udienze', counts.udienze || 0],
     ['Provvedimenti', counts.provvedimenti || 0],
-  ].map(([label, count]) => `<span class="badge text-bg-light border">${label}: ${awEscape(count)}</span>`).join('');
+  ].map(([label, count]) => `<span class="badge text-bg-light border">${label}: ${awEscape(count)}</span>`).join('')
+    + (options.mantieni_albero_originale ? '<span class="badge text-bg-light border">Albero originale</span>' : '');
   if (AW_STATE.importResult?.summary) {
     note.textContent = `Import completato. Pratica ${AW_STATE.importResult.summary.numero_pratica || ''} pronta per essere governata dal gestionale.`;
   } else if (AW_STATE.analysis?.next_step) {

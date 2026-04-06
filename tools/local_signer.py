@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.8"
+VERSION = "1.5.9"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2091,6 +2091,68 @@ def _soap_call_curl(url: str, soap_body: str,
     return body_bytes.decode("utf-8", "replace")
 
 
+def _soap_call_pst_session(
+    *,
+    url: str,
+    soap_body: str,
+    cert_thumbprint: Optional[str] = None,
+    extra_headers: Optional[list[str]] = None,
+    soap_action: str = "",
+    cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
+) -> str:
+    """
+    Riusa prima l'eventuale sessione HTTP del portale (cookie_file) e solo in
+    fallback ripresenta il certificato client. Questo riduce drasticamente i
+    prompt PIN ripetuti durante ricerca, anteprima e download batch.
+    """
+
+    def _run(cert_value: Optional[str]) -> str:
+        return _soap_call_curl(
+            url=url,
+            soap_body=soap_body,
+            cert_thumbprint=cert_value,
+            extra_headers=extra_headers,
+            soap_action=soap_action,
+            cookie_file=cookie_file,
+        )
+
+    if prefer_cookie_only and cookie_file:
+        try:
+            return _run(None)
+        except Exception as e:
+            log.debug("PST cookie-only fallback su certificato per %s: %s", url, e)
+    return _run(cert_thumbprint)
+
+
+def _soap_call_pst_session_raw(
+    *,
+    url: str,
+    soap_body: str,
+    cert_thumbprint: Optional[str] = None,
+    extra_headers: Optional[list[str]] = None,
+    soap_action: str = "",
+    cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
+) -> tuple[bytes, str]:
+    def _run(cert_value: Optional[str]) -> tuple[bytes, str]:
+        return _soap_call_curl_raw(
+            url=url,
+            soap_body=soap_body,
+            cert_thumbprint=cert_value,
+            extra_headers=extra_headers,
+            soap_action=soap_action,
+            cookie_file=cookie_file,
+        )
+
+    if prefer_cookie_only and cookie_file:
+        try:
+            return _run(None)
+        except Exception as e:
+            log.debug("PST raw cookie-only fallback su certificato per %s: %s", url, e)
+    return _run(cert_thumbprint)
+
+
 def _pst_preflight_auth_curl(url: str,
                              cert_thumbprint: Optional[str] = None,
                              pkcs11_uri: Optional[str] = None,
@@ -2863,6 +2925,7 @@ def _pst_download_documento_payload(
     data_documento: str = "",
     original: bool = True,
     cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
 ) -> dict:
     servizio = _pst_servizio_proxy(base_url)
     url_documenti = _pst_url_documenti(base_url)
@@ -2878,7 +2941,7 @@ def _pst_download_documento_payload(
             )
         extra_headers = [f"X-WASP-User: {cf_avvocato}"]
         if not id_cat:
-            profilo_xml = _soap_call_curl(
+            profilo_xml = _soap_call_pst_session(
                 url=url_documenti,
                 soap_body=_soap_bea_sicid_body(
                     "estraiProfiloDocumento",
@@ -2893,6 +2956,7 @@ def _pst_download_documento_payload(
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=extra_headers,
                 cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             profilo = _parse_profilo_documento_xml(profilo_xml)
             id_cat = str(profilo.get("id_cat") or "").strip()
@@ -2921,12 +2985,13 @@ def _pst_download_documento_payload(
             ],
         )
         if not data_documento or not nome_documento:
-            profilo_xml = _soap_call_curl(
+            profilo_xml = _soap_call_pst_session(
                 url=url_documenti,
                 soap_body=_soap_bea_siecic_body("estraiProfiloDocumento", [("idDoc", id_documento)]),
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=extra_headers,
                 cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             profilo = _parse_profilo_documento_xml(profilo_xml)
     elif servizio == "JPW_SIGP":
@@ -2935,13 +3000,14 @@ def _pst_download_documento_payload(
     else:
         raise RuntimeError(f"Servizio PST non supportato per il download diretto: {servizio or 'sconosciuto'}.")
 
-    body_bytes, headers_text = _soap_call_curl_raw(
+    body_bytes, headers_text = _soap_call_pst_session_raw(
         url=url_documenti,
         soap_body=soap_body,
         cert_thumbprint=cert_thumbprint,
         extra_headers=extra_headers,
         soap_action=soap_action,
         cookie_file=cookie_file,
+        prefer_cookie_only=prefer_cookie_only,
     )
     content_type = _http_header_value(headers_text, "Content-Type")
     parsed = _parse_download_documento_response(body_bytes, content_type)
@@ -2994,6 +3060,7 @@ def _pst_download_documenti_batch_payloads(
             cert_thumbprint=cert_thumbprint,
             cookie_file=cookie_file,
         )
+    prefer_cookie_only = bool(cookie_file)
 
     for raw in documenti:
         item = raw if isinstance(raw, dict) else {}
@@ -3023,6 +3090,7 @@ def _pst_download_documenti_batch_payloads(
                     else str(item.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
                 ),
                 cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
             file_payload["id_deposito_esterno"] = str(item.get("id_deposito_esterno") or "").strip()
@@ -3052,6 +3120,8 @@ def _arricchisci_fascicoli_con_profilo(
     base_url: str,
     cert_thumbprint: Optional[str],
     cf_avvocato: str,
+    cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
 ) -> list[dict]:
     if not _pst_namespace_qbuilder(base_url):
         return fascicoli
@@ -3069,11 +3139,13 @@ def _arricchisci_fascicoli_con_profilo(
         if not soap:
             continue
         try:
-            xml_resp = _soap_call_curl(
+            xml_resp = _soap_call_pst_session(
                 url=base_url.rstrip("/"),
                 soap_body=soap,
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=headers,
+                cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             profili = _parse_fascicoli_xml(xml_resp)
             if not profili:
@@ -3807,6 +3879,8 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             session_entry = _resolve_pst_session_entry(data.get("pst_session_id")) if data.get("pst_session_id") else None
+            cookie_file = str((session_entry or {}).get("cookie_file") or "")
+            prefer_cookie_only = bool(cookie_file)
             cert_thumbprint = _require_certificato_pst(
                 data.get("cert_thumbprint") or (session_entry or {}).get("cert_thumbprint")
             )
@@ -3828,12 +3902,13 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato=cf_avvocato,
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
-            xml_resp = _soap_call_curl(
+            xml_resp = _soap_call_pst_session(
                 url=url_ricerca,
                 soap_body=soap,
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=extra_headers,
-                cookie_file=str((session_entry or {}).get("cookie_file") or ""),
+                cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             fault = _estrai_fault_soap(xml_resp)
             if fault:
@@ -3853,6 +3928,8 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cert_thumbprint=cert_thumbprint,
                 cf_avvocato=cf_avvocato,
+                cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             if session_entry:
                 _update_pst_session(
@@ -3906,6 +3983,8 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             session_entry = _resolve_pst_session_entry(data.get("pst_session_id")) if data.get("pst_session_id") else None
+            cookie_file = str((session_entry or {}).get("cookie_file") or "")
+            prefer_cookie_only = bool(cookie_file)
             cert_thumbprint = _require_certificato_pst(
                 data.get("cert_thumbprint") or (session_entry or {}).get("cert_thumbprint")
             )
@@ -3926,12 +4005,13 @@ class _Handler(BaseHTTPRequestHandler):
                 sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
-            xml_resp = _soap_call_curl(
+            xml_resp = _soap_call_pst_session(
                 url=url_documenti,
                 soap_body=soap,
                 cert_thumbprint=cert_thumbprint,
                 extra_headers=extra_headers,
-                cookie_file=str((session_entry or {}).get("cookie_file") or ""),
+                cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             fault = _estrai_fault_soap(xml_resp)
             if fault:
@@ -3995,6 +4075,8 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             session_entry = _resolve_pst_session_entry(data.get("pst_session_id")) if data.get("pst_session_id") else None
+            cookie_file = str((session_entry or {}).get("cookie_file") or "")
+            prefer_cookie_only = bool(cookie_file)
             base_url = _risolvi_base_pst_runtime(tribunale)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             cert_thumbprint = _require_certificato_pst(
@@ -4017,7 +4099,8 @@ class _Handler(BaseHTTPRequestHandler):
                     if isinstance(data.get("original", True), bool)
                     else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
                 ),
-                cookie_file=str((session_entry or {}).get("cookie_file") or ""),
+                cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
             )
             file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
             file_payload["id_deposito_esterno"] = str(data.get("id_deposito_esterno") or "").strip()

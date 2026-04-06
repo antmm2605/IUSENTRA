@@ -2457,3 +2457,172 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     albero_root = Path(cfg["PST_IMPORT_DIR"]) / "_alberi_originali" / fascicolo.id
     assert albero_root.exists()
     assert any(path.is_file() for path in albero_root.rglob("*"))
+
+
+def test_api_portale_acquisizione_import_pst_blocca_import_se_i_file_non_arrivano(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:1025:2024:RG",
+                    "numero": "1025",
+                    "anno": 2024,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                    "stato": "PROCEDIMENTO DEFINITO",
+                    "oggetto": "Vendita di cose immobili",
+                    "parti": ["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"],
+                    "controparti": [],
+                    "payload": {
+                        "numero_rg": "1025",
+                        "anno_rg": 2024,
+                        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                        "stato": "PROCEDIMENTO DEFINITO",
+                        "oggetto": "Vendita di cose immobili",
+                        "sezione": "CIVILE",
+                        "data_iscrizione": "2024-09-05",
+                        "parti": ["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"],
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Tribunale di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "1025",
+                        "anno": 2024,
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                        "stato": "PROCEDIMENTO DEFINITO",
+                    },
+                    "parti": ["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"],
+                    "controparti": [],
+                    "difensori": [],
+                    "eventi": [],
+                    "documenti": [
+                        {
+                            "id_documento": "DOC-VERBALE-1",
+                            "nome": "VerbaleUdienza_29740536.pdf.p7m",
+                            "tipo": "VERBALE",
+                            "tipo_atto": "VerbaleUdienza",
+                            "data_deposito": "2025-01-21",
+                            "mittente": "cancelleria@tribunale.giustiziapec.it",
+                            "id_deposito": "BUSTA-PST-001",
+                            "id_cat": "CAT-001",
+                        }
+                    ],
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-PST-001",
+                            "tipo_atto": "VerbaleUdienza",
+                            "data_deposito": "2025-01-21",
+                            "mittente": "cancelleria@tribunale.giustiziapec.it",
+                            "documenti": [
+                                {
+                                    "id_documento": "DOC-VERBALE-1",
+                                    "nome": "VerbaleUdienza_29740536.pdf.p7m",
+                                    "tipo": "VERBALE",
+                                    "tipo_atto": "VerbaleUdienza",
+                                    "data_deposito": "2025-01-21",
+                                    "mittente": "cancelleria@tribunale.giustiziapec.it",
+                                    "id_deposito": "BUSTA-PST-001",
+                                    "id_cat": "CAT-001",
+                                }
+                            ],
+                        }
+                    ],
+                    "counts": {
+                        "parti": 2,
+                        "difensori": 0,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "documenti": 1,
+                        "provvedimenti": 0,
+                        "depositi": 1,
+                        "esiti": 0,
+                    },
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_difensori": False,
+                    "importa_eventi": False,
+                    "importa_udienze": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                    "importa_provvedimenti": True,
+                    "importa_cronologia_depositi": True,
+                    "importa_esiti_telematici": False,
+                    "solo_nuovi": True,
+                    "aggiorna_pratica_esistente": True,
+                    "sovrascrivi_solo_vuoti": True,
+                    "non_toccare_note_interne": True,
+                    "non_duplicare_documenti": True,
+                    "conserva_log_origine_pst": True,
+                    "mantieni_albero_originale": False,
+                },
+                "mapping": {
+                    "mode": "attach_existing",
+                    "target_fascicolo_id": fascicolo.id,
+                    "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                    "materia": "Civile",
+                    "grado": "Primo grado",
+                },
+                "downloaded_files": [],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is False
+    assert "wizard non ha ricevuto alcun file" in data["errore"]
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 0
+    assert len(fascicolo_reload.depositi_pct) == 0

@@ -1355,3 +1355,70 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
     assert esito["failures"] == []
     assert calls["preflight"] == 1
     assert calls["download"] == ["33581101", "33393309"]
+
+
+def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl
+    calls = []
+    try:
+        def _fake_call(*args, **kwargs):
+            calls.append(kwargs.get("cert_thumbprint"))
+            if kwargs.get("cert_thumbprint") is None:
+                raise RuntimeError("cookie scaduto")
+            return "<ok/>"
+
+        module._soap_call_curl = _fake_call
+
+        result = module._soap_call_pst_session(
+            url="https://pst.example.test",
+            soap_body="<xml/>",
+            cert_thumbprint="AABBCC11",
+            cookie_file="C:\\temp\\pst.cookies",
+            prefer_cookie_only=True,
+        )
+    finally:
+        module._soap_call_curl = orig_call
+
+    assert result == "<ok/>"
+    assert calls == [None, "AABBCC11"]
+
+
+def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_certificato():
+    module = _load_local_signer()
+
+    orig_download = module._pst_download_documento_payload
+    calls = []
+    try:
+        def _fake_download(**kwargs):
+            calls.append(kwargs)
+            return {
+                "nome": kwargs["nome_documento"] or f"documento_{kwargs['id_documento']}.pdf",
+                "contenuto_b64": "ZmFrZQ==",
+                "content_type": "application/pdf",
+                "id_documento_portale": kwargs["id_documento"],
+                "id_cat": kwargs.get("id_cat") or "",
+                "data_documento": kwargs.get("data_documento") or "",
+                "nome_file_originale": kwargs["nome_documento"] or "",
+                "servizio_portale": "DocumentiFascicolo",
+            }
+
+        module._pst_download_documento_payload = _fake_download
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[{"id_documento": "33581101", "nome_documento": "Sentenza.pdf"}],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+        )
+    finally:
+        module._pst_download_documento_payload = orig_download
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 1
+    assert calls and calls[0]["prefer_cookie_only"] is True
+    assert calls[0]["cookie_file"] == "C:\\temp\\pst.cookies"

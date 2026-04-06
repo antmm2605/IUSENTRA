@@ -5301,6 +5301,20 @@ def create_app(config: dict | None = None) -> Flask:
         if analysis["blockers"]:
             raise ValueError("Sono presenti blocchi da risolvere prima dell'importazione.")
 
+        files = list(downloaded_files or [])
+        counts = preview.get("counts") or {}
+        documenti_attesi = int(counts.get("documenti", 0) or 0)
+        decoded_items: list[dict[str, Any]] = []
+        if options.get("importa_documenti") and portale == "pst" and documenti_attesi > 0:
+            if not files:
+                raise ValueError(
+                    "Hai scelto di importare i documenti, ma il wizard non ha ricevuto alcun file scaricato dal portale. "
+                    "Riprova l'acquisizione con download batch attivo."
+                )
+            decoded_items = _decode_portale_downloaded_items(files)
+            if not decoded_items:
+                raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
+
         log_id = _append_portale_import_log(
             {
                 "portale": _portale_source_name(portale),
@@ -5416,14 +5430,12 @@ def create_app(config: dict | None = None) -> Flask:
         albero_originale_salvato = ""
         if options.get("importa_documenti"):
             _sync_portale_metadata_on_fascicolo(portale, id_fasc, preview, registrato_da=user_name)
-            files = list(downloaded_files or [])
-            counts = preview.get("counts") or {}
-            documenti_attesi = int(counts.get("documenti", 0) or 0)
             if files:
                 fasc_import = gf.get(id_fasc)
                 if not fasc_import:
                     raise ValueError("Fascicolo importato non trovato durante l'acquisizione documenti.")
-                decoded_items = _decode_portale_downloaded_items(files)
+                if not decoded_items:
+                    decoded_items = _decode_portale_downloaded_items(files)
                 if not decoded_items:
                     raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
                 if options.get("mantieni_albero_originale"):

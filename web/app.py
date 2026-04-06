@@ -7547,6 +7547,110 @@ read -r -p "Premi Invio per chiudere..." _
             oggi=date.today(),
         )
 
+    @app.route("/fascicoli/<id_fasc>/quadro")
+    def quadro_fascicolo(id_fasc):
+        """Quadro unico della pratica — 5 assi: commerciale, operativo, conformità, economico, documentale."""
+        from pct.preventivi import GestionePreventivi
+        from pct.responsabile_conformita import build_fascicolo_compliance_summary
+        from pct.fatturazione import GestioneFatturazione
+
+        gf = get_fascicoli()
+        gc = get_clienti()
+        fasc = gf.get(id_fasc)
+        if not fasc:
+            flash("Fascicolo non trovato.", "warning")
+            return redirect(url_for("lista_fascicoli"))
+
+        cliente = gc.get(fasc.id_cliente) if fasc.id_cliente else None
+        gp = GestionePreventivi(app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json"))
+        preventivi_fascicolo = gp.preventivi_per_fascicolo(id_fasc)
+        conferimenti_fascicolo = gp.conferimenti_per_fascicolo(id_fasc)
+        preventivo = preventivi_fascicolo[0] if preventivi_fascicolo else None
+        conferimento = conferimenti_fascicolo[0] if conferimenti_fascicolo else None
+
+        # Parcelle collegate al fascicolo
+        parcelle = []
+        try:
+            gfatt = GestioneFatturazione(
+                db_path=app.config.get("FATTURAZIONE_DB", "./fatturazione/parcelle.json")
+            )
+            parcelle = gfatt.per_fascicolo(id_fasc)
+        except Exception:
+            pass
+
+        # Scadenze e appuntamenti
+        scadenziario = get_scadenziario()
+        scadenze_fascicolo = scadenziario.tutte(id_fascicolo=id_fasc, solo_aperte=False)
+        agenda = get_agenda()
+        apps = []
+        if fasc.numero_rg:
+            apps = agenda.cerca(testo=fasc.numero_rg)
+
+        # Conformità
+        parti = get_soggetti().parti_fascicolo(id_fasc)
+        responsabile_conformita = build_fascicolo_compliance_summary(
+            fascicolo=fasc,
+            cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
+            config=app.config,
+            utente=g.utente_corrente,
+            office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
+            parti=parti,
+        )
+        responsabile_conformita = _arricchisci_responsabile_conformita(
+            responsabile_conformita, fascicolo=fasc, cliente=cliente,
+        )
+
+        # Asse commerciale: calcola valore contrattualizzato
+        importo_preventivo = getattr(preventivo, "totale", None) or 0.0
+        importo_conferimento = getattr(conferimento, "onorario_pattuito", None) or 0.0
+
+        # Asse economico: aggregati parcelle
+        totale_emesso = sum(p.totale for p in parcelle)
+        totale_pagato = sum(p.totale for p in parcelle if getattr(p, "stato", None) and p.stato.value == "PAGATA")
+        n_parcelle_emesse = len([p for p in parcelle if getattr(p, "stato", None) and p.stato.value != "BOZZA"])
+        n_parcelle_pagate = len([p for p in parcelle if getattr(p, "stato", None) and p.stato.value == "PAGATA"])
+        n_parcelle_scadute = len([p for p in parcelle if getattr(p, "stato", None) and p.stato.value == "SCADUTA"])
+
+        # Asse documentale: conteggi per tipo
+        from collections import Counter
+        doc_per_tipo = Counter(
+            getattr(doc.tipo, "value", str(doc.tipo)) for doc in (fasc.documenti or [])
+        )
+        n_doc_firmati = sum(1 for doc in (fasc.documenti or []) if getattr(doc, "firmato", False))
+
+        # Asse operativo: depositi
+        depositi = fasc.depositi_pct or []
+        stati_depositi = Counter(dep.stato for dep in depositi)
+        ultimo_deposito = depositi[-1] if depositi else None
+
+        return render_template(
+            "fascicoli/quadro.html",
+            fascicolo=fasc,
+            cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
+            parcelle=parcelle,
+            scadenze_fascicolo=scadenze_fascicolo,
+            apps=apps,
+            parti=parti,
+            responsabile_conformita=responsabile_conformita,
+            importo_preventivo=importo_preventivo,
+            importo_conferimento=importo_conferimento,
+            totale_emesso=totale_emesso,
+            totale_pagato=totale_pagato,
+            n_parcelle_emesse=n_parcelle_emesse,
+            n_parcelle_pagate=n_parcelle_pagate,
+            n_parcelle_scadute=n_parcelle_scadute,
+            doc_per_tipo=dict(doc_per_tipo),
+            n_doc_firmati=n_doc_firmati,
+            depositi=depositi,
+            stati_depositi=dict(stati_depositi),
+            ultimo_deposito=ultimo_deposito,
+            oggi=date.today(),
+        )
+
     @app.route("/fascicoli/<id_fasc>/modifica", methods=["GET", "POST"])
     def modifica_fascicolo(id_fasc):
         gf = get_fascicoli()

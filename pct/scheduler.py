@@ -292,6 +292,57 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Calendar sync fallito: %s", e)
 
+    # ---- Polling automatico esiti depositi telematici (ogni 15 minuti) ----
+    # Aggiorna EsitoDepositoPCT in stati pendenti (INVIATO → ACCETTATO_PEC → CONSEGNATO)
+    # interrogando PEC IMAP e PDP REST senza bloccare il thread principale.
+    @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="polling_esiti_deposito")
+    def _polling_esiti_deposito():
+        with app.app_context():
+            try:
+                from pct.fascicoli import GestioneFascicoli
+                from pct.config_studio import GestioneConfigStudio
+                from pct.polling_depositi import esegui_polling
+
+                fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+                if not os.path.exists(fascicoli_db):
+                    return
+
+                gf = GestioneFascicoli(db_path=fascicoli_db)
+
+                # Recupera configurazione PEC studio
+                config_pec = None
+                try:
+                    config_studio_db = app.config.get("CONFIG_STUDIO_DB", "./config/config_studio.json")
+                    cfg_studio = GestioneConfigStudio(db_path=config_studio_db)
+                    config_pec = getattr(cfg_studio.config, "pec", None)
+                    if config_pec and not getattr(config_pec, "imap_host", ""):
+                        config_pec = None  # IMAP non configurato
+                except Exception as e:
+                    logger.debug("[scheduler] Config PEC non disponibile: %s", e)
+
+                # Credenziali PDP (penale) se presenti
+                credenziali_pdp = None
+                try:
+                    p12 = app.config.get("PDP_P12_PATH", os.getenv("PDP_P12_PATH", ""))
+                    p12_pwd = app.config.get("PDP_P12_PASSWORD", os.getenv("PDP_P12_PASSWORD", ""))
+                    if p12 and os.path.exists(p12):
+                        credenziali_pdp = {"p12_path": p12, "p12_password": p12_pwd}
+                except Exception:
+                    pass
+
+                report = esegui_polling(
+                    gf=gf,
+                    config_pec=config_pec,
+                    credenziali_pdp=credenziali_pdp,
+                )
+                if report["controllati"]:
+                    logger.info(
+                        "[scheduler] Polling depositi: %d controllati, %d aggiornati, %d errori",
+                        report["controllati"], report["aggiornati"], report["errori"],
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Polling esiti deposito fallito: %s", e)
+
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler

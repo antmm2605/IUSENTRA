@@ -1,5 +1,5 @@
 # ============================================================
-#  version: 2.119.1
+#  version: 2.122.0
 #  Studio Legale PCT — Dockerfile produzione (versione integrale)
 #
 #  Build multi-stage:

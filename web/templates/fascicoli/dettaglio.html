@@ -39,6 +39,10 @@
     </p>
   </div>
   <div class="ds-ph-actions">
+    <a href="{{ url_for('quadro_fascicolo', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-ghost" title="Quadro unico della pratica — 5 assi">
+      <i class="bi bi-grid-3x3-gap"></i><span class="d-none d-sm-inline">Quadro</span>
+    </a>
     <a href="{{ url_for('copertina_fascicolo', id_fasc=fascicolo.id) }}"
        class="ds-btn ds-btn-ghost" target="_blank" title="Copertina fascicolo">
       <i class="bi bi-layout-text-window"></i><span class="d-none d-sm-inline">Copertina</span>

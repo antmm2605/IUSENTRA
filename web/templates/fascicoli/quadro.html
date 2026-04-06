@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+{% block title %}Quadro pratica — {{ fascicolo.numero }}{% endblock %}
+{% block page_title %}Quadro unico pratica{{ fascicolo.numero }}{% endblock %}
+
+{# Colori stato fascicolo #}
+{% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
+
+{% block content %}
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-grid-3x3-gap"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title text-break">Quadro unico — {{ fascicolo.titolo }}</h1>
+    <p class="ds-ph-sub">
+      <code class="small me-1">{{ fascicolo.rg_completo or fascicolo.numero }}</code>
+      <span class="badge bg-{{ SC.get(fascicolo.stato.value, 'secondary') }} me-1">{{ fascicolo.stato.value.replace('_',' ') }}</span>
+      <span class="badge bg-light text-dark border me-1">{{ fascicolo.tipo.value.replace('_',' ') }}</span>
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-folder2-open"></i><span class="d-none d-sm-inline">Dettaglio</span>
+    </a>
+    <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicoli</span>
+    </a>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────
+   ASSE 1 — COMMERCIALE: preventivo → conferimento → incarico
+   ───────────────────────────────────────────────────────── #}
+<div class="card shadow-sm mb-3" id="asse-commerciale">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-briefcase me-2 text-primary"></i>Asse Commerciale
+      — <small class="text-muted">Preventivo → Conferimento incarico</small>
+    </span>
+    {% if conferimento %}
+      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Incarico conferito</span>
+    {% elif preventivo %}
+      <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>In attesa conferimento</span>
+    {% else %}
+      <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>Nessun preventivo</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      {# Step 1: Preventivo #}
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100 {% if preventivo %}border-warning{% else %}border-dashed opacity-50{% endif %}">
+          <div class="d-flex align-items-center mb-2 gap-2">
+            <span class="badge bg-warning text-dark">1</span>
+            <strong>Preventivo</strong>
+            {% if preventivo %}
+              <span class="badge bg-light text-dark border ms-auto">{{ preventivo.numero }}</span>
+            {% endif %}
+          </div>
+          {% if preventivo %}
+            <div class="small text-muted mb-1">
+              Data: <strong>{{ preventivo.data_emissione or '—' }}</strong>
+            </div>
+            <div class="small text-muted mb-1">
+              Importo: <strong>€ {{ "%.2f"|format(importo_preventivo) }}</strong>
+            </div>
+            {% if preventivo.oggetto %}
+            <div class="small text-muted mb-1">
+              Oggetto: {{ preventivo.oggetto[:80] }}
+            </div>
+            {% endif %}
+            <a href="{{ url_for('dettaglio_preventivo', id_preventivo=preventivo.id) }}"
+               class="btn btn-sm btn-outline-warning mt-2">
+              <i class="bi bi-eye me-1"></i>Apri preventivo
+            </a>
+          {% else %}
+            <div class="text-muted small">Nessun preventivo associato.</div>
+            <a href="{{ url_for('nuovo_preventivo') }}?id_fascicolo={{ fascicolo.id }}"
+               class="btn btn-sm btn-outline-secondary mt-2">
+              <i class="bi bi-plus me-1"></i>Crea preventivo
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Step 2: Conferimento #}
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100 {% if conferimento %}border-success{% else %}border-dashed opacity-50{% endif %}">
+          <div class="d-flex align-items-center mb-2 gap-2">
+            <span class="badge bg-success">2</span>
+            <strong>Conferimento incarico</strong>
+            {% if conferimento %}
+              <span class="badge bg-light text-dark border ms-auto">{{ conferimento.numero }}</span>
+            {% endif %}
+          </div>
+          {% if conferimento %}
+            <div class="small text-muted mb-1">
+              Data: <strong>{{ conferimento.data_emissione or '—' }}</strong>
+            </div>
+            {% if importo_conferimento %}
+            <div class="small text-muted mb-1">
+              Onorario pattuito: <strong>€ {{ "%.2f"|format(importo_conferimento) }}</strong>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('dettaglio_preventivo', id_preventivo=conferimento.id) }}"
+               class="btn btn-sm btn-outline-success mt-2">
+              <i class="bi bi-eye me-1"></i>Apri conferimento
+            </a>
+          {% else %}
+            <div class="text-muted small">Incarico non ancora conferito formalmente.</div>
+            {% if preventivo %}
+            <a href="{{ url_for('converti_in_conferimento', id_preventivo=preventivo.id) }}"
+               class="btn btn-sm btn-outline-secondary mt-2">
+              <i class="bi bi-arrow-right-circle me-1"></i>Converti in conferimento
+            </a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────
+   ASSE 2 — OPERATIVO: fascicolo → deposito
+   ───────────────────────────────────────────────────────── #}
+<div class="card shadow-sm mb-3" id="asse-operativo">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-diagram-3 me-2 text-success"></i>Asse Operativo
+      — <small class="text-muted">Stato processuale e depositi telematici</small>
+    </span>
+    {% if fascicolo.stato.value == 'DEFINITO' or fascicolo.stato.value == 'ARCHIVIATO' %}
+      <span class="badge bg-info"><i class="bi bi-check2-all me-1"></i>{{ fascicolo.stato.value.replace('_',' ') }}</span>
+    {% elif fascicolo.stato.value == 'IN_CORSO' %}
+      <span class="badge bg-success"><i class="bi bi-activity me-1"></i>In corso</span>
+    {% elif fascicolo.stato.value == 'SOSPESO' %}
+      <span class="badge bg-warning text-dark"><i class="bi bi-pause-circle me-1"></i>Sospeso</span>
+    {% else %}
+      <span class="badge bg-primary"><i class="bi bi-folder2-open me-1"></i>Aperto</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      {# Info processuali #}
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100">
+          <strong class="d-block mb-2"><i class="bi bi-building me-1"></i>Dati processuali</strong>
+          {% if fascicolo.tribunale %}
+          <div class="small mb-1"><span class="text-muted">Tribunale:</span> {{ fascicolo.tribunale }}</div>
+          {% endif %}
+          {% if fascicolo.rg_completo %}
+          <div class="small mb-1"><span class="text-muted">RG:</span> <code>{{ fascicolo.rg_completo }}</code></div>
+          {% endif %}
+          {% if fascicolo.giudice %}
+          <div class="small mb-1"><span class="text-muted">Giudice:</span> {{ fascicolo.giudice }}</div>
+          {% endif %}
+          {% if fascicolo.data_prossima_udienza %}
+          <div class="small mb-1">
+            <span class="text-muted">Prossima udienza:</span>
+            <strong class="text-warning">{{ fascicolo.data_prossima_udienza|fmt_data }}</strong>
+          </div>
+          {% endif %}
+          {% if fascicolo.data_prima_udienza %}
+          <div class="small mb-1"><span class="text-muted">Prima udienza:</span> {{ fascicolo.data_prima_udienza|fmt_data }}</div>
+          {% endif %}
+          {% if apps %}
+          <div class="small mt-2 text-success">
+            <i class="bi bi-calendar-check me-1"></i>{{ apps|length }} appuntamento/i in agenda
+          </div>
+          {% endif %}
+          {% if scadenze_fascicolo %}
+          <div class="small mt-1 text-warning">
+            <i class="bi bi-clock-history me-1"></i>{{ scadenze_fascicolo|length }} scadenza/e
+            ({{ scadenze_fascicolo|selectattr('completata','equalto',False)|list|length }} aperte)
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Depositi telematici #}
+      <div class="col-md-6">
+        <div class="border rounded p-3 h-100">
+          <strong class="d-block mb-2"><i class="bi bi-send me-1"></i>Depositi telematici</strong>
+          {% if depositi %}
+            <div class="small mb-2">
+              Totale: <strong>{{ depositi|length }}</strong>
+              {% for stato, n in stati_depositi.items() %}
+                <span class="badge bg-{{ 'success' if stato == 'ACCETTATO_CANCELLERIA' else ('danger' if stato in ('RIFIUTATO_CANCELLERIA','ERRORE','ERRORE_CONTROLLI') else ('warning' if stato in ('WARN_CONTROLLI','CONSEGNATO','ACCETTATO_PEC') else 'secondary')) }} me-1">
+                  {{ stato.replace('_',' ') }}: {{ n }}
+                </span>
+              {% endfor %}
+            </div>
+            {% if ultimo_deposito %}
+            <div class="small mt-2 border-top pt-2">
+              <div class="text-muted">Ultimo deposito:</div>
+              <div><strong>{{ ultimo_deposito.tipo_atto }}</strong></div>
+              <div>Stato: <span class="badge bg-{{ 'success' if ultimo_deposito.stato == 'ACCETTATO_CANCELLERIA' else ('danger' if ultimo_deposito.stato in ('RIFIUTATO_CANCELLERIA','ERRORE') else 'warning') }}">{{ ultimo_deposito.stato.replace('_',' ') }}</span></div>
+              {% if ultimo_deposito.pec_destinatario %}
+              <div class="text-muted">PEC: {{ ultimo_deposito.pec_destinatario }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
+          {% else %}
+            <div class="text-muted small">Nessun deposito telematico registrato.</div>
+          {% endif %}
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-istanze"
+             class="btn btn-sm btn-outline-success mt-2">
+            <i class="bi bi-send me-1"></i>Gestisci depositi
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────
+   ASSE 3 — CONFORMITÀ: checklist e warning bloccanti
+   ───────────────────────────────────────────────────────── #}
+{% set rc = responsabile_conformita or {} %}
+{% set blocchi = rc.get('blocchi', []) if rc else [] %}
+{% set avvisi = rc.get('avvisi', []) if rc else [] %}
+{% set ok_list = rc.get('ok', []) if rc else [] %}
+{% set n_blocchi = blocchi|length %}
+{% set n_avvisi = avvisi|length %}
+<div class="card shadow-sm mb-3" id="asse-conformita">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-shield-check me-2 text-danger"></i>Asse Conformità
+      — <small class="text-muted">Checklist e warning bloccanti</small>
+    </span>
+    {% if n_blocchi == 0 and n_avvisi == 0 %}
+      <span class="badge bg-success"><i class="bi bi-shield-fill-check me-1"></i>Tutto OK</span>
+    {% elif n_blocchi > 0 %}
+      <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>{{ n_blocchi }} blocco/i critico/i</span>
+    {% else %}
+      <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle me-1"></i>{{ n_avvisi }} avviso/i</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      {# Blocchi critici #}
+      <div class="col-md-6">
+        {% if n_blocchi > 0 %}
+          <div class="alert alert-danger py-2 mb-2">
+            <strong><i class="bi bi-x-circle me-1"></i>Blocchi critici ({{ n_blocchi }})</strong>
+          </div>
+          <ul class="small list-unstyled">
+            {% for b in blocchi %}
+              <li class="mb-1">
+                <i class="bi bi-x-circle text-danger me-1"></i>
+                {{ b.messaggio if b is mapping else b }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-success small"><i class="bi bi-check-circle me-1"></i>Nessun blocco critico.</div>
+        {% endif %}
+
+        {% if n_avvisi > 0 %}
+          <div class="alert alert-warning py-2 mb-2 mt-2">
+            <strong><i class="bi bi-exclamation-circle me-1"></i>Avvisi ({{ n_avvisi }})</strong>
+          </div>
+          <ul class="small list-unstyled">
+            {% for a in avvisi %}
+              <li class="mb-1">
+                <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                {{ a.messaggio if a is mapping else a }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+
+      {# Checklist OK #}
+      <div class="col-md-6">
+        {% if ok_list %}
+          <div class="small text-muted mb-1">Verifiche superate ({{ ok_list|length }}):</div>
+          <ul class="small list-unstyled">
+            {% for item in ok_list %}
+              <li class="mb-1 text-success">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                {{ item.messaggio if item is mapping else item }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="text-muted small">Nessuna verifica superata registrata.</div>
+        {% endif %}
+        <div class="mt-2">
+          <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-conformita"
+             class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-shield-check me-1"></i>Gestisci conformità
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────
+   ASSE 4 — ECONOMICO: parcella → pagamento → fattura
+   ───────────────────────────────────────────────────────── #}
+<div class="card shadow-sm mb-3" id="asse-economico">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-currency-euro me-2 text-warning"></i>Asse Economico
+      — <small class="text-muted">Parcella → Pagamento → Fattura elettronica</small>
+    </span>
+    {% if totale_emesso == 0 %}
+      <span class="badge bg-secondary"><i class="bi bi-dash me-1"></i>Nessuna parcella</span>
+    {% elif n_parcelle_scadute > 0 %}
+      <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>{{ n_parcelle_scadute }} scaduta/e</span>
+    {% elif totale_pagato >= totale_emesso and totale_emesso > 0 %}
+      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Saldato</span>
+    {% else %}
+      <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>In attesa pagamento</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      {# Aggregati #}
+      <div class="col-md-4">
+        <div class="border rounded p-3 text-center">
+          <div class="text-muted small mb-1">Emesso</div>
+          <div class="fs-4 fw-bold text-dark">€ {{ "%.2f"|format(totale_emesso) }}</div>
+          <div class="small text-muted">{{ n_parcelle_emesse }} parcella/e</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3 text-center border-success">
+          <div class="text-muted small mb-1">Incassato</div>
+          <div class="fs-4 fw-bold text-success">€ {{ "%.2f"|format(totale_pagato) }}</div>
+          <div class="small text-muted">{{ n_parcelle_pagate }} pagata/e</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3 text-center {% if totale_emesso - totale_pagato > 0 %}border-warning{% endif %}">
+          <div class="text-muted small mb-1">Da incassare</div>
+          <div class="fs-4 fw-bold {% if totale_emesso - totale_pagato > 0 %}text-warning{% else %}text-muted{% endif %}">
+            € {{ "%.2f"|format([totale_emesso - totale_pagato, 0]|max) }}
+          </div>
+          {% if n_parcelle_scadute > 0 %}
+          <div class="small text-danger">{{ n_parcelle_scadute }} scaduta/e</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Lista parcelle #}
+      {% if parcelle %}
+      <div class="col-12">
+        <div class="table-responsive">
+          <table class="table table-sm small align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Numero</th>
+                <th>Data</th>
+                <th class="text-end">Importo</th>
+                <th>Stato</th>
+                <th>FatturaPA</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in parcelle %}
+              {% set STATI_P = {'BOZZA':'secondary','EMESSA':'primary','PAGATA':'success','SCADUTA':'danger','ANNULLATA':'dark'} %}
+              <tr>
+                <td><code>{{ p.numero }}</code></td>
+                <td>{{ p.data_emissione or '—' }}</td>
+                <td class="text-end">€ {{ "%.2f"|format(p.totale) }}</td>
+                <td>
+                  <span class="badge bg-{{ STATI_P.get(p.stato.value, 'secondary') }}">
+                    {{ p.stato.value }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{{ url_for('fatturazione.xml_fattura_pa', id_parcella=p.id) }}"
+                     class="btn btn-xs btn-outline-success" title="Scarica XML FatturaPA">
+                    <i class="bi bi-filetype-xml"></i> XML
+                  </a>
+                </td>
+                <td>
+                  <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
+                     class="btn btn-xs btn-outline-secondary">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% else %}
+        <div class="col-12 text-muted small">
+          Nessuna parcella associata a questo fascicolo.
+          <a href="{{ url_for('fatturazione.nuova', id_cliente=fascicolo.id_cliente) }}?id_fascicolo={{ fascicolo.id }}"
+             class="btn btn-sm btn-outline-warning ms-2">
+            <i class="bi bi-plus me-1"></i>Nuova parcella
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ─────────────────────────────────────────────────────────
+   ASSE 5 — DOCUMENTALE: documenti caricati per tipo
+   ───────────────────────────────────────────────────────── #}
+{% set n_doc_totali = fascicolo.documenti|length %}
+<div class="card shadow-sm mb-3" id="asse-documentale">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-paperclip me-2 text-info"></i>Asse Documentale
+      — <small class="text-muted">Fascicolo documentale</small>
+    </span>
+    {% if n_doc_totali == 0 %}
+      <span class="badge bg-secondary"><i class="bi bi-folder me-1"></i>Vuoto</span>
+    {% elif n_doc_firmati == n_doc_totali and n_doc_totali > 0 %}
+      <span class="badge bg-success"><i class="bi bi-pen me-1"></i>Tutti firmati</span>
+    {% else %}
+      <span class="badge bg-primary"><i class="bi bi-paperclip me-1"></i>{{ n_doc_totali }} documento/i</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+
+      {# Riepilogo #}
+      <div class="col-md-4">
+        <div class="border rounded p-3 text-center">
+          <div class="text-muted small mb-1">Totale documenti</div>
+          <div class="fs-3 fw-bold">{{ n_doc_totali }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3 text-center border-success">
+          <div class="text-muted small mb-1">Firmati</div>
+          <div class="fs-3 fw-bold text-success">{{ n_doc_firmati }}</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="border rounded p-3 text-center {% if n_doc_totali - n_doc_firmati > 0 %}border-warning{% endif %}">
+          <div class="text-muted small mb-1">Da firmare</div>
+          <div class="fs-3 fw-bold {% if n_doc_totali - n_doc_firmati > 0 %}text-warning{% else %}text-muted{% endif %}">
+            {{ n_doc_totali - n_doc_firmati }}
+          </div>
+        </div>
+      </div>
+
+      {# Breakdown per tipo #}
+      {% if doc_per_tipo %}
+      <div class="col-md-6">
+        <strong class="small d-block mb-2">Documenti per tipo:</strong>
+        {% for tipo, cnt in doc_per_tipo.items()|sort %}
+        <div class="d-flex justify-content-between small border-bottom py-1">
+          <span class="text-muted">{{ tipo.replace('_',' ') }}</span>
+          <span class="fw-semibold">{{ cnt }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Ultimi documenti #}
+      {% set ultimi_doc = fascicolo.documenti[-5:] | reverse | list %}
+      {% if ultimi_doc %}
+      <div class="col-md-6">
+        <strong class="small d-block mb-2">Ultimi documenti:</strong>
+        {% for doc in ultimi_doc %}
+        <div class="d-flex align-items-center gap-2 small border-bottom py-1">
+          <i class="bi bi-file-earmark text-muted"></i>
+          <span class="text-truncate">{{ doc.nome or doc.id }}</span>
+          {% if doc.firmato %}<span class="badge bg-success-subtle text-success border-0">firmato</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="col-12">
+        <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-documenti-fascicolo"
+           class="btn btn-sm btn-outline-info">
+          <i class="bi bi-paperclip me-1"></i>Gestisci documenti
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ── Navigazione assi (sidebar quick-nav mobile friendly) ── #}
+<div class="card shadow-sm mb-3 d-print-none">
+  <div class="card-body py-2">
+    <div class="d-flex flex-wrap gap-2 small">
+      <a href="#asse-commerciale" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-briefcase me-1"></i>Commerciale
+      </a>
+      <a href="#asse-operativo" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-diagram-3 me-1"></i>Operativo
+      </a>
+      <a href="#asse-conformita" class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-shield-check me-1"></i>Conformità
+      </a>
+      <a href="#asse-economico" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-currency-euro me-1"></i>Economico
+      </a>
+      <a href="#asse-documentale" class="btn btn-sm btn-outline-info">
+        <i class="bi bi-paperclip me-1"></i>Documentale
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

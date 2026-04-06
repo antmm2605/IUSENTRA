@@ -80,12 +80,15 @@ def build_windows_cmd(version: str) -> str:
     extract_blocks = []
     for fname, content in files_to_embed:
         b64 = _b64_lines(content)
+        # Ogni riga base64 deve avere il prefisso "echo " altrimenti CMD
+        # tenta di eseguirla come comando invece di scriverla nel file.
+        b64_echo = "\r\n".join(f"echo {line}" for line in b64.split("\r\n"))
         safe_name = fname.replace(".", "_").replace("-", "_")
         extract_blocks.append(
             f'echo Estraggo {fname}...\r\n'
             f'(\r\n'
             f'echo -----BEGIN CERTIFICATE-----\r\n'
-            f'{b64}\r\n'
+            f'{b64_echo}\r\n'
             f'echo -----END CERTIFICATE-----\r\n'
             f') > "%TMPDIR%\\{safe_name}.b64"\r\n'
             f'certutil -decode "%TMPDIR%\\{safe_name}.b64" "%TMPDIR%\\{fname}" >nul 2>&1\r\n'

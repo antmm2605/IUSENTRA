@@ -26,15 +26,53 @@ function Write-Step([string]$Message) {
 }
 
 function Find-PythonCommand {
-    foreach ($candidate in @("py -3", "python")) {
+    # 1. Prova il Python Launcher (py) e i comandi standard
+    foreach ($candidate in @("py -3", "py", "python3", "python")) {
         try {
-            & cmd /c "$candidate --version" *> $null
+            $out = & cmd /c "$candidate --version 2>&1"
             if ($LASTEXITCODE -eq 0) {
                 return $candidate
             }
         } catch {
         }
     }
+
+    # 2. Cerca nei percorsi comuni di installazione Windows
+    $commonPaths = @(
+        # Installazione per tutti gli utenti (default installer)
+        "C:\Python314\python.exe",
+        "C:\Python313\python.exe",
+        "C:\Python312\python.exe",
+        "C:\Python311\python.exe",
+        "C:\Python310\python.exe",
+        "C:\Python39\python.exe",
+        # Installazione per utente corrente (opzione installer)
+        "$env:LOCALAPPDATA\Programs\Python\Python314\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe",
+        # Microsoft Store
+        "$env:LOCALAPPDATA\Microsoft\WindowsApps\python3.exe",
+        "$env:LOCALAPPDATA\Microsoft\WindowsApps\python.exe",
+    )
+    foreach ($path in $commonPaths) {
+        $expanded = [System.Environment]::ExpandEnvironmentVariables($path)
+        if (Test-Path $expanded) {
+            return "`"$expanded`""
+        }
+    }
+
+    # 3. Cerca python.exe nella directory del PATH tramite where.exe
+    try {
+        $found = & where.exe python 2>$null | Select-Object -First 1
+        if ($found -and (Test-Path $found)) {
+            return "`"$found`""
+        }
+    } catch {
+    }
+
     return $null
 }
 
@@ -133,13 +171,20 @@ Write-Host ""
 
 $pythonCmd = Find-PythonCommand
 if (-not $pythonCmd) {
-    Write-Host "Python 3 non trovato nel PATH." -ForegroundColor Red
-    Write-Host "Installare Python da https://python.org e riprovare." -ForegroundColor Yellow
+    Write-Host "Python 3 non trovato nel PATH e nei percorsi comuni." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Soluzioni:" -ForegroundColor Yellow
+    Write-Host "  1. Installare Python da https://python.org" -ForegroundColor Yellow
+    Write-Host "     Durante l'installazione spuntare 'Add Python to PATH'" -ForegroundColor Yellow
+    Write-Host "  2. Oppure riavviare PowerShell dopo aver installato Python" -ForegroundColor Yellow
+    Write-Host ""
     if (-not $Quiet) {
         Read-Host "Premere Invio per chiudere"
     }
     exit 1
 }
+
+Write-Step "Python trovato: $pythonCmd"
 
 New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
@@ -165,11 +210,35 @@ if (Test-Path $ufficiSource) {
 Write-Step "Preparo l'ambiente Python..."
 if (-not (Test-Path $pythonExe)) {
     & cmd /c "$pythonCmd -m venv `"$venvDir`""
+    if (-not (Test-Path $pythonExe)) {
+        Write-Host "  ERRORE: impossibile creare il virtual environment Python." -ForegroundColor Red
+        Write-Host "  Verificare che Python sia installato correttamente." -ForegroundColor Yellow
+        if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }
+        exit 1
+    }
 }
 
-Write-Step "Aggiorno pip e installo le dipendenze..."
+Write-Step "Aggiorno pip..."
 & $pythonExe -m pip install --quiet --upgrade pip
-& $pythonExe -m pip install --quiet -r $requirementsFile
+
+Write-Step "Installo dipendenze base (asn1crypto, cryptography)..."
+& $pythonExe -m pip install --quiet "asn1crypto>=1.5.0" "cryptography>=41.0.0"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERRORE: impossibile installare le dipendenze base." -ForegroundColor Red
+    Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
+    if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }
+    exit 1
+}
+
+Write-Step "Installo python-pkcs11 (per firma con smart card/token CNS)..."
+& $pythonExe -m pip install --quiet "python-pkcs11>=0.7.0" 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Step "python-pkcs11 installato correttamente."
+} else {
+    Write-Host "  AVVISO: python-pkcs11 non installato (potrebbe non avere wheel per questa versione di Python)." -ForegroundColor Yellow
+    Write-Host "  Il Local Signer funzionera' ma la firma con smart card richiede python-pkcs11." -ForegroundColor Yellow
+    Write-Host "  Per installarlo manualmente: $pythonExe -m pip install python-pkcs11" -ForegroundColor Yellow
+}
 
 Write-Step "Preparo l'avvio contestuale da HACS..."
 Write-LocalSignerLaunchers

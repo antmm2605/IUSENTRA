@@ -3188,17 +3188,63 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
     _appendHiddenToForm(form, 'canale_accesso_pst', 'local_signer');
 
     // Recupero lista documenti dal Local Signer
-    setProgress(1, 10, 'Recupero lista documenti dal PST…');
+    // Barra avanza lentamente durante l'attesa (il PST può richiedere 30-90s)
+    let _heartbeatPct = 5;
+    const _heartbeatInterval = setInterval(() => {
+      // Avanza max fino al 65% in attesa della risposta
+      if (_heartbeatPct < 65) {
+        _heartbeatPct += (_heartbeatPct < 30 ? 3 : _heartbeatPct < 50 ? 1.5 : 0.5);
+        setProgress(_heartbeatPct, 100, label?.textContent || 'Connessione al PST…');
+      }
+    }, 800);
+
+    setProgress(5, 100, 'Autenticazione e connessione al PST in corso…');
     addListaItem('Connessione al Portale Servizi Telematici…', 'loading');
 
     let documenti = [];
+    let _pstSessionIdFromDocumenti = '';
     try {
+      // Prima preflight-auth per creare la sessione PST (un solo PIN)
+      let pstSessionId = '';
+      const tribunale = fascicolo.codice_ufficio || '';
+      try {
+        const pfResp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tribunale,
+            cert_thumbprint: cert?.thumbprint || null,
+            pst_session_id: '',
+          }),
+          signal: AbortSignal.timeout(45000),
+        });
+        const pfData = await pfResp.json();
+        if (pfData.ok) {
+          pstSessionId = pfData.pst_session_id || '';
+          _pstSessionIdFromDocumenti = pstSessionId;
+          // Salva la sessione PST in sessionStorage nel formato di acquisizione_wizard
+          if (pstSessionId) {
+            try {
+              const ttl = Number(pfData.pst_session_ttl_seconds || 900);
+              sessionStorage.setItem('hacs-aw-pst-session-pst', JSON.stringify({
+                session_id: pstSessionId,
+                tribunale: tribunale,
+                cert_thumbprint: String(cert?.thumbprint || '').trim(),
+                expires_at: Date.now() + (ttl * 1000),
+              }));
+            } catch(_) {}
+          }
+        }
+      } catch(_pfErr) { /* preflight non bloccante */ }
+
+      setProgress(20, 100, 'Recupero lista documenti dal PST…');
       const payload = {
         codice_ufficio: fascicolo.codice_ufficio || '',
         numero_rg:      fascicolo.numero_rg || '',
         anno_rg:        fascicolo.anno_rg ? parseInt(fascicolo.anno_rg, 10) : null,
         cert_thumbprint: cert?.thumbprint || null,
         slot_id:         cert?.token_slot ?? null,
+        pst_session_id:  pstSessionId,
       };
       const resp = await fetch(_LS_BASE_PW + '/pst/documenti', {
         method: 'POST',
@@ -3209,6 +3255,21 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
       const data = await resp.json();
       if (data.ok && Array.isArray(data.documenti)) {
         documenti = data.documenti;
+        // Aggiorna il pst_session_id se il server ne ha creato/restituito uno
+        if (data.pst_session_id && !_pstSessionIdFromDocumenti) {
+          _pstSessionIdFromDocumenti = data.pst_session_id;
+          try {
+            const existing = JSON.parse(sessionStorage.getItem('hacs-aw-pst-session-pst') || 'null');
+            if (!existing?.session_id) {
+              sessionStorage.setItem('hacs-aw-pst-session-pst', JSON.stringify({
+                session_id: _pstSessionIdFromDocumenti,
+                tribunale: fascicolo.codice_ufficio || '',
+                cert_thumbprint: String(cert?.thumbprint || '').trim(),
+                expires_at: Date.now() + 900000,
+              }));
+            }
+          } catch(_) {}
+        }
       } else if (!data.ok) {
         throw new Error(data.errore || 'Errore recupero documenti PST');
       }
@@ -3217,12 +3278,14 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
       if (lista) lista.innerHTML = '';
       addListaItem(`Avviso: ${String(fetchErr)}`, 'errore');
       await new Promise(r => setTimeout(r, 600));
+    } finally {
+      clearInterval(_heartbeatInterval);
     }
 
     // Aggiorna lista nel form
     _appendHiddenToForm(form, 'documenti_json', JSON.stringify(documenti));
 
-    // Mostra avanzamento per ogni documento
+    // Mostra avanzamento per ogni documento ricevuto dal PST
     if (lista) lista.innerHTML = '';
     const totale = Math.max(documenti.length, 1);
     for (let i = 0; i < documenti.length; i++) {
@@ -3230,10 +3293,10 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
       const nome = doc.nome || doc.id_documento || `Allegato ${i + 1}`;
       const tipo = doc.tipo_atto || doc.tipo || '';
       const data = doc.data_deposito ? ` — ${doc.data_deposito}` : '';
-      setProgress(i + 2, totale + 2, nome);
+      // 70%-98% per la lista documenti
+      setProgress(70 + Math.round((i / totale) * 28), 100, nome);
       addListaItem(`${nome}${tipo ? ' (' + tipo + ')' : ''}${data}`, 'ok');
-      // Pausa visiva breve per mostrare il progresso all'utente
-      await new Promise(r => setTimeout(r, 60));
+      await new Promise(r => setTimeout(r, 80));
     }
 
     if (documenti.length === 0) {

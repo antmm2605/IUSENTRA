@@ -1050,7 +1050,7 @@ def ajax_parametri_dm55():
 @_richiedi_login
 def wizard():
     """Wizard step-by-step per la costruzione guidata del preventivo."""
-    from pct.motore_preventivo import AREE, catalogo_wizard
+    from pct.motore_preventivo import AREE_WIZARD, catalogo_wizard
     gc = get_clienti()
     gf = get_fascicoli()
     id_cliente = request.args.get("id_cliente", "").strip()
@@ -1132,7 +1132,7 @@ def wizard():
     return render_template(
         "preventivi/wizard.html",
         catalogo_per_area=catalogo_wizard(),
-        aree=AREE,
+        aree=AREE_WIZARD,
         clienti=gc.tutti(),
         cliente_sel=cliente_sel,
         id_cliente_pre=id_cliente,

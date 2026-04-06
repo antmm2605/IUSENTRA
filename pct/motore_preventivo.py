@@ -53,6 +53,30 @@ AREE = [
     "Speciali",
 ]
 
+AREE_WIZARD = [
+    "Civile",
+    "Penale",
+    "Amministrativo",
+    "Tributario",
+    "Stragiudiziale",
+    "Speciali",
+]
+
+_AREA_WIZARD_ALIAS = {
+    "Civile": "Civile",
+    "Famiglia e persone": "Civile",
+    "Lavoro e previdenza": "Civile",
+    "Esecuzioni civili": "Civile",
+    "Penale": "Penale",
+    "Penale difensivo": "Penale",
+    "Amministrativo": "Amministrativo",
+    "Tributario": "Tributario",
+    "Stragiudiziale": "Stragiudiziale",
+    "Societario": "Speciali",
+    "Immigrazione": "Speciali",
+    "Speciali": "Speciali",
+}
+
 # ──────────────────────────────────────────────────────────────────────────────
 # TipoPratica
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1803,7 +1827,7 @@ _ESBORSI_TIPICI.update(
         ],
         # ── AMMINISTRATIVO (espansione) ──
         "accesso_atti": [
-            {"descrizione": "Marca da bollo istanza accesso (€ 16)", "importo": 16.0},
+            {"descrizione": "Imposta di bollo istanza accesso (€ 16)", "importo": 16.0},
             {"descrizione": "Contributo unificato ricorso TAR (se dovuto)", "importo": 650.0},
         ],
         "silenzio_inadempimento": [
@@ -1829,7 +1853,7 @@ _ESBORSI_TIPICI.update(
             {"descrizione": "Ricerca normativa / circolari AgE (indicativa)", "importo": 20.0},
         ],
         "procedure_deflattive": [
-            {"descrizione": "Marca da bollo istanza definizione", "importo": 16.0},
+            {"descrizione": "Imposta di bollo istanza definizione", "importo": 16.0},
             {"descrizione": "Spese notifica istanza (se dovuta)", "importo": 15.0},
         ],
         "concordato_biennale": [
@@ -1921,7 +1945,7 @@ _ESBORSI_TIPICI.update(
             {"descrizione": "Ricerca normativa / circolari ministeriali", "importo": 20.0},
         ],
         "permesso_soggiorno": [
-            {"descrizione": "Marca da bollo istanza (€ 16)", "importo": 16.0},
+            {"descrizione": "Imposta di bollo istanza (€ 16)", "importo": 16.0},
             {"descrizione": "Contributo rilascio permesso (€ 30-200)", "importo": 80.0},
             {"descrizione": "Spese postali / raccomandata", "importo": 10.0},
         ],
@@ -1935,12 +1959,12 @@ _ESBORSI_TIPICI.update(
             {"descrizione": "Notifica ricorso urgente", "importo": 25.0},
         ],
         "ricongiungimento_familiare": [
-            {"descrizione": "Marca da bollo istanza", "importo": 16.0},
+            {"descrizione": "Imposta di bollo istanza", "importo": 16.0},
             {"descrizione": "Traduzione documenti stranieri (indicativa)", "importo": 100.0},
             {"descrizione": "Spese consolari / apostille (indicative)", "importo": 60.0},
         ],
         "cittadinanza_italiana": [
-            {"descrizione": "Marca da bollo istanza", "importo": 16.0},
+            {"descrizione": "Imposta di bollo istanza", "importo": 16.0},
             {"descrizione": "Contributo per cittadinanza (€ 250)", "importo": 250.0},
             {"descrizione": "Traduzione / apostille documenti stranieri", "importo": 120.0},
         ],
@@ -2823,11 +2847,17 @@ def catalogo_per_area() -> Dict[str, List[TipoPratica]]:
 
 def catalogo_wizard() -> Dict[str, List[dict]]:
     """Catalogo serializzabile e pronto per il wizard frontend."""
-    return {
-        area: [tp.to_dict() for tp in items]
-        for area, items in catalogo_per_area().items()
-        if items
-    }
+    result: Dict[str, List[dict]] = {area: [] for area in AREE_WIZARD}
+    for tp in CATALOGO:
+        area_wizard = _AREA_WIZARD_ALIAS.get(tp.area, "Speciali")
+        row = tp.to_dict()
+        row["area"] = area_wizard
+        result.setdefault(area_wizard, []).append(row)
+    for area in list(result):
+        result[area] = sorted(result[area], key=lambda item: (item.get("label") or item.get("id") or ""))
+        if not result[area]:
+            result.pop(area, None)
+    return result
 
 
 def redattore_preventivo_iniziale(id_pratica: str) -> dict:

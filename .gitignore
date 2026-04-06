@@ -47,6 +47,23 @@ backup/
 messaggi/
 !web/templates/messaggi/
 data/
+/clienti/anagrafica.json
+/fascicoli/
+/scadenziario/
+
+# Root HTML mirrors not used by Flask.
+# The canonical templates live under web/templates/.
+/web/404.html
+/web/base.html
+/web/pdp.html
+/web/pdp_documenti.html
+/web/pat_documenti.html
+/web/polisWeb.html
+/web/polisWeb_documenti.html
+/web/privacy.html
+/web/pst_wizard.html
+/web/sigit.html
+/web/sigit_documenti.html
 
 # Keep bundled registry/tariff snapshots under version control
 !pct/data/

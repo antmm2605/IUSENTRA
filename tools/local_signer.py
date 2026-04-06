@@ -157,6 +157,13 @@ _pst_session_cache: dict[str, dict] = {}
 _pst_session_lock = threading.Lock()
 _LOCALHOST_ORIGIN_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
+# Host PST dove il tentativo cookie-only ha fallito (mTLS obbligatorio).
+# Salvato in memoria per saltare il tentativo inutile nelle chiamate successive
+# della stessa sessione, così tutte le chiamate arrivano al cert più velocemente
+# e rientrano nella finestra di cache-PIN di Windows (Bit4id/Aruba Key).
+_mTLS_required_hosts: set[str] = set()
+_mTLS_required_lock = threading.Lock()
+
 
 def _utcnow_naive() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
@@ -2105,7 +2112,14 @@ def _soap_call_pst_session(
     Riusa prima l'eventuale sessione HTTP del portale (cookie_file) e solo in
     fallback ripresenta il certificato client. Questo riduce drasticamente i
     prompt PIN ripetuti durante ricerca, anteprima e download batch.
+
+    Ottimizzazione mTLS: se per questo host è già noto che il cookie-only
+    fallisce (portale con mTLS obbligatorio), si salta direttamente al cert.
+    Così tutte le chiamate successive alla prima arrivano velocemente al cert
+    e rientrano nella finestra di cache-PIN di Windows (Bit4id/Aruba Key),
+    riducendo i prompt PIN a uno solo per l'intera sessione batch.
     """
+    host = _pst_host(url)
 
     def _run(cert_value: Optional[str]) -> str:
         return _soap_call_curl(
@@ -2118,10 +2132,17 @@ def _soap_call_pst_session(
         )
 
     if prefer_cookie_only and cookie_file:
-        try:
-            return _run(None)
-        except Exception as e:
-            log.debug("PST cookie-only fallback su certificato per %s: %s", url, e)
+        with _mTLS_required_lock:
+            already_mTLS = host in _mTLS_required_hosts
+        if not already_mTLS:
+            try:
+                return _run(None)
+            except Exception as e:
+                log.debug("PST cookie-only fallback su certificato per %s: %s (mTLS required)", url, e)
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+        else:
+            log.debug("PST: host %s noto come mTLS — uso cert direttamente", host)
     return _run(cert_thumbprint)
 
 
@@ -2135,6 +2156,9 @@ def _soap_call_pst_session_raw(
     cookie_file: Optional[str] = None,
     prefer_cookie_only: bool = False,
 ) -> tuple[bytes, str]:
+    """Versione raw (bytes) di _soap_call_pst_session — stessa logica mTLS."""
+    host = _pst_host(url)
+
     def _run(cert_value: Optional[str]) -> tuple[bytes, str]:
         return _soap_call_curl_raw(
             url=url,
@@ -2146,10 +2170,17 @@ def _soap_call_pst_session_raw(
         )
 
     if prefer_cookie_only and cookie_file:
-        try:
-            return _run(None)
-        except Exception as e:
-            log.debug("PST raw cookie-only fallback su certificato per %s: %s", url, e)
+        with _mTLS_required_lock:
+            already_mTLS = host in _mTLS_required_hosts
+        if not already_mTLS:
+            try:
+                return _run(None)
+            except Exception as e:
+                log.debug("PST raw cookie-only fallback su certificato per %s: %s (mTLS required)", url, e)
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+        else:
+            log.debug("PST raw: host %s noto come mTLS — uso cert direttamente", host)
     return _run(cert_thumbprint)
 
 

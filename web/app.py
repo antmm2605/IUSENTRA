@@ -5654,6 +5654,12 @@ def create_app(config: dict | None = None) -> Flask:
             raise ValueError("Versione Local Signer non trovata in tools/local_signer.py")
         return match.group(1)
 
+    def _local_signer_windows_cmd_name() -> str:
+        return f"SetupLocalSigner-{_local_signer_version()}.cmd"
+
+    def _local_signer_windows_cmd_path() -> Path:
+        return _local_signer_dist_dir() / _local_signer_windows_cmd_name()
+
     def _local_signer_windows_exe_name() -> str:
         return f"SetupLocalSigner-{_local_signer_version()}.exe"
 
@@ -6043,12 +6049,22 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/polisWeb/local-signer/setup/windows-exe")
     def polis_local_signer_setup_windows_exe():
-        """Serve l'installer Windows .exe quando presente nel repository."""
+        """Serve l'installer Windows .cmd (o legacy .exe) quando presente."""
         try:
+            # Preferisci CMD auto-estraente
+            cmd_path = _local_signer_windows_cmd_path()
+            if cmd_path.exists():
+                return send_file(
+                    cmd_path,
+                    as_attachment=True,
+                    download_name=_local_signer_windows_cmd_name(),
+                    mimetype="application/octet-stream",
+                )
+            # Legacy EXE
             exe_path = _local_signer_windows_exe_path()
             if not exe_path.exists():
                 return (
-                    "Installer Windows .exe non ancora generato. "
+                    "Installer Windows non ancora generato. "
                     "Usare temporaneamente l'installer PowerShell.",
                     404,
                 )
@@ -6065,12 +6081,23 @@ read -r -p "Premi Invio per chiudere..." _
     def polis_local_signer_setup_windows():
         """
         Serve il miglior installer Windows disponibile:
-          1. .exe IExpress offline (se presente in tools/dist/)
-          2. .ps1 offline self-contained (generato da build_dist.py, file embedded come b64)
-          3. .ps1 online (generato dinamicamente, scarica file dal server al momento)
+          1. .cmd batch auto-estraente offline (generato da build_dist.py)
+          2. .exe IExpress offline (legacy, se presente in tools/dist/)
+          3. .ps1 offline self-contained (generato da build_dist.py, file embedded come b64)
+          4. .ps1 online (generato dinamicamente, scarica file dal server al momento)
         """
-        exe_path = _local_signer_windows_exe_path()
         base_url = _get_base_url()
+        # CMD auto-estraente (preferito — nessun problema Execution Policy)
+        cmd_path = _local_signer_windows_cmd_path()
+        if cmd_path.exists():
+            return send_file(
+                cmd_path,
+                as_attachment=True,
+                download_name=_local_signer_windows_cmd_name(),
+                mimetype="application/octet-stream",
+            )
+        # EXE legacy (IExpress SFX)
+        exe_path = _local_signer_windows_exe_path()
         if exe_path.exists():
             return send_file(
                 exe_path,

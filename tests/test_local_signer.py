@@ -903,7 +903,8 @@ def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     disposition = r.headers.get("Content-Disposition", "")
     assert "attachment;" in disposition
     assert (
-        f"SetupLocalSigner-{version}.exe" in disposition
+        f"SetupLocalSigner-{version}.cmd" in disposition
+        or f"SetupLocalSigner-{version}.exe" in disposition
         or f"InstallaLocalSigner-{version}.ps1" in disposition
     )
 
@@ -918,7 +919,11 @@ def test_installer_local_signer_windows_exe_route_se_bundle_presente(tmp_path):
 
     assert r.status_code in (200, 404)
     if r.status_code == 200:
-        assert f"SetupLocalSigner-{version}.exe" in r.headers.get("Content-Disposition", "")
+        disp = r.headers.get("Content-Disposition", "")
+        assert (
+            f"SetupLocalSigner-{version}.cmd" in disp
+            or f"SetupLocalSigner-{version}.exe" in disp
+        )
 
 
 def test_installer_local_signer_macos_e_pubblico(tmp_path):

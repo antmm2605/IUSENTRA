@@ -265,7 +265,7 @@ python -m pytest tests/test_fascicoli.py -v
 
 | File | Piattaforma | Come l'utente lo esegue |
 |------|-------------|------------------------|
-| `SetupLocalSigner-<ver>.ps1` | **Windows** | Tasto destro → "Esegui con PowerShell" (installer offline self-contained, non richiede internet) |
+| `SetupLocalSigner-<ver>.exe` | **Windows** | Doppio clic (IExpress SFX offline self-contained, non richiede internet) |
 | `InstallaLocalSigner-<ver>.command` | **macOS** | Doppio clic in Finder (richiede internet per scaricare dipendenze) |
 | `InstallaLocalSigner-<ver>.run` | **Linux** | `bash InstallaLocalSigner-<ver>.run` in terminale (richiede internet) |
 
@@ -299,7 +299,7 @@ Dopo la rigenerazione, committare tutti i file in `tools/dist/` insieme alla mod
 ### Istruzioni da dare all'utente (copia-incolla)
 
 **Windows:**
-> Scarica `SetupLocalSigner-X.Y.Z.ps1`, fai tasto destro sul file e scegli **"Esegui con PowerShell"**. Se Windows chiede conferma di sicurezza, clicca "Esegui comunque". L'installazione è automatica e non richiede internet.
+> Scarica `SetupLocalSigner-X.Y.Z.exe`, fai doppio clic. Se Windows SmartScreen mostra un avviso, clicca "Ulteriori informazioni" → "Esegui comunque". L'installazione è automatica e non richiede internet.
 
 **Mac:**
 > Scarica `InstallaLocalSigner-X.Y.Z.command`, aprilo con doppio clic dal Finder. Se macOS blocca il file, vai in **Preferenze di Sistema → Privacy e Sicurezza** e clicca "Apri comunque".

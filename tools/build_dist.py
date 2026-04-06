@@ -3,7 +3,7 @@
 HACS Local Signer — Build cross-platform da Linux/macOS/Windows.
 
 Genera in tools/dist/:
-  - SetupLocalSigner-<versione>.ps1        Windows offline (file embedded come base64)
+  - SetupLocalSigner-<versione>.exe        Windows offline (IExpress SFX, doppio clic)
   - InstallaLocalSigner-<versione>.command macOS  online  (download dal server)
   - InstallaLocalSigner-<versione>.run     Linux  online  (download dal server)
   - LocalSigner-<versione>.txt             release note
@@ -12,9 +12,9 @@ Uso:
   python3 tools/build_dist.py
   python3 tools/build_dist.py --base-url https://mio-server.example.com
 
-Il PS1 Windows e' un installer offline self-contained: contiene local_signer.py,
-requirements_local_signer.txt e uffici_ministero.json come stringhe base64.
-Non richiede IExpress ne' connessione internet per l'installazione.
+Il EXE Windows e' un IExpress SFX auto-estrattore offline self-contained:
+contiene tutti i file necessari nel CAB embedded. Non richiede internet.
+Lo stub IExpress e' in tools/iexpress_stub.bin (estratto da build Windows originale).
 """
 
 from __future__ import annotations
@@ -22,19 +22,22 @@ from __future__ import annotations
 import argparse
 import base64
 import re
+import struct
 import sys
 import textwrap
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Percorsi ───────────────────────────────────────────────────────────────────
-TOOLS_DIR   = Path(__file__).resolve().parent
-REPO_DIR    = TOOLS_DIR.parent
-DIST_DIR    = TOOLS_DIR / "dist"
-LS_PY       = TOOLS_DIR / "local_signer.py"
-REQS_TXT    = TOOLS_DIR / "requirements_local_signer.txt"
-INSTALL_PS1 = TOOLS_DIR / "installa_local_signer_locale.ps1"
-UFFICI_JSON = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+TOOLS_DIR    = Path(__file__).resolve().parent
+REPO_DIR     = TOOLS_DIR.parent
+DIST_DIR     = TOOLS_DIR / "dist"
+LS_PY        = TOOLS_DIR / "local_signer.py"
+REQS_TXT     = TOOLS_DIR / "requirements_local_signer.txt"
+INSTALL_PS1  = TOOLS_DIR / "installa_local_signer_locale.ps1"
+UFFICI_JSON  = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+IEXPRESS_STUB = TOOLS_DIR / "iexpress_stub.bin"  # Stub IExpress (PE senza CAB)
 
 BASE_URL_DEFAULT  = "https://studio-legale-pct-production.up.railway.app"
 DOWNLOAD_PAGE     = f"{BASE_URL_DEFAULT}/impostazioni?tab=firma"
@@ -49,109 +52,115 @@ def _version() -> str:
     return m.group(1)
 
 
-def _b64(path: Path) -> str:
-    """Ritorna il contenuto del file come stringa base64 con newline ogni 76 char."""
-    raw = path.read_bytes()
-    return base64.b64encode(raw).decode("ascii")
+def _make_mszip_cab(files: list[tuple[str, bytes]]) -> bytes:
+    """
+    Genera un archivio CAB MSZIP con i file forniti.
+    files: lista di (nome_file, contenuto_bytes)
+    Restituisce i byte del CAB completo.
+    """
+    MAX_BLOCK = 32768
 
+    # Concatena tutti i file in uno stream unico
+    stream = b"".join(content for _, content in files)
 
-def _ps1_escape(text: str) -> str:
-    """Escaping minimo per here-string PowerShell (@' ... '@)."""
-    # In un here-string @' ... '@ non serve escaping, ma la stringa non può
-    # contenere la sequenza di chiusura "'@" a inizio riga.
-    return text.replace("\r\n", "\n").replace("\r", "\n")
+    # Blocchi CFDATA (MSZIP = raw deflate con prefisso 'CK')
+    blocks: list[tuple[bytes, int]] = []
+    pos = 0
+    while pos < len(stream):
+        chunk = stream[pos : pos + MAX_BLOCK]
+        raw_deflate = zlib.compress(chunk, 6)[2:-4]  # rimuovi header/trailer zlib
+        blocks.append((b"CK" + raw_deflate, len(chunk)))
+        pos += len(chunk)
+
+    # Date/time DOS per i file
+    d = datetime.now(timezone.utc)
+    dos_date = ((d.year - 1980) << 9) | (d.month << 5) | d.day
+    dos_time = (d.hour << 11) | (d.minute << 5) | (d.second // 2)
+
+    # Costruisci entries CFFILE
+    file_entries = b""
+    offset_in_stream = 0
+    for fname, content in files:
+        fname_b = fname.encode("ascii") + b"\x00"
+        file_entries += struct.pack(
+            "<IIHHHH",
+            len(content),       # cbFile
+            offset_in_stream,   # uoffFolderStart
+            0,                  # iFolder
+            dos_date,
+            dos_time,
+            0x20,               # attributi: ARCHIVE
+        ) + fname_b
+        offset_in_stream += len(content)
+
+    CFHEADER_SIZE = 36
+    CFFOLDER_SIZE = 8
+    first_file_offset  = CFHEADER_SIZE + CFFOLDER_SIZE
+    first_data_offset  = first_file_offset + len(file_entries)
+    data_size = sum(8 + len(b) for b, _ in blocks)   # 4(csum)+2(cbData)+2(cbUncomp)+data
+    cabinet_size = first_data_offset + data_size
+
+    header = struct.pack(
+        "<4sIIIIIBBHHHHH",
+        b"MSCF", 0, cabinet_size, 0,
+        first_file_offset, 0,
+        3, 1,                # versione 1.3
+        1,                   # num_folders
+        len(files),          # num_files
+        0,                   # flags (nessun RESERVE_PRESENT)
+        0, 0,                # setID, iCabinet
+    )
+    assert len(header) == CFHEADER_SIZE
+
+    folder = struct.pack("<IHH", first_data_offset, len(blocks), 0x0001)  # MSZIP
+    assert len(folder) == CFFOLDER_SIZE
+
+    data_blocks = b"".join(
+        struct.pack("<IHH", 0, len(mszip), uncomp) + mszip
+        for mszip, uncomp in blocks
+    )
+
+    return header + folder + file_entries + data_blocks
 
 
 # ── Generatori ─────────────────────────────────────────────────────────────────
 
-def build_windows_ps1(version: str, base_url: str) -> str:
+def build_windows_exe(version: str) -> bytes:
     """
-    Genera un installer Windows PowerShell offline self-contained.
-    Tutti i file sorgente sono embedded come base64.
+    Genera un installer Windows EXE offline self-contained (IExpress SFX).
+    Struttura: stub IExpress (tools/iexpress_stub.bin) + CAB MSZIP con tutti i file.
+    Doppio clic su Windows per installare — non richiede internet.
     """
-    allowed_origins = ",".join(sorted({
-        base_url.rstrip("/"),
-        BASE_URL_DEFAULT,
-    }))
-    ls_b64     = _b64(LS_PY)
-    reqs_b64   = _b64(REQS_TXT)
-    uffici_b64 = _b64(UFFICI_JSON)
-    now        = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    if not IEXPRESS_STUB.exists():
+        raise FileNotFoundError(
+            f"Stub IExpress non trovato: {IEXPRESS_STUB}\n"
+            "Il file viene estratto automaticamente da un .exe esistente in tools/dist/.\n"
+            "Esegui: python3 -c \""
+            "from pathlib import Path; "
+            "d=sorted(Path('tools/dist').glob('SetupLocalSigner-*.exe')); "
+            "s=open(d[-1],'rb').read(); "
+            "cab=s.index(b'MSCF'); "
+            "open('tools/iexpress_stub.bin','wb').write(s[:cab])\""
+        )
 
-    install_body = INSTALL_PS1.read_text(encoding="utf-8")
+    stub = IEXPRESS_STUB.read_bytes()
+    now  = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    release_note = (
+        f"HACS Local Signer\nVersione: {version}\nGenerato: {now}\n"
+        f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
+        f"Punto ufficiale download: {DOWNLOAD_PAGE}\n"
+    )
 
-    # Rimuovi l'intestazione 'param(...)' e gli import perché li iniettamo noi
-    # (il corpo dello script locale usa $toolsDir che ridefiniremo)
-    # Usiamo l'intero script modificando solo $toolsDir
-    install_lines = install_body.splitlines()
+    files_to_pack = [
+        ("installa_local_signer_locale.ps1", INSTALL_PS1.read_bytes()),
+        ("local_signer.py",                  LS_PY.read_bytes()),
+        ("requirements_local_signer.txt",    REQS_TXT.read_bytes()),
+        ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),
+        ("local_signer_release.txt",         release_note.encode("utf-8")),
+    ]
 
-    return textwrap.dedent(f"""\
-        # HACS Local Signer Setup v{version} — Installer offline Windows
-        # Generato il: {now}
-        # Punto ufficiale: {DOWNLOAD_PAGE}
-        #
-        # USO: Tasto destro sul file → "Esegui con PowerShell"
-        #   OPPURE: powershell -NoProfile -ExecutionPolicy Bypass -File SetupLocalSigner-{version}.ps1
-        #
-        # Questo script NON richiede connessione internet.
-        # Tutti i file necessari sono embedded nel pacchetto.
-
-        param([switch]$Quiet)
-        $ErrorActionPreference = 'Stop'
-
-        $version          = "{version}"
-        $defaultAllowedOrigins = "{allowed_origins}"
-
-        # ── Estrazione file embedded ────────────────────────────────────────────
-        $tmpDir = Join-Path $env:TEMP "HacsLocalSignerSetup-$version"
-        New-Item -ItemType Directory -Force -Path $tmpDir | Out-Null
-
-        function Expand-B64File([string]$B64, [string]$Dest) {{
-            $bytes = [System.Convert]::FromBase64String($B64 -replace "\\s","")
-            [System.IO.File]::WriteAllBytes($Dest, $bytes)
-        }}
-
-        Write-Host ""
-        Write-Host "HACS Local Signer v$version — Setup" -ForegroundColor Cyan
-        Write-Host "Estrazione file embedded in corso..." -ForegroundColor Gray
-
-        $lsB64 = @'
-{ls_b64}
-'@
-        $reqsB64 = @'
-{reqs_b64}
-'@
-        $ufficiB64 = @'
-{uffici_b64}
-'@
-
-        Expand-B64File $lsB64     (Join-Path $tmpDir "local_signer.py")
-        Expand-B64File $reqsB64   (Join-Path $tmpDir "requirements_local_signer.txt")
-        Expand-B64File $ufficiB64 (Join-Path $tmpDir "uffici_ministero.json")
-
-        # ── Copio install script nella temp dir e lo eseguo ────────────────────
-        $installScript = Join-Path $tmpDir "installa_local_signer_locale.ps1"
-        $installBody = @'
-        INSTALL_BODY_PLACEHOLDER
-'@
-        # Scrivi lo script di installazione su disco (encoding UTF-8 senza BOM)
-        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($installScript, $installBody, $utf8NoBom)
-
-        # Sostituisci $toolsDir con $tmpDir nello script prima di eseguirlo
-        $scriptContent = [System.IO.File]::ReadAllText($installScript)
-        $scriptContent = $scriptContent -replace [regex]::Escape('$toolsDir = Split-Path -Parent $MyInvocation.MyCommand.Path'), ('$toolsDir = "' + $tmpDir + '"')
-        [System.IO.File]::WriteAllText($installScript, $scriptContent, $utf8NoBom)
-
-        Write-Host "Avvio installazione..." -ForegroundColor Cyan
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $installScript $(if ($Quiet) {{ '-Quiet' }})
-        $exitCode = $LASTEXITCODE
-
-        # Pulizia temp
-        try {{ Remove-Item -Recurse -Force $tmpDir -ErrorAction SilentlyContinue }} catch {{}}
-
-        exit $exitCode
-    """).replace("        INSTALL_BODY_PLACEHOLDER", _ps1_escape(install_body))
+    cab = _make_mszip_cab(files_to_pack)
+    return stub + cab
 
 
 def build_macos_command(version: str, base_url: str) -> str:
@@ -336,12 +345,17 @@ def main() -> None:
     linux_path.chmod(0o755)
     print(f"  [OK] Linux   : {linux_path.name}")
 
-    # Windows PS1 offline
+    # Windows EXE (IExpress SFX offline)
     if not args.no_windows:
-        win_path = DIST_DIR / f"SetupLocalSigner-{version}.ps1"
-        print(f"  Genero Windows PS1 offline (embedding {LS_PY.stat().st_size//1024}KB + {UFFICI_JSON.stat().st_size//1024}KB)...")
-        win_path.write_text(build_windows_ps1(version, base_url), encoding="utf-8")
+        win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
+        print(f"  Genero Windows EXE offline (IExpress SFX + CAB {LS_PY.stat().st_size//1024}KB + {UFFICI_JSON.stat().st_size//1024}KB)...")
+        exe_data = build_windows_exe(version)
+        win_path.write_bytes(exe_data)
+        # Aggiorna alias legacy
+        alias_path = DIST_DIR / "SetupLocalSigner.exe"
+        alias_path.write_bytes(exe_data)
         print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size//1024}KB)")
+        print(f"  [OK] Alias   : SetupLocalSigner.exe aggiornato")
 
     # Release note
     note_path = DIST_DIR / f"LocalSigner-{version}.txt"

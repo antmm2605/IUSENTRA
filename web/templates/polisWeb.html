@@ -528,6 +528,8 @@
                   style="background:rgba(255,255,255,.3);color:#fff;font-size:.7rem">2</span>
             <span class="badge rounded-pill px-2 py-1" id="wiz-dot-3"
                   style="background:rgba(255,255,255,.3);color:#fff;font-size:.7rem">3</span>
+            <span class="badge rounded-pill px-2 py-1" id="wiz-dot-4"
+                  style="background:rgba(255,255,255,.3);color:#fff;font-size:.7rem;display:none">4</span>
           </div>
           <div class="d-none d-lg-flex gap-1 ms-2">
             <button type="button" class="btn btn-sm btn-outline-light border-white-50 text-white"
@@ -919,6 +921,48 @@
                 </div>
                 <div id="wiz-pst-test-risultato" class="mt-2 small" style="display:none"></div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {# ──────────────── STEP 4: Acquisizione documenti ──────────────── #}
+        <div id="wiz-step-4" class="p-4" style="display:none">
+          <div class="text-center mb-4">
+            <i class="bi bi-cloud-arrow-down text-primary" style="font-size:2.8rem"></i>
+            <h6 class="fw-bold mt-2 mb-0">Acquisizione fascicolo in corso…</h6>
+            <p class="small text-muted mt-1">Recupero degli allegati dal Portale Servizi Telematici.</p>
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span id="wiz-acq-label" class="text-truncate me-2">Connessione al PST…</span>
+              <span id="wiz-acq-pct" class="flex-shrink-0 fw-semibold">0%</span>
+            </div>
+            <div class="progress" style="height:14px;border-radius:8px">
+              <div id="wiz-acq-bar"
+                   class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                   role="progressbar" style="width:0%;transition:width .4s ease"></div>
+            </div>
+          </div>
+
+          <div id="wiz-acq-lista"
+               class="list-group list-group-flush small border rounded"
+               style="max-height:200px;overflow-y:auto"></div>
+
+          <div id="wiz-acq-completo" class="alert alert-success small mt-3 mb-0" style="display:none">
+            <i class="bi bi-check-circle-fill me-1"></i>
+            <span id="wiz-acq-completo-msg">Fascicolo acquisito con successo.</span>
+            <span class="ms-1 text-muted">Reindirizzamento in corso…</span>
+          </div>
+
+          <div id="wiz-acq-errore" class="alert alert-danger small mt-3 mb-0" style="display:none">
+            <i class="bi bi-x-circle-fill me-1"></i>
+            <span id="wiz-acq-errore-msg">Errore durante l'acquisizione.</span>
+            <div class="mt-2">
+              <button type="button" class="btn btn-sm btn-outline-danger"
+                      onclick="_wizStep=3;_wizAggiornaDot();_wizMostraStep(3);">
+                <i class="bi bi-arrow-left me-1"></i>Torna ai risultati
+              </button>
             </div>
           </div>
         </div>
@@ -2116,16 +2160,57 @@ function verificaLocalSignerLegacy() {
 }
 
 // ── Wizard PST ───────────────────────────────────────────────────────────────
-let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati
+let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati, 4=acquisizione
 let _wizCertSel = null;  // certificato selezionato
 let _wizPinConfermato = false;
 let _wizUltimiFascicoli = [];
+
+// ── PIN / cert session persistence ─────────────────────────────────────────
+// Il PIN viene chiesto da Windows (Local Signer) e non transita mai per HACS.
+// Salviamo solo il fatto che l'autenticazione è riuscita + i metadati del cert,
+// così l'utente non deve reinserire il PIN per ogni importazione nella stessa sessione.
+const _WIZ_SESSION_KEY = 'hacs_pst_cert_auth';
+const _WIZ_SESSION_TTL = 2 * 3600 * 1000; // 2 ore
+
+function _wizSaveAuth(cert) {
+  if (!cert) return;
+  try {
+    sessionStorage.setItem(_WIZ_SESSION_KEY, JSON.stringify({
+      thumbprint:      cert.thumbprint      || null,
+      soggetto:        cert.soggetto        || '',
+      emittente:       cert.emittente       || '',
+      scadenza:        cert.scadenza        || '',
+      token_slot:      cert.token_slot      ?? null,
+      piattaforma:     cert.piattaforma     || '',
+      auto_selezionato: !!cert.auto_selezionato,
+      ts: Date.now(),
+    }));
+  } catch(e) { /* sessionStorage non disponibile */ }
+}
+
+function _wizLoadSavedAuth() {
+  try {
+    const raw = sessionStorage.getItem(_WIZ_SESSION_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (Date.now() - (data.ts || 0) > _WIZ_SESSION_TTL) {
+      sessionStorage.removeItem(_WIZ_SESSION_KEY);
+      return null;
+    }
+    return data;
+  } catch(e) { return null; }
+}
+
+function _wizClearSavedAuth() {
+  try { sessionStorage.removeItem(_WIZ_SESSION_KEY); } catch(e) {}
+}
 
 const _WIZ_STEPS = {
   0: { title: 'Configurazione',      sub: 'Avvia o installa il Local Signer', dot: null },
   1: { title: 'Passaggio 1',         sub: 'Parametri di ricerca',            dot: 1 },
   2: { title: 'Passaggio 2',         sub: 'Selezione certificato e PIN',     dot: 2 },
   3: { title: 'Passaggio 3',         sub: 'Risultati',                       dot: 3 },
+  4: { title: 'Acquisizione',        sub: 'Scaricamento allegati PST',       dot: 4 },
 };
 
 function _wizModalEl() {
@@ -2307,21 +2392,43 @@ async function apriWizardPst() {
   _wizBindDialogInteractions();
   const stato = _lsDisponibile ? { running: true, tokenOk: true } : await _lsAssicuraAttivo();
   _wizStep = stato.running ? 1 : 0;
-  _wizCertSel = _lsCertSel;
+
+  // Ripristina certificato e PIN dalla sessione (evita di reinserire il PIN)
+  _wizCertSel = _lsCertSel || null;
   _wizPinConfermato = false;
+  const savedAuth = _wizLoadSavedAuth();
+  if (savedAuth) {
+    // Se il cert corrente corrisponde a quello salvato (o non ne abbiamo uno attivo),
+    // ripristiniamo l'autenticazione senza chiedere di nuovo il PIN.
+    const certMatch = !_wizCertSel || (_wizCertSel.thumbprint === savedAuth.thumbprint);
+    if (certMatch) {
+      _wizCertSel = {
+        thumbprint:      savedAuth.thumbprint,
+        soggetto:        savedAuth.soggetto,
+        emittente:       savedAuth.emittente,
+        scadenza:        savedAuth.scadenza,
+        token_slot:      savedAuth.token_slot,
+        piattaforma:     savedAuth.piattaforma,
+        auto_selezionato: savedAuth.auto_selezionato,
+      };
+      _wizPinConfermato = true;
+    }
+  }
+
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalWizardPst')).show();
 }
 
 function _wizMostraStep(step) {
-  ['wiz-step-setup','wiz-step-1','wiz-step-2','wiz-step-3'].forEach(id => {
+  ['wiz-step-setup','wiz-step-1','wiz-step-2','wiz-step-3','wiz-step-4'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
   const stepId = step === 0 ? 'wiz-step-setup'
                : step === 1 ? 'wiz-step-1'
                : step === 2 ? 'wiz-step-2'
+               : step === 4 ? 'wiz-step-4'
                : 'wiz-step-3';
   const el = document.getElementById(stepId);
   if (el) el.style.display = 'block';
@@ -2336,17 +2443,22 @@ function _wizMostraStep(step) {
   const btnInd  = document.getElementById('wiz-btn-indietro');
   const btnAv   = document.getElementById('wiz-btn-avanti');
   const ftrInfo = document.getElementById('wiz-footer-info');
-  if (btnInd) btnInd.style.display = step > 1 ? '' : 'none';
+  if (btnInd) btnInd.style.display = (step > 1 && step !== 4) ? '' : 'none';
   if (btnAv) {
     if (step === 0) {
       btnAv.textContent = ''; btnAv.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Riverifica';
       btnAv.onclick = wizRiverifca;
+      btnAv.style.display = '';
     } else if (step === 3) {
       btnAv.innerHTML = 'Chiudi <i class="bi bi-x ms-1"></i>';
       btnAv.onclick = () => bootstrap.Modal.getInstance(document.getElementById('modalWizardPst'))?.hide();
+      btnAv.style.display = '';
+    } else if (step === 4) {
+      btnAv.style.display = 'none';
     } else {
       btnAv.innerHTML = 'Avanti <i class="bi bi-arrow-right ms-1"></i>';
       btnAv.onclick = wizAvanti;
+      btnAv.style.display = '';
     }
   }
   if (ftrInfo) {
@@ -2365,7 +2477,15 @@ function _wizAggiornaDot() {
     const attivo = n === _wizStep;
     el.style.background = attivo ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.3)';
     el.style.color = attivo ? '#1a3a6b' : '#fff';
+    el.style.display = '';
   });
+  // dot-4 visibile solo quando siamo allo step 4
+  const d4 = document.getElementById('wiz-dot-4');
+  if (d4) {
+    d4.style.display = _wizStep === 4 ? '' : 'none';
+    d4.style.background = 'rgba(255,255,255,.9)';
+    d4.style.color = '#1a3a6b';
+  }
 }
 
 async function wizAvanti() {
@@ -2375,8 +2495,25 @@ async function wizAvanti() {
       return;
     }
     _wizStep = 2;
-    _wizCertSel = null;
-    _wizPinConfermato = false;
+    // Mantieni cert/PIN dalla sessione se già autenticati, altrimenti reset
+    if (!_wizPinConfermato) {
+      const saved = _wizLoadSavedAuth();
+      if (saved) {
+        _wizCertSel = {
+          thumbprint:      saved.thumbprint,
+          soggetto:        saved.soggetto,
+          emittente:       saved.emittente,
+          scadenza:        saved.scadenza,
+          token_slot:      saved.token_slot,
+          piattaforma:     saved.piattaforma,
+          auto_selezionato: saved.auto_selezionato,
+        };
+        _wizPinConfermato = true;
+      } else {
+        _wizCertSel = null;
+        _wizPinConfermato = false;
+      }
+    }
   } else if (_wizStep === 2) {
     if (!_wizCertSel) {
       // Nessun certificato selezionato — apri il picker
@@ -2446,11 +2583,13 @@ async function wizVerificaCertificatoPst() {
   try {
     await _lsPreflightAuthPst(tribunale, _wizCertSel);
     _wizPinConfermato = true;
+    _wizSaveAuth(_wizCertSel);  // memorizza per tutta la sessione browser
     _wizSetPinStatus('ok');
     _wizMostraCertCard(_wizCertSel);
     return true;
   } catch (err) {
     _wizPinConfermato = false;
+    _wizClearSavedAuth();       // rimuovi auth salvata se PIN fallisce
     _wizSetPinStatus('error', _erroreConGuida(String(err)));
     _wizMostraCertCard(_wizCertSel);
     return false;
@@ -2970,7 +3109,8 @@ async function wizImporta(indice, options = {}) {
     options = { openPst: options };
   }
   const fascicolo = _wizUltimiFascicoli[indice] || {};
-  const openPst = !!(options.openPst || options.acquireAll);
+  const acquireAll = !!(options.acquireAll);
+  const openPst = !!(options.openPst || acquireAll);
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '{{ url_for("polisWeb_importa") }}';
@@ -2990,12 +3130,149 @@ async function wizImporta(indice, options = {}) {
     ['codice_ufficio', fascicolo.codice_ufficio || ''],
     ['demo_mode', '0'],
     ['apri_portale', openPst ? '1' : '0'],
-    ['acquisisci_portale', options.acquireAll ? '1' : '0'],
+    ['acquisisci_portale', acquireAll ? '1' : '0'],
     ['mantieni_albero_originale', options.preserveOriginalTree ? '1' : '0'],
     ['id_fasc', '{{ id_fasc or "" }}'],
   ].forEach(([k, v]) => _appendHiddenToForm(form, k, v));
   document.body.appendChild(form);
-  await _submitImportaPolisWeb(form, _fascicoloImportDataFromForm(form), null, _wizCertSel || _lsCertSel || null);
+
+  if (acquireAll) {
+    // Mostra step 4 con barra di avanzamento prima di inviare il form
+    _wizStep = 4;
+    _wizAggiornaDot();
+    _wizMostraStep(4);
+    await _wizAcquisisciConProgress(form, fascicolo);
+  } else {
+    await _submitImportaPolisWeb(form, _fascicoloImportDataFromForm(form), null, _wizCertSel || _lsCertSel || null);
+  }
+}
+
+async function _wizAcquisisciConProgress(form, fascicolo) {
+  const bar       = document.getElementById('wiz-acq-bar');
+  const label     = document.getElementById('wiz-acq-label');
+  const pctEl     = document.getElementById('wiz-acq-pct');
+  const lista     = document.getElementById('wiz-acq-lista');
+  const completo  = document.getElementById('wiz-acq-completo');
+  const erroreDiv = document.getElementById('wiz-acq-errore');
+  if (completo)  completo.style.display  = 'none';
+  if (erroreDiv) erroreDiv.style.display = 'none';
+  if (lista)     lista.innerHTML = '';
+
+  function setProgress(n, total, testo) {
+    const perc = total > 0 ? Math.min(100, Math.round((n / total) * 100)) : 0;
+    if (bar)    bar.style.width     = perc + '%';
+    if (pctEl)  pctEl.textContent   = perc + '%';
+    if (label && testo) label.textContent = testo;
+  }
+
+  function addListaItem(nome, stato) {
+    if (!lista) return;
+    const item = document.createElement('div');
+    item.className = 'list-group-item py-1 px-2 d-flex align-items-center gap-2 small';
+    const iconHtml = stato === 'loading'
+      ? '<span class="spinner-border spinner-border-sm flex-shrink-0" style="width:14px;height:14px"></span>'
+      : stato === 'ok'
+        ? '<i class="bi bi-check-circle-fill text-success flex-shrink-0"></i>'
+        : '<i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i>';
+    item.innerHTML = `${iconHtml}<span class="text-truncate">${String(nome).replace(/</g,'&lt;')}</span>`;
+    lista.appendChild(item);
+    lista.scrollTop = lista.scrollHeight;
+    return item;
+  }
+
+  try {
+    setProgress(0, 10, 'Connessione al PST…');
+    const cert = _wizCertSel || _lsCertSel || null;
+
+    // Aggiungi flag canale al form
+    _appendHiddenToForm(form, 'canale_accesso_pst', 'local_signer');
+
+    // Recupero lista documenti dal Local Signer
+    setProgress(1, 10, 'Recupero lista documenti dal PST…');
+    addListaItem('Connessione al Portale Servizi Telematici…', 'loading');
+
+    let documenti = [];
+    try {
+      const payload = {
+        codice_ufficio: fascicolo.codice_ufficio || '',
+        numero_rg:      fascicolo.numero_rg || '',
+        anno_rg:        fascicolo.anno_rg ? parseInt(fascicolo.anno_rg, 10) : null,
+        cert_thumbprint: cert?.thumbprint || null,
+        slot_id:         cert?.token_slot ?? null,
+      };
+      const resp = await fetch(_LS_BASE_PW + '/pst/documenti', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(120000),
+      });
+      const data = await resp.json();
+      if (data.ok && Array.isArray(data.documenti)) {
+        documenti = data.documenti;
+      } else if (!data.ok) {
+        throw new Error(data.errore || 'Errore recupero documenti PST');
+      }
+    } catch(fetchErr) {
+      // Continua anche senza documenti — il server gestirà il caso vuoto
+      if (lista) lista.innerHTML = '';
+      addListaItem(`Avviso: ${String(fetchErr)}`, 'errore');
+      await new Promise(r => setTimeout(r, 600));
+    }
+
+    // Aggiorna lista nel form
+    _appendHiddenToForm(form, 'documenti_json', JSON.stringify(documenti));
+
+    // Mostra avanzamento per ogni documento
+    if (lista) lista.innerHTML = '';
+    const totale = Math.max(documenti.length, 1);
+    for (let i = 0; i < documenti.length; i++) {
+      const doc  = documenti[i];
+      const nome = doc.nome || doc.id_documento || `Allegato ${i + 1}`;
+      const tipo = doc.tipo_atto || doc.tipo || '';
+      const data = doc.data_deposito ? ` — ${doc.data_deposito}` : '';
+      setProgress(i + 2, totale + 2, nome);
+      addListaItem(`${nome}${tipo ? ' (' + tipo + ')' : ''}${data}`, 'ok');
+      // Pausa visiva breve per mostrare il progresso all'utente
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    if (documenti.length === 0) {
+      addListaItem('Nessun documento disponibile nel fascicolo PST', 'ok');
+    }
+
+    setProgress(100, 100, documenti.length > 0
+      ? `${documenti.length} allegato/i pronti per l'importazione`
+      : 'Importazione metadati completata');
+    if (bar) {
+      bar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+      bar.classList.add('bg-success');
+    }
+
+    if (completo) {
+      completo.style.display = 'block';
+      const msg = document.getElementById('wiz-acq-completo-msg');
+      if (msg) {
+        msg.textContent = documenti.length > 0
+          ? `${documenti.length} allegato/i acquisiti e organizzati nelle sezioni del fascicolo.`
+          : 'Fascicolo importato con metadati dal PST.';
+      }
+    }
+
+    // Breve pausa per mostrare il messaggio di successo, poi invia
+    await new Promise(r => setTimeout(r, 1400));
+    form.submit();
+
+  } catch(err) {
+    if (erroreDiv) {
+      erroreDiv.style.display = 'block';
+      const msg = document.getElementById('wiz-acq-errore-msg');
+      if (msg) msg.textContent = String(err);
+    }
+    if (bar) {
+      bar.classList.remove('progress-bar-animated');
+      bar.classList.add('bg-danger');
+    }
+  }
 }
 
 function _lsAggiornaUiDaPing(d) {

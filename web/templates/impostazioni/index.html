@@ -566,6 +566,9 @@
                      id="btn-local-signer-windows">
                     <i class="bi bi-windows me-2"></i>Scarica per Windows · v{{ local_signer.version }}
                   </a>
+                  <div class="small text-muted mt-1 text-center">
+                    File ufficiale: <code>{{ local_signer.windows_filename }}</code>
+                  </div>
                 </div>
                 <div class="col-md-4">
                   <a href="{{ url_for('polis_local_signer_setup_macos') }}"
@@ -574,6 +577,9 @@
                      id="btn-local-signer-macos">
                     <i class="bi bi-apple me-2"></i>Scarica per macOS · v{{ local_signer.version }}
                   </a>
+                  <div class="small text-muted mt-1 text-center">
+                    File ufficiale: <code>{{ local_signer.macos_filename }}</code>
+                  </div>
                 </div>
                 <div class="col-md-4">
                   <a href="{{ url_for('polis_local_signer_setup_linux') }}"
@@ -582,6 +588,24 @@
                      id="btn-local-signer-linux">
                     <i class="bi bi-terminal me-2"></i>Scarica per Linux · v{{ local_signer.version }}
                   </a>
+                  <div class="small text-muted mt-1 text-center">
+                    File ufficiale: <code>{{ local_signer.linux_filename }}</code>
+                  </div>
+                </div>
+              </div>
+              <div class="alert alert-light border rounded-3 mt-3 mb-0 small">
+                <div class="fw-semibold mb-1">
+                  Versione corrente pubblicata: v{{ local_signer.version }}
+                </div>
+                <div class="mb-1">
+                  Pacchetti eseguibili ufficiali sempre allineati:
+                  <code>{{ local_signer.windows_filename }}</code>,
+                  <code>{{ local_signer.macos_filename }}</code>,
+                  <code>{{ local_signer.linux_filename }}</code>.
+                </div>
+                <div class="text-muted">
+                  Il punto ufficiale e permanente di distribuzione resta:
+                  <a href="{{ local_signer.download_page }}" target="_blank" rel="noopener">{{ local_signer.download_page }}</a>
                 </div>
               </div>
               <div class="small text-muted mt-2">

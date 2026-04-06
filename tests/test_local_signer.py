@@ -983,6 +983,7 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
     assert f"SetupLocalSigner-{version}.exe" in body
     assert f"InstallaLocalSigner-{version}.command" in body
     assert f"InstallaLocalSigner-{version}.run" in body
+    assert f"Versione corrente pubblicata: v{version}" in body
     assert "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma" in body
 
 

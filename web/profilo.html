@@ -1,78 +1,164 @@
-<!doctype html>
-<html lang="it">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Verifica 2FA — Studio Legale PCT</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    body { background: #f0f4f8; }
-    .login-card {
-      max-width: 420px;
-      margin: 8vh auto 0;
-      border: none;
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(26,58,92,.15);
-    }
-    .login-header {
-      background: #1a3a5c;
-      color: #fff;
-      border-radius: 16px 16px 0 0;
-      padding: 2rem;
-      text-align: center;
-    }
-    .login-header .icon { font-size: 2.5rem; color: #c8972b; }
-    .login-header h1 { font-size: 1.3rem; margin: .5rem 0 .1rem; }
-    .login-header p { font-size: .8rem; opacity: .7; margin: 0; }
-    .otp-input {
-      font-size: 1.8rem;
-      letter-spacing: .5rem;
-      text-align: center;
-      font-family: monospace;
-    }
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Profili e Permessi{% endblock %}
+{% block page_title %}Gestione Profili e Permessi{% endblock %}
 
-<div class="login-card card">
-  <div class="login-header">
-    <div class="icon"><i class="bi bi-shield-lock-fill"></i></div>
-    <h1>Verifica a due fattori</h1>
-    <p>{{ username }}</p>
-  </div>
-  <div class="card-body p-4">
-    {% if errore %}
-    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>{{ errore }}</span>
-    </div>
-    {% endif %}
+{% block content %}
 
-    <p class="text-muted small mb-3">
-      <i class="bi bi-phone me-1"></i>
-      Inserisci il codice a 6 cifre dalla tua app di autenticazione
-      (Google Authenticator, Aegis, ecc.)
-    </p>
-
-    <form method="post" autocomplete="off">
-      <div class="mb-4">
-        <input type="text" name="codice" class="form-control otp-input"
-               inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
-               placeholder="000000" autofocus required>
+{# ---- Cards ruoli ---- #}
+<div class="row g-3 mb-4">
+  {% for ruolo in ruoli %}
+  {% set desc = descrizioni[ruolo] %}
+  {% set n_utenti = utenti_per_ruolo[ruolo]|length %}
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card shadow-sm h-100">
+      <div class="card-body text-center py-3">
+        <div class="mb-2">
+          <i class="bi {{ desc.icona }} fs-2 text-{{ desc.colore }}"></i>
+        </div>
+        <div class="fw-bold small text-uppercase" style="letter-spacing:.5px">
+          {{ ruolo.value.replace('_',' ') }}
+        </div>
+        <div class="small text-muted mt-1" style="font-size:.72rem; min-height:2.2em">
+          {{ desc.descrizione[:60] }}{% if desc.descrizione|length > 60 %}…{% endif %}
+        </div>
+        <div class="mt-2">
+          <span class="badge bg-{{ desc.colore }}">{{ n_utenti }} utent{% if n_utenti != 1 %}i{% else %}e{% endif %}</span>
+          {% if n_utenti %}
+          <div class="mt-1">
+            {% for u in utenti_per_ruolo[ruolo][:3] %}
+            <span class="badge bg-light text-dark border" style="font-size:.65rem">
+              {{ u.username }}{% if u.ha_override %} <i class="bi bi-star-fill text-warning" title="Override attivi"></i>{% endif %}
+            </span>
+            {% endfor %}
+            {% if n_utenti > 3 %}<span class="small text-muted">+{{ n_utenti - 3 }}</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-        <i class="bi bi-shield-check me-2"></i>Verifica
-      </button>
-    </form>
+      <div class="card-footer p-1 text-center">
+        <a href="{{ url_for('lista_utenti') }}?ruolo={{ ruolo.value }}"
+           class="btn btn-outline-{{ desc.colore }} btn-sm w-100" style="font-size:.75rem">
+          <i class="bi bi-people me-1"></i>Utenti
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 
-    <div class="mt-3 text-center">
-      <a href="{{ url_for('login') }}" class="text-muted small">
-        <i class="bi bi-arrow-left me-1"></i>Torna al login
-      </a>
+{# ---- Matrice permessi ---- #}
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-grid-3x3 me-2 text-primary"></i>Matrice permessi per ruolo</span>
+    <span class="text-muted small">
+      <i class="bi bi-check-circle-fill text-success me-1"></i>Concesso
+      <i class="bi bi-x-circle text-danger ms-2 me-1"></i>Non concesso
+    </span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle mb-0" style="font-size:.82rem">
+        <thead>
+          <tr class="table-dark">
+            <th style="min-width:110px">Categoria</th>
+            <th style="min-width:130px">Permesso</th>
+            {% for ruolo in ruoli %}
+            {% set desc = descrizioni[ruolo] %}
+            <th class="text-center" style="min-width:100px">
+              <i class="bi {{ desc.icona }} me-1 text-{{ desc.colore }}"></i>
+              <span class="d-block" style="font-size:.72rem; font-weight:600; line-height:1.2">
+                {{ ruolo.value.replace('_',' ') }}
+              </span>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% set ns = namespace(last_cat='') %}
+          {% for categoria, chiave, etichetta in tutti_permessi %}
+          <tr{% if categoria != ns.last_cat %} class="table-light"{% endif %}>
+            {% if categoria != ns.last_cat %}
+            {% set ns.last_cat = categoria %}
+            <td class="fw-bold text-uppercase" style="font-size:.7rem; letter-spacing:.5px; color:#1a3a5c">
+              {{ categoria }}
+            </td>
+            {% else %}
+            <td class="text-muted" style="font-size:.72rem; padding-left:1.5rem">
+              &nbsp;
+            </td>
+            {% endif %}
+            <td>{{ etichetta }}</td>
+            {% for ruolo in ruoli %}
+            {% set ha = chiave in permessi.get(ruolo, []) %}
+            <td class="text-center">
+              {% if ha %}
+                <i class="bi bi-check-circle-fill text-success fs-6"></i>
+              {% else %}
+                <i class="bi bi-x-circle text-danger opacity-25 fs-6"></i>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
-</body>
-</html>
+{# ---- Utenti con override ---- #}
+{% set override_utenti = [] %}
+{% for ruolo in ruoli %}
+  {% for u in utenti_per_ruolo[ruolo] %}
+    {% if u.ha_override %}
+      {% set _ = override_utenti.append(u) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+
+{% if override_utenti %}
+<div class="card shadow-sm mt-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-star-fill text-warning me-2"></i>Utenti con permessi personalizzati
+    <span class="badge bg-warning text-dark ms-1">{{ override_utenti|length }}</span>
+  </div>
+  <div class="list-group list-group-flush">
+    {% for u in override_utenti %}
+    {% set desc = descrizioni[u.ruolo] %}
+    <div class="list-group-item d-flex align-items-center gap-3">
+      <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+           style="width:36px;height:36px;background:var(--bs-{{ desc.colore }}, #6c757d);flex-shrink:0">
+        {{ u.username[0].upper() }}
+      </div>
+      <div class="flex-grow-1">
+        <div class="fw-semibold">{{ u.nome_completo or u.username }}
+          <span class="badge bg-{{ desc.colore }} ms-1" style="font-size:.65rem">{{ u.ruolo.value }}</span>
+        </div>
+        {% if u.permessi_extra %}
+        <div class="small mt-1">
+          <span class="text-success fw-semibold me-1">+ Extra:</span>
+          {% for p in u.permessi_extra %}
+          <span class="badge bg-success-subtle text-success-emphasis me-1">{{ p }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if u.permessi_negati %}
+        <div class="small">
+          <span class="text-danger fw-semibold me-1">− Rimossi:</span>
+          {% for p in u.permessi_negati %}
+          <span class="badge bg-danger-subtle text-danger-emphasis me-1">{{ p }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('permessi_utente', id_utente=u.id) }}"
+         class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-sliders me-1"></i>Modifica
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

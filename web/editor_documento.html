@@ -1,13 +1,1708 @@
 {% extends "base.html" %}
-{% block title %}Accesso negato{% endblock %}
-{% block page_title %}Accesso negato{% endblock %}
+{% block title %}{{ fascicolo.numero }} — {{ fascicolo.titolo }}{% endblock %}
+{% block page_title %}Fascicolo {{ fascicolo.numero }}{% endblock %}
+
+{% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
+{% set EC = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+
 {% block content %}
-<div class="text-center py-5">
-  <div style="font-size:5rem;color:#dc3545"><i class="bi bi-shield-x"></i></div>
-  <h2 class="mt-3">403 — Accesso negato</h2>
-  <p class="text-muted">Non hai i permessi necessari per accedere a questa risorsa.</p>
-  <a href="{{ url_for('dashboard') }}" class="btn btn-primary mt-2">
-    <i class="bi bi-house me-1"></i>Torna alla dashboard
-  </a>
+
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-folder2-open"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title text-break">{{ fascicolo.titolo }}</h1>
+    <p class="ds-ph-sub">
+      <code class="small me-1">{{ fascicolo.numero }}</code>
+      <span class="badge bg-{{ SC[fascicolo.stato.value] }} me-1">{{ fascicolo.stato.value.replace('_',' ') }}</span>
+      <span class="badge bg-light text-dark border me-1">{{ fascicolo.tipo.value.replace('_',' ') }}</span>
+      {% if fascicolo.archivio_pronto %}
+        <span class="badge bg-warning text-dark"><i class="bi bi-inbox me-1"></i>Pronto per archivio</span>
+      {% endif %}
+      {% if fascicolo.oggetto %}<span class="ms-1">· {{ fascicolo.oggetto }}</span>{% endif %}
+    </p>
+  </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('copertina_fascicolo', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-ghost" target="_blank" title="Copertina fascicolo">
+      <i class="bi bi-layout-text-window"></i><span class="d-none d-sm-inline">Copertina</span>
+    </a>
+    <a href="{{ url_for('modifica_fascicolo', id_fasc=fascicolo.id) }}"
+       class="ds-btn ds-btn-outline">
+      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
+    </a>
+    <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicoli</span>
+    </a>
+  </div>
 </div>
+
+<div class="row g-3">
+
+  {# ---- Colonna principale ---- #}
+  <div class="col-lg-8">
+
+    {# Dati processuali #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-info-circle me-2 text-primary"></i>Dati processuali
+      </div>
+      <div class="card-body">
+        <div class="row g-3 small">
+          {% macro dc(label, val, mono=False) %}
+          {% if val %}
+          <div class="col-6 col-sm-4">
+            <div class="text-muted mb-1">{{ label }}</div>
+            <div class="fw-semibold text-break {% if mono %}font-monospace{% endif %}">{{ val }}</div>
+          </div>
+          {% endif %}
+          {% endmacro %}
+          {{ dc("Cliente", fascicolo.nome_cliente) }}
+          {{ dc("Controparte", fascicolo.controparte) }}
+          {{ dc("Tribunale", fascicolo.tribunale) }}
+          {{ dc("RG", fascicolo.rg_completo, mono=True) }}
+          {{ dc("Sezione", fascicolo.sezione) }}
+          {{ dc("Giudice", fascicolo.giudice) }}
+          {{ dc("Avv. referente", fascicolo.avvocato_referente) }}
+          {{ dc("Avv. dominus", fascicolo.avvocato_dominus) }}
+          {% if fascicolo.valore_causa %}
+          <div class="col-sm-4">
+            <div class="text-muted mb-1">Valore causa</div>
+            <div class="fw-semibold">€ {{ "%.2f"|format(fascicolo.valore_causa) }}</div>
+          </div>
+          {% endif %}
+          {{ dc("Apertura", fascicolo.data_apertura|fmt_data) }}
+          {{ dc("Prima udienza", fascicolo.data_prima_udienza|fmt_data) }}
+          {{ dc("Prossima udienza", fascicolo.data_prossima_udienza|fmt_data) }}
+          {{ dc("Chiusura", fascicolo.data_chiusura|fmt_data) }}
+        </div>
+        {% if fascicolo.note %}
+        <hr class="my-2">
+        <div class="text-muted small mb-1">Note</div>
+        <div>{{ fascicolo.note }}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---- Attività processuali ---- #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
+          <i class="bi bi-list-check me-2 text-primary"></i>
+          Attività processuali
+          <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.attivita|length }}</span>
+        </span>
+        <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
+                data-bs-target="#modalAttivita">
+          <i class="bi bi-plus-lg me-1"></i>Aggiungi
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if fascicolo.attivita %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small mob-cards">
+            <thead class="table-light">
+              <tr><th>Data</th><th>Tipo</th><th>Titolo</th><th>Luogo</th><th>Esito</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for att in fascicolo.attivita|sort(attribute='data', reverse=True) %}
+              <tr>
+                <td data-label="Data" class="text-nowrap">{{ att.data|fmt_data }}</td>
+                <td data-label="Tipo">
+                  <span class="badge bg-light text-dark border" style="font-size:.7rem">
+                    {{ att.tipo.value.replace('_',' ') }}
+                  </span>
+                </td>
+                <td data-label="Titolo">
+                  <div class="fw-semibold">{{ att.titolo }}</div>
+                  {% if att.descrizione %}
+                    <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
+                  {% endif %}
+                </td>
+                <td data-label="Luogo" data-mob-hide>{{ att.luogo or '—' }}</td>
+                <td data-label="Esito">
+                  <span class="badge bg-{{ EC.get(att.esito.value,'secondary') }}">
+                    {{ att.esito.value.replace('_',' ') }}
+                  </span>
+                </td>
+                <td data-label="">
+                  <button class="btn btn-sm btn-outline-secondary"
+                          data-bs-toggle="modal"
+                          data-bs-target="#modalEsito{{ att.id }}">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-4 small">Nessuna attività processuale</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---- Documenti ---- #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
+          <i class="bi bi-paperclip me-2 text-primary"></i>
+          Documenti
+          <span class="badge bg-primary rounded-pill ms-1">{{ fascicolo.documenti|length }}</span>
+        </span>
+        <button class="btn btn-sm btn-outline-primary flex-shrink-0" data-bs-toggle="modal"
+                data-bs-target="#modalDocumento">
+          <i class="bi bi-upload me-1"></i>Carica
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if fascicolo.documenti %}
+
+        {# ── Macro riga documento (riusata nelle viste flat e accordion) ── #}
+        {% macro _riga(doc) %}
+        {% set ext = doc.nome.rsplit('.',1)[-1].lower() if '.' in doc.nome else '' %}
+        {% set visualizzabile = ext in ['pdf','jpg','jpeg','png','gif'] %}
+        <tr>
+          <td data-label="Nome" style="min-width:0">
+            <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
+              {% if visualizzabile %}
+              <a href="#" class="text-decoration-none fw-semibold"
+                 data-doc-nome="{{ doc.nome }}"
+                 data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                 data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                 onclick="apriVisualizzatore(this); return false;">
+                <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+              </a>
+              {% else %}
+              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                 class="text-decoration-none fw-semibold">
+                <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
+              </a>
+              {% endif %}
+              {% if doc.id_deposito_pct %}
+              {%- set _dep_obj = fascicolo.depositi_pct | selectattr('id','equalto',doc.id_deposito_pct) | first | default(None) %}
+              <div class="mt-1">
+                <span class="badge bg-success-subtle text-success border border-success-subtle"
+                      style="font-size:.68rem"
+                      title="Incluso nel deposito {{ doc.id_deposito_pct }}{% if _dep_obj %} del {{ _dep_obj.timestamp[:10] }}{% endif %}">
+                  <i class="bi bi-send-check me-1"></i>Dep. {{ doc.id_deposito_pct }}{% if _dep_obj %} · {{ _dep_obj.timestamp[:10] }}{% endif %}
+                </span>
+              </div>
+              {% endif %}
+              {% if doc.note %}
+                {% if '[wizard:' in doc.note %}
+                  {% set step_raw = doc.note.split(':')[-1].split(']')[0] %}
+                  {% if step_raw != 'indice' %}
+                  <div class="text-muted" style="font-size:.72rem">{{ step_raw|replace('step','Step ') }}</div>
+                  {% endif %}
+                {% else %}
+                  <div class="text-muted" style="font-size:.72rem">{{ doc.note }}</div>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+          <td data-label="Tipo" data-mob-hide>
+            <span class="badge bg-light text-dark border" style="font-size:.68rem">
+              {{ doc.tipo.value.replace('_',' ') }}
+            </span>
+          </td>
+          <td data-label="Data" data-mob-hide>{{ doc.data_documento|fmt_data }}</td>
+          <td data-label="Dim." data-mob-hide>
+            {% if doc.dimensione_bytes < 1024 %}{{ doc.dimensione_bytes }} B
+            {% elif doc.dimensione_bytes < 1048576 %}{{ (doc.dimensione_bytes/1024)|int }} KB
+            {% else %}{{ "%.1f"|format(doc.dimensione_bytes/1048576) }} MB{% endif %}
+          </td>
+          <td data-label="Firma">
+            {% if doc.firmato_digitalmente %}
+              <i class="bi bi-patch-check-fill text-success" title="Firmato digitalmente"></i>
+            {% else %}—{% endif %}
+          </td>
+          <td data-label="">
+            {# TUTTI I BOTTONI INLINE #}
+            <div class="d-flex gap-1 flex-wrap align-items-center">
+              {# Editor: ora è il primo bottone #}
+              {% if ext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+              <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                class="btn btn-sm btn-primary" title="Apri nell'editor">
+                <i class="bi bi-pencil-square"></i>
+                <span class="d-none d-lg-inline">Editor</span>
+              </a>
+              {% endif %}
+              
+              {# Anteprima #}
+              {% if visualizzabile %}
+              <button type="button" class="btn btn-outline-primary btn-sm" title="Anteprima"
+                      data-doc-nome="{{ doc.nome }}"
+                      data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      onclick="apriVisualizzatore(this)">
+                <i class="bi bi-eye"></i>
+              </button>
+              {% endif %}
+              
+              {# Scarica #}
+              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                class="btn btn-outline-secondary btn-sm" title="Scarica">
+                <i class="bi bi-download"></i>
+              </a>
+              
+              {# Firma #}
+              {% if not doc.firmato_digitalmente %}
+              <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+                      data-doc-nome="{{ doc.nome }}"
+                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      onclick="apriFirma(this)">
+                <i class="bi bi-pen"></i>
+              </button>
+              {% endif %}
+              
+              {# Attestazione conformità (solo PDF) #}
+              {% if ext == 'pdf' %}
+              <form method="post"
+                    action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=doc.id) }}">
+                <button class="btn btn-outline-info btn-sm" title="Copia con attestazione">
+                  <i class="bi bi-patch-check"></i>
+                </button>
+              </form>
+              {% endif %}
+              
+              {# Elimina #}
+              <form method="post"
+                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                    onsubmit="return confirm('Eliminare il documento?')">
+                <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endmacro %}
+
+        {# ── Raccoglie ID wizard presenti nei documenti ── #}
+        {% set ns = namespace(wizard_ids=[]) %}
+        {% for doc in fascicolo.documenti %}
+          {% if doc.note and '[wizard:' in doc.note %}
+            {% set wid = doc.note.split('[wizard:')[1].split(':')[0] %}
+            {% if wid not in ns.wizard_ids %}
+              {% set ns.wizard_ids = ns.wizard_ids + [wid] %}
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+
+        {% if ns.wizard_ids %}
+        {# ── Vista accordion: un gruppo per ogni deposito/wizard ── #}
+        <div class="accordion accordion-flush" id="accDocumenti">
+          {% for wid in ns.wizard_ids %}
+          {% set ns2 = namespace(tmpl_nome=wid, wdocs=[]) %}
+          {% for tmpl in checklist_templates %}{% if tmpl.id == wid %}{% set ns2.tmpl_nome = tmpl.nome %}{% endif %}{% endfor %}
+          {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
+            {% if doc.note and '[wizard:' in doc.note and doc.note.split('[wizard:')[1].split(':')[0] == wid %}
+              {% set ns2.wdocs = ns2.wdocs + [doc] %}
+            {% endif %}
+          {% endfor %}
+          <div class="accordion-item border-0 border-bottom">
+            <h2 class="accordion-header">
+              <button class="accordion-button py-2 small fw-semibold {% if not loop.first %}collapsed{% endif %}"
+                      type="button" data-bs-toggle="collapse"
+                      data-bs-target="#wdocs-{{ wid }}"
+                      aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                <i class="bi bi-folder2-open me-2 text-warning"></i>
+                <span>{{ ns2.tmpl_nome }}</span>
+                <span class="badge bg-secondary rounded-pill ms-2">{{ ns2.wdocs|length }}</span>
+              </button>
+            </h2>
+            <div id="wdocs-{{ wid }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+              <div class="accordion-body p-0">
+                <table class="table table-hover align-middle mb-0 small mob-cards">
+                  <thead class="table-light">
+                    <tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Dim.</th><th>Firmato</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {% for doc in ns2.wdocs %}{{ _riga(doc) }}{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+
+          {# ── Altri documenti senza tag wizard ── #}
+          {% set ns3 = namespace(altri=[]) %}
+          {% for doc in fascicolo.documenti %}
+            {% if not (doc.note and '[wizard:' in doc.note) %}
+              {% set ns3.altri = ns3.altri + [doc] %}
+            {% endif %}
+          {% endfor %}
+          {% if ns3.altri %}
+          <div class="accordion-item border-0">
+            <h2 class="accordion-header">
+              <button class="accordion-button py-2 small fw-semibold collapsed"
+                      type="button" data-bs-toggle="collapse"
+                      data-bs-target="#wdocs-altri" aria-expanded="false">
+                <i class="bi bi-folder me-2 text-secondary"></i>
+                <span>Altri documenti</span>
+                <span class="badge bg-secondary rounded-pill ms-2">{{ ns3.altri|length }}</span>
+              </button>
+            </h2>
+            <div id="wdocs-altri" class="accordion-collapse collapse">
+              <div class="accordion-body p-0">
+                <table class="table table-hover align-middle mb-0 small mob-cards">
+                  <thead class="table-light">
+                    <tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Dim.</th><th>Firmato</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    {% for doc in ns3.altri|sort(attribute='data_caricamento', reverse=True) %}{{ _riga(doc) }}{% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% else %}
+        {# ── Vista flat (nessun documento wizard) ── #}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small mob-cards">
+            <thead class="table-light">
+              <tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Dim.</th><th>Firmato</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for doc in fascicolo.documenti|sort(attribute='data_caricamento', reverse=True) %}
+              {{ _riga(doc) }}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-muted text-center py-4 small">Nessun documento caricato</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---- Depositi telematici — adattivo per tipo fascicolo ---- #}
+    {% set ftipo = fascicolo.tipo.value if fascicolo.tipo else 'CIVILE' %}
+    {% if ftipo == 'PENALE' %}
+      {% set dep_icon      = 'bi-shield-fill' %}
+      {% set dep_col       = 'danger' %}
+      {% set dep_label     = 'Depositi PDP Penale' %}
+      {% set dep_portale_label = 'Consulta su PDP' %}
+      {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% elif ftipo == 'AMMINISTRATIVO' %}
+      {% set dep_icon      = 'bi-building' %}
+      {% set dep_col       = 'info' %}
+      {% set dep_label     = 'Depositi PAT Amministrativo' %}
+      {% set dep_portale_label = 'Consulta su PAT' %}
+      {% set dep_portale_url   = url_for('pat_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PAT_AMMINISTRATIVO', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo (firma CAdES .p7m via PAT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% else %}
+      {% set dep_icon      = 'bi-send-fill' %}
+      {% set dep_col       = 'primary' %}
+      {% set dep_label     = 'Depositi telematici PCT' %}
+      {% set dep_portale_label = 'Consulta su PolisWeb' %}
+      {% set dep_portale_url   = url_for('polisWeb_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PCT_TELEMATICO', 'PEC', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% endif %}
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span class="text-nowrap">
+          <i class="bi {{ dep_icon }} me-2 text-{{ dep_col }}"></i>
+          <span class="d-none d-sm-inline">{{ dep_label }}</span>
+          <span class="d-sm-none">Depositi</span>
+          {% if fascicolo.depositi_pct %}
+          <span class="badge bg-{{ dep_col }} rounded-pill ms-1">{{ fascicolo.depositi_pct|length }}</span>
+          {% endif %}
+        </span>
+        <div class="d-flex gap-1 gap-sm-2 flex-wrap align-items-center">
+
+          {# Prepara atto: link diretto se 1 solo template, dropdown se multipli #}
+          {% set ns_prep = namespace(wizard_tmpls=[]) %}
+          {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}{% set ns_prep.wizard_tmpls = ns_prep.wizard_tmpls + [tmpl] %}{% endif %}{% endfor %}
+          {% if ns_prep.wizard_tmpls|length == 1 %}
+          <a class="btn btn-sm btn-success fw-semibold"
+             href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=ns_prep.wizard_tmpls[0].id) }}"
+             title="{{ ns_prep.wizard_tmpls[0].nome }}">
+            <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
+          </a>
+          {% else %}
+          <div class="dropdown">
+            <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:min(310px,calc(100vw - 1.5rem));max-height:380px;overflow-y:auto">
+              <li><h6 class="dropdown-header small">Wizard guidato — carica e rinomina documenti</h6></li>
+              {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
+              <li>
+                <a class="dropdown-item small py-2"
+                   href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=tmpl.id) }}">
+                  <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
+                  {{ tmpl.nome }}
+                </a>
+              </li>
+              {% endif %}{% endfor %}
+              <li><hr class="dropdown-divider"></li>
+              <li><h6 class="dropdown-header small text-muted">Solo checklist (guida senza upload)</h6></li>
+              {% for tmpl in checklist_templates %}{% if tmpl.canale in dep_canali %}
+              <li>
+                <a class="dropdown-item small py-1 text-muted"
+                   href="{{ url_for('checklist_dettaglio', id_template=tmpl.id,
+                                    id_fasc=fascicolo.id,
+                                    parte=fascicolo.controparte,
+                                    rg=fascicolo.numero_rg) }}">
+                  <i class="bi bi-list-check me-2"></i>{{ tmpl.nome }}
+                </a>
+              </li>
+              {% endif %}{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {# Accesso rapido al portale di consultazione #}
+          <a href="{{ dep_portale_url }}" class="btn btn-sm btn-outline-{{ dep_col }} fw-semibold">
+            <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">{{ dep_portale_label }}</span><span class="d-sm-none">Portale</span>
+          </a>
+
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                  data-bs-target="#modalDeposito">
+            <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Registra</span>
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        {% if fascicolo.depositi_pct %}
+        <div class="list-group list-group-flush">
+          {% for dep in fascicolo.depositi_pct|sort(attribute='timestamp', reverse=True) %}
+          {# ── Calcolo fasi per il tracker ── #}
+          {% set f4_ok = dep.ricevuta_accettazione | length > 0 %}
+          {% set f5_ok = dep.ricevuta_consegna | length > 0 %}
+          {% set f6_ok = dep.ricevuta_controlli_automatici | default('') | length > 0 %}
+          {% set f6_err = dep.esito_controlli | default('') == 'ERROR' %}
+          {% set f6_warn = dep.esito_controlli | default('') == 'WARN' %}
+          {% set f7_ok = dep.ricevuta_cancelleria | default('') | length > 0 %}
+          {% set is_accettato = dep.stato == 'ACCETTATO_CANCELLERIA' %}
+          {% set is_rifiutato = dep.stato in ('RIFIUTATO_CANCELLERIA','RIFIUTATO') %}
+          {% set is_errore = dep.stato in ('ERRORE_CONTROLLI','ERRORE') %}
+          {% set is_finale = is_accettato or is_rifiutato or is_errore %}
+
+          <div class="list-group-item px-3 py-3" id="dep-row-{{ dep.id }}">
+            <div class="d-flex align-items-start gap-3 flex-wrap">
+
+              {# Icona esito globale #}
+              <div class="flex-shrink-0 mt-1">
+                {% if is_accettato %}
+                  <i class="bi bi-check-circle-fill text-success fs-4" title="Accettato dalla cancelleria"></i>
+                {% elif is_rifiutato %}
+                  <i class="bi bi-x-circle-fill text-danger fs-4" title="Rifiutato"></i>
+                {% elif is_errore %}
+                  <i class="bi bi-exclamation-triangle-fill text-danger fs-4" title="Errore controlli"></i>
+                {% elif f6_warn %}
+                  <i class="bi bi-exclamation-circle-fill text-warning fs-4" title="Anomalia controlli (WARN)"></i>
+                {% elif f5_ok %}
+                  <i class="bi bi-hourglass-split text-primary fs-4" title="Consegnato — in attesa cancelleria"></i>
+                {% else %}
+                  <i class="bi bi-send text-secondary fs-4" title="In elaborazione"></i>
+                {% endif %}
+              </div>
+
+              {# Info principali #}
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                  <strong class="small">{{ dep.tipo_atto }}</strong>
+                  <span class="badge rounded-pill dep-stato-{{ dep.id }}
+                    {% if is_accettato %}bg-success
+                    {% elif is_rifiutato or is_errore %}bg-danger
+                    {% elif f6_warn %}bg-warning text-dark
+                    {% elif f5_ok %}bg-primary
+                    {% elif f4_ok %}bg-info text-dark
+                    {% else %}bg-secondary{% endif %}"
+                    style="font-size:.7rem">
+                    {{ dep.stato }}
+                  </span>
+                  <span class="text-muted small font-monospace">{{ dep.id }}</span>
+                  <span class="text-muted small">{{ dep.timestamp[:10] }}</span>
+                </div>
+
+                <div class="text-muted small mb-2">{{ dep.pec_destinatario }}</div>
+
+                {# ── Tracker 4 fasi ── #}
+                <div class="d-flex align-items-center gap-1 flex-wrap dep-tracker-{{ dep.id }}">
+
+                  {# Fase 4: Accettazione PEC #}
+                  <span class="badge px-2 py-1
+                    {% if f4_ok %}bg-success-subtle text-success border border-success-subtle
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Ricevuta di accettazione PEC (fase 4)">
+                    {% if f4_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    <span class="d-none d-sm-inline">① Accett. PEC</span>
+                    <span class="d-sm-none">① PEC</span>
+                  </span>
+                  <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
+
+                  {# Fase 5: Consegna #}
+                  <span class="badge px-2 py-1
+                    {% if f5_ok %}bg-success-subtle text-success border border-success-subtle
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Ricevuta di avvenuta consegna (fase 5)">
+                    {% if f5_ok %}<i class="bi bi-check-lg me-1"></i>{% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ② Cons.
+                  </span>
+                  <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
+
+                  {# Fase 6: Controlli automatici #}
+                  <span class="badge px-2 py-1
+                    {% if is_errore %}bg-danger text-white
+                    {% elif f6_warn %}bg-warning text-dark border border-warning
+                    {% elif f6_ok %}bg-success-subtle text-success border border-success-subtle
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Esito controlli automatici (fase 6){% if dep.esito_controlli | default('') %}: {{ dep.esito_controlli }}{% endif %}">
+                    {% if is_errore %}<i class="bi bi-x-lg me-1"></i>
+                    {% elif f6_warn %}<i class="bi bi-exclamation me-1"></i>
+                    {% elif f6_ok %}<i class="bi bi-check-lg me-1"></i>
+                    {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ③ Ctrl{% if f6_warn %} WARN{% elif is_errore %} ERR{% endif %}
+                  </span>
+                  <i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>
+
+                  {# Fase 7: Cancelleria #}
+                  <span class="badge px-2 py-1
+                    {% if is_accettato %}bg-success text-white
+                    {% elif is_rifiutato %}bg-danger text-white
+                    {% elif f7_ok %}bg-info text-dark
+                    {% else %}bg-light text-muted border{% endif %}"
+                    style="font-size:.72rem"
+                    title="Esito cancelleria (fase 7)">
+                    {% if is_accettato %}<i class="bi bi-check-lg me-1"></i>
+                    {% elif is_rifiutato %}<i class="bi bi-x-lg me-1"></i>
+                    {% else %}<i class="bi bi-circle me-1"></i>{% endif %}
+                    ④ Canc.
+                  </span>
+                </div>
+
+                {% if dep.note or dep.messaggio %}
+                <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.note or dep.messaggio }}</div>
+                {% endif %}
+
+                {# ── Documenti inclusi nella busta ── #}
+                {%- set _dep_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto',dep.id) | list %}
+                {% if _dep_docs %}
+                <div class="mt-2">
+                  <button class="btn btn-link btn-sm p-0 text-muted text-decoration-none"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dep-docs-{{ dep.id }}"
+                          aria-expanded="false">
+                    <i class="bi bi-paperclip me-1"></i>
+                    {{ _dep_docs | length }} document{% if _dep_docs | length == 1 %}o{% else %}i{% endif %} nella busta
+                    <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
+                  </button>
+                  <div class="collapse mt-1" id="dep-docs-{{ dep.id }}">
+                    <ul class="list-unstyled mb-0 ps-2 border-start border-2 border-success-subtle">
+                      {% for ddoc in _dep_docs %}
+                      <li class="py-1 d-flex align-items-center gap-2" style="font-size:.8rem">
+                        {% if ddoc.nome == dep.nome_atto_principale %}
+                        <i class="bi bi-file-earmark-text text-primary flex-shrink-0" title="Atto principale"></i>
+                        {% else %}
+                        <i class="bi bi-paperclip text-muted flex-shrink-0" title="Allegato"></i>
+                        {% endif %}
+                        <span class="text-break">{{ ddoc.nome }}</span>
+                        {% if ddoc.firmato_digitalmente %}
+                        <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato"></i>
+                        {% endif %}
+                        <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                           class="btn btn-outline-secondary btn-sm py-0 px-1 flex-shrink-0 ms-auto"
+                           title="Scarica" style="font-size:.7rem">
+                          <i class="bi bi-download"></i>
+                        </a>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                </div>
+                {% elif dep.nome_atto_principale %}
+                <div class="text-muted mt-1" style="font-size:.75rem">
+                  <i class="bi bi-file-earmark-text me-1"></i>{{ dep.nome_atto_principale }}
+                </div>
+                {% endif %}
+
+                {% if is_errore %}
+                <div class="alert alert-danger py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Errore nei controlli automatici. Contatta il fornitore del software redattore atti.
+                </div>
+                {% elif is_rifiutato %}
+                <div class="alert alert-danger py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-x-circle me-1"></i>
+                  Deposito rifiutato dalla cancelleria. Verifica le motivazioni e contatta l'ufficio giudiziario.
+                </div>
+                {% elif f6_warn %}
+                <div class="alert alert-warning py-1 px-2 mt-2 small mb-0">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  Anomalia WARN nei controlli automatici. Il deposito prosegue ma verifica i dettagli con la cancelleria.
+                </div>
+                {% endif %}
+              </div>
+
+              {# Pulsanti azione deposito #}
+              <div class="flex-shrink-0 d-flex flex-column gap-1">
+                <button type="button" class="btn btn-sm btn-outline-primary"
+                        title="Modifica deposito"
+                        onclick="apriModificaDeposito({
+                          id:'{{ dep.id }}',
+                          tipo_atto:{{ dep.tipo_atto | tojson }},
+                          stato:{{ dep.stato | tojson }},
+                          pec_destinatario:{{ dep.pec_destinatario | tojson }},
+                          messaggio:{{ dep.messaggio | tojson }},
+                          ricevuta_accettazione:{{ dep.ricevuta_accettazione | tojson }},
+                          ricevuta_consegna:{{ dep.ricevuta_consegna | tojson }},
+                          ricevuta_controlli_automatici:{{ (dep.ricevuta_controlli_automatici or '') | tojson }},
+                          esito_controlli:{{ (dep.esito_controlli or '') | tojson }},
+                          ricevuta_cancelleria:{{ (dep.ricevuta_cancelleria or '') | tojson }},
+                          note:{{ dep.note | tojson }}
+                        })">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                {% if not is_finale %}
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        title="Controlla ricevute PEC"
+                        onclick="controllaRicevute('{{ fascicolo.id }}','{{ dep.id }}',this)">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+                {% endif %}
+              </div>
+
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 px-3">
+          <i class="bi {{ dep_icon }} fs-2 text-{{ dep_col }} opacity-25 d-block mb-2"></i>
+          <div class="fw-semibold text-muted small mb-1">Nessun deposito registrato</div>
+          <div class="text-muted" style="font-size:.78rem">{{ dep_hint }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ---- Appuntamenti collegati ---- #}
+    {% if apps %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-calendar-event me-2 text-primary"></i>
+        Appuntamenti collegati ({{ apps|length }})
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for a in apps[:5] %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
+                 class="text-decoration-none fw-semibold text-dark">{{ a.titolo }}</a>
+              <div class="small text-muted">{{ a.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}</div>
+            </div>
+            <span class="badge badge-{{ a.tipo.value }}">{{ a.tipo.value }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>{# /col-lg-8 #}
+
+  {# ---- Colonna laterale ---- #}
+  <div class="col-lg-4">
+
+    {# Cambia stato #}
+    {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-arrow-repeat me-2"></i>Cambia stato
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('cambia_stato_fascicolo', id_fasc=fascicolo.id) }}">
+          <select name="stato" class="form-select form-select-sm mb-2">
+            {% for s in StatoFascicolo %}
+            {% if s != StatoFascicolo.ARCHIVIATO %}
+            <option value="{{ s.value }}" {{ 'selected' if fascicolo.stato == s }}>
+              {{ s.value.replace('_',' ') }}
+            </option>
+            {% endif %}
+            {% endfor %}
+          </select>
+          <input type="text" name="note" class="form-control form-control-sm mb-2"
+                 placeholder="Note (opzionale)">
+          <button class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-check-lg me-1"></i>Aggiorna
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Azioni fascicolo #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-lightning me-2 text-primary"></i>Azioni
+      </div>
+      <div class="list-group list-group-flush">
+        {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
+          {% if fascicolo.stato != StatoFascicolo.DEFINITO %}
+          <button class="list-group-item list-group-item-action text-info border-0 bg-transparent text-start w-100"
+                  data-bs-toggle="modal" data-bs-target="#modalDefinisci">
+            <i class="bi bi-check2-circle me-2"></i>Definisci fascicolo
+          </button>
+          {% endif %}
+          {% if fascicolo.stato == StatoFascicolo.DEFINITO %}
+          <button class="list-group-item list-group-item-action border-0 bg-transparent text-start w-100"
+                  data-bs-toggle="modal" data-bs-target="#modalArchivia">
+            <i class="bi bi-archive me-2"></i>Archivia fascicolo
+          </button>
+          {% endif %}
+        {% else %}
+        <form method="post" action="{{ url_for('ripristina_fascicolo', id_fasc=fascicolo.id) }}"
+              onsubmit="return confirm('Ripristinare il fascicolo dall\'archivio?')">
+          <button class="list-group-item list-group-item-action text-success border-0 bg-transparent text-start w-100">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Ripristina dall'archivio
+          </button>
+        </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
+              onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
+          <button class="list-group-item list-group-item-action text-danger border-0 bg-transparent text-start w-100">
+            <i class="bi bi-trash me-2"></i>Elimina fascicolo
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {# Avanzamento pratica #}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-clock-history me-2 text-primary"></i>Avanzamento pratica
+      </div>
+      <div class="card-body p-0" style="max-height:300px;overflow-y:auto">
+        {% if fascicolo.avanzamento %}
+        <ul class="list-group list-group-flush">
+          {% for av in fascicolo.avanzamento|reverse %}
+          <li class="list-group-item py-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="small fw-semibold">{{ av.descrizione }}</div>
+              <span class="text-muted" style="font-size:.7rem;white-space:nowrap;margin-left:.5rem">
+                {{ av.data[:10] }}
+              </span>
+            </div>
+            {% if av.note %}<div class="text-muted" style="font-size:.72rem">{{ av.note }}</div>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-muted text-center py-3 small">Nessun avanzamento registrato</div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Info archivio #}
+    {% if fascicolo.archivio %}
+    <div class="card shadow-sm mb-3 border-info">
+      <div class="card-header fw-semibold bg-info-subtle">
+        <i class="bi bi-archive me-2"></i>Dati archiviazione
+      </div>
+      <div class="card-body small">
+        {% if fascicolo.archivio.esito_finale %}
+        <div class="mb-1"><span class="text-muted">Esito:</span> <strong>{{ fascicolo.archivio.esito_finale }}</strong></div>
+        {% endif %}
+        {% if fascicolo.archivio.motivo %}
+        <div class="mb-1"><span class="text-muted">Motivo:</span> {{ fascicolo.archivio.motivo }}</div>
+        {% endif %}
+        {% if fascicolo.archivio.data_archiviazione %}
+        <div class="mb-1"><span class="text-muted">Archiviato il:</span> {{ fascicolo.archivio.data_archiviazione|fmt_data }}</div>
+        {% endif %}
+        {% if fascicolo.archivio.archiviato_da %}
+        <div class="mb-1"><span class="text-muted">Da:</span> {{ fascicolo.archivio.archiviato_da }}</div>
+        {% endif %}
+        {% if fascicolo.archivio.percorso_zip %}
+        <a href="{{ url_for('scarica_archivio', id_fasc=fascicolo.id) }}"
+           class="btn btn-sm btn-outline-secondary mt-2 w-100">
+          <i class="bi bi-file-zip me-1"></i>Scarica archivio ZIP
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Cliente collegato #}
+    {% if cliente %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-person-vcard me-2 text-primary"></i>Cliente
+      </div>
+      <div class="list-group list-group-flush">
+        <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"
+           class="list-group-item list-group-item-action">
+          <div class="fw-semibold">{{ cliente.nome_completo }}</div>
+          {% if cliente.recapiti.cellulare %}
+          <div class="small text-muted"><i class="bi bi-phone me-1"></i>{{ cliente.recapiti.cellulare }}</div>
+          {% endif %}
+          {% if cliente.recapiti.email %}
+          <div class="small text-muted"><i class="bi bi-envelope me-1"></i>{{ cliente.recapiti.email }}</div>
+          {% endif %}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Parti del procedimento #}
+    {% set assistiti   = parti | selectattr("0.ruolo.value", "equalto", "ASSISTITO") | list %}
+    {% set controparti = parti | selectattr("0.ruolo.value", "in", ["CONTROPARTE","DIFENSORE_CONTROPARTE","CREDITORE","DEBITORE"]) | list %}
+    {% set altri       = parti | rejectattr("0.ruolo.value", "in", ["ASSISTITO","CONTROPARTE","DIFENSORE_CONTROPARTE","CREDITORE","DEBITORE"]) | list %}
+    <div class="card shadow-sm mb-3">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people me-2 text-primary"></i>Parti del procedimento</span>
+        <span class="badge bg-primary rounded-pill">{{ parti|length }}</span>
+      </div>
+
+      {% if parti %}
+
+      {# ── Assistiti / clienti della pratica ── #}
+      {% if assistiti %}
+      <div class="px-3 pt-2 pb-1">
+        <small class="text-success fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
+          <i class="bi bi-person-check me-1"></i>Assistiti / clienti della pratica
+        </small>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for parte, sogg in assistiti %}
+        <div class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}"
+                 class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
+                {{ sogg.nome_completo }}
+              </a>
+              <span class="badge bg-success mt-1" style="font-size:.68rem">{{ parte.ruolo.label }}</span>
+              {% if parte.note %}<div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>{% endif %}
+            </div>
+            <form method="post"
+                  action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
+                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
+                <i class="bi bi-x-lg" style="font-size:.7rem"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ── Controparti ── #}
+      {% if controparti %}
+      {% if assistiti %}<hr class="my-0">{% endif %}
+      <div class="px-3 pt-2 pb-1">
+        <small class="text-danger fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
+          <i class="bi bi-person-x me-1"></i>Controparti
+        </small>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for parte, sogg in controparti %}
+        <div class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}"
+                 class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
+                {{ sogg.nome_completo }}
+              </a>
+              <span class="badge bg-{{ parte.ruolo.colore_bootstrap }} mt-1" style="font-size:.68rem">{{ parte.ruolo.label }}</span>
+              {% if parte.note %}<div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>{% endif %}
+            </div>
+            <form method="post"
+                  action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
+                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
+                <i class="bi bi-x-lg" style="font-size:.7rem"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ── Altri soggetti ── #}
+      {% if altri %}
+      {% if assistiti or controparti %}<hr class="my-0">{% endif %}
+      <div class="px-3 pt-2 pb-1">
+        <small class="text-secondary fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.04em">
+          <i class="bi bi-people me-1"></i>Altri soggetti
+        </small>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for parte, sogg in altri %}
+        <div class="list-group-item py-2 px-3">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="flex-grow-1 min-w-0">
+              <a href="{{ url_for('dettaglio_soggetto', id_soggetto=sogg.id) }}"
+                 class="fw-semibold text-decoration-none text-dark text-truncate d-block small">
+                {{ sogg.nome_completo }}
+              </a>
+              <span class="badge bg-{{ parte.ruolo.colore_bootstrap }} mt-1" style="font-size:.68rem">{{ parte.ruolo.label }}</span>
+              {% if parte.note %}<div class="text-muted mt-1" style="font-size:.73rem">{{ parte.note }}</div>{% endif %}
+            </div>
+            <form method="post"
+                  action="{{ url_for('rimuovi_parte_fascicolo', id_fasc=fascicolo.id, id_parte=parte.id) }}"
+                  onsubmit="return confirm('Rimuovere questa parte dal fascicolo?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1" title="Rimuovi">
+                <i class="bi bi-x-lg" style="font-size:.7rem"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="card-body text-center text-muted small py-3">
+        <i class="bi bi-people d-block mb-1 opacity-25 fs-4"></i>
+        Nessuna parte aggiunta
+      </div>
+      {% endif %}
+
+      <div class="card-footer p-2">
+        <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal"
+                data-bs-target="#modalAggiungiParte">
+          <i class="bi bi-person-plus me-1"></i>Aggiungi parte
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ================================================================ MODALS #}
+
+{# Modal: aggiungi attività #}
+<div class="modal fade" id="modalAttivita" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('aggiungi_attivita', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Aggiungi attività processuale</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+              <select name="tipo" class="form-select" required>
+                {% for t in tipi_att %}
+                <option value="{{ t.value }}">{{ t.value.replace('_',' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Data <span class="text-danger">*</span></label>
+              <input type="date" name="data" class="form-control" required
+                     value="{{ oggi.isoformat() }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Esito iniziale</label>
+              <select name="esito" class="form-select">
+                {% for e in esiti %}
+                <option value="{{ e.value }}" {{ 'selected' if e.value == 'IN_ATTESA' }}>
+                  {{ e.value.replace('_',' ') }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
+              <input type="text" name="titolo" class="form-control" required
+                     placeholder="es. Prima udienza di comparizione">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Luogo / Aula</label>
+              <input type="text" name="luogo" class="form-control" placeholder="Aula 3 - Tribunale">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Avvocato</label>
+              <input type="text" name="avvocato" class="form-control"
+                     value="{{ fascicolo.avvocato_referente }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Descrizione</label>
+              <textarea name="descrizione" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Aggiungi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modal: carica documento #}
+<div class="modal fade" id="modalDocumento" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data"
+            action="{{ url_for('carica_documento', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Carica documento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">File <span class="text-danger">*</span></label>
+              <div id="drop-zone"
+                   style="border:2px dashed #cbd5e1;border-radius:8px;padding:1.5rem;
+                          text-align:center;cursor:pointer;transition:background .2s,border-color .2s"
+                   onclick="document.getElementById('fileInput').click()">
+                <i class="bi bi-cloud-upload fs-2 text-muted d-block mb-1"></i>
+                <span id="drop-label" class="small text-muted">
+                  Trascina qui il file oppure <strong>clicca per sceglierlo</strong>
+                </span>
+              </div>
+              <input type="file" name="file" id="fileInput"
+                     class="form-control d-none" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo documento</label>
+              <select name="tipo_doc" class="form-select">
+                {% for td in tipi_doc %}
+                <option value="{{ td.value }}">{{ td.value.replace('_',' ') }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Data documento</label>
+              <input type="date" name="data_documento" class="form-control"
+                     value="{{ oggi.isoformat() }}">
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input type="checkbox" name="firmato" value="1"
+                       class="form-check-input" id="chkFirmato">
+                <label class="form-check-label" for="chkFirmato">
+                  Firmato digitalmente
+                </label>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <input type="text" name="note" class="form-control"
+                     placeholder="Breve descrizione…">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-upload me-1"></i>Carica
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modal: registra esito deposito PCT #}
+<div class="modal fade" id="modalDeposito" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="formDeposito" action="{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}">
+        <input type="hidden" name="id_deposito_modifica" id="idDepositoModifica" value="">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalDepositoTitolo"><i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo atto <span class="text-danger">*</span></label>
+              <input type="text" name="tipo_atto" class="form-control"
+                     placeholder="es. Memoria, Ricorso, Citazione" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Stato</label>
+              <select name="stato" class="form-select">
+                <optgroup label="Fasi ufficiali PCT">
+                  <option value="INVIATO">INVIATO — busta inviata</option>
+                  <option value="ACCETTATO_PEC">ACCETTATO_PEC — fase 4: accettazione PEC</option>
+                  <option value="CONSEGNATO" selected>CONSEGNATO — fase 5: consegnato al sistema</option>
+                  <option value="WARN_CONTROLLI">WARN_CONTROLLI — fase 6: anomalia non bloccante</option>
+                  <option value="ERRORE_CONTROLLI">ERRORE_CONTROLLI — fase 6: errore bloccante</option>
+                  <option value="ACCETTATO_CANCELLERIA">ACCETTATO_CANCELLERIA — fase 7: accettato ✓</option>
+                  <option value="RIFIUTATO_CANCELLERIA">RIFIUTATO_CANCELLERIA — fase 7: rifiutato</option>
+                </optgroup>
+                <optgroup label="Legacy">
+                  <option value="ACCETTATO">ACCETTATO (vecchio)</option>
+                  <option value="RIFIUTATO">RIFIUTATO (vecchio)</option>
+                  <option value="ERRORE">ERRORE (vecchio)</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">PEC Tribunale <span class="text-danger">*</span></label>
+              <input type="email" name="pec_destinatario" class="form-control"
+                     placeholder="tribunale.sede@giustiziapec.it"
+                     value="{{ pec_tribunale or '' }}" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Messaggio / protocollo</label>
+              <input type="text" name="messaggio" class="form-control"
+                     placeholder="Numero protocollo o messaggio dell'esito">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">① Ricevuta accettazione PEC</label>
+              <input type="text" name="ricevuta_accettazione" class="form-control"
+                     placeholder="ID ricevuta fase 4">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">② Ricevuta consegna</label>
+              <input type="text" name="ricevuta_consegna" class="form-control"
+                     placeholder="ID ricevuta fase 5">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">③ Ricevuta controlli automatici</label>
+              <input type="text" name="ricevuta_controlli_automatici" class="form-control"
+                     placeholder="ID ricevuta fase 6">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">③ Esito controlli</label>
+              <select name="esito_controlli" class="form-select">
+                <option value="">— non ricevuto —</option>
+                <option value="OK">OK</option>
+                <option value="WARN">WARN (anomalia non bloccante)</option>
+                <option value="ERROR">ERROR (errore bloccante)</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">④ Ricevuta cancelleria</label>
+              <input type="text" name="ricevuta_cancelleria" class="form-control"
+                     placeholder="ID ricevuta fase 7">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="2"
+                        placeholder="Annotazioni sull'esito del deposito"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitDeposito">
+            <i class="bi bi-save me-1"></i>Registra
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modal: visualizzatore documenti inline #}
+<div class="modal fade" id="modalVisualizzatore" tabindex="-1">
+  <div class="modal-dialog modal-xl" style="max-width:95vw;height:92vh;margin:.5rem auto">
+    <div class="modal-content" style="height:100%">
+      <div class="modal-header py-2">
+        <h6 class="modal-title mb-0">
+          <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+          <span id="visualizzatore-titolo" class="text-truncate" style="max-width:60vw;display:inline-block"></span>
+        </h6>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <a id="visualizzatore-scarica" href="#" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i>Scarica
+          </a>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+      </div>
+      <div class="modal-body p-0" style="flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column">
+        <iframe id="visualizzatore-iframe" src="" style="width:100%;flex:1;border:0;min-height:0"
+                allow="fullscreen"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Modal: firma per deposito PCT #}
+<div class="modal fade" id="modalFirma" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data" id="firma-form">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-pen me-2 text-success"></i>Firma per deposito
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info small mb-3" role="alert">
+            Scarica il documento, firmalo con il tuo dispositivo (token USB / smart card)
+            tramite il software del tuo provider (es. Aruba Sign, FirmaOK, Namirial),
+            poi carica qui il file firmato.
+          </div>
+          <div class="border rounded p-3 d-flex align-items-center gap-3 mb-3 bg-light">
+            <i class="bi bi-file-earmark-text fs-3 text-primary"></i>
+            <div class="flex-grow-1 overflow-hidden">
+              <div class="fw-semibold text-truncate" id="firma-nome-doc"></div>
+              <a id="firma-scarica-link" href="#" class="small text-primary">
+                <i class="bi bi-download me-1"></i>Scarica per firmare esternamente
+              </a>
+            </div>
+          </div>
+          <hr>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Carica versione firmata
+              <span class="fw-normal text-muted small">(opzionale)</span>
+            </label>
+            <input type="file" name="file" id="firma-file-input" class="form-control"
+                   accept=".p7m,.pdf,.sig,.pkcs7">
+            <div class="form-text">
+              Formati accettati: <code>.p7m</code> (CAdES-BES), <code>.pdf</code> con firma PAdES.
+              Se non carichi un file il documento viene semplicemente marcato come firmato.
+            </div>
+          </div>
+          <div>
+            <label class="form-label fw-semibold">Note</label>
+            <input type="text" name="note" class="form-control"
+                   value="Versione firmata per deposito PCT">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-patch-check me-1"></i>Conferma firma
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modal: definisci pratica #}
+<div class="modal fade" id="modalDefinisci" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('definisci_fascicolo', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-check2-circle me-2"></i>Definisci pratica</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">
+            Marca la pratica come <strong>DEFINITA</strong>. Sarà poi possibile archiviarla.
+          </p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Esito finale</label>
+              <select name="esito_finale" class="form-select">
+                <option value="">— Seleziona —</option>
+                <option value="FAVOREVOLE">Favorevole</option>
+                <option value="PARZIALMENTE_FAVOREVOLE">Parzialmente favorevole</option>
+                <option value="SFAVOREVOLE">Sfavorevole</option>
+                <option value="TRANSAZIONE">Transazione / Accordo</option>
+                <option value="RINUNCIA">Rinuncia agli atti</option>
+                <option value="ARCHIVIAZIONE">Archiviazione</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Motivo chiusura</label>
+              <input type="text" name="motivo" class="form-control"
+                     placeholder="Sentenza, accordo, rinuncia…">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Note</label>
+              <textarea name="note" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-info text-white">
+            <i class="bi bi-check2-circle me-1"></i>Definisci pratica
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modal: archivia #}
+<div class="modal fade" id="modalArchivia" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('archivia_fascicolo', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-archive me-2"></i>Archivia fascicolo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">
+            Il fascicolo verrà archiviato definitivamente.
+            Verrà creato un archivio ZIP con tutti i documenti.
+          </p>
+          <div class="form-check mb-3">
+            <input type="checkbox" name="crea_zip" value="1" class="form-check-input"
+                   id="chkZip" checked>
+            <label class="form-check-label" for="chkZip">
+              Crea archivio ZIP con tutti i documenti
+            </label>
+          </div>
+          <input type="text" name="avvocato" class="form-control"
+                 placeholder="Avvocato che archivia"
+                 value="{{ fascicolo.avvocato_referente }}">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-secondary">
+            <i class="bi bi-archive me-1"></i>Archivia definitivamente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# Modals esito per ogni attività #}
+{% for att in fascicolo.attivita %}
+<div class="modal fade" id="modalEsito{{ att.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post"
+            action="{{ url_for('aggiorna_esito_attivita', id_fasc=fascicolo.id, id_att=att.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Aggiorna esito — {{ att.titolo|truncate(30) }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <select name="esito" class="form-select mb-3">
+            {% for e in esiti %}
+            <option value="{{ e.value }}" {{ 'selected' if att.esito == e }}>
+              {{ e.value.replace('_',' ') }}
+            </option>
+            {% endfor %}
+          </select>
+          <textarea name="note" class="form-control" rows="2"
+                    placeholder="Note sull'esito…">{{ att.note }}</textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">Salva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{# Modal: aggiungi parte processuale #}
+<div class="modal fade" id="modalAggiungiParte" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('aggiungi_parte_fascicolo', id_fasc=fascicolo.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Aggiungi parte al fascicolo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Soggetto <span class="text-danger">*</span></label>
+            <input type="text" id="parti-search" class="form-control mb-1"
+                   placeholder="Cerca per nome, C.F., email…" autocomplete="off">
+            <input type="hidden" name="id_soggetto" id="parti-id" required>
+            <div id="parti-suggestions" class="list-group" style="max-height:200px;overflow-y:auto;display:none"></div>
+            <div id="parti-selected" class="alert alert-info py-1 px-2 small mt-1" style="display:none"></div>
+            <div class="form-text">
+              Non trovi il soggetto?
+              <a href="{{ url_for('nuovo_soggetto') }}" target="_blank">Crea nuovo soggetto</a>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Ruolo <span class="text-danger">*</span></label>
+            <select name="ruolo" class="form-select" required>
+              {% for r in RuoloSoggetto %}
+              <option value="{{ r.value }}">{{ r.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Note (opzionale)</label>
+            <input type="text" name="note" class="form-control"
+                   placeholder="es. Avv. Mario Rossi - domiciliato in …">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i>Aggiungi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ---- Visualizzatore documenti inline ----
+function apriVisualizzatore(btn) {
+  document.getElementById('visualizzatore-titolo').textContent = btn.dataset.docNome;
+  document.getElementById('visualizzatore-iframe').src = btn.dataset.docUrl;
+  document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl;
+  new bootstrap.Modal(document.getElementById('modalVisualizzatore')).show();
+}
+document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
+  // Ferma il caricamento del documento quando si chiude il modal
+  document.getElementById('visualizzatore-iframe').src = '';
+});
+
+// ---- Firma per deposito ----
+function apriFirma(btn) {
+  document.getElementById('firma-nome-doc').textContent = btn.dataset.docNome;
+  document.getElementById('firma-scarica-link').href = btn.dataset.scaricaUrl;
+  document.getElementById('firma-form').action = btn.dataset.firmaUrl;
+  document.getElementById('firma-file-input').value = '';
+  new bootstrap.Modal(document.getElementById('modalFirma')).show();
+}
+
+// ---- Controlla ricevute deposito PCT (4 fasi) ----
+function controllaRicevute(idFasc, idDep, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+  fetch('/api/fascicoli/' + idFasc + '/depositi/' + idDep + '/controlla', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.errore) {
+      btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i>';
+      btn.title = 'Errore: ' + data.errore;
+      btn.disabled = false;
+      return;
+    }
+    const STATI_FINALI = ['ACCETTATO_CANCELLERIA','RIFIUTATO_CANCELLERIA',
+                          'ERRORE_CONTROLLI','RIFIUTATO','ERRORE'];
+
+    /* Aggiorna badge stato principale */
+    const badge = document.querySelector('.dep-stato-' + idDep);
+    if (badge) {
+      badge.textContent = data.stato;
+      badge.className = badge.className.replace(/bg-\S+/g,'').replace(/text-\S+/g,'').trim();
+      if (data.stato === 'ACCETTATO_CANCELLERIA')
+        badge.classList.add('bg-success');
+      else if (['RIFIUTATO_CANCELLERIA','RIFIUTATO','ERRORE_CONTROLLI','ERRORE'].includes(data.stato))
+        badge.classList.add('bg-danger');
+      else if (data.stato === 'WARN_CONTROLLI')
+        badge.classList.add('bg-warning','text-dark');
+      else if (data.stato === 'CONSEGNATO')
+        badge.classList.add('bg-primary');
+      else if (['ACCETTATO_PEC','ACCETTATO'].includes(data.stato))
+        badge.classList.add('bg-info','text-dark');
+      else
+        badge.classList.add('bg-secondary');
+    }
+
+    /* Rigenera tracker 4 fasi */
+    const tracker = document.querySelector('.dep-tracker-' + idDep);
+    if (tracker) {
+      function faseBadge(n, label, ok, warn, err) {
+        let cls = 'bg-light text-muted border';
+        let icon = 'bi-circle';
+        if (err)       { cls = 'bg-danger text-white'; icon = 'bi-x-lg'; }
+        else if (warn) { cls = 'bg-warning text-dark border border-warning'; icon = 'bi-exclamation'; }
+        else if (ok)   { cls = 'bg-success-subtle text-success border border-success-subtle'; icon = 'bi-check-lg'; }
+        return '<span class="badge px-2 py-1 ' + cls + '" style="font-size:.72rem">'
+             + '<i class="bi ' + icon + ' me-1"></i>' + n + ' ' + label + '</span>';
+      }
+      const sep = '<i class="bi bi-chevron-right text-muted" style="font-size:.65rem"></i>';
+      const ec = (data.esito_controlli || '').toUpperCase();
+      const ctrl_label = '③ Controlli' + (ec==='WARN'?' WARN' : ec==='ERROR'?' ERR' : '');
+      tracker.innerHTML =
+        faseBadge('①','Accett. PEC', data.ricevuta_accettazione, false, false) + sep +
+        faseBadge('②','Consegna',    data.ricevuta_consegna, false, false) + sep +
+        faseBadge(ctrl_label, '',    data.ricevuta_controlli && ec==='OK',
+                                     data.ricevuta_controlli && ec==='WARN',
+                                     data.ricevuta_controlli && ec==='ERROR') + sep +
+        faseBadge('④','Cancelleria', data.stato==='ACCETTATO_CANCELLERIA',
+                                     false,
+                                     data.stato==='RIFIUTATO_CANCELLERIA');
+    }
+
+    if (STATI_FINALI.includes(data.stato)) {
+      btn.remove();
+    } else {
+      btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+      btn.disabled = false;
+    }
+    if (data.aggiornato) setTimeout(() => location.reload(), 800);
+  })
+  .catch(err => {
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+    btn.disabled = false;
+    btn.title = 'Errore di rete: ' + err;
+  });
+}
+
+// ---- Modifica deposito PCT ----
+const _urlAggiungi = "{{ url_for('aggiungi_esito_deposito', id_fasc=fascicolo.id) }}";
+const _urlModificaTpl = "{{ url_for('modifica_esito_deposito', id_fasc=fascicolo.id, id_dep='__ID__') }}";
+
+function apriModificaDeposito(dep) {
+  const form = document.getElementById('formDeposito');
+  form.action = _urlModificaTpl.replace('__ID__', dep.id);
+  document.getElementById('idDepositoModifica').value = dep.id;
+  document.getElementById('modalDepositoTitolo').innerHTML =
+    '<i class="bi bi-pencil me-2 text-primary"></i>Modifica deposito ' + dep.id;
+  document.getElementById('btnSubmitDeposito').innerHTML =
+    '<i class="bi bi-save me-1"></i>Salva modifiche';
+  // Popola i campi
+  form.querySelector('[name=tipo_atto]').value = dep.tipo_atto || '';
+  const statoSel = form.querySelector('[name=stato]');
+  if (statoSel) statoSel.value = dep.stato || 'INVIATO';
+  form.querySelector('[name=pec_destinatario]').value = dep.pec_destinatario || '';
+  form.querySelector('[name=messaggio]').value = dep.messaggio || '';
+  form.querySelector('[name=ricevuta_accettazione]').value = dep.ricevuta_accettazione || '';
+  form.querySelector('[name=ricevuta_consegna]').value = dep.ricevuta_consegna || '';
+  form.querySelector('[name=ricevuta_controlli_automatici]').value = dep.ricevuta_controlli_automatici || '';
+  const esitoCtrSel = form.querySelector('[name=esito_controlli]');
+  if (esitoCtrSel) esitoCtrSel.value = dep.esito_controlli || '';
+  form.querySelector('[name=ricevuta_cancelleria]').value = dep.ricevuta_cancelleria || '';
+  form.querySelector('[name=note]').value = dep.note || '';
+  new bootstrap.Modal(document.getElementById('modalDeposito')).show();
+}
+
+// Ripristina il modal in modalità "aggiungi" quando si apre dal pulsante +Registra
+document.getElementById('modalDeposito').addEventListener('show.bs.modal', function (e) {
+  // Se l'evento non proviene da apriModificaDeposito (nessun relatedTarget = pulsante standard)
+  if (e.relatedTarget) {
+    const form = document.getElementById('formDeposito');
+    form.action = _urlAggiungi;
+    document.getElementById('idDepositoModifica').value = '';
+    document.getElementById('modalDepositoTitolo').innerHTML =
+      '<i class="bi bi-send me-2 text-primary"></i>Registra esito deposito PCT';
+    document.getElementById('btnSubmitDeposito').innerHTML =
+      '<i class="bi bi-save me-1"></i>Registra';
+    form.reset();
+  }
+});
+
+// ---- Drop-zone carica documento ----
+(function () {
+  const zone = document.getElementById('drop-zone');
+  const input = document.getElementById('fileInput');
+  const label = document.getElementById('drop-label');
+  if (!zone || !input) return;
+
+  function highlight(on) {
+    zone.style.background = on ? '#eff6ff' : '';
+    zone.style.borderColor = on ? '#3b82f6' : '#cbd5e1';
+  }
+
+  ['dragenter', 'dragover'].forEach(function(ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); highlight(true); });
+  });
+  ['dragleave', 'drop'].forEach(function(ev) {
+    zone.addEventListener(ev, function (e) { e.preventDefault(); highlight(false); });
+  });
+
+  zone.addEventListener('drop', function (e) {
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    label.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><strong>' +
+      file.name + '</strong> (' + (file.size / 1024).toFixed(0) + '\u00a0KB)';
+  });
+
+  input.addEventListener('change', function () {
+    if (input.files[0]) {
+      label.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><strong>' +
+        input.files[0].name + '</strong> (' + (input.files[0].size / 1024).toFixed(0) + '\u00a0KB)';
+    }
+  });
+})();
+
+// ---- Autocomplete soggetti nel modal Aggiungi Parte ----
+(function() {
+  const searchInput = document.getElementById('parti-search');
+  const hiddenId   = document.getElementById('parti-id');
+  const suggestions= document.getElementById('parti-suggestions');
+  const selected   = document.getElementById('parti-selected');
+  if (!searchInput) return;
+  let timer;
+  searchInput.addEventListener('input', function() {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { suggestions.style.display='none'; suggestions.innerHTML=''; return; }
+    timer = setTimeout(function() {
+      fetch('/api/soggetti?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(data => {
+          suggestions.innerHTML = '';
+          if (!data.length) {
+            suggestions.style.display='none'; return;
+          }
+          data.forEach(function(s) {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action py-2 small';
+            a.innerHTML = '<strong>' + s.nome + '</strong>'
+              + (s.qualifica ? ' <span class="text-muted">· ' + s.qualifica + '</span>' : '')
+              + ' <span class="badge bg-secondary ms-1" style="font-size:.65rem">' + s.sigla + '</span>';
+            a.addEventListener('click', function(e) {
+              e.preventDefault();
+              hiddenId.value = s.id;
+              searchInput.value = s.nome;
+              selected.textContent = '✓ ' + s.nome + (s.qualifica ? ' (' + s.qualifica + ')' : '');
+              selected.style.display = 'block';
+              suggestions.style.display = 'none';
+            });
+            suggestions.appendChild(a);
+          });
+          suggestions.style.display = 'block';
+        });
+    }, 300);
+  });
+  document.addEventListener('click', function(e) {
+    if (!suggestions.contains(e.target) && e.target !== searchInput) {
+      suggestions.style.display = 'none';
+    }
+  });
+  document.getElementById('modalAggiungiParte').addEventListener('hidden.bs.modal', function() {
+    searchInput.value = ''; hiddenId.value = '';
+    selected.style.display = 'none'; suggestions.style.display = 'none';
+    suggestions.innerHTML = '';
+  });
+})();
+</script>
 {% endblock %}

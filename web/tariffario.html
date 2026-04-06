@@ -1,0 +1,1402 @@
+{% extends "base.html" %}
+{% block title %}Tariffario Forense{% endblock %}
+{% block pct_modulo %}tariffario{% endblock %}
+
+{% block content %}
+<style>
+  .tf-shell {
+    --tf-ink: #17324d;
+    --tf-soft: #eef4fb;
+    --tf-line: rgba(23, 50, 77, .12);
+    --tf-muted: #607284;
+  }
+  .tf-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, .8fr);
+    gap: 1rem;
+    padding: 1.05rem 1.15rem;
+    border: 1px solid var(--tf-line);
+    border-radius: 1.35rem;
+    background:
+      radial-gradient(circle at top right, rgba(13,110,253,.10), transparent 40%),
+      linear-gradient(180deg, #ffffff, #f7faff);
+    box-shadow: 0 1rem 2rem rgba(23, 50, 77, .05);
+  }
+  .tf-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--tf-muted);
+    margin-bottom: .55rem;
+    font-weight: 700;
+  }
+  .tf-hero-title {
+    margin: 0;
+    font-size: clamp(1.65rem, 3vw, 2.3rem);
+    line-height: 1.05;
+    color: var(--tf-ink);
+    font-weight: 800;
+  }
+  .tf-hero-sub {
+    margin: .8rem 0 0;
+    max-width: 62ch;
+    color: var(--tf-muted);
+    font-size: .96rem;
+  }
+  .tf-hero-note {
+    border: 1px solid rgba(13,110,253,.12);
+    border-radius: 1.1rem;
+    background: rgba(255,255,255,.92);
+    padding: .9rem .95rem;
+  }
+  .tf-hero-note-label {
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--tf-muted);
+    font-weight: 700;
+    margin-bottom: .4rem;
+  }
+  .tf-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .85rem;
+  }
+  .tf-stat {
+    border: 1px solid var(--tf-line);
+    border-radius: 1.15rem;
+    background: #fff;
+    padding: .9rem .95rem;
+    min-width: 0;
+  }
+  .tf-stat-label {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--tf-muted);
+    margin-bottom: .35rem;
+    font-weight: 700;
+  }
+  .tf-stat-value {
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 800;
+    color: var(--tf-ink);
+  }
+  .tf-stat-note {
+    margin-top: .35rem;
+    color: var(--tf-muted);
+    font-size: .82rem;
+  }
+  .tf-workspace-card,
+  .tf-side-card,
+  .tf-result-card {
+    border: 1px solid var(--tf-line);
+    border-radius: 1.2rem;
+    overflow: hidden;
+    box-shadow: 0 .85rem 1.8rem rgba(23, 50, 77, .05);
+  }
+  .tf-workspace-card .card-header,
+  .tf-side-card .card-header,
+  .tf-result-card .card-header:not(.bg-primary) {
+    background: #fff;
+    border-bottom: 1px solid var(--tf-line);
+    padding: 1rem 1.15rem;
+  }
+  .tf-side-stack {
+    position: sticky;
+    top: 5.25rem;
+  }
+  .tf-form-accordion {
+    border: 1px solid var(--tf-line);
+    border-radius: 1.05rem;
+    overflow: hidden;
+    background: #fff;
+  }
+  .tf-form-accordion .accordion-item {
+    border: 0;
+    border-top: 1px solid var(--tf-line);
+  }
+  .tf-form-accordion .accordion-item:first-child {
+    border-top: 0;
+  }
+  .tf-form-accordion .accordion-button {
+    background: #fff;
+    box-shadow: none;
+    padding: .9rem 1rem;
+    gap: .75rem;
+  }
+  .tf-form-accordion .accordion-button:not(.collapsed) {
+    background: var(--tf-soft);
+    color: var(--tf-ink);
+  }
+  .tf-form-accordion .accordion-body {
+    padding: 1rem;
+    background: #fbfdff;
+  }
+  .tf-form-panel {
+    border: 1px solid var(--tf-line);
+    border-radius: 1rem;
+    padding: .95rem 1rem;
+    background: #fff;
+  }
+  .tf-form-panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+  .tf-form-panel-title h3 {
+    margin: 0;
+    font-size: .98rem;
+    font-weight: 700;
+    color: var(--tf-ink);
+  }
+  .tf-form-panel-note {
+    font-size: .8rem;
+    color: var(--tf-muted);
+  }
+  .tf-dynamic-box .tf-choice-list {
+    gap: .6rem;
+  }
+  .tf-dynamic-box .tf-choice-item {
+    padding: .8rem .85rem;
+    border-radius: .9rem;
+  }
+  .tf-manual-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: .75rem;
+  }
+  .tf-manual-state {
+    border: 1px dashed var(--tf-line);
+    border-radius: .9rem;
+    padding: .75rem .85rem;
+    background: #fff;
+  }
+  .tf-choice-list { display: flex; flex-direction: column; gap: .75rem; }
+  .tf-choice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1rem;
+    padding: .95rem 1rem;
+    background: #fff;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .tf-choice-item:hover { border-color: rgba(13,110,253,.45); box-shadow: 0 .35rem .9rem rgba(13,110,253,.06); }
+  .tf-choice-item .amount { font-weight: 700; color: var(--bs-primary); white-space: nowrap; }
+  .tf-choice-item .meta { min-width: 0; flex: 1 1 auto; }
+  .tf-choice-item .meta .title { font-weight: 600; color: var(--bs-emphasis-color); }
+  .tf-choice-item .meta .description { font-size: .88rem; color: var(--bs-secondary-color); }
+  .tf-profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin-bottom: .8rem;
+  }
+  .tf-accordion .accordion-item {
+    border: 0;
+    border-top: 1px solid var(--tf-line);
+  }
+  .tf-accordion .accordion-item:first-child {
+    border-top: 0;
+  }
+  .tf-accordion .accordion-button {
+    background: #fff;
+    box-shadow: none;
+    padding: 1rem 1.1rem;
+    gap: .75rem;
+  }
+  .tf-accordion .accordion-button:not(.collapsed) {
+    background: var(--tf-soft);
+    color: var(--tf-ink);
+  }
+  .tf-accordion .accordion-button::after {
+    margin-left: auto;
+  }
+  .tf-accordion-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .45rem;
+    font-weight: 700;
+    color: var(--tf-ink);
+  }
+  .tf-accordion-meta {
+    font-size: .78rem;
+    color: var(--tf-muted);
+  }
+  .tf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    border: 1px solid var(--tf-line);
+    border-radius: 999px;
+    padding: .18rem .5rem;
+    font-size: .72rem;
+    color: var(--tf-muted);
+    background: rgba(255,255,255,.85);
+  }
+  .tf-ref-list,
+  .tf-stack-list {
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+  }
+  .tf-ref-item,
+  .tf-stack-item {
+    border: 1px solid var(--tf-line);
+    border-radius: .95rem;
+    padding: .9rem .95rem;
+    background: #fff;
+  }
+  .tf-ref-title,
+  .tf-stack-title {
+    font-weight: 700;
+    color: var(--tf-ink);
+    margin-bottom: .2rem;
+  }
+  .tf-ref-meta,
+  .tf-stack-meta {
+    font-size: .82rem;
+    color: var(--tf-muted);
+  }
+  @media (max-width: 1199.98px) {
+    .tf-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tf-side-stack { position: static; }
+  }
+  @media (max-width: 991.98px) {
+    .tf-hero { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 575.98px) {
+    .tf-summary-grid { grid-template-columns: 1fr; }
+    .tf-hero,
+    .tf-stat { padding: .95rem; }
+    .tf-form-accordion .accordion-button,
+    .tf-form-accordion .accordion-body { padding: .9rem; }
+  }
+</style>
+{% set audit_open_count = tariffario_audit_summary.da_verificare + tariffario_audit_summary.ricostruttiva %}
+<div class="tf-shell">
+  <section class="tf-hero mb-4">
+    <div>
+      <div class="tf-kicker"><i class="bi bi-calculator"></i> Console tariffaria</div>
+      <h1 class="tf-hero-title">Tariffario Forense</h1>
+      <p class="tf-hero-sub">
+        Un workspace unico per calcolo, regola tariffaria, profilo operativo e passaggio diretto
+        a preventivo, parcella e XML FatturaPA. Le sezioni normative restano disponibili, ma non
+        invadono piu il flusso principale di lavoro.
+      </p>
+    </div>
+    <aside class="tf-hero-note">
+      <div class="tf-hero-note-label">Modalita di consultazione</div>
+      <div class="small text-muted mb-2">
+        Il calcolo resta in primo piano. Audit, tabelle, canali e riferimenti si aprono solo quando servono.
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="tf-chip"><i class="bi bi-layers"></i>{{ tariffario_profili|length }} profili</span>
+        <span class="tf-chip"><i class="bi bi-diagram-2"></i>{{ tariffario_regole|length }} regole</span>
+        <span class="tf-chip"><i class="bi bi-database-check"></i>{{ tariffario_tables|length }} tabelle</span>
+        <span class="tf-chip"><i class="bi bi-shield-check"></i>{{ tariffario_audit_summary.verificata_snapshot + tariffario_audit_summary.verificata_seed }}/{{ tariffario_audit_summary.totale }} allineate</span>
+      </div>
+    </aside>
+  </section>
+
+  <section class="tf-summary-grid mb-4">
+    <article class="tf-stat">
+      <div class="tf-stat-label">Profili tariffari</div>
+      <div class="tf-stat-value">{{ tariffario_profili|length }}</div>
+      <div class="tf-stat-note">Materia, grado, fasi e profilo operativo.</div>
+    </article>
+    <article class="tf-stat">
+      <div class="tf-stat-label">Opzioni di calcolo</div>
+      <div class="tf-stat-value">{{ opzioni_tariffario|length }}</div>
+      <div class="tf-stat-note">Spese generali, bonus, accessori e logiche fiscali.</div>
+    </article>
+    <article class="tf-stat">
+      <div class="tf-stat-label">Tabelle sincronizzate</div>
+      <div class="tf-stat-value">{{ tariffario_tables|length }}</div>
+      <div class="tf-stat-note">Catalogo normativo condiviso con il motore preventivi.</div>
+    </article>
+    <article class="tf-stat">
+      <div class="tf-stat-label">Audit da aprire</div>
+      <div class="tf-stat-value {% if tariffario_audit_summary.da_verificare %}text-danger{% elif audit_open_count %}text-warning{% else %}text-success{% endif %}">{{ audit_open_count }}</div>
+      <div class="tf-stat-note">
+        {% if audit_open_count %}
+        Voci ricostruttive o da verificare disponibili nel pannello tecnico.
+        {% else %}
+        Nessun approfondimento aperto: il catalogo attivo e allineato.
+        {% endif %}
+      </div>
+    </article>
+  </section>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card tf-workspace-card mb-4">
+      <div class="card-header fw-semibold d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <span><i class="bi bi-sliders me-2 text-primary"></i>Parametri del calcolo</span>
+        <span class="text-muted small">Il motore compila preventivi e parcelle dalla stessa struttura.</span>
+      </div>
+      <div class="card-body">
+        <form method="post" id="tariffarioForm">
+          <div class="row g-3">
+            <div class="col-lg-3">
+              <label class="form-label fw-semibold">Materia</label>
+              <select id="selMateria" name="materia" class="form-select" required>
+                {% for materia in materie %}
+                <option value="{{ materia }}" {{ 'selected' if materia == materia_sel else '' }}>{{ materia }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-lg-5">
+              <label class="form-label fw-semibold">Regola tariffaria / competenza</label>
+              <select id="selRegolaTariffaria" name="regola_tariffaria" class="form-select"></select>
+              <div class="form-text">Allinea materia, competenza per giurisdizione e pratica suggerita dal motore.</div>
+            </div>
+            <div class="col-lg-2">
+              <label class="form-label fw-semibold">Grado / sede</label>
+              <select id="selGrado" name="grado" class="form-select" required></select>
+            </div>
+            <div class="col-lg-2">
+              <label class="form-label fw-semibold">Valore controversia (EUR)</label>
+              <input type="text" id="inpValore" name="valore" class="form-control"
+                     inputmode="decimal" autocomplete="off" value="{{ valore_str }}" placeholder="0,00">
+              <div class="form-text">Usa 0 se il valore non e ancora determinato: HACS applichera per default il primo scaglione tabellare disponibile.</div>
+            </div>
+
+            <div class="col-12">
+              <div class="accordion tf-form-accordion" id="tfCalcAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfBaseCalcHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfBaseCalcCollapse" aria-expanded="false" aria-controls="tfBaseCalcCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Compenso base e fasi
+                          <span class="tf-chip">Compenso unico</span>
+                          <span class="tf-chip">Opzioni fiscali</span>
+                        </span>
+                        <span class="tf-accordion-meta">Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfBaseCalcCollapse" class="accordion-collapse collapse" aria-labelledby="tfBaseCalcHeading">
+                    <div class="accordion-body">
+                      <div class="row g-3">
+                        <div class="col-lg-7">
+                          <div class="tf-form-panel">
+                            <div class="tf-form-panel-title">
+                              <h3>Fasi da includere</h3>
+                              <span class="tf-form-panel-note">Include anche il flag compenso unico quando previsto.</span>
+                            </div>
+                            <div id="phaseBox" class="row g-2"></div>
+                          </div>
+                        </div>
+                        <div class="col-lg-5">
+                          <div class="tf-form-panel">
+                            <div class="tf-form-panel-title">
+                              <h3>Opzioni compenso</h3>
+                              <span class="tf-form-panel-note">Compresso in un unico pannello operativo.</span>
+                            </div>
+                            <div class="row g-3">
+                              <div class="col-12">
+                                <label class="form-label small text-muted mb-1">Complessita stimata</label>
+                                <select name="complessita" id="selComplessita" class="form-select">
+                                  {% for row in complessita_catalog %}
+                                  <option value="{{ row.value }}" {{ 'selected' if complessita_sel == row.value else '' }}>{{ row.label }}</option>
+                                  {% endfor %}
+                                </select>
+                                <div class="form-text">Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e determinato, HACS usa il primo scaglione reale disponibile.</div>
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                  <input class="form-check-input" type="checkbox" name="spese_generali" value="1"
+                                         id="chkSpese" {{ 'checked' if spese_gen else '' }}>
+                                  <label class="form-check-label" for="chkSpese">Spese generali 15%</label>
+                                </div>
+                                <label class="form-label small text-muted mb-1">Percentuale spese generali</label>
+                                <input type="number" name="perc_spese_generali" id="inpPercSpese" class="form-control"
+                                       min="0" max="30" step="1" value="{{ perc_spese|int }}">
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                  <input class="form-check-input" type="checkbox" name="bonus_telematico" value="1"
+                                         id="chkBonus" {{ 'checked' if bonus_tel else '' }}>
+                                  <label class="form-check-label" for="chkBonus">Bonus telematico 30%</label>
+                                </div>
+                                <div class="small text-muted pt-1">
+                                  Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfAdrHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfAdrCollapse" aria-expanded="false" aria-controls="tfAdrCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Variazioni ADR e accordo
+                          <span class="tf-chip">Mediazione</span>
+                          <span class="tf-chip">Negoziazione</span>
+                        </span>
+                        <span class="tf-accordion-meta">Si attiva solo quando il profilo o una sua integrazione usa ADR.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfAdrCollapse" class="accordion-collapse collapse" aria-labelledby="tfAdrHeading">
+                    <div class="accordion-body">
+                      <div id="variationBox" class="tf-form-panel tf-dynamic-box">
+                        <div class="text-muted small">La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfAddonHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfAddonCollapse" aria-expanded="false" aria-controls="tfAddonCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Integrazioni selezionabili
+                          <span class="tf-chip">Accessori</span>
+                        </span>
+                        <span class="tf-accordion-meta">Mediazione, negoziazione e moduli opzionali del profilo attivo.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfAddonCollapse" class="accordion-collapse collapse" aria-labelledby="tfAddonHeading">
+                    <div class="accordion-body">
+                      <div id="addonBox" class="tf-form-panel tf-dynamic-box">
+                        <div class="text-muted small">Seleziona materia e grado per vedere mediazione e altre integrazioni disponibili.</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="tfExpenseHeading">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfExpenseCollapse" aria-expanded="false" aria-controls="tfExpenseCollapse">
+                      <span>
+                        <span class="tf-accordion-title">
+                          Spese vive suggerite e voce manuale
+                          <span class="tf-chip">Esborsi</span>
+                          <span class="tf-chip">Art. 15 / manuale</span>
+                        </span>
+                        <span class="tf-accordion-meta">Contributo unificato, diritti di segreteria, notifiche e voci concordate con il cliente.</span>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="tfExpenseCollapse" class="accordion-collapse collapse" aria-labelledby="tfExpenseHeading">
+                    <div class="accordion-body">
+                      <div class="row g-3">
+                        <div class="col-12">
+                          <div id="expenseBox" class="tf-form-panel tf-dynamic-box">
+                            <div class="text-muted small">Le spese vive suggerite seguono la pratica collegata al profilo tariffario attivo.</div>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="tf-form-panel">
+                            <div class="tf-manual-toolbar">
+                              <div>
+                                <div class="fw-semibold">Voce manuale</div>
+                                <div class="small text-muted">Per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.</div>
+                              </div>
+                              <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddManualRow">
+                                <i class="bi bi-plus-lg me-1"></i>Aggiungi voce manuale
+                              </button>
+                            </div>
+                            <div id="manualRows">
+                              {% for row in manual_rows_prefill %}
+                              <div class="row g-2 align-items-end manual-row mb-2">
+                                <div class="col-lg-6">
+                                  <label class="form-label small text-muted mb-1">Descrizione</label>
+                                  <input type="text" name="manual_descr[]" class="form-control" value="{{ row.descrizione }}">
+                                </div>
+                                <div class="col-lg-3">
+                                  <label class="form-label small text-muted mb-1">Tipo voce</label>
+                                  <select name="manual_tipo[]" class="form-select">
+                                    {% for tipo in ['Onorario', 'Spesa forfettaria', 'Spesa viva'] %}
+                                    <option value="{{ tipo }}" {{ 'selected' if row.tipo == tipo else '' }}>{{ tipo }}</option>
+                                    {% endfor %}
+                                  </select>
+                                </div>
+                                <div class="col-lg-2">
+                                  <label class="form-label small text-muted mb-1">Importo</label>
+                                  <input type="number" name="manual_importo[]" class="form-control text-end" min="0" step="0.01" value="{{ "%.2f"|format(row.importo) }}">
+                                </div>
+                                <div class="col-lg-1">
+                                  <button type="button" class="btn btn-outline-danger w-100 btn-remove-manual"><i class="bi bi-trash"></i></button>
+                                </div>
+                              </div>
+                              {% endfor %}
+                            </div>
+                            <div id="manualEmptyState" class="tf-manual-state text-muted small {% if manual_rows_prefill %}d-none{% endif %}">
+                              Nessuna voce manuale aggiunta. Usa questa sezione per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 d-flex gap-2 flex-wrap">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-calculator me-1"></i>Calcola compenso
+              </button>
+              <a href="{{ url_for('tariffario') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if risultato %}
+    <div class="card shadow-sm border-primary mb-4 tf-result-card">
+      <div class="card-header bg-primary text-white fw-semibold">
+        <i class="bi bi-cash-stack me-2"></i>Risultato del calcolo
+      </div>
+      <div class="card-body">
+        {% set riepilogo_min = risultato.riepilogo_livello('minimo') %}
+        {% set riepilogo_base = risultato.riepilogo_livello('base') %}
+        {% set riepilogo_max = risultato.riepilogo_livello('massimo') %}
+        <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
+          <div><strong>Materia:</strong> {{ risultato.materia }}</div>
+          {% if regola_attiva %}
+          <div><strong>Regola:</strong> {{ regola_attiva.label }}</div>
+          {% endif %}
+          <div><strong>Grado:</strong> {{ risultato.grado }}</div>
+          <div><strong>Scaglione:</strong> {{ risultato.scaglione }}</div>
+          {% if risultato.complessita_stimata %}
+          <div><strong>Complessita:</strong> {{ risultato.complessita_stimata|capitalize }}</div>
+          {% endif %}
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle small">
+            <thead class="table-light">
+              <tr>
+                <th>Fase</th>
+                <th class="text-end">Minimo</th>
+                <th class="text-end table-primary">Base</th>
+                <th class="text-end">Massimo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fase, (vmin, vbase, vmax) in risultato.dettaglio.items() %}
+              <tr>
+                <td class="fw-semibold">{{ fase }}</td>
+                <td class="text-end">EUR {{ "%.2f"|format(vmin) }}</td>
+                <td class="text-end table-primary fw-semibold">EUR {{ "%.2f"|format(vbase) }}</td>
+                <td class="text-end">EUR {{ "%.2f"|format(vmax) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="table-light">
+                <th>Subtotale onorari</th>
+                <th class="text-end">EUR {{ "%.2f"|format(riepilogo_min.subtotale) }}</th>
+                <th class="text-end table-primary fw-semibold">EUR {{ "%.2f"|format(riepilogo_base.subtotale) }}</th>
+                <th class="text-end">EUR {{ "%.2f"|format(riepilogo_max.subtotale) }}</th>
+              </tr>
+              {% if riepilogo_min.bonus_telematico or riepilogo_base.bonus_telematico or riepilogo_max.bonus_telematico %}
+              <tr class="table-success">
+                <td>Bonus telematico 30%</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_min.bonus_telematico) }}</td>
+                <td class="text-end table-primary fw-semibold">+ EUR {{ "%.2f"|format(riepilogo_base.bonus_telematico) }}</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_max.bonus_telematico) }}</td>
+              </tr>
+              {% endif %}
+              {% if riepilogo_min.spese_generali or riepilogo_base.spese_generali or riepilogo_max.spese_generali %}
+              <tr class="table-warning">
+                <td>Spese generali</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_min.spese_generali) }}</td>
+                <td class="text-end table-primary fw-semibold">+ EUR {{ "%.2f"|format(riepilogo_base.spese_generali) }}</td>
+                <td class="text-end">+ EUR {{ "%.2f"|format(riepilogo_max.spese_generali) }}</td>
+              </tr>
+              {% endif %}
+              <tr class="table-primary">
+                <th>Totale compenso</th>
+                <th class="text-end fw-bold">EUR {{ "%.2f"|format(riepilogo_min.totale_compenso) }}</th>
+                <th class="text-end fw-bold table-primary">EUR {{ "%.2f"|format(riepilogo_base.totale_compenso) }}</th>
+                <th class="text-end fw-bold">EUR {{ "%.2f"|format(riepilogo_max.totale_compenso) }}</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {% if risultato.note %}
+        <div class="alert alert-info small mb-3">
+          <i class="bi bi-info-circle me-1"></i>{{ risultato.note }}
+        </div>
+        {% endif %}
+        {% if regola_attiva and regola_attiva.compliance_label %}
+        <div class="alert {% if regola_attiva.compliance_status == 'da_verificare' %}alert-danger{% elif regola_attiva.compliance_status == 'ricostruttiva' %}alert-warning{% elif regola_attiva.compliance_status == 'verificata_seed' %}alert-info{% else %}alert-success{% endif %} small mb-3">
+          <div class="fw-semibold mb-1">Conformita regola tariffaria</div>
+          <div>{{ regola_attiva.compliance_label }}. {{ regola_attiva.compliance_note }}</div>
+        </div>
+        {% endif %}
+
+        {% if righe_calcolo %}
+        <div class="rounded-3 border p-3 mb-3">
+          <div class="fw-semibold mb-2">Voci incluse nel risultato operativo</div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Descrizione</th>
+                  <th style="width: 160px;">Tipo</th>
+                  <th class="text-end" style="width: 160px;">Importo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in righe_calcolo %}
+                <tr>
+                  <td>{{ row.descrizione }}</td>
+                  <td>{{ row.tipo }}</td>
+                  <td class="text-end">EUR {{ "%.2f"|format(row.importo) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if riepilogo_economico %}
+        <div class="rounded-3 border bg-light p-3 small">
+          <div class="fw-semibold mb-2">Riepilogo economico collegato</div>
+          <div class="row g-1">
+            <div class="col-8">Imponibile complessivo</div>
+            <div class="col-4 text-end">EUR {{ "%.2f"|format(riepilogo_economico.imponibile) }}</div>
+            <div class="col-8 text-muted">CPA 4%</div>
+            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(riepilogo_economico.cassa) }}</div>
+            <div class="col-8 text-muted">IVA 22%</div>
+            <div class="col-4 text-end text-muted">EUR {{ "%.2f"|format(riepilogo_economico.iva) }}</div>
+            <div class="col-8 fw-bold border-top pt-1">Totale fattura teorico</div>
+            <div class="col-4 text-end fw-bold border-top pt-1 text-primary">EUR {{ "%.2f"|format(riepilogo_economico.totale) }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="card-footer d-flex gap-2 flex-wrap">
+        {% if url_wizard_precompilato %}
+        <a href="{{ url_wizard_precompilato }}" class="btn btn-primary">
+          <i class="bi bi-magic me-1"></i>Crea preventivo guidato
+        </a>
+        {% endif %}
+        {% if url_parcella_precompilata %}
+        <a href="{{ url_parcella_precompilata }}" class="btn btn-outline-primary">
+          <i class="bi bi-receipt me-1"></i>Crea parcella precompilata
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-4">
+    <div class="tf-side-stack">
+      <div class="card tf-side-card mb-4">
+        <div class="card-header fw-semibold">
+          <i class="bi bi-diagram-3 me-2 text-primary"></i>Profilo attivo
+        </div>
+        <div class="card-body">
+          <div id="profileBox">
+            {% if profilo_attivo %}
+            <div class="tf-profile-badges">
+              <span class="badge bg-primary-subtle text-primary-emphasis">{{ profilo_attivo.table_label }}</span>
+              {% if profilo_attivo.exact_snapshot %}
+              <span class="badge bg-success-subtle text-success-emphasis">snapshot ufficiale</span>
+              {% else %}
+              <span class="badge bg-warning-subtle text-warning-emphasis">profilo ricostruttivo</span>
+              {% endif %}
+            </div>
+            <div class="fw-semibold mb-1">{{ profilo_attivo.summary }}</div>
+            <div class="small text-muted mb-3">{{ profilo_attivo.base_note }}</div>
+            {% if regola_attiva and regola_attiva.compliance_label %}
+            <div class="small mb-2">
+              <span class="badge {% if regola_attiva.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif regola_attiva.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif regola_attiva.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif regola_attiva.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
+                {{ regola_attiva.compliance_label }}
+              </span>
+            </div>
+            <div class="small text-muted mb-3">{{ regola_attiva.compliance_note }}</div>
+            {% endif %}
+            <div class="small"><strong>Pratica suggerita:</strong> {{ profilo_attivo.suggested_practice_id }}</div>
+            <div class="small"><strong>Grado operativo:</strong> {{ profilo_attivo.grado_label }}</div>
+            {% else %}
+            <div class="text-muted small">Seleziona materia e grado per vedere il profilo tariffario collegato.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card tf-side-card">
+        <div class="card-header fw-semibold d-flex align-items-center justify-content-between gap-2">
+          <span><i class="bi bi-journal-text me-2 text-primary"></i>Supporto normativo e operativo</span>
+          <span class="text-muted small">Apri solo il dettaglio che ti serve</span>
+        </div>
+        <div class="accordion accordion-flush tf-accordion" id="tfKnowledgeAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfAuditHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfAuditCollapse" aria-expanded="false" aria-controls="tfAuditCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Audit conformita tariffaria
+                    <span class="tf-chip">{{ tariffario_regole|length }} regole</span>
+                    <span class="tf-chip {% if tariffario_audit_summary.da_verificare %}text-danger{% elif audit_open_count %}text-warning{% else %}text-success{% endif %}">{{ audit_open_count }} aperte</span>
+                  </span>
+                  <span class="tf-accordion-meta">Copertura tra snapshot ufficiale, seed e mapping ricostruttivi.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfAuditCollapse" class="accordion-collapse collapse" aria-labelledby="tfAuditHeading">
+              <div class="accordion-body">
+                <div class="row g-2 mb-3">
+                  <div class="col-sm-6">
+                    <div class="tf-stack-item">
+                      <div class="tf-stack-title">{{ tariffario_audit_summary.verificata_snapshot }}</div>
+                      <div class="tf-stack-meta">Regole allineate allo snapshot ufficiale DM 147/2022.</div>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <div class="tf-stack-item">
+                      <div class="tf-stack-title">{{ tariffario_audit_summary.verificata_seed }}</div>
+                      <div class="tf-stack-meta">Regole coperte da integrazioni seed controllate.</div>
+                    </div>
+                  </div>
+                </div>
+                {% if tariffario_audit_warning_rows %}
+                <div class="tf-stack-list">
+                  {% for row in tariffario_audit_warning_rows %}
+                  <article class="tf-stack-item">
+                    <div class="d-flex justify-content-between gap-2 mb-1">
+                      <div class="tf-stack-title">{{ row.rule_label }}</div>
+                      <span class="badge {% if row.compliance_badge == 'success' %}bg-success-subtle text-success-emphasis{% elif row.compliance_badge == 'info' %}bg-info-subtle text-info-emphasis{% elif row.compliance_badge == 'warning' %}bg-warning-subtle text-warning-emphasis{% elif row.compliance_badge == 'danger' %}bg-danger-subtle text-danger-emphasis{% else %}text-bg-light{% endif %}">
+                        {{ row.compliance_label }}
+                      </span>
+                    </div>
+                    <div class="small text-muted mb-1">{{ row.materia_label }}{% if row.practice_label or row.suggested_practice_id %} - {{ row.practice_label or row.suggested_practice_id }}{% endif %}</div>
+                    <div class="small"><strong>Tabella:</strong> {{ row.table_code or 'n/d' }}</div>
+                    <div class="small text-muted mt-1">{{ row.compliance_note }}</div>
+                  </article>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-success mb-0 small">
+                  <i class="bi bi-check-circle me-1"></i>Le regole oggi attive risultano allineate allo snapshot ufficiale o alle integrazioni seed controllate del catalogo.
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfTablesHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfTablesCollapse" aria-expanded="false" aria-controls="tfTablesCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Tabelle normative sincronizzate
+                    <span class="tf-chip">{{ tariffario_tables|length }} attive</span>
+                  </span>
+                  <span class="tf-accordion-meta">Stato del catalogo normativo usato da tariffario e preventivi.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfTablesCollapse" class="accordion-collapse collapse" aria-labelledby="tfTablesHeading">
+              <div class="accordion-body">
+                <div class="tf-stack-list">
+                  {% for row in tariffario_tables %}
+                  <article class="tf-stack-item">
+                    <div class="d-flex justify-content-between gap-2 mb-1">
+                      <div class="tf-stack-title">{{ row.title }}</div>
+                      <span class="badge {% if row.sync_status == 'sincronizzata' %}text-bg-success{% elif row.sync_status == 'verifica_richiesta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ row.sync_status }}</span>
+                    </div>
+                    <div class="tf-stack-meta">{{ row.description }}</div>
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfChannelsHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfChannelsCollapse" aria-expanded="false" aria-controls="tfChannelsCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Canali fatturazione e operativita
+                    <span class="tf-chip">{{ canali_fatturazione|length }} flussi</span>
+                  </span>
+                  <span class="tf-accordion-meta">Dal calcolo al preventivo, parcella, XML e upload esterno.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfChannelsCollapse" class="accordion-collapse collapse" aria-labelledby="tfChannelsHeading">
+              <div class="accordion-body">
+                <div class="tf-stack-list">
+                  {% for row in canali_fatturazione %}
+                  <article class="tf-stack-item">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                      <div class="tf-stack-title">{{ row.label }}</div>
+                      <span class="badge {% if row.status == 'operativo' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ row.status }}</span>
+                    </div>
+                    <div class="tf-stack-meta mb-2">{{ row.description }}</div>
+                    {% if row.reference %}
+                    <a href="{{ row.reference.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
+                    {% endif %}
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="tfRefsHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#tfRefsCollapse" aria-expanded="false" aria-controls="tfRefsCollapse">
+                <span>
+                  <span class="tf-accordion-title">
+                    Riferimenti normativi ufficiali
+                    <span class="tf-chip">{{ riferimenti_tariffario|length }} fonti</span>
+                  </span>
+                  <span class="tf-accordion-meta">Archivio consultabile senza sovraccaricare il flusso di calcolo.</span>
+                </span>
+              </button>
+            </h2>
+            <div id="tfRefsCollapse" class="accordion-collapse collapse" aria-labelledby="tfRefsHeading">
+              <div class="accordion-body">
+                <div class="tf-ref-list">
+                  {% for ref in riferimenti_tariffario %}
+                  <article class="tf-ref-item">
+                    <div class="tf-ref-title">{{ ref.title }}</div>
+                    <div class="small fw-semibold mb-1">{{ ref.article }}</div>
+                    <div class="tf-ref-meta mb-2">{{ ref.description }}</div>
+                    <a href="{{ ref.url }}" target="_blank" rel="noopener" class="small">Fonte ufficiale</a>
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const GRADE_CATALOG = {{ grade_catalog|tojson }};
+const RULE_CATALOG = {{ rule_catalog|tojson }};
+const PHASE_CATALOG = {{ phase_catalog|tojson }};
+const PROFILE_ROWS = {{ tariffario_profili|tojson }};
+const PRACTICE_BY_ID = {{ pratiche_by_id|tojson }};
+const MATERIA_SEL = {{ materia_sel|tojson }};
+const GRADO_SEL = {{ grado_sel|tojson }};
+const REGOLA_SEL = {{ regola_tariffaria_sel|tojson }};
+const FASI_SEL = {{ fasi_sel|tojson }};
+const ACCESSORI_SEL = {{ accessori_sel|tojson }};
+const ESBORSI_SEL = {{ esborsi_sel|tojson }};
+const ADR_ACCORDO_SEL = {{ adr_accordo|tojson }};
+const VARIAZIONI_PREFILL = {{ variazioni_prefill|tojson }};
+
+let accessoriInit = false;
+let esborsiInit = false;
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function parseLocaleNumber(value) {
+  if (value === null || value === undefined || value === '') return 0;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  let cleaned = String(value)
+    .trim()
+    .replaceAll('€', '')
+    .replaceAll('EUR', '')
+    .replaceAll('eur', '')
+    .replace(/\s+/g, '')
+    .replaceAll("'", '');
+  cleaned = cleaned.replace(/[^0-9,.\-]/g, '');
+  if (!cleaned || cleaned === '-' || cleaned === '.' || cleaned === ',') return 0;
+
+  let normalized = cleaned;
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    normalized = cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')
+      ? cleaned.replaceAll('.', '').replace(',', '.')
+      : cleaned.replaceAll(',', '');
+  } else if (cleaned.includes(',')) {
+    const parts = cleaned.split(',');
+    if (parts.length > 2) {
+      const last = parts.at(-1) || '';
+      normalized = (last.length === 1 || last.length === 2)
+        ? `${parts.slice(0, -1).join('')}.${last}`
+        : parts.join('');
+    } else {
+      const [before, after] = parts;
+      normalized = after.length === 1 || after.length === 2
+        ? `${before}.${after}`
+        : (after.length === 3 && before ? `${before}${after}` : `${before}.${after}`);
+    }
+  } else if (cleaned.includes('.')) {
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      const last = parts.at(-1) || '';
+      normalized = (last.length === 1 || last.length === 2)
+        ? `${parts.slice(0, -1).join('')}.${last}`
+        : parts.join('');
+    } else {
+      const [before, after] = parts;
+      normalized = after.length === 1 || after.length === 2
+        ? `${before}.${after}`
+        : (after.length === 3 && before ? `${before}${after}` : `${before}.${after}`);
+    }
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeMoneyFieldValue(input) {
+  if (!input) return;
+  const raw = String(input.value || '').trim();
+  if (!raw) return;
+  const parsed = parseLocaleNumber(raw);
+  input.value = parsed.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function preferredGrade(gradi) {
+  const ordine = [
+    'Tribunale',
+    'Giudice competente',
+    'Giudice tutelare',
+    'GIP / GUP',
+    'Tribunale monocratico',
+    'Tribunale collegiale',
+    "Corte d'Assise",
+    'Magistrato di Sorveglianza',
+    'Fuori giudizio',
+    'Procedura ADR',
+    'TAR',
+    'Corte dei Conti',
+    'Conservatoria / tavolare',
+    'Tribunale concorsuale',
+    'CGT di primo grado',
+    'Giudice di Pace',
+    "Corte d'Appello",
+    "Corte d'Appello penale",
+    "Corte d'Assise d'Appello",
+    'Corte di Cassazione',
+    'Tribunale di Sorveglianza',
+    'Corte costituzionale',
+    "Corte europea dei diritti dell'uomo",
+    'Corte di giustizia UE',
+    'Consiglio di Stato',
+    'CGT di secondo grado',
+  ];
+  for (const voce of ordine) {
+    if ((gradi || []).includes(voce)) return voce;
+  }
+  return (gradi || [])[0] || 'Tribunale';
+}
+
+function genericRuleForMateria(materia) {
+  const gradi = GRADE_CATALOG[materia] || ['Tribunale'];
+  const gradoPreferito = preferredGrade(gradi);
+  return {
+    rule_code: '',
+    label: 'Regola standard del tariffario',
+    summary: 'Profilo base del motore tariffario per la materia selezionata.',
+    grado_input_value: gradoPreferito,
+    allowed_grade_input_values: gradi,
+  };
+}
+
+function currentRule() {
+  const materia = document.getElementById('selMateria').value;
+  const ruleCode = document.getElementById('selRegolaTariffaria').value;
+  const rows = RULE_CATALOG[materia] || [];
+  if (!rows.length) return genericRuleForMateria(materia);
+  return rows.find((item) => item.rule_code === ruleCode) || rows[0] || genericRuleForMateria(materia);
+}
+
+function renderRegole() {
+  const materia = document.getElementById('selMateria').value;
+  const select = document.getElementById('selRegolaTariffaria');
+  const baseRows = RULE_CATALOG[materia] || [];
+  const rows = [genericRuleForMateria(materia), ...baseRows];
+  const preferred = select.dataset.selected || REGOLA_SEL;
+  select.innerHTML = rows.map((row) => `<option value="${escapeHtml(row.rule_code)}">${escapeHtml(row.label)}</option>`).join('');
+  const target = rows.find((row) => row.rule_code === preferred) || rows[0] || null;
+  if (target) {
+    select.value = target.rule_code;
+  }
+}
+
+function renderGradi() {
+  const select = document.getElementById('selGrado');
+  const rule = currentRule();
+  const materia = document.getElementById('selMateria').value;
+  const gradi = (rule?.allowed_grade_input_values && rule.allowed_grade_input_values.length)
+    ? rule.allowed_grade_input_values
+    : (GRADE_CATALOG[materia] || ['Tribunale']);
+  const preferred = select.dataset.selected || GRADO_SEL || rule?.grado_input_value || preferredGrade(gradi);
+  const selected = gradi.includes(preferred) ? preferred : (rule?.grado_input_value && gradi.includes(rule.grado_input_value) ? rule.grado_input_value : gradi[0]);
+  select.innerHTML = gradi.map((grado) => `<option value="${escapeHtml(grado)}">${escapeHtml(grado)}</option>`).join('');
+  select.value = selected;
+}
+
+function renderFasi() {
+  const materia = document.getElementById('selMateria').value;
+  const box = document.getElementById('phaseBox');
+  const fasi = PHASE_CATALOG[materia] || [];
+  const live = Array.from(document.querySelectorAll('#phaseBox input[name="fasi"]:checked')).map((node) => node.value);
+  const selected = new Set(live.length ? live : FASI_SEL);
+  box.innerHTML = fasi.map((fase) => `
+    <div class="col-md-6">
+      <label class="border rounded-3 p-2 d-flex align-items-center gap-2 h-100">
+        <input class="form-check-input mt-0" type="checkbox" name="fasi" value="${escapeHtml(fase.value)}" ${selected.has(fase.value) ? 'checked' : ''}>
+        <span>${escapeHtml(fase.label)}</span>
+      </label>
+    </div>
+  `).join('');
+}
+
+function currentProfile() {
+  const materia = document.getElementById('selMateria').value;
+  const grado = document.getElementById('selGrado').value;
+  const rule = currentRule();
+  return PROFILE_ROWS.find((item) => rule?.rule_code && item.profile_code === rule.profile_code && item.grado_input_value === grado)
+    || PROFILE_ROWS.find((item) => item.materia_label === materia && item.grado_input_value === grado)
+    || PROFILE_ROWS.find((item) => item.materia_label === materia)
+    || null;
+}
+
+function currentPractice() {
+  const rule = currentRule();
+  const grado = document.getElementById('selGrado').value;
+  if (
+    rule?.rule_code
+    && rule?.suggested_practice_id
+    && PRACTICE_BY_ID[rule.suggested_practice_id]
+    && (!rule.allowed_grade_input_values || rule.allowed_grade_input_values.includes(grado))
+  ) {
+    return PRACTICE_BY_ID[rule.suggested_practice_id];
+  }
+  const profile = currentProfile();
+  if (!profile) return null;
+  return PRACTICE_BY_ID[profile.suggested_practice_id] || null;
+}
+
+function currentVariationValues() {
+  const values = {};
+  document.querySelectorAll('.adr-var-input').forEach((node) => {
+    if (String(node.value || '').trim() !== '') {
+      values[node.dataset.phaseKey] = node.value;
+    }
+  });
+  return values;
+}
+
+function activeAdrPractice() {
+  const practice = currentPractice();
+  if (practice?.variation_policy?.kind) return practice;
+  const selectedAccessori = currentAccessoriSelection();
+  for (const accessorio of (practice?.accessori_calcolo || [])) {
+    if (!selectedAccessori.has(accessorio.id)) continue;
+    const adrPractice = PRACTICE_BY_ID[accessorio.tipo_pratica_id];
+    if (adrPractice?.variation_policy?.kind) {
+      return adrPractice;
+    }
+  }
+  return null;
+}
+
+function renderAdrVariations() {
+  const box = document.getElementById('variationBox');
+  const adrPractice = activeAdrPractice();
+  if (!adrPractice?.variation_policy?.kind) {
+    box.innerHTML = '<div class="text-muted small">La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</div>';
+    return;
+  }
+  const policy = adrPractice.variation_policy || {};
+  const liveValues = currentVariationValues();
+  const values = Object.keys(liveValues).length ? liveValues : (VARIAZIONI_PREFILL || {});
+  const accordoLive = document.getElementById('chkAdrAccordo');
+  const accordoChecked = accordoLive ? accordoLive.checked : !!ADR_ACCORDO_SEL;
+  const range = policy.range_pct || { min: -50, max: 50, default: 0 };
+  const agreementBonus = policy.agreement_bonus || {};
+  const agreementPhaseKeys = agreementBonus.phase_keys || [];
+  const agreementPct = Number(agreementBonus.pct || 0);
+  box.innerHTML = `
+    <div class="d-flex flex-column gap-3">
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+        <div>
+          <div class="fw-semibold text-dark">${escapeHtml(adrPractice.label)}</div>
+          <div class="small text-muted">Tabella 27, variazione per fase entro il range ${range.min}% / +${range.max}% e bonus accordo dove previsto.</div>
+        </div>
+        <div class="form-check form-switch m-0">
+          <input class="form-check-input" type="checkbox" name="adr_accordo" value="1" id="chkAdrAccordo" ${accordoChecked ? 'checked' : ''}>
+          <label class="form-check-label small fw-semibold" for="chkAdrAccordo">Procedura conclusa con accordo</label>
+        </div>
+      </div>
+      ${agreementBonus.enabled && accordoChecked ? `
+        <div class="alert alert-success small py-2 mb-0">
+          <i class="bi bi-check-circle me-1"></i>
+          La maggiorazione normativa del +${escapeHtml(agreementPct)}% viene applicata automaticamente nel calcolo
+          sulle fasi ${escapeHtml(agreementPhaseKeys.join(', '))}. I campi percentuali qui sotto restano separati e
+          servono solo per la variazione manuale ${range.min}% / +${range.max}%.
+        </div>
+      ` : ''}
+      <div class="row g-2">
+        ${(policy.phase_controls || []).map((item) => `
+          <div class="col-md-6 col-xl-3">
+            <label class="form-label small text-muted mb-1">${escapeHtml(item.label)}</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text">%</span>
+              <input
+                type="number"
+                class="form-control adr-var-input"
+                name="var_${escapeHtml(item.key)}"
+                data-phase-key="${escapeHtml(item.key)}"
+                min="${range.min}"
+                max="${range.max}"
+                step="5"
+                value="${escapeHtml(values[item.key] ?? range.default ?? 0)}">
+            </div>
+            ${agreementBonus.enabled && agreementPhaseKeys.includes(item.key) ? `
+              <div class="form-text ${accordoChecked ? 'text-success' : 'text-muted'}">
+                ${accordoChecked ? `+${escapeHtml(agreementPct)}% automatico con accordo` : `fase soggetta a +${escapeHtml(agreementPct)}% automatico se si raggiunge l'accordo`}
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+      <div class="small text-muted">
+        ${(policy.references || []).map((item) => `<div>${escapeHtml(item)}</div>`).join('')}
+        ${agreementBonus.enabled ? `<div>Accordo ADR: +${escapeHtml(agreementBonus.pct)}% sulle fasi ${escapeHtml((agreementBonus.phase_keys || []).join(', '))}.</div>` : ''}
+      </div>
+    </div>
+  `;
+  const accordoNode = box.querySelector('#chkAdrAccordo');
+  if (accordoNode) {
+    accordoNode.addEventListener('change', () => renderAdrVariations());
+  }
+}
+
+function currentAccessoriSelection() {
+  return new Set(Array.from(document.querySelectorAll('input[name="accessori"]:checked')).map((node) => node.value));
+}
+
+function activeExpenseRows() {
+  const practice = currentPractice();
+  if (!practice) return [];
+  const rows = (practice.esborsi_tipici || []).map((item, index) => ({
+    key: `${practice.id}:${index}`,
+    descrizione: item.descrizione,
+    importo: Number(item.importo || 0),
+  }));
+  const accessoriAttivi = currentAccessoriSelection();
+  (practice.accessori_calcolo || []).forEach((accessorio) => {
+    if (!accessoriAttivi.has(accessorio.id)) return;
+    const practiceAccessorio = PRACTICE_BY_ID[accessorio.tipo_pratica_id];
+    (practiceAccessorio?.esborsi_tipici || []).forEach((item, index) => {
+      rows.push({
+        key: `${accessorio.id}:${index}`,
+        descrizione: item.descrizione,
+        importo: Number(item.importo || 0),
+      });
+    });
+  });
+  return rows;
+}
+
+function renderProfilo() {
+  const target = document.getElementById('profileBox');
+  const row = currentProfile();
+  const rule = currentRule();
+  const grado = document.getElementById('selGrado').value;
+  const ruleCompatible = rule?.rule_code && (!rule.allowed_grade_input_values || rule.allowed_grade_input_values.includes(grado));
+  if (!row) {
+    target.innerHTML = '<div class="text-muted small">Nessun profilo disponibile per questa combinazione.</div>';
+    return;
+  }
+  const practice = PRACTICE_BY_ID[row.suggested_practice_id];
+  target.innerHTML = `
+      <div class="mb-2">
+        <span class="badge bg-primary-subtle text-primary-emphasis">${escapeHtml(row.table_label)}</span>
+        ${ruleCompatible ? `<span class="badge bg-info-subtle text-info-emphasis">${escapeHtml(rule.label)}</span>` : ''}
+        <span class="badge ${row.exact_snapshot ? 'bg-success-subtle text-success-emphasis' : 'bg-warning-subtle text-warning-emphasis'}">
+          ${row.exact_snapshot ? 'snapshot ufficiale' : 'profilo ricostruttivo'}
+        </span>
+      </div>
+      <div class="fw-semibold mb-1">${escapeHtml(row.summary || '')}</div>
+      <div class="small text-muted mb-3">${escapeHtml(row.base_note || '')}</div>
+      ${ruleCompatible && rule?.summary ? `<div class="small text-muted mb-3">${escapeHtml(rule.summary)}</div>` : ''}
+      <div class="small"><strong>Pratica suggerita:</strong> ${escapeHtml(practice?.label || row.suggested_practice_id || '')}</div>
+      <div class="small"><strong>Grado operativo:</strong> ${escapeHtml(grado)}</div>
+    `;
+}
+
+function renderAccessori() {
+  const box = document.getElementById('addonBox');
+  const practice = currentPractice();
+  if (!practice || !(practice.accessori_calcolo || []).length) {
+    box.innerHTML = '<div class="text-muted small">Nessuna integrazione opzionale per il profilo attivo.</div>';
+    renderAdrVariations();
+    renderExpenses();
+    return;
+  }
+  const currentSelected = currentAccessoriSelection();
+  const selected = currentSelected.size || accessoriInit ? currentSelected : new Set(ACCESSORI_SEL);
+  accessoriInit = true;
+  box.innerHTML = `<div class="tf-choice-list">${(practice.accessori_calcolo || []).map((item) => `
+    <label class="tf-choice-item">
+        <input class="form-check-input mt-1" type="checkbox" name="accessori" value="${escapeHtml(item.id)}" ${selected.has(item.id) ? 'checked' : ''}>
+        <span class="meta">
+          <span class="title d-block">${escapeHtml(item.label)}</span>
+          <span class="description d-block">${escapeHtml(item.description || '')}</span>
+        </span>
+      </label>
+    `).join('')}</div>`;
+  box.querySelectorAll('input[name="accessori"]').forEach((node) => {
+    node.addEventListener('change', () => {
+      renderAdrVariations();
+      renderExpenses();
+      renderProfilo();
+    });
+  });
+  renderAdrVariations();
+  renderExpenses();
+}
+
+function renderExpenses() {
+  const box = document.getElementById('expenseBox');
+  const rows = activeExpenseRows();
+  if (!rows.length) {
+    box.innerHTML = '<div class="text-muted small">Nessuna spesa viva suggerita per il profilo attivo.</div>';
+    return;
+  }
+  const currentSelected = new Set(Array.from(document.querySelectorAll('input[name="esborsi"]:checked')).map((node) => node.value));
+  const selected = currentSelected.size || esborsiInit ? currentSelected : new Set(ESBORSI_SEL);
+  esborsiInit = true;
+  box.innerHTML = `<div class="tf-choice-list">${rows.map((item) => `
+    <label class="tf-choice-item">
+        <input class="form-check-input mt-1" type="checkbox" name="esborsi" value="${escapeHtml(item.key)}" ${selected.has(item.key) ? 'checked' : ''}>
+        <span class="meta">
+          <span class="title d-block">${escapeHtml(item.descrizione)}</span>
+          <span class="description d-block">Seleziona per includerla nel totale operativo.</span>
+        </span>
+        <span class="amount">${item.importo.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR</span>
+      </label>
+    `).join('')}</div>`;
+}
+
+function updateManualEmptyState() {
+  const state = document.getElementById('manualEmptyState');
+  const rows = document.querySelectorAll('#manualRows .manual-row');
+  state.classList.toggle('d-none', rows.length > 0);
+}
+
+function addManualRow(descrizione = '', tipo = 'Onorario', importo = '') {
+  const container = document.getElementById('manualRows');
+  const row = document.createElement('div');
+  row.className = 'row g-2 align-items-end manual-row mb-2';
+  row.innerHTML = `
+    <div class="col-lg-6">
+      <label class="form-label small text-muted mb-1">Descrizione</label>
+      <input type="text" name="manual_descr[]" class="form-control" value="${escapeHtml(descrizione)}">
+    </div>
+    <div class="col-lg-3">
+      <label class="form-label small text-muted mb-1">Tipo voce</label>
+      <select name="manual_tipo[]" class="form-select">
+        <option value="Onorario" ${tipo === 'Onorario' ? 'selected' : ''}>Onorario</option>
+        <option value="Spesa forfettaria" ${tipo === 'Spesa forfettaria' ? 'selected' : ''}>Spesa forfettaria</option>
+        <option value="Spesa viva" ${tipo === 'Spesa viva' ? 'selected' : ''}>Spesa viva</option>
+      </select>
+    </div>
+    <div class="col-lg-2">
+      <label class="form-label small text-muted mb-1">Importo</label>
+      <input type="number" name="manual_importo[]" class="form-control text-end" min="0" step="0.01" value="${escapeHtml(importo)}">
+    </div>
+    <div class="col-lg-1">
+      <button type="button" class="btn btn-outline-danger w-100 btn-remove-manual"><i class="bi bi-trash"></i></button>
+    </div>
+  `;
+  container.appendChild(row);
+  row.querySelector('.btn-remove-manual').addEventListener('click', () => {
+    row.remove();
+    updateManualEmptyState();
+  });
+  updateManualEmptyState();
+}
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const selMateria = document.getElementById('selMateria');
+    const selRegola = document.getElementById('selRegolaTariffaria');
+    const selGrado = document.getElementById('selGrado');
+    const inpValore = document.getElementById('inpValore');
+    selRegola.dataset.selected = REGOLA_SEL;
+    selGrado.dataset.selected = GRADO_SEL;
+    inpValore?.addEventListener('blur', () => normalizeMoneyFieldValue(inpValore));
+    renderRegole();
+    renderGradi();
+    renderFasi();
+    renderProfilo();
+    renderAccessori();
+    updateManualEmptyState();
+    selMateria.addEventListener('change', () => {
+      selRegola.dataset.selected = '';
+      selGrado.dataset.selected = '';
+      renderRegole();
+      renderGradi();
+      renderFasi();
+      renderProfilo();
+      renderAccessori();
+    });
+    selRegola.addEventListener('change', () => {
+      selGrado.dataset.selected = '';
+      renderGradi();
+      renderProfilo();
+      renderAccessori();
+    });
+    selGrado.addEventListener('change', () => {
+      renderProfilo();
+      renderAccessori();
+    });
+  document.getElementById('btnAddManualRow').addEventListener('click', () => addManualRow('', 'Onorario', ''));
+  document.querySelectorAll('.btn-remove-manual').forEach((node) => {
+    node.addEventListener('click', () => {
+      node.closest('.manual-row')?.remove();
+      updateManualEmptyState();
+    });
+  });
+});
+</script>
+{% endblock %}

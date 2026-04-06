@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}Wizard fascicolo PST — RG {{ numero_rg }}/{{ anno_rg }}{% endblock %}
+{% block pct_modulo %}polisWeb{% endblock %}
+
+{% block content %}
+
+{# ---- Header ---- #}
+<div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+  <a href="{{ url_for('polisWeb_home') }}" class="btn btn-sm btn-outline-secondary flex-shrink-0">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <div class="flex-grow-1">
+    <h5 class="mb-0 fw-bold">
+      <i class="bi bi-diagram-3 me-2 text-info"></i>Wizard fascicolo PST
+      <span class="ms-2 text-muted fw-normal">RG {{ numero_rg }}/{{ anno_rg }}</span>
+    </h5>
+    {% if nome_ufficio %}
+    <div class="text-muted small ms-1">
+      <i class="bi bi-building me-1"></i>{{ nome_ufficio }}
+      {% if codice_ufficio and codice_ufficio != nome_ufficio %}
+      <span class="font-monospace text-muted ms-1" style="font-size:.75rem">{{ codice_ufficio }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% if demo_mode %}
+  <span class="badge bg-warning text-dark"><i class="bi bi-cone me-1"></i>DEMO</span>
+  {% endif %}
+  <div class="ms-auto d-flex gap-2 flex-wrap align-items-center">
+    {% if fascicolo %}
+    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-folder2-open me-1"></i>Vai al fascicolo
+    </a>
+    {% endif %}
+    {# Bottone scarica intero fascicolo — si apre un accordion con link ai portali ufficiali #}
+    <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
+            data-bs-target="#collapseDownloadFascicolo">
+      <i class="bi bi-download me-1"></i>Scarica fascicolo
+    </button>
+  </div>
+</div>
+
+{# ---- Banner download fascicolo completo ---- #}
+<div class="collapse mb-3" id="collapseDownloadFascicolo">
+  <div class="card border-primary">
+    <div class="card-header bg-primary-subtle fw-semibold text-primary-emphasis">
+      <i class="bi bi-download me-2"></i>Download fascicolo completo organizzato per sezioni
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info small mb-3 py-2">
+        <i class="bi bi-info-circle me-1"></i>
+        Il PST non consente il download autonomo dei documenti. Per scaricare i file accedere a
+        <a href="https://pst.giustizia.it" target="_blank" rel="noopener">pst.giustizia.it</a>
+        con CNS/CIE/SPID e scaricare i file di ciascuna sezione.
+        HACS organizza qui sotto la struttura delle cartelle da creare per tenere il fascicolo ordinato.
+      </div>
+      <div class="row g-3">
+        {% for sez in sezioni_wizard %}
+        {% set n_sez = sezioni_conteggi.get(sez.id, 0) %}
+        <div class="col-md-6 col-xl-4">
+          <div class="border rounded p-3 h-100 {% if n_sez == 0 %}opacity-50{% endif %}">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="bi {{ sez.icon }} text-{{ sez.colore }} fs-5"></i>
+              <div class="fw-semibold">{{ sez.label }}</div>
+              <span class="badge bg-{{ sez.colore }}-subtle text-{{ sez.colore }}-emphasis border border-{{ sez.colore }}-subtle ms-auto">
+                {{ n_sez }} file
+              </span>
+            </div>
+            <div class="small text-muted mb-2">{{ sez.descrizione }}</div>
+            {% set deps_sez = sezioni_dati.get(sez.id, []) %}
+            {% if deps_sez %}
+            <ul class="list-unstyled mb-0 small">
+              {% for dep in deps_sez %}
+              <li class="text-muted">
+                <i class="bi bi-folder me-1"></i>{{ dep.tipo_atto }}
+                <span class="badge bg-light text-dark border ms-1">{{ dep.documenti|length }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-muted small">Nessun documento in questa sezione</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="mt-3 d-flex gap-2 flex-wrap">
+        <a href="https://pst.giustizia.it" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Apri PST (CNS/CIE/SPID)
+        </a>
+        <a href="{{ url_for('polisWeb_documenti', codice_ufficio=codice_ufficio, numero_rg=numero_rg, anno_rg=anno_rg) }}"
+           class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-list-ul me-1"></i>Vista elenco documenti
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---- Alert PST ---- #}
+<div class="alert alert-light border small mb-3 py-2">
+  <i class="bi bi-info-circle me-1 text-primary"></i>
+  Dati letti dal <strong>Portale Servizi Telematici (PST)</strong> — {{ n_tot }} file totali in {{ sezioni_wizard|length }} sezioni.
+  Per scaricare i file accedere direttamente a
+  <a href="https://pst.giustizia.it" target="_blank" rel="noopener">pst.giustizia.it</a>
+  con CNS/CIE/SPID.
+</div>
+
+{# ---- Stepper navigazione sezioni ---- #}
+<div class="mb-3">
+  <ul class="nav nav-pills flex-nowrap gap-1 overflow-auto pb-1 pst-wizard-nav" style="scrollbar-width:thin">
+    {% for sez in sezioni_wizard %}
+    {% set n_sez = sezioni_conteggi.get(sez.id, 0) %}
+    {% set step_n = loop.index %}
+    <li class="nav-item flex-shrink-0">
+      <a href="{{ url_for('polisWeb_fascicolo_wizard',
+                          codice_ufficio=codice_ufficio,
+                          numero_rg=numero_rg,
+                          anno_rg=anno_rg,
+                          id_fasc=id_fasc,
+                          sezione=sez.id) }}"
+         class="nav-link d-flex align-items-center gap-2 {% if sez.id == sezione_attiva %}active bg-{{ sez.colore }}{% else %}text-{{ sez.colore }}{% endif %}"
+         style="{% if sez.id != sezione_attiva %}border:1px solid;border-color:var(--bs-{{ sez.colore }});{% endif %}">
+        <span class="d-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0"
+              style="width:1.6rem;height:1.6rem;font-size:.8rem;
+                     {% if sez.id == sezione_attiva %}background:rgba(255,255,255,.25){% else %}background:var(--bs-{{ sez.colore }}-bg-subtle,#f8f9fa){% endif %}">
+          {{ step_n }}
+        </span>
+        <span class="d-none d-md-inline">{{ sez.label }}</span>
+        <span class="d-md-none">{{ step_n }}</span>
+        {% if n_sez %}
+        <span class="badge rounded-pill {% if sez.id == sezione_attiva %}bg-white text-dark{% else %}bg-{{ sez.colore }}{% endif %} ms-1">
+          {{ n_sez }}
+        </span>
+        {% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+
+{# ---- Contenuto sezione attiva ---- #}
+{% for sez in sezioni_wizard %}
+{% if sez.id == sezione_attiva %}
+<div class="d-flex align-items-center gap-2 mb-3">
+  <i class="bi {{ sez.icon }} text-{{ sez.colore }} fs-4"></i>
+  <div>
+    <h6 class="mb-0 fw-bold">{{ sez.label }}</h6>
+    <div class="small text-muted">{{ sez.descrizione }}</div>
+  </div>
+  {% set n_sez = sezioni_conteggi.get(sez.id, 0) %}
+  <span class="badge bg-{{ sez.colore }}-subtle text-{{ sez.colore }}-emphasis border border-{{ sez.colore }}-subtle ms-auto">
+    {{ n_sez }} file
+  </span>
+</div>
+
+{% set depositi = sezioni_dati.get(sez.id, []) %}
+{% if depositi %}
+
+<div class="accordion shadow-sm" id="accordionSezione{{ sez.id }}">
+  {% for dep in depositi %}
+  {% set idx = loop.index %}
+  {% set aperto = loop.first %}
+
+  {# icona per tipo atto #}
+  {% set ta = dep.tipo_atto | upper %}
+  {% if 'DECRETO' in ta and 'INGIUNTIVO' in ta %}
+    {% set dep_icon = 'bi-file-earmark-ruled-fill' %}
+    {% set dep_col  = 'warning' %}
+  {% elif 'PROVVEDIMENTO' in ta or 'SENTENZA' in ta or 'ORDINANZA' in ta %}
+    {% set dep_icon = 'bi-file-earmark-text-fill' %}
+    {% set dep_col  = 'success' %}
+  {% elif 'OPPOSIZIONE' in ta %}
+    {% set dep_icon = 'bi-file-earmark-x-fill' %}
+    {% set dep_col  = 'danger' %}
+  {% elif 'MEMORIA' in ta %}
+    {% set dep_icon = 'bi-file-earmark-check-fill' %}
+    {% set dep_col  = 'primary' %}
+  {% elif 'RICORSO' in ta or 'CITAZIONE' in ta %}
+    {% set dep_icon = 'bi-file-earmark-arrow-up-fill' %}
+    {% set dep_col  = 'primary' %}
+  {% elif 'VERBALE' in ta %}
+    {% set dep_icon = 'bi-calendar-check-fill' %}
+    {% set dep_col  = 'info' %}
+  {% elif 'COMUNICAZIONE' in ta %}
+    {% set dep_icon = 'bi-megaphone-fill' %}
+    {% set dep_col  = 'success' %}
+  {% elif 'ISTANZA' in ta %}
+    {% set dep_icon = 'bi-envelope-paper-fill' %}
+    {% set dep_col  = 'warning' %}
+  {% else %}
+    {% set dep_icon = 'bi-folder-fill' %}
+    {% set dep_col  = 'secondary' %}
+  {% endif %}
+
+  {% set n_atto     = dep.documenti | selectattr('tipo','equalto','ATTO')         | list | length %}
+  {% set n_allegati = dep.documenti | selectattr('tipo','equalto','ALLEGATO')     | list | length %}
+  {% set n_indice   = dep.documenti | selectattr('tipo','equalto','INDICE')       | list | length %}
+  {% set n_prov     = dep.documenti | selectattr('tipo','equalto','PROVVEDIMENTO')| list | length %}
+
+  <div class="accordion-item border mb-2 rounded overflow-hidden">
+    <h2 class="accordion-header" id="hd-{{ sez.id }}-{{ idx }}">
+      <button class="accordion-button {% if not aperto %}collapsed{% endif %} py-2 px-3"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#col-{{ sez.id }}-{{ idx }}"
+              aria-expanded="{{ 'true' if aperto else 'false' }}"
+              aria-controls="col-{{ sez.id }}-{{ idx }}">
+        <i class="bi {{ dep_icon }} text-{{ dep_col }} me-2 fs-5 flex-shrink-0"></i>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ dep.tipo_atto }}</div>
+          <div class="d-flex gap-2 flex-wrap mt-1" style="font-size:.72rem">
+            <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ dep.data_deposito or '—' }}</span>
+            <span class="text-muted"><i class="bi bi-envelope me-1"></i>{{ dep.mittente or '—' }}</span>
+            <span class="badge bg-light text-dark border">{{ dep.documenti | length }} file</span>
+            {% if n_atto %}<span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">{{ n_atto }} atto{% if n_atto>1 %}i{% endif %}</span>{% endif %}
+            {% if n_allegati %}<span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">{{ n_allegati }} allegat{% if n_allegati>1 %}i{% else %}o{% endif %}</span>{% endif %}
+            {% if n_indice %}<span class="badge bg-light text-muted border">indice</span>{% endif %}
+            {% if n_prov %}<span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">provvedimento</span>{% endif %}
+          </div>
+        </div>
+        {% if dep.id_deposito and not dep.id_deposito.startswith('__') %}
+        <span class="font-monospace text-muted d-none d-md-inline" style="font-size:.68rem;margin-right:.5rem">{{ dep.id_deposito }}</span>
+        {% endif %}
+      </button>
+    </h2>
+
+    <div id="col-{{ sez.id }}-{{ idx }}"
+         class="accordion-collapse collapse {% if aperto %}show{% endif %}"
+         aria-labelledby="hd-{{ sez.id }}-{{ idx }}">
+      <div class="accordion-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small mob-cards">
+            <thead class="table-light">
+              <tr>
+                <th style="width:2rem"></th>
+                <th>Nome file</th>
+                <th>Tipo</th>
+                <th>Dimensione</th>
+                <th class="text-center">Disponibile</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in dep.documenti %}
+              <tr class="{% if not d.disponibile %}table-secondary text-muted{% endif %}">
+                <td data-mob-hide class="text-center ps-3">
+                  {% if d.tipo == 'ATTO' %}
+                    <i class="bi bi-file-earmark-pdf-fill text-danger" title="Atto principale"></i>
+                  {% elif d.tipo == 'ALLEGATO' %}
+                    <i class="bi bi-paperclip text-secondary" title="Allegato"></i>
+                  {% elif d.tipo == 'INDICE' %}
+                    <i class="bi bi-list-ol text-info" title="Indice documenti"></i>
+                  {% elif d.tipo == 'PROVVEDIMENTO' %}
+                    <i class="bi bi-file-earmark-text-fill text-success" title="Provvedimento"></i>
+                  {% elif d.tipo == 'MEMORIA' %}
+                    <i class="bi bi-file-earmark-check-fill text-primary" title="Memoria"></i>
+                  {% else %}
+                    <i class="bi bi-file-earmark text-muted"></i>
+                  {% endif %}
+                </td>
+                <td data-label="File" style="min-width:0">
+                  <div style="min-width:0;word-break:break-word;overflow-wrap:anywhere">
+                    <div class="fw-semibold" style="font-size:.82rem">
+                      {{ d.nome }}
+                      {% if d.nome.endswith('.p7m') %}
+                      <i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente (p7m)"></i>
+                      {% endif %}
+                    </div>
+                    <div><small class="text-muted">{{ d.id_documento }}</small></div>
+                  </div>
+                </td>
+                <td data-label="Tipo">
+                  <span class="badge bg-light text-dark border" style="font-size:.7rem">
+                    {{ d.tipo | replace('_',' ') | title }}
+                  </span>
+                </td>
+                <td data-label="Dim." class="text-muted">
+                  {% if d.dimensione_bytes %}
+                    {% if d.dimensione_bytes >= 1048576 %}
+                      {{ "%.1f"|format(d.dimensione_bytes / 1048576) }} MB
+                    {% else %}
+                      {{ (d.dimensione_bytes / 1024)|int }} KB
+                    {% endif %}
+                  {% else %}—{% endif %}
+                </td>
+                <td data-label="Disp." class="text-center">
+                  {% if d.disponibile %}
+                  <i class="bi bi-check-circle-fill text-success"></i>
+                  {% else %}
+                  <i class="bi bi-x-circle text-danger"></i>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="px-3 py-2 border-top bg-light d-flex align-items-center gap-2 small text-muted">
+          <i class="bi bi-lock-fill text-secondary flex-shrink-0"></i>
+          Per scaricare accedere a
+          <a href="https://pst.giustizia.it" target="_blank" rel="noopener" class="ms-1">pst.giustizia.it</a>
+          con CNS/CIE/SPID.
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-2"></i>Nessun documento classificato in questa sezione.
+</div>
+{% endif %}
+
+{# ---- Navigazione avanti/indietro ---- #}
+<div class="d-flex justify-content-between mt-4 pt-3 border-top">
+  {% set ns = namespace(prev_sez=none, next_sez=none, found=false) %}
+  {% for s in sezioni_wizard %}
+    {% if ns.found and ns.next_sez is none %}
+      {% set ns.next_sez = s %}
+    {% endif %}
+    {% if s.id == sez.id %}
+      {% set ns.found = true %}
+    {% else %}
+      {% if not ns.found %}
+        {% set ns.prev_sez = s %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  <div>
+    {% if ns.prev_sez %}
+    <a href="{{ url_for('polisWeb_fascicolo_wizard',
+                        codice_ufficio=codice_ufficio,
+                        numero_rg=numero_rg,
+                        anno_rg=anno_rg,
+                        id_fasc=id_fasc,
+                        sezione=ns.prev_sez.id) }}"
+       class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>{{ ns.prev_sez.label }}
+    </a>
+    {% endif %}
+  </div>
+  <div>
+    {% if ns.next_sez %}
+    <a href="{{ url_for('polisWeb_fascicolo_wizard',
+                        codice_ufficio=codice_ufficio,
+                        numero_rg=numero_rg,
+                        anno_rg=anno_rg,
+                        id_fasc=id_fasc,
+                        sezione=ns.next_sez.id) }}"
+       class="btn btn-{{ ns.next_sez.colore }}">
+      {{ ns.next_sez.label }}<i class="bi bi-arrow-right ms-1"></i>
+    </a>
+    {% else %}
+    <a href="{{ url_for('polisWeb_home') }}" class="btn btn-success">
+      <i class="bi bi-check-circle me-1"></i>Completato
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% endif %}
+{% endfor %}
+
+{# ---- Barra di avanzamento globale ---- #}
+{% set sezioni_ids = sezioni_wizard | map(attribute='id') | list %}
+{% set idx_attivo  = sezioni_ids.index(sezione_attiva) + 1 %}
+<div class="mt-4 pt-3 border-top">
+  <div class="d-flex justify-content-between small text-muted mb-1">
+    <span>Avanzamento</span>
+    <span>Sezione {{ idx_attivo }} di {{ sezioni_wizard | length }}</span>
+  </div>
+  <div class="progress" style="height:6px">
+    <div class="progress-bar bg-info"
+         style="width:{{ ((idx_attivo / (sezioni_wizard|length)) * 100)|int }}%"
+         aria-valuenow="{{ idx_attivo }}"
+         aria-valuemin="0"
+         aria-valuemax="{{ sezioni_wizard|length }}">
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,603 +1,103 @@
 {% extends "base.html" %}
-{% block title %}Agenda — Studio Legale PCT{% endblock %}
-{% block page_title %}Agenda{% endblock %}
-
-{% macro badge_tipo(a) %}
-  <span class="badge badge-{{ a.tipo.value }} rounded-pill" style="font-size:.68rem">{{ a.tipo.value }}</span>
-{% endmacro %}
+{% block title %}Audit Log{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
 
 {% block content %}
 
 {# ── Page Header ── #}
 <div class="ds-ph">
-  <div class="ds-ph-icon"><i class="bi bi-calendar3"></i></div>
+  <div class="ds-ph-icon"><i class="bi bi-journal-text"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Agenda</h1>
-    <p class="ds-ph-sub">Appuntamenti, udienze e impegni dello studio</p>
+    <h1 class="ds-ph-title">Audit Log</h1>
+    <p class="ds-ph-sub">Registro accessi e operazioni degli utenti</p>
   </div>
   <div class="ds-ph-actions">
-    <div class="dropdown">
-      <button class="ds-btn ds-btn-outline dropdown-toggle"
-              style="color:#1a73e8;border-color:rgba(26,115,232,.4)"
-              data-bs-toggle="dropdown"
-              title="Sincronizza / esporta calendario">
-        <i class="bi bi-calendar2-check"></i>
-        <span class="d-none d-sm-inline">iCal</span>
-        <span class="badge rounded-pill d-none d-sm-inline ms-1"
-              style="background:rgba(26,115,232,.12);color:#1a73e8;font-size:.6rem;padding:.2em .5em">SYNC</span>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 py-2" style="min-width:270px">
-        {# ── Sync automatica ── #}
-        <li>
-          <div class="px-3 py-2 d-flex align-items-center gap-2 border-bottom mb-1">
-            <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                  style="width:32px;height:32px;background:rgba(26,115,232,.1)">
-              <i class="bi bi-arrow-repeat" style="color:#1a73e8;font-size:.9rem"></i>
-            </span>
-            <div>
-              <div class="fw-semibold small">Sincronizzazione automatica</div>
-              <div class="text-muted" style="font-size:.73rem">Aggiornamento ogni ora</div>
-            </div>
-          </div>
-        </li>
-        <li>
-          <a class="dropdown-item py-2" href="{{ url_for('impostazioni_calendario') }}">
-            <i class="bi bi-gear me-2 text-primary"></i>
-            <span>Configura sync calendario…</span>
-          </a>
-        </li>
-        <li><hr class="dropdown-divider my-1"></li>
-        {# ── Download manuale ── #}
-        <li><h6 class="dropdown-header text-uppercase" style="font-size:.67rem;letter-spacing:.05em">
-          <i class="bi bi-download me-1"></i>Download manuale
-        </h6></li>
-        <li>
-          <a class="dropdown-item py-2" href="{{ url_for('agenda_ical') }}" download="agenda.ics">
-            <i class="bi bi-calendar-week me-2 text-primary"></i>Scarica agenda (.ics)
-          </a>
-        </li>
-        <li>
-          <a class="dropdown-item py-2" href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics">
-            <i class="bi bi-alarm me-2 text-warning"></i>Scarica scadenze (.ics)
-          </a>
-        </li>
-        <li><hr class="dropdown-divider my-1"></li>
-        <li>
-          <div class="px-3 py-1">
-            <span class="small text-muted d-flex align-items-start gap-1">
-              <i class="bi bi-info-circle flex-shrink-0 mt-1" style="font-size:.75rem"></i>
-              <span style="font-size:.75rem">Il download è importazione una-tantum. Per la <strong>sync automatica</strong> usa "Configura sync".</span>
-            </span>
-          </div>
-        </li>
-      </ul>
-    </div>
-    <a href="{{ url_for('nuovo_appuntamento') }}" class="ds-btn ds-btn-primary">
-      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuovo appuntamento</span>
+    <a href="{{ url_for('esporta_audit_csv', id_utente=filtro_utente, azione=filtro_azione) }}"
+       class="ds-btn ds-btn-outline" title="Scarica CSV">
+      <i class="bi bi-file-earmark-spreadsheet"></i><span class="d-none d-sm-inline">Esporta CSV</span>
     </a>
   </div>
 </div>
 
-{# ── Switcher vista + navigazione ── #}
-<div class="card shadow-sm mb-3">
-  <div class="card-body py-2">
-    {# Riga 1: switcher vista + navigazione #}
-    <div class="d-flex flex-wrap align-items-center gap-2">
-      <div class="btn-group btn-group-sm">
-        <a href="{{ url_for('agenda_view') }}?vista=giorno&offset={{ offset if vista=='giorno' else 0 }}"
-           class="btn btn-outline-primary {% if vista=='giorno' %}active{% endif %}"
-           title="Vista giorno">
-          <i class="bi bi-calendar-day"></i><span class="d-none d-sm-inline ms-1">Giorno</span>
-        </a>
-        <a href="{{ url_for('agenda_view') }}?vista=settimana&offset={{ offset if vista=='settimana' else 0 }}"
-           class="btn btn-outline-primary {% if vista=='settimana' %}active{% endif %}"
-           title="Vista settimana">
-          <i class="bi bi-calendar-week"></i><span class="d-none d-sm-inline ms-1">Sett.</span>
-        </a>
-        <a href="{{ url_for('agenda_view') }}?vista=mese&offset={{ offset if vista=='mese' else 0 }}"
-           class="btn btn-outline-primary {% if vista=='mese' %}active{% endif %}"
-           title="Vista mese">
-          <i class="bi bi-calendar-month"></i><span class="d-none d-sm-inline ms-1">Mese</span>
-        </a>
-      </div>
-
-      <div class="btn-group btn-group-sm">
-        <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset - 1 }}"
-           class="btn btn-outline-secondary" title="Precedente"><i class="bi bi-chevron-left"></i></a>
-        <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset=0"
-           class="btn btn-outline-secondary">Oggi</a>
-        <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset + 1 }}"
-           class="btn btn-outline-secondary" title="Successivo"><i class="bi bi-chevron-right"></i></a>
-      </div>
-
-      <span class="fw-semibold text-primary small">
-        {% if vista == 'giorno' %}
-          {{ giorno.strftime('%a %d %b %Y') }}
-        {% elif vista == 'settimana' %}
-          {{ inizio.strftime('%d %b') }} – {{ fine.strftime('%d %b %Y') }}
-        {% else %}
-          {{ nomi_mesi[mese] }} {{ anno }}
-        {% endif %}
-      </span>
-    </div>
-  </div>
-</div>
-
-{# ---- Toast feedback drag-and-drop ---- #}
-<div id="dnd-toast" class="position-fixed bottom-0 end-0 p-3" style="z-index:1200;display:none">
-  <div class="toast show align-items-center text-bg-success border-0 shadow">
-    <div class="d-flex">
-      <div class="toast-body" id="dnd-toast-msg">
-        <i class="bi bi-check-circle me-2"></i>Appuntamento spostato
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto"
-              onclick="document.getElementById('dnd-toast').style.display='none'"></button>
-    </div>
-  </div>
-</div>
-
-{# ================================================================ GIORNO #}
-{% if vista == 'giorno' %}
 <div class="card shadow-sm">
-  <div class="card-body">
-    {% if apps %}
-      <div class="text-muted small mb-2">
-        <i class="bi bi-arrow-left-right me-1"></i>
-        Trascina un appuntamento su un'altra riga per cambiarne l'orario
-      </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mob-cards" id="table-giorno">
-          <thead class="table-light">
-            <tr><th>Ora</th><th>Titolo</th><th>Tipo</th><th>Cliente</th><th>Luogo</th><th>Stato</th><th></th></tr>
-          </thead>
-          <tbody>
-            {% for a in apps %}
-            <tr class="dnd-row"
-                data-date="{{ a.data_ora_dt.strftime('%Y-%m-%d') }}"
-                data-time="{{ a.data_ora_dt.strftime('%H:%M:%S') }}">
-              <td data-label="Ora" class="fw-semibold text-nowrap dnd-handle" style="cursor:grab">
-                <i class="bi bi-grip-vertical text-muted me-1 d-none d-md-inline"></i>
-                {{ a.data_ora_dt.strftime('%H:%M') }}–{{ a.fine_dt.strftime('%H:%M') }}
-              </td>
-              <td data-label="Titolo">
-                <span class="dnd-app-pill app-row"
-                      draggable="true"
-                      data-id="{{ a.id }}"
-                      data-titolo="{{ a.titolo }}"
-                      data-time="{{ a.data_ora_dt.strftime('%H:%M:%S') }}"
-                      style="cursor:grab;display:block">
-                  <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-                     class="fw-semibold text-decoration-none text-dark"
-                     onclick="return !window._wasDragging">{{ a.titolo }}</a>
-                  {% if a.procedimento %}<div class="small text-muted">{{ a.procedimento }}</div>{% endif %}
-                </span>
-              </td>
-              <td data-label="Tipo">{{ badge_tipo(a) }}</td>
-              <td data-label="Cliente" class="small" data-mob-hide>{{ a.cliente or '—' }}</td>
-              <td data-label="Luogo" class="small" data-mob-hide>{{ a.luogo or '—' }}</td>
-              <td data-label="Stato">
-                {% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
-                <span class="badge bg-{{ sc[a.stato.value] }}">{{ a.stato.value }}</span>
-              </td>
-              <td data-label="">
-                <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="ds-empty py-4">
-        <i class="bi bi-calendar-x ds-empty-icon"></i>
-        <div class="ds-empty-title">Nessun appuntamento</div>
-        <div class="ds-empty-sub">Nessun impegno per questo giorno.</div>
-        <a href="{{ url_for('nuovo_appuntamento') }}?data={{ giorno.isoformat() }}"
-           class="ds-btn ds-btn-primary mt-3">
-          <i class="bi bi-plus-lg"></i>Aggiungi appuntamento
-        </a>
-      </div>
-    {% endif %}
+  <div class="card-header">
+    <span class="fw-semibold text-muted small">{{ eventi|length }} eventi</span>
   </div>
-</div>
 
-{# ================================================================ SETTIMANA #}
-{% elif vista == 'settimana' %}
-{% set nomi_g = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'] %}
-<div class="card shadow-sm">
-  <div class="card-body p-2">
-    <div class="d-md-none mb-2 text-muted small"><i class="bi bi-arrows-expand-vertical me-1"></i>Scorri per vedere tutti i giorni</div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <div class="row g-1" style="min-width:560px">
-      {% for g in giorni %}
-      <div class="col">
-        <div class="p-2 week-col rounded dnd-drop-zone
-             {% if g == oggi %}border border-warning{% endif %}"
-             data-date="{{ g.isoformat() }}">
-          <div class="small fw-bold mb-1
-               {% if g == oggi %}text-warning{% else %}text-muted{% endif %}">
-            {{ nomi_g[loop.index0] }}<br>
-            <span class="fs-5 {% if g == oggi %}text-warning{% else %}text-dark{% endif %}">
-              {{ g.day }}
-            </span>
-          </div>
-          {% for a in apps_per_giorno[g] %}
-          <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-             class="app-pill badge-{{ a.tipo.value }} dnd-pill"
-             draggable="true"
-             data-id="{{ a.id }}"
-             data-titolo="{{ a.titolo }}"
-             onclick="return !window._wasDragging">
-            {{ a.data_ora_dt.strftime('%H:%M') }} {{ a.titolo|truncate(20, killwords=True) }}
-          </a>
+  {# Filtri #}
+  <div class="card-body border-bottom py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <select name="id_utente" class="form-select form-select-sm">
+          <option value="">Tutti gli utenti</option>
+          {% for u in utenti %}
+          <option value="{{ u.id }}" {{ 'selected' if u.id == filtro_utente }}>
+            {{ u.username }}
+          </option>
           {% endfor %}
-        </div>
+        </select>
       </div>
-      {% endfor %}
-    </div>
-    </div>{# /overflow wrapper #}
-    <div class="text-muted small mt-2 text-end">
-      <i class="bi bi-arrow-left-right me-1"></i>Trascina gli appuntamenti tra i giorni per spostarli
-    </div>
+      <div class="col-md-4">
+        <input type="text" name="azione" class="form-control form-control-sm"
+               placeholder="Filtra per azione (es. login, fascicoli…)"
+               value="{{ filtro_azione }}">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary btn-sm">Filtra</button>
+        <a href="{{ url_for('audit_log') }}" class="btn btn-outline-secondary btn-sm ms-1">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </form>
   </div>
-</div>
 
-{# ================================================================ MESE #}
-{% elif vista == 'mese' %}
-{% set nomi_g = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'] %}
-<div class="card shadow-sm">
-  <div class="card-body p-2">
-    <div class="d-md-none mb-2 text-muted small"><i class="bi bi-arrows-expand-vertical me-1"></i>Scorri orizzontalmente per il calendario completo</div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-    <div style="min-width:420px">
-    {# intestazione giorni #}
-    <div class="row g-1 mb-1">
-      {% for ng in nomi_g %}
-      <div class="col text-center small fw-semibold text-muted">{{ ng }}</div>
-      {% endfor %}
-    </div>
-    {# griglia #}
-    {% set apps_dict = namespace(d={}) %}
-    {% for a in apps %}
-      {% set key = a.data_ora_dt.strftime('%Y-%m-%d') %}
-      {% if key not in apps_dict.d %}{% set _ = apps_dict.d.update({key: []}) %}{% endif %}
-      {% set _ = apps_dict.d[key].append(a) %}
-    {% endfor %}
-
-    <div class="row g-1">
-      {# padding iniziale #}
-      {% for _ in range(pad) %}
-      <div class="col"><div class="cal-day altro-mese"></div></div>
-      {% endfor %}
-
-      {% for day in range(1, giorni_mese + 1) %}
-      {% set d = "%04d-%02d-%02d"|format(anno, mese, day) %}
-      {% set is_oggi = (anno == oggi.year and mese == oggi.month and day == oggi.day) %}
-      <div class="col">
-        <div class="cal-day dnd-drop-zone {% if is_oggi %}oggi{% endif %}"
-             data-date="{{ d }}">
-          <div class="cal-day-num {% if is_oggi %}text-warning{% endif %}">{{ day }}</div>
-          {% for a in apps_dict.d.get(d, []) %}
-          <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-             class="app-pill badge-{{ a.tipo.value }} dnd-pill"
-             draggable="true"
-             data-id="{{ a.id }}"
-             data-titolo="{{ a.titolo }}"
-             onclick="return !window._wasDragging">
-            {{ a.data_ora_dt.strftime('%H:%M') }} {{ a.titolo|truncate(14, killwords=True) }}
-          </a>
+  {% if eventi %}
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0 font-monospace" style="font-size:.82rem">
+        <thead class="table-light">
+          <tr>
+            <th>Data/Ora</th><th>Utente</th><th>Azione</th>
+            <th>Risorsa</th><th>Dettagli</th><th>IP</th>
+            <th>Esito</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in eventi %}
+          <tr>
+            <td class="text-nowrap">{{ e.timestamp[:19].replace('T',' ') }}</td>
+            <td>{{ e.username or '—' }}</td>
+            <td>{{ e.azione }}</td>
+            <td class="small">
+              {{ e.risorsa_tipo }}
+              {% if e.risorsa_id %}
+              <span class="text-muted small">{{ e.risorsa_id[:8] }}…</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">
+              {{ e.dettagli or '—' }}
+            </td>
+            <td class="small text-muted">{{ e.ip or '—' }}</td>
+            <td>
+              {% if e.esito == 'OK' %}
+                <span class="badge bg-success">OK</span>
+              {% elif e.esito == 'NEGATO' %}
+                <span class="badge bg-warning text-dark">NEGATO</span>
+              {% else %}
+                <span class="badge bg-danger">ERRORE</span>
+              {% endif %}
+            </td>
+          </tr>
           {% endfor %}
-        </div>
-      </div>
-      {# a-capo ogni 7 celle #}
-      {% if (pad + day) % 7 == 0 and day < giorni_mese %}
-      </div><div class="row g-1 mt-1">
-      {% endif %}
-      {% endfor %}
-    </div>
-    </div>{# /min-width wrapper #}
-    </div>{# /overflow wrapper #}
-    <div class="text-muted small mt-2 text-end">
-      <i class="bi bi-arrow-left-right me-1"></i>Trascina gli appuntamenti tra i giorni per spostarli
+        </tbody>
+      </table>
     </div>
   </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-journal fs-1 d-block mb-2"></i>
+    Nessun evento{% if filtro_azione %} per "{{ filtro_azione }}"{% endif %}.
+  </div>
+  {% endif %}
 </div>
-{% endif %}
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-(function () {
-  'use strict';
-
-  /* ------------------------------------------------------------------ stato globale */
-  let _dragId   = null;
-  let _dragEl   = null;
-  window._wasDragging = false;
-
-  /* ------------------------------------------------------------------ pill D&D (settimana / mese) */
-  function initPills() {
-    document.querySelectorAll('.dnd-pill[draggable]').forEach(pill => {
-      pill.addEventListener('dragstart', e => {
-        _dragId = pill.dataset.id;
-        _dragEl = pill;
-        window._wasDragging = false;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', _dragId);
-        setTimeout(() => pill.classList.add('dnd-dragging'), 0);
-      });
-      pill.addEventListener('dragend', () => {
-        pill.classList.remove('dnd-dragging');
-        clearHighlights();
-      });
-      pill.addEventListener('click', e => {
-        if (window._wasDragging) { e.preventDefault(); }
-      });
-    });
-  }
-
-  /* ------------------------------------------------------------------ zone di drop (giorno/settimana/mese) */
-  function initDropZones() {
-    document.querySelectorAll('.dnd-drop-zone').forEach(zone => {
-      zone.addEventListener('dragover', e => {
-        if (!_dragId) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        clearHighlights();
-        zone.classList.add('dnd-over');
-      });
-      zone.addEventListener('dragleave', e => {
-        if (!zone.contains(e.relatedTarget)) zone.classList.remove('dnd-over');
-      });
-      zone.addEventListener('drop', async e => {
-        e.preventDefault();
-        zone.classList.remove('dnd-over');
-        const id = _dragId || e.dataTransfer.getData('text/plain');
-        if (!id) return;
-        const nuovaData = zone.dataset.date;
-        if (!nuovaData) return;
-        window._wasDragging = true;
-        await spostaAppuntamento(id, nuovaData);
-      });
-    });
-  }
-
-  /* ------------------------------------------------------------------ D&D nella vista giorno (row swap) */
-  function initGiornoRows() {
-    const rows = Array.from(document.querySelectorAll('#table-giorno .dnd-row'));
-    if (!rows.length) return;
-
-    rows.forEach(row => {
-      const pill = row.querySelector('[draggable]');
-      if (!pill) return;
-
-      pill.addEventListener('dragstart', e => {
-        _dragId  = pill.dataset.id;
-        _dragEl  = row;
-        window._wasDragging = false;
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', _dragId);
-        setTimeout(() => row.classList.add('dnd-row-dragging'), 0);
-      });
-      pill.addEventListener('dragend', () => {
-        row.classList.remove('dnd-row-dragging');
-        rows.forEach(r => r.classList.remove('dnd-row-over'));
-      });
-    });
-
-    /* ogni riga è sia drag source sia drop target */
-    rows.forEach(targetRow => {
-      targetRow.addEventListener('dragover', e => {
-        if (!_dragId || _dragEl === targetRow) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        rows.forEach(r => r.classList.remove('dnd-row-over'));
-        targetRow.classList.add('dnd-row-over');
-      });
-      targetRow.addEventListener('dragleave', e => {
-        if (!targetRow.contains(e.relatedTarget))
-          targetRow.classList.remove('dnd-row-over');
-      });
-      targetRow.addEventListener('drop', async e => {
-        e.preventDefault();
-        rows.forEach(r => r.classList.remove('dnd-row-over', 'dnd-row-dragging'));
-        const id = _dragId || e.dataTransfer.getData('text/plain');
-        if (!id) return;
-        /* Scambia l'orario: assegna l'orario della riga target a quello trascinato */
-        const targetTime = targetRow.dataset.time;  /* "HH:MM:SS" */
-        const targetDate = targetRow.dataset.date;
-        const nuovaDataOra = `${targetDate}T${targetTime}`;
-        window._wasDragging = true;
-        await spostaAppuntamento(id, null, nuovaDataOra);
-      });
-    });
-  }
-
-  /* ------------------------------------------------------------------ chiamata API */
-  async function spostaAppuntamento(id, nuovaData, nuovaDataOra) {
-    const body = nuovaDataOra
-      ? { data_ora: nuovaDataOra }
-      : { data: nuovaData };
-
-    showSpinner();
-    try {
-      const resp = await fetch(`/api/agenda/${id}/sposta`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await resp.json();
-      if (resp.ok) {
-        mostraToast('success',
-          `<i class="bi bi-check-circle me-2"></i>Appuntamento spostato`);
-        setTimeout(() => window.location.reload(), 600);
-      } else {
-        mostraToast('danger',
-          `<i class="bi bi-exclamation-triangle me-2"></i>${json.errore || 'Errore spostamento'}`);
-        hideSpinner();
-      }
-    } catch (err) {
-      mostraToast('danger',
-        `<i class="bi bi-wifi-off me-2"></i>Errore di rete`);
-      hideSpinner();
-    }
-    _dragId = null;
-    _dragEl = null;
-  }
-
-  /* ------------------------------------------------------------------ helpers UI */
-  function clearHighlights() {
-    document.querySelectorAll('.dnd-over').forEach(el => el.classList.remove('dnd-over'));
-  }
-
-  let _spinnerEl = null;
-  function showSpinner() {
-    if (_spinnerEl) return;
-    _spinnerEl = document.createElement('div');
-    _spinnerEl.className = 'dnd-spinner';
-    _spinnerEl.innerHTML =
-      '<div class="spinner-border text-primary" role="status">' +
-      '<span class="visually-hidden">Salvataggio…</span></div>';
-    document.body.appendChild(_spinnerEl);
-  }
-  function hideSpinner() {
-    if (_spinnerEl) { _spinnerEl.remove(); _spinnerEl = null; }
-  }
-
-  function mostraToast(tipo, html) {
-    hideSpinner();
-    const t = document.getElementById('dnd-toast');
-    const msg = document.getElementById('dnd-toast-msg');
-    if (!t || !msg) return;
-    t.firstElementChild.className =
-      `toast show align-items-center text-bg-${tipo} border-0 shadow`;
-    msg.innerHTML = html;
-    t.style.display = '';
-    setTimeout(() => { t.style.display = 'none'; }, 4000);
-  }
-
-  /* ------------------------------------------------------------------ click giorno → nuovo appuntamento */
-  function initClickGiorno() {
-    document.querySelectorAll('.dnd-drop-zone[data-date]').forEach(zona => {
-      zona.style.cursor = 'pointer';
-      zona.addEventListener('click', function (e) {
-        // ignora se è stato appena trascinato
-        if (window._wasDragging) return;
-        // ignora click su pill esistente (link appuntamento)
-        if (e.target.closest('.app-pill, .dnd-pill, a')) return;
-        const data = zona.dataset.date;
-        if (data) window.location.href = '/agenda/nuovo?data=' + data;
-      });
-    });
-  }
-
-  /* ------------------------------------------------------------------ touch D&D (mobile — pointer events)
-     L'HTML5 Drag API non funziona su iOS/Android: questo blocco aggiunge
-     supporto completo al drag tramite PointerEvents. Coesiste con il D&D
-     desktop senza interferenze (i pointerdown sui pill hanno touch-action:none).
-  */
-  (function initTouchDnD() {
-    const isMobile = () => window.matchMedia('(pointer:coarse)').matches;
-
-    let ghost = null, dragId = null, lastDropZone = null, origPill = null;
-
-    function mkGhost(pill) {
-      ghost = pill.cloneNode(true);
-      ghost.style.cssText = [
-        'position:fixed','z-index:9999','pointer-events:none',
-        'opacity:.85','transform:scale(1.06) rotate(-2deg)',
-        'transition:none','will-change:transform',
-        'box-shadow:0 8px 24px rgba(0,0,0,.25)',
-      ].join(';');
-      document.body.appendChild(ghost);
-    }
-    function moveGhost(x, y) {
-      if (!ghost) return;
-      const w = ghost.offsetWidth, h = ghost.offsetHeight;
-      ghost.style.left = (x - w / 2) + 'px';
-      ghost.style.top  = (y - h / 2) + 'px';
-    }
-    function removeGhost() {
-      if (ghost) { ghost.remove(); ghost = null; }
-    }
-    function highlight(zone, on) {
-      if (zone) zone.classList.toggle('dnd-over', on);
-    }
-    function findDropZone(x, y) {
-      if (ghost) ghost.style.display = 'none';
-      const el = document.elementFromPoint(x, y);
-      if (ghost) ghost.style.display = '';
-      if (!el) return null;
-      return el.closest('.dnd-drop-zone[data-date]');
-    }
-
-    document.addEventListener('pointerdown', function (e) {
-      if (!isMobile()) return;
-      const pill = e.target.closest('.dnd-pill[draggable]');
-      if (!pill) return;
-
-      dragId   = pill.dataset.id;
-      origPill = pill;
-      mkGhost(pill);
-      moveGhost(e.clientX, e.clientY);
-      // touch-action:none attivato solo durante drag per non bloccare lo scroll globale
-      pill.style.touchAction = 'none';
-      // setPointerCapture sul target diretto dell'evento (e.target) se è nel pill,
-      // altrimenti sul pill stesso — garantisce il capture su iOS/Android
-      try { (pill.contains(e.target) ? e.target : pill).setPointerCapture(e.pointerId); } catch (_) {}
-      pill.style.opacity = '.3';
-      window._wasDragging = false;
-      if (window.pctVibrate) window.pctVibrate(8);
-      e.preventDefault();
-    }, { passive: false });
-
-    document.addEventListener('pointermove', function (e) {
-      if (!dragId || !ghost) return;
-      moveGhost(e.clientX, e.clientY);
-      window._wasDragging = true;
-
-      const zone = findDropZone(e.clientX, e.clientY);
-      if (zone !== lastDropZone) {
-        highlight(lastDropZone, false);
-        highlight(zone, true);
-        if (zone && window.pctVibrate) window.pctVibrate(4);
-        lastDropZone = zone;
-      }
-    }, { passive: true });
-
-    document.addEventListener('pointerup', async function (e) {
-      if (!dragId) return;
-      const zone = findDropZone(e.clientX, e.clientY);
-      highlight(lastDropZone, false);
-      removeGhost();
-      if (origPill) { origPill.style.opacity = ''; origPill.style.touchAction = ''; }
-
-      if (zone && zone.dataset.date && dragId) {
-        window._wasDragging = true;
-        if (window.pctVibrate) window.pctVibrate(15);
-        await spostaAppuntamento(dragId, zone.dataset.date);
-      }
-
-      dragId = null; origPill = null; lastDropZone = null;
-    }, { passive: true });
-
-    document.addEventListener('pointercancel', function () {
-      highlight(lastDropZone, false);
-      removeGhost();
-      if (origPill) { origPill.style.opacity = ''; origPill.style.touchAction = ''; }
-      dragId = null; origPill = null; lastDropZone = null;
-    }, { passive: true });
-  })();
-
-  /* ------------------------------------------------------------------ init */
-  document.addEventListener('DOMContentLoaded', () => {
-    initPills();
-    initDropZones();
-    initGiornoRows();
-    initClickGiorno();
-  });
-})();
-</script>
 {% endblock %}

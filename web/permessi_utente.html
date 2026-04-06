@@ -1,125 +1,78 @@
-{% extends "base.html" %}
-{% block title %}{{ 'Modifica' if utente else 'Nuovo' }} Utente{% endblock %}
-{% block page_title %}{{ 'Modifica' if utente else 'Nuovo' }} Utente{% endblock %}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verifica 2FA — Studio Legale PCT</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { background: #f0f4f8; }
+    .login-card {
+      max-width: 420px;
+      margin: 8vh auto 0;
+      border: none;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(26,58,92,.15);
+    }
+    .login-header {
+      background: #1a3a5c;
+      color: #fff;
+      border-radius: 16px 16px 0 0;
+      padding: 2rem;
+      text-align: center;
+    }
+    .login-header .icon { font-size: 2.5rem; color: #c8972b; }
+    .login-header h1 { font-size: 1.3rem; margin: .5rem 0 .1rem; }
+    .login-header p { font-size: .8rem; opacity: .7; margin: 0; }
+    .otp-input {
+      font-size: 1.8rem;
+      letter-spacing: .5rem;
+      text-align: center;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
 
-{% block content %}
-<div class="row g-4">
-
-{# ── Colonna form ── #}
-<div class="col-lg-8">
-<form method="post">
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-person me-2 text-primary"></i>Dati utente
+<div class="login-card card">
+  <div class="login-header">
+    <div class="icon"><i class="bi bi-shield-lock-fill"></i></div>
+    <h1>Verifica a due fattori</h1>
+    <p>{{ username }}</p>
   </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-        <input type="text" name="username" class="form-control"
-               value="{{ utente.username if utente else '' }}"
-               {{ 'disabled' if utente else 'required' }}
-               placeholder="mario.rossi">
+  <div class="card-body p-4">
+    {% if errore %}
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ errore }}</span>
+    </div>
+    {% endif %}
+
+    <p class="text-muted small mb-3">
+      <i class="bi bi-phone me-1"></i>
+      Inserisci il codice a 6 cifre dalla tua app di autenticazione
+      (Google Authenticator, Aegis, ecc.)
+    </p>
+
+    <form method="post" autocomplete="off">
+      <div class="mb-4">
+        <input type="text" name="codice" class="form-control otp-input"
+               inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+               placeholder="000000" autofocus required>
       </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Ruolo <span class="text-danger">*</span></label>
-        <select name="ruolo" class="form-select" required id="ruolo-select">
-          {% for r in ruoli %}
-          {% set desc = DESCRIZIONI_RUOLI[r] %}
-          <option value="{{ r.value }}"
-                  data-desc="{{ desc.descrizione }}"
-                  data-colore="{{ desc.colore }}"
-                  data-icona="{{ desc.icona }}"
-                  {{ 'selected' if utente and utente.ruolo == r }}>
-            {{ r.value.replace('_',' ') }}
-          </option>
-          {% endfor %}
-        </select>
-        <div id="ruolo-desc" class="form-text mt-1 small text-muted"></div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Nome completo</label>
-        <input type="text" name="nome_completo" class="form-control"
-               value="{{ utente.nome_completo if utente else '' }}"
-               placeholder="Avv. Mario Rossi">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Email</label>
-        <input type="email" name="email" class="form-control"
-               value="{{ utente.email if utente else '' }}"
-               placeholder="mario.rossi@studio.it">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">
-          {{ 'Nuova password (lasciare vuoto per non cambiare)' if utente else 'Password *' }}
-        </label>
-        <input type="password" name="password" class="form-control"
-               {{ '' if utente else 'required' }} minlength="8"
-               placeholder="min. 8 caratteri">
-      </div>
-      {% if utente %}
-      <div class="col-md-6 d-flex align-items-end">
-        <div class="form-check form-switch ms-2">
-          <input class="form-check-input" type="checkbox" name="attivo"
-                 value="1" id="attivo" {{ 'checked' if utente.attivo }}>
-          <label class="form-check-label fw-semibold" for="attivo">Utente attivo</label>
-        </div>
-      </div>
-      {% endif %}
+      <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+        <i class="bi bi-shield-check me-2"></i>Verifica
+      </button>
+    </form>
+
+    <div class="mt-3 text-center">
+      <a href="{{ url_for('login') }}" class="text-muted small">
+        <i class="bi bi-arrow-left me-1"></i>Torna al login
+      </a>
     </div>
   </div>
 </div>
-<div class="d-flex gap-2 mb-4">
-  <button type="submit" class="btn btn-primary">
-    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if utente else 'Crea utente' }}
-  </button>
-  <a href="{{ url_for('lista_utenti') }}" class="btn btn-outline-secondary">Annulla</a>
-{% if utente %}
-<a href="{{ url_for('permessi_utente', id_utente=utente.id) }}"
-   class="btn btn-outline-primary ms-auto">
-  <i class="bi bi-sliders me-1"></i>Permessi personalizzati
-</a>
-{% endif %}
-</div>
-</form>
-</div>{# /col-lg-8 #}
 
-{# ── Sidebar info ruoli ── #}
-<div class="col-lg-4">
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-people me-2 text-primary"></i>Ruoli disponibili
-    </div>
-    <div class="list-group list-group-flush" id="ruoli-lista">
-      {% for r in ruoli %}
-      {% set desc = DESCRIZIONI_RUOLI[r] %}
-      <div class="list-group-item small py-2">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <i class="bi {{ desc.icona }} text-{{ desc.colore }}"></i>
-          <span class="fw-semibold badge bg-{{ desc.colore }}">{{ r.value.replace('_',' ') }}</span>
-        </div>
-        <div class="text-muted" style="font-size:.78rem">{{ desc.descrizione }}</div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>{# /col-lg-4 #}
-
-</div>{# /row #}
-{% endblock %}
-
-{% block scripts %}
-<script>
-(function() {
-  const sel = document.getElementById('ruolo-select');
-  const desc = document.getElementById('ruolo-desc');
-  if (!sel || !desc) return;
-  function update() {
-    const opt = sel.options[sel.selectedIndex];
-    if (opt) desc.textContent = opt.dataset.desc || '';
-  }
-  sel.addEventListener('change', update);
-  update();
-})();
-</script>
-{% endblock %}
+</body>
+</html>

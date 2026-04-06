@@ -1,416 +1,345 @@
 {% extends "base.html" %}
-{% block title %}Checklist Deposito Telematico{% endblock %}
-{% block page_title %}Checklist Deposito Telematico{% endblock %}
+{% block title %}Impostazioni email{% endblock %}
 
 {% block content %}
-<div class="row g-3">
 
-  {# ---- Intro ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-3">
-          <div style="width:52px;height:52px;border-radius:12px;background:#e8f5e9;
-                      color:#2e7d32;font-size:1.5rem;display:flex;align-items:center;
-                      justify-content:center;flex-shrink:0">
-            <i class="bi bi-list-check"></i>
-          </div>
-          <div>
-            <h5 class="fw-bold mb-1">Checklist operativa per il deposito telematico</h5>
-            <p class="text-muted mb-0 small">
-              Seleziona il tipo di procedimento. Le spunte vengono salvate nel browser per la sessione corrente.
-              Usa questa lista prima di ogni deposito per non dimenticare nessun passaggio.
-            </p>
-          </div>
-          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetTutte()">
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset tutte
-          </button>
-        </div>
-      </div>
-    </div>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-gear-fill"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Impostazioni email</h1>
+    <p class="ds-ph-sub">Configurazione account SMTP e IMAP per la casella di posta</p>
   </div>
-
-  {# ---- Kit base (sempre) ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0 border-start border-4 border-primary">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-tools me-2 text-primary"></i>Kit base — necessario per qualsiasi deposito
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Indipendentemente dal tipo di rito, questi requisiti devono essere sempre soddisfatti prima di procedere.
-        </p>
-        {% set kit = [
-          ("kit_firma",  "bi-patch-check",  "Firma digitale attiva", "Certificato valido, PIN disponibile, software di firma installato e funzionante."),
-          ("kit_pec",    "bi-envelope-at",  "PEC attiva e capiente", "Casella PEC operativa, spazio sufficiente per inviare e ricevere le ricevute."),
-          ("kit_pdf",    "bi-file-earmark-pdf", "Documenti in formato corretto", "PDF testuale (non immagini scannerizzate pesanti), conformi alle regole tecniche vigenti."),
-          ("kit_portale","bi-browser-chrome","Portale giusto per il rito giusto", "Civile/DI/IR → PCT; Penale → PDP; Amministrativo → PAT/Portale Avvocato."),
-          ("kit_sw",     "bi-arrow-repeat",  "Software aggiornato", "Redattore atti / client PCT aggiornato alle specifiche tecniche più recenti (verificare anche nel 2026)."),
-          ("kit_rx",     "bi-inbox-fill",    "Controllo ricevute dopo l'invio", "Dopo ogni invio: accettazione, consegna, esiti controlli automatici, esito cancelleria.")
-        ] %}
-        {% for id, icon, titolo, desc in kit %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked)" style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold"><i class="bi {{ icon }} me-1 text-primary"></i>{{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
+  <div class="ds-ph-actions">
+    <a href="{{ url_for('email_client.casella') }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Casella</span>
+    </a>
   </div>
-
-  {# ---- 1. Civile (PCT) ---- #}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
-        <span class="badge bg-primary">PCT</span>
-        <span>1. Civile — deposito telematico</span>
-        <span class="ms-auto badge bg-light text-dark border" id="prog_civile">0 / 8</span>
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Canale: <strong>PCT</strong> (Processo Civile Telematico). Valido per atti civili in generale.
-        </p>
-        {% set civile = [
-          ("civ1", "Verifica e attiva la PEC",           "Le ricevute e le comunicazioni passano dalla PEC. Deve essere operativa prima dell'invio."),
-          ("civ2", "Verifica firma digitale",            "Certificato valido, PIN disponibile, software funzionante."),
-          ("civ3", "Accedi come soggetto abilitato",     "I tuoi dati devono risultare correttamente nei registri/servizi telematici del Ministero."),
-          ("civ4", "Prepara l'atto principale (PDF)",    "PDF testuale, non immagini scannerizzate. Rispetta le regole tecniche vigenti."),
-          ("civ5", "Prepara gli allegati",               "Procura, documenti, ricevute, attestazioni, contributo unificato se dovuto."),
-          ("civ6", "Crea la busta telematica",           "Usa il redattore atti / sistema compatibile con il PCT. Software aggiornato alle specifiche più recenti."),
-          ("civ7", "Firma i documenti richiesti",        "Firma digitale applicata agli atti che la richiedono."),
-          ("civ8", "Invia e controlla le ricevute",      "Accettazione → Consegna → Esiti controlli automatici → Esito cancelleria.")
-        ] %}
-        {% for id, titolo, desc in civile %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('civile', {{ civile|length }})"
-                 style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-        <div class="alert alert-info py-2 small mb-0">
-          <i class="bi bi-info-circle me-1"></i>
-          <strong>Verifica finale:</strong> firma valida · PEC capiente · PDF corretto · allegati nominati bene · contributo unificato assolto · software aggiornato.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- 2. Decreto ingiuntivo ---- #}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
-        <span class="badge bg-primary">PCT</span>
-        <span>2. Decreto ingiuntivo</span>
-        <span class="ms-auto badge bg-light text-dark border" id="prog_di">0 / 7</span>
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Segue il canale <strong>PCT</strong>. La base è la stessa del civile, ma con documenti specifici.
-        </p>
-        {% set di = [
-          ("di1", "Prepara il ricorso per D.I. (PDF conforme)",  "PDF testuale, formato conforme alle regole tecniche."),
-          ("di2", "Allega la prova del credito",                 "Fatture, contratto, estratti, diffide, documenti giustificativi."),
-          ("di3", "Allega la procura (se necessaria)",           "Procura alle liti firmata dal cliente."),
-          ("di4", "Gestisci contributo unificato e diritti",     "Verifica importi e modalità di pagamento; allega ricevuta se richiesto."),
-          ("di5", "Crea la busta telematica col redattore",      "Software PCT aggiornato; compila i metadati correttamente."),
-          ("di6", "Firma e invia",                               "Firma digitale sugli atti che la richiedono; invio tramite PEC/redattore."),
-          ("di7", "Conserva ricevute PEC ed esiti",              "Accettazione, consegna, esiti automatici, nota di iscrizione a ruolo.")
-        ] %}
-        {% for id, titolo, desc in di %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('di', {{ di|length }})"
-                 style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  {# ---- 3. Iscrizione a ruolo ---- #}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
-        <span class="badge bg-primary">PCT</span>
-        <span>3. Iscrizione a ruolo</span>
-        <span class="ms-auto badge bg-light text-dark border" id="prog_ir">0 / 8</span>
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Canale <strong>PCT</strong> per il civile. Primo deposito che apre il fascicolo telematico.
-        </p>
-        {% set ir = [
-          ("ir1", "Prepara l'atto introduttivo",              "Citazione, ricorso o altro atto a seconda del rito."),
-          ("ir2", "Inserisci i dati corretti delle parti",    "Dati anagrafici e codici fiscali corretti per ogni parte."),
-          ("ir3", "Allega documenti, procura, ricevute",      "Procura alle liti, eventuali prove di notifica, documenti allegati."),
-          ("ir4", "Compila i campi richiesti dal redattore",  "Tipo di ufficio, sezione, rito, valore della causa, ecc."),
-          ("ir5", "Verifica importi e pagamenti",             "Contributo unificato, diritti di segreteria, spese di notifica."),
-          ("ir6", "Firma gli atti richiesti",                 "Firma digitale sull'atto e sugli allegati che la richiedono."),
-          ("ir7", "Invia la busta telematica",                "Tramite PEC o redattore integrato, a seconda del sistema."),
-          ("ir8", "Controlla l'esito e registra nel fascicolo", "Numero RG assegnato, data iscrizione, ricevute da conservare.")
-        ] %}
-        {% for id, titolo, desc in ir %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('ir', {{ ir|length }})"
-                 style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  {# ---- 4. Deposito allegati civile ---- #}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
-        <span class="badge bg-primary">PCT</span>
-        <span>4. Deposito allegati (civile)</span>
-        <span class="ms-auto badge bg-light text-dark border" id="prog_all">0 / 6</span>
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Per depositi successivi all'iscrizione a ruolo: memorie, note, allegati.
-        </p>
-        {% set all = [
-          ("all1", "Individua il fascicolo corretto",          "Numero RG, sezione e anno devono corrispondere."),
-          ("all2", "Scegli il tipo di deposito nel redattore", "Tipo atto corretto (memoria, note, allegati, ecc.)."),
-          ("all3", "Carica solo allegati ammessi e leggibili", "Formato corretto, dimensione nei limiti, file non corrotti."),
-          ("all4", "Firma se richiesto",                       "Atto principale firmato digitalmente se previsto."),
-          ("all5", "Invia",                                    "Tramite PEC o redattore integrato."),
-          ("all6", "Verifica acquisizione nel fascicolo",       "Controlla che il deposito sia stato acquisito correttamente nel fascicolo telematico.")
-        ] %}
-        {% for id, titolo, desc in all %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('all', {{ all|length }})"
-                 style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  {# ---- 5. Penale (PDP) ---- #}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
-        <span class="badge bg-danger">PDP</span>
-        <span>5. Penale — Portale Deposito Atti</span>
-        <span class="ms-auto badge bg-light text-dark border" id="prog_pen">0 / 9</span>
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Canale: <strong>PDP (Portale Deposito Atti Penali)</strong>. Non è il PCT — le regole tecniche sono diverse.
-        </p>
-        {% set pen = [
-          ("pen1", "Verifica depositabilità telematica dell'atto", "Non tutti gli atti penali sono gestiti dal PDP. Controlla le norme vigenti (aggiornate anche nel 2026)."),
-          ("pen2", "Firma digitale e credenziali PDP",             "Accesso al portale con le credenziali abilitate; firma digitale valida."),
-          ("pen3", "Prepara atto e allegati nei formati richiesti","Rispetta i formati specifici del PDP, che possono differire dal PCT."),
-          ("pen4", "Accedi al PDP",                               "Portale Deposito Atti Penali del Ministero della Giustizia."),
-          ("pen5", "Seleziona il procedimento / registro corretto","RGNR, RG GIP, Dibattimento — scegli correttamente."),
-          ("pen6", "Carica atto e allegati",                       "Tramite l'interfaccia del PDP."),
-          ("pen7", "Firma dove richiesto",                         "Firma digitale sugli atti che la richiedono secondo le specifiche PDP."),
-          ("pen8", "Invia",                                        "Conferma l'invio tramite il portale."),
-          ("pen9", "Conserva ricevuta ed esito del deposito",      "Scarica e archivia la ricevuta del PDP.")
-        ] %}
-        {% for id, titolo, desc in pen %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('pen', {{ pen|length }})"
-                 style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-        <div class="alert alert-warning py-2 small mb-0">
-          <i class="bi bi-exclamation-triangle me-1"></i>
-          <strong>Attenzione:</strong> avere PEC e firma non basta. Verifica sempre che quell'atto specifico sia gestito dal PDP e secondo quali specifiche tecniche aggiornate.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- 6. Amministrativo (PAT/SIGA) ---- #}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
-        <span class="badge bg-warning text-dark">PAT</span>
-        <span>6. Amministrativo — PAT / SIGA</span>
-        <span class="ms-auto badge bg-light text-dark border" id="prog_amm">0 / 9</span>
-      </div>
-      <div class="card-body pb-2">
-        <p class="small text-muted mb-3">
-          Canale: <strong>PAT/SIGA</strong> tramite il Portale dell'Avvocato della Giustizia Amministrativa.
-        </p>
-        {% set amm = [
-          ("amm1", "Verifica accesso al Portale dell'Avvocato",  "Credenziali attive e funzionanti sul portale della Giustizia Amministrativa."),
-          ("amm2", "Firma digitale e PEC",                       "Entrambi devono essere attivi e funzionanti."),
-          ("amm3", "Prepara ricorso/atto in formato conforme",   "Rispetta i requisiti tecnici del sistema PAT (formato, dimensione, struttura)."),
-          ("amm4", "Prepara allegati e documentazione",          "Procura, documenti, prove, relazioni di notifica se richieste."),
-          ("amm5", "Accedi al sistema PAT/SIGA",                 "Tramite il Portale dell'Avvocato con le credenziali abilitate."),
-          ("amm6", "Compila i dati del deposito",                "Sezione, RG, tipo atto, parti — tutti i campi del form di deposito."),
-          ("amm7", "Carica atto e allegati",                     "Tramite l'interfaccia PAT/SIGA."),
-          ("amm8", "Firma",                                       "Firma digitale applicata come richiesto dal sistema."),
-          ("amm9", "Invia e conserva ricevute/esiti",            "Conferma invio, scarica e archivia le ricevute.")
-        ] %}
-        {% for id, titolo, desc in amm %}
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="{{ id }}"
-                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('amm', {{ amm|length }})"
-                 style="width:1.2em;height:1.2em;margin-top:.15em">
-          <label class="form-check-label ms-2" for="{{ id }}">
-            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
-            <span class="d-block small text-muted">{{ desc }}</span>
-          </label>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  {# ---- Riepilogo orientamento rapido ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0 bg-light">
-      <div class="card-body">
-        <h6 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2 text-secondary"></i>Regola rapida per orientarti</h6>
-        <div class="row g-2">
-          <div class="col-12 col-md-4">
-            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
-              <span class="badge bg-primary mt-1">PCT</span>
-              <div class="small">
-                <div class="fw-semibold">Civile, Decreto ingiuntivo, Iscrizione a ruolo, Allegati civile</div>
-                <div class="text-muted">Processo Civile Telematico via PEC con busta .enc</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
-              <span class="badge bg-danger mt-1">PDP</span>
-              <div class="small">
-                <div class="fw-semibold">Penale</div>
-                <div class="text-muted">Portale Deposito Atti Penali — sistema separato dal PCT</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
-              <span class="badge bg-warning text-dark mt-1">PAT</span>
-              <div class="small">
-                <div class="fw-semibold">Amministrativo</div>
-                <div class="text-muted">PAT / Portale dell'Avvocato / SIGA</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- Link utili ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-link-45deg me-2"></i>Sezioni utili nell'applicativo
-      </div>
-      <div class="card-body">
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{{ url_for('polisWeb_home') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-building-fill-check me-1"></i>PolisWeb / PST
-          </a>
-          <a href="{{ url_for('tribunali') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-bank me-1"></i>Tribunali / PEC
-          </a>
-          <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-folder2 me-1"></i>Fascicoli
-          </a>
-          <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-calendar-check me-1"></i>Scadenziario
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
+
+{# ── PEC banner ── #}
+{% if pec_cfg and pec_cfg.indirizzo %}
+<div class="alert alert-success d-flex gap-2 align-items-start mb-4 small py-2 px-3 border-success">
+  <i class="bi bi-check-circle-fill flex-shrink-0 mt-1 text-success"></i>
+  <div>
+    <strong>PEC configurata:</strong> {{ pec_cfg.indirizzo }} — utilizzata per depositi telematici e risposte PST.
+    <a href="{{ url_for('impostazioni.index') }}#pec" class="fw-semibold ms-1 text-success">
+      Modifica PEC →
+    </a>
+  </div>
+</div>
+{% endif %}
+
+{# Toast area #}
+<div id="toastArea" class="position-fixed top-0 end-0 p-3" style="z-index:9999"></div>
+
+<form method="post" action="{{ url_for('email_client.impostazioni') }}" id="formEmail">
+<input type="hidden" name="azione" value="salva">
+
+<div class="row g-3 mb-3">
+
+  {# ── SMTP ── #}
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex align-items-center gap-2 fw-semibold">
+        <div class="rounded d-flex align-items-center justify-content-center"
+             style="width:28px;height:28px;background:#eff6ff;flex-shrink:0">
+          <i class="bi bi-send-fill text-primary" style="font-size:.8rem"></i>
+        </div>
+        Invio (SMTP)
+        <span class="text-muted small fw-normal ms-1">— server per l'invio di email</span>
+      </div>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Server SMTP</label>
+          <input type="text" name="smtp_host" class="form-control form-control-sm"
+                 value="{{ email_cfg.host if email_cfg else '' }}"
+                 placeholder="smtp.gmail.com">
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-5">
+            <label class="form-label fw-semibold small">Porta</label>
+            <input type="number" name="smtp_port" class="form-control form-control-sm"
+                   value="{{ email_cfg.port if email_cfg else 587 }}">
+          </div>
+          <div class="col-7 d-flex align-items-end pb-1">
+            <div class="form-check">
+              <input type="checkbox" name="use_tls" value="1" id="chkTls" class="form-check-input"
+                     {{ 'checked' if email_cfg and email_cfg.use_tls }}>
+              <label for="chkTls" class="form-check-label small">STARTTLS</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Username / Email</label>
+          <input type="email" name="username" class="form-control form-control-sm"
+                 value="{{ email_cfg.username if email_cfg else '' }}"
+                 placeholder="tuoemail@gmail.com">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Password</label>
+          <input type="password" name="password" class="form-control form-control-sm"
+                 placeholder="{{ '••••••••' if email_cfg and email_cfg.password else 'Password email' }}"
+                 autocomplete="new-password">
+          <div class="form-text">Lascia vuoto per mantenere la password attuale.</div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <label class="form-label fw-semibold small">Nome mittente</label>
+            <input type="text" name="mittente_nome" class="form-control form-control-sm"
+                   value="{{ email_cfg.from_name if email_cfg else '' }}"
+                   placeholder="Studio Legale Rossi">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Email mittente</label>
+          <input type="email" name="mittente_email" class="form-control form-control-sm"
+                 value="{{ email_cfg.from_address if email_cfg else '' }}"
+                 placeholder="info@studiolegale.it">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">
+            Reply-To <span class="text-muted fw-normal">(opzionale)</span>
+          </label>
+          <input type="email" name="reply_to" class="form-control form-control-sm"
+                 value="{{ email_cfg.from_address if email_cfg else '' }}"
+                 placeholder="risposta@studiolegale.it">
+        </div>
+
+        <hr class="my-3">
+
+        <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnTestSmtp">
+          <i class="bi bi-plug me-1"></i>Test connessione SMTP
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  {# ── IMAP ── #}
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header d-flex align-items-center gap-2 fw-semibold">
+        <div class="rounded d-flex align-items-center justify-content-center"
+             style="width:28px;height:28px;background:#f0fdf4;flex-shrink:0">
+          <i class="bi bi-cloud-download-fill text-success" style="font-size:.8rem"></i>
+        </div>
+        Ricezione (IMAP)
+        <span class="text-muted small fw-normal ms-1">— importa email e risposte PST</span>
+      </div>
+      <div class="card-body">
+
+        <div class="alert alert-light border small py-2 px-3 mb-3">
+          <i class="bi bi-info-circle me-1 text-primary"></i>
+          Se hai già configurato la <strong>PEC</strong>, usa le stesse credenziali IMAP
+          per ricevere le notifiche del portale telematico.
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Server IMAP</label>
+          <input type="text" name="imap_host" class="form-control form-control-sm"
+                 value="{{ pec_cfg.imap_host if email_cfg and pec_cfg.imap_host else '' }}"
+                 placeholder="imap.gmail.com">
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-5">
+            <label class="form-label fw-semibold small">Porta</label>
+            <input type="number" name="imap_port" class="form-control form-control-sm"
+                   value="{{ pec_cfg.imap_port if email_cfg and pec_cfg.imap_port else 993 }}">
+          </div>
+          <div class="col-7 d-flex align-items-end pb-1">
+            <div class="form-check">
+              <input type="checkbox" name="imap_ssl" value="1" id="chkImapSsl" class="form-check-input"
+                     {{ 'checked' if not email_cfg or not pec_cfg.use_ssl is defined or pec_cfg.use_ssl }}>
+              <label for="chkImapSsl" class="form-check-label small">SSL/TLS</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-light border small py-2 px-3 mb-3">
+          Username e password corrispondono all'account SMTP configurato.
+        </div>
+
+        <button type="button" class="btn btn-outline-success btn-sm w-100 mb-3" id="btnTestImap">
+          <i class="bi bi-plug me-1"></i>Test connessione IMAP
+        </button>
+
+        <hr class="my-3">
+
+        <button type="button" class="btn btn-success btn-sm w-100 fw-semibold" id="btnSincNow">
+          <i class="bi bi-cloud-download me-1"></i>Scarica email ora
+        </button>
+        <div class="form-text text-center mt-1">
+          Scarica le ultime 100 email e aggiorna automaticamente gli esiti PST.
+        </div>
+
+        <div id="syncResult" class="mt-3" style="display:none"></div>
+
+      </div>
+    </div>
+  </div>
+
+</div>{# /row #}
+
+<div class="d-flex justify-content-between align-items-center pt-2 border-top flex-wrap gap-2">
+  <button type="button" class="btn btn-outline-danger btn-sm" id="btnResetSmtp"
+          title="Azzera tutti i campi SMTP nel file di configurazione persistente">
+    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset configurazione SMTP
+  <button type="submit" class="btn btn-primary fw-semibold px-4">
+    <i class="bi bi-floppy me-1"></i>Salva impostazioni
+  </button>
+
+     <div class="d-flex gap-2">
+    <a href="{{ url_for('email_client.casella') }}" class="btn btn-outline-secondary">
+      Annulla
+    </a>
+    <button type="submit" class="btn btn-primary fw-semibold px-4">
+      <i class="bi bi-floppy me-1"></i>Salva impostazioni
+    </button>
+  </div>
+</div>
+
+{# ── Modal conferma reset SMTP ── #}
+<div class="modal fade" id="modalResetSmtp" tabindex="-1" aria-labelledby="modalResetSmtpLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-semibold" id="modalResetSmtpLabel">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Reset configurazione SMTP
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-2">Questa operazione azzera <strong>tutti i campi SMTP</strong> salvati nel file di configurazione persistente (<code>studio.json</code>):</p>
+        <ul class="small text-muted mb-3">
+          <li>Server SMTP, porta, STARTTLS</li>
+          <li>Username e password</li>
+          <li>Indirizzo e nome mittente</li>
+        </ul>
+        <p class="mb-0 small text-muted">Dopo il reset dovrai reinserire le credenziali del nuovo provider (es. Gmail) e salvare.</p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+        <button type="button" class="btn btn-danger btn-sm fw-semibold" id="btnResetSmtpConferma">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Azzera configurazione SMTP
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</form>
+
 {% endblock %}
 
-{% block scripts %}
+{% block extra_scripts %}
 <script>
-// Chiavi localStorage per ogni checkbox
-const PREFIX = 'chk_deposito_';
-
-function salva(id, val) {
-  try { localStorage.setItem(PREFIX + id, val ? '1' : '0'); } catch(e){}
+function _toast(tipo, msg) {
+  const area = document.getElementById('toastArea');
+  const id = 'toast_' + Date.now();
+  const colors = { success: '#059669', danger: '#dc2626', warning: '#d97706' };
+  const icons  = { success: 'check-circle-fill', danger: 'x-circle-fill', warning: 'exclamation-triangle-fill' };
+  area.insertAdjacentHTML('beforeend', `
+    <div id="${id}" class="toast align-items-center border-0 show mb-2"
+         style="background:#0f172a;color:#fff;border-radius:.625rem;min-width:260px;box-shadow:0 8px 24px rgba(15,23,42,.25)">
+      <div class="d-flex">
+        <div class="toast-body d-flex gap-2 align-items-start py-3 px-3">
+          <i class="bi bi-${icons[tipo]||'info-circle-fill'} flex-shrink-0 mt-1" style="color:${colors[tipo]||'#fff'}"></i>
+          <span style="font-size:.83rem;line-height:1.5">${msg}</span>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto opacity-50"
+                onclick="document.getElementById('${id}').remove()"></button>
+      </div>
+    </div>`);
+  setTimeout(() => document.getElementById(id)?.remove(), 6000);
 }
 
-function carica(id) {
-  try { return localStorage.getItem(PREFIX + id) === '1'; } catch(e){ return false; }
+function _postForm(azione) {
+  const fd = new FormData(document.getElementById('formEmail'));
+  fd.set('azione', azione);
+  return fetch('', { method: 'POST', body: fd }).then(r => r.json());
 }
 
-function aggiorna_prog(gruppo, totale) {
-  const prefix_map = {
-    civile: ['civ1','civ2','civ3','civ4','civ5','civ6','civ7','civ8'],
-    di:     ['di1','di2','di3','di4','di5','di6','di7'],
-    ir:     ['ir1','ir2','ir3','ir4','ir5','ir6','ir7','ir8'],
-    all:    ['all1','all2','all3','all4','all5','all6'],
-    pen:    ['pen1','pen2','pen3','pen4','pen5','pen6','pen7','pen8','pen9'],
-    amm:   ['amm1','amm2','amm3','amm4','amm5','amm6','amm7','amm8','amm9']
-  };
-  const ids = prefix_map[gruppo] || [];
-  const checked = ids.filter(i => {
-    const el = document.getElementById(i);
-    return el && el.checked;
-  }).length;
-  const badge = document.getElementById('prog_' + gruppo);
-  if (badge) {
-    badge.textContent = checked + ' / ' + ids.length;
-    badge.className = 'ms-auto badge border ' + (checked === ids.length && ids.length > 0
-      ? 'bg-success text-white' : 'bg-light text-dark');
-  }
-}
+document.getElementById('btnResetSmtp')?.addEventListener('click', function () {
+  const modal = new bootstrap.Modal(document.getElementById('modalResetSmtp'));
+  modal.show();
+});
 
-function resetTutte() {
-  if (!confirm('Azzerare tutte le spunte?')) return;
-  document.querySelectorAll('input[type="checkbox"]').forEach(el => {
-    el.checked = false;
-    try { localStorage.removeItem(PREFIX + el.id); } catch(e){}
-  });
-  ['civile','di','ir','all','pen','amm'].forEach(g => aggiorna_prog(g));
-}
+document.getElementById('btnResetSmtpConferma')?.addEventListener('click', function () {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Reset…';
 
-// Ripristina stato al caricamento
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('input[type="checkbox"]').forEach(el => {
-    if (el.id && !el.id.startsWith('kit')) {
-      el.checked = carica(el.id);
-    } else if (el.id) {
-      el.checked = carica(el.id);
+  fetch("{{ url_for('email_client.reset_smtp') }}", {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  })
+  .then(r => r.json())
+  .then(d => {
+    bootstrap.Modal.getInstance(document.getElementById('modalResetSmtp'))?.hide();
+    if (d.ok) {
+      _toast('success', d.messaggio || 'Configurazione SMTP azzerata.');
+      // Svuota i campi del form visibili senza ricaricare la pagina
+      ['smtp_host', 'smtp_port', 'username', 'mittente_email'].forEach(n => {
+        const el = document.querySelector(`[name="${n}"]`);
+        if (el) el.value = n === 'smtp_port' ? '587' : '';
+      });
+      const chkTls = document.getElementById('chkTls');
+      if (chkTls) chkTls.checked = true;
+      const pwdEl = document.querySelector('[name="password"]');
+      if (pwdEl) { pwdEl.value = ''; pwdEl.placeholder = 'Password email'; }
+    } else {
+      _toast('danger', d.errore || 'Errore durante il reset.');
     }
+  })
+  .catch(() => {
+    bootstrap.Modal.getInstance(document.getElementById('modalResetSmtp'))?.hide();
+    _toast('danger', 'Errore di rete durante il reset.');
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i>Azzera configurazione SMTP';
   });
-  ['civile','di','ir','all','pen','amm'].forEach(g => aggiorna_prog(g));
+});
+
+document.getElementById('btnSincNow')?.addEventListener('click', function () {
+  const btn = this;
+  const result = document.getElementById('syncResult');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Connessione…';
+  result.style.display = 'none';
+  fetch("{{ url_for('email_client.sincronizza') }}", {
+    method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'},
+  })
+  .then(r => r.json())
+  .then(d => {
+    let html, tipo;
+    if (d.ok) {
+      tipo = 'success';
+      html = `<strong>${d.nuove}</strong> email scaricate.`;
+      if (d.pst_trovate)      html += ` <strong>${d.pst_trovate}</strong> risposta/e PST.`;
+      if (d.esiti_aggiornati) html += ` <strong>${d.esiti_aggiornati}</strong> esito/i aggiornato/i.`;
+    } else {
+      tipo = 'danger'; html = d.errore || 'Errore sincronizzazione.';
+    }
+    result.innerHTML = `<div class="alert alert-${tipo} small py-2 px-3 mb-0">${html}</div>`;
+    result.style.display = 'block';
+    if (d.ok && d.nuove > 0) setTimeout(() => window.location = "{{ url_for('email_client.casella') }}", 2000);
+  })
+  .catch(() => {
+    result.innerHTML = '<div class="alert alert-danger small py-2 px-3 mb-0">Errore di rete.</div>';
+    result.style.display = 'block';
+  })
+  .finally(() => { btn.disabled = false; btn.innerHTML = orig; });
 });
 </script>
 {% endblock %}

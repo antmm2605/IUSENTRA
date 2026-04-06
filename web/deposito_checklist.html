@@ -1,637 +1,60 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Modifica' if cliente else 'Nuovo Cliente / Soggetto' }}{% endblock %}
-{% block page_title %}{{ 'Modifica Cliente' if cliente else 'Nuovo Cliente / Soggetto' }}{% endblock %}
+{% block title %}Checklist Deposito Telematico{% endblock %}
+{% block page_title %}Checklist Deposito Telematico{% endblock %}
 
 {% block content %}
+<div class="row g-3">
 
-{# ── Page Header ── #}
-<div class="ds-ph">
-  <div class="ds-ph-icon">
-    <i class="bi bi-{% if cliente %}pencil{% else %}person-plus-fill{% endif %}"></i>
-  </div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">{{ 'Modifica: ' + cliente.nome_completo if cliente else 'Nuovo Cliente / Soggetto' }}</h1>
-    <p class="ds-ph-sub">{% if cliente %}Anagrafica cliente dello studio{% else %}Crea un nuovo cliente oppure registra un soggetto processuale{% endif %}</p>
-  </div>
-  <div class="ds-ph-actions">
-    {% if cliente %}
-    <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Scheda cliente</span>
-    </a>
-    {% else %}
-    <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Clienti</span>
-    </a>
-    {% endif %}
-  </div>
-</div>
-
-{% if not cliente %}
-{# ── Tab Navigator ── #}
-<ul class="nav nav-tabs mb-3" id="nuovoTab" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="tab-cliente-btn"
-            data-bs-toggle="tab" data-bs-target="#tab-cliente"
-            type="button" role="tab" aria-selected="true">
-      <i class="bi bi-person-plus me-1"></i>Nuovo Cliente
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="tab-soggetto-btn"
-            data-bs-toggle="tab" data-bs-target="#tab-soggetto"
-            type="button" role="tab" aria-selected="false">
-      <i class="bi bi-person-badge me-1"></i>Nuovo Soggetto
-    </button>
-  </li>
-</ul>
-<div class="tab-content" id="nuovoTabContent">
-<div class="tab-pane fade show active" id="tab-cliente" role="tabpanel">
-{% endif %}
-
-<form method="post" id="formCliente">
-
-{# ---- Tipo (solo nuovo) ---- #}
-{% if not cliente %}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-toggles me-2 text-primary"></i>Tipo cliente
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <div class="form-check form-check-card h-100">
-          <input class="form-check-input" type="radio" name="tipo"
-                 id="tipo_pf" value="PERSONA_FISICA" checked>
-          <label class="form-check-label d-block p-3 border rounded cursor-pointer" for="tipo_pf">
-            <i class="bi bi-person-fill fs-3 text-primary d-block mb-1"></i>
-            <strong>Persona fisica</strong>
-            <div class="small text-muted">Privato, professionista</div>
-          </label>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="form-check form-check-card h-100">
-          <input class="form-check-input" type="radio" name="tipo"
-                 id="tipo_pg" value="PERSONA_GIURIDICA">
-          <label class="form-check-label d-block p-3 border rounded cursor-pointer" for="tipo_pg">
-            <i class="bi bi-building-fill fs-3 text-purple d-block mb-1"
-               style="color:#6a1b9a"></i>
-            <strong>Persona giuridica</strong>
-            <div class="small text-muted">Società, ente, associazione</div>
-          </label>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-{% else %}
-<input type="hidden" name="tipo" value="{{ cliente.tipo.value }}">
-{% endif %}
-
-{# ---- Sezione persona fisica ---- #}
-<div id="sec_pf" class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-person me-2 text-primary"></i>Dati anagrafici
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-
-      {# Persona fisica #}
-      <div class="pf-only col-md-4">
-        <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
-        <input type="text" name="nome" class="form-control"
-               value="{{ cliente.nome if cliente else '' }}"
-               placeholder="Mario">
-      </div>
-      <div class="pf-only col-md-4">
-        <label class="form-label fw-semibold">Cognome <span class="text-danger">*</span></label>
-        <input type="text" name="cognome" class="form-control"
-               value="{{ cliente.cognome if cliente else '' }}"
-               placeholder="Rossi">
-      </div>
-      <div class="pf-only col-md-2">
-        <label class="form-label fw-semibold">Sesso</label>
-        <select name="sesso" id="cf_sesso" class="form-select">
-          <option value="">—</option>
-          <option value="M" {{ 'selected' if cliente and cliente.sesso=='M' }}>M</option>
-          <option value="F" {{ 'selected' if cliente and cliente.sesso=='F' }}>F</option>
-        </select>
-      </div>
-
-      {# Persona giuridica #}
-      <div class="pg-only col-md-6" style="display:none">
-        <label class="form-label fw-semibold">Ragione sociale <span class="text-danger">*</span></label>
-        <input type="text" name="ragione_sociale" class="form-control"
-               value="{{ cliente.ragione_sociale if cliente else '' }}"
-               placeholder="Acme S.r.l.">
-      </div>
-      <div class="pg-only col-md-3" style="display:none">
-        <label class="form-label fw-semibold">Forma giuridica</label>
-        <input type="text" name="forma_giuridica" class="form-control"
-               value="{{ cliente.forma_giuridica if cliente else '' }}"
-               placeholder="Srl, SpA, SAS…">
-      </div>
-      <div class="pg-only col-md-3" style="display:none">
-        <label class="form-label fw-semibold">Codice ATECO</label>
-        <input type="text" name="codice_ateco" class="form-control"
-               value="{{ cliente.codice_ateco if cliente else '' }}">
-      </div>
-
-      {# Campi comuni #}
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Codice fiscale</label>
-        <div class="input-group">
-          <input type="text" name="codice_fiscale" id="cf_input"
-                 class="form-control font-monospace"
-                 value="{{ cliente.codice_fiscale if cliente else '' }}"
-                 placeholder="RSSMRA80A01H501Z" maxlength="16"
-                 style="text-transform:uppercase"
-                 autocomplete="off">
-          <span class="input-group-text" id="cf_spinner" style="display:none">
-            <span class="spinner-border spinner-border-sm text-primary"></span>
-          </span>
-          <span class="input-group-text text-success" id="cf_ok" style="display:none">
-            <i class="bi bi-check-circle-fill"></i>
-          </span>
-        </div>
-        <div class="form-text text-primary" id="cf_hint" style="display:none">
-          <i class="bi bi-magic me-1"></i>Dati compilati automaticamente
-        </div>
-      </div>
-      <div class="pg-only col-md-4" style="display:none">
-        <label class="form-label fw-semibold">Partita IVA</label>
-        <input type="text" name="partita_iva" class="form-control font-monospace"
-               value="{{ cliente.partita_iva if cliente else '' }}"
-               placeholder="12345678901" maxlength="11">
-      </div>
-
-      {# Nascita (solo PF) #}
-      <div class="pf-only col-md-3">
-        <label class="form-label fw-semibold">Data di nascita</label>
-        <input type="date" name="data_nascita" id="cf_data_nascita"
-               class="form-control"
-               value="{{ cliente.data_nascita if cliente else '' }}">
-      </div>
-      <div class="pf-only col-md-1">
-        <label class="form-label fw-semibold">Età</label>
-        <input type="number" name="eta" id="cf_eta" class="form-control"
-               value="{{ cliente.eta if cliente and cliente.eta is not none else '' }}"
-               placeholder="—" min="0" max="150" readonly
-               tabindex="-1" style="background:#f8f9fa;cursor:default">
-      </div>
-      <div class="pf-only col-md-4">
-        <label class="form-label fw-semibold">Luogo di nascita</label>
-        <input type="text" name="luogo_nascita" id="cf_luogo_nascita"
-               class="form-control"
-               value="{{ cliente.luogo_nascita if cliente else '' }}"
-               placeholder="Roma">
-      </div>
-      <div class="pf-only col-md-2">
-        <label class="form-label fw-semibold">Prov.</label>
-        <input type="text" name="provincia_nascita" id="cf_provincia_nascita"
-               class="form-control"
-               value="{{ cliente.provincia_nascita if cliente else '' }}"
-               maxlength="2" placeholder="RM" style="text-transform:uppercase">
-      </div>
-      <div class="pf-only col-md-2">
-        <label class="form-label fw-semibold">Nazionalità</label>
-        <input type="text" name="nazionalita" class="form-control"
-               value="{{ cliente.nazionalita if cliente else 'Italiana' }}">
-      </div>
-
-      {# Rappresentante legale (solo PG) #}
-      <div class="pg-only col-md-5" style="display:none">
-        <label class="form-label fw-semibold">Rappresentante legale</label>
-        <input type="text" name="rappresentante_legale" class="form-control"
-               value="{{ cliente.rappresentante_legale if cliente else '' }}">
-      </div>
-      <div class="pg-only col-md-4" style="display:none">
-        <label class="form-label fw-semibold">CF rappresentante</label>
-        <input type="text" name="cf_rappresentante" class="form-control font-monospace"
-               value="{{ cliente.cf_rappresentante if cliente else '' }}"
-               maxlength="16" style="text-transform:uppercase">
-      </div>
-      <div class="pg-only col-md-3" style="display:none">
-        <label class="form-label fw-semibold">Data costituzione</label>
-        <input type="date" name="data_costituzione" class="form-control"
-               value="{{ cliente.data_costituzione if cliente else '' }}">
-      </div>
-
-    </div>
-  </div>
-</div>
-
-{# ---- Recapiti ---- #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-telephone me-2 text-primary"></i>Recapiti
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      {% macro inp(label, name, ph='', tipo='text') %}
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">{{ label }}</label>
-        <input type="{{ tipo }}" name="{{ name }}" class="form-control"
-               value="{{ cliente.recapiti[name] if cliente else '' }}"
-               placeholder="{{ ph }}">
-      </div>
-      {% endmacro %}
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Telefono</label>
-        <input type="tel" name="telefono" class="form-control"
-               value="{{ cliente.recapiti.telefono if cliente else '' }}"
-               placeholder="+39 02 1234567">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Cellulare</label>
-        <input type="tel" name="cellulare" class="form-control"
-               value="{{ cliente.recapiti.cellulare if cliente else '' }}"
-               placeholder="+39 333 1234567">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Fax</label>
-        <input type="tel" name="fax" class="form-control"
-               value="{{ cliente.recapiti.fax if cliente else '' }}">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Email</label>
-        <input type="email" name="email" class="form-control"
-               value="{{ cliente.recapiti.email if cliente else '' }}"
-               placeholder="mario.rossi@email.it">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">PEC</label>
-        <input type="email" name="pec" class="form-control"
-               value="{{ cliente.recapiti.pec if cliente else '' }}"
-               placeholder="mario.rossi@pec.it">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Sito web</label>
-        <input type="url" name="sito_web" class="form-control"
-               value="{{ cliente.recapiti.sito_web if cliente else '' }}"
-               placeholder="https://…">
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ---- Indirizzo residenza / sede legale ---- #}
-{% macro indirizzo_fields(titolo, prefix, ind=None) %}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-house me-2 text-primary"></i>{{ titolo }}
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-7">
-        <label class="form-label fw-semibold">Via / Piazza</label>
-        <input type="text" name="{{ prefix }}via" class="form-control"
-               value="{{ ind.via if ind else '' }}" placeholder="Via Roma">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label fw-semibold">N°</label>
-        <input type="text" name="{{ prefix }}civico" class="form-control"
-               value="{{ ind.civico if ind else '' }}" placeholder="10">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold">CAP</label>
-        <input type="text" name="{{ prefix }}cap" class="form-control"
-               value="{{ ind.cap if ind else '' }}" placeholder="20100" maxlength="5">
-      </div>
-      <div class="col-md-5">
-        <label class="form-label fw-semibold">Comune</label>
-        <input type="text" name="{{ prefix }}comune" class="form-control"
-               value="{{ ind.comune if ind else '' }}" placeholder="Milano">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label fw-semibold">Prov.</label>
-        <input type="text" name="{{ prefix }}provincia" class="form-control"
-               value="{{ ind.provincia if ind else '' }}" maxlength="2"
-               placeholder="MI" style="text-transform:uppercase">
-      </div>
-      <div class="col-md-5">
-        <label class="form-label fw-semibold">Nazione</label>
-        <input type="text" name="{{ prefix }}nazione" class="form-control"
-               value="{{ ind.nazione if ind else 'Italia' }}">
-      </div>
-    </div>
-  </div>
-</div>
-{% endmacro %}
-
-<div class="pf-only">
-  {{ indirizzo_fields("Residenza", "", cliente.indirizzo_residenza if cliente else None) }}
-  {{ indirizzo_fields("Domicilio (se diverso da residenza)", "dom_", cliente.indirizzo_domicilio if cliente else None) }}
-</div>
-<div class="pg-only" style="display:none">
-  {{ indirizzo_fields("Sede legale", "sl_", cliente.indirizzo_sede_legale if cliente else None) }}
-</div>
-
-{# ---- Documento identità (solo PF) ---- #}
-<div class="pf-only card shadow-sm mb-3" id="card-documento">
-  <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-credit-card me-2 text-primary"></i>Documento d'identità</span>
-    <button type="button" id="btn-scansiona"
-            class="btn btn-sm btn-outline-primary d-none"
-            onclick="apriScanner()">
-      <i class="bi bi-camera me-1"></i>Scansiona
-    </button>
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Tipo documento</label>
-        <select name="doc_tipo" id="doc_tipo" class="form-select">
-          {% for td in tipi_doc %}
-          <option value="{{ td.value }}"
-            {{ 'selected' if cliente and cliente.documento.tipo == td }}>
-            {{ td.value.replace('_',' ') }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      {# Sottotipo CIE (cartacea vs elettronica) — visibile solo per CARTA_IDENTITA #}
-      <div class="col-md-4" id="wrap-cie-gen" style="display:none">
-        <label class="form-label fw-semibold">Generazione CIE</label>
-        <select id="cie_generazione" class="form-select">
-          <option value="elettronica">Elettronica — dal 2016 (con MRZ)</option>
-          <option value="plastificata">Plastificata — 2000–2016</option>
-          <option value="cartacea">Cartacea — pre-2000</option>
-        </select>
-      </div>
-
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Numero</label>
-        <input type="text" name="doc_numero" id="doc_numero" class="form-control font-monospace"
-               value="{{ cliente.documento.numero if cliente else '' }}"
-               placeholder="CA12345AB" style="text-transform:uppercase">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Rilasciato da</label>
-        <input type="text" name="doc_rilasciato_da" class="form-control"
-               value="{{ cliente.documento.rilasciato_da if cliente else '' }}"
-               placeholder="Comune di…">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold">Data rilascio</label>
-        <input type="date" name="doc_data_rilascio" class="form-control"
-               value="{{ cliente.documento.data_rilascio if cliente else '' }}">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold">Data scadenza</label>
-        <input type="date" name="doc_data_scadenza" id="doc_data_scadenza" class="form-control"
-               value="{{ cliente.documento.data_scadenza if cliente else '' }}">
-      </div>
-    </div>
-
-    {# Hint scan — appare sotto i campi #}
-    <div id="scan-hint" class="alert alert-info border-0 mt-3 py-2 d-none small">
-      <i class="bi bi-info-circle me-1"></i>
-      <span id="scan-hint-text"></span>
-    </div>
-  </div>
-</div>
-
-{# ════════════════════════════════════════════════════════
-   MODAL SCANNER DOCUMENTO
-   ════════════════════════════════════════════════════════ #}
-<div class="modal fade" id="modalScanner" tabindex="-1"
-     aria-labelledby="scannerLabel" aria-hidden="true"
-     data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-
-      <div class="modal-header">
-        <div>
-          <h5 class="modal-title mb-0" id="scannerLabel">
-            <i class="bi bi-camera me-2 text-primary"></i>Scansiona documento
-          </h5>
-          <small class="text-muted" id="scanner-subtitle">Inquadra il documento per estrarre i dati automaticamente</small>
-        </div>
-        <button type="button" class="btn-close" id="btn-chiudi-scanner"></button>
-      </div>
-
-      <div class="modal-body p-0">
-
-        {# ---- STEP 1: selezione metodo acquisizione ---- #}
-        <div id="scan-step-source" class="p-3">
-          <div id="scan-guide" class="scan-guide-box mb-3">
-            <i class="bi bi-credit-card-2-back scan-guide-icon"></i>
-            <div id="scan-guide-text" class="scan-guide-desc"></div>
+  {# ---- Intro ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:52px;height:52px;border-radius:12px;background:#e8f5e9;
+                      color:#2e7d32;font-size:1.5rem;display:flex;align-items:center;
+                      justify-content:center;flex-shrink:0">
+            <i class="bi bi-list-check"></i>
           </div>
-
-          <div class="d-grid gap-2">
-            {# Fotocamera mobile (nativo) #}
-            <label class="btn btn-outline-primary scan-method-btn" id="btn-camera-mobile">
-              <i class="bi bi-camera-fill me-2"></i>
-              <span>Usa fotocamera</span>
-              <small class="d-block text-muted mt-1">Apre la fotocamera del dispositivo</small>
-              <input type="file" id="input-camera"
-                     accept="image/*" capture="environment"
-                     style="display:none">
-            </label>
-
-            {# Webcam desktop #}
-            <button type="button" class="btn btn-outline-secondary scan-method-btn"
-                    id="btn-webcam" onclick="apriWebcam()">
-              <i class="bi bi-webcam-fill me-2"></i>
-              <span>Usa webcam</span>
-              <small class="d-block text-muted mt-1">Acquisisce da webcam in tempo reale</small>
-            </button>
-
-            {# Carica file #}
-            <label class="btn btn-outline-secondary scan-method-btn">
-              <i class="bi bi-image me-2"></i>
-              <span>Carica immagine</span>
-              <small class="d-block text-muted mt-1">Seleziona una foto già scattata</small>
-              <input type="file" id="input-file"
-                     accept="image/*"
-                     style="display:none">
-            </label>
+          <div>
+            <h5 class="fw-bold mb-1">Checklist operativa per il deposito telematico</h5>
+            <p class="text-muted mb-0 small">
+              Seleziona il tipo di procedimento. Le spunte vengono salvate nel browser per la sessione corrente.
+              Usa questa lista prima di ogni deposito per non dimenticare nessun passaggio.
+            </p>
           </div>
+          <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="resetTutte()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset tutte
+          </button>
         </div>
-
-        {# ---- STEP 2: webcam live ---- #}
-        <div id="scan-step-webcam" style="display:none" class="p-3">
-          <div class="scan-video-wrap mb-3">
-            <video id="scan-video" autoplay playsinline muted
-                   style="width:100%;border-radius:.5rem;background:#000;max-height:380px;object-fit:cover"></video>
-            <div class="scan-overlay">
-              <div class="scan-frame">
-                <div class="scan-corner tl"></div>
-                <div class="scan-corner tr"></div>
-                <div class="scan-corner bl"></div>
-                <div class="scan-corner br"></div>
-              </div>
-              <p class="scan-overlay-tip">Posiziona il documento all'interno del riquadro</p>
-            </div>
-          </div>
-          <div class="d-flex gap-2">
-            <button type="button" class="btn btn-primary flex-grow-1" onclick="scattaWebcam()">
-              <i class="bi bi-camera me-1"></i>Scatta
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="tornaSource()">
-              <i class="bi bi-arrow-left me-1"></i>Indietro
-            </button>
-          </div>
-          <canvas id="webcam-canvas" style="display:none"></canvas>
-        </div>
-
-        {# ---- STEP 3: elaborazione ---- #}
-        <div id="scan-step-processing" style="display:none" class="p-4 text-center">
-          <div class="scan-process-anim mb-3">
-            <i class="bi bi-cpu scan-cpu-icon"></i>
-          </div>
-          <div class="fw-semibold mb-1" id="scan-process-msg">Analisi in corso…</div>
-          <div class="progress mt-2" style="height:6px">
-            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
-                 id="scan-progress" style="width:15%"></div>
-          </div>
-          <small class="text-muted mt-2 d-block">Elaborazione client-side — nessun dato inviato a server esterni</small>
-        </div>
-
-        {# ---- STEP 4: risultato e conferma ---- #}
-        <div id="scan-step-result" style="display:none" class="p-3">
-          <div class="row g-3">
-            {# Preview immagine acquisita #}
-            <div class="col-md-5">
-              <div class="scan-preview-wrap">
-                <img id="scan-result-img" class="img-fluid rounded shadow-sm" src="" alt="">
-                <div class="scan-preview-badge" id="scan-mrz-badge" style="display:none">
-                  <i class="bi bi-shield-check text-success me-1"></i>MRZ letto
-                </div>
-              </div>
-            </div>
-
-            {# Campi estratti #}
-            <div class="col-md-7">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <span class="fw-semibold small">Dati estratti</span>
-                <span class="badge bg-success" id="scan-confidence-badge" style="display:none"></span>
-              </div>
-              <div id="scan-fields-list" class="scan-fields-grid"></div>
-              <div id="scan-no-mrz-msg" style="display:none"
-                   class="alert alert-warning border-0 small mt-2">
-                <i class="bi bi-exclamation-triangle me-1"></i>
-                Documento senza MRZ standard. L'immagine è visibile a lato —
-                compila i campi manualmente.
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>{# /modal-body #}
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" id="btn-scanner-annulla">
-          <i class="bi bi-x me-1"></i>Annulla
-        </button>
-        <button type="button" class="btn btn-success d-none" id="btn-scanner-applica"
-                onclick="applicaDatiScan()">
-          <i class="bi bi-check2 me-1"></i>Applica dati al form
-        </button>
-        <button type="button" class="btn btn-primary d-none" id="btn-scanner-ripeti"
-                onclick="tornaSource()">
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Riprova
-        </button>
       </div>
     </div>
   </div>
-</div>
 
-{# ---- Info studio ---- #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-briefcase me-2 text-primary"></i>Dati studio
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Avvocato referente</label>
-        <input type="text" name="avvocato_referente" class="form-control"
-               value="{{ cliente.avvocato_referente if cliente else '' }}"
-               placeholder="Avv. Mario Rossi">
+  {# ---- Kit base (sempre) ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 border-start border-4 border-primary">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-tools me-2 text-primary"></i>Kit base — necessario per qualsiasi deposito
       </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Provenienza</label>
-        <input type="text" name="provenienza" class="form-control"
-               value="{{ cliente.provenienza if cliente else '' }}"
-               placeholder="Passaparola, web…">
-      </div>
-      {% if cliente %}
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Stato</label>
-        <select name="stato" class="form-select">
-          {% for s in stati %}
-          <option value="{{ s.value }}" {{ 'selected' if cliente.stato == s }}>{{ s.value }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-      <div class="col-12">
-        <label class="form-label fw-semibold">Note</label>
-        <textarea name="note" class="form-control" rows="3"
-                  placeholder="Note generali sul cliente…">{{ cliente.note if cliente else '' }}</textarea>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# ---- Bottoni ---- #}
-<div class="d-flex gap-2 mb-4">
-  <button type="submit" class="btn btn-primary">
-    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if cliente else 'Crea cliente' }}
-  </button>
-  {% if cliente %}
-  <a href="{{ url_for('dettaglio_cliente', id_cliente=cliente.id) }}"
-     class="btn btn-outline-secondary">Annulla</a>
-  {% else %}
-  <a href="{{ url_for('lista_clienti') }}" class="btn btn-outline-secondary">Annulla</a>
-  {% endif %}
-</div>
-
-</form>
-
-{% if not cliente %}
-</div>{# /tab-pane tab-cliente #}
-
-{# ════════════════════════════════════════════════════════
-   TAB NUOVO SOGGETTO
-   ════════════════════════════════════════════════════════ #}
-<div class="tab-pane fade" id="tab-soggetto" role="tabpanel">
-<form method="post" action="{{ url_for('nuovo_soggetto') }}" id="formSoggettoQuick">
-
-  {# ── Ruolo processuale ── #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-diagram-3 me-2 text-primary"></i>Tipo soggetto processuale <span class="text-danger">*</span>
-    </div>
-    <div class="card-body">
-      <div class="row g-2" id="sq-ruolo-grid">
-        {% for val, lbl, icon, color in [
-            ('CONTROPARTE',           'Controparte',            'bi-person-x',         'danger'),
-            ('ASSISTITO',             'Assistito / co-cliente', 'bi-person-check',      'success'),
-            ('DIFENSORE_CONTROPARTE', 'Difensore controparte',  'bi-briefcase',         'danger'),
-            ('TESTIMONE',             'Testimone',              'bi-eye',               'warning'),
-            ('PERITO_CTP',            'Perito CTP',             'bi-clipboard2-pulse',  'info'),
-            ('PERITO_CTU',            'Perito CTU',             'bi-clipboard2-check',  'info'),
-            ('GIUDICE',               'Giudice',                'bi-bank',              'dark'),
-            ('PM',                    'P.M.',                   'bi-shield-fill',       'dark'),
-            ('NOTAIO',                'Notaio',                 'bi-pen',               'secondary'),
-            ('MEDIATORE',             'Mediatore',              'bi-arrows-collapse',   'success'),
-            ('CURATORE',              'Curatore',               'bi-person-lock',       'secondary'),
-            ('CREDITORE',             'Creditore',              'bi-coin',              'primary'),
-            ('DEBITORE',              'Debitore',               'bi-cash-stack',        'danger'),
-            ('ALTRO',                 'Altro',                  'bi-three-dots',        'secondary'),
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Indipendentemente dal tipo di rito, questi requisiti devono essere sempre soddisfatti prima di procedere.
+        </p>
+        {% set kit = [
+          ("kit_firma",  "bi-patch-check",  "Firma digitale attiva", "Certificato valido, PIN disponibile, software di firma installato e funzionante."),
+          ("kit_pec",    "bi-envelope-at",  "PEC attiva e capiente", "Casella PEC operativa, spazio sufficiente per inviare e ricevere le ricevute."),
+          ("kit_pdf",    "bi-file-earmark-pdf", "Documenti in formato corretto", "PDF testuale (non immagini scannerizzate pesanti), conformi alle regole tecniche vigenti."),
+          ("kit_portale","bi-browser-chrome","Portale giusto per il rito giusto", "Civile/DI/IR → PCT; Penale → PDP; Amministrativo → PAT/Portale Avvocato."),
+          ("kit_sw",     "bi-arrow-repeat",  "Software aggiornato", "Redattore atti / client PCT aggiornato alle specifiche tecniche più recenti (verificare anche nel 2026)."),
+          ("kit_rx",     "bi-inbox-fill",    "Controllo ricevute dopo l'invio", "Dopo ogni invio: accettazione, consegna, esiti controlli automatici, esito cancelleria.")
         ] %}
-        <div class="col-6 col-sm-4 col-md-3">
-          <label class="sq-ruolo-card w-100 border rounded-2 p-2 text-center"
-                 style="cursor:pointer;transition:all .15s">
-            <input type="radio" name="qualifica" value="{{ val }}" class="visually-hidden sq-ruolo-radio"
-                   {{ 'checked' if loop.first }}>
-            <i class="bi {{ icon }} d-block fs-5 mb-1 text-{{ color }}"></i>
-            <div class="small fw-semibold" style="font-size:.75rem">{{ lbl }}</div>
+        {% for id, icon, titolo, desc in kit %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked)" style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold"><i class="bi {{ icon }} me-1 text-primary"></i>{{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
           </label>
         </div>
         {% endfor %}
@@ -639,979 +62,355 @@
     </div>
   </div>
 
-  {# ── Tipo anagrafico ── #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-person-badge me-2 text-primary"></i>Tipo anagrafico
-    </div>
-    <div class="card-body">
-      <div class="d-flex gap-3 flex-wrap">
-        <label class="tipo-toggle-sq flex-fill text-center py-3 border rounded-3"
-               style="cursor:pointer;transition:all .15s" data-tipo-sq="PERSONA_FISICA">
-          <input type="radio" name="tipo" value="PERSONA_FISICA" class="visually-hidden tipo-radio-sq" checked>
-          <i class="bi bi-person-fill d-block fs-3 mb-1 text-primary"></i>
-          <div class="fw-semibold small">Persona fisica</div>
-        </label>
-        <label class="tipo-toggle-sq flex-fill text-center py-3 border rounded-3"
-               style="cursor:pointer;transition:all .15s" data-tipo-sq="PERSONA_GIURIDICA">
-          <input type="radio" name="tipo" value="PERSONA_GIURIDICA" class="visually-hidden tipo-radio-sq">
-          <i class="bi bi-building-fill d-block fs-3 mb-1" style="color:#6a1b9a"></i>
-          <div class="fw-semibold small">Persona giuridica</div>
-        </label>
+  {# ---- 1. Civile (PCT) ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>1. Civile — deposito telematico</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_civile">0 / 8</span>
       </div>
-    </div>
-  </div>
-
-  {# ── Dati persona fisica ── #}
-  <div class="card shadow-sm mb-3" id="sq-sec-pf">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-person me-2 text-primary"></i>Dati anagrafici
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Cognome <span class="text-danger">*</span></label>
-          <input type="text" name="cognome" class="form-control" placeholder="Rossi">
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale: <strong>PCT</strong> (Processo Civile Telematico). Valido per atti civili in generale.
+        </p>
+        {% set civile = [
+          ("civ1", "Verifica e attiva la PEC",           "Le ricevute e le comunicazioni passano dalla PEC. Deve essere operativa prima dell'invio."),
+          ("civ2", "Verifica firma digitale",            "Certificato valido, PIN disponibile, software funzionante."),
+          ("civ3", "Accedi come soggetto abilitato",     "I tuoi dati devono risultare correttamente nei registri/servizi telematici del Ministero."),
+          ("civ4", "Prepara l'atto principale (PDF)",    "PDF testuale, non immagini scannerizzate. Rispetta le regole tecniche vigenti."),
+          ("civ5", "Prepara gli allegati",               "Procura, documenti, ricevute, attestazioni, contributo unificato se dovuto."),
+          ("civ6", "Crea la busta telematica",           "Usa il redattore atti / sistema compatibile con il PCT. Software aggiornato alle specifiche più recenti."),
+          ("civ7", "Firma i documenti richiesti",        "Firma digitale applicata agli atti che la richiedono."),
+          ("civ8", "Invia e controlla le ricevute",      "Accettazione → Consegna → Esiti controlli automatici → Esito cancelleria.")
+        ] %}
+        {% for id, titolo, desc in civile %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('civile', {{ civile|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Nome <span class="text-danger">*</span></label>
-          <input type="text" name="nome" class="form-control" placeholder="Mario">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Codice Fiscale</label>
-          <input type="text" name="codice_fiscale" class="form-control font-monospace text-uppercase"
-                 placeholder="RSSMRA80A01H501Z" maxlength="16" autocapitalize="characters">
+        {% endfor %}
+        <div class="alert alert-info py-2 small mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Verifica finale:</strong> firma valida · PEC capiente · PDF corretto · allegati nominati bene · contributo unificato assolto · software aggiornato.
         </div>
       </div>
     </div>
   </div>
 
-  {# ── Dati persona giuridica ── #}
-  <div class="card shadow-sm mb-3" id="sq-sec-pg" style="display:none">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-building me-2 text-success"></i>Dati aziendali
+  {# ---- 2. Decreto ingiuntivo ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>2. Decreto ingiuntivo</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_di">0 / 7</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Segue il canale <strong>PCT</strong>. La base è la stessa del civile, ma con documenti specifici.
+        </p>
+        {% set di = [
+          ("di1", "Prepara il ricorso per D.I. (PDF conforme)",  "PDF testuale, formato conforme alle regole tecniche."),
+          ("di2", "Allega la prova del credito",                 "Fatture, contratto, estratti, diffide, documenti giustificativi."),
+          ("di3", "Allega la procura (se necessaria)",           "Procura alle liti firmata dal cliente."),
+          ("di4", "Gestisci contributo unificato e diritti",     "Verifica importi e modalità di pagamento; allega ricevuta se richiesto."),
+          ("di5", "Crea la busta telematica col redattore",      "Software PCT aggiornato; compila i metadati correttamente."),
+          ("di6", "Firma e invia",                               "Firma digitale sugli atti che la richiedono; invio tramite PEC/redattore."),
+          ("di7", "Conserva ricevute PEC ed esiti",              "Accettazione, consegna, esiti automatici, nota di iscrizione a ruolo.")
+        ] %}
+        {% for id, titolo, desc in di %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('di', {{ di|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+      </div>
     </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Ragione sociale <span class="text-danger">*</span></label>
-          <input type="text" name="ragione_sociale" class="form-control" placeholder="Rossi Srl">
+  </div>
+
+  {# ---- 3. Iscrizione a ruolo ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>3. Iscrizione a ruolo</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_ir">0 / 8</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale <strong>PCT</strong> per il civile. Primo deposito che apre il fascicolo telematico.
+        </p>
+        {% set ir = [
+          ("ir1", "Prepara l'atto introduttivo",              "Citazione, ricorso o altro atto a seconda del rito."),
+          ("ir2", "Inserisci i dati corretti delle parti",    "Dati anagrafici e codici fiscali corretti per ogni parte."),
+          ("ir3", "Allega documenti, procura, ricevute",      "Procura alle liti, eventuali prove di notifica, documenti allegati."),
+          ("ir4", "Compila i campi richiesti dal redattore",  "Tipo di ufficio, sezione, rito, valore della causa, ecc."),
+          ("ir5", "Verifica importi e pagamenti",             "Contributo unificato, diritti di segreteria, spese di notifica."),
+          ("ir6", "Firma gli atti richiesti",                 "Firma digitale sull'atto e sugli allegati che la richiedono."),
+          ("ir7", "Invia la busta telematica",                "Tramite PEC o redattore integrato, a seconda del sistema."),
+          ("ir8", "Controlla l'esito e registra nel fascicolo", "Numero RG assegnato, data iscrizione, ricevute da conservare.")
+        ] %}
+        {% for id, titolo, desc in ir %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('ir', {{ ir|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
         </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Partita IVA</label>
-          <input type="text" name="partita_iva" class="form-control font-monospace" placeholder="12345678901">
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 4. Deposito allegati civile ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-primary">PCT</span>
+        <span>4. Deposito allegati (civile)</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_all">0 / 6</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Per depositi successivi all'iscrizione a ruolo: memorie, note, allegati.
+        </p>
+        {% set all = [
+          ("all1", "Individua il fascicolo corretto",          "Numero RG, sezione e anno devono corrispondere."),
+          ("all2", "Scegli il tipo di deposito nel redattore", "Tipo atto corretto (memoria, note, allegati, ecc.)."),
+          ("all3", "Carica solo allegati ammessi e leggibili", "Formato corretto, dimensione nei limiti, file non corrotti."),
+          ("all4", "Firma se richiesto",                       "Atto principale firmato digitalmente se previsto."),
+          ("all5", "Invia",                                    "Tramite PEC o redattore integrato."),
+          ("all6", "Verifica acquisizione nel fascicolo",       "Controlla che il deposito sia stato acquisito correttamente nel fascicolo telematico.")
+        ] %}
+        {% for id, titolo, desc in all %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('all', {{ all|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
         </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Codice Fiscale</label>
-          <input type="text" name="codice_fiscale" class="form-control font-monospace" placeholder="CF società">
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 5. Penale (PDP) ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-danger">PDP</span>
+        <span>5. Penale — Portale Deposito Atti</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_pen">0 / 9</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale: <strong>PDP (Portale Deposito Atti Penali)</strong>. Non è il PCT — le regole tecniche sono diverse.
+        </p>
+        {% set pen = [
+          ("pen1", "Verifica depositabilità telematica dell'atto", "Non tutti gli atti penali sono gestiti dal PDP. Controlla le norme vigenti (aggiornate anche nel 2026)."),
+          ("pen2", "Firma digitale e credenziali PDP",             "Accesso al portale con le credenziali abilitate; firma digitale valida."),
+          ("pen3", "Prepara atto e allegati nei formati richiesti","Rispetta i formati specifici del PDP, che possono differire dal PCT."),
+          ("pen4", "Accedi al PDP",                               "Portale Deposito Atti Penali del Ministero della Giustizia."),
+          ("pen5", "Seleziona il procedimento / registro corretto","RGNR, RG GIP, Dibattimento — scegli correttamente."),
+          ("pen6", "Carica atto e allegati",                       "Tramite l'interfaccia del PDP."),
+          ("pen7", "Firma dove richiesto",                         "Firma digitale sugli atti che la richiedono secondo le specifiche PDP."),
+          ("pen8", "Invia",                                        "Conferma l'invio tramite il portale."),
+          ("pen9", "Conserva ricevuta ed esito del deposito",      "Scarica e archivia la ricevuta del PDP.")
+        ] %}
+        {% for id, titolo, desc in pen %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('pen', {{ pen|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
+        </div>
+        {% endfor %}
+        <div class="alert alert-warning py-2 small mb-0">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>Attenzione:</strong> avere PEC e firma non basta. Verifica sempre che quell'atto specifico sia gestito dal PDP e secondo quali specifiche tecniche aggiornate.
         </div>
       </div>
     </div>
   </div>
 
-  {# ── Qualifica professionale (opzionale) ── #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold d-flex align-items-center gap-2">
-      <i class="bi bi-briefcase text-primary"></i>Qualifica professionale
-      <span class="ms-auto text-muted fw-normal" style="font-size:.74rem">opzionale — per avvocati, periti, CTU ecc.</span>
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Qualifica</label>
-          <input type="text" name="qualifica" class="form-control" list="sq-qualifiche-list"
-                 placeholder="es. Avvocato, Perito, CTU…">
-          <datalist id="sq-qualifiche-list">
-            {% for q in ['Avvocato','Procuratore','Notaio','Geometra','Ingegnere','Architetto','Medico','Commercialista','Perito industriale','Mediatore','Curatore fallimentare','Magistrato','Pubblico Ministero'] %}
-            <option value="{{ q }}">
-            {% endfor %}
-          </datalist>
+  {# ---- 6. Amministrativo (PAT/SIGA) ---- #}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-header bg-transparent fw-semibold d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark">PAT</span>
+        <span>6. Amministrativo — PAT / SIGA</span>
+        <span class="ms-auto badge bg-light text-dark border" id="prog_amm">0 / 9</span>
+      </div>
+      <div class="card-body pb-2">
+        <p class="small text-muted mb-3">
+          Canale: <strong>PAT/SIGA</strong> tramite il Portale dell'Avvocato della Giustizia Amministrativa.
+        </p>
+        {% set amm = [
+          ("amm1", "Verifica accesso al Portale dell'Avvocato",  "Credenziali attive e funzionanti sul portale della Giustizia Amministrativa."),
+          ("amm2", "Firma digitale e PEC",                       "Entrambi devono essere attivi e funzionanti."),
+          ("amm3", "Prepara ricorso/atto in formato conforme",   "Rispetta i requisiti tecnici del sistema PAT (formato, dimensione, struttura)."),
+          ("amm4", "Prepara allegati e documentazione",          "Procura, documenti, prove, relazioni di notifica se richieste."),
+          ("amm5", "Accedi al sistema PAT/SIGA",                 "Tramite il Portale dell'Avvocato con le credenziali abilitate."),
+          ("amm6", "Compila i dati del deposito",                "Sezione, RG, tipo atto, parti — tutti i campi del form di deposito."),
+          ("amm7", "Carica atto e allegati",                     "Tramite l'interfaccia PAT/SIGA."),
+          ("amm8", "Firma",                                       "Firma digitale applicata come richiesto dal sistema."),
+          ("amm9", "Invia e conserva ricevute/esiti",            "Conferma invio, scarica e archivia le ricevute.")
+        ] %}
+        {% for id, titolo, desc in amm %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="{{ id }}"
+                 onchange="salva('{{ id }}', this.checked); aggiorna_prog('amm', {{ amm|length }})"
+                 style="width:1.2em;height:1.2em;margin-top:.15em">
+          <label class="form-check-label ms-2" for="{{ id }}">
+            <span class="fw-semibold">{{ loop.index }}. {{ titolo }}</span>
+            <span class="d-block small text-muted">{{ desc }}</span>
+          </label>
         </div>
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">Ordine professionale</label>
-          <input type="text" name="ordine" class="form-control"
-                 placeholder="es. Ordine Avvocati di Roma">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">N° iscrizione</label>
-          <input type="text" name="numero_iscrizione" class="form-control"
-                 placeholder="es. 12345/Roma">
-        </div>
+        {% endfor %}
       </div>
     </div>
   </div>
 
-  {# ── Recapiti essenziali ── #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-telephone me-2 text-primary"></i>Recapiti
-    </div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Cellulare</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-phone"></i></span>
-            <input type="tel" name="cellulare" class="form-control" placeholder="+39 333 0000000">
+  {# ---- Riepilogo orientamento rapido ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 bg-light">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-signpost-split me-2 text-secondary"></i>Regola rapida per orientarti</h6>
+        <div class="row g-2">
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
+              <span class="badge bg-primary mt-1">PCT</span>
+              <div class="small">
+                <div class="fw-semibold">Civile, Decreto ingiuntivo, Iscrizione a ruolo, Allegati civile</div>
+                <div class="text-muted">Processo Civile Telematico via PEC con busta .enc</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
+              <span class="badge bg-danger mt-1">PDP</span>
+              <div class="small">
+                <div class="fw-semibold">Penale</div>
+                <div class="text-muted">Portale Deposito Atti Penali — sistema separato dal PCT</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-start gap-2 p-2 bg-white rounded border">
+              <span class="badge bg-warning text-dark mt-1">PAT</span>
+              <div class="small">
+                <div class="fw-semibold">Amministrativo</div>
+                <div class="text-muted">PAT / Portale dell'Avvocato / SIGA</div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Email</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-            <input type="email" name="email" class="form-control" placeholder="mario@esempio.it">
-          </div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">PEC</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
-            <input type="email" name="pec" class="form-control" placeholder="mario@pec.it">
-          </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Link utili ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-link-45deg me-2"></i>Sezioni utili nell'applicativo
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('polisWeb_home') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-building-fill-check me-1"></i>PolisWeb / PST
+          </a>
+          <a href="{{ url_for('tribunali') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-bank me-1"></i>Tribunali / PEC
+          </a>
+          <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-folder2 me-1"></i>Fascicoli
+          </a>
+          <a href="{{ url_for('scadenziario') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-calendar-check me-1"></i>Scadenziario
+          </a>
         </div>
       </div>
     </div>
   </div>
 
-  {# ── Note ── #}
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-card-text me-2 text-secondary"></i>Note
-    </div>
-    <div class="card-body">
-      <textarea name="note" class="form-control" rows="3"
-                placeholder="Note sul soggetto (ruolo, riferimenti, ecc.)…"></textarea>
-    </div>
-  </div>
-
-  {# ── Bottoni ── #}
-  <div class="d-flex gap-2 mb-4">
-    <button type="submit" class="btn btn-primary">
-      <i class="bi bi-check-lg me-1"></i>Crea soggetto
-    </button>
-    <a href="{{ url_for('lista_clienti') }}" class="btn btn-outline-secondary">Annulla</a>
-  </div>
-
-</form>
-</div>{# /tab-pane tab-soggetto #}
-</div>{# /tab-content #}
-{% endif %}
-
-{# ════════════════════════════════════════════════════════
-   STILI SCANNER
-   ════════════════════════════════════════════════════════ #}
-<style>
-/* ---- Guide box ---- */
-.scan-guide-box {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  border: 1px solid #bfdbfe; border-radius: .5rem;
-  padding: 1rem 1.25rem; display: flex; align-items: flex-start; gap: .75rem;
-}
-.scan-guide-icon { font-size: 2rem; color: #2563eb; flex-shrink: 0; margin-top: .1rem; }
-.scan-guide-desc { font-size: .85rem; color: #1e40af; line-height: 1.5; }
-
-/* ---- Pulsanti metodo acquisizione ---- */
-.scan-method-btn {
-  text-align: left; padding: .75rem 1rem;
-  border-radius: .5rem; line-height: 1.3;
-  transition: background .15s, border-color .15s;
-}
-.scan-method-btn span { font-weight: 500; font-size: .92rem; }
-.scan-method-btn small { font-size: .75rem; }
-
-/* ---- Webcam overlay ---- */
-.scan-video-wrap { position: relative; background: #000; border-radius: .5rem; overflow: hidden; }
-.scan-overlay {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  pointer-events: none;
-}
-.scan-frame {
-  width: 85%; aspect-ratio: 1.586; position: relative;
-  box-shadow: 0 0 0 2000px rgba(0,0,0,.45);
-  border-radius: 4px;
-}
-.scan-corner {
-  position: absolute; width: 20px; height: 20px;
-  border-color: #fff; border-style: solid;
-}
-.scan-corner.tl { top: 0; left: 0;   border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
-.scan-corner.tr { top: 0; right: 0;  border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
-.scan-corner.bl { bottom: 0; left: 0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
-.scan-corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
-.scan-overlay-tip {
-  color: rgba(255,255,255,.85); font-size: .78rem;
-  margin-top: .5rem; text-shadow: 0 1px 3px rgba(0,0,0,.7);
-}
-
-/* ---- Elaborazione ---- */
-.scan-process-anim { font-size: 3rem; color: #2563eb; animation: scan-pulse 1.2s ease-in-out infinite; }
-@keyframes scan-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .5; transform: scale(.9); } }
-
-/* ---- Preview risultato ---- */
-.scan-preview-wrap { position: relative; }
-.scan-preview-badge {
-  position: absolute; bottom: .5rem; left: .5rem;
-  background: rgba(255,255,255,.92); border-radius: 6px;
-  padding: 2px 8px; font-size: .75rem; font-weight: 500;
-}
-
-/* ---- Griglia campi estratti ---- */
-.scan-fields-grid { display: flex; flex-direction: column; gap: .35rem; }
-.scan-field-row {
-  display: flex; align-items: baseline; gap: .5rem;
-  padding: .3rem .5rem; border-radius: 6px; background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-.scan-field-label { font-size: .72rem; color: #64748b; flex-shrink: 0; min-width: 90px; }
-.scan-field-value { font-size: .88rem; font-weight: 500; color: #1e293b; flex: 1; }
-.scan-field-row.uncertain { background: #fffbeb; border-color: #fde68a; }
-.scan-field-row.uncertain .scan-field-value { color: #92400e; }
-
-/* ---- Dark mode ---- */
-[data-bs-theme="dark"] .scan-guide-box { background: #1e2d40; border-color: #334155; }
-[data-bs-theme="dark"] .scan-guide-desc { color: #93c5fd; }
-[data-bs-theme="dark"] .scan-field-row { background: #1e293b; border-color: #334155; }
-[data-bs-theme="dark"] .scan-field-row.uncertain { background: #2d1f00; border-color: #92400e; }
-[data-bs-theme="dark"] .scan-field-value { color: #e2e8f0; }
-</style>
-
-{# ════════════════════════════════════════════════════════
-   JAVASCRIPT SCANNER DOCUMENTO
-   ════════════════════════════════════════════════════════ #}
-<script>
-(function () {
-'use strict';
-
-/* ================================================================
-   CONFIG: quale tipo di doc supporta MRZ e come
-   ================================================================ */
-const DOC_CONFIG = {
-  CARTA_IDENTITA: {
-    label: 'Carta d\'Identità',
-    hasMRZ: {
-      elettronica: true,   // CIE v3 dal 2016 — MRZ TD1 sul retro
-      plastificata: false, // 2000–2016 — senza MRZ
-      cartacea: false,     // pre-2000 — senza MRZ
-    },
-    guide: {
-      elettronica: '<b>CIE Elettronica</b>: inquadra il <b>retro</b> della carta — la striscia MRZ è nella parte bassa.',
-      plastificata: '<b>CIE Plastificata</b>: la carta non ha codice MRZ. Carica un\'immagine del fronte per aiutarti a compilare i campi.',
-      cartacea: '<b>CIE Cartacea</b>: documento senza MRZ. Carica un\'immagine per aiutarti nella compilazione.',
-    },
-    icon: 'bi-credit-card-2-back',
-  },
-  PASSAPORTO: {
-    label: 'Passaporto',
-    hasMRZ: { default: true },
-    guide: { default: 'Inquadra la pagina con la <b>foto e i dati</b> — la striscia MRZ è in fondo alla pagina.' },
-    icon: 'bi-passport',
-  },
-  PATENTE: {
-    label: 'Patente di guida',
-    hasMRZ: { default: false },
-    guide: { default: 'La patente non ha striscia MRZ. Carica un\'immagine del <b>fronte</b> per aiutarti nella compilazione.' },
-    icon: 'bi-car-front',
-  },
-  PERMESSO_SOGGIORNO: {
-    label: 'Permesso di soggiorno',
-    hasMRZ: { default: true },
-    guide: { default: 'Inquadra il <b>retro</b> del permesso — la striscia MRZ è nella parte bassa.' },
-    icon: 'bi-person-vcard',
-  },
-  ALTRO: {
-    label: 'Altro documento',
-    hasMRZ: { default: false },
-    guide: { default: 'Carica un\'immagine del documento per aiutarti nella compilazione.' },
-    icon: 'bi-file-earmark-person',
-  },
-};
-
-/* ================================================================
-   STATO
-   ================================================================ */
-let _videoStream   = null;
-let _capturedDataURL = null;
-let _parsedData    = null;
-let _tesseractWorker = null;
-let _tesseractReady  = false;
-let _currentDocType  = 'CARTA_IDENTITA';
-let _currentSubtype  = 'elettronica';
-
-/* ================================================================
-   INIT — aggiorna UI al cambio tipo documento
-   ================================================================ */
-const selTipo = document.getElementById('doc_tipo');
-const selGen  = document.getElementById('cie_generazione');
-const wrapGen = document.getElementById('wrap-cie-gen');
-const btnScan = document.getElementById('btn-scansiona');
-const hintEl  = document.getElementById('scan-hint');
-const hintTxt = document.getElementById('scan-hint-text');
-
-function aggiornaUI() {
-  _currentDocType = selTipo ? selTipo.value : 'CARTA_IDENTITA';
-  _currentSubtype = (selGen ? selGen.value : null) || 'default';
-  const cfg = DOC_CONFIG[_currentDocType] || DOC_CONFIG.ALTRO;
-
-  // Mostra/nasconde selezione generazione CIE
-  if (wrapGen) wrapGen.style.display = _currentDocType === 'CARTA_IDENTITA' ? '' : 'none';
-
-  // Pulsante scan sempre visibile per PF
-  if (btnScan) {
-    btnScan.classList.remove('d-none');
-    btnScan.innerHTML = `<i class="bi ${cfg.icon} me-1"></i>Scansiona`;
-  }
-
-  // Hint sotto i campi
-  const hasMRZ = _hasMRZ();
-  if (hintEl && hintTxt) {
-    if (hasMRZ) {
-      hintTxt.innerHTML = `<b>OCR attivo</b> — Clicca "Scansiona" per estrarre automaticamente cognome, nome, CF, data nascita e scadenza dalla striscia MRZ.`;
-      hintEl.className = 'alert alert-info border-0 mt-3 py-2 d-block small';
-    } else {
-      hintTxt.innerHTML = `Scansiona per acquisire un'immagine del documento come riferimento per la compilazione manuale.`;
-      hintEl.className = 'alert alert-secondary border-0 mt-3 py-2 d-block small';
-    }
-  }
-}
-
-function _hasMRZ() {
-  const cfg = DOC_CONFIG[_currentDocType];
-  if (!cfg) return false;
-  if (_currentDocType === 'CARTA_IDENTITA') {
-    return cfg.hasMRZ[_currentSubtype === 'default' ? 'elettronica' : _currentSubtype] || false;
-  }
-  return cfg.hasMRZ['default'] || false;
-}
-
-if (selTipo) { selTipo.addEventListener('change', aggiornaUI); aggiornaUI(); }
-if (selGen)  { selGen.addEventListener('change', aggiornaUI); }
-
-/* ================================================================
-   APERTURA MODAL
-   ================================================================ */
-window.apriScanner = function () {
-  _capturedDataURL = null;
-  _parsedData = null;
-  mostraStep('source');
-
-  const cfg = DOC_CONFIG[_currentDocType] || DOC_CONFIG.ALTRO;
-  const sub = _currentDocType === 'CARTA_IDENTITA' ? _currentSubtype : 'default';
-  const guideText = (cfg.guide && cfg.guide[sub]) || cfg.guide['default'] || '';
-
-  const guideEl = document.getElementById('scan-guide-text');
-  const iconEl  = document.querySelector('#scan-guide .scan-guide-icon');
-  if (guideEl) guideEl.innerHTML = guideText;
-  if (iconEl) iconEl.className = `bi ${cfg.icon} scan-guide-icon`;
-
-  document.getElementById('scanner-subtitle').textContent =
-    _hasMRZ() ? 'Posiziona la zona MRZ (striscia in basso) nel riquadro'
-               : 'Acquisisci l\'immagine del documento per aiutarti nella compilazione';
-
-  document.getElementById('btn-scanner-applica').classList.add('d-none');
-  document.getElementById('btn-scanner-ripeti').classList.add('d-none');
-
-  const modal = new bootstrap.Modal(document.getElementById('modalScanner'));
-  modal.show();
-};
-
-/* ================================================================
-   STEP NAVIGATION
-   ================================================================ */
-function mostraStep(step) {
-  ['source','webcam','processing','result'].forEach(s => {
-    const el = document.getElementById('scan-step-' + s);
-    if (el) el.style.display = s === step ? '' : 'none';
-  });
-}
-
-window.tornaSource = function () {
-  fermaWebcam();
-  mostraStep('source');
-  document.getElementById('btn-scanner-applica').classList.add('d-none');
-  document.getElementById('btn-scanner-ripeti').classList.add('d-none');
-};
-
-/* ================================================================
-   WEBCAM
-   ================================================================ */
-window.apriWebcam = async function () {
-  mostraStep('webcam');
-  try {
-    _videoStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false,
-    });
-    const video = document.getElementById('scan-video');
-    video.srcObject = _videoStream;
-  } catch (e) {
-    alert('Webcam non disponibile: ' + e.message + '\nUsa l\'opzione "Carica immagine".');
-    tornaSource();
-  }
-};
-
-window.scattaWebcam = function () {
-  const video  = document.getElementById('scan-video');
-  const canvas = document.getElementById('webcam-canvas');
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  _capturedDataURL = canvas.toDataURL('image/jpeg', 0.92);
-  fermaWebcam();
-  elaboraImmagine(_capturedDataURL);
-};
-
-function fermaWebcam() {
-  if (_videoStream) {
-    _videoStream.getTracks().forEach(t => t.stop());
-    _videoStream = null;
-  }
-  const video = document.getElementById('scan-video');
-  if (video) video.srcObject = null;
-}
-
-/* ================================================================
-   INPUT FILE (fotocamera mobile + carica file)
-   ================================================================ */
-document.getElementById('input-camera').addEventListener('change', leggiFile);
-document.getElementById('input-file').addEventListener('change', leggiFile);
-
-function leggiFile(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => elaboraImmagine(ev.target.result);
-  reader.readAsDataURL(file);
-  e.target.value = ''; // reset per poter riscattare lo stesso file
-}
-
-/* ================================================================
-   ELABORAZIONE IMMAGINE
-   ================================================================ */
-async function elaboraImmagine(dataURL) {
-  _capturedDataURL = dataURL;
-  mostraStep('processing');
-  document.getElementById('btn-scanner-applica').classList.add('d-none');
-  document.getElementById('btn-scanner-ripeti').classList.add('d-none');
-  aggiornaProg(10, 'Caricamento immagine…');
-
-  const hasMRZ = _hasMRZ();
-
-  if (!hasMRZ) {
-    // Nessuna MRZ — mostra immagine come riferimento visivo
-    mostraRisultatoNoMRZ(dataURL);
-    return;
-  }
-
-  // MRZ path — pre-processa poi OCR
-  try {
-    aggiornaProg(20, 'Pre-elaborazione immagine…');
-    const mrzDataURL = await preprocessMRZ(dataURL);
-
-    aggiornaProg(35, 'Caricamento motore OCR…');
-    const worker = await getWorker();
-
-    aggiornaProg(55, 'Riconoscimento caratteri MRZ…');
-    const { data: { text } } = await worker.recognize(mrzDataURL);
-
-    aggiornaProg(80, 'Analisi striscia MRZ…');
-    const mrzLines = estraiRigheMRZ(text);
-    _parsedData = parseMRZ(mrzLines);
-
-    aggiornaProg(100, 'Completato.');
-    setTimeout(() => mostraRisultato(dataURL, _parsedData, mrzLines.length > 0), 400);
-  } catch (err) {
-    console.error('Errore OCR:', err);
-    mostraRisultatoNoMRZ(dataURL, 'Errore durante il riconoscimento. Prova con un\'immagine più nitida.');
-  }
-}
-
-function aggiornaProg(perc, msg) {
-  const bar = document.getElementById('scan-progress');
-  const lbl = document.getElementById('scan-process-msg');
-  if (bar) bar.style.width = perc + '%';
-  if (lbl) lbl.textContent = msg;
-}
-
-/* ================================================================
-   PRE-PROCESSAZIONE IMMAGINE PER MRZ
-   Ritaglia il 30% inferiore e aumenta il contrasto
-   ================================================================ */
-function preprocessMRZ(dataURL) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      // Canvas piena immagine
-      const full = document.createElement('canvas');
-      full.width  = img.width;
-      full.height = img.height;
-      full.getContext('2d').drawImage(img, 0, 0);
-
-      // Ritaglia zona MRZ: bottom 28% (dove è la striscia su CIE/Passaporto)
-      const mrzH = Math.floor(img.height * 0.28);
-      const mrzY = img.height - mrzH;
-      const mrz  = document.createElement('canvas');
-      // Scala 2× per migliorare OCR
-      mrz.width  = img.width * 2;
-      mrz.height = mrzH * 2;
-      const ctx  = mrz.getContext('2d');
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, 0, mrzY, img.width, mrzH, 0, 0, mrz.width, mrz.height);
-
-      // Grayscale + hard threshold per font OCR-B
-      const id = ctx.getImageData(0, 0, mrz.width, mrz.height);
-      const d  = id.data;
-      for (let i = 0; i < d.length; i += 4) {
-        const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-        const v   = lum > 150 ? 255 : 0;
-        d[i] = d[i+1] = d[i+2] = v;
-      }
-      ctx.putImageData(id, 0, 0);
-      resolve(mrz.toDataURL('image/png'));
-    };
-    img.onerror = reject;
-    img.src = dataURL;
-  });
-}
-
-/* ================================================================
-   TESSERACT.JS — lazy load
-   ================================================================ */
-function getWorker() {
-  if (_tesseractReady && _tesseractWorker) return Promise.resolve(_tesseractWorker);
-  return new Promise((resolve, reject) => {
-    // Timeout globale 40 s: evita blocco silenzioso se CDN è irraggiungibile
-    const timeout = setTimeout(() => reject(new Error('Timeout caricamento motore OCR (rete lenta o CDN non raggiungibile)')), 40000);
-    const done = (fn, val) => { clearTimeout(timeout); fn(val); };
-    if (window.Tesseract) {
-      creaWorker().then(w => done(resolve, w)).catch(e => done(reject, e));
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload  = () => creaWorker().then(w => done(resolve, w)).catch(e => done(reject, e));
-    s.onerror = () => done(reject, new Error('Impossibile caricare Tesseract.js dal CDN'));
-    document.head.appendChild(s);
-  });
-}
-
-async function creaWorker() {
-  // langPath: jsDelivr GitHub CDN — più affidabile di tessdata.projectnaptha.com
-  const w = await Tesseract.createWorker('ocrb', 1, {
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    corePath:   'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
-    langPath:   'https://cdn.jsdelivr.net/gh/naptha/tessdata@4.0.0_best',
-    logger: m => {
-      if (m.status === 'loading tesseract core') {
-        aggiornaProg(40, 'Caricamento core WASM…');
-      } else if (m.status === 'initializing tesseract') {
-        aggiornaProg(48, 'Inizializzazione motore…');
-      } else if (m.status === 'loading language traineddata') {
-        aggiornaProg(35 + Math.round((m.progress || 0) * 15), 'Download modello OCR…');
-      } else if (m.status === 'recognizing text') {
-        aggiornaProg(55 + Math.round((m.progress || 0) * 25), 'Riconoscimento caratteri…');
-      }
-    },
-  });
-  await w.setParameters({ tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<' });
-  _tesseractWorker = w;
-  _tesseractReady  = true;
-  return w;
-}
-
-/* ================================================================
-   ESTRAZIONE RIGHE MRZ DAL TESTO OCR
-   ================================================================ */
-function estraiRigheMRZ(rawText) {
-  // Pulisce e filtra solo le righe che sembrano MRZ
-  const lines = rawText.split('\n')
-    .map(l => l.trim().toUpperCase().replace(/[^A-Z0-9<]/g, ''))
-    .filter(l => l.length >= 20 && (l.match(/</g) || []).length >= 2);
-
-  // TD3: 2 righe da 44
-  const td3 = lines.filter(l => l.length >= 40 && l.length <= 48);
-  if (td3.length >= 2) {
-    // Prendi le due righe più lunghe
-    const sorted = td3.sort((a, b) => b.length - a.length);
-    return [sorted[0].substring(0, 44).padEnd(44, '<'),
-            sorted[1].substring(0, 44).padEnd(44, '<')];
-  }
-
-  // TD1: 3 righe da 30
-  const td1 = lines.filter(l => l.length >= 27 && l.length <= 33);
-  if (td1.length >= 3) {
-    const sorted = td1.sort((a, b) => b.length - a.length);
-    return [sorted[0].substring(0, 30).padEnd(30, '<'),
-            sorted[1].substring(0, 30).padEnd(30, '<'),
-            sorted[2].substring(0, 30).padEnd(30, '<')];
-  }
-  if (td1.length === 2) {
-    return [td1[0].substring(0, 30).padEnd(30, '<'),
-            td1[1].substring(0, 30).padEnd(30, '<'), '<'.repeat(30)];
-  }
-  return [];
-}
-
-/* ================================================================
-   PARSER MRZ
-   ================================================================ */
-function parseMRZ(lines) {
-  const r = { cognome: '', nome: '', sesso: '', data_nascita: '', scadenza: '',
-              numero: '', nazionalita: '', cf: '', raw_type: '' };
-  if (!lines || lines.length === 0) return r;
-
-  // Normalizza
-  lines = lines.map(l => l.toUpperCase().replace(/[^A-Z0-9<]/g, '').padEnd(
-    lines[0].length >= 40 ? 44 : 30, '<'
-  ));
-
-  if (lines.length >= 2 && lines[0].length === 44) {
-    // ── TD3 (Passaporto) ──────────────────────────────────────
-    r.raw_type = 'TD3';
-    const L1 = lines[0], L2 = lines[1];
-    // Nomi: L1[5..43]
-    const nomi = L1.substring(5);
-    const dd   = nomi.indexOf('<<');
-    if (dd !== -1) {
-      r.cognome = nomi.substring(0, dd).replace(/</g, ' ').trim();
-      r.nome    = nomi.substring(dd + 2).replace(/<+/g, ' ').trim();
-    }
-    r.numero      = L2.substring(0, 9).replace(/</g, '').trim();
-    r.nazionalita = L2.substring(10, 13).replace(/</g, '').trim();
-    r.data_nascita = mrzDateToISO(L2.substring(13, 19));
-    r.sesso        = L2.charAt(20) === 'M' ? 'M' : (L2.charAt(20) === 'F' ? 'F' : '');
-    r.scadenza     = mrzDateToISO(L2.substring(21, 27));
-    // CF italiano: personal number (pos 28-43)
-    const pn = L2.substring(28, 43).replace(/</g, '').trim();
-    if (/^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$/.test(pn)) r.cf = pn;
-
-  } else if (lines.length >= 2 && lines[0].length === 30) {
-    // ── TD1 (CIE elettronica, Permesso) ──────────────────────
-    r.raw_type = 'TD1';
-    const L1 = lines[0], L2 = lines[1], L3 = (lines[2] || '').padEnd(30, '<');
-    // Numero documento L1[5..13]
-    r.numero = L1.substring(5, 14).replace(/</g, '').trim();
-    // CF: Italian CIE v3 mette il CF in L2[18..29] o in L1[15..29]
-    const opt1 = L1.substring(15, 30).replace(/</g, '').trim();
-    const opt2 = L2.substring(18, 29).replace(/</g, '').trim();
-    for (const cand of [opt2, opt1]) {
-      if (/^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]/.test(cand)) {
-        r.cf = cand.substring(0, 16); break;
-      }
-    }
-    // Date e sesso
-    r.data_nascita = mrzDateToISO(L2.substring(0, 6));
-    r.sesso        = L2.charAt(7) === 'M' ? 'M' : (L2.charAt(7) === 'F' ? 'F' : '');
-    r.scadenza     = mrzDateToISO(L2.substring(8, 14));
-    r.nazionalita  = L2.substring(15, 18).replace(/</g, '').trim();
-    // Nomi in L3
-    const dd = L3.indexOf('<<');
-    if (dd !== -1) {
-      r.cognome = L3.substring(0, dd).replace(/</g, ' ').trim();
-      r.nome    = L3.substring(dd + 2).replace(/<+/g, ' ').trim();
-    }
-  }
-  return r;
-}
-
-function mrzDateToISO(yymmdd) {
-  if (!yymmdd || yymmdd.length !== 6 || yymmdd === '<<<<<<') return '';
-  const yy = parseInt(yymmdd.substring(0, 2), 10);
-  const mm = yymmdd.substring(2, 4);
-  const dd = yymmdd.substring(4, 6);
-  const yyyy = yy >= 0 && yy <= 30 ? 2000 + yy : 1900 + yy;
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-/* ================================================================
-   VISUALIZZAZIONE RISULTATO
-   ================================================================ */
-function mostraRisultato(dataURL, data, hasMRZ) {
-  mostraStep('result');
-  document.getElementById('scan-result-img').src = dataURL;
-  document.getElementById('scan-mrz-badge').style.display = hasMRZ ? '' : 'none';
-  document.getElementById('scan-no-mrz-msg').style.display = hasMRZ ? 'none' : '';
-
-  const fieldsDef = [
-    { key: 'cognome',      label: 'Cognome' },
-    { key: 'nome',         label: 'Nome' },
-    { key: 'cf',           label: 'Codice fiscale' },
-    { key: 'data_nascita', label: 'Data di nascita' },
-    { key: 'sesso',        label: 'Sesso' },
-    { key: 'scadenza',     label: 'Scadenza doc.' },
-    { key: 'numero',       label: 'N. documento' },
-    { key: 'nazionalita',  label: 'Nazionalità' },
-  ];
-
-  const container = document.getElementById('scan-fields-list');
-  container.innerHTML = '';
-
-  let nCampi = 0;
-  fieldsDef.forEach(f => {
-    const val = data && data[f.key];
-    if (!val) return;
-    nCampi++;
-    const row = document.createElement('div');
-    row.className = 'scan-field-row';
-    row.innerHTML =
-      `<span class="scan-field-label">${f.label}</span>` +
-      `<span class="scan-field-value">${formattaValore(f.key, val)}</span>`;
-    container.appendChild(row);
-  });
-
-  if (nCampi === 0) {
-    container.innerHTML = '<div class="text-muted small">Nessun dato estratto — prova con immagine più nitida o usa la compilazione manuale.</div>';
-  }
-
-  const confBadge = document.getElementById('scan-confidence-badge');
-  if (hasMRZ && nCampi > 0) {
-    confBadge.textContent = nCampi + ' campi estratti';
-    confBadge.style.display = '';
-    document.getElementById('btn-scanner-applica').classList.remove('d-none');
-  } else {
-    confBadge.style.display = 'none';
-  }
-  document.getElementById('btn-scanner-ripeti').classList.remove('d-none');
-}
-
-function mostraRisultatoNoMRZ(dataURL, msg) {
-  _parsedData = null;
-  mostraRisultato(dataURL, {}, false);
-  if (msg) {
-    const el = document.getElementById('scan-no-mrz-msg');
-    if (el) { el.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>${msg}`; el.style.display = ''; }
-  }
-}
-
-function formattaValore(key, val) {
-  if ((key === 'data_nascita' || key === 'scadenza') && val && val.includes('-')) {
-    const p = val.split('-');
-    return `${p[2]}/${p[1]}/${p[0]}`;
-  }
-  if (key === 'sesso') return val === 'M' ? 'Maschile' : (val === 'F' ? 'Femminile' : val);
-  return val;
-}
-
-/* ================================================================
-   APPLICA DATI AL FORM
-   ================================================================ */
-window.applicaDatiScan = function () {
-  const d = _parsedData;
-  if (!d) return;
-
-  function set(name, val) {
-    if (!val) return;
-    const el = document.querySelector(`[name="${name}"]`) ||
-               document.getElementById(name);
-    if (el) el.value = val;
-  }
-
-  // Anagrafici
-  set('cognome', d.cognome);
-  set('nome', d.nome);
-  set('codice_fiscale', d.cf);
-  set('data_nascita', d.data_nascita);
-  set('sesso', d.sesso);
-
-  // Documento
-  set('doc_numero', d.numero);
-  set('doc_data_scadenza', d.scadenza);
-
-  // Nazionalità — mappa codice ISO3 → stringa
-  if (d.nazionalita) {
-    const iso3map = { ITA:'Italiana', DEU:'Tedesca', FRA:'Francese', GBR:'Britannica',
-      ESP:'Spagnola', USA:'Americana', CHN:'Cinese', ROU:'Romena', ALB:'Albanese',
-      MAR:'Marocchina', TUN:'Tunisina', SEN:'Senegalese', UKR:'Ucraina', POL:'Polacca' };
-    const naz = iso3map[d.nazionalita] || d.nazionalita;
-    set('nazionalita', naz);
-  }
-
-  // Se CF trovato, triggera decodifica automatica
-  if (d.cf) {
-    const cfEl = document.getElementById('cod_fiscale') || document.querySelector('[name="codice_fiscale"]');
-    if (cfEl) cfEl.dispatchEvent(new Event('input'));
-  }
-
-  // Chiudi modal
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalScanner'));
-  if (modal) modal.hide();
-
-  // Flash visivo sui campi compilati
-  setTimeout(() => {
-    ['cognome','nome','codice_fiscale','data_nascita','doc_numero','doc_data_scadenza'].forEach(n => {
-      const el = document.querySelector(`[name="${n}"]`);
-      if (el && el.value) {
-        el.classList.add('border-success');
-        setTimeout(() => el.classList.remove('border-success'), 2000);
-      }
-    });
-  }, 300);
-};
-
-/* ================================================================
-   CHIUSURA MODAL — ferma webcam e resetta
-   ================================================================ */
-['btn-chiudi-scanner','btn-scanner-annulla'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('click', () => {
-    fermaWebcam();
-    const modal = bootstrap.Modal.getInstance(document.getElementById('modalScanner'));
-    if (modal) modal.hide();
-  });
-});
-
-document.getElementById('modalScanner').addEventListener('hidden.bs.modal', fermaWebcam);
-
-})(); // fine IIFE
-</script>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// ---- Switcher Persona Fisica / Giuridica ----
-function aggiornaVista() {
-  const isPF = document.querySelector('input[name="tipo"]:checked')?.value === 'PERSONA_FISICA'
-              || '{{ cliente.tipo.value if cliente else "PERSONA_FISICA" }}' === 'PERSONA_FISICA';
-  document.querySelectorAll('.pf-only').forEach(el => el.style.display = isPF ? '' : 'none');
-  document.querySelectorAll('.pg-only').forEach(el => el.style.display = isPF ? 'none' : '');
+// Chiavi localStorage per ogni checkbox
+const PREFIX = 'chk_deposito_';
+
+function salva(id, val) {
+  try { localStorage.setItem(PREFIX + id, val ? '1' : '0'); } catch(e){}
 }
-document.querySelectorAll('input[name="tipo"]').forEach(r =>
-  r.addEventListener('change', aggiornaVista)
-);
-aggiornaVista();
 
-// ---- Decodifica automatica Codice Fiscale ----
-(function () {
-  const cfInput    = document.getElementById('cf_input');
-  const spinner    = document.getElementById('cf_spinner');
-  const okIcon     = document.getElementById('cf_ok');
-  const hint       = document.getElementById('cf_hint');
-  const fSesso     = document.getElementById('cf_sesso');
-  const fData      = document.getElementById('cf_data_nascita');
-  const fEta       = document.getElementById('cf_eta');
-  const fLuogo     = document.getElementById('cf_luogo_nascita');
-  const fProv      = document.getElementById('cf_provincia_nascita');
+function carica(id) {
+  try { return localStorage.getItem(PREFIX + id) === '1'; } catch(e){ return false; }
+}
 
-  if (!cfInput) return;
-
-  // Calcola età da data ISO
-  function calcolaEta(dataIso) {
-    if (!dataIso) return '';
-    const nascita = new Date(dataIso);
-    const oggi = new Date();
-    let eta = oggi.getFullYear() - nascita.getFullYear();
-    const m = oggi.getMonth() - nascita.getMonth();
-    if (m < 0 || (m === 0 && oggi.getDate() < nascita.getDate())) eta--;
-    return eta >= 0 ? eta : '';
+function aggiorna_prog(gruppo, totale) {
+  const prefix_map = {
+    civile: ['civ1','civ2','civ3','civ4','civ5','civ6','civ7','civ8'],
+    di:     ['di1','di2','di3','di4','di5','di6','di7'],
+    ir:     ['ir1','ir2','ir3','ir4','ir5','ir6','ir7','ir8'],
+    all:    ['all1','all2','all3','all4','all5','all6'],
+    pen:    ['pen1','pen2','pen3','pen4','pen5','pen6','pen7','pen8','pen9'],
+    amm:   ['amm1','amm2','amm3','amm4','amm5','amm6','amm7','amm8','amm9']
+  };
+  const ids = prefix_map[gruppo] || [];
+  const checked = ids.filter(i => {
+    const el = document.getElementById(i);
+    return el && el.checked;
+  }).length;
+  const badge = document.getElementById('prog_' + gruppo);
+  if (badge) {
+    badge.textContent = checked + ' / ' + ids.length;
+    badge.className = 'ms-auto badge border ' + (checked === ids.length && ids.length > 0
+      ? 'bg-success text-white' : 'bg-light text-dark');
   }
+}
 
-  // Aggiorna campo età quando cambia la data manualmente
-  if (fData) {
-    fData.addEventListener('change', () => {
-      if (fEta) fEta.value = calcolaEta(fData.value);
-    });
-    // Inizializza età se data già presente
-    if (fData.value && fEta && !fEta.value) {
-      fEta.value = calcolaEta(fData.value);
+function resetTutte() {
+  if (!confirm('Azzerare tutte le spunte?')) return;
+  document.querySelectorAll('input[type="checkbox"]').forEach(el => {
+    el.checked = false;
+    try { localStorage.removeItem(PREFIX + el.id); } catch(e){}
+  });
+  ['civile','di','ir','all','pen','amm'].forEach(g => aggiorna_prog(g));
+}
+
+// Ripristina stato al caricamento
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('input[type="checkbox"]').forEach(el => {
+    if (el.id && !el.id.startsWith('kit')) {
+      el.checked = carica(el.id);
+    } else if (el.id) {
+      el.checked = carica(el.id);
     }
-  }
-
-  let debounceTimer = null;
-
-  cfInput.addEventListener('input', function () {
-    const cf = this.value.replace(/\s/g, '').toUpperCase();
-    this.value = cf;
-
-    clearTimeout(debounceTimer);
-    okIcon.style.display = 'none';
-    hint.style.display = 'none';
-
-    if (cf.length !== 16) return;
-
-    spinner.style.display = '';
-    debounceTimer = setTimeout(() => decodificaCF(cf), 300);
   });
-
-  function decodificaCF(cf) {
-    fetch('/api/cf/decodifica?cf=' + encodeURIComponent(cf))
-      .then(r => r.json())
-      .then(data => {
-        spinner.style.display = 'none';
-        if (data.errore) return;
-
-        // Compila solo i campi ancora vuoti (o tutti se il form è nuovo)
-        const isNuovo = !{{ 'true' if cliente else 'false' }};
-
-        function setIfEmpty(el, val) {
-          if (el && (isNuovo || !el.value)) el.value = val;
-        }
-
-        if (fSesso && (isNuovo || !fSesso.value)) fSesso.value = data.sesso || '';
-        setIfEmpty(fData, data.data_nascita || '');
-        if (fEta) fEta.value = data.eta !== undefined ? data.eta : calcolaEta(data.data_nascita);
-        setIfEmpty(fLuogo, data.luogo_nascita || '');
-        setIfEmpty(fProv, data.provincia_nascita || '');
-
-        okIcon.style.display = '';
-        hint.style.display = '';
-        setTimeout(() => { okIcon.style.display = 'none'; hint.style.display = 'none'; }, 4000);
-      })
-      .catch(() => { spinner.style.display = 'none'; });
-  }
-})();
-
-/* ── Ruolo processuale quick-form ── */
-(function () {
-  const ruoloRadios = document.querySelectorAll('.sq-ruolo-radio');
-  function aggiornaRuolo() {
-    ruoloRadios.forEach(r => {
-      const card = r.closest('.sq-ruolo-card');
-      if (!card) return;
-      card.classList.toggle('border-primary', r.checked);
-      card.classList.toggle('bg-primary', r.checked);
-      card.classList.toggle('bg-opacity-10', r.checked);
-      card.classList.toggle('fw-semibold', r.checked);
-    });
-  }
-  ruoloRadios.forEach(r => r.addEventListener('change', aggiornaRuolo));
-  document.querySelectorAll('.sq-ruolo-card').forEach(c => {
-    c.addEventListener('click', function () {
-      const r = this.querySelector('.sq-ruolo-radio');
-      if (r) { r.checked = true; aggiornaRuolo(); }
-    });
-  });
-  aggiornaRuolo();
-})();
-
-/* ── Tipo soggetto quick-form ── */
-(function () {
-  const radios = document.querySelectorAll('.tipo-radio-sq');
-  const toggles = document.querySelectorAll('.tipo-toggle-sq');
-  const secPF = document.getElementById('sq-sec-pf');
-  const secPG = document.getElementById('sq-sec-pg');
-  if (!radios.length) return;
-
-  function aggiornaTipo() {
-    const val = document.querySelector('.tipo-radio-sq:checked')?.value || 'PERSONA_FISICA';
-    if (secPF) secPF.style.display = val === 'PERSONA_FISICA' ? '' : 'none';
-    if (secPG) secPG.style.display = val === 'PERSONA_GIURIDICA' ? '' : 'none';
-    toggles.forEach(t => {
-      const attivo = t.dataset.tipoSq === val;
-      t.classList.toggle('border-primary', attivo);
-      t.classList.toggle('bg-primary', attivo);
-      t.classList.toggle('bg-opacity-10', attivo);
-      t.classList.toggle('fw-semibold', attivo);
-    });
-  }
-
-  radios.forEach(r => r.addEventListener('change', aggiornaTipo));
-  toggles.forEach(t => t.addEventListener('click', function () {
-    const radio = this.querySelector('.tipo-radio-sq');
-    if (radio) { radio.checked = true; aggiornaTipo(); }
-  }));
-  aggiornaTipo();
-})();
+  ['civile','di','ir','all','pen','amm'].forEach(g => aggiorna_prog(g));
+});
 </script>
 {% endblock %}

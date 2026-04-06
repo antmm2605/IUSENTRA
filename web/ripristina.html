@@ -1,171 +1,158 @@
 {% extends "base.html" %}
-{% block title %}Profilo — {{ utente.username }}{% endblock %}
-{% block page_title %}Il mio profilo{% endblock %}
+{% block title %}Backup{% endblock %}
+{% block page_title %}Backup & Ripristino{% endblock %}
 
 {% block content %}
-<div class="row g-4">
 
-{# ── Colonna principale ── #}
-<div class="col-lg-8">
-
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-person-circle me-2 text-primary"></i>Dati personali
-    <span class="badge bg-{{ 'danger' if utente.ruolo.value == 'AMMINISTRATORE' else ('primary' if utente.ruolo.value == 'AVVOCATO' else 'secondary') }} ms-2">
-      {{ utente.ruolo.value }}
-    </span>
-  </div>
-  <div class="card-body">
-    <form method="post">
-      <input type="hidden" name="azione" value="aggiorna">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Username</label>
-          <input type="text" class="form-control" value="{{ utente.username }}" disabled>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Email</label>
-          <input type="email" name="email" class="form-control"
-                 value="{{ utente.email }}">
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Nome completo</label>
-          <input type="text" name="nome_completo" class="form-control"
-                 value="{{ utente.nome_completo }}">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Ultimo accesso</label>
-          <input type="text" class="form-control"
-                 value="{{ utente.ultimo_accesso[:19].replace('T',' ') if utente.ultimo_accesso else '—' }}"
-                 disabled>
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary mt-3">
-        <i class="bi bi-check-lg me-1"></i>Salva
-      </button>
-    </form>
+{# ── Page Header ── #}
+<div class="ds-ph">
+  <div class="ds-ph-icon"><i class="bi bi-cloud-upload"></i></div>
+  <div class="ds-ph-body">
+    <h1 class="ds-ph-title">Backup & Ripristino</h1>
+    <p class="ds-ph-sub">Gestione backup dei dati dello studio</p>
   </div>
 </div>
 
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-lock me-2 text-warning"></i>Cambio password
-  </div>
-  <div class="card-body">
-    <form method="post">
-      <input type="hidden" name="azione" value="password">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Password attuale</label>
-          <input type="password" name="password_old" class="form-control" required
-                 placeholder="••••••••">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Nuova password</label>
-          <input type="password" name="password_new" class="form-control" required
-                 minlength="8" placeholder="min. 8 caratteri">
-        </div>
-      </div>
-      <button type="submit" class="btn btn-warning mt-3">
-        <i class="bi bi-key me-1"></i>Cambia password
-      </button>
-    </form>
-  </div>
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> backup totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="num">{{ stats.ok }}</span> completati
+  </span>
+  {% if stats.falliti %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-x-circle text-danger"></i>
+    <span class="num">{{ stats.falliti }}</span> falliti
+  </span>
+  {% endif %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-hdd text-info"></i>
+    <span class="num">{{ stats.dimensione_totale_mb }} MB</span> spazio totale
+  </span>
 </div>
 
-</div>{# /col-lg-8 #}
-
-{# ── Sidebar 2FA + info ── #}
-<div class="col-lg-4">
-
-<div class="card shadow-sm">
-  <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-shield-lock me-2 text-success"></i>Autenticazione 2FA</span>
-    {% if utente.totp_attivato %}
-      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Attiva</span>
-    {% else %}
-      <span class="badge bg-secondary">Non attiva</span>
-    {% endif %}
+{# Esegui backup #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-cloud-upload me-2 text-primary"></i>Esegui backup
   </div>
   <div class="card-body">
-    {% if utente.totp_attivato %}
-      <p class="text-muted small mb-3">
-        La verifica in due passaggi è attiva. Per disattivarla, conferma la tua password.
-      </p>
-      <form method="post">
-        <input type="hidden" name="azione" value="2fa_disattiva">
-        <div class="d-flex flex-column gap-2">
-          <div>
-            <label class="form-label fw-semibold">Password</label>
-            <input type="password" name="pwd_disattiva" class="form-control"
-                   placeholder="Conferma password" required>
-          </div>
-          <button type="submit" class="btn btn-outline-danger btn-sm"
-                  onclick="return confirm('Disattivare il 2FA?')">
-            <i class="bi bi-shield-x me-1"></i>Disattiva 2FA
-          </button>
-        </div>
-      </form>
-    {% elif totp_temp_secret %}
-      <p class="small text-muted mb-2">
-        <strong>Passo 1</strong> — Scansiona il QR code con la tua app
-        (Google Authenticator, Aegis, Bitwarden…)
-      </p>
-      <div class="text-center my-3">
-        <canvas id="qr-canvas"></canvas>
+    <form method="post" action="{{ url_for('esegui_backup') }}" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Tipo</label>
+        <select name="tipo" class="form-select">
+          {% for t in tipi %}
+          <option value="{{ t.value }}">{{ t.value }}</option>
+          {% endfor %}
+        </select>
       </div>
-      <p class="small text-muted text-center mb-1">
-        Oppure inserisci manualmente il codice:
-        <code class="user-select-all">{{ totp_temp_secret }}</code>
-      </p>
-      <hr>
-      <p class="small text-muted mb-2">
-        <strong>Passo 2</strong> — Inserisci il codice a 6 cifre dall'app per confermare
-      </p>
-      <form method="post">
-        <input type="hidden" name="azione" value="2fa_conferma">
-        <div class="d-flex flex-column gap-2">
-          <div>
-            <label class="form-label fw-semibold">Codice verifica</label>
-            <input type="text" name="codice_2fa" class="form-control"
-                   inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
-                   placeholder="123456" required
-                   style="font-family:monospace;font-size:1.2rem;letter-spacing:.3rem">
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Componenti</label>
+        <div class="d-flex flex-wrap gap-3 pt-1">
+          {% for comp in ['agenda','clienti','fascicoli','messaggi','documenti'] %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="componenti"
+                   value="{{ comp }}" id="comp_{{ comp }}" checked>
+            <label class="form-check-label" for="comp_{{ comp }}">{{ comp }}</label>
           </div>
-          <button type="submit" class="btn btn-success btn-sm">
-            <i class="bi bi-shield-check me-1"></i>Conferma e attiva
-          </button>
+          {% endfor %}
         </div>
-      </form>
-    {% else %}
-      <p class="text-muted small mb-3">
-        La verifica in due passaggi aggiunge un ulteriore livello di sicurezza.
-        Ti verrà chiesto un codice dall'app di autenticazione ad ogni accesso.
-      </p>
-      <form method="post">
-        <input type="hidden" name="azione" value="2fa_genera">
-        <button type="submit" class="btn btn-outline-success btn-sm w-100">
-          <i class="bi bi-shield-plus me-1"></i>Configura 2FA
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Nota</label>
+        <input type="text" name="nota" class="form-control" placeholder="Nota opzionale">
+      </div>
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-play-fill me-1"></i>Avvia backup
         </button>
-      </form>
-    {% endif %}
+      </div>
+    </form>
   </div>
 </div>
 
-</div>{# /col-lg-4 #}
-
-</div>{# /row #}
-{% endblock %}
-
-{% block scripts %}
-{% if totp_uri_qr %}
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script>
-QRCode.toCanvas(document.getElementById('qr-canvas'),
-  {{ totp_uri_qr | tojson }},
-  { width: 200, margin: 2 },
-  function(err) { if (err) console.error(err); }
-);
-</script>
-{% endif %}
+{# Lista backup #}
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-archive me-2 text-secondary"></i>Storico backup — {{ backup_list|length }}
+  </div>
+  {% if backup_list %}
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Data</th><th>Tipo</th><th>File</th><th>Dimensione</th>
+            <th>Stato</th><th>Cifrato</th><th>Nota</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in backup_list %}
+          <tr>
+            <td class="small font-monospace text-nowrap">{{ r.timestamp[:16].replace('T',' ') }}</td>
+            <td>
+              <span class="badge {{ 'bg-primary' if r.tipo.value == 'COMPLETO' else 'bg-secondary' }}">
+                {{ r.tipo.value }}
+              </span>
+            </td>
+            <td class="small">{{ r.num_file }}</td>
+            <td class="small">{{ (r.dimensione_bytes / 1024 / 1024) | round(2) }} MB</td>
+            <td>
+              {% if r.stato.value == 'OK' %}
+                <span class="badge bg-success">OK</span>
+              {% elif r.stato.value == 'FALLITO' %}
+                <span class="badge bg-danger" title="{{ r.errore }}">FALLITO</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">CORROTTO</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if r.cifrato %}<i class="bi bi-lock-fill text-warning"></i>{% else %}—{% endif %}
+            </td>
+            <td class="small text-muted">{{ r.nota or '—' }}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                {% if r.stato.value == 'OK' %}
+                <a href="{{ url_for('scarica_backup', id_bk=r.id) }}"
+                   class="btn btn-outline-secondary" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" action="{{ url_for('verifica_backup', id_bk=r.id) }}">
+                  <button class="btn btn-outline-info" title="Verifica integrità">
+                    <i class="bi bi-shield-check"></i>
+                  </button>
+                </form>
+                <a href="{{ url_for('ripristina_backup', id_bk=r.id) }}"
+                   class="btn btn-outline-success" title="Ripristina">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+                {% endif %}
+                <form method="post"
+                      action="{{ url_for('elimina_backup', id_bk=r.id) }}"
+                      onsubmit="return confirm('Eliminare definitivamente questo backup?')">
+                  <button class="btn btn-outline-danger" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="ds-empty py-3">
+      <i class="bi bi-cloud-slash ds-empty-icon"></i>
+      <div class="ds-empty-title">Nessun backup eseguito</div>
+      <div class="ds-empty-sub">Esegui il primo backup per proteggere i dati dello studio.</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

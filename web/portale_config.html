@@ -1,492 +1,229 @@
 {% extends "base.html" %}
-{% block title %}{{ cliente.nome_completo }} — Clienti{% endblock %}
-{% block page_title %}Scheda Cliente{% endblock %}
+{% block pct_modulo %}clienti{% endblock %}
+{% block title %}Clienti — Studio Legale PCT{% endblock %}
+{% block page_title %}Anagrafica Clienti{% endblock %}
 
 {% block content %}
-{% set sc = {'ATTIVO':'success','INATTIVO':'secondary','POTENZIALE':'warning','ARCHIVIATO':'dark'} %}
 
 {# ── Page Header ── #}
 <div class="ds-ph">
-  <div class="ds-ph-icon">
-    <i class="bi bi-{% if cliente.tipo == TipoCliente.PERSONA_FISICA %}person{% else %}building{% endif %}"></i>
-  </div>
+  <div class="ds-ph-icon"><i class="bi bi-people-fill"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">{{ cliente.nome_completo }}</h1>
-    <p class="ds-ph-sub">
-      <span class="badge bg-{{ sc[cliente.stato.value] }} me-1">{{ cliente.stato.value }}</span>
-      {% if cliente.tipo == TipoCliente.PERSONA_FISICA %}
-        Persona fisica{% if cliente.eta %} · {{ cliente.eta }} anni{% endif %}
-      {% else %}
-        {{ cliente.forma_giuridica or 'Persona giuridica' }}
-      {% endif %}
-      {% if cliente.avvocato_referente %} · <i class="bi bi-person-badge"></i> {{ cliente.avvocato_referente }}{% endif %}
-      {% if cliente.documento.scaduto %} · <span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Documento scaduto</span>{% endif %}
-    </p>
+    <h1 class="ds-ph-title">Anagrafica Clienti</h1>
+    <p class="ds-ph-sub">Persone fisiche e giuridiche assistite dallo studio</p>
   </div>
   <div class="ds-ph-actions">
-    <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
-       class="ds-btn ds-btn-primary" title="Cartella cliente — tutti i fascicoli">
-      <i class="bi bi-folder2-open"></i><span class="d-none d-sm-inline">Cartella</span>
-    </a>
-    <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
-       class="ds-btn ds-btn-outline">
-      <i class="bi bi-pencil"></i><span class="d-none d-sm-inline">Modifica</span>
-    </a>
-    <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Clienti</span>
-    </a>
-  </div>
-</div>
-
-<div class="row g-3">
-
-  {# ---- Colonna sinistra ---- #}
-  <div class="col-lg-8">
-
-    {# Dati anagrafici #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-person-vcard me-2 text-primary"></i>Dati anagrafici
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          {% if cliente.tipo == TipoCliente.PERSONA_FISICA %}
-            {{ campo("Nome", cliente.nome) }}
-            {{ campo("Cognome", cliente.cognome) }}
-            {{ campo("Codice fiscale", cliente.codice_fiscale, mono=True) }}
-            {{ campo("Data di nascita", cliente.data_nascita|fmt_data) }}
-            {{ campo("Luogo di nascita", (cliente.luogo_nascita ~ " (" ~ cliente.provincia_nascita ~ ")") if cliente.provincia_nascita else cliente.luogo_nascita) }}
-            {{ campo("Sesso", cliente.sesso) }}
-            {{ campo("Nazionalità", cliente.nazionalita) }}
-          {% else %}
-            {{ campo("Ragione sociale", cliente.ragione_sociale) }}
-            {{ campo("Forma giuridica", cliente.forma_giuridica) }}
-            {{ campo("Partita IVA", cliente.partita_iva, mono=True) }}
-            {{ campo("Codice fiscale", cliente.codice_fiscale, mono=True) }}
-            {{ campo("Codice ATECO", cliente.codice_ateco) }}
-            {{ campo("Data costituzione", cliente.data_costituzione|fmt_data) }}
-            {{ campo("Rappresentante legale", cliente.rappresentante_legale) }}
-            {{ campo("CF rappresentante", cliente.cf_rappresentante, mono=True) }}
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    {# Recapiti #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-telephone me-2 text-primary"></i>Recapiti
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          {{ campo_icon("Telefono", cliente.recapiti.telefono, "bi-telephone") }}
-          {{ campo_icon("Cellulare", cliente.recapiti.cellulare, "bi-phone") }}
-          {{ campo_icon("Email", cliente.recapiti.email, "bi-envelope", link="mailto:" ~ cliente.recapiti.email) }}
-          {{ campo_icon("PEC", cliente.recapiti.pec, "bi-envelope-check", link="mailto:" ~ cliente.recapiti.pec) }}
-          {{ campo_icon("Fax", cliente.recapiti.fax, "bi-printer") }}
-          {{ campo_icon("Sito web", cliente.recapiti.sito_web, "bi-globe", link=cliente.recapiti.sito_web) }}
-        </div>
-      </div>
-    </div>
-
-    {# Indirizzi #}
-    {% macro indirizzo_card(titolo, ind, icon) %}
-    {% if ind.via or ind.comune %}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi {{ icon }} me-2 text-primary"></i>{{ titolo }}
-      </div>
-      <div class="card-body">
-        <address class="mb-0">
-          {% if ind.via %}{{ ind.via }} {{ ind.civico }}<br>{% endif %}
-          {% if ind.cap or ind.comune %}{{ ind.cap }} {{ ind.comune }}{% if ind.provincia %} ({{ ind.provincia }}){% endif %}<br>{% endif %}
-          {% if ind.nazione != 'Italia' %}{{ ind.nazione }}{% endif %}
-        </address>
-        <a href="https://maps.google.com/?q={{ ind|string|urlencode }}"
-           target="_blank" class="btn btn-sm btn-outline-secondary mt-2">
-          <i class="bi bi-map me-1"></i>Mappa
-        </a>
-      </div>
-    </div>
-    {% endif %}
-    {% endmacro %}
-
-    {{ indirizzo_card("Residenza / Sede legale", cliente.indirizzo_residenza if cliente.tipo == TipoCliente.PERSONA_FISICA else cliente.indirizzo_sede_legale, "bi-house") }}
-    {% if cliente.tipo == TipoCliente.PERSONA_FISICA %}
-      {{ indirizzo_card("Domicilio", cliente.indirizzo_domicilio, "bi-geo-alt") }}
-    {% endif %}
-
-    {# Documento identità #}
-    {% if cliente.tipo == TipoCliente.PERSONA_FISICA and cliente.documento.numero %}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between">
-        <span><i class="bi bi-credit-card me-2 text-primary"></i>Documento d'identità</span>
-        {% if cliente.documento.scaduto %}
-          <span class="badge bg-warning text-dark">Scaduto</span>
-        {% endif %}
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          {{ campo("Tipo", cliente.documento.tipo.value.replace('_',' ')) }}
-          {{ campo("Numero", cliente.documento.numero, mono=True) }}
-          {{ campo("Rilasciato da", cliente.documento.rilasciato_da) }}
-          {{ campo("Data rilascio", cliente.documento.data_rilascio|fmt_data) }}
-          {{ campo("Data scadenza", cliente.documento.data_scadenza|fmt_data) }}
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    {# Note #}
-    {% if cliente.note %}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold"><i class="bi bi-sticky me-2"></i>Note</div>
-      <div class="card-body">{{ cliente.note }}</div>
-    </div>
-    {% endif %}
-
-    {# Fascicoli del cliente — preview inline #}
-    {% if fascicoli_cliente %}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-folder2-open me-2 text-primary"></i>Fascicoli aperti</span>
-        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
-           class="btn btn-sm btn-outline-primary">
-          Vedi tutti <i class="bi bi-arrow-right ms-1"></i>
-        </a>
-      </div>
-      <div class="card-body p-0">
-        <table class="table table-sm table-hover mb-0">
-          <tbody>
-            {% set stato_col = {'APERTO':'success','PENDENTE':'warning','SOSPESO':'secondary','DEFINITO':'info','ARCHIVIATO':'dark'} %}
-            {% for f in fascicoli_cliente %}
-            <tr>
-              <td>
-                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
-                   class="text-decoration-none fw-semibold text-dark">
-                  {{ f.titolo or (f.numero_rg ~ '/' ~ f.anno_rg) }}
-                </a>
-                {% if f.tribunale %}
-                <div class="small text-muted">{{ f.tribunale }}</div>
-                {% endif %}
-              </td>
-              <td class="text-nowrap">
-                <span class="badge bg-{{ stato_col.get(f.stato.value, 'secondary') }}">
-                  {{ f.stato.value }}
-                </span>
-              </td>
-              <td class="text-nowrap">
-                <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}#depositi"
-                   class="btn btn-xs btn-outline-primary" title="Deposita atto">
-                  <i class="bi bi-cloud-upload"></i>
-                </a>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
-
-    {# Appuntamenti collegati #}
-    {% if apps_cliente %}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-calendar-event me-2 text-primary"></i>
-        Appuntamenti collegati ({{ apps_cliente|length }})
-      </div>
-      <div class="card-body p-0">
-        <ul class="list-group list-group-flush">
-          {% for a in apps_cliente[:5] %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"
-                 class="text-decoration-none fw-semibold text-dark">{{ a.titolo }}</a>
-              <div class="small text-muted">{{ a.data_ora_dt.strftime('%d/%m/%Y %H:%M') }}</div>
-            </div>
-            <span class="badge badge-{{ a.tipo.value }} rounded-pill">{{ a.tipo.value }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-    {% endif %}
-
-  </div>{# /col-lg-8 #}
-
-  {# ---- Colonna destra ---- #}
-  <div class="col-lg-4">
-
-    {# Procedimenti ---- #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-file-earmark-text me-2 text-primary"></i>Procedimenti</span>
-        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
-                data-bs-target="#modalProcedimento">
-          <i class="bi bi-plus-lg"></i>
-        </button>
-      </div>
-      <div class="card-body p-0">
-        {% if cliente.procedimenti %}
-        <ul class="list-group list-group-flush">
-          {% for p in cliente.procedimenti %}
-          <li class="list-group-item">
-            <div class="d-flex justify-content-between">
-              <span class="fw-semibold">RG {{ p.numero_rg }}/{{ p.anno }}</span>
-              <span class="badge {% if p.attivo %}bg-success{% else %}bg-secondary{% endif %}">
-                {{ 'Attivo' if p.attivo else 'Chiuso' }}
-              </span>
-            </div>
-            {% if p.tribunale %}<div class="small text-muted">{{ p.tribunale }}</div>{% endif %}
-            {% if p.descrizione %}<div class="small">{{ p.descrizione }}</div>{% endif %}
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-muted text-center py-3 small">Nessun procedimento</div>
-        {% endif %}
-      </div>
-    </div>
-
-    {# Info studio #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-info-circle me-2 text-primary"></i>Info studio
-      </div>
-      <div class="card-body">
-        <dl class="row mb-0 small">
-          <dt class="col-6 text-muted">ID</dt>
-          <dd class="col-6 font-monospace">{{ cliente.id }}</dd>
-          <dt class="col-6 text-muted">Prima acq.</dt>
-          <dd class="col-6">{{ cliente.data_prima_acquisizione|fmt_data }}</dd>
-          <dt class="col-6 text-muted">Provenienza</dt>
-          <dd class="col-6">{{ cliente.provenienza or '—' }}</dd>
-          <dt class="col-6 text-muted">Creato</dt>
-          <dd class="col-6">{{ cliente.creato_il[:10] }}</dd>
-          <dt class="col-6 text-muted">Modificato</dt>
-          <dd class="col-6">{{ cliente.modificato_il[:10] }}</dd>
-        </dl>
-      </div>
-    </div>
-
-    {# Consenso Privacy #}
-    <div class="card shadow-sm mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-shield-check me-2 text-{% if cliente.consenso_trattamento %}success{% else %}warning{% endif %}"></i>Consenso Privacy</span>
-        {% if cliente.consenso_trattamento %}
-          <span class="badge bg-success">Acquisito</span>
-        {% else %}
-          <span class="badge bg-warning text-dark">Non acquisito</span>
-        {% endif %}
-      </div>
-      <div class="card-body">
-        {% if cliente.consenso_trattamento %}
-        <div class="small text-muted mb-2">
-          <i class="bi bi-calendar3 me-1"></i>{{ cliente.data_consenso|fmt_data }}
-          {% if cliente.modalita_consenso %}
-            · {{ cliente.modalita_consenso }}
-          {% endif %}
-        </div>
-        {% endif %}
-        <form method="post" action="{{ url_for('aggiorna_consenso', id_cliente=cliente.id) }}"
-              class="row g-2">
-          <div class="col-12">
-            <div class="form-check">
-              <input type="checkbox" name="consenso_trattamento" value="1"
-                     class="form-check-input" id="chkConsenso"
-                     {{ 'checked' if cliente.consenso_trattamento }}>
-              <label class="form-check-label small" for="chkConsenso">
-                Consenso al trattamento dati acquisito
-              </label>
-            </div>
-          </div>
-          <div class="col-7">
-            <input type="date" name="data_consenso" class="form-control form-control-sm"
-                   value="{{ cliente.data_consenso or oggi.isoformat() }}">
-          </div>
-          <div class="col-5">
-            <select name="modalita_consenso" class="form-select form-select-sm">
-              <option value="">Modalità…</option>
-              {% for m in ['cartaceo','email','digitale','orale'] %}
-              <option value="{{ m }}" {{ 'selected' if cliente.modalita_consenso == m }}>
-                {{ m|capitalize }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-12">
-            <button type="submit" class="btn btn-sm btn-outline-primary w-100">
-              <i class="bi bi-check2 me-1"></i>Aggiorna consenso
-            </button>
-          </div>
-        </form>
-        <div class="mt-2 d-flex gap-1">
-          <a href="{{ url_for('informativa_privacy_pdf', id_cliente=cliente.id) }}"
-             class="btn btn-sm btn-outline-secondary flex-grow-1"
-             title="Scarica PDF informativa privacy">
-            <i class="bi bi-file-pdf me-1"></i>Informativa PDF
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-outline dropdown-toggle" data-bs-toggle="dropdown" title="Esporta">
+        <i class="bi bi-download"></i><span class="d-none d-sm-inline">Esporta</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_clienti_pdf') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}">
+            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF lista
           </a>
-        </div>
-      </div>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ url_for('export_clienti_csv') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}">
+            <i class="bi bi-filetype-csv me-2 text-success"></i>CSV
+          </a>
+        </li>
+      </ul>
     </div>
-
-    {# Azioni rapide #}
-    <div class="card shadow-sm">
-      <div class="card-header fw-semibold">
-        <i class="bi bi-lightning me-2"></i>Azioni rapide
-      </div>
-      <div class="list-group list-group-flush">
-        <a href="{{ url_for('faldone_cliente', id_cliente=cliente.id) }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-folder2-open me-2 text-warning"></i>Faldone digitale
-        </a>
-        <a href="{{ url_for('cartella_cliente', id_cliente=cliente.id) }}"
-           class="list-group-item list-group-item-action fw-semibold">
-          <i class="bi bi-folder2-open me-2 text-primary"></i>Apri cartella
-        </a>
-        <a href="{{ url_for('nuovo_fascicolo') }}?id_cliente={{ cliente.id }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-folder-plus me-2 text-warning"></i>Nuovo fascicolo
-        </a>
-        <a href="{{ url_for('modifica_cliente', id_cliente=cliente.id) }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-pencil me-2 text-primary"></i>Modifica scheda
-        </a>
-        <a href="{{ url_for('nuovo_soggetto',
-                             id_cliente=cliente.id,
-                             tipo=cliente.tipo.value,
-                             nome=cliente.nome,
-                             cognome=cliente.cognome,
-                             ragione_sociale=cliente.ragione_sociale,
-                             codice_fiscale=cliente.codice_fiscale,
-                             partita_iva=cliente.partita_iva,
-                             email=cliente.recapiti.email,
-                             cellulare=cliente.recapiti.cellulare,
-                             telefono=cliente.recapiti.telefono,
-                             pec=cliente.recapiti.pec) }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-person-badge me-2 text-success"></i>Registra come soggetto
-        </a>
-        <a href="{{ url_for('portale_config', id_cliente=cliente.id) }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-person-badge me-2 text-info"></i>Portale cliente
-        </a>
-        <a href="{{ url_for('gestione_collaboratori', id_cliente=cliente.id) }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-people me-2 text-success"></i>Collaboratori
-          {% if n_collaboratori %}<span class="badge bg-success ms-1">{{ n_collaboratori }}</span>{% endif %}
-        </a>
-        <a href="{{ url_for('nuovo_appuntamento') }}?cliente={{ cliente.nome_completo|urlencode }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-calendar-plus me-2 text-success"></i>Nuovo appuntamento
-        </a>
-        {% if cliente.recapiti.email %}
-        <a href="mailto:{{ cliente.recapiti.email }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-envelope me-2 text-info"></i>Invia email
-        </a>
-        {% endif %}
-        {% if cliente.recapiti.pec %}
-        <a href="mailto:{{ cliente.recapiti.pec }}"
-           class="list-group-item list-group-item-action">
-          <i class="bi bi-envelope-check me-2 text-primary"></i>Invia PEC
-        </a>
-        {% endif %}
-        <a href="{{ url_for('gdpr_portabilita', id_cliente=cliente.id) }}"
-           class="list-group-item list-group-item-action"
-           {% if not utente_corrente.ha_permesso('clienti.leggi') %}style="display:none"{% endif %}>
-          <i class="bi bi-box-arrow-up me-2 text-secondary"></i>Esporta GDPR
-        </a>
-        <form method="post"
-              action="{{ url_for('elimina_cliente', id_cliente=cliente.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo cliente?')">
-          <button class="list-group-item list-group-item-action text-danger w-100 text-start border-0 bg-transparent">
-            <i class="bi bi-trash me-2"></i>Elimina cliente
-          </button>
-        </form>
-      </div>
-    </div>
-
-  </div>{# /col-lg-4 #}
+    <a href="{{ url_for('nuovo_cliente') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-person-plus-fill"></i><span class="d-none d-sm-inline">Nuovo cliente</span>
+    </a>
+  </div>
 </div>
 
-{# ---- Modal Nuovo Procedimento ---- #}
-<div class="modal fade" id="modalProcedimento" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post"
-            action="{{ url_for('aggiungi_procedimento', id_cliente=cliente.id) }}">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="bi bi-file-earmark-plus me-2"></i>Aggiungi procedimento
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">N° RG <span class="text-danger">*</span></label>
-              <input type="text" name="numero_rg" class="form-control" required
-                     placeholder="1234">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Anno</label>
-              <input type="number" name="anno" class="form-control"
-                     value="{{ oggi.year }}">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-semibold">Apertura</label>
-              <input type="date" name="data_apertura" class="form-control"
-                     value="{{ oggi.isoformat() }}">
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Tribunale</label>
-              <input type="text" name="tribunale" class="form-control"
-                     placeholder="Tribunale di…">
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Descrizione</label>
-              <input type="text" name="descrizione" class="form-control"
-                     placeholder="Breve descrizione del procedimento">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary"
-                  data-bs-dismiss="modal">Annulla</button>
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-check-lg me-1"></i>Aggiungi
-          </button>
-        </div>
-      </form>
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <span class="num">{{ stats.totale }}</span> totali
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-person-check text-success"></i>
+    <span class="num">{{ stats.per_stato.ATTIVO }}</span> attivi
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-file-earmark-text text-primary"></i>
+    <span class="num">{{ stats.con_procedimenti_attivi }}</span> con procedimenti
+  </span>
+  {% if stats.documenti_scaduti %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <span class="num">{{ stats.documenti_scaduti }}</span> doc. scaduti
+  </span>
+  {% endif %}
+</div>
+
+{# ── Barra ricerca + filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca per nome, CF, P.IVA, email, telefono…"
+         value="{{ q }}" autocomplete="off">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:160px">
+    <option value="">Tutti i tipi</option>
+    {% for t in tipi %}
+    <option value="{{ t.value }}" {{ 'selected' if tipo_filtro == t.value }}>
+      {{ t.value.replace('_',' ') }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm" style="max-width:160px">
+    <option value="">Tutti gli stati</option>
+    {% for s in stati %}
+    <option value="{{ s.value }}" {{ 'selected' if stato_filtro == s.value }}>
+      {{ s.value }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
+  {% if q or tipo_filtro or stato_filtro %}
+  <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
+</form>
+
+{# ── Tabella clienti ── #}
+{% if clienti %}
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-muted small">
+      {{ clienti|length }} client{% if clienti|length != 1 %}i{% else %}e{% endif %}
+    </span>
+    <select id="page-size-clienti" class="form-select form-select-sm" style="width:auto">
+      <option value="25">25 per pagina</option>
+      <option value="50">50 per pagina</option>
+      <option value="100">100 per pagina</option>
+      <option value="0">Tutti</option>
+    </select>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-clienti" data-paginate="page-size-clienti">
+        <thead class="table-light">
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>CF / P.IVA</th>
+            <th>Contatti</th>
+            <th>Avv. referente</th>
+            <th>Procedimenti</th>
+            <th>Stato</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clienti %}
+          {% set sc = {'ATTIVO':'success','INATTIVO':'secondary','POTENZIALE':'warning','ARCHIVIATO':'dark'} %}
+          <tr data-swipe-delete="1" title="{{ c.nome_completo }}">
+            <td data-label="Cliente">
+              <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
+                 class="fw-semibold text-decoration-none text-dark">
+                {{ c.nome_completo }}
+              </a>
+              {% if c.tipo == TipoCliente.PERSONA_FISICA and c.eta %}
+                <span class="text-muted small ms-1">({{ c.eta }} anni)</span>
+              {% endif %}
+              {% if c.documento.scaduto %}
+                <i class="bi bi-exclamation-triangle-fill text-warning ms-1"
+                   title="Documento scaduto"></i>
+              {% endif %}
+            </td>
+            <td data-label="Tipo">
+              {% if c.tipo == TipoCliente.PERSONA_FISICA %}
+                <span class="badge bg-info-subtle text-info-emphasis rounded-pill">
+                  <i class="bi bi-person me-1"></i>Persona fisica
+                </span>
+              {% else %}
+                <span class="badge rounded-pill"
+                      style="background:#ede7f6;color:#4a148c">
+                  <i class="bi bi-building me-1"></i>{{ c.forma_giuridica or 'Società' }}
+                </span>
+              {% endif %}
+            </td>
+            <td data-label="CF / P.IVA" class="font-monospace small">
+              {{ c.codice_fiscale or c.partita_iva or '—' }}
+            </td>
+            <td data-label="Contatti" class="small">
+              {% if c.recapiti.cellulare %}
+                <div><i class="bi bi-phone me-1 text-muted"></i>{{ c.recapiti.cellulare }}</div>
+              {% elif c.recapiti.telefono %}
+                <div><i class="bi bi-telephone me-1 text-muted"></i>{{ c.recapiti.telefono }}</div>
+              {% endif %}
+              {% if c.recapiti.email %}
+                <div><i class="bi bi-envelope me-1 text-muted"></i>
+                  <a href="mailto:{{ c.recapiti.email }}" class="text-muted">{{ c.recapiti.email }}</a>
+                </div>
+              {% endif %}
+            </td>
+            <td data-label="Avv." class="small" data-mob-hide>{{ c.avvocato_referente or '—' }}</td>
+            <td data-label="Pratiche" class="text-center">
+              {% set n_proc = c.procedimenti_attivi|length %}
+              {% if n_proc %}
+                <span class="badge bg-primary rounded-pill">{{ n_proc }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td data-label="Stato">
+              <span class="badge bg-{{ sc[c.stato.value] }}">{{ c.stato.value }}</span>
+            </td>
+            <td data-label="" class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('faldone_cliente', id_cliente=c.id) }}"
+                   class="btn btn-warning" title="Faldone digitale">
+                  <i class="bi bi-folder2-open"></i>
+                </a>
+                <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"
+                   class="btn btn-primary" title="Apri cartella">
+                  <i class="bi bi-folders"></i>
+                </a>
+                <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
+                   class="btn btn-outline-secondary" title="Dettaglio">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <a href="{{ url_for('modifica_cliente', id_cliente=c.id) }}"
+                   class="btn btn-outline-primary" title="Modifica">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
 
-{% endblock %}
-
-{# ---- macro helper ---- #}
-{% macro campo(label, val, mono=False) %}
-{% if val %}
-<div class="col-sm-6">
-  <div class="small text-muted mb-1">{{ label }}</div>
-  <div class="fw-semibold {% if mono %}font-monospace{% endif %}">{{ val }}</div>
-</div>
-{% endif %}
-{% endmacro %}
-
-{% macro campo_icon(label, val, icon, link=None) %}
-{% if val %}
-<div class="col-sm-6">
-  <div class="small text-muted mb-1">
-    <i class="bi {{ icon }} me-1"></i>{{ label }}
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-people ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessun cliente trovato</div>
+  <div class="ds-empty-sub">
+    {% if q or tipo_filtro or stato_filtro %}
+      Nessun risultato per i filtri selezionati.
+    {% else %}
+      Aggiungi il primo cliente per iniziare a gestire l'anagrafica.
+    {% endif %}
   </div>
-  {% if link and val %}
-    <a href="{{ link }}" class="fw-semibold text-decoration-none">{{ val }}</a>
-  {% else %}
-    <div class="fw-semibold">{{ val }}</div>
+  {% if not q and not tipo_filtro and not stato_filtro %}
+  <a href="{{ url_for('nuovo_cliente') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-person-plus-fill"></i>Nuovo cliente
+  </a>
   {% endif %}
 </div>
 {% endif %}
-{% endmacro %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+initPagination('tbl-clienti', 'page-size-clienti');
+</script>
+{% endblock %}

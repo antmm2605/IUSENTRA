@@ -1,348 +1,279 @@
 {% extends "base.html" %}
-{% block title %}Wizard — {{ tmpl.nome }} — Step {{ step_n }}/{{ step_totale }}{% endblock %}
+{% block title %}Sincronizzazione Calendario{% endblock %}
+{% block page_title %}Sincronizzazione Calendario{% endblock %}
 
 {% block content %}
-
-{# ── Breadcrumb ── #}
-<nav aria-label="breadcrumb" class="mb-3">
-  <ol class="breadcrumb small">
-    <li class="breadcrumb-item">
-      <a href="{{ url_for('lista_fascicoli') }}">Fascicoli</a>
-    </li>
-    <li class="breadcrumb-item">
-      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}">{{ fascicolo.numero }}</a>
-    </li>
-    <li class="breadcrumb-item active">Wizard — {{ tmpl.nome }}</li>
-  </ol>
-</nav>
-
-{# ── Header ── #}
-<div class="d-flex align-items-center gap-2 mb-4">
-  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
-     class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-arrow-left"></i>
-  </a>
-  <div>
-    <h5 class="mb-0 fw-bold">
-      <i class="bi bi-magic me-2 text-success"></i>{{ tmpl.nome }}
-    </h5>
-    <div class="text-muted small mt-1">
-      {{ fascicolo.titolo }}
-      {% if fascicolo.rg_completo %}
-        &mdash; <span class="font-monospace">{{ fascicolo.rg_completo }}</span>
-      {% endif %}
-    </div>
-  </div>
-  <div class="ms-auto text-end">
-    <span class="badge bg-success fs-6">Step {{ step_n }} / {{ step_totale }}</span>
-  </div>
-</div>
-
-{# ── Progress stepper ── #}
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-body py-3 px-3">
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-      {% for s in steps_stato %}
-      {% set d = s.doc %}
-      {% set stato = s.stato %}
-      {% set is_current = (d.numero == step_n) %}
-      <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=d.numero) }}"
-         class="text-decoration-none"
-         title="{{ d.descrizione }}{% if not d.obbligatorio %} (facoltativo){% endif %}">
-        <span class="badge rounded-pill px-3 py-2
-          {% if is_current %}bg-primary
-          {% elif stato == 'done' %}bg-success
-          {% elif stato == 'saltato' %}bg-secondary
-          {% else %}bg-light text-dark border{% endif %}"
-          style="font-size:.8rem; min-width:2.4rem">
-          {% if stato == 'done' and not is_current %}
-            <i class="bi bi-check-lg"></i>
-          {% elif stato == 'saltato' %}
-            <i class="bi bi-dash"></i>
-          {% else %}
-            {{ d.numero }}
-          {% endif %}
-        </span>
-      </a>
-      {% if not loop.last %}
-        <span class="text-muted" style="font-size:.7rem">─</span>
-      {% endif %}
-      {% endfor %}
-    </div>
-    <div class="mt-2 small text-muted">
-      {% set done_count = steps_stato | selectattr('stato', 'eq', 'done') | list | length %}
-      {% set saltati_count = steps_stato | selectattr('stato', 'eq', 'saltato') | list | length %}
-      {{ done_count }} completati
-      {% if saltati_count %}, {{ saltati_count }} saltati{% endif %}
-      su {{ step_totale }} totali
-    </div>
-  </div>
-</div>
-
-{# ── Pannello step corrente ── #}
 <div class="row g-4">
-  <div class="col-lg-7">
 
-    {# Card step #}
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-bottom py-3">
-        <div class="d-flex align-items-start gap-3">
-          <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0
-                      {% if doc_esistente %}bg-success{% else %}bg-primary{% endif %} text-white"
-               style="width:2.4rem;height:2.4rem;font-size:1rem;font-weight:700">
-            {% if doc_esistente %}
-              <i class="bi bi-check-lg"></i>
-            {% else %}
-              {{ step_corrente.numero }}
-            {% endif %}
-          </div>
-          <div>
-            <div class="fw-bold">{{ step_corrente.descrizione }}</div>
-            <code class="small text-muted">{{ step_corrente.nome_file }}<span class="text-secondary">.pdf</span></code>
-            {% if not step_corrente.obbligatorio %}
-              <span class="badge bg-light text-secondary border ms-2 small">facoltativo</span>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
 
-      <div class="card-body">
-
-        {# Se esiste già un documento per questo step #}
-        {% if doc_esistente %}
-        <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
-          <i class="bi bi-check-circle-fill fs-5"></i>
-          <div>
-            <strong>Documento già caricato:</strong> {{ doc_esistente.nome }}<br>
-            <span class="small text-muted">
-              {{ doc_esistente.data_documento or 'data n.d.' }}
-              &nbsp;·&nbsp; {{ (doc_esistente.dimensione_bytes / 1024) | round(1) }} KB
-              {% if doc_esistente.firmato_digitalmente %}
-                &nbsp;·&nbsp; <i class="bi bi-patch-check-fill text-success"></i> firmato
-              {% endif %}
-            </span>
-          </div>
-        </div>
-        <p class="small text-muted mb-3">
-          Puoi sostituire il documento caricando un nuovo file, oppure passare al prossimo step.
-        </p>
-        {% endif %}
-
-        {# Form upload #}
-        <form method="POST"
-              action="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n) }}"
-              enctype="multipart/form-data"
-              id="formWizardStep">
-          <input type="hidden" name="azione" value="carica">
-
-          {# Drop zone #}
-          <div id="dropZone"
-               class="border border-2 border-dashed rounded-3 text-center py-4 px-3 mb-3"
-               style="cursor:pointer;border-color:#ced4da!important;transition:border-color .2s"
-               onclick="document.getElementById('fileInput').click()"
-               ondragover="event.preventDefault();this.style.borderColor='#0d6efd'"
-               ondragleave="this.style.borderColor='#ced4da'"
-               ondrop="handleDrop(event)">
-            <div id="dropZoneVisual">
-              <i class="bi bi-cloud-arrow-up-fill fs-2 text-muted mb-2"></i>
-              <div class="fw-semibold">Trascina qui il file oppure clicca per selezionarlo</div>
-              <div class="small text-muted mt-1">Il file verrà rinominato automaticamente in:
-                <code>{{ step_corrente.nome_file }}.pdf</code>
-              </div>
-            </div>
-            <input type="file" id="fileInput" name="file" class="d-none"
-                   accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
-                   onchange="mostraFileSelezionato(this)">
-          </div>
-
-          {# Anteprima nome file #}
-          <div id="previewNome" class="alert alert-info small d-none mb-3">
-            <i class="bi bi-file-earmark-check me-1"></i>
-            Il file verrà salvato come: <strong id="nomeFinale"></strong>
-          </div>
-
-          {# Dati aggiuntivi #}
-          <div class="row g-2 mb-3">
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">Tipo documento</label>
-              <select name="tipo_doc" class="form-select form-select-sm">
-                {% for val, label in tipo_documento_choices %}
-                <option value="{{ val }}"
-                  {% if val == 'ATTO_GIUDIZIARIO' and step_corrente.numero == 1 %}selected
-                  {% elif val == 'PROCURA' and 'procura' in step_corrente.nome_file|lower %}selected
-                  {% elif val == 'ALLEGATO' %}selected{% endif %}>
-                  {{ label }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label small fw-semibold">Data documento</label>
-              <input type="date" name="data_documento" class="form-control form-control-sm"
-                     value="{{ oggi }}">
-            </div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label small fw-semibold">Note (opzionale)</label>
-            <input type="text" name="note" class="form-control form-control-sm"
-                   placeholder="Note sul documento...">
-          </div>
-
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="cbFirmato"
-                   name="firmato" value="1">
-            <label class="form-check-label small" for="cbFirmato">
-              <i class="bi bi-patch-check me-1 text-success"></i>Documento firmato digitalmente
-            </label>
-          </div>
-
-        </form>{# fine formWizardStep — il form "salta" deve stare fuori #}
-
-        {# Azioni step #}
-        <div class="d-flex gap-2 flex-wrap">
-          <button type="submit" id="btnCarica" form="formWizardStep"
-                  class="btn btn-success fw-semibold" disabled>
-            <i class="bi bi-upload me-1"></i>Carica e vai al prossimo
-          </button>
-
-          {% if step_n > 1 %}
-          <a href="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n - 1) }}"
-             class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Precedente
-          </a>
-          {% endif %}
-
-          {% if doc_esistente %}
-          {# Già caricato: consenti di andare avanti senza ricaricare #}
-          <a href="{% if step_n < step_totale %}{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n + 1) }}{% else %}{{ url_for('wizard_atto_completa', id_fasc=fascicolo.id, id_template=tmpl.id) }}{% endif %}"
-             class="btn btn-outline-primary">
-            <i class="bi bi-arrow-right me-1"></i>Prossimo step
-          </a>
-          {% endif %}
-
-          {% if not step_corrente.obbligatorio %}
-          <form method="POST"
-                action="{{ url_for('wizard_atto_step', id_fasc=fascicolo.id, id_template=tmpl.id, n=step_n) }}"
-                class="d-inline">
-            <input type="hidden" name="azione" value="salta">
-            <button type="submit" class="btn btn-outline-warning btn-sm">
-              <i class="bi bi-skip-forward me-1"></i>Salta (facoltativo)
-            </button>
-          </form>
-          {% endif %}
-        </div>
-
-      </div>{# /card-body #}
-    </div>{# /card #}
-
-  </div>{# /col-lg-7 #}
-
-  {# ── Sidebar info ── #}
-  <div class="col-lg-5">
-
-    {# Note step #}
-    {% if step_corrente.note %}
-    <div class="alert alert-warning small mb-3">
-      <i class="bi bi-info-circle me-1"></i> {{ step_corrente.note }}
+{# ── Intro ── #}
+<div class="alert alert-info border-0 shadow-sm d-flex gap-2 mb-4" role="alert">
+  <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <div class="fw-semibold mb-1">Come funziona la sincronizzazione automatica</div>
+    <div class="small">
+      I feed WebCal sono URL speciali che Google Calendar, Apple Calendar e Outlook controllano
+      automaticamente ogni ora. Una volta aggiunto il link, il tuo calendario si aggiorna
+      da solo senza dover scaricare e importare il file <code>.ics</code> manualmente.
+      Le scadenze perentorie includono notifiche a <strong>7 giorni, 3 giorni, 1 giorno</strong>
+      e <strong>1 ora</strong> prima della scadenza.
     </div>
-    {% endif %}
+  </div>
+</div>
 
-    {# Info cartella #}
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body">
-        <div class="small fw-semibold text-muted mb-1">Cartella deposito</div>
-        <code class="small">{{ nome_cartella }}/</code>
-      </div>
-    </div>
+{# ── Feed disponibili ── #}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-link-45deg me-2 text-primary"></i>Feed disponibili
+  </div>
+  <div class="card-body p-0">
 
-    {# Elenco completo documenti richiesti #}
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-bottom py-2">
-        <span class="small fw-semibold">Documenti richiesti</span>
-      </div>
-      <ul class="list-group list-group-flush">
-        {% for s in steps_stato %}
-        {% set d = s.doc %}
-        {% set stato = s.stato %}
-        <li class="list-group-item px-3 py-2 d-flex align-items-start gap-2
-                   {% if d.numero == step_n %}list-group-item-primary{% endif %}">
-          <span class="badge rounded-pill mt-1 flex-shrink-0
-            {% if stato == 'done' %}bg-success
-            {% elif stato == 'saltato' %}bg-secondary
-            {% elif d.numero == step_n %}bg-primary
-            {% else %}bg-light text-dark border{% endif %}"
-            style="min-width:1.7rem">
-            {% if stato == 'done' %}<i class="bi bi-check"></i>
-            {% elif stato == 'saltato' %}–
-            {% else %}{{ d.numero }}{% endif %}
+    {# Feed completo #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 pt-1">
+          <span class="badge bg-primary rounded-pill px-3 py-2">
+            <i class="bi bi-calendar-heart me-1"></i>Completo
           </span>
-          <div class="flex-grow-1">
-            <div class="small {% if d.numero == step_n %}fw-bold{% endif %}">{{ d.descrizione }}</div>
-            <code class="text-muted" style="font-size:.68rem">{{ d.nome_file }}</code>
-            {% if not d.obbligatorio %}
-              <span class="badge bg-light text-secondary border ms-1" style="font-size:.6rem">facoltativo</span>
-            {% endif %}
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Agenda + Scadenze</div>
+          <div class="small text-muted mb-2">
+            Tutti gli appuntamenti e tutte le scadenze in un unico calendario.
+            <strong>Consigliato.</strong>
           </div>
-          {% if s.documento %}
-          <a href="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=s.documento.id) }}"
-             class="btn btn-sm btn-outline-secondary py-0 px-1" target="_blank" title="Visualizza">
-            <i class="bi bi-eye" style="font-size:.75rem"></i>
-          </a>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace"
+                   value="{{ feeds.completo }}" readonly id="url-completo">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="copiaUrl('url-completo', this)" title="Copia link">
+              <i class="bi bi-clipboard me-1"></i>Copia
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-  </div>{# /col-lg-5 #}
+    {# Feed agenda #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 pt-1">
+          <span class="badge bg-success rounded-pill px-3 py-2">
+            <i class="bi bi-calendar-week me-1"></i>Agenda
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Solo appuntamenti</div>
+          <div class="small text-muted mb-2">Udienze, consultazioni e riunioni. Notifica 1 ora prima.</div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace"
+                   value="{{ feeds.agenda }}" readonly id="url-agenda">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="copiaUrl('url-agenda', this)" title="Copia link">
+              <i class="bi bi-clipboard me-1"></i>Copia
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Feed scadenze #}
+    <div class="p-3">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-shrink-0 pt-1">
+          <span class="badge bg-warning text-dark rounded-pill px-3 py-2">
+            <i class="bi bi-alarm me-1"></i>Scadenze
+          </span>
+        </div>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Solo scadenze processuali</div>
+          <div class="small text-muted mb-2">
+            Termini e scadenze. Perentorie: notifiche a 7gg, 3gg, 1gg, 1h.
+          </div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace"
+                   value="{{ feeds.scadenze }}" readonly id="url-scadenze">
+            <button class="btn btn-outline-secondary" type="button"
+                    onclick="copiaUrl('url-scadenze', this)" title="Copia link">
+              <i class="bi bi-clipboard me-1"></i>Copia
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Istruzioni per app ── #}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-phone me-2 text-success"></i>Come aggiungere al tuo calendario
+  </div>
+  <div class="card-body p-0">
+
+    {# Google Calendar #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <img src="https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_20_2x.png"
+             alt="Google Calendar" width="32" height="32" class="flex-shrink-0 mt-1"
+             onerror="this.outerHTML='<i class=\'bi bi-google flex-shrink-0 mt-1 fs-4 text-danger\'></i>'">
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Google Calendar</div>
+          <ol class="small text-muted mb-2 ps-3">
+            <li>Clicca il bottone qui sotto — si apre Google Calendar nella pagina giusta</li>
+            <li>Incolla l'URL se non viene compilato automaticamente, poi clicca <strong>Aggiungi calendario</strong></li>
+          </ol>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="{{ gcal_url }}" target="_blank" rel="noopener"
+               class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Apri in Google Calendar
+            </a>
+            <button class="btn btn-sm btn-link text-muted p-0" type="button"
+                    onclick="copiaUrl('url-completo', this)" title="Copia il link per incollarlo manualmente">
+              <i class="bi bi-clipboard me-1"></i><span style="font-size:.8rem">Copia link (backup)</span>
+            </button>
+          </div>
+          <div class="alert alert-warning border-0 py-2 px-3 mt-2 mb-0 small" role="alert">
+            <i class="bi bi-clock me-1"></i>
+            <strong>Tempo di sincronizzazione:</strong> Google Calendar aggiorna i calendari sottoscritti
+            ogni <strong>6–24 ore</strong> (non ogni ora come Apple/Outlook). Se gli eventi non compaiono subito,
+            attendi e ricontrolla dopo qualche ora.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Apple Calendar #}
+    <div class="p-3 border-bottom">
+      <div class="d-flex align-items-start gap-3">
+        <i class="bi bi-apple flex-shrink-0 mt-1 fs-4 text-dark"></i>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Apple Calendar (Mac / iPhone / iPad)</div>
+          <ol class="small text-muted mb-2 ps-3">
+            <li>Copia il link "Completo" qui sopra</li>
+            <li>Su <strong>Mac</strong>: Archivio → Nuova sottoscrizione al calendario → incolla l'URL</li>
+            <li>Su <strong>iPhone/iPad</strong>: Impostazioni → Calendario → Account → Aggiungi account → Altro → Aggiungi Cal. sottoscritto</li>
+          </ol>
+          <button class="btn btn-sm btn-outline-dark" type="button"
+                  onclick="copiaEApri('url-completo', '{{ feeds.completo|replace("https://","webcal://") }}')">
+            <i class="bi bi-clipboard me-1"></i>Copia link WebCal
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {# Outlook #}
+    <div class="p-3">
+      <div class="d-flex align-items-start gap-3">
+        <i class="bi bi-microsoft flex-shrink-0 mt-1 fs-4 text-primary"></i>
+        <div class="flex-grow-1">
+          <div class="fw-semibold mb-1">Microsoft Outlook</div>
+          <ol class="small text-muted mb-2 ps-3">
+            <li>Copia il link "Completo" qui sopra</li>
+            <li><strong>Outlook desktop</strong>: Aggiungi calendario → Da Internet → incolla l'URL</li>
+            <li><strong>Outlook web</strong>: Aggiungi calendario → Sottoscrivi da Web → incolla l'URL</li>
+          </ol>
+          <button class="btn btn-sm btn-outline-primary" type="button"
+                  onclick="copiaUrl('url-completo', this)">
+            <i class="bi bi-clipboard me-1"></i>Copia link
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar ── #}
+<div class="col-lg-4">
+
+  {# Sicurezza & Token #}
+  <div class="card shadow-sm mb-4 border-warning">
+    <div class="card-header fw-semibold text-warning-emphasis bg-warning-subtle">
+      <i class="bi bi-shield-lock me-2"></i>Sicurezza — Token segreto
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-3">
+        I link feed contengono un token segreto che autentica l'accesso senza richiedere il login.
+        <strong>Non condividere questi link.</strong>
+        Se compromesso, rigenera il token: tutti i link precedenti smetteranno di funzionare.
+      </p>
+      <div class="d-flex flex-column gap-2">
+        <div class="small text-muted">
+          <i class="bi bi-clock me-1"></i>
+          Token generato il:
+          {% if token_creato %}
+            {{ token_creato[:10] }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+        <form method="post" action="{{ url_for('rigenera_token_calendario') }}"
+              onsubmit="return confirm('Rigenerare il token? Tutti i link esistenti nei calendari smetteranno di funzionare e dovranno essere aggiornati.')">
+          <button class="btn btn-sm btn-outline-warning w-100" type="submit">
+            <i class="bi bi-arrow-clockwise me-1"></i>Rigenera token
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# Download manuale #}
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-download me-2 text-secondary"></i>Download manuale (.ics)
+    </div>
+    <div class="card-body d-flex flex-column gap-2">
+      <a href="{{ url_for('agenda_ical') }}" download="agenda.ics" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-calendar-arrow-down me-1"></i>Scarica agenda
+      </a>
+      <a href="{{ url_for('scadenziario_ical') }}" download="scadenze.ics" class="btn btn-sm btn-outline-warning">
+        <i class="bi bi-calendar-arrow-down me-1"></i>Scarica scadenze
+      </a>
+      <span class="small text-muted mt-1">
+        Importazione una-tantum: il file <code>.ics</code> non si aggiorna automaticamente.
+      </span>
+    </div>
+  </div>
+
+</div>{# /col-lg-4 #}
+
 </div>{# /row #}
 
-{% endblock %}
-
-{% block scripts %}
 <script>
-function mostraFileSelezionato(input) {
-  const btnCarica = document.getElementById('btnCarica');
-  const preview   = document.getElementById('previewNome');
-  const nomeEl    = document.getElementById('nomeFinale');
-  const dropZone  = document.getElementById('dropZone');
-  const visual    = document.getElementById('dropZoneVisual');
-
-  if (input.files && input.files[0]) {
-    const f    = input.files[0];
-    const ext  = f.name.lastIndexOf('.') >= 0
-                 ? f.name.slice(f.name.lastIndexOf('.'))
-                 : '.pdf';
-    const nome = '{{ step_corrente.nome_file }}' + ext;
-    nomeEl.textContent = nome;
-    preview.classList.remove('d-none');
-    dropZone.style.borderColor = '#198754';
-    visual.innerHTML = `<i class="bi bi-file-earmark-check-fill fs-2 text-success mb-2"></i>
-      <div class="fw-semibold text-success">${f.name}</div>
-      <div class="small text-muted mt-1">Verrà salvato come: <code>${nome}</code></div>`;
-    btnCarica.disabled = false;
-  }
+function copiaUrl(inputId, btn) {
+  var el = document.getElementById(inputId);
+  navigator.clipboard.writeText(el.value).then(function() {
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copiato!';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-outline-secondary', 'btn-outline-dark', 'btn-outline-primary');
+    setTimeout(function() {
+      btn.innerHTML = orig;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-outline-secondary');
+    }, 2000);
+  }).catch(function() {
+    el.select();
+    document.execCommand('copy');
+  });
 }
 
-function handleDrop(event) {
-  event.preventDefault();
-  const dropZone = document.getElementById('dropZone');
-  dropZone.style.borderColor = '#ced4da';
-  const dt = event.dataTransfer;
-  if (dt.files && dt.files[0]) {
-    // Crea un input nascosto temporaneo per assegnare il file
-    const input = document.createElement('input');
-    input.type = 'file';
-    // Trasferimento non diretto possibile; si usa DataTransfer API
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(dt.files[0]);
-    const fileInputReal = document.getElementById('fileInput');
-    if (fileInputReal) {
-      fileInputReal.files = dataTransfer.files;
-      mostraFileSelezionato(fileInputReal);
-    }
-  }
+function copiaEApri(inputId, webcalUrl) {
+  var el = document.getElementById(inputId);
+  navigator.clipboard.writeText(webcalUrl).then(function() {
+    alert('Link webcal:// copiato!\n\nIncollalo in Apple Calendar → Aggiungi sottoscrizione.');
+  }).catch(function() {
+    el.value = webcalUrl;
+    el.select();
+    document.execCommand('copy');
+    el.value = '{{ feeds.completo }}';
+  });
 }
 </script>
 {% endblock %}

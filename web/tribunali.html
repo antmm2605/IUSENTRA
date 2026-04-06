@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Tribunali & PEC — Studio Legale PCT{% endblock %}
+{% block page_title %}Tribunali & Indirizzi PEC{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold d-flex align-items-center gap-2">
+    <i class="bi bi-bank text-primary"></i>
+    Registro Uffici Giudiziari — indirizzi PEC (ReGINde)
+    <span class="badge bg-primary ms-auto" id="badge-count">{{ uffici|length }}</span>
+  </div>
+
+  <div class="card-body border-bottom pb-3">
+
+    {# ---- Tab tipo ---- #}
+    <div class="uff-tabs mb-2" id="trib-tabs" role="tablist">
+      <button type="button" class="uff-tab active" data-tipo="">Tutti</button>
+      <button type="button" class="uff-tab" data-tipo="TRIBUNALE"><i class="bi bi-building me-1"></i>Tribunale</button>
+      <button type="button" class="uff-tab" data-tipo="PROCURA"><i class="bi bi-shield-exclamation me-1"></i>Procura</button>
+      <button type="button" class="uff-tab" data-tipo="PROCURA_GENERALE"><i class="bi bi-shield-fill me-1"></i>Proc.Gen.</button>
+      <button type="button" class="uff-tab" data-tipo="CORTE_APPELLO"><i class="bi bi-bank2 me-1"></i>Corte d'App.</button>
+      <button type="button" class="uff-tab" data-tipo="CORTE_CASSAZIONE"><i class="bi bi-star-fill me-1"></i>Cassazione</button>
+      <button type="button" class="uff-tab" data-tipo="CORTE_ASSISE"><i class="bi bi-hammer me-1"></i>Assise</button>
+      <button type="button" class="uff-tab" data-tipo="GDP"><i class="bi bi-person-badge me-1"></i>G.d.P.</button>
+      <button type="button" class="uff-tab" data-tipo="TM"><i class="bi bi-people me-1"></i>Minorile</button>
+      <button type="button" class="uff-tab" data-tipo="SORVEGLIANZA"><i class="bi bi-eye me-1"></i>Sorv.</button>
+      <button type="button" class="uff-tab" data-tipo="TAR"><i class="bi bi-building-check me-1"></i>TAR</button>
+      <button type="button" class="uff-tab" data-tipo="CDS"><i class="bi bi-columns-gap me-1"></i>CdS</button>
+      <button type="button" class="uff-tab" data-tipo="CGARS"><i class="bi bi-shield-half me-1"></i>CGARS</button>
+      <button type="button" class="uff-tab" data-tipo="CGT"><i class="bi bi-receipt-cutoff me-1"></i>CGT</button>
+      <button type="button" class="uff-tab" data-tipo="CPT"><i class="bi bi-receipt me-1"></i>CPT</button>
+    </div>
+
+    {# ---- Campo ricerca testo ---- #}
+    <div class="input-group" style="max-width:480px">
+      <span class="input-group-text bg-white">
+        <i class="bi bi-search text-muted"></i>
+      </span>
+      <input type="text" id="trib-search" class="form-control border-start-0 ps-0"
+             placeholder="Cerca per città, nome, distretto o PEC…"
+             autocomplete="off">
+      <button type="button" class="btn btn-outline-secondary" id="trib-clear"
+              style="display:none" title="Cancella">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th>Ufficio</th>
+            <th>Distretto</th>
+            <th>Tipo</th>
+            <th>Codice</th>
+            <th>PEC</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="trib-tbody">
+          {% for u in uffici %}
+          <tr data-tipo="{{ u.tipo }}"
+              data-search="{{ (u.nome ~ ' ' ~ u.distretto ~ ' ' ~ u.pec ~ ' ' ~ u.codice)|lower }}">
+            <td class="fw-semibold">{{ u.nome }}</td>
+            <td>{{ u.distretto }}</td>
+            <td>
+              <span class="badge uff-tipo-badge uff-tipo-{{ u.tipo }}">
+                {{ u.tipo.replace('_', ' ').title() }}
+              </span>
+            </td>
+            <td><code>{{ u.codice }}</code></td>
+            <td>
+              <a href="mailto:{{ u.pec }}" class="text-decoration-none font-monospace small">
+                <i class="bi bi-envelope me-1"></i>{{ u.pec }}
+              </a>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary copy-btn"
+                      data-val="{{ u.pec }}" title="Copia PEC">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div id="trib-empty" class="uff-empty py-4" style="display:none">
+        <i class="bi bi-search me-1"></i>Nessun ufficio trovato
+        <div class="mt-1 small">Prova con un nome di città diverso</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const tbody     = document.getElementById('trib-tbody');
+  const searchEl  = document.getElementById('trib-search');
+  const clearBtn  = document.getElementById('trib-clear');
+  const emptyEl   = document.getElementById('trib-empty');
+  const badgeEl   = document.getElementById('badge-count');
+  const tabs      = document.getElementById('trib-tabs');
+  const allRows   = Array.from(tbody.querySelectorAll('tr'));
+
+  let tipoFiltro = '';
+  let testoFiltro = '';
+
+  function applica() {
+    let n = 0;
+    allRows.forEach(tr => {
+      const okTipo  = !tipoFiltro || tr.dataset.tipo === tipoFiltro;
+      const okTesto = !testoFiltro || tr.dataset.search.includes(testoFiltro);
+      const vis = okTipo && okTesto;
+      tr.style.display = vis ? '' : 'none';
+      if (vis) n++;
+    });
+    badgeEl.textContent = n;
+    emptyEl.style.display = n ? 'none' : '';
+  }
+
+  // Tab tipo
+  tabs.querySelectorAll('.uff-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.querySelectorAll('.uff-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      tipoFiltro = tab.dataset.tipo;
+      applica();
+    });
+  });
+
+  // Ricerca testo
+  let timer;
+  searchEl.addEventListener('input', function () {
+    clearTimeout(timer);
+    testoFiltro = this.value.trim().toLowerCase();
+    clearBtn.style.display = testoFiltro ? '' : 'none';
+    timer = setTimeout(applica, 150);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    searchEl.value = '';
+    testoFiltro = '';
+    clearBtn.style.display = 'none';
+    applica();
+  });
+})();
+
+// Copia PEC
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(btn.dataset.val);
+    btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+    setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+  });
+});
+</script>
+{% endblock %}

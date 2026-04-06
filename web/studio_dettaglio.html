@@ -1,130 +1,307 @@
 {% extends "admin/base.html" %}
-{% block title %}Studi Legali{% endblock %}
+{% block title %}Database — {{ studio.nome }}{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Studi Legali</li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="text-decoration-none">{{ studio.nome }}</a></li>
+<li class="breadcrumb-item active">Database</li>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mt-3 mb-4">
-  <div>
-    <h4 class="mb-0 fw-bold">Studi Legali</h4>
-    <p class="text-muted small mb-0">{{ studi|length }} studio{{ 'i' if studi|length != 1 else '' }}</p>
+<div class="d-flex align-items-center gap-3 mt-3 mb-4 flex-wrap">
+  <div class="flex-grow-1">
+    <h4 class="mb-0 fw-bold">Configurazione Database</h4>
+    <p class="text-muted small mb-0">
+      Studio: <strong>{{ studio.nome }}</strong> —
+      modalità corrente:
+      <span class="badge bg-{{ db_mode_info[db.mode].colore if db.mode in db_mode_info else 'secondary' }}">
+        {{ db_mode_info[db.mode].nome if db.mode in db_mode_info else db.mode }}
+      </span>
+    </p>
   </div>
-  <a href="{{ url_for('admin.nuovo_studio') }}" class="btn btn-primary">
-    <i class="bi bi-plus-lg me-1"></i>Nuovo Studio
+  <a href="{{ url_for('admin.dettaglio_studio', slug=studio.slug) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Torna al dettaglio
   </a>
 </div>
 
-<!-- Filtri -->
-<div class="card mb-3">
-  <div class="card-body py-2">
-    <form method="get" class="row g-2 align-items-center">
-      <div class="col-auto flex-grow-1">
-        <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm"
-               placeholder="Cerca per nome, slug o P.IVA…">
+<div class="row g-4">
+  <div class="col-12 col-lg-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-database text-primary"></i> Modalità Storage
       </div>
-      <div class="col-auto">
-        <select name="stato" class="form-select form-select-sm">
-          <option value="">Tutti gli stati</option>
-          <option value="ATTIVO"  {% if filtro_stato == 'ATTIVO'  %}selected{% endif %}>Attivo</option>
-          <option value="TRIAL"   {% if filtro_stato == 'TRIAL'   %}selected{% endif %}>Trial</option>
-          <option value="SOSPESO" {% if filtro_stato == 'SOSPESO' %}selected{% endif %}>Sospeso</option>
-          <option value="SCADUTO" {% if filtro_stato == 'SCADUTO' %}selected{% endif %}>Scaduto</option>
-        </select>
+      <div class="card-body">
+        {% for mode_key, mode_info in db_mode_info.items() %}
+        <div class="db-option-card mb-3 p-3 rounded-3 {{ 'border border-primary bg-primary bg-opacity-10' if db.mode == mode_key else 'border' }}"
+             id="option_{{ mode_key }}"
+             style="cursor:pointer;transition:all .15s;"
+             onclick="selectMode('{{ mode_key }}')">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }} fs-5"></i>
+            <span class="fw-semibold">{{ mode_info.nome }}</span>
+            <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
+              {{ mode_info.badge }}
+            </span>
+            {% if db.mode == mode_key %}
+            <i class="bi bi-check-circle-fill text-primary ms-1"></i>
+            {% endif %}
+          </div>
+
+          <p class="text-muted small mb-0">{{ mode_info.desc }}</p>
+
+          {% if mode_key != 'LOCAL' and db.mode == mode_key %}
+          <div class="mt-2">
+            {% if db.connessione_ok %}
+            <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Connessione OK</span>
+            {% elif db.ultimo_test %}
+            <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Connessione fallita</span>
+            {% else %}
+            <span class="badge bg-secondary">Non testata</span>
+            {% endif %}
+
+            {% if db.ultimo_test %}
+            <span class="text-muted ms-1" style="font-size:.72rem">
+              Ultimo test: {{ db.ultimo_test[:16].replace('T',' ') }}
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
       </div>
-      <div class="col-auto">
-        <select name="piano" class="form-select form-select-sm">
-          <option value="">Tutti i piani</option>
-          {% for pk, pv in piani.items() %}
-          <option value="{{ pk }}" {% if filtro_piano == pk %}selected{% endif %}>{{ pv.nome }}</option>
-          {% endfor %}
-        </select>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-7">
+    <form method="post" id="dbForm">
+      <input type="hidden" name="db_mode" id="dbModeField" value="{{ db.mode }}">
+
+      <div class="card mb-3 db-panel" id="panel_LOCAL"
+           style="{{ 'display:none' if db.mode != 'LOCAL' else '' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-secondary">
+          <i class="bi bi-hdd-fill"></i> Storage Locale (JSON)
+        </div>
+        <div class="card-body">
+          <div class="alert alert-success d-flex gap-2 mb-0">
+            <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+            <div>
+              <strong>Nessuna configurazione richiesta.</strong><br>
+              <span class="small">
+                I dati sono salvati in
+                <code>./data/tenants/{{ studio.slug }}/</code>
+                sul filesystem del server.
+              </span>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="small text-muted fw-semibold mb-1">Directory dati:</div>
+            <code class="small">./data/tenants/{{ studio.slug }}/</code>
+          </div>
+        </div>
       </div>
-      <div class="col-auto">
-        <button class="btn btn-sm btn-primary" type="submit">
-          <i class="bi bi-funnel me-1"></i>Filtra
+
+      <div class="card mb-3 db-panel" id="panel_MYSQL"
+           style="{{ '' if db.mode == 'MYSQL' else 'display:none' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-warning">
+          <i class="bi bi-database-fill"></i> Parametri MySQL / MariaDB
+        </div>
+        <div class="card-body">
+          {% include "admin/_db_form_sql.html" with context %}
+        </div>
+      </div>
+
+      <div class="card mb-3 db-panel" id="panel_POSTGRESQL"
+           style="{{ '' if db.mode == 'POSTGRESQL' else 'display:none' }}">
+        <div class="card-header fw-semibold d-flex align-items-center gap-2 text-primary">
+          <i class="bi bi-database-fill-gear"></i> Parametri PostgreSQL
+        </div>
+        <div class="card-body">
+          {% include "admin/_db_form_sql.html" with context %}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-1"></i>Salva configurazione
         </button>
-        <a href="{{ url_for('admin.lista_studi') }}" class="btn btn-sm btn-outline-secondary ms-1">
-          <i class="bi bi-x-lg"></i>
-        </a>
+        {% if db.mode != 'LOCAL' %}
+        <button type="button" class="btn btn-outline-info" id="btnTestConn">
+          <i class="bi bi-broadcast me-1"></i>Testa connessione
+        </button>
+        {% endif %}
       </div>
     </form>
+
+    <div id="testResult" class="mt-3" style="display:none"></div>
+
+    {% if db.errore_connessione and not db.connessione_ok and db.mode != 'LOCAL' %}
+    <div class="alert alert-danger mt-3 small d-flex gap-2">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <div>
+        <strong>Ultimo errore connessione:</strong><br>
+        <code>{{ db.errore_connessione }}</code>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
-<!-- Tabella -->
-<div class="card">
-  <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Studio</th>
-          <th>Slug</th>
-          <th>Piano</th>
-          <th>Stato</th>
-          <th>Scadenza</th>
-          <th>Creato il</th>
-          <th class="text-end">Azioni</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for s in studi %}
-        <tr class="studio-row">
-          <td>
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
-                   style="width:32px;height:32px;font-size:.9rem;flex-shrink:0">
-                <i class="bi bi-building"></i>
-              </div>
-              <div>
-                <div class="fw-semibold small">{{ s.nome }}</div>
-                {% if s.avvocato_ref %}
-                <div class="text-muted" style="font-size:.72rem">{{ s.avvocato_ref }}</div>
-                {% endif %}
-              </div>
-            </div>
-          </td>
-          <td><code class="small">/{{ s.slug }}</code></td>
-          <td>
-            <span class="badge bg-{{ piani[s.piano].colore if s.piano in piani else 'secondary' }} badge-piano">
-              {{ piani[s.piano].nome if s.piano in piani else s.piano }}
-            </span>
-          </td>
-          <td>
-            <span class="badge badge-stato-{{ s.stato }} rounded-pill px-2" style="font-size:.72rem">
-              {{ s.stato }}
-            </span>
-          </td>
-          <td class="small">
-            {% if s.data_scadenza %}
-              {% set gg = s.giorni_alla_scadenza %}
-              {% if gg is not none and gg <= 0 %}
-                <span class="text-danger fw-semibold">Scaduta</span>
-              {% elif gg is not none and gg <= 14 %}
-                <span class="text-warning fw-semibold">{{ gg }} gg</span>
-              {% else %}
-                {{ s.data_scadenza[:10] }}
-              {% endif %}
-            {% else %}—{% endif %}
-          </td>
-          <td class="text-muted small">{{ s.data_creazione[:10] if s.data_creazione else '—' }}</td>
-          <td class="text-end">
-            <a href="{{ url_for('admin.dettaglio_studio', slug=s.slug) }}"
-               class="btn btn-sm btn-outline-primary py-0 px-2">
-              <i class="bi bi-pencil-fill"></i>
-            </a>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="7" class="text-center py-5 text-muted">
-            <i class="bi bi-building fs-2 d-block mb-2 opacity-25"></i>
-            Nessuno studio trovato.
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div class="card mt-4">
+  <div class="card-header fw-semibold d-flex align-items-center gap-2">
+    <i class="bi bi-terminal text-muted"></i> Requisiti di installazione
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-hdd-fill text-secondary"></i>
+          <span class="fw-semibold small">LOCAL</span>
+          <span class="badge bg-success ms-auto">Già incluso</span>
+        </div>
+        <code class="small text-muted">Nessuna dipendenza aggiuntiva</code>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-database-fill text-warning"></i>
+          <span class="fw-semibold small">MySQL</span>
+        </div>
+        <code class="small">pip install sqlalchemy pymysql</code>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <i class="bi bi-database-fill-gear text-primary"></i>
+          <span class="fw-semibold small">PostgreSQL</span>
+        </div>
+        <code class="small">pip install sqlalchemy psycopg2-binary</code>
+      </div>
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TEST_URL = '{{ url_for("admin.testa_connessione_db", slug=studio.slug) }}';
+
+function setPanelInputsEnabled(panelId, enabled) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  panel.querySelectorAll('input, select, textarea, button').forEach(el => {
+    if (el.name && el.name !== 'db_mode') {
+      el.disabled = !enabled;
+    }
+  });
+}
+
+function updatePanels(mode) {
+  document.querySelectorAll('.db-panel').forEach(el => {
+    const visible = el.id === 'panel_' + mode;
+    el.style.display = visible ? '' : 'none';
+  });
+
+  setPanelInputsEnabled('panel_LOCAL', mode === 'LOCAL');
+  setPanelInputsEnabled('panel_MYSQL', mode === 'MYSQL');
+  setPanelInputsEnabled('panel_POSTGRESQL', mode === 'POSTGRESQL');
+}
+
+function selectMode(mode) {
+  document.getElementById('dbModeField').value = mode;
+
+  document.querySelectorAll('.db-option-card').forEach(el => {
+    const isSelected = el.id === 'option_' + mode;
+    el.classList.toggle('border-primary', isSelected);
+    el.classList.toggle('bg-primary', isSelected);
+    el.classList.toggle('bg-opacity-10', isSelected);
+  });
+
+  updatePanels(mode);
+
+  let testBtn = document.getElementById('btnTestConn');
+
+  if (mode === 'LOCAL') {
+    if (testBtn) testBtn.style.display = 'none';
+  } else {
+    if (testBtn) testBtn.style.display = '';
+  }
+}
+
+async function doTestConnection() {
+  const btn = document.getElementById('btnTestConn');
+  const result = document.getElementById('testResult');
+  if (!btn || !result) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test in corso...';
+  result.style.display = 'none';
+
+  try {
+    const resp = await fetch(TEST_URL, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+
+    const raw = await resp.text();
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      result.style.display = '';
+      result.innerHTML = `
+        <div class="alert alert-danger d-flex gap-2">
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Errore nella richiesta</strong><br>
+            <code>Il server non ha restituito JSON valido.</code><br>
+            <small>${raw.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</small>
+          </div>
+        </div>`;
+      return;
+    }
+
+    result.style.display = '';
+
+    if (data.ok) {
+      result.innerHTML = `
+        <div class="alert alert-success d-flex gap-2">
+          <i class="bi bi-check-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Connessione riuscita!</strong><br>
+            <span>${data.messaggio || 'Test completato con successo.'}</span>
+          </div>
+        </div>`;
+    } else {
+      result.innerHTML = `
+        <div class="alert alert-danger d-flex gap-2">
+          <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+          <div>
+            <strong>Connessione fallita</strong><br>
+            <code>${data.errore || data.messaggio || 'Errore sconosciuto'}</code>
+          </div>
+        </div>`;
+    }
+  } catch (e) {
+    result.style.display = '';
+    result.innerHTML = `
+      <div class="alert alert-danger d-flex gap-2">
+        <i class="bi bi-x-circle-fill fs-5 flex-shrink-0"></i>
+        <div>
+          <strong>Errore nella richiesta</strong><br>
+          <code>${e}</code>
+        </div>
+      </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-broadcast me-1"></i>Testa connessione';
+  }
+}
+
+document.getElementById('btnTestConn')?.addEventListener('click', doTestConnection);
+
+document.addEventListener('DOMContentLoaded', function () {
+  updatePanels(document.getElementById('dbModeField').value);
+});
+</script>
 {% endblock %}

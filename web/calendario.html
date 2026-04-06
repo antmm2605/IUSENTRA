@@ -1,238 +1,133 @@
 {% extends "base.html" %}
-{% from "includes/_ufficio_picker.html" import ufficio_picker %}
-{% block title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
-{% block page_title %}{{ 'Modifica' if fascicolo else 'Nuovo' }} Fascicolo{% endblock %}
+{% block title %}Fatturazione{% endblock %}
 
 {% block content %}
 
 {# ── Page Header ── #}
 <div class="ds-ph">
-  <div class="ds-ph-icon">
-    <i class="bi bi-{% if fascicolo %}pencil{% else %}folder-plus{% endif %}"></i>
-  </div>
+  <div class="ds-ph-icon"><i class="bi bi-receipt"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">{{ 'Modifica: ' + fascicolo.titolo if fascicolo else 'Nuovo Fascicolo' }}</h1>
-    <p class="ds-ph-sub">Dati processuali, parti e informazioni del fascicolo</p>
+    <h1 class="ds-ph-title">Fatturazione</h1>
+    <p class="ds-ph-sub">Parcelle e note spese — {{ stats.anno }}</p>
   </div>
   <div class="ds-ph-actions">
-    {% if fascicolo %}
-    <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicolo</span>
+    <a href="{{ url_for('fatturazione.nuova') }}" class="ds-btn ds-btn-primary">
+      <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuova parcella</span>
     </a>
-    {% else %}
-    <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicoli</span>
-    </a>
-    {% endif %}
   </div>
 </div>
 
-<div class="row g-4">
-<div class="col-lg-8">
-<form method="post">
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible fade show">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
 
-{# Dati principali #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-folder2-open me-2 text-primary"></i>Dati principali
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-8">
-        <label class="form-label fw-semibold">Titolo <span class="text-danger">*</span></label>
-        <input type="text" name="titolo" class="form-control" required
-               value="{{ fascicolo.titolo if fascicolo else '' }}"
-               placeholder="es. Rossi c/ Bianchi — Inadempimento contrattuale">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
-        <select name="tipo" class="form-select" required>
-          {% for t in tipi %}
-          <option value="{{ t.value }}" {{ 'selected' if fascicolo and fascicolo.tipo == t }}>
-            {{ t.value.replace('_',' ') }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">Oggetto / Descrizione</label>
-        <textarea name="oggetto" class="form-control" rows="2"
-                  placeholder="Breve descrizione della causa…">{{ fascicolo.oggetto if fascicolo else '' }}</textarea>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# Cliente e controparte #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-people me-2 text-primary"></i>Parti
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Cliente</label>
-        <select name="id_cliente" class="form-select">
-          <option value="">— Seleziona cliente —</option>
-          {% for c in clienti %}
-          <option value="{{ c.id }}"
-            {% if (fascicolo and fascicolo.id_cliente == c.id) or id_cliente_pre == c.id %}
-              selected
-            {% endif %}>
-            {{ c.nome_completo }}
-            {% if c.codice_fiscale %} ({{ c.codice_fiscale }}){% endif %}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Controparte</label>
-        {# Widget soggetto search — cerca nel DB o digita liberamente #}
-        <div class="ss-wrap" id="ss-controparte">
-          <div class="ss-input-group">
-            <i class="bi bi-search ss-icon"></i>
-            <input type="text"
-                   name="controparte"
-                   id="ss-controparte-input"
-                   class="ss-input"
-                   value="{{ fascicolo.controparte if fascicolo else '' }}"
-                   placeholder="Cerca per nome, C.F.… o digita"
-                   autocomplete="off">
-            <button type="button" class="ss-btn-new"
-                    onclick="window.open('/soggetti/nuovo','_blank')"
-                    title="Crea nuovo soggetto">
-              <i class="bi bi-plus-lg me-1"></i>Nuovo
-            </button>
-          </div>
-          <div id="ss-controparte-dropdown" class="ss-dropdown"></div>
-          <div id="ss-controparte-chip" class="ss-chip mt-1" style="display:none"></div>
-        </div>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          initSoggettoSearch({
-            uid: 'controparte',
-            allowFreeText: true,
-            createLabel: 'Crea nuovo soggetto'
-          });
-        });
-        </script>
-      </div>
-    </div>
-  </div>
-</div>
-
-{# Dati processuali #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-bank me-2 text-primary"></i>Dati processuali
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-5">
-        <label class="form-label fw-semibold">Tribunale</label>
-        {{ ufficio_picker("tribunale",
-            current_value = fascicolo.tribunale if fascicolo else "",
-            usa_nome = true,
-            label = "Tribunale",
-            uid = "uffp-fascicolo-tribunale") }}
-      </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold">Numero RG</label>
-        <input type="text" name="numero_rg" class="form-control font-monospace"
-               value="{{ fascicolo.numero_rg if fascicolo else '' }}"
-               placeholder="1234">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label fw-semibold">Anno RG</label>
-        <input type="number" name="anno_rg" class="form-control"
-               value="{{ fascicolo.anno_rg if fascicolo and fascicolo.anno_rg else oggi.year }}"
-               min="2000" max="2099">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label fw-semibold">Sezione</label>
-        <input type="text" name="sezione" class="form-control"
-               value="{{ fascicolo.sezione if fascicolo else '' }}"
-               placeholder="I, II…">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Giudice</label>
-        <input type="text" name="giudice" class="form-control"
-               value="{{ fascicolo.giudice if fascicolo else '' }}"
-               placeholder="Dott. …">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Valore causa (€)</label>
-        <input type="number" name="valore_causa" class="form-control" step="0.01" min="0"
-               value="{{ fascicolo.valore_causa if fascicolo else '' }}"
-               placeholder="0.00">
-      </div>
-    </div>
-  </div>
-</div>
-
-{# Studio #}
-<div class="card shadow-sm mb-3">
-  <div class="card-header fw-semibold">
-    <i class="bi bi-briefcase me-2 text-primary"></i>Avvocati responsabili
-  </div>
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Avvocato referente</label>
-        <input type="text" name="avvocato_referente" class="form-control"
-               value="{{ fascicolo.avvocato_referente if fascicolo else '' }}"
-               placeholder="Avv. Mario Rossi">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">Avvocato dominus</label>
-        <input type="text" name="avvocato_dominus" class="form-control"
-               value="{{ fascicolo.avvocato_dominus if fascicolo else '' }}"
-               placeholder="Avv. …">
-      </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">Note</label>
-        <textarea name="note" class="form-control" rows="3">{{ fascicolo.note if fascicolo else '' }}</textarea>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="d-flex gap-2 mb-4">
-  <button type="submit" class="btn btn-primary">
-    <i class="bi bi-check-lg me-1"></i>{{ 'Salva modifiche' if fascicolo else 'Crea fascicolo' }}
-  </button>
-  {% if fascicolo %}
-  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}"
-     class="btn btn-outline-secondary">Annulla</a>
-  {% else %}
-  <a href="{{ url_for('lista_fascicoli') }}" class="btn btn-outline-secondary">Annulla</a>
+{# ── Stats ── #}
+<div class="ds-stats">
+  <span class="ds-stat-pill">
+    <i class="bi bi-graph-up text-primary"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.fatturato_lordo) }}</span> fatturato {{ stats.anno }}
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-check-circle text-success"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.incassato) }}</span> incassato
+  </span>
+  <span class="ds-stat-pill">
+    <i class="bi bi-hourglass-split text-warning"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.da_incassare) }}</span> da incassare
+  </span>
+  {% if stats.scaduto > 0 %}
+  <span class="ds-stat-pill">
+    <i class="bi bi-exclamation-circle text-danger"></i>
+    <span class="num">€ {{ "%.0f"|format(stats.scaduto) }}</span> scaduto
+  </span>
   {% endif %}
 </div>
 
+{# ── Filtri ── #}
+<form method="get" class="ds-search-bar mb-3">
+  <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
+    {% for a in anni_disponibili %}
+    <option value="{{ a }}" {{ 'selected' if a == anno }}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm" style="max-width:150px" onchange="this.form.submit()">
+    <option value="">Tutti gli stati</option>
+    {% for s in ['BOZZA','EMESSA','PAGATA','SCADUTA','ANNULLATA'] %}
+    <option value="{{ s }}" {{ 'selected' if s == stato_filtro }}>{{ s.title() }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="ds-btn ds-btn-outline">
+    <i class="bi bi-funnel"></i>Filtra
+  </button>
 </form>
-</div>{# /col-lg-8 #}
 
-{# ── Sidebar info ── #}
-<div class="col-lg-4">
-  <div class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-info-circle me-2 text-primary"></i>Guida rapida
-    </div>
-    <div class="card-body small text-muted">
-      <p class="mb-2"><strong>RG (Registro Generale)</strong>: numero assegnato dal tribunale all'atto dell'iscrizione a ruolo.</p>
-      <p class="mb-2"><strong>Sezione</strong>: sezione del tribunale competente (es. I, II, Lavoro).</p>
-      <p class="mb-0"><strong>Valore causa</strong>: influenza la determinazione degli onorari secondo i parametri ministeriali D.M. 55/2014.</p>
-    </div>
+<!-- Lista parcelle -->
+{% if parcelle %}
+<div class="card border-0 shadow-sm" style="border-radius:16px; overflow:hidden;">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr style="font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;">
+          <th>Numero</th>
+          <th>Cliente</th>
+          <th>Data</th>
+          <th class="text-end">Totale</th>
+          <th class="text-center">Stato</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in parcelle %}
+        {% set c = clienti_map.get(p.id_cliente) %}
+        <tr>
+          <td>
+            <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
+               class="fw-semibold text-decoration-none" style="font-size:.9rem;">
+              {{ p.numero }}
+            </a>
+          </td>
+          <td style="font-size:.88rem;">{{ c.nome_completo if c else '—' }}</td>
+          <td style="font-size:.82rem;color:#6b7280;">{{ p.data_emissione }}</td>
+          <td class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+          <td class="text-center">
+            <span class="badge rounded-pill
+              {% if p.stato.value == 'PAGATA' %}bg-success
+              {% elif p.stato.value == 'EMESSA' %}bg-primary
+              {% elif p.stato.value == 'SCADUTA' %}bg-danger
+              {% elif p.stato.value == 'BOZZA' %}bg-secondary
+              {% else %}bg-dark{% endif %}"
+              style="font-size:.68rem;">{{ p.stato.value }}</span>
+          </td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="{{ url_for('fatturazione.pdf', id_parcella=p.id) }}"
+                 class="btn btn-sm btn-outline-secondary" title="Scarica PDF" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </a>
+              <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
+                 class="btn btn-sm btn-outline-primary" title="Dettaglio">
+                <i class="bi bi-eye"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <div class="card shadow-sm">
-    <div class="card-header fw-semibold">
-      <i class="bi bi-lightning me-2 text-muted"></i>Prossimi passi
-    </div>
-    <div class="card-body small text-muted">
-      Dopo la creazione del fascicolo potrai aggiungere: documenti, scadenze processuali, attività, depositi telematici e note.
-    </div>
-  </div>
-</div>{# /col-lg-4 #}
-
-</div>{# /row #}
+</div>
+{% else %}
+<div class="ds-empty">
+  <i class="bi bi-receipt ds-empty-icon"></i>
+  <div class="ds-empty-title">Nessuna parcella per {{ anno }}</div>
+  <div class="ds-empty-sub">Crea la prima parcella per iniziare a gestire la fatturazione.</div>
+  <a href="{{ url_for('fatturazione.nuova') }}" class="ds-btn ds-btn-primary mt-3">
+    <i class="bi bi-plus-lg"></i>Nuova parcella
+  </a>
+</div>
+{% endif %}
 {% endblock %}

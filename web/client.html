@@ -1,229 +1,124 @@
-{% extends "base.html" %}
-{% block pct_modulo %}clienti{% endblock %}
-{% block title %}Clienti — Studio Legale PCT{% endblock %}
-{% block page_title %}Anagrafica Clienti{% endblock %}
+{# ════════════════════════════════════════════════════════════
+   Email detail panel — usato in dettaglio.html
+   ════════════════════════════════════════════════════════════ #}
+{% set em = em or email_sel %}
+{% if em %}
 
-{% block content %}
+{% set _sname   = em.mittente_nome or em.mittente or em.destinatari or '?' %}
+{% set _palette = ['#2563eb','#7c3aed','#db2777','#d97706','#059669','#0891b2','#dc2626','#65a30d'] %}
+{% set _ci      = (_sname|lower|first)|int(default=0) % 8 %}
 
-{# ── Page Header ── #}
-<div class="ds-ph">
-  <div class="ds-ph-icon"><i class="bi bi-people-fill"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Anagrafica Clienti</h1>
-    <p class="ds-ph-sub">Persone fisiche e giuridiche assistite dallo studio</p>
-  </div>
-  <div class="ds-ph-actions">
-    <div class="dropdown">
-      <button class="ds-btn ds-btn-outline dropdown-toggle" data-bs-toggle="dropdown" title="Esporta">
-        <i class="bi bi-download"></i><span class="d-none d-sm-inline">Esporta</span>
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow">
-        <li>
-          <a class="dropdown-item" href="{{ url_for('export_clienti_pdf') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}">
-            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF lista
+{# ── Mittente ── #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="d-flex align-items-start gap-3">
+      <div style="width:42px;height:42px;border-radius:50%;background:{{ _palette[_ci] }};
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:.9rem;font-weight:700;color:#fff;flex-shrink:0">
+        {{ _sname|upper|first }}
+      </div>
+      <div class="flex-grow-1 min-width-0">
+        <div class="d-flex align-items-baseline gap-2 flex-wrap">
+          <span class="fw-semibold" style="font-size:.9rem">
+            {% if em.cartella == 'INVIATI' %}{{ em.destinatari }}
+            {% else %}{{ em.mittente_nome or em.mittente }}{% endif %}
+          </span>
+          {% if em.mittente_nome and em.cartella != 'INVIATI' %}
+          <span class="text-muted small">&lt;{{ em.mittente }}&gt;</span>
+          {% endif %}
+          {% set ts = em.timestamp %}{% if ts %}
+          <span class="text-muted small ms-auto text-nowrap">{{ ts[:16]|replace('T',' ') }}</span>
+          {% endif %}
+        </div>
+        <div class="text-muted small mt-1">
+          {% if em.cartella == 'INVIATI' %}A: {{ em.destinatari }}{% else %}A: me{% endif %}
+          <a href="#" class="ms-2 text-primary small text-decoration-none"
+             onclick="this.closest('.card-body').querySelector('.det-meta-expand').classList.toggle('d-none');return false">
+            Dettagli
           </a>
-        </li>
-        <li>
-          <a class="dropdown-item" href="{{ url_for('export_clienti_csv') }}?q={{ q }}&tipo={{ tipo_filtro }}&stato={{ stato_filtro }}">
-            <i class="bi bi-filetype-csv me-2 text-success"></i>CSV
-          </a>
-        </li>
-      </ul>
-    </div>
-    <a href="{{ url_for('nuovo_cliente') }}" class="ds-btn ds-btn-primary">
-      <i class="bi bi-person-plus-fill"></i><span class="d-none d-sm-inline">Nuovo cliente</span>
-    </a>
-  </div>
-</div>
-
-{# ── Stats ── #}
-<div class="ds-stats">
-  <span class="ds-stat-pill">
-    <span class="num">{{ stats.totale }}</span> totali
-  </span>
-  <span class="ds-stat-pill">
-    <i class="bi bi-person-check text-success"></i>
-    <span class="num">{{ stats.per_stato.ATTIVO }}</span> attivi
-  </span>
-  <span class="ds-stat-pill">
-    <i class="bi bi-file-earmark-text text-primary"></i>
-    <span class="num">{{ stats.con_procedimenti_attivi }}</span> con procedimenti
-  </span>
-  {% if stats.documenti_scaduti %}
-  <span class="ds-stat-pill">
-    <i class="bi bi-exclamation-triangle text-warning"></i>
-    <span class="num">{{ stats.documenti_scaduti }}</span> doc. scaduti
-  </span>
-  {% endif %}
-</div>
-
-{# ── Barra ricerca + filtri ── #}
-<form method="get" class="ds-search-bar mb-3">
-  <input type="search" name="q" class="ds-search-input"
-         placeholder="Cerca per nome, CF, P.IVA, email, telefono…"
-         value="{{ q }}" autocomplete="off">
-  <select name="tipo" class="form-select form-select-sm" style="max-width:160px">
-    <option value="">Tutti i tipi</option>
-    {% for t in tipi %}
-    <option value="{{ t.value }}" {{ 'selected' if tipo_filtro == t.value }}>
-      {{ t.value.replace('_',' ') }}
-    </option>
-    {% endfor %}
-  </select>
-  <select name="stato" class="form-select form-select-sm" style="max-width:160px">
-    <option value="">Tutti gli stati</option>
-    {% for s in stati %}
-    <option value="{{ s.value }}" {{ 'selected' if stato_filtro == s.value }}>
-      {{ s.value }}
-    </option>
-    {% endfor %}
-  </select>
-  <button type="submit" class="ds-btn ds-btn-outline">
-    <i class="bi bi-funnel"></i>Filtra
-  </button>
-  {% if q or tipo_filtro or stato_filtro %}
-  <a href="{{ url_for('lista_clienti') }}" class="ds-btn ds-btn-ghost">
-    <i class="bi bi-x-circle"></i>Reset
-  </a>
-  {% endif %}
-</form>
-
-{# ── Tabella clienti ── #}
-{% if clienti %}
-<div class="card shadow-sm">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span class="fw-semibold text-muted small">
-      {{ clienti|length }} client{% if clienti|length != 1 %}i{% else %}e{% endif %}
-    </span>
-    <select id="page-size-clienti" class="form-select form-select-sm" style="width:auto">
-      <option value="25">25 per pagina</option>
-      <option value="50">50 per pagina</option>
-      <option value="100">100 per pagina</option>
-      <option value="0">Tutti</option>
-    </select>
-  </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-clienti" data-paginate="page-size-clienti">
-        <thead class="table-light">
-          <tr>
-            <th>Cliente</th>
-            <th>Tipo</th>
-            <th>CF / P.IVA</th>
-            <th>Contatti</th>
-            <th>Avv. referente</th>
-            <th>Procedimenti</th>
-            <th>Stato</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for c in clienti %}
-          {% set sc = {'ATTIVO':'success','INATTIVO':'secondary','POTENZIALE':'warning','ARCHIVIATO':'dark'} %}
-          <tr data-swipe-delete="1" title="{{ c.nome_completo }}">
-            <td data-label="Cliente">
-              <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
-                 class="fw-semibold text-decoration-none text-dark">
-                {{ c.nome_completo }}
-              </a>
-              {% if c.tipo == TipoCliente.PERSONA_FISICA and c.eta %}
-                <span class="text-muted small ms-1">({{ c.eta }} anni)</span>
-              {% endif %}
-              {% if c.documento.scaduto %}
-                <i class="bi bi-exclamation-triangle-fill text-warning ms-1"
-                   title="Documento scaduto"></i>
-              {% endif %}
-            </td>
-            <td data-label="Tipo">
-              {% if c.tipo == TipoCliente.PERSONA_FISICA %}
-                <span class="badge bg-info-subtle text-info-emphasis rounded-pill">
-                  <i class="bi bi-person me-1"></i>Persona fisica
-                </span>
-              {% else %}
-                <span class="badge rounded-pill"
-                      style="background:#ede7f6;color:#4a148c">
-                  <i class="bi bi-building me-1"></i>{{ c.forma_giuridica or 'Società' }}
-                </span>
-              {% endif %}
-            </td>
-            <td data-label="CF / P.IVA" class="font-monospace small">
-              {{ c.codice_fiscale or c.partita_iva or '—' }}
-            </td>
-            <td data-label="Contatti" class="small">
-              {% if c.recapiti.cellulare %}
-                <div><i class="bi bi-phone me-1 text-muted"></i>{{ c.recapiti.cellulare }}</div>
-              {% elif c.recapiti.telefono %}
-                <div><i class="bi bi-telephone me-1 text-muted"></i>{{ c.recapiti.telefono }}</div>
-              {% endif %}
-              {% if c.recapiti.email %}
-                <div><i class="bi bi-envelope me-1 text-muted"></i>
-                  <a href="mailto:{{ c.recapiti.email }}" class="text-muted">{{ c.recapiti.email }}</a>
-                </div>
-              {% endif %}
-            </td>
-            <td data-label="Avv." class="small" data-mob-hide>{{ c.avvocato_referente or '—' }}</td>
-            <td data-label="Pratiche" class="text-center">
-              {% set n_proc = c.procedimenti_attivi|length %}
-              {% if n_proc %}
-                <span class="badge bg-primary rounded-pill">{{ n_proc }}</span>
-              {% else %}
-                <span class="text-muted">—</span>
-              {% endif %}
-            </td>
-            <td data-label="Stato">
-              <span class="badge bg-{{ sc[c.stato.value] }}">{{ c.stato.value }}</span>
-            </td>
-            <td data-label="" class="text-end">
-              <div class="btn-group btn-group-sm">
-                <a href="{{ url_for('faldone_cliente', id_cliente=c.id) }}"
-                   class="btn btn-warning" title="Faldone digitale">
-                  <i class="bi bi-folder2-open"></i>
-                </a>
-                <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"
-                   class="btn btn-primary" title="Apri cartella">
-                  <i class="bi bi-folders"></i>
-                </a>
-                <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
-                   class="btn btn-outline-secondary" title="Dettaglio">
-                  <i class="bi bi-eye"></i>
-                </a>
-                <a href="{{ url_for('modifica_cliente', id_cliente=c.id) }}"
-                   class="btn btn-outline-primary" title="Modifica">
-                  <i class="bi bi-pencil"></i>
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+        </div>
+        <div class="det-meta-expand d-none mt-2 p-2 bg-light rounded border small text-muted" style="line-height:1.9">
+          {% if em.mittente %}<div><strong class="me-2">Da</strong>{{ em.mittente_nome or '' }} &lt;{{ em.mittente }}&gt;</div>{% endif %}
+          {% if em.destinatari %}<div><strong class="me-2">A</strong>{{ em.destinatari }}</div>{% endif %}
+          {% set ts2 = em.timestamp %}{% if ts2 %}<div><strong class="me-2">Data</strong>{{ ts2[:16]|replace('T',' ') }}</div>{% endif %}
+          {% if em.oggetto %}<div><strong class="me-2">Oggetto</strong>{{ em.oggetto }}</div>{% endif %}
+          {% if em.message_id %}<div class="text-muted" style="font-size:.72rem"><strong class="me-2">Message-ID</strong>{{ em.message_id }}</div>{% endif %}
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-{% else %}
-<div class="ds-empty">
-  <i class="bi bi-people ds-empty-icon"></i>
-  <div class="ds-empty-title">Nessun cliente trovato</div>
-  <div class="ds-empty-sub">
-    {% if q or tipo_filtro or stato_filtro %}
-      Nessun risultato per i filtri selezionati.
+{# ── PST bar ── #}
+{% if em.e_pst %}
+<div class="alert alert-primary border d-flex align-items-start gap-2 py-2 mb-3" style="background:#eff6ff;border-color:#bfdbfe!important">
+  <i class="bi bi-shield-check-fill text-primary mt-1 flex-shrink-0"></i>
+  <div class="small">
+    <strong>Portale Servizi Telematici</strong>
+    {% if em.stato_pct %} — stato:
+      <code class="px-1 py-0 rounded" style="background:rgba(37,99,235,.1);font-size:.85em">{{ em.stato_pct }}</code>
+    {% endif %}
+    {% if not em.auto_registrata %}
+    <span class="badge ms-2" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:.68rem">Da registrare</span>
     {% else %}
-      Aggiungi il primo cliente per iniziare a gestire l'anagrafica.
+    <span class="badge bg-success ms-2" style="font-size:.68rem">Esito aggiornato</span>
     {% endif %}
   </div>
-  {% if not q and not tipo_filtro and not stato_filtro %}
-  <a href="{{ url_for('nuovo_cliente') }}" class="ds-btn ds-btn-primary mt-3">
-    <i class="bi bi-person-plus-fill"></i>Nuovo cliente
-  </a>
-  {% endif %}
 </div>
 {% endif %}
 
-{% endblock %}
+{# ── Corpo ── #}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">
+    <i class="bi bi-file-text me-2"></i>Contenuto
+  </div>
+  <div class="card-body" style="font-size:.9rem;line-height:1.75">
+    {% if em.corpo_html %}
+    <iframe srcdoc="{{ em.corpo_html|e }}"
+            sandbox="allow-same-origin"
+            style="width:100%;border:none;min-height:200px;display:block"
+            onload="this.style.height=(this.contentDocument.documentElement.scrollHeight+24)+'px'">
+    </iframe>
+    {% elif em.corpo_testo %}
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:inherit;margin:0;color:#0f172a">{{ em.corpo_testo }}</pre>
+    {% else %}
+    <span class="text-muted fst-italic">(Nessun contenuto)</span>
+    {% endif %}
+  </div>
+</div>
 
-{% block scripts %}
-<script>
-initPagination('tbl-clienti', 'page-size-clienti');
-</script>
-{% endblock %}
+{# ── Allegati ── #}
+{% if em.allegati %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header fw-semibold small text-muted text-uppercase" style="letter-spacing:.05em">
+    <i class="bi bi-paperclip me-2"></i>
+    {{ em.allegati|length }} allegato{{ '' if em.allegati|length == 1 else 'i' }}
+  </div>
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-2">
+      {% for att in em.allegati %}
+      <div class="d-flex align-items-center gap-2 px-3 py-2 border rounded" style="background:#f8fafc;font-size:.82rem">
+        <i class="bi bi-file-earmark-text text-muted"></i>
+        <div>
+          <div class="fw-semibold text-dark">{{ att.nome }}</div>
+          {% if att.size %}<div class="text-muted" style="font-size:.72rem">{{ (att.size / 1024)|round(0)|int }} KB</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-muted small mb-0 mt-2">
+      <i class="bi bi-info-circle me-1"></i>Il download richiede accesso autenticato al portale originale.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+{# ── Rispondi ── #}
+<a class="d-flex align-items-center gap-2 px-3 py-2 border rounded text-muted text-decoration-none mb-3"
+   style="background:#fff;font-size:.88rem;transition:border-color .15s"
+   href="{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}">
+  <i class="bi bi-reply text-primary fs-5"></i>
+  Rispondi a <strong class="ms-1 text-dark">{{ em.mittente_nome or em.mittente }}</strong>…
+</a>
+
+{% endif %}

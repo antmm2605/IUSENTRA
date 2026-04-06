@@ -1,548 +1,105 @@
 {% extends "base.html" %}
-{% block title %}Guida — Certificato di firma digitale{% endblock %}
-{% block page_title %}Guida firma digitale{% endblock %}
+{% block title %}Messaggio{% endblock %}
+{% block page_title %}Dettaglio Messaggio{% endblock %}
 
 {% block content %}
-<div class="row g-4">
+<div class="row g-3">
 
-  {# ---- Intro ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-3">
-          <div style="width:52px;height:52px;border-radius:12px;background:#e3f2fd;
-                      color:#1565c0;font-size:1.5rem;display:flex;align-items:center;
-                      justify-content:center;flex-shrink:0">
-            <i class="bi bi-patch-check-fill"></i>
-          </div>
-          <div class="flex-grow-1">
-            <h5 class="fw-bold mb-1">Come ottenere e configurare il certificato di firma digitale</h5>
-            <p class="text-muted mb-0 small">
-              Guida pratica per avvocati: dai provider italiani alla configurazione nell'app.
-              Usa il selettore in alto per saltare alla sezione che ti serve.
-            </p>
-          </div>
-          <a href="{{ url_for('impostazioni.index', tab='firma') }}"
-             class="btn btn-primary btn-sm flex-shrink-0">
-            <i class="bi bi-gear me-1"></i>Vai alle impostazioni
-          </a>
-        </div>
-      </div>
-    </div>
+{# ── Colonna principale ── #}
+<div class="col-lg-8">
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+    <span>
+      <i class="bi bi-envelope me-2 text-primary"></i>
+      {{ msg.canale.value }}
+      —
+      {% set colore = {
+        'IN_CODA': 'secondary', 'INVIATO': 'primary',
+        'CONSEGNATO': 'success', 'LETTO': 'info',
+        'FALLITO': 'danger', 'ANNULLATO': 'warning'
+      } %}
+      <span class="badge bg-{{ colore.get(msg.stato.value, 'secondary') }}">
+        {{ msg.stato.value.replace('_',' ') }}
+      </span>
+    </span>
   </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Data invio</dt>
+      <dd class="col-sm-9 font-monospace">{{ msg.creato_il[:19].replace('T',' ') }}</dd>
 
-  {# ---- Navigazione rapida ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0 bg-light">
-      <div class="card-body py-2">
-        <div class="d-flex flex-wrap gap-2 align-items-center">
-          <span class="text-muted small fw-semibold me-1">Vai a:</span>
-          <a href="#sec-cosa-sono" class="btn btn-sm btn-outline-secondary">Cosa sono i formati</a>
-          <a href="#sec-flowchart"  class="btn btn-sm btn-outline-secondary">Quale formato ho?</a>
-          <a href="#sec-provider"   class="btn btn-sm btn-outline-secondary">Provider italiani</a>
-          <a href="#sec-converti"   class="btn btn-sm btn-outline-secondary">Conversione P12 ↔ PEM</a>
-          <a href="#sec-token"      class="btn btn-sm btn-outline-secondary">Token / Smart card</a>
-          <a href="#sec-docker"     class="btn btn-sm btn-outline-secondary">Configurazione Docker</a>
-        </div>
-      </div>
-    </div>
+      {% if msg.nome_destinatario %}
+      <dt class="col-sm-3">Destinatario</dt>
+      <dd class="col-sm-9">{{ msg.nome_destinatario }}</dd>
+      {% endif %}
+      {% if msg.email_destinatario %}
+      <dt class="col-sm-3">Email</dt>
+      <dd class="col-sm-9">{{ msg.email_destinatario }}</dd>
+      {% endif %}
+      {% if msg.telefono_destinatario %}
+      <dt class="col-sm-3">Telefono</dt>
+      <dd class="col-sm-9">{{ msg.telefono_destinatario }}</dd>
+      {% endif %}
+
+      {% if msg.oggetto %}
+      <dt class="col-sm-3">Oggetto</dt>
+      <dd class="col-sm-9">{{ msg.oggetto }}</dd>
+      {% endif %}
+
+      {% if msg.id_cliente %}
+      <dt class="col-sm-3">ID Cliente</dt>
+      <dd class="col-sm-9 font-monospace small">{{ msg.id_cliente }}</dd>
+      {% endif %}
+
+      {% if msg.id_fascicolo %}
+      <dt class="col-sm-3">ID Fascicolo</dt>
+      <dd class="col-sm-9 font-monospace small">{{ msg.id_fascicolo }}</dd>
+      {% endif %}
+
+      {% if msg.errore %}
+      <dt class="col-sm-3 text-danger">Errore</dt>
+      <dd class="col-sm-9 text-danger">{{ msg.errore }}</dd>
+      {% endif %}
+    </dl>
   </div>
-
-  {# ---- 1. Cosa sono i formati ---- #}
-  <div class="col-12" id="sec-cosa-sono">
-    <div class="card shadow-sm border-0 border-start border-4 border-primary">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-boxes me-2 text-primary"></i>I tre formati del certificato — cosa contengono
-      </div>
-      <div class="card-body">
-        <p class="small text-muted mb-3">
-          Il certificato di firma digitale è composto da due elementi: un <strong>certificato pubblico</strong>
-          (la tua identità digitale) e una <strong>chiave privata</strong> (con cui firmi i documenti).
-          I provider li rilasciano in formati diversi.
-        </p>
-        <div class="row g-3">
-          <div class="col-12 col-md-4">
-            <div class="card h-100 border-primary border-2">
-              <div class="card-body">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                  <span class="badge bg-primary fs-6 px-2">.p12 / .pfx</span>
-                </div>
-                <p class="small mb-2">
-                  <strong>Bundle unico</strong> — contiene certificato + chiave privata + chain CA
-                  in un singolo file cifrato con password.
-                </p>
-                <p class="small text-muted mb-0">
-                  <i class="bi bi-check-circle-fill text-success me-1"></i>Il più comune — la maggior parte dei provider lo rilascia.<br>
-                  <i class="bi bi-check-circle-fill text-success me-1"></i>Un solo file da gestire.<br>
-                  <i class="bi bi-info-circle me-1 text-primary"></i><code>.pfx</code> e <code>.p12</code> sono identici.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="card h-100 border-success border-2">
-              <div class="card-body">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                  <span class="badge bg-success fs-6 px-2">.crt / .pem</span>
-                  <span class="badge bg-outline-secondary border small">certificato</span>
-                </div>
-                <p class="small mb-2">
-                  <strong>Solo il certificato pubblico</strong> — contiene la tua identità e la chiave pubblica.
-                  Non è segreto.
-                </p>
-                <p class="small text-muted mb-0">
-                  <i class="bi bi-info-circle me-1 text-primary"></i>Può includere i certificati CA intermedi (chain).<br>
-                  <i class="bi bi-info-circle me-1 text-primary"></i><code>.crt</code>, <code>.pem</code>, <code>.cer</code> sono spesso lo stesso formato.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-4">
-            <div class="card h-100 border-warning border-2">
-              <div class="card-body">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                  <span class="badge bg-warning text-dark fs-6 px-2">.key / .pem</span>
-                  <span class="badge bg-outline-secondary border small">chiave privata</span>
-                </div>
-                <p class="small mb-2">
-                  <strong>Solo la chiave privata</strong> — il segreto con cui firmi.
-                  Non condividere mai questo file.
-                </p>
-                <p class="small text-muted mb-0">
-                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>File riservato — conservalo in modo sicuro.<br>
-                  <i class="bi bi-info-circle me-1 text-primary"></i>Può essere in chiaro o protetto da password.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="alert alert-info small mt-3 mb-0">
-          <i class="bi bi-lightbulb me-1"></i>
-          <strong>Regola semplice:</strong> <code>.p12</code> = <code>.crt</code> + <code>.key</code> messi insieme in un unico file cifrato.
-          Puoi sempre convertire da un formato all'altro con OpenSSL (vedi sezione <a href="#sec-converti">Conversione</a>).
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- 2. Flowchart ---- #}
-  <div class="col-12" id="sec-flowchart">
-    <div class="card shadow-sm border-0 border-start border-4 border-info">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-signpost-split me-2 text-info"></i>Quale formato ho? — Mappa decisionale
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-
-          <div class="col-12">
-            <div class="p-3 rounded border bg-light">
-              <div class="fw-semibold mb-3">Hai una chiavetta USB / smart card / CIE / CNS?</div>
-              <div class="row g-2">
-                <div class="col-12 col-md-6">
-                  <div class="p-3 bg-white rounded border border-warning">
-                    <div class="fw-semibold text-warning mb-1"><i class="bi bi-usb-drive me-1"></i>Sì — token fisico</div>
-                    <p class="small mb-2">
-                      La chiave privata è <strong>bloccata dentro il chip</strong> — non puoi estrarla (è obbligatorio per legge per i certificati qualificati).
-                    </p>
-                    <p class="small mb-0 text-muted">
-                      <strong>Cosa fare:</strong> firma i documenti localmente con il software del provider
-                      (ArubaSign, Dike, Namirial Sign) e carica il <code>.p7m</code> già firmato nell'app
-                      tramite <em>Fascicoli → Documenti → Firma per deposito</em>.
-                    </p>
-                  </div>
-                </div>
-                <div class="col-12 col-md-6">
-                  <div class="p-3 bg-white rounded border border-success">
-                    <div class="fw-semibold text-success mb-1"><i class="bi bi-cloud-download me-1"></i>No — certificato remoto o software</div>
-                    <p class="small mb-2">
-                      Il provider ti ha fornito un file scaricabile. Continua con il passo successivo.
-                    </p>
-                    <div class="small">
-                      <div class="fw-semibold mb-1">Che file ti hanno dato?</div>
-                      <div class="d-flex flex-column gap-1">
-                        <div class="p-2 bg-primary bg-opacity-10 rounded">
-                          <i class="bi bi-arrow-right me-1 text-primary"></i>
-                          Un file <code>.p12</code> o <code>.pfx</code> →
-                          <strong>usa direttamente</strong> come <code>PCT_FIRMA_P12</code>
-                        </div>
-                        <div class="p-2 bg-success bg-opacity-10 rounded">
-                          <i class="bi bi-arrow-right me-1 text-success"></i>
-                          Un file <code>.crt</code> + un file <code>.key</code> →
-                          <strong>usa come PEM</strong> con <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code>
-                        </div>
-                        <div class="p-2 bg-warning bg-opacity-10 rounded">
-                          <i class="bi bi-arrow-right me-1 text-warning"></i>
-                          Solo un file <code>.p12</code> ma vuoi i file separati →
-                          <strong>converti</strong> con OpenSSL (vedi sezione Conversione)
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- 3. Provider italiani ---- #}
-  <div class="col-12" id="sec-provider">
-    <div class="card shadow-sm border-0 border-start border-4 border-success">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-building me-2 text-success"></i>Come scaricare il certificato — provider italiani
-      </div>
-      <div class="card-body p-0">
-        <div class="accordion accordion-flush" id="accordionProvider">
-
-          {# Aruba #}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button"
-                      data-bs-toggle="collapse" data-bs-target="#prov-aruba">
-                Aruba PEC / ArubaSign
-              </button>
-            </h2>
-            <div id="prov-aruba" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
-              <div class="accordion-body small">
-                <div class="row g-3">
-                  <div class="col-12 col-md-6">
-                    <div class="fw-semibold mb-2"><i class="bi bi-key me-1 text-primary"></i>Certificato remoto (OTP/app)</div>
-                    <ol class="mb-0 ps-3">
-                      <li>Accedi su <strong>areariservata.aruba.it</strong></li>
-                      <li>Vai in <em>I miei prodotti → Firma Digitale Remota</em></li>
-                      <li>Clicca <em>Gestisci → Scarica certificato</em></li>
-                      <li>Scegli il formato <strong>P12</strong> e imposta una password</li>
-                      <li>Salva il file <code>.p12</code> e annotati la password</li>
-                    </ol>
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <div class="fw-semibold mb-2"><i class="bi bi-usb-drive me-1 text-warning"></i>Token USB ArubaKey</div>
-                    <p class="text-muted mb-2">La chiave privata non è estraibile dal token.</p>
-                    <p class="mb-0">
-                      Usa <strong>ArubaSign</strong> (software gratuito Aruba) per firmare i documenti
-                      localmente, poi carica il <code>.p7m</code> nell'app.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {# Namirial #}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button"
-                      data-bs-toggle="collapse" data-bs-target="#prov-namirial">
-                Namirial
-              </button>
-            </h2>
-            <div id="prov-namirial" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
-              <div class="accordion-body small">
-                <div class="row g-3">
-                  <div class="col-12 col-md-6">
-                    <div class="fw-semibold mb-2"><i class="bi bi-key me-1 text-primary"></i>Firma remota Namirial</div>
-                    <ol class="mb-0 ps-3">
-                      <li>Accedi al pannello Namirial con le tue credenziali</li>
-                      <li>Sezione <em>Certificati → Il mio certificato</em></li>
-                      <li>Clicca <em>Scarica → Formato P12</em></li>
-                      <li>Se il provider offre PEM: clicca <em>Scarica → CRT + KEY</em></li>
-                      <li>Salva i file e annota le password</li>
-                    </ol>
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <div class="fw-semibold mb-2"><i class="bi bi-usb-drive me-1 text-warning"></i>Token USB Namirial</div>
-                    <p class="text-muted mb-2">La chiave privata è nel chip del token — non estraibile.</p>
-                    <p class="mb-0">Usa <strong>Namirial Sign</strong> per firmare localmente.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {# InfoCert / Dike #}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button"
-                      data-bs-toggle="collapse" data-bs-target="#prov-infocert">
-                InfoCert / Dike
-              </button>
-            </h2>
-            <div id="prov-infocert" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
-              <div class="accordion-body small">
-                <div class="row g-3">
-                  <div class="col-12 col-md-6">
-                    <div class="fw-semibold mb-2"><i class="bi bi-key me-1 text-primary"></i>Firma remota</div>
-                    <ol class="mb-0 ps-3">
-                      <li>Accedi su <strong>infocert.it → Area personale</strong></li>
-                      <li><em>Firma digitale → Gestione certificati → Esporta</em></li>
-                      <li>Formato disponibile: <strong>P12</strong></li>
-                      <li>Per ottenere PEM separati: converti il P12 con OpenSSL (vedi sezione Conversione)</li>
-                    </ol>
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <div class="fw-semibold mb-2"><i class="bi bi-usb-drive me-1 text-warning"></i>Chiavetta / CNS</div>
-                    <p class="text-muted mb-2">Chiave non estraibile.</p>
-                    <p class="mb-0">Usa <strong>Dike 6</strong> per firmare localmente.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {# Poste Italiane #}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button"
-                      data-bs-toggle="collapse" data-bs-target="#prov-poste">
-                Poste Italiane (PosteCert)
-              </button>
-            </h2>
-            <div id="prov-poste" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
-              <div class="accordion-body small">
-                <ol class="mb-2 ps-3">
-                  <li>Accedi su <strong>postecert.poste.it</strong></li>
-                  <li><em>Firma digitale → Il mio certificato → Scarica</em></li>
-                  <li>Formato rilasciato: <strong>P12</strong></li>
-                  <li>Per PEM separati: converti con OpenSSL</li>
-                </ol>
-                <div class="alert alert-warning py-2 mb-0">
-                  <i class="bi bi-exclamation-triangle me-1"></i>
-                  Poste rilascia il P12 solo per i certificati <strong>software</strong>.
-                  Il PosteKey (token USB) non permette l'estrazione della chiave.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {# Intesa Sanpaolo / CA #}
-          <div class="accordion-item">
-            <h2 class="accordion-header">
-              <button class="accordion-button collapsed fw-semibold" type="button"
-                      data-bs-toggle="collapse" data-bs-target="#prov-altri">
-                Altri provider (Intesa, Telecom Trust, ecc.)
-              </button>
-            </h2>
-            <div id="prov-altri" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
-              <div class="accordion-body small">
-                <p class="mb-2">La procedura è analoga per tutti i provider accreditati AgID:</p>
-                <ol class="mb-2 ps-3">
-                  <li>Accedi all'area riservata del provider</li>
-                  <li>Cerca la sezione <em>Firma digitale → Scarica certificato / Esporta</em></li>
-                  <li>Scegli il formato <strong>P12</strong> (universalmente supportato)</li>
-                  <li>Se il provider offre PEM direttamente, scarica <code>.crt</code> + <code>.key</code></li>
-                </ol>
-                <p class="small text-muted mb-0">
-                  Se non trovi l'opzione di download, contatta il supporto del provider:
-                  è possibile che tu abbia solo un token fisico.
-                </p>
-              </div>
-            </div>
-          </div>
-
-        </div>{# /accordion #}
-      </div>
-    </div>
-  </div>
-
-  {# ---- 4. Conversione ---- #}
-  <div class="col-12" id="sec-converti">
-    <div class="card shadow-sm border-0 border-start border-4 border-warning">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-arrow-left-right me-2 text-warning"></i>Conversione tra formati — comandi OpenSSL
-      </div>
-      <div class="card-body">
-        <p class="small text-muted mb-3">
-          <strong>OpenSSL</strong> è gratuito e preinstallato su Linux e macOS.
-          Su Windows: usa <strong>Git Bash</strong>, <strong>WSL</strong> o scarica OpenSSL for Windows.
-          I comandi sono identici su tutte le piattaforme.
-        </p>
-
-        <div class="row g-4">
-          <div class="col-12 col-lg-6">
-            <div class="fw-semibold mb-2">
-              <span class="badge bg-primary me-1">P12 → PEM</span>
-              Hai il P12, vuoi i file separati
-            </div>
-            <div class="mb-2">
-              <div class="text-muted small mb-1">1. Estrai il certificato pubblico (.crt):</div>
-              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -in firma.p12 \
-  -clcerts -nokeys \
-  -out firma.crt
-<span class="text-warning"># chiede la password del P12</span></pre>
-            </div>
-            <div class="mb-2">
-              <div class="text-muted small mb-1">2a. Estrai la chiave privata <strong>in chiaro</strong> (più semplice):</div>
-              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -in firma.p12 \
-  -nocerts -nodes \
-  -out firma.key
-<span class="text-warning"># -nodes = no password sulla chiave</span></pre>
-            </div>
-            <div>
-              <div class="text-muted small mb-1">2b. Estrai la chiave privata <strong>con password</strong> (più sicuro):</div>
-              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -in firma.p12 \
-  -nocerts \
-  -out firma.key
-<span class="text-warning"># chiede password P12, poi chiedi nuova password per la chiave</span></pre>
-            </div>
-          </div>
-
-          <div class="col-12 col-lg-6">
-            <div class="fw-semibold mb-2">
-              <span class="badge bg-success me-1">PEM → P12</span>
-              Hai i file separati, vuoi creare il P12
-            </div>
-            <div class="mb-2">
-              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -export \
-  -in firma.crt \
-  -inkey firma.key \
-  -out firma.p12 \
-  -name "Firma avvocato"
-<span class="text-warning"># ti chiede la password per proteggere il P12</span></pre>
-            </div>
-            <div class="fw-semibold mb-2 mt-3">
-              <span class="badge bg-secondary me-1">Verifica</span>
-              Controlla il contenuto di un certificato
-            </div>
-            <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto"><span class="text-success"># Verifica file .crt</span>
-openssl x509 -in firma.crt -noout -subject -dates
-
-<span class="text-success"># Verifica file .p12</span>
-openssl pkcs12 -in firma.p12 -noout -info</pre>
-          </div>
-        </div>
-
-        <div class="alert alert-info small mt-3 mb-0">
-          <i class="bi bi-info-circle me-1"></i>
-          <strong>Nota sulla scadenza:</strong> i certificati di firma qualificata scadono ogni <strong>3 anni</strong>.
-          Il comando <code>openssl x509 -in firma.crt -noout -dates</code> mostra le date di validità.
-          Rinnova prima della scadenza contattando il tuo provider.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- 5. Token / Smart card ---- #}
-  <div class="col-12" id="sec-token">
-    <div class="card shadow-sm border-0 border-start border-4 border-danger">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-usb-drive me-2 text-danger"></i>Token USB / Smart card / CNS / CIE — caso speciale
-      </div>
-      <div class="card-body">
-        <div class="alert alert-warning mb-3">
-          <i class="bi bi-lock-fill me-2"></i>
-          <strong>La chiave privata nei token fisici non è mai estraibile.</strong>
-          È un requisito di legge (CAD e Regolamento eIDAS) per i certificati di firma qualificata:
-          garantisce che solo il titolare possa firmare, fisicamente in possesso del dispositivo.
-        </div>
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="fw-semibold mb-2">Workflow consigliato con token</div>
-            <ol class="small ps-3 mb-0">
-              <li>Scarica il documento da firmare dall'app (<em>Fascicoli → Documenti → Scarica</em>)</li>
-              <li>Apri il software del provider sul tuo PC con il token inserito</li>
-              <li>Firma il documento → ottieni il file <code>.p7m</code> (CAdES) o <code>.pdf</code> firmato (PAdES)</li>
-              <li>Torna nell'app → <em>Fascicoli → Documenti → Firma per deposito</em></li>
-              <li>Carica il file già firmato</li>
-              <li>Il documento viene marcato come "firmato digitalmente" e pronto per il deposito</li>
-            </ol>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="fw-semibold mb-2">Software di firma per ogni provider</div>
-            <table class="table table-sm small mb-0">
-              <thead class="table-light">
-                <tr><th>Provider</th><th>Software gratuito</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>Aruba</td><td>ArubaSign</td></tr>
-                <tr><td>InfoCert</td><td>Dike 6</td></tr>
-                <tr><td>Namirial</td><td>Namirial Sign</td></tr>
-                <tr><td>Poste Italiane</td><td>PosteSign / Dike 6</td></tr>
-                <tr><td>CNS / CIE</td><td>Dike 6 o software del Ministero</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- 6. Configurazione Docker ---- #}
-  <div class="col-12" id="sec-docker">
-    <div class="card shadow-sm border-0 border-start border-4 border-secondary">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-box me-2 text-secondary"></i>Configurazione nel server / Docker
-      </div>
-      <div class="card-body">
-        <p class="small text-muted mb-3">
-          Il file del certificato deve essere accessibile dal server dove gira l'applicativo.
-          Con Docker, la modalità più semplice è montarlo nel volume <code>/data/config/</code>.
-        </p>
-        <div class="row g-4">
-          <div class="col-12 col-lg-6">
-            <div class="fw-semibold mb-2"><span class="badge bg-primary me-1">Opzione A</span>Formato P12 — file <code>.env</code></div>
-            <pre class="bg-dark text-light rounded p-3 small mb-2" style="overflow-x:auto"># Copia il file nel volume dati
-cp firma.p12 ./data/config/firma.p12
-
-# Nel file .env
-PCT_FIRMA_P12=/data/config/firma.p12
-PCT_FIRMA_PASSWORD=la_tua_password
-PCT_CF_AVVOCATO=RSSMRA80A01H501Z</pre>
-            <div class="fw-semibold mb-2 mt-3"><span class="badge bg-primary me-1">Opzione A</span>In <code>docker-compose.yml</code></div>
-            <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">volumes:
-  - ./data:/data
-  <span class="text-success"># Il file è già in ./data/config/firma.p12</span>
-  <span class="text-success"># Non serve un mount aggiuntivo</span></pre>
-          </div>
-          <div class="col-12 col-lg-6">
-            <div class="fw-semibold mb-2"><span class="badge bg-success me-1">Opzione B</span>Formato PEM — file <code>.env</code></div>
-            <pre class="bg-dark text-light rounded p-3 small mb-2" style="overflow-x:auto"># Copia i file nel volume dati
-cp firma.crt ./data/config/firma.crt
-cp firma.key ./data/config/firma.key
-
-# Nel file .env
-PCT_FIRMA_CERT=/data/config/firma.crt
-PCT_FIRMA_KEY=/data/config/firma.key
-# Solo se la chiave è protetta da password:
-PCT_FIRMA_KEY_PASSWORD=password_chiave
-PCT_CF_AVVOCATO=RSSMRA80A01H501Z</pre>
-            <div class="fw-semibold mb-2 mt-3"><span class="badge bg-success me-1">Opzione B</span>Permessi file</div>
-            <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto"><span class="text-success"># La chiave privata deve essere leggibile solo dall'app</span>
-chmod 600 ./data/config/firma.key
-chmod 644 ./data/config/firma.crt</pre>
-          </div>
-        </div>
-
-        <div class="alert alert-secondary small mt-3 mb-0">
-          <i class="bi bi-gear me-1"></i>
-          In alternativa alle variabili d'ambiente, puoi configurare i percorsi direttamente dall'interfaccia:
-          <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">
-            Impostazioni → Firma Digitale
-          </a>.
-          I valori vengono salvati cifrati nel file <code>/data/config/studio.json</code>.
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# ---- CTA finale ---- #}
-  <div class="col-12">
-    <div class="card shadow-sm border-0 bg-primary text-white">
-      <div class="card-body d-flex align-items-center gap-3">
-        <i class="bi bi-patch-check-fill fs-2 opacity-75"></i>
-        <div class="flex-grow-1">
-          <div class="fw-bold">Hai il certificato? Configuralo ora.</div>
-          <div class="small opacity-75">Impostazioni → Firma Digitale — supporta P12 e PEM.</div>
-        </div>
-        <a href="{{ url_for('impostazioni.index', tab='firma') }}"
-           class="btn btn-light text-primary flex-shrink-0">
-          <i class="bi bi-gear me-1"></i>Vai alle impostazioni
-        </a>
-      </div>
-    </div>
-  </div>
-
 </div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold"><i class="bi bi-file-text me-2"></i>Testo</div>
+  <div class="card-body">
+    {% if msg.corpo_html %}
+      <div class="border rounded p-3 bg-light">
+        {{ msg.corpo_html | safe }}
+      </div>
+    {% else %}
+      <pre class="mb-0" style="white-space:pre-wrap">{{ msg.corpo }}</pre>
+    {% endif %}
+  </div>
+</div>
+
+</div>{# /col-lg-8 #}
+
+{# ── Sidebar azioni ── #}
+<div class="col-lg-4">
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-lightning me-2 text-primary"></i>Azioni
+    </div>
+    <div class="card-body d-flex flex-column gap-2">
+      <a href="{{ url_for('lista_messaggi') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Torna alla lista
+      </a>
+      <form method="post"
+            action="{{ url_for('elimina_messaggio', id_msg=msg.id) }}"
+            onsubmit="return confirm('Eliminare il messaggio?')">
+        <button class="btn btn-outline-danger btn-sm w-100">
+          <i class="bi bi-trash me-1"></i>Elimina messaggio
+        </button>
+      </form>
+    </div>
+  </div>
+</div>{# /col-lg-4 #}
+
+</div>{# /row #}
 {% endblock %}

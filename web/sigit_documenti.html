@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Documenti fascicolo tributario {{ numero_rgt }}/{{ anno_rgt }}{% endblock %}
+{% block pct_modulo %}sigit{% endblock %}
+
+{% block content %}
+
+  {# ---- Header ---- #}
+  <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+    <a href="{{ url_for('sigit_home') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+      <h5 class="mb-0 fw-bold">
+        <i class="bi bi-folder2-open me-2 text-warning"></i>Fascicolo tributario — RGT {{ numero_rgt }}/{{ anno_rgt }}
+      </h5>
+      {% if nome_commissione %}
+      <div class="text-muted small ms-1">
+        <i class="bi bi-receipt me-1"></i>{{ nome_commissione }}
+        {% if codice_commissione and codice_commissione != nome_commissione %}
+        <span class="font-monospace text-muted ms-1" style="font-size:.75rem">{{ codice_commissione }}</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% if demo_mode %}
+    <span class="badge bg-warning text-dark ms-1 small"><i class="bi bi-cone me-1"></i>DEMO</span>
+    {% endif %}
+    {% if depositi %}
+    <div class="ms-auto d-flex align-items-center gap-2 flex-wrap justify-content-end">
+      <span class="badge bg-secondary">
+        {{ depositi|length }} atti · {{ documenti|length }} file totali
+      </span>
+      {% if depositi|length > 1 %}
+      <div class="btn-group btn-group-sm" role="group" aria-label="Controlli buste fascicolo">
+        <button type="button" class="btn btn-outline-secondary" data-acc-action="expand" data-acc-target="accordionDepositi">
+          Espandi tutto
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-acc-action="collapse" data-acc-target="accordionDepositi">
+          Riduci
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# ---- Alert info PTT ---- #}
+  <div class="alert alert-light border small mb-3 py-2">
+    <i class="bi bi-info-circle me-1 text-warning"></i>
+    Documenti letti dal <strong>Portale PTT / SIGIT (MEF)</strong> — solo consultazione.
+    Per scaricare i file accedere direttamente a
+    <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener">sigit.giustiziatributaria.gov.it</a>
+    con CNS/CIE/SPID. Il gestionale non può scaricare documenti in autonomia
+    (il download richiede sessione autenticata via browser).
+  </div>
+
+  {% if depositi %}
+
+  {# ---- Vista cartelle (accordion per busta/atto) ---- #}
+  <div class="accordion shadow-sm" id="accordionDepositi">
+    {% for dep in depositi %}
+    {% set idx = loop.index %}
+    {% set aperto = loop.first %}
+
+    {# Determina icona e colore per tipo atto #}
+    {% set ta = dep.tipo_atto | upper %}
+    {% if 'SENTENZA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-text-fill' %}
+      {% set dep_col  = 'success' %}
+    {% elif 'ORDINANZA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-text-fill' %}
+      {% set dep_col  = 'success' %}
+    {% elif 'MEMORIA' in ta or 'CONCLUSIONI' in ta %}
+      {% set dep_icon = 'bi-file-earmark-check-fill' %}
+      {% set dep_col  = 'primary' %}
+    {% elif 'RICORSO' in ta or 'APPELLO' in ta %}
+      {% set dep_icon = 'bi-file-earmark-arrow-up-fill' %}
+      {% set dep_col  = 'warning' %}
+    {% elif 'CONTRODEDUZIONI' in ta or 'REPLICA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-arrow-up-fill' %}
+      {% set dep_col  = 'danger' %}
+    {% elif 'ISTANZA' in ta %}
+      {% set dep_icon = 'bi-file-earmark-ruled-fill' %}
+      {% set dep_col  = 'info' %}
+    {% else %}
+      {% set dep_icon = 'bi-folder-fill' %}
+      {% set dep_col  = 'secondary' %}
+    {% endif %}
+
+    {# Conta tipi file della busta #}
+    {% set n_atto    = dep.documenti | selectattr('tipo','in',['RICORSO','APPELLO','OPPOSIZIONE']) | list | length %}
+    {% set n_allegati= dep.documenti | selectattr('tipo','equalto','ALLEGATO') | list | length %}
+    {% set n_prov    = dep.documenti | selectattr('tipo','in',['SENTENZA','ORDINANZA','DECRETO']) | list | length %}
+
+    <div class="accordion-item border mb-2 rounded overflow-hidden">
+      <h2 class="accordion-header" id="heading-dep-{{ idx }}">
+        <button class="accordion-button {% if not aperto %}collapsed{% endif %} py-2 px-3"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapse-dep-{{ idx }}"
+                aria-expanded="{{ 'true' if aperto else 'false' }}"
+                aria-controls="collapse-dep-{{ idx }}">
+
+          <i class="bi {{ dep_icon }} text-{{ dep_col }} me-2 fs-5 flex-shrink-0"></i>
+
+          <div class="flex-grow-1">
+            <div class="fw-semibold">{{ dep.tipo_atto }}</div>
+            <div class="d-flex gap-2 flex-wrap mt-1" style="font-size:.72rem">
+              <span class="text-muted">
+                <i class="bi bi-calendar3 me-1"></i>{{ dep.data_deposito or '—' }}
+              </span>
+              <span class="text-muted">
+                <i class="bi bi-envelope me-1"></i>{{ dep.mittente or '—' }}
+              </span>
+              <span class="badge bg-light text-dark border">
+                {{ dep.documenti | length }} file
+              </span>
+              {% if n_atto %}
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                {{ n_atto }} atto{% if n_atto>1 %}i{% endif %}
+              </span>
+              {% endif %}
+              {% if n_allegati %}
+              <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                {{ n_allegati }} allegat{% if n_allegati>1 %}i{% else %}o{% endif %}
+              </span>
+              {% endif %}
+              {% if n_prov %}
+              <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                provvedimento
+              </span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if dep.id_deposito and not dep.id_deposito.startswith('__') %}
+          <span class="font-monospace text-muted d-none d-md-inline"
+                style="font-size:.68rem;margin-right:.5rem">{{ dep.id_deposito }}</span>
+          {% endif %}
+        </button>
+      </h2>
+
+      <div id="collapse-dep-{{ idx }}"
+           class="accordion-collapse collapse {% if aperto %}show{% endif %}"
+           aria-labelledby="heading-dep-{{ idx }}">
+        <div class="accordion-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:2rem"></th>
+                  <th>Nome file</th>
+                  <th style="width:9rem">Tipo</th>
+                  <th style="width:6rem">Dimensione</th>
+                  <th style="width:5rem" class="text-center">Disponibile</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in dep.documenti %}
+                <tr class="{% if not d.disponibile %}table-secondary text-muted{% endif %}">
+                  <td class="text-center ps-3">
+                    {% if d.tipo in ['SENTENZA','DECRETO','ORDINANZA'] %}
+                      <i class="bi bi-file-earmark-text-fill text-success" title="{{ d.tipo|title }}"></i>
+                    {% elif d.tipo in ['RICORSO','APPELLO','OPPOSIZIONE'] %}
+                      <i class="bi bi-file-earmark-arrow-up-fill text-warning" title="{{ d.tipo|title }}"></i>
+                    {% elif d.tipo in ['CONTRODEDUZIONI','REPLICA'] %}
+                      <i class="bi bi-file-earmark-arrow-up-fill text-danger" title="{{ d.tipo|title }}"></i>
+                    {% elif d.tipo in ['MEMORIA','CONCLUSIONI'] %}
+                      <i class="bi bi-file-earmark-check-fill text-primary" title="{{ d.tipo|title }}"></i>
+                    {% elif d.tipo == 'ALLEGATO' %}
+                      <i class="bi bi-paperclip text-secondary" title="Allegato"></i>
+                    {% elif d.tipo == 'ISTANZA_SOSPENSIVA' %}
+                      <i class="bi bi-file-earmark-ruled-fill text-info" title="Istanza sospensiva"></i>
+                    {% else %}
+                      <i class="bi bi-file-earmark text-muted"></i>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="fw-semibold font-monospace" style="font-size:.8rem">{{ d.nome }}</span>
+                    {% if d.nome.endswith('.p7m') %}
+                    <i class="bi bi-patch-check-fill text-success ms-1" title="Firmato digitalmente (p7m)"></i>
+                    {% endif %}
+                    <br>
+                    <small class="text-muted font-monospace">{{ d.id_documento }}</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size:.7rem">
+                      {{ d.tipo | replace('_',' ') | title }}
+                    </span>
+                  </td>
+                  <td class="text-muted">
+                    {% if d.dimensione_bytes %}
+                      {% if d.dimensione_bytes >= 1048576 %}
+                        {{ "%.1f"|format(d.dimensione_bytes / 1048576) }} MB
+                      {% else %}
+                        {{ (d.dimensione_bytes / 1024)|int }} KB
+                      {% endif %}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if d.disponibile %}
+                    <i class="bi bi-check-circle-fill text-success" title="Disponibile"></i>
+                    {% else %}
+                    <i class="bi bi-x-circle text-danger" title="Non disponibile"></i>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {# Nota regola PTT: download richiede sessione autenticata #}
+          <div class="px-3 py-2 border-top bg-light d-flex align-items-center gap-2 small text-muted">
+            <i class="bi bi-lock-fill text-secondary flex-shrink-0"></i>
+            Per scaricare questi documenti accedere a
+            <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener" class="ms-1">
+              sigit.giustiziatributaria.gov.it
+            </a>
+            con il proprio dispositivo CNS/CIE o SPID.
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>Nessun documento disponibile per questo fascicolo tributario.
+  </div>
+  {% endif %}
+
+{% endblock %}
+

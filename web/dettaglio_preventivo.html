@@ -1,0 +1,156 @@
+{% extends "portale/base.html" %}
+{% block title %}Carica documenti{% endblock %}
+{% set active_tab = "documenti" %}
+
+{% block content %}
+<div class="mb-4">
+  <h5 class="fw-bold mb-1">Carica documenti</h5>
+  <p class="text-muted mb-0" style="font-size:.85rem;">
+    Invia file direttamente al tuo avvocato — massimo {{ max_mb }} MB per file.
+  </p>
+</div>
+
+{% if errore %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-3" role="alert">
+  <i class="bi bi-exclamation-triangle-fill"></i>{{ errore }}
+</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('portale.carica_documento', token=token) }}" enctype="multipart/form-data" id="upload-form">
+
+  <!-- Selezione pratica (opzionale) -->
+  {% if fascicoli %}
+  <div class="portale-card card mb-3">
+    <div class="card-body">
+      <label class="form-label fw-semibold" style="font-size:.85rem;">
+        <i class="bi bi-folder2-open me-1"></i>Collega a una pratica (opzionale)
+      </label>
+      <select name="id_fascicolo" class="form-select form-select-sm">
+        <option value="">— Nessuna pratica (invio generico) —</option>
+        {% for f in fascicoli %}
+        <option value="{{ f.id }}">{{ f.titolo }}{% if f.numero_rg %} · RG {{ f.numero_rg }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Upload zone -->
+  <div class="portale-card card mb-3">
+    <div class="card-body">
+      <label class="form-label fw-semibold d-block" style="font-size:.85rem;">
+        <i class="bi bi-paperclip me-1"></i>Seleziona file
+      </label>
+
+      <!-- Drag & drop / click zone -->
+      <div class="upload-zone mb-3" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <i class="bi bi-cloud-arrow-up d-block mb-2"></i>
+        <div class="fw-semibold" style="font-size:.9rem;">Tocca per scegliere i file</div>
+        <div class="text-muted mt-1" style="font-size:.78rem;">
+          oppure trascina qui · foto, PDF, Word, immagini
+        </div>
+      </div>
+
+      <!-- File input hidden — accept permette fotocamera su mobile -->
+      <input type="file" id="file-input" name="files[]" multiple
+             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.p7m"
+             capture="environment"
+             class="d-none">
+
+      <!-- File list preview -->
+      <div id="file-list" class="d-flex flex-column gap-2"></div>
+
+      <!-- Camera button (mobile) -->
+      <div class="d-grid mt-3">
+        <label for="file-camera" class="btn btn-outline-secondary">
+          <i class="bi bi-camera me-2"></i>Scatta foto con la fotocamera
+        </label>
+        <input type="file" id="file-camera" name="files[]" accept="image/*" capture="environment" class="d-none">
+      </div>
+    </div>
+  </div>
+
+  <!-- Note -->
+  <div class="portale-card card mb-4">
+    <div class="card-body">
+      <label class="form-label fw-semibold" for="note" style="font-size:.85rem;">
+        <i class="bi bi-chat-left-text me-1"></i>Note (opzionale)
+      </label>
+      <textarea name="note" id="note" class="form-control form-control-sm" rows="2"
+                placeholder="Es: Carta d'identità fronte/retro, contratto..."></textarea>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="d-grid">
+    <button type="submit" class="btn btn-portale btn-lg" id="btn-invia" disabled>
+      <i class="bi bi-cloud-upload-fill me-2"></i>Invia al tuo avvocato
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const input = document.getElementById('file-input');
+  const camera = document.getElementById('file-camera');
+  const dropZone = document.getElementById('drop-zone');
+  const fileList = document.getElementById('file-list');
+  const btnInvia = document.getElementById('btn-invia');
+
+  // Merge FileList objects into DataTransfer
+  let dt = new DataTransfer();
+
+  function aggiornaLista() {
+    fileList.innerHTML = '';
+    btnInvia.disabled = dt.files.length === 0;
+    Array.from(dt.files).forEach((f, i) => {
+      const el = document.createElement('div');
+      el.className = 'd-flex align-items-center gap-2 border rounded px-2 py-1';
+      el.style.fontSize = '.8rem';
+      const icon = f.type.startsWith('image/') ? 'bi-image' : f.type === 'application/pdf' ? 'bi-file-earmark-pdf' : 'bi-file-earmark';
+      el.innerHTML = `<i class="bi ${icon} text-primary"></i>
+        <span class="flex-grow-1 text-truncate">${f.name}</span>
+        <span class="text-muted">${(f.size/1024/1024).toFixed(1)} MB</span>
+        <button type="button" class="btn btn-sm btn-link text-danger p-0" data-idx="${i}">
+          <i class="bi bi-x-lg"></i>
+        </button>`;
+      el.querySelector('button').addEventListener('click', () => {
+        const newDt = new DataTransfer();
+        Array.from(dt.files).forEach((ff, ii) => { if(ii !== i) newDt.items.add(ff); });
+        dt = newDt;
+        input.files = dt.files;
+        aggiornaLista();
+      });
+      fileList.appendChild(el);
+    });
+    // Sync file inputs
+    input.files = dt.files;
+  }
+
+  function aggiungiFiles(files) {
+    Array.from(files).forEach(f => dt.items.add(f));
+    aggiornaLista();
+  }
+
+  input.addEventListener('change', () => aggiungiFiles(input.files));
+  camera.addEventListener('change', () => aggiungiFiles(camera.files));
+
+  // Drag & drop
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    aggiungiFiles(e.dataTransfer.files);
+  });
+
+  // Form submit: ensure files are in the input
+  document.getElementById('upload-form').addEventListener('submit', function(e) {
+    if(dt.files.length === 0) { e.preventDefault(); return; }
+    input.files = dt.files;
+    btnInvia.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Invio in corso...';
+    btnInvia.disabled = true;
+  });
+</script>
+{% endblock %}

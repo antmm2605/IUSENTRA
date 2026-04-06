@@ -1,423 +1,280 @@
 {% extends "admin/base.html" %}
-{% block title %}{{ studio.nome }}{% endblock %}
+{% block title %}Nuovo Studio{% endblock %}
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('admin.lista_studi') }}" class="text-decoration-none">Studi</a></li>
-<li class="breadcrumb-item active">{{ studio.nome }}</li>
+<li class="breadcrumb-item active">Nuovo</li>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center gap-3 mt-3 mb-4 flex-wrap">
-  <div class="flex-grow-1">
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-      <h4 class="mb-0 fw-bold">{{ studio.nome }}</h4>
-      <span class="badge badge-stato-{{ studio.stato }} rounded-pill">{{ studio.stato }}</span>
-      <span class="badge bg-{{ piani[studio.piano].colore if studio.piano in piani else 'secondary' }}">
-        {{ piani[studio.piano].nome if studio.piano in piani else studio.piano }}
-      </span>
-      {# Badge modalità DB #}
-      {% set db = studio.database %}
-      {% set db_info = db_mode_info.get(db.mode, {}) %}
-      <a href="{{ url_for('admin.database_studio', slug=studio.slug) }}"
-         class="badge bg-{{ db_info.colore or 'secondary' }} text-decoration-none"
-         title="Configurazione database">
-        <i class="bi {{ db_info.icona or 'bi-database' }} me-1"></i>{{ db_info.nome or db.mode }}
-        {% if db.mode != 'LOCAL' %}
-          {% if db.connessione_ok %}
-          <i class="bi bi-check-circle-fill ms-1 text-white"></i>
-          {% elif db.ultimo_test %}
-          <i class="bi bi-exclamation-circle-fill ms-1 text-white"></i>
-          {% endif %}
-        {% endif %}
-      </a>
-    </div>
-    <p class="text-muted small mb-0"><code>/{{ studio.slug }}</code></p>
-  </div>
-  <div class="d-flex gap-2 flex-wrap">
-    <!-- Impersona -->
-    <form method="post" action="{{ url_for('admin.impersona_studio', slug=studio.slug) }}">
-      <button class="btn btn-warning btn-sm">
-        <i class="bi bi-person-badge me-1"></i>Impersona
-      </button>
-    </form>
-    <!-- Sospendi / Riattiva -->
-    {% if studio.stato == 'SOSPESO' %}
-    <form method="post" action="{{ url_for('admin.riattiva_studio', slug=studio.slug) }}">
-      <button class="btn btn-success btn-sm"><i class="bi bi-play-fill me-1"></i>Riattiva</button>
-    </form>
-    {% else %}
-    <form method="post" action="{{ url_for('admin.sospendi_studio', slug=studio.slug) }}"
-          onsubmit="return confirm('Sospendere lo studio {{ studio.nome }}?')">
-      <button class="btn btn-outline-danger btn-sm"><i class="bi bi-pause-fill me-1"></i>Sospendi</button>
-    </form>
-    {% endif %}
-  </div>
+<div class="mt-3 mb-4">
+  <h4 class="mb-0 fw-bold">Nuovo Studio Legale</h4>
+  <p class="text-muted small">Compila i dati per creare un nuovo tenant sulla piattaforma.</p>
 </div>
 
-<div class="row g-4">
+<!-- Step indicator -->
+<div class="d-flex align-items-center gap-2 mb-4 small fw-semibold">
+  <span class="badge bg-primary rounded-pill px-3 py-2">1 Dati studio</span>
+  <i class="bi bi-chevron-right text-muted"></i>
+  <span class="badge bg-primary rounded-pill px-3 py-2">2 Database</span>
+  <i class="bi bi-chevron-right text-muted"></i>
+  <span class="badge bg-secondary rounded-pill px-3 py-2">3 Piano</span>
+  <i class="bi bi-chevron-right text-muted"></i>
+  <span class="badge bg-secondary rounded-pill px-3 py-2">4 Admin</span>
+</div>
 
-  <!-- Colonna sinistra -->
+<form method="post" class="row g-4">
+
+  <!-- Dati Studio -->
   <div class="col-12 col-lg-8">
-
-    <!-- Dati studio -->
     <div class="card mb-4">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
         <i class="bi bi-building text-primary"></i> Dati Studio
-        <button class="btn btn-sm btn-outline-secondary ms-auto py-0 px-2"
-                data-bs-toggle="collapse" data-bs-target="#formModificaStudio">
-          <i class="bi bi-pencil me-1"></i>Modifica
-        </button>
       </div>
       <div class="card-body">
-        <!-- Vista -->
-        <div id="infoStudio">
-          <div class="row g-2 small">
-            <div class="col-6"><span class="text-muted">P.IVA</span><br><strong>{{ studio.piva or '—' }}</strong></div>
-            <div class="col-6"><span class="text-muted">C.F.</span><br><strong>{{ studio.cf or '—' }}</strong></div>
-            <div class="col-12"><span class="text-muted">Indirizzo</span><br><strong>{{ studio.indirizzo or '—' }}</strong></div>
-            <div class="col-4"><span class="text-muted">Telefono</span><br><strong>{{ studio.telefono or '—' }}</strong></div>
-            <div class="col-4"><span class="text-muted">Email</span><br><strong>{{ studio.email or '—' }}</strong></div>
-            <div class="col-4"><span class="text-muted">PEC</span><br><strong>{{ studio.pec or '—' }}</strong></div>
-            <div class="col-6"><span class="text-muted">Referente</span><br><strong>{{ studio.avvocato_ref or '—' }}</strong></div>
-            {% if studio.note_admin %}
-            <div class="col-12"><span class="text-muted">Note admin</span><br>
-              <span class="text-warning">{{ studio.note_admin }}</span></div>
-            {% endif %}
+        <div class="row g-3">
+          <div class="col-12 col-sm-8">
+            <label class="form-label fw-semibold small">Nome Studio <span class="text-danger">*</span></label>
+            <input type="text" name="nome" class="form-control" value="{{ form.get('nome','') }}"
+                   placeholder="es. Studio Legale Rossi & Associati" required>
           </div>
-        </div>
-        <!-- Form modifica (collassato) -->
-        <div class="collapse" id="formModificaStudio">
-          <hr>
-          <form method="post" action="{{ url_for('admin.modifica_studio', slug=studio.slug) }}">
-            <div class="row g-2">
-              <div class="col-12 col-sm-8">
-                <label class="form-label small fw-semibold">Nome</label>
-                <input type="text" name="nome" class="form-control form-control-sm" value="{{ studio.nome }}" required>
-              </div>
-              <div class="col-6 col-sm-2">
-                <label class="form-label small fw-semibold">P.IVA</label>
-                <input type="text" name="piva" class="form-control form-control-sm" value="{{ studio.piva }}">
-              </div>
-              <div class="col-6 col-sm-2">
-                <label class="form-label small fw-semibold">C.F.</label>
-                <input type="text" name="cf" class="form-control form-control-sm" value="{{ studio.cf }}">
-              </div>
-              <div class="col-12">
-                <label class="form-label small fw-semibold">Indirizzo</label>
-                <input type="text" name="indirizzo" class="form-control form-control-sm" value="{{ studio.indirizzo }}">
-              </div>
-              <div class="col-4">
-                <label class="form-label small fw-semibold">Telefono</label>
-                <input type="text" name="telefono" class="form-control form-control-sm" value="{{ studio.telefono }}">
-              </div>
-              <div class="col-4">
-                <label class="form-label small fw-semibold">Email</label>
-                <input type="email" name="email" class="form-control form-control-sm" value="{{ studio.email }}">
-              </div>
-              <div class="col-4">
-                <label class="form-label small fw-semibold">PEC</label>
-                <input type="email" name="pec" class="form-control form-control-sm" value="{{ studio.pec }}">
-              </div>
-              <div class="col-6">
-                <label class="form-label small fw-semibold">Referente</label>
-                <input type="text" name="avvocato_ref" class="form-control form-control-sm" value="{{ studio.avvocato_ref }}">
-              </div>
-              <div class="col-12">
-                <label class="form-label small fw-semibold">Note admin</label>
-                <textarea name="note_admin" class="form-control form-control-sm" rows="2">{{ studio.note_admin }}</textarea>
-              </div>
-              <div class="col-12">
-                <button type="submit" class="btn btn-sm btn-primary">Salva</button>
-              </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">
+              Slug <span class="text-danger">*</span>
+              <i class="bi bi-info-circle text-muted" title="Identificatore URL unico. Solo lettere, cifre, trattini."></i>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text text-muted">/</span>
+              <input type="text" name="slug" id="slugInput" class="form-control"
+                     value="{{ form.get('slug','') }}"
+                     pattern="[a-z0-9][a-z0-9\-]{1,48}[a-z0-9]"
+                     placeholder="studio-rossi" required>
             </div>
-          </form>
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label fw-semibold small">Avvocato / Referente</label>
+            <input type="text" name="avvocato_ref" class="form-control" value="{{ form.get('avvocato_ref','') }}"
+                   placeholder="Avv. Mario Rossi">
+          </div>
+          <div class="col-12 col-sm-3">
+            <label class="form-label fw-semibold small">P.IVA</label>
+            <input type="text" name="piva" class="form-control" value="{{ form.get('piva','') }}"
+                   placeholder="12345678901" maxlength="11">
+          </div>
+          <div class="col-12 col-sm-3">
+            <label class="form-label fw-semibold small">Codice Fiscale</label>
+            <input type="text" name="cf" class="form-control" value="{{ form.get('cf','') }}"
+                   placeholder="RSSMRA80A01H501U">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Indirizzo</label>
+            <input type="text" name="indirizzo" class="form-control" value="{{ form.get('indirizzo','') }}"
+                   placeholder="Via Roma 1, 20100 Milano (MI)">
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Telefono</label>
+            <input type="tel" name="telefono" class="form-control" value="{{ form.get('telefono','') }}"
+                   placeholder="+39 02 12345678">
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ form.get('email','') }}"
+                   placeholder="info@studio.it">
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">PEC</label>
+            <input type="email" name="pec" class="form-control" value="{{ form.get('pec','') }}"
+                   placeholder="studio@pec.it">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Note interne (admin)</label>
+            <textarea name="note_admin" class="form-control" rows="2"
+                      placeholder="Note visibili solo dagli amministratori piattaforma…">{{ form.get('note_admin','') }}</textarea>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Moduli autorizzati -->
+    <!-- Utente amministratore -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-person-fill-gear text-success"></i> Utente Amministratore dello Studio
+        <span class="badge bg-success ms-auto">AMMINISTRATORE</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Questo account sarà l'amministratore principale dello studio.
+          Potrà creare ulteriori utenti e gestire tutte le impostazioni.
+        </p>
+        <div class="row g-3">
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Username <span class="text-danger">*</span></label>
+            <input type="text" name="admin_username" class="form-control" value="{{ form.get('admin_username','admin') }}" required>
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Password <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input type="text" name="admin_password" id="adminPass" class="form-control"
+                     value="{{ form.get('admin_password','') }}" required autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" id="genPassBtn" title="Genera password">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-12 col-sm-4">
+            <label class="form-label fw-semibold small">Nome Completo</label>
+            <input type="text" name="admin_nome" class="form-control" value="{{ form.get('admin_nome','') }}"
+                   placeholder="Mario Rossi">
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label fw-semibold small">Email</label>
+            <input type="email" name="admin_email" class="form-control" value="{{ form.get('admin_email','') }}"
+                   placeholder="admin@studio.it">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Database -->
+    <div class="card">
+      <div class="card-header fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-database-fill text-info"></i> Modalità Database
+        <span class="badge bg-info ms-auto">Configurabile dopo la creazione</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Scegli dove saranno archiviati i dati dello studio.
+          Potrai modificare questa impostazione in qualsiasi momento dal pannello database.
+        </p>
+        <div class="row g-2">
+          {% for mode_key, mode_info in db_mode_info.items() %}
+          <div class="col-12">
+            <label class="db-mode-card d-flex align-items-start gap-3 p-3 rounded-3 cursor-pointer
+                          {% if form.get('db_mode', 'LOCAL') == mode_key %}selected{% endif %}"
+                   for="dbmode_{{ mode_key }}"
+                   style="border: 2px solid {% if form.get('db_mode','LOCAL') == mode_key %}var(--bs-primary){% else %}#e2e8f0{% endif %};
+                          background: {% if form.get('db_mode','LOCAL') == mode_key %}#eff6ff{% else %}transparent{% endif %};
+                          cursor: pointer; transition: all .15s;">
+              <input class="form-check-input mt-0 flex-shrink-0" type="radio"
+                     name="db_mode" id="dbmode_{{ mode_key }}" value="{{ mode_key }}"
+                     {% if form.get('db_mode', 'LOCAL') == mode_key %}checked{% endif %}>
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <i class="bi {{ mode_info.icona }} text-{{ mode_info.colore }}"></i>
+                  <span class="fw-semibold small">{{ mode_info.nome }}</span>
+                  <span class="badge bg-{{ mode_info.colore }} ms-auto" style="font-size:.65rem">
+                    {{ mode_info.badge }}
+                  </span>
+                </div>
+                <p class="text-muted mb-0" style="font-size:.78rem">{{ mode_info.desc }}</p>
+                {% if mode_key != 'LOCAL' %}
+                <div class="mt-2 p-2 rounded-2 bg-{{ mode_info.colore }} bg-opacity-10" style="font-size:.72rem">
+                  <i class="bi bi-info-circle me-1 text-{{ mode_info.colore }}"></i>
+                  Porta default: <strong>{{ mode_info.porta }}</strong> —
+                  La connessione andrà configurata nel dettaglio studio dopo la creazione.
+                </div>
+                {% endif %}
+              </div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Piano -->
+  <div class="col-12 col-lg-4">
     <div class="card mb-4">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-grid-3x3-gap-fill text-info"></i> Moduli Autorizzati
-        <span class="badge bg-info ms-auto">{{ studio.moduli_attivi|length }} attivi</span>
+        <i class="bi bi-star-fill text-warning"></i> Piano di Sottoscrizione
       </div>
       <div class="card-body">
-        {% if studio.moduli_override %}
-        <div class="alert alert-info py-2 small mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          Configurazione manuale — i moduli del piano <strong>{{ studio.piano }}</strong> sono stati sovrascritti.
-        </div>
-        {% endif %}
-        <form method="post" action="{{ url_for('admin.aggiorna_moduli', slug=studio.slug) }}">
-          <div class="row g-2 mb-3">
-            {% for mk, mv in moduli_disponibili.items() %}
-            <div class="col-6 col-sm-4 col-lg-3">
-              <label class="module-card {{ 'enabled' if mk in studio.moduli_attivi else '' }}"
-                     for="mod_{{ mk }}">
-                <div class="d-flex align-items-start gap-2">
-                  <input type="checkbox" class="form-check-input mt-0 flex-shrink-0"
-                         id="mod_{{ mk }}" name="moduli" value="{{ mk }}"
-                         {% if mk in studio.moduli_attivi %}checked{% endif %}>
-                  <div>
-                    <div class="module-icon">{{ mv.icona | replace('bi bi-', '') | truncate(1, true, '') }}</div>
-                    <div class="fw-semibold small mt-1">{{ mv.nome }}</div>
-                    <div class="text-muted" style="font-size:.7rem">{{ mv.desc }}</div>
-                  </div>
-                </div>
-              </label>
+        {% for pk, pv in piani.items() %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="radio" name="piano" id="piano_{{ pk }}" value="{{ pk }}"
+                 {% if form.get('piano', 'TRIAL') == pk %}checked{% endif %}>
+          <label class="form-check-label" for="piano_{{ pk }}">
+            <span class="badge bg-{{ pv.colore }} me-1">{{ pv.nome }}</span>
+            <span class="small text-muted">
+              {% if pv.max_utenti == 0 %}Utenti illimitati{% else %}Max {{ pv.max_utenti }} utenti{% endif %} —
+              {% if pv.max_storage_mb == 0 %}Storage illimitato{% else %}{{ (pv.max_storage_mb / 1000)|round(1) }} GB{% endif %}
+            </span>
+            <div class="text-muted" style="font-size:.72rem;margin-left:0">
+              {{ pv.moduli|length }} moduli — durata {{ pv.durata_gg }} giorni
             </div>
-            {% endfor %}
-          </div>
-          <div class="d-flex gap-2 align-items-center flex-wrap">
-            <button type="submit" class="btn btn-sm btn-primary">
-              <i class="bi bi-save me-1"></i>Salva moduli
-            </button>
-            <!-- Ripristina da piano -->
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnRipristinaPiano">
-              <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina dal piano
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Utenti -->
-    <div class="card">
-      <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-people-fill text-success"></i> Utenti Studio
-        <span class="badge bg-success ms-1">{{ utenti|length }}</span>
-        {% if studio.limite_utenti > 0 %}
-        <span class="text-muted small">/ {{ studio.limite_utenti }}</span>
-        {% endif %}
-        <a href="{{ url_for('admin.utenti_studio', slug=studio.slug) }}" class="btn btn-sm btn-outline-success ms-auto py-0 px-2">
-          Gestisci
-        </a>
-      </div>
-      <div class="card-body p-0">
-        {% for u in utenti[:5] %}
-        <div class="d-flex align-items-center gap-3 px-3 py-2 border-bottom small">
-          <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
-               style="width:30px;height:30px;flex-shrink:0;font-size:.85rem">
-            <i class="bi bi-person-fill"></i>
-          </div>
-          <div class="flex-grow-1">
-            <span class="fw-semibold">{{ u.username }}</span>
-            {% if u.nome_completo %}<span class="text-muted ms-1">{{ u.nome_completo }}</span>{% endif %}
-          </div>
-          <span class="badge bg-{{ u.colore_ruolo }}">{{ u.ruolo.value }}</span>
-          {% if not u.attivo %}<span class="badge bg-secondary">inattivo</span>{% endif %}
+          </label>
         </div>
-        {% else %}
-        <div class="p-3 text-muted small text-center">Nessun utente.</div>
         {% endfor %}
-        {% if utenti|length > 5 %}
-        <div class="px-3 py-2 small text-center text-muted">
-          e altri {{ utenti|length - 5 }}...
-          <a href="{{ url_for('admin.utenti_studio', slug=studio.slug) }}" class="ms-1">Vedi tutti</a>
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- Colonna destra -->
-  <div class="col-12 col-lg-4">
-
-    <!-- Piano e scadenza -->
-    <div class="card mb-3">
-      <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-star-fill text-warning"></i> Piano e Scadenza
-      </div>
-      <div class="card-body">
-        <div class="mb-3 text-center">
-          <span class="badge bg-{{ piani[studio.piano].colore if studio.piano in piani else 'secondary' }} fs-6 px-3 py-2">
-            {{ piani[studio.piano].nome if studio.piano in piani else studio.piano }}
-          </span>
-        </div>
-        <div class="small mb-3">
-          <div class="d-flex justify-content-between mb-1">
-            <span class="text-muted">Creato</span>
-            <strong>{{ studio.data_creazione[:10] if studio.data_creazione else '—' }}</strong>
-          </div>
-          <div class="d-flex justify-content-between mb-1">
-            <span class="text-muted">Attivato</span>
-            <strong>{{ studio.data_attivazione[:10] if studio.data_attivazione else '—' }}</strong>
-          </div>
-          <div class="d-flex justify-content-between">
-            <span class="text-muted">Scadenza</span>
-            <strong class="{{ 'text-danger' if studio.is_scaduto else 'text-success' if studio.giorni_alla_scadenza and studio.giorni_alla_scadenza > 14 else 'text-warning' }}">
-              {{ studio.data_scadenza[:10] if studio.data_scadenza else '—' }}
-              {% if studio.giorni_alla_scadenza is not none %}
-              <small>({{ studio.giorni_alla_scadenza }} gg)</small>
-              {% endif %}
-            </strong>
-          </div>
-        </div>
-        <!-- Cambio piano -->
-        <form method="post" action="{{ url_for('admin.aggiorna_piano', slug=studio.slug) }}">
-          <label class="form-label small fw-semibold">Cambia piano</label>
-          <div class="input-group input-group-sm">
-            <select name="piano" class="form-select form-select-sm">
-              {% for pk, pv in piani.items() %}
-              <option value="{{ pk }}" {% if studio.piano == pk %}selected{% endif %}>{{ pv.nome }}</option>
-              {% endfor %}
-            </select>
-            <button class="btn btn-warning btn-sm" type="submit">
-              <i class="bi bi-arrow-repeat"></i>
-            </button>
-          </div>
-        </form>
       </div>
     </div>
 
-    <!-- Database -->
-    <div class="card mb-3">
-      <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-database text-info"></i> Database
-        <a href="{{ url_for('admin.database_studio', slug=studio.slug) }}"
-           class="btn btn-sm btn-outline-info ms-auto py-0 px-2">
-          <i class="bi bi-gear me-1"></i>Configura
-        </a>
-      </div>
-      <div class="card-body">
-        {% set db = studio.database %}
-        {% set db_info = db_mode_info.get(db.mode, {}) %}
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <i class="bi {{ db_info.icona or 'bi-database' }} text-{{ db_info.colore or 'secondary' }} fs-5"></i>
-          <div>
-            <div class="fw-semibold small">{{ db_info.nome or db.mode }}</div>
-            {% if db.mode != 'LOCAL' %}
-            <div class="text-muted" style="font-size:.72rem">{{ db.connection_url_safe }}</div>
-            {% else %}
-            <div class="text-muted" style="font-size:.72rem">./data/tenants/{{ studio.slug }}/</div>
-            {% endif %}
-          </div>
-        </div>
-        {% if db.mode != 'LOCAL' %}
-        <div class="d-flex align-items-center gap-2 small">
-          {% if db.connessione_ok %}
-          <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>OK</span>
-          {% elif db.ultimo_test %}
-          <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Errore</span>
-          {% else %}
-          <span class="badge bg-secondary">Non testata</span>
-          {% endif %}
-          {% if db.ultimo_test %}
-          <span class="text-muted">{{ db.ultimo_test[:16].replace('T',' ') }}</span>
-          {% endif %}
-        </div>
-        {% if db.errore_connessione %}
-        <div class="mt-1 text-danger" style="font-size:.72rem">
-          <code>{{ db.errore_connessione[:120] }}{% if db.errore_connessione|length > 120 %}…{% endif %}</code>
-        </div>
-        {% endif %}
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Storage -->
-    <div class="card mb-3">
-      <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-hdd-fill text-secondary"></i> Storage
-      </div>
-      <div class="card-body">
-        {% set pct_storage = (storage_mb / studio.limite_storage_mb * 100)|int if studio.limite_storage_mb > 0 else 0 %}
-        <div class="d-flex justify-content-between small mb-1">
-          <span>{{ storage_mb }} MB usati</span>
-          <span>{{ studio.limite_storage_mb if studio.limite_storage_mb > 0 else '∞' }} MB</span>
-        </div>
-        {% if studio.limite_storage_mb > 0 %}
-        <div class="progress" style="height:8px">
-          <div class="progress-bar {{ 'bg-danger' if pct_storage > 90 else 'bg-warning' if pct_storage > 70 else 'bg-success' }}"
-               style="width:{{ [pct_storage, 100]|min }}%"></div>
-        </div>
-        <div class="text-muted" style="font-size:.72rem;margin-top:.25rem">{{ pct_storage }}% utilizzato</div>
-        {% else %}
-        <div class="text-success small">Storage illimitato</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- API Key -->
-    <div class="card mb-3">
-      <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-key-fill text-muted"></i> API Key Studio
-      </div>
-      <div class="card-body">
-        <div class="input-group input-group-sm mb-2">
-          <input type="password" id="apiKeyField" class="form-control font-monospace small"
-                 value="{{ studio.api_key }}" readonly>
-          <button class="btn btn-outline-secondary" type="button" id="toggleApiKey" title="Mostra/nascondi">
-            <i class="bi bi-eye"></i>
-          </button>
-          <button class="btn btn-outline-secondary" type="button" id="copyApiKey" title="Copia">
-            <i class="bi bi-clipboard"></i>
-          </button>
-        </div>
-        <form method="post" action="{{ url_for('admin.rigenera_api_key', slug=studio.slug) }}"
-              onsubmit="return confirm('Rigenerare la API key? La vecchia chiave sarà invalidata.')">
-          <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-            <i class="bi bi-arrow-repeat me-1"></i>Rigenera API Key
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Info tecnica -->
+    <!-- Riepilogo moduli per piano selezionato -->
     <div class="card">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-info-circle text-muted"></i> Informazioni tecniche
+        <i class="bi bi-grid-3x3-gap-fill text-info"></i> Moduli inclusi nel piano
       </div>
-      <div class="card-body small">
-        <div class="text-muted mb-1">ID</div>
-        <code style="font-size:.7rem;word-break:break-all">{{ studio.id }}</code>
-        <div class="text-muted mt-2 mb-1">Directory dati</div>
-        <code style="font-size:.7rem">./data/tenants/{{ studio.slug }}/</code>
+      <div class="card-body">
+        <p class="text-muted small">I moduli sono automaticamente assegnati in base al piano.
+           Potrai personalizzarli dopo la creazione.</p>
+        {% for pk, pv in piani.items() %}
+        <div class="piano-moduli" id="moduli_{{ pk }}" style="display:none">
+          {% for m in pv.moduli %}
+          <span class="badge bg-light text-dark border me-1 mb-1" style="font-size:.72rem">
+            {{ m }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endfor %}
       </div>
     </div>
-
   </div>
-</div>
+
+  <!-- Bottoni -->
+  <div class="col-12">
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-building-add me-1"></i>Crea Studio
+      </button>
+      <a href="{{ url_for('admin.lista_studi') }}" class="btn btn-outline-secondary">Annulla</a>
+    </div>
+  </div>
+
+</form>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Toggle API key visibility
-document.getElementById('toggleApiKey').addEventListener('click', function() {
-  const f = document.getElementById('apiKeyField');
-  f.type = f.type === 'password' ? 'text' : 'password';
-  this.querySelector('i').className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+// Auto-genera slug dal nome
+document.querySelector('[name="nome"]').addEventListener('input', function() {
+  const slug = document.getElementById('slugInput');
+  if (!slug.dataset.manual) {
+    slug.value = this.value.toLowerCase()
+      .replace(/[àáâã]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+      .replace(/[òóôõ]/g,'o').replace(/[ùúûü]/g,'u').replace(/[ñ]/g,'n')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  }
+});
+document.getElementById('slugInput').addEventListener('input', function() {
+  this.dataset.manual = '1';
 });
 
-// Copy API key
-document.getElementById('copyApiKey').addEventListener('click', function() {
-  navigator.clipboard.writeText(document.getElementById('apiKeyField').value);
-  this.innerHTML = '<i class="bi bi-check text-success"></i>';
-  setTimeout(() => this.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+// Genera password casuale
+document.getElementById('genPassBtn').addEventListener('click', function() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let pwd = '';
+  for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('adminPass').value = pwd;
 });
 
-// Module card toggle
-document.querySelectorAll('.module-card').forEach(card => {
-  card.addEventListener('click', function(e) {
-    if (e.target.type === 'checkbox') return;
-    const cb = this.querySelector('input[type="checkbox"]');
-    cb.checked = !cb.checked;
-    this.classList.toggle('enabled', cb.checked);
-  });
-  const cb = card.querySelector('input[type="checkbox"]');
-  cb.addEventListener('change', function() {
-    card.classList.toggle('enabled', this.checked);
-  });
-});
-
-// Ripristina moduli dal piano
-document.getElementById('btnRipristinaPiano')?.addEventListener('click', function() {
-  // Deseleziona tutto
-  document.querySelectorAll('.module-card input[type="checkbox"]').forEach(cb => {
-    cb.checked = false;
-    cb.closest('.module-card').classList.remove('enabled');
-  });
-  // Nessun piano da JS qui — manda form vuoto (nessun override → usa piano)
-  document.querySelector('form[action*="moduli"]').submit();
-});
+// Mostra/nascondi moduli in base al piano
+function aggiornaPianoModuli() {
+  document.querySelectorAll('.piano-moduli').forEach(el => el.style.display = 'none');
+  const sel = document.querySelector('[name="piano"]:checked');
+  if (sel) {
+    const el = document.getElementById('moduli_' + sel.value);
+    if (el) el.style.display = '';
+  }
+}
+document.querySelectorAll('[name="piano"]').forEach(r => r.addEventListener('change', aggiornaPianoModuli));
+aggiornaPianoModuli();
 </script>
 {% endblock %}

@@ -1,1269 +1,548 @@
 {% extends "base.html" %}
-{% block title %}Editor — {{ doc.nome }}{% endblock %}
-
-{% block extra_head %}
-<style>
-#main {
-  padding: 0 !important;
-}
-
-/* ─────────────────────────────────────────
-   Header sticky unico
-   ───────────────────────────────────────── */
-.ed-header {
-  position: sticky;
-  top: 0;
-  z-index: 120;
-  display: flex;
-  flex-direction: column;
-  background: var(--ds-surface);
-  border-bottom: 1px solid var(--ds-border);
-  box-shadow: var(--ds-shadow-sm);
-}
-
-.ed-header-top {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: .75rem;
-  padding: .7rem 1rem;
-  background: var(--ds-surface);
-}
-
-.ed-header-side {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  min-width: 0;
-}
-
-.ed-header-left { justify-content: flex-start; }
-.ed-header-right { justify-content: flex-end; }
-
-.ed-header-title {
-  text-align: center;
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-}
-
-.ed-filename {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  max-width: min(70vw, 700px);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--ds-gray-800);
-}
-
-.ed-filename i {
-  color: #2563eb;
-  font-size: 1.08rem;
-  flex-shrink: 0;
-}
-
-.ed-filename span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ─────────────────────────────────────────
-   Toolbar
-   ───────────────────────────────────────── */
-.ed-toolbar-row {
-  padding: .45rem .8rem;
-  background: var(--ds-surface-raised);
-  border-top: 1px solid var(--ds-border);
-  border-bottom: 1px solid var(--ds-border);
-}
-
-.ed-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  flex-wrap: wrap;
-  row-gap: 2px;
-}
-.ed-toolbar::-webkit-scrollbar { display: none; }
-
-.ed-tb-sep {
-  width: 1px;
-  height: 22px;
-  background: var(--ds-border);
-  margin: 0 4px;
-  flex-shrink: 0;
-}
-
-.ed-tb-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  color: var(--ds-gray-600);
-  font-size: .82rem;
-  font-weight: 700;
-  transition: background .18s ease, color .18s ease, border-color .18s ease;
-  flex-shrink: 0;
-  position: relative;
-}
-.ed-tb-btn i { font-size: .95rem; }
-
-.ed-tb-btn:hover {
-  background: var(--ds-gray-100);
-  color: var(--ds-gray-800);
-  border-color: var(--ds-border);
-}
-
-.ed-tb-btn.is-active {
-  background: var(--ds-primary);
-  color: #fff;
-  border-color: var(--ds-primary);
-}
-
-.ed-tb-select {
-  height: 32px;
-  padding: 0 .5rem;
-  border: 1px solid var(--ds-border);
-  border-radius: 8px;
-  background: var(--ds-surface);
-  color: var(--ds-gray-700);
-  font-size: .78rem;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.ed-tb-color {
-  width: 32px;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--ds-border);
-  border-radius: 8px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.ed-tb-label {
-  font-size: .72rem;
-  font-weight: 600;
-  color: var(--ds-gray-400);
-  padding: 0 4px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ─────────────────────────────────────────
-   Barra info
-   ───────────────────────────────────────── */
-.ed-meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: .75rem;
-  padding: .4rem .9rem;
-  background: color-mix(in srgb, var(--ds-surface) 92%, var(--ds-primary) 8%);
-  border-bottom: 1px solid var(--ds-border);
-  font-size: .75rem;
-  color: var(--ds-gray-500);
-  flex-wrap: wrap;
-}
-
-.ed-meta-left,
-.ed-meta-right {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-.ed-meta-label {
-  font-size: .72rem;
-  color: var(--ds-gray-500);
-  font-weight: 600;
-}
-
-.ed-meta-select {
-  height: 28px;
-  padding: 0 .45rem;
-  border: 1px solid var(--ds-border);
-  border-radius: 8px;
-  background: var(--ds-surface);
-  color: var(--ds-gray-700);
-  font-size: .75rem;
-  cursor: pointer;
-}
-
-.ed-status-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  font-weight: 600;
-  color: var(--ds-gray-500);
-}
-.ed-status-inline.saving { color: #d97706; }
-.ed-status-inline.saved  { color: #16a34a; }
-.ed-status-inline.error  { color: #dc2626; }
-
-#ed-last-save {
-  color: var(--ds-gray-500);
-  font-size: .72rem;
-  white-space: nowrap;
-}
-
-/* ─────────────────────────────────────────
-   Cerca / Sostituisci
-   ───────────────────────────────────────── */
-.ed-search-panel {
-  display: none;
-  padding: .75rem .9rem;
-  background: var(--ds-surface);
-  border-bottom: 1px solid var(--ds-border);
-}
-
-.ed-search-panel.open {
-  display: block;
-}
-
-.ed-search-grid {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
-  gap: .6rem;
-  align-items: end;
-}
-
-.ed-search-group {
-  display: flex;
-  flex-direction: column;
-  gap: .3rem;
-}
-
-.ed-search-group label {
-  font-size: .72rem;
-  color: var(--ds-gray-500);
-  font-weight: 600;
-}
-
-.ed-search-input {
-  height: 36px;
-  border: 1px solid var(--ds-border);
-  border-radius: 10px;
-  background: var(--ds-surface);
-  color: var(--ds-gray-800);
-  padding: 0 .75rem;
-  outline: none;
-}
-
-.ed-search-actions {
-  display: flex;
-  gap: .4rem;
-  flex-wrap: wrap;
-}
-
-.ed-search-note {
-  margin-top: .5rem;
-  font-size: .72rem;
-  color: var(--ds-gray-500);
-}
-
-/* ─────────────────────────────────────────
-   Banner PDF
-   ───────────────────────────────────────── */
-.ed-pdf-banner-wrap {
-  display: none;
-  flex-shrink: 0;
-}
-
-/* ─────────────────────────────────────────
-   Canvas / Foglio
-   ───────────────────────────────────────── */
-.ed-canvas {
-  background: var(--ds-gray-100);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 2rem 1rem 4rem;
-}
-[data-bs-theme="dark"] .ed-canvas {
-  background: #0f172a;
-}
-
-.ed-paper {
-  width: 100%;
-  max-width: 820px;
-  min-height: 800px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 8px 28px rgba(0,0,0,.10), 0 2px 8px rgba(0,0,0,.06);
-  padding: 4rem 5rem;
-  font-family: "Times New Roman", Times, serif;
-  font-size: 12pt;
-  line-height: 1.7;
-  color: #111;
-  outline: none;
-  position: relative;
-  transform-origin: top center;
-}
-[data-bs-theme="dark"] .ed-paper {
-  background: #1e293b;
-  color: #e2e8f0;
-  box-shadow: 0 4px 24px rgba(0,0,0,.5);
-}
-
-.ed-paper .ProseMirror {
-  outline: none;
-  min-height: 600px;
-}
-
-.ed-paper .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  pointer-events: none;
-  height: 0;
-  color: var(--ds-gray-400);
-}
-
-/* Mini badge info dentro il foglio */
-.ed-paper-inner-info {
-  position: sticky;
-  top: 12px;
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: .75rem;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.ed-paper-badge {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .35rem .6rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,.88);
-  border: 1px solid rgba(0,0,0,.08);
-  color: #475569;
-  font-size: .72rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,.08);
-  backdrop-filter: blur(8px);
-  transition: opacity .2s ease;
-}
-
-[data-bs-theme="dark"] .ed-paper-badge {
-  background: rgba(30,41,59,.88);
-  border-color: rgba(255,255,255,.08);
-  color: #cbd5e1;
-}
-
-/* ─────────────────────────────────────────
-   Stili documento
-   ───────────────────────────────────────── */
-.ed-paper h1 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: .5rem; }
-.ed-paper h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.2rem; }
-.ed-paper h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; }
-.ed-paper h4 { font-size: 1rem; font-weight: 600; text-decoration: underline; }
-.ed-paper p { margin-bottom: .7rem; }
-.ed-paper ul, .ed-paper ol { padding-left: 1.5rem; margin-bottom: .7rem; }
-.ed-paper table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
-.ed-paper td, .ed-paper th {
-  border: 1px solid #999;
-  padding: .35rem .6rem;
-  vertical-align: top;
-}
-.ed-paper th {
-  background: #f0f0f0;
-  font-weight: 600;
-}
-[data-bs-theme="dark"] .ed-paper th {
-  background: #334155;
-}
-.ed-paper blockquote {
-  border-left: 4px solid var(--ds-accent);
-  padding-left: 1rem;
-  color: var(--ds-gray-500);
-  font-style: italic;
-  margin: 1rem 0;
-}
-.ed-paper code {
-  background: var(--ds-gray-100);
-  border-radius: 4px;
-  padding: .1rem .4rem;
-  font-size: .88rem;
-}
-[data-bs-theme="dark"] .ed-paper code {
-  background: #0f172a;
-}
-.ed-paper pre {
-  background: var(--ds-gray-900);
-  color: #e2e8f0;
-  border-radius: 8px;
-  padding: 1rem;
-  overflow-x: auto;
-}
-
-/* ─────────────────────────────────────────
-   Loading
-   ───────────────────────────────────────── */
-.ed-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,255,255,.88);
-  z-index: 10;
-  border-radius: 6px;
-  gap: .75rem;
-}
-[data-bs-theme="dark"] .ed-loading {
-  background: rgba(30,41,59,.9);
-}
-.ed-loading .spinner-border {
-  color: var(--ds-primary);
-  width: 2.5rem;
-  height: 2.5rem;
-}
-.ed-loading p {
-  color: var(--ds-gray-500);
-  font-size: .85rem;
-}
-
-/* ─────────────────────────────────────────
-   Tooltip
-   ───────────────────────────────────────── */
-.ed-tb-btn[title]:hover::after {
-  content: attr(title);
-  position: absolute;
-  bottom: -26px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--ds-gray-800);
-  color: #fff;
-  font-size: .7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 999;
-}
-
-/* ─────────────────────────────────────────
-   Focus mode
-   ───────────────────────────────────────── */
-.focus-mode .ed-header {
-  box-shadow: none;
-}
-
-.focus-mode .ed-toolbar-row,
-.focus-mode .ed-meta-row,
-.focus-mode .ed-search-panel,
-.focus-mode .ed-pdf-banner-wrap {
-  display: none !important;
-}
-
-.focus-mode .ed-canvas {
-  padding-top: 1rem;
-}
-
-.focus-mode .ed-paper {
-  max-width: 900px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.08);
-}
-
-/* ─────────────────────────────────────────
-   Mobile
-   ───────────────────────────────────────── */
-@media (max-width: 768px) {
-  .ed-header-top {
-    grid-template-columns: auto 1fr auto;
-    padding: .6rem .75rem;
-  }
-
-  .ed-filename {
-    max-width: 50vw;
-    font-size: .92rem;
-  }
-
-  .ed-toolbar-row {
-    padding: .35rem .45rem;
-  }
-
-  .ed-toolbar {
-    flex-wrap: nowrap;
-  }
-
-  .ed-paper {
-    padding: 1.35rem 1rem;
-    min-height: 400px;
-  }
-
-  .ed-canvas {
-    padding: 1rem .25rem 5.5rem;
-  }
-
-  .ed-tb-label {
-    display: none;
-  }
-
-  .ed-meta-row {
-    padding: .35rem .6rem;
-    font-size: .72rem;
-  }
-
-  .ed-search-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .ed-mobile-actions {
-    position: fixed;
-    bottom: calc(62px + env(safe-area-inset-bottom, 0px));
-    left: 0;
-    right: 0;
-    z-index: 200;
-    display: flex;
-    gap: .45rem;
-    padding: .6rem .75rem;
-    background: var(--ds-surface);
-    border-top: 1px solid var(--ds-border);
-    box-shadow: 0 -4px 12px rgba(0,0,0,.08);
-  }
-
-  .ed-mobile-actions .ds-btn {
-    flex: 1;
-    justify-content: center;
-    min-width: 0;
-  }
-
-  .ed-header-right .ed-desktop-only,
-  .ed-meta-label,
-  #ed-reading-time,
-  #ed-selection-info,
-  #ed-last-save,
-  #btn-focus-mode,
-  #tb-fontsize,
-  #tb-zoom {
-    display: none !important;
-  }
-}
-
-@media (min-width: 769px) {
-  .ed-mobile-actions { display: none; }
-}
-</style>
-{% endblock %}
+{% block title %}Guida — Certificato di firma digitale{% endblock %}
+{% block page_title %}Guida firma digitale{% endblock %}
 
 {% block content %}
-<div class="ed-header">
-  <div class="ed-header-top">
-    <div class="ed-header-side ed-header-left">
-      <a href="{{ url_for('dettaglio_fascicolo', id_fasc=id_fasc) }}"
-         class="ds-btn ds-btn-ghost ds-btn-sm" title="Torna al fascicolo">
-        <i class="bi bi-arrow-left"></i>
-      </a>
-    </div>
+<div class="row g-4">
 
-    <div class="ed-header-title">
-      <div class="ed-filename">
-        {% if doc.nome.lower().endswith('.docx') %}
-          <i class="bi bi-file-word"></i>
-        {% elif doc.nome.lower().endswith('.pdf') %}
-          <i class="bi bi-file-earmark-pdf" style="color:#dc2626"></i>
-        {% elif doc.nome.lower().endswith('.txt') %}
-          <i class="bi bi-file-text"></i>
-        {% else %}
-          <i class="bi bi-file-earmark"></i>
-        {% endif %}
-        <span>{{ doc.nome }}</span>
+  {# ---- Intro ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:52px;height:52px;border-radius:12px;background:#e3f2fd;
+                      color:#1565c0;font-size:1.5rem;display:flex;align-items:center;
+                      justify-content:center;flex-shrink:0">
+            <i class="bi bi-patch-check-fill"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h5 class="fw-bold mb-1">Come ottenere e configurare il certificato di firma digitale</h5>
+            <p class="text-muted mb-0 small">
+              Guida pratica per avvocati: dai provider italiani alla configurazione nell'app.
+              Usa il selettore in alto per saltare alla sezione che ti serve.
+            </p>
+          </div>
+          <a href="{{ url_for('impostazioni.index', tab='firma') }}"
+             class="btn btn-primary btn-sm flex-shrink-0">
+            <i class="bi bi-gear me-1"></i>Vai alle impostazioni
+          </a>
+        </div>
       </div>
     </div>
-
-    <div class="ed-header-side ed-header-right">
-      <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-open-search" title="Cerca / Sostituisci">
-        <i class="bi bi-search"></i>
-      </button>
-      <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-import-file" title="Apri file e sostituisci contenuto">
-        <i class="bi bi-folder2-open"></i>
-      </button>
-      <button class="ds-btn ds-btn-ghost ds-btn-sm ed-desktop-only" id="btn-docx" title="Scarica .docx">
-        <i class="bi bi-file-word"></i>
-        <span class="d-none d-lg-inline">.docx</span>
-      </button>
-      <button class="ds-btn ds-btn-outline ds-btn-sm ed-desktop-only" id="btn-pdf" title="Esporta PDF">
-        <i class="bi bi-file-earmark-pdf"></i>
-        <span class="d-none d-lg-inline">PDF</span>
-      </button>
-      <button class="ds-btn ds-btn-primary ds-btn-sm" id="btn-save">
-        <i class="bi bi-cloud-upload"></i>
-        <span>Salva</span>
-      </button>
-    </div>
   </div>
 
-  <div class="ed-toolbar-row">
-    <div class="ed-toolbar" id="ed-toolbar">
-      <select class="ed-tb-select" id="tb-heading" title="Stile paragrafo">
-        <option value="paragraph">Normale</option>
-        <option value="heading1">Titolo 1</option>
-        <option value="heading2">Titolo 2</option>
-        <option value="heading3">Titolo 3</option>
-        <option value="heading4">Titolo 4</option>
-      </select>
-
-      <div class="ed-tb-sep"></div>
-
-      <button class="ed-tb-btn" id="tb-bold" title="Grassetto (Ctrl+B)"><b>B</b></button>
-      <button class="ed-tb-btn" id="tb-italic" title="Corsivo (Ctrl+I)"><i>I</i></button>
-      <button class="ed-tb-btn" id="tb-underline" title="Sottolineato (Ctrl+U)"><u>S</u></button>
-      <button class="ed-tb-btn" id="tb-strike" title="Barrato"><s>S</s></button>
-
-      <div class="ed-tb-sep"></div>
-
-      <span class="ed-tb-label d-none d-sm-inline">A</span>
-      <input type="color" class="ed-tb-color" id="tb-color" title="Colore testo" value="#111111">
-
-      <div class="ed-tb-sep"></div>
-
-      <button class="ed-tb-btn" id="tb-align-left" title="Allinea a sinistra"><i class="bi bi-text-left"></i></button>
-      <button class="ed-tb-btn" id="tb-align-center" title="Centra"><i class="bi bi-text-center"></i></button>
-      <button class="ed-tb-btn" id="tb-align-right" title="Allinea a destra"><i class="bi bi-text-right"></i></button>
-      <button class="ed-tb-btn" id="tb-align-justify" title="Giustifica"><i class="bi bi-justify"></i></button>
-
-      <div class="ed-tb-sep"></div>
-
-      <button class="ed-tb-btn" id="tb-ul" title="Elenco puntato"><i class="bi bi-list-ul"></i></button>
-      <button class="ed-tb-btn" id="tb-ol" title="Elenco numerato"><i class="bi bi-list-ol"></i></button>
-
-      <div class="ed-tb-sep"></div>
-
-      <button class="ed-tb-btn" id="tb-quote" title="Citazione"><i class="bi bi-chat-quote"></i></button>
-      <button class="ed-tb-btn" id="tb-code" title="Codice inline"><i class="bi bi-code"></i></button>
-      <button class="ed-tb-btn" id="tb-hr" title="Linea separatrice"><i class="bi bi-dash-lg"></i></button>
-
-      <div class="ed-tb-sep"></div>
-
-      <button class="ed-tb-btn" id="tb-table" title="Inserisci tabella"><i class="bi bi-table"></i></button>
-
-      <div class="ed-tb-sep"></div>
-
-      <button class="ed-tb-btn" id="tb-undo" title="Annulla (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
-      <button class="ed-tb-btn" id="tb-redo" title="Ripeti (Ctrl+Y)"><i class="bi bi-arrow-clockwise"></i></button>
-    </div>
-  </div>
-
-  
-
-  
-</div>
-
-<div class="ed-canvas">
-  <div class="ed-paper" id="ed-paper">
-    <div class="ed-loading" id="ed-loading">
-      <div class="spinner-border" role="status"></div>
-      <p>Caricamento documento…</p>
-    </div>
-
-    <div class="ed-paper-inner-info">
-      <div class="ed-paper-badge" id="ed-paper-badge">
-        <i class="bi bi-file-text"></i>
-        <span id="ed-paper-badge-text">0 parole</span>
+  {# ---- Navigazione rapida ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 bg-light">
+      <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <span class="text-muted small fw-semibold me-1">Vai a:</span>
+          <a href="#sec-cosa-sono" class="btn btn-sm btn-outline-secondary">Cosa sono i formati</a>
+          <a href="#sec-flowchart"  class="btn btn-sm btn-outline-secondary">Quale formato ho?</a>
+          <a href="#sec-provider"   class="btn btn-sm btn-outline-secondary">Provider italiani</a>
+          <a href="#sec-converti"   class="btn btn-sm btn-outline-secondary">Conversione P12 ↔ PEM</a>
+          <a href="#sec-token"      class="btn btn-sm btn-outline-secondary">Token / Smart card</a>
+          <a href="#sec-docker"     class="btn btn-sm btn-outline-secondary">Configurazione Docker</a>
+        </div>
       </div>
     </div>
-
-    <div id="ed-content"></div>
   </div>
+
+  {# ---- 1. Cosa sono i formati ---- #}
+  <div class="col-12" id="sec-cosa-sono">
+    <div class="card shadow-sm border-0 border-start border-4 border-primary">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-boxes me-2 text-primary"></i>I tre formati del certificato — cosa contengono
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          Il certificato di firma digitale è composto da due elementi: un <strong>certificato pubblico</strong>
+          (la tua identità digitale) e una <strong>chiave privata</strong> (con cui firmi i documenti).
+          I provider li rilasciano in formati diversi.
+        </p>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="card h-100 border-primary border-2">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-primary fs-6 px-2">.p12 / .pfx</span>
+                </div>
+                <p class="small mb-2">
+                  <strong>Bundle unico</strong> — contiene certificato + chiave privata + chain CA
+                  in un singolo file cifrato con password.
+                </p>
+                <p class="small text-muted mb-0">
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>Il più comune — la maggior parte dei provider lo rilascia.<br>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>Un solo file da gestire.<br>
+                  <i class="bi bi-info-circle me-1 text-primary"></i><code>.pfx</code> e <code>.p12</code> sono identici.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="card h-100 border-success border-2">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-success fs-6 px-2">.crt / .pem</span>
+                  <span class="badge bg-outline-secondary border small">certificato</span>
+                </div>
+                <p class="small mb-2">
+                  <strong>Solo il certificato pubblico</strong> — contiene la tua identità e la chiave pubblica.
+                  Non è segreto.
+                </p>
+                <p class="small text-muted mb-0">
+                  <i class="bi bi-info-circle me-1 text-primary"></i>Può includere i certificati CA intermedi (chain).<br>
+                  <i class="bi bi-info-circle me-1 text-primary"></i><code>.crt</code>, <code>.pem</code>, <code>.cer</code> sono spesso lo stesso formato.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="card h-100 border-warning border-2">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge bg-warning text-dark fs-6 px-2">.key / .pem</span>
+                  <span class="badge bg-outline-secondary border small">chiave privata</span>
+                </div>
+                <p class="small mb-2">
+                  <strong>Solo la chiave privata</strong> — il segreto con cui firmi.
+                  Non condividere mai questo file.
+                </p>
+                <p class="small text-muted mb-0">
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>File riservato — conservalo in modo sicuro.<br>
+                  <i class="bi bi-info-circle me-1 text-primary"></i>Può essere in chiaro o protetto da password.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-info small mt-3 mb-0">
+          <i class="bi bi-lightbulb me-1"></i>
+          <strong>Regola semplice:</strong> <code>.p12</code> = <code>.crt</code> + <code>.key</code> messi insieme in un unico file cifrato.
+          Puoi sempre convertire da un formato all'altro con OpenSSL (vedi sezione <a href="#sec-converti">Conversione</a>).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- 2. Flowchart ---- #}
+  <div class="col-12" id="sec-flowchart">
+    <div class="card shadow-sm border-0 border-start border-4 border-info">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-signpost-split me-2 text-info"></i>Quale formato ho? — Mappa decisionale
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+
+          <div class="col-12">
+            <div class="p-3 rounded border bg-light">
+              <div class="fw-semibold mb-3">Hai una chiavetta USB / smart card / CIE / CNS?</div>
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <div class="p-3 bg-white rounded border border-warning">
+                    <div class="fw-semibold text-warning mb-1"><i class="bi bi-usb-drive me-1"></i>Sì — token fisico</div>
+                    <p class="small mb-2">
+                      La chiave privata è <strong>bloccata dentro il chip</strong> — non puoi estrarla (è obbligatorio per legge per i certificati qualificati).
+                    </p>
+                    <p class="small mb-0 text-muted">
+                      <strong>Cosa fare:</strong> firma i documenti localmente con il software del provider
+                      (ArubaSign, Dike, Namirial Sign) e carica il <code>.p7m</code> già firmato nell'app
+                      tramite <em>Fascicoli → Documenti → Firma per deposito</em>.
+                    </p>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="p-3 bg-white rounded border border-success">
+                    <div class="fw-semibold text-success mb-1"><i class="bi bi-cloud-download me-1"></i>No — certificato remoto o software</div>
+                    <p class="small mb-2">
+                      Il provider ti ha fornito un file scaricabile. Continua con il passo successivo.
+                    </p>
+                    <div class="small">
+                      <div class="fw-semibold mb-1">Che file ti hanno dato?</div>
+                      <div class="d-flex flex-column gap-1">
+                        <div class="p-2 bg-primary bg-opacity-10 rounded">
+                          <i class="bi bi-arrow-right me-1 text-primary"></i>
+                          Un file <code>.p12</code> o <code>.pfx</code> →
+                          <strong>usa direttamente</strong> come <code>PCT_FIRMA_P12</code>
+                        </div>
+                        <div class="p-2 bg-success bg-opacity-10 rounded">
+                          <i class="bi bi-arrow-right me-1 text-success"></i>
+                          Un file <code>.crt</code> + un file <code>.key</code> →
+                          <strong>usa come PEM</strong> con <code>PCT_FIRMA_CERT</code> + <code>PCT_FIRMA_KEY</code>
+                        </div>
+                        <div class="p-2 bg-warning bg-opacity-10 rounded">
+                          <i class="bi bi-arrow-right me-1 text-warning"></i>
+                          Solo un file <code>.p12</code> ma vuoi i file separati →
+                          <strong>converti</strong> con OpenSSL (vedi sezione Conversione)
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- 3. Provider italiani ---- #}
+  <div class="col-12" id="sec-provider">
+    <div class="card shadow-sm border-0 border-start border-4 border-success">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-building me-2 text-success"></i>Come scaricare il certificato — provider italiani
+      </div>
+      <div class="card-body p-0">
+        <div class="accordion accordion-flush" id="accordionProvider">
+
+          {# Aruba #}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#prov-aruba">
+                Aruba PEC / ArubaSign
+              </button>
+            </h2>
+            <div id="prov-aruba" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
+              <div class="accordion-body small">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <div class="fw-semibold mb-2"><i class="bi bi-key me-1 text-primary"></i>Certificato remoto (OTP/app)</div>
+                    <ol class="mb-0 ps-3">
+                      <li>Accedi su <strong>areariservata.aruba.it</strong></li>
+                      <li>Vai in <em>I miei prodotti → Firma Digitale Remota</em></li>
+                      <li>Clicca <em>Gestisci → Scarica certificato</em></li>
+                      <li>Scegli il formato <strong>P12</strong> e imposta una password</li>
+                      <li>Salva il file <code>.p12</code> e annotati la password</li>
+                    </ol>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="fw-semibold mb-2"><i class="bi bi-usb-drive me-1 text-warning"></i>Token USB ArubaKey</div>
+                    <p class="text-muted mb-2">La chiave privata non è estraibile dal token.</p>
+                    <p class="mb-0">
+                      Usa <strong>ArubaSign</strong> (software gratuito Aruba) per firmare i documenti
+                      localmente, poi carica il <code>.p7m</code> nell'app.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Namirial #}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#prov-namirial">
+                Namirial
+              </button>
+            </h2>
+            <div id="prov-namirial" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
+              <div class="accordion-body small">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <div class="fw-semibold mb-2"><i class="bi bi-key me-1 text-primary"></i>Firma remota Namirial</div>
+                    <ol class="mb-0 ps-3">
+                      <li>Accedi al pannello Namirial con le tue credenziali</li>
+                      <li>Sezione <em>Certificati → Il mio certificato</em></li>
+                      <li>Clicca <em>Scarica → Formato P12</em></li>
+                      <li>Se il provider offre PEM: clicca <em>Scarica → CRT + KEY</em></li>
+                      <li>Salva i file e annota le password</li>
+                    </ol>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="fw-semibold mb-2"><i class="bi bi-usb-drive me-1 text-warning"></i>Token USB Namirial</div>
+                    <p class="text-muted mb-2">La chiave privata è nel chip del token — non estraibile.</p>
+                    <p class="mb-0">Usa <strong>Namirial Sign</strong> per firmare localmente.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# InfoCert / Dike #}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#prov-infocert">
+                InfoCert / Dike
+              </button>
+            </h2>
+            <div id="prov-infocert" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
+              <div class="accordion-body small">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <div class="fw-semibold mb-2"><i class="bi bi-key me-1 text-primary"></i>Firma remota</div>
+                    <ol class="mb-0 ps-3">
+                      <li>Accedi su <strong>infocert.it → Area personale</strong></li>
+                      <li><em>Firma digitale → Gestione certificati → Esporta</em></li>
+                      <li>Formato disponibile: <strong>P12</strong></li>
+                      <li>Per ottenere PEM separati: converti il P12 con OpenSSL (vedi sezione Conversione)</li>
+                    </ol>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="fw-semibold mb-2"><i class="bi bi-usb-drive me-1 text-warning"></i>Chiavetta / CNS</div>
+                    <p class="text-muted mb-2">Chiave non estraibile.</p>
+                    <p class="mb-0">Usa <strong>Dike 6</strong> per firmare localmente.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Poste Italiane #}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#prov-poste">
+                Poste Italiane (PosteCert)
+              </button>
+            </h2>
+            <div id="prov-poste" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
+              <div class="accordion-body small">
+                <ol class="mb-2 ps-3">
+                  <li>Accedi su <strong>postecert.poste.it</strong></li>
+                  <li><em>Firma digitale → Il mio certificato → Scarica</em></li>
+                  <li>Formato rilasciato: <strong>P12</strong></li>
+                  <li>Per PEM separati: converti con OpenSSL</li>
+                </ol>
+                <div class="alert alert-warning py-2 mb-0">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Poste rilascia il P12 solo per i certificati <strong>software</strong>.
+                  Il PosteKey (token USB) non permette l'estrazione della chiave.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Intesa Sanpaolo / CA #}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed fw-semibold" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#prov-altri">
+                Altri provider (Intesa, Telecom Trust, ecc.)
+              </button>
+            </h2>
+            <div id="prov-altri" class="accordion-collapse collapse" data-bs-parent="#accordionProvider">
+              <div class="accordion-body small">
+                <p class="mb-2">La procedura è analoga per tutti i provider accreditati AgID:</p>
+                <ol class="mb-2 ps-3">
+                  <li>Accedi all'area riservata del provider</li>
+                  <li>Cerca la sezione <em>Firma digitale → Scarica certificato / Esporta</em></li>
+                  <li>Scegli il formato <strong>P12</strong> (universalmente supportato)</li>
+                  <li>Se il provider offre PEM direttamente, scarica <code>.crt</code> + <code>.key</code></li>
+                </ol>
+                <p class="small text-muted mb-0">
+                  Se non trovi l'opzione di download, contatta il supporto del provider:
+                  è possibile che tu abbia solo un token fisico.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>{# /accordion #}
+      </div>
+    </div>
+  </div>
+
+  {# ---- 4. Conversione ---- #}
+  <div class="col-12" id="sec-converti">
+    <div class="card shadow-sm border-0 border-start border-4 border-warning">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-arrow-left-right me-2 text-warning"></i>Conversione tra formati — comandi OpenSSL
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          <strong>OpenSSL</strong> è gratuito e preinstallato su Linux e macOS.
+          Su Windows: usa <strong>Git Bash</strong>, <strong>WSL</strong> o scarica OpenSSL for Windows.
+          I comandi sono identici su tutte le piattaforme.
+        </p>
+
+        <div class="row g-4">
+          <div class="col-12 col-lg-6">
+            <div class="fw-semibold mb-2">
+              <span class="badge bg-primary me-1">P12 → PEM</span>
+              Hai il P12, vuoi i file separati
+            </div>
+            <div class="mb-2">
+              <div class="text-muted small mb-1">1. Estrai il certificato pubblico (.crt):</div>
+              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -in firma.p12 \
+  -clcerts -nokeys \
+  -out firma.crt
+<span class="text-warning"># chiede la password del P12</span></pre>
+            </div>
+            <div class="mb-2">
+              <div class="text-muted small mb-1">2a. Estrai la chiave privata <strong>in chiaro</strong> (più semplice):</div>
+              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -in firma.p12 \
+  -nocerts -nodes \
+  -out firma.key
+<span class="text-warning"># -nodes = no password sulla chiave</span></pre>
+            </div>
+            <div>
+              <div class="text-muted small mb-1">2b. Estrai la chiave privata <strong>con password</strong> (più sicuro):</div>
+              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -in firma.p12 \
+  -nocerts \
+  -out firma.key
+<span class="text-warning"># chiede password P12, poi chiedi nuova password per la chiave</span></pre>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-6">
+            <div class="fw-semibold mb-2">
+              <span class="badge bg-success me-1">PEM → P12</span>
+              Hai i file separati, vuoi creare il P12
+            </div>
+            <div class="mb-2">
+              <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">openssl pkcs12 -export \
+  -in firma.crt \
+  -inkey firma.key \
+  -out firma.p12 \
+  -name "Firma avvocato"
+<span class="text-warning"># ti chiede la password per proteggere il P12</span></pre>
+            </div>
+            <div class="fw-semibold mb-2 mt-3">
+              <span class="badge bg-secondary me-1">Verifica</span>
+              Controlla il contenuto di un certificato
+            </div>
+            <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto"><span class="text-success"># Verifica file .crt</span>
+openssl x509 -in firma.crt -noout -subject -dates
+
+<span class="text-success"># Verifica file .p12</span>
+openssl pkcs12 -in firma.p12 -noout -info</pre>
+          </div>
+        </div>
+
+        <div class="alert alert-info small mt-3 mb-0">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Nota sulla scadenza:</strong> i certificati di firma qualificata scadono ogni <strong>3 anni</strong>.
+          Il comando <code>openssl x509 -in firma.crt -noout -dates</code> mostra le date di validità.
+          Rinnova prima della scadenza contattando il tuo provider.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- 5. Token / Smart card ---- #}
+  <div class="col-12" id="sec-token">
+    <div class="card shadow-sm border-0 border-start border-4 border-danger">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-usb-drive me-2 text-danger"></i>Token USB / Smart card / CNS / CIE — caso speciale
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning mb-3">
+          <i class="bi bi-lock-fill me-2"></i>
+          <strong>La chiave privata nei token fisici non è mai estraibile.</strong>
+          È un requisito di legge (CAD e Regolamento eIDAS) per i certificati di firma qualificata:
+          garantisce che solo il titolare possa firmare, fisicamente in possesso del dispositivo.
+        </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="fw-semibold mb-2">Workflow consigliato con token</div>
+            <ol class="small ps-3 mb-0">
+              <li>Scarica il documento da firmare dall'app (<em>Fascicoli → Documenti → Scarica</em>)</li>
+              <li>Apri il software del provider sul tuo PC con il token inserito</li>
+              <li>Firma il documento → ottieni il file <code>.p7m</code> (CAdES) o <code>.pdf</code> firmato (PAdES)</li>
+              <li>Torna nell'app → <em>Fascicoli → Documenti → Firma per deposito</em></li>
+              <li>Carica il file già firmato</li>
+              <li>Il documento viene marcato come "firmato digitalmente" e pronto per il deposito</li>
+            </ol>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="fw-semibold mb-2">Software di firma per ogni provider</div>
+            <table class="table table-sm small mb-0">
+              <thead class="table-light">
+                <tr><th>Provider</th><th>Software gratuito</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Aruba</td><td>ArubaSign</td></tr>
+                <tr><td>InfoCert</td><td>Dike 6</td></tr>
+                <tr><td>Namirial</td><td>Namirial Sign</td></tr>
+                <tr><td>Poste Italiane</td><td>PosteSign / Dike 6</td></tr>
+                <tr><td>CNS / CIE</td><td>Dike 6 o software del Ministero</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- 6. Configurazione Docker ---- #}
+  <div class="col-12" id="sec-docker">
+    <div class="card shadow-sm border-0 border-start border-4 border-secondary">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-box me-2 text-secondary"></i>Configurazione nel server / Docker
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          Il file del certificato deve essere accessibile dal server dove gira l'applicativo.
+          Con Docker, la modalità più semplice è montarlo nel volume <code>/data/config/</code>.
+        </p>
+        <div class="row g-4">
+          <div class="col-12 col-lg-6">
+            <div class="fw-semibold mb-2"><span class="badge bg-primary me-1">Opzione A</span>Formato P12 — file <code>.env</code></div>
+            <pre class="bg-dark text-light rounded p-3 small mb-2" style="overflow-x:auto"># Copia il file nel volume dati
+cp firma.p12 ./data/config/firma.p12
+
+# Nel file .env
+PCT_FIRMA_P12=/data/config/firma.p12
+PCT_FIRMA_PASSWORD=la_tua_password
+PCT_CF_AVVOCATO=RSSMRA80A01H501Z</pre>
+            <div class="fw-semibold mb-2 mt-3"><span class="badge bg-primary me-1">Opzione A</span>In <code>docker-compose.yml</code></div>
+            <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto">volumes:
+  - ./data:/data
+  <span class="text-success"># Il file è già in ./data/config/firma.p12</span>
+  <span class="text-success"># Non serve un mount aggiuntivo</span></pre>
+          </div>
+          <div class="col-12 col-lg-6">
+            <div class="fw-semibold mb-2"><span class="badge bg-success me-1">Opzione B</span>Formato PEM — file <code>.env</code></div>
+            <pre class="bg-dark text-light rounded p-3 small mb-2" style="overflow-x:auto"># Copia i file nel volume dati
+cp firma.crt ./data/config/firma.crt
+cp firma.key ./data/config/firma.key
+
+# Nel file .env
+PCT_FIRMA_CERT=/data/config/firma.crt
+PCT_FIRMA_KEY=/data/config/firma.key
+# Solo se la chiave è protetta da password:
+PCT_FIRMA_KEY_PASSWORD=password_chiave
+PCT_CF_AVVOCATO=RSSMRA80A01H501Z</pre>
+            <div class="fw-semibold mb-2 mt-3"><span class="badge bg-success me-1">Opzione B</span>Permessi file</div>
+            <pre class="bg-dark text-light rounded p-3 small mb-0" style="overflow-x:auto"><span class="text-success"># La chiave privata deve essere leggibile solo dall'app</span>
+chmod 600 ./data/config/firma.key
+chmod 644 ./data/config/firma.crt</pre>
+          </div>
+        </div>
+
+        <div class="alert alert-secondary small mt-3 mb-0">
+          <i class="bi bi-gear me-1"></i>
+          In alternativa alle variabili d'ambiente, puoi configurare i percorsi direttamente dall'interfaccia:
+          <a href="{{ url_for('impostazioni.index', tab='firma') }}" class="alert-link">
+            Impostazioni → Firma Digitale
+          </a>.
+          I valori vengono salvati cifrati nel file <code>/data/config/studio.json</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- CTA finale ---- #}
+  <div class="col-12">
+    <div class="card shadow-sm border-0 bg-primary text-white">
+      <div class="card-body d-flex align-items-center gap-3">
+        <i class="bi bi-patch-check-fill fs-2 opacity-75"></i>
+        <div class="flex-grow-1">
+          <div class="fw-bold">Hai il certificato? Configuralo ora.</div>
+          <div class="small opacity-75">Impostazioni → Firma Digitale — supporta P12 e PEM.</div>
+        </div>
+        <a href="{{ url_for('impostazioni.index', tab='firma') }}"
+           class="btn btn-light text-primary flex-shrink-0">
+          <i class="bi bi-gear me-1"></i>Vai alle impostazioni
+        </a>
+      </div>
+    </div>
+  </div>
+
 </div>
-
-<div class="ed-mobile-actions">
-  <button class="ds-btn ds-btn-ghost ds-btn-sm" id="btn-mobile-search">
-    <i class="bi bi-search me-1"></i>Cerca
-  </button>
-  <button class="ds-btn ds-btn-ghost ds-btn-sm" id="btn-mobile-import">
-    <i class="bi bi-folder2-open me-1"></i>Apri
-  </button>
-  <button class="ds-btn ds-btn-ghost ds-btn-sm" id="btn-pdf-mobile">
-    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-  </button>
-  <button class="ds-btn ds-btn-primary" id="btn-save-mobile">
-    <i class="bi bi-cloud-upload me-1"></i>Salva
-  </button>
-</div>
-
-<input type="file" id="replace-file-input" hidden accept=".txt,.html,.htm,.docx,.md">
-
-<script type="module">
-import { Editor }       from 'https://esm.sh/@tiptap/core@2.4.0'
-import StarterKit       from 'https://esm.sh/@tiptap/starter-kit@2.4.0'
-import Underline        from 'https://esm.sh/@tiptap/extension-underline@2.4.0'
-import TextAlign        from 'https://esm.sh/@tiptap/extension-text-align@2.4.0'
-import TextStyle        from 'https://esm.sh/@tiptap/extension-text-style@2.4.0'
-import Color            from 'https://esm.sh/@tiptap/extension-color@2.4.0'
-import Highlight        from 'https://esm.sh/@tiptap/extension-highlight@2.4.0'
-import Table            from 'https://esm.sh/@tiptap/extension-table@2.4.0'
-import TableRow         from 'https://esm.sh/@tiptap/extension-table-row@2.4.0'
-import TableHeader      from 'https://esm.sh/@tiptap/extension-table-header@2.4.0'
-import TableCell        from 'https://esm.sh/@tiptap/extension-table-cell@2.4.0'
-import Placeholder      from 'https://esm.sh/@tiptap/extension-placeholder@2.4.0'
-import * as mammoth     from 'https://esm.sh/mammoth@1.8.0'
-
-const ID_FASC = {{ id_fasc|tojson }}
-const ID_DOC  = {{ doc.id|tojson }}
-const NOME    = {{ doc.nome|tojson }}
-
-let _saveTimer = null
-let _dirty = false
-let _lastSavedAt = null
-let _focusMode = false
-
-const editor = new Editor({
-  element: document.getElementById('ed-content'),
-  extensions: [
-    StarterKit,
-    Underline,
-    TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    TextStyle,
-    Color,
-    Highlight.configure({ multicolor: true }),
-    Table.configure({ resizable: true }),
-    TableRow,
-    TableHeader,
-    TableCell,
-    Placeholder.configure({ placeholder: 'Inizia a scrivere il documento…' }),
-  ],
-  content: '',
-  autofocus: false,
-  onUpdate: () => {
-    scheduleAutosave()
-    updateWordCount()
-    updateToolbarState()
-  },
-  onSelectionUpdate: () => {
-    updateToolbarState()
-    updateSelectionInfo()
-  },
-})
-
-async function caricaDocumento() {
-  try {
-    const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/html`)
-    const data = await res.json()
-
-    if (data.html) {
-      editor.commands.setContent(data.html, false)
-    }
-
-    const meta = data.meta || {}
-    if (meta.tipo_originale === 'pdf') {
-      const banner = document.getElementById('ed-pdf-banner')
-      if (banner) banner.style.display = 'block'
-      if (meta.is_scanned) {
-        const ocrNote = document.getElementById('ed-pdf-ocr-note')
-        if (ocrNote) ocrNote.style.display = 'inline'
-      }
-    }
-  } catch (e) {
-    console.error('Errore caricamento:', e)
-    setStatus('error', 'Errore caricamento')
-  } finally {
-    document.getElementById('ed-loading').style.display = 'none'
-    updateWordCount()
-    updateSelectionInfo()
-    updateLastSaveLabel()
-  }
-}
-caricaDocumento()
-
-function scheduleAutosave() {
-  _dirty = true
-  setStatus('saving', 'Modificato…')
-  clearTimeout(_saveTimer)
-  _saveTimer = setTimeout(() => salva(true), 30000)
-}
-
-async function salva(auto = false) {
-  clearTimeout(_saveTimer)
-  setStatus('saving', 'Salvataggio…')
-  try {
-    const html = editor.getHTML()
-    const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/salva`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html, auto }),
-    })
-    const data = await res.json()
-    if (data.ok) {
-      _dirty = false
-      _lastSavedAt = new Date()
-      updateLastSaveLabel()
-      setStatus('saved', auto ? 'Salvato auto' : 'Salvato')
-      setTimeout(() => setStatus('', 'Pronto'), 3000)
-    } else {
-      setStatus('error', data.errore || 'Errore salvataggio')
-    }
-  } catch (e) {
-    setStatus('error', 'Errore di rete')
-  }
-}
-
-function setStatus(cls, testo) {
-  const inline = document.getElementById('ed-status-inline')
-  if (inline) {
-    inline.className = 'ed-status-inline' + (cls ? ' ' + cls : '')
-    const ico = cls === 'saving' ? 'bi-cloud-upload'
-              : cls === 'saved'  ? 'bi-cloud-check'
-              : cls === 'error'  ? 'bi-exclamation-circle'
-              : 'bi-cloud'
-    inline.innerHTML = `<i class="bi ${ico}"></i><span id="ed-status-inline-text">${testo}</span>`
-  }
-
-  const badge = document.getElementById('ed-paper-badge')
-  if (badge) {
-    badge.style.opacity = cls === 'saving' ? '0.75' : '1'
-  }
-}
-
-function updateWordCount() {
-  const testo = editor.getText().trim()
-  const parole = testo ? testo.split(/\s+/).length : 0
-  const chars = testo.length
-  const readingMinutes = Math.max(1, Math.ceil(parole / 200))
-
-  const el = document.getElementById('ed-wordcount')
-  if (el) el.textContent = `${parole} parole · ${chars} car.`
-
-  const rt = document.getElementById('ed-reading-time')
-  if (rt) rt.textContent = `~${readingMinutes} min lettura`
-
-  const badge = document.getElementById('ed-paper-badge-text')
-  if (badge) badge.textContent = `${parole} parole`
-}
-
-function updateSelectionInfo() {
-  const sel = window.getSelection()
-  const text = sel ? String(sel).trim() : ''
-  const len = text.length
-
-  const el = document.getElementById('ed-selection-info')
-  if (!el) return
-
-  if (!text) {
-    el.textContent = 'Nessuna selezione'
-    return
-  }
-
-  const parole = text.split(/\s+/).filter(Boolean).length
-  el.textContent = `Selezione: ${parole} parole · ${len} car.`
-}
-
-function updateLastSaveLabel() {
-  const el = document.getElementById('ed-last-save')
-  if (!el) return
-
-  if (!_lastSavedAt) {
-    el.textContent = 'Mai salvato'
-    return
-  }
-
-  const hh = String(_lastSavedAt.getHours()).padStart(2, '0')
-  const mm = String(_lastSavedAt.getMinutes()).padStart(2, '0')
-  el.textContent = `Ultimo salvataggio ${hh}:${mm}`
-}
-
-function updateToolbarState() {
-  const btns = {
-    'tb-bold':          () => editor.isActive('bold'),
-    'tb-italic':        () => editor.isActive('italic'),
-    'tb-underline':     () => editor.isActive('underline'),
-    'tb-strike':        () => editor.isActive('strike'),
-    'tb-align-left':    () => editor.isActive({ textAlign: 'left' }),
-    'tb-align-center':  () => editor.isActive({ textAlign: 'center' }),
-    'tb-align-right':   () => editor.isActive({ textAlign: 'right' }),
-    'tb-align-justify': () => editor.isActive({ textAlign: 'justify' }),
-    'tb-ul':            () => editor.isActive('bulletList'),
-    'tb-ol':            () => editor.isActive('orderedList'),
-    'tb-quote':         () => editor.isActive('blockquote'),
-    'tb-code':          () => editor.isActive('code'),
-  }
-
-  for (const [id, fn] of Object.entries(btns)) {
-    const el = document.getElementById(id)
-    if (el) el.classList.toggle('is-active', fn())
-  }
-
-  const sel = document.getElementById('tb-heading')
-  if (sel) {
-    if (editor.isActive('heading', { level: 1 })) sel.value = 'heading1'
-    else if (editor.isActive('heading', { level: 2 })) sel.value = 'heading2'
-    else if (editor.isActive('heading', { level: 3 })) sel.value = 'heading3'
-    else if (editor.isActive('heading', { level: 4 })) sel.value = 'heading4'
-    else sel.value = 'paragraph'
-  }
-}
-
-function tb(id, fn) {
-  const el = document.getElementById(id)
-  if (el) el.addEventListener('click', fn)
-}
-
-function applyFontSize(sizePt) {
-  const paper = document.getElementById('ed-paper')
-  if (!paper) return
-  paper.style.fontSize = `${sizePt}pt`
-  localStorage.setItem('editor_font_size', String(sizePt))
-}
-
-function applyZoom(value) {
-  const paper = document.getElementById('ed-paper')
-  if (!paper) return
-  paper.style.transform = `scale(${Number(value) / 100})`
-  localStorage.setItem('editor_zoom', String(value))
-}
-
-function toggleFocusMode() {
-  _focusMode = !_focusMode
-  document.body.classList.toggle('focus-mode', _focusMode)
-
-  const btn = document.getElementById('btn-focus-mode')
-  if (btn) {
-    btn.innerHTML = _focusMode
-      ? '<i class="bi bi-eye-slash"></i>'
-      : '<i class="bi bi-eye"></i>'
-  }
-
-  localStorage.setItem('editor_focus_mode', _focusMode ? '1' : '0')
-}
-
-/* ─────────────────────────────────────────
-   Cerca / sostituisci
-   ───────────────────────────────────────── */
-function toggleSearchPanel(forceOpen = null) {
-  const panel = document.getElementById('ed-search-panel')
-  if (!panel) return
-
-  const shouldOpen = forceOpen === null ? !panel.classList.contains('open') : forceOpen
-  panel.classList.toggle('open', shouldOpen)
-
-  if (shouldOpen) {
-    const input = document.getElementById('search-find')
-    input?.focus()
-    input?.select()
-  }
-}
-
-function findInEditor(term, backwards = false) {
-  if (!term) return false
-  editor.commands.focus()
-  return window.find(term, false, backwards, true, false, false, false)
-}
-
-function replaceCurrentMatch() {
-  const term = document.getElementById('search-find')?.value || ''
-  const replacement = document.getElementById('search-replace')?.value || ''
-  if (!term) return
-
-  editor.commands.focus()
-  const selected = window.getSelection()?.toString() || ''
-
-  if (selected !== term) {
-    const found = findInEditor(term, false)
-    if (!found) {
-      setStatus('error', 'Testo non trovato')
-      return
-    }
-  }
-
-  editor.chain().focus().deleteSelection().insertContent(replacement).run()
-  updateWordCount()
-  updateSelectionInfo()
-  setStatus('saved', 'Sostituito')
-  _dirty = true
-}
-
-function replaceAllMatches() {
-  const term = document.getElementById('search-find')?.value || ''
-  const replacement = document.getElementById('search-replace')?.value || ''
-  if (!term) return
-
-  editor.commands.focus('start')
-
-  let replaced = 0
-  const maxReplacements = 500
-
-  while (replaced < maxReplacements) {
-    const found = window.find(term, false, false, true, false, false, false)
-    if (!found) break
-
-    const selected = window.getSelection()?.toString() || ''
-    if (!selected) break
-
-    editor.chain().focus().deleteSelection().insertContent(replacement).run()
-    replaced += 1
-  }
-
-  _dirty = replaced > 0 || _dirty
-  updateWordCount()
-  updateSelectionInfo()
-
-  if (replaced > 0) setStatus('saved', `${replaced} sostituzioni`)
-  else setStatus('error', 'Nessuna occorrenza')
-}
-
-/* ─────────────────────────────────────────
-   Import file locale e sostituzione contenuto
-   ───────────────────────────────────────── */
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-function textToHtml(text) {
-  const lines = text.replace(/\r\n/g, '\n').split('\n')
-  return lines.map(line => {
-    if (!line.trim()) return '<p></p>'
-    return `<p>${escapeHtml(line)}</p>`
-  }).join('')
-}
-
-function markdownToHtml(md) {
-  const lines = md.replace(/\r\n/g, '\n').split('\n')
-  let html = ''
-  for (const line of lines) {
-    if (!line.trim()) {
-      html += '<p></p>'
-      continue
-    }
-    if (line.startsWith('#### ')) html += `<h4>${escapeHtml(line.slice(5))}</h4>`
-    else if (line.startsWith('### ')) html += `<h3>${escapeHtml(line.slice(4))}</h3>`
-    else if (line.startsWith('## ')) html += `<h2>${escapeHtml(line.slice(3))}</h2>`
-    else if (line.startsWith('# ')) html += `<h1>${escapeHtml(line.slice(2))}</h1>`
-    else html += `<p>${escapeHtml(line)}</p>`
-  }
-  return html
-}
-
-async function importAndReplaceFile(file) {
-  if (!file) return
-
-  const ok = confirm(`Vuoi sostituire completamente il contenuto editor con "${file.name}"?\n\nL’operazione non salva automaticamente sul server.`)
-  if (!ok) return
-
-  setStatus('saving', 'Importazione file…')
-
-  try {
-    let html = ''
-    const lower = file.name.toLowerCase()
-
-    if (lower.endsWith('.docx')) {
-      const arrayBuffer = await file.arrayBuffer()
-      const result = await mammoth.convertToHtml({ arrayBuffer })
-      html = result.value || '<p></p>'
-    } else if (lower.endsWith('.html') || lower.endsWith('.htm')) {
-      html = await file.text()
-    } else if (lower.endsWith('.md')) {
-      const text = await file.text()
-      html = markdownToHtml(text)
-    } else if (lower.endsWith('.txt')) {
-      const text = await file.text()
-      html = textToHtml(text)
-    } else {
-      setStatus('error', 'Formato non supportato')
-      return
-    }
-
-    editor.commands.setContent(html, false)
-    _dirty = true
-    updateWordCount()
-    updateSelectionInfo()
-    setStatus('saved', 'Contenuto sostituito')
-  } catch (err) {
-    console.error(err)
-    setStatus('error', 'Errore importazione file')
-  }
-}
-
-/* ─────────────────────────────────────────
-   Bind toolbar
-   ───────────────────────────────────────── */
-tb('tb-bold',          () => editor.chain().focus().toggleBold().run())
-tb('tb-italic',        () => editor.chain().focus().toggleItalic().run())
-tb('tb-underline',     () => editor.chain().focus().toggleUnderline().run())
-tb('tb-strike',        () => editor.chain().focus().toggleStrike().run())
-tb('tb-align-left',    () => editor.chain().focus().setTextAlign('left').run())
-tb('tb-align-center',  () => editor.chain().focus().setTextAlign('center').run())
-tb('tb-align-right',   () => editor.chain().focus().setTextAlign('right').run())
-tb('tb-align-justify', () => editor.chain().focus().setTextAlign('justify').run())
-tb('tb-ul',            () => editor.chain().focus().toggleBulletList().run())
-tb('tb-ol',            () => editor.chain().focus().toggleOrderedList().run())
-tb('tb-quote',         () => editor.chain().focus().toggleBlockquote().run())
-tb('tb-code',          () => editor.chain().focus().toggleCode().run())
-tb('tb-hr',            () => editor.chain().focus().setHorizontalRule().run())
-tb('tb-undo',          () => editor.chain().focus().undo().run())
-tb('tb-redo',          () => editor.chain().focus().redo().run())
-tb('tb-table',         () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run())
-
-document.getElementById('tb-heading')?.addEventListener('change', e => {
-  const v = e.target.value
-  if (v === 'paragraph') editor.chain().focus().setParagraph().run()
-  else editor.chain().focus().toggleHeading({ level: parseInt(v.replace('heading', '')) }).run()
-})
-
-document.getElementById('tb-color')?.addEventListener('input', e => {
-  editor.chain().focus().setColor(e.target.value).run()
-})
-
-document.getElementById('tb-fontsize')?.addEventListener('change', e => {
-  applyFontSize(e.target.value)
-})
-
-document.getElementById('tb-zoom')?.addEventListener('change', e => {
-  applyZoom(e.target.value)
-})
-
-document.getElementById('btn-focus-mode')?.addEventListener('click', toggleFocusMode)
-
-/* Cerca / sostituisci */
-document.getElementById('btn-open-search')?.addEventListener('click', () => toggleSearchPanel())
-document.getElementById('btn-mobile-search')?.addEventListener('click', () => toggleSearchPanel(true))
-document.getElementById('btn-close-search')?.addEventListener('click', () => toggleSearchPanel(false))
-document.getElementById('btn-find-next')?.addEventListener('click', () => {
-  const term = document.getElementById('search-find')?.value || ''
-  const found = findInEditor(term, false)
-  if (!found) setStatus('error', 'Testo non trovato')
-})
-document.getElementById('btn-find-prev')?.addEventListener('click', () => {
-  const term = document.getElementById('search-find')?.value || ''
-  const found = findInEditor(term, true)
-  if (!found) setStatus('error', 'Testo non trovato')
-})
-document.getElementById('btn-replace-one')?.addEventListener('click', replaceCurrentMatch)
-document.getElementById('btn-replace-all')?.addEventListener('click', replaceAllMatches)
-document.getElementById('search-find')?.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    const found = findInEditor(e.target.value, false)
-    if (!found) setStatus('error', 'Testo non trovato')
-  }
-})
-
-/* Import file */
-const replaceFileInput = document.getElementById('replace-file-input')
-document.getElementById('btn-import-file')?.addEventListener('click', () => replaceFileInput?.click())
-document.getElementById('btn-mobile-import')?.addEventListener('click', () => replaceFileInput?.click())
-replaceFileInput?.addEventListener('change', async e => {
-  const file = e.target.files?.[0]
-  await importAndReplaceFile(file)
-  e.target.value = ''
-})
-
-/* Save / export */
-document.getElementById('btn-save')?.addEventListener('click', () => salva(false))
-document.getElementById('btn-save-mobile')?.addEventListener('click', () => salva(false))
-
-async function esportaPDF() {
-  setStatus('saving', 'Generazione PDF…')
-  try {
-    const html = editor.getHTML()
-    const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/pdf`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html }),
-    })
-    if (!res.ok) throw new Error(await res.text())
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = NOME.replace(/\.[^.]+$/, '') + '.pdf'
-    a.click()
-    URL.revokeObjectURL(url)
-    setStatus('saved', 'PDF pronto')
-    setTimeout(() => setStatus('', 'Pronto'), 3000)
-  } catch (e) {
-    setStatus('error', 'Errore PDF')
-    console.error(e)
-  }
-}
-
-async function esportaDocx() {
-  setStatus('saving', 'Generazione .docx…')
-  try {
-    const html = editor.getHTML()
-    const res = await fetch(`/api/editor/${ID_FASC}/${ID_DOC}/docx`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html }),
-    })
-    if (!res.ok) throw new Error(await res.text())
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = NOME.replace(/\.[^.]+$/, '') + '.docx'
-    a.click()
-    URL.revokeObjectURL(url)
-    setStatus('saved', '.docx pronto')
-    setTimeout(() => setStatus('', 'Pronto'), 3000)
-  } catch (e) {
-    setStatus('error', 'Errore .docx')
-    console.error(e)
-  }
-}
-
-document.getElementById('btn-pdf')?.addEventListener('click', esportaPDF)
-document.getElementById('btn-pdf-mobile')?.addEventListener('click', esportaPDF)
-document.getElementById('btn-docx')?.addEventListener('click', esportaDocx)
-
-window.addEventListener('beforeunload', e => {
-  if (_dirty) {
-    e.preventDefault()
-    e.returnValue = ''
-  }
-})
-
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-    e.preventDefault()
-    salva(false)
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-    e.preventDefault()
-    toggleSearchPanel(true)
-  }
-})
-
-const savedFontSize = localStorage.getItem('editor_font_size')
-if (savedFontSize) {
-  const sel = document.getElementById('tb-fontsize')
-  if (sel) sel.value = savedFontSize
-  applyFontSize(savedFontSize)
-}
-
-const savedZoom = localStorage.getItem('editor_zoom')
-if (savedZoom) {
-  const sel = document.getElementById('tb-zoom')
-  if (sel) sel.value = savedZoom
-  applyZoom(savedZoom)
-}
-
-const savedFocus = localStorage.getItem('editor_focus_mode')
-if (savedFocus === '1') {
-  toggleFocusMode()
-}
-
-updateWordCount()
-updateSelectionInfo()
-updateLastSaveLabel()
-</script>
 {% endblock %}

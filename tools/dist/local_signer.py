@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.22
+HACS Local Signer — v1.5.23
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.22"
+VERSION = "1.5.23"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4090,6 +4090,17 @@ def _arricchisci_fascicoli_con_profilo(
     return fascicoli
 
 
+def _fascicolo_richiede_arricchimento_profilo(fascicolo: dict) -> bool:
+    if not fascicolo:
+        return False
+    if str(fascicolo.get("sub_procedimento") or "").strip():
+        return True
+    for campo in ("ruolo", "stato", "oggetto", "sezione", "data_iscrizione", "data_udienza"):
+        if not str(fascicolo.get(campo) or "").strip():
+            return True
+    return False
+
+
 # ── HTTP Handler ────────────────────────────────────────────────────────────────
 
 class _ThreadingLocalSignerServer(ThreadingHTTPServer):
@@ -4880,7 +4891,7 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_parte=data.get("cf_parte", ""),
                     )
                 ]
-            if not (data.get("numero_rg") and data.get("anno_rg")):
+            if fascicoli and any(_fascicolo_richiede_arricchimento_profilo(fascicolo) for fascicolo in fascicoli):
                 fascicoli = _arricchisci_fascicoli_con_profilo(
                     fascicoli,
                     base_url=base_url,

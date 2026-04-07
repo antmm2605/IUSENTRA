@@ -4824,6 +4824,7 @@ def create_app(config: dict | None = None) -> Flask:
         portale = (portale or "").lower()
         if portale == "pst":
             payload = {
+                "id_fascicolo": getattr(fascicolo, "id_fascicolo", ""),
                 "numero_rg": fascicolo.numero_rg,
                 "anno_rg": fascicolo.anno_rg,
                 "ruolo": fascicolo.ruolo,
@@ -4838,6 +4839,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "note": fascicolo.note,
                 "codice_ufficio": fascicolo.codice_ufficio,
                 "nome_ufficio": fascicolo.nome_ufficio,
+                "sub_procedimento": getattr(fascicolo, "sub_procedimento", ""),
             }
             numero = fascicolo.numero_rg
             anno = fascicolo.anno_rg
@@ -4938,11 +4940,13 @@ def create_app(config: dict | None = None) -> Flask:
 
         return {
             "external_id": f"{uff_cod}:{numero}:{anno}:{procedimento}",
+            "id_fascicolo": str(payload.get("id_fascicolo") or "").strip(),
             "numero": str(numero or "").strip(),
             "anno": int(anno or 0),
             "ufficio_codice": str(uff_cod or "").strip(),
             "ufficio_nome": str(uff_nome or _resolve_ufficio_nome(str(uff_cod or ""))).strip(),
             "procedimento": str(procedimento or "").strip(),
+            "sub_procedimento": str(payload.get("sub_procedimento") or "").strip(),
             "sezione": str(payload.get("sezione") or "").strip(),
             "stato": str(stato or "").strip(),
             "oggetto": str(oggetto or "").strip(),
@@ -4956,13 +4960,69 @@ def create_app(config: dict | None = None) -> Flask:
         payload = dict((selection or {}).get("payload") or {})
         docs = _normalize_portale_documents(documenti or [])
         depositi = _group_portale_documents(docs)
+        def _clean(value: Any) -> str:
+            return str(value or "").strip()
+
+        def _first_value(*values: Any) -> str:
+            for value in values:
+                cleaned = _clean(value)
+                if cleaned:
+                    return cleaned
+            return ""
+
+        def _sortable_date(raw: Any) -> tuple[int, datetime]:
+            value = _clean(raw)
+            if not value:
+                return (0, datetime.min)
+            for fmt in (
+                "%Y-%m-%dT%H:%M:%S.%f",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%d %H:%M:%S.%f",
+                "%Y-%m-%d %H:%M:%S",
+                "%d/%m/%Y %H:%M:%S.%f",
+                "%d/%m/%Y %H:%M:%S",
+                "%d/%m/%Y %H:%M",
+                "%Y-%m-%d",
+                "%d/%m/%Y",
+            ):
+                try:
+                    return (1, datetime.strptime(value, fmt))
+                except ValueError:
+                    continue
+            return (0, datetime.min)
+
         provvedimenti_count = sum(
             1
             for doc in docs
             if any(token in (doc.get("tipo_atto") or doc.get("tipo") or "").upper() for token in ("SENTENZA", "ORDINANZA", "DECRETO", "PROVVEDIMENTO"))
         )
-        data_iscrizione = str(payload.get("data_iscrizione") or payload.get("data_deposito") or "").strip()
-        data_udienza = str(payload.get("data_udienza") or "").strip()
+        data_iscrizione = _first_value(payload.get("data_iscrizione"), payload.get("data_deposito"))
+        data_udienza = _first_value(payload.get("data_udienza"))
+        latest_doc_date = ""
+        doc_dates = [_clean(doc.get("data_deposito")) for doc in docs if _clean(doc.get("data_deposito"))]
+        if doc_dates:
+            latest_doc_date = max(doc_dates, key=_sortable_date)
+        procedimento = _first_value(
+            selection.get("procedimento"),
+            payload.get("ruolo"),
+            payload.get("tipo_registro"),
+            payload.get("tipo"),
+            payload.get("sub_procedimento"),
+        )
+        stato = _first_value(selection.get("stato"), payload.get("stato"), payload.get("fase"))
+        oggetto = _first_value(
+            selection.get("oggetto"),
+            payload.get("oggetto"),
+            payload.get("reato"),
+            payload.get("oggetto_controversia"),
+            payload.get("materia"),
+        )
+        ultima_attivita = _first_value(
+            selection.get("ultima_attivita"),
+            latest_doc_date,
+            data_udienza,
+            data_iscrizione,
+        )
         eventi = []
         if data_iscrizione:
             eventi.append({"label": "Iscrizione / deposito originario", "data": data_iscrizione, "tipo": "iscrizione"})
@@ -4970,17 +5030,19 @@ def create_app(config: dict | None = None) -> Flask:
             eventi.append({"label": "Udienza rilevata", "data": data_udienza, "tipo": "udienza"})
         return {
             "identity": {
+                "id_fascicolo": _first_value(selection.get("id_fascicolo"), payload.get("id_fascicolo")),
                 "numero": str(selection.get("numero") or "").strip(),
                 "anno": int(selection.get("anno") or 0),
                 "ufficio_nome": str(selection.get("ufficio_nome") or "").strip(),
                 "ufficio_codice": str(selection.get("ufficio_codice") or "").strip(),
-                "procedimento": str(selection.get("procedimento") or "").strip(),
-                "sezione": str(selection.get("sezione") or "").strip(),
-                "oggetto": str(selection.get("oggetto") or "").strip(),
-                "stato": str(selection.get("stato") or "").strip(),
+                "procedimento": procedimento,
+                "sub_procedimento": _first_value(selection.get("sub_procedimento"), payload.get("sub_procedimento")),
+                "sezione": _first_value(selection.get("sezione"), payload.get("sezione")),
+                "oggetto": oggetto,
+                "stato": stato,
                 "data_iscrizione": data_iscrizione,
                 "data_udienza": data_udienza,
-                "ultima_attivita": str(selection.get("ultima_attivita") or "").strip(),
+                "ultima_attivita": ultima_attivita,
             },
             "parti": list(selection.get("parti") or []),
             "controparti": list(selection.get("controparti") or []),

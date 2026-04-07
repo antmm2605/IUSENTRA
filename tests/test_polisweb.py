@@ -2628,6 +2628,91 @@ def test_api_portale_acquisizione_import_pst_blocca_import_se_i_file_non_arrivan
     assert len(fascicolo_reload.depositi_pct) == 0
 
 
+def test_api_portale_acquisizione_preview_pst_usa_fallback_payload_e_id_fascicolo(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/preview",
+            json={
+                "selection": {
+                    "external_id": "0580010:1025:2024:",
+                    "id_fascicolo": "FASC-1025",
+                    "numero": "1025",
+                    "anno": 2024,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "",
+                    "sub_procedimento": "CONTENZIOSO",
+                    "sezione": "",
+                    "stato": "",
+                    "oggetto": "",
+                    "parti": ["MONTAGNESE ELISABETTA"],
+                    "controparti": ["STILLITANO FRANCESCO"],
+                    "ultima_attivita": "",
+                    "payload": {
+                        "id_fascicolo": "FASC-1025",
+                        "numero_rg": "1025",
+                        "anno_rg": 2024,
+                        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                        "sub_procedimento": "CONTENZIOSO",
+                        "stato": "PROCEDIMENTO DEFINITO",
+                        "oggetto": "Vendita di cose immobili",
+                        "sezione": "CIVILE",
+                        "data_iscrizione": "2024-09-05",
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Tribunale di Palmi",
+                    },
+                },
+                "documenti": [
+                    {
+                        "id_documento": "DOC-1",
+                        "nome": "Documento_33584995.pdf",
+                        "tipo": "DOCUMENTO",
+                        "tipo_atto": "Documento",
+                        "data_deposito": "2026-01-09 09:39:19.000",
+                        "mittente": "cancelleria@tribunale.giustiziapec.it",
+                        "id_deposito": "BUSTA-PST-001",
+                        "id_cat": "CAT-001",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    identity = data["preview"]["identity"]
+    assert identity["id_fascicolo"] == "FASC-1025"
+    assert identity["procedimento"] == "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI"
+    assert identity["sub_procedimento"] == "CONTENZIOSO"
+    assert identity["stato"] == "PROCEDIMENTO DEFINITO"
+    assert identity["oggetto"] == "Vendita di cose immobili"
+    assert identity["data_iscrizione"] == "2024-09-05"
+    assert identity["ultima_attivita"] == "2026-01-09 09:39:19.000"
+
+
 def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -2840,3 +2925,5 @@ def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_pat
     assert len(fascicolo_reload.documenti) == 1
     assert fascicolo_reload.documenti[0].nome == "Decreto_29033905.pdf.p7m"
     assert fascicolo_reload.documenti[0].tipo == TipoDocumento.DECRETO
+    albero_root = Path(cfg["PST_IMPORT_DIR"]) / "_alberi_originali" / fascicolo.id
+    assert not albero_root.exists()

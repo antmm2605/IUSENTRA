@@ -2052,7 +2052,7 @@ def test_pst_prepare_authenticated_session_esegue_preflight_una_sola_volta():
     assert calls[0]["cookie_file"]
 
 
-def test_pst_ricerca_esatta_salta_arricchimento_profilo():
+def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
     module = _load_local_signer()
 
     originals = {
@@ -2135,4 +2135,4 @@ def test_pst_ricerca_esatta_salta_arricchimento_profilo():
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert len(captured["payload"]["fascicoli"]) == 1
-    assert calls["arricchisci"] == 0
+    assert calls["arricchisci"] == 1

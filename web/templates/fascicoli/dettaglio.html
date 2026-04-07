@@ -149,6 +149,9 @@
               {{ (portale_documenti_catalogo | selectattr('gia_importato') | list | length) }}/{{ ns_portale.documenti }} acquisiti
             </span>
           </div>
+          <div class="px-3 py-2 border-bottom small text-muted">
+            Questa vista resta sempre collegata al fascicolo quando importi documenti o provvedimenti dal portale. L'opzione "albero tecnico originale" salva invece una copia tecnica separata e non modifica questo catalogo.
+          </div>
           <div class="accordion accordion-flush" id="accDocumentiPortale">
             {% for dep_id, dep_docs_catalogo in (portale_documenti_per_deposito or {}).items() %}
             {% set dep_obj = fascicolo.depositi_pct | selectattr('id', 'equalto', dep_id) | first | default(None) %}

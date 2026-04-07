@@ -110,7 +110,7 @@
           <input class="form-check-input" type="checkbox" id="mantieni_albero_originale">
           <label class="form-check-label fw-semibold" for="mantieni_albero_originale">Conserva anche l'albero tecnico originale del portale</label>
         </div>
-        <div class="small text-muted mt-2">Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, HACS archivia in piu anche una copia tecnica dell'albero originale scaricato dal portale.</div>
+          <div class="small text-muted mt-2">Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, HACS archivia in piu anche una copia tecnica separata dell'albero originale scaricato dal portale.</div>
       </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
       <div id="awDownloadProgress" style="display:none" class="mb-3">
@@ -414,11 +414,13 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
     awRememberPstSession(data, tribunale);
     return (data.fascicoli || []).map(row => ({
       external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
+      id_fascicolo: row.id_fascicolo || '',
       numero: row.numero_rg || '',
       anno: Number(row.anno_rg || 0),
       ufficio_codice: row.codice_ufficio || tribunale || '',
       ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
       procedimento: row.ruolo || '',
+      sub_procedimento: row.sub_procedimento || '',
       sezione: row.sezione || '',
       stato: row.stato || '',
       oggetto: row.oggetto || '',
@@ -445,6 +447,8 @@ async function awPstPreviewViaLocalSigner(selection, retry = true) {
         codice_ufficio: selection.ufficio_codice,
         numero_rg: selection.numero,
         anno_rg: selection.anno,
+        id_fascicolo: selection.id_fascicolo || selection.payload?.id_fascicolo || '',
+        sub_procedimento: selection.sub_procedimento || selection.payload?.sub_procedimento || '',
         cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
         pst_session_id: AW_PST_SESSION?.session_id || '',
@@ -871,8 +875,8 @@ function awRenderPreview() {
   if (AW_STATE.previewTab === 'dati') {
     root.innerHTML = `
       <div class="row g-3">
-        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div></div></div>
-        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}</div></div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div>${identity.id_fascicolo ? `<div class="small text-muted mt-1">ID fascicolo PST: ${awEscape(identity.id_fascicolo)}</div>` : ''}</div></div>
+        <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Oggetto</div><div class="fw-semibold">${awEscape(identity.oggetto || 'Oggetto non disponibile')}</div></div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Timeline minima</div><div class="small">Iscrizione: ${awEscape(identity.data_iscrizione || 'n.d.')}<br>Ultima attivita: ${awEscape(identity.ultima_attivita || 'n.d.')}<br>Prossima udienza: ${awEscape(identity.data_udienza || 'n.d.')}</div></div></div>
       </div>`;
@@ -1161,7 +1165,7 @@ async function awStartImport() {
       </div>
       ${downloadSummary ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
       ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? '<div class="small mt-1 text-muted">Il catalogo ufficiale del portale resta collegato al fascicolo; l\'albero tecnico originale viene archiviato solo se attivato in questo step.</div>' : ''}
+      ${downloadSummary ? '<div class="small mt-1 text-muted">Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\'opzione dell\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.</div>' : ''}
       ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;

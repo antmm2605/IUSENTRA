@@ -4962,6 +4962,40 @@ def create_app(config: dict | None = None) -> Flask:
             },
         }
 
+    def _portale_doc_is_provvedimento(doc: dict[str, Any]) -> bool:
+        tipo = str((doc or {}).get("tipo_atto") or (doc or {}).get("tipo") or "").upper()
+        return any(token in tipo for token in ("SENTENZA", "ORDINANZA", "DECRETO", "PROVVEDIMENTO"))
+
+    def _preview_richiede_file_portale(options: dict[str, bool]) -> bool:
+        return bool(options.get("importa_documenti") or options.get("importa_provvedimenti"))
+
+    def _filter_portale_preview_by_options(preview: dict[str, Any], options: dict[str, bool]) -> dict[str, Any]:
+        view = dict(preview or {})
+        docs = _normalize_portale_documents(list(view.get("documenti") or []))
+        include_docs = bool(options.get("importa_documenti", True))
+        include_provvedimenti = bool(options.get("importa_provvedimenti", True))
+        if include_docs and include_provvedimenti:
+            filtered_docs = docs
+        else:
+            filtered_docs = [
+                doc
+                for doc in docs
+                if (
+                    _portale_doc_is_provvedimento(doc) and include_provvedimenti
+                ) or (
+                    not _portale_doc_is_provvedimento(doc) and include_docs
+                )
+            ]
+        filtered_depositi = _group_portale_documents(filtered_docs)
+        counts = dict(view.get("counts") or {})
+        counts["documenti"] = len(filtered_docs)
+        counts["provvedimenti"] = sum(1 for doc in filtered_docs if _portale_doc_is_provvedimento(doc))
+        counts["depositi"] = len(filtered_depositi)
+        view["documenti"] = filtered_docs
+        view["depositi"] = filtered_depositi
+        view["counts"] = counts
+        return view
+
     def _find_matching_fascicoli_locali(selection: dict[str, Any]) -> list[dict[str, Any]]:
         matches: list[dict[str, Any]] = []
         numero = str(selection.get("numero") or "").strip()
@@ -5301,17 +5335,30 @@ def create_app(config: dict | None = None) -> Flask:
         if analysis["blockers"]:
             raise ValueError("Sono presenti blocchi da risolvere prima dell'importazione.")
 
+        preview_for_files = _filter_portale_preview_by_options(preview, options)
+        importa_file_portale = _preview_richiede_file_portale(options)
         files = list(downloaded_files or [])
-        counts = preview.get("counts") or {}
+        counts = preview_for_files.get("counts") or {}
         documenti_attesi = int(counts.get("documenti", 0) or 0)
+        selected_doc_ids = {
+            str(doc.get("id_documento") or "").strip()
+            for doc in list(preview_for_files.get("documenti") or [])
+            if str(doc.get("id_documento") or "").strip()
+        }
         decoded_items: list[dict[str, Any]] = []
-        if options.get("importa_documenti") and portale == "pst" and documenti_attesi > 0:
+        if importa_file_portale and portale == "pst" and documenti_attesi > 0:
             if not files:
                 raise ValueError(
                     "Hai scelto di importare i documenti, ma il wizard non ha ricevuto alcun file scaricato dal portale. "
                     "Riprova l'acquisizione con download batch attivo."
                 )
             decoded_items = _decode_portale_downloaded_items(files)
+            if selected_doc_ids:
+                decoded_items = [
+                    item
+                    for item in decoded_items
+                    if str(item.get("id_documento_portale") or "").strip() in selected_doc_ids
+                ]
             if not decoded_items:
                 raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
 
@@ -5343,7 +5390,7 @@ def create_app(config: dict | None = None) -> Flask:
                     client = ClientPolisWebImportOnly()
                 else:
                     client = crea_client(demo=_polis_demo_mode())
-                documenti_pw = _documents_to_portale_dataclasses(portale, preview.get("documenti") or []) if options.get("importa_documenti") else None
+                documenti_pw = _documents_to_portale_dataclasses(portale, preview_for_files.get("documenti") or []) if importa_file_portale else None
                 risultato = client.importa_fascicolo(
                     fascicolo_pw=selection_dc,
                     gestione_fascicoli=gf,
@@ -5379,7 +5426,7 @@ def create_app(config: dict | None = None) -> Flask:
                     client = ClientPolisWebImportOnly()
                 else:
                     client = crea_client(demo=_polis_demo_mode())
-                documenti_pw = _documents_to_portale_dataclasses(portale, preview.get("documenti") or []) if options.get("importa_documenti") else None
+                documenti_pw = _documents_to_portale_dataclasses(portale, preview_for_files.get("documenti") or []) if importa_file_portale else None
                 risultato = client.sincronizza_fascicolo_esistente(
                     fascicolo_pw=selection_dc,
                     fascicolo_locale=target,
@@ -5428,14 +5475,20 @@ def create_app(config: dict | None = None) -> Flask:
             "staging_archived": "",
         }
         albero_originale_salvato = ""
-        if options.get("importa_documenti"):
-            _sync_portale_metadata_on_fascicolo(portale, id_fasc, preview, registrato_da=user_name)
+        if importa_file_portale:
+            _sync_portale_metadata_on_fascicolo(portale, id_fasc, preview_for_files, registrato_da=user_name)
             if files:
                 fasc_import = gf.get(id_fasc)
                 if not fasc_import:
                     raise ValueError("Fascicolo importato non trovato durante l'acquisizione documenti.")
                 if not decoded_items:
                     decoded_items = _decode_portale_downloaded_items(files)
+                    if selected_doc_ids:
+                        decoded_items = [
+                            item
+                            for item in decoded_items
+                            if str(item.get("id_documento_portale") or "").strip() in selected_doc_ids
+                        ]
                 if not decoded_items:
                     raise ValueError("Il lotto scaricato dal portale non contiene file importabili.")
                 if options.get("mantieni_albero_originale"):
@@ -5466,7 +5519,7 @@ def create_app(config: dict | None = None) -> Flask:
             selection=selection,
             import_log_id=log_id,
             has_conflicts=bool(analysis["warnings"]),
-            document_sync_enabled=options.get("importa_documenti", False),
+            document_sync_enabled=importa_file_portale,
             events_sync_enabled=options.get("importa_eventi", False) or options.get("importa_udienze", False),
             sync_status="IMPORTATO" if created else "SINCRONIZZATO",
         )

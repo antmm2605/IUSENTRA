@@ -374,6 +374,55 @@ def test_ping_windows_usa_il_filtro_cf_per_esporre_il_certificato_preferito():
     assert payload["certificato_windows_selezionato"]["emittente"] == "ArubaPEC EU Authentica Certificates CA G1"
 
 
+def test_ping_light_non_interroga_store_certificati_windows():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_trova = module._trova_libreria
+    orig_curl = module._curl_disponibile
+    orig_lista = module._windows_lista_certificati
+    captured = {}
+
+    class _FakeHandler:
+        path = "/ping?light=1"
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    def _should_not_run():
+        raise AssertionError("Lo store certificati non deve essere interrogato nel ping leggero")
+
+    try:
+        module.sys.platform = "win32"
+        module._trova_libreria = lambda: None
+        module._curl_disponibile = lambda: True
+        module._windows_lista_certificati = _should_not_run
+
+        module._Handler._ping(_FakeHandler())
+    finally:
+        module.sys.platform = orig_platform
+        module._trova_libreria = orig_trova
+        module._curl_disponibile = orig_curl
+        module._windows_lista_certificati = orig_lista
+
+    payload = captured["payload"]
+    assert payload["ok"] is True
+    assert payload["light"] is True
+    assert "nota_light" in payload
+    assert "certificati_windows" not in payload
+
+
+def test_pst_session_cookie_only_solo_se_sessione_autenticata():
+    module = _load_local_signer()
+
+    assert module._pst_session_can_use_cookie_only(None) is False
+    assert module._pst_session_can_use_cookie_only({"cookie_file": "x.cookies", "auth_ready": False}) is False
+    assert module._pst_session_can_use_cookie_only({"cookie_file": "", "auth_ready": True}) is False
+    assert module._pst_session_can_use_cookie_only({"cookie_file": "x.cookies", "auth_ready": True}) is True
+    assert module._pst_session_can_use_cookie_only({"cookie_file": "x.cookies", "auth_ready": True}, created_now=True) is False
+
+
 def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
     module = _load_local_signer()
 

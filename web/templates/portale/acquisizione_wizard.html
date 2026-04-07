@@ -145,6 +145,7 @@ const AW_STATE = {
   downloadedFiles:[],
   downloadSummary:null,
   downloadCacheKey:'',
+  downloadWarning:null,
 };
 let AW_PST_CERT = null;
 let AW_PST_SESSION = null;
@@ -307,14 +308,14 @@ function awCurrentQuery() {
     quick_filter: AW_STATE.quick || '',
   };
 }
-async function awRefreshStatus({ force = false } = {}) {
+async function awRefreshStatus({ force = false, probeSigner = false, light = true } = {}) {
   if (!force && AW_STATUS_REFRESH_PROMISE) return AW_STATUS_REFRESH_PROMISE;
   AW_STATUS_REFRESH_PROMISE = (async () => {
     const data = await awJson(AW_BOOT.statusUrl);
     if (data.ok) AW_STATE.status = data.status;
-    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
+    if (probeSigner && AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
       try {
-        const ping = await awLsPing();
+        const ping = await awLsPing({ light });
         AW_STATE.status.local_signer = ping;
         if (ping?.certificato_windows_selezionato) {
           awSavePstCert({
@@ -338,9 +339,10 @@ async function awRefreshStatus({ force = false } = {}) {
     AW_STATUS_REFRESH_PROMISE = null;
   }
 }
-async function awLsPing() {
+async function awLsPing({ light = false } = {}) {
   const prefs = AW_STATE.status.cert_preferences || {};
   const params = new URLSearchParams();
+  if (light) params.set('light', '1');
   if (prefs.auto) params.set('auto', '1');
   if (prefs.prefer_issuer) params.set('prefer_issuer', prefs.prefer_issuer);
   if (prefs.prefer_subject) params.set('prefer_subject', prefs.prefer_subject);
@@ -363,14 +365,10 @@ async function awLsSelectCert() {
 }
 async function awEnsurePstCertReady({ forceDialog = false } = {}) {
   if (!forceDialog && AW_PST_CERT?.thumbprint) return AW_PST_CERT;
-  if (!forceDialog) {
-    await awRefreshStatus();
-    if (AW_PST_CERT?.thumbprint) return AW_PST_CERT;
-  }
   if (AW_CERT_SELECT_PROMISE) return AW_CERT_SELECT_PROMISE;
   AW_CERT_SELECT_PROMISE = (async () => {
     const cert = await awLsSelectCert();
-    await awRefreshStatus({ force: true });
+    awRenderAccess();
     return cert;
   })();
   try {
@@ -381,7 +379,7 @@ async function awEnsurePstCertReady({ forceDialog = false } = {}) {
 }
 async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
+  if (!AW_PST_CERT) await awEnsurePstCertReady();
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
       method: 'POST',
@@ -423,7 +421,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
 }
 async function awPstPreviewViaLocalSigner(selection, retry = true) {
   const tribunale = String(selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
+  if (!AW_PST_CERT) await awEnsurePstCertReady();
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/documenti`, {
       method: 'POST',
@@ -459,9 +457,27 @@ function awPreviewDocuments() {
     mittente: doc.mittente || dep.mittente || '',
   })));
 }
+function awIsProvvedimentoDocumento(item) {
+  const tipo = String(item?.tipo_atto || item?.tipo || '').toUpperCase();
+  return ['SENTENZA', 'ORDINANZA', 'DECRETO', 'PROVVEDIMENTO'].some(token => tipo.includes(token));
+}
+function awShouldImportPortalFiles(options = awCurrentOptions()) {
+  return !!(options.importa_documenti || options.importa_provvedimenti);
+}
+function awSelectedPreviewDocuments(options = awCurrentOptions()) {
+  const docs = awPreviewDocuments();
+  const includeDocs = !!options.importa_documenti;
+  const includeProvvedimenti = !!options.importa_provvedimenti;
+  if (includeDocs && includeProvvedimenti) return docs;
+  return docs.filter(item => {
+    const isProvvedimento = awIsProvvedimentoDocumento(item);
+    if (isProvvedimento) return includeProvvedimenti;
+    return includeDocs;
+  });
+}
 function awCurrentDownloadKey() {
   const selectionKey = String(AW_STATE.selection?.external_id || '').trim();
-  const docs = awPreviewDocuments().map(item => ({
+  const docs = awSelectedPreviewDocuments().map(item => ({
     id_documento: item.id_documento || item.id_documento_portale || '',
     id_cat: item.id_cat || '',
     id_deposito: item.id_deposito || item.id_deposito_esterno || item.id_deposito_pct || '',
@@ -482,8 +498,8 @@ function awFormatDownloadFailures(failures) {
 }
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
-  const previewDocs = awPreviewDocuments();
+  if (!AW_PST_CERT) await awEnsurePstCertReady();
+  const previewDocs = awSelectedPreviewDocuments();
   if (!previewDocs.length) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
   const documents = previewDocs
     .map(item => ({
@@ -576,9 +592,7 @@ async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
   }
 }
 async function awPstDownloadConProgresso() {
-  const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale);
-  const previewDocs = awPreviewDocuments();
+  const previewDocs = awSelectedPreviewDocuments();
   const total = previewDocs.length;
   if (!total) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
   awShowDownloadProgress(0, total, `Lotto unico ${total} documenti`);
@@ -598,7 +612,7 @@ async function awPstDownloadConProgresso() {
 }
 async function awEnsurePstDownloadedFiles({ force = false } = {}) {
   const options = awCurrentOptions();
-  if (!options.importa_documenti) {
+  if (!awShouldImportPortalFiles(options)) {
     AW_STATE.downloadedFiles = [];
     AW_STATE.downloadSummary = null;
     AW_STATE.downloadCacheKey = '';
@@ -649,9 +663,9 @@ function awRenderAccess() {
     },
     {
       title: 'Certificato attivo',
-      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || status.backend_firma || 'Da verificare'),
-      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Selezione via Local Signer / Windows' : 'Certificato lato server / portale'),
-      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || status.backend_firma !== 'nessuno') ? 'success' : 'warning',
+      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (status.pkcs11_mode ? 'Verifica al primo accesso PST' : status.backend_firma || 'Da verificare')),
+      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Il certificato viene validato alla prima ricerca reale sul PST.' : 'Certificato lato server / portale'),
+      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || (!status.pkcs11_mode && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
     },
     {
       title: 'Stato connessione',
@@ -672,12 +686,32 @@ function awRenderAccess() {
       </div>
     </div>`).join('');
   const note = [];
-  if (status.pkcs11_mode) note.push('Ricerca PST reale tramite Local Signer e certificato Windows, senza usare la chiave privata nel server.');
+  if (status.pkcs11_mode) note.push('Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.');
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
   if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');
   if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
   document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l’accesso e continua con la ricerca del fascicolo.';
+}
+function awPickAutoSelectionIndex(results, query) {
+  const rows = Array.isArray(results) ? results : [];
+  if (!rows.length) return -1;
+  if (rows.length === 1) return 0;
+  const numero = String(query?.numero || '').trim();
+  const anno = String(query?.anno || '').trim();
+  const ufficio = String(query?.ufficio_codice || '').trim();
+  if (!numero || !anno) return -1;
+  const exactOffice = rows.findIndex(row =>
+    String(row.numero || '').trim() === numero &&
+    String(row.anno || '').trim() === anno &&
+    (!ufficio || String(row.ufficio_codice || '').trim() === ufficio)
+  );
+  if (exactOffice >= 0) return exactOffice;
+  const exactRg = rows.findIndex(row =>
+    String(row.numero || '').trim() === numero &&
+    String(row.anno || '').trim() === anno
+  );
+  return exactRg;
 }
 async function awRunSearch() {
   const meta = document.getElementById('awResultsMeta');
@@ -704,6 +738,13 @@ async function awRunSearch() {
     awRenderSelectionOptions();
     awRenderAnalysis();
     awRenderSidebar();
+    const autoIndex = awPickAutoSelectionIndex(results, query);
+    if (autoIndex >= 0) {
+      meta.textContent = results.length === 1
+        ? 'Fascicolo univoco trovato: anteprima aperta automaticamente.'
+        : 'Corrispondenza esatta trovata: anteprima aperta automaticamente.';
+      await awSelectResult(autoIndex, true);
+    }
   } catch (err) {
     AW_STATE.results = [];
     meta.textContent = 'Ricerca non riuscita';
@@ -1034,7 +1075,8 @@ async function awStartImport() {
   let downloadedFiles = Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [];
   let downloadSummary = null;
   try {
-    if (AW_BOOT.portale === 'pst' && options.importa_documenti && Number(AW_STATE.preview?.counts?.documenti || 0) > 0) {
+    const selectedDocsCount = awSelectedPreviewDocuments(options).length;
+    if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
       state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso — inserire il PIN una sola volta se richiesto...';
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
@@ -1195,10 +1237,7 @@ function awBindActions() {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
-        try { await awEnsurePstCertReady(); } catch (err) { alert(String(err)); return; }
-      }
-      await awRefreshStatus({ force: true });
+      await awRefreshStatus({ force: true, probeSigner: true, light: true });
     } finally {
       awSetAccessBusy(false);
     }
@@ -1207,9 +1246,6 @@ function awBindActions() {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
-        try { await awEnsurePstCertReady(); } catch (err) { alert(String(err)); return; }
-      }
       awGoStep(2);
     } finally {
       awSetAccessBusy(false);
@@ -1262,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   awInitOfficeAutocomplete();
   awSetAccessBusy(true);
   try {
-    await awRefreshStatus({ force: true });
+    await awRefreshStatus({ force: true, probeSigner: false, light: true });
   } finally {
     awBindActions();
     awSetAccessBusy(false);

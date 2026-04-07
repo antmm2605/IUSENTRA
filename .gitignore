@@ -15,6 +15,9 @@ tools/dist/*
 !tools/dist/InstallaLocalSigner-*.command
 !tools/dist/InstallaLocalSigner-*.run
 !tools/dist/LocalSigner-*.txt
+!tools/dist/local_signer.py
+!tools/dist/requirements_local_signer.txt
+!tools/dist/uffici_ministero.json
 
 # Dependencies
 .venv/

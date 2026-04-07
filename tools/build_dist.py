@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import struct
 import subprocess
 import sys
@@ -400,6 +401,19 @@ def build_windows_ps1(version: str) -> str:
     return header + INSTALL_PS1.read_text(encoding="utf-8")
 
 
+def write_windows_support_files(dist_dir: Path) -> list[Path]:
+    copied: list[Path] = []
+    for source, target_name in (
+        (LS_PY, "local_signer.py"),
+        (REQS_TXT, "requirements_local_signer.txt"),
+        (UFFICI_JSON, "uffici_ministero.json"),
+    ):
+        target = dist_dir / target_name
+        shutil.copyfile(source, target)
+        copied.append(target)
+    return copied
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -461,9 +475,11 @@ def main() -> None:
             win_path.write_bytes(exe_data)
             alias_path.write_bytes(exe_data)
         ps1_path.write_text(build_windows_ps1(version), encoding="utf-8")
+        support_files = write_windows_support_files(DIST_DIR)
         print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size // 1024}KB)")
         print(f"  [OK] Alias   : SetupLocalSigner.exe aggiornato")
         print(f"  [OK] Support : {ps1_path.name}")
+        print(f"  [OK] Files   : {', '.join(path.name for path in support_files)}")
 
     # Release note
     note_path = DIST_DIR / f"LocalSigner-{version}.txt"

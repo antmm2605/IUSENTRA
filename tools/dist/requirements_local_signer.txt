@@ -1,0 +1,6 @@
+# HACS Local Signer — Dipendenze
+# Installa con:  pip install -r requirements_local_signer.txt
+
+python-pkcs11>=0.7.0
+asn1crypto>=1.5.0
+cryptography>=41.0.0

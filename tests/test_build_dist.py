@@ -42,6 +42,32 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "Find-PythonCommand" in contenuto
 
 
+def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):
+    ls_py = tmp_path / "local_signer.py"
+    reqs = tmp_path / "requirements_local_signer.txt"
+    uffici = tmp_path / "uffici_ministero.json"
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    ls_py.write_text("VERSION = '1.5.16'\n", encoding="utf-8")
+    reqs.write_text("cryptography\n", encoding="utf-8")
+    uffici.write_text('{"uffici":[]}', encoding="utf-8")
+
+    monkeypatch.setattr(build_dist, "LS_PY", ls_py)
+    monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
+    monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
+
+    copied = build_dist.write_windows_support_files(dist)
+
+    assert [path.name for path in copied] == [
+        "local_signer.py",
+        "requirements_local_signer.txt",
+        "uffici_ministero.json",
+    ]
+    assert (dist / "local_signer.py").read_text(encoding="utf-8") == "VERSION = '1.5.16'\n"
+    assert (dist / "requirements_local_signer.txt").read_text(encoding="utf-8") == "cryptography\n"
+    assert (dist / "uffici_ministero.json").read_text(encoding="utf-8") == '{"uffici":[]}'
+
+
 def test_installer_powershell_non_ha_errori_di_parse():
     if os.name != "nt":
         return

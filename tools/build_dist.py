@@ -13,7 +13,8 @@ Uso:
   python3 tools/build_dist.py --base-url https://mio-server.example.com
 
 L'EXE Windows e' un IExpress self-extracting offline self-contained:
-lo stub PE (iexpress_stub.bin) + un CAB MSZIP con tutti i file embedded.
+lo stub PE (iexpress_stub.bin) + un CAB TYPE_NONE (dati raw) con struttura
+IExpress-compatibile (flags=0x0004, reserved area 6144 byte).
 Non richiede internet, non richiede Execution Policy, funziona con doppio clic.
 """
 
@@ -24,7 +25,6 @@ import re
 import struct
 import sys
 import textwrap
-import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -42,6 +42,9 @@ BASE_URL_DEFAULT  = "https://studio-legale-pct-production.up.railway.app"
 DOWNLOAD_PAGE     = f"{BASE_URL_DEFAULT}/impostazioni?tab=firma"
 
 CAB_BLOCK_SIZE = 32768  # dimensione massima blocco CFDATA (non compresso)
+
+# Dimensione area riservata IExpress nel CFHEADER (replica esatta formato originale)
+IEXPRESS_RESERVED_SIZE = 6144
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -62,19 +65,19 @@ def _dos_datetime() -> tuple[int, int]:
     return dos_date, dos_time
 
 
-def _mszip_block(data: bytes) -> bytes:
-    """Comprime un blocco in formato MSZIP: b'CK' + deflate raw."""
-    # zlib.compress produce: 2-byte header + deflate + 4-byte Adler32
-    # Vogliamo solo il deflate (strip header e checksum)
-    deflate = zlib.compress(data, 6)[2:-4]
-    return b"CK" + deflate
-
-
 def _build_cab(files: list[tuple[str, bytes]]) -> bytes:
     """
-    Crea un CAB Microsoft (MSZIP, compress_type=1) con i file specificati.
-    Formato: CFHEADER + CFFOLDER + CFFILE[] + CFDATA[]
-    Checksum = 0 (come IExpress originale).
+    Crea un CAB Microsoft compatibile IExpress (TYPE_NONE, nessuna compressione).
+
+    Replica la struttura esatta dei CAB generati da IExpress originale:
+      - flags=0x0004 (reserved fields present)
+      - cbCFHeader=6144, cbCFFolder=0, cbCFData=0
+      - Area riservata: 6144 byte di zeri (come wextract.exe originale)
+      - typeCompress=0x0000 (TYPE_NONE — massima compatibilità con wextract.exe)
+      - Checksum=0 per tutti i CFDATA block
+
+    Senza questa struttura (flags=0x0004 + area riservata) wextract.exe rifiuta
+    il CAB con "Impossibile eseguire questa app nel tuo PC".
 
     files: lista di (filename_ascii, content_bytes)
     """
@@ -97,32 +100,44 @@ def _build_cab(files: list[tuple[str, bytes]]) -> bytes:
         ) + fname_b
         offset_in_folder += len(content)
 
-    # ── Offsets struttura ─────────────────────────────────────────────────────
-    # CFHEADER = 36, CFFOLDER = 8, poi i CFFILE
-    first_file_offset = 36 + 8            # = 44
-    first_data_offset = 36 + 8 + len(cffiles_bin)
+    # ── Struttura IExpress-compatibile ───────────────────────────────────────
+    # CFHEADER standard (36 byte)
+    # + reserved size fields (4 byte): cbCFHeader=6144, cbCFFolder=0, cbCFData=0
+    # + reserved cabinet data (6144 byte di zeri)
+    # + CFFOLDER (8 byte)
+    # + CFFILE[] records
+    # + CFDATA[] blocks
 
-    # ── CFDATA blocks ─────────────────────────────────────────────────────────
+    CF_HEADER_SIZE  = 36
+    CF_RESERVESIZES = 4   # cbCFHeader(2) + cbCFFolder(1) + cbCFData(1)
+    CF_RESERVED     = IEXPRESS_RESERVED_SIZE  # 6144 byte di zeri
+    CF_FOLDER_SIZE  = 8
+
+    first_file_offset = (CF_HEADER_SIZE + CF_RESERVESIZES + CF_RESERVED
+                         + CF_FOLDER_SIZE)
+    first_data_offset = first_file_offset + len(cffiles_bin)
+
+    # ── CFDATA blocks (TYPE_NONE: dati raw senza compressione) ───────────────
     all_data = b"".join(content for _, content in files)
     cfdata_bin = b""
     num_blocks = 0
     offset = 0
     while offset < len(all_data) or (not all_data and num_blocks == 0):
         block = all_data[offset : offset + CAB_BLOCK_SIZE]
-        compressed = _mszip_block(block)
         cfdata_bin += struct.pack(
             "<IHH",
-            0,                    # checksum = 0
-            len(compressed),      # compressed_size
-            len(block),           # uncompressed_size
-        ) + compressed
+            0,           # checksum = 0
+            len(block),  # cbData == cbUncomp per TYPE_NONE
+            len(block),  # cbUncomp
+        ) + block
         num_blocks += 1
         offset += len(block)
         if not all_data:
             break
 
     # ── Dimensione totale CAB ─────────────────────────────────────────────────
-    cab_size = 36 + 8 + len(cffiles_bin) + len(cfdata_bin)
+    cab_size = (CF_HEADER_SIZE + CF_RESERVESIZES + CF_RESERVED
+                + CF_FOLDER_SIZE + len(cffiles_bin) + len(cfdata_bin))
 
     # ── CFHEADER (36 byte) ────────────────────────────────────────────────────
     header = struct.pack(
@@ -131,26 +146,39 @@ def _build_cab(files: list[tuple[str, bytes]]) -> bytes:
         0,                  # reserved1
         cab_size,           # cabinet_size
         0,                  # reserved2
-        first_file_offset,  # first_file_offset (offset al primo CFFILE)
+        first_file_offset,  # offset al primo CFFILE dall'inizio del CAB
         0,                  # reserved3
         3,                  # minor_version
         1,                  # major_version
         1,                  # num_folders
         num_files,          # num_files
-        0,                  # flags
+        0x0004,             # flags: _A_RESERVE_PRESENT (richiesto da wextract.exe)
         0,                  # set_id
         0,                  # cabinet_index
+    )
+
+    # ── Reserved size fields (4 byte) ────────────────────────────────────────
+    reserve_sizes = struct.pack(
+        "<HBB",
+        IEXPRESS_RESERVED_SIZE,  # cbCFHeader = 6144
+        0,                        # cbCFFolder = 0
+        0,                        # cbCFData = 0
     )
 
     # ── CFFOLDER (8 byte) ─────────────────────────────────────────────────────
     folder = struct.pack(
         "<IHH",
-        first_data_offset,  # first_data_offset (offset al primo CFDATA)
-        num_blocks,         # num_data_blocks
-        1,                  # compress_type = MSZIP
+        first_data_offset,  # coffCabStart (offset al primo CFDATA dall'inizio CAB)
+        num_blocks,         # cCFData
+        0x0000,             # typeCompress = TYPE_NONE (massima compatibilità)
     )
 
-    return header + folder + cffiles_bin + cfdata_bin
+    return (header
+            + reserve_sizes
+            + bytes(IEXPRESS_RESERVED_SIZE)   # 6144 byte di zeri
+            + folder
+            + cffiles_bin
+            + cfdata_bin)
 
 
 # ── Generatori ─────────────────────────────────────────────────────────────────

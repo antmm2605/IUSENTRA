@@ -1642,3 +1642,142 @@ def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_cer
     assert esito["documenti_scaricati"] == 1
     assert calls and calls[0]["prefer_cookie_only"] is True
     assert calls[0]["cookie_file"] == "C:\\temp\\pst.cookies"
+
+
+def test_pst_prepare_authenticated_session_esegue_preflight_una_sola_volta():
+    module = _load_local_signer()
+
+    orig_preflight = module._pst_preflight_auth_curl
+    calls = []
+    try:
+        def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None, cookie_file=None):
+            calls.append(
+                {
+                    "url": url,
+                    "cert_thumbprint": cert_thumbprint,
+                    "cookie_file": cookie_file,
+                }
+            )
+            return {
+                "ok": True,
+                "http_code": 405,
+                "content_type": "text/html",
+            }
+
+        module._pst_preflight_auth_curl = _fake_preflight
+        session_entry = module._create_pst_session(
+            cert_thumbprint="AABBCC11",
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+        )
+
+        refreshed, prefer_cookie_only = module._pst_prepare_authenticated_session(
+            session_entry,
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+            cert_thumbprint="AABBCC11",
+        )
+        refreshed_again, prefer_cookie_only_again = module._pst_prepare_authenticated_session(
+            refreshed,
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module._pst_preflight_auth_curl = orig_preflight
+
+    assert prefer_cookie_only is True
+    assert prefer_cookie_only_again is True
+    assert refreshed_again["auth_ready"] is True
+    assert len(calls) == 1
+    assert calls[0]["cert_thumbprint"] == "AABBCC11"
+    assert calls[0]["cookie_file"]
+
+
+def test_pst_ricerca_esatta_salta_arricchimento_profilo():
+    module = _load_local_signer()
+
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_risolvi_base_pst_runtime": module._risolvi_base_pst_runtime,
+        "_pst_url_ricerca": module._pst_url_ricerca,
+        "_risolvi_codice_ufficio_pst": module._risolvi_codice_ufficio_pst,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_cf_avvocato_pst": module._cf_avvocato_pst,
+        "_pst_namespace_qbuilder": module._pst_namespace_qbuilder,
+        "_ensure_pst_session_entry": module._ensure_pst_session_entry,
+        "_pst_prepare_authenticated_session": module._pst_prepare_authenticated_session,
+        "_soap_ricerca_fascicoli_body": module._soap_ricerca_fascicoli_body,
+        "_soap_call_pst_session": module._soap_call_pst_session,
+        "_estrai_fault_soap": module._estrai_fault_soap,
+        "_parse_fascicoli_xml": module._parse_fascicoli_xml,
+        "_arricchisci_fascicoli_con_profilo": module._arricchisci_fascicoli_con_profilo,
+        "_update_pst_session": module._update_pst_session,
+    }
+    captured = {}
+    calls = {"arricchisci": 0}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0580010",
+                "numero_rg": "1025",
+                "anno_rg": "2024",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "pst_session_id": "SID-EXACT",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._risolvi_base_pst_runtime = lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID"
+        module._pst_url_ricerca = lambda base_url: base_url
+        module._risolvi_codice_ufficio_pst = lambda tribunale: "0151460094"
+        module._require_certificato_pst = lambda thumbprint: "AABBCC11"
+        module._cf_avvocato_pst = lambda cf, thumbprint: "RSSMRA80A01H501Z"
+        module._pst_namespace_qbuilder = lambda base_url: True
+        module._ensure_pst_session_entry = lambda *args, **kwargs: (
+            {
+                "session_id": "SID-EXACT",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": True,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            False,
+        )
+        module._pst_prepare_authenticated_session = lambda session_entry, **kwargs: (session_entry, True)
+        module._soap_ricerca_fascicoli_body = lambda **kwargs: "<xml/>"
+        module._soap_call_pst_session = lambda **kwargs: "<Envelope/>"
+        module._estrai_fault_soap = lambda xml: None
+        module._parse_fascicoli_xml = lambda xml: [
+            {
+                "numero_rg": "1025",
+                "anno_rg": 2024,
+                "codice_ufficio": "0580010",
+                "nome_ufficio": "Tribunale di Milano",
+            }
+        ]
+
+        def _fake_arricchisci(*args, **kwargs):
+            calls["arricchisci"] += 1
+            return args[0]
+
+        module._arricchisci_fascicoli_con_profilo = _fake_arricchisci
+        module._update_pst_session = lambda *args, **kwargs: None
+
+        module._Handler._pst_ricerca(_FakeHandler())
+    finally:
+        for name, value in originals.items():
+            setattr(module, name, value)
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert len(captured["payload"]["fascicoli"]) == 1
+    assert calls["arricchisci"] == 0

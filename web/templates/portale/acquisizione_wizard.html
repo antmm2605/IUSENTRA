@@ -151,6 +151,7 @@ let AW_PST_CERT = null;
 let AW_PST_SESSION = null;
 let AW_STATUS_REFRESH_PROMISE = null;
 let AW_CERT_SELECT_PROMISE = null;
+let AW_PST_SESSION_PROMISE = null;
 let AW_ACCESS_BUSY = false;
 const AW_STEPS = [
   {id:1,t:'Accesso',s:'Sorgente e connessione'},
@@ -220,6 +221,7 @@ function awSavePstSession(session) {
   } catch (_) {}
 }
 function awClearPstSession() {
+  AW_PST_SESSION_PROMISE = null;
   awSavePstSession(null);
 }
 function awSetAccessBusy(busy) {
@@ -268,18 +270,26 @@ async function awEnsurePstPortalSession(tribunale, { force = false } = {}) {
   if (!ufficio) throw new Error('Seleziona prima l’ufficio giudiziario del fascicolo.');
   if (!AW_PST_CERT) await awEnsurePstCertReady();
   if (!force && awHasActivePstSession(ufficio)) return AW_PST_SESSION;
-  const data = await awJson(`${AW_PST_LS_BASE}/pst/preflight-auth`, {
-    method: 'POST',
-    body: JSON.stringify({
-      tribunale: ufficio,
-      cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
-      cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-      pst_session_id: !force && AW_PST_SESSION?.session_id ? AW_PST_SESSION.session_id : '',
-      force_auth: !!force,
-    }),
-  });
-  if (!data.ok) throw new Error(data.errore || 'Apertura sessione PST non riuscita');
-  return awRememberPstSession(data, ufficio) || AW_PST_SESSION;
+  if (!force && AW_PST_SESSION_PROMISE) return AW_PST_SESSION_PROMISE;
+  AW_PST_SESSION_PROMISE = (async () => {
+    const data = await awJson(`${AW_PST_LS_BASE}/pst/preflight-auth`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tribunale: ufficio,
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+        pst_session_id: !force && AW_PST_SESSION?.session_id ? AW_PST_SESSION.session_id : '',
+        force_auth: !!force,
+      }),
+    });
+    if (!data.ok) throw new Error(data.errore || 'Apertura sessione PST non riuscita');
+    return awRememberPstSession(data, ufficio) || AW_PST_SESSION;
+  })();
+  try {
+    return await AW_PST_SESSION_PROMISE;
+  } finally {
+    AW_PST_SESSION_PROMISE = null;
+  }
 }
 function awGoStep(step) {
   AW_STATE.step = step;
@@ -379,7 +389,7 @@ async function awEnsurePstCertReady({ forceDialog = false } = {}) {
 }
 async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
-  if (!AW_PST_CERT) await awEnsurePstCertReady();
+  await awEnsurePstPortalSession(tribunale);
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
       method: 'POST',
@@ -421,7 +431,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
 }
 async function awPstPreviewViaLocalSigner(selection, retry = true) {
   const tribunale = String(selection?.ufficio_codice || '').trim();
-  if (!AW_PST_CERT) await awEnsurePstCertReady();
+  await awEnsurePstPortalSession(tribunale);
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/documenti`, {
       method: 'POST',
@@ -498,7 +508,7 @@ function awFormatDownloadFailures(failures) {
 }
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
-  if (!AW_PST_CERT) await awEnsurePstCertReady();
+  await awEnsurePstPortalSession(tribunale);
   const previewDocs = awSelectedPreviewDocuments();
   if (!previewDocs.length) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
   const documents = previewDocs
@@ -568,6 +578,7 @@ function awHideDownloadProgress() {
   if (wrapper) wrapper.style.display = 'none';
 }
 async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
+  await awEnsurePstPortalSession(tribunale);
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/download-documenti-batch`, {
       method: 'POST',
@@ -1233,11 +1244,11 @@ function awInitOfficeAutocomplete() {
   });
 }
 function awBindActions() {
-  document.getElementById('awTest').addEventListener('click', async () => {
+document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      await awRefreshStatus({ force: true, probeSigner: true, light: true });
+      await awRefreshStatus({ force: true, probeSigner: true, light: false });
     } finally {
       awSetAccessBusy(false);
     }
@@ -1246,6 +1257,9 @@ function awBindActions() {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
+      if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
+        await awRefreshStatus({ force: true, probeSigner: true, light: false });
+      }
       awGoStep(2);
     } finally {
       awSetAccessBusy(false);

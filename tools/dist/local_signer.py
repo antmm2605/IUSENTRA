@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.16"
+VERSION = "1.5.17"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1275,6 +1275,39 @@ def _pst_session_can_use_cookie_only(session_entry: Optional[dict], *, created_n
     if not cookie_file:
         return False
     return bool(session_entry.get("auth_ready"))
+
+
+def _pst_prepare_authenticated_session(
+    session_entry: Optional[dict],
+    *,
+    tribunale: str,
+    base_url: str,
+    cf_avvocato: str,
+    cert_thumbprint: Optional[str],
+    force: bool = False,
+) -> tuple[Optional[dict], bool]:
+    if not session_entry:
+        return None, False
+    if not force and _pst_session_can_use_cookie_only(session_entry):
+        return session_entry, True
+
+    cookie_file = str(session_entry.get("cookie_file") or "").strip()
+    esito = _pst_preflight_auth_curl(
+        url=_pst_url_ricerca(base_url),
+        cert_thumbprint=cert_thumbprint,
+        cookie_file=cookie_file,
+    )
+    _update_pst_session(
+        session_entry["session_id"],
+        tribunale=tribunale,
+        base_url=base_url,
+        cf_avvocato=cf_avvocato,
+        last_http_code=esito.get("http_code"),
+        last_content_type=esito.get("content_type"),
+        auth_ready=True,
+    )
+    refreshed = _resolve_pst_session_entry(session_entry["session_id"]) or session_entry
+    return refreshed, True
 
 
 def _create_pin_session(lib_path: str, pin: str, slot_id: Optional[int] = None) -> tuple[str, object]:
@@ -4427,8 +4460,15 @@ class _Handler(BaseHTTPRequestHandler):
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
+            session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                session_entry,
+                tribunale=tribunale,
+                base_url=base_url,
+                cf_avvocato=cf_avvocato,
+                cert_thumbprint=cert_thumbprint,
+                force=session_created,
+            )
             cookie_file = str((session_entry or {}).get("cookie_file") or "")
-            prefer_cookie_only = _pst_session_can_use_cookie_only(session_entry, created_now=session_created)
             soap = _soap_ricerca_fascicoli_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -4460,14 +4500,15 @@ class _Handler(BaseHTTPRequestHandler):
                         cf_parte=data.get("cf_parte", ""),
                     )
                 ]
-            fascicoli = _arricchisci_fascicoli_con_profilo(
-                fascicoli,
-                base_url=base_url,
-                cert_thumbprint=cert_thumbprint,
-                cf_avvocato=cf_avvocato,
-                cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
-            )
+            if not (data.get("numero_rg") and data.get("anno_rg")):
+                fascicoli = _arricchisci_fascicoli_con_profilo(
+                    fascicoli,
+                    base_url=base_url,
+                    cert_thumbprint=cert_thumbprint,
+                    cf_avvocato=cf_avvocato,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],
@@ -4540,8 +4581,15 @@ class _Handler(BaseHTTPRequestHandler):
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
+            session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                session_entry,
+                tribunale=codice,
+                base_url=base_url,
+                cf_avvocato=cf_avvocato,
+                cert_thumbprint=cert_thumbprint,
+                force=session_created,
+            )
             cookie_file = str((session_entry or {}).get("cookie_file") or "")
-            prefer_cookie_only = _pst_session_can_use_cookie_only(session_entry, created_now=session_created)
             soap = _soap_documenti_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -4638,8 +4686,15 @@ class _Handler(BaseHTTPRequestHandler):
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
+            session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
+                session_entry,
+                tribunale=tribunale,
+                base_url=base_url,
+                cf_avvocato=cf_avvocato,
+                cert_thumbprint=cert_thumbprint,
+                force=session_created,
+            )
             cookie_file = str((session_entry or {}).get("cookie_file") or "")
-            prefer_cookie_only = _pst_session_can_use_cookie_only(session_entry, created_now=session_created)
             file_payload = _pst_download_documento_payload(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -4728,14 +4783,21 @@ class _Handler(BaseHTTPRequestHandler):
             )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
-            do_preflight = bool(data.get("preflight_auth", False)) and not session_created
+            session_entry, _prefer_cookie_only = _pst_prepare_authenticated_session(
+                session_entry,
+                tribunale=tribunale,
+                base_url=base_url,
+                cf_avvocato=cf_avvocato,
+                cert_thumbprint=cert_thumbprint,
+                force=session_created or bool(data.get("preflight_auth", False)),
+            )
             esito = _pst_download_documenti_batch_payloads(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
                 cert_thumbprint=cert_thumbprint,
                 cf_avvocato=cf_avvocato,
                 documenti=documenti,
-                do_preflight=do_preflight,
+                do_preflight=False,
                 cookie_file=str((session_entry or {}).get("cookie_file") or ""),
             )
             if session_entry:

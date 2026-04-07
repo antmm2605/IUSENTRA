@@ -1316,6 +1316,7 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
     module = _load_local_signer()
 
     orig_preflight = module._pst_preflight_auth_curl
+    orig_batch = module._soap_call_curl_batch_raw
     orig_download = module._pst_download_documento_payload
     calls = {"preflight": 0, "download": []}
 
@@ -1323,6 +1324,9 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
         def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None, cookie_file=None):
             calls["preflight"] += 1
             return {"ok": True, "nota": "warmup ok"}
+
+        def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")] * len(requests)
 
         def _fake_download(**kwargs):
             calls["download"].append(kwargs["id_documento"])
@@ -1338,6 +1342,7 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
             }
 
         module._pst_preflight_auth_curl = _fake_preflight
+        module._soap_call_curl_batch_raw = _fake_batch
         module._pst_download_documento_payload = _fake_download
 
         esito = module._pst_download_documenti_batch_payloads(
@@ -1350,9 +1355,10 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
                 {"id_documento": "33393309", "nome_documento": "Verbale.pdf"},
             ],
             do_preflight=True,
-        )
+            )
     finally:
         module._pst_preflight_auth_curl = orig_preflight
+        module._soap_call_curl_batch_raw = orig_batch
         module._pst_download_documento_payload = orig_download
 
     assert esito["ok"] is True
@@ -1360,6 +1366,58 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
     assert esito["failures"] == []
     assert calls["preflight"] == 1
     assert calls["download"] == ["33581101", "33393309"]
+
+
+def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo():
+    module = _load_local_signer()
+
+    orig_batch = module._soap_call_curl_batch_raw
+    orig_download = module._pst_download_documento_payload
+    calls = {"batch": 0, "download": []}
+
+    try:
+        def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+            calls["batch"] += 1
+            # Il profilo batch risponde ma non espone idCat: il lotto deve
+            # ricadere sul recupero puntuale del singolo documento.
+            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")]
+
+        def _fake_download(**kwargs):
+            calls["download"].append(kwargs)
+            return {
+                "nome": kwargs["nome_documento"] or f"documento_{kwargs['id_documento']}.pdf",
+                "contenuto_b64": "ZmFrZQ==",
+                "content_type": "application/pkcs7-mime",
+                "id_documento_portale": kwargs["id_documento"],
+                "id_cat": "CAT-RECUPERATO",
+                "data_documento": kwargs.get("data_documento") or "2025-09-30",
+                "nome_file_originale": kwargs["nome_documento"] or "",
+                "servizio_portale": "DocumentiFascicolo",
+            }
+
+        module._soap_call_curl_batch_raw = _fake_batch
+        module._pst_download_documento_payload = _fake_download
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[{"id_documento": "33581101", "nome_documento": "Sentenza.pdf"}],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+        )
+    finally:
+        module._soap_call_curl_batch_raw = orig_batch
+        module._pst_download_documento_payload = orig_download
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 1
+    assert esito["failures"] == []
+    assert calls["batch"] == 1
+    assert len(calls["download"]) == 1
+    assert calls["download"][0]["prefer_cookie_only"] is True
+    assert calls["download"][0]["cookie_file"] == "C:\\temp\\pst.cookies"
 
 
 def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
@@ -1393,9 +1451,13 @@ def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
 def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_certificato():
     module = _load_local_signer()
 
+    orig_batch = module._soap_call_curl_batch_raw
     orig_download = module._pst_download_documento_payload
     calls = []
     try:
+        def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")] * len(requests)
+
         def _fake_download(**kwargs):
             calls.append(kwargs)
             return {
@@ -1409,6 +1471,7 @@ def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_cer
                 "servizio_portale": "DocumentiFascicolo",
             }
 
+        module._soap_call_curl_batch_raw = _fake_batch
         module._pst_download_documento_payload = _fake_download
 
         esito = module._pst_download_documenti_batch_payloads(
@@ -1421,6 +1484,7 @@ def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_cer
             cookie_file="C:\\temp\\pst.cookies",
         )
     finally:
+        module._soap_call_curl_batch_raw = orig_batch
         module._pst_download_documento_payload = orig_download
 
     assert esito["ok"] is True

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.12
+HACS Local Signer — v1.5.13
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.12"
+VERSION = "1.5.13"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3380,10 +3380,28 @@ def _pst_download_documenti_batch_payloads(
                 elif servizio == "JPW_SICID":
                     id_cat = str(item.get("id_cat") or "").strip()
                     if not id_cat:
-                        raise RuntimeError(
-                            "id_cat mancante: il PST non ha restituito l'identificativo "
-                            "idCat necessario al download del documento."
+                        # Fallback coerente con il download singolo:
+                        # se il batch non ha potuto recuperare idCat dal profilo,
+                        # tenta il recupero puntuale sullo stesso cookie/sessione
+                        # prima di segnalare il fallimento al wizard.
+                        files.append(
+                            _pst_download_documento_payload(
+                                base_url=base_url,
+                                codice_ufficio=codice_ufficio,
+                                id_documento=id_doc,
+                                nome_documento=nome_doc,
+                                cert_thumbprint=cert_thumbprint,
+                                cf_avvocato=cf_avvocato,
+                                id_cat=id_cat,
+                                data_documento=str(
+                                    item.get("data_deposito") or item.get("data_documento") or ""
+                                ).strip(),
+                                original=True,
+                                cookie_file=cookie_file,
+                                prefer_cookie_only=prefer_cookie_only,
+                            )
                         )
+                        continue
                     soap_body = _soap_bea_sicid_body(
                         "downloadDocumento",
                         [("idUtenteCorrente", cf_avvocato), ("idCat", id_cat), ("original", "true")],
@@ -3416,7 +3434,7 @@ def _pst_download_documenti_batch_payloads(
             return {
                 "ok": True, "files": files, "failures": failures,
                 "preflight": preflight,
-                "documenti_richiesti": len(documenti), "documenti_scaricati": 0,
+                "documenti_richiesti": len(documenti), "documenti_scaricati": len(files),
             }
 
         # ── Fase 3: UN SOLO processo curl per tutti i download ──

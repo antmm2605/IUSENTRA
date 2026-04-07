@@ -2167,6 +2167,10 @@ let _wizCertSel = null;  // certificato selezionato
 let _wizPinConfermato = false;
 let _wizPstSessionId = '';  // session id PST restituito dal preflight, riusato per la ricerca
 let _wizUltimiFascicoli = [];
+// Session id PST usata nel path legacy (cerca diretta, senza wizard) per evitare
+// PIN ripetuti: dopo il primo preflight-auth il session_id viene riusato nelle
+// chiamate successive, così Windows non chiede il PIN una seconda volta.
+let _lsPstSessionId = '';
 
 // ── PIN / cert session persistence ─────────────────────────────────────────
 // Il PIN viene chiesto da Windows (Local Signer) e non transita mai per HACS.
@@ -2552,6 +2556,9 @@ function _wizSetPinStatus(stato, msg = '') {
 }
 
 async function _lsPreflightAuthPst(tribunale, cert) {
+  // Passa il session_id già noto (se presente) così il Local Signer può
+  // restituire la sessione cached senza fare un nuovo handshake TLS →
+  // Windows non chiede il PIN una seconda volta.
   const resp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -2559,13 +2566,35 @@ async function _lsPreflightAuthPst(tribunale, cert) {
       tribunale: tribunale,
       cert_thumbprint: cert?.thumbprint || null,
       slot_id: cert?.token_slot ?? null,
+      pst_session_id: _lsPstSessionId || _wizPstSessionId || '',
     }),
     signal: AbortSignal.timeout(100000),
   });
   const data = await resp.json();
   if (!data.ok) {
+    // Se la sessione salvata era scaduta, azzerala e ritenta senza session_id
+    if (_lsPstSessionId || _wizPstSessionId) {
+      _lsPstSessionId = '';
+      const resp2 = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tribunale: tribunale,
+          cert_thumbprint: cert?.thumbprint || null,
+          slot_id: cert?.token_slot ?? null,
+          pst_session_id: '',
+        }),
+        signal: AbortSignal.timeout(100000),
+      });
+      const data2 = await resp2.json();
+      if (!data2.ok) throw new Error(data2.errore || 'Impossibile verificare certificato e PIN');
+      if (data2.pst_session_id) _lsPstSessionId = data2.pst_session_id;
+      return data2;
+    }
     throw new Error(data.errore || 'Impossibile verificare certificato e PIN');
   }
+  // Aggiorna la sessione cached per le prossime chiamate
+  if (data.pst_session_id) _lsPstSessionId = data.pst_session_id;
   return data;
 }
 
@@ -3209,7 +3238,9 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
     let documenti = [];
     let _pstSessionIdFromDocumenti = '';
     try {
-      // Prima preflight-auth per creare la sessione PST (un solo PIN)
+      // Prima preflight-auth per creare la sessione PST (un solo PIN).
+      // Riusa la sessione già presente (_lsPstSessionId / _wizPstSessionId) se valida,
+      // così Windows non chiede il PIN una seconda volta.
       let pstSessionId = '';
       const tribunale = fascicolo.codice_ufficio || '';
       try {
@@ -3219,7 +3250,7 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
           body: JSON.stringify({
             tribunale,
             cert_thumbprint: cert?.thumbprint || null,
-            pst_session_id: '',
+            pst_session_id: _lsPstSessionId || _wizPstSessionId || '',
           }),
           signal: AbortSignal.timeout(45000),
         });
@@ -3227,6 +3258,9 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
         if (pfData.ok) {
           pstSessionId = pfData.pst_session_id || '';
           _pstSessionIdFromDocumenti = pstSessionId;
+          // Aggiorna la sessione globale per evitare PIN ripetuti nelle
+          // operazioni successive (ricerca, acquisizione, documenti).
+          if (pstSessionId) _lsPstSessionId = pstSessionId;
           // Salva la sessione PST in sessionStorage nel formato di acquisizione_wizard
           if (pstSessionId) {
             try {

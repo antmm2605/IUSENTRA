@@ -3,7 +3,7 @@
 HACS Local Signer — Build cross-platform da Linux/macOS/Windows.
 
 Genera in tools/dist/:
-  - SetupLocalSigner-<versione>.cmd        Windows offline (CMD auto-estraente, doppio clic)
+  - SetupLocalSigner-<versione>.exe        Windows offline (IExpress stub + CAB MSZIP)
   - InstallaLocalSigner-<versione>.command macOS  online  (download dal server)
   - InstallaLocalSigner-<versione>.run     Linux  online  (download dal server)
   - LocalSigner-<versione>.txt             release note
@@ -12,32 +12,37 @@ Uso:
   python3 tools/build_dist.py
   python3 tools/build_dist.py --base-url https://mio-server.example.com
 
-Il CMD Windows e' un batch auto-estraente offline self-contained:
-contiene tutti i file necessari come base64 e li decodifica con certutil.
+L'EXE Windows e' un IExpress self-extracting offline self-contained:
+lo stub PE (iexpress_stub.bin) + un CAB MSZIP con tutti i file embedded.
 Non richiede internet, non richiede Execution Policy, funziona con doppio clic.
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
 import re
+import struct
 import sys
 import textwrap
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Percorsi ───────────────────────────────────────────────────────────────────
-TOOLS_DIR    = Path(__file__).resolve().parent
-REPO_DIR     = TOOLS_DIR.parent
-DIST_DIR     = TOOLS_DIR / "dist"
-LS_PY        = TOOLS_DIR / "local_signer.py"
-REQS_TXT     = TOOLS_DIR / "requirements_local_signer.txt"
-INSTALL_PS1  = TOOLS_DIR / "installa_local_signer_locale.ps1"
-UFFICI_JSON  = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+TOOLS_DIR      = Path(__file__).resolve().parent
+REPO_DIR       = TOOLS_DIR.parent
+DIST_DIR       = TOOLS_DIR / "dist"
+LS_PY          = TOOLS_DIR / "local_signer.py"
+REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
+INSTALL_PS1    = TOOLS_DIR / "installa_local_signer_locale.ps1"
+UFFICI_JSON    = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
+IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
 
 BASE_URL_DEFAULT  = "https://studio-legale-pct-production.up.railway.app"
 DOWNLOAD_PAGE     = f"{BASE_URL_DEFAULT}/impostazioni?tab=firma"
+
+CAB_BLOCK_SIZE = 32768  # dimensione massima blocco CFDATA (non compresso)
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -49,81 +54,138 @@ def _version() -> str:
     return m.group(1)
 
 
-def _b64_lines(data: bytes, line_len: int = 76) -> str:
-    """Codifica in base64 con righe di lunghezza fissa (formato certutil)."""
-    encoded = base64.b64encode(data).decode("ascii")
-    return "\r\n".join(
-        encoded[i : i + line_len] for i in range(0, len(encoded), line_len)
+def _dos_datetime() -> tuple[int, int]:
+    """Restituisce (date, time) in formato DOS per i CFFILE header."""
+    now = datetime.now()
+    dos_date = ((now.year - 1980) << 9) | (now.month << 5) | now.day
+    dos_time = (now.hour << 11) | (now.minute << 5) | (now.second // 2)
+    return dos_date, dos_time
+
+
+def _mszip_block(data: bytes) -> bytes:
+    """Comprime un blocco in formato MSZIP: b'CK' + deflate raw."""
+    # zlib.compress produce: 2-byte header + deflate + 4-byte Adler32
+    # Vogliamo solo il deflate (strip header e checksum)
+    deflate = zlib.compress(data, 6)[2:-4]
+    return b"CK" + deflate
+
+
+def _build_cab(files: list[tuple[str, bytes]]) -> bytes:
+    """
+    Crea un CAB Microsoft (MSZIP, compress_type=1) con i file specificati.
+    Formato: CFHEADER + CFFOLDER + CFFILE[] + CFDATA[]
+    Checksum = 0 (come IExpress originale).
+
+    files: lista di (filename_ascii, content_bytes)
+    """
+    num_files = len(files)
+    dos_date, dos_time = _dos_datetime()
+
+    # ── CFFILE headers ────────────────────────────────────────────────────────
+    cffiles_bin = b""
+    offset_in_folder = 0
+    for fname, content in files:
+        fname_b = fname.encode("ascii") + b"\x00"
+        cffiles_bin += struct.pack(
+            "<IIHHHH",
+            len(content),       # file_size
+            offset_in_folder,   # file_offset_in_folder
+            0,                  # folder_index
+            dos_date,           # date
+            dos_time,           # time
+            0x20,               # attribs = ARCHIVE
+        ) + fname_b
+        offset_in_folder += len(content)
+
+    # ── Offsets struttura ─────────────────────────────────────────────────────
+    # CFHEADER = 36, CFFOLDER = 8, poi i CFFILE
+    first_file_offset = 36 + 8            # = 44
+    first_data_offset = 36 + 8 + len(cffiles_bin)
+
+    # ── CFDATA blocks ─────────────────────────────────────────────────────────
+    all_data = b"".join(content for _, content in files)
+    cfdata_bin = b""
+    num_blocks = 0
+    offset = 0
+    while offset < len(all_data) or (not all_data and num_blocks == 0):
+        block = all_data[offset : offset + CAB_BLOCK_SIZE]
+        compressed = _mszip_block(block)
+        cfdata_bin += struct.pack(
+            "<IHH",
+            0,                    # checksum = 0
+            len(compressed),      # compressed_size
+            len(block),           # uncompressed_size
+        ) + compressed
+        num_blocks += 1
+        offset += len(block)
+        if not all_data:
+            break
+
+    # ── Dimensione totale CAB ─────────────────────────────────────────────────
+    cab_size = 36 + 8 + len(cffiles_bin) + len(cfdata_bin)
+
+    # ── CFHEADER (36 byte) ────────────────────────────────────────────────────
+    header = struct.pack(
+        "<4sIIIIIBBHHHHH",
+        b"MSCF",            # signature
+        0,                  # reserved1
+        cab_size,           # cabinet_size
+        0,                  # reserved2
+        first_file_offset,  # first_file_offset (offset al primo CFFILE)
+        0,                  # reserved3
+        3,                  # minor_version
+        1,                  # major_version
+        1,                  # num_folders
+        num_files,          # num_files
+        0,                  # flags
+        0,                  # set_id
+        0,                  # cabinet_index
     )
+
+    # ── CFFOLDER (8 byte) ─────────────────────────────────────────────────────
+    folder = struct.pack(
+        "<IHH",
+        first_data_offset,  # first_data_offset (offset al primo CFDATA)
+        num_blocks,         # num_data_blocks
+        1,                  # compress_type = MSZIP
+    )
+
+    return header + folder + cffiles_bin + cfdata_bin
 
 
 # ── Generatori ─────────────────────────────────────────────────────────────────
 
-def build_windows_cmd(version: str) -> str:
+def build_windows_exe(version: str) -> bytes:
     """
-    Genera un installer Windows CMD offline self-contained.
-    I file sono embedded come base64 e decodificati con certutil -decode.
-    Poi lancia il PS1 con -ExecutionPolicy Bypass (aggira il blocco script).
+    Genera un installer Windows EXE offline self-contained.
+    Formato: IExpress stub (iexpress_stub.bin) + CAB MSZIP con i file embedded.
+    Lancia powershell.exe -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1.
     Funziona con doppio clic, non richiede internet ne' permessi speciali.
     """
-    # Converti PS1 in CRLF per Windows
+    stub = IEXPRESS_STUB.read_bytes()
+
+    # PS1 con line endings CRLF per Windows
     ps1_crlf = INSTALL_PS1.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
 
-    files_to_embed = [
+    # Release note embedded nel CAB
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    release_txt = (
+        f"HACS Local Signer\r\n"
+        f"Versione: {version}\r\n"
+        f"Generato: {now}\r\n"
+        f"Punto ufficiale download: {DOWNLOAD_PAGE}\r\n"
+    ).encode("utf-8")
+
+    files = [
         ("installa_local_signer_locale.ps1", ps1_crlf),
         ("local_signer.py",                  LS_PY.read_bytes()),
         ("requirements_local_signer.txt",    REQS_TXT.read_bytes()),
         ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),
+        ("local_signer_release.txt",         release_txt),
     ]
 
-    # Genera i blocchi di estrazione per ogni file
-    extract_blocks = []
-    for fname, content in files_to_embed:
-        b64 = _b64_lines(content)
-        # Ogni riga base64 deve avere il prefisso "echo " altrimenti CMD
-        # tenta di eseguirla come comando invece di scriverla nel file.
-        b64_echo = "\r\n".join(f"echo {line}" for line in b64.split("\r\n"))
-        safe_name = fname.replace(".", "_").replace("-", "_")
-        extract_blocks.append(
-            f'echo Estraggo {fname}...\r\n'
-            f'(\r\n'
-            f'echo -----BEGIN CERTIFICATE-----\r\n'
-            f'{b64_echo}\r\n'
-            f'echo -----END CERTIFICATE-----\r\n'
-            f') > "%TMPDIR%\\{safe_name}.b64"\r\n'
-            f'certutil -decode "%TMPDIR%\\{safe_name}.b64" "%TMPDIR%\\{fname}" >nul 2>&1\r\n'
-            f'del "%TMPDIR%\\{safe_name}.b64" >nul 2>&1'
-        )
-
-    extract_section = "\r\n".join(extract_blocks)
-
-    cmd = (
-        '@echo off\r\n'
-        'chcp 65001 >nul 2>&1\r\n'
-        f'title HACS Local Signer v{version} - Installazione\r\n'
-        'echo.\r\n'
-        f'echo HACS Local Signer v{version} - Installer Windows offline\r\n'
-        'echo.\r\n'
-        'echo Estrazione file in corso...\r\n'
-        'set "TMPDIR=%TEMP%\\hacs_local_signer_install"\r\n'
-        'if exist "%TMPDIR%" rmdir /s /q "%TMPDIR%" >nul 2>&1\r\n'
-        'mkdir "%TMPDIR%" >nul 2>&1\r\n'
-        '\r\n'
-        f'{extract_section}\r\n'
-        '\r\n'
-        'echo.\r\n'
-        'echo Avvio installazione...\r\n'
-        'echo.\r\n'
-        'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TMPDIR%\\installa_local_signer_locale.ps1"\r\n'
-        'set "EXITCODE=%ERRORLEVEL%"\r\n'
-        '\r\n'
-        'echo.\r\n'
-        'echo Pulizia file temporanei...\r\n'
-        'rmdir /s /q "%TMPDIR%" >nul 2>&1\r\n'
-        'exit /b %EXITCODE%\r\n'
-    )
-
-    return cmd
+    cab = _build_cab(files)
+    return stub + cab
 
 
 def build_macos_command(version: str, base_url: str) -> str:
@@ -261,7 +323,7 @@ def build_release_note(version: str) -> str:
         f"HACS Local Signer\n"
         f"Versione: {version}\n"
         f"Generato: {now}\n"
-        f"Piattaforme: Windows (CMD offline), macOS (.command), Linux (.run)\n"
+        f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
         f"Punto ufficiale download: {DOWNLOAD_PAGE}\n"
     )
 
@@ -278,7 +340,7 @@ def main() -> None:
     parser.add_argument(
         "--no-windows",
         action="store_true",
-        help="Salta la generazione del pacchetto Windows (CMD offline)",
+        help="Salta la generazione del pacchetto Windows (EXE offline)",
     )
     args = parser.parse_args()
 
@@ -286,6 +348,10 @@ def main() -> None:
         if not path.exists():
             print(f"ERRORE: file sorgente non trovato: {path}", file=sys.stderr)
             sys.exit(1)
+
+    if not args.no_windows and not IEXPRESS_STUB.exists():
+        print(f"ERRORE: stub IExpress non trovato: {IEXPRESS_STUB}", file=sys.stderr)
+        sys.exit(1)
 
     version = _version()
     base_url = args.base_url.rstrip("/")
@@ -308,17 +374,18 @@ def main() -> None:
     linux_path.chmod(0o755)
     print(f"  [OK] Linux   : {linux_path.name}")
 
-    # Windows CMD (batch auto-estraente offline)
+    # Windows EXE (IExpress stub + CAB MSZIP offline)
     if not args.no_windows:
-        win_path = DIST_DIR / f"SetupLocalSigner-{version}.cmd"
-        print(f"  Genero Windows CMD offline (base64 + certutil, {LS_PY.stat().st_size//1024}KB + {UFFICI_JSON.stat().st_size//1024}KB)...")
-        cmd_data = build_windows_cmd(version)
-        win_path.write_text(cmd_data, encoding="utf-8", newline="")
+        win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
+        total_kb = (LS_PY.stat().st_size + UFFICI_JSON.stat().st_size) // 1024
+        print(f"  Genero Windows EXE offline (stub + CAB MSZIP, ~{total_kb}KB payload)...")
+        exe_data = build_windows_exe(version)
+        win_path.write_bytes(exe_data)
         # Aggiorna alias legacy
-        alias_path = DIST_DIR / "SetupLocalSigner.cmd"
-        alias_path.write_text(cmd_data, encoding="utf-8", newline="")
-        print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size//1024}KB)")
-        print(f"  [OK] Alias   : SetupLocalSigner.cmd aggiornato")
+        alias_path = DIST_DIR / "SetupLocalSigner.exe"
+        alias_path.write_bytes(exe_data)
+        print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size // 1024}KB)")
+        print(f"  [OK] Alias   : SetupLocalSigner.exe aggiornato")
 
     # Release note
     note_path = DIST_DIR / f"LocalSigner-{version}.txt"

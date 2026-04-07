@@ -9193,6 +9193,9 @@ read -r -p "Premi Invio per chiudere..." _
         gf = get_fascicoli()
         try:
             gf.elimina(id_fasc)
+            # Rimuovi il fascicolo eliminato dalla cronologia recenti della sessione
+            recenti = session.get("recenti", [])
+            session["recenti"] = [r for r in recenti if not (r["tipo"] == "fascicolo" and r["id"] == id_fasc)]
             flash("Fascicolo eliminato.", "success")
             sync_pubblica("elimina", "fascicoli", id_fasc)
         except KeyError as e:

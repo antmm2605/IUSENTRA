@@ -232,6 +232,12 @@
                   <span class="htmx-indicator spinner-border spinner-border-sm ms-1"
                         role="status" aria-hidden="true"></span>
                 </button>
+                <form method="post" action="{{ url_for('elimina_scadenza', id_sc=s.id) }}"
+                      onsubmit="return confirm('Eliminare la scadenza «{{ s.titolo }}»?')">
+                  <button type="submit" class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
               </div>
             </td>
           </tr>

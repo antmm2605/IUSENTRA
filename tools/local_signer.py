@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.23"
+VERSION = "1.5.24"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3176,6 +3176,8 @@ def _map_qbuilder_documento(row: dict) -> dict:
     id_doc_mittente = str(row.get("IDDOCMITTENTE") or "").strip()
     if id_doc_mittente.startswith("#"):
         id_doc_mittente = ""
+    id_repeatto = str(row.get("IDREPEATTO") or row.get("ID_REPEATTO") or "").strip()
+    msg_id = str(row.get("MSGID") or row.get("MSG_ID") or "").strip()
     numero_doc = _qbuilder_numero_rg(numero_documento or id_documento)
     id_deposito = id_doc_mittente
     id_documento_candidates: list[str] = []
@@ -3204,6 +3206,8 @@ def _map_qbuilder_documento(row: dict) -> dict:
         "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
         "numero_documento": numero_documento,
         "id_doc_mittente": id_doc_mittente,
+        "id_repeatto": id_repeatto,
+        "msg_id": msg_id,
         "id_cat": id_cat,
         "id_documento_candidates": id_documento_candidates,
     }
@@ -3324,6 +3328,8 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
                 "id_deposito": _t("idDeposito", "idBusta"),
                 "tipo_atto": _t("tipoAtto", "descTipoAtto"),
                 "id_cat": _t("idCat") or _t("idDocumento", "id"),
+                "id_repeatto": _t("idRepeatTo", "idrepeatto"),
+                "msg_id": _t("msgId", "msgid"),
                 "disponibile": _t("disponibile").lower() != "false",
             }
             if not any(
@@ -3366,6 +3372,8 @@ def _parse_profilo_documento_xml(xml_str: str) -> dict:
         return {
             "id_documento": _text(".//idDocumento"),
             "id_cat": _text(".//idCat"),
+            "id_repeatto": _text(".//idRepeatTo") or _text(".//idrepeatto"),
+            "msg_id": _text(".//msgId") or _text(".//msgid"),
             "content_id": _text(".//contentId"),
             "nome_file_originale": _text(".//nomeFileOriginale"),
             "codice_ufficio": _text(".//codiceUfficio"),
@@ -3546,6 +3554,8 @@ def _pst_download_documento_payload(
     cert_thumbprint: str,
     cf_avvocato: str,
     id_cat: str = "",
+    id_repeatto: str = "",
+    msg_id: str = "",
     data_documento: str = "",
     original: bool = True,
     cookie_file: Optional[str] = None,
@@ -3621,7 +3631,10 @@ def _pst_download_documento_payload(
             profilo = _parse_profilo_documento_xml(profilo_xml)
     elif servizio == "JPW_SIGP":
         soap_action = "downloadAtto"
-        soap_body = _soap_sigp_download_body(id_documento)
+        download_id_repeatto = str(id_repeatto or id_documento).strip()
+        if not download_id_repeatto:
+            raise RuntimeError("Il servizio Cassazione richiede idRepeatTo per il download dell'atto.")
+        soap_body = _soap_sigp_download_body(download_id_repeatto)
     else:
         raise RuntimeError(f"Servizio PST non supportato per il download diretto: {servizio or 'sconosciuto'}.")
 
@@ -3656,6 +3669,8 @@ def _pst_download_documento_payload(
         "content_type": parsed.get("content_type") or "application/octet-stream",
         "id_documento_portale": id_documento,
         "id_cat": id_cat or str(profilo.get("id_cat") or "").strip(),
+        "id_repeatto": str(id_repeatto or profilo.get("id_repeatto") or "").strip(),
+        "msg_id": str(msg_id or profilo.get("msg_id") or "").strip(),
         "data_documento": data_documento or str(profilo.get("data_documento") or "").strip(),
         "nome_file_originale": str(profilo.get("nome_file_originale") or "").strip(),
         "original_documento_portale": bool(original),
@@ -3690,6 +3705,8 @@ def _assemble_download_file_payload(
         "content_type": parsed.get("content_type") or "application/octet-stream",
         "id_documento_portale": id_documento,
         "id_cat": str(item.get("id_cat") or "").strip(),
+        "id_repeatto": str(item.get("id_repeatto") or "").strip(),
+        "msg_id": str(item.get("msg_id") or "").strip(),
         "data_documento": str(item.get("data_deposito") or item.get("data_documento") or "").strip(),
         "nome_file_originale": str(parsed.get("filename") or "").strip(),
         "original_documento_portale": bool(original),
@@ -3874,7 +3891,10 @@ def _pst_download_documenti_batch_payloads(
                 continue
             try:
                 if servizio == "JPW_SIGP":
-                    soap_body = _soap_sigp_download_body(id_doc)
+                    id_repeatto = str(item.get("id_repeatto") or id_doc).strip()
+                    if not id_repeatto:
+                        raise RuntimeError("idRepeatTo mancante nel lotto Cassazione.")
+                    soap_body = _soap_sigp_download_body(id_repeatto)
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
                 elif servizio == "JPW_SICID":
@@ -3891,6 +3911,8 @@ def _pst_download_documenti_batch_payloads(
                                     cert_thumbprint=cert_thumbprint,
                                     cf_avvocato=cf_avvocato,
                                     id_cat=id_cat,
+                                    id_repeatto=str(item.get("id_repeatto") or "").strip(),
+                                    msg_id=str(item.get("msg_id") or "").strip(),
                                     data_documento=str(
                                         item.get("data_deposito") or item.get("data_documento") or ""
                                     ).strip(),
@@ -5094,6 +5116,8 @@ class _Handler(BaseHTTPRequestHandler):
                 cert_thumbprint=cert_thumbprint,
                 cf_avvocato=cf_avvocato,
                 id_cat=str(data.get("id_cat") or "").strip(),
+                id_repeatto=str(data.get("id_repeatto") or "").strip(),
+                msg_id=str(data.get("msg_id") or "").strip(),
                 data_documento=str(data.get("data_documento") or "").strip(),
                 original=(
                     data.get("original", True)

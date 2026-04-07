@@ -1101,6 +1101,8 @@ class GestioneFascicoli:
             return {
                 "id_documento": str(row.get("id_documento") or "").strip(),
                 "id_cat": str(row.get("id_cat") or "").strip(),
+                "id_repeatto": str(row.get("id_repeatto") or "").strip(),
+                "msg_id": str(row.get("msg_id") or "").strip(),
                 "nome": str(row.get("nome") or "").strip(),
                 "tipo": str(row.get("tipo") or "").strip(),
                 "data_deposito": str(row.get("data_deposito") or "").strip(),

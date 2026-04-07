@@ -623,6 +623,8 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
                 "disponibile": True,
                 "id_deposito": "BUSTA-PST-002",
                 "tipo_atto": "Sentenza",
+                "id_repeatto": "ATTO-SIGP-900",
+                "msg_id": "PEC-MSG-900",
             }
         ],
         registrato_da="admin",
@@ -649,6 +651,8 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
                         "id_deposito_esterno": "BUSTA-PST-002",
                         "id_deposito_pct": deposito.id,
                         "id_documento_portale": "DOC-900",
+                        "id_repeatto": "ATTO-SIGP-900",
+                        "msg_id": "PEC-MSG-900",
                         "tipo_atto": "Sentenza",
                     }
                 ],
@@ -676,6 +680,8 @@ def test_api_importa_documenti_portale_aggancia_file_al_deposito_ufficiale(tmp_p
     assert fascicolo_reload.documenti[0].id_deposito_pct == deposito.id
     assert fascicolo_reload.depositi_pct[0].servizio_portale == "DocumentiFascicolo"
     assert len(fascicolo_reload.attivita) == 1
+    assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["id_repeatto"] == "ATTO-SIGP-900"
+    assert fascicolo_reload.depositi_pct[0].documenti_portale[0]["msg_id"] == "PEC-MSG-900"
 
 
 def test_api_importa_documenti_portale_puo_archiviare_albero_tecnico_originale(tmp_path):

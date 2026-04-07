@@ -1891,6 +1891,8 @@ def create_app(config: dict | None = None) -> Flask:
                 item["tipo_atto"] = str((file_item or {}).get("tipo_atto") or "").strip()
                 item["tipo"] = str((file_item or {}).get("tipo") or "").strip()
                 item["id_cat"] = str((file_item or {}).get("id_cat") or "").strip()
+                item["id_repeatto"] = str((file_item or {}).get("id_repeatto") or "").strip()
+                item["msg_id"] = str((file_item or {}).get("msg_id") or "").strip()
                 item["content_type"] = str((file_item or {}).get("content_type") or "").strip()
                 item["nome_file_originale"] = str((file_item or {}).get("nome_file_originale") or "").strip()
                 original_documento_portale = bool((file_item or {}).get("original_documento_portale", True))
@@ -2012,6 +2014,8 @@ def create_app(config: dict | None = None) -> Flask:
                     "tipo_atto": str((pdoc or {}).get("tipo_atto") or getattr(dep, "tipo_atto", "") or "").strip(),
                     "id_documento_portale": str((pdoc or {}).get("id_documento") or "").strip(),
                     "id_cat": str((pdoc or {}).get("id_cat") or "").strip(),
+                    "id_repeatto": str((pdoc or {}).get("id_repeatto") or "").strip(),
+                    "msg_id": str((pdoc or {}).get("msg_id") or "").strip(),
                     "data_documento": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "data_deposito": str((pdoc or {}).get("data_deposito") or "").strip(),
                     "nome": nome,
@@ -4786,6 +4790,8 @@ def create_app(config: dict | None = None) -> Flask:
                     "disponibile": bool(item.get("disponibile", True)),
                     "id_deposito": str(item.get("id_deposito") or item.get("id_deposito_esterno") or "").strip(),
                     "id_cat": id_cat,
+                    "id_repeatto": str(item.get("id_repeatto") or "").strip(),
+                    "msg_id": str(item.get("msg_id") or "").strip(),
                     "numero_documento": str(item.get("numero_documento") or "").strip(),
                     "id_doc_mittente": str(item.get("id_doc_mittente") or "").strip(),
                     "id_documento_candidates": candidates,

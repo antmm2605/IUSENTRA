@@ -501,6 +501,8 @@ function awCurrentDownloadKey() {
   const docs = awSelectedPreviewDocuments().map(item => ({
     id_documento: item.id_documento || item.id_documento_portale || '',
     id_cat: item.id_cat || '',
+    id_repeatto: item.id_repeatto || '',
+    msg_id: item.msg_id || '',
     id_deposito: item.id_deposito || item.id_deposito_esterno || item.id_deposito_pct || '',
     nome: item.nome || item.nome_documento || '',
     candidates: Array.isArray(item.id_documento_candidates) ? item.id_documento_candidates : [],
@@ -521,10 +523,20 @@ function awFormatDownloadFailures(failures) {
 function awDocumentPortalIdLine(doc) {
   const idDocumento = String(doc?.id_documento || doc?.id_documento_portale || '').trim();
   const idCat = String(doc?.id_cat || '').trim();
-  const label = idDocumento && idCat && idDocumento !== idCat
-    ? `ID documento: ${idDocumento} · idCat: ${idCat}`
-    : `ID documento / idCat: ${idCat || idDocumento || 'n.d.'}`;
-  return `<div class="small text-muted mt-1">${awEscape(label)}</div>`;
+  const idRepeatTo = String(doc?.id_repeatto || '').trim();
+  const msgId = String(doc?.msg_id || '').trim();
+  const rows = [];
+  if (idDocumento || idCat) {
+    rows.push(
+      idDocumento && idCat && idDocumento !== idCat
+        ? `ID documento: ${idDocumento} · idCat: ${idCat}`
+        : `ID documento / idCat: ${idCat || idDocumento || 'n.d.'}`
+    );
+  }
+  if (idRepeatTo) rows.push(`idRepeatTo: ${idRepeatTo}`);
+  if (msgId) rows.push(`msgId: ${msgId}`);
+  if (!rows.length) rows.push('ID portale non disponibili');
+  return `<div class="small text-muted mt-1">${rows.map(awEscape).join('<br>')}</div>`;
 }
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
@@ -538,6 +550,8 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
       id_documento: item.id_documento || item.id_documento_portale || '',
       nome_documento: item.nome || item.nome_documento || '',
       id_cat: item.id_cat || '',
+      id_repeatto: item.id_repeatto || '',
+      msg_id: item.msg_id || '',
       numero_documento: item.numero_documento || '',
       id_doc_mittente: item.id_doc_mittente || '',
       id_documento_candidates: Array.isArray(item.id_documento_candidates) ? item.id_documento_candidates : [],

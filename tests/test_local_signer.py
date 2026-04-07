@@ -604,6 +604,8 @@ def test_parse_documenti_xml_supporta_container_annidato():
             <dimensione>8000</dimensione>
             <idDeposito>BUSTA-PST-001</idDeposito>
             <tipoAtto>Ricorso introduttivo</tipoAtto>
+            <idRepeatTo>ATTO-SIGP-002</idRepeatTo>
+            <msgId>PEC-MSG-002</msgId>
             <disponibile>true</disponibile>
           </item>
         </documenti>
@@ -619,6 +621,8 @@ def test_parse_documenti_xml_supporta_container_annidato():
     assert documenti[1]["id_documento"] == "DOC-002"
     assert {doc["id_deposito"] for doc in documenti} == {"BUSTA-PST-001"}
     assert {doc["data_deposito"] for doc in documenti} == {"2026-03-29"}
+    assert documenti[1]["id_repeatto"] == "ATTO-SIGP-002"
+    assert documenti[1]["msg_id"] == "PEC-MSG-002"
 
 
 def test_parse_qbuilder_documenti_xml_supporta_piu_return():
@@ -660,6 +664,8 @@ def test_map_qbuilder_documento_preserva_candidati_identificativo():
             "IDDOCUMENTO": "",
             "NUMERODOCUMENTO": "32473463",
             "IDDOCMITTENTE": "CAT-ALT-001",
+            "IDREPEATTO": "ATTO-SIGP-001",
+            "MSGID": "PEC-MSG-001",
             "TIPO": "Ordinanza",
             "DATADEPOSITO": "30/09/2025 16:46:40.000",
         }
@@ -668,6 +674,8 @@ def test_map_qbuilder_documento_preserva_candidati_identificativo():
     assert doc["id_documento"] == "32473463"
     assert doc["numero_documento"] == "32473463"
     assert doc["id_doc_mittente"] == "CAT-ALT-001"
+    assert doc["id_repeatto"] == "ATTO-SIGP-001"
+    assert doc["msg_id"] == "PEC-MSG-001"
     assert doc["id_documento_candidates"] == ["32473463", "CAT-ALT-001"]
 
 

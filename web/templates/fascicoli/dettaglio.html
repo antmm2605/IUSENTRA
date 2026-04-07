@@ -2883,6 +2883,7 @@ function buildPstNavKey(item) {
 function sezionePstDaCatalogoItem(item) {
   const tipoAtto = String(item.tipo_atto || item.tipo || '').toLowerCase();
   const nome = String(item.nome || item.nome_documento || '').toLowerCase();
+  const msgId = String(item.msg_id || '').trim().toLowerCase();
   const testo = [tipoAtto, nome].join(' ');
 
   if (testo.includes('istanza')) return 'istanze';
@@ -2899,6 +2900,7 @@ function sezionePstDaCatalogoItem(item) {
     testo.includes('provvedimento')
   ) return 'provvedimenti';
   if (
+    msgId ||
     nome.endsWith('.eml') ||
     nome.endsWith('.msg') ||
     nome.endsWith('.xml') ||
@@ -2927,6 +2929,8 @@ window._PST_NAV_ITEMS = (_PORTALE_DOCS_CATALOG || []).map(function (item) {
     id_deposito_pct: item.id_deposito_pct || '',
     id_deposito_esterno: item.id_deposito_esterno || '',
     id_cat: item.id_cat || '',
+    id_repeatto: item.id_repeatto || '',
+    msg_id: item.msg_id || '',
     sezione: sezionePstDaCatalogoItem(item)
   };
 });
@@ -3019,7 +3023,10 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         item.tipo,
         item.mittente,
         item.id_deposito_esterno,
-        item.id_documento_portale
+        item.id_documento_portale,
+        item.id_cat,
+        item.id_repeatto,
+        item.msg_id
       ].join(' ').toLowerCase();
       return haystack.includes(search);
     });
@@ -3121,6 +3128,19 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
             html += ' · Mittente: ' + escapeHtml(item.mittente);
           }
           html += '</div>';
+          const metaRows = [];
+          if (item.id_documento_portale || item.id_cat) {
+            metaRows.push(
+              item.id_documento_portale && item.id_cat && item.id_documento_portale !== item.id_cat
+                ? 'ID documento: ' + escapeHtml(item.id_documento_portale) + ' · idCat: ' + escapeHtml(item.id_cat)
+                : 'ID documento / idCat: ' + escapeHtml(item.id_cat || item.id_documento_portale || 'n.d.')
+            );
+          }
+          if (item.id_repeatto) metaRows.push('idRepeatTo: ' + escapeHtml(item.id_repeatto));
+          if (item.msg_id) metaRows.push('msgId: ' + escapeHtml(item.msg_id));
+          if (metaRows.length) {
+            html += '<div class="small text-muted ms-4 mt-1">' + metaRows.join('<br>') + '</div>';
+          }
           if (viewLink) {
             html += '<div class="ms-4 mt-2"><a class="btn btn-sm btn-outline-primary" href="' + escapeHtml(viewLink) + '" target="_blank" rel="noopener">Visualizza nel fascicolo</a></div>';
           }
@@ -3204,6 +3224,8 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
             id_documento: item.id_documento_portale || item.id_documento || '',
             nome_documento: item.nome || '',
             id_cat: item.id_cat || '',
+            id_repeatto: item.id_repeatto || '',
+            msg_id: item.msg_id || '',
             data_documento: item.data_documento || item.data_deposito || '',
             id_deposito_esterno: item.id_deposito_esterno || '',
             id_deposito_pct: item.id_deposito_pct || '',

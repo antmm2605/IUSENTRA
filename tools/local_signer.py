@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.13
+HACS Local Signer — v1.5.14
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.13"
+VERSION = "1.5.14"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2337,6 +2337,42 @@ def _soap_call_pst_session_raw(
     return _run(cert_thumbprint)
 
 
+def _soap_call_pst_session_batch_raw(
+    requests: list[dict],
+    *,
+    cert_thumbprint: Optional[str] = None,
+    cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
+) -> list[tuple[bytes, str]]:
+    """
+    Variante batch della logica session-aware PST:
+    prova prima l'intero lotto in cookie-only e, se la sessione non basta,
+    ritenta l'intero lotto col certificato in un solo processo curl.
+
+    Questo evita il peggior fallback possibile su Windows, cioe' N download
+    singoli con N potenziali prompt PIN.
+    """
+    effective_requests = [
+        {
+            **dict(req),
+            "cookie_file": str((dict(req).get("cookie_file") or cookie_file or "")).strip(),
+        }
+        for req in (requests or [])
+    ]
+    if prefer_cookie_only and cookie_file:
+        try:
+            return _soap_call_curl_batch_raw(
+                effective_requests,
+                cert_thumbprint=None,
+            )
+        except Exception as e:
+            log.debug("PST batch cookie-only fallback su certificato: %s", e)
+    return _soap_call_curl_batch_raw(
+        effective_requests,
+        cert_thumbprint=cert_thumbprint,
+    )
+
+
 def _pst_preflight_auth_curl(url: str,
                              cert_thumbprint: Optional[str] = None,
                              pkcs11_uri: Optional[str] = None,
@@ -3296,7 +3332,6 @@ def _pst_download_documenti_batch_payloads(
         url_documenti = _pst_url_documenti(base_url)
         usa_wasp = servizio in ("JPW_SICID", "JPW_SIECIC")
         extra_base = [f"X-WASP-User: {cf_avvocato}"] if (usa_wasp and cf_avvocato) else []
-        cert_call = None if prefer_cookie_only else cert_thumbprint
 
         # ── Fase 1: risolvi id_cat e metadati mancanti per SICID/SIECIC ──
         # Un solo processo curl per tutti i profili da recuperare.
@@ -3342,7 +3377,12 @@ def _pst_download_documenti_batch_payloads(
                         "cookie_file": cookie_file,
                     })
                 try:
-                    prof_results = _soap_call_curl_batch_raw(prof_reqs, cert_thumbprint=cert_call)
+                    prof_results = _soap_call_pst_session_batch_raw(
+                        prof_reqs,
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
                     for k, (body_bytes, _) in enumerate(prof_results):
                         xml_resp = body_bytes.decode("utf-8", "replace")
                         profilo = _parse_profilo_documento_xml(xml_resp)
@@ -3439,7 +3479,12 @@ def _pst_download_documenti_batch_payloads(
 
         # ── Fase 3: UN SOLO processo curl per tutti i download ──
         try:
-            batch_results = _soap_call_curl_batch_raw(dl_reqs, cert_thumbprint=cert_call)
+            batch_results = _soap_call_pst_session_batch_raw(
+                dl_reqs,
+                cert_thumbprint=cert_thumbprint,
+                cookie_file=cookie_file,
+                prefer_cookie_only=prefer_cookie_only,
+            )
             for (body_bytes, hdr_text), meta in zip(batch_results, dl_meta):
                 try:
                     ct = _http_header_value(hdr_text, "Content-Type")

@@ -542,43 +542,22 @@ async function awPstDownloadConProgresso() {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
   await awEnsurePstPortalSession(tribunale);
   const previewDocs = awPreviewDocuments();
-  if (!previewDocs.length) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
-  const documents = previewDocs
-    .map(item => ({
-      id_documento: item.id_documento || item.id_documento_portale || '',
-      nome_documento: item.nome || item.nome_documento || '',
-      id_cat: item.id_cat || '',
-      data_documento: item.data_documento || item.data_deposito || '',
-      id_deposito_esterno: item.id_deposito_esterno || item.id_deposito || '',
-      id_deposito_pct: item.id_deposito_pct || '',
-      tipo_atto: item.tipo_atto || '',
-      tipo: item.tipo || '',
-      original: true,
-    }))
-    .filter(item => item.id_documento);
-  if (!documents.length) throw new Error('Il fascicolo selezionato non espone identificativi validi per il download dei documenti.');
-  const total = documents.length;
-  const files = [];
-  const failures = [];
-  awShowDownloadProgress(0, total, '');
-  for (let i = 0; i < documents.length; i++) {
-    const doc = documents[i];
-    const nomeDsp = doc.nome_documento || doc.id_documento;
-    awShowDownloadProgress(i, total, nomeDsp);
-    try {
-      const data = await awPstDownloadDocumentoSingolo(tribunale, doc);
-      if (data.ok) {
-        files.push(...(data.files || []));
-        failures.push(...(data.failures || []));
-      } else {
-        failures.push({ id_documento: doc.id_documento, nome_documento: nomeDsp, errore: data.errore || 'Download non riuscito' });
-      }
-    } catch (err) {
-      failures.push({ id_documento: doc.id_documento, nome_documento: nomeDsp, errore: String(err) });
-    }
-  }
+  const total = previewDocs.length;
+  if (!total) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
+  awShowDownloadProgress(0, total, `Lotto unico ${total} documenti`);
+  const data = await awPstDownloadSelectionViaLocalSigner();
   awShowDownloadProgress(total, total, '');
-  return { ok: true, files, failures, documenti_richiesti: total, documenti_scaricati: files.length };
+  return {
+    ok: true,
+    files: Array.isArray(data.files) ? data.files : [],
+    failures: Array.isArray(data.failures) ? data.failures : [],
+    documenti_richiesti: Number(data.documenti_richiesti || total),
+    documenti_scaricati: Number(
+      data.documenti_scaricati
+      || (Array.isArray(data.files) ? data.files.length : 0)
+    ),
+    pst_session_id: data.pst_session_id || '',
+  };
 }
 async function awEnsurePstDownloadedFiles({ force = false } = {}) {
   const options = awCurrentOptions();

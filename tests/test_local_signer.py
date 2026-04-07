@@ -1448,6 +1448,45 @@ def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
     assert calls == [None, "AABBCC11"]
 
 
+def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_only():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl_batch_raw
+    calls = []
+    try:
+        def _fake_call(requests, cert_thumbprint=None, pkcs11_uri=None):
+            calls.append({
+                "cert_thumbprint": cert_thumbprint,
+                "cookie_files": [req.get("cookie_file") for req in requests],
+            })
+            if cert_thumbprint is None:
+                raise RuntimeError("cookie scaduto")
+            return [(b"<ok/>", "HTTP/1.1 200 OK\r\n")] * len(requests)
+
+        module._soap_call_curl_batch_raw = _fake_call
+
+        result = module._soap_call_pst_session_batch_raw(
+            [
+                {
+                    "url": "https://pst.example.test",
+                    "soap_body": "<xml/>",
+                    "cookie_file": "",
+                }
+            ],
+            cert_thumbprint="AABBCC11",
+            cookie_file="C:\\temp\\pst.cookies",
+            prefer_cookie_only=True,
+        )
+    finally:
+        module._soap_call_curl_batch_raw = orig_call
+
+    assert result == [(b"<ok/>", "HTTP/1.1 200 OK\r\n")]
+    assert calls == [
+        {"cert_thumbprint": None, "cookie_files": ["C:\\temp\\pst.cookies"]},
+        {"cert_thumbprint": "AABBCC11", "cookie_files": ["C:\\temp\\pst.cookies"]},
+    ]
+
+
 def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_certificato():
     module = _load_local_signer()
 

@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.20"
+VERSION = "1.5.21"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3165,6 +3165,7 @@ def _map_qbuilder_fascicolo(row: dict) -> dict:
 
 def _map_qbuilder_documento(row: dict) -> dict:
     tipo = _qbuilder_tipo_documento(str(row.get("TIPO") or ""))
+    id_cat = str(row.get("IDCAT") or row.get("IDCATEGORIA") or "").strip()
     id_documento = str(
         row.get("IDDOCUMENTO")
         or row.get("NUMERODOCUMENTO")
@@ -3185,6 +3186,10 @@ def _map_qbuilder_documento(row: dict) -> dict:
     ):
         if candidate and candidate not in id_documento_candidates:
             id_documento_candidates.append(candidate)
+    if not id_cat and id_documento_candidates:
+        # Nei flussi SICID l'idCat coincide spesso con l'id documento esposto
+        # nella lista fascicolo: usiamolo subito per evitare round-trip inutili.
+        id_cat = id_documento_candidates[0]
     return {
         "id_documento": id_documento,
         "nome": f"{tipo}_{numero_doc}.pdf" if numero_doc else tipo,
@@ -3199,6 +3204,7 @@ def _map_qbuilder_documento(row: dict) -> dict:
         "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
         "numero_documento": numero_documento,
         "id_doc_mittente": id_doc_mittente,
+        "id_cat": id_cat,
         "id_documento_candidates": id_documento_candidates,
     }
 
@@ -3278,6 +3284,7 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
             "idbusta",
             "tipoatto",
             "desctipoatto",
+            "idcat",
             "disponibile",
         }
 
@@ -3316,6 +3323,7 @@ def _parse_documenti_xml(xml_str: str) -> list[dict]:
                 "dimensione_bytes": dimensione,
                 "id_deposito": _t("idDeposito", "idBusta"),
                 "tipo_atto": _t("tipoAtto", "descTipoAtto"),
+                "id_cat": _t("idCat") or _t("idDocumento", "id"),
                 "disponibile": _t("disponibile").lower() != "false",
             }
             if not any(
@@ -3366,6 +3374,18 @@ def _parse_profilo_documento_xml(xml_str: str) -> dict:
     except Exception as e:
         log.warning("_parse_profilo_documento_xml: %s", e)
         return {}
+
+
+def _pst_effective_id_cat(item: Optional[dict], id_documento: str = "") -> str:
+    raw = dict(item or {})
+    explicit = str(raw.get("id_cat") or "").strip()
+    if explicit:
+        return explicit
+    if id_documento and not raw.get("id_documento"):
+        raw["id_documento"] = id_documento
+    for candidate in _pst_document_id_candidates(raw):
+        return candidate
+    return ""
 
 
 def _normalizza_http_content_type(content_type: str) -> str:
@@ -3544,6 +3564,7 @@ def _pst_download_documento_payload(
                 "Il download ufficiale del documento richiede il codice fiscale dell'avvocato nell'header X-WASP-User."
             )
         extra_headers = [f"X-WASP-User: {cf_avvocato}"]
+        id_cat = _pst_effective_id_cat({"id_cat": id_cat, "id_documento": id_documento}, id_documento)
         if not id_cat:
             profilo_xml = _soap_call_pst_session(
                 url=url_documenti,
@@ -3747,7 +3768,7 @@ def _pst_download_documenti_batch_payloads(
                 id_doc = str(raw.get("id_documento") or raw.get("id_documento_portale") or "").strip()
                 if not id_doc:
                     continue
-                miss_cat = not str(raw.get("id_cat") or "").strip()
+                miss_cat = not _pst_effective_id_cat(raw, id_doc)
                 miss_meta = not str(raw.get("nome_documento") or raw.get("nome") or "").strip()
                 if miss_cat or (servizio == "JPW_SIECIC" and miss_meta):
                     need_prof.append(i)
@@ -3850,7 +3871,7 @@ def _pst_download_documenti_batch_payloads(
                     soap_action = "downloadAtto"
                     extra_h: list[str] = []
                 elif servizio == "JPW_SICID":
-                    id_cat = str(item.get("id_cat") or "").strip()
+                    id_cat = _pst_effective_id_cat(item, id_doc)
                     if not id_cat:
                         if allow_single_fallback:
                             # Per il lotto singolo mantieni il fallback puntuale.

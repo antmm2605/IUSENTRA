@@ -507,6 +507,14 @@ function awFormatDownloadFailures(failures) {
   const extra = rows.length > 4 ? ` (+${rows.length - 4} altri)` : '';
   return `${preview}${extra}`;
 }
+function awDocumentPortalIdLine(doc) {
+  const idDocumento = String(doc?.id_documento || doc?.id_documento_portale || '').trim();
+  const idCat = String(doc?.id_cat || '').trim();
+  const label = idDocumento && idCat && idDocumento !== idCat
+    ? `ID documento: ${idDocumento} · idCat: ${idCat}`
+    : `ID documento / idCat: ${idCat || idDocumento || 'n.d.'}`;
+  return `<div class="small text-muted mt-1">${awEscape(label)}</div>`;
+}
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
   await awEnsurePstPortalSession(tribunale);
@@ -886,7 +894,7 @@ function awRenderPreview() {
             <div><div class="fw-semibold">${awEscape(dep.tipo_atto || dep.id_deposito || 'Deposito')}</div><div class="small text-muted">${awEscape(dep.data_deposito || 'n.d.')} ${dep.mittente ? `- ${awEscape(dep.mittente)}` : ''}</div></div>
             <span class="badge text-bg-light border">${(dep.documenti || []).length} file</span>
           </div>
-          <div class="small">${(dep.documenti || []).map(doc => `<div class="d-flex justify-content-between gap-2 py-1 border-top"><span>${awEscape(doc.nome || doc.id_documento)}</span><span class="text-muted">${awEscape(doc.tipo_atto || doc.tipo || '')}</span></div>`).join('')}</div>
+          <div class="small">${(dep.documenti || []).map(doc => `<div class="d-flex justify-content-between gap-2 py-1 border-top"><div class="flex-grow-1"><div>${awEscape(doc.nome || doc.id_documento)}</div>${awDocumentPortalIdLine(doc)}</div><span class="text-muted text-end">${awEscape(doc.tipo_atto || doc.tipo || '')}</span></div>`).join('')}</div>
         </div>`).join('') : '<div class="aw-box text-muted">Nessun documento disponibile dal portale per questo fascicolo.</div>'}
     </div>`;
 }

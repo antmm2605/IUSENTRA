@@ -4736,6 +4736,26 @@ def create_app(config: dict | None = None) -> Flask:
         }.get((portale or "").strip().lower(), (portale or "").upper())
 
     def _normalize_portale_documents(documenti: list[dict]) -> list[dict]:
+        def _effective_id_cat(item: dict[str, Any]) -> str:
+            explicit = str(item.get("id_cat") or "").strip()
+            if explicit:
+                return explicit
+            candidates = []
+            for value in list(item.get("id_documento_candidates") or []):
+                candidate = str(value or "").strip()
+                if candidate and candidate not in candidates:
+                    candidates.append(candidate)
+            for value in (
+                item.get("id_documento"),
+                item.get("id_documento_portale"),
+                item.get("numero_documento"),
+                item.get("id_doc_mittente"),
+            ):
+                candidate = str(value or "").strip()
+                if candidate and candidate not in candidates:
+                    candidates.append(candidate)
+            return candidates[0] if candidates else ""
+
         rows: list[dict] = []
         for row in documenti or []:
             item = dict(row or {})
@@ -4744,9 +4764,13 @@ def create_app(config: dict | None = None) -> Flask:
                 for value in list(item.get("id_documento_candidates") or [])
                 if str(value or "").strip()
             ]
+            id_documento = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
+            if id_documento and id_documento not in candidates:
+                candidates.insert(0, id_documento)
+            id_cat = _effective_id_cat(item)
             rows.append(
                 {
-                    "id_documento": str(item.get("id_documento") or "").strip(),
+                    "id_documento": id_documento,
                     "nome": str(item.get("nome") or item.get("nome_documento") or "").strip(),
                     "tipo": str(item.get("tipo") or "").strip(),
                     "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or "").strip(),
@@ -4755,7 +4779,7 @@ def create_app(config: dict | None = None) -> Flask:
                     "dimensione_bytes": int(item.get("dimensione_bytes") or 0),
                     "disponibile": bool(item.get("disponibile", True)),
                     "id_deposito": str(item.get("id_deposito") or item.get("id_deposito_esterno") or "").strip(),
-                    "id_cat": str(item.get("id_cat") or "").strip(),
+                    "id_cat": id_cat,
                     "numero_documento": str(item.get("numero_documento") or "").strip(),
                     "id_doc_mittente": str(item.get("id_doc_mittente") or "").strip(),
                     "id_documento_candidates": candidates,

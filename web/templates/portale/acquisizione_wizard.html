@@ -148,6 +148,9 @@ const AW_STATE = {
 };
 let AW_PST_CERT = null;
 let AW_PST_SESSION = null;
+let AW_STATUS_REFRESH_PROMISE = null;
+let AW_CERT_SELECT_PROMISE = null;
+let AW_ACCESS_BUSY = false;
 const AW_STEPS = [
   {id:1,t:'Accesso',s:'Sorgente e connessione'},
   {id:2,t:'Ricerca',s:'Trova il fascicolo'},
@@ -218,6 +221,13 @@ function awSavePstSession(session) {
 function awClearPstSession() {
   awSavePstSession(null);
 }
+function awSetAccessBusy(busy) {
+  AW_ACCESS_BUSY = !!busy;
+  ['awTest', 'awGoSearch'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = AW_ACCESS_BUSY;
+  });
+}
 function awRememberPstSession(data, tribunale) {
   const sid = String(data?.pst_session_id || '').trim();
   if (!sid) return null;
@@ -255,7 +265,7 @@ function awIsPstSessionExpiredError(err) {
 async function awEnsurePstPortalSession(tribunale, { force = false } = {}) {
   const ufficio = String(tribunale || '').trim();
   if (!ufficio) throw new Error('Seleziona prima l’ufficio giudiziario del fascicolo.');
-  if (!AW_PST_CERT) await awLsSelectCert();
+  if (!AW_PST_CERT) await awEnsurePstCertReady();
   if (!force && awHasActivePstSession(ufficio)) return AW_PST_SESSION;
   const data = await awJson(`${AW_PST_LS_BASE}/pst/preflight-auth`, {
     method: 'POST',
@@ -297,27 +307,36 @@ function awCurrentQuery() {
     quick_filter: AW_STATE.quick || '',
   };
 }
-async function awRefreshStatus() {
-  const data = await awJson(AW_BOOT.statusUrl);
-  if (data.ok) AW_STATE.status = data.status;
-  if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
-    try {
-      const ping = await awLsPing();
-      AW_STATE.status.local_signer = ping;
-      if (ping?.certificato_windows_selezionato) {
-        awSavePstCert({
-          thumbprint: ping.certificato_windows_selezionato.thumbprint,
-          soggetto: ping.certificato_windows_selezionato.soggetto,
-          emittente: ping.certificato_windows_selezionato.emittente,
-          scadenza: ping.certificato_windows_selezionato.scadenza,
-          auto_selezionato: true,
-        });
+async function awRefreshStatus({ force = false } = {}) {
+  if (!force && AW_STATUS_REFRESH_PROMISE) return AW_STATUS_REFRESH_PROMISE;
+  AW_STATUS_REFRESH_PROMISE = (async () => {
+    const data = await awJson(AW_BOOT.statusUrl);
+    if (data.ok) AW_STATE.status = data.status;
+    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
+      try {
+        const ping = await awLsPing();
+        AW_STATE.status.local_signer = ping;
+        if (ping?.certificato_windows_selezionato) {
+          awSavePstCert({
+            thumbprint: ping.certificato_windows_selezionato.thumbprint,
+            soggetto: ping.certificato_windows_selezionato.soggetto,
+            emittente: ping.certificato_windows_selezionato.emittente,
+            scadenza: ping.certificato_windows_selezionato.scadenza,
+            auto_selezionato: true,
+          });
+        }
+      } catch (err) {
+        AW_STATE.status.local_signer_error = String(err);
       }
-    } catch (err) {
-      AW_STATE.status.local_signer_error = String(err);
     }
+    awRenderAccess();
+    return AW_STATE.status;
+  })();
+  try {
+    return await AW_STATUS_REFRESH_PROMISE;
+  } finally {
+    AW_STATUS_REFRESH_PROMISE = null;
   }
-  awRenderAccess();
 }
 async function awLsPing() {
   const prefs = AW_STATE.status.cert_preferences || {};
@@ -341,6 +360,24 @@ async function awLsSelectCert() {
   if (!data.ok) throw new Error(data.errore || 'Selezione certificato non riuscita');
   awSavePstCert({ thumbprint: data.thumbprint, soggetto: data.soggetto, emittente: data.emittente, scadenza: data.scadenza, auto_selezionato: !!data.auto_selezionato });
   return AW_PST_CERT;
+}
+async function awEnsurePstCertReady({ forceDialog = false } = {}) {
+  if (!forceDialog && AW_PST_CERT?.thumbprint) return AW_PST_CERT;
+  if (!forceDialog) {
+    await awRefreshStatus();
+    if (AW_PST_CERT?.thumbprint) return AW_PST_CERT;
+  }
+  if (AW_CERT_SELECT_PROMISE) return AW_CERT_SELECT_PROMISE;
+  AW_CERT_SELECT_PROMISE = (async () => {
+    const cert = await awLsSelectCert();
+    await awRefreshStatus({ force: true });
+    return cert;
+  })();
+  try {
+    return await AW_CERT_SELECT_PROMISE;
+  } finally {
+    AW_CERT_SELECT_PROMISE = null;
+  }
 }
 async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
@@ -1155,17 +1192,28 @@ function awInitOfficeAutocomplete() {
 }
 function awBindActions() {
   document.getElementById('awTest').addEventListener('click', async () => {
-    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
-      try { await awLsSelectCert(); } catch (err) { alert(String(err)); }
+    if (AW_ACCESS_BUSY) return;
+    awSetAccessBusy(true);
+    try {
+      if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
+        try { await awEnsurePstCertReady(); } catch (err) { alert(String(err)); return; }
+      }
+      await awRefreshStatus({ force: true });
+    } finally {
+      awSetAccessBusy(false);
     }
-    await awRefreshStatus();
   });
   document.getElementById('awGoSearch').addEventListener('click', async () => {
-    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
-      try { await awLsSelectCert(); } catch (err) { alert(String(err)); return; }
-      await awRefreshStatus();
+    if (AW_ACCESS_BUSY) return;
+    awSetAccessBusy(true);
+    try {
+      if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
+        try { await awEnsurePstCertReady(); } catch (err) { alert(String(err)); return; }
+      }
+      awGoStep(2);
+    } finally {
+      awSetAccessBusy(false);
     }
-    awGoStep(2);
   });
   document.getElementById('awSearch').addEventListener('click', awRunSearch);
   ['awNumero', 'awAnno', 'awAssistito', 'awControparte', 'awCf', 'awOggetto'].forEach(id => {
@@ -1212,8 +1260,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   awRenderSidebar();
   awBindQuickFilters();
   awInitOfficeAutocomplete();
-  awBindActions();
-  await awRefreshStatus();
+  awSetAccessBusy(true);
+  try {
+    await awRefreshStatus({ force: true });
+  } finally {
+    awBindActions();
+    awSetAccessBusy(false);
+  }
 });
 </script>
 {% endblock %}

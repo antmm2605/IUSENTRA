@@ -21,8 +21,10 @@ Non richiede internet, non richiede Execution Policy, funziona con doppio clic.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import struct
+import subprocess
 import sys
 import textwrap
 from datetime import datetime, timezone
@@ -37,6 +39,7 @@ REQS_TXT       = TOOLS_DIR / "requirements_local_signer.txt"
 INSTALL_PS1    = TOOLS_DIR / "installa_local_signer_locale.ps1"
 UFFICI_JSON    = REPO_DIR / "pct" / "data" / "uffici_ministero.json"
 IEXPRESS_STUB  = TOOLS_DIR / "iexpress_stub.bin"
+WINDOWS_NATIVE_BUILDER = TOOLS_DIR / "build_local_signer_windows_exe.ps1"
 
 BASE_URL_DEFAULT  = "https://studio-legale-pct-production.up.railway.app"
 DOWNLOAD_PAGE     = f"{BASE_URL_DEFAULT}/impostazioni?tab=firma"
@@ -216,6 +219,38 @@ def build_windows_exe(version: str) -> bytes:
     return stub + cab
 
 
+def build_windows_exe_native(version: str) -> bytes:
+    """
+    Genera l'EXE Windows usando IExpress nativo.
+
+    Questa e' la strada preferita su Windows perche' replica il formato
+    degli installer che hanno funzionato correttamente fino alla 1.5.9.
+    Il builder custom resta come fallback tecnico per ambienti senza
+    IExpress o non-Windows.
+    """
+    if os.name != "nt":
+        raise RuntimeError("Builder Windows nativo disponibile solo su Windows.")
+    if not WINDOWS_NATIVE_BUILDER.exists():
+        raise FileNotFoundError(f"Builder PowerShell non trovato: {WINDOWS_NATIVE_BUILDER}")
+
+    subprocess.run(
+        [
+            "powershell",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(WINDOWS_NATIVE_BUILDER),
+        ],
+        cwd=str(REPO_DIR),
+        check=True,
+    )
+
+    win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
+    if not win_path.exists():
+        raise FileNotFoundError(f"Build IExpress completata senza generare {win_path}")
+    return win_path.read_bytes()
+
+
 def build_macos_command(version: str, base_url: str) -> str:
     allowed_origins = ",".join(sorted({
         base_url.rstrip("/"),
@@ -377,7 +412,7 @@ def main() -> None:
             print(f"ERRORE: file sorgente non trovato: {path}", file=sys.stderr)
             sys.exit(1)
 
-    if not args.no_windows and not IEXPRESS_STUB.exists():
+    if not args.no_windows and os.name != "nt" and not IEXPRESS_STUB.exists():
         print(f"ERRORE: stub IExpress non trovato: {IEXPRESS_STUB}", file=sys.stderr)
         sys.exit(1)
 
@@ -405,13 +440,16 @@ def main() -> None:
     # Windows EXE (IExpress stub + CAB MSZIP offline)
     if not args.no_windows:
         win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
-        total_kb = (LS_PY.stat().st_size + UFFICI_JSON.stat().st_size) // 1024
-        print(f"  Genero Windows EXE offline (stub + CAB MSZIP, ~{total_kb}KB payload)...")
-        exe_data = build_windows_exe(version)
-        win_path.write_bytes(exe_data)
-        # Aggiorna alias legacy
         alias_path = DIST_DIR / "SetupLocalSigner.exe"
-        alias_path.write_bytes(exe_data)
+        if os.name == "nt" and WINDOWS_NATIVE_BUILDER.exists():
+            print("  Genero Windows EXE offline con IExpress nativo...")
+            exe_data = build_windows_exe_native(version)
+        else:
+            total_kb = (LS_PY.stat().st_size + UFFICI_JSON.stat().st_size) // 1024
+            print(f"  Genero Windows EXE offline (stub + CAB MSZIP, ~{total_kb}KB payload)...")
+            exe_data = build_windows_exe(version)
+            win_path.write_bytes(exe_data)
+            alias_path.write_bytes(exe_data)
         print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size // 1024}KB)")
         print(f"  [OK] Alias   : SetupLocalSigner.exe aggiornato")
 

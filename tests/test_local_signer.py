@@ -1429,7 +1429,7 @@ def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
         def _fake_call(*args, **kwargs):
             calls.append(kwargs.get("cert_thumbprint"))
             if kwargs.get("cert_thumbprint") is None:
-                raise RuntimeError("cookie scaduto")
+                raise RuntimeError("Sessione accesso PST scaduta o non disponibile. Esegui di nuovo il test connessione per riaprire il canale autenticato.")
             return "<ok/>"
 
         module._soap_call_curl = _fake_call
@@ -1460,7 +1460,7 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
                 "cookie_files": [req.get("cookie_file") for req in requests],
             })
             if cert_thumbprint is None:
-                raise RuntimeError("cookie scaduto")
+                raise RuntimeError("Il PST ha risposto HTTP 401 Unauthorized da ext.processotelematico.giustizia.it.")
             return [(b"<ok/>", "HTTP/1.1 200 OK\r\n")] * len(requests)
 
         module._soap_call_curl_batch_raw = _fake_call
@@ -1485,6 +1485,69 @@ def test_soap_call_pst_session_batch_raw_riprova_con_certificato_dopo_cookie_onl
         {"cert_thumbprint": None, "cookie_files": ["C:\\temp\\pst.cookies"]},
         {"cert_thumbprint": "AABBCC11", "cookie_files": ["C:\\temp\\pst.cookies"]},
     ]
+
+
+def test_soap_call_pst_session_non_richiede_secondo_certificato_su_timeout():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl
+    calls = []
+    try:
+        def _fake_call(*args, **kwargs):
+            calls.append(kwargs.get("cert_thumbprint"))
+            raise RuntimeError(
+                "Timeout connessione a ext.processotelematico.giustizia.it (90s).\n"
+                "Il servizio PST potrebbe essere sovraccarico. Riprovare tra qualche minuto."
+            )
+
+        module._soap_call_curl = _fake_call
+
+        try:
+            module._soap_call_pst_session(
+                url="https://pst.example.test",
+                soap_body="<xml/>",
+                cert_thumbprint="AABBCC11",
+                cookie_file="C:\\temp\\pst.cookies",
+                prefer_cookie_only=True,
+            )
+            raise AssertionError("Atteso RuntimeError")
+        except RuntimeError as err:
+            assert "Timeout connessione" in str(err)
+    finally:
+        module._soap_call_curl = orig_call
+
+    assert calls == [None]
+
+
+def test_soap_call_pst_session_batch_raw_non_richiede_secondo_certificato_su_timeout():
+    module = _load_local_signer()
+
+    orig_call = module._soap_call_curl_batch_raw
+    calls = []
+    try:
+        def _fake_call(requests, cert_thumbprint=None, pkcs11_uri=None):
+            calls.append(cert_thumbprint)
+            raise RuntimeError(
+                "Timeout connessione a ext.processotelematico.giustizia.it (90s).\n"
+                "Il servizio PST potrebbe essere sovraccarico. Riprovare tra qualche minuto."
+            )
+
+        module._soap_call_curl_batch_raw = _fake_call
+
+        try:
+            module._soap_call_pst_session_batch_raw(
+                [{"url": "https://pst.example.test", "soap_body": "<xml/>"}],
+                cert_thumbprint="AABBCC11",
+                cookie_file="C:\\temp\\pst.cookies",
+                prefer_cookie_only=True,
+            )
+            raise AssertionError("Atteso RuntimeError")
+        except RuntimeError as err:
+            assert "Timeout connessione" in str(err)
+    finally:
+        module._soap_call_curl_batch_raw = orig_call
+
+    assert calls == [None]
 
 
 def test_download_documenti_batch_con_sessione_attiva_riusa_cookie_prima_del_certificato():

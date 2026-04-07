@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.14
+HACS Local Signer — v1.5.15
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.14"
+VERSION = "1.5.15"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1684,6 +1684,53 @@ def _messaggio_timeout_preflight_non_bloccante(host: str) -> str:
     )
 
 
+def _pst_cookie_retry_requires_cert(error: Exception) -> bool:
+    """
+    Decide se un errore emerso in modalita' cookie-only giustifica il retry
+    col certificato client.
+
+    Retry SI: segnali di sessione/certificato non accettato dal PST.
+    Retry NO: timeout, DNS, host down, 5xx temporanei e simili, per evitare
+    un secondo prompt PIN inutile quando il problema non e' l'autenticazione.
+    """
+    text = str(error or "").strip().lower()
+    if not text:
+        return False
+
+    no_retry_markers = [
+        "timeout connessione",
+        "curl uscito con codice 28",
+        "servizio pst potrebbe essere sovraccarico",
+        "errore dns",
+        "impossibile risolvere il nome host",
+        "connessione rifiutata",
+        "errore interno o temporaneo",
+        "http 404",
+        "http 500",
+        "http 502",
+        "http 503",
+        "http 504",
+    ]
+    if any(marker in text for marker in no_retry_markers):
+        return False
+
+    retry_markers = [
+        "http 401",
+        "unauthorized",
+        "http 403",
+        "forbidden",
+        "certificato cns/cie selezionato non",
+        "certificato client",
+        "sessione accesso pst scaduta",
+        "riaprire il canale autenticato",
+        "soap fault",
+        "pagina html anzich",
+        "accesso al servizio è stato negato",
+        "accesso al servizio e' stato negato",
+    ]
+    return any(marker in text for marker in retry_markers)
+
+
 def _format_windows_cert_spec(cert_thumbprint: Optional[str]) -> str:
     """
     Formatta il certificato client per curl+Schannel.
@@ -2300,6 +2347,8 @@ def _soap_call_pst_session(
         try:
             return _run(None)
         except Exception as e:
+            if not _pst_cookie_retry_requires_cert(e):
+                raise
             log.debug("PST cookie-only fallback su certificato per %s: %s", url, e)
     return _run(cert_thumbprint)
 
@@ -2333,6 +2382,8 @@ def _soap_call_pst_session_raw(
         try:
             return _run(None)
         except Exception as e:
+            if not _pst_cookie_retry_requires_cert(e):
+                raise
             log.debug("PST raw cookie-only fallback su certificato per %s: %s", url, e)
     return _run(cert_thumbprint)
 
@@ -2366,6 +2417,8 @@ def _soap_call_pst_session_batch_raw(
                 cert_thumbprint=None,
             )
         except Exception as e:
+            if not _pst_cookie_retry_requires_cert(e):
+                raise
             log.debug("PST batch cookie-only fallback su certificato: %s", e)
     return _soap_call_curl_batch_raw(
         effective_requests,

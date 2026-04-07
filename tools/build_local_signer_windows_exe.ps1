@@ -41,6 +41,7 @@ $version = $match.Groups[1].Value
 
 $outputExeVersioned = Join-Path $distDir ("SetupLocalSigner-$version.exe")
 $outputExeAlias = Join-Path $distDir "SetupLocalSigner.exe"
+$outputPs1Versioned = Join-Path $distDir ("InstallaLocalSigner-$version.ps1")
 $outputMac = Join-Path $distDir ("InstallaLocalSigner-$version.command")
 $outputLinux = Join-Path $distDir ("InstallaLocalSigner-$version.run")
 $releaseNote = Join-Path $distDir ("LocalSigner-$version.txt")
@@ -66,6 +67,7 @@ $installHeader = @"
 
 "@
 Write-Utf8TextFile -Path $buildInstallPs1 -Content ($installHeader + $installScriptSource)
+Write-Utf8TextFile -Path $outputPs1Versioned -Content ($installHeader + $installScriptSource)
 Copy-Item (Join-Path $toolsDir "local_signer.py") $buildDir -Force
 Copy-Item (Join-Path $toolsDir "requirements_local_signer.txt") $buildDir -Force
 Copy-Item $ufficiJson $buildDir -Force

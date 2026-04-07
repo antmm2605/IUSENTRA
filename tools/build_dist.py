@@ -391,6 +391,15 @@ def build_release_note(version: str) -> str:
     )
 
 
+def build_windows_ps1(version: str) -> str:
+    header = (
+        f"# HACS Local Signer Setup v{version}\n"
+        f"# Pacchetto generato il {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        f"# Punto ufficiale download: {DOWNLOAD_PAGE}\n\n"
+    )
+    return header + INSTALL_PS1.read_text(encoding="utf-8")
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -441,6 +450,7 @@ def main() -> None:
     if not args.no_windows:
         win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
         alias_path = DIST_DIR / "SetupLocalSigner.exe"
+        ps1_path = DIST_DIR / f"InstallaLocalSigner-{version}.ps1"
         if os.name == "nt" and WINDOWS_NATIVE_BUILDER.exists():
             print("  Genero Windows EXE offline con IExpress nativo...")
             exe_data = build_windows_exe_native(version)
@@ -450,8 +460,10 @@ def main() -> None:
             exe_data = build_windows_exe(version)
             win_path.write_bytes(exe_data)
             alias_path.write_bytes(exe_data)
+        ps1_path.write_text(build_windows_ps1(version), encoding="utf-8")
         print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size // 1024}KB)")
         print(f"  [OK] Alias   : SetupLocalSigner.exe aggiornato")
+        print(f"  [OK] Support : {ps1_path.name}")
 
     # Release note
     note_path = DIST_DIR / f"LocalSigner-{version}.txt"

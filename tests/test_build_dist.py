@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 import tools.build_dist as build_dist
@@ -28,3 +30,29 @@ def test_build_windows_exe_native_usa_builder_powershell_e_legge_l_exe(monkeypat
 
     assert risultato == contenuto
     assert exe_path.read_bytes() == contenuto
+
+
+def test_build_windows_ps1_include_versione_e_script_originale():
+    versione = "1.5.12"
+
+    contenuto = build_dist.build_windows_ps1(versione)
+
+    assert f"HACS Local Signer Setup v{versione}" in contenuto
+    assert "param(" in contenuto
+    assert "Find-PythonCommand" in contenuto
+
+
+def test_installer_powershell_non_ha_errori_di_parse():
+    if os.name != "nt":
+        return
+
+    comando = [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        "$errors=$null; $tokens=$null; "
+        "[System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'tools\\installa_local_signer_locale.ps1'), [ref]$tokens, [ref]$errors) > $null; "
+        "if ($errors) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }",
+    ]
+
+    subprocess.run(comando, cwd=Path(__file__).resolve().parents[1], check=True)

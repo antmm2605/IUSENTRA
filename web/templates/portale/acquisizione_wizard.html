@@ -107,6 +107,16 @@
         <div class="small text-muted mt-2">Se attivo, HACS archivia anche la struttura tecnica originale dei file scaricati dal portale, oltre a ripartirli nelle sezioni corrette della UI.</div>
       </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
+      <div id="awDownloadProgress" style="display:none" class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <small class="fw-semibold text-muted" id="awDownloadProgressLabel">Scaricamento allegati in corso...</small>
+          <small class="text-muted" id="awDownloadProgressCount">0/0</small>
+        </div>
+        <div class="progress rounded-pill" style="height:10px">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" id="awDownloadProgressBar" role="progressbar" style="width:0%" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="small text-muted mt-1 text-truncate" id="awDownloadProgressFile"></div>
+      </div>
       <div class="d-flex flex-wrap gap-2" id="awImportActions"></div>
     </div></div></section>
   </div>
@@ -477,6 +487,99 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
     throw err;
   }
 }
+function awShowDownloadProgress(current, total, filename) {
+  const wrapper = document.getElementById('awDownloadProgress');
+  const bar = document.getElementById('awDownloadProgressBar');
+  const label = document.getElementById('awDownloadProgressLabel');
+  const countEl = document.getElementById('awDownloadProgressCount');
+  const fileEl = document.getElementById('awDownloadProgressFile');
+  if (!wrapper) return;
+  wrapper.style.display = '';
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  bar.style.width = pct + '%';
+  bar.setAttribute('aria-valuenow', pct);
+  if (current >= total && total > 0) {
+    bar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+    bar.classList.add('bg-success');
+    label.textContent = 'Download completato.';
+  } else {
+    bar.classList.add('progress-bar-animated', 'progress-bar-striped');
+    bar.classList.remove('bg-success');
+    label.textContent = 'Scaricamento allegati dal portale...';
+  }
+  countEl.textContent = `${current}/${total}`;
+  fileEl.textContent = filename ? `\u2193 ${filename}` : '';
+}
+function awHideDownloadProgress() {
+  const wrapper = document.getElementById('awDownloadProgress');
+  if (wrapper) wrapper.style.display = 'none';
+}
+async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
+  try {
+    const data = await awJson(`${AW_PST_LS_BASE}/pst/download-documenti-batch`, {
+      method: 'POST',
+      body: JSON.stringify({
+        tribunale,
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+        pst_session_id: AW_PST_SESSION?.session_id || '',
+        preflight_auth: false,
+        documents: [doc],
+      }),
+    });
+    if (data.pst_session_id) awRememberPstSession(data, tribunale);
+    return data;
+  } catch (err) {
+    if (retry && awIsPstSessionExpiredError(err)) {
+      awClearPstSession();
+      await awEnsurePstPortalSession(tribunale, { force: true });
+      return awPstDownloadDocumentoSingolo(tribunale, doc, false);
+    }
+    throw err;
+  }
+}
+async function awPstDownloadConProgresso() {
+  const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
+  await awEnsurePstPortalSession(tribunale);
+  const previewDocs = awPreviewDocuments();
+  if (!previewDocs.length) return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0 };
+  const documents = previewDocs
+    .map(item => ({
+      id_documento: item.id_documento || item.id_documento_portale || '',
+      nome_documento: item.nome || item.nome_documento || '',
+      id_cat: item.id_cat || '',
+      data_documento: item.data_documento || item.data_deposito || '',
+      id_deposito_esterno: item.id_deposito_esterno || item.id_deposito || '',
+      id_deposito_pct: item.id_deposito_pct || '',
+      tipo_atto: item.tipo_atto || '',
+      tipo: item.tipo || '',
+      original: true,
+    }))
+    .filter(item => item.id_documento);
+  if (!documents.length) throw new Error('Il fascicolo selezionato non espone identificativi validi per il download dei documenti.');
+  const total = documents.length;
+  const files = [];
+  const failures = [];
+  awShowDownloadProgress(0, total, '');
+  for (let i = 0; i < documents.length; i++) {
+    const doc = documents[i];
+    const nomeDsp = doc.nome_documento || doc.id_documento;
+    awShowDownloadProgress(i, total, nomeDsp);
+    try {
+      const data = await awPstDownloadDocumentoSingolo(tribunale, doc);
+      if (data.ok) {
+        files.push(...(data.files || []));
+        failures.push(...(data.failures || []));
+      } else {
+        failures.push({ id_documento: doc.id_documento, nome_documento: nomeDsp, errore: data.errore || 'Download non riuscito' });
+      }
+    } catch (err) {
+      failures.push({ id_documento: doc.id_documento, nome_documento: nomeDsp, errore: String(err) });
+    }
+  }
+  awShowDownloadProgress(total, total, '');
+  return { ok: true, files, failures, documenti_richiesti: total, documenti_scaricati: files.length };
+}
 async function awEnsurePstDownloadedFiles({ force = false } = {}) {
   const options = awCurrentOptions();
   if (!options.importa_documenti) {
@@ -489,13 +592,14 @@ async function awEnsurePstDownloadedFiles({ force = false } = {}) {
   if (!force && AW_STATE.downloadSummary && AW_STATE.downloadCacheKey === cacheKey) {
     return AW_STATE.downloadSummary;
   }
-  const summary = await awPstDownloadSelectionViaLocalSigner();
+  const summary = await awPstDownloadConProgresso();
   const files = Array.isArray(summary.files) ? summary.files : [];
   const failures = Array.isArray(summary.failures) ? summary.failures : [];
   AW_STATE.downloadedFiles = files;
   AW_STATE.downloadSummary = { ...summary, files, failures };
   AW_STATE.downloadCacheKey = cacheKey;
   if (!files.length) {
+    awHideDownloadProgress();
     throw new Error(
       failures.length
         ? `Il portale non ha restituito file scaricabili. ${awFormatDownloadFailures(failures)}`
@@ -905,27 +1009,33 @@ async function awStartImport() {
   }
   const state = document.getElementById('awImportState');
   const actions = document.getElementById('awImportActions');
+  const importBtn = document.getElementById('awImport');
   state.innerHTML = 'Importazione guidata in corso...';
   actions.innerHTML = '';
+  awHideDownloadProgress();
+  importBtn.disabled = true;
   const options = awCurrentOptions();
   let downloadedFiles = Array.isArray(AW_STATE.downloadedFiles) ? AW_STATE.downloadedFiles : [];
   let downloadSummary = null;
   try {
     if (AW_BOOT.portale === 'pst' && options.importa_documenti && Number(AW_STATE.preview?.counts?.documenti || 0) > 0) {
-      state.innerHTML = 'Apertura sessione PST e download batch dei file ufficiali in corso...';
+      state.innerHTML = 'Apertura sessione PST e scaricamento allegati in corso — inserire il PIN una sola volta se richiesto...';
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
       if (AW_STATE.downloadWarning) {
         state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione in corso con i file disponibili...</small>`;
         await new Promise(r => setTimeout(r, 2000));
       } else {
-        state.innerHTML = `Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} file ricevuti dal portale.`;
+        state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} allegati scaricati. Importazione in corso...`;
       }
     }
   } catch (err) {
-    state.innerHTML = `<span class="text-danger">${awEscape(String(err))}</span>`;
+    awHideDownloadProgress();
+    importBtn.disabled = false;
+    state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(String(err))}</span>`;
     return;
   }
+  state.innerHTML = (state.innerHTML.includes('alert-') ? state.innerHTML : state.innerHTML) + (downloadSummary ? '' : '') + '<br><small class="text-muted">Registrazione nel gestionale in corso...</small>';
   const data = await awJson(AW_BOOT.importUrl, {
     method: 'POST',
     body: JSON.stringify({
@@ -936,8 +1046,10 @@ async function awStartImport() {
       downloaded_files: downloadedFiles,
     }),
   });
+  importBtn.disabled = false;
+  awHideDownloadProgress();
   if (!data.ok) {
-    state.innerHTML = `<span class="text-danger">${awEscape(data.errore || 'Importazione non riuscita')}</span>`;
+    state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(data.errore || 'Importazione non riuscita')}</span>`;
     return;
   }
   AW_STATE.importResult = data.result || data || null;
@@ -945,15 +1057,15 @@ async function awStartImport() {
   const failureCount = Number(downloadSummary?.failures?.length || 0);
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
-      <div class="fw-semibold mb-1">${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
+      <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
       <div class="small">
-        Documenti importati: ${awEscape(summary.documenti || 0)} -
-        Depositi censiti: ${awEscape(summary.depositi || 0)} -
-        Eventi generati: ${awEscape(summary.eventi_generati || 0)} -
-        Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} -
+        Documenti importati: ${awEscape(summary.documenti || 0)} ·
+        Depositi censiti: ${awEscape(summary.depositi || 0)} ·
+        Eventi generati: ${awEscape(summary.eventi_generati || 0)} ·
+        Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} ·
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
-      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} file ufficiali scaricati dal portale${failureCount ? ` - ${awEscape(failureCount)} download da verificare` : ''}.</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
       ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;

@@ -2132,17 +2132,14 @@ def _soap_call_pst_session(
         )
 
     if prefer_cookie_only and cookie_file:
-        with _mTLS_required_lock:
-            already_mTLS = host in _mTLS_required_hosts
-        if not already_mTLS:
-            try:
-                return _run(None)
-            except Exception as e:
-                log.debug("PST cookie-only fallback su certificato per %s: %s (mTLS required)", url, e)
-                with _mTLS_required_lock:
-                    _mTLS_required_hosts.add(host)
-        else:
-            log.debug("PST: host %s noto come mTLS — uso cert direttamente", host)
+        # Quando prefer_cookie_only=True il preflight ha già stabilito una sessione
+        # autenticata con cookie validi. Tentiamo SEMPRE cookie-only prima del cert,
+        # ignorando _mTLS_required_hosts, per evitare prompt PIN ripetuti sulle
+        # smart card Windows (Aruba Key, Bit4id, CNS/CIE).
+        try:
+            return _run(None)
+        except Exception as e:
+            log.debug("PST cookie-only fallback su certificato per %s: %s", url, e)
     return _run(cert_thumbprint)
 
 
@@ -2170,17 +2167,12 @@ def _soap_call_pst_session_raw(
         )
 
     if prefer_cookie_only and cookie_file:
-        with _mTLS_required_lock:
-            already_mTLS = host in _mTLS_required_hosts
-        if not already_mTLS:
-            try:
-                return _run(None)
-            except Exception as e:
-                log.debug("PST raw cookie-only fallback su certificato per %s: %s (mTLS required)", url, e)
-                with _mTLS_required_lock:
-                    _mTLS_required_hosts.add(host)
-        else:
-            log.debug("PST raw: host %s noto come mTLS — uso cert direttamente", host)
+        # Stessa logica di _soap_call_pst_session: dopo preflight i cookie sono
+        # validi → tentiamo SEMPRE cookie-only per evitare prompt PIN ripetuti.
+        try:
+            return _run(None)
+        except Exception as e:
+            log.debug("PST raw cookie-only fallback su certificato per %s: %s", url, e)
     return _run(cert_thumbprint)
 
 

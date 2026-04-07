@@ -3077,64 +3077,79 @@ def _pst_download_documenti_batch_payloads(
     failures: list[dict] = []
     preflight: Optional[dict] = None
 
-    if do_preflight:
-        preflight = _pst_preflight_auth_curl(
-            url=_pst_url_ricerca(base_url),
-            cert_thumbprint=cert_thumbprint,
-            cookie_file=cookie_file,
-        )
-    prefer_cookie_only = bool(cookie_file)
+    # Se dobbiamo fare il preflight ma non abbiamo ancora un cookie file,
+    # creiamo un file temporaneo per salvare i cookie della sessione PST
+    # e riusarli per tutti i download del batch → un solo prompt PIN.
+    _tmp_cookie: Optional[str] = None
+    if do_preflight and not cookie_file:
+        _tmp_cookie = _ensure_cookie_file()
+        cookie_file = _tmp_cookie
 
-    for raw in documenti:
-        item = raw if isinstance(raw, dict) else {}
-        id_documento = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
-        nome_documento = str(item.get("nome_documento") or item.get("nome") or "").strip()
-        if not id_documento:
-            failures.append({
-                "id_documento": "",
-                "nome_documento": nome_documento,
-                "errore": "Identificativo documento mancante nel lotto PST.",
-            })
-            continue
-
-        try:
-            file_payload = _pst_download_documento_payload(
-                base_url=base_url,
-                codice_ufficio=codice_ufficio,
-                id_documento=id_documento,
-                nome_documento=nome_documento,
+    try:
+        if do_preflight:
+            preflight = _pst_preflight_auth_curl(
+                url=_pst_url_ricerca(base_url),
                 cert_thumbprint=cert_thumbprint,
-                cf_avvocato=cf_avvocato,
-                id_cat=str(item.get("id_cat") or "").strip(),
-                data_documento=str(item.get("data_documento") or item.get("data_deposito") or "").strip(),
-                original=(
-                    item.get("original", True)
-                    if isinstance(item.get("original", True), bool)
-                    else str(item.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
-                ),
                 cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
             )
-            file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
-            file_payload["id_deposito_esterno"] = str(item.get("id_deposito_esterno") or "").strip()
-            file_payload["id_deposito_pct"] = str(item.get("id_deposito_pct") or "").strip()
-            file_payload["tipo_atto"] = str(item.get("tipo_atto") or "").strip()
-            files.append(file_payload)
-        except Exception as e:
-            failures.append({
-                "id_documento": id_documento,
-                "nome_documento": nome_documento,
-                "errore": str(e),
-            })
+        prefer_cookie_only = bool(cookie_file)
 
-    return {
-        "ok": True,
-        "files": files,
-        "failures": failures,
-        "preflight": preflight,
-        "documenti_richiesti": len(documenti),
-        "documenti_scaricati": len(files),
-    }
+        for raw in documenti:
+            item = raw if isinstance(raw, dict) else {}
+            id_documento = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
+            nome_documento = str(item.get("nome_documento") or item.get("nome") or "").strip()
+            if not id_documento:
+                failures.append({
+                    "id_documento": "",
+                    "nome_documento": nome_documento,
+                    "errore": "Identificativo documento mancante nel lotto PST.",
+                })
+                continue
+
+            try:
+                file_payload = _pst_download_documento_payload(
+                    base_url=base_url,
+                    codice_ufficio=codice_ufficio,
+                    id_documento=id_documento,
+                    nome_documento=nome_documento,
+                    cert_thumbprint=cert_thumbprint,
+                    cf_avvocato=cf_avvocato,
+                    id_cat=str(item.get("id_cat") or "").strip(),
+                    data_documento=str(item.get("data_documento") or item.get("data_deposito") or "").strip(),
+                    original=(
+                        item.get("original", True)
+                        if isinstance(item.get("original", True), bool)
+                        else str(item.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                    ),
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
+                file_payload["origine"] = f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}"
+                file_payload["id_deposito_esterno"] = str(item.get("id_deposito_esterno") or "").strip()
+                file_payload["id_deposito_pct"] = str(item.get("id_deposito_pct") or "").strip()
+                file_payload["tipo_atto"] = str(item.get("tipo_atto") or "").strip()
+                files.append(file_payload)
+            except Exception as e:
+                failures.append({
+                    "id_documento": id_documento,
+                    "nome_documento": nome_documento,
+                    "errore": str(e),
+                })
+
+        return {
+            "ok": True,
+            "files": files,
+            "failures": failures,
+            "preflight": preflight,
+            "documenti_richiesti": len(documenti),
+            "documenti_scaricati": len(files),
+        }
+    finally:
+        if _tmp_cookie:
+            try:
+                Path(_tmp_cookie).unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 def _arricchisci_fascicoli_con_profilo(

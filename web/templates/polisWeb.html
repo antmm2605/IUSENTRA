@@ -1967,7 +1967,8 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
     if (btn) {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Richiesta PIN...';
     }
-    await _lsPreflightAuthPst(tribunale, cert);
+    const pfData = await _lsPreflightAuthPst(tribunale, cert);
+    const pstSessionId = pfData?.pst_session_id || '';
     if (btn) {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso...';
     }
@@ -1983,6 +1984,7 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
         cf_parte: cf || null,
         cert_thumbprint: cert?.thumbprint || null,
         slot_id: cert?.token_slot ?? null,
+        pst_session_id: pstSessionId,
       }),
       signal: AbortSignal.timeout(100000),
     });
@@ -2163,6 +2165,7 @@ function verificaLocalSignerLegacy() {
 let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati, 4=acquisizione
 let _wizCertSel = null;  // certificato selezionato
 let _wizPinConfermato = false;
+let _wizPstSessionId = '';  // session id PST restituito dal preflight, riusato per la ricerca
 let _wizUltimiFascicoli = [];
 
 // ── PIN / cert session persistence ─────────────────────────────────────────
@@ -2581,7 +2584,8 @@ async function wizVerificaCertificatoPst() {
   }
 
   try {
-    await _lsPreflightAuthPst(tribunale, _wizCertSel);
+    const pfData = await _lsPreflightAuthPst(tribunale, _wizCertSel);
+    _wizPstSessionId = pfData?.pst_session_id || '';
     _wizPinConfermato = true;
     _wizSaveAuth(_wizCertSel);  // memorizza per tutta la sessione browser
     _wizSetPinStatus('ok');
@@ -2897,6 +2901,7 @@ async function wizEseguiRicerca() {
       cf_parte:         cf   || null,
       cert_thumbprint:  certThumbprint,
       slot_id:          slotId,
+      pst_session_id:   _wizPstSessionId || '',
     }),
     signal: AbortSignal.timeout(100000),
   })

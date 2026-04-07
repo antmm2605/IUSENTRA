@@ -177,16 +177,17 @@ class ClientSIGIT:
     ) -> RisultatoImportazioneSIGIT:
         """Importa una pratica tributaria come nuovo Fascicolo nel gestionale."""
         try:
-            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita
+            from pct.fascicoli import (
+                TipoFascicolo,
+                StatoFascicolo,
+                TipoAttivita,
+                stato_fascicolo_da_descrizione_portale,
+            )
 
-            stato_map = {
-                "PENDENTE":  StatoFascicolo.IN_CORSO,
-                "DEFINITO":  StatoFascicolo.DEFINITO,
-                "SOSPESO":   StatoFascicolo.SOSPESO,
-                "ESTINTO":   StatoFascicolo.ARCHIVIATO,
-                "RINVIATO":  StatoFascicolo.SOSPESO,
-            }
-            stato = stato_map.get(fascicolo_sigit.stato.upper(), StatoFascicolo.APERTO)
+            stato = stato_fascicolo_da_descrizione_portale(
+                fascicolo_sigit.stato,
+                default=StatoFascicolo.APERTO,
+            )
 
             # Cerca cliente in anagrafica
             id_cliente = ""

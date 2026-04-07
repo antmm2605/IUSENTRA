@@ -16,6 +16,7 @@ from pct.fascicoli import (
     Documento,
     EsitoDepositoPCT,
     normalizza_stato_deposito_pct,
+    stato_fascicolo_da_descrizione_portale,
     _normalizza_esito_controlli,
 )
 
@@ -91,6 +92,13 @@ def test_avanzamento_registrato(gf, fascicolo_base):
     gf.cambia_stato(fascicolo_base.id, StatoFascicolo.SOSPESO, note="Rinvio d'ufficio")
     f = gf.get(fascicolo_base.id)
     assert any("SOSPESO" in av.stato_nuovo for av in f.avanzamento)
+
+
+def test_normalizza_stato_fascicolo_da_descrizione_portale():
+    assert stato_fascicolo_da_descrizione_portale("PROCEDIMENTO DEFINITO") == StatoFascicolo.DEFINITO
+    assert stato_fascicolo_da_descrizione_portale("pendente") == StatoFascicolo.IN_CORSO
+    assert stato_fascicolo_da_descrizione_portale("RINVIATO") == StatoFascicolo.SOSPESO
+    assert stato_fascicolo_da_descrizione_portale("ESTINTO") == StatoFascicolo.ARCHIVIATO
 
 
 def test_definisci(gf, fascicolo_base):

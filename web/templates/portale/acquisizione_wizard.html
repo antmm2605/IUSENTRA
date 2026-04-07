@@ -178,11 +178,74 @@ function awEscape(v) { return String(v ?? '').replace(/[&<>"]/g, s => ({'&':'&am
 function awToneCls(tone) { return tone === 'danger' ? 'aw-issue aw-danger' : tone === 'warning' ? 'aw-issue aw-warning' : 'aw-issue aw-success'; }
 function awBadgeCls(tone) { return tone === 'danger' ? 'danger' : tone === 'warning' ? 'warning text-dark' : 'success'; }
 function awFormatDate(value) {
-  if (!value) return 'n.d.';
+  const text = String(value || '').trim();
+  if (!text) return 'n.d.';
+  let match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?$/);
+  if (match) {
+    const [, year, month, day, hh, mm] = match;
+    return hh && mm ? `${day}/${month}/${year} ${hh}:${mm}` : `${day}/${month}/${year}`;
+  }
+  match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?$/);
+  if (match) {
+    const [, day, month, year, hh, mm] = match;
+    return hh && mm ? `${day}/${month}/${year} ${hh}:${mm}` : `${day}/${month}/${year}`;
+  }
   try {
-    return new Date(value).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: value.includes('T') ? 'short' : undefined });
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleString(
+        'it-IT',
+        text.includes('T') || /\d{2}:\d{2}/.test(text)
+          ? { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+          : { day: '2-digit', month: '2-digit', year: 'numeric' }
+      );
+    }
   } catch (_) {
-    return value;
+  }
+  return text;
+}
+function awFormatStatus(value) {
+  const text = String(value || '').trim();
+  if (!text) return 'Stato non disponibile';
+  let normalized = text.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  normalized = normalized.replace(/^procedimento\s+/i, '');
+  return normalized
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map(token => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(' ');
+}
+function awPostProcessPreviewDom() {
+  const root = document.getElementById('awPreview');
+  if (!root || !AW_STATE.preview) return;
+  const preview = AW_STATE.preview || {};
+  const identity = preview.identity || {};
+  if (AW_STATE.previewTab === 'dati') {
+    const boxes = root.querySelectorAll('.aw-box');
+    const procedimentoMeta = boxes[1]?.querySelector('.small.text-muted.mt-1');
+    if (procedimentoMeta) {
+      procedimentoMeta.textContent = `Stato: ${awFormatStatus(identity.stato)}${identity.sub_procedimento ? ` · Sub-procedimento ${identity.sub_procedimento}` : ''}`;
+    }
+    const timelineBox = boxes[3]?.querySelector('.small');
+    if (timelineBox) {
+      timelineBox.innerHTML = `Iscrizione: ${awEscape(awFormatDate(identity.data_iscrizione))}<br>Ultima attivita: ${awEscape(awFormatDate(identity.ultima_attivita))}<br>Prossima udienza: ${awEscape(awFormatDate(identity.data_udienza))}`;
+    }
+    return;
+  }
+  if (AW_STATE.previewTab === 'eventi') {
+    root.querySelectorAll('.d-flex.justify-content-between.align-items-start.gap-3.border-bottom.py-2 .small').forEach((node, idx) => {
+      const ev = (preview.eventi || [])[idx];
+      if (ev) node.textContent = awFormatDate(ev.data);
+    });
+    return;
+  }
+  if (AW_STATE.previewTab === 'documenti') {
+    root.querySelectorAll('.aw-box > .d-flex.justify-content-between.align-items-center.gap-2.flex-wrap.mb-2 .small.text-muted').forEach((node, idx) => {
+      const dep = (preview.depositi || [])[idx];
+      if (!dep) return;
+      node.textContent = `${awFormatDate(dep.data_deposito)}${dep.mittente ? ` - ${dep.mittente}` : ''}`;
+    });
   }
 }
 function awLoadPstCert() {
@@ -788,6 +851,7 @@ async function awRunSearch() {
     AW_STATE.importResult = null;
     awRenderResults();
     awRenderPreview();
+    awPostProcessPreviewDom();
     awRenderSelectionOptions();
     awRenderAnalysis();
     awRenderSidebar();
@@ -821,11 +885,11 @@ function awRenderResults() {
             <span class="badge text-bg-light border">${awEscape(row.ufficio_nome || row.ufficio_codice || 'Ufficio')}</span>
             <strong>RG ${awEscape(row.numero)}/${awEscape(row.anno)}</strong>
             <span class="badge text-bg-secondary">${awEscape(row.procedimento || 'Procedimento')}</span>
-            ${row.stato ? `<span class="badge text-bg-light border">${awEscape(row.stato)}</span>` : ''}
+      ${row.stato ? `<span class="badge text-bg-light border">${awEscape(awFormatStatus(row.stato))}</span>` : ''}
           </div>
           <div class="fw-semibold mb-1">${awEscape(row.oggetto || 'Oggetto non disponibile')}</div>
           <div class="small text-muted mb-1">${awEscape((row.parti || []).slice(0, 3).join(' - ') || 'Parti non disponibili')}</div>
-          <div class="small text-muted">Ultimo aggiornamento: ${awEscape(row.ultima_attivita || 'n.d.')} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
+      <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">Anteprima</button>
@@ -884,7 +948,7 @@ function awRenderPreview() {
     { id: 'documenti', label: 'Documenti disponibili' },
   ];
   tabs.innerHTML = defs.map(tab => `<li class="nav-item"><button type="button" class="nav-link ${AW_STATE.previewTab === tab.id ? 'active' : ''}" data-aw-tab="${tab.id}">${tab.label}</button></li>`).join('');
-  tabs.querySelectorAll('[data-aw-tab]').forEach(btn => btn.addEventListener('click', () => { AW_STATE.previewTab = btn.dataset.awTab; awRenderPreview(); }));
+  tabs.querySelectorAll('[data-aw-tab]').forEach(btn => btn.addEventListener('click', () => { AW_STATE.previewTab = btn.dataset.awTab; awRenderPreview(); awPostProcessPreviewDom(); }));
   const identity = preview.identity || {};
   if (AW_STATE.previewTab === 'dati') {
     root.innerHTML = `
@@ -1351,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   awRenderAccess();
   awRenderResults();
   awRenderPreview();
+  awPostProcessPreviewDom();
   awRenderSelectionOptions();
   awRenderAnalysis();
   awRenderSidebar();

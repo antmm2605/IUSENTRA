@@ -12,6 +12,7 @@ import json
 import uuid
 import zipfile
 import hashlib
+import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
@@ -129,6 +130,28 @@ class EsitoAttivita(str, Enum):
     RINVIATO        = "RINVIATO"
     ANNULLATO       = "ANNULLATO"
     NON_APPLICABILE = "NON_APPLICABILE"
+
+
+def stato_fascicolo_da_descrizione_portale(
+    valore: str | StatoFascicolo | None,
+    *,
+    default: Optional[StatoFascicolo] = None,
+) -> Optional[StatoFascicolo]:
+    """Normalizza le descrizioni stato dei portali nel corrispondente stato locale."""
+    if isinstance(valore, StatoFascicolo):
+        return valore
+    testo = re.sub(r"[_\-/]+", " ", str(valore or "").upper()).strip()
+    if not testo:
+        return default
+    if any(token in testo for token in ("ARCHIVIAT", "ESTINT")):
+        return StatoFascicolo.ARCHIVIATO
+    if any(token in testo for token in ("DEFINIT", "CONCLUS", "CHIUS")):
+        return StatoFascicolo.DEFINITO
+    if any(token in testo for token in ("SOSPES", "RINVIAT")):
+        return StatoFascicolo.SOSPESO
+    if any(token in testo for token in ("PENDENT", "IN CORSO", "APERTO", "ATTIVO")):
+        return StatoFascicolo.IN_CORSO
+    return default
 
 
 # ------------------------------------------------------------------ Sub-modelli

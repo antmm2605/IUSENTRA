@@ -57,6 +57,7 @@ from pct.fascicoli import (
     Fascicolo,
     TipoFascicolo,
     StatoFascicolo,
+    stato_fascicolo_da_descrizione_portale,
     TipoDocumento,
     TipoAttivita,
     EsitoAttivita,
@@ -5484,6 +5485,12 @@ def create_app(config: dict | None = None) -> Flask:
         gf = get_fascicoli()
         gc = get_clienti()
         gsog = get_soggetti()
+        stato_portale = stato_fascicolo_da_descrizione_portale(
+            (preview.get("identity") or {}).get("stato")
+            or selection.get("stato")
+            or (selection.get("payload") or {}).get("stato"),
+            default=None,
+        )
         mode = mapping.get("mode") or "create_new"
         target_id = mapping.get("target_fascicolo_id") or ""
         id_fasc = ""
@@ -5566,6 +5573,8 @@ def create_app(config: dict | None = None) -> Flask:
                 if not options.get("non_toccare_note_interne", True):
                     nota_import = f"Sincronizzato da {_portale_source_name(portale)} il {date.today().isoformat()}"
                     update_fields["note"] = " | ".join(part for part in [target.note.strip(), nota_import] if part)
+                if stato_portale and stato_portale != target.stato:
+                    update_fields["stato"] = stato_portale
                 gf.aggiorna(target.id, **update_fields)
                 gf.registra_onboarding(
                     target.id,

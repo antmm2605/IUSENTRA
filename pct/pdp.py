@@ -171,15 +171,17 @@ class ClientPDP:
     ) -> RisultatoImportazionePDP:
         """Importa una pratica penale come nuovo Fascicolo nel gestionale."""
         try:
-            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita
+            from pct.fascicoli import (
+                TipoFascicolo,
+                StatoFascicolo,
+                TipoAttivita,
+                stato_fascicolo_da_descrizione_portale,
+            )
 
-            stato_map = {
-                "PENDENTE":   StatoFascicolo.IN_CORSO,
-                "DEFINITO":   StatoFascicolo.DEFINITO,
-                "ARCHIVIATO": StatoFascicolo.ARCHIVIATO,
-                "SOSPESO":    StatoFascicolo.SOSPESO,
-            }
-            stato = stato_map.get(fascicolo_pdp.stato.upper(), StatoFascicolo.APERTO)
+            stato = stato_fascicolo_da_descrizione_portale(
+                fascicolo_pdp.stato,
+                default=StatoFascicolo.APERTO,
+            )
 
             # Riconcilia imputati e parti offese con l'anagrafica
             from pct.polisWeb import riconcilia_soggetti_pst

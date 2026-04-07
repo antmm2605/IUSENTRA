@@ -11,7 +11,7 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.clienti import GestioneClienti
-from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
 from pct.polisWeb import (
     ClientPolisWeb,
     ClientPolisWebDemo,
@@ -259,6 +259,7 @@ def test_importa_fascicolo_popola_cliente_parti_e_attivita(tmp_path):
     assert fascicolo.nome_cliente == "Stillitano Francesco"
     assert fascicolo.controparte == "BANCA ALFA S.P.A."
     assert fascicolo.cf_controparte == "12345678901"
+    assert fascicolo.stato == StatoFascicolo.IN_CORSO
     assert fascicolo.data_prima_udienza == "2026-05-10"
     assert fascicolo.data_prossima_udienza == "2026-05-10"
     assert len(fascicolo.attivita) >= 2
@@ -361,6 +362,52 @@ def test_importa_fascicolo_esistente_sincronizza_cliente_parti_e_attivita(tmp_pa
 
     soggetti = gestione_soggetti.tutti()
     assert {s.nome_completo for s in soggetti} >= {"Stillitano Francesco", "BANCA ALFA S.P.A."}
+
+
+def test_importa_fascicolo_portale_definito_mantiene_stato_definito(tmp_path):
+    gestione_clienti = GestioneClienti(str(tmp_path / "clienti.json"))
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "documenti"),
+        archive_dir=str(tmp_path / "archivio"),
+    )
+    gestione_soggetti = GestioneSoggetti(
+        soggetti_path=str(tmp_path / "soggetti.json"),
+        parti_path=str(tmp_path / "parti.json"),
+    )
+
+    fascicolo_pw = FascicoloPolisWeb(
+        numero_rg="1025",
+        anno_rg=2024,
+        ruolo="CIVILE_COGNIZIONE",
+        stato="PROCEDIMENTO DEFINITO",
+        oggetto="Vendita di cose immobili",
+        sezione="CIVILE",
+        giudice="GIOVANNELLA MARIA ELENA",
+        data_iscrizione="2024-09-05",
+        data_udienza="2024-12-12",
+        parti=["MONTAGNESE ELISABETTA", "STILLITANO FRANCESCO"],
+        parti_dettaglio=[
+            {"nome": "MONTAGNESE ELISABETTA", "tipo": "ATTORE", "codice_fiscale": "MNTLBT80A41G273K"},
+            {"nome": "STILLITANO FRANCESCO", "tipo": "CONVENUTO", "codice_fiscale": "STLFNC45E26L063X"},
+        ],
+        codice_ufficio="0800570094",
+        nome_ufficio="Tribunale di Palmi",
+    )
+
+    client = ClientPolisWebDemo()
+    risultato = client.importa_fascicolo(
+        fascicolo_pw=fascicolo_pw,
+        gestione_fascicoli=gestione_fascicoli,
+        gestione_clienti=gestione_clienti,
+        gestione_soggetti=gestione_soggetti,
+        avvocato_referente="admin",
+    )
+
+    assert risultato.successo is True
+    fascicolo = gestione_fascicoli.get(risultato.id_fascicolo_locale)
+    assert fascicolo is not None
+    assert fascicolo.stato == StatoFascicolo.DEFINITO
 
 
 def test_importa_fascicolo_esistente_promuove_rg_ufficiale_su_fascicolo_locale(tmp_path):
@@ -2452,6 +2499,7 @@ def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(t
     )
     fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
     assert fascicolo_reload is not None
+    assert fascicolo_reload.stato == StatoFascicolo.DEFINITO
     assert len(fascicolo_reload.documenti) == 1
     assert len(fascicolo_reload.depositi_pct) == 1
     doc = fascicolo_reload.documenti[0]
@@ -2928,6 +2976,7 @@ def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_pat
     )
     fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
     assert fascicolo_reload is not None
+    assert fascicolo_reload.stato == StatoFascicolo.DEFINITO
     assert len(fascicolo_reload.documenti) == 1
     assert fascicolo_reload.documenti[0].nome == "Decreto_29033905.pdf.p7m"
     assert fascicolo_reload.documenti[0].tipo == TipoDocumento.DECRETO

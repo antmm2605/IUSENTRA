@@ -1216,7 +1216,7 @@ def _sincronizza_metadati_fascicolo_polisweb(
     gestione_soggetti=None,
     documenti_pw: Optional[List[DocumentoPolisWeb]] = None,
 ) -> RisultatoImportazione:
-    from pct.fascicoli import TipoAttivita
+    from pct.fascicoli import TipoAttivita, stato_fascicolo_da_descrizione_portale
 
     riferimento = f"RG {fascicolo_pw.numero_rg}/{fascicolo_pw.anno_rg} — {fascicolo_pw.nome_ufficio}"
     avvisi: List[str] = []
@@ -1273,6 +1273,12 @@ def _sincronizza_metadati_fascicolo_polisweb(
             campi_update["data_prossima_udienza"] = data_udienza
     if _titolo_generico_fascicolo_polisweb(fascicolo_locale.titolo, fascicolo_pw):
         campi_update["titolo"] = _titolo_fascicolo_polisweb(fascicolo_pw)
+    stato_portale = stato_fascicolo_da_descrizione_portale(
+        fascicolo_pw.stato,
+        default=None,
+    )
+    if stato_portale and stato_portale != fascicolo_locale.stato:
+        campi_update["stato"] = stato_portale
 
     if campi_update:
         fascicolo_locale = gestione_fascicoli.aggiorna(fascicolo_locale.id, **campi_update)
@@ -1595,7 +1601,12 @@ class ClientPolisWeb:
             RisultatoImportazione con id_fascicolo_locale se successo.
         """
         try:
-            from pct.fascicoli import TipoFascicolo, StatoFascicolo, TipoAttivita
+            from pct.fascicoli import (
+                TipoFascicolo,
+                StatoFascicolo,
+                TipoAttivita,
+                stato_fascicolo_da_descrizione_portale,
+            )
 
             data_iscrizione = _parse_data(fascicolo_pw.data_iscrizione) or date.today().isoformat()
             data_udienza = _parse_data(fascicolo_pw.data_udienza)
@@ -1615,13 +1626,9 @@ class ClientPolisWeb:
             tipo_fascicolo = tipo_map.get(
                 fascicolo_pw.ruolo.upper(), TipoFascicolo.CIVILE
             )
-            stato_map = {
-                "PENDENTE": StatoFascicolo.IN_CORSO,
-                "DEFINITO": StatoFascicolo.DEFINITO,
-                "SOSPESO":  StatoFascicolo.SOSPESO,
-            }
-            stato = stato_map.get(
-                fascicolo_pw.stato.upper(), StatoFascicolo.APERTO
+            stato = stato_fascicolo_da_descrizione_portale(
+                fascicolo_pw.stato,
+                default=StatoFascicolo.APERTO,
             )
 
             # 2. Riconcilia tutte le parti con l'anagrafica clienti.

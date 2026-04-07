@@ -1635,6 +1635,70 @@ def test_download_documenti_batch_multi_documento_usa_id_documento_come_idcat_si
     assert "<idCat>33393309</idCat>" in calls["batch"][1]["soap_body"]
 
 
+def test_download_documenti_batch_rispetta_original_false_sicid():
+    module = _load_local_signer()
+
+    orig_best_effort = module._soap_call_pst_session_batch_raw_best_effort
+    orig_batch = module._soap_call_pst_session_batch_raw
+    calls = {"best_effort": 0, "batch": []}
+
+    try:
+        def _fake_best_effort(requests, **kwargs):
+            calls["best_effort"] += 1
+            return []
+
+        def _fake_batch(requests, **kwargs):
+            calls["batch"] = list(requests)
+            body = (
+                b"--abc123\r\n"
+                b"Content-Type: text/xml\r\n"
+                b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+                b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+                b"<SOAP-ENV:Body><ns1:downloadDocumentoResponse xmlns:ns1='urn:BEAFascicoloInformatico-distr'>"
+                b"<return href ='cid:test-doc-1'/></ns1:downloadDocumentoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+                b"--abc123\r\n"
+                b"Content-Type: application/pdf\r\n"
+                b"Content-Transfer-Encoding: base64\r\n"
+                b"Content-ID: <test-doc-1>\r\n\r\n"
+                b"JVBERi0xLjcK\r\n"
+                b"--abc123--\r\n"
+            )
+            return [(body, 'Content-Type: multipart/related; boundary="abc123"')]
+
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
+        module._soap_call_pst_session_batch_raw = _fake_batch
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[
+                {
+                    "id_documento": "33581101",
+                    "nome_documento": "SentenzaDefinitiva_33581101.pdf",
+                    "id_cat": "",
+                }
+            ],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+            original=False,
+        )
+    finally:
+        module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
+        module._soap_call_pst_session_batch_raw = orig_batch
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 1
+    assert esito["failures"] == []
+    assert calls["best_effort"] == 0
+    assert len(calls["batch"]) == 1
+    assert "<idCat>33581101</idCat>" in calls["batch"][0]["soap_body"]
+    assert "<original>false</original>" in calls["batch"][0]["soap_body"]
+    assert esito["files"][0]["original_documento_portale"] is False
+    assert esito["files"][0]["modalita_documento_portale"] == "copia"
+
+
 def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fallisce():
     module = _load_local_signer()
 

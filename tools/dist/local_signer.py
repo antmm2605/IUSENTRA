@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.15
+HACS Local Signer — v1.5.22
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.21"
+VERSION = "1.5.22"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -3658,6 +3658,8 @@ def _pst_download_documento_payload(
         "id_cat": id_cat or str(profilo.get("id_cat") or "").strip(),
         "data_documento": data_documento or str(profilo.get("data_documento") or "").strip(),
         "nome_file_originale": str(profilo.get("nome_file_originale") or "").strip(),
+        "original_documento_portale": bool(original),
+        "modalita_documento_portale": "originale" if original else "copia",
         "servizio_portale": "DocumentiFascicolo",
     }
 
@@ -3668,6 +3670,8 @@ def _assemble_download_file_payload(
     id_documento: str,
     nome_documento: str,
     base_url: str,
+    *,
+    original: bool = True,
 ) -> dict:
     """Costruisce il payload file da una risposta PST parsed."""
     nome_finale = str(parsed.get("filename") or "").strip()
@@ -3688,6 +3692,8 @@ def _assemble_download_file_payload(
         "id_cat": str(item.get("id_cat") or "").strip(),
         "data_documento": str(item.get("data_deposito") or item.get("data_documento") or "").strip(),
         "nome_file_originale": str(parsed.get("filename") or "").strip(),
+        "original_documento_portale": bool(original),
+        "modalita_documento_portale": "originale" if original else "copia",
         "servizio_portale": "DocumentiFascicolo",
         "origine": f"pst:{_pst_servizio_proxy(base_url) or 'download'}:{id_documento}",
         "id_deposito_esterno": str(item.get("id_deposito_esterno") or "").strip(),
@@ -3725,6 +3731,7 @@ def _pst_download_documenti_batch_payloads(
     documenti: list[dict],
     do_preflight: bool = True,
     cookie_file: Optional[str] = None,
+    original: bool = True,
 ) -> dict:
     """
     Scarica N documenti PST con UN SOLO processo curl per l'intero batch.
@@ -3887,7 +3894,7 @@ def _pst_download_documenti_batch_payloads(
                                     data_documento=str(
                                         item.get("data_deposito") or item.get("data_documento") or ""
                                     ).strip(),
-                                    original=True,
+                                    original=original,
                                     cookie_file=cookie_file,
                                     prefer_cookie_only=prefer_cookie_only,
                                 )
@@ -3904,14 +3911,19 @@ def _pst_download_documenti_batch_payloads(
                         continue
                     soap_body = _soap_bea_sicid_body(
                         "downloadDocumento",
-                        [("idUtenteCorrente", cf_avvocato), ("idCat", id_cat), ("original", "true")],
+                        [
+                            ("idUtenteCorrente", cf_avvocato),
+                            ("idCat", id_cat),
+                            ("original", "true" if original else "false"),
+                        ],
                         group=codice_ufficio,
                     )
                     soap_action = ""
                     extra_h = extra_base
                 elif servizio == "JPW_SIECIC":
                     soap_body = _soap_bea_siecic_body(
-                        "downloadDocumento", [("idDoc", id_doc), ("original", "true")]
+                        "downloadDocumento",
+                        [("idDoc", id_doc), ("original", "true" if original else "false")],
                     )
                     soap_action = ""
                     extra_h = extra_base
@@ -3949,9 +3961,16 @@ def _pst_download_documenti_batch_payloads(
                 try:
                     ct = _http_header_value(hdr_text, "Content-Type")
                     parsed = _parse_download_documento_response(body_bytes, ct)
-                    files.append(_assemble_download_file_payload(
-                        parsed, meta["item"], meta["id_documento"], meta["nome_documento"], base_url
-                    ))
+                    files.append(
+                        _assemble_download_file_payload(
+                            parsed,
+                            meta["item"],
+                            meta["id_documento"],
+                            meta["nome_documento"],
+                            base_url,
+                            original=original,
+                        )
+                    )
                 except Exception as e:
                     failures.append({
                         "id_documento": meta["id_documento"],
@@ -3974,9 +3993,16 @@ def _pst_download_documenti_batch_payloads(
                     )
                     ct = _http_header_value(hdr_text, "Content-Type")
                     parsed = _parse_download_documento_response(body_bytes, ct)
-                    files.append(_assemble_download_file_payload(
-                        parsed, meta["item"], meta["id_documento"], meta["nome_documento"], base_url
-                    ))
+                    files.append(
+                        _assemble_download_file_payload(
+                            parsed,
+                            meta["item"],
+                            meta["id_documento"],
+                            meta["nome_documento"],
+                            base_url,
+                            original=original,
+                        )
+                    )
                 except Exception as e:
                     failures.append({
                         "id_documento": meta["id_documento"],
@@ -5153,6 +5179,11 @@ class _Handler(BaseHTTPRequestHandler):
                 documenti=documenti,
                 do_preflight=False,
                 cookie_file=str((session_entry or {}).get("cookie_file") or ""),
+                original=(
+                    data.get("original", True)
+                    if isinstance(data.get("original", True), bool)
+                    else str(data.get("original", True)).strip().lower() not in {"0", "false", "no", "off"}
+                ),
             )
             if session_entry:
                 _update_pst_session(

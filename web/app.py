@@ -1893,6 +1893,12 @@ def create_app(config: dict | None = None) -> Flask:
                 item["id_cat"] = str((file_item or {}).get("id_cat") or "").strip()
                 item["content_type"] = str((file_item or {}).get("content_type") or "").strip()
                 item["nome_file_originale"] = str((file_item or {}).get("nome_file_originale") or "").strip()
+                original_documento_portale = bool((file_item or {}).get("original_documento_portale", True))
+                item["original_documento_portale"] = original_documento_portale
+                item["modalita_documento_portale"] = (
+                    str((file_item or {}).get("modalita_documento_portale") or "").strip()
+                    or ("originale" if original_documento_portale else "copia")
+                )
             items.extend(espansi)
         return items
 
@@ -5076,6 +5082,7 @@ def create_app(config: dict | None = None) -> Flask:
             "non_toccare_note_interne": _b("non_toccare_note_interne", True),
             "non_duplicare_documenti": _b("non_duplicare_documenti", True),
             "conserva_log_origine_pst": _b("conserva_log_origine_pst", True),
+            "scarica_originale_portale": _b("scarica_originale_portale", True),
             "mantieni_albero_originale": _b("mantieni_albero_originale", False),
         }
 
@@ -5576,6 +5583,7 @@ def create_app(config: dict | None = None) -> Flask:
                 "eventi_generati": udienza_result["attivita"],
                 "conflitti_risolti": len(analysis["warnings"]),
                 "lotto_generico": str(import_result.get("lotto_generico") or ""),
+                "modalita_documento_portale": "originale" if options.get("scarica_originale_portale", True) else "copia",
                 "albero_originale_salvato": bool(albero_originale_salvato),
             },
         }

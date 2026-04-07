@@ -652,6 +652,25 @@ def test_parse_qbuilder_documenti_xml_supporta_piu_return():
     assert {doc["id_documento"] for doc in documenti} == {"33581101", "33581102"}
 
 
+def test_map_qbuilder_documento_preserva_candidati_identificativo():
+    module = _load_local_signer()
+
+    doc = module._map_qbuilder_documento(
+        {
+            "IDDOCUMENTO": "",
+            "NUMERODOCUMENTO": "32473463",
+            "IDDOCMITTENTE": "CAT-ALT-001",
+            "TIPO": "Ordinanza",
+            "DATADEPOSITO": "30/09/2025 16:46:40.000",
+        }
+    )
+
+    assert doc["id_documento"] == "32473463"
+    assert doc["numero_documento"] == "32473463"
+    assert doc["id_doc_mittente"] == "CAT-ALT-001"
+    assert doc["id_documento_candidates"] == ["32473463", "CAT-ALT-001"]
+
+
 def test_parse_download_documento_response_multipart():
     module = _load_local_signer()
 
@@ -1425,16 +1444,21 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
 def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo():
     module = _load_local_signer()
 
-    orig_batch = module._soap_call_curl_batch_raw
+    orig_best_effort = module._soap_call_pst_session_batch_raw_best_effort
     orig_download = module._pst_download_documento_payload
     calls = {"batch": 0, "download": []}
 
     try:
-        def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+        def _fake_best_effort(requests, **kwargs):
             calls["batch"] += 1
             # Il profilo batch risponde ma non espone idCat: il lotto deve
             # ricadere sul recupero puntuale del singolo documento.
-            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")]
+            return [{
+                "body_bytes": b"<Envelope><return/></Envelope>",
+                "headers_text": "HTTP/1.1 200 OK\r\n",
+                "status_code": 200,
+                "error": "",
+            }]
 
         def _fake_download(**kwargs):
             calls["download"].append(kwargs)
@@ -1449,7 +1473,7 @@ def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo(
                 "servizio_portale": "DocumentiFascicolo",
             }
 
-        module._soap_call_curl_batch_raw = _fake_batch
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
         module._pst_download_documento_payload = _fake_download
 
         esito = module._pst_download_documenti_batch_payloads(
@@ -1462,7 +1486,7 @@ def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo(
             cookie_file="C:\\temp\\pst.cookies",
         )
     finally:
-        module._soap_call_curl_batch_raw = orig_batch
+        module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
         module._pst_download_documento_payload = orig_download
 
     assert esito["ok"] is True
@@ -1477,14 +1501,21 @@ def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo(
 def test_download_documenti_batch_multi_documento_non_ricade_su_singoli_se_id_cat_manca():
     module = _load_local_signer()
 
-    orig_batch = module._soap_call_curl_batch_raw
+    orig_best_effort = module._soap_call_pst_session_batch_raw_best_effort
     orig_download = module._pst_download_documento_payload
     calls = {"batch": 0, "download": []}
 
     try:
-        def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+        def _fake_best_effort(requests, **kwargs):
             calls["batch"] += 1
-            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")] * len(requests)
+            return [
+                {
+                    "body_bytes": b"<Envelope><return/></Envelope>",
+                    "headers_text": "HTTP/1.1 200 OK\r\n",
+                    "status_code": 200,
+                    "error": "",
+                }
+            ] * len(requests)
 
         def _fake_download(**kwargs):
             calls["download"].append(kwargs)
@@ -1499,7 +1530,7 @@ def test_download_documenti_batch_multi_documento_non_ricade_su_singoli_se_id_ca
                 "servizio_portale": "DocumentiFascicolo",
             }
 
-        module._soap_call_curl_batch_raw = _fake_batch
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
         module._pst_download_documento_payload = _fake_download
 
         esito = module._pst_download_documenti_batch_payloads(
@@ -1515,7 +1546,7 @@ def test_download_documenti_batch_multi_documento_non_ricade_su_singoli_se_id_ca
             cookie_file="C:\\temp\\pst.cookies",
         )
     finally:
-        module._soap_call_curl_batch_raw = orig_batch
+        module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
         module._pst_download_documento_payload = orig_download
 
     assert esito["ok"] is True
@@ -1524,6 +1555,81 @@ def test_download_documenti_batch_multi_documento_non_ricade_su_singoli_se_id_ca
     assert calls["batch"] == 1
     assert calls["download"] == []
     assert "idCat mancante nel lotto PST" in esito["failures"][0]["errore"]
+
+
+def test_download_documenti_batch_best_effort_non_azzera_lotto_se_un_profilo_fallisce():
+    module = _load_local_signer()
+
+    orig_best_effort = module._soap_call_pst_session_batch_raw_best_effort
+    orig_batch = module._soap_call_pst_session_batch_raw
+    calls = {"downloads": []}
+    try:
+        def _fake_best_effort(requests, **kwargs):
+            assert len(requests) == 2
+            return [
+                {
+                    "body_bytes": b"",
+                    "headers_text": "HTTP/1.1 500 Internal Server Error\r\n",
+                    "status_code": 500,
+                    "error": "Il PST ha restituito una SOAP Fault: Documento primario non trovato",
+                },
+                {
+                    "body_bytes": (
+                        b"<?xml version='1.0' encoding='UTF-8'?>"
+                        b"<Envelope><return><idDocumento>DOC-OK</idDocumento><idCat>CAT-OK</idCat>"
+                        b"<nomeFileOriginale>Documento_OK.pdf</nomeFileOriginale>"
+                        b"<dataDeposito>2026-01-08T18:55:28Z</dataDeposito>"
+                        b"</return></Envelope>"
+                    ),
+                    "headers_text": "HTTP/1.1 200 OK\r\n",
+                    "status_code": 200,
+                    "error": "",
+                },
+            ]
+
+        def _fake_download_batch(requests, **kwargs):
+            calls["downloads"].append(requests)
+            body = (
+                b"--abc123\r\n"
+                b"Content-Type: text/xml\r\n"
+                b"Content-Transfer-Encoding: 7bit\r\n\r\n"
+                b"<?xml version='1.0' encoding='UTF-8'?><SOAP-ENV:Envelope xmlns:SOAP-ENV='http://schemas.xmlsoap.org/soap/envelope/'>"
+                b"<SOAP-ENV:Body><ns1:downloadDocumentoResponse xmlns:ns1='urn:BEAFascicoloInformatico-distr'>"
+                b"<return href ='cid:test-doc-1'/></ns1:downloadDocumentoResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>\r\n"
+                b"--abc123\r\n"
+                b"Content-Type: application/pdf\r\n"
+                b"Content-Transfer-Encoding: base64\r\n"
+                b"Content-ID: <test-doc-1>\r\n\r\n"
+                b"JVBERi0xLjcK\r\n"
+                b"--abc123--\r\n"
+            )
+            return [(body, 'Content-Type: multipart/related; boundary="abc123"')]
+
+        module._soap_call_pst_session_batch_raw_best_effort = _fake_best_effort
+        module._soap_call_pst_session_batch_raw = _fake_download_batch
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[
+                {"id_documento": "DOC-KO", "nome_documento": "Documento_KO.pdf"},
+                {"id_documento": "DOC-OK", "nome_documento": "Documento_OK.pdf"},
+            ],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+        )
+    finally:
+        module._soap_call_pst_session_batch_raw_best_effort = orig_best_effort
+        module._soap_call_pst_session_batch_raw = orig_batch
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 1
+    assert len(esito["failures"]) == 1
+    assert esito["failures"][0]["id_documento"] == "DOC-KO"
+    assert calls["downloads"]
+    assert calls["downloads"][0][0]["soap_body"].find("CAT-OK") != -1
 
 
 def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():
@@ -1568,7 +1674,7 @@ def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():
         module.subprocess.run = orig_run
 
     assert len(result) == 2
-    assert 'cert = "CurrentUser\\MY\\AABBCC11"' in captured["cfg"]
+    assert 'cert = "CurrentUser\\\\MY\\\\AABBCC11"' in captured["cfg"]
     assert 'cert = "CurrentUser/MY/AABBCC11"' not in captured["cfg"]
 
 

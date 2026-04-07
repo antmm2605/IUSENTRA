@@ -492,6 +492,7 @@ function awCurrentDownloadKey() {
     id_cat: item.id_cat || '',
     id_deposito: item.id_deposito || item.id_deposito_esterno || item.id_deposito_pct || '',
     nome: item.nome || item.nome_documento || '',
+    candidates: Array.isArray(item.id_documento_candidates) ? item.id_documento_candidates : [],
   }));
   return JSON.stringify({ selectionKey, docs });
 }
@@ -516,6 +517,9 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
       id_documento: item.id_documento || item.id_documento_portale || '',
       nome_documento: item.nome || item.nome_documento || '',
       id_cat: item.id_cat || '',
+      numero_documento: item.numero_documento || '',
+      id_doc_mittente: item.id_doc_mittente || '',
+      id_documento_candidates: Array.isArray(item.id_documento_candidates) ? item.id_documento_candidates : [],
       data_documento: item.data_documento || item.data_deposito || '',
       id_deposito_esterno: item.id_deposito_esterno || item.id_deposito || '',
       id_deposito_pct: item.id_deposito_pct || '',

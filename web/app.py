@@ -4739,6 +4739,11 @@ def create_app(config: dict | None = None) -> Flask:
         rows: list[dict] = []
         for row in documenti or []:
             item = dict(row or {})
+            candidates = [
+                str(value or "").strip()
+                for value in list(item.get("id_documento_candidates") or [])
+                if str(value or "").strip()
+            ]
             rows.append(
                 {
                     "id_documento": str(item.get("id_documento") or "").strip(),
@@ -4751,6 +4756,9 @@ def create_app(config: dict | None = None) -> Flask:
                     "disponibile": bool(item.get("disponibile", True)),
                     "id_deposito": str(item.get("id_deposito") or item.get("id_deposito_esterno") or "").strip(),
                     "id_cat": str(item.get("id_cat") or "").strip(),
+                    "numero_documento": str(item.get("numero_documento") or "").strip(),
+                    "id_doc_mittente": str(item.get("id_doc_mittente") or "").strip(),
+                    "id_documento_candidates": candidates,
                 }
             )
         rows.sort(

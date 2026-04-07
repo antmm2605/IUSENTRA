@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.18"
+VERSION = "1.5.20"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1815,6 +1815,19 @@ def _format_windows_cert_spec(cert_thumbprint: Optional[str]) -> str:
     return f"CurrentUser\\MY\\{thumbprint}"
 
 
+def _curl_config_escape(value: str) -> str:
+    """
+    Escape minimo per i valori quotati nel file config di curl (-K).
+
+    La sintassi del config file interpreta il backslash come escape anche
+    dentro le stringhe quotate: per riferimenti come
+    CurrentUser\\MY\\<thumbprint> dobbiamo quindi raddoppiare i backslash,
+    altrimenti curl/schannel perde il path dello store certificati Windows.
+    """
+    text = str(value or "")
+    return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def _http_status_from_headers(header_text: str) -> Optional[int]:
     status = None
     for raw_line in (header_text or "").splitlines():
@@ -2278,9 +2291,7 @@ def _soap_call_curl_batch_raw(
                 f'header = "SOAPAction: \\"{sa}\\""',
             ]
             for hdr in t["extra_headers"]:
-                cfg_lines.append(
-                    f'header = "{hdr.replace(chr(34), chr(92) + chr(34))}"'
-                )
+                cfg_lines.append(f'header = "{_curl_config_escape(hdr)}"')
             cfg_lines += [
                 f'data = "@{_qp(t["body_file"])}"',
                 f'output = "{_qp(t["resp_file"])}"',
@@ -2294,19 +2305,19 @@ def _soap_call_curl_batch_raw(
                 cfg_lines += [f'cookie = "{cp}"', f'cookie-jar = "{cp}"']
             if sys.platform == "win32":
                 if cert_spec:
-                    # Il riferimento allo store certificati Windows non e' un path:
-                    # va passato a curl invariato, con i backslash originali.
-                    cfg_lines.append(
-                        f'cert = "{cert_spec.replace(chr(34), chr(92) + chr(34))}"'
-                    )
+                    # Nel config file di curl i backslash devono essere escape-ati:
+                    # CurrentUser\MY\<thumbprint> va scritto come
+                    # CurrentUser\\MY\\<thumbprint>, altrimenti Schannel non
+                    # riesce a risolvere il certificato dal Windows Store.
+                    cfg_lines.append(f'cert = "{_curl_config_escape(cert_spec)}"')
                 cfg_lines.append("ssl-no-revoke")
             elif pkcs11_uri:
                 cfg_lines += [
                     "engine = pkcs11",
                     "key-type = ENG",
-                    f'key = "{pkcs11_uri}"',
+                    f'key = "{_curl_config_escape(pkcs11_uri)}"',
                     "cert-type = ENG",
-                    f'cert = "{pkcs11_uri}"',
+                    f'cert = "{_curl_config_escape(pkcs11_uri)}"',
                 ]
             cfg_lines.append("")
 
@@ -2353,6 +2364,199 @@ def _soap_call_curl_batch_raw(
             results.append((body_bytes, hdr_text))
         return results
 
+    finally:
+        for fp in tmp_files:
+            try:
+                Path(fp).unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+def _soap_call_curl_batch_raw_best_effort(
+    requests: list[dict],
+    cert_thumbprint: Optional[str] = None,
+    pkcs11_uri: Optional[str] = None,
+) -> list[dict]:
+    """
+    Variante best-effort del batch curl:
+    esegue tutte le richieste nello stesso processo ma non interrompe l'intero
+    lotto se una singola richiesta restituisce HTTP >= 400, HTML o SOAP Fault.
+
+    Ogni elemento della lista contiene:
+      body_bytes, headers_text, status_code, error
+    """
+    if not requests:
+        return []
+    if len(requests) == 1:
+        req = requests[0]
+        try:
+            body_bytes, headers_text = _soap_call_curl_raw(
+                url=req["url"],
+                soap_body=req["soap_body"],
+                cert_thumbprint=cert_thumbprint,
+                pkcs11_uri=pkcs11_uri,
+                extra_headers=req.get("extra_headers"),
+                soap_action=req.get("soap_action", ""),
+                cookie_file=req.get("cookie_file"),
+            )
+            body_text = body_bytes.decode("utf-8", "replace")
+            fault = _estrai_fault_soap(body_text)
+            if fault:
+                return [{
+                    "body_bytes": body_bytes,
+                    "headers_text": headers_text,
+                    "status_code": _http_status_from_headers(headers_text),
+                    "error": f"Il PST ha restituito una SOAP Fault: {fault}",
+                }]
+            return [{
+                "body_bytes": body_bytes,
+                "headers_text": headers_text,
+                "status_code": _http_status_from_headers(headers_text),
+                "error": "",
+            }]
+        except Exception as e:
+            return [{
+                "body_bytes": b"",
+                "headers_text": "",
+                "status_code": 0,
+                "error": str(e),
+            }]
+
+    tmp_files: list[str] = []
+    try:
+        transfers = []
+        for i, req in enumerate(requests):
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=f"_bsb{i}.xml", delete=False, encoding="utf-8"
+            ) as f:
+                f.write(req["soap_body"])
+                body_file = f.name
+            tmp_files.append(body_file)
+
+            resp_fd, resp_file = tempfile.mkstemp(suffix=f"_bsr{i}.bin")
+            os.close(resp_fd)
+            tmp_files.append(resp_file)
+
+            hdr_fd, hdr_file = tempfile.mkstemp(suffix=f"_bsh{i}.txt")
+            os.close(hdr_fd)
+            tmp_files.append(hdr_file)
+
+            transfers.append({
+                "body_file": body_file,
+                "resp_file": resp_file,
+                "hdr_file": hdr_file,
+                "url": req["url"],
+                "soap_action": req.get("soap_action") or "",
+                "extra_headers": list(req.get("extra_headers") or []),
+                "cookie_file": str(req.get("cookie_file") or ""),
+            })
+
+        def _qp(p: str) -> str:
+            return Path(p).as_posix() if p else ""
+
+        cert_spec = (
+            _format_windows_cert_spec(cert_thumbprint)
+            if sys.platform == "win32" and cert_thumbprint
+            else ""
+        )
+
+        cfg_lines: list[str] = []
+        for i, t in enumerate(transfers):
+            if i > 0:
+                cfg_lines += ["next", ""]
+            sa = (t["soap_action"] or "").replace('"', '\\"')
+            cfg_lines += [
+                f'url = "{t["url"]}"',
+                "request = POST",
+                'header = "Content-Type: text/xml; charset=utf-8"',
+                f'header = "SOAPAction: \\"{sa}\\""',
+            ]
+            for hdr in t["extra_headers"]:
+                cfg_lines.append(f'header = "{_curl_config_escape(hdr)}"')
+            cfg_lines += [
+                f'data = "@{_qp(t["body_file"])}"',
+                f'output = "{_qp(t["resp_file"])}"',
+                f'dump-header = "{_qp(t["hdr_file"])}"',
+                f"max-time = {PST_SOAP_MAX_TIME}",
+                f"connect-timeout = {PST_SOAP_CONNECT_TIMEOUT}",
+                "location",
+            ]
+            if t["cookie_file"]:
+                cp = _qp(_ensure_cookie_file(t["cookie_file"]))
+                cfg_lines += [f'cookie = "{cp}"', f'cookie-jar = "{cp}"']
+            if sys.platform == "win32":
+                if cert_spec:
+                    cfg_lines.append(f'cert = "{_curl_config_escape(cert_spec)}"')
+                cfg_lines.append("ssl-no-revoke")
+            elif pkcs11_uri:
+                cfg_lines += [
+                    "engine = pkcs11",
+                    "key-type = ENG",
+                    f'key = "{_curl_config_escape(pkcs11_uri)}"',
+                    "cert-type = ENG",
+                    f'cert = "{_curl_config_escape(pkcs11_uri)}"',
+                ]
+            cfg_lines.append("")
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix="_bscfg.cfg", delete=False, encoding="utf-8"
+        ) as f:
+            f.write("\n".join(cfg_lines))
+            cfg_file = f.name
+        tmp_files.append(cfg_file)
+
+        result = subprocess.run(
+            ["curl", "-s", "-S", "-K", cfg_file],
+            capture_output=True,
+            timeout=(PST_SOAP_MAX_TIME + 10) * len(requests),
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                _curl_errore_leggibile(
+                    result.returncode,
+                    result.stderr.decode("utf-8", "replace"),
+                    transfers[0]["url"],
+                    timeout_sec=PST_SOAP_MAX_TIME,
+                )
+            )
+
+        results: list[dict] = []
+        for t in transfers:
+            hdr_path = Path(t["hdr_file"])
+            resp_path = Path(t["resp_file"])
+            hdr_text = (
+                hdr_path.read_text(encoding="utf-8", errors="replace")
+                if hdr_path.exists() else ""
+            )
+            body_bytes = resp_path.read_bytes() if resp_path.exists() else b""
+            status = _http_status_from_headers(hdr_text)
+            body_str = body_bytes.decode("utf-8", "replace")
+            content_type = _http_header_value(hdr_text, "Content-Type")
+            error = ""
+            if status and status >= 400:
+                fault = _estrai_fault_soap(body_str)
+                if fault:
+                    error = f"Il PST ha restituito una SOAP Fault: {fault}"
+                else:
+                    error = _http_errore_leggibile(status, body_str, t["url"], content_type)
+            elif "html" in content_type.lower() and "<html" in body_str.lower():
+                error = (
+                    "Il PST ha restituito una pagina HTML anziché XML SOAP.\n"
+                    "Verificare il certificato selezionato e il proxy PST configurato.\n"
+                    f"Anteprima risposta: {_body_preview(body_str)}"
+                )
+            else:
+                fault = _estrai_fault_soap(body_str)
+                if fault:
+                    error = f"Il PST ha restituito una SOAP Fault: {fault}"
+
+            results.append({
+                "body_bytes": body_bytes,
+                "headers_text": hdr_text,
+                "status_code": status,
+                "error": error,
+            })
+        return results
     finally:
         for fp in tmp_files:
             try:
@@ -2494,6 +2698,41 @@ def _soap_call_pst_session_batch_raw(
                 raise
             log.debug("PST batch cookie-only fallback su certificato: %s", e)
     return _soap_call_curl_batch_raw(
+        effective_requests,
+        cert_thumbprint=cert_thumbprint,
+    )
+
+
+def _soap_call_pst_session_batch_raw_best_effort(
+    requests: list[dict],
+    *,
+    cert_thumbprint: Optional[str] = None,
+    cookie_file: Optional[str] = None,
+    prefer_cookie_only: bool = False,
+) -> list[dict]:
+    """
+    Variante session-aware best-effort del batch PST:
+    restituisce un risultato per ogni richiesta e lascia al chiamante decidere
+    se ignorare i fault di singoli documenti senza perdere l'intero lotto.
+    """
+    effective_requests = [
+        {
+            **dict(req),
+            "cookie_file": str((dict(req).get("cookie_file") or cookie_file or "")).strip(),
+        }
+        for req in (requests or [])
+    ]
+    if prefer_cookie_only and cookie_file:
+        try:
+            return _soap_call_curl_batch_raw_best_effort(
+                effective_requests,
+                cert_thumbprint=None,
+            )
+        except Exception as e:
+            if not _pst_cookie_retry_requires_cert(e):
+                raise
+            log.debug("PST batch best-effort cookie-only fallback su certificato: %s", e)
+    return _soap_call_curl_batch_raw_best_effort(
         effective_requests,
         cert_thumbprint=cert_thumbprint,
     )
@@ -2926,12 +3165,28 @@ def _map_qbuilder_fascicolo(row: dict) -> dict:
 
 def _map_qbuilder_documento(row: dict) -> dict:
     tipo = _qbuilder_tipo_documento(str(row.get("TIPO") or ""))
-    numero_doc = _qbuilder_numero_rg(str(row.get("NUMERODOCUMENTO") or row.get("IDDOCUMENTO") or ""))
-    id_deposito = str(row.get("IDDOCMITTENTE") or "").strip()
-    if id_deposito.startswith("#"):
-        id_deposito = ""
+    id_documento = str(
+        row.get("IDDOCUMENTO")
+        or row.get("NUMERODOCUMENTO")
+        or row.get("IDDOCMITTENTE")
+        or ""
+    ).strip()
+    numero_documento = str(row.get("NUMERODOCUMENTO") or "").strip()
+    id_doc_mittente = str(row.get("IDDOCMITTENTE") or "").strip()
+    if id_doc_mittente.startswith("#"):
+        id_doc_mittente = ""
+    numero_doc = _qbuilder_numero_rg(numero_documento or id_documento)
+    id_deposito = id_doc_mittente
+    id_documento_candidates: list[str] = []
+    for candidate in (
+        str(row.get("IDDOCUMENTO") or "").strip(),
+        numero_documento,
+        id_doc_mittente,
+    ):
+        if candidate and candidate not in id_documento_candidates:
+            id_documento_candidates.append(candidate)
     return {
-        "id_documento": str(row.get("IDDOCUMENTO") or "").strip(),
+        "id_documento": id_documento,
         "nome": f"{tipo}_{numero_doc}.pdf" if numero_doc else tipo,
         "tipo": tipo,
         "data_deposito": str(row.get("DATADEPOSITO") or "").strip(),
@@ -2942,6 +3197,9 @@ def _map_qbuilder_documento(row: dict) -> dict:
         "disponibile": str(row.get("STATO") or "").strip().lower() != "non_disponibile",
         "stato": str(row.get("STATO") or "").strip(),
         "sub_procedimento": str(row.get("SUBPROCEDIMENTO") or "").strip(),
+        "numero_documento": numero_documento,
+        "id_doc_mittente": id_doc_mittente,
+        "id_documento_candidates": id_documento_candidates,
     }
 
 
@@ -3417,6 +3675,26 @@ def _assemble_download_file_payload(
     }
 
 
+def _pst_document_id_candidates(item: dict) -> list[str]:
+    candidates: list[str] = []
+    raw_candidates = item.get("id_documento_candidates")
+    if isinstance(raw_candidates, (list, tuple)):
+        for value in raw_candidates:
+            candidate = str(value or "").strip()
+            if candidate and not candidate.startswith("#") and candidate not in candidates:
+                candidates.append(candidate)
+    for value in (
+        item.get("id_documento"),
+        item.get("id_documento_portale"),
+        item.get("numero_documento"),
+        item.get("id_doc_mittente"),
+    ):
+        candidate = str(value or "").strip()
+        if candidate and not candidate.startswith("#") and candidate not in candidates:
+            candidates.append(candidate)
+    return candidates
+
+
 def _pst_download_documenti_batch_payloads(
     *,
     base_url: str,
@@ -3476,43 +3754,59 @@ def _pst_download_documenti_batch_payloads(
 
             if need_prof:
                 prof_reqs: list[dict] = []
+                prof_meta: list[tuple[int, str]] = []
                 for i in need_prof:
                     item = documenti[i]
-                    id_doc = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
-                    if servizio == "JPW_SICID":
-                        registro = _pst_registro_da_base_url(base_url)
-                        soap = _soap_bea_sicid_body(
-                            "estraiProfiloDocumento",
-                            [
-                                ("idUtenteCorrente", cf_avvocato),
-                                ("idDoc", id_doc),
-                                ("registro", registro),
-                                ("ruoloApplicativo", "AVV"),
-                            ],
-                            group=codice_ufficio,
-                        )
-                    else:
-                        soap = _soap_bea_siecic_body(
-                            "estraiProfiloDocumento", [("idDoc", id_doc)]
-                        )
-                    prof_reqs.append({
-                        "url": url_documenti,
-                        "soap_body": soap,
-                        "extra_headers": extra_base,
-                        "soap_action": "",
-                        "cookie_file": cookie_file,
-                    })
+                    for id_doc in _pst_document_id_candidates(item):
+                        if servizio == "JPW_SICID":
+                            registro = _pst_registro_da_base_url(base_url)
+                            soap = _soap_bea_sicid_body(
+                                "estraiProfiloDocumento",
+                                [
+                                    ("idUtenteCorrente", cf_avvocato),
+                                    ("idDoc", id_doc),
+                                    ("registro", registro),
+                                    ("ruoloApplicativo", "AVV"),
+                                ],
+                                group=codice_ufficio,
+                            )
+                        else:
+                            soap = _soap_bea_siecic_body(
+                                "estraiProfiloDocumento", [("idDoc", id_doc)]
+                            )
+                        prof_reqs.append({
+                            "url": url_documenti,
+                            "soap_body": soap,
+                            "extra_headers": extra_base,
+                            "soap_action": "",
+                            "cookie_file": cookie_file,
+                        })
+                        prof_meta.append((i, id_doc))
                 try:
-                    prof_results = _soap_call_pst_session_batch_raw(
+                    prof_results = _soap_call_pst_session_batch_raw_best_effort(
                         prof_reqs,
                         cert_thumbprint=cert_thumbprint,
                         cookie_file=cookie_file,
                         prefer_cookie_only=prefer_cookie_only,
                     )
-                    for k, (body_bytes, _) in enumerate(prof_results):
+                    resolved_profili: set[int] = set()
+                    unresolved_errors: dict[int, list[str]] = {}
+                    for k, result in enumerate(prof_results):
+                        idx, candidate_id = prof_meta[k]
+                        if idx in resolved_profili:
+                            continue
+                        error = str(result.get("error") or "").strip()
+                        if error:
+                            unresolved_errors.setdefault(idx, []).append(f"{candidate_id}: {error}")
+                            continue
+                        body_bytes = result.get("body_bytes") or b""
                         xml_resp = body_bytes.decode("utf-8", "replace")
                         profilo = _parse_profilo_documento_xml(xml_resp)
-                        idx = need_prof[k]
+                        if not profilo.get("id_cat") and not profilo.get("nome_file_originale"):
+                            unresolved_errors.setdefault(idx, []).append(
+                                f"{candidate_id}: profilo documento privo di idCat"
+                            )
+                            continue
                         item = documenti[idx]
                         if isinstance(item, dict):
                             updated = dict(item)
@@ -3523,6 +3817,16 @@ def _pst_download_documenti_batch_payloads(
                             if profilo.get("nome_file_originale") and not str(item.get("nome") or item.get("nome_documento") or "").strip():
                                 updated["nome"] = profilo["nome_file_originale"]
                             documenti[idx] = updated
+                            resolved_profili.add(idx)
+                    if unresolved_errors:
+                        for idx, errors in unresolved_errors.items():
+                            if idx in resolved_profili:
+                                continue
+                            log.warning(
+                                "Profilo PST non risolto per %s: %s",
+                                str(documenti[idx].get("id_documento") or ""),
+                                " | ".join(errors[:3]),
+                            )
                 except Exception as e:
                     log.warning("Batch profile fetch PST fallito (continuo senza id_cat): %s", e)
 

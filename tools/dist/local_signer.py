@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.17"
+VERSION = "1.5.18"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2294,7 +2294,11 @@ def _soap_call_curl_batch_raw(
                 cfg_lines += [f'cookie = "{cp}"', f'cookie-jar = "{cp}"']
             if sys.platform == "win32":
                 if cert_spec:
-                    cfg_lines.append(f'cert = "{_qp(cert_spec)}"')
+                    # Il riferimento allo store certificati Windows non e' un path:
+                    # va passato a curl invariato, con i backslash originali.
+                    cfg_lines.append(
+                        f'cert = "{cert_spec.replace(chr(34), chr(92) + chr(34))}"'
+                    )
                 cfg_lines.append("ssl-no-revoke")
             elif pkcs11_uri:
                 cfg_lines += [
@@ -3526,6 +3530,8 @@ def _pst_download_documenti_batch_payloads(
         dl_reqs: list[dict] = []
         dl_meta: list[dict] = []
 
+        allow_single_fallback = len(documenti) == 1
+
         for raw in documenti:
             item = raw if isinstance(raw, dict) else {}
             id_doc = str(item.get("id_documento") or item.get("id_documento_portale") or "").strip()
@@ -3542,27 +3548,34 @@ def _pst_download_documenti_batch_payloads(
                 elif servizio == "JPW_SICID":
                     id_cat = str(item.get("id_cat") or "").strip()
                     if not id_cat:
-                        # Fallback coerente con il download singolo:
-                        # se il batch non ha potuto recuperare idCat dal profilo,
-                        # tenta il recupero puntuale sullo stesso cookie/sessione
-                        # prima di segnalare il fallimento al wizard.
-                        files.append(
-                            _pst_download_documento_payload(
-                                base_url=base_url,
-                                codice_ufficio=codice_ufficio,
-                                id_documento=id_doc,
-                                nome_documento=nome_doc,
-                                cert_thumbprint=cert_thumbprint,
-                                cf_avvocato=cf_avvocato,
-                                id_cat=id_cat,
-                                data_documento=str(
-                                    item.get("data_deposito") or item.get("data_documento") or ""
-                                ).strip(),
-                                original=True,
-                                cookie_file=cookie_file,
-                                prefer_cookie_only=prefer_cookie_only,
+                        if allow_single_fallback:
+                            # Per il lotto singolo mantieni il fallback puntuale.
+                            files.append(
+                                _pst_download_documento_payload(
+                                    base_url=base_url,
+                                    codice_ufficio=codice_ufficio,
+                                    id_documento=id_doc,
+                                    nome_documento=nome_doc,
+                                    cert_thumbprint=cert_thumbprint,
+                                    cf_avvocato=cf_avvocato,
+                                    id_cat=id_cat,
+                                    data_documento=str(
+                                        item.get("data_deposito") or item.get("data_documento") or ""
+                                    ).strip(),
+                                    original=True,
+                                    cookie_file=cookie_file,
+                                    prefer_cookie_only=prefer_cookie_only,
+                                )
                             )
-                        )
+                        else:
+                            failures.append({
+                                "id_documento": id_doc,
+                                "nome_documento": nome_doc,
+                                "errore": (
+                                    "idCat mancante nel lotto PST. "
+                                    "Il batch non ricade sul download singolo per evitare richieste PIN ripetute."
+                                ),
+                            })
                         continue
                     soap_body = _soap_bea_sicid_body(
                         "downloadDocumento",
@@ -3621,9 +3634,10 @@ def _pst_download_documenti_batch_payloads(
                         "errore": str(e),
                     })
         except RuntimeError as batch_err:
-            # Fallback: download singoli (comportamento pre-2.125.3)
-            log.warning("Batch download PST fallito, fallback download singoli: %s", batch_err)
-            for req, meta in zip(dl_reqs, dl_meta):
+            if len(dl_reqs) == 1:
+                log.warning("Batch download PST fallito, fallback download singolo: %s", batch_err)
+                req = dl_reqs[0]
+                meta = dl_meta[0]
                 try:
                     body_bytes, hdr_text = _soap_call_curl_raw(
                         url=req["url"],
@@ -3643,6 +3657,21 @@ def _pst_download_documenti_batch_payloads(
                         "id_documento": meta["id_documento"],
                         "nome_documento": meta["nome_documento"],
                         "errore": str(e),
+                    })
+            else:
+                log.warning(
+                    "Batch download PST fallito senza fallback singoli per evitare prompt PIN ripetuti: %s",
+                    batch_err,
+                )
+                for meta in dl_meta:
+                    failures.append({
+                        "id_documento": meta["id_documento"],
+                        "nome_documento": meta["nome_documento"],
+                        "errore": (
+                            "Download batch PST non riuscito. "
+                            "Il lotto non ricade sui download singoli per evitare richieste PIN ripetute. "
+                            f"Dettaglio: {batch_err}"
+                        ),
                     })
 
         return {

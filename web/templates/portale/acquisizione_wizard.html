@@ -104,7 +104,7 @@
           <input class="form-check-input" type="checkbox" id="mantieni_albero_originale">
           <label class="form-check-label fw-semibold" for="mantieni_albero_originale">Conserva anche l'albero tecnico originale del portale</label>
         </div>
-        <div class="small text-muted mt-2">Se attivo, HACS archivia anche la struttura tecnica originale dei file scaricati dal portale, oltre a ripartirli nelle sezioni corrette della UI.</div>
+        <div class="small text-muted mt-2">Il catalogo ufficiale dei documenti del portale resta sempre collegato al fascicolo. Se attivo, HACS archivia in piu anche una copia tecnica dell'albero originale scaricato dal portale.</div>
       </div>
       <div class="alert alert-light border rounded-4" id="awImportState">Pronto per l’importazione finale.</div>
       <div id="awDownloadProgress" style="display:none" class="mb-3">
@@ -1135,6 +1135,7 @@ async function awStartImport() {
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
       ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
+      ${downloadSummary ? '<div class="small mt-1 text-muted">Il catalogo ufficiale del portale resta collegato al fascicolo; l\'albero tecnico originale viene archiviato solo se attivato in questo step.</div>' : ''}
       ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;

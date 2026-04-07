@@ -1375,7 +1375,12 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
             return {"ok": True, "nota": "warmup ok"}
 
         def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
-            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")] * len(requests)
+            return [
+                (
+                    b"%PDF-1.7\nfake",
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/pdf\r\n",
+                )
+            ] * len(requests)
 
         def _fake_download(**kwargs):
             calls["download"].append(kwargs["id_documento"])
@@ -1397,14 +1402,14 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
         esito = module._pst_download_documenti_batch_payloads(
             base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
             codice_ufficio="0800570094",
-            cert_thumbprint="AABBCC11",
-            cf_avvocato="RSSMRA80A01H501Z",
-            documenti=[
-                {"id_documento": "33581101", "nome_documento": "Sentenza.pdf"},
-                {"id_documento": "33393309", "nome_documento": "Verbale.pdf"},
-            ],
-            do_preflight=True,
-            )
+                cert_thumbprint="AABBCC11",
+                cf_avvocato="RSSMRA80A01H501Z",
+                documenti=[
+                    {"id_documento": "33581101", "nome_documento": "Sentenza.pdf", "id_cat": "CAT-1"},
+                    {"id_documento": "33393309", "nome_documento": "Verbale.pdf", "id_cat": "CAT-2"},
+                ],
+                do_preflight=True,
+                )
     finally:
         module._pst_preflight_auth_curl = orig_preflight
         module._soap_call_curl_batch_raw = orig_batch
@@ -1414,7 +1419,7 @@ def test_download_documenti_batch_esegue_preflight_una_sola_volta():
     assert esito["documenti_scaricati"] == 2
     assert esito["failures"] == []
     assert calls["preflight"] == 1
-    assert calls["download"] == ["33581101", "33393309"]
+    assert calls["download"] == []
 
 
 def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo():
@@ -1467,6 +1472,104 @@ def test_download_documenti_batch_recupera_id_cat_mancante_con_fallback_singolo(
     assert len(calls["download"]) == 1
     assert calls["download"][0]["prefer_cookie_only"] is True
     assert calls["download"][0]["cookie_file"] == "C:\\temp\\pst.cookies"
+
+
+def test_download_documenti_batch_multi_documento_non_ricade_su_singoli_se_id_cat_manca():
+    module = _load_local_signer()
+
+    orig_batch = module._soap_call_curl_batch_raw
+    orig_download = module._pst_download_documento_payload
+    calls = {"batch": 0, "download": []}
+
+    try:
+        def _fake_batch(requests, cert_thumbprint=None, pkcs11_uri=None):
+            calls["batch"] += 1
+            return [(b"<Envelope><return/></Envelope>", "HTTP/1.1 200 OK\r\n")] * len(requests)
+
+        def _fake_download(**kwargs):
+            calls["download"].append(kwargs)
+            return {
+                "nome": kwargs["nome_documento"] or f"documento_{kwargs['id_documento']}.pdf",
+                "contenuto_b64": "ZmFrZQ==",
+                "content_type": "application/pdf",
+                "id_documento_portale": kwargs["id_documento"],
+                "id_cat": kwargs.get("id_cat") or "",
+                "data_documento": kwargs.get("data_documento") or "",
+                "nome_file_originale": kwargs["nome_documento"] or "",
+                "servizio_portale": "DocumentiFascicolo",
+            }
+
+        module._soap_call_curl_batch_raw = _fake_batch
+        module._pst_download_documento_payload = _fake_download
+
+        esito = module._pst_download_documenti_batch_payloads(
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+            codice_ufficio="0800570094",
+            cert_thumbprint="AABBCC11",
+            cf_avvocato="RSSMRA80A01H501Z",
+            documenti=[
+                {"id_documento": "33581101", "nome_documento": "Sentenza.pdf"},
+                {"id_documento": "33393309", "nome_documento": "Verbale.pdf"},
+            ],
+            do_preflight=False,
+            cookie_file="C:\\temp\\pst.cookies",
+        )
+    finally:
+        module._soap_call_curl_batch_raw = orig_batch
+        module._pst_download_documento_payload = orig_download
+
+    assert esito["ok"] is True
+    assert esito["documenti_scaricati"] == 0
+    assert len(esito["failures"]) == 2
+    assert calls["batch"] == 1
+    assert calls["download"] == []
+    assert "idCat mancante nel lotto PST" in esito["failures"][0]["errore"]
+
+
+def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_run = module.subprocess.run
+    captured = {}
+
+    try:
+        def _fake_run(cmd, capture_output, timeout):
+            cfg_path = Path(cmd[-1])
+            cfg_text = cfg_path.read_text(encoding="utf-8")
+            captured["cfg"] = cfg_text
+            for line in cfg_text.splitlines():
+                if line.startswith('output = "'):
+                    Path(line.split('"')[1]).write_bytes(b"<ok/>")
+                elif line.startswith('dump-header = "'):
+                    Path(line.split('"')[1]).write_text("HTTP/1.1 200 OK\r\n", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stderr=b"")
+
+        module.sys.platform = "win32"
+        module.subprocess.run = _fake_run
+
+        result = module._soap_call_curl_batch_raw(
+            [
+                {
+                    "url": "https://pst.example.test/one",
+                    "soap_body": "<xml/>",
+                    "soap_action": "",
+                },
+                {
+                    "url": "https://pst.example.test/two",
+                    "soap_body": "<xml/>",
+                    "soap_action": "",
+                },
+            ],
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module.sys.platform = orig_platform
+        module.subprocess.run = orig_run
+
+    assert len(result) == 2
+    assert 'cert = "CurrentUser\\MY\\AABBCC11"' in captured["cfg"]
+    assert 'cert = "CurrentUser/MY/AABBCC11"' not in captured["cfg"]
 
 
 def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():

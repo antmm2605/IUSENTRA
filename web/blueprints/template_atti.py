@@ -605,6 +605,48 @@ def scanner_windows_scan():
         return jsonify({"ok": False, "errore": str(e)}), 200
 
 
+# ================================================================ IMPORTA DOCUMENTO
+
+@template_atti.route("/api/importa-documento", methods=["POST"])
+@_richiedi_login
+def api_importa_documento():
+    """Converte un documento DOCX o PDF in testo/HTML per l'editor template."""
+    try:
+        file = request.files.get("file")
+        if not file or not file.filename:
+            return jsonify({"errore": "Nessun file ricevuto."}), 200
+
+        filename = file.filename
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        if ext == "docx":
+            import mammoth
+            result = mammoth.convert_to_html(file)
+            html = result.value or ""
+            # Stripping di tag vuoti lasciati da mammoth
+            html = re.sub(r"<p>\s*</p>", "", html)
+            return jsonify({"ok": True, "tipo": "html", "contenuto": html})
+
+        if ext == "pdf":
+            import io as _io
+            import pdfplumber
+            data = file.read()
+            testo_pagine = []
+            with pdfplumber.open(_io.BytesIO(data)) as pdf:
+                for page in pdf.pages:
+                    testo = page.extract_text() or ""
+                    if testo.strip():
+                        testo_pagine.append(testo.strip())
+            testo = "\n\n".join(testo_pagine)
+            return jsonify({"ok": True, "tipo": "testo", "contenuto": testo})
+
+        return jsonify({"errore": f"Formato '.{ext}' non supportato via server. Usa DOCX o PDF (TXT e HTML vengono gestiti direttamente nel browser)."}), 200
+
+    except Exception as e:
+        current_app.logger.exception("Errore api_importa_documento: %s", e)
+        return jsonify({"errore": str(e)}), 200
+
+
 # ================================================================ PDF
 
 @template_atti.route("/<id_template>/pdf", methods=["POST"])

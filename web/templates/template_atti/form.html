@@ -33,10 +33,17 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label fw-semibold" style="font-size:.82rem;">
-              Corpo del documento
-              <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Editor Professionale</span>
-            </label>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <label class="form-label fw-semibold mb-0" style="font-size:.82rem;">
+                Corpo del documento
+                <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Editor Professionale</span>
+              </label>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-importa-doc"
+                      title="Importa un documento esistente (DOCX, PDF, TXT, HTML) e usalo come base del template">
+                <i class="bi bi-file-earmark-arrow-up me-1"></i>Importa documento
+              </button>
+            </div>
+            <input type="file" id="importa-doc-input" accept=".docx,.pdf,.txt,.html,.htm" class="d-none">
 
             {{ professional_editor(
               'corpo',
@@ -99,15 +106,157 @@
 </form>
 {% endblock %}
 
+<!-- Modal conferma importazione documento -->
+<div class="modal fade" id="modalImportaDoc" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h5 class="modal-title"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>Importa documento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="importa-doc-spinner" class="text-center py-4 d-none">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="mt-2 text-muted small">Conversione in corso...</div>
+        </div>
+        <div id="importa-doc-errore" class="alert alert-danger d-none"></div>
+        <div id="importa-doc-anteprima" class="d-none">
+          <div class="alert alert-info small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Anteprima del documento importato. Puoi scegliere di <strong>sostituire</strong> il contenuto attuale
+            o <strong>aggiungere in fondo</strong>. Dopo l'importazione usa i chip delle variabili per sostituire
+            i dati fissi con i campi dinamici del template.
+          </div>
+          <div id="importa-doc-preview-box" class="border rounded p-3 bg-light"
+               style="max-height:340px;overflow-y:auto;font-size:.85rem;white-space:pre-wrap;word-break:break-word;"></div>
+        </div>
+      </div>
+      <div class="modal-footer" id="importa-doc-footer" style="display:none!important">
+        <button type="button" class="btn btn-outline-secondary" id="btn-importa-aggiungi">
+          <i class="bi bi-plus-circle me-1"></i>Aggiungi in fondo
+        </button>
+        <button type="button" class="btn btn-primary" id="btn-importa-sostituisci">
+          <i class="bi bi-arrow-left-right me-1"></i>Sostituisci contenuto
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% block extra_scripts %}
 {% include "template_atti/_editor_assets.html" %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // ── Inserimento variabili con click ──────────────────────────
   document.querySelectorAll('.var-chip').forEach((chip) => {
+    chip.addEventListener('mousedown', (e) => {
+      // mousedown anziché click: il focus non è ancora uscito dall'editor
+      e.preventDefault();
+    });
     chip.addEventListener('click', () => {
       window.TemplateActEditors.insertText('template-body-editor', chip.textContent.trim());
     });
   });
+
+  // ── Importazione documento ───────────────────────────────────
+  const btnImporta = document.getElementById('btn-importa-doc');
+  const fileInput  = document.getElementById('importa-doc-input');
+  const modalEl    = document.getElementById('modalImportaDoc');
+  const modal      = new bootstrap.Modal(modalEl);
+  const spinner    = document.getElementById('importa-doc-spinner');
+  const erroreEl   = document.getElementById('importa-doc-errore');
+  const anteprimaEl = document.getElementById('importa-doc-anteprima');
+  const previewBox = document.getElementById('importa-doc-preview-box');
+  const footer     = document.getElementById('importa-doc-footer');
+  const btnAggiungi    = document.getElementById('btn-importa-aggiungi');
+  const btnSostituisci = document.getElementById('btn-importa-sostituisci');
+
+  let _importedContent = '';
+  let _importedIsHtml  = false;
+
+  function showSpinner() {
+    spinner.classList.remove('d-none');
+    erroreEl.classList.add('d-none');
+    anteprimaEl.classList.add('d-none');
+    footer.style.display = 'none';
+  }
+
+  function showErrore(msg) {
+    spinner.classList.add('d-none');
+    erroreEl.textContent = msg;
+    erroreEl.classList.remove('d-none');
+    anteprimaEl.classList.add('d-none');
+    footer.style.display = 'none';
+  }
+
+  function showAnteprima(content, isHtml) {
+    _importedContent = content;
+    _importedIsHtml  = isHtml;
+    spinner.classList.add('d-none');
+    erroreEl.classList.add('d-none');
+    anteprimaEl.classList.remove('d-none');
+    footer.style.removeProperty('display');
+    if (isHtml) {
+      previewBox.style.whiteSpace = 'normal';
+      previewBox.innerHTML = content;
+    } else {
+      previewBox.style.whiteSpace = 'pre-wrap';
+      previewBox.textContent = content;
+    }
+  }
+
+  btnImporta.addEventListener('click', () => {
+    fileInput.value = '';
+    _importedContent = '';
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    modal.show();
+    showSpinner();
+
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    // Formati gestiti lato client
+    if (ext === 'txt') {
+      const text = await file.text();
+      showAnteprima(text, false);
+      return;
+    }
+    if (ext === 'html' || ext === 'htm') {
+      const text = await file.text();
+      showAnteprima(text, true);
+      return;
+    }
+
+    // DOCX e PDF: conversione server-side
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const resp = await fetch('{{ url_for("template_atti.api_importa_documento") }}', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await resp.json();
+      if (data.errore) {
+        showErrore(data.errore);
+        return;
+      }
+      showAnteprima(data.contenuto, data.tipo === 'html');
+    } catch (err) {
+      showErrore('Errore di rete durante la conversione: ' + err.message);
+    }
+  });
+
+  function applyImport(append) {
+    window.TemplateActEditors.setContent('template-body-editor', _importedContent, append);
+    modal.hide();
+  }
+
+  btnSostituisci.addEventListener('click', () => applyImport(false));
+  btnAggiungi.addEventListener('click',    () => applyImport(true));
 });
 </script>
 

@@ -512,7 +512,30 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     const state = editors.get(editorId);
     if (!state) return;
     state.surface.focus();
+    // Ripristina la posizione del cursore salvata prima del click sul chip
+    if (state.savedRange) {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(state.savedRange);
+      }
+      state.savedRange = null;
+    }
     document.execCommand('insertText', false, text);
+    sync(editorId);
+  }
+
+  function setContent(editorId, htmlOrText, append = false) {
+    const state = editors.get(editorId);
+    if (!state) return;
+    const html = looksLikeHtml(htmlOrText) ? htmlOrText : plainTextToHtml(htmlOrText);
+    if (append) {
+      state.surface.innerHTML = (state.surface.innerHTML || '') + html;
+    } else {
+      state.surface.innerHTML = html;
+    }
+    ensureParagraph(state.surface);
+    state.savedRange = null;
     sync(editorId);
   }
 
@@ -641,13 +664,25 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
       layoutInput,
       defaultLayout,
       layout: currentLayout,
+      savedRange: null,
     });
 
     bindToolbar(root, editorId);
     applyLayout(editorId, currentLayout);
 
     surface.addEventListener('input', () => sync(editorId));
-    surface.addEventListener('blur', () => sync(editorId));
+    surface.addEventListener('blur', () => {
+      // Salva la posizione del cursore prima che il focus lasci l'editor
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (surface.contains(range.commonAncestorContainer) || surface === range.commonAncestorContainer) {
+          const st = editors.get(editorId);
+          if (st) st.savedRange = range.cloneRange();
+        }
+      }
+      sync(editorId);
+    });
     surface.addEventListener('paste', () => {
       setTimeout(() => sync(editorId), 0);
     });
@@ -859,6 +894,7 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     syncAll,
     applyLayout,
     insertText,
+    setContent,
     insertImage,
     getPlainText,
     openAcquisition,

@@ -106,6 +106,7 @@
 </form>
 {% endblock %}
 
+{% block extra_scripts %}
 <!-- Modal conferma importazione documento -->
 <div class="modal fade" id="modalImportaDoc" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -142,8 +143,6 @@
     </div>
   </div>
 </div>
-
-{% block extra_scripts %}
 {% include "template_atti/_editor_assets.html" %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -24,6 +24,7 @@
   <link href="/static/css/app.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/design-system.css?v={{ app_version }}" rel="stylesheet">
   <link href="/static/css/mobile.css?v={{ app_version }}" rel="stylesheet">
+  <link href="/static/css/theme.css?v={{ app_version }}" rel="stylesheet">
   <!-- htmx — aggiornamenti inline senza reload di pagina -->
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.3/dist/htmx.min.js" defer></script>
 </head>
@@ -34,7 +35,7 @@
   {# Logo + toggle mobile + toggle mini (desktop) #}
   <div class="sb-logo">
     <div class="d-flex align-items-center gap-2">
-      <div style="width:32px;height:32px;background:rgba(200,151,43,.2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(200,151,43,.25)">
+      <div class="sb-logo-icon">
         <i class="bi bi-briefcase-fill" style="color:var(--accent);font-size:.95rem"></i>
       </div>
       <div>
@@ -426,7 +427,7 @@
             class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
             style="display:none;font-size:.55rem;min-width:1.1em;padding:.2em .35em">0</span>
     </a>
-    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-warning"
+    <a href="{{ url_for('nuovo_appuntamento') }}" class="btn btn-sm btn-primary"
        title="Nuovo appuntamento">
       <i class="bi bi-plus-lg"></i><span class="d-none d-md-inline ms-1">Nuovo</span>
     </a>

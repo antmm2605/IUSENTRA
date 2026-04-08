@@ -1,0 +1,586 @@
+/* ================================================================
+   HACS — Sistema Operativo Visivo v2.80
+   Palette: Blu Petrolio / Antracite / Superfici Chiare
+   Principio: il colore è comunicazione operativa, non decorazione
+   Caricato per ultimo — sovrascrive tutti i fogli precedenti
+   ================================================================
+
+   Semantica cromatica:
+     Blu petrolio (#0e7490)  — accent principale, azioni, link
+     Blu/Grigio  (#2563eb)  — informazione
+     Verde       (#16a34a)  — conforme, completato, ok
+     Ambra       (#d97706)  — attenzione, in attesa
+     Rosso       (#dc2626)  — errore, blocco, urgente
+     Viola       (#7c3aed)  — area specialistica, strumenti smart
+   ================================================================ */
+
+/* ── 1. TOKEN DI DESIGN ──────────────────────────────────────── */
+:root {
+  /* Blu petrolio — accent principale */
+  --hc-teal:          #0e7490;
+  --hc-teal-dk:       #0a5966;
+  --hc-teal-lt:       #ecfeff;
+  --hc-teal-mid:      #a5f3fc;
+
+  /* Superfici */
+  --hc-bg:            #f0f4f8;
+  --hc-surface:       #ffffff;
+  --hc-surface-alt:   #f8fafc;
+  --hc-border:        #e2e8f0;
+  --hc-border-dk:     #cbd5e1;
+
+  /* Testo */
+  --hc-text:          #111827;
+  --hc-text-2:        #4b5563;
+  --hc-text-3:        #9ca3af;
+
+  /* Informativi — blu/grigio */
+  --hc-info:          #2563eb;
+  --hc-info-lt:       #eff6ff;
+  --hc-info-brd:      #bfdbfe;
+  --hc-info-text:     #1d4ed8;
+
+  /* Conformità / completato — verde */
+  --hc-ok:            #16a34a;
+  --hc-ok-lt:         #f0fdf4;
+  --hc-ok-brd:        #bbf7d0;
+  --hc-ok-text:       #15803d;
+
+  /* Attenzione — ambra */
+  --hc-warn:          #d97706;
+  --hc-warn-lt:       #fffbeb;
+  --hc-warn-brd:      #fde68a;
+  --hc-warn-text:     #92400e;
+
+  /* Errore / blocco — rosso */
+  --hc-err:           #dc2626;
+  --hc-err-lt:        #fef2f2;
+  --hc-err-brd:       #fecaca;
+  --hc-err-text:      #991b1b;
+
+  /* Area specialistica / smart — viola */
+  --hc-spec:          #7c3aed;
+  --hc-spec-lt:       #f5f3ff;
+  --hc-spec-brd:      #ddd6fe;
+  --hc-spec-text:     #5b21b6;
+
+  /* Alias compatibilità — ridiretti su teal */
+  --accent:           var(--hc-teal);
+  --accent-light:     var(--hc-teal-lt);
+
+  /* Override Bootstrap */
+  --bs-primary:            #0e7490;
+  --bs-primary-rgb:        14, 116, 144;
+  --bs-link-color:         #0e7490;
+  --bs-link-hover-color:   #0a5966;
+  --bs-focus-ring-color:   rgba(14, 116, 144, .25);
+}
+
+/* ── 2. BODY + SFONDO ─────────────────────────────────────────── */
+body {
+  background-color: var(--hc-bg);
+  color: var(--hc-text);
+}
+
+/* ── 3. SIDEBAR ───────────────────────────────────────────────── */
+
+/* Contenitore icona logo — teal invece di gold */
+.sb-logo-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(14, 116, 144, .2);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(14, 116, 144, .35);
+}
+
+/* Avatar utente — gradiente teal */
+#sidebar .sb-avatar {
+  background: linear-gradient(135deg, var(--hc-teal) 0%, var(--hc-teal-dk) 100%);
+  box-shadow: 0 2px 8px rgba(14, 116, 144, .3);
+}
+
+/* Link hover — teal sottile, no lateral shift */
+#sidebar .sb-link:hover {
+  background: rgba(255, 255, 255, .07);
+  color: #ffffff;
+  transform: none;
+  border-left-color: var(--hc-teal);
+}
+#sidebar .sb-link:hover i {
+  color: var(--hc-teal);
+  transform: none;
+}
+#sidebar .sb-link:hover::before { display: none; }
+
+/* Link active — teal */
+#sidebar .sb-link.active {
+  background: rgba(14, 116, 144, .16);
+  color: #ffffff;
+  font-weight: 600;
+  border-left-color: var(--hc-teal);
+  box-shadow: none;
+}
+#sidebar .sb-link.active::before { display: none; }
+#sidebar .sb-link.active i {
+  color: var(--hc-teal);
+  transform: none;
+}
+
+/* Section toggle: open → teal */
+#sidebar .sb-toggle.open span i { color: var(--hc-teal); }
+
+/* Mini sidebar active */
+#sidebar.sb-mini .sb-link.active {
+  background: rgba(14, 116, 144, .18);
+  border-left: none;
+}
+
+/* Badge sidebar (notifiche) — rimangono solidi su sfondo scuro */
+#sidebar .badge { background-color: var(--hc-teal) !important; color: #fff !important; border: none; }
+
+/* ── 4. TOPBAR ─────────────────────────────────────────────────── */
+.topbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--hc-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Linea accent in cima: teal → blu */
+.topbar::before {
+  background: linear-gradient(
+    90deg,
+    var(--hc-teal) 0%,
+    var(--hc-info) 55%,
+    transparent 100%
+  );
+  opacity: .9;
+  height: 2px;
+}
+
+.topbar h1 { color: var(--hc-text); }
+
+/* No hover transform/shadow sui bottoni topbar */
+.topbar-actions .btn:hover  { transform: none; box-shadow: none; }
+.topbar-actions .btn:active { transform: none; }
+
+/* "Nuovo appuntamento" → teal (azione primaria, non attenzione) */
+.topbar-actions .btn-warning {
+  background: var(--hc-teal);
+  border-color: var(--hc-teal);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: none;
+}
+.topbar-actions .btn-warning:hover,
+.topbar-actions .btn-warning:focus {
+  background: var(--hc-teal-dk);
+  border-color: var(--hc-teal-dk);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* ── 5. MAIN AREA ─────────────────────────────────────────────── */
+#main { background-color: var(--hc-bg); }
+
+/* ── 6. CARDS ─────────────────────────────────────────────────── */
+.card {
+  border: 1px solid var(--hc-border);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+}
+.card-header {
+  background-color: var(--hc-surface-alt);
+  border-bottom: 1px solid var(--hc-border);
+  padding: .7rem 1.1rem;
+  font-weight: 600;
+  font-size: .9rem;
+}
+.card-body { padding: 1.1rem; }
+.card-footer {
+  background-color: var(--hc-surface-alt);
+  border-top: 1px solid var(--hc-border);
+}
+
+/* ── 7. TABELLE — densità media ────────────────────────────────── */
+.table {
+  font-size: .875rem;
+  --bs-table-hover-bg: #f4f7fb;
+  --bs-table-striped-bg: #f8fafc;
+}
+
+/* Header: etichette compatte, uppercase sottile */
+.table > thead > tr > th {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .45px;
+  color: var(--hc-text-2);
+  background-color: var(--hc-surface-alt);
+  border-bottom: 2px solid var(--hc-border-dk) !important;
+  padding: .6rem .875rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Righe: densità media, bordi solo orizzontali */
+.table > tbody > tr > td {
+  padding: .575rem .875rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--hc-border);
+  color: var(--hc-text);
+  border-left: none;
+  border-right: none;
+}
+.table > tbody > tr:last-child > td { border-bottom: none; }
+
+/* Rimuovi bordi verticali se non esplicitamente border */
+.table:not(.table-bordered) > thead > tr > th {
+  border-left: none;
+  border-right: none;
+}
+
+/* ── 8. BADGE — semantici, flat, puliti ────────────────────────── */
+.badge {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .3em .65em;
+  border-radius: 5px;
+  letter-spacing: .1px;
+}
+
+/* Bootstrap bg-* → soft semantic (light bg + colored text) */
+.badge.bg-primary {
+  background-color: var(--hc-info-lt) !important;
+  color: var(--hc-info-text) !important;
+  border: 1px solid var(--hc-info-brd);
+}
+.badge.bg-success {
+  background-color: var(--hc-ok-lt) !important;
+  color: var(--hc-ok-text) !important;
+  border: 1px solid var(--hc-ok-brd);
+}
+.badge.bg-warning {
+  background-color: var(--hc-warn-lt) !important;
+  color: var(--hc-warn-text) !important;
+  border: 1px solid var(--hc-warn-brd);
+}
+.badge.bg-danger {
+  background-color: var(--hc-err-lt) !important;
+  color: var(--hc-err-text) !important;
+  border: 1px solid var(--hc-err-brd);
+}
+.badge.bg-info {
+  background-color: var(--hc-teal-lt) !important;
+  color: var(--hc-teal-dk) !important;
+  border: 1px solid var(--hc-teal-mid);
+}
+.badge.bg-secondary {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid var(--hc-border-dk);
+}
+.badge.bg-dark {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border: none;
+}
+
+/* Eccezione: badge notifica (pill posizionato) — rimane solido */
+#badge-scadenze-nav,
+#badge-notifiche {
+  background-color: var(--hc-err) !important;
+  color: #ffffff !important;
+  border: none;
+}
+#badgeEmailNonLette {
+  background-color: var(--hc-teal) !important;
+  color: #ffffff !important;
+  border: none;
+}
+
+/* ── Classi operative dirette ── */
+.badge-ok   { background-color: var(--hc-ok-lt);   color: var(--hc-ok-text);   border: 1px solid var(--hc-ok-brd); }
+.badge-warn { background-color: var(--hc-warn-lt);  color: var(--hc-warn-text); border: 1px solid var(--hc-warn-brd); }
+.badge-err  { background-color: var(--hc-err-lt);   color: var(--hc-err-text);  border: 1px solid var(--hc-err-brd); }
+.badge-info { background-color: var(--hc-info-lt);  color: var(--hc-info-text); border: 1px solid var(--hc-info-brd); }
+.badge-spec { background-color: var(--hc-spec-lt);  color: var(--hc-spec-text); border: 1px solid var(--hc-spec-brd); }
+.badge-teal { background-color: var(--hc-teal-lt);  color: var(--hc-teal-dk);   border: 1px solid var(--hc-teal-mid); }
+
+/* ── Tipo appuntamento — semantici ── */
+.badge-UDIENZA       { background-color: var(--hc-info-lt);  color: var(--hc-info-text); border: 1px solid var(--hc-info-brd); }
+.badge-CONSULTAZIONE { background-color: var(--hc-ok-lt);    color: var(--hc-ok-text);   border: 1px solid var(--hc-ok-brd); }
+.badge-DEPOSITO      { background-color: var(--hc-spec-lt);  color: var(--hc-spec-text); border: 1px solid var(--hc-spec-brd); }
+.badge-SCADENZA      { background-color: var(--hc-err-lt);   color: var(--hc-err-text);  border: 1px solid var(--hc-err-brd); }
+.badge-RIUNIONE      { background-color: var(--hc-warn-lt);  color: var(--hc-warn-text); border: 1px solid var(--hc-warn-brd); }
+.badge-ALTRO         { background-color: #f1f5f9; color: #475569; border: 1px solid var(--hc-border-dk); }
+
+/* ── 9. STATI DEPOSITO PCT / TELEMATICO ────────────────────────── */
+/* Classi applicabili a badge, chip o righe tabella */
+.hc-stato {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .28em .65em;
+  border-radius: 5px;
+  letter-spacing: .1px;
+}
+.hc-stato-ok   { background-color: var(--hc-ok-lt);   color: var(--hc-ok-text);   border: 1px solid var(--hc-ok-brd); }
+.hc-stato-warn { background-color: var(--hc-warn-lt);  color: var(--hc-warn-text); border: 1px solid var(--hc-warn-brd); }
+.hc-stato-err  { background-color: var(--hc-err-lt);   color: var(--hc-err-text);  border: 1px solid var(--hc-err-brd); }
+.hc-stato-info { background-color: var(--hc-info-lt);  color: var(--hc-info-text); border: 1px solid var(--hc-info-brd); }
+.hc-stato-spec { background-color: var(--hc-spec-lt);  color: var(--hc-spec-text); border: 1px solid var(--hc-spec-brd); }
+
+/* ── 10. BOTTONI — primary = teal ──────────────────────────────── */
+.btn-primary {
+  --bs-btn-bg:                 var(--hc-teal);
+  --bs-btn-border-color:       var(--hc-teal);
+  --bs-btn-hover-bg:           var(--hc-teal-dk);
+  --bs-btn-hover-border-color: var(--hc-teal-dk);
+  --bs-btn-active-bg:          var(--hc-teal-dk);
+  --bs-btn-active-border-color:var(--hc-teal-dk);
+  --bs-btn-focus-shadow-rgb:   14, 116, 144;
+}
+.btn-outline-primary {
+  --bs-btn-color:              var(--hc-teal);
+  --bs-btn-border-color:       var(--hc-teal);
+  --bs-btn-hover-bg:           var(--hc-teal);
+  --bs-btn-hover-border-color: var(--hc-teal);
+  --bs-btn-active-bg:          var(--hc-teal);
+  --bs-btn-active-border-color:var(--hc-teal);
+  --bs-btn-focus-shadow-rgb:   14, 116, 144;
+}
+/* Rimuovi hover lift globale */
+.btn { transition: background .14s ease, border-color .14s ease, color .14s ease; }
+
+/* ── 11. FORM CONTROLS — focus teal ───────────────────────────── */
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--hc-teal);
+  box-shadow: 0 0 0 .2rem rgba(14, 116, 144, .15);
+}
+.form-check-input:checked {
+  background-color: var(--hc-teal);
+  border-color: var(--hc-teal);
+}
+
+/* ── 12. CALENDARIO ──────────────────────────────────────────── */
+.cal-day.oggi {
+  border-color: var(--hc-teal);
+  background: var(--hc-teal-lt);
+}
+.cal-day:not(.altro-mese):hover::after,
+.week-col:hover::after { color: var(--hc-teal); }
+
+/* ── 13. BOTTOM NAV MOBILE ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .bn-item.active { color: var(--hc-teal); }
+  .bn-item.active::before {
+    background: var(--hc-teal);
+    box-shadow: none;
+  }
+}
+
+/* ── 14. DND (drag & drop) ────────────────────────────────────── */
+.dnd-over {
+  background: rgba(14, 116, 144, .08) !important;
+  outline: 2px dashed var(--hc-teal) !important;
+}
+.dnd-row-over td { background: rgba(14, 116, 144, .06); }
+.dnd-row-over td:first-child { border-left: 3px solid var(--hc-teal); }
+
+/* ── 15. COMPONENTI GLOBALI ──────────────────────────────────── */
+
+/* HTMX loader */
+#htmx-loader { border-top-color: var(--hc-teal); }
+
+/* Sync indicator attivo */
+#sync-operatori.attivo {
+  background: var(--hc-ok-lt);
+  border-color: var(--hc-ok-brd);
+  color: var(--hc-ok-text);
+}
+
+/* Nav pills */
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link { background-color: var(--hc-teal); }
+
+/* Nav tabs */
+.nav-tabs .nav-link.active {
+  color: var(--hc-teal);
+  border-bottom-color: var(--hc-teal);
+}
+
+/* Breadcrumb */
+.breadcrumb-item a { color: var(--hc-teal); }
+.breadcrumb-item.active { color: var(--hc-text-2); }
+
+/* Progress bar */
+.progress-bar { background-color: var(--hc-teal); }
+.progress-bar.bg-success { background-color: var(--hc-ok) !important; }
+.progress-bar.bg-warning { background-color: var(--hc-warn) !important; }
+.progress-bar.bg-danger  { background-color: var(--hc-err) !important; }
+
+/* ── 16. ALERTS — soft semantici ──────────────────────────────── */
+.alert-primary {
+  --bs-alert-color:        var(--hc-teal-dk);
+  --bs-alert-bg:           var(--hc-teal-lt);
+  --bs-alert-border-color: var(--hc-teal-mid);
+}
+.alert-success {
+  --bs-alert-color:        var(--hc-ok-text);
+  --bs-alert-bg:           var(--hc-ok-lt);
+  --bs-alert-border-color: var(--hc-ok-brd);
+}
+.alert-warning {
+  --bs-alert-color:        var(--hc-warn-text);
+  --bs-alert-bg:           var(--hc-warn-lt);
+  --bs-alert-border-color: var(--hc-warn-brd);
+}
+.alert-danger {
+  --bs-alert-color:        var(--hc-err-text);
+  --bs-alert-bg:           var(--hc-err-lt);
+  --bs-alert-border-color: var(--hc-err-brd);
+}
+.alert-info {
+  --bs-alert-color:        var(--hc-info-text);
+  --bs-alert-bg:           var(--hc-info-lt);
+  --bs-alert-border-color: var(--hc-info-brd);
+}
+
+/* ── 17. ACCORDION ────────────────────────────────────────────── */
+.accordion-button:not(.collapsed) {
+  color: var(--hc-teal-dk);
+  background-color: var(--hc-teal-lt);
+  box-shadow: inset 0 -1px 0 var(--hc-teal-mid);
+}
+.accordion-button:focus {
+  border-color: var(--hc-teal);
+  box-shadow: 0 0 0 .2rem rgba(14, 116, 144, .15);
+}
+
+/* ── 18. UFF-TAB (picker uffici) ─────────────────────────────── */
+.uff-tab:hover {
+  background: var(--hc-teal-lt);
+  border-color: var(--hc-teal-mid);
+  color: var(--hc-teal-dk);
+}
+.uff-tab.active {
+  background: var(--hc-teal) !important;
+  border-color: var(--hc-teal) !important;
+  color: #fff !important;
+}
+.uff-item:hover,
+.uff-item.focused { background: var(--hc-teal-lt); }
+.uff-icon { color: var(--hc-teal); }
+
+/* ── 19. DARK MODE ────────────────────────────────────────────── */
+[data-bs-theme="dark"] {
+  --hc-bg:            #0f172a;
+  --hc-surface:       #1e293b;
+  --hc-surface-alt:   #162032;
+  --hc-border:        #1e293b;
+  --hc-border-dk:     #334155;
+  --hc-text:          #e2e8f0;
+  --hc-text-2:        #94a3b8;
+  --hc-text-3:        #64748b;
+
+  --hc-info-lt:       #1e3a5f;
+  --hc-info-brd:      #2d5d9b;
+  --hc-info-text:     #93c5fd;
+
+  --hc-ok-lt:         #052e16;
+  --hc-ok-brd:        #166534;
+  --hc-ok-text:       #4ade80;
+
+  --hc-warn-lt:       #451a03;
+  --hc-warn-brd:      #92400e;
+  --hc-warn-text:     #fbbf24;
+
+  --hc-err-lt:        #450a0a;
+  --hc-err-brd:       #7f1d1d;
+  --hc-err-text:      #f87171;
+
+  --hc-spec-lt:       #2e1065;
+  --hc-spec-brd:      #5b21b6;
+  --hc-spec-text:     #c4b5fd;
+
+  --hc-teal-lt:       #0e3d4a;
+  --hc-teal-mid:      #0e7490;
+}
+
+[data-bs-theme="dark"] body  { background-color: var(--hc-bg); }
+[data-bs-theme="dark"] #main { background-color: var(--hc-bg); }
+
+[data-bs-theme="dark"] .topbar {
+  background: rgba(15, 23, 42, .97);
+  border-bottom-color: rgba(51, 65, 85, .6);
+  box-shadow: 0 1px 0 rgba(51, 65, 85, .3), 0 2px 12px rgba(0, 0, 0, .2);
+}
+[data-bs-theme="dark"] .topbar::before {
+  background: linear-gradient(90deg, var(--hc-teal) 0%, #3b82f6 55%, transparent 100%);
+  opacity: .55;
+}
+[data-bs-theme="dark"] .topbar h1 { color: #e2e8f0; }
+
+[data-bs-theme="dark"] .topbar-actions .btn-warning {
+  background: var(--hc-teal);
+  border-color: var(--hc-teal);
+}
+[data-bs-theme="dark"] .topbar-actions .btn-warning:hover {
+  background: var(--hc-teal-dk);
+  border-color: var(--hc-teal-dk);
+}
+
+[data-bs-theme="dark"] .card {
+  background-color: var(--hc-surface);
+  border-color: var(--hc-border-dk);
+}
+[data-bs-theme="dark"] .card-header {
+  background-color: var(--hc-surface-alt);
+  border-bottom-color: var(--hc-border-dk);
+}
+[data-bs-theme="dark"] .card-footer {
+  background-color: var(--hc-surface-alt);
+  border-top-color: var(--hc-border-dk);
+}
+
+[data-bs-theme="dark"] .table {
+  --bs-table-hover-bg:    rgba(14, 116, 144, .08);
+  --bs-table-color:       var(--hc-text);
+  --bs-table-border-color: var(--hc-border-dk);
+}
+[data-bs-theme="dark"] .table > thead > tr > th {
+  background-color: var(--hc-surface-alt);
+  color: var(--hc-text-2);
+  border-bottom-color: var(--hc-border-dk) !important;
+}
+[data-bs-theme="dark"] .table > tbody > tr > td {
+  border-bottom-color: var(--hc-border-dk);
+}
+
+[data-bs-theme="dark"] .cal-day.oggi {
+  background: #0c3040;
+  border-color: var(--hc-teal);
+}
+
+[data-bs-theme="dark"] .uff-tab:hover {
+  background: rgba(14, 116, 144, .15);
+  border-color: var(--hc-teal);
+  color: #a5f3fc;
+}
+[data-bs-theme="dark"] .uff-item:hover,
+[data-bs-theme="dark"] .uff-item.focused { background: rgba(14, 116, 144, .12); }
+
+[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+  background-color: var(--hc-teal-lt);
+  color: #a5f3fc;
+}

@@ -1,22 +1,48 @@
 // ================================================================
 //  HACS — Variabili SCSS
 //  Fonte di verità per colori, dimensioni, font.
-//  Le CSS custom properties in :root (app.scss) derivano da queste.
+//  Le CSS custom properties in :root (app.scss / theme.css) derivano da queste.
+//
+//  Semantica cromatica:
+//    $teal    — accent principale (blu petrolio)
+//    $info    — informazione
+//    $ok      — conforme / completato
+//    $warn    — attenzione
+//    $err     — errore / blocco
+//    $spec    — area specialistica / smart
 // ================================================================
 
 // ---- Palette principale ----
-$primary:        #1a3a5c;
-$accent:         #c8972b;
-$accent-light:   rgba(200, 151, 43, .18);
+$primary:        #1e3a5c;   // Navy scuro — testo titoli
+$teal:           #0e7490;   // Blu petrolio — accent principale
+$teal-dk:        #0a5966;
+$teal-lt:        #ecfeff;
+
+// ---- Colori semantici ----
+$info:           #2563eb;
+$ok:             #16a34a;
+$warn:           #d97706;
+$err:            #dc2626;
+$spec:           #7c3aed;
+
+// ---- Alias legacy (mantenuti per compatibilità) ----
+$accent:         $teal;
+$accent-light:   $teal-lt;
 
 // ---- Layout shell ----
 $sidebar-w:      240px;
 $topbar-h:       58px;
 $bottomnav-h:    62px;
 
-// ---- Sidebar gradient ----
-$sb-gradient-top: #1e3f66;
-$sb-gradient-bot: #0d2240;
+// ---- Sidebar ----
+$sb-bg:          #0f172a;   // Dark navy
+
+// ---- Superfici ----
+$bg:             #f0f4f8;
+$surface:        #ffffff;
+$surface-alt:    #f8fafc;
+$border:         #e2e8f0;
+$border-dk:      #cbd5e1;
 
 // ---- Glassmorphism ----
 $glass-bg:       rgba(255, 255, 255, .92);

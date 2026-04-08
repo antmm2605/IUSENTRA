@@ -9397,9 +9397,10 @@ read -r -p "Premi Invio per chiudere..." _
             return str(e), 404
 
     @app.route("/api/fascicoli/<id_fasc>/documenti/<id_doc>/info-firma")
-    @login_required
     def api_info_firma_documento(id_fasc, id_doc):
         """Restituisce i dettagli dei certificati di firma presenti in un documento (.p7m o PDF firmato)."""
+        if g.utente_corrente is None:
+            return jsonify({"firme": [], "errore": "Non autenticato"}), 401
         try:
             gf = get_fascicoli()
             fasc = gf.get(id_fasc)

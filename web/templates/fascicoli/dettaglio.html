@@ -204,6 +204,7 @@
                                   data-doc-nome="{{ pdoc.local_doc_nome }}"
                                   data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   onclick="apriVisualizzatore(this)">
                             <i class="bi bi-eye me-1"></i>Visualizza
                           </button>
@@ -366,6 +367,7 @@
                  data-doc-nome="{{ doc.nome }}"
                  data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                 data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                  onclick="apriVisualizzatore(this); return false;">
                 <i class="bi bi-file-earmark me-1 text-muted"></i>{{ doc.nome }}
               </a>
@@ -467,6 +469,7 @@
                       data-doc-nome="{{ doc.nome }}"
                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
                       onclick="apriVisualizzatore(this)">
                 <i class="bi bi-eye"></i>
               </button>
@@ -1123,6 +1126,7 @@
                                       data-doc-nome="{{ pdoc.local_doc_nome }}"
                                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       onclick="apriVisualizzatore(this)">
                                 <i class="bi bi-eye me-1"></i>Visualizza
                               </button>
@@ -2373,26 +2377,57 @@
   </div>
 </div>
 
-{# Modal: visualizzatore documenti inline #}
+{# Modal: visualizzatore documenti inline con pannello certificati #}
 <div class="modal fade" id="modalVisualizzatore" tabindex="-1">
   <div class="modal-dialog modal-xl modal-fullscreen-sm-down" style="max-width:95vw;height:92vh;margin:.5rem auto">
     <div class="modal-content" style="height:100%;display:flex;flex-direction:column">
+
+      {# ── Header ── #}
       <div class="modal-header py-2">
-        <h6 class="modal-title mb-0">
-          <i class="bi bi-file-earmark-text me-2 text-primary"></i>
-          <span id="visualizzatore-titolo" class="text-truncate" style="max-width:60vw;display:inline-block"></span>
+        <h6 class="modal-title mb-0 d-flex align-items-center gap-2 min-w-0">
+          <i id="vis-file-icon" class="bi bi-file-earmark-pdf text-danger flex-shrink-0"></i>
+          <span id="visualizzatore-titolo" class="text-truncate" style="max-width:55vw;display:inline-block"></span>
         </h6>
-        <div class="ms-auto d-flex align-items-center gap-2">
+        <div class="ms-auto d-flex align-items-center gap-2 flex-shrink-0">
           <a id="visualizzatore-scarica" href="#" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-download me-1"></i>Scarica
           </a>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
       </div>
-      <div class="modal-body p-0" style="flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column">
-        <iframe id="visualizzatore-iframe" src="" style="width:100%;flex:1;border:0;min-height:0"
-                allow="fullscreen"></iframe>
+
+      {# ── Barra firma digitale (visibile solo se il documento ha firme) ── #}
+      <div id="vis-firma-bar" style="display:none"
+           class="border-bottom bg-body-secondary px-3 py-1 d-flex align-items-center flex-wrap gap-2">
+        <span class="text-muted small fw-semibold">
+          <i class="bi bi-shield-lock me-1"></i>Firma digitale
+        </span>
+        <div id="vis-firma-badges" class="d-flex flex-wrap gap-1"></div>
+        <button type="button" class="btn btn-link btn-sm p-0 ms-auto text-decoration-none"
+                onclick="visToggleFirmaDetails()" id="vis-firma-toggle-btn">
+          <span id="vis-firma-toggle-lbl">Dettagli</span>
+          <i class="bi bi-chevron-down ms-1" id="vis-firma-chevron"></i>
+        </button>
       </div>
+
+      {# ── Pannello dettagli certificati (collassabile) ── #}
+      <div id="vis-firma-details" style="display:none"
+           class="border-bottom bg-white px-3 py-2">
+        <div id="vis-firma-details-content" class="row g-2"></div>
+      </div>
+
+      {# ── Corpo: iframe viewer ── #}
+      <div class="modal-body p-0" style="flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column">
+        <div id="vis-loading" class="d-flex align-items-center justify-content-center" style="flex:1">
+          <div class="text-center text-muted">
+            <div class="spinner-border spinner-border-sm mb-2"></div>
+            <div class="small">Caricamento documento…</div>
+          </div>
+        </div>
+        <iframe id="visualizzatore-iframe" src="" style="width:100%;flex:1;border:0;min-height:0;display:none"
+                allow="fullscreen" onload="visIframeLoaded()"></iframe>
+      </div>
+
     </div>
   </div>
 </div>
@@ -2708,16 +2743,137 @@
 
 {% block scripts %}
 <script>
-// ---- Visualizzatore documenti inline ----
+// ---- Visualizzatore documenti inline con pannello certificati ----
+
+var _visDettaglioAperto = false;
+
 function apriVisualizzatore(btn) {
-  document.getElementById('visualizzatore-titolo').textContent = btn.dataset.docNome;
-  document.getElementById('visualizzatore-iframe').src = btn.dataset.docUrl;
-  document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl;
+  const nome = btn.dataset.docNome || '';
+  const ext  = nome.split('.').pop().toLowerCase();
+
+  // Icona file dinamica
+  const icone = { pdf:'bi-file-earmark-pdf text-danger', p7m:'bi-file-earmark-lock2 text-success',
+                   jpg:'bi-file-earmark-image text-primary', jpeg:'bi-file-earmark-image text-primary',
+                   png:'bi-file-earmark-image text-info',   gif:'bi-file-earmark-image text-warning' };
+  const iconEl = document.getElementById('vis-file-icon');
+  iconEl.className = 'bi flex-shrink-0 ' + (icone[ext] || 'bi-file-earmark text-secondary');
+
+  document.getElementById('visualizzatore-titolo').textContent = nome;
+  document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl || '#';
+
+  // Spinner + iframe reset
+  const iframe = document.getElementById('visualizzatore-iframe');
+  iframe.style.display = 'none';
+  iframe.src = '';
+  document.getElementById('vis-loading').style.display = 'flex';
+
+  // Reset pannello firma
+  _visDettaglioAperto = false;
+  document.getElementById('vis-firma-bar').style.display = 'none';
+  document.getElementById('vis-firma-badges').innerHTML = '';
+  document.getElementById('vis-firma-details-content').innerHTML = '';
+  document.getElementById('vis-firma-details').style.display = 'none';
+  document.getElementById('vis-firma-chevron').className = 'bi bi-chevron-down ms-1';
+  document.getElementById('vis-firma-toggle-lbl').textContent = 'Dettagli';
+
   new bootstrap.Modal(document.getElementById('modalVisualizzatore')).show();
+
+  // Carica il documento nell'iframe
+  iframe.src = btn.dataset.docUrl || '';
+
+  // Fetch info firma se disponibile
+  const infoUrl = btn.dataset.infoFirmaUrl;
+  if (infoUrl) {
+    fetch(infoUrl)
+      .then(r => r.json())
+      .then(data => { if (data.firme && data.firme.length > 0) _visMostraFirme(data.firme); })
+      .catch(() => {});
+  }
 }
+
+function visIframeLoaded() {
+  document.getElementById('vis-loading').style.display = 'none';
+  document.getElementById('visualizzatore-iframe').style.display = 'block';
+}
+
+function visToggleFirmaDetails() {
+  _visDettaglioAperto = !_visDettaglioAperto;
+  document.getElementById('vis-firma-details').style.display = _visDettaglioAperto ? 'block' : 'none';
+  document.getElementById('vis-firma-chevron').className = 'bi ms-1 ' + (_visDettaglioAperto ? 'bi-chevron-up' : 'bi-chevron-down');
+  document.getElementById('vis-firma-toggle-lbl').textContent = _visDettaglioAperto ? 'Nascondi' : 'Dettagli';
+}
+
+function _visMostraFirme(firme) {
+  const bar     = document.getElementById('vis-firma-bar');
+  const badges  = document.getElementById('vis-firma-badges');
+  const details = document.getElementById('vis-firma-details-content');
+
+  badges.innerHTML  = '';
+  details.innerHTML = '';
+
+  firme.forEach((f, i) => {
+    // Badge compatto nella barra
+    let cls, icon;
+    if (f.scaduto)           { cls = 'danger';  icon = 'bi-x-circle-fill'; }
+    else if (f.avviso_imminente) { cls = 'warning'; icon = 'bi-exclamation-triangle-fill'; }
+    else                     { cls = 'success'; icon = 'bi-patch-check-fill'; }
+
+    const badge = document.createElement('span');
+    badge.className = `badge rounded-pill bg-${cls} d-inline-flex align-items-center gap-1`;
+    badge.style.cursor = 'pointer';
+    badge.title = 'Clicca per i dettagli';
+    badge.innerHTML = `<i class="bi ${icon}"></i>${_escHtml(f.intestatario)}`;
+    badge.onclick = () => { if (!_visDettaglioAperto) visToggleFirmaDetails(); };
+    badges.appendChild(badge);
+
+    // Scheda dettaglio
+    const scadenzaStr = f.valido_al ? new Date(f.valido_al).toLocaleDateString('it-IT') : '—';
+    const dal = f.valido_dal ? new Date(f.valido_dal).toLocaleDateString('it-IT') : '—';
+
+    let statoHtml;
+    if (f.scaduto)
+      statoHtml = `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Scaduto il ${scadenzaStr}</span>`;
+    else if (f.avviso_imminente)
+      statoHtml = `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Scade il ${scadenzaStr} (${f.giorni_restanti} giorni)</span>`;
+    else
+      statoHtml = `<span class="badge bg-success"><i class="bi bi-patch-check me-1"></i>Valido fino al ${scadenzaStr}</span>`;
+
+    const card = document.createElement('div');
+    card.className = 'col-12 col-md-6 col-lg-4';
+    card.innerHTML = `
+      <div class="card card-body p-2 h-100 border-${cls} border-opacity-50">
+        <div class="d-flex align-items-start gap-2 mb-1">
+          <i class="bi bi-person-badge text-${cls} mt-1 flex-shrink-0"></i>
+          <div class="min-w-0 fw-semibold text-truncate" title="${_escHtml(f.cn || f.intestatario)}">${_escHtml(f.intestatario)}</div>
+        </div>
+        ${f.org && f.org !== f.intestatario ? `<div class="small text-muted mb-1"><i class="bi bi-building me-1"></i>${_escHtml(f.org)}</div>` : ''}
+        <div class="small mb-1">${statoHtml}</div>
+        <table class="table table-sm table-borderless mb-0 small" style="font-size:.78rem">
+          <tr><th class="py-0 pe-2 text-muted fw-normal w-50">Emittente (CA)</th>
+              <td class="py-0 text-truncate" style="max-width:0" title="${_escHtml(f.emittente)}">${_escHtml(f.emittente)}</td></tr>
+          <tr><th class="py-0 pe-2 text-muted fw-normal">Valido dal</th>
+              <td class="py-0">${dal}</td></tr>
+          <tr><th class="py-0 pe-2 text-muted fw-normal">Formato</th>
+              <td class="py-0">${_escHtml(f.formato || '—')}</td></tr>
+          <tr><th class="py-0 pe-2 text-muted fw-normal">Algoritmo</th>
+              <td class="py-0">${_escHtml(f.algoritmo || '—')}</td></tr>
+          <tr><th class="py-0 pe-2 text-muted fw-normal">Numero seriale</th>
+              <td class="py-0 text-truncate font-monospace" style="max-width:0;font-size:.72rem" title="${_escHtml(f.seriale)}">${_escHtml(f.seriale)}</td></tr>
+        </table>
+      </div>`;
+    details.appendChild(card);
+  });
+
+  bar.style.display = 'flex';
+}
+
+function _escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
-  // Ferma il caricamento del documento quando si chiude il modal
   document.getElementById('visualizzatore-iframe').src = '';
+  document.getElementById('vis-loading').style.display = 'none';
 });
 
 // ---- Firma per deposito (auto-detection: Local Signer / PKCS#11 / esterna) ----

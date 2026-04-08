@@ -9396,6 +9396,27 @@ read -r -p "Premi Invio per chiudere..." _
         except (KeyError, StopIteration, ValueError) as e:
             return str(e), 404
 
+    @app.route("/api/fascicoli/<id_fasc>/documenti/<id_doc>/info-firma")
+    @login_required
+    def api_info_firma_documento(id_fasc, id_doc):
+        """Restituisce i dettagli dei certificati di firma presenti in un documento (.p7m o PDF firmato)."""
+        try:
+            gf = get_fascicoli()
+            fasc = gf.get(id_fasc)
+            if not fasc:
+                return jsonify({"firme": [], "errore": "Fascicolo non trovato"}), 404
+            doc = next((d for d in fasc.documenti if d.id == id_doc), None)
+            if not doc:
+                return jsonify({"firme": [], "errore": "Documento non trovato"}), 404
+            percorso = gf.percorso_documento(id_fasc, id_doc)
+            data = _decrypt_doc(percorso.read_bytes())
+            from pct.firma import analizza_firma_documento
+            firme = analizza_firma_documento(data, doc.nome)
+            return jsonify({"firme": firme, "nome": doc.nome})
+        except Exception as e:
+            app.logger.exception("Errore api_info_firma_documento: %s", e)
+            return jsonify({"firme": [], "errore": str(e)})
+
     # ---- Editor inline documenti
 
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")

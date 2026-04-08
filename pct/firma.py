@@ -337,3 +337,189 @@ def crea_signer_da_config(cfg, pin: Optional[str] = None):
         from pct.firma_pkcs11 import FirmaPKCS11
         return FirmaPKCS11.da_config(cfg, pin=pin)
     return FirmaDigitale.da_config(cfg)
+
+
+# ============================================================
+# Analisi firme digitali — lettura certificati da .p7m / PDF
+# ============================================================
+
+def analizza_firma_documento(data: bytes, nome_file: str = "") -> list[dict]:
+    """
+    Analizza le firme digitali presenti in un documento CAdES (.p7m) o PAdES (PDF).
+
+    Returns:
+        Lista di dict, uno per ogni firmatario trovato, con le chiavi:
+        intestatario, cn, org, emittente, emittente_cn, valido_dal, valido_al,
+        scaduto, avviso_imminente, giorni_restanti, seriale, algoritmo, formato.
+        Lista vuota se nessuna firma trovata o formato non supportato.
+    """
+    nome_lower = (nome_file or "").lower()
+    if nome_lower.endswith(".p7m") or _is_cades(data):
+        return _analizza_cades(data)
+    if nome_lower.endswith(".pdf") or data[:4] == b"%PDF":
+        return _analizza_pades(data)
+    return []
+
+
+def _is_cades(data: bytes) -> bool:
+    """Controlla se i byte sono un envelope CAdES/PKCS#7 SignedData."""
+    try:
+        from asn1crypto import cms
+        ci = cms.ContentInfo.load(data)
+        return ci["content_type"].native == "signed_data"
+    except Exception:
+        return False
+
+
+def _dn_campo(asn1_name, campo_hf: str) -> str:
+    """Estrae un campo dal Distinguished Name tramite human_friendly label."""
+    try:
+        hf = asn1_name.human_friendly  # es. "Common Name: Mario Rossi, Organization: ..."
+        for parte in hf.split(","):
+            parte = parte.strip()
+            if parte.lower().startswith(campo_hf.lower() + ":"):
+                return parte.split(":", 1)[-1].strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _analizza_cades(data: bytes) -> list[dict]:
+    """Estrae info certificati da un envelope CAdES (.p7m) con asn1crypto."""
+    try:
+        from asn1crypto import cms
+        from datetime import datetime, timezone
+    except ImportError:
+        return []
+
+    try:
+        ci = cms.ContentInfo.load(data)
+        if ci["content_type"].native != "signed_data":
+            return []
+        sd = ci["content"]
+        certs_raw = sd["certificates"]
+        sinfos = sd["signer_infos"]
+        now = datetime.now(tz=timezone.utc)
+        risultati = []
+
+        for sinfo in sinfos:
+            cert = None
+            sid = sinfo["sid"]
+            # Abbina il certificato al firmatario tramite issuer+serial
+            if sid.name == "issuer_and_serial_number":
+                ias = sid.chosen
+                serial_target = ias["serial_number"].native
+                for c_entry in certs_raw:
+                    c = c_entry.chosen
+                    if c.serial_number == serial_target:
+                        cert = c
+                        break
+            # Fallback: primo certificato non-CA
+            if cert is None:
+                for c_entry in certs_raw:
+                    c = c_entry.chosen
+                    if not c.ca:
+                        cert = c
+                        break
+            if cert is None and len(certs_raw) > 0:
+                cert = certs_raw[0].chosen
+            if cert is None:
+                continue
+
+            # Date di validità
+            not_after = cert.not_valid_after
+            not_before = cert.not_valid_before
+            if not_after.tzinfo is None:
+                not_after = not_after.replace(tzinfo=timezone.utc)
+            if not_before.tzinfo is None:
+                not_before = not_before.replace(tzinfo=timezone.utc)
+            delta = (not_after - now).days
+            scaduto = delta < 0
+            avviso = not scaduto and delta <= 30
+
+            # Nomi soggetto / emittente
+            cn_val = _dn_campo(cert.subject, "Common Name") or _dn_campo(cert.subject, "CN")
+            org_val = _dn_campo(cert.subject, "Organization") or _dn_campo(cert.subject, "O") or None
+            emittente_cn = _dn_campo(cert.issuer, "Common Name") or _dn_campo(cert.issuer, "CN")
+            emittente_org = _dn_campo(cert.issuer, "Organization") or _dn_campo(cert.issuer, "O") or None
+
+            # Algoritmo di firma
+            algo = ""
+            try:
+                algo_raw = sinfo["signature_algorithm"]["algorithm"].native or ""
+                algo = algo_raw.upper().replace("_WITH_", " + ").replace("WITHRSAENCRYPTION", "")
+                if not algo:
+                    algo = "RSA + SHA-256"
+            except Exception:
+                algo = "RSA + SHA-256"
+
+            risultati.append({
+                "intestatario": cn_val or org_val or "Sconosciuto",
+                "cn": cn_val,
+                "org": org_val,
+                "emittente": emittente_org or emittente_cn or "N/A",
+                "emittente_cn": emittente_cn,
+                "valido_dal": not_before.strftime("%Y-%m-%d"),
+                "valido_al": not_after.strftime("%Y-%m-%d"),
+                "scaduto": scaduto,
+                "avviso_imminente": avviso,
+                "giorni_restanti": delta,
+                "seriale": format(cert.serial_number, "X"),
+                "algoritmo": algo,
+                "formato": "CAdES",
+            })
+
+        return risultati
+    except Exception:
+        return []
+
+
+def _analizza_pades(data: bytes) -> list[dict]:
+    """Estrae info firme incorporate in un PDF (PAdES) tramite pyhanko."""
+    # Verifica rapida presenza firma nel PDF prima di caricare pyhanko
+    if b"/Type /Sig" not in data and b"/Type/Sig" not in data:
+        return []
+    try:
+        import io
+        from datetime import datetime, timezone
+        from pyhanko.pdf_utils.reader import PdfFileReader
+        reader = PdfFileReader(io.BytesIO(data))
+        embedded = reader.embedded_signatures
+        now = datetime.now(tz=timezone.utc)
+        risultati = []
+        for sig in embedded:
+            try:
+                cert = sig.signer_cert  # cryptography.x509.Certificate
+                not_after = cert.not_valid_after_utc
+                not_before = cert.not_valid_before_utc
+                delta = (not_after - now).days
+                scaduto = delta < 0
+                avviso = not scaduto and delta <= 30
+                cn_attrs = cert.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+                cn_val = cn_attrs[0].value if cn_attrs else ""
+                org_attrs = cert.subject.get_attributes_for_oid(x509.NameOID.ORGANIZATION_NAME)
+                org_val = org_attrs[0].value if org_attrs else None
+                issuer_cn_a = cert.issuer.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+                issuer_cn = issuer_cn_a[0].value if issuer_cn_a else ""
+                issuer_org_a = cert.issuer.get_attributes_for_oid(x509.NameOID.ORGANIZATION_NAME)
+                issuer_org = issuer_org_a[0].value if issuer_org_a else None
+                risultati.append({
+                    "intestatario": cn_val or org_val or "Sconosciuto",
+                    "cn": cn_val,
+                    "org": org_val,
+                    "emittente": issuer_org or issuer_cn or "N/A",
+                    "emittente_cn": issuer_cn,
+                    "valido_dal": not_before.strftime("%Y-%m-%d"),
+                    "valido_al": not_after.strftime("%Y-%m-%d"),
+                    "scaduto": scaduto,
+                    "avviso_imminente": avviso,
+                    "giorni_restanti": delta,
+                    "seriale": format(cert.serial_number, "X"),
+                    "algoritmo": "RSA + SHA-256",
+                    "formato": "PAdES",
+                })
+            except Exception:
+                continue
+        return risultati
+    except Exception:
+        return []

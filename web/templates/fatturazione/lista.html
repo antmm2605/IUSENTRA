@@ -100,7 +100,8 @@
               {% elif p.stato.value == 'SCADUTA' %}bg-danger
               {% elif p.stato.value == 'BOZZA' %}bg-secondary
               {% else %}bg-dark{% endif %}"
-              style="font-size:.68rem;">{{ p.stato.value }}</span>
+              {% set flabel = {'BOZZA':'Bozza','EMESSA':'Emessa','PAGATA':'Pagata','SCADUTA':'Scaduta','ANNULLATA':'Annullata'} %}
+              style="font-size:.68rem;">{{ flabel.get(p.stato.value, p.stato.value) }}</span>
           </td>
           <td class="text-end">
             <div class="d-flex gap-1 justify-content-end">

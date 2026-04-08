@@ -11,7 +11,7 @@
   </div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">{{ 'Modifica: ' + scadenza.titolo if scadenza else 'Nuova Scadenza' }}</h1>
-    <p class="ds-ph-sub">Termini processuali, preavvisi e dati della scadenza</p>
+    <p class="ds-ph-sub">Inserisci i dati della scadenza</p>
   </div>
   <div class="ds-ph-actions">
     {% if scadenza %}
@@ -47,7 +47,7 @@
 {% if not scadenza %}
 <div class="card shadow-sm mb-3">
   <div class="card-header fw-semibold">
-    <i class="bi bi-lightning me-2 text-warning"></i>Calcolo automatico termine processuale
+    <i class="bi bi-lightning me-2 text-warning"></i>Calcolo automatico della data di scadenza
     <span class="badge bg-secondary ms-2">opzionale</span>
   </div>
   <div class="card-body">
@@ -62,12 +62,12 @@
         </select>
       </div>
       <div class="col-md-3" id="riga-decorrenza-preset" style="display:none">
-        <label class="form-label fw-semibold">Data decorrenza</label>
+        <label class="form-label fw-semibold">Data di inizio</label>
         <input type="date" id="data-decorrenza-preset" class="form-control"
                onchange="calcolaTermine()">
       </div>
       <div class="col-md-3" id="riga-scadenza-calcolata" style="display:none">
-        <label class="form-label fw-semibold">Scadenza calcolata</label>
+        <label class="form-label fw-semibold">Data scadenza calcolata</label>
         <input type="text" id="scadenza-calcolata" class="form-control font-monospace"
                readonly style="background:#e8f5e9">
       </div>
@@ -110,7 +110,7 @@
         <label class="form-label fw-semibold">Data decorrenza</label>
         <input type="date" name="data_decorrenza" class="form-control"
                value="{{ scadenza.data_decorrenza if scadenza else '' }}">
-        <div class="form-text">Giorno da cui decorre il termine (es. notifica)</div>
+        <div class="form-text">Giorno di partenza del termine (es. data della notifica)</div>
       </div>
       <div class="col-md-4 d-flex align-items-end">
         <div class="form-check form-switch pb-1">
@@ -119,7 +119,7 @@
                  {{ 'checked' if scadenza and scadenza.perentorio }}>
           <label class="form-check-label fw-semibold" for="perentorio">
             Termine perentorio
-            <i class="bi bi-info-circle text-muted" title="La decadenza non è sanabile"></i>
+            <i class="bi bi-info-circle text-muted" title="Il mancato rispetto determina la perdita del diritto e non è recuperabile"></i>
           </label>
         </div>
       </div>

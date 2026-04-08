@@ -25,7 +25,7 @@
     <h1 class="ds-ph-title text-break">{{ fascicolo.titolo }}</h1>
     <p class="ds-ph-sub">
       {% if fascicolo.rg_completo %}
-        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle me-1">RG ufficiale {{ fascicolo.rg_completo }}</span>
+        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle me-1">N. Causa {{ fascicolo.rg_completo }}</span>
         <code class="small me-1">Rif. interno {{ fascicolo.numero }}</code>
       {% else %}
         <code class="small me-1">{{ fascicolo.numero }}</code>
@@ -40,7 +40,7 @@
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('quadro_fascicolo', id_fasc=fascicolo.id) }}"
-       class="ds-btn ds-btn-ghost" title="Quadro unico della pratica — 5 assi">
+       class="ds-btn ds-btn-ghost" title="Quadro sinottico della pratica">
       <i class="bi bi-grid-3x3-gap"></i><span class="d-none d-sm-inline">Quadro</span>
     </a>
     <a href="{{ url_for('copertina_fascicolo', id_fasc=fascicolo.id) }}"
@@ -101,7 +101,7 @@
           <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
           </a>
-          <span class="badge bg-light text-dark border">ProfiloFascicolo</span>
+          <span class="badge bg-light text-dark border">Scheda pratica</span>
         </div>
       </div>
       <div class="card-body">
@@ -117,12 +117,12 @@
           {{ dc("Cliente", fascicolo.nome_cliente) }}
           {{ dc("Controparte", fascicolo.controparte) }}
           {{ dc("Tribunale", fascicolo.tribunale) }}
-          {{ dc("RG ufficiale", fascicolo.rg_completo, mono=True) }}
+          {{ dc("N. registro", fascicolo.rg_completo, mono=True) }}
           {{ dc("Rif. interno", fascicolo_ref_interno, mono=True) }}
           {{ dc("Sezione", fascicolo.sezione) }}
           {{ dc("Giudice", fascicolo.giudice) }}
           {{ dc("Avv. referente", fascicolo.avvocato_referente) }}
-          {{ dc("Avv. dominus", fascicolo.avvocato_dominus) }}
+          {{ dc("Avv. titolare", fascicolo.avvocato_dominus) }}
           {% if fascicolo.valore_causa %}
           <div class="col-sm-4">
             <div class="text-muted mb-1">Valore causa</div>
@@ -143,14 +143,14 @@
         {% if portale_documenti_per_deposito %}
         <div class="border-top">
           <div class="px-3 py-2 bg-info-subtle small fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <span><i class="bi bi-collection me-1"></i>Catalogo ufficiale documenti del portale</span>
+            <span><i class="bi bi-collection me-1"></i>Documenti dal portale telematico</span>
             <span class="badge bg-light text-dark border">
               {{ ns_portale.documenti }} document{% if ns_portale.documenti == 1 %}o{% else %}i{% endif %} ·
               {{ (portale_documenti_catalogo | selectattr('gia_importato') | list | length) }}/{{ ns_portale.documenti }} acquisiti
             </span>
           </div>
           <div class="px-3 py-2 border-bottom small text-muted">
-            Questa vista resta sempre collegata al fascicolo quando importi documenti o provvedimenti dal portale. L'opzione "albero tecnico originale" salva invece una copia tecnica separata e non modifica questo catalogo.
+            I documenti importati vengono collegati a questa pratica. L'opzione "copia originale dal portale" salva invece una copia separata senza modificare questo elenco.
           </div>
           <div class="accordion accordion-flush" id="accDocumentiPortale">
             {% for dep_id, dep_docs_catalogo in (portale_documenti_per_deposito or {}).items() %}
@@ -1771,7 +1771,7 @@
         </form>
         {% endif %}
         <form method="post" action="{{ url_for('elimina_fascicolo', id_fasc=fascicolo.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo fascicolo?')">
+              onsubmit="return confirm('Eliminare definitivamente questo fascicolo? I documenti non saranno cancellati.')">
           <button class="list-group-item list-group-item-action text-danger border-0 bg-transparent text-start w-100">
             <i class="bi bi-trash me-2"></i>Elimina fascicolo
           </button>

@@ -171,12 +171,13 @@
               {% endif %}
             </td>
             <td data-label="Stato">
-              <span class="badge bg-{{ sc[c.stato.value] }}">{{ c.stato.value }}</span>
+              {% set sl = {'ATTIVO':'Attivo','INATTIVO':'Inattivo','POTENZIALE':'Potenziale','ARCHIVIATO':'Archiviato'} %}
+              <span class="badge bg-{{ sc[c.stato.value] }}">{{ sl.get(c.stato.value, c.stato.value) }}</span>
             </td>
             <td data-label="" class="text-end">
               <div class="btn-group btn-group-sm">
                 <a href="{{ url_for('faldone_cliente', id_cliente=c.id) }}"
-                   class="btn btn-warning" title="Faldone digitale">
+                   class="btn btn-warning" title="Apri faldone documenti">
                   <i class="bi bi-folder2-open"></i>
                 </a>
                 <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"

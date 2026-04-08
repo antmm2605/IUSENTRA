@@ -47,8 +47,9 @@
          value="{{ q }}" autocomplete="off">
   <select name="canale" class="form-select form-select-sm">
     <option value="">Tutti i canali</option>
+    {% set clabel = {'EMAIL':'Email','SMS':'SMS','WHATSAPP':'WhatsApp'} %}
     {% for c in canali %}
-    <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ c.value }}</option>
+    <option value="{{ c.value }}" {{ 'selected' if c.value == canale }}>{{ clabel.get(c.value, c.value) }}</option>
     {% endfor %}
   </select>
   <select name="stato" class="form-select form-select-sm">
@@ -93,7 +94,7 @@
                 <span class="badge bg-success">SMS</span>
               {% else %}
                 <span class="badge bg-success" style="background-color:#25D366 !important">
-                  <i class="bi bi-whatsapp"></i> WA
+                  <i class="bi bi-whatsapp"></i> WhatsApp
                 </span>
               {% endif %}
             </td>
@@ -110,8 +111,13 @@
                 'CONSEGNATO': 'success', 'LETTO': 'info',
                 'FALLITO': 'danger', 'ANNULLATO': 'warning'
               } %}
+              {% set slabel = {
+                'IN_CODA': 'In attesa', 'INVIATO': 'Inviato',
+                'CONSEGNATO': 'Consegnato', 'LETTO': 'Letto',
+                'FALLITO': 'Errore', 'ANNULLATO': 'Annullato'
+              } %}
               <span class="badge bg-{{ colore.get(m.stato.value, 'secondary') }}">
-                {{ m.stato.value.replace('_',' ') }}
+                {{ slabel.get(m.stato.value, m.stato.value) }}
               </span>
             </td>
             <td data-label="">
@@ -141,7 +147,7 @@
     {% if q or canale or stato %}
       Nessun risultato per i filtri selezionati.
     {% else %}
-      Invia comunicazioni ai clienti tramite email, SMS o WhatsApp.
+      Invia messaggi ai tuoi clienti tramite email, SMS o WhatsApp.
     {% endif %}
   </div>
   {% if not q and not canale and not stato %}

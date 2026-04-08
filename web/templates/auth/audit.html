@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Audit Log{% endblock %}
-{% block page_title %}Audit Log{% endblock %}
+{% block title %}Registro Attività{% endblock %}
+{% block page_title %}Registro Attività{% endblock %}
 
 {% block content %}
 
@@ -8,8 +8,8 @@
 <div class="ds-ph">
   <div class="ds-ph-icon"><i class="bi bi-journal-text"></i></div>
   <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Audit Log</h1>
-    <p class="ds-ph-sub">Registro accessi e operazioni degli utenti</p>
+    <h1 class="ds-ph-title">Registro Attività</h1>
+    <p class="ds-ph-sub">Storico degli accessi e delle operazioni degli utenti</p>
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('esporta_audit_csv', id_utente=filtro_utente, azione=filtro_azione) }}"

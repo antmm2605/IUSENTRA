@@ -17,7 +17,7 @@
         <i class="bi {{ desc.icona }} me-1 text-{{ desc.colore }}"></i>
         <span class="badge bg-{{ desc.colore }}">{{ target.ruolo.value.replace('_',' ') }}</span>
         {% if not target.attivo %}
-        <span class="badge bg-secondary ms-1">DISABILITATO</span>
+        <span class="badge bg-secondary ms-1">Disabilitato</span>
         {% endif %}
       </div>
       <div class="small text-muted mt-1">{{ desc.descrizione }}</div>
@@ -31,7 +31,7 @@
       <span class="badge bg-light text-muted border">Permessi standard del ruolo</span>
       {% endif %}
       <div class="small text-muted mt-1">
-        {{ target.permessi_effettivi|length }} permessi effettivi
+        {{ target.permessi_effettivi|length }} permessi attivi
       </div>
     </div>
   </div>
@@ -42,17 +42,16 @@
   <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
   <div class="small">
     <strong>Come funzionano i permessi personalizzati:</strong><br>
-    <span class="text-success">● Extra</span> — aggiunge un permesso non previsto dal ruolo.<br>
-    <span class="text-danger">● Rimossi</span> — toglie un permesso previsto dal ruolo.<br>
-    Un permesso non può essere contemporaneamente in entrambe le liste.
-    I permessi del ruolo base non cambiano per gli altri utenti.
+    <span class="text-success">● Aggiunto</span> — l'utente ottiene un accesso non previsto dal suo ruolo.<br>
+    <span class="text-danger">● Rimosso</span> — l'utente perde un accesso normalmente previsto dal suo ruolo.<br>
+    Le modifiche valgono solo per questo utente e non influenzano gli altri.
   </div>
 </div>
 
 <form method="post">
 <div class="card shadow-sm">
   <div class="card-header fw-semibold">
-    <i class="bi bi-sliders me-2 text-primary"></i>Permessi per categoria
+    <i class="bi bi-sliders me-2 text-primary"></i>Impostazioni accesso per sezione
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -65,7 +64,7 @@
               <span class="text-muted" style="font-size:.75rem">Dal ruolo</span>
             </th>
             <th class="text-center" style="width:90px">
-              <i class="bi bi-plus-circle-fill text-success me-1"></i>Extra
+              <i class="bi bi-plus-circle-fill text-success me-1"></i>Aggiunto
             </th>
             <th class="text-center" style="width:90px">
               <i class="bi bi-dash-circle-fill text-danger me-1"></i>Rimosso

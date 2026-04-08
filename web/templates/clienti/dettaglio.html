@@ -400,7 +400,7 @@
         </a>
         <form method="post"
               action="{{ url_for('elimina_cliente', id_cliente=cliente.id) }}"
-              onsubmit="return confirm('Eliminare definitivamente questo cliente?')">
+              onsubmit="return confirm('Eliminare definitivamente questo cliente? I suoi fascicoli e documenti resteranno nell\'archivio.')">
           <button class="list-group-item list-group-item-action text-danger w-100 text-start border-0 bg-transparent">
             <i class="bi bi-trash me-2"></i>Elimina cliente
           </button>

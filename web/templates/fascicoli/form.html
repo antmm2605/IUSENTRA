@@ -51,7 +51,7 @@
       {% if workflow_prefill and not fascicolo %}
       <div class="card shadow-sm border-primary-subtle mb-3">
         <div class="card-header bg-primary-subtle text-primary-emphasis fw-semibold">
-          <i class="bi bi-diagram-3 me-2"></i>Apertura guidata dal workflow commerciale
+          <i class="bi bi-diagram-3 me-2"></i>Apertura pratica guidata
         </div>
         <div class="card-body">
           <div class="d-flex flex-wrap gap-2 mb-2">
@@ -162,7 +162,7 @@
 
       <div class="card shadow-sm mb-3">
         <div class="card-header fw-semibold">
-          <i class="bi bi-bank me-2 text-primary"></i>Dati processuali
+          <i class="bi bi-bank me-2 text-primary"></i>Dati del procedimento
         </div>
         <div class="card-body">
           <div class="row g-3">
@@ -177,13 +177,13 @@
               </div>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-semibold">Numero RG</label>
+              <label class="form-label fw-semibold">N. Registro Generale</label>
               <input type="text" id="field-numero_rg" name="numero_rg" class="form-control font-monospace {% if correction_highlight == 'numero_rg' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.numero_rg if fascicolo else '' }}"
                      placeholder="1234">
             </div>
             <div class="col-md-2">
-              <label class="form-label fw-semibold">Anno RG</label>
+              <label class="form-label fw-semibold">Anno di iscrizione</label>
               <input type="number" id="field-anno_rg" name="anno_rg" class="form-control {% if correction_highlight == 'anno_rg' %}border-primary shadow-sm{% endif %}"
                      value="{{ fascicolo.anno_rg if fascicolo and fascicolo.anno_rg else oggi.year }}"
                      min="2000" max="2099">

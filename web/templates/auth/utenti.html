@@ -13,7 +13,7 @@
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('profili') }}" class="ds-btn ds-btn-ghost">
-      <i class="bi bi-grid-3x3"></i><span class="d-none d-sm-inline">Matrice permessi</span>
+      <i class="bi bi-grid-3x3"></i><span class="d-none d-sm-inline">Ruoli e Permessi</span>
     </a>
     <a href="{{ url_for('nuovo_utente') }}" class="ds-btn ds-btn-primary">
       <i class="bi bi-person-plus-fill"></i><span class="d-none d-sm-inline">Nuovo utente</span>
@@ -85,7 +85,7 @@
                 {% if u.id != utente_corrente.id %}
                 <form method="post"
                       action="{{ url_for('elimina_utente', id_utente=u.id) }}"
-                      onsubmit="return confirm('Eliminare l\'utente {{ u.username }}?')">
+                      onsubmit="return confirm('Eliminare l\'utente {{ u.username }}? Non potrà più accedere al sistema.')">
                   <button class="btn btn-outline-danger" title="Elimina"><i class="bi bi-trash"></i></button>
                 </form>
                 {% endif %}

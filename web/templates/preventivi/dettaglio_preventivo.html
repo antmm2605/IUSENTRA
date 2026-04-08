@@ -406,7 +406,7 @@
 
   <div class="col-12 pb-4">
     <form method="post" action="{{ url_for('preventivi.elimina_preventivo', id_preventivo=p.id) }}"
-          onsubmit="return confirm('Eliminare il preventivo {{ p.numero }}?')">
+          onsubmit="return confirm('Eliminare il preventivo {{ p.numero }}? L\'operazione non è reversibile.')">
       <button type="submit" class="btn btn-sm btn-outline-danger">
         <i class="bi bi-trash me-1"></i>Elimina preventivo
       </button>

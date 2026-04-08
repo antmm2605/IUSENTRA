@@ -10,7 +10,7 @@
   <div class="ds-ph-icon"><i class="bi bi-calendar-event"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Scadenziario Legale</h1>
-    <p class="ds-ph-sub">Gestione termini, udienze e scadenze processuali</p>
+    <p class="ds-ph-sub">Termini, udienze e scadenze del tuo studio</p>
   </div>
   <div class="ds-ph-actions">
     <a href="{{ url_for('export_scadenziario_csv') }}?tipo={{ filtro_tipo }}&priorita={{ filtro_priorita }}&id_fascicolo={{ id_fascicolo }}"
@@ -50,7 +50,7 @@
 <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
   <i class="bi bi-exclamation-octagon-fill fs-5 mt-1 flex-shrink-0"></i>
   <div>
-    <strong>{{ scadute|length }} scadenza/e SCADUTA/E</strong> non completate.
+    <strong>{% if scadute|length == 1 %}1 scadenza scaduta{% else %}{{ scadute|length }} scadenze scadute{% endif %}</strong> non ancora completate.
     {% for s in scadute[:3] %}
     <div class="small">• {{ s.titolo }} — {{ s.data_scadenza|fmt_data }}</div>
     {% endfor %}
@@ -62,7 +62,7 @@
 <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
   <i class="bi bi-alarm-fill fs-5 mt-1 flex-shrink-0"></i>
   <div>
-    <strong>{{ scadenze_critiche|length }} scadenza/e CRITICA/HE</strong> entro 3 giorni.
+    <strong>{% if scadenze_critiche|length == 1 %}1 scadenza urgente{% else %}{{ scadenze_critiche|length }} scadenze urgenti{% endif %}</strong> entro 3 giorni.
     {% for s in scadenze_critiche[:3] %}
     <div class="small">
       • <strong>{{ s.titolo }}</strong> —

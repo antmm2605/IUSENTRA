@@ -47,7 +47,7 @@
   <i class="bi bi-alarm-fill fs-4 flex-shrink-0 mt-1"></i>
   <div class="flex-grow-1">
     <div class="fw-semibold mb-1">
-      {{ scadenze_critiche|length }} scadenza/e CRITICA/HE entro 3 giorni
+      {% if scadenze_critiche|length == 1 %}1 scadenza urgente{% else %}{{ scadenze_critiche|length }} scadenze urgenti{% endif %} entro 3 giorni
     </div>
     {% for s in scadenze_critiche %}
     {% set g = s.giorni_alla_scadenza %}
@@ -71,7 +71,7 @@
   <div class="col-lg-4 col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header bg-warning-subtle fw-semibold">
-        <i class="bi bi-bell-fill text-warning me-2"></i>Reminder imminenti
+        <i class="bi bi-bell-fill text-warning me-2"></i>Promemoria imminenti
         <span class="badge bg-warning text-dark ms-1">{{ reminder|length }}</span>
       </div>
       <div class="card-body p-0">
@@ -90,7 +90,7 @@
             {% endfor %}
           </ul>
         {% else %}
-          <div class="text-muted text-center py-4 small">Nessun reminder nelle prossime 2 ore</div>
+          <div class="text-muted text-center py-4 small">Nessun promemoria nelle prossime 2 ore</div>
         {% endif %}
       </div>
     </div>
@@ -132,7 +132,8 @@
                   <td class="small">{{ a.cliente or '—' }}</td>
                   <td>
                     {% set sc = {'PROGRAMMATO':'secondary','CONFERMATO':'primary','COMPLETATO':'success','ANNULLATO':'danger','RINVIATO':'warning'} %}
-                    <span class="badge bg-{{ sc[a.stato.value] }}">{{ a.stato.value }}</span>
+                    {% set sl = {'PROGRAMMATO':'Programmato','CONFERMATO':'Confermato','COMPLETATO':'Completato','ANNULLATO':'Annullato','RINVIATO':'Rinviato'} %}
+                    <span class="badge bg-{{ sc[a.stato.value] }}">{{ sl.get(a.stato.value, a.stato.value) }}</span>
                   </td>
                   <td>
                     <a href="{{ url_for('dettaglio_appuntamento', id_app=a.id) }}"

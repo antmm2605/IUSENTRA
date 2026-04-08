@@ -39,7 +39,7 @@
       </div>
       <div>
         <div class="fw-bold" style="font-size:.9rem;letter-spacing:.2px;line-height:1.2">Studio Legale</div>
-        <div style="font-size:.64rem;opacity:.5;font-weight:500;letter-spacing:.6px;text-transform:uppercase">Portale PCT</div>
+        <div style="font-size:.64rem;opacity:.5;font-weight:500;letter-spacing:.6px;text-transform:uppercase">Gestionale Studio</div>
       </div>
     </div>
     {# Bottone chiudi (mobile) + comprimi (desktop) #}
@@ -282,7 +282,7 @@
       </a>
       <a href="{{ url_for('legal_intelligence.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'legal_intelligence' %}active{% endif %}">
-        <i class="bi bi-diagram-3"></i><span class="sb-txt">Motori Legali</span>
+        <i class="bi bi-diagram-3"></i><span class="sb-txt">Ricerca Legale</span>
       </a>
       <a href="{{ url_for('strumenti_legali.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'strumenti_legali' %}active{% endif %}">
@@ -290,7 +290,7 @@
       </a>
       <a href="{{ url_for('notifiche.pannello') }}"
          class="nav-link sb-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
-        <i class="bi bi-whatsapp"></i><span class="sb-txt">Notifiche WA</span>
+        <i class="bi bi-whatsapp"></i><span class="sb-txt">Notifiche WhatsApp</span>
       </a>
       <a href="{{ url_for('pagamenti.impostazioni_pagamenti') }}"
          class="nav-link sb-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
@@ -306,7 +306,7 @@
       </a>
       <a href="{{ url_for('impostazioni_calendario') }}"
          class="nav-link sb-link {% if request.endpoint == 'impostazioni_calendario' %}active{% endif %}">
-        <i class="bi bi-calendar-check"></i><span class="sb-txt">Sync Calendario</span>
+        <i class="bi bi-calendar-check"></i><span class="sb-txt">Sincronizzazione</span>
       </a>
     </div>
 
@@ -345,7 +345,7 @@
       </a>
       <a href="{{ url_for('audit_log') }}"
          class="nav-link sb-link {% if request.endpoint == 'audit_log' %}active{% endif %}">
-        <i class="bi bi-journal-text"></i><span class="sb-txt">Audit Log</span>
+        <i class="bi bi-journal-text"></i><span class="sb-txt">Registro Attività</span>
       </a>
       <a href="{{ url_for('admin_database') }}"
          class="nav-link sb-link {% if request.endpoint in ('admin_database','admin_database_verifica','admin_database_ottimizza','admin_database_migra','admin_database_export') %}active{% endif %}">

@@ -86,7 +86,7 @@
         <thead class="table-light">
           <tr>
             <th>Data</th><th>Tipo</th><th>File</th><th>Dimensione</th>
-            <th>Stato</th><th>Cifrato</th><th>Nota</th><th></th>
+            <th>Stato</th><th>Protetto</th><th>Nota</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -102,11 +102,11 @@
             <td class="small">{{ (r.dimensione_bytes / 1024 / 1024) | round(2) }} MB</td>
             <td>
               {% if r.stato.value == 'OK' %}
-                <span class="badge bg-success">OK</span>
+                <span class="badge bg-success">Completato</span>
               {% elif r.stato.value == 'FALLITO' %}
-                <span class="badge bg-danger" title="{{ r.errore }}">FALLITO</span>
+                <span class="badge bg-danger" title="{{ r.errore }}">Errore</span>
               {% else %}
-                <span class="badge bg-warning text-dark">CORROTTO</span>
+                <span class="badge bg-warning text-dark">Danneggiato</span>
               {% endif %}
             </td>
             <td class="text-center">
@@ -121,7 +121,7 @@
                   <i class="bi bi-download"></i>
                 </a>
                 <form method="post" action="{{ url_for('verifica_backup', id_bk=r.id) }}">
-                  <button class="btn btn-outline-info" title="Verifica integrità">
+                  <button class="btn btn-outline-info" title="Controlla integrità">
                     <i class="bi bi-shield-check"></i>
                   </button>
                 </form>

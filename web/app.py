@@ -2685,7 +2685,7 @@ def create_app(config: dict | None = None) -> Flask:
             elif azione == "2fa_genera":
                 segreto = genera_totp_secret()
                 session["totp_temp_secret"] = segreto
-                flash("Segreto 2FA generato. Scansiona il QR code e conferma con un codice.", "info")
+                flash("Configurazione avviata. Scansiona il QR code con la tua app di autenticazione e inserisci il codice per confermare.", "info")
             elif azione == "2fa_conferma":
                 segreto = session.get("totp_temp_secret", "")
                 codice = request.form.get("codice_2fa", "").strip()
@@ -2693,16 +2693,16 @@ def create_app(config: dict | None = None) -> Flask:
                     gu.aggiorna(u.id, totp_secret=segreto, totp_attivato=True)
                     session.pop("totp_temp_secret", None)
                     audit("auth.2fa_attivato")
-                    flash("Autenticazione a due fattori attivata.", "success")
+                    flash("Verifica in due passaggi attivata con successo.", "success")
                 else:
-                    flash("Codice non valido. Riprova a scansionare il QR code.", "danger")
+                    flash("Codice non valido. Prova a scansionare di nuovo il QR code con l'app.", "danger")
             elif azione == "2fa_disattiva":
                 pwd = request.form.get("pwd_disattiva", "")
                 if gu.autentica(u.username, pwd):
                     gu.aggiorna(u.id, totp_secret="", totp_attivato=False)
                     session.pop("totp_temp_secret", None)
                     audit("auth.2fa_disattivato")
-                    flash("2FA disattivato.", "success")
+                    flash("Verifica in due passaggi disattivata.", "success")
                 else:
                     flash("Password non corretta.", "danger")
             return redirect(url_for("profilo"))
@@ -3049,7 +3049,7 @@ def create_app(config: dict | None = None) -> Flask:
                 pass
         if completate:
             sync_pubblica("modifica", "scadenze", "bulk")
-            flash(f"{completate} scadenza/e segnata/e come completata/e.", "success")
+            flash(f"{'1 scadenza segnata' if completate == 1 else str(completate) + ' scadenze segnate'} come completate.", "success")
         return redirect(url_for("scadenziario"))
 
     @app.route("/api/notifiche/pending")
@@ -11319,9 +11319,9 @@ read -r -p "Premi Invio per chiudere..." _
         try:
             ris = gb.verifica_integrita(id_bk)
             if ris["ok"]:
-                flash("Integrità verificata: backup integro.", "success")
+                flash("Verifica completata: il backup è integro.", "success")
             else:
-                flash("ATTENZIONE: integrità compressa! Il file potrebbe essere corrotto.", "danger")
+                flash("Attenzione: il file di backup potrebbe essere corrotto.", "danger")
         except Exception as e:
             flash(str(e), "danger")
         return redirect(url_for("lista_backup"))
@@ -12432,7 +12432,7 @@ read -r -p "Premi Invio per chiudere..." _
     def rigenera_token_calendario():
         from pct.cal_token import rigenera_token
         rigenera_token(_cal_token_dir())
-        flash("Token calendario rigenerato. Aggiorna i link nei tuoi calendari.", "success")
+        flash("Collegamento calendario aggiornato. Ricorda di aggiornare i link nei tuoi calendari esterni.", "success")
         return redirect(url_for("impostazioni_calendario"))
 
     @app.route("/impostazioni/calendario/profili", methods=["POST"])
@@ -12561,7 +12561,7 @@ read -r -p "Premi Invio per chiudere..." _
                 )
             except Exception:
                 pass
-            flash(f"Testo estratto ({len(testo)} caratteri) e indicizzato.", "success")
+            flash(f"Testo estratto dal documento ({len(testo)} caratteri) e reso ricercabile.", "success")
         else:
             flash("Nessun testo estraibile da questo documento.", "warning")
         return redirect(url_for("dettaglio_fascicolo", id_fascicolo=id_fasc))

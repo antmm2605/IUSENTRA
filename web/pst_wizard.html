@@ -35,7 +35,7 @@
     {# Bottone scarica intero fascicolo — si apre un accordion con link ai portali ufficiali #}
     <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse"
             data-bs-target="#collapseDownloadFascicolo">
-      <i class="bi bi-download me-1"></i>Scarica fascicolo
+      <i class="bi bi-download me-1"></i>Guida download fascicolo
     </button>
   </div>
 </div>
@@ -44,7 +44,7 @@
 <div class="collapse mb-3" id="collapseDownloadFascicolo">
   <div class="card border-primary">
     <div class="card-header bg-primary-subtle fw-semibold text-primary-emphasis">
-      <i class="bi bi-download me-2"></i>Download fascicolo completo organizzato per sezioni
+      <i class="bi bi-download me-2"></i>Guida al download del fascicolo per sezioni
     </div>
     <div class="card-body">
       <div class="alert alert-info small mb-3 py-2">
@@ -366,7 +366,12 @@
 
 {# ---- Barra di avanzamento globale ---- #}
 {% set sezioni_ids = sezioni_wizard | map(attribute='id') | list %}
-{% set idx_attivo  = sezioni_ids.index(sezione_attiva) + 1 %}
+{% if sezione_attiva in sezioni_ids %}
+  {% set idx_attivo = sezioni_ids.index(sezione_attiva) + 1 %}
+{% else %}
+  {% set idx_attivo = 1 %}
+{% endif %}
+
 <div class="mt-4 pt-3 border-top">
   <div class="d-flex justify-content-between small text-muted mb-1">
     <span>Avanzamento</span>

@@ -425,9 +425,9 @@
 
   /* FAB scroll-hide: transizione gestita da mobile-gestures.js via style inline */
   .mob-fab, #pct-ai-fab {
-    transition: transform .28s cubic-bezier(.4,0,.2,1),
-                opacity   .28s ease,
-                box-shadow .2s ease !important;
+    transition: transform .22s cubic-bezier(.4,0,.2,1),
+                opacity   .22s ease,
+                box-shadow .18s ease !important;
   }
 
   /* FAB extended (icon + testo) */

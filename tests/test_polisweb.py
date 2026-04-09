@@ -1428,6 +1428,79 @@ def test_dettaglio_fascicolo_non_mescola_documenti_portale_con_comunicazioni(tmp
     assert "Nessuna comunicazione di cancelleria" in body
 
 
+def test_dettaglio_fascicolo_sezioni_collassabili(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 606/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="606",
+        anno_rg=2025,
+    )
+    gestione_fascicoli.sincronizza_deposito_portale(
+        fascicolo.id,
+        fonte="PolisWeb / PST",
+        id_deposito_esterno="BUSTA-PST-606",
+        tipo_atto="Comparsa conclusionale",
+        data_deposito="2026-03-30",
+        mittente="avv.rossi@pec.it",
+        documenti_portale=[
+            {
+                "id_documento": "DOC-606",
+                "nome": "comparsa conclusionale.pdf.p7m",
+                "tipo": "ATTO",
+                "data_deposito": "2026-03-30",
+                "mittente": "avv.rossi@pec.it",
+                "dimensione_bytes": 18000,
+                "disponibile": True,
+                "id_deposito": "BUSTA-PST-606",
+                "tipo_atto": "Comparsa conclusionale",
+            }
+        ],
+        registrato_da="admin",
+        servizio_portale="DocumentiFascicolo",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert 'data-bs-target="#collapse-sezione-profilo"' in body
+    assert 'data-bs-target="#collapse-documenti-portale-telematico"' in body
+    assert 'data-bs-target="#collapse-sezione-documenti-fascicolo"' in body
+    assert 'data-bs-target="#collapse-sezione-attivita-processuali"' in body
+    assert 'data-bs-target="#collapse-sezione-udienze-scadenze"' in body
+    assert 'data-bs-target="#collapse-sezione-comunicazioni-cancelleria"' in body
+    assert 'data-bs-target="#collapse-sezione-istanze"' in body
+
+
 def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

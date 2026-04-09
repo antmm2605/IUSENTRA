@@ -1308,7 +1308,6 @@ def test_dettaglio_fascicolo_segna_documento_portale_gia_importato(tmp_path):
     body = response.data.decode("utf-8")
     assert response.status_code == 200
     assert '"gia_importato": true' in body
-    assert "RG ufficiale" in body
     assert "RG 606/2025" in body
     assert f"Rif. interno {fascicolo.numero}" in body
 

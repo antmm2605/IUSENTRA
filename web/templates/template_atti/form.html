@@ -3,6 +3,12 @@
 {% block title %}{{ 'Modifica' if t else 'Nuovo' }} Template{% endblock %}
 
 {% block content %}
+{% set template_variable_groups = [
+  ('Studio', ['studio_nome', 'studio_indirizzo', 'studio_iban', 'avvocato_nome', 'data_oggi']),
+  ('Cliente', ['cliente.nome_completo', 'cliente.codice_fiscale', 'cliente.data_nascita',
+               'cliente.luogo_nascita', 'cliente.indirizzo', 'cliente.tipo.value']),
+  ('Fascicolo', ['fascicolo.titolo', 'fascicolo.numero_rg', 'fascicolo.tribunale', 'fascicolo.tipo.value'])
+] %}
 <div class="d-flex align-items-center gap-2 mb-4">
   <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left"></i>
@@ -83,18 +89,11 @@
           <i class="bi bi-braces me-2"></i>Variabili disponibili
         </div>
         <div class="card-body" style="font-size:.78rem;">
-          <p class="section-label">Studio</p>
-          {% for v in ['studio_nome','studio_indirizzo','studio_iban','avvocato_nome','data_oggi'] %}
+          {% for section, variables in template_variable_groups %}
+          <p class="section-label{% if not loop.first %} mt-3{% endif %}">{{ section }}</p>
+          {% for v in variables %}
           <code class="d-block mb-1 cursor-pointer var-chip bg-light p-1 rounded">{{ '{{' }} {{ v }} {{ '}}' }}</code>
           {% endfor %}
-          <p class="section-label mt-3">Cliente</p>
-          {% for v in ['cliente.nome_completo','cliente.codice_fiscale','cliente.data_nascita',
-                       'cliente.luogo_nascita','cliente.indirizzo','cliente.tipo.value'] %}
-          <code class="d-block mb-1 cursor-pointer var-chip bg-light p-1 rounded">{{ '{{' }} {{ v }} {{ '}}' }}</code>
-          {% endfor %}
-          <p class="section-label mt-3">Fascicolo</p>
-          {% for v in ['fascicolo.titolo','fascicolo.numero_rg','fascicolo.tribunale','fascicolo.tipo.value'] %}
-          <code class="d-block mb-1 cursor-pointer var-chip bg-light p-1 rounded">{{ '{{' }} {{ v }} {{ '}}' }}</code>
           {% endfor %}
           <p class="text-muted mt-3" style="font-size:.72rem;">
             <i class="bi bi-mouse"></i> Clicca per inserire nel cursore
@@ -107,7 +106,12 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<!-- Modal conferma importazione documento -->
+{% set template_variable_groups = [
+  ('Studio', ['studio_nome', 'studio_indirizzo', 'studio_iban', 'avvocato_nome', 'data_oggi']),
+  ('Cliente', ['cliente.nome_completo', 'cliente.codice_fiscale', 'cliente.data_nascita',
+               'cliente.luogo_nascita', 'cliente.indirizzo', 'cliente.tipo.value']),
+  ('Fascicolo', ['fascicolo.titolo', 'fascicolo.numero_rg', 'fascicolo.tribunale', 'fascicolo.tipo.value'])
+] %}
 <div class="modal fade" id="modalImportaDoc" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -125,14 +129,38 @@
           <div class="alert alert-info small mb-3">
             <i class="bi bi-info-circle me-1"></i>
             Anteprima del documento importato. Puoi scegliere di <strong>sostituire</strong> il contenuto attuale
-            o <strong>aggiungere in fondo</strong>. Dopo l'importazione usa i chip delle variabili per sostituire
-            i dati fissi con i campi dinamici del template.
+            o <strong>aggiungere in fondo</strong>. Puoi anche sostituire qui i dati fissi con le variabili
+            disponibili del template prima di importarlo nell'editor.
           </div>
           <div id="importa-doc-preview-box" class="border rounded p-3 bg-light"
+               contenteditable="true"
+               spellcheck="true"
                style="max-height:340px;overflow-y:auto;font-size:.85rem;white-space:pre-wrap;word-break:break-word;"></div>
+          <div class="mt-3 border rounded p-3 bg-white">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2 flex-wrap">
+              <div class="fw-semibold small">
+                <i class="bi bi-braces-asterisk me-1 text-primary"></i>Associa variabili al documento importato
+              </div>
+              <div class="text-muted small">Seleziona il testo nell'anteprima e clicca una variabile per sostituirlo.</div>
+            </div>
+            {% for section, variables in template_variable_groups %}
+            <div class="{% if not loop.first %}mt-3{% endif %}">
+              <div class="text-uppercase text-muted small fw-semibold mb-2">{{ section }}</div>
+              <div class="d-flex flex-wrap gap-2">
+                {% for v in variables %}
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary importa-doc-var-chip"
+                        data-import-variable="{{ '{{' }} {{ v }} {{ '}}' }}">
+                  {{ '{{' }} {{ v }} {{ '}}' }}
+                </button>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
-      <div class="modal-footer" id="importa-doc-footer" style="display:none!important">
+      <div class="modal-footer d-none" id="importa-doc-footer">
         <button type="button" class="btn btn-outline-secondary" id="btn-importa-aggiungi">
           <i class="bi bi-plus-circle me-1"></i>Aggiungi in fondo
         </button>
@@ -146,38 +174,58 @@
 {% include "template_atti/_editor_assets.html" %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // ── Inserimento variabili con click ──────────────────────────
+  const editorId = 'template-body-editor';
+  const editorRoot = document.getElementById(`${editorId}-root`);
+  const editorSurface = editorRoot ? editorRoot.querySelector('[data-editor-surface]') : null;
+
   document.querySelectorAll('.var-chip').forEach((chip) => {
     chip.addEventListener('mousedown', (e) => {
-      // mousedown anziché click: il focus non è ancora uscito dall'editor
       e.preventDefault();
     });
     chip.addEventListener('click', () => {
-      window.TemplateActEditors.insertText('template-body-editor', chip.textContent.trim());
+      window.TemplateActEditors.insertText(editorId, chip.textContent.trim());
     });
   });
 
-  // ── Importazione documento ───────────────────────────────────
   const btnImporta = document.getElementById('btn-importa-doc');
-  const fileInput  = document.getElementById('importa-doc-input');
-  const modalEl    = document.getElementById('modalImportaDoc');
-  const modal      = new bootstrap.Modal(modalEl);
-  const spinner    = document.getElementById('importa-doc-spinner');
-  const erroreEl   = document.getElementById('importa-doc-errore');
+  const fileInput = document.getElementById('importa-doc-input');
+  const modalEl = document.getElementById('modalImportaDoc');
+  const spinner = document.getElementById('importa-doc-spinner');
+  const erroreEl = document.getElementById('importa-doc-errore');
   const anteprimaEl = document.getElementById('importa-doc-anteprima');
   const previewBox = document.getElementById('importa-doc-preview-box');
-  const footer     = document.getElementById('importa-doc-footer');
-  const btnAggiungi    = document.getElementById('btn-importa-aggiungi');
+  const footer = document.getElementById('importa-doc-footer');
+  const btnAggiungi = document.getElementById('btn-importa-aggiungi');
   const btnSostituisci = document.getElementById('btn-importa-sostituisci');
 
-  let _importedContent = '';
-  let _importedIsHtml  = false;
+  if (!btnImporta || !fileInput || !modalEl || !previewBox || !footer || !window.TemplateActEditors) {
+    return;
+  }
+
+  const modal = new bootstrap.Modal(modalEl);
+  const importVariableChips = modalEl.querySelectorAll('[data-import-variable]');
+
+  let importedIsHtml = false;
+  let lastPreviewSelection = null;
+
+  function toggleFooter(visible) {
+    footer.classList.toggle('d-none', !visible);
+    btnAggiungi.disabled = !visible;
+    btnSostituisci.disabled = !visible;
+  }
+
+  function resetPreview() {
+    importedIsHtml = false;
+    lastPreviewSelection = null;
+    previewBox.innerHTML = '';
+    previewBox.style.whiteSpace = 'pre-wrap';
+  }
 
   function showSpinner() {
     spinner.classList.remove('d-none');
     erroreEl.classList.add('d-none');
     anteprimaEl.classList.add('d-none');
-    footer.style.display = 'none';
+    toggleFooter(false);
   }
 
   function showErrore(msg) {
@@ -185,16 +233,15 @@ document.addEventListener('DOMContentLoaded', function() {
     erroreEl.textContent = msg;
     erroreEl.classList.remove('d-none');
     anteprimaEl.classList.add('d-none');
-    footer.style.display = 'none';
+    toggleFooter(false);
   }
 
   function showAnteprima(content, isHtml) {
-    _importedContent = content;
-    _importedIsHtml  = isHtml;
+    importedIsHtml = isHtml;
     spinner.classList.add('d-none');
     erroreEl.classList.add('d-none');
     anteprimaEl.classList.remove('d-none');
-    footer.style.removeProperty('display');
+    toggleFooter(true);
     if (isHtml) {
       previewBox.style.whiteSpace = 'normal';
       previewBox.innerHTML = content;
@@ -202,35 +249,96 @@ document.addEventListener('DOMContentLoaded', function() {
       previewBox.style.whiteSpace = 'pre-wrap';
       previewBox.textContent = content;
     }
+    previewBox.focus();
+  }
+
+  function selectionIsInsidePreview(range) {
+    if (!range) return false;
+    const node = range.commonAncestorContainer;
+    return node === previewBox || previewBox.contains(node);
+  }
+
+  function savePreviewSelection() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    lastPreviewSelection = selectionIsInsidePreview(range) ? range.cloneRange() : null;
+  }
+
+  function restorePreviewSelection() {
+    if (!lastPreviewSelection) return null;
+    const sel = window.getSelection();
+    if (!sel) return null;
+    sel.removeAllRanges();
+    sel.addRange(lastPreviewSelection);
+    return lastPreviewSelection;
+  }
+
+  function moveCaretToPreviewEnd() {
+    const range = document.createRange();
+    range.selectNodeContents(previewBox);
+    range.collapse(false);
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    lastPreviewSelection = range.cloneRange();
+    return range;
+  }
+
+  function insertVariableIntoPreview(token) {
+    previewBox.focus();
+    let range = restorePreviewSelection();
+    if (!range || !selectionIsInsidePreview(range)) {
+      range = moveCaretToPreviewEnd();
+    }
+    range.deleteContents();
+    const node = document.createTextNode(token);
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    lastPreviewSelection = range.cloneRange();
+  }
+
+  function getPreparedImportContent() {
+    if (importedIsHtml) {
+      return previewBox.innerHTML.trim();
+    }
+    return (previewBox.innerText || previewBox.textContent || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   btnImporta.addEventListener('click', () => {
     fileInput.value = '';
-    _importedContent = '';
+    resetPreview();
     fileInput.click();
   });
 
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files[0];
     if (!file) return;
+
     modal.show();
     showSpinner();
 
     const ext = file.name.split('.').pop().toLowerCase();
-
-    // Formati gestiti lato client
     if (ext === 'txt') {
-      const text = await file.text();
-      showAnteprima(text, false);
+      showAnteprima(await file.text(), false);
       return;
     }
     if (ext === 'html' || ext === 'htm') {
-      const text = await file.text();
-      showAnteprima(text, true);
+      showAnteprima(await file.text(), true);
       return;
     }
 
-    // DOCX e PDF: conversione server-side
     const fd = new FormData();
     fd.append('file', file);
     try {
@@ -250,12 +358,37 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function applyImport(append) {
-    window.TemplateActEditors.setContent('template-body-editor', _importedContent, append);
+    const preparedContent = getPreparedImportContent();
+    if (!preparedContent) {
+      showErrore('Il contenuto importato e vuoto. Modifica o ricarica il documento prima di inserirlo.');
+      return;
+    }
+    window.TemplateActEditors.setContent(editorId, preparedContent, append);
     modal.hide();
+    setTimeout(() => editorSurface?.focus(), 120);
   }
 
+  previewBox.addEventListener('mouseup', savePreviewSelection);
+  previewBox.addEventListener('keyup', savePreviewSelection);
+  previewBox.addEventListener('focus', savePreviewSelection);
+
+  importVariableChips.forEach((chip) => {
+    chip.addEventListener('mousedown', (e) => e.preventDefault());
+    chip.addEventListener('click', () => {
+      insertVariableIntoPreview(chip.dataset.importVariable || chip.textContent.trim());
+    });
+  });
+
   btnSostituisci.addEventListener('click', () => applyImport(false));
-  btnAggiungi.addEventListener('click',    () => applyImport(true));
+  btnAggiungi.addEventListener('click', () => applyImport(true));
+
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    resetPreview();
+    spinner.classList.add('d-none');
+    erroreEl.classList.add('d-none');
+    anteprimaEl.classList.add('d-none');
+    toggleFooter(false);
+  });
 });
 </script>
 
@@ -265,6 +398,15 @@ document.addEventListener('DOMContentLoaded', function() {
   color: #0d6efd;
   transform: translateX(2px);
   transition: all .2s ease;
+}
+
+#importa-doc-preview-box:focus {
+  outline: 2px solid rgba(13, 110, 253, .2);
+  border-color: rgba(13, 110, 253, .35);
+}
+
+.importa-doc-var-chip {
+  font-family: inherit;
 }
 </style>
 {% endblock %}

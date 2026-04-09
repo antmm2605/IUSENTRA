@@ -1,6 +1,7 @@
 import tempfile
 from pathlib import Path
 
+from pct.auth import GestioneUtenti, RuoloUtente
 from pct.editor import html_to_pdf
 from pct.template_atti import (
     DEFAULT_EDITOR_LAYOUT,
@@ -8,6 +9,31 @@ from pct.template_atti import (
     normalizza_editor_layout,
     percorso_preferenze_editor,
 )
+from web.app import create_app
+
+
+def _cfg_web(tmp_path):
+    return {
+        "TESTING": True,
+        "AUTH_DB": str(tmp_path / "utenti.json"),
+        "AUDIT_DB": str(tmp_path / "audit.json"),
+        "CLIENTI_DB": str(tmp_path / "clienti.json"),
+        "CONDIVISIONI_DB": str(tmp_path / "condivisioni.json"),
+        "FASCICOLI_DB": str(tmp_path / "fascicoli.json"),
+        "FASCICOLI_DOCS": str(tmp_path / "docs"),
+        "FASCICOLI_ARCH": str(tmp_path / "arch"),
+        "AGENDA_DB": str(tmp_path / "agenda.json"),
+        "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
+        "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "SEARCH_INDEX": str(tmp_path / "search.db"),
+        "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
+        "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
+        "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
+        "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
+        "REDACTION_ASSISTANT_DB": str(tmp_path / "assistente_redazionale.json"),
+        "TEMPLATE_ATTI_DB": str(tmp_path / "template_atti" / "templates.json"),
+        "TEMPLATE_ATTI_PREFS_DB": str(tmp_path / "template_atti" / "editor_layout.json"),
+    }
 
 
 def test_preferenze_editor_salvano_e_resettano_layout():
@@ -59,3 +85,35 @@ def test_html_to_pdf_accetta_layout_editor_personalizzato():
     )
     assert pdf_bytes.startswith(b"%PDF")
     assert len(pdf_bytes) > 500
+
+
+def test_form_template_atti_renderizza_modal_importazione_con_variabili(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/template-atti/nuovo")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'id="btn-importa-aggiungi"' in html
+    assert 'id="btn-importa-sostituisci"' in html
+    assert 'contenteditable="true"' in html
+    assert "Associa variabili al documento importato" in html
+    assert 'data-import-variable="{{ studio_nome }}"' in html

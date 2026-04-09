@@ -99,7 +99,18 @@
       {% for att in em.allegati %}
       {% set has_file = att.percorso_rel %}
       {% set mime = att.mime or '' %}
-      {% set previewable = has_file and (mime.startswith('image/') or mime == 'application/pdf' or mime.startswith('text/')) %}
+      {% set nome_lower = (att.nome or att.nome_file or '')|lower %}
+      {% set previewable = has_file and (
+        mime.startswith('image/')
+        or mime == 'application/pdf'
+        or mime.startswith('text/')
+        or mime in ['application/xml', 'text/xml', 'message/rfc822']
+        or nome_lower.endswith('.xml')
+        or nome_lower.endswith('.eml')
+        or nome_lower.endswith('.txt')
+        or nome_lower.endswith('.html')
+        or nome_lower.endswith('.htm')
+      ) %}
       <div class="d-flex align-items-center gap-2 px-3 py-2 border rounded" style="background:#f8fafc;font-size:.82rem">
         <i class="bi bi-file-earmark-text text-muted"></i>
         <div class="flex-grow-1">

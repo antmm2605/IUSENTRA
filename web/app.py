@@ -12110,11 +12110,17 @@ read -r -p "Premi Invio per chiudere..." _
                 "duplicati": 0,
                 "errori": 0,
             }
+            sync_errore = str(sync_result.get("errore") or "").strip()
 
             if report["associati"]:
                 msg = (
                     f"{report['associati']} comunicazion{'e' if report['associati'] == 1 else 'i'} "
                     f"caricata{'.' if report['associati'] == 1 else '.'}"
+                )
+            elif report["duplicati"]:
+                msg = (
+                    f"{report['duplicati']} comunicazion{'e' if report['duplicati'] == 1 else 'i'} "
+                    f"già present{'e' if report['duplicati'] == 1 else 'i'} nel fascicolo."
                 )
             elif auto_log:
                 msg = f"Workflow PEC completato: {len(auto_log)} esiti deposito aggiornati."
@@ -12124,6 +12130,8 @@ read -r -p "Premi Invio per chiudere..." _
                 msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
             else:
                 msg = "Nessuna email di cancelleria trovata nella casella PEC."
+            if sync_errore:
+                msg = f"{msg} Sincronizzazione IMAP non completata."
 
             audit("pec.poll_cancelleria", dettagli=str(report))
             app.logger.info(
@@ -12138,6 +12146,8 @@ read -r -p "Premi Invio per chiudere..." _
                 "pst_trovate": sync_result.get("pst_trovate", 0),
                 "esiti_aggiornati": len(auto_log),
                 "log": auto_log,
+                "sync_errore": sync_errore,
+                "warning": bool(sync_errore),
             })
 
         except Exception as e:

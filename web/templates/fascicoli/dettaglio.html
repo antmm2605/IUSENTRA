@@ -4493,8 +4493,9 @@ function _syncPecCancelleria(btn) {
     if (d.ok) {
       const r = d.report || {};
       const msg = d.messaggio || 'Operazione completata.';
-      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove · ${d.esiti_aggiornati||0} esiti aggiornati · ${r.associati||0} comunicazioni nuove · ${r.duplicati||0} già presenti</small>`;
-      _mostraToast('success', msg + detail);
+      const syncErr = d.sync_errore ? `<br><small class="text-warning-emphasis">${_escapeToastHtml(d.sync_errore)}</small>` : '';
+      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove · ${d.esiti_aggiornati||0} esiti aggiornati · ${r.associati||0} comunicazioni nuove · ${r.duplicati||0} già presenti</small>${syncErr}`;
+      _mostraToast(d.warning ? 'warning' : 'success', msg + detail);
       if ((d.nuove||0) || (d.esiti_aggiornati||0) || (r.associati||0)) setTimeout(() => location.reload(), 1800);
     } else {
       _mostraToast('danger', d.errore || 'Errore durante il polling PEC.');
@@ -4505,6 +4506,16 @@ function _syncPecCancelleria(btn) {
     btn.innerHTML = orig;
     _mostraToast('danger', 'Errore di rete: ' + String(e));
   });
+}
+
+function _escapeToastHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
 }
 
 function _mostraToast(tipo, html) {

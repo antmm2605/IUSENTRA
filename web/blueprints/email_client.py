@@ -16,6 +16,7 @@ Routes:
 """
 from __future__ import annotations
 
+import mimetypes
 import os
 from datetime import datetime
 from functools import wraps
@@ -192,9 +193,12 @@ def allegato(id_email: str, indice_allegato: int):
         abort(404)
     info = (em.allegati or [])[indice_allegato]
     nome_download = info.get("nome") or info.get("nome_file") or percorso.name
+    mimetype = info.get("mime") or mimetypes.guess_type(nome_download)[0] or "application/octet-stream"
+    if request.args.get("download") != "1" and mimetype == "message/rfc822":
+        mimetype = "text/plain; charset=utf-8"
     return send_file(
         percorso,
-        mimetype=info.get("mime") or "application/octet-stream",
+        mimetype=mimetype,
         as_attachment=request.args.get("download") == "1",
         download_name=nome_download,
         conditional=True,

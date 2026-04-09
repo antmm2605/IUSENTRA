@@ -488,13 +488,24 @@ class _SMTPv4(_smtplib.SMTP):
 
 class _SMTP_SSLv4(_smtplib.SMTP_SSL):
     """SMTP_SSL con connessione forzata su IPv4 e risoluzione DNS via Cloudflare DoH."""
+    def _ssl_context(self):
+        ctx = getattr(self, "context", None) or getattr(self, "_context", None)
+        if ctx is None:
+            import ssl as _ssl
+            ctx = _ssl.create_default_context()
+            try:
+                self.context = ctx
+            except Exception:
+                self._context = ctx
+        return ctx
+
     def _get_socket(self, host, port, timeout):
         ipv4_addr = _resolve_ipv4(host, port)
         if ipv4_addr:
             raw = _socket_mod.socket(_socket_mod.AF_INET, _socket_mod.SOCK_STREAM)
             raw.settimeout(timeout)
             raw.connect((ipv4_addr, port))
-            return self._context.wrap_socket(raw, server_hostname=host)
+            return self._ssl_context().wrap_socket(raw, server_hostname=host)
         return super()._get_socket(host, port, timeout)
 
 

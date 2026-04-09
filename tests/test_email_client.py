@@ -141,6 +141,60 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
 
 
+def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    em = EmailRicevuta(
+        id="MAIL-ATT-XML",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="PEC con allegati tecnici",
+        data="2026-04-09T10:10:00",
+        corpo_testo="Contiene daticert.xml e ricevuta.eml.",
+        allegati=[
+            {
+                "nome": "daticert.xml",
+                "mime": "application/xml",
+                "size": 24,
+                "percorso_rel": "MAIL-ATT-XML/daticert.xml",
+                "nome_file": "daticert.xml",
+            },
+            {
+                "nome": "ricevuta.eml",
+                "mime": "message/rfc822",
+                "size": 32,
+                "percorso_rel": "MAIL-ATT-XML/ricevuta.eml",
+                "nome_file": "ricevuta.eml",
+            },
+        ],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_CASELLA_DB"]).parent / "allegati" / "MAIL-ATT-XML"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    (allegato_dir / "daticert.xml").write_text("<root>ok</root>\n", encoding="utf-8")
+    (allegato_dir / "ricevuta.eml").write_text("Subject: Test\n\nCorpo PEC\n", encoding="utf-8")
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        assert login.status_code == 200
+
+        dettaglio = client.get("/email/messaggio/MAIL-ATT-XML", follow_redirects=True)
+        body = dettaglio.get_data(as_text=True)
+        assert body.count("Visualizza") >= 2
+
+        xml_inline = client.get("/email/messaggio/MAIL-ATT-XML/allegato/0")
+        assert xml_inline.status_code == 200
+        assert "xml" in (xml_inline.headers.get("Content-Type", "").lower())
+
+        eml_inline = client.get("/email/messaggio/MAIL-ATT-XML/allegato/1")
+        assert eml_inline.status_code == 200
+        assert eml_inline.headers.get("Content-Type", "").lower().startswith("text/plain")
+
+
 def test_aggiorna_comunicazioni_cancelleria_da_email_associa_per_rg_senza_duplicare(tmp_path):
     gf = GestioneFascicoli(
         db_path=str(tmp_path / "fascicoli.json"),
@@ -343,3 +397,56 @@ def test_api_pec_poll_cancelleria_usa_workflow_condiviso(tmp_path, monkeypatch):
     assert data["report"]["associati"] == 1
     assert osservato["indirizzo"] == "studio@example.pec.it"
     assert osservato["state_path"].endswith("pec_cancelleria_state.json")
+
+
+def test_api_pec_poll_cancelleria_espone_duplicati_e_warning_sync(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = Path(cfg["STUDIO_CONFIG"])
+    studio_cfg.parent.mkdir(parents=True, exist_ok=True)
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    config = gs.config
+    config.pec = ConfigPEC(
+        indirizzo="studio@example.pec.it",
+        password="segreta",
+        smtp_host="smtp.pec.aruba.it",
+        smtp_port=465,
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        use_ssl=True,
+    )
+    gs.aggiorna(config)
+
+    def _fake_sync_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
+        return {
+            "sync": {"nuove": 0, "pst_trovate": 0, "errore": "Credenziali IMAP non valide"},
+            "auto_esiti": [],
+            "poll": {
+                "trovati": 1,
+                "associati": 0,
+                "duplicati": 1,
+                "errori": 0,
+                "da_email": {"trovati": 1, "associati": 0, "duplicati": 1, "errori": 0},
+                "poll_imap": {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0},
+            },
+        }
+
+    monkeypatch.setattr("pct.email_client.sincronizza_pec_e_fascicoli", _fake_sync_workflow)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        assert login.status_code == 200
+
+        response = client.post("/api/pec/poll-cancelleria", json={}, follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["warning"] is True
+    assert data["sync_errore"] == "Credenziali IMAP non valide"
+    assert data["report"]["duplicati"] == 1
+    assert "già present" in data["messaggio"]
+    assert "Sincronizzazione IMAP non completata" in data["messaggio"]

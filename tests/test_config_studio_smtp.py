@@ -1,7 +1,8 @@
 import errno
 import socket
+import ssl
 
-from pct.config_studio import ConfigSMTP, _msg_errore_rete, test_smtp_email as _test_smtp_email
+from pct.config_studio import ConfigSMTP, _SMTP_SSLv4, _msg_errore_rete, test_smtp_email as _test_smtp_email
 
 
 def test_msg_errore_timeout_cloud_friendly():
@@ -24,3 +25,19 @@ def test_test_smtp_email_porta_25_bloccata():
     out = _test_smtp_email(cfg)
     assert out["ok"] is False
     assert "Porta 25 bloccata" in out["messaggio"]
+
+
+def test_smtp_sslv4_recupera_il_context_da_python_moderno_e_legacy():
+    ctx = ssl.create_default_context()
+
+    smtp_moderno = object.__new__(_SMTP_SSLv4)
+    smtp_moderno.context = ctx
+    assert smtp_moderno._ssl_context() is ctx
+
+    smtp_legacy = object.__new__(_SMTP_SSLv4)
+    smtp_legacy._context = ctx
+    assert smtp_legacy._ssl_context() is ctx
+
+    smtp_default = object.__new__(_SMTP_SSLv4)
+    ctx_default = smtp_default._ssl_context()
+    assert isinstance(ctx_default, ssl.SSLContext)

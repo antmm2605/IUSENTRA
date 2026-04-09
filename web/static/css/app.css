@@ -591,6 +591,145 @@ body {
 /* ---- Bottom Navigation mobile ---- */
 #bottom-nav { display: none; }
 
+/* ================================================================
+   TABLET SHELL (769px – 991.98px)
+   Su tablet portrait e landscape piccolo usiamo lo stesso shell
+   mobile: topbar fisso, #main scrollabile, sidebar drawer,
+   bottom-nav visibile. Solo da 992px in su si attiva il layout
+   desktop a colonne (sidebar sempre visibile + margin-left).
+   ================================================================ */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  html, body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  #app-body {
+    margin-left: 0;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    z-index: 200;
+    background: rgba(255,255,255,.96) !important;
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 4px 20px rgba(26,58,92,.07);
+    border-bottom: 1px solid rgba(210,218,232,.5) !important;
+    gap: .65rem;
+  }
+  .topbar::before { height: 2px; opacity: .6; }
+  .topbar-actions { gap: .4rem; overflow: visible; }
+  #sb-open { display: inline-flex; }
+
+  #main {
+    position: fixed;
+    top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+    left: 0; right: 0;
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    transition: bottom .22s cubic-bezier(.4,0,.2,1);
+  }
+  #main.bn-hidden {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Sidebar drawer su tablet */
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.sb-open { transform: translateX(0); z-index: 300; }
+  #sb-overlay.sb-open { display: block; }
+  #sb-close { display: inline-flex; }
+
+  /* Toast segue bottom-nav */
+  #sync-toast-container {
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px) + .5rem);
+    transition: bottom .22s cubic-bezier(.4,0,.2,1);
+  }
+  #sync-toast-container.bn-hidden {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + .5rem);
+  }
+
+  /* Bottom nav visibile */
+  #bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(10,22,40,.94);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-top: 1px solid rgba(255,255,255,.07);
+    box-shadow: 0 -2px 32px rgba(0,0,0,.32), 0 -1px 0 rgba(255,255,255,.04);
+    z-index: 1030;
+    transition: transform .22s cubic-bezier(.4,0,.2,1);
+  }
+  #bottom-nav.bn-hidden { transform: translateY(100%); }
+
+  #bn-handle {
+    display: flex;
+    position: fixed;
+    bottom: calc(var(--bottomnav-h) + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    width: 48px; height: 18px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: bottom .22s cubic-bezier(.4,0,.2,1);
+  }
+  #bn-handle.bn-hidden { bottom: 0; }
+
+  /* bn-item stile identico al mobile */
+  .bn-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,.42);
+    text-decoration: none;
+    font-size: .61rem;
+    font-weight: 500;
+    gap: 3px;
+    padding: 8px 4px 6px;
+    transition: color .2s;
+    position: relative;
+    letter-spacing: .1px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bn-item i { font-size: 1.35rem; line-height: 1; transition: transform .25s cubic-bezier(.34,1.56,.64,1), color .2s; }
+  .bn-item.active { color: var(--accent); }
+  .bn-item.active i { transform: scale(1.15) translateY(-2px); }
+  .bn-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20%; right: 20%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #e8b346);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 0 8px rgba(200,151,43,.5);
+  }
+  .bn-item span { font-size: .65rem; font-weight: 500; transition: opacity .2s; }
+  .bn-item.active span { font-weight: 700; }
+
+  /* Nascondi search bar desktop su tablet (usa quella topbar) */
+  #search-wrap { display: none; }
+  [data-bs-target="#modalScorciatoie"] { display: none !important; }
+}
+
 @media (max-width: 768px) {
   /* ================================================================
      MOBILE SHELL — coordinate esplicite, nessun calcolo derivato

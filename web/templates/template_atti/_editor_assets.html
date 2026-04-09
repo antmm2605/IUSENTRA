@@ -873,7 +873,7 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
         acquisition.previewWrap.classList.add('d-none');
         acquisition.webcamWrap.classList.remove('d-none');
         acquisition.webcam.srcObject = acquisition.stream;
-        setFeedback('Inquadra il documento e scatta quando l'immagine e nitida.', 'info');
+        setFeedback("Inquadra il documento e scatta quando l'immagine e nitida.", 'info');
       } catch (error) {
         setFeedback(`Webcam non disponibile: ${error.message}`, 'warning');
       }
@@ -945,7 +945,11 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     acq.modal.show();
   }
 
-  document.addEventListener('DOMContentLoaded', () => initAll());
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => initAll(), { once: true });
+  } else {
+    initAll();
+  }
 
   return {
     initAll,

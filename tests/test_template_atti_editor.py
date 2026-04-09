@@ -199,3 +199,14 @@ def test_template_custom_rende_disponibili_soggetti_e_parti_fascicolo(tmp_path):
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     assert "Controparte: Stillitano Francesco" in html
+
+
+def test_script_editor_template_atti_non_contiene_js_rotto():
+    editor_assets = Path("D:/legale/hacs/web/templates/template_atti/_editor_assets.html").read_text(encoding="utf-8")
+    base_template = Path("D:/legale/hacs/web/templates/base.html").read_text(encoding="utf-8")
+
+    assert "setFeedback('Inquadra il documento e scatta quando l'immagine e nitida.'" not in editor_assets
+    assert "setFeedback(\"Inquadra il documento e scatta quando l'immagine e nitida.\", 'info');" in editor_assets
+    assert "document.readyState === 'loading'" in editor_assets
+    assert "soggettoSearchSelect('' + uid + ''" not in base_template
+    assert "soggettoSearchSelect(\\'" in base_template

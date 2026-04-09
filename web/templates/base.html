@@ -1628,7 +1628,7 @@ if ('serviceWorker' in navigator) {
       if (!items.length) {
         var q = input.value.trim();
         drop.innerHTML =
-          '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q ? '?cognome=' + encodeURIComponent(q) : '')) + '')">' +
+          '<div class="ss-create" onclick="soggettoSearchSelect(\'' + uid + '\', null, \'' + encodeURIComponent(createUrl + (q ? '?cognome=' + encodeURIComponent(q) : '')) + '\')">' +
             '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
             createLabel + (q ? ' "' + _esc(q) + '"' : '') +
           '</div>';
@@ -1640,7 +1640,7 @@ if ('serviceWorker' in navigator) {
         var qualBadge  = s.qualifica ? '<span class="ss-item-qualifica">' + _esc(s.qualifica) + '</span>' : '';
         var sub = [];
         if (s.identificativo) sub.push(s.identificativo);
-        return '<div class="ss-item" data-idx="' + i + '" onclick="soggettoSearchSelect('' + uid + '',' + i + ', null)">' +
+        return '<div class="ss-item" data-idx="' + i + '" onclick="soggettoSearchSelect(\'' + uid + '\',' + i + ', null)">' +
           '<div class="' + siglaClass + '">' + _esc(s.sigla) + '</div>' +
           '<div class="ss-item-body">' +
             '<div class="ss-item-name">' + _esc(s.nome) + '</div>' +
@@ -1650,7 +1650,7 @@ if ('serviceWorker' in navigator) {
         '</div>';
       }).join('');
       var q2 = input.value.trim();
-      html += '<div class="ss-create" onclick="soggettoSearchSelect('' + uid + '', null, '' + encodeURIComponent(createUrl + (q2 ? '?cognome=' + encodeURIComponent(q2) : '')) + '')">' +
+      html += '<div class="ss-create" onclick="soggettoSearchSelect(\'' + uid + '\', null, \'' + encodeURIComponent(createUrl + (q2 ? '?cognome=' + encodeURIComponent(q2) : '')) + '\')">' +
         '<span class="ss-create-icon"><i class="bi bi-plus"></i></span>' +
         createLabel +
       '</div>';

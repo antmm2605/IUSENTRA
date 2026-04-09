@@ -196,6 +196,9 @@
 <script>
 (function initTemplateAttiForm() {
   function boot() {
+  if (window.TemplateActEditors?.initAll) {
+    window.TemplateActEditors.initAll(document);
+  }
   const editorId = 'template-body-editor';
   const editorRoot = document.getElementById(`${editorId}-root`);
   const editorSurface = editorRoot ? editorRoot.querySelector('[data-editor-surface]') : null;
@@ -205,6 +208,7 @@
       e.preventDefault();
     });
     chip.addEventListener('click', () => {
+      editorSurface?.focus();
       window.TemplateActEditors.insertText(
         editorId,
         chip.dataset.templateVariable || chip.textContent.trim()

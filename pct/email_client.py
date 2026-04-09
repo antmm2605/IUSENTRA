@@ -64,6 +64,18 @@ _MAPPA_STATO_PST = {
     "ERRORE":                "ERRORE_CONTROLLI",
 }
 
+_RE_RG_PCT = re.compile(r"\bR\.?\s*G\.?\s+(\d+)\s*/\s*(\d{4})\b", re.IGNORECASE)
+_STATI_PCT_ORDINE = {
+    "INVIATO": 0,
+    "ACCETTATO_PEC": 1,
+    "CONSEGNATO": 2,
+    "WARN_CONTROLLI": 3,
+    "ERRORE_CONTROLLI": 3,
+    "ACCETTATO_CANCELLERIA": 4,
+    "RIFIUTATO_CANCELLERIA": 4,
+    "ERRORE": 4,
+}
+
 
 # ------------------------------------------------------------------ Dataclass
 
@@ -174,13 +186,34 @@ class GestioneEmailRicevute:
         cartella: Optional[str] = None,
         solo_non_lette: bool = False,
         q: str = "",
+        stato_lettura: str = "",
+        solo_pst: bool = False,
+        con_allegati: bool = False,
+        stato_pct: str = "",
+        origine: str = "",
+        data_da: str = "",
+        data_a: str = "",
     ) -> List[EmailRicevuta]:
         db = self._carica()
         emails = list(db.values())
         if cartella:
             emails = [e for e in emails if e.cartella == cartella]
-        if solo_non_lette:
+        if solo_non_lette or stato_lettura == StatoEmail.NON_LETTA:
             emails = [e for e in emails if e.stato == StatoEmail.NON_LETTA]
+        elif stato_lettura == StatoEmail.LETTA:
+            emails = [e for e in emails if e.stato == StatoEmail.LETTA]
+        if solo_pst:
+            emails = [e for e in emails if e.e_pst]
+        if con_allegati:
+            emails = [e for e in emails if e.allegati]
+        if stato_pct:
+            emails = [e for e in emails if e.stato_pct == stato_pct]
+        if origine:
+            emails = [e for e in emails if (e.origine or "").upper() == origine.upper()]
+        if data_da:
+            emails = [e for e in emails if (e.timestamp or "")[:10] >= data_da]
+        if data_a:
+            emails = [e for e in emails if (e.timestamp or "")[:10] <= data_a]
         if q:
             ql = q.lower()
             emails = [
@@ -189,6 +222,9 @@ class GestioneEmailRicevute:
                 or ql in e.mittente.lower()
                 or ql in e.mittente_nome.lower()
                 or ql in e.corpo_testo.lower()
+                or ql in e.destinatari.lower()
+                or ql in e.corpo_html.lower()
+                or ql in e.stato_pct.lower()
             ]
         emails.sort(key=lambda e: e.timestamp, reverse=True)
         return emails
@@ -216,6 +252,13 @@ class GestioneEmailRicevute:
         if id_email in db:
             db[id_email].stato = StatoEmail.LETTA
             db[id_email].letta_il = datetime.now().isoformat()
+            self._salva()
+
+    def marca_non_letta(self, id_email: str) -> None:
+        db = self._carica()
+        if id_email in db:
+            db[id_email].stato = StatoEmail.NON_LETTA
+            db[id_email].letta_il = ""
             self._salva()
 
     def sposta_cestino(self, id_email: str) -> None:
@@ -513,6 +556,152 @@ class GestioneEmailRicevute:
             em.id_deposito_pct = match.group(0)
 
 
+def _estrai_rg_email(em: EmailRicevuta) -> tuple[str, str] | None:
+    testo = " ".join([
+        em.oggetto or "",
+        em.corpo_testo or "",
+        re.sub(r"<[^>]+>", " ", em.corpo_html or ""),
+    ])
+    match = _RE_RG_PCT.search(testo)
+    if not match:
+        return None
+    return match.group(1).lstrip("0") or "0", match.group(2)
+
+
+def _ordine_stato_pct(stato: str) -> int:
+    return _STATI_PCT_ORDINE.get(str(stato or "").upper(), -1)
+
+
+def _render_ricevuta_email(em: EmailRicevuta) -> str:
+    corpo = (em.corpo_testo or re.sub(r"<[^>]+>", " ", em.corpo_html or "")).strip()
+    righe = []
+    if em.oggetto:
+        righe.append(f"Oggetto: {em.oggetto}")
+    if em.mittente:
+        righe.append(f"Da: {em.mittente_nome or em.mittente}")
+    if em.timestamp:
+        righe.append(f"Data: {em.timestamp}")
+    if corpo:
+        righe.append("")
+        righe.append(corpo)
+    return "\n".join(righe).strip()
+
+
+def _aggiorna_ricevute_deposito_da_email(dep, em: EmailRicevuta) -> None:
+    testo = _render_ricevuta_email(em)
+    stato_nuovo = str(em.stato_pct or "").upper()
+    if stato_nuovo == "ACCETTATO_PEC" and not dep.ricevuta_accettazione:
+        dep.ricevuta_accettazione = testo
+    elif stato_nuovo == "CONSEGNATO" and not dep.ricevuta_consegna:
+        dep.ricevuta_consegna = testo
+    elif stato_nuovo in {"WARN_CONTROLLI", "ERRORE_CONTROLLI"}:
+        if not dep.ricevuta_controlli_automatici:
+            dep.ricevuta_controlli_automatici = testo
+        dep.esito_controlli = "WARN" if stato_nuovo == "WARN_CONTROLLI" else "ERROR"
+    elif stato_nuovo in {"ACCETTATO_CANCELLERIA", "RIFIUTATO_CANCELLERIA"} and not dep.ricevuta_cancelleria:
+        dep.ricevuta_cancelleria = testo
+
+    if _ordine_stato_pct(stato_nuovo) >= _ordine_stato_pct(getattr(dep, "stato", "")):
+        dep.stato = stato_nuovo or dep.stato
+    dep.messaggio = f"[Auto PEC] {em.oggetto[:120]}".strip()
+
+
+def _trova_match_deposito_email(fascicoli: List[object], em: EmailRicevuta) -> tuple[object, object] | tuple[None, None]:
+    rg_email = _estrai_rg_email(em)
+    best: tuple[int, object, object] | None = None
+
+    for fasc in fascicoli:
+        rg_ok = False
+        if rg_email:
+            num_rg, anno_rg = rg_email
+            rg_ok = (
+                str(getattr(fasc, "numero_rg", "") or "").lstrip("0") == num_rg
+                and str(getattr(fasc, "anno_rg", "") or "") == anno_rg
+            )
+        for dep in getattr(fasc, "depositi_pct", []) or []:
+            score = 0
+            token = (em.id_deposito_pct or "").upper()
+            if token:
+                if token in str(getattr(dep, "id", "") or "").upper():
+                    score += 120
+                if token in str(getattr(dep, "id_deposito_esterno", "") or "").upper():
+                    score += 140
+            if rg_ok:
+                score += 60
+            if str(getattr(dep, "stato", "") or "").upper() not in {
+                "ACCETTATO_CANCELLERIA",
+                "RIFIUTATO_CANCELLERIA",
+                "ERRORE",
+            }:
+                score += 15
+            if score <= 0:
+                continue
+            if (
+                best is None
+                or score > best[0]
+                or (
+                    score == best[0]
+                    and str(getattr(dep, "timestamp", "") or "") > str(getattr(best[2], "timestamp", "") or "")
+                )
+            ):
+                best = (score, fasc, dep)
+
+    if best:
+        return best[1], best[2]
+    return None, None
+
+
+def sincronizza_pec_e_fascicoli(
+    gestione_email: "GestioneEmailRicevute",
+    gestione_fascicoli,
+    config_pec: object,
+    *,
+    state_path: str = "",
+    giorni_indietro: int = 30,
+    limite: int = 100,
+) -> dict:
+    """
+    Sincronizza la casella PEC e aggiorna fascicoli e comunicazioni di cancelleria
+    con un workflow unico condiviso tra pagina email e fascicolo.
+    """
+    from pct.polling_depositi import poll_cancelleria_pec
+
+    if not config_pec or not getattr(config_pec, "imap_host", ""):
+        raise ValueError("PEC IMAP non configurata.")
+    if not getattr(config_pec, "indirizzo", "") or not getattr(config_pec, "password", ""):
+        raise ValueError("Credenziali PEC incomplete.")
+
+    sync_result = gestione_email.sincronizza_imap(
+        imap_host=config_pec.imap_host,
+        imap_port=int(getattr(config_pec, "imap_port", 993) or 993),
+        username=config_pec.indirizzo,
+        password=config_pec.password,
+        use_ssl=bool(getattr(config_pec, "use_ssl", True)),
+        cartelle_imap=["INBOX"],
+        limite=limite,
+    )
+    auto_log = aggiorna_esiti_da_email(gestione_email, gestione_fascicoli)
+    try:
+        poll_report = poll_cancelleria_pec(
+            gf=gestione_fascicoli,
+            config_pec=config_pec,
+            state_path=state_path,
+            giorni_indietro=giorni_indietro,
+        )
+    except TypeError:
+        # Compatibilità con mock/test legacy che espongono ancora la firma corta.
+        poll_report = poll_cancelleria_pec(
+            gf=gestione_fascicoli,
+            config_pec=config_pec,
+            state_path=state_path,
+        )
+    return {
+        "sync": sync_result,
+        "auto_esiti": auto_log,
+        "poll": poll_report,
+    }
+
+
 def aggiorna_esiti_da_email(
     gestione_email: GestioneEmailRicevute,
     gestione_fascicoli,  # GestioneFascicoli — evita import circolare
@@ -524,41 +713,33 @@ def aggiorna_esiti_da_email(
     Returns:
         Lista di messaggi di log (aggiornamenti effettuati).
     """
-    from datetime import datetime as _dt
-
     log = []
     db = gestione_email._carica()
 
-    pst_da_processare = [
-        e for e in db.values()
-        if e.e_pst and not e.auto_registrata
-    ]
+    pst_da_processare = sorted(
+        [e for e in db.values() if e.e_pst and not e.auto_registrata],
+        key=lambda e: e.timestamp or e.ricevuta_il,
+    )
 
     for em in pst_da_processare:
-        # Cerca deposito corrispondente in tutti i fascicoli
         trovato = False
         try:
             tutti_fascicoli = gestione_fascicoli.tutti()
-            for fasc in tutti_fascicoli:
-                for dep in getattr(fasc, "depositi_pct", []):
-                    id_dep = getattr(dep, "id", "") or ""
-                    if em.id_deposito_pct and id_dep and em.id_deposito_pct in id_dep:
-                        dep.stato = em.stato_pct
-                        dep.messaggio = f"[Auto] {em.oggetto[:100]}"
-                        trovato = True
-                        break
-                if trovato:
-                    gestione_fascicoli._salva()
-                    log.append(
-                        f"Fascicolo {fasc.numero}: deposito {id_dep} → {em.stato_pct} "
-                        f"(email: {em.oggetto[:60]})"
-                    )
-                    break
+            fasc, dep = _trova_match_deposito_email(tutti_fascicoli, em)
+            if fasc and dep:
+                _aggiorna_ricevute_deposito_da_email(dep, em)
+                gestione_fascicoli._salva()
+                trovato = True
+                log.append(
+                    f"Fascicolo {fasc.numero}: deposito {getattr(dep, 'id', '')} → {em.stato_pct} "
+                    f"(email: {em.oggetto[:60]})"
+                )
         except Exception as exc:
             log.append(f"Errore auto-esito email {em.id}: {exc}")
 
-        # Marca come processata anche se non trovata (evita loop)
         em.auto_registrata = True
+        if not trovato:
+            log.append(f"Nessun deposito abbinato per email PST: {em.oggetto[:60]}")
 
     if pst_da_processare:
         gestione_email._salva()

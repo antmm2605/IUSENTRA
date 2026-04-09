@@ -983,7 +983,7 @@
             </button>
 
           <button class="btn btn-sm btn-outline-secondary" id="btnSyncPecCancelleria"
-                  title="Carica automaticamente le email di accettazione/cancelleria dalla casella PEC"
+                  title="Sincronizza la casella PEC, aggiorna gli esiti del deposito e carica le comunicazioni di cancelleria"
                   onclick="_syncPecCancelleria(this)">
             <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sync PEC</span>
           </button>
@@ -996,7 +996,7 @@
       </div>
       <div class="collapse" id="collapse-sezione-comunicazioni-cancelleria">
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
-        Ricevute PEC, esiti dei controlli automatici e comunicazioni di cancelleria del canale {{ dep_portale_label }}.
+        Ricevute PEC, fasi del deposito e comunicazioni di cancelleria aggiornate dalla stessa sincronizzazione della casella PEC.
       </div>
       <div class="card-body p-0">
         {% if WFS.comunicazioni_attivita %}
@@ -4493,11 +4493,9 @@ function _syncPecCancelleria(btn) {
     if (d.ok) {
       const r = d.report || {};
       const msg = d.messaggio || 'Operazione completata.';
-      const detail = r.associati
-        ? `<br><small class="text-muted">${r.trovati} email esaminate · ${r.associati} nuove · ${r.duplicati||0} già presenti</small>`
-        : `<br><small class="text-muted">${r.trovati||0} email esaminate</small>`;
+      const detail = `<br><small class="text-muted">${d.nuove||0} email nuove · ${d.esiti_aggiornati||0} esiti aggiornati · ${r.associati||0} comunicazioni nuove · ${r.duplicati||0} già presenti</small>`;
       _mostraToast('success', msg + detail);
-      if (r.associati) setTimeout(() => location.reload(), 1800);
+      if ((d.nuove||0) || (d.esiti_aggiornati||0) || (r.associati||0)) setTimeout(() => location.reload(), 1800);
     } else {
       _mostraToast('danger', d.errore || 'Errore durante il polling PEC.');
     }

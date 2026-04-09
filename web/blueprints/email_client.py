@@ -72,6 +72,14 @@ def _get_config_pec():
         return None
 
 
+def _pec_state_path() -> str:
+    fascicoli_db = current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+    return os.path.join(
+        os.path.dirname(os.path.abspath(fascicoli_db)),
+        "pec_cancelleria_state.json",
+    )
+
+
 def _audit(azione: str, dettagli: str = ""):
     try:
         from pct.auth import GestioneUtenti
@@ -96,7 +104,14 @@ def casella():
     ge = _get_gestore()
     cartella = request.args.get("cartella", "INBOX")
     q = request.args.get("q", "").strip()
-    solo_non_lette = request.args.get("non_lette") == "1"
+    stato_lettura = request.args.get("stato", "").strip().upper()
+    solo_non_lette = request.args.get("non_lette") == "1" or stato_lettura == "NON_LETTA"
+    solo_pst = request.args.get("pst") == "1"
+    con_allegati = request.args.get("con_allegati") == "1"
+    stato_pct = request.args.get("stato_pct", "").strip().upper()
+    origine = request.args.get("origine", "").strip().upper()
+    data_da = request.args.get("data_da", "").strip()
+    data_a = request.args.get("data_a", "").strip()
 
     from pct.email_client import CartellaEmail
     cartella_valida = cartella if cartella in (
@@ -106,7 +121,18 @@ def casella():
     # Sincronizza inviati da messaggi.py al volo
     _sync_inviati(ge)
 
-    emails = ge.tutte(cartella=cartella_valida, solo_non_lette=solo_non_lette, q=q)
+    emails = ge.tutte(
+        cartella=cartella_valida,
+        solo_non_lette=solo_non_lette,
+        q=q,
+        stato_lettura=stato_lettura,
+        solo_pst=solo_pst,
+        con_allegati=con_allegati,
+        stato_pct=stato_pct,
+        origine=origine,
+        data_da=data_da,
+        data_a=data_a,
+    )
     stats  = ge.statistiche()
 
     # Email selezionata per vista split (desktop)
@@ -126,6 +152,14 @@ def casella():
         cartella=cartella_valida,
         q=q,
         solo_non_lette=solo_non_lette,
+        stato_lettura=stato_lettura,
+        solo_pst=solo_pst,
+        con_allegati=con_allegati,
+        stato_pct=stato_pct,
+        origine=origine,
+        data_da=data_da,
+        data_a=data_a,
+        has_advanced_filters=any([solo_pst, con_allegati, stato_pct, origine, data_da, data_a, stato_lettura]),
         stats=stats,
         oggi=datetime.today(),
     )
@@ -144,6 +178,29 @@ def dettaglio(id_email: str):
         ge.marca_letta(id_email)
         em.stato = "LETTA"
     return render_template("email/dettaglio.html", em=em, oggi=datetime.today())
+
+
+def _redirect_email_next(default_cartella: str):
+    next_url = (request.form.get("next") or request.args.get("next") or "").strip()
+    if next_url and next_url.startswith("/"):
+        return redirect(next_url)
+    return redirect(url_for("email_client.casella", cartella=default_cartella))
+
+
+@email_client.route("/<id_email>/segna-letta", methods=["POST"])
+@_login_required
+def segna_letta(id_email: str):
+    ge = _get_gestore()
+    ge.marca_letta(id_email)
+    return _redirect_email_next(request.form.get("cartella", "INBOX"))
+
+
+@email_client.route("/<id_email>/segna-non-letta", methods=["POST"])
+@_login_required
+def segna_non_letta(id_email: str):
+    ge = _get_gestore()
+    ge.marca_non_letta(id_email)
+    return _redirect_email_next(request.form.get("cartella", "INBOX"))
 
 
 @email_client.route("/scrivi", methods=["GET", "POST"])
@@ -279,21 +336,37 @@ def sincronizza():
         })
 
     try:
-        ris = ge.sincronizza_imap(
-            imap_host=imap_host,
-            imap_port=int(imap_port or 993),
-            username=username,
-            password=password,
-            use_ssl=bool(use_ssl),
-            cartelle_imap=["INBOX"],
-            limite=100,
-        )
-        _sync_inviati(ge)
-
-        # Auto-esiti PCT
+        poll_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
         log_esiti = []
-        if ris.get("pst_trovate", 0) > 0:
-            log_esiti = _auto_esiti(ge)
+        if pec_cfg and getattr(pec_cfg, "imap_host", ""):
+            from pct.email_client import sincronizza_pec_e_fascicoli
+            from pct.fascicoli import GestioneFascicoli
+
+            gf = GestioneFascicoli(db_path=current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json"))
+            workflow = sincronizza_pec_e_fascicoli(
+                gestione_email=ge,
+                gestione_fascicoli=gf,
+                config_pec=pec_cfg,
+                state_path=_pec_state_path(),
+                limite=100,
+            )
+            ris = workflow.get("sync", {})
+            log_esiti = workflow.get("auto_esiti", []) or []
+            poll_report = workflow.get("poll", {}) or poll_report
+        else:
+            ris = ge.sincronizza_imap(
+                imap_host=imap_host,
+                imap_port=int(imap_port or 993),
+                username=username,
+                password=password,
+                use_ssl=bool(use_ssl),
+                cartelle_imap=["INBOX"],
+                limite=100,
+            )
+            if ris.get("pst_trovate", 0) > 0:
+                log_esiti = _auto_esiti(ge)
+
+        _sync_inviati(ge)
 
         _audit("email.sincronizzata", f"Nuove: {ris.get('nuove', 0)}, PST: {ris.get('pst_trovate', 0)}")
 
@@ -302,6 +375,8 @@ def sincronizza():
             "nuove": ris.get("nuove", 0),
             "pst_trovate": ris.get("pst_trovate", 0),
             "esiti_aggiornati": len(log_esiti),
+            "comunicazioni_cancelleria": poll_report.get("associati", 0),
+            "report": poll_report,
             "errore": ris.get("errore", ""),
             "stats": ge.statistiche(),
         })

@@ -75,22 +75,87 @@
          placeholder="Cerca mittente, oggetto…"
          value="{{ q }}" autocomplete="off">
   {% if cartella == 'INBOX' %}
-  <a href="{{ url_for('email_client.casella', cartella=cartella, non_lette='1' if not solo_non_lette else '') }}"
+  <a href="{{ url_for('email_client.casella', cartella=cartella, q=q, stato='' if stato_lettura == 'NON_LETTA' else 'NON_LETTA', pst='1' if solo_pst else '', con_allegati='1' if con_allegati else '', stato_pct=stato_pct, origine=origine, data_da=data_da, data_a=data_a) }}"
      class="ds-btn {{ 'ds-btn-primary' if solo_non_lette else 'ds-btn-outline' }}"
      title="{{ 'Mostra tutte' if solo_non_lette else 'Solo non lette' }}">
     <i class="bi bi-circle{{ '-fill' if solo_non_lette else '' }}"></i>
     <span class="d-none d-sm-inline">Non lette</span>
   </a>
   {% endif %}
+  <button type="button" class="ds-btn ds-btn-outline" data-bs-toggle="collapse" data-bs-target="#emailAdvancedFilters" aria-expanded="{{ 'true' if has_advanced_filters else 'false' }}">
+    <i class="bi bi-sliders"></i><span class="d-none d-sm-inline">Filtri avanzati</span>
+  </button>
   <button type="submit" class="ds-btn ds-btn-outline">
     <i class="bi bi-search"></i>Cerca
   </button>
-  {% if q %}
+  {% if q or has_advanced_filters %}
   <a href="{{ url_for('email_client.casella', cartella=cartella) }}" class="ds-btn ds-btn-ghost">
     <i class="bi bi-x-circle"></i>Reset
   </a>
   {% endif %}
 </form>
+
+<div class="collapse {% if has_advanced_filters %}show{% endif %} mb-3" id="emailAdvancedFilters">
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <input type="hidden" name="cartella" value="{{ cartella }}">
+        <input type="hidden" name="q" value="{{ q }}">
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Stato lettura</label>
+          <select class="form-select form-select-sm" name="stato">
+            <option value="" {% if not stato_lettura %}selected{% endif %}>Tutte</option>
+            <option value="NON_LETTA" {% if stato_lettura == 'NON_LETTA' %}selected{% endif %}>Non lette</option>
+            <option value="LETTA" {% if stato_lettura == 'LETTA' %}selected{% endif %}>Lette</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Stato PCT</label>
+          <select class="form-select form-select-sm" name="stato_pct">
+            <option value="" {% if not stato_pct %}selected{% endif %}>Tutti gli esiti</option>
+            {% for opt in ['ACCETTATO_PEC','CONSEGNATO','WARN_CONTROLLI','ERRORE_CONTROLLI','ACCETTATO_CANCELLERIA','RIFIUTATO_CANCELLERIA'] %}
+            <option value="{{ opt }}" {% if stato_pct == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Origine</label>
+          <select class="form-select form-select-sm" name="origine">
+            <option value="" {% if not origine %}selected{% endif %}>Tutte</option>
+            <option value="IMAP" {% if origine == 'IMAP' %}selected{% endif %}>IMAP</option>
+            <option value="INVIATA" {% if origine == 'INVIATA' %}selected{% endif %}>Inviata</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Data da</label>
+          <input type="date" class="form-control form-control-sm" name="data_da" value="{{ data_da }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Data a</label>
+          <input type="date" class="form-control form-control-sm" name="data_a" value="{{ data_a }}">
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="flt-pst" name="pst" {% if solo_pst %}checked{% endif %}>
+            <label class="form-check-label small" for="flt-pst">Solo PEC/PST</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" id="flt-att" name="con_allegati" {% if con_allegati %}checked{% endif %}>
+            <label class="form-check-label small" for="flt-att">Con allegati</label>
+          </div>
+        </div>
+        <div class="col-12 d-flex gap-2 justify-content-end">
+          <a href="{{ url_for('email_client.casella', cartella=cartella, q=q) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-x-circle me-1"></i>Reset filtri
+          </a>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-funnel me-1"></i>Applica filtri
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 {# ── Lista email ── #}
 {% if emails %}
@@ -156,6 +221,9 @@
                   <i class="bi bi-shield-check me-1"></i>PST
                 </span>
                 {% endif %}
+                {% if em.stato_pct %}
+                <span class="badge bg-light text-dark border" style="font-size:.65rem">{{ em.stato_pct }}</span>
+                {% endif %}
                 {% if em.allegati %}
                 <span class="text-muted small"><i class="bi bi-paperclip"></i> {{ em.allegati|length }}</span>
                 {% endif %}
@@ -177,6 +245,25 @@
                    class="btn btn-sm btn-outline-secondary" title="Leggi">
                   <i class="bi bi-eye"></i>
                 </a>
+                {% if cartella != 'CESTINO' %}
+                {% if is_unread %}
+                <form method="post" action="{{ url_for('email_client.segna_letta', id_email=em.id) }}">
+                  <input type="hidden" name="cartella" value="{{ cartella }}">
+                  <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+                  <button class="btn btn-sm btn-outline-success" title="Segna come letta">
+                    <i class="bi bi-envelope-open"></i>
+                  </button>
+                </form>
+                {% else %}
+                <form method="post" action="{{ url_for('email_client.segna_non_letta', id_email=em.id) }}">
+                  <input type="hidden" name="cartella" value="{{ cartella }}">
+                  <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+                  <button class="btn btn-sm btn-outline-primary" title="Segna come non letta">
+                    <i class="bi bi-envelope"></i>
+                  </button>
+                </form>
+                {% endif %}
+                {% endif %}
                 {% if cartella != 'CESTINO' %}
                 <form method="post" action="{{ url_for('email_client.cestino', id_email=em.id) }}">
                   <input type="hidden" name="cartella" value="{{ cartella }}">
@@ -240,11 +327,12 @@ document.getElementById('btnSync')?.addEventListener('click', function () {
     .then(d => {
       if (d.ok) {
         let msg = 'Sincronizzazione completata';
-        if (d.nuove > 0)            msg += ` · ${d.nuove} nuova/e`;
-        if (d.pst_trovate > 0)      msg += ` · ${d.pst_trovate} PST`;
-        if (d.esiti_aggiornati > 0) msg += ` · ${d.esiti_aggiornati} esiti`;
+        if (d.nuove > 0)                      msg += ` · ${d.nuove} nuova/e`;
+        if (d.pst_trovate > 0)                msg += ` · ${d.pst_trovate} PST`;
+        if (d.esiti_aggiornati > 0)           msg += ` · ${d.esiti_aggiornati} esiti`;
+        if ((d.comunicazioni_cancelleria||0) > 0) msg += ` · ${d.comunicazioni_cancelleria} comunicazioni`;
         _toast('success', msg);
-        if (d.nuove > 0 || d.esiti_aggiornati > 0) setTimeout(() => location.reload(), 1800);
+        if (d.nuove > 0 || d.esiti_aggiornati > 0 || (d.comunicazioni_cancelleria||0) > 0) setTimeout(() => location.reload(), 1800);
       } else _toast('danger', d.errore || 'Errore sincronizzazione');
     })
     .catch(() => _toast('danger', 'Errore di rete'))

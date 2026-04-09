@@ -12042,15 +12042,17 @@ read -r -p "Premi Invio per chiudere..." _
     @app.route("/api/pec/poll-cancelleria", methods=["POST"])
     def api_pec_poll_cancelleria():
         """
-        Avvia manualmente il polling PEC per caricare le comunicazioni di cancelleria
-        nei fascicoli corrispondenti (filtrando per numero RG nel subject).
+        Avvia manualmente il workflow PEC completo:
+        - sincronizzazione casella PEC
+        - auto-esiti depositi PCT nei fascicoli
+        - caricamento comunicazioni di cancelleria
 
         Richiede permesso 'fascicoli.scrivi'.
         """
         try:
             from pct.fascicoli import GestioneFascicoli
             from pct.config_studio import GestioneConfigStudio
-            from pct.polling_depositi import poll_cancelleria_pec
+            from pct.email_client import GestioneEmailRicevute, sincronizza_pec_e_fascicoli
 
             u = g.utente_corrente
             if not u or not u.ha_permesso("fascicoli.scrivi"):
@@ -12083,21 +12085,41 @@ read -r -p "Premi Invio per chiudere..." _
                 })
 
             gf = GestioneFascicoli(db_path=fascicoli_db)
+            ge = GestioneEmailRicevute(
+                db_path=app.config.get(
+                    "EMAIL_CASELLA_DB",
+                    os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
+                )
+            )
             state_path = os.path.join(
                 os.path.dirname(os.path.abspath(fascicoli_db)),
                 "pec_cancelleria_state.json",
             )
-            report = poll_cancelleria_pec(
-                gf=gf,
+            workflow = sincronizza_pec_e_fascicoli(
+                gestione_email=ge,
+                gestione_fascicoli=gf,
                 config_pec=config_pec,
                 state_path=state_path,
+                limite=100,
             )
+            sync_result = workflow.get("sync", {}) or {}
+            auto_log = workflow.get("auto_esiti", []) or []
+            report = workflow.get("poll", {}) or {
+                "trovati": 0,
+                "associati": 0,
+                "duplicati": 0,
+                "errori": 0,
+            }
 
             if report["associati"]:
                 msg = (
                     f"{report['associati']} comunicazion{'e' if report['associati'] == 1 else 'i'} "
                     f"caricata{'.' if report['associati'] == 1 else '.'}"
                 )
+            elif auto_log:
+                msg = f"Workflow PEC completato: {len(auto_log)} esiti deposito aggiornati."
+            elif sync_result.get("nuove"):
+                msg = f"Sincronizzazione PEC completata: {sync_result.get('nuove', 0)} email nuove."
             elif report["trovati"]:
                 msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
             else:
@@ -12105,10 +12127,18 @@ read -r -p "Premi Invio per chiudere..." _
 
             audit("pec.poll_cancelleria", dettagli=str(report))
             app.logger.info(
-                "Poll PEC cancelleria manuale: %d trovati, %d associati, %d errori",
-                report["trovati"], report["associati"], report["errori"],
+                "Workflow PEC manuale: %d nuove email, %d esiti, %d comunicazioni, %d errori",
+                sync_result.get("nuove", 0), len(auto_log), report["associati"], report["errori"],
             )
-            return jsonify({"ok": True, "messaggio": msg, "report": report})
+            return jsonify({
+                "ok": True,
+                "messaggio": msg,
+                "report": report,
+                "nuove": sync_result.get("nuove", 0),
+                "pst_trovate": sync_result.get("pst_trovate", 0),
+                "esiti_aggiornati": len(auto_log),
+                "log": auto_log,
+            })
 
         except Exception as e:
             app.logger.exception("Errore api_pec_poll_cancelleria: %s", e)

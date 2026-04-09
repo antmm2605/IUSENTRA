@@ -20,6 +20,25 @@
        class="ds-btn ds-btn-outline">
       <i class="bi bi-reply"></i><span class="d-none d-sm-inline">Rispondi</span>
     </a>
+    {% if em.cartella != 'CESTINO' %}
+      {% if em.stato == 'NON_LETTA' %}
+      <form method="post" action="{{ url_for('email_client.segna_letta', id_email=em.id) }}" class="d-inline">
+        <input type="hidden" name="cartella" value="{{ em.cartella }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="ds-btn ds-btn-outline" type="submit">
+          <i class="bi bi-envelope-open"></i><span class="d-none d-sm-inline">Segna letta</span>
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('email_client.segna_non_letta', id_email=em.id) }}" class="d-inline">
+        <input type="hidden" name="cartella" value="{{ em.cartella }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button class="ds-btn ds-btn-outline" type="submit">
+          <i class="bi bi-envelope"></i><span class="d-none d-sm-inline">Segna non letta</span>
+        </button>
+      </form>
+      {% endif %}
+    {% endif %}
   </div>
 </div>
 

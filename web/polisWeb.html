@@ -2223,7 +2223,7 @@ function verificaLocalSignerLegacy() {
 
 // ── Wizard PST ───────────────────────────────────────────────────────────────
 let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati
-let _wizCertSel = null;  // certificato selezionato
+let _wizCertSel = _lsCertSel;  // certificato selezionato
 let _wizPinConfermato = false;
 let _wizUltimiFascicoli = [];
 
@@ -2414,7 +2414,7 @@ async function apriWizardPst() {
   const stato = _lsDisponibile ? { running: true, tokenOk: true } : await _lsAssicuraAttivo();
   _wizStep = stato.running ? 1 : 0;
   _wizCertSel = _lsCertSel;
-  _wizPinConfermato = false;
+   _wizPinConfermato = false; 
   _wizPstSessionId = _lsPstSessionId || '';
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
@@ -2478,29 +2478,39 @@ function _wizAggiornaDot() {
 
 async function wizAvanti() {
   if (_wizStep === 1) {
-    if (!document.getElementById('wiz-ufficio-value').value) {
+    const ufficio = document.getElementById('wiz-ufficio-value').value;
+    if (!ufficio) {
       document.getElementById('wiz-ufficio-input').focus();
       return;
     }
+
     _wizStep = 2;
-    _wizCertSel = null;
-    _wizPinConfermato = false;
+
+    // Non azzerare sempre il PIN confermato.
+    // Se abbiamo già una sessione PST coerente con ufficio + certificato, la riusiamo.
+    const hasReusableSession = !!_lsGetKnownPstSessionId(ufficio, _wizCertSel);
+    if (!hasReusableSession) {
+      _wizPinConfermato = false;
+    }
+
   } else if (_wizStep === 2) {
     if (!_wizCertSel) {
-      // Nessun certificato selezionato — apri il picker
       const selezionato = await wizApriPicker();
       if (!selezionato) return;
     }
+
     if (!_wizPinConfermato) {
       const verificato = await wizVerificaCertificatoPst();
       if (!verificato) return;
     }
+
     _wizStep = 3;
     _wizAggiornaDot();
     _wizMostraStep(_wizStep);
     await wizEseguiRicerca();
     return;
   }
+
   _wizAggiornaDot();
   _wizMostraStep(_wizStep);
 }
@@ -2831,17 +2841,22 @@ async function wizApriPicker() {
 
   try {
     const cert = await _lsSelezionaCertificato();
+
     if (loading) loading.style.display = 'none';
     if (btnSel)  btnSel.disabled = false;
+
     if (!cert) {
       if (notoken) notoken.style.display = 'none';
       return false;
     }
+
     _wizCertSel = cert;
     _wizPinConfermato = false;
     _wizSetPinStatus(null);
     _wizMostraCertCard(_wizCertSel);
-    await wizVerificaCertificatoPst();
+
+    // NON fare subito il preflight qui.
+    // Il PIN parte solo quando l'utente preme Avanti.
     return true;
   } catch (err) {
     if (loading) loading.style.display = 'none';
@@ -3098,14 +3113,18 @@ async function _lsDocumentiPerImportazione(fascicolo, cert) {
     return await resp.json();
   };
 
-  await _lsPreflightAuthPst(tribunale, cert);
+  // Prima prova: riusa la sessione PST già aperta, senza nuovo preflight
   let sessionId = _lsGetKnownPstSessionId(tribunale, cert) || '';
   let data = await doFetch(sessionId);
 
-  if (!data?.ok && sessionId && _lsLooksLikeExpiredPstSession(data?.errore)) {
-    _lsClearPstSession('Sessione scaduta durante acquisizione documenti');
-    const preflight2 = await _lsPreflightAuthPst(tribunale, cert, { forceNew: true });
-    sessionId = _lsGetKnownPstSessionId(tribunale, cert) || preflight2?.pst_session_id || '';
+  // Se non avevamo una sessione, oppure il PST la rifiuta, fai un solo preflight
+  if (!data?.ok && (!sessionId || _lsLooksLikeExpiredPstSession(data?.errore))) {
+    if (sessionId) {
+      _lsClearPstSession('Sessione scaduta durante acquisizione documenti');
+    }
+
+    const preflight = await _lsPreflightAuthPst(tribunale, cert, { forceNew: !sessionId });
+    sessionId = _lsGetKnownPstSessionId(tribunale, cert) || preflight?.pst_session_id || '';
     data = await doFetch(sessionId);
   }
 

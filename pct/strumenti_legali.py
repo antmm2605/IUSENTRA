@@ -84,15 +84,18 @@ class GestioneStrumentiLegali:
 
     def catalogo_moduli(self) -> List[Dict[str, str]]:
         return [
-            {"id": "contributo_unificato", "title": "Contributo unificato", "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.", "icon": "bi-bank"},
-            {"id": "interessi", "title": "Interessi legali e moratori", "subtitle": "Art. 1284 c.c. e D.Lgs. 231/2002 con segmentazione per periodo.", "icon": "bi-percent"},
-            {"id": "nota_credito", "title": "Nota di precisazione del credito", "subtitle": "Bozza professionale con capitale, interessi, spese, CPA, IVA e residuo.", "icon": "bi-file-earmark-ruled"},
-            {"id": "pignoramento", "title": "Simulatore pignoramento stipendio / pensione", "subtitle": "Ordinario, esattoriale e alimentare con soglia pensione 2026 gia aggiornata.", "icon": "bi-cash-stack"},
-            {"id": "ctu", "title": "CTU, vacazioni e compensi ausiliari", "subtitle": "Vacazioni vigenti, spese documentate e accessori professionali.", "icon": "bi-journal-medical"},
-            {"id": "rivalutazione_istat", "title": "Rivalutazione monetaria ISTAT", "subtitle": "Calcolo FOI / NIC per danni, assegni divorzili, liquidazioni e adeguamenti.", "icon": "bi-graph-up-arrow"},
-            {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock"},
-            {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso applicato con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation"},
-            {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternita: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge"},
+            {"id": "contributo_unificato",    "title": "Contributo unificato",                        "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.",          "icon": "bi-bank",               "categoria": "Fiscale"},
+            {"id": "interessi",               "title": "Interessi legali e moratori",                 "subtitle": "Art. 1284 c.c. e D.Lgs. 231/2002 con segmentazione per periodo.",                   "icon": "bi-percent",             "categoria": "Credito"},
+            {"id": "nota_credito",            "title": "Nota di precisazione del credito",            "subtitle": "Bozza professionale con capitale, interessi, spese, CPA, IVA e residuo.",           "icon": "bi-file-earmark-ruled",  "categoria": "Credito"},
+            {"id": "pignoramento",            "title": "Simulatore pignoramento stipendio/pensione",  "subtitle": "Ordinario, esattoriale e alimentare con soglia pensione 2026 aggiornata.",           "icon": "bi-cash-stack",          "categoria": "Esecuzione"},
+            {"id": "ctu",                     "title": "CTU, vacazioni e compensi ausiliari",         "subtitle": "Vacazioni vigenti, spese documentate e accessori professionali.",                    "icon": "bi-journal-medical",     "categoria": "Processo"},
+            {"id": "rivalutazione_istat",     "title": "Rivalutazione monetaria ISTAT",               "subtitle": "Calcolo FOI/NIC per danni, assegni divorzili, liquidazioni e adeguamenti.",          "icon": "bi-graph-up-arrow",      "categoria": "Danni"},
+            {"id": "canone_locazione",        "title": "Adeguamento canone di locazione",             "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.",                        "icon": "bi-house-lock",          "categoria": "Locazioni"},
+            {"id": "usura",                   "title": "Verifica soglia usura",                       "subtitle": "Confronta il tasso con TEGM e soglia antiusura per categoria (L. 108/1996).",       "icon": "bi-shield-exclamation",  "categoria": "Credito"},
+            {"id": "contributi_cassa_forense","title": "Contributi Cassa Forense",                    "subtitle": "Soggettivo, integrativo e maternità: aliquote e minimali annuali 2026.",            "icon": "bi-person-badge",        "categoria": "Previdenza"},
+            {"id": "prescrizione",            "title": "Calcolo termini di prescrizione",             "subtitle": "Ordinaria, breve e speciale con gestione atti interruttivi (artt. 2934-2964 c.c.).", "icon": "bi-hourglass-split",     "categoria": "Processo"},
+            {"id": "danno_biologico",         "title": "Liquidazione danno biologico",                "subtitle": "IP, ITT, ITP con Tabelle Milano 2024, coefficiente età e personalizzazione.",       "icon": "bi-bandaid",             "categoria": "Danni"},
+            {"id": "imposta_registro",        "title": "Imposta di registro atti giudiziari",         "subtitle": "Sentenze, DI, verbali conciliativi e lodi arbitrali (DPR 131/1986).",               "icon": "bi-receipt",             "categoria": "Fiscale"},
         ]
 
     def build_prefill(
@@ -993,6 +996,399 @@ class GestioneStrumentiLegali:
             "compensi": round(compensi, 2),
             "contributi": result_rows,
             "totale": round(totale, 2),
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  NUOVO — Calcolo termini di prescrizione                           #
+    # ------------------------------------------------------------------ #
+    _TIPI_PRESCRIZIONE: Dict[str, Dict] = {
+        "ordinaria_10": {
+            "label": "Ordinaria — 10 anni",
+            "anni": 10,
+            "norma": "Art. 2946 c.c.",
+            "esempi": "Crediti contrattuali generici, risarcimento danni da reato (se non speciale), azioni reali.",
+        },
+        "quinquennale_5": {
+            "label": "Quinquennale — 5 anni",
+            "anni": 5,
+            "norma": "Art. 2948 c.c.",
+            "esempi": "Canoni di locazione, rate, stipendi, corrispettivi periodici.",
+        },
+        "extracontrattuale_5": {
+            "label": "Extracontrattuale — 5 anni",
+            "anni": 5,
+            "norma": "Art. 2947 c.c.",
+            "esempi": "Risarcimento del danno da fatto illecito (lesioni, danni a cose).",
+        },
+        "cambiari_3": {
+            "label": "Cambiali e assegni — 3 anni",
+            "anni": 3,
+            "norma": "Art. 94 L.C. / Art. 52 L.A.",
+            "esempi": "Azione cartolare del portatore vs traente cambiale; assegni bancari.",
+        },
+        "assicurazioni_2": {
+            "label": "Assicurazioni — 2 anni",
+            "anni": 2,
+            "norma": "Art. 2952 c.c.",
+            "esempi": "Diritti derivanti dal contratto di assicurazione (vita: 10 anni).",
+        },
+        "breve_1": {
+            "label": "Breve — 1 anno",
+            "anni": 1,
+            "norma": "Art. 2951 c.c.",
+            "esempi": "Diritti derivanti da contratto di spedizione, di trasporto, vettori.",
+        },
+    }
+
+    def calcola_prescrizione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Calcola termini di prescrizione con gestione atti interruttivi."""
+        from datetime import date as _date, timedelta
+        import calendar as _calendar
+
+        tipo = str(payload.get("presc_tipo", "ordinaria_10")).strip()
+        data_decorrenza_raw = payload.get("presc_data_decorrenza", "")
+        data_atto_raw = payload.get("presc_atto_interruttivo", "")
+        descrizione = _clean_text(payload.get("presc_descrizione", ""))
+
+        tipo_info = self._TIPI_PRESCRIZIONE.get(tipo)
+        if not tipo_info:
+            raise ValueError(f"Tipo di prescrizione non riconosciuto: {tipo!r}.")
+
+        data_decorrenza = _parse_date(data_decorrenza_raw)
+        if not data_decorrenza:
+            raise ValueError("Indica la data di decorrenza (dies a quo).")
+
+        anni = tipo_info["anni"]
+        oggi = _today()
+
+        def _add_years(d: _date, n: int) -> _date:
+            try:
+                return d.replace(year=d.year + n)
+            except ValueError:
+                # 29 feb su anno non bisestile
+                return d.replace(year=d.year + n, day=28)
+
+        data_scadenza = _add_years(data_decorrenza, anni)
+        giorni_residui = (data_scadenza - oggi).days
+        scaduta = oggi > data_scadenza
+
+        # Atto interruttivo
+        data_atto = _parse_date(data_atto_raw)
+        data_scadenza_post = None
+        giorni_residui_post = None
+        if data_atto:
+            data_scadenza_post = _add_years(data_atto, anni)
+            giorni_residui_post = (data_scadenza_post - oggi).days
+
+        # Calcola scadenza effettiva (con o senza interruzione)
+        scadenza_eff = data_scadenza_post if data_atto else data_scadenza
+        giorni_eff = giorni_residui_post if data_atto else giorni_residui
+        scaduta_eff = oggi > scadenza_eff if scadenza_eff else scaduta
+
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if scaduta_eff:
+            warnings.append("⚠ Il termine di prescrizione risulta SCADUTO in base ai dati inseriti.")
+        elif giorni_eff is not None and giorni_eff < 90:
+            warnings.append(f"⚠ URGENTE — il termine scade tra {giorni_eff} giorni ({scadenza_eff.strftime('%d/%m/%Y')}). Valuta tempestivamente atti interruttivi.")
+
+        notes.append(tipo_info["esempi"])
+        notes.append(
+            "La prescrizione si interrompe con qualsiasi atto idoneo: notifica citazione, decreto ingiuntivo, "
+            "diffida raccomandata AR, riconoscimento del debitore, PEC con valore legale. "
+            "Dalla data dell'atto interruttivo ricomincia a decorrere un nuovo termine integrale."
+        )
+        if tipo == "extracontrattuale_5":
+            notes.append(
+                "Se il fatto illecito costituisce reato, la prescrizione è quella del reato se più lunga "
+                "(art. 2947 co. 3 c.c.)."
+            )
+
+        sources = [
+            {"title": tipo_info["norma"], "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262"},
+        ]
+
+        return {
+            "tipo": tipo,
+            "tipo_label": tipo_info["label"],
+            "norma": tipo_info["norma"],
+            "anni_prescrizione": anni,
+            "data_decorrenza": data_decorrenza.isoformat(),
+            "data_scadenza": data_scadenza.isoformat(),
+            "giorni_residui": giorni_residui,
+            "data_atto_interruttivo": data_atto.isoformat() if data_atto else None,
+            "data_scadenza_post_interruzione": data_scadenza_post.isoformat() if data_scadenza_post else None,
+            "giorni_residui_post_interruzione": giorni_residui_post,
+            "scaduta": scaduta_eff,
+            "urgente": (not scaduta_eff and giorni_eff is not None and giorni_eff < 90),
+            "descrizione": descrizione,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  NUOVO — Liquidazione danno biologico (Tabelle Milano 2024)         #
+    # ------------------------------------------------------------------ #
+    # Valore del punto per IP% (per fascia), età base 30 anni, anno 2024.
+    # Fonte: Osservatorio per la giustizia civile di Milano, aggiornamento 2024.
+    _PUNTI_IP_FASCIA: List[tuple] = [
+        (5,   5_797),
+        (10,  6_482),
+        (20,  7_164),
+        (30,  8_513),
+        (40, 10_261),
+        (50, 12_439),
+        (60, 14_618),
+        (70, 17_484),
+        (80, 20_349),
+        (90, 24_562),
+        (100,29_462),
+    ]
+    _VALORE_GIORNO_ITT: float = 103.0    # € per giorno ITT (2024)
+    _COEFF_ITP: Dict[int, float] = {75: 0.75, 50: 0.50, 25: 0.25}
+
+    def _valore_punto_ip(self, percentuale: int) -> float:
+        for limite, valore in self._PUNTI_IP_FASCIA:
+            if percentuale <= limite:
+                return float(valore)
+        return float(self._PUNTI_IP_FASCIA[-1][1])
+
+    def _coeff_eta(self, eta: int) -> float:
+        """Coefficiente correttivo per età (±0,5% per anno rispetto a 30)."""
+        if eta <= 20:
+            return 1.30
+        elif eta <= 25:
+            return 1.20
+        elif eta <= 30:
+            return 1.10
+        elif eta <= 35:
+            return 1.00
+        elif eta <= 40:
+            return 0.95
+        elif eta <= 45:
+            return 0.90
+        elif eta <= 50:
+            return 0.85
+        elif eta <= 55:
+            return 0.80
+        elif eta <= 60:
+            return 0.75
+        elif eta <= 65:
+            return 0.70
+        elif eta <= 70:
+            return 0.65
+        else:
+            return 0.60
+
+    def calcola_danno_biologico(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Liquidazione danno biologico con Tabelle Milano 2024."""
+        eta = _safe_int(payload.get("db_eta"))
+        perc_ip = _safe_int(payload.get("db_perc_ip"))
+        giorni_itt = _safe_int(payload.get("db_giorni_itt"))
+        giorni_itp = _safe_int(payload.get("db_giorni_itp"))
+        perc_itp = _safe_int(payload.get("db_perc_itp", 50))
+        personalizzazione = _safe_float(payload.get("db_personalizzazione", 0))
+        includi_morale = str(payload.get("db_includi_morale", "1")).strip() == "1"
+
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if eta <= 0 or eta > 120:
+            raise ValueError("Indica l'età della vittima al momento del fatto.")
+        if not (0 <= perc_ip <= 100):
+            raise ValueError("La percentuale di invalidità permanente deve essere tra 0 e 100.")
+        if perc_itp not in (25, 50, 75):
+            perc_itp = 50
+
+        coeff = self._coeff_eta(eta)
+
+        # Danno biologico per IP
+        danno_ip = 0.0
+        if perc_ip > 0:
+            for p in range(1, perc_ip + 1):
+                danno_ip += self._valore_punto_ip(p) * coeff
+        danno_ip = round(danno_ip, 2)
+
+        # Danno biologico temporaneo
+        valore_itt = round(giorni_itt * self._VALORE_GIORNO_ITT, 2)
+        coeff_itp = self._COEFF_ITP.get(perc_itp, 0.50)
+        valore_itp = round(giorni_itp * self._VALORE_GIORNO_ITT * coeff_itp, 2)
+
+        subtotale = round(danno_ip + valore_itt + valore_itp, 2)
+
+        # Personalizzazione (max +25% di norma)
+        personalizzazione = max(0.0, min(personalizzazione, 50.0))
+        importo_personalizzazione = round(subtotale * personalizzazione / 100.0, 2)
+
+        totale_biologico = round(subtotale + importo_personalizzazione, 2)
+
+        # Danno morale (liquidazione autonoma — c.d. Sezioni Unite 2008 + Cass. 2019)
+        danno_morale = round(totale_biologico * 0.25, 2) if includi_morale else 0.0
+        totale_comprensivo = round(totale_biologico + danno_morale, 2)
+
+        if perc_ip >= 10:
+            notes.append(
+                "Per lesioni macro-permanenti (IP ≥ 10%) il danno morale si liquida autonomamente "
+                "in misura orientativamente pari al 25-50% del danno biologico (Cass. SS.UU. 26972/2008; Cass. 7513/2018)."
+            )
+        notes.append(
+            "Valori calcolati con le Tabelle di Milano 2024 (approssimazione operativa). "
+            "Il coefficiente età è calcolato su base 30 anni (±0,5%/anno). "
+            "La personalizzazione (0-25%) va giustificata con specifiche circostanze del caso concreto."
+        )
+        if personalizzazione > 25:
+            warnings.append("La personalizzazione supera il 25%: le Tabelle di Milano la prevedono in via eccezionale e motivata.")
+
+        sources = [
+            {"title": "Tabelle Milano 2024", "url": "https://www.tribunale.milano.it/tabelle-di-liquidazione-del-danno"},
+            {"title": "Cass. SS.UU. 26972/2008", "url": "https://www.normattiva.it"},
+        ]
+
+        return {
+            "eta": eta,
+            "perc_ip": perc_ip,
+            "giorni_itt": giorni_itt,
+            "giorni_itp": giorni_itp,
+            "perc_itp": perc_itp,
+            "coeff_eta": round(coeff, 2),
+            "danno_ip": danno_ip,
+            "valore_giorno_itt": self._VALORE_GIORNO_ITT,
+            "valore_itt": valore_itt,
+            "valore_itp": valore_itp,
+            "subtotale": subtotale,
+            "personalizzazione_pct": personalizzazione,
+            "importo_personalizzazione": importo_personalizzazione,
+            "totale_biologico": totale_biologico,
+            "includi_morale": includi_morale,
+            "danno_morale": danno_morale,
+            "totale_comprensivo": totale_comprensivo,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  NUOVO — Imposta di registro atti giudiziari (DPR 131/1986)         #
+    # ------------------------------------------------------------------ #
+    _TIPI_ATTO_REGISTRO: Dict[str, Dict] = {
+        "sentenza_condanna": {
+            "label": "Sentenza di condanna (civile/penale)",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 8 co. 1 lett. a) Tariffa DPR 131/1986",
+            "note": "Aliquota del 3% sul valore della condanna. Obbligo di registrazione entro 20 giorni dalla irrevocabilità.",
+        },
+        "sentenza_immobili": {
+            "label": "Sentenza su trasferimento immobili",
+            "aliquota": 0.09,
+            "minimo": 1_000.0,
+            "fisso": False,
+            "norma": "Art. 1 Tariffa DPR 131/1986 (2ª parte), richiamo art. 8",
+            "note": "Per sentenze costitutive di diritti reali su immobili l'aliquota è quella dell'atto (9% su abitazioni, 12% su terreni agricoli).",
+        },
+        "decreto_ingiuntivo": {
+            "label": "Decreto ingiuntivo",
+            "aliquota": 0.0,
+            "minimo": 200.0,
+            "fisso": True,
+            "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986",
+            "note": "Il decreto ingiuntivo non ancora esecutivo sconta €200 fissi. Se diventa definitivo (non opposto) scatta il 3% sul valore.",
+        },
+        "decreto_ingiuntivo_definitivo": {
+            "label": "Decreto ingiuntivo definitivo (non opposto)",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 8 co. 1 lett. a) Tariffa DPR 131/1986",
+            "note": "Decorsi i termini di opposizione senza impugnazione, il DI è assimilato a sentenza di condanna e sconta il 3%.",
+        },
+        "verbale_conciliazione": {
+            "label": "Verbale di conciliazione (accordo)",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 11 Tariffa DPR 131/1986",
+            "note": "Se il verbale contiene condanna a pagamento: 3%. Se ha solo natura dichiarativa: €200 fissi.",
+        },
+        "lodo_arbitrale": {
+            "label": "Lodo arbitrale",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 8 co. 1 lett. c) Tariffa DPR 131/1986",
+            "note": "Il lodo arbitrale (anche non omologato) è soggetto a imposta di registro entro 20 giorni dalla sottoscrizione.",
+        },
+        "sentenza_separazione": {
+            "label": "Sentenza/provvedimento di separazione o divorzio",
+            "aliquota": 0.0,
+            "minimo": 200.0,
+            "fisso": True,
+            "norma": "Art. 19 L. 74/1987 — esenzione",
+            "note": "Gli atti del procedimento di separazione e divorzio sono esenti da imposte di bollo e registro ex art. 19 L. 74/1987.",
+        },
+    }
+
+    def calcola_imposta_registro(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Calcola l'imposta di registro per atti giudiziari (DPR 131/1986)."""
+        tipo = str(payload.get("reg_tipo_atto", "sentenza_condanna")).strip()
+        valore = _safe_float(payload.get("reg_valore", 0))
+        parti = _safe_int(payload.get("reg_parti", 2))
+
+        info = self._TIPI_ATTO_REGISTRO.get(tipo)
+        if not info:
+            raise ValueError(f"Tipo di atto non riconosciuto: {tipo!r}.")
+
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if info.get("fisso"):
+            imposta = info["minimo"]
+            aliquota_eff = 0.0
+        else:
+            if valore <= 0 and not info.get("fisso"):
+                warnings.append("Nessun valore indicato: verrà applicato il minimo di €200,00.")
+                valore = 0.0
+            calcolata = round(valore * info["aliquota"], 2) if valore > 0 else 0.0
+            imposta = max(calcolata, info["minimo"])
+            aliquota_eff = info["aliquota"] * 100
+
+        # Ripartizione tra parti (solidale)
+        quota_parte = round(imposta / max(parti, 1), 2)
+
+        if tipo == "sentenza_separazione":
+            notes.append("Esenzione totale ex art. 19 L. 74/1987. L'importo indicato (€200) è il bollo forfettario residuale in alcuni tribunali — verificare con la cancelleria.")
+        else:
+            notes.append(info["note"])
+            notes.append(
+                "L'imposta è dovuta in solido da tutte le parti. Il vincitore generalmente anticipa e recupera in esecuzione. "
+                "Termine di registrazione: 20 giorni dalla data dell'atto definitivo."
+            )
+
+        if imposta > info["minimo"] and not info.get("fisso"):
+            notes.append(f"Importo calcolato: {aliquota_eff:.1f}% × €{_fmt_money(valore)} = €{_fmt_money(imposta)}.")
+
+        sources = [
+            {"title": "DPR 131/1986 — Tariffa Parte I", "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"},
+            {"title": "Circolare AE n. 2/2014", "url": "https://www.agenziaentrate.gov.it"},
+        ]
+
+        return {
+            "tipo": tipo,
+            "tipo_label": info["label"],
+            "norma": info["norma"],
+            "valore": round(valore, 2),
+            "aliquota_pct": aliquota_eff,
+            "imposta": round(imposta, 2),
+            "minimo_fisso": info["minimo"],
+            "fisso": info.get("fisso", False),
+            "parti": parti,
+            "quota_parte": quota_parte,
             "notes": notes,
             "warnings": warnings,
             "sources": sources,

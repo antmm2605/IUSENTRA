@@ -3,14 +3,27 @@
 {% block pct_modulo %}strumenti-legali{% endblock %}
 
 {% block content %}
-<div class="ds-ph mb-4">
+<div class="ds-ph mb-3">
   <div class="ds-ph-icon"><i class="bi bi-grid-1x2"></i></div>
   <div class="ds-ph-body">
     <h1 class="ds-ph-title">Strumenti Legali Operativi</h1>
-    <p class="ds-ph-sub">
-      Nove moduli operativi: contributi, interessi, rivalutazione ISTAT, locazioni, usura, pignoramento, CTU, Cassa Forense.
-    </p>
+    <p class="ds-ph-sub">12 moduli operativi — contributi, interessi, ISTAT, locazioni, usura, pignoramento, CTU, Cassa Forense, prescrizione, danno biologico, imposta di registro.</p>
   </div>
+  <div class="ds-ph-actions d-none d-md-flex">
+    <input id="sl-search" type="search" class="form-control form-control-sm" placeholder="Cerca strumento…" style="max-width:200px" autocomplete="off">
+  </div>
+</div>
+
+{# ── Filtro per categoria (chip orizzontali) ── #}
+<div class="d-flex flex-wrap gap-2 mb-3" id="sl-categorie">
+  <button type="button" class="btn btn-sm btn-primary sl-cat-btn active" data-cat="">Tutti</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Credito"><i class="bi bi-percent me-1"></i>Credito</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Esecuzione"><i class="bi bi-cash-stack me-1"></i>Esecuzione</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Fiscale"><i class="bi bi-bank me-1"></i>Fiscale</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Danni"><i class="bi bi-bandaid me-1"></i>Danni</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Processo"><i class="bi bi-hourglass-split me-1"></i>Processo</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Locazioni"><i class="bi bi-house-lock me-1"></i>Locazioni</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary sl-cat-btn" data-cat="Previdenza"><i class="bi bi-person-badge me-1"></i>Previdenza</button>
 </div>
 
 <div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
@@ -83,30 +96,39 @@
 </div>
 {% endif %}
 
-<div class="row g-3 mb-4">
+{# ── Griglia moduli cliccabili ── #}
+{% set cat_color = {"Credito":"primary","Esecuzione":"danger","Fiscale":"warning","Danni":"info","Processo":"secondary","Locazioni":"success","Previdenza":"dark"} %}
+<div class="row g-2 mb-4" id="sl-moduli-grid">
   {% for modulo in moduli %}
-  <div class="col-md-6 col-xl">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-3 mb-2">
-          <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(26,58,92,.08);">
-            <i class="bi {{ modulo.icon }} text-primary"></i>
+  <div class="col-6 col-md-4 col-lg-3 sl-modulo-card" data-cat="{{ modulo.categoria }}" data-title="{{ modulo.title|lower }}">
+    <a href="#tool{{ modulo.id|replace('_','') | title | replace(' ','') }}"
+       data-bs-toggle="collapse" data-bs-target="#tool{{ modulo.id|replace('_','') }}"
+       aria-controls="tool{{ modulo.id|replace('_','') }}"
+       class="card border-0 shadow-sm h-100 text-decoration-none sl-modulo-link"
+       style="border-radius:14px;transition:transform .15s,box-shadow .15s;cursor:pointer;"
+       data-tool-id="{{ modulo.id }}">
+      <div class="card-body p-3">
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+               style="width:38px;height:38px;background:rgba(26,58,92,.08);">
+            <i class="bi {{ modulo.icon }} text-primary" style="font-size:1.1rem;"></i>
           </div>
-          <div class="fw-semibold">{{ modulo.title }}</div>
+          <span class="badge bg-{{ cat_color.get(modulo.categoria,'secondary') }}-subtle text-{{ cat_color.get(modulo.categoria,'secondary') }}-emphasis border border-{{ cat_color.get(modulo.categoria,'secondary') }}-subtle" style="font-size:.65rem;">{{ modulo.categoria }}</span>
         </div>
-        <div class="small text-muted">{{ modulo.subtitle }}</div>
+        <div class="fw-semibold text-dark" style="font-size:.85rem;line-height:1.3;">{{ modulo.title }}</div>
       </div>
-    </div>
+    </a>
   </div>
   {% endfor %}
 </div>
 
 <div class="accordion" id="accordionStrumentiLegali">
   {% set risultato_cu = results.get('contributo_unificato') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+  <div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Fiscale" style="border-radius:18px;overflow:hidden;">
     <h2 class="accordion-header">
-      <button class="accordion-button {% if active_tool != 'contributo_unificato' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolContributo">
+      <button class="accordion-button {% if active_tool != 'contributo_unificato' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolContributo" id="toolContributo-btn">
         <i class="bi bi-bank me-2"></i>Contributo unificato
+        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2" style="font-size:.65rem;">Fiscale</span>
       </button>
     </h2>
     <div id="toolContributo" class="accordion-collapse collapse {% if active_tool == 'contributo_unificato' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -194,10 +216,11 @@
     </div>
   </div>
   {% set risultato_int = results.get('interessi') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+  <div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Credito" style="border-radius:18px;overflow:hidden;">
     <h2 class="accordion-header">
       <button class="accordion-button {% if active_tool != 'interessi' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolInteressi">
         <i class="bi bi-percent me-2"></i>Interessi legali e moratori
+        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-2" style="font-size:.65rem;">Credito</span>
       </button>
     </h2>
     <div id="toolInteressi" class="accordion-collapse collapse {% if active_tool == 'interessi' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -301,10 +324,11 @@
   </div>
 
   {% set risultato_nota = results.get('nota_credito') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+  <div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Credito" style="border-radius:18px;overflow:hidden;">
     <h2 class="accordion-header">
       <button class="accordion-button {% if active_tool != 'nota_credito' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolNotaCredito">
         <i class="bi bi-file-earmark-ruled me-2"></i>Nota di precisazione del credito
+        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-2" style="font-size:.65rem;">Credito</span>
       </button>
     </h2>
     <div id="toolNotaCredito" class="accordion-collapse collapse {% if active_tool == 'nota_credito' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -462,10 +486,11 @@
     </div>
   </div>
   {% set risultato_pig = results.get('pignoramento') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+  <div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Esecuzione" style="border-radius:18px;overflow:hidden;">
     <h2 class="accordion-header">
       <button class="accordion-button {% if active_tool != 'pignoramento' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolPignoramento">
         <i class="bi bi-cash-stack me-2"></i>Simulatore pignoramento
+        <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-2" style="font-size:.65rem;">Esecuzione</span>
       </button>
     </h2>
     <div id="toolPignoramento" class="accordion-collapse collapse {% if active_tool == 'pignoramento' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -548,10 +573,11 @@
   </div>
 
   {% set risultato_ctu = results.get('ctu') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+  <div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Processo" style="border-radius:18px;overflow:hidden;">
     <h2 class="accordion-header">
       <button class="accordion-button {% if active_tool != 'ctu' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCtu">
         <i class="bi bi-journal-medical me-2"></i>CTU, vacazioni e compensi ausiliari
+        <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle ms-2" style="font-size:.65rem;">Processo</span>
       </button>
     </h2>
     <div id="toolCtu" class="accordion-collapse collapse {% if active_tool == 'ctu' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -662,10 +688,11 @@
    RIVALUTAZIONE MONETARIA ISTAT
 ══════════════════════════════════════════════════════════════════════════════ #}
 {% set risultato_riv = results.get('rivalutazione_istat') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Danni" style="border-radius:18px;overflow:hidden;">
   <h2 class="accordion-header">
     <button class="accordion-button {% if active_tool != 'rivalutazione_istat' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolRivalutazione">
       <i class="bi bi-graph-up-arrow me-2"></i>Rivalutazione monetaria ISTAT
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-2" style="font-size:.65rem;">Danni</span>
     </button>
   </h2>
   <div id="toolRivalutazione" class="accordion-collapse collapse {% if active_tool == 'rivalutazione_istat' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -753,10 +780,11 @@
    ADEGUAMENTO CANONE DI LOCAZIONE
 ══════════════════════════════════════════════════════════════════════════════ #}
 {% set risultato_loc = results.get('canone_locazione') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Locazioni" style="border-radius:18px;overflow:hidden;">
   <h2 class="accordion-header">
     <button class="accordion-button {% if active_tool != 'canone_locazione' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCanone">
       <i class="bi bi-house-lock me-2"></i>Adeguamento canone di locazione
+      <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle ms-2" style="font-size:.65rem;">Locazioni</span>
     </button>
   </h2>
   <div id="toolCanone" class="accordion-collapse collapse {% if active_tool == 'canone_locazione' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -849,10 +877,11 @@
    VERIFICA SOGLIA USURA
 ══════════════════════════════════════════════════════════════════════════════ #}
 {% set risultato_usura = results.get('usura') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Credito" style="border-radius:18px;overflow:hidden;">
   <h2 class="accordion-header">
     <button class="accordion-button {% if active_tool != 'usura' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolUsura">
       <i class="bi bi-shield-exclamation me-2"></i>Verifica soglia usura
+      <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle ms-2" style="font-size:.65rem;">Credito</span>
     </button>
   </h2>
   <div id="toolUsura" class="accordion-collapse collapse {% if active_tool == 'usura' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -929,10 +958,11 @@
    CONTRIBUTI CASSA FORENSE
 ══════════════════════════════════════════════════════════════════════════════ #}
 {% set risultato_cf = results.get('contributi_cassa_forense') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Previdenza" style="border-radius:18px;overflow:hidden;">
   <h2 class="accordion-header">
     <button class="accordion-button {% if active_tool != 'contributi_cassa_forense' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCassaForense">
       <i class="bi bi-person-badge me-2"></i>Contributi Cassa Forense
+      <span class="badge bg-dark-subtle text-dark-emphasis border border-dark-subtle ms-2" style="font-size:.65rem;">Previdenza</span>
     </button>
   </h2>
   <div id="toolCassaForense" class="accordion-collapse collapse {% if active_tool == 'contributi_cassa_forense' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
@@ -995,4 +1025,388 @@
     </div>
   </div>
 </div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   CALCOLO TERMINI DI PRESCRIZIONE  [NUOVO]
+══════════════════════════════════════════════════════════════════════════════ #}
+{% set risultato_presc = results.get('prescrizione') %}
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Processo" style="border-radius:18px;overflow:hidden;">
+  <h2 class="accordion-header">
+    <button class="accordion-button {% if active_tool != 'prescrizione' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolPrescrizione">
+      <i class="bi bi-hourglass-split me-2"></i>Calcolo termini di prescrizione
+      <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle ms-2" style="font-size:.65rem;">Processo</span>
+    </button>
+  </h2>
+  <div id="toolPrescrizione" class="accordion-collapse collapse {% if active_tool == 'prescrizione' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+    <div class="accordion-body">
+      <p class="small text-muted mb-3">Calcola la scadenza del termine di prescrizione per le principali azioni civili con gestione dell'atto interruttivo (artt. 2934–2964 c.c.).</p>
+      <form method="post" class="row g-3">
+        <input type="hidden" name="tool" value="prescrizione">
+        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Tipo di prescrizione</label>
+          <select name="presc_tipo" class="form-select">
+            <option value="ordinaria_10" {{ 'selected' if form_state.get('presc_tipo','ordinaria_10') == 'ordinaria_10' }}>Ordinaria — 10 anni (art. 2946 c.c.)</option>
+            <option value="quinquennale_5" {{ 'selected' if form_state.get('presc_tipo') == 'quinquennale_5' }}>Quinquennale — 5 anni (art. 2948 c.c.)</option>
+            <option value="extracontrattuale_5" {{ 'selected' if form_state.get('presc_tipo') == 'extracontrattuale_5' }}>Extracontrattuale — 5 anni (art. 2947 c.c.)</option>
+            <option value="cambiari_3" {{ 'selected' if form_state.get('presc_tipo') == 'cambiari_3' }}>Cambiali / assegni — 3 anni</option>
+            <option value="assicurazioni_2" {{ 'selected' if form_state.get('presc_tipo') == 'assicurazioni_2' }}>Assicurazioni — 2 anni (art. 2952 c.c.)</option>
+            <option value="breve_1" {{ 'selected' if form_state.get('presc_tipo') == 'breve_1' }}>Breve — 1 anno (art. 2951 c.c.)</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Data dies a quo <small class="text-muted">(decorrenza)</small></label>
+          <input type="date" name="presc_data_decorrenza" class="form-control" value="{{ form_state.get('presc_data_decorrenza', '') }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Data atto interruttivo <small class="text-muted">(opz.)</small></label>
+          <input type="date" name="presc_atto_interruttivo" class="form-control" value="{{ form_state.get('presc_atto_interruttivo', '') }}">
+          <div class="form-text">Lascia vuoto se nessun atto interruttivo</div>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-primary w-100"><i class="bi bi-calculator me-2"></i>Calcola</button>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Descrizione / nota (opz.)</label>
+          <input type="text" name="presc_descrizione" class="form-control" placeholder="Es: credito da contratto d'opera professionale" value="{{ form_state.get('presc_descrizione', '') }}">
+        </div>
+      </form>
+      {% if risultato_presc %}
+      <hr class="my-4">
+      {% if risultato_presc.scaduta %}
+      <div class="alert alert-danger d-flex align-items-center gap-2">
+        <i class="bi bi-x-octagon-fill fs-5"></i>
+        <div><strong>Prescrizione scaduta</strong> — il termine risulta già decorso in base alle date inserite.</div>
+      </div>
+      {% elif risultato_presc.urgente %}
+      <div class="alert alert-warning d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div><strong>Urgente</strong> — il termine scade tra <strong>{{ risultato_presc.giorni_residui_post_interruzione if risultato_presc.data_atto_interruttivo else risultato_presc.giorni_residui }} giorni</strong>. Agisci subito.</div>
+      </div>
+      {% else %}
+      <div class="alert alert-success d-flex align-items-center gap-2">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <div>Prescrizione non ancora decorsa.</div>
+      </div>
+      {% endif %}
+      <div class="row g-3 mt-1">
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Tipo</div>
+            <div class="fw-semibold">{{ risultato_presc.tipo_label }}</div>
+            <div class="small text-muted mt-1">{{ risultato_presc.norma }}</div>
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Data scadenza originaria</div>
+            <div class="fw-bold fs-5 {% if risultato_presc.scaduta and not risultato_presc.data_atto_interruttivo %}text-danger{% endif %}">
+              {{ risultato_presc.data_scadenza | replace('-', '/') }}
+            </div>
+            <div class="small text-muted">Decorrenza: {{ risultato_presc.data_decorrenza | replace('-', '/') }}</div>
+          </div>
+        </div>
+        {% if risultato_presc.data_atto_interruttivo %}
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Atto interruttivo</div>
+            <div class="fw-semibold">{{ risultato_presc.data_atto_interruttivo | replace('-', '/') }}</div>
+            <div class="small text-muted mt-1">Nuova scadenza:</div>
+            <div class="fw-bold text-primary">{{ risultato_presc.data_scadenza_post_interruzione | replace('-', '/') }}</div>
+          </div>
+        </div>
+        {% endif %}
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Giorni residui</div>
+            {% set g = risultato_presc.giorni_residui_post_interruzione if risultato_presc.data_atto_interruttivo else risultato_presc.giorni_residui %}
+            <div class="fw-bold fs-4 {% if g < 0 %}text-danger{% elif g < 90 %}text-warning{% else %}text-success{% endif %}">
+              {% if g < 0 %}SCADUTA{% else %}{{ g }}{% endif %}
+            </div>
+            {% if g >= 0 %}<div class="small text-muted">dalla data odierna</div>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% if risultato_presc.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_presc.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
+      {% if risultato_presc.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_presc.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
+      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_presc.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   LIQUIDAZIONE DANNO BIOLOGICO (Tabelle Milano 2024)  [NUOVO]
+══════════════════════════════════════════════════════════════════════════════ #}
+{% set risultato_db = results.get('danno_biologico') %}
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Danni" style="border-radius:18px;overflow:hidden;">
+  <h2 class="accordion-header">
+    <button class="accordion-button {% if active_tool != 'danno_biologico' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolDannoBiologico">
+      <i class="bi bi-bandaid me-2"></i>Liquidazione danno biologico
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle ms-2" style="font-size:.65rem;">Danni</span>
+    </button>
+  </h2>
+  <div id="toolDannoBiologico" class="accordion-collapse collapse {% if active_tool == 'danno_biologico' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+    <div class="accordion-body">
+      <p class="small text-muted mb-3">Calcola il danno biologico per invalidità permanente (IP), malattia temporanea totale (ITT) e parziale (ITP) con Tabelle di Milano 2024, coefficiente età e personalizzazione.</p>
+      <form method="post" class="row g-3">
+        <input type="hidden" name="tool" value="danno_biologico">
+        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Età vittima</label>
+          <input type="number" name="db_eta" class="form-control" min="1" max="110" placeholder="anni" value="{{ form_state.get('db_eta', '') }}" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">IP % <small class="text-muted">(0-100)</small></label>
+          <input type="number" name="db_perc_ip" class="form-control" min="0" max="100" placeholder="%" value="{{ form_state.get('db_perc_ip', '0') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Giorni ITT</label>
+          <input type="number" name="db_giorni_itt" class="form-control" min="0" placeholder="gg" value="{{ form_state.get('db_giorni_itt', '0') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Giorni ITP</label>
+          <input type="number" name="db_giorni_itp" class="form-control" min="0" placeholder="gg" value="{{ form_state.get('db_giorni_itp', '0') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">% ITP</label>
+          <select name="db_perc_itp" class="form-select">
+            <option value="75" {{ 'selected' if form_state.get('db_perc_itp') == '75' }}>75%</option>
+            <option value="50" {{ 'selected' if form_state.get('db_perc_itp','50') == '50' }}>50%</option>
+            <option value="25" {{ 'selected' if form_state.get('db_perc_itp') == '25' }}>25%</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Personal. %</label>
+          <input type="number" name="db_personalizzazione" class="form-control" min="0" max="50" step="1" placeholder="0-25%" value="{{ form_state.get('db_personalizzazione', '0') }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Danno morale</label>
+          <select name="db_includi_morale" class="form-select">
+            <option value="1" {{ 'selected' if form_state.get('db_includi_morale','1') != '0' }}>Includi (+25% orientativo)</option>
+            <option value="0" {{ 'selected' if form_state.get('db_includi_morale') == '0' }}>Escludi (solo biologico)</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-primary w-100"><i class="bi bi-calculator me-2"></i>Calcola danno</button>
+        </div>
+      </form>
+      {% if risultato_db %}
+      <hr class="my-4">
+      <div class="row g-3">
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Coefficiente età ({{ risultato_db.eta }} anni)</div>
+            <div class="fw-bold fs-4 text-primary">× {{ "%.2f"|format(risultato_db.coeff_eta) }}</div>
+            {% if risultato_db.perc_ip > 0 %}<div class="small text-muted mt-1">IP: {{ risultato_db.perc_ip }}%</div>{% endif %}
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Danno permanente (IP)</div>
+            <div class="fw-bold fs-5">&euro; {{ "%.2f"|format(risultato_db.danno_ip) }}</div>
+            {% if risultato_db.giorni_itt > 0 %}
+            <div class="small text-muted mt-1">ITT {{ risultato_db.giorni_itt }} gg: &euro; {{ "%.2f"|format(risultato_db.valore_itt) }}</div>
+            {% endif %}
+            {% if risultato_db.giorni_itp > 0 %}
+            <div class="small text-muted">ITP {{ risultato_db.giorni_itp }} gg ({{ risultato_db.perc_itp }}%): &euro; {{ "%.2f"|format(risultato_db.valore_itp) }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Totale danno biologico</div>
+            <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_db.totale_biologico) }}</div>
+            {% if risultato_db.personalizzazione_pct > 0 %}
+            <div class="small text-muted mt-1">Di cui personaliz. ({{ "%.0f"|format(risultato_db.personalizzazione_pct) }}%): +&euro; {{ "%.2f"|format(risultato_db.importo_personalizzazione) }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% if risultato_db.includi_morale %}
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100 bg-warning-subtle">
+            <div class="small text-muted">Totale comprensivo danno morale</div>
+            <div class="fw-bold fs-4 text-warning-emphasis">&euro; {{ "%.2f"|format(risultato_db.totale_comprensivo) }}</div>
+            <div class="small text-muted mt-1">Morale: +&euro; {{ "%.2f"|format(risultato_db.danno_morale) }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% if risultato_db.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_db.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
+      {% if risultato_db.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_db.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
+      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_db.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════════════════
+   IMPOSTA DI REGISTRO ATTI GIUDIZIARI  [NUOVO]
+══════════════════════════════════════════════════════════════════════════════ #}
+{% set risultato_reg = results.get('imposta_registro') %}
+<div class="accordion-item border-0 shadow-sm mb-3 sl-accordion-item" data-cat="Fiscale" style="border-radius:18px;overflow:hidden;">
+  <h2 class="accordion-header">
+    <button class="accordion-button {% if active_tool != 'imposta_registro' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolImpostaRegistro">
+      <i class="bi bi-receipt me-2"></i>Imposta di registro atti giudiziari
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-2" style="font-size:.65rem;">Fiscale</span>
+    </button>
+  </h2>
+  <div id="toolImpostaRegistro" class="accordion-collapse collapse {% if active_tool == 'imposta_registro' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+    <div class="accordion-body">
+      <p class="small text-muted mb-3">Calcola l'imposta di registro dovuta per sentenze, decreti ingiuntivi, verbali di conciliazione e lodi arbitrali ai sensi del DPR 131/1986.</p>
+      <form method="post" class="row g-3">
+        <input type="hidden" name="tool" value="imposta_registro">
+        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">Tipo di atto</label>
+          <select name="reg_tipo_atto" class="form-select">
+            <option value="sentenza_condanna"           {{ 'selected' if form_state.get('reg_tipo_atto','sentenza_condanna') == 'sentenza_condanna' }}>Sentenza di condanna (3%)</option>
+            <option value="sentenza_immobili"           {{ 'selected' if form_state.get('reg_tipo_atto') == 'sentenza_immobili' }}>Sentenza su immobili (9%)</option>
+            <option value="decreto_ingiuntivo"          {{ 'selected' if form_state.get('reg_tipo_atto') == 'decreto_ingiuntivo' }}>Decreto ingiuntivo — €200 fissi</option>
+            <option value="decreto_ingiuntivo_definitivo" {{ 'selected' if form_state.get('reg_tipo_atto') == 'decreto_ingiuntivo_definitivo' }}>Decreto ingiuntivo definitivo (3%)</option>
+            <option value="verbale_conciliazione"       {{ 'selected' if form_state.get('reg_tipo_atto') == 'verbale_conciliazione' }}>Verbale di conciliazione (3%)</option>
+            <option value="lodo_arbitrale"              {{ 'selected' if form_state.get('reg_tipo_atto') == 'lodo_arbitrale' }}>Lodo arbitrale (3%)</option>
+            <option value="sentenza_separazione"        {{ 'selected' if form_state.get('reg_tipo_atto') == 'sentenza_separazione' }}>Separazione / divorzio — esente</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Valore del provvedimento (EUR)</label>
+          <input type="number" name="reg_valore" class="form-control" step="0.01" min="0" placeholder="Importo condanna" value="{{ form_state.get('reg_valore', '') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">N° parti</label>
+          <input type="number" name="reg_parti" class="form-control" min="1" max="20" placeholder="2" value="{{ form_state.get('reg_parti', '2') }}">
+          <div class="form-text">Per ripartizione in solido</div>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-primary w-100"><i class="bi bi-calculator me-2"></i>Calcola</button>
+        </div>
+      </form>
+      {% if risultato_reg %}
+      <hr class="my-4">
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Tipo atto</div>
+            <div class="fw-semibold">{{ risultato_reg.tipo_label }}</div>
+            <div class="small text-muted mt-1">{{ risultato_reg.norma }}</div>
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Aliquota</div>
+            <div class="fw-bold fs-4 text-primary">
+              {% if risultato_reg.fisso %}Fisso{% else %}{{ "%.0f"|format(risultato_reg.aliquota_pct) }}%{% endif %}
+            </div>
+            {% if risultato_reg.valore > 0 %}
+            <div class="small text-muted">Su &euro; {{ "%.2f"|format(risultato_reg.valore) }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-lg-2">
+          <div class="border rounded-4 p-3 h-100">
+            <div class="small text-muted">Imposta totale</div>
+            <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_reg.imposta) }}</div>
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="border rounded-4 p-3 h-100 bg-light">
+            <div class="small text-muted">Quota per parte ({{ risultato_reg.parti }} parti)</div>
+            <div class="fw-bold fs-5 text-primary">&euro; {{ "%.2f"|format(risultato_reg.quota_parte) }}</div>
+            <div class="small text-muted">obbligazione solidale</div>
+          </div>
+        </div>
+      </div>
+      {% if risultato_reg.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_reg.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
+      {% if risultato_reg.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_reg.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
+      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_reg.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Strumenti Legali: filtro categoria e ricerca ── */
+(function () {
+  'use strict';
+
+  const grid   = document.getElementById('sl-moduli-grid');
+  const cards  = grid  ? grid.querySelectorAll('.sl-modulo-card') : [];
+  const items  = document.querySelectorAll('.sl-accordion-item');
+  const catBtns= document.querySelectorAll('.sl-cat-btn');
+  const search = document.getElementById('sl-search');
+
+  let activeCat = '';
+  let searchQ   = '';
+
+  function applyFilter() {
+    cards.forEach(card => {
+      const cat   = card.dataset.cat || '';
+      const title = card.dataset.title || '';
+      const catOk    = !activeCat || cat === activeCat;
+      const searchOk = !searchQ  || title.includes(searchQ);
+      card.style.display = (catOk && searchOk) ? '' : 'none';
+    });
+    items.forEach(item => {
+      const cat = item.dataset.cat || '';
+      item.style.display = (!activeCat || cat === activeCat) ? '' : 'none';
+    });
+  }
+
+  catBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      catBtns.forEach(b => {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-outline-secondary');
+      });
+      btn.classList.remove('btn-outline-secondary');
+      btn.classList.add('btn-primary');
+      activeCat = btn.dataset.cat || '';
+      applyFilter();
+    });
+  });
+
+  if (search) {
+    search.addEventListener('input', () => {
+      searchQ = search.value.toLowerCase().trim();
+      applyFilter();
+    });
+  }
+
+  /* Click su modulo card → apri accordion corretto e scrolla */
+  document.querySelectorAll('.sl-modulo-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const toolId = link.dataset.toolId;
+      if (!toolId) return;
+      /* Chiudi tutti gli accordion */
+      document.querySelectorAll('#accordionStrumentiLegali .accordion-collapse.show').forEach(el => {
+        bootstrap.Collapse.getOrCreateInstance(el).hide();
+      });
+      /* Apri il target */
+      const targetId = 'tool' + toolId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+      const target   = document.getElementById(targetId);
+      if (target) {
+        bootstrap.Collapse.getOrCreateInstance(target).show();
+        setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+      }
+    });
+  });
+
+  /* Hover effect sulle card modulo */
+  document.querySelectorAll('.sl-modulo-link').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'translateY(-2px)';
+      card.style.boxShadow = '0 6px 20px rgba(0,0,0,.12)';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.boxShadow = '';
+    });
+  });
+})();
+</script>
 {% endblock %}

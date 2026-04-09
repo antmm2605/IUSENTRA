@@ -96,6 +96,12 @@ def index():
                 results[active_tool] = gestore.verifica_soglia_usura(request.form)
             elif active_tool == "contributi_cassa_forense":
                 results[active_tool] = gestore.calcola_contributi_cassa_forense(request.form)
+            elif active_tool == "prescrizione":
+                results[active_tool] = gestore.calcola_prescrizione(request.form)
+            elif active_tool == "danno_biologico":
+                results[active_tool] = gestore.calcola_danno_biologico(request.form)
+            elif active_tool == "imposta_registro":
+                results[active_tool] = gestore.calcola_imposta_registro(request.form)
             else:
                 flash("Strumento richiesto non riconosciuto.", "warning")
         except ValueError as exc:
@@ -211,6 +217,24 @@ def api_istat_categorie():
         })
     except Exception as exc:
         return jsonify({"ok": False, "errore": str(exc)}), 200
+
+
+@strumenti_legali.route("/api/prescrizione", methods=["POST"])
+@_richiedi_login
+def api_prescrizione():
+    return _json_result("calcola_prescrizione")
+
+
+@strumenti_legali.route("/api/danno-biologico", methods=["POST"])
+@_richiedi_login
+def api_danno_biologico():
+    return _json_result("calcola_danno_biologico")
+
+
+@strumenti_legali.route("/api/imposta-registro", methods=["POST"])
+@_richiedi_login
+def api_imposta_registro():
+    return _json_result("calcola_imposta_registro")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

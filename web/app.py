@@ -1935,7 +1935,7 @@ def create_app(config: dict | None = None) -> Flask:
         nome_preview = _nome_preview_documento(nome_file)
         lower = nome_preview.lower()
 
-        if payload:
+        if payload is not None:
             if payload.startswith(b"%PDF"):
                 return "application/pdf", nome_preview or "documento.pdf"
             if payload.startswith(b"\xff\xd8\xff"):
@@ -1944,6 +1944,7 @@ def create_app(config: dict | None = None) -> Flask:
                 return "image/png", nome_preview or "documento.png"
             if payload.startswith((b"GIF87a", b"GIF89a")):
                 return "image/gif", nome_preview or "documento.gif"
+            return None
 
         if lower.endswith(".pdf"):
             return "application/pdf", nome_preview
@@ -1982,6 +1983,20 @@ def create_app(config: dict | None = None) -> Flask:
                     return None
         except Exception:
             return None
+        return None
+
+    def _payload_preview_da_versioni_documento(gf, doc: Documento) -> bytes | None:
+        nome_preview = _nome_preview_documento(doc.nome)
+        for versione in reversed(doc.versioni or []):
+            try:
+                percorso = gf.documents_dir / str(versione.percorso or "")
+                if not percorso.exists():
+                    continue
+                contenuto = _decrypt_doc(percorso.read_bytes())
+                if _mime_preview_documento(nome_preview, contenuto):
+                    return contenuto
+            except Exception:
+                continue
         return None
 
     def _catalogo_documenti_portale_fascicolo(fasc: Fascicolo) -> list[dict]:
@@ -9456,6 +9471,16 @@ read -r -p "Premi Invio per chiudere..." _
                 if contenuto_estratto:
                     preview_payload = contenuto_estratto
                     preview_name = _nome_preview_documento(doc.nome)
+                else:
+                    nome_preview = _nome_preview_documento(doc.nome)
+                    if _mime_preview_documento(nome_preview, data):
+                        preview_payload = data
+                        preview_name = nome_preview
+                    else:
+                        contenuto_versione = _payload_preview_da_versioni_documento(gf, doc)
+                        if contenuto_versione:
+                            preview_payload = contenuto_versione
+                            preview_name = nome_preview
             preview = _mime_preview_documento(preview_name, preview_payload)
             if not preview:
                 return send_file(io.BytesIO(data), as_attachment=True, download_name=doc.nome)

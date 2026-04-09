@@ -2391,6 +2391,75 @@ def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):
     assert response.data.startswith(b"%PDF-1.4")
 
 
+def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path):
+    from asn1crypto import cms, algos
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 909/2025",
+        tipo=TipoFascicolo.CIVILE,
+    )
+    pdf_bytes = b"%PDF-1.4\n% originale\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF"
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "citazione.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdf_bytes,
+        caricato_da="avvocato",
+    )
+
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data"},
+            "signer_infos": [],
+        }
+    )
+    p7m_detached = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+    gestione_fascicoli.sostituisci_documento(
+        fascicolo.id,
+        doc.id,
+        nome_file="citazione.pdf.p7m",
+        contenuto=p7m_detached,
+        caricato_da="avvocato",
+        note="Versione firmata per deposito",
+    )
+    gestione_fascicoli.segna_firmato(fascicolo.id, doc.id)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza")
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert response.data.startswith(b"%PDF-1.4")
+
+
 def test_route_home_sigit_mostra_selettore_cpt_cgt(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

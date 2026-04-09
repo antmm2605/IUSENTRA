@@ -3164,15 +3164,23 @@ async function _submitImportaPolisWeb(form, fascicolo, button = null, cert = nul
   const openPst = !!(button && button.dataset && (button.dataset.openPst === '1' || button.dataset.acquireAll === '1'));
   const acquireAll = !!(button && button.dataset && button.dataset.acquireAll === '1');
   const preserveOriginalTree = !!(button && button.dataset && button.dataset.preserveOriginalTree === '1');
+
   _appendHiddenToForm(form, 'apri_portale', openPst ? '1' : '0');
   _appendHiddenToForm(form, 'acquisisci_portale', acquireAll ? '1' : '0');
   _appendHiddenToForm(form, 'mantieni_albero_originale', preserveOriginalTree ? '1' : '0');
-  _setImportButtonLoading(button, 'Preimportazione completa...');
-  try {
-    await _precaricaDocumentiImportazione(form, fascicolo, cert);
-  } finally {
-    _restoreImportButtonLoading(button);
+
+  // Precarica i documenti PST solo per acquisizione completa
+  const shouldPrefetchDocuments = acquireAll && preserveOriginalTree;
+
+  if (shouldPrefetchDocuments) {
+    _setImportButtonLoading(button, 'Preimportazione completa...');
+    try {
+      await _precaricaDocumentiImportazione(form, fascicolo, cert);
+    } finally {
+      _restoreImportButtonLoading(button);
+    }
   }
+
   form.submit();
 }
 

@@ -6724,6 +6724,10 @@ read -r -p "Premi Invio per chiudere..." _
             apri_portale = f.get("apri_portale") == "1"
             acquisisci_portale = f.get("acquisisci_portale") == "1"
             mantieni_albero_originale = f.get("mantieni_albero_originale") == "1"
+            # Se l'utente non chiede di mantenere l'albero originale,
+            # i documenti prefetched non devono essere importati/acquisiti.
+            if not mantieni_albero_originale:
+                documenti_pw = None
             if id_fasc_target:
                 fascicolo_target = gf.get(id_fasc_target)
                 if (
@@ -6787,7 +6791,7 @@ read -r -p "Premi Invio per chiudere..." _
                     "dettaglio_fascicolo",
                     id_fasc=risultato.id_fascicolo_locale,
                     open_pst_nav="1" if (apri_portale or acquisisci_portale) else None,
-                    auto_pst_acquire="1" if acquisisci_portale else None,
+                    auto_pst_acquire="1" if (acquisisci_portale and mantieni_albero_originale) else None,
                     preserve_pst_tree="1" if mantieni_albero_originale else None,
                 ))
             flash(risultato.messaggio, "danger")

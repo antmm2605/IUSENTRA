@@ -958,5 +958,245 @@
     "utente": "avvocato",
     "id": "PST-20260408113043-D606C3",
     "created_at": "2026-04-08T11:30:43.511088"
+  },
+  {
+    "portale": "PST",
+    "selection": {
+      "anno": 2024,
+      "controparti": [],
+      "external_id": "0580010:1025:2024:RG",
+      "numero": "1025",
+      "oggetto": "Vendita di cose immobili",
+      "parti": [
+        "MONTAGNESE ELISABETTA",
+        "STILLITANO FRANCESCO"
+      ],
+      "payload": {
+        "anno_rg": 2024,
+        "codice_ufficio": "0580010",
+        "data_iscrizione": "2024-09-05",
+        "nome_ufficio": "Tribunale di Palmi",
+        "numero_rg": "1025",
+        "oggetto": "Vendita di cose immobili",
+        "parti": [
+          "MONTAGNESE ELISABETTA",
+          "STILLITANO FRANCESCO"
+        ],
+        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+        "sezione": "CIVILE",
+        "stato": "PROCEDIMENTO DEFINITO"
+      },
+      "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+      "stato": "PROCEDIMENTO DEFINITO",
+      "ufficio_codice": "0580010",
+      "ufficio_nome": "Tribunale di Palmi"
+    },
+    "preview_counts": {
+      "depositi": 1,
+      "difensori": 0,
+      "documenti": 1,
+      "esiti": 0,
+      "eventi": 0,
+      "parti": 2,
+      "provvedimenti": 0,
+      "udienze": 0
+    },
+    "options": {
+      "importa_dati_pratica": true,
+      "importa_parti": true,
+      "importa_difensori": false,
+      "importa_eventi": false,
+      "importa_udienze": false,
+      "importa_scadenze": false,
+      "importa_documenti": true,
+      "importa_provvedimenti": true,
+      "importa_cronologia_depositi": true,
+      "importa_esiti_telematici": false,
+      "solo_nuovi": true,
+      "aggiorna_pratica_esistente": true,
+      "sovrascrivi_solo_vuoti": true,
+      "non_toccare_note_interne": true,
+      "non_duplicare_documenti": true,
+      "conserva_log_origine_pst": true,
+      "scarica_originale_portale": true,
+      "mantieni_albero_originale": true
+    },
+    "mapping": {
+      "mode": "attach_existing",
+      "target_fascicolo_id": "8C23F0D5",
+      "area_pratica": "",
+      "materia": "Civile",
+      "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+      "grado": "Primo grado",
+      "stato_iniziale": ""
+    },
+    "analysis": {
+      "status": "ok",
+      "score": 100,
+      "blockers": [],
+      "warnings": [],
+      "ok": [
+        {
+          "label": "Ufficio giudiziario risolto",
+          "detail": "Tribunale di Palmi",
+          "tone": "success"
+        },
+        {
+          "label": "Identità fascicolo pronta",
+          "detail": "1025/2024",
+          "tone": "success"
+        },
+        {
+          "label": "Parti rilevate",
+          "detail": "2 soggetti disponibili",
+          "tone": "success"
+        },
+        {
+          "label": "Catalogo documentale disponibile",
+          "detail": "1 documenti / 1 buste",
+          "tone": "success"
+        }
+      ],
+      "existing_matches": [
+        {
+          "id": "8C23F0D5",
+          "numero": "2026/001",
+          "titolo": "RG 1025/2024",
+          "rg_completo": "RG 1025/2024",
+          "tribunale": "Tribunale di Palmi",
+          "stato": "APERTO",
+          "source": ""
+        }
+      ],
+      "summary_text": "Importazione pronta: nessun blocco rilevato.",
+      "next_step": {
+        "label": "Pronto per importare",
+        "detail": "Puoi procedere con l'acquisizione guidata.",
+        "tone": "success"
+      }
+    },
+    "utente": "avvocato",
+    "id": "PST-20260409083757-A0E43A",
+    "created_at": "2026-04-09T08:37:57.499586"
+  },
+  {
+    "portale": "PST",
+    "selection": {
+      "anno": 2024,
+      "controparti": [],
+      "external_id": "0580010:1025:2024:RG",
+      "numero": "1025",
+      "oggetto": "Vendita di cose immobili",
+      "parti": [
+        "MONTAGNESE ELISABETTA",
+        "STILLITANO FRANCESCO"
+      ],
+      "payload": {
+        "anno_rg": 2024,
+        "codice_ufficio": "0580010",
+        "data_iscrizione": "2024-09-05",
+        "nome_ufficio": "Tribunale di Palmi",
+        "numero_rg": "1025",
+        "oggetto": "Vendita di cose immobili",
+        "parti": [
+          "MONTAGNESE ELISABETTA",
+          "STILLITANO FRANCESCO"
+        ],
+        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+        "sezione": "CIVILE",
+        "stato": "PROCEDIMENTO DEFINITO"
+      },
+      "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+      "stato": "PROCEDIMENTO DEFINITO",
+      "ufficio_codice": "0580010",
+      "ufficio_nome": "Tribunale di Palmi"
+    },
+    "preview_counts": {
+      "depositi": 1,
+      "difensori": 0,
+      "documenti": 2,
+      "esiti": 0,
+      "eventi": 0,
+      "parti": 2,
+      "provvedimenti": 1,
+      "udienze": 0
+    },
+    "options": {
+      "importa_dati_pratica": true,
+      "importa_parti": true,
+      "importa_difensori": false,
+      "importa_eventi": false,
+      "importa_udienze": false,
+      "importa_scadenze": false,
+      "importa_documenti": false,
+      "importa_provvedimenti": true,
+      "importa_cronologia_depositi": true,
+      "importa_esiti_telematici": false,
+      "solo_nuovi": true,
+      "aggiorna_pratica_esistente": true,
+      "sovrascrivi_solo_vuoti": true,
+      "non_toccare_note_interne": true,
+      "non_duplicare_documenti": true,
+      "conserva_log_origine_pst": true,
+      "scarica_originale_portale": true,
+      "mantieni_albero_originale": false
+    },
+    "mapping": {
+      "mode": "attach_existing",
+      "target_fascicolo_id": "7979DA37",
+      "area_pratica": "",
+      "materia": "Civile",
+      "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+      "grado": "Primo grado",
+      "stato_iniziale": ""
+    },
+    "analysis": {
+      "status": "ok",
+      "score": 100,
+      "blockers": [],
+      "warnings": [],
+      "ok": [
+        {
+          "label": "Ufficio giudiziario risolto",
+          "detail": "Tribunale di Palmi",
+          "tone": "success"
+        },
+        {
+          "label": "Identità fascicolo pronta",
+          "detail": "1025/2024",
+          "tone": "success"
+        },
+        {
+          "label": "Parti rilevate",
+          "detail": "2 soggetti disponibili",
+          "tone": "success"
+        },
+        {
+          "label": "Catalogo documentale disponibile",
+          "detail": "2 documenti / 1 buste",
+          "tone": "success"
+        }
+      ],
+      "existing_matches": [
+        {
+          "id": "7979DA37",
+          "numero": "2026/001",
+          "titolo": "RG 1025/2024",
+          "rg_completo": "RG 1025/2024",
+          "tribunale": "Tribunale di Palmi",
+          "stato": "APERTO",
+          "source": ""
+        }
+      ],
+      "summary_text": "Importazione pronta: nessun blocco rilevato.",
+      "next_step": {
+        "label": "Pronto per importare",
+        "detail": "Puoi procedere con l'acquisizione guidata.",
+        "tone": "success"
+      }
+    },
+    "utente": "avvocato",
+    "id": "PST-20260409083800-9F1CA3",
+    "created_at": "2026-04-09T08:38:00.932837"
   }
 ]

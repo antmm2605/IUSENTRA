@@ -292,6 +292,15 @@ def test_cors_consentito_per_loopback_locale():
     assert module._origin_cors_consentita("http://[::1]:5000")
 
 
+def test_cors_consentito_per_origine_hacs_default():
+    module = _load_local_signer()
+
+    assert (
+        module._origin_cors_consentita("https://studio-legale-pct-production.up.railway.app")
+        is True
+    )
+
+
 def test_cors_consentito_per_origine_hacs_configurata():
     module = _load_local_signer()
 

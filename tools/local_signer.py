@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.25
+HACS Local Signer — v1.5.26
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -29,7 +29,8 @@ API:
 
 Note sicurezza:
     - Ascolta SOLO su 127.0.0.1 (non accessibile da rete)
-    - CORS abilitato solo per origini localhost/127.0.0.1
+    - CORS abilitato per origini localhost/127.0.0.1 e per il dominio
+      ufficiale HACS https://studio-legale-pct-production.up.railway.app
     - Il PIN viene usato solo per la firma, mai salvato né loggato
     - La selezione certificato usa la dialog nativa Windows: il PIN
       è gestito dal sistema operativo durante la sessione TLS
@@ -70,7 +71,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.25"
+VERSION = "1.5.26"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -83,10 +84,13 @@ PST_SESSION_TTL_SECONDS = max(
     60,
 )
 PST_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PST_SESSION_MAX_ACTIVE", "6")), 1)
+_DEFAULT_HACS_ALLOWED_ORIGINS = (
+    "https://studio-legale-pct-production.up.railway.app",
+)
 LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
     "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS",
     os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
-)
+) or ",".join(_DEFAULT_HACS_ALLOWED_ORIGINS)
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),

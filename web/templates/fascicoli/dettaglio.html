@@ -3138,7 +3138,7 @@ document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal
 var _detFDoc = { id: null, nome: '', scaricaUrl: '', firmaUrl: '' };
 var _detFLsSlot = null, _detFPkcsSlot = null, _detFViaLS = false, _detFLsPinSession = null;
 var _detFPath = 'detecting';
-var _LS_BASE_DET = 'http://localhost:27272';
+var _LS_BASE_DET = 'http://127.0.0.1:27272';
 
 function _detFArrayBufferToBase64Safe(buf) {
   return new Promise((resolve, reject) => {
@@ -3184,7 +3184,7 @@ function apriFirma(btn) {
 
   new bootstrap.Modal(document.getElementById('modalFirma')).show();
 
-  // 1. Prova Local Signer (http://localhost:27272)
+  // 1. Prova Local Signer (http://127.0.0.1:27272)
   fetch(_LS_BASE_DET + '/ping', { signal: AbortSignal.timeout(2000) })
     .then(r => r.json())
     .then(d => {

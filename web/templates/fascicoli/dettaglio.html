@@ -1002,17 +1002,72 @@
         {% if WFS.comunicazioni_attivita %}
         <div class="list-group list-group-flush border-bottom">
           {% for att in WFS.comunicazioni_attivita %}
+          {% set has_email_detail = att.email_testo or att.email_html or att.email_mittente or att.email_oggetto or att.note %}
           <div class="list-group-item small">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
+                {% if has_email_detail %}
+                <button class="btn btn-link p-0 text-start text-decoration-none text-dark w-100"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#comunicazione-email-{{ att.id }}"
+                        aria-expanded="false"
+                        aria-controls="comunicazione-email-{{ att.id }}">
+                  <div class="fw-semibold">{{ att.email_oggetto or att.titolo }}</div>
+                  <div class="text-muted">{{ att.descrizione or att.note or 'Comunicazione di cancelleria registrata nel fascicolo.' }}</div>
+                  <div class="text-primary small mt-1">
+                    <i class="bi bi-envelope-open me-1"></i>Apri email ricevuta
+                  </div>
+                </button>
+                {% else %}
                 <div class="fw-semibold">{{ att.titolo }}</div>
                 <div class="text-muted">{{ att.descrizione or att.note or 'Comunicazione di cancelleria registrata nel fascicolo.' }}</div>
+                {% endif %}
               </div>
               <div class="text-end">
                 <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
                 <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
               </div>
             </div>
+            {% if has_email_detail %}
+            <div class="collapse mt-2" id="comunicazione-email-{{ att.id }}">
+              <div class="border rounded bg-light-subtle p-3">
+                <div class="row g-2 small mb-3">
+                  <div class="col-12">
+                    <div class="text-muted mb-1">Oggetto</div>
+                    <div class="fw-semibold text-break">{{ att.email_oggetto or att.titolo }}</div>
+                  </div>
+                  <div class="col-md-7">
+                    <div class="text-muted mb-1">Mittente</div>
+                    <div class="text-break">{{ att.email_mittente or att.descrizione or 'Non disponibile' }}</div>
+                  </div>
+                  <div class="col-md-5">
+                    <div class="text-muted mb-1">Data comunicazione</div>
+                    <div>{{ att.data|fmt_data }}</div>
+                  </div>
+                  {% if att.email_uid_imap %}
+                  <div class="col-12">
+                    <div class="text-muted mb-1">UID IMAP</div>
+                    <div class="font-monospace small">{{ att.email_uid_imap }}</div>
+                  </div>
+                  {% endif %}
+                </div>
+                {% if att.email_testo %}
+                <pre class="small mb-0 text-wrap bg-body border rounded p-3" style="white-space:pre-wrap;max-height:320px;overflow:auto">{{ att.email_testo }}</pre>
+                {% elif att.email_html %}
+                <iframe title="Email PEC {{ att.id }}"
+                        class="w-100 border rounded bg-white"
+                        style="height:360px"
+                        sandbox=""
+                        srcdoc="{{ att.email_html|e }}"></iframe>
+                {% else %}
+                <div class="alert alert-warning small mb-0">
+                  Corpo email non ancora disponibile in archivio locale. Esegui <strong>Sync PEC</strong> per completare le comunicazioni salvate in precedenza.
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
           </div>
           {% endfor %}
         </div>

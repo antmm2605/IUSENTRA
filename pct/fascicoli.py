@@ -229,6 +229,11 @@ class AttivitaProcessuale:
     esito: EsitoAttivita = EsitoAttivita.IN_ATTESA
     luogo: str = ""
     note: str = ""
+    email_mittente: str = ""
+    email_oggetto: str = ""
+    email_uid_imap: str = ""
+    email_testo: str = ""
+    email_html: str = ""
     id_appuntamento: str = ""       # collegamento agenda
     id_deposito_pct: str = ""       # collegamento deposito PCT
     id_documento: str = ""          # documento risultante

@@ -133,6 +133,48 @@ def _decode_header_value(value: str) -> str:
         return value
 
 
+def _estrai_corpo_email(msg: _email_lib.message.Message) -> tuple[str, str]:
+    """Estrae il corpo testo/HTML da un messaggio PEC."""
+    corpo_testo = ""
+    corpo_html = ""
+    try:
+        if msg.is_multipart():
+            for part in msg.walk():
+                content_type = (part.get_content_type() or "").lower()
+                disposition = (part.get("Content-Disposition", "") or "").lower()
+                if "attachment" in disposition:
+                    continue
+                if content_type not in {"text/plain", "text/html"}:
+                    continue
+                payload = part.get_payload(decode=True)
+                if not payload:
+                    continue
+                charset = part.get_content_charset() or "utf-8"
+                try:
+                    decoded = payload.decode(charset, errors="replace").strip()
+                except Exception:
+                    decoded = payload.decode("utf-8", errors="replace").strip()
+                if content_type == "text/plain" and not corpo_testo:
+                    corpo_testo = decoded
+                elif content_type == "text/html" and not corpo_html:
+                    corpo_html = decoded
+        else:
+            payload = msg.get_payload(decode=True)
+            if payload:
+                charset = msg.get_content_charset() or "utf-8"
+                try:
+                    decoded = payload.decode(charset, errors="replace").strip()
+                except Exception:
+                    decoded = payload.decode("utf-8", errors="replace").strip()
+                if (msg.get_content_type() or "").lower() == "text/html":
+                    corpo_html = decoded
+                else:
+                    corpo_testo = decoded
+    except Exception as e:
+        logger.debug("Estrazione corpo PEC fallita: %s", e)
+    return corpo_testo, corpo_html
+
+
 def _stima_nuovo_stato(dep: "EsitoDepositoPCT", ricevute: list[dict]) -> str | None:
     """
     Analizza le ricevute IMAP e determina il nuovo stato per il deposito.
@@ -454,16 +496,17 @@ def poll_cancelleria_pec(
                 continue
 
             try:
-                _, msg_data = mail.uid("FETCH", uid_b, "(RFC822.HEADER)")
+                _, msg_data = mail.uid("FETCH", uid_b, "(RFC822)")
                 if not msg_data or not msg_data[0]:
                     uid_nuovi.add(uid_str)  # marca processato anche se fetch fallisce
                     continue
 
-                raw_header = msg_data[0][1]
-                msg = _email_lib.message_from_bytes(raw_header)
+                raw_message = msg_data[0][1]
+                msg = _email_lib.message_from_bytes(raw_message)
                 subject = _decode_header_value(msg.get("Subject", ""))
                 from_ = _decode_header_value(msg.get("From", ""))
                 date_str = msg.get("Date", "")
+                corpo_testo, corpo_html = _estrai_corpo_email(msg)
 
                 report["trovati"] += 1
 
@@ -494,6 +537,45 @@ def poll_cancelleria_pec(
                 titolo_att = f"PEC: {subject}"[:120]
 
                 # Controlla duplicati: stessa data + stesso titolo
+                att_esistente = next((
+                    att for att in (getattr(fasc, "attivita", None) or [])
+                    if getattr(att, "tipo", None) == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+                    and getattr(att, "titolo", "") == titolo_att
+                    and getattr(att, "data", "") == data_att
+                ), None)
+
+                note_auto = (
+                    f"Caricata automaticamente dalla PEC il "
+                    f"{datetime.now().strftime('%d/%m/%Y %H:%M')} "
+                    f"(UID IMAP: {uid_str})"
+                )
+
+                if att_esistente:
+                    needs_enrichment = any([
+                        subject and not getattr(att_esistente, "email_oggetto", ""),
+                        from_ and not getattr(att_esistente, "email_mittente", ""),
+                        uid_str and not getattr(att_esistente, "email_uid_imap", ""),
+                        corpo_testo and not getattr(att_esistente, "email_testo", ""),
+                        corpo_html and not getattr(att_esistente, "email_html", ""),
+                    ])
+                    if needs_enrichment:
+                        gf.aggiorna_attivita(
+                            fasc.id,
+                            att_esistente.id,
+                            descrizione=getattr(att_esistente, "descrizione", "") or f"Da: {from_}",
+                            note=getattr(att_esistente, "note", "") or note_auto,
+                            email_mittente=getattr(att_esistente, "email_mittente", "") or from_,
+                            email_oggetto=getattr(att_esistente, "email_oggetto", "") or subject,
+                            email_uid_imap=getattr(att_esistente, "email_uid_imap", "") or uid_str,
+                            email_testo=getattr(att_esistente, "email_testo", "") or corpo_testo,
+                            email_html=getattr(att_esistente, "email_html", "") or corpo_html,
+                        )
+                        report["associati"] += 1
+                    else:
+                        report["duplicati"] += 1
+                    uid_processati.add(uid_str)
+                    continue
+
                 gia_presente = any(
                     getattr(att, "tipo", None) == TipoAttivita.COMUNICAZIONE_CANCELLERIA
                     and getattr(att, "titolo", "") == titolo_att
@@ -515,11 +597,12 @@ def poll_cancelleria_pec(
                         titolo=titolo_att,
                         descrizione=f"Da: {from_}",
                         esito=EsitoAttivita.NON_APPLICABILE,
-                        note=(
-                            f"Caricata automaticamente dalla PEC il "
-                            f"{datetime.now().strftime('%d/%m/%Y %H:%M')} "
-                            f"(UID IMAP: {uid_str})"
-                        ),
+                        note=note_auto,
+                        email_mittente=from_,
+                        email_oggetto=subject,
+                        email_uid_imap=uid_str,
+                        email_testo=corpo_testo,
+                        email_html=corpo_html,
                     )
                     report["associati"] += 1
                     logger.info(

@@ -501,6 +501,31 @@ def test_aggiungi_attivita(gf, fascicolo_base):
     assert att.esito == EsitoAttivita.IN_ATTESA
 
 
+def test_aggiungi_attivita_persistendo_contenuto_email(gf, fascicolo_base):
+    att = gf.aggiungi_attivita(
+        fascicolo_base.id,
+        tipo=TipoAttivita.COMUNICAZIONE_CANCELLERIA,
+        data=date.today().isoformat(),
+        titolo="PEC: ACCETTAZIONE DEPOSITO",
+        descrizione="Da: cancelleria@example.pec.it",
+        email_mittente="cancelleria@example.pec.it",
+        email_oggetto="ACCETTAZIONE DEPOSITO RG 1234/2024",
+        email_uid_imap="999",
+        email_testo="Corpo completo della PEC di cancelleria",
+    )
+    gf_reload = GestioneFascicoli(
+        db_path=str(gf.db_path),
+        documents_dir=str(gf.documents_dir),
+        archive_dir=str(gf.archive_dir),
+    )
+    fascicolo = gf_reload.get(fascicolo_base.id)
+    salvata = next(a for a in fascicolo.attivita if a.id == att.id)
+    assert salvata.email_mittente == "cancelleria@example.pec.it"
+    assert salvata.email_oggetto == "ACCETTAZIONE DEPOSITO RG 1234/2024"
+    assert salvata.email_uid_imap == "999"
+    assert salvata.email_testo == "Corpo completo della PEC di cancelleria"
+
+
 def test_attivita_passa_in_corso(gf, fascicolo_base):
     """Aggiungere la prima attività porta il fascicolo IN_CORSO."""
     assert fascicolo_base.stato == StatoFascicolo.APERTO

@@ -11,7 +11,14 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.clienti import GestioneClienti
-from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
+from pct.fascicoli import (
+    EsitoAttivita,
+    GestioneFascicoli,
+    StatoFascicolo,
+    TipoAttivita,
+    TipoDocumento,
+    TipoFascicolo,
+)
 from pct.config_studio import ConfigPEC, GestioneConfigStudio
 from pct.polisWeb import (
     ClientPolisWeb,
@@ -1572,6 +1579,66 @@ def test_dettaglio_fascicolo_mostra_ricevute_pec_in_cancelleria(tmp_path):
     assert "CANC OK 004" in body
     sezione_cancelleria = body.split('id="sezione-comunicazioni-cancelleria"', 1)[1][:2500]
     assert "Prepara atto" not in sezione_cancelleria
+
+
+def test_dettaglio_fascicolo_mostra_email_comunicazione_cancelleria(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 808/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="808",
+        anno_rg=2025,
+    )
+    gestione_fascicoli.aggiungi_attivita(
+        fascicolo.id,
+        tipo=TipoAttivita.COMUNICAZIONE_CANCELLERIA,
+        data="2026-04-09",
+        titolo="PEC: ACCETTAZIONE DEPOSITO RG 808/2025",
+        descrizione="Da: posta-certificata@legalmail.it",
+        esito=EsitoAttivita.NON_APPLICABILE,
+        email_mittente="posta-certificata@legalmail.it",
+        email_oggetto="ACCETTAZIONE DEPOSITO RG 808/2025",
+        email_uid_imap="IMAP-808",
+        email_testo="Questo è il corpo completo della PEC di ricevuta.",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Apri email ricevuta" in body
+    assert "ACCETTAZIONE DEPOSITO RG 808/2025" in body
+    assert "posta-certificata@legalmail.it" in body
+    assert "IMAP-808" in body
+    assert "Questo è il corpo completo della PEC di ricevuta." in body
 
 
 def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):

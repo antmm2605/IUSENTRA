@@ -10,11 +10,12 @@ import json
 import re
 from datetime import date
 from html import escape
+from types import SimpleNamespace
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
 
-from web.helpers import get_clienti, get_fascicoli, get_utenti
+from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
 
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
@@ -79,6 +80,75 @@ def _variabili_base(config):
         "studio_iban":       config.get("STUDIO_IBAN", ""),
         "avvocato_nome":     config.get("STUDIO_AVVOCATO", config.get("STUDIO_NOME", "Avvocato")),
     }
+
+
+def _namespace_from_mapping(mapping: dict | None = None):
+    return SimpleNamespace(**(mapping or {}))
+
+
+def _soggetto_template_namespace(soggetto, *, parte=None):
+    if not soggetto:
+        return None
+    ruolo = getattr(parte, "ruolo", None)
+    note = getattr(parte, "note", "") if parte else ""
+    return SimpleNamespace(
+        id=getattr(soggetto, "id", ""),
+        nome_completo=getattr(soggetto, "nome_completo", ""),
+        identificativo=getattr(soggetto, "identificativo", ""),
+        codice_fiscale=getattr(soggetto, "codice_fiscale", ""),
+        partita_iva=getattr(soggetto, "partita_iva", ""),
+        qualifica=getattr(soggetto, "qualifica", ""),
+        email=getattr(getattr(soggetto, "recapiti", None), "email", ""),
+        pec=getattr(getattr(soggetto, "recapiti", None), "pec", ""),
+        telefono=(
+            getattr(getattr(soggetto, "recapiti", None), "telefono", "")
+            or getattr(getattr(soggetto, "recapiti", None), "cellulare", "")
+        ),
+        indirizzo=str(getattr(soggetto, "indirizzo", "") or ""),
+        ruolo=getattr(ruolo, "value", ""),
+        ruolo_label=getattr(ruolo, "label", ""),
+        note=note,
+    )
+
+
+def _build_parti_template_context(id_fascicolo: str):
+    empty = _namespace_from_mapping(
+        {
+            "elenco": [],
+            "assistiti": [],
+            "controparti": [],
+            "difensori_controparte": [],
+            "altri": [],
+            "assistito_principale": None,
+            "controparte_principale": None,
+            "difensore_controparte_principale": None,
+        }
+    )
+    if not id_fascicolo:
+        return [], empty
+
+    pairs = get_soggetti().parti_fascicolo(id_fascicolo)
+    elenco = [_soggetto_template_namespace(soggetto, parte=parte) for parte, soggetto in pairs]
+    assistiti = [item for item in elenco if item and item.ruolo == "ASSISTITO"]
+    controparti = [item for item in elenco if item and item.ruolo in {"CONTROPARTE", "CREDITORE", "DEBITORE"}]
+    difensori_controparte = [item for item in elenco if item and item.ruolo == "DIFENSORE_CONTROPARTE"]
+    altri = [
+        item
+        for item in elenco
+        if item and item.ruolo not in {"ASSISTITO", "CONTROPARTE", "CREDITORE", "DEBITORE", "DIFENSORE_CONTROPARTE"}
+    ]
+    return elenco, _namespace_from_mapping(
+        {
+            "elenco": elenco,
+            "assistiti": assistiti,
+            "controparti": controparti,
+            "difensori_controparte": difensori_controparte,
+            "altri": altri,
+            "assistito_principale": assistiti[0] if assistiti else None,
+            "controparte_principale": controparti[0] if controparti else None,
+            "difensore_controparte_principale": difensori_controparte[0] if difensori_controparte else None,
+        }
+    )
 
 
 def _valore_form(value):
@@ -425,8 +495,11 @@ def usa(id_template: str):
         fascicolo = get_fascicoli().get(id_fascicolo) if id_fascicolo else None
 
         variabili = _variabili_base(current_app.config)
+        soggetti_fascicolo, parti = _build_parti_template_context(id_fascicolo)
         variabili["cliente"]             = cliente
         variabili["fascicolo"]           = fascicolo
+        variabili["soggetti"]            = soggetti_fascicolo
+        variabili["parti"]               = parti
         variabili["destinatario_nome"]   = f.get("destinatario_nome", "")
         variabili["destinatario_indirizzo"] = f.get("destinatario_indirizzo", "")
         variabili["oggetto_diffida"]     = f.get("oggetto_diffida", "")

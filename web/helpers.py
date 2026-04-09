@@ -23,6 +23,7 @@ from pct.wizard_pro import GestioneWizardPro
 from pct.legal_intelligence import GestioneLegalIntelligence
 from pct.normative_tables import GestioneTabelleNormative
 from pct.calendar_sync import GestioneCalendarSync
+from pct.soggetti import GestioneSoggetti
 
 
 # ---------------------------------------------------------------- helper percorsi tenant-aware
@@ -90,6 +91,13 @@ def get_normative_tables() -> GestioneTabelleNormative:
 
 def get_calendar_sync() -> GestioneCalendarSync:
     return GestioneCalendarSync(db_path=_cfg("CALENDAR_SYNC_DB"))
+
+
+def get_soggetti() -> GestioneSoggetti:
+    return GestioneSoggetti(
+        soggetti_path=_cfg("SOGGETTI_DB"),
+        parti_path=_cfg("SOGGETTI_PARTI_DB"),
+    )
 
 
 # ---------------------------------------------------------------- tenant corrente

@@ -325,6 +325,7 @@
 window.TemplateActEditors = window.TemplateActEditors || (() => {
   const editors = new Map();
   let acquisition = null;
+  let selectionTrackingBound = false;
 
   function looksLikeHtml(value) {
     const text = (value || '').trim().toLowerCase();
@@ -392,6 +393,29 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     if (!surface.innerHTML.trim()) {
       surface.innerHTML = '<p></p>';
     }
+  }
+
+  function captureSelection(state) {
+    if (!state?.surface) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (state.surface.contains(range.commonAncestorContainer) || state.surface === range.commonAncestorContainer) {
+      state.savedRange = range.cloneRange();
+    }
+  }
+
+  function moveCaretToSurfaceEnd(state) {
+    const range = document.createRange();
+    range.selectNodeContents(state.surface);
+    range.collapse(false);
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    state.savedRange = range.cloneRange();
+    return range;
   }
 
   function parseJson(raw, fallback) {
@@ -499,6 +523,21 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     editors.forEach((_, editorId) => sync(editorId));
   }
 
+  function bindSelectionTracking() {
+    if (selectionTrackingBound) return;
+    selectionTrackingBound = true;
+    document.addEventListener('selectionchange', () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      editors.forEach((state) => {
+        if (state.surface.contains(range.commonAncestorContainer) || state.surface === range.commonAncestorContainer) {
+          state.savedRange = range.cloneRange();
+        }
+      });
+    });
+  }
+
   function exec(editorId, command, value = null) {
     const state = editors.get(editorId);
     if (!state) return;
@@ -512,16 +551,33 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     const state = editors.get(editorId);
     if (!state) return;
     state.surface.focus();
-    // Ripristina la posizione del cursore salvata prima del click sul chip
-    if (state.savedRange) {
-      const sel = window.getSelection();
+    const sel = window.getSelection();
+    if (state.savedRange && sel) {
+      sel.removeAllRanges();
+      sel.addRange(state.savedRange);
+    }
+    let range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    if (!range || !(state.surface.contains(range.commonAncestorContainer) || state.surface === range.commonAncestorContainer)) {
+      range = moveCaretToSurfaceEnd(state);
+    }
+    let inserted = false;
+    try {
+      inserted = document.execCommand('insertText', false, text);
+    } catch (_) {
+      inserted = false;
+    }
+    if (!inserted) {
+      range.deleteContents();
+      const node = document.createTextNode(text);
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.collapse(true);
       if (sel) {
         sel.removeAllRanges();
-        sel.addRange(state.savedRange);
+        sel.addRange(range);
       }
-      state.savedRange = null;
     }
-    document.execCommand('insertText', false, text);
+    captureSelection(state);
     sync(editorId);
   }
 
@@ -671,16 +727,18 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
     applyLayout(editorId, currentLayout);
 
     surface.addEventListener('input', () => sync(editorId));
+    surface.addEventListener('keyup', () => {
+      captureSelection(editors.get(editorId));
+      sync(editorId);
+    });
+    surface.addEventListener('mouseup', () => {
+      captureSelection(editors.get(editorId));
+    });
+    surface.addEventListener('focus', () => {
+      captureSelection(editors.get(editorId));
+    });
     surface.addEventListener('blur', () => {
-      // Salva la posizione del cursore prima che il focus lasci l'editor
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        if (surface.contains(range.commonAncestorContainer) || surface === range.commonAncestorContainer) {
-          const st = editors.get(editorId);
-          if (st) st.savedRange = range.cloneRange();
-        }
-      }
+      captureSelection(editors.get(editorId));
       sync(editorId);
     });
     surface.addEventListener('paste', () => {
@@ -689,6 +747,7 @@ window.TemplateActEditors = window.TemplateActEditors || (() => {
   }
 
   function initAll(scope = document) {
+    bindSelectionTracking();
     scope.querySelectorAll('[data-editor-root]').forEach(initRoot);
     scope.querySelectorAll('form').forEach((form) => {
       if (form.dataset.editorSyncBound === 'true') {

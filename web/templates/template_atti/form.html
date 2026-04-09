@@ -7,7 +7,15 @@
   ('Studio', ['studio_nome', 'studio_indirizzo', 'studio_iban', 'avvocato_nome', 'data_oggi']),
   ('Cliente', ['cliente.nome_completo', 'cliente.codice_fiscale', 'cliente.data_nascita',
                'cliente.luogo_nascita', 'cliente.indirizzo', 'cliente.tipo.value']),
-  ('Fascicolo', ['fascicolo.titolo', 'fascicolo.numero_rg', 'fascicolo.tribunale', 'fascicolo.tipo.value'])
+  ('Fascicolo', ['fascicolo.titolo', 'fascicolo.numero_rg', 'fascicolo.tribunale', 'fascicolo.tipo.value']),
+  ('Soggetti / Parti', [
+    'parti.assistito_principale.nome_completo',
+    'parti.assistito_principale.identificativo',
+    'parti.controparte_principale.nome_completo',
+    'parti.controparte_principale.identificativo',
+    'parti.difensore_controparte_principale.nome_completo',
+    'parti.difensore_controparte_principale.pec'
+  ])
 ] %}
 <div class="d-flex align-items-center gap-2 mb-4">
   <a href="{{ url_for('template_atti.lista') }}" class="btn btn-sm btn-outline-secondary">
@@ -44,12 +52,13 @@
                 Corpo del documento
                 <span class="badge bg-secondary ms-1" style="font-size:.65rem;">Editor Professionale</span>
               </label>
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-importa-doc"
-                      title="Importa un documento esistente (DOCX, PDF, TXT, HTML) e usalo come base del template">
+              <label for="importa-doc-input" class="btn btn-sm btn-outline-secondary mb-0" id="btn-importa-doc"
+                      title="Importa un documento esistente (DOCX, PDF, TXT, HTML) e usalo come base del template"
+                      style="cursor:pointer;">
                 <i class="bi bi-file-earmark-arrow-up me-1"></i>Importa documento
-              </button>
+              </label>
             </div>
-            <input type="file" id="importa-doc-input" accept=".docx,.pdf,.txt,.html,.htm" class="d-none">
+            <input type="file" id="importa-doc-input" accept=".docx,.pdf,.txt,.html,.htm" class="visually-hidden">
 
             {{ professional_editor(
               'corpo',
@@ -92,7 +101,11 @@
           {% for section, variables in template_variable_groups %}
           <p class="section-label{% if not loop.first %} mt-3{% endif %}">{{ section }}</p>
           {% for v in variables %}
-          <code class="d-block mb-1 cursor-pointer var-chip bg-light p-1 rounded">{{ '{{' }} {{ v }} {{ '}}' }}</code>
+          <button type="button"
+                  class="btn btn-light w-100 text-start mb-1 var-chip font-monospace small"
+                  data-template-variable="{{ '{{' }} {{ v }} {{ '}}' }}">
+            {{ '{{' }} {{ v }} {{ '}}' }}
+          </button>
           {% endfor %}
           {% endfor %}
           <p class="text-muted mt-3" style="font-size:.72rem;">
@@ -110,7 +123,15 @@
   ('Studio', ['studio_nome', 'studio_indirizzo', 'studio_iban', 'avvocato_nome', 'data_oggi']),
   ('Cliente', ['cliente.nome_completo', 'cliente.codice_fiscale', 'cliente.data_nascita',
                'cliente.luogo_nascita', 'cliente.indirizzo', 'cliente.tipo.value']),
-  ('Fascicolo', ['fascicolo.titolo', 'fascicolo.numero_rg', 'fascicolo.tribunale', 'fascicolo.tipo.value'])
+  ('Fascicolo', ['fascicolo.titolo', 'fascicolo.numero_rg', 'fascicolo.tribunale', 'fascicolo.tipo.value']),
+  ('Soggetti / Parti', [
+    'parti.assistito_principale.nome_completo',
+    'parti.assistito_principale.identificativo',
+    'parti.controparte_principale.nome_completo',
+    'parti.controparte_principale.identificativo',
+    'parti.difensore_controparte_principale.nome_completo',
+    'parti.difensore_controparte_principale.pec'
+  ])
 ] %}
 <div class="modal fade" id="modalImportaDoc" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -173,7 +194,8 @@
 </div>
 {% include "template_atti/_editor_assets.html" %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function initTemplateAttiForm() {
+  function boot() {
   const editorId = 'template-body-editor';
   const editorRoot = document.getElementById(`${editorId}-root`);
   const editorSurface = editorRoot ? editorRoot.querySelector('[data-editor-surface]') : null;
@@ -183,7 +205,10 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
     });
     chip.addEventListener('click', () => {
-      window.TemplateActEditors.insertText(editorId, chip.textContent.trim());
+      window.TemplateActEditors.insertText(
+        editorId,
+        chip.dataset.templateVariable || chip.textContent.trim()
+      );
     });
   });
 
@@ -198,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const btnAggiungi = document.getElementById('btn-importa-aggiungi');
   const btnSostituisci = document.getElementById('btn-importa-sostituisci');
 
-  if (!btnImporta || !fileInput || !modalEl || !previewBox || !footer || !window.TemplateActEditors) {
+  if (!fileInput || !modalEl || !previewBox || !footer || !window.TemplateActEditors) {
     return;
   }
 
@@ -316,10 +341,9 @@ document.addEventListener('DOMContentLoaded', function() {
       .trim();
   }
 
-  btnImporta.addEventListener('click', () => {
+  btnImporta?.addEventListener('click', () => {
     fileInput.value = '';
     resetPreview();
-    fileInput.click();
   });
 
   fileInput.addEventListener('change', async () => {
@@ -389,7 +413,14 @@ document.addEventListener('DOMContentLoaded', function() {
     anteprimaEl.classList.add('d-none');
     toggleFooter(false);
   });
-});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
 </script>
 
 <style>

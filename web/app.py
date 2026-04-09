@@ -4827,8 +4827,32 @@ def create_app(config: dict | None = None) -> Flask:
         from collections import OrderedDict
 
         def _solo_data(d: str) -> str:
-            """Normalizza a YYYY-MM-DD (coerente con _chiave_deposito_polisweb)."""
-            return (d or "").strip().split("T")[0].split(" ")[0]
+            """Normalizza a YYYY-MM-DD (coerente con _chiave_deposito_polisweb).
+
+            Gestisce formati multipli (ISO, italiano dd/mm/yyyy, dd-mm-yyyy)
+            esattamente come _parse_data in polisWeb.py — altrimenti le chiavi
+            di raggruppamento differiscono e lo stesso deposito appare duplicato.
+            """
+            if not d:
+                return ""
+            testo = str(d).strip()
+            if isinstance(d, date):
+                return d.strftime("%Y-%m-%d")
+            # Strip parte oraria (T o spazio)
+            for sep in ("T", " "):
+                if sep in testo:
+                    testo = testo.split(sep)[0]
+                    break
+            candidati = [testo]
+            if len(testo) >= 10:
+                candidati.append(testo[:10])
+            for candidato in candidati:
+                for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+                    try:
+                        return datetime.strptime(candidato, fmt).strftime("%Y-%m-%d")
+                    except ValueError:
+                        continue
+            return testo[:10] if len(testo) >= 10 else testo
 
         gruppi: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
         for doc in _normalize_portale_documents(documenti):

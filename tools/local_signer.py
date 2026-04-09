@@ -1288,8 +1288,15 @@ def _pst_prepare_authenticated_session(
 ) -> tuple[Optional[dict], bool]:
     if not session_entry:
         return None, False
+
+    # Se l'host è già noto come mTLS-obbligatorio, non tentare mai cookie-only:
+    # andare direttamente al certificato riduce i prompt PIN perché tutte le
+    # chiamate successive rientrano nella finestra di cache-PIN di Windows.
+    host = _pst_host(_pst_url_ricerca(base_url))
+    host_needs_mtls = host in _mTLS_required_hosts
+
     if not force and _pst_session_can_use_cookie_only(session_entry):
-        return session_entry, True
+        return session_entry, not host_needs_mtls
 
     cookie_file = str(session_entry.get("cookie_file") or "").strip()
     esito = _pst_preflight_auth_curl(
@@ -1307,7 +1314,10 @@ def _pst_prepare_authenticated_session(
         auth_ready=True,
     )
     refreshed = _resolve_pst_session_entry(session_entry["session_id"]) or session_entry
-    return refreshed, True
+    # Dopo preflight, controlla se l'host richiede mTLS (potrebbe essere
+    # stato registrato da una sessione precedente nella stessa istanza).
+    prefer_cookie = host not in _mTLS_required_hosts
+    return refreshed, prefer_cookie
 
 
 def _create_pin_session(lib_path: str, pin: str, slot_id: Optional[int] = None) -> tuple[str, object]:

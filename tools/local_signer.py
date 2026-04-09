@@ -2616,17 +2616,24 @@ def _soap_call_pst_session(
             cookie_file=cookie_file,
         )
 
-    if prefer_cookie_only and cookie_file:
+    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
         # Quando prefer_cookie_only=True il preflight ha già stabilito una sessione
-        # autenticata con cookie validi. Tentiamo SEMPRE cookie-only prima del cert,
-        # ignorando _mTLS_required_hosts, per evitare prompt PIN ripetuti sulle
-        # smart card Windows (Aruba Key, Bit4id, CNS/CIE).
+        # autenticata con cookie validi. Tentiamo cookie-only solo se il portale
+        # non è già noto come mTLS-obbligatorio (per evitare prompt PIN ripetuti).
         try:
             return _run(None)
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST cookie-only fallback su certificato per %s: %s", url, e)
+            # Il portale richiede mTLS per ogni chiamata: registra l'host così le
+            # chiamate successive saltano il tentativo cookie e vanno subito al cert,
+            # restando all'interno della finestra di cache-PIN di Windows.
+            with _mTLS_required_lock:
+                _mTLS_required_hosts.add(host)
+            log.info(
+                "PST host %s: cookie-only rifiutato, prossime chiamate useranno"
+                " direttamente il certificato (cache-PIN Windows).", host
+            )
     return _run(cert_thumbprint)
 
 
@@ -2653,15 +2660,20 @@ def _soap_call_pst_session_raw(
             cookie_file=cookie_file,
         )
 
-    if prefer_cookie_only and cookie_file:
-        # Stessa logica di _soap_call_pst_session: dopo preflight i cookie sono
-        # validi → tentiamo SEMPRE cookie-only per evitare prompt PIN ripetuti.
+    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
+        # Stessa logica di _soap_call_pst_session: tenta cookie-only solo se il
+        # portale non è già noto come mTLS-obbligatorio.
         try:
             return _run(None)
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST raw cookie-only fallback su certificato per %s: %s", url, e)
+            with _mTLS_required_lock:
+                _mTLS_required_hosts.add(host)
+            log.info(
+                "PST host %s (raw): cookie-only rifiutato, future chiamate"
+                " useranno direttamente il certificato.", host
+            )
     return _run(cert_thumbprint)
 
 
@@ -2687,7 +2699,9 @@ def _soap_call_pst_session_batch_raw(
         }
         for req in (requests or [])
     ]
-    if prefer_cookie_only and cookie_file:
+    first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
+    host = _pst_host(first_url) if first_url else ""
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
             return _soap_call_curl_batch_raw(
                 effective_requests,
@@ -2696,7 +2710,13 @@ def _soap_call_pst_session_batch_raw(
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST batch cookie-only fallback su certificato: %s", e)
+            if host:
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+                log.info(
+                    "PST host %s (batch): cookie-only rifiutato, future chiamate"
+                    " useranno direttamente il certificato.", host
+                )
     return _soap_call_curl_batch_raw(
         effective_requests,
         cert_thumbprint=cert_thumbprint,
@@ -2722,7 +2742,9 @@ def _soap_call_pst_session_batch_raw_best_effort(
         }
         for req in (requests or [])
     ]
-    if prefer_cookie_only and cookie_file:
+    first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
+    host = _pst_host(first_url) if first_url else ""
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
             return _soap_call_curl_batch_raw_best_effort(
                 effective_requests,
@@ -2731,7 +2753,13 @@ def _soap_call_pst_session_batch_raw_best_effort(
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST batch best-effort cookie-only fallback su certificato: %s", e)
+            if host:
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+                log.info(
+                    "PST host %s (batch best-effort): cookie-only rifiutato,"
+                    " future chiamate useranno direttamente il certificato.", host
+                )
     return _soap_call_curl_batch_raw_best_effort(
         effective_requests,
         cert_thumbprint=cert_thumbprint,

@@ -1358,7 +1358,9 @@ document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      await awRefreshStatus({ force: true, probeSigner: true, light: false });
+      // Avvio silenzioso: ping leggero per verificare la raggiungibilità del Local Signer
+      // senza interrogare token/smart card (evita prompt PIN prematuri).
+      await awRefreshStatus({ force: true, probeSigner: true, light: true });
     } finally {
       awSetAccessBusy(false);
     }
@@ -1368,7 +1370,8 @@ document.getElementById('awTest').addEventListener('click', async () => {
     awSetAccessBusy(true);
     try {
       if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
-        await awRefreshStatus({ force: true, probeSigner: true, light: false });
+        // Ping leggero: il certificato viene selezionato/validato alla prima ricerca reale
+        await awRefreshStatus({ force: true, probeSigner: true, light: true });
       }
       awGoStep(2);
     } finally {

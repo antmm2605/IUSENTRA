@@ -2103,10 +2103,24 @@ def create_app(config: dict | None = None) -> Flask:
         u = g.utente_corrente
         documenti_creati: list[dict] = []
 
+        # Indice dei nomi normalizzati già presenti nel fascicolo (dedup import ripetuto)
+        nomi_esistenti: dict[str, Documento] = {
+            _normalizza_nome_match_portale(d.nome): d
+            for d in fasc.documenti
+            if d.nome
+        }
+
         for item in items:
             nome = item.get("nome", "").strip()
             payload = item.get("contenuto", b"")
             if not nome or not payload:
+                continue
+            # Deduplicazione: se il file (per nome normalizzato) è già nel fascicolo,
+            # riutilizza il documento esistente senza crearne un duplicato.
+            nome_norm = _normalizza_nome_match_portale(nome)
+            doc_esistente = nomi_esistenti.get(nome_norm)
+            if doc_esistente:
+                documenti_creati.append({"doc": doc_esistente, "item": item})
                 continue
             tipo_doc = _tipo_documento_da_item_portale(item)
             note_doc = [f"Importato da {fonte} il {date.today().isoformat()}"]
@@ -2130,6 +2144,7 @@ def create_app(config: dict | None = None) -> Flask:
                 caricato_da=u.username if u else "",
             )
             documenti_creati.append({"doc": doc, "item": item})
+            nomi_esistenti[nome_norm] = doc
 
         if not documenti_creati:
             raise ValueError("I file selezionati non contengono documenti importabili.")
@@ -4811,9 +4826,13 @@ def create_app(config: dict | None = None) -> Flask:
     def _group_portale_documents(documenti: list[dict]) -> list[dict]:
         from collections import OrderedDict
 
+        def _solo_data(d: str) -> str:
+            """Normalizza a YYYY-MM-DD (coerente con _chiave_deposito_polisweb)."""
+            return (d or "").strip().split("T")[0].split(" ")[0]
+
         gruppi: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
         for doc in _normalize_portale_documents(documenti):
-            chiave = doc["id_deposito"] or f"__{doc['data_deposito']}__{doc['mittente']}"
+            chiave = doc["id_deposito"] or f"__{_solo_data(doc['data_deposito'])}__{doc['mittente']}"
             group = gruppi.setdefault(
                 chiave,
                 {

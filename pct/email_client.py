@@ -16,6 +16,7 @@ import imaplib
 import json
 import re
 import uuid
+import shutil
 from datetime import datetime
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
@@ -65,6 +66,7 @@ _MAPPA_STATO_PST = {
 }
 
 _RE_RG_PCT = re.compile(r"\bR\.?\s*G\.?\s+(\d+)\s*/\s*(\d{4})\b", re.IGNORECASE)
+_RE_SAFE_FILENAME = re.compile(r'[^A-Za-z0-9._()\- ]+')
 _STATI_PCT_ORDINE = {
     "INVIATO": 0,
     "ACCETTATO_PEC": 1,
@@ -151,6 +153,8 @@ class GestioneEmailRicevute:
     def __init__(self, db_path: str = "./email/casella.json"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.attachments_dir = self.db_path.parent / "allegati"
+        self.attachments_dir.mkdir(parents=True, exist_ok=True)
         self._cache: Optional[Dict[str, EmailRicevuta]] = None
 
     # ---- Storage ----
@@ -178,6 +182,50 @@ class GestioneEmailRicevute:
 
     def _invalida(self) -> None:
         self._cache = None
+
+    @staticmethod
+    def _sanifica_nome_allegato(nome: str, fallback: str = "allegato.bin") -> str:
+        nome_pulito = Path(str(nome or fallback)).name.strip() or fallback
+        nome_pulito = _RE_SAFE_FILENAME.sub("_", nome_pulito)
+        nome_pulito = re.sub(r"\s+", " ", nome_pulito).strip(" .")
+        return nome_pulito or fallback
+
+    def _salva_allegato(self, email_id: str, nome: str, contenuto: bytes) -> dict:
+        cartella_email = self.attachments_dir / email_id
+        cartella_email.mkdir(parents=True, exist_ok=True)
+
+        nome_pulito = self._sanifica_nome_allegato(nome)
+        target = cartella_email / nome_pulito
+        stem = target.stem
+        suffix = target.suffix
+        idx = 1
+        while target.exists():
+            target = cartella_email / f"{stem}_{idx}{suffix}"
+            idx += 1
+
+        target.write_bytes(contenuto)
+        return {
+            "percorso_rel": str(target.relative_to(self.attachments_dir)).replace("\\", "/"),
+            "nome_file": target.name,
+        }
+
+    def percorso_allegato(self, em: EmailRicevuta, indice_allegato: int) -> Path | None:
+        allegati = list(getattr(em, "allegati", []) or [])
+        if indice_allegato < 0 or indice_allegato >= len(allegati):
+            return None
+        info = allegati[indice_allegato] or {}
+        percorso_rel = str(info.get("percorso_rel", "") or "").strip().replace("\\", "/")
+        if not percorso_rel:
+            return None
+        percorso = (self.attachments_dir / Path(percorso_rel)).resolve()
+        root = self.attachments_dir.resolve()
+        try:
+            percorso.relative_to(root)
+        except ValueError:
+            return None
+        if not percorso.exists() or not percorso.is_file():
+            return None
+        return percorso
 
     # ---- Query ----
 
@@ -280,6 +328,9 @@ class GestioneEmailRicevute:
         db = self._carica()
         if id_email in db:
             del db[id_email]
+            cartella_email = self.attachments_dir / id_email
+            if cartella_email.exists():
+                shutil.rmtree(cartella_email, ignore_errors=True)
             self._salva()
             self._invalida()
 
@@ -444,6 +495,7 @@ class GestioneEmailRicevute:
     ) -> Optional[EmailRicevuta]:
         """Converte un messaggio IMAP in EmailRicevuta."""
         try:
+            em_id = uuid.uuid4().hex
             oggetto = self._decode_header_val(msg.get("Subject", ""))
             mittente_raw = self._decode_header_val(msg.get("From", ""))
             destinatari  = self._decode_header_val(msg.get("To", ""))
@@ -473,15 +525,19 @@ class GestioneEmailRicevute:
                 for part in msg.walk():
                     ct = part.get_content_type()
                     cd = part.get("Content-Disposition", "")
-                    if "attachment" in cd:
-                        fname = self._decode_header_val(
-                            part.get_filename() or ""
-                        )
-                        allegati.append({
-                            "nome": fname or "allegato",
+                    fname = self._decode_header_val(part.get_filename() or "")
+                    is_attachment = "attachment" in cd.lower() or ("inline" in cd.lower() and fname)
+                    if is_attachment:
+                        payload = part.get_payload(decode=True) or b""
+                        nome_originale = fname or "allegato.bin"
+                        att = {
+                            "nome": nome_originale,
                             "mime": ct,
-                            "size": len(part.get_payload(decode=True) or b""),
-                        })
+                            "size": len(payload),
+                        }
+                        if payload:
+                            att.update(self._salva_allegato(em_id, nome_originale, payload))
+                        allegati.append(att)
                     elif ct == "text/plain" and not corpo_testo:
                         payload = part.get_payload(decode=True)
                         charset = part.get_content_charset() or "utf-8"
@@ -506,7 +562,7 @@ class GestioneEmailRicevute:
             )
 
             return EmailRicevuta(
-                id=uuid.uuid4().hex,
+                id=em_id,
                 cartella=cartella_interna,
                 stato=StatoEmail.NON_LETTA,
                 mittente=mittente_addr,
@@ -651,6 +707,136 @@ def _trova_match_deposito_email(fascicoli: List[object], em: EmailRicevuta) -> t
     return None, None
 
 
+def _email_e_comunicazione_cancelleria(em: EmailRicevuta) -> bool:
+    if not _estrai_rg_email(em):
+        return False
+    testo = " ".join([
+        em.oggetto or "",
+        em.corpo_testo or "",
+        re.sub(r"<[^>]+>", " ", em.corpo_html or ""),
+    ]).lower()
+    if em.e_pst:
+        return True
+    parole = (
+        "accettazione",
+        "consegna",
+        "cancelleria",
+        "deposito telematico",
+        "esito deposito",
+        "controlli automatici",
+        "rifiuto",
+        "notifica",
+    )
+    return any(p in testo for p in parole)
+
+
+def _trova_fascicolo_da_email(fascicoli: List[object], em: EmailRicevuta):
+    rg_email = _estrai_rg_email(em)
+    if not rg_email:
+        return None
+    num_rg, anno_rg = rg_email
+    for fasc in fascicoli:
+        if (
+            str(getattr(fasc, "numero_rg", "") or "").lstrip("0") == num_rg
+            and str(getattr(fasc, "anno_rg", "") or "") == anno_rg
+        ):
+            return fasc
+    return None
+
+
+def aggiorna_comunicazioni_cancelleria_da_email(
+    gestione_email: GestioneEmailRicevute,
+    gestione_fascicoli,
+) -> dict:
+    from pct.fascicoli import TipoAttivita, EsitoAttivita
+
+    report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+    db = gestione_email._carica()
+    emails = sorted(db.values(), key=lambda e: e.timestamp or e.ricevuta_il)
+    fascicoli = gestione_fascicoli.tutti()
+
+    for em in emails:
+        if not _email_e_comunicazione_cancelleria(em):
+            continue
+        report["trovati"] += 1
+        try:
+            fascicolo = _trova_fascicolo_da_email(fascicoli, em)
+            if not fascicolo:
+                continue
+
+            titolo_att = f"PEC: {em.oggetto}"[:120] if em.oggetto else "PEC: Comunicazione di cancelleria"
+            data_att = (em.timestamp or datetime.now().isoformat())[:10]
+            uid_imap = str(em.uid_imap or "")
+            note_parts = []
+            if em.message_id:
+                note_parts.append(f"Message-ID: {em.message_id}")
+            if em.allegati:
+                note_parts.append(
+                    "Allegati email: " + ", ".join(
+                        (a.get("nome") or a.get("nome_file") or "allegato") for a in em.allegati
+                    )
+                )
+            note_auto = "\n".join(note_parts).strip()
+
+            att_esistente = next((
+                att for att in (getattr(fascicolo, "attivita", None) or [])
+                if getattr(att, "tipo", None) == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+                and (
+                    (uid_imap and getattr(att, "email_uid_imap", "") == uid_imap)
+                    or (getattr(att, "titolo", "") == titolo_att and getattr(att, "data", "") == data_att)
+                )
+            ), None)
+
+            if att_esistente:
+                needs_enrichment = any([
+                    em.oggetto and not getattr(att_esistente, "email_oggetto", ""),
+                    em.mittente and not getattr(att_esistente, "email_mittente", ""),
+                    uid_imap and not getattr(att_esistente, "email_uid_imap", ""),
+                    em.corpo_testo and not getattr(att_esistente, "email_testo", ""),
+                    em.corpo_html and not getattr(att_esistente, "email_html", ""),
+                    note_auto and note_auto not in (getattr(att_esistente, "note", "") or ""),
+                ])
+                if needs_enrichment:
+                    note_finali = (getattr(att_esistente, "note", "") or "").strip()
+                    if note_auto:
+                        note_finali = "\n".join([p for p in [note_finali, note_auto] if p]).strip()
+                    gestione_fascicoli.aggiorna_attivita(
+                        fascicolo.id,
+                        att_esistente.id,
+                        descrizione=getattr(att_esistente, "descrizione", "") or f"Da: {em.mittente_nome or em.mittente}",
+                        note=note_finali,
+                        email_mittente=getattr(att_esistente, "email_mittente", "") or em.mittente,
+                        email_oggetto=getattr(att_esistente, "email_oggetto", "") or em.oggetto,
+                        email_uid_imap=getattr(att_esistente, "email_uid_imap", "") or uid_imap,
+                        email_testo=getattr(att_esistente, "email_testo", "") or em.corpo_testo,
+                        email_html=getattr(att_esistente, "email_html", "") or em.corpo_html,
+                    )
+                    report["associati"] += 1
+                else:
+                    report["duplicati"] += 1
+                continue
+
+            gestione_fascicoli.aggiungi_attivita(
+                fascicolo.id,
+                tipo=TipoAttivita.COMUNICAZIONE_CANCELLERIA,
+                data=data_att,
+                titolo=titolo_att,
+                descrizione=f"Da: {em.mittente_nome or em.mittente}",
+                esito=EsitoAttivita.NON_APPLICABILE,
+                note=note_auto,
+                email_mittente=em.mittente,
+                email_oggetto=em.oggetto,
+                email_uid_imap=uid_imap,
+                email_testo=em.corpo_testo,
+                email_html=em.corpo_html,
+            )
+            report["associati"] += 1
+        except Exception:
+            report["errori"] += 1
+
+    return report
+
+
 def sincronizza_pec_e_fascicoli(
     gestione_email: "GestioneEmailRicevute",
     gestione_fascicoli,
@@ -681,8 +867,9 @@ def sincronizza_pec_e_fascicoli(
         limite=limite,
     )
     auto_log = aggiorna_esiti_da_email(gestione_email, gestione_fascicoli)
+    comm_report = aggiorna_comunicazioni_cancelleria_da_email(gestione_email, gestione_fascicoli)
     try:
-        poll_report = poll_cancelleria_pec(
+        poll_report_raw = poll_cancelleria_pec(
             gf=gestione_fascicoli,
             config_pec=config_pec,
             state_path=state_path,
@@ -690,11 +877,19 @@ def sincronizza_pec_e_fascicoli(
         )
     except TypeError:
         # Compatibilità con mock/test legacy che espongono ancora la firma corta.
-        poll_report = poll_cancelleria_pec(
+        poll_report_raw = poll_cancelleria_pec(
             gf=gestione_fascicoli,
             config_pec=config_pec,
             state_path=state_path,
         )
+    poll_report = {
+        "trovati": int(comm_report.get("trovati", 0)) + int((poll_report_raw or {}).get("trovati", 0)),
+        "associati": int(comm_report.get("associati", 0)) + int((poll_report_raw or {}).get("associati", 0)),
+        "duplicati": int(comm_report.get("duplicati", 0)) + int((poll_report_raw or {}).get("duplicati", 0)),
+        "errori": int(comm_report.get("errori", 0)) + int((poll_report_raw or {}).get("errori", 0)),
+        "da_email": comm_report,
+        "poll_imap": poll_report_raw or {},
+    }
     return {
         "sync": sync_result,
         "auto_esiti": auto_log,

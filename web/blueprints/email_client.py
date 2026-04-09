@@ -21,8 +21,8 @@ from datetime import datetime
 from functools import wraps
 
 from flask import (
-    Blueprint, current_app, flash, g, jsonify,
-    redirect, render_template, request, url_for,
+    Blueprint, abort, current_app, flash, g, jsonify,
+    redirect, render_template, request, send_file, url_for,
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 
@@ -178,6 +178,27 @@ def dettaglio(id_email: str):
         ge.marca_letta(id_email)
         em.stato = "LETTA"
     return render_template("email/dettaglio.html", em=em, oggi=datetime.today())
+
+
+@email_client.route("/messaggio/<id_email>/allegato/<int:indice_allegato>")
+@_login_required
+def allegato(id_email: str, indice_allegato: int):
+    ge = _get_gestore()
+    em = ge.get(id_email)
+    if not em:
+        abort(404)
+    percorso = ge.percorso_allegato(em, indice_allegato)
+    if not percorso:
+        abort(404)
+    info = (em.allegati or [])[indice_allegato]
+    nome_download = info.get("nome") or info.get("nome_file") or percorso.name
+    return send_file(
+        percorso,
+        mimetype=info.get("mime") or "application/octet-stream",
+        as_attachment=request.args.get("download") == "1",
+        download_name=nome_download,
+        conditional=True,
+    )
 
 
 def _redirect_email_next(default_cartella: str):
@@ -390,7 +411,22 @@ def auto_esiti():
     """AJAX — aggiorna esiti PCT da email PST già ricevute."""
     ge   = _get_gestore()
     log  = _auto_esiti(ge)
-    return jsonify({"ok": True, "aggiornati": len(log), "log": log})
+    comm_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+    try:
+        from pct.email_client import aggiorna_comunicazioni_cancelleria_da_email
+        from pct.fascicoli import GestioneFascicoli
+
+        gf = GestioneFascicoli(db_path=current_app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json"))
+        comm_report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
+    except Exception as exc:
+        log.append(f"Errore comunicazioni cancelleria: {exc}")
+    return jsonify({
+        "ok": True,
+        "aggiornati": len(log),
+        "comunicazioni_aggiornate": comm_report.get("associati", 0),
+        "report": comm_report,
+        "log": log,
+    })
 
 
 # ─────────────────────────────────────────────────────────── Impostazioni email

@@ -97,17 +97,42 @@
   <div class="card-body">
     <div class="d-flex flex-wrap gap-2">
       {% for att in em.allegati %}
+      {% set has_file = att.percorso_rel %}
+      {% set mime = att.mime or '' %}
+      {% set previewable = has_file and (mime.startswith('image/') or mime == 'application/pdf' or mime.startswith('text/')) %}
       <div class="d-flex align-items-center gap-2 px-3 py-2 border rounded" style="background:#f8fafc;font-size:.82rem">
         <i class="bi bi-file-earmark-text text-muted"></i>
-        <div>
+        <div class="flex-grow-1">
           <div class="fw-semibold text-dark">{{ att.nome }}</div>
-          {% if att.size %}<div class="text-muted" style="font-size:.72rem">{{ (att.size / 1024)|round(0)|int }} KB</div>{% endif %}
+          <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+            {% if att.size %}<div class="text-muted" style="font-size:.72rem">{{ (att.size / 1024)|round(0)|int }} KB</div>{% endif %}
+            {% if att.mime %}<span class="badge bg-light text-dark border">{{ att.mime }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="d-flex gap-1 flex-wrap">
+          {% if previewable %}
+          <a href="{{ url_for('email_client.allegato', id_email=em.id, indice_allegato=loop.index0) }}"
+             target="_blank"
+             class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-eye me-1"></i>Visualizza
+          </a>
+          {% endif %}
+          {% if has_file %}
+          <a href="{{ url_for('email_client.allegato', id_email=em.id, indice_allegato=loop.index0, download=1) }}"
+             class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i>Scarica
+          </a>
+          {% else %}
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+            Allegato storico non ancora salvato
+          </span>
+          {% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
     <p class="text-muted small mb-0 mt-2">
-      <i class="bi bi-info-circle me-1"></i>Il download richiede accesso autenticato al portale originale.
+      <i class="bi bi-info-circle me-1"></i>Gli allegati PEC salvati localmente possono essere aperti o scaricati direttamente da HACS.
     </p>
   </div>
 </div>

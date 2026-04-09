@@ -11,9 +11,10 @@ from pct.email_client import (
     EmailRicevuta,
     GestioneEmailRicevute,
     StatoEmail,
+    aggiorna_comunicazioni_cancelleria_da_email,
     aggiorna_esiti_da_email,
 )
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 
 
 def _cfg_web(tmp_path: Path) -> dict:
@@ -92,6 +93,103 @@ def test_email_casella_filtri_avanzati_e_flag_letto(tmp_path):
 
     ge_reload = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
     assert ge_reload.get("MAIL-1").stato == StatoEmail.NON_LETTA
+
+
+def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    em = EmailRicevuta(
+        id="MAIL-ATT-1",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="PEC con allegato RG 1025/2024",
+        data="2026-04-09T10:00:00",
+        corpo_testo="Contiene una ricevuta allegata.",
+        allegati=[{
+            "nome": "ricevuta.pdf",
+            "mime": "application/pdf",
+            "size": 18,
+            "percorso_rel": "MAIL-ATT-1/ricevuta.pdf",
+            "nome_file": "ricevuta.pdf",
+        }],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_CASELLA_DB"]).parent / "allegati" / "MAIL-ATT-1"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    contenuto = b"%PDF-1.4 allegato\n"
+    (allegato_dir / "ricevuta.pdf").write_bytes(contenuto)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
+        assert login.status_code == 200
+
+        dettaglio = client.get("/email/messaggio/MAIL-ATT-1", follow_redirects=True)
+        body = dettaglio.get_data(as_text=True)
+        assert "Visualizza" in body
+        assert "Scarica" in body
+
+        inline = client.get("/email/messaggio/MAIL-ATT-1/allegato/0")
+        assert inline.status_code == 200
+        assert inline.data == contenuto
+
+        download = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?download=1")
+        assert download.status_code == 200
+        assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+
+
+def test_aggiorna_comunicazioni_cancelleria_da_email_associa_per_rg_senza_duplicare(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+    )
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="PEC-COMM-1",
+            cartella="INBOX",
+            stato=StatoEmail.NON_LETTA,
+            mittente="posta-certificata@legalmail.it",
+            mittente_nome="Legalmail PEC",
+            oggetto="ACCETTAZIONE DEPOSITO TELEMATICO RG 1025/2024",
+            data="2026-04-09T10:15:00",
+            corpo_testo="Ricevuta di accettazione del deposito telematico.",
+            uid_imap="INBOX:100",
+            message_id="<msg-100@example>",
+            allegati=[{"nome": "ricevuta.eml"}],
+            stato_pct="ACCETTATO_PEC",
+        )
+    )
+
+    report = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
+    assert report["associati"] == 1
+    assert report["duplicati"] == 0
+
+    fasc_reload = gf.get(fasc.id)
+    comunicazioni = [
+        att for att in fasc_reload.attivita
+        if att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+    ]
+    assert len(comunicazioni) == 1
+    assert comunicazioni[0].email_uid_imap == "INBOX:100"
+    assert "ACCETTAZIONE DEPOSITO TELEMATICO RG 1025/2024" in comunicazioni[0].email_oggetto
+    assert "ricevuta.eml" in (comunicazioni[0].note or "")
+
+    report_dup = aggiorna_comunicazioni_cancelleria_da_email(ge, gf)
+    assert report_dup["duplicati"] == 1
 
 
 def test_aggiorna_esiti_da_email_popola_fasi_deposito_tramite_rg(tmp_path):

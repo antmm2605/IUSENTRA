@@ -17,7 +17,10 @@ Stadi terminali (non pollati):
 from __future__ import annotations
 
 import imaplib
+import json
 import logging
+import os
+import re
 import email as _email_lib
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
@@ -296,3 +299,257 @@ def esegui_polling(
                     errori += 1
 
     return {"controllati": controllati, "aggiornati": aggiornati, "errori": errori}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Polling PEC → Comunicazioni di cancelleria
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Pattern per estrarre il numero RG dal subject delle PEC di cancelleria.
+# Gestisce formati come: "RG 139/2023", "RG 139/ 2023", "R.G. 139/2023"
+_RE_RG = re.compile(
+    r'\bR\.?\s*G\.?\s+(\d+)\s*/\s*(\d{4})\b',
+    re.IGNORECASE,
+)
+
+# Parole chiave nel subject che indicano una comunicazione di cancelleria rilevante
+_KW_CANCELLERIA_SUBJ = (
+    "accettazione",
+    "rifiuto",
+    "comunicazione di cancelleria",
+    "comunicazione cancelleria",
+    "esito deposito",
+    "controparte",
+    "notifica",
+)
+
+
+def _estrai_rg_da_subject(subject: str) -> tuple[str, int] | None:
+    """Estrae (numero_rg, anno_rg) dal subject di una PEC, o None se non trovato."""
+    m = _RE_RG.search(subject)
+    if m:
+        return m.group(1).strip(), int(m.group(2))
+    return None
+
+
+def _carica_uid_processati(state_path: str) -> set:
+    """Carica il set di UID IMAP già processati dal file di stato."""
+    try:
+        with open(state_path, encoding="utf-8") as f:
+            stato = json.load(f)
+        return set(stato.get("uid_processati", []))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return set()
+
+
+def _salva_uid_processati(uid_set: set, state_path: str) -> None:
+    """Salva il set di UID processati, mantenendo al massimo gli ultimi 2000."""
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(state_path)), exist_ok=True)
+        # Ordina e tronca per evitare crescita illimitata del file
+        lista = sorted(uid_set)[-2000:]
+        with open(state_path, "w", encoding="utf-8") as f:
+            json.dump({"uid_processati": lista, "aggiornato_il": datetime.now().isoformat()}, f)
+    except OSError as e:
+        logger.warning("Poll cancelleria: impossibile salvare stato UID: %s", e)
+
+
+def poll_cancelleria_pec(
+    gf: "GestioneFascicoli",
+    config_pec: object,
+    state_path: str = "",
+    giorni_indietro: int = 30,
+) -> dict:
+    """
+    Scansiona la casella PEC alla ricerca di comunicazioni di cancelleria
+    e le associa automaticamente ai fascicoli tramite il numero RG nel subject.
+
+    Per ogni email trovata con soggetto che contiene un RG (es. "RG 139/2023")
+    corrispondente a un fascicolo aperto, crea automaticamente un'attività
+    di tipo COMUNICAZIONE_CANCELLERIA nella sezione omonima del fascicolo.
+
+    Args:
+        gf:              GestioneFascicoli istanziato
+        config_pec:      Oggetto config PEC (imap_host/imap_port/indirizzo/password)
+        state_path:      Percorso al file JSON di stato UID (default: accanto al db)
+        giorni_indietro: Finestra temporale IMAP
+
+    Returns:
+        dict con "trovati", "associati", "duplicati", "errori"
+    """
+    from pct.fascicoli import TipoAttivita, EsitoAttivita
+
+    report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+
+    if not config_pec or not getattr(config_pec, "imap_host", ""):
+        return report
+    if not getattr(config_pec, "indirizzo", "") or not getattr(config_pec, "password", ""):
+        return report
+
+    # Determina path stato UID
+    if not state_path:
+        db_path = getattr(gf, "db_path", "") or ""
+        base_dir = os.path.dirname(os.path.abspath(db_path)) if db_path else "."
+        state_path = os.path.join(base_dir, "pec_cancelleria_state.json")
+
+    uid_processati = _carica_uid_processati(state_path)
+
+    # Costruisce indice fascicoli per lookup rapido (numero_rg, str(anno_rg)) → fascicolo
+    fascicoli_index: dict[tuple, object] = {}
+    try:
+        tutti = gf.tutti() if hasattr(gf, "tutti") else list(
+            gf._fascicoli.values() if hasattr(gf, "_fascicoli") else []
+        )
+    except Exception:
+        tutti = []
+
+    for f in tutti:
+        nr = str(getattr(f, "numero_rg", "") or "").strip()
+        ar = str(getattr(f, "anno_rg", 0) or "").strip()
+        if nr and ar and ar != "0":
+            fascicoli_index[(nr, ar)] = f
+
+    if not fascicoli_index:
+        logger.debug("Poll cancelleria PEC: nessun fascicolo con RG — skip")
+        return report
+
+    uid_nuovi: set = set()
+
+    try:
+        mail = imaplib.IMAP4_SSL(
+            config_pec.imap_host,
+            getattr(config_pec, "imap_port", 993),
+        )
+        mail.login(config_pec.indirizzo, config_pec.password)
+        mail.select("INBOX")
+
+        since_dt = datetime.now() - timedelta(days=giorni_indietro)
+        since_str = _formato_data_imap(since_dt)
+
+        # Cerca email di accettazione/comunicazione cancelleria
+        criteri_ricerca = [
+            f'(SINCE "{since_str}" SUBJECT "ACCETTAZIONE")',
+            f'(SINCE "{since_str}" SUBJECT "RIFIUTO")',
+            f'(SINCE "{since_str}" SUBJECT "cancelleria")',
+        ]
+
+        uid_da_esaminare: list[bytes] = []
+        visti: set[bytes] = set()
+        for criterio in criteri_ricerca:
+            try:
+                _, data = mail.uid("SEARCH", None, criterio)
+                if data and data[0]:
+                    for uid_b in data[0].split():
+                        if uid_b not in visti:
+                            visti.add(uid_b)
+                            uid_da_esaminare.append(uid_b)
+            except imaplib.IMAP4.error:
+                pass
+
+        for uid_b in uid_da_esaminare:
+            uid_str = uid_b.decode()
+            uid_nuovi.add(uid_str)
+
+            if uid_str in uid_processati:
+                continue
+
+            try:
+                _, msg_data = mail.uid("FETCH", uid_b, "(RFC822.HEADER)")
+                if not msg_data or not msg_data[0]:
+                    uid_nuovi.add(uid_str)  # marca processato anche se fetch fallisce
+                    continue
+
+                raw_header = msg_data[0][1]
+                msg = _email_lib.message_from_bytes(raw_header)
+                subject = _decode_header_value(msg.get("Subject", ""))
+                from_ = _decode_header_value(msg.get("From", ""))
+                date_str = msg.get("Date", "")
+
+                report["trovati"] += 1
+
+                # Estrai RG dal subject
+                rg = _estrai_rg_da_subject(subject)
+                if not rg:
+                    # Nessun RG nel subject — marca come processato e prosegui
+                    uid_processati.add(uid_str)
+                    continue
+
+                numero_rg, anno_rg = rg
+
+                # Cerca fascicolo corrispondente
+                fasc = fascicoli_index.get((numero_rg, str(anno_rg)))
+                if not fasc:
+                    uid_processati.add(uid_str)
+                    continue
+
+                # Normalizza data dalla PEC
+                try:
+                    from email.utils import parsedate_to_datetime
+                    dt = parsedate_to_datetime(date_str)
+                    data_att = dt.strftime("%Y-%m-%d")
+                except Exception:
+                    data_att = datetime.now().strftime("%Y-%m-%d")
+
+                # Titolo attività (troncato a 120 char)
+                titolo_att = f"PEC: {subject}"[:120]
+
+                # Controlla duplicati: stessa data + stesso titolo
+                gia_presente = any(
+                    getattr(att, "tipo", None) == TipoAttivita.COMUNICAZIONE_CANCELLERIA
+                    and getattr(att, "titolo", "") == titolo_att
+                    and getattr(att, "data", "") == data_att
+                    for att in (getattr(fasc, "attivita", None) or [])
+                )
+
+                if gia_presente:
+                    report["duplicati"] += 1
+                    uid_processati.add(uid_str)
+                    continue
+
+                # Aggiunge l'attività al fascicolo
+                try:
+                    gf.aggiungi_attivita(
+                        fasc.id,
+                        tipo=TipoAttivita.COMUNICAZIONE_CANCELLERIA,
+                        data=data_att,
+                        titolo=titolo_att,
+                        descrizione=f"Da: {from_}",
+                        esito=EsitoAttivita.NON_APPLICABILE,
+                        note=(
+                            f"Caricata automaticamente dalla PEC il "
+                            f"{datetime.now().strftime('%d/%m/%Y %H:%M')} "
+                            f"(UID IMAP: {uid_str})"
+                        ),
+                    )
+                    report["associati"] += 1
+                    logger.info(
+                        "Poll cancelleria PEC: aggiunta comunicazione a fascicolo %s "
+                        "(RG %s/%s) — %s",
+                        fasc.id, numero_rg, anno_rg, subject[:60],
+                    )
+                except Exception as e:
+                    logger.error(
+                        "Poll cancelleria PEC: errore aggiungi_attivita fascicolo %s: %s",
+                        getattr(fasc, "id", "?"), e,
+                    )
+                    report["errori"] += 1
+
+                uid_processati.add(uid_str)
+
+            except Exception as e:
+                logger.warning("Poll cancelleria PEC: errore UID %s: %s", uid_str, e)
+                report["errori"] += 1
+
+        mail.logout()
+
+    except (imaplib.IMAP4.error, OSError) as e:
+        logger.warning("Poll cancelleria PEC: connessione IMAP fallita — %s", e)
+    except Exception as e:
+        logger.warning("Poll cancelleria PEC: errore inatteso — %s", e)
+    finally:
+        # Salva sempre lo stato aggiornato
+        if uid_nuovi:
+            uid_processati.update(uid_nuovi)
+            _salva_uid_processati(uid_processati, state_path)
+
+    return report

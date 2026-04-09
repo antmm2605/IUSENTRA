@@ -343,6 +343,60 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Polling esiti deposito fallito: %s", e)
 
+    # ---- Polling PEC → Comunicazioni di cancelleria (ogni 30 minuti) ----
+    # Scansiona la casella PEC alla ricerca di email di cancelleria (ACCETTAZIONE,
+    # RIFIUTO, ecc.) che contengono un numero RG e le associa automaticamente
+    # ai fascicoli corrispondenti nella sezione "Comunicazioni di cancelleria".
+    @scheduler.scheduled_job(CronTrigger(minute="*/30"), id="poll_pec_cancelleria")
+    def _poll_pec_cancelleria():
+        with app.app_context():
+            try:
+                from pct.fascicoli import GestioneFascicoli
+                from pct.config_studio import GestioneConfigStudio
+                from pct.polling_depositi import poll_cancelleria_pec
+
+                fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+                if not os.path.exists(fascicoli_db):
+                    return
+
+                config_pec = None
+                try:
+                    config_studio_db = app.config.get(
+                        "CONFIG_STUDIO_DB", "./config/config_studio.json"
+                    )
+                    cfg_studio = GestioneConfigStudio(db_path=config_studio_db)
+                    config_pec = getattr(cfg_studio.config, "pec", None)
+                    if config_pec and not getattr(config_pec, "imap_host", ""):
+                        config_pec = None
+                except Exception as e:
+                    logger.debug("[scheduler] Config PEC cancelleria non disponibile: %s", e)
+
+                if not config_pec:
+                    return
+
+                gf = GestioneFascicoli(db_path=fascicoli_db)
+                import os as _os
+                state_path = _os.path.join(
+                    _os.path.dirname(_os.path.abspath(fascicoli_db)),
+                    "pec_cancelleria_state.json",
+                )
+                report = poll_cancelleria_pec(
+                    gf=gf,
+                    config_pec=config_pec,
+                    state_path=state_path,
+                )
+                if report["trovati"] or report["associati"]:
+                    logger.info(
+                        "[scheduler] Poll PEC cancelleria: %d trovati, %d associati, "
+                        "%d duplicati, %d errori",
+                        report["trovati"],
+                        report["associati"],
+                        report.get("duplicati", 0),
+                        report["errori"],
+                    )
+            except Exception as e:
+                logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
+
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico
     app.config["PCT_SCHEDULER"] = scheduler

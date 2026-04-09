@@ -841,6 +841,12 @@
               {% endif %}
             </button>
 
+          <button class="btn btn-sm btn-outline-secondary" id="btnSyncPecCancelleria"
+                  title="Carica automaticamente le email di accettazione/cancelleria dalla casella PEC"
+                  onclick="_syncPecCancelleria(this)">
+            <i class="bi bi-envelope-arrow-down me-1"></i><span class="d-none d-sm-inline">Sync PEC</span>
+          </button>
+
           <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
                   data-bs-target="#modalDeposito">
             <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">Registra</span>
@@ -4190,5 +4196,51 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     suggestions.innerHTML = '';
   });
 })();
+
+// ── Sync PEC → Comunicazioni di cancelleria ──────────────────────────────────
+function _syncPecCancelleria(btn) {
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>In corso…';
+
+  fetch('/api/pec/poll-cancelleria', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+  })
+  .then(r => r.json())
+  .then(d => {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+    if (d.ok) {
+      const r = d.report || {};
+      const msg = d.messaggio || 'Operazione completata.';
+      const detail = r.associati
+        ? `<br><small class="text-muted">${r.trovati} email esaminate · ${r.associati} nuove · ${r.duplicati||0} già presenti</small>`
+        : `<br><small class="text-muted">${r.trovati||0} email esaminate</small>`;
+      _mostraToast('success', msg + detail);
+      if (r.associati) setTimeout(() => location.reload(), 1800);
+    } else {
+      _mostraToast('danger', d.errore || 'Errore durante il polling PEC.');
+    }
+  })
+  .catch(e => {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+    _mostraToast('danger', 'Errore di rete: ' + String(e));
+  });
+}
+
+function _mostraToast(tipo, html) {
+  const id = 'toast_pec_' + Date.now();
+  const el = document.createElement('div');
+  el.id = id;
+  el.className = `toast align-items-center text-bg-${tipo} border-0 show`;
+  el.setAttribute('role', 'alert');
+  el.style.cssText = 'position:fixed;bottom:1.5rem;right:1rem;z-index:9999;max-width:360px';
+  el.innerHTML = `<div class="d-flex"><div class="toast-body">${html}</div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()"></button></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 5000);
+}
 </script>
 {% endblock %}

@@ -2503,10 +2503,22 @@ def create_app(config: dict | None = None) -> Flask:
         if not val:
             return "—"
         try:
-            from datetime import date
-            d = date.fromisoformat(val[:10])
-            return d.strftime("%d/%m/%Y")
-        except ValueError:
+            from datetime import date, datetime as _dt
+            testo = str(val).strip()
+            # Rimuovi parte oraria se presente (es. "2023-06-08T10:00:00" → "2023-06-08")
+            for sep in ("T", " "):
+                if sep in testo:
+                    testo = testo.split(sep)[0]
+                    break
+            # Prova i formati più comuni in ordine
+            for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+                try:
+                    d = _dt.strptime(testo[:10], fmt).date()
+                    return d.strftime("%d/%m/%Y")
+                except ValueError:
+                    continue
+            return val
+        except Exception:
             return val
 
     @app.context_processor
@@ -8939,7 +8951,16 @@ read -r -p "Premi Invio per chiudere..." _
         pst_import_dir = _pst_import_dir_for_fascicolo(fasc)
         pst_import_dir.mkdir(parents=True, exist_ok=True)
         pst_import_pending = _pst_import_pending_count(fasc)
-        portale_documenti_catalogo = _catalogo_documenti_portale_fascicolo(fasc)
+        # Costruisce il catalogo documenti portale solo se ci sono metadati salvati
+        # (evita elaborazione inutile per fascicoli senza dati PST/PDP/PAT)
+        _ha_documenti_portale = any(
+            getattr(dep, "documenti_portale", None)
+            for dep in (fasc.depositi_pct or [])
+        )
+        if _ha_documenti_portale:
+            portale_documenti_catalogo = _catalogo_documenti_portale_fascicolo(fasc)
+        else:
+            portale_documenti_catalogo = []
         portale_documenti_per_deposito = _gruppa_catalogo_documenti_portale(portale_documenti_catalogo)
         polisweb_importato = "Importato da PolisWeb" in (fasc.note or "")
         ha_udienza_importata = any(
@@ -11861,6 +11882,77 @@ read -r -p "Premi Invio per chiudere..." _
             return jsonify({"ok": True, "raggiunti": n})
         except Exception as e:
             app.logger.exception("Errore api_sync_broadcast: %s", e)
+            return jsonify({"ok": False, "errore": str(e)})
+
+    # ================================================================ PEC CANCELLERIA POLLING
+
+    @app.route("/api/pec/poll-cancelleria", methods=["POST"])
+    def api_pec_poll_cancelleria():
+        """
+        Avvia manualmente il polling PEC per caricare le comunicazioni di cancelleria
+        nei fascicoli corrispondenti (filtrando per numero RG nel subject).
+
+        Richiede permesso 'fascicoli.scrivi'.
+        """
+        try:
+            from pct.fascicoli import GestioneFascicoli
+            from pct.config_studio import GestioneConfigStudio
+            from pct.polling_depositi import poll_cancelleria_pec
+
+            u = g.utente_corrente
+            if not u or not u.ha_permesso("fascicoli.scrivi"):
+                return jsonify({"ok": False, "errore": "Non autorizzato"}), 403
+
+            fascicoli_db = app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json")
+            if not os.path.exists(fascicoli_db):
+                return jsonify({"ok": False, "errore": "Database fascicoli non trovato"}), 404
+
+            config_pec = None
+            try:
+                config_studio_db = app.config.get("CONFIG_STUDIO_DB", "./config/config_studio.json")
+                cfg_studio = GestioneConfigStudio(db_path=config_studio_db)
+                config_pec = getattr(cfg_studio.config, "pec", None)
+                if config_pec and not getattr(config_pec, "imap_host", ""):
+                    config_pec = None
+            except Exception as e:
+                app.logger.debug("Config PEC non disponibile: %s", e)
+
+            if not config_pec:
+                return jsonify({
+                    "ok": False,
+                    "errore": "PEC IMAP non configurata. Vai in Impostazioni → PEC per configurarla.",
+                })
+
+            gf = GestioneFascicoli(db_path=fascicoli_db)
+            state_path = os.path.join(
+                os.path.dirname(os.path.abspath(fascicoli_db)),
+                "pec_cancelleria_state.json",
+            )
+            report = poll_cancelleria_pec(
+                gf=gf,
+                config_pec=config_pec,
+                state_path=state_path,
+            )
+
+            if report["associati"]:
+                msg = (
+                    f"{report['associati']} comunicazion{'e' if report['associati'] == 1 else 'i'} "
+                    f"caricata{'.' if report['associati'] == 1 else '.'}"
+                )
+            elif report["trovati"]:
+                msg = "Nessuna comunicazione nuova trovata (già tutte caricate)."
+            else:
+                msg = "Nessuna email di cancelleria trovata nella casella PEC."
+
+            audit("pec.poll_cancelleria", dettagli=str(report))
+            app.logger.info(
+                "Poll PEC cancelleria manuale: %d trovati, %d associati, %d errori",
+                report["trovati"], report["associati"], report["errori"],
+            )
+            return jsonify({"ok": True, "messaggio": msg, "report": report})
+
+        except Exception as e:
+            app.logger.exception("Errore api_pec_poll_cancelleria: %s", e)
             return jsonify({"ok": False, "errore": str(e)})
 
     # ================================================================ ADMIN DATABASE

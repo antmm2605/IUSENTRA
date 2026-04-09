@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.23
+HACS Local Signer — v1.5.25
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.24"
+VERSION = "1.5.25"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1288,8 +1288,15 @@ def _pst_prepare_authenticated_session(
 ) -> tuple[Optional[dict], bool]:
     if not session_entry:
         return None, False
+
+    # Se l'host è già noto come mTLS-obbligatorio, non tentare mai cookie-only:
+    # andare direttamente al certificato riduce i prompt PIN perché tutte le
+    # chiamate successive rientrano nella finestra di cache-PIN di Windows.
+    host = _pst_host(_pst_url_ricerca(base_url))
+    host_needs_mtls = host in _mTLS_required_hosts
+
     if not force and _pst_session_can_use_cookie_only(session_entry):
-        return session_entry, True
+        return session_entry, not host_needs_mtls
 
     cookie_file = str(session_entry.get("cookie_file") or "").strip()
     esito = _pst_preflight_auth_curl(
@@ -1307,7 +1314,10 @@ def _pst_prepare_authenticated_session(
         auth_ready=True,
     )
     refreshed = _resolve_pst_session_entry(session_entry["session_id"]) or session_entry
-    return refreshed, True
+    # Dopo preflight, controlla se l'host richiede mTLS (potrebbe essere
+    # stato registrato da una sessione precedente nella stessa istanza).
+    prefer_cookie = host not in _mTLS_required_hosts
+    return refreshed, prefer_cookie
 
 
 def _create_pin_session(lib_path: str, pin: str, slot_id: Optional[int] = None) -> tuple[str, object]:
@@ -1456,10 +1466,12 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             raise RuntimeError("Nessun certificato nel token")
 
         cert_der = bytes(certs[0][Attribute.VALUE])
+        signed_attrs_der = _build_signed_attrs_der_inline(documento)
 
-        # Firma RSA-PKCS1v15-SHA256 in-device
-        firma_bytes = bytes(session.sign(
-            privkeys[0], documento, mechanism=Mechanism.SHA256_RSA_PKCS
+        # Firma RSA-PKCS1v15-SHA256 in-device sui SignedAttributes CAdES.
+        # python-pkcs11 espone la firma sul private key object, non sulla sessione.
+        firma_bytes = bytes(privkeys[0].sign(
+            signed_attrs_der, mechanism=Mechanism.SHA256_RSA_PKCS
         ))
 
     # CAdES-BES minimale usando asn1crypto
@@ -1467,7 +1479,12 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
         from pct.firma_pkcs11 import _build_cades_bes
         firmato = _build_cades_bes(documento, firma_bytes, cert_der)
     except ImportError:
-        firmato = _build_cades_bes_inline(documento, firma_bytes, cert_der)
+        firmato = _build_cades_bes_inline(
+            documento,
+            firma_bytes,
+            cert_der,
+            signed_attrs_der=signed_attrs_der,
+        )
 
     # Informazioni certificato
     try:
@@ -1484,7 +1501,29 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
     return firmato, {"intestatario": intestatario, "scadenza": scadenza}
 
 
-def _build_cades_bes_inline(documento: bytes, firma: bytes, cert_der: bytes) -> bytes:
+def _build_signed_attrs_der_inline(documento: bytes) -> bytes:
+    from asn1crypto import cms, core
+
+    doc_digest = hashlib.sha256(documento).digest()
+    signed_attrs = cms.CMSAttributes([
+        cms.CMSAttribute({
+            "type": cms.CMSAttributeType("content_type"),
+            "values": cms.SetOfContentType([cms.ContentType("data")]),
+        }),
+        cms.CMSAttribute({
+            "type": cms.CMSAttributeType("message_digest"),
+            "values": cms.SetOfOctetString([core.OctetString(doc_digest)]),
+        }),
+    ])
+    return signed_attrs.dump()
+
+
+def _build_cades_bes_inline(
+    documento: bytes,
+    firma: bytes,
+    cert_der: bytes,
+    signed_attrs_der: Optional[bytes] = None,
+) -> bytes:
     """
     Costruisce una busta CAdES-BES minimale (PKCS#7 SignedData).
     Usato solo se pct.firma_pkcs11 non è disponibile.
@@ -1499,18 +1538,8 @@ def _build_cades_bes_inline(documento: bytes, firma: bytes, cert_der: bytes) -> 
         serial = cert_obj.serial_number
 
         doc_digest = hashlib.sha256(documento).digest()
-
-        # SignedAttributes minimali
-        signed_attrs = cms.CMSAttributes([
-            cms.CMSAttribute({
-                "type": cms.CMSAttributeType("content_type"),
-                "values": cms.SetOfContentType([cms.ContentType("data")]),
-            }),
-            cms.CMSAttribute({
-                "type": cms.CMSAttributeType("message_digest"),
-                "values": cms.SetOfOctetString([core.OctetString(doc_digest)]),
-            }),
-        ])
+        signed_attrs_der = signed_attrs_der or _build_signed_attrs_der_inline(documento)
+        signed_attrs = cms.CMSAttributes.load(signed_attrs_der)
 
         signer_info = cms.SignerInfo({
             "version": "v1",
@@ -2616,17 +2645,24 @@ def _soap_call_pst_session(
             cookie_file=cookie_file,
         )
 
-    if prefer_cookie_only and cookie_file:
+    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
         # Quando prefer_cookie_only=True il preflight ha già stabilito una sessione
-        # autenticata con cookie validi. Tentiamo SEMPRE cookie-only prima del cert,
-        # ignorando _mTLS_required_hosts, per evitare prompt PIN ripetuti sulle
-        # smart card Windows (Aruba Key, Bit4id, CNS/CIE).
+        # autenticata con cookie validi. Tentiamo cookie-only solo se il portale
+        # non è già noto come mTLS-obbligatorio (per evitare prompt PIN ripetuti).
         try:
             return _run(None)
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST cookie-only fallback su certificato per %s: %s", url, e)
+            # Il portale richiede mTLS per ogni chiamata: registra l'host così le
+            # chiamate successive saltano il tentativo cookie e vanno subito al cert,
+            # restando all'interno della finestra di cache-PIN di Windows.
+            with _mTLS_required_lock:
+                _mTLS_required_hosts.add(host)
+            log.info(
+                "PST host %s: cookie-only rifiutato, prossime chiamate useranno"
+                " direttamente il certificato (cache-PIN Windows).", host
+            )
     return _run(cert_thumbprint)
 
 
@@ -2653,15 +2689,20 @@ def _soap_call_pst_session_raw(
             cookie_file=cookie_file,
         )
 
-    if prefer_cookie_only and cookie_file:
-        # Stessa logica di _soap_call_pst_session: dopo preflight i cookie sono
-        # validi → tentiamo SEMPRE cookie-only per evitare prompt PIN ripetuti.
+    if prefer_cookie_only and cookie_file and host not in _mTLS_required_hosts:
+        # Stessa logica di _soap_call_pst_session: tenta cookie-only solo se il
+        # portale non è già noto come mTLS-obbligatorio.
         try:
             return _run(None)
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST raw cookie-only fallback su certificato per %s: %s", url, e)
+            with _mTLS_required_lock:
+                _mTLS_required_hosts.add(host)
+            log.info(
+                "PST host %s (raw): cookie-only rifiutato, future chiamate"
+                " useranno direttamente il certificato.", host
+            )
     return _run(cert_thumbprint)
 
 
@@ -2687,7 +2728,9 @@ def _soap_call_pst_session_batch_raw(
         }
         for req in (requests or [])
     ]
-    if prefer_cookie_only and cookie_file:
+    first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
+    host = _pst_host(first_url) if first_url else ""
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
             return _soap_call_curl_batch_raw(
                 effective_requests,
@@ -2696,7 +2739,13 @@ def _soap_call_pst_session_batch_raw(
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST batch cookie-only fallback su certificato: %s", e)
+            if host:
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+                log.info(
+                    "PST host %s (batch): cookie-only rifiutato, future chiamate"
+                    " useranno direttamente il certificato.", host
+                )
     return _soap_call_curl_batch_raw(
         effective_requests,
         cert_thumbprint=cert_thumbprint,
@@ -2722,7 +2771,9 @@ def _soap_call_pst_session_batch_raw_best_effort(
         }
         for req in (requests or [])
     ]
-    if prefer_cookie_only and cookie_file:
+    first_url = str((effective_requests[0].get("url") if effective_requests else None) or "")
+    host = _pst_host(first_url) if first_url else ""
+    if prefer_cookie_only and cookie_file and (not host or host not in _mTLS_required_hosts):
         try:
             return _soap_call_curl_batch_raw_best_effort(
                 effective_requests,
@@ -2731,7 +2782,13 @@ def _soap_call_pst_session_batch_raw_best_effort(
         except Exception as e:
             if not _pst_cookie_retry_requires_cert(e):
                 raise
-            log.debug("PST batch best-effort cookie-only fallback su certificato: %s", e)
+            if host:
+                with _mTLS_required_lock:
+                    _mTLS_required_hosts.add(host)
+                log.info(
+                    "PST host %s (batch best-effort): cookie-only rifiutato,"
+                    " future chiamate useranno direttamente il certificato.", host
+                )
     return _soap_call_curl_batch_raw_best_effort(
         effective_requests,
         cert_thumbprint=cert_thumbprint,

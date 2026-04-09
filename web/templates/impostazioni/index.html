@@ -653,15 +653,15 @@
             <button type="button" class="btn-help"
                     data-bs-toggle="popover"
                     data-bs-title="Percorso alla libreria PKCS#11"
-                    data-bs-content="<p>Lascia vuoto per auto-rilevamento (cerca opensc-pkcs11.so nelle posizioni standard).</p><p>Percorsi comuni Linux: <code>/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so</code></p><p>Docker: aggiungi nel compose <code>volumes: - /run/pcscd/pcscd.comm:/run/pcscd/pcscd.comm</code> e installa pcscd+opensc sul host.</p>">?</button>
+                    data-bs-content="<p>Su Windows con <strong>Local Signer</strong> lascia normalmente il campo vuoto: HACS prova l'auto-rilevamento della DLL del token (es. <code>bit4xpki.dll</code>).</p><p>Compila questo campo solo se vuoi forzare una libreria specifica oppure se stai usando PKCS#11 lato server/container.</p><p>Esempio Linux/OpenSC: <code>/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so</code></p>">?</button>
           </label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-hdd-rack"></i></span>
             <input type="text" name="pkcs11_library" class="form-control font-monospace"
                    value="{{ cfg.firma.pkcs11_library }}"
-                   placeholder="/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so (auto se vuoto)">
+                   placeholder="bit4xpki.dll o opensc-pkcs11.so (auto se vuoto)">
           </div>
-          <div class="form-text">Lascia vuoto per auto-rilevamento nelle posizioni standard (OpenSC).</div>
+          <div class="form-text">Su Windows con Local Signer lascia vuoto: l'auto-rilevamento prova la DLL del token. Su Linux/macOS puoi indicare una libreria OpenSC se ti serve forzarla.</div>
         </div>
         <div class="col-md-4">
           <label class="form-label fw-semibold">Slot ID <span class="text-muted fw-normal">(opzionale)</span></label>

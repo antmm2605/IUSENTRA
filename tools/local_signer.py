@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.23
+HACS Local Signer — v1.5.25
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -70,7 +70,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.24"
+VERSION = "1.5.25"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1466,10 +1466,12 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
             raise RuntimeError("Nessun certificato nel token")
 
         cert_der = bytes(certs[0][Attribute.VALUE])
+        signed_attrs_der = _build_signed_attrs_der_inline(documento)
 
-        # Firma RSA-PKCS1v15-SHA256 in-device
-        firma_bytes = bytes(session.sign(
-            privkeys[0], documento, mechanism=Mechanism.SHA256_RSA_PKCS
+        # Firma RSA-PKCS1v15-SHA256 in-device sui SignedAttributes CAdES.
+        # python-pkcs11 espone la firma sul private key object, non sulla sessione.
+        firma_bytes = bytes(privkeys[0].sign(
+            signed_attrs_der, mechanism=Mechanism.SHA256_RSA_PKCS
         ))
 
     # CAdES-BES minimale usando asn1crypto
@@ -1477,7 +1479,12 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
         from pct.firma_pkcs11 import _build_cades_bes
         firmato = _build_cades_bes(documento, firma_bytes, cert_der)
     except ImportError:
-        firmato = _build_cades_bes_inline(documento, firma_bytes, cert_der)
+        firmato = _build_cades_bes_inline(
+            documento,
+            firma_bytes,
+            cert_der,
+            signed_attrs_der=signed_attrs_der,
+        )
 
     # Informazioni certificato
     try:
@@ -1494,7 +1501,29 @@ def _firma_inline(lib_path: str, documento: bytes, pin: str,
     return firmato, {"intestatario": intestatario, "scadenza": scadenza}
 
 
-def _build_cades_bes_inline(documento: bytes, firma: bytes, cert_der: bytes) -> bytes:
+def _build_signed_attrs_der_inline(documento: bytes) -> bytes:
+    from asn1crypto import cms, core
+
+    doc_digest = hashlib.sha256(documento).digest()
+    signed_attrs = cms.CMSAttributes([
+        cms.CMSAttribute({
+            "type": cms.CMSAttributeType("content_type"),
+            "values": cms.SetOfContentType([cms.ContentType("data")]),
+        }),
+        cms.CMSAttribute({
+            "type": cms.CMSAttributeType("message_digest"),
+            "values": cms.SetOfOctetString([core.OctetString(doc_digest)]),
+        }),
+    ])
+    return signed_attrs.dump()
+
+
+def _build_cades_bes_inline(
+    documento: bytes,
+    firma: bytes,
+    cert_der: bytes,
+    signed_attrs_der: Optional[bytes] = None,
+) -> bytes:
     """
     Costruisce una busta CAdES-BES minimale (PKCS#7 SignedData).
     Usato solo se pct.firma_pkcs11 non è disponibile.
@@ -1509,18 +1538,8 @@ def _build_cades_bes_inline(documento: bytes, firma: bytes, cert_der: bytes) -> 
         serial = cert_obj.serial_number
 
         doc_digest = hashlib.sha256(documento).digest()
-
-        # SignedAttributes minimali
-        signed_attrs = cms.CMSAttributes([
-            cms.CMSAttribute({
-                "type": cms.CMSAttributeType("content_type"),
-                "values": cms.SetOfContentType([cms.ContentType("data")]),
-            }),
-            cms.CMSAttribute({
-                "type": cms.CMSAttributeType("message_digest"),
-                "values": cms.SetOfOctetString([core.OctetString(doc_digest)]),
-            }),
-        ])
+        signed_attrs_der = signed_attrs_der or _build_signed_attrs_der_inline(documento)
+        signed_attrs = cms.CMSAttributes.load(signed_attrs_der)
 
         signer_info = cms.SignerInfo({
             "version": "v1",

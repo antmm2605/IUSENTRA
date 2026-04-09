@@ -4,6 +4,7 @@ import base64
 import io
 import importlib.util
 import os
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -94,6 +95,88 @@ def test_thumbprint_windows_viene_formattato_per_schannel():
 
     assert module._format_windows_cert_spec("AA BB CC 11") == r"CurrentUser\MY\AABBCC11"
     assert module._format_windows_cert_spec(r"CurrentUser\MY\ABCDEF") == r"CurrentUser\MY\ABCDEF"
+
+
+def test_firma_inline_usa_privkey_sign_e_signed_attrs(monkeypatch):
+    module = _load_local_signer()
+    chiamate = {}
+
+    fake_attribute = SimpleNamespace(CLASS="class", VALUE="value")
+    fake_object_class = SimpleNamespace(PRIVATE_KEY="private_key", CERTIFICATE="certificate")
+    fake_mechanism = SimpleNamespace(SHA256_RSA_PKCS="sha256-rsa")
+
+    class _FakePrivateKey:
+        def sign(self, payload, mechanism=None):
+            chiamate["payload"] = payload
+            chiamate["mechanism"] = mechanism
+            return b"firma-inline"
+
+    class _FakeCert:
+        def __getitem__(self, key):
+            if key == fake_attribute.VALUE:
+                return b"certificato-der-fittizio"
+            raise KeyError(key)
+
+    class _FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def get_objects(self, query):
+            kind = query[fake_attribute.CLASS]
+            if kind == fake_object_class.PRIVATE_KEY:
+                return [_FakePrivateKey()]
+            if kind == fake_object_class.CERTIFICATE:
+                return [_FakeCert()]
+            return []
+
+        def sign(self, *args, **kwargs):
+            raise AssertionError("session.sign non deve essere usato nel fallback inline")
+
+    class _FakeToken:
+        def open(self, user_pin=None):
+            assert user_pin == "123456"
+            return _FakeSession()
+
+    class _FakeSlot:
+        def get_token(self):
+            return _FakeToken()
+
+    class _FakeLib:
+        def get_slots(self, token_present=True):
+            assert token_present is True
+            return [_FakeSlot()]
+
+    fake_pkcs11 = SimpleNamespace(
+        lib=lambda _path: _FakeLib(),
+        Attribute=fake_attribute,
+        Mechanism=fake_mechanism,
+        ObjectClass=fake_object_class,
+    )
+
+    monkeypatch.setitem(sys.modules, "pkcs11", fake_pkcs11)
+    monkeypatch.setattr(
+        module,
+        "_build_cades_bes_inline",
+        lambda documento, firma, cert_der, signed_attrs_der=None: {
+            "documento": documento,
+            "firma": firma,
+            "cert_der": cert_der,
+            "signed_attrs_der": signed_attrs_der,
+        },
+    )
+
+    firmato, info = module._firma_inline("C:\\Windows\\System32\\bit4xpki.dll", b"abc", "123456", 0)
+
+    assert firmato["firma"] == b"firma-inline"
+    assert firmato["documento"] == b"abc"
+    assert firmato["cert_der"] == b"certificato-der-fittizio"
+    assert firmato["signed_attrs_der"] == chiamate["payload"]
+    assert chiamate["payload"] != b"abc"
+    assert chiamate["mechanism"] == fake_mechanism.SHA256_RSA_PKCS
+    assert info == {"intestatario": "", "scadenza": ""}
 
 
 def test_http_401_pst_diventa_messaggio_operativo():
@@ -1143,6 +1226,8 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
     assert f"InstallaLocalSigner-{version}.command" in body
     assert f"InstallaLocalSigner-{version}.run" in body
     assert f"Versione corrente pubblicata: v{version}" in body
+    assert "Su Windows con Local Signer lascia vuoto" in body
+    assert "bit4xpki.dll" in body
     assert "https://studio-legale-pct-production.up.railway.app/impostazioni?tab=firma" in body
 
 

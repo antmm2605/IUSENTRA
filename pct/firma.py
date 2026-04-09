@@ -404,6 +404,7 @@ def _analizza_cades(data: bytes) -> list[dict]:
 
         for sinfo in sinfos:
             cert = None
+            firma_dt = None
             sid = sinfo["sid"]
             # Abbina il certificato al firmatario tramite issuer+serial
             if sid.name == "issuer_and_serial_number":
@@ -453,6 +454,22 @@ def _analizza_cades(data: bytes) -> list[dict]:
             except Exception:
                 algo = "RSA + SHA-256"
 
+            try:
+                signed_attrs = sinfo["signed_attrs"]
+                if signed_attrs is not None:
+                    for attr in signed_attrs:
+                        if attr["type"].native != "signing_time":
+                            continue
+                        values = attr["values"]
+                        if not values:
+                            continue
+                        firma_dt = values[0].native
+                        if firma_dt is not None and getattr(firma_dt, "tzinfo", None) is None:
+                            firma_dt = firma_dt.replace(tzinfo=timezone.utc)
+                        break
+            except Exception:
+                firma_dt = None
+
             risultati.append({
                 "intestatario": cn_val or org_val or "Sconosciuto",
                 "cn": cn_val,
@@ -467,6 +484,7 @@ def _analizza_cades(data: bytes) -> list[dict]:
                 "seriale": format(cert.serial_number, "X"),
                 "algoritmo": algo,
                 "formato": "CAdES",
+                "data_firma": firma_dt.isoformat() if firma_dt else "",
             })
 
         return risultati
@@ -517,6 +535,7 @@ def _analizza_pades(data: bytes) -> list[dict]:
                     "seriale": format(cert.serial_number, "X"),
                     "algoritmo": "RSA + SHA-256",
                     "formato": "PAdES",
+                    "data_firma": "",
                 })
             except Exception:
                 continue

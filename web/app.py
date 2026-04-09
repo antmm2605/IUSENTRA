@@ -1999,6 +1999,111 @@ def create_app(config: dict | None = None) -> Flask:
                 continue
         return None
 
+    def _firma_payload_corrente_o_sibling(percorso: Path, nome_file: str, data_corrente: bytes) -> bytes:
+        """Restituisce il payload firmato reale (.p7m) anche nei flussi legacy PKCS#11."""
+        nome = str(nome_file or "").strip().lower()
+        if not nome.endswith(".p7m"):
+            return data_corrente
+        try:
+            from pct.firma import _is_cades as _is_cades_payload
+        except Exception:
+            _is_cades_payload = None
+        try:
+            if _is_cades_payload and _is_cades_payload(data_corrente):
+                return data_corrente
+        except Exception:
+            pass
+        sibling = Path(str(percorso) + ".p7m")
+        if sibling.exists():
+            try:
+                return _decrypt_doc(sibling.read_bytes())
+            except Exception:
+                return data_corrente
+        return data_corrente
+
+    def _luogo_timbro_firma_visibile() -> str:
+        try:
+            indirizzo = str(get_config_studio().config.studio.indirizzo or "").strip()
+        except Exception:
+            indirizzo = ""
+        if not indirizzo:
+            return ""
+        parti = [p.strip() for p in re.split(r"[;,|-]", indirizzo) if p.strip()]
+        if not parti:
+            return ""
+        candidato = re.sub(r"^\d{5}\s+", "", parti[-1]).strip()
+        if not candidato:
+            return ""
+        return candidato if len(candidato) <= 48 else ""
+
+    def _formatta_data_firma_visibile(valore: str) -> str:
+        raw = str(valore or "").strip()
+        if not raw:
+            return ""
+        try:
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except Exception:
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                try:
+                    dt = datetime.strptime(raw, fmt)
+                    break
+                except Exception:
+                    dt = None
+            if dt is None:
+                return ""
+        try:
+            if getattr(dt, "tzinfo", None) is not None:
+                dt = dt.astimezone()
+        except Exception:
+            pass
+        return dt.strftime("%d/%m/%Y ore %H:%M")
+
+    def _testo_timbro_firma_visibile(firme: list[dict]) -> str:
+        if not firme:
+            return ""
+        firma = (firme or [{}])[0] or {}
+        intestatario = str(firma.get("intestatario") or firma.get("cn") or "").strip()
+        data_firma = _formatta_data_firma_visibile(str(firma.get("data_firma") or "").strip())
+        righe = ["Per autentica e sottoscrizione"]
+        if intestatario and data_firma:
+            righe.append(f"Firmato da: {intestatario} in data {data_firma}")
+        elif intestatario:
+            righe.append(f"Firmato da: {intestatario}")
+        elif data_firma:
+            righe.append(f"Firmato in data {data_firma}")
+        luogo = _luogo_timbro_firma_visibile()
+        if luogo:
+            righe.append(f"Luogo: {luogo}")
+        return "\n".join(righe)
+
+    def _applica_timbro_firma_visibile(pdf_data: bytes, firme: list[dict]) -> bytes:
+        if not pdf_data.startswith(b"%PDF"):
+            return pdf_data
+        testo = _testo_timbro_firma_visibile(firme)
+        if not testo:
+            return pdf_data
+        try:
+            from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+            from pyhanko.pdf_utils.layout import BoxConstraints
+            from pyhanko.stamp import TextStamp, TextStampStyle
+
+            buf_in = io.BytesIO(pdf_data)
+            writer = IncrementalPdfFileWriter(buf_in)
+            style = TextStampStyle(
+                stamp_text=testo,
+                background_opacity=0.88,
+                border_width=2,
+                border_color=(0.80, 0.12, 0.12),
+            )
+            stamp = TextStamp(writer, style, box=BoxConstraints(width=390, height=82))
+            stamp.apply(0, 24, 24)
+            buf_out = io.BytesIO()
+            writer.write(buf_out)
+            return buf_out.getvalue()
+        except Exception as e:
+            app.logger.warning("Impossibile applicare il timbro firma visibile: %s", e)
+            return pdf_data
+
     def _catalogo_documenti_portale_fascicolo(fasc: Fascicolo) -> list[dict]:
         documenti_locali_per_deposito: dict[str, dict[str, list[Documento]]] = {}
         for doc in fasc.documenti or []:
@@ -9464,10 +9569,11 @@ read -r -p "Premi Invio per chiudere..." _
             fasc = gf.get(id_fasc)
             doc = next(d for d in fasc.documenti if d.id == id_doc)
             data = _decrypt_doc(percorso.read_bytes())
+            firma_payload = _firma_payload_corrente_o_sibling(percorso, doc.nome, data)
             preview_payload = data
             preview_name = doc.nome
             if doc.nome.lower().endswith(".p7m"):
-                contenuto_estratto = _estrai_contenuto_p7m_per_preview(data)
+                contenuto_estratto = _estrai_contenuto_p7m_per_preview(firma_payload)
                 if contenuto_estratto:
                     preview_payload = contenuto_estratto
                     preview_name = _nome_preview_documento(doc.nome)
@@ -9483,7 +9589,14 @@ read -r -p "Premi Invio per chiudere..." _
                             preview_name = nome_preview
             preview = _mime_preview_documento(preview_name, preview_payload)
             if not preview:
-                return send_file(io.BytesIO(data), as_attachment=True, download_name=doc.nome)
+                return send_file(io.BytesIO(firma_payload), as_attachment=True, download_name=doc.nome)
+            if doc.nome.lower().endswith(".p7m") and preview_payload.startswith(b"%PDF"):
+                try:
+                    from pct.firma import analizza_firma_documento
+                    firme = analizza_firma_documento(firma_payload, doc.nome)
+                except Exception:
+                    firme = []
+                preview_payload = _applica_timbro_firma_visibile(preview_payload, firme)
             mime, nome_download = preview
             audit("fascicoli.documento.visualizza", "fascicolo", id_fasc,
                   dettagli=f"doc {id_doc} — {doc.nome}")
@@ -9861,18 +9974,26 @@ read -r -p "Premi Invio per chiudere..." _
                 intestatario = firma.intestatario
                 scadenza_str = stato_cert["scadenza"]
 
-            # Aggiorna il record documento nel fascicolo
-            import os as _os
             nome_firmato = doc.nome
             if not nome_firmato.endswith(".p7m"):
                 nome_firmato = nome_firmato + ".p7m"
-            doc.nome = nome_firmato
-            doc.firmato_digitalmente = True
-            if _os.path.exists(firmato_path):
-                doc.dimensione_bytes = _os.path.getsize(firmato_path)
+            if not os.path.exists(firmato_path):
+                return jsonify({"ok": False, "messaggio": "Il file firmato non è stato generato dal token PKCS#11."}), 500
 
-            fasc.modificato_il = __import__("datetime").datetime.now().isoformat()
-            gf._salva()
+            contenuto_firmato = Path(firmato_path).read_bytes()
+            gf.sostituisci_documento(
+                id_fasc=id_fasc,
+                id_doc=id_doc,
+                nome_file=nome_firmato,
+                contenuto=_encrypt_doc(contenuto_firmato),
+                caricato_da=u.username if u else "",
+                note="Versione firmata per deposito",
+            )
+            doc = gf.segna_firmato(id_fasc, id_doc)
+            try:
+                Path(firmato_path).unlink(missing_ok=True)
+            except Exception:
+                pass
 
             audit("firma.pkcs11", "documento", id_doc,
                   dettagli=f"Firmato via PKCS#11 da {intestatario} — {nome_firmato}")

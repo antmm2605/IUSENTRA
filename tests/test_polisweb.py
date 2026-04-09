@@ -2388,7 +2388,7 @@ def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):
 
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
-    assert response.data.startswith(b"%PDF-1.4")
+    assert response.data.startswith(b"%PDF-")
 
 
 def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path):
@@ -2457,7 +2457,98 @@ def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path
 
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
-    assert response.data.startswith(b"%PDF-1.4")
+    assert response.data.startswith(b"%PDF-")
+
+
+def test_visualizza_documento_p7m_mostra_timbro_firma_visibile(tmp_path, monkeypatch):
+    from asn1crypto import cms, algos
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+        nome_completo="Roberto Montagnese",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 910/2025",
+        tipo=TipoFascicolo.CIVILE,
+    )
+    buf_pdf = io.BytesIO()
+    c = canvas.Canvas(buf_pdf, pagesize=A4)
+    c.drawString(90, 760, "Citazione di prova")
+    c.save()
+    pdf_bytes = buf_pdf.getvalue()
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "citazione.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        pdf_bytes,
+        caricato_da="avvocato",
+    )
+
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data"},
+            "signer_infos": [],
+        }
+    )
+    p7m_detached = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
+    gestione_fascicoli.sostituisci_documento(
+        fascicolo.id,
+        doc.id,
+        nome_file="citazione.pdf.p7m",
+        contenuto=p7m_detached,
+        caricato_da="avvocato",
+        note="Versione firmata per deposito",
+    )
+    gestione_fascicoli.segna_firmato(fascicolo.id, doc.id)
+
+    monkeypatch.setattr(
+        "pct.firma.analizza_firma_documento",
+        lambda data, nome_file="": [
+            {
+                "intestatario": "ROBERTO MONTAGNESE",
+                "data_firma": "2024-12-11T17:46:00",
+                "formato": "CAdES",
+                "scaduto": False,
+                "avviso_imminente": False,
+            }
+        ],
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza")
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    assert response.data.startswith(b"%PDF-")
+    assert b"Per autentica e sottoscrizione" in response.data
+    assert b"ROBERTO MONTAGNESE" in response.data
 
 
 def test_route_home_sigit_mostra_selettore_cpt_cgt(tmp_path):

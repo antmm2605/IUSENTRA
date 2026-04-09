@@ -6724,10 +6724,9 @@ read -r -p "Premi Invio per chiudere..." _
             apri_portale = f.get("apri_portale") == "1"
             acquisisci_portale = f.get("acquisisci_portale") == "1"
             mantieni_albero_originale = f.get("mantieni_albero_originale") == "1"
-            # Se l'utente non chiede di mantenere l'albero originale,
-            # i documenti prefetched non devono essere importati/acquisiti.
-            if not mantieni_albero_originale:
-                documenti_pw = None
+            # La checkbox controlla solo la copia tecnica separata dell'albero originale.
+            # I metadati dei documenti/depositi già ricevuti dal portale restano sempre
+            # disponibili per l'importazione e per la vista a buste del fascicolo.
             if id_fasc_target:
                 fascicolo_target = gf.get(id_fasc_target)
                 if (

@@ -1499,6 +1499,79 @@ def test_dettaglio_fascicolo_sezioni_collassabili(tmp_path):
     assert 'data-bs-target="#collapse-sezione-udienze-scadenze"' in body
     assert 'data-bs-target="#collapse-sezione-comunicazioni-cancelleria"' in body
     assert 'data-bs-target="#collapse-sezione-istanze"' in body
+    assert 'class="collapse" id="collapse-sezione-profilo"' in body
+    assert 'class="collapse" id="collapse-documenti-portale-telematico"' in body
+    assert 'class="collapse" id="collapse-sezione-documenti-fascicolo"' in body
+    assert 'class="collapse" id="collapse-sezione-attivita-processuali"' in body
+    assert 'class="collapse" id="collapse-sezione-udienze-scadenze"' in body
+    assert 'class="collapse" id="collapse-sezione-comunicazioni-cancelleria"' in body
+    assert 'class="collapse" id="collapse-sezione-istanze"' in body
+
+
+def test_dettaglio_fascicolo_mostra_ricevute_pec_in_cancelleria(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 707/2025",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="707",
+        anno_rg=2025,
+    )
+    gestione_fascicoli.aggiungi_esito_deposito(
+        fascicolo.id,
+        tipo_atto="Comparsa conclusionale",
+        pec_destinatario="tribunale.palmi@giustiziapec.it",
+        stato="ACCETTATO_CANCELLERIA",
+        ricevuta_accettazione="ACC MSG 001",
+        ricevuta_consegna="CONS MSG 002",
+        ricevuta_controlli_automatici="CTRL OK 003",
+        esito_controlli="OK",
+        ricevuta_cancelleria="CANC OK 004",
+        registrato_da="admin",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Visualizza ricevute e comunicazioni PEC" in body
+    assert "Ricevuta di accettazione PEC" in body
+    assert "Ricevuta di avvenuta consegna" in body
+    assert "Esito controlli automatici" in body
+    assert "Esito cancelleria" in body
+    assert "ACC MSG 001" in body
+    assert "CONS MSG 002" in body
+    assert "CTRL OK 003" in body
+    assert "CANC OK 004" in body
+    sezione_cancelleria = body.split('id="sezione-comunicazioni-cancelleria"', 1)[1][:2500]
+    assert "Prepara atto" not in sezione_cancelleria
 
 
 def test_route_importa_polisweb_sincronizza_fascicolo_esistente(tmp_path):

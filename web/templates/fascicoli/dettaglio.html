@@ -100,7 +100,7 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse-sezione-profilo"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="collapse-sezione-profilo">
           <span><i class="bi bi-info-circle me-2 text-primary"></i>Profilo fascicolo</span>
           <i class="bi bi-chevron-down small"></i>
@@ -112,7 +112,7 @@
           <span class="badge bg-light text-dark border">Scheda pratica</span>
         </div>
       </div>
-      <div class="collapse show" id="collapse-sezione-profilo">
+      <div class="collapse" id="collapse-sezione-profilo">
       <div class="card-body">
         <div class="row g-3 small">
           {% macro dc(label, val, mono=False) %}
@@ -156,7 +156,7 @@
                     type="button"
                     data-bs-toggle="collapse"
                     data-bs-target="#collapse-documenti-portale-telematico"
-                    aria-expanded="true"
+                    aria-expanded="false"
                     aria-controls="collapse-documenti-portale-telematico">
               <span><i class="bi bi-collection me-1"></i>Documenti dal portale telematico</span>
               <i class="bi bi-chevron-down small"></i>
@@ -166,7 +166,7 @@
               {{ (portale_documenti_catalogo | selectattr('gia_importato') | list | length) }}/{{ ns_portale.documenti }} acquisiti
             </span>
           </div>
-          <div class="collapse show" id="collapse-documenti-portale-telematico">
+          <div class="collapse" id="collapse-documenti-portale-telematico">
           <div class="px-3 py-2 border-bottom small text-muted">
             I documenti importati vengono collegati a questa pratica. L'opzione "copia originale dal portale" salva invece una copia separata senza modificare questo elenco.
           </div>
@@ -175,17 +175,17 @@
             {% set dep_obj = fascicolo.depositi_pct | selectattr('id', 'equalto', dep_id) | first | default(None) %}
             <div class="accordion-item border-0 border-bottom">
               <h2 class="accordion-header">
-                <button class="accordion-button py-2 small fw-semibold {% if not loop.first %}collapsed{% endif %}"
+                <button class="accordion-button py-2 small fw-semibold collapsed"
                         type="button"
                         data-bs-toggle="collapse"
                         data-bs-target="#acc-portale-{{ dep_id }}"
-                        aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                        aria-expanded="false">
                   <i class="bi bi-box-seam me-2 text-info"></i>
                   <span>{{ dep_obj.tipo_atto if dep_obj else 'Deposito ufficiale' }}</span>
                   <span class="badge bg-secondary rounded-pill ms-2">{{ dep_docs_catalogo|length }}</span>
                 </button>
               </h2>
-              <div id="acc-portale-{{ dep_id }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+              <div id="acc-portale-{{ dep_id }}" class="accordion-collapse collapse">
                 <div class="accordion-body p-0">
                   <div class="list-group list-group-flush small">
                     {% for pdoc in dep_docs_catalogo %}
@@ -274,7 +274,7 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse-sezione-attivita-processuali"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="collapse-sezione-attivita-processuali">
         <span class="text-nowrap">
           <i class="bi bi-list-check me-2 text-primary"></i>
@@ -293,7 +293,7 @@
           </button>
         </div>
       </div>
-      <div class="collapse show" id="collapse-sezione-attivita-processuali">
+      <div class="collapse" id="collapse-sezione-attivita-processuali">
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
         Timeline procedurale del fascicolo: passaggi, adempimenti operativi e storico delle lavorazioni, separata da udienze, scadenze e comunicazioni di cancelleria.
       </div>
@@ -344,6 +344,48 @@
       </div>
     </div>
 
+    {# ---- Depositi telematici — adattivo per tipo fascicolo ---- #}
+    {% set ftipo = fascicolo.tipo.value if fascicolo.tipo else 'CIVILE' %}
+    {% if ftipo == 'PENALE' %}
+      {% set dep_icon      = 'bi-shield-fill' %}
+      {% set dep_col       = 'danger' %}
+      {% set dep_label     = 'Depositi PDP Penale' %}
+      {% set dep_portale_label = 'Consulta su PDP' %}
+      {% set dep_portale_url   = url_for('pdp_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PDP_PENALE', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito penale (firma CAdES .p7m via PDP), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% elif ftipo == 'AMMINISTRATIVO' %}
+      {% set dep_icon      = 'bi-building' %}
+      {% set dep_col       = 'info' %}
+      {% set dep_label     = 'Depositi PAT Amministrativo' %}
+      {% set dep_portale_label = 'Consulta su PAT' %}
+      {% set dep_portale_url   = url_for('pat_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PAT_AMMINISTRATIVO', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito amministrativo (firma CAdES .p7m via PAT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% elif ftipo == 'TRIBUTARIO' %}
+      {% set dep_icon      = 'bi-receipt-cutoff' %}
+      {% set dep_col       = 'warning' %}
+      {% set dep_label     = 'Depositi PTT Tributario' %}
+      {% set dep_portale_label = 'Consulta su SIGIT' %}
+      {% set dep_portale_url   = url_for('sigit_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PTT_TRIBUTARIO', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del deposito tributario (firma CAdES .p7m via SIGIT/PTT), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% else %}
+      {% set dep_icon      = 'bi-send-fill' %}
+      {% set dep_col       = 'primary' %}
+      {% set dep_label     = 'Depositi telematici PCT' %}
+      {% set dep_portale_label = 'Consulta su PolisWeb' %}
+      {% set dep_portale_url   = url_for('polisWeb_home', id_fasc=fascicolo.id) %}
+      {% set dep_canali    = ['PCT_TELEMATICO', 'PEC', 'CARTACEO'] %}
+      {% set dep_hint      = 'Usa <strong>Prepara atto</strong> per la checklist del redattore atti (Consolle Avvocato / FileSafe / Lextel), oppure <strong>Registra manuale</strong> per annotare un deposito già effettuato.' %}
+    {% endif %}
+    {% set ns_prep = namespace(wizard_tmpls=[]) %}
+    {% for tmpl in checklist_templates %}
+      {% if tmpl.canale in dep_canali %}
+        {% set ns_prep.wizard_tmpls = ns_prep.wizard_tmpls + [tmpl] %}
+      {% endif %}
+    {% endfor %}
+
     {# ---- Documenti ---- #}
     <div class="card shadow-sm mb-3" id="sezione-documenti-fascicolo" style="scroll-margin-top:1rem">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-2 flex-wrap">
@@ -351,7 +393,7 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse-sezione-documenti-fascicolo"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="collapse-sezione-documenti-fascicolo">
         <span class="text-nowrap">
           <i class="bi bi-paperclip me-2 text-primary"></i>
@@ -364,6 +406,45 @@
             <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary flex-shrink-0">
               <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
             </a>
+            {% if ns_prep.wizard_tmpls|length == 1 %}
+            <a class="btn btn-sm btn-success fw-semibold flex-shrink-0"
+               href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=ns_prep.wizard_tmpls[0].id) }}"
+               title="{{ ns_prep.wizard_tmpls[0].nome }}">
+              <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
+            </a>
+            {% elif ns_prep.wizard_tmpls %}
+            <div class="dropdown">
+              <button class="btn btn-sm btn-success dropdown-toggle fw-semibold"
+                      type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-magic me-1"></i><span class="d-none d-sm-inline">Prepara atto</span><span class="d-sm-none">Prepara</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:min(310px,calc(100vw - 1.5rem));max-height:380px;overflow-y:auto">
+                <li><h6 class="dropdown-header small">Wizard guidato — carica e rinomina documenti</h6></li>
+                {% for tmpl in ns_prep.wizard_tmpls %}
+                <li>
+                  <a class="dropdown-item small py-2"
+                     href="{{ url_for('wizard_atto_avvia', id_fasc=fascicolo.id, id_template=tmpl.id) }}">
+                    <i class="bi {{ {'PCT_TELEMATICO':'bi-send','PDP_PENALE':'bi-shield','PAT_AMMINISTRATIVO':'bi-building','PTT_TRIBUTARIO':'bi-receipt-cutoff','PEC':'bi-envelope','CARTACEO':'bi-printer'}.get(tmpl.canale,'bi-file') }} me-2 text-{{ dep_col }}"></i>
+                    {{ tmpl.nome }}
+                  </a>
+                </li>
+                {% endfor %}
+                <li><hr class="dropdown-divider"></li>
+                <li><h6 class="dropdown-header small text-muted">Solo checklist (guida senza upload)</h6></li>
+                {% for tmpl in ns_prep.wizard_tmpls %}
+                <li>
+                  <a class="dropdown-item small py-1 text-muted"
+                     href="{{ url_for('checklist_dettaglio', id_template=tmpl.id,
+                                      id_fasc=fascicolo.id,
+                                      parte=fascicolo.controparte,
+                                      rg=fascicolo.numero_rg) }}">
+                    <i class="bi bi-list-check me-2"></i>{{ tmpl.nome }}
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
             <button type="button" class="btn btn-sm btn-info text-white flex-shrink-0" id="btnPstAcquireAllHeader">
               <i class="bi bi-cloud-arrow-down me-1"></i><span class="d-none d-sm-inline">Acquisisci fascicolo</span><span class="d-sm-none">Acquisisci</span>
             </button>
@@ -380,7 +461,7 @@
           </button>
         </div>
       </div>
-      <div class="collapse show" id="collapse-sezione-documenti-fascicolo">
+      <div class="collapse" id="collapse-sezione-documenti-fascicolo">
       <div class="card-body py-2 border-bottom bg-light-subtle small">
         <div class="d-flex flex-wrap gap-2">
           <span class="badge bg-light text-dark border">Tutti {{ WFS.documenti_buckets.all or 0 }}</span>
@@ -592,16 +673,16 @@
           {% endfor %}
           <div class="accordion-item border-0 border-bottom">
             <h2 class="accordion-header">
-              <button class="accordion-button py-2 small fw-semibold {% if not loop.first %}collapsed{% endif %}"
+              <button class="accordion-button py-2 small fw-semibold collapsed"
                       type="button" data-bs-toggle="collapse"
                       data-bs-target="#wdocs-{{ wid }}"
-                      aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                      aria-expanded="false">
                 <i class="bi bi-folder2-open me-2 text-warning"></i>
                 <span>{{ ns2.tmpl_nome }}</span>
                 <span class="badge bg-secondary rounded-pill ms-2">{{ ns2.wdocs|length }}</span>
               </button>
             </h2>
-            <div id="wdocs-{{ wid }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+            <div id="wdocs-{{ wid }}" class="accordion-collapse collapse">
               <div class="accordion-body p-0">
                 <table class="table table-hover align-middle mb-0 small mob-cards">
                   <thead class="table-light">
@@ -712,7 +793,7 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse-sezione-udienze-scadenze"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="collapse-sezione-udienze-scadenze">
         <span class="text-nowrap">
           <i class="bi bi-calendar-event me-2 text-primary"></i>
@@ -730,7 +811,7 @@
           </a>
         </div>
       </div>
-      <div class="collapse show" id="collapse-sezione-udienze-scadenze">
+      <div class="collapse" id="collapse-sezione-udienze-scadenze">
       <div class="card-body p-0">
         {% if WFS.udienze_attivita or WFS.scadenze or WFS.appuntamenti %}
         <div class="list-group list-group-flush small">
@@ -826,7 +907,7 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse-sezione-comunicazioni-cancelleria"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="collapse-sezione-comunicazioni-cancelleria">
         <span class="text-nowrap">
           <i class="bi {{ dep_icon }} me-2 text-{{ dep_col }}"></i>
@@ -842,6 +923,7 @@
           <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-up-circle me-1"></i><span class="d-none d-sm-inline">Collegamenti rapidi</span><span class="d-sm-none">Su</span>
           </a>
+          {% if false %}
 
           {# Prepara atto: link diretto se 1 solo template, dropdown se multipli #}
           {% set ns_prep = namespace(wizard_tmpls=[]) %}
@@ -886,6 +968,7 @@
           </div>
           {% endif %}
 
+          {% endif %}
           {# Accesso rapido al portale di consultazione #}
           <a href="{{ dep_portale_url }}" class="btn btn-sm btn-outline-{{ dep_col }} fw-semibold">
             <i class="bi bi-search me-1"></i><span class="d-none d-sm-inline">{{ dep_portale_label }}</span><span class="d-sm-none">Portale</span>
@@ -911,7 +994,7 @@
           </button>
         </div>
       </div>
-      <div class="collapse show" id="collapse-sezione-comunicazioni-cancelleria">
+      <div class="collapse" id="collapse-sezione-comunicazioni-cancelleria">
       <div class="card-body py-2 border-bottom bg-light-subtle small text-muted">
         Ricevute PEC, esiti dei controlli automatici e comunicazioni di cancelleria del canale {{ dep_portale_label }}.
       </div>
@@ -1091,6 +1174,50 @@
                 {% endif %}
 
                 {# ── Documenti inclusi nella busta ── #}
+                {% set has_ricevute = f4_ok or f5_ok or f6_ok or f7_ok %}
+                {% if has_ricevute %}
+                <div class="mt-2">
+                  <button class="btn btn-link btn-sm p-0 text-decoration-none"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dep-ricevute-{{ dep.id }}"
+                          aria-expanded="false">
+                    <i class="bi bi-envelope-paper me-1"></i>Visualizza ricevute e comunicazioni PEC
+                    <i class="bi bi-chevron-down ms-1" style="font-size:.7rem"></i>
+                  </button>
+                  <div class="collapse mt-2" id="dep-ricevute-{{ dep.id }}">
+                    <div class="list-group list-group-flush border rounded overflow-hidden">
+                      {% if dep.ricevuta_accettazione %}
+                      <div class="list-group-item py-2">
+                        <div class="fw-semibold small text-success mb-1"><i class="bi bi-1-circle me-1"></i>Ricevuta di accettazione PEC</div>
+                        <pre class="small mb-0 text-wrap" style="white-space:pre-wrap">{{ dep.ricevuta_accettazione }}</pre>
+                      </div>
+                      {% endif %}
+                      {% if dep.ricevuta_consegna %}
+                      <div class="list-group-item py-2">
+                        <div class="fw-semibold small text-primary mb-1"><i class="bi bi-2-circle me-1"></i>Ricevuta di avvenuta consegna</div>
+                        <pre class="small mb-0 text-wrap" style="white-space:pre-wrap">{{ dep.ricevuta_consegna }}</pre>
+                      </div>
+                      {% endif %}
+                      {% if dep.ricevuta_controlli_automatici %}
+                      <div class="list-group-item py-2">
+                        <div class="fw-semibold small {% if dep.esito_controlli == 'ERROR' %}text-danger{% elif dep.esito_controlli == 'WARN' %}text-warning{% else %}text-success{% endif %} mb-1">
+                          <i class="bi bi-3-circle me-1"></i>Esito controlli automatici{% if dep.esito_controlli %} · {{ dep.esito_controlli }}{% endif %}
+                        </div>
+                        <pre class="small mb-0 text-wrap" style="white-space:pre-wrap">{{ dep.ricevuta_controlli_automatici }}</pre>
+                      </div>
+                      {% endif %}
+                      {% if dep.ricevuta_cancelleria %}
+                      <div class="list-group-item py-2">
+                        <div class="fw-semibold small {% if is_rifiutato %}text-danger{% else %}text-success{% endif %} mb-1"><i class="bi bi-4-circle me-1"></i>Esito cancelleria</div>
+                        <pre class="small mb-0 text-wrap" style="white-space:pre-wrap">{{ dep.ricevuta_cancelleria }}</pre>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+
                 {%- set _dep_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto',dep.id) | list %}
                 {% if _dep_docs %}
                 <div class="mt-2">
@@ -1302,7 +1429,7 @@
                 type="button"
                 data-bs-toggle="collapse"
                 data-bs-target="#collapse-sezione-istanze"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="collapse-sezione-istanze">
         <span>
           <i class="bi bi-journal-text me-2 text-primary"></i>Istanze
@@ -1319,7 +1446,7 @@
           {% endif %}
         </div>
       </div>
-      <div class="collapse show" id="collapse-sezione-istanze">
+      <div class="collapse" id="collapse-sezione-istanze">
       <div class="card-body p-0">
         {% if WFS.istanze_documenti or WFS.istanze_depositi %}
         <div class="list-group list-group-flush small">
@@ -1599,7 +1726,7 @@
             class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
             data-bs-toggle="collapse"
             data-bs-target="#complianceChecklistBody"
-            aria-expanded="true"
+              aria-expanded="false"
             aria-controls="complianceChecklistBody"
           >
             <div>
@@ -1611,7 +1738,7 @@
               <i class="bi bi-chevron-down compliance-chevron"></i>
             </span>
           </button>
-          <div class="collapse show" id="complianceChecklistBody">
+          <div class="collapse" id="complianceChecklistBody">
             <div class="list-group list-group-flush">
               {% for item in rc.checklist %}
               {% set tone = rc_status_map.get(item.status, 'secondary') %}
@@ -1668,7 +1795,7 @@
             class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
             data-bs-toggle="collapse"
             data-bs-target="#complianceWorkflowBody"
-            aria-expanded="true"
+              aria-expanded="false"
             aria-controls="complianceWorkflowBody"
           >
             <div>
@@ -1680,7 +1807,7 @@
               <i class="bi bi-chevron-down compliance-chevron"></i>
             </span>
           </button>
-          <div class="collapse show" id="complianceWorkflowBody">
+          <div class="collapse" id="complianceWorkflowBody">
             <div class="list-group list-group-flush">
             {% for step in rc.workflow %}
             {% set tone = rc_status_map.get(step.status, 'secondary') %}
@@ -1723,7 +1850,7 @@
           {% set group_tone = rc_status_map.get(group.status, 'secondary') %}
           <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceGroupCard{{ loop.index }}" style="scroll-margin-top:1rem">
             <h2 class="accordion-header">
-              <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#complianceGroup{{ loop.index }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#complianceGroup{{ loop.index }}">
                 <div class="d-flex w-100 justify-content-between align-items-center pe-3">
                   <span class="fw-semibold">{{ group.title }}</span>
                   <span class="d-flex align-items-center gap-2">
@@ -1733,7 +1860,7 @@
                 </div>
               </button>
             </h2>
-            <div id="complianceGroup{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#accordionConformita">
+              <div id="complianceGroup{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#accordionConformita">
               <div class="accordion-body">
                 <div class="list-group list-group-flush">
                   {% for issue in group["items"] %}

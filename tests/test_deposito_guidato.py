@@ -255,6 +255,9 @@ def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_pat
     assert "RG 1025/2024" in html
     assert f"Interno {fasc.numero}" in html
     assert 'const correctionContext = {"active": false' in html
+    assert "_arrayBufferToBase64Safe" in html
+    assert "_base64ToUint8ArraySafe" in html
+    assert "String.fromCharCode(...new Uint8Array(buf))" not in html
 
 
 def test_orchestratore_tributario_consente_prededeposito_con_nir(tmp_path):

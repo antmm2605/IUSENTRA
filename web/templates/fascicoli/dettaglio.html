@@ -3140,6 +3140,33 @@ var _detFLsSlot = null, _detFPkcsSlot = null, _detFViaLS = false, _detFLsPinSess
 var _detFPath = 'detecting';
 var _LS_BASE_DET = 'http://localhost:27272';
 
+function _detFArrayBufferToBase64Safe(buf) {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || '');
+        const marker = 'base64,';
+        const idx = result.indexOf(marker);
+        resolve(idx >= 0 ? result.slice(idx + marker.length) : result);
+      };
+      reader.onerror = () => reject(new Error('Errore conversione documento per firma'));
+      reader.readAsDataURL(new Blob([buf]));
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function _detFBase64ToUint8ArraySafe(b64) {
+  const binary = atob(b64 || '');
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 function apriFirma(btn) {
   _detFDoc = {
     id: btn.dataset.docId || '',
@@ -3263,8 +3290,8 @@ function _detFAvviaLS() {
   fetch(_detFDoc.scaricaUrl)
     .then(r => { if (!r.ok) throw new Error('Errore download: HTTP ' + r.status); return r.blob(); })
     .then(b => b.arrayBuffer())
-    .then(buf => {
-      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    .then(buf => _detFArrayBufferToBase64Safe(buf))
+    .then(b64 => {
       return fetch(_LS_BASE_DET + '/firma', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3275,7 +3302,7 @@ function _detFAvviaLS() {
     .then(d => {
       if (!d.ok) throw new Error(d.errore || 'Errore firma');
       if (d.pin_session_id) _detFLsPinSession = d.pin_session_id;
-      const firmataBytes = Uint8Array.from(atob(d.firmato_b64), c => c.charCodeAt(0));
+      const firmataBytes = _detFBase64ToUint8ArraySafe(d.firmato_b64);
       const nomeP7m = _detFDoc.nome.endsWith('.p7m') ? _detFDoc.nome : _detFDoc.nome + '.p7m';
       const fd = new FormData();
       fd.append('file', new File([new Blob([firmataBytes], { type: 'application/pkcs7-mime' })], nomeP7m));

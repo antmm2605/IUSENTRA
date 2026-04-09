@@ -443,6 +443,10 @@ def create_app(config: dict | None = None) -> Flask:
     app.config["STUDIO_CONFIG"] = cfg.get(
         "STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json")
     )
+    app.config["CONFIG_STUDIO_DB"] = cfg.get(
+        "CONFIG_STUDIO_DB",
+        os.getenv("PCT_CONFIG_STUDIO_DB", app.config["STUDIO_CONFIG"]),
+    )
     # ── Carica config studio da JSON al boot (prevale sulle env vars se esiste) ──
     try:
         from pct.config_studio import GestioneConfigStudio as _GCS
@@ -11909,10 +11913,16 @@ read -r -p "Premi Invio per chiudere..." _
 
             config_pec = None
             try:
-                config_studio_db = app.config.get("CONFIG_STUDIO_DB", "./config/config_studio.json")
-                cfg_studio = GestioneConfigStudio(db_path=config_studio_db)
+                config_studio_db = (
+                    app.config.get("STUDIO_CONFIG")
+                    or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json")
+                )
+                cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
                 config_pec = getattr(cfg_studio.config, "pec", None)
-                if config_pec and not getattr(config_pec, "imap_host", ""):
+                if config_pec and (
+                    not getattr(config_pec, "imap_host", "")
+                    or not getattr(config_pec, "indirizzo", "")
+                ):
                     config_pec = None
             except Exception as e:
                 app.logger.debug("Config PEC non disponibile: %s", e)

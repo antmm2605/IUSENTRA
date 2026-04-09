@@ -312,10 +312,16 @@ def start_scheduler(app):
                 # Recupera configurazione PEC studio
                 config_pec = None
                 try:
-                    config_studio_db = app.config.get("CONFIG_STUDIO_DB", "./config/config_studio.json")
-                    cfg_studio = GestioneConfigStudio(db_path=config_studio_db)
+                    config_studio_db = (
+                        app.config.get("STUDIO_CONFIG")
+                        or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json")
+                    )
+                    cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
                     config_pec = getattr(cfg_studio.config, "pec", None)
-                    if config_pec and not getattr(config_pec, "imap_host", ""):
+                    if config_pec and (
+                        not getattr(config_pec, "imap_host", "")
+                        or not getattr(config_pec, "indirizzo", "")
+                    ):
                         config_pec = None  # IMAP non configurato
                 except Exception as e:
                     logger.debug("[scheduler] Config PEC non disponibile: %s", e)
@@ -361,12 +367,16 @@ def start_scheduler(app):
 
                 config_pec = None
                 try:
-                    config_studio_db = app.config.get(
-                        "CONFIG_STUDIO_DB", "./config/config_studio.json"
+                    config_studio_db = (
+                        app.config.get("STUDIO_CONFIG")
+                        or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json")
                     )
-                    cfg_studio = GestioneConfigStudio(db_path=config_studio_db)
+                    cfg_studio = GestioneConfigStudio(config_path=config_studio_db)
                     config_pec = getattr(cfg_studio.config, "pec", None)
-                    if config_pec and not getattr(config_pec, "imap_host", ""):
+                    if config_pec and (
+                        not getattr(config_pec, "imap_host", "")
+                        or not getattr(config_pec, "indirizzo", "")
+                    ):
                         config_pec = None
                 except Exception as e:
                     logger.debug("[scheduler] Config PEC cancelleria non disponibile: %s", e)

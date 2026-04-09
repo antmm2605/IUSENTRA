@@ -310,8 +310,11 @@ class GestioneConfigStudio:
     Se il file non esiste, pre-popola dai valori delle variabili d'ambiente.
     """
 
-    def __init__(self, config_path: str = "./config/studio.json"):
-        self._path = Path(config_path)
+    def __init__(self, config_path: str = "./config/studio.json", db_path: str | None = None):
+        # `db_path` resta supportato per retrocompatibilita' con chiamanti legacy
+        # che trattavano la config studio come un "db". La sorgente canonica resta
+        # comunque il file JSON indicato da `config_path`.
+        self._path = Path(db_path or config_path)
         self._cfg: Optional[ConfigStudio] = None
 
     # ── I/O ──────────────────────────────────────────────────────────

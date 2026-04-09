@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pct.clienti import GestioneClienti
 from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoDocumento, TipoFascicolo
+from pct.config_studio import ConfigPEC, GestioneConfigStudio
 from pct.polisWeb import (
     ClientPolisWeb,
     ClientPolisWebDemo,
@@ -2981,3 +2982,70 @@ def test_api_portale_acquisizione_import_pst_filtra_i_file_secondo_step4(tmp_pat
     assert fascicolo_reload.documenti[0].tipo == TipoDocumento.DECRETO
     albero_root = Path(cfg["PST_IMPORT_DIR"]) / "_alberi_originali" / fascicolo.id
     assert not albero_root.exists()
+
+
+def test_api_pec_poll_cancelleria_legge_la_config_pec_da_studio_config(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    cfg["STUDIO_CONFIG"] = str(studio_cfg)
+
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    gf.nuovo(
+        titolo="RG 1025/2024",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="1025",
+        anno_rg=2024,
+        oggetto="Vendita di cose immobili",
+    )
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    config = gs.config
+    config.pec = ConfigPEC(
+        indirizzo="studio@example.pec.it",
+        password="segreta",
+        smtp_host="smtp.pec.aruba.it",
+        smtp_port=465,
+        imap_host="imaps.pec.aruba.it",
+        imap_port=993,
+        use_ssl=True,
+    )
+    gs.aggiorna(config)
+
+    osservato = {}
+
+    def _fake_poll_cancelleria_pec(gf, config_pec, state_path):
+        osservato["indirizzo"] = config_pec.indirizzo
+        osservato["imap_host"] = config_pec.imap_host
+        osservato["state_path"] = state_path
+        return {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
+
+    monkeypatch.setattr("pct.polling_depositi.poll_cancelleria_pec", _fake_poll_cancelleria_pec)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin", "password": "admin"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        response = client.post(
+            "/api/pec/poll-cancelleria",
+            json={},
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert osservato["indirizzo"] == "studio@example.pec.it"
+    assert osservato["imap_host"] == "imaps.pec.aruba.it"
+    assert osservato["state_path"].endswith("pec_cancelleria_state.json")

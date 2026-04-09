@@ -1508,11 +1508,7 @@ let _lsPstSessionTtlSeconds = 0;
 let _wizPstSessionId = '';
 
 
-_lsCertKey(cert)
-_lsClearPstSession(reason)
-_lsRememberPstSession(data, tribunale, cert)
-_lsGetKnownPstSessionId(tribunale, cert)
-_lsLooksLikeExpiredPstSession(message)
+
 
 function _lsCertKey(cert) {
   return `${cert?.thumbprint || ''}::${cert?.token_slot ?? ''}`;

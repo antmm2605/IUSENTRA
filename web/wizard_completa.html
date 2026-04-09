@@ -146,9 +146,10 @@
             <div id="dropZoneVisual">
               <i class="bi bi-cloud-arrow-up-fill fs-2 text-muted mb-2"></i>
               <div class="fw-semibold">Trascina qui il file oppure clicca per selezionarlo</div>
-              <div class="small text-muted mt-1">Il file verrà rinominato automaticamente in:
-                <code>{{ step_corrente.nome_file }}.pdf</code>
-              </div>
+              <div class="small text-muted mt-1">
+              Il file verrà rinominato automaticamente mantenendo la sua estensione:
+              <code>{{ step_corrente.nome_file }}[estensione originale]</code>
+            </div>
             </div>
             <input type="file" id="fileInput" name="file" class="d-none"
                    accept=".pdf,.p7m,.doc,.docx,.jpg,.jpeg,.png"
@@ -310,33 +311,42 @@ function mostraFileSelezionato(input) {
   const visual    = document.getElementById('dropZoneVisual');
 
   if (input.files && input.files[0]) {
-    const f    = input.files[0];
-    const ext  = f.name.lastIndexOf('.') >= 0
-                 ? f.name.slice(f.name.lastIndexOf('.'))
-                 : '.pdf';
+    const f = input.files[0];
+    const ext = f.name.lastIndexOf('.') >= 0
+      ? f.name.slice(f.name.lastIndexOf('.'))
+      : '.pdf';
+
     const nome = '{{ step_corrente.nome_file }}' + ext;
+
     nomeEl.textContent = nome;
     preview.classList.remove('d-none');
     dropZone.style.borderColor = '#198754';
-    visual.innerHTML = `<i class="bi bi-file-earmark-check-fill fs-2 text-success mb-2"></i>
+    visual.innerHTML = `
+      <i class="bi bi-file-earmark-check-fill fs-2 text-success mb-2"></i>
       <div class="fw-semibold text-success">${f.name}</div>
-      <div class="small text-muted mt-1">Verrà salvato come: <code>${nome}</code></div>`;
+      <div class="small text-muted mt-1">
+        Verrà salvato come: <code>${nome}</code>
+      </div>
+    `;
     btnCarica.disabled = false;
+  } else {
+    preview.classList.add('d-none');
+    dropZone.style.borderColor = '#ced4da';
+    btnCarica.disabled = true;
   }
 }
 
 function handleDrop(event) {
   event.preventDefault();
+
   const dropZone = document.getElementById('dropZone');
   dropZone.style.borderColor = '#ced4da';
+
   const dt = event.dataTransfer;
   if (dt.files && dt.files[0]) {
-    // Crea un input nascosto temporaneo per assegnare il file
-    const input = document.createElement('input');
-    input.type = 'file';
-    // Trasferimento non diretto possibile; si usa DataTransfer API
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(dt.files[0]);
+
     const fileInputReal = document.getElementById('fileInput');
     if (fileInputReal) {
       fileInputReal.files = dataTransfer.files;

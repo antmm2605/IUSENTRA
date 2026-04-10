@@ -2746,6 +2746,349 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
             assert expected in body
 
 
+def test_api_portale_acquisizione_import_pdp_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.pdp as pdp_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.pkcs11_library = str(dll_path)
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    def _crea_client_non_atteso(*args, **kwargs):
+        raise AssertionError("crea_client_pdp non deve essere usato in modalità Local Signer.")
+
+    monkeypatch.setattr(pdp_module, "crea_client_pdp", _crea_client_non_atteso)
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pdp/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:4521:2026:RGNR",
+                    "numero": "4521",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Procura di Reggio Calabria",
+                    "procedimento": "RGNR",
+                    "stato": "PENDENTE",
+                    "oggetto": "Truffa",
+                    "parti": ["Mario Rossi"],
+                    "controparti": ["Parte Offesa"],
+                    "payload": {
+                        "numero_rg": "4521",
+                        "anno_rg": 2026,
+                        "tipo_registro": "RGNR",
+                        "fase": "INDAGINI",
+                        "stato": "PENDENTE",
+                        "reato": "Truffa",
+                        "sezione": "GIP",
+                        "giudice": "Giudice Penale",
+                        "data_iscrizione": "2026-03-01",
+                        "data_udienza": "2026-06-20",
+                        "imputati": ["Mario Rossi"],
+                        "parti_offese": ["Parte Offesa"],
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Procura di Reggio Calabria",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "4521",
+                        "anno": 2026,
+                        "ufficio_nome": "Procura di Reggio Calabria",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "RGNR",
+                        "stato": "PENDENTE",
+                        "data_udienza": "2026-06-20",
+                    },
+                    "parti": ["Mario Rossi"],
+                    "controparti": ["Parte Offesa"],
+                    "eventi": [],
+                    "documenti": [],
+                    "depositi": [],
+                    "counts": {
+                        "parti": 2,
+                        "documenti": 0,
+                        "depositi": 0,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "provvedimenti": 0,
+                    },
+                },
+                "mapping": {"mode": "create_new"},
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": False,
+                    "importa_scadenze": False,
+                    "importa_eventi": False,
+                },
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["created"] is True
+    assert data["result"]["id_fascicolo"]
+
+
+def test_route_importa_pdp_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.pdp as pdp_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.pkcs11_library = str(dll_path)
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    def _crea_client_non_atteso(*args, **kwargs):
+        raise AssertionError("crea_client_pdp non deve essere usato in modalita Local Signer.")
+
+    def _importa_fascicolo_stub(self, fascicolo, gestione_fascicoli, gestione_clienti, avvocato):
+        return SimpleNamespace(
+            successo=True,
+            id_fascicolo_locale="FASC-PDP-1",
+            messaggio="Importazione PDP completata.",
+            avvisi=[],
+        )
+
+    monkeypatch.setattr(pdp_module, "crea_client_pdp", _crea_client_non_atteso)
+    monkeypatch.setattr(pdp_module.ClientPDP, "importa_fascicolo", _importa_fascicolo_stub)
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/pdp/importa",
+            data={
+                "demo_mode": "0",
+                "numero_rg": "4521",
+                "anno_rg": "2026",
+                "tipo_registro": "RGNR",
+                "fase": "INDAGINI_PRELIMINARI",
+                "stato": "PENDENTE",
+                "reato": "Truffa",
+                "sezione": "GIP",
+                "giudice": "GIUDICE TEST",
+                "data_iscrizione": "2026-01-10",
+                "data_udienza": "2026-06-20",
+                "imputati_json": json.dumps(["Mario Rossi"]),
+                "parti_offese_json": json.dumps(["Parte Offesa"]),
+                "codice_ufficio": "0580010",
+                "nome_ufficio": "Procura di Reggio Calabria",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert "/fascicoli/FASC-PDP-1" in response.headers["Location"]
+
+
+def test_route_importa_pat_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.pat as pat_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.pkcs11_library = str(dll_path)
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    def _crea_client_non_atteso(*args, **kwargs):
+        raise AssertionError("crea_client_pat non deve essere usato in modalita Local Signer.")
+
+    def _importa_fascicolo_stub(self, fascicolo, gestione_fascicoli, gestione_clienti, avvocato):
+        return SimpleNamespace(
+            successo=True,
+            id_fascicolo_locale="FASC-PAT-1",
+            messaggio="Importazione PAT completata.",
+            avvisi=[],
+        )
+
+    monkeypatch.setattr(pat_module, "crea_client_pat", _crea_client_non_atteso)
+    monkeypatch.setattr(pat_module.ClientPAT, "importa_fascicolo", _importa_fascicolo_stub)
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/pat/importa",
+            data={
+                "demo_mode": "0",
+                "numero_ricorso": "1876",
+                "anno": "2026",
+                "tipo": "RICORSO",
+                "stato": "PENDENTE",
+                "materia": "APPALTI",
+                "sezione": "TAR LAZIO",
+                "giudice_relatore": "RELATORE TEST",
+                "data_deposito": "2026-02-10",
+                "data_udienza": "2026-09-15",
+                "oggetto": "Revoca aggiudicazione",
+                "ricorrenti_json": json.dumps(["Alfa S.r.l."]),
+                "resistenti_json": json.dumps(["Comune di Roma"]),
+                "codice_ufficio": "TARLZ",
+                "nome_ufficio": "TAR Lazio",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert "/fascicoli/FASC-PAT-1" in response.headers["Location"]
+
+
+def test_route_importa_sigit_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.sigit as sigit_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.pkcs11_library = str(dll_path)
+    studio.firma.backend_preferito = "pkcs11"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    def _crea_client_non_atteso(*args, **kwargs):
+        raise AssertionError("crea_client_sigit non deve essere usato in modalita Local Signer.")
+
+    def _importa_fascicolo_stub(self, fascicolo, gestione_fascicoli, gestione_clienti, avvocato):
+        return SimpleNamespace(
+            successo=True,
+            id_fascicolo_locale="FASC-PTT-1",
+            messaggio="Importazione PTT completata.",
+            avvisi=[],
+        )
+
+    monkeypatch.setattr(sigit_module, "crea_client_sigit", _crea_client_non_atteso)
+    monkeypatch.setattr(sigit_module.ClientSIGIT, "importa_fascicolo", _importa_fascicolo_stub)
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/sigit/importa",
+            data={
+                "demo_mode": "0",
+                "numero_rgt": "1234",
+                "anno_rgt": "2026",
+                "tipo": "RICORSO",
+                "stato": "PENDENTE",
+                "materia": "IVA",
+                "sezione": "CGT I grado",
+                "giudice_relatore": "RELATORE TEST",
+                "data_deposito": "2026-03-12",
+                "data_udienza": "2026-10-01",
+                "oggetto_controversia": "Accertamento IVA",
+                "valore_controversia": "15000",
+                "ricorrenti_json": json.dumps(["Mario Rossi"]),
+                "resistenti_json": json.dumps(["Agenzia delle Entrate"]),
+                "codice_commissione": "CPT030000",
+                "nome_commissione": "Corte di Giustizia Tributaria di primo grado di Catanzaro",
+            },
+            follow_redirects=False,
+        )
+
+    assert response.status_code == 302
+    assert "/fascicoli/FASC-PTT-1" in response.headers["Location"]
+
+
 def test_api_portale_acquisizione_import_pst_importa_file_reali_e_salva_albero(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app

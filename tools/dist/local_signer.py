@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.26
+HACS Local Signer — v1.5.27
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -24,6 +24,12 @@ API:
     POST /pst/preflight-auth     → verifica certificato + prompt PIN per accesso PST
     POST /pst/ricerca            → ricerca fascicoli PST (curl mTLS Windows)
     POST /pst/documenti          → documenti fascicolo PST (curl mTLS Windows)
+    POST /pdp/ricerca            → ricerca fascicoli PDP via Aruba Key / Windows cert store
+    POST /pdp/documenti          → documenti fascicolo PDP via Aruba Key / Windows cert store
+    POST /pat/ricerca            → ricerca fascicoli PAT via Aruba Key / Windows cert store
+    POST /pat/documenti          → documenti fascicolo PAT via Aruba Key / Windows cert store
+    POST /ptt/ricerca            → ricerca fascicoli PTT via Aruba Key / Windows cert store
+    POST /ptt/documenti          → documenti fascicolo PTT via Aruba Key / Windows cert store
     POST /downloads/raccogli     → raccoglie file già scaricati nei download locali
     GET  /pst/status             → stato connettività PST
 
@@ -55,7 +61,7 @@ from email.parser import BytesParser
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -71,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.26"
+VERSION = "1.5.27"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -91,6 +97,7 @@ LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
     "PCT_LOCAL_SIGNER_ALLOWED_ORIGINS",
     os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
 ) or ",".join(_DEFAULT_HACS_ALLOWED_ORIGINS)
+_ZEEP_WSDL_CACHE: dict[str, Any] = {}
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -599,6 +606,11 @@ def _estrai_codice_fiscale_testo(valore: str) -> str:
     return match.group(1) if match else ""
 
 
+def _parse_optional_int(value: Any) -> Optional[int]:
+    text = str(value or "").strip()
+    return int(text) if text.isdigit() else None
+
+
 def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:
     thumbprint = _certificato_windows_effettivo(cert_thumbprint).replace(" ", "").upper()
     cached = dict(_ultimo_certificato_windows or {})
@@ -626,6 +638,16 @@ def _cf_avvocato_pst(cf_avvocato: str, cert_thumbprint: Optional[str] = None) ->
         if resolved:
             return resolved
     return ""
+
+
+def _require_cf_avvocato_locale(cf_avvocato: str, cert_thumbprint: Optional[str]) -> str:
+    resolved = _cf_avvocato_pst(cf_avvocato, cert_thumbprint)
+    if resolved:
+        return resolved
+    raise RuntimeError(
+        "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
+        "Riselezionare il certificato CNS/CIE oppure configurare il codice fiscale in Impostazioni → Firma Digitale."
+    )
 
 
 # ── PKCS#11 helpers ────────────────────────────────────────────────────────────
@@ -1890,6 +1912,22 @@ def _http_header_value(header_text: str, name: str) -> str:
     return current_block.get(wanted, "")
 
 
+def _http_headers_dict(header_text: str) -> dict[str, str]:
+    current_block: dict[str, str] = {}
+    for raw_line in (header_text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("HTTP/"):
+            current_block = {}
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        current_block[key.strip()] = value.strip()
+    return current_block
+
+
 def _body_preview(body: str, limit: int = 240) -> str:
     clean = " ".join((body or "").split())
     return clean[:limit]
@@ -2135,7 +2173,8 @@ def _soap_call_curl_raw(url: str, soap_body: str,
                         cert_thumbprint: Optional[str] = None,
                         pkcs11_uri: Optional[str] = None,
                         extra_headers: Optional[list[str]] = None,
-                        soap_action: str = "",
+                        soap_action: Optional[str] = "",
+                        content_type: str = "text/xml; charset=utf-8",
                         cookie_file: Optional[str] = None) -> tuple[bytes, str]:
     """
     Esegue una chiamata SOAP usando curl.
@@ -2167,10 +2206,11 @@ def _soap_call_curl_raw(url: str, soap_body: str,
             "--location",
             "--dump-header", header_file,
             "-X", "POST",
-            "-H", "Content-Type: text/xml; charset=utf-8",
-            "-H", f'SOAPAction: "{soap_action}"',
+            "-H", f"Content-Type: {content_type or 'text/xml; charset=utf-8'}",
             "--data", f"@{soap_file}",
         ]
+        if soap_action is not None:
+            cmd.extend(["-H", f'SOAPAction: "{soap_action}"'])
         for header in extra_headers or []:
             cmd.extend(["-H", header])
         if cookie_file:
@@ -2602,7 +2642,7 @@ def _soap_call_curl(url: str, soap_body: str,
                     cert_thumbprint: Optional[str] = None,
                     pkcs11_uri: Optional[str] = None,
                     extra_headers: Optional[list[str]] = None,
-                    soap_action: str = "",
+                    soap_action: Optional[str] = "",
                     cookie_file: Optional[str] = None) -> str:
     body_bytes, _headers = _soap_call_curl_raw(
         url=url,
@@ -2614,6 +2654,86 @@ def _soap_call_curl(url: str, soap_body: str,
         cookie_file=cookie_file,
     )
     return body_bytes.decode("utf-8", "replace")
+
+
+def _get_zeep_wsdl_client(wsdl_url: str):
+    client = _ZEEP_WSDL_CACHE.get(wsdl_url)
+    if client is not None:
+        return client
+    try:
+        import zeep
+    except ImportError as exc:
+        raise RuntimeError(
+            "Dipendenza mancante nel Local Signer: installare zeep per l'accesso Aruba Key a PDP/PAT/PTT."
+        ) from exc
+    client = zeep.Client(wsdl=wsdl_url)
+    _ZEEP_WSDL_CACHE[wsdl_url] = client
+    return client
+
+
+def _soap_call_zeep_operation_via_curl(
+    *,
+    wsdl_url: str,
+    operation_name: str,
+    payload: dict[str, Any],
+    cert_thumbprint: Optional[str] = None,
+    pkcs11_uri: Optional[str] = None,
+) -> Any:
+    try:
+        from lxml import etree
+        from requests import Response
+    except ImportError as exc:
+        raise RuntimeError(
+            "Dipendenze incomplete nel Local Signer: servono lxml e requests per PDP/PAT/PTT."
+        ) from exc
+
+    client = _get_zeep_wsdl_client(wsdl_url)
+    binding = client.service._binding
+    operation = binding.get(operation_name)
+    if operation is None:
+        raise RuntimeError(f"Operazione SOAP non trovata: {operation_name}")
+
+    envelope, http_headers = binding._create(
+        operation_name,
+        args=[],
+        kwargs=payload,
+        client=client,
+    )
+    soap_body = etree.tostring(
+        envelope,
+        encoding="utf-8",
+        xml_declaration=True,
+    ).decode("utf-8")
+
+    raw_headers = dict(http_headers or {})
+    content_type = (
+        raw_headers.pop("Content-Type", None)
+        or raw_headers.pop("content-type", None)
+        or "text/xml; charset=utf-8"
+    )
+    soap_action = raw_headers.pop("SOAPAction", None) or raw_headers.pop("Soapaction", None)
+    extra_headers = [f"{key}: {value}" for key, value in raw_headers.items()]
+    address = str((client.service._binding_options or {}).get("address") or "").strip()
+    if not address:
+        address = wsdl_url.split("?", 1)[0]
+
+    body_bytes, headers_text = _soap_call_curl_raw(
+        url=address,
+        soap_body=soap_body,
+        cert_thumbprint=cert_thumbprint,
+        pkcs11_uri=pkcs11_uri,
+        extra_headers=extra_headers,
+        soap_action=(str(soap_action).strip('"') if soap_action is not None else None),
+        content_type=str(content_type),
+    )
+
+    response = Response()
+    response.status_code = _http_status_from_headers(headers_text) or 200
+    response._content = body_bytes
+    response.headers.update(_http_headers_dict(headers_text))
+    response.encoding = "utf-8"
+    response.url = address
+    return binding.process_reply(client, operation, response)
 
 
 def _soap_call_pst_session(
@@ -4285,7 +4405,18 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"errore": "CORS: origine non consentita"}, 403)
             return
         path = urlparse(self.path).path
-        if path in {"/pst/preflight-auth", "/pst/ricerca", "/pst/documenti", "/pst/download-documenti-batch"}:
+        if path in {
+            "/pst/preflight-auth",
+            "/pst/ricerca",
+            "/pst/documenti",
+            "/pst/download-documenti-batch",
+            "/pdp/ricerca",
+            "/pdp/documenti",
+            "/pat/ricerca",
+            "/pat/documenti",
+            "/ptt/ricerca",
+            "/ptt/documenti",
+        }:
             log.info("HTTP POST %s", path)
         if path == "/firma":
             self._firma()
@@ -4297,6 +4428,18 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_ricerca()
         elif path == "/pst/documenti":
             self._pst_documenti()
+        elif path == "/pdp/ricerca":
+            self._pdp_ricerca()
+        elif path == "/pdp/documenti":
+            self._pdp_documenti()
+        elif path == "/pat/ricerca":
+            self._pat_ricerca()
+        elif path == "/pat/documenti":
+            self._pat_documenti()
+        elif path == "/ptt/ricerca":
+            self._ptt_ricerca()
+        elif path == "/ptt/documenti":
+            self._ptt_documenti()
         elif path == "/pst/download-documento":
             self._pst_download_documento()
         elif path == "/pst/download-documenti-batch":
@@ -5102,6 +5245,261 @@ class _Handler(BaseHTTPRequestHandler):
             })
         except Exception as e:
             log.error("Errore PST documenti: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pdp_ricerca(self):
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        ufficio = str(data.get("ufficio") or data.get("codice_ufficio") or "").strip()
+        if not ufficio:
+            self._send_json({"ok": False, "errore": "Campo 'ufficio' obbligatorio"}, 400)
+            return
+
+        try:
+            from pct.pdp import ClientPDP, _WSDL_RICERCA_PENALE
+
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
+            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
+            payload: Dict[str, Any] = {
+                "codiceFiscaleAvvocato": cf_avvocato,
+                "codiceUfficio": client._risolvi_codice(ufficio),
+                "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
+            }
+            numero_rg = str(data.get("numero_rg") or "").strip()
+            anno_rg = _parse_optional_int(data.get("anno_rg"))
+            nome_imputato = str(data.get("nome_imputato") or data.get("assistito") or "").strip()
+            tipo_registro = str(data.get("tipo_registro") or data.get("registro") or "").strip()
+            if numero_rg:
+                payload["numeroRG"] = numero_rg
+            if anno_rg:
+                payload["annoRG"] = anno_rg
+            if nome_imputato:
+                payload["nominativoImputato"] = nome_imputato
+            if tipo_registro:
+                payload["tipoRegistro"] = tipo_registro
+            risposta = _soap_call_zeep_operation_via_curl(
+                wsdl_url=_WSDL_RICERCA_PENALE,
+                operation_name="ricercaFascicoliPenale",
+                payload=payload,
+                cert_thumbprint=cert_thumbprint,
+            )
+            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            self._send_json({"ok": True, "fascicoli": fascicoli})
+        except Exception as e:
+            log.error("Errore PDP ricerca: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pdp_documenti(self):
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        codice_ufficio = str(data.get("codice_ufficio") or data.get("ufficio") or "").strip()
+        numero_rg = str(data.get("numero_rg") or "").strip()
+        anno_rg = _parse_optional_int(data.get("anno_rg"))
+        if not (codice_ufficio and numero_rg and anno_rg):
+            self._send_json(
+                {"ok": False, "errore": "Campi obbligatori: codice_ufficio, numero_rg, anno_rg"},
+                400,
+            )
+            return
+
+        try:
+            from pct.pdp import ClientPDP, _WSDL_CONSULTA_PENALE
+
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
+            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
+            risposta = _soap_call_zeep_operation_via_curl(
+                wsdl_url=_WSDL_CONSULTA_PENALE,
+                operation_name="consultaDocumentiPenale",
+                payload={
+                    "codiceFiscaleAvvocato": cf_avvocato,
+                    "codiceUfficio": codice_ufficio,
+                    "numeroRG": numero_rg,
+                    "annoRG": anno_rg,
+                },
+                cert_thumbprint=cert_thumbprint,
+            )
+            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            self._send_json({"ok": True, "documenti": documenti})
+        except Exception as e:
+            log.error("Errore PDP documenti: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pat_ricerca(self):
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        ufficio = str(data.get("ufficio") or data.get("codice_ufficio") or "").strip()
+        if not ufficio:
+            self._send_json({"ok": False, "errore": "Campo 'ufficio' obbligatorio"}, 400)
+            return
+
+        try:
+            from pct.pat import ClientPAT, _WSDL_RICERCA_AMM
+
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
+            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
+            payload: Dict[str, Any] = {
+                "codiceFiscaleAvvocato": cf_avvocato,
+                "codiceUfficio": client._risolvi_codice(ufficio),
+                "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
+            }
+            numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
+            anno = _parse_optional_int(data.get("anno"))
+            nome_ricorrente = str(data.get("nome_ricorrente") or data.get("assistito") or "").strip()
+            materia = str(data.get("materia") or "").strip()
+            if numero_ricorso:
+                payload["numeroRicorso"] = numero_ricorso
+            if anno:
+                payload["anno"] = anno
+            if nome_ricorrente:
+                payload["nominativoRicorrente"] = nome_ricorrente
+            if materia:
+                payload["materia"] = materia
+            risposta = _soap_call_zeep_operation_via_curl(
+                wsdl_url=_WSDL_RICERCA_AMM,
+                operation_name="ricercaRicorsi",
+                payload=payload,
+                cert_thumbprint=cert_thumbprint,
+            )
+            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            self._send_json({"ok": True, "fascicoli": fascicoli})
+        except Exception as e:
+            log.error("Errore PAT ricerca: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _pat_documenti(self):
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        codice_ufficio = str(data.get("codice_ufficio") or data.get("ufficio") or "").strip()
+        numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
+        anno = _parse_optional_int(data.get("anno"))
+        if not (codice_ufficio and numero_ricorso and anno):
+            self._send_json(
+                {"ok": False, "errore": "Campi obbligatori: codice_ufficio, numero_ricorso, anno"},
+                400,
+            )
+            return
+
+        try:
+            from pct.pat import ClientPAT, _WSDL_CONSULTA_AMM
+
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
+            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
+            risposta = _soap_call_zeep_operation_via_curl(
+                wsdl_url=_WSDL_CONSULTA_AMM,
+                operation_name="consultazioneDocumenti",
+                payload={
+                    "codiceFiscaleAvvocato": cf_avvocato,
+                    "codiceUfficio": codice_ufficio,
+                    "numeroRicorso": numero_ricorso,
+                    "anno": anno,
+                },
+                cert_thumbprint=cert_thumbprint,
+            )
+            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            self._send_json({"ok": True, "documenti": documenti})
+        except Exception as e:
+            log.error("Errore PAT documenti: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ptt_ricerca(self):
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        commissione = str(data.get("commissione") or data.get("codice_commissione") or "").strip()
+        if not commissione:
+            self._send_json({"ok": False, "errore": "Campo 'commissione' obbligatorio"}, 400)
+            return
+
+        try:
+            from pct.sigit import ClientSIGIT, _WSDL_RICERCA_TRIB
+
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
+            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
+            payload: Dict[str, Any] = {
+                "codiceFiscaleAvvocato": cf_avvocato,
+                "codiceCommissione": client._risolvi_codice(commissione),
+                "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
+            }
+            numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
+            anno_rgt = _parse_optional_int(data.get("anno_rgt") or data.get("anno"))
+            nome_ricorrente = str(data.get("nome_ricorrente") or data.get("assistito") or "").strip()
+            tipo = str(data.get("tipo") or data.get("materia") or "").strip()
+            if numero_rgt:
+                payload["numeroRGT"] = numero_rgt
+            if anno_rgt:
+                payload["annoRGT"] = anno_rgt
+            if nome_ricorrente:
+                payload["nominativoRicorrente"] = nome_ricorrente
+            if tipo:
+                payload["tipoRicorso"] = tipo
+            risposta = _soap_call_zeep_operation_via_curl(
+                wsdl_url=_WSDL_RICERCA_TRIB,
+                operation_name="ricercaFascicoliTributari",
+                payload=payload,
+                cert_thumbprint=cert_thumbprint,
+            )
+            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            self._send_json({"ok": True, "fascicoli": fascicoli})
+        except Exception as e:
+            log.error("Errore PTT ricerca: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _ptt_documenti(self):
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
+
+        data = self._read_json()
+        codice_commissione = str(data.get("codice_commissione") or data.get("commissione") or "").strip()
+        numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
+        anno_rgt = _parse_optional_int(data.get("anno_rgt") or data.get("anno"))
+        if not (codice_commissione and numero_rgt and anno_rgt):
+            self._send_json(
+                {"ok": False, "errore": "Campi obbligatori: codice_commissione, numero_rgt, anno_rgt"},
+                400,
+            )
+            return
+
+        try:
+            from pct.sigit import ClientSIGIT, _WSDL_CONSULTA_TRIB
+
+            cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
+            cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
+            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
+            risposta = _soap_call_zeep_operation_via_curl(
+                wsdl_url=_WSDL_CONSULTA_TRIB,
+                operation_name="consultaDocumentiTributari",
+                payload={
+                    "codiceFiscaleAvvocato": cf_avvocato,
+                    "codiceCommissione": codice_commissione,
+                    "numeroRGT": numero_rgt,
+                    "annoRGT": anno_rgt,
+                },
+                cert_thumbprint=cert_thumbprint,
+            )
+            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            self._send_json({"ok": True, "documenti": documenti})
+        except Exception as e:
+            log.error("Errore PTT documenti: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pst_download_documento(self):

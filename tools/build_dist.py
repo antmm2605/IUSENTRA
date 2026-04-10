@@ -286,7 +286,7 @@ def build_macos_command(version: str, base_url: str) -> str:
         curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
         cat > "$PLIST" <<PLISTEOF
         <?xml version="1.0" encoding="UTF-8"?>
@@ -353,7 +353,7 @@ def build_linux_run(version: str, base_url: str) -> str:
         curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
         cat > "$SERVICE" <<EOF
         [Unit]

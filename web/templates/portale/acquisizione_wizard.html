@@ -293,6 +293,9 @@ function awClearPstSession() {
   AW_PST_SESSION_PROMISE = null;
   awSavePstSession(null);
 }
+function awLocalSignerPortaleLabel() {
+  return AW_BOOT.portale === 'pst' ? 'PST' : (AW_BOOT.spec?.label || 'portale');
+}
 function awSetAccessBusy(busy) {
   AW_ACCESS_BUSY = !!busy;
   ['awTest', 'awGoSearch'].forEach(id => {
@@ -392,7 +395,7 @@ async function awRefreshStatus({ force = false, probeSigner = false, light = tru
   AW_STATUS_REFRESH_PROMISE = (async () => {
     const data = await awJson(AW_BOOT.statusUrl);
     if (data.ok) AW_STATE.status = data.status;
-    if (probeSigner && AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode) {
+    if (probeSigner && AW_STATE.status.pkcs11_mode) {
       try {
         const ping = await awLsPing({ light });
         AW_STATE.status.local_signer = ping;
@@ -527,6 +530,164 @@ async function awPstPreviewViaLocalSigner(selection, retry = true) {
     }
     throw err;
   }
+}
+function awMapLocalSignerSearchRows(rows, query) {
+  const list = Array.isArray(rows) ? rows : [];
+  const officeName = document.getElementById('awOfficeInput')?.value || '';
+  const officeCode = String(query?.ufficio_codice || '').trim();
+  if (AW_BOOT.portale === 'pdp') {
+    return list.map(row => ({
+      external_id: `${row.codice_ufficio || officeCode}:${row.numero_rg}:${row.anno_rg}:${row.tipo_registro || ''}`,
+      id_fascicolo: '',
+      numero: row.numero_rg || '',
+      anno: Number(row.anno_rg || 0),
+      ufficio_codice: row.codice_ufficio || officeCode || '',
+      ufficio_nome: row.nome_ufficio || officeName || '',
+      procedimento: row.tipo_registro || '',
+      sub_procedimento: row.fase || '',
+      sezione: row.sezione || '',
+      stato: row.stato || '',
+      oggetto: row.reato || '',
+      parti: Array.isArray(row.imputati) ? row.imputati : [],
+      controparti: Array.isArray(row.parti_offese) ? row.parti_offese : [],
+      ultima_attivita: row.data_udienza || row.data_iscrizione || '',
+      payload: row,
+    }));
+  }
+  if (AW_BOOT.portale === 'pat') {
+    return list.map(row => ({
+      external_id: `${row.codice_ufficio || officeCode}:${row.numero_ricorso}:${row.anno}:${row.tipo || ''}`,
+      id_fascicolo: '',
+      numero: row.numero_ricorso || '',
+      anno: Number(row.anno || 0),
+      ufficio_codice: row.codice_ufficio || officeCode || '',
+      ufficio_nome: row.nome_ufficio || officeName || '',
+      procedimento: row.tipo || '',
+      sub_procedimento: '',
+      sezione: row.sezione || '',
+      stato: row.stato || '',
+      oggetto: row.oggetto || row.materia || '',
+      parti: Array.isArray(row.ricorrenti) ? row.ricorrenti : [],
+      controparti: Array.isArray(row.resistenti) ? row.resistenti : [],
+      ultima_attivita: row.data_udienza || row.data_deposito || '',
+      payload: row,
+    }));
+  }
+  return list.map(row => ({
+    external_id: `${row.codice_commissione || officeCode}:${row.numero_rgt}:${row.anno_rgt}:${row.tipo || ''}`,
+    id_fascicolo: '',
+    numero: row.numero_rgt || '',
+    anno: Number(row.anno_rgt || 0),
+    ufficio_codice: row.codice_commissione || officeCode || '',
+    ufficio_nome: row.nome_commissione || officeName || '',
+    procedimento: row.tipo || '',
+    sub_procedimento: '',
+    sezione: row.sezione || '',
+    stato: row.stato || '',
+    oggetto: row.oggetto_controversia || row.materia || '',
+    parti: Array.isArray(row.ricorrenti) ? row.ricorrenti : [],
+    controparti: Array.isArray(row.resistenti) ? row.resistenti : [],
+    ultima_attivita: row.data_udienza || row.data_deposito || '',
+    payload: row,
+  }));
+}
+async function awSearchViaLocalSigner(query) {
+  if (AW_BOOT.portale === 'pst') {
+    return awPstSearchViaLocalSigner(query);
+  }
+  await awEnsurePstCertReady();
+  const routes = {
+    pdp: {
+      path: '/pdp/ricerca',
+      body: {
+        ufficio: query.ufficio_codice || '',
+        numero_rg: query.numero || '',
+        anno_rg: query.anno || '',
+        nome_imputato: query.assistito || '',
+        tipo_registro: query.registro || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      },
+    },
+    pat: {
+      path: '/pat/ricerca',
+      body: {
+        ufficio: query.ufficio_codice || '',
+        numero_ricorso: query.numero || '',
+        anno: query.anno || '',
+        nome_ricorrente: query.assistito || '',
+        materia: query.materia || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      },
+    },
+    ptt: {
+      path: '/ptt/ricerca',
+      body: {
+        commissione: query.ufficio_codice || '',
+        numero_rgt: query.numero || '',
+        anno_rgt: query.anno || '',
+        nome_ricorrente: query.assistito || '',
+        tipo: query.materia || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      },
+    },
+  };
+  const route = routes[AW_BOOT.portale];
+  if (!route) throw new Error(`Local Signer non configurato per ${awLocalSignerPortaleLabel()}`);
+  const data = await awJson(`${AW_PST_LS_BASE}${route.path}`, {
+    method: 'POST',
+    body: JSON.stringify(route.body),
+  });
+  if (!data.ok) throw new Error(data.errore || `Ricerca ${awLocalSignerPortaleLabel()} non riuscita`);
+  return awMapLocalSignerSearchRows(data.fascicoli || [], query);
+}
+async function awPreviewViaLocalSigner(selection) {
+  if (AW_BOOT.portale === 'pst') {
+    return awPstPreviewViaLocalSigner(selection);
+  }
+  await awEnsurePstCertReady();
+  const routes = {
+    pdp: {
+      path: '/pdp/documenti',
+      body: {
+        codice_ufficio: selection.ufficio_codice || '',
+        numero_rg: selection.numero || '',
+        anno_rg: selection.anno || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      },
+    },
+    pat: {
+      path: '/pat/documenti',
+      body: {
+        codice_ufficio: selection.ufficio_codice || '',
+        numero_ricorso: selection.numero || '',
+        anno: selection.anno || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      },
+    },
+    ptt: {
+      path: '/ptt/documenti',
+      body: {
+        codice_commissione: selection.ufficio_codice || '',
+        numero_rgt: selection.numero || '',
+        anno_rgt: selection.anno || '',
+        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+      },
+    },
+  };
+  const route = routes[AW_BOOT.portale];
+  if (!route) throw new Error(`Local Signer non configurato per ${awLocalSignerPortaleLabel()}`);
+  const data = await awJson(`${AW_PST_LS_BASE}${route.path}`, {
+    method: 'POST',
+    body: JSON.stringify(route.body),
+  });
+  if (!data.ok) throw new Error(data.errore || `Anteprima documenti ${awLocalSignerPortaleLabel()} non riuscita`);
+  return data.documenti || [];
 }
 function awPreviewDocuments() {
   if (Array.isArray(AW_STATE.preview?.documenti) && AW_STATE.preview.documenti.length) return AW_STATE.preview.documenti;
@@ -779,8 +940,8 @@ function awRenderAccess() {
     },
     {
       title: 'Certificato attivo',
-      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (status.pkcs11_mode ? 'Verifica al primo accesso PST' : status.backend_firma || 'Da verificare')),
-      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Il certificato viene validato alla prima ricerca reale sul PST.' : 'Certificato lato server / portale'),
+      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (status.pkcs11_mode ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare')),
+      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale'),
       tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || (!status.pkcs11_mode && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
     },
     {
@@ -802,7 +963,9 @@ function awRenderAccess() {
       </div>
     </div>`).join('');
   const note = [];
-  if (status.pkcs11_mode) note.push('Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.');
+  if (status.pkcs11_mode) note.push(AW_BOOT.portale === 'pst'
+    ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
+    : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
   if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');
@@ -837,8 +1000,8 @@ async function awRunSearch() {
   try {
     const query = awCurrentQuery();
     let results = [];
-    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
-      results = await awPstSearchViaLocalSigner(query);
+    if (AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+      results = await awSearchViaLocalSigner(query);
     } else {
       const data = await awJson(AW_BOOT.searchUrl, { method: 'POST', body: JSON.stringify(query) });
       if (!data.ok) throw new Error(data.errore || 'Ricerca non riuscita');
@@ -915,8 +1078,8 @@ async function awSelectResult(index, jumpPreview) {
   awRenderSidebar();
   try {
     const payload = { selection };
-    if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
-      payload.documenti = await awPstPreviewViaLocalSigner(selection);
+    if (AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+      payload.documenti = await awPreviewViaLocalSigner(selection);
     }
     const data = await awJson(AW_BOOT.previewUrl, { method: 'POST', body: JSON.stringify(payload) });
     if (!data.ok) throw new Error(data.errore || 'Anteprima non disponibile');
@@ -1369,7 +1532,7 @@ document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      if (AW_BOOT.portale === 'pst' && AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
+      if (AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
         // Ping leggero: il certificato viene selezionato/validato alla prima ricerca reale
         await awRefreshStatus({ force: true, probeSigner: true, light: true });
       }

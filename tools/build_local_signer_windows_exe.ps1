@@ -166,7 +166,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -243,7 +243,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
 cat > "$SERVICE" <<EOF
 [Unit]

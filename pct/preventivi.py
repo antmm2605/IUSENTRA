@@ -73,6 +73,105 @@ def _normalize_workflow_channel(value: str | None) -> str:
     return channel if channel in {"STUDIO", "ONLINE"} else "STUDIO"
 
 
+CLAUSOLA_CONTROVERSIE_NESSUNA = "NESSUNA"
+CLAUSOLA_CONTROVERSIE_MULTISTEP = "MULTISTEP_MEDIAZIONE_ARBITRATO"
+
+_CLAUSOLA_CONTROVERSIE_MODELLI: Dict[str, Dict[str, str]] = {
+    CLAUSOLA_CONTROVERSIE_NESSUNA: {
+        "label": "Nessuna clausola specifica",
+        "source": "",
+        "default_text": "",
+    },
+    CLAUSOLA_CONTROVERSIE_MULTISTEP: {
+        "label": "Clausola multistep (mediazione + arbitrato)",
+        "source": (
+            "Fac-simile conferimento incarico + Studio Cataldi / Primavera Forense "
+            "(articolo del 2026 sulla clausola per la risoluzione delle controversie)"
+        ),
+        "default_text": (
+            "Le parti concordano espressamente che, in caso di controversia nascente "
+            "dall'interpretazione ed esecuzione del presente contratto, le stesse daranno "
+            "corso a un tentativo di mediazione secondo le disposizioni contenute nel d.lgs. "
+            "4 marzo 2010 n. 28 e D.M. 24 ottobre 2023 n. 150 e, in caso di esito negativo "
+            "della mediazione, convengono che tale controversia sara risolta mediante arbitrato "
+            "rituale di diritto ai sensi degli artt. 806 e seguenti del c.p.c. e secondo il "
+            "Regolamento Arbitrale di Primavera Forense, reperibile sul sito dell'organismo, "
+            "che le parti dichiarano di conoscere e accettare interamente.\n\n"
+            "Il Collegio Arbitrale sara composto da un arbitro unico nominato in conformita a "
+            "tale Regolamento. All'uopo le parti dichiarano di conoscere gli effetti della presente "
+            "clausola e, sin d'ora di comune accordo, designano quale soggetto incaricato di espletare "
+            'la procedura di mediazione e/o la procedura di arbitrato "Primavera Forense", organismo '
+            "iscritto al n. 322 del Registro tenuto dal Ministero della Giustizia, eleggendo domicilio "
+            "per la ricezione delle convocazioni di rito presso gli indirizzi riportati nell'epigrafe del "
+            "presente contratto. L'Arbitro Unico, su domanda di parte, potra concedere tutte le misure "
+            "cautelari che non siano vietate da norme inderogabili applicabili al procedimento. Sia la "
+            "procedura di mediazione civile che il giudizio arbitrale si svolgeranno a Roma, in presenza "
+            "o in modalita telematica."
+        ),
+    },
+}
+
+
+def normalizza_modello_clausola_controversie(value: str | None) -> str:
+    modello = str(value or "").strip().upper()
+    return modello if modello in _CLAUSOLA_CONTROVERSIE_MODELLI else CLAUSOLA_CONTROVERSIE_NESSUNA
+
+
+def catalogo_clausola_controversie() -> List[Dict[str, str]]:
+    return [
+        {
+            "id": key,
+            "label": meta["label"],
+            "source": meta["source"],
+            "default_text": meta["default_text"],
+        }
+        for key, meta in _CLAUSOLA_CONTROVERSIE_MODELLI.items()
+    ]
+
+
+def label_modello_clausola_controversie(value: str | None) -> str:
+    modello = normalizza_modello_clausola_controversie(value)
+    return _CLAUSOLA_CONTROVERSIE_MODELLI[modello]["label"]
+
+
+def fonte_modello_clausola_controversie(value: str | None) -> str:
+    modello = normalizza_modello_clausola_controversie(value)
+    return _CLAUSOLA_CONTROVERSIE_MODELLI[modello]["source"]
+
+
+def testo_predefinito_clausola_controversie(value: str | None) -> str:
+    modello = normalizza_modello_clausola_controversie(value)
+    return _CLAUSOLA_CONTROVERSIE_MODELLI[modello]["default_text"]
+
+
+def prepara_clausola_controversie(
+    *,
+    attiva: bool | None,
+    modello: str | None,
+    testo: str | None,
+    trattativa_individuale: bool | None = False,
+    fonte: str | None = "",
+) -> Dict[str, Any]:
+    modello_norm = normalizza_modello_clausola_controversie(modello)
+    is_active = bool(attiva) and modello_norm != CLAUSOLA_CONTROVERSIE_NESSUNA
+    if not is_active:
+        return {
+            "attiva": False,
+            "modello": CLAUSOLA_CONTROVERSIE_NESSUNA,
+            "testo": "",
+            "trattativa_individuale": False,
+            "fonte": "",
+        }
+    testo_norm = (testo or "").strip() or testo_predefinito_clausola_controversie(modello_norm)
+    return {
+        "attiva": True,
+        "modello": modello_norm,
+        "testo": testo_norm,
+        "trattativa_individuale": bool(trattativa_individuale),
+        "fonte": (fonte or fonte_modello_clausola_controversie(modello_norm)).strip(),
+    }
+
+
 # ================================================================ Piano pagamenti
 
 @dataclass
@@ -199,6 +298,11 @@ class Preventivo:
     studio_piva:      str = ""
     studio_cf:        str = ""
     studio_indirizzo: str = ""
+    clausola_controversie_attiva: bool = False
+    clausola_controversie_modello: str = CLAUSOLA_CONTROVERSIE_NESSUNA
+    clausola_controversie_testo: str = ""
+    clausola_controversie_trattativa_individuale: bool = False
+    clausola_controversie_fonte: str = ""
 
     # ---------------------------------------------------------------- Calcoli
 
@@ -259,6 +363,9 @@ class Preventivo:
         except ValueError:
             d["stato"] = StatoPreventivo.BOZZA
         d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
+        d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
+            d.get("clausola_controversie_modello")
+        )
         d["voci"] = [VocePreventivo.from_dict(v) for v in d.get("voci", [])]
         d["piano_pagamenti"] = [VoceScadenza.from_dict(r) for r in d.get("piano_pagamenti", [])]
         campi = set(Preventivo.__dataclass_fields__)
@@ -309,6 +416,11 @@ class ConferimentoIncarico:
     # Obblighi informativi art. 13 L. 247/2012
     informativa_art13_resa: bool = False
     clausola_adr_resa:      bool = False
+    clausola_controversie_attiva: bool = False
+    clausola_controversie_modello: str = CLAUSOLA_CONTROVERSIE_NESSUNA
+    clausola_controversie_testo: str = ""
+    clausola_controversie_trattativa_individuale: bool = False
+    clausola_controversie_fonte: str = ""
 
     # Dati studio per PDF
     studio_piva:      str = ""
@@ -335,6 +447,9 @@ class ConferimentoIncarico:
         d = dict(d)
         d["stato"] = StatoConferimento(d.get("stato", "ATTIVO"))
         d["workflow_channel"] = _normalize_workflow_channel(d.get("workflow_channel"))
+        d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
+            d.get("clausola_controversie_modello")
+        )
         campi = set(ConferimentoIncarico.__dataclass_fields__)
         return ConferimentoIncarico(**{k: v for k, v in d.items() if k in campi})
 
@@ -434,12 +549,24 @@ class GestionePreventivi:
                         valore_controversia: float = 0.0,
                         tariffa_oraria:      float = 0.0,
                         ore_stimate:         float = 0.0,
-                        complessita:         str   = "",
-                        log_calcolo:    Optional[str] = None,
-                        workflow_channel: str = "STUDIO",
-                        studio_piva:    str = "",
-                        studio_cf:      str = "",
-                        studio_indirizzo: str = "") -> Preventivo:
+                         complessita:         str   = "",
+                         log_calcolo:    Optional[str] = None,
+                         workflow_channel: str = "STUDIO",
+                         studio_piva:    str = "",
+                         studio_cf:      str = "",
+                         studio_indirizzo: str = "",
+                         clausola_controversie_attiva: bool = False,
+                         clausola_controversie_modello: str = CLAUSOLA_CONTROVERSIE_NESSUNA,
+                         clausola_controversie_testo: str = "",
+                         clausola_controversie_trattativa_individuale: bool = False,
+                         clausola_controversie_fonte: str = "") -> Preventivo:
+        clausola_payload = prepara_clausola_controversie(
+            attiva=clausola_controversie_attiva,
+            modello=clausola_controversie_modello,
+            testo=clausola_controversie_testo,
+            trattativa_individuale=clausola_controversie_trattativa_individuale,
+            fonte=clausola_controversie_fonte,
+        )
         p = Preventivo(
             id=str(uuid.uuid4()),
             numero=self._prossimo_numero_preventivo(),
@@ -473,6 +600,11 @@ class GestionePreventivi:
             studio_piva=studio_piva,
             studio_cf=studio_cf,
             studio_indirizzo=studio_indirizzo,
+            clausola_controversie_attiva=clausola_payload["attiva"],
+            clausola_controversie_modello=clausola_payload["modello"],
+            clausola_controversie_testo=clausola_payload["testo"],
+            clausola_controversie_trattativa_individuale=clausola_payload["trattativa_individuale"],
+            clausola_controversie_fonte=clausola_payload["fonte"],
         )
         self._preventivi[p.id] = p
         self._salva_preventivi()
@@ -593,6 +725,11 @@ class GestionePreventivi:
                           quota_palmario_pct:     float = 0.0,
                           informativa_art13_resa: bool  = False,
                           clausola_adr_resa:      bool  = False,
+                          clausola_controversie_attiva: bool | None = None,
+                          clausola_controversie_modello: str = "",
+                          clausola_controversie_testo: str = "",
+                          clausola_controversie_trattativa_individuale: bool | None = None,
+                          clausola_controversie_fonte: str = "",
                           workflow_channel:       str = "",
                           firma_cliente_richiesta: bool = True,
                           studio_piva:        str = "",
@@ -623,7 +760,26 @@ class GestionePreventivi:
                     tariffa_oraria = preventivo.tariffa_oraria
                 if not compenso_pattuito:
                     compenso_pattuito = preventivo.totale
+                if clausola_controversie_attiva is None:
+                    clausola_controversie_attiva = preventivo.clausola_controversie_attiva
+                if not clausola_controversie_modello:
+                    clausola_controversie_modello = preventivo.clausola_controversie_modello
+                if not clausola_controversie_testo:
+                    clausola_controversie_testo = preventivo.clausola_controversie_testo
+                if clausola_controversie_trattativa_individuale is None:
+                    clausola_controversie_trattativa_individuale = (
+                        preventivo.clausola_controversie_trattativa_individuale
+                    )
+                if not clausola_controversie_fonte:
+                    clausola_controversie_fonte = preventivo.clausola_controversie_fonte
                 workflow_channel = workflow_channel or preventivo.workflow_channel
+        clausola_payload = prepara_clausola_controversie(
+            attiva=clausola_controversie_attiva,
+            modello=clausola_controversie_modello,
+            testo=clausola_controversie_testo,
+            trattativa_individuale=clausola_controversie_trattativa_individuale,
+            fonte=clausola_controversie_fonte,
+        )
         c = ConferimentoIncarico(
             id=str(uuid.uuid4()),
             numero=self._prossimo_numero_conferimento(),
@@ -653,6 +809,11 @@ class GestionePreventivi:
             quota_palmario_pct=quota_palmario_pct,
             informativa_art13_resa=informativa_art13_resa,
             clausola_adr_resa=clausola_adr_resa,
+            clausola_controversie_attiva=clausola_payload["attiva"],
+            clausola_controversie_modello=clausola_payload["modello"],
+            clausola_controversie_testo=clausola_payload["testo"],
+            clausola_controversie_trattativa_individuale=clausola_payload["trattativa_individuale"],
+            clausola_controversie_fonte=clausola_payload["fonte"],
             workflow_channel=_normalize_workflow_channel(workflow_channel),
             firma_cliente_richiesta=bool(firma_cliente_richiesta),
             studio_piva=studio_piva,

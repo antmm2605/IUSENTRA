@@ -378,6 +378,75 @@
       </div>
     </div>
 
+    <div class="col-12">
+      <div class="card border-info">
+        <div class="card-header fw-semibold text-info-emphasis">
+          <i class="bi bi-journal-text me-2"></i>Clausola per la risoluzione delle controversie
+        </div>
+        <div class="card-body">
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" name="clausola_controversie_attiva"
+                   id="chkClausolaControversieAttiva" value="1"
+                   {{ 'checked' if clausola_state.attiva else '' }}
+                   onchange="syncClausolaControversie()">
+            <label class="form-check-label" for="chkClausolaControversieAttiva">
+              <strong>Proponi una clausola contrattuale da riportare poi nel conferimento</strong>
+              <div class="text-muted small">
+                La clausola nasce qui nel preventivo, resta modificabile e viene trasferita nel conferimento di incarico.
+              </div>
+            </label>
+          </div>
+
+          <div id="boxClausolaControversie" style="display:none">
+            <input type="hidden" name="clausola_controversie_fonte" id="inpClausolaControversieFonte"
+                   value="{{ clausola_state.fonte }}">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Modello clausola</label>
+                <select name="clausola_controversie_modello" id="selClausolaControversieModello"
+                        class="form-select" onchange="onClausolaControversieModelloChange()">
+                  {% for modello in clausola_catalogo %}
+                  <option value="{{ modello.id }}" {{ 'selected' if clausola_state.modello == modello.id else '' }}>
+                    {{ modello.label }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Tutela cliente / consumatore</label>
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox"
+                         name="clausola_controversie_trattativa_individuale"
+                         id="chkClausolaControversieTrattativa" value="1"
+                         {{ 'checked' if clausola_state.trattativa_individuale else '' }}>
+                  <label class="form-check-label" for="chkClausolaControversieTrattativa">
+                    Trattativa individuale documentabile sulla clausola gia svolta
+                  </label>
+                </div>
+                <div class="text-muted small mt-2">
+                  Da usare con particolare attenzione se il cliente opera come consumatore: la fonte richiede una trattativa seria, effettiva e individuale.
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                  <label class="form-label mb-0">Testo da adattare</label>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="ripristinaClausolaControversie()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina testo standard
+                  </button>
+                </div>
+                <textarea name="clausola_controversie_testo" id="txtClausolaControversie"
+                          class="form-control" rows="8"
+                          placeholder="Inserisci qui la clausola da proporre nel successivo conferimento.">{{ clausola_state.testo }}</textarea>
+                <div class="form-text" id="txtClausolaControversieFonte">
+                  Fonte modello: {{ clausola_state.fonte or 'nessuna fonte impostata' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     {# ── Note ── #}
     <div class="col-12">
       <div class="card">
@@ -401,6 +470,13 @@
 
 <script>
 const TIPI = ['Onorario','Spesa forfettaria','Spesa viva'];
+const CLAUSOLA_CONTROVERSIE_CATALOGO = {{ clausola_catalogo|tojson }};
+const CLAUSOLA_CONTROVERSIE_DEFAULTS = Object.fromEntries(
+  CLAUSOLA_CONTROVERSIE_CATALOGO.map(item => [item.id, item.default_text || ''])
+);
+const CLAUSOLA_CONTROVERSIE_SOURCES = Object.fromEntries(
+  CLAUSOLA_CONTROVERSIE_CATALOGO.map(item => [item.id, item.source || ''])
+);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Voci preventivo
@@ -468,6 +544,45 @@ function caricaFascicoli(idCliente) {
         sel.appendChild(opt);
       });
     });
+}
+
+function syncClausolaControversie() {
+  const chk = document.getElementById('chkClausolaControversieAttiva');
+  const box = document.getElementById('boxClausolaControversie');
+  const sel = document.getElementById('selClausolaControversieModello');
+  const txt = document.getElementById('txtClausolaControversie');
+  const fonteInp = document.getElementById('inpClausolaControversieFonte');
+  const fonteLabel = document.getElementById('txtClausolaControversieFonte');
+  if (!chk || !box || !sel || !txt || !fonteInp || !fonteLabel) return;
+  box.style.display = chk.checked ? '' : 'none';
+  sel.disabled = !chk.checked;
+  txt.disabled = !chk.checked;
+  document.getElementById('chkClausolaControversieTrattativa').disabled = !chk.checked;
+  if (!chk.checked) {
+    fonteInp.value = '';
+    fonteLabel.textContent = 'Fonte modello: nessuna fonte impostata';
+    return;
+  }
+  const modello = sel.value;
+  const defaultText = CLAUSOLA_CONTROVERSIE_DEFAULTS[modello] || '';
+  const source = CLAUSOLA_CONTROVERSIE_SOURCES[modello] || '';
+  if (!txt.value.trim()) {
+    txt.value = defaultText;
+  }
+  fonteInp.value = source;
+  fonteLabel.textContent = `Fonte modello: ${source || 'nessuna fonte impostata'}`;
+}
+
+function onClausolaControversieModelloChange() {
+  syncClausolaControversie();
+}
+
+function ripristinaClausolaControversie() {
+  const sel = document.getElementById('selClausolaControversieModello');
+  const txt = document.getElementById('txtClausolaControversie');
+  if (!sel || !txt) return;
+  txt.value = CLAUSOLA_CONTROVERSIE_DEFAULTS[sel.value] || '';
+  syncClausolaControversie();
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -695,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   aggiungiVoce();
   aggiornaUiCompenso();
   aggiornaSpeseGenerali();
+  syncClausolaControversie();
 });
 </script>
 

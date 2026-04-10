@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from pct.checklist_atti import CANALE_LABEL, get_template
 from pct.fascicoli import TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
+from pct.preventivi import label_modello_clausola_controversie
 from pct.practice_profiles import get_practice_profile
 
 
@@ -323,6 +324,20 @@ def build_fascicolo_onboarding(
         f"Apertura guidata da {source_label.lower()} {source_number}.".strip(),
         f"Tipologia collegata: {scheda.label}." if scheda else "",
         f"Motore preventivo: {scheda.motore_label}." if scheda and scheda.motore_label else "",
+        (
+            "Clausola controversie attiva: "
+            + label_modello_clausola_controversie(
+                getattr(sorgente, "clausola_controversie_modello", "")
+            )
+            + "."
+        )
+        if getattr(sorgente, "clausola_controversie_attiva", False)
+        else "",
+        (
+            "Workflow interno avviato con fascicolo da verificare anche dal Responsabile di conformita."
+        )
+        if getattr(sorgente, "clausola_controversie_attiva", False)
+        else "",
         "Checklist iniziale:",
     ]
     notes.extend([f"- {item}" for item in checklist])

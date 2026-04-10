@@ -1,7 +1,14 @@
 from types import SimpleNamespace
 
 from pct.fascicoli import GestioneFascicoli
-from pct.preventivi import GestionePreventivi, StatoPreventivo, TipoVoce, VocePreventivo
+from pct.preventivi import (
+    CLAUSOLA_CONTROVERSIE_MULTISTEP,
+    GestionePreventivi,
+    StatoPreventivo,
+    TipoVoce,
+    VocePreventivo,
+    prepara_clausola_controversie,
+)
 from pct.scadenziario import GestioneScadenziario
 from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_summary
 
@@ -26,6 +33,9 @@ def test_registra_accettazione_preventivo_crea_conferimento_online(tmp_path):
         id_pratica="atto_citazione",
         area_pratica="Civile",
         tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+        clausola_controversie_attiva=True,
+        clausola_controversie_modello=CLAUSOLA_CONTROVERSIE_MULTISTEP,
+        clausola_controversie_trattativa_individuale=True,
     )
 
     p, conferimento = gp.registra_accettazione_preventivo(
@@ -45,6 +55,42 @@ def test_registra_accettazione_preventivo_crea_conferimento_online(tmp_path):
     assert conferimento.id_preventivo == preventivo.id
     assert conferimento.workflow_channel == "ONLINE"
     assert conferimento.firma_cliente_richiesta is True
+    assert conferimento.clausola_controversie_attiva is True
+    assert conferimento.clausola_controversie_modello == CLAUSOLA_CONTROVERSIE_MULTISTEP
+    assert "mediazione" in conferimento.clausola_controversie_testo.lower()
+    assert conferimento.clausola_controversie_trattativa_individuale is True
+
+
+def test_prepara_clausola_controversie_genera_testo_standard_e_pulisce_quando_disattivata():
+    payload = prepara_clausola_controversie(
+        attiva=True,
+        modello=CLAUSOLA_CONTROVERSIE_MULTISTEP,
+        testo="",
+        trattativa_individuale=True,
+        fonte="",
+    )
+
+    assert payload["attiva"] is True
+    assert payload["modello"] == CLAUSOLA_CONTROVERSIE_MULTISTEP
+    assert "arbitrato" in payload["testo"].lower()
+    assert payload["trattativa_individuale"] is True
+    assert payload["fonte"]
+
+    payload_off = prepara_clausola_controversie(
+        attiva=False,
+        modello=CLAUSOLA_CONTROVERSIE_MULTISTEP,
+        testo="testo libero",
+        trattativa_individuale=True,
+        fonte="fonte",
+    )
+
+    assert payload_off == {
+        "attiva": False,
+        "modello": "NESSUNA",
+        "testo": "",
+        "trattativa_individuale": False,
+        "fonte": "",
+    }
 
 
 def test_build_workflow_summary_identifica_step_firma(tmp_path):
@@ -98,6 +144,8 @@ def test_apri_fascicolo_automatico_crea_checklist_e_scadenze(tmp_path):
         id_pratica="amministrazione_sostegno",
         area_pratica="Civile",
         tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+        clausola_controversie_attiva=True,
+        clausola_controversie_modello=CLAUSOLA_CONTROVERSIE_MULTISTEP,
     )
     _, conferimento = gp.registra_accettazione_preventivo(
         preventivo.id,
@@ -127,6 +175,7 @@ def test_apri_fascicolo_automatico_crea_checklist_e_scadenze(tmp_path):
     assert len(fascicolo.attivita) == 0
     assert any("Apertura automatica del fascicolo" in av.descrizione for av in fascicolo.avanzamento)
     assert len(gs.tutte(id_fascicolo=fascicolo.id)) == 3
+    assert "Responsabile di conformita" in fascicolo.note
 
 
 def test_apri_fascicolo_automatico_comparsa_risposta_genera_attivita_specifiche(tmp_path):

@@ -251,6 +251,37 @@
     </div>
   </div>
 
+  <div class="col-12">
+    <div class="card border-info-subtle">
+      <div class="card-header fw-semibold"><i class="bi bi-journal-text me-2"></i>Clausola contrattuale sulle controversie</div>
+      <div class="card-body">
+        {% if c.clausola_controversie_attiva and c.clausola_controversie_testo %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge text-bg-info">{{ clausola_modello_label }}</span>
+          {% if c.clausola_controversie_trattativa_individuale %}
+          <span class="badge text-bg-success">Trattativa individuale registrata</span>
+          {% else %}
+          <span class="badge text-bg-warning">Trattativa individuale non registrata</span>
+          {% endif %}
+        </div>
+        {% if c.clausola_controversie_fonte %}
+        <div class="small text-muted mb-2">
+          <span class="fw-semibold text-dark">Fonte modello:</span> {{ c.clausola_controversie_fonte }}
+        </div>
+        {% endif %}
+        <p class="mb-0" style="white-space:pre-wrap">{{ c.clausola_controversie_testo }}</p>
+        <div class="alert alert-light border mt-3 mb-0 py-2 small">
+          Questa clausola accompagna il passaggio al fascicolo, dove continuerai con Responsabile di conformita e workflow interno avviato.
+        </div>
+        {% else %}
+        <div class="text-muted">
+          Nel conferimento non e stata registrata una clausola contrattuale specifica per la risoluzione delle controversie.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   {% if c.note %}
   <div class="col-12">
     <div class="card">

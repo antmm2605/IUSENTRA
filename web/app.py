@@ -7068,7 +7068,6 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pdp/ricerca", methods=["POST"])
     def pdp_ricerca():
-        from pct.pdp import crea_client_pdp
         f          = request.form
         ufficio    = f.get("ufficio", "").strip()
         demo_mode  = f.get("demo_mode") == "1" or _polis_demo_mode()
@@ -7086,6 +7085,7 @@ read -r -p "Premi Invio per chiudere..." _
         tipo_registro = f.get("tipo_registro", "").strip() or None
 
         try:
+            from pct.pdp import crea_client_pdp
             client = crea_client_pdp(demo=demo_mode)
             fascicoli = client.ricerca_fascicoli(
                 ufficio=ufficio,
@@ -7127,13 +7127,13 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pdp/documenti")
     def pdp_documenti():
-        from pct.pdp import crea_client_pdp
         codice_ufficio = request.args.get("codice_ufficio", "")
         numero_rg      = request.args.get("numero_rg", "")
         anno_rg_str    = request.args.get("anno_rg", "0")
         anno_rg        = int(anno_rg_str) if anno_rg_str.isdigit() else 0
         demo_mode      = _polis_demo_mode()
         try:
+            from pct.pdp import crea_client_pdp
             client    = crea_client_pdp(demo=demo_mode)
             documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
         except Exception as e:
@@ -7184,11 +7184,11 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pdp/importa", methods=["POST"])
     def pdp_importa():
-        from pct.pdp import ClientPDP, FascicoloPDP, crea_client_pdp
         import json
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         try:
+            from pct.pdp import ClientPDP, FascicoloPDP, crea_client_pdp
             fascicolo = FascicoloPDP(
                 numero_rg=f.get("numero_rg", ""),
                 anno_rg=int(f.get("anno_rg", 0) or 0),
@@ -7236,7 +7236,6 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pat/ricerca", methods=["POST"])
     def pat_ricerca():
-        from pct.pat import crea_client_pat
         f         = request.form
         ufficio   = f.get("ufficio", "").strip()
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
@@ -7254,6 +7253,7 @@ read -r -p "Premi Invio per chiudere..." _
         materia         = f.get("materia", "").strip() or None
 
         try:
+            from pct.pat import crea_client_pat
             client    = crea_client_pat(demo=demo_mode)
             fascicoli = client.ricerca_fascicoli(
                 ufficio=ufficio,
@@ -7294,13 +7294,13 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pat/documenti")
     def pat_documenti():
-        from pct.pat import crea_client_pat
         codice_ufficio = request.args.get("codice_ufficio", "")
         numero_ricorso = request.args.get("numero_ricorso", "")
         anno_str       = request.args.get("anno", "0")
         anno           = int(anno_str) if anno_str.isdigit() else 0
         demo_mode      = _polis_demo_mode()
         try:
+            from pct.pat import crea_client_pat
             client    = crea_client_pat(demo=demo_mode)
             documenti = client.consulta_documenti(codice_ufficio, numero_ricorso, anno)
         except Exception as e:
@@ -7351,11 +7351,11 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pat/importa", methods=["POST"])
     def pat_importa():
-        from pct.pat import ClientPAT, FascicoloPAT, crea_client_pat
         import json
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         try:
+            from pct.pat import ClientPAT, FascicoloPAT, crea_client_pat
             fascicolo = FascicoloPAT(
                 numero_ricorso=f.get("numero_ricorso", ""),
                 anno=int(f.get("anno", 0) or 0),
@@ -7412,7 +7412,6 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/sigit/ricerca", methods=["POST"])
     def sigit_ricerca():
-        from pct.sigit import crea_client_sigit
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         commissione   = f.get("commissione", "").strip()
@@ -7428,6 +7427,7 @@ read -r -p "Premi Invio per chiudere..." _
         fascicolo     = get_fascicoli().get(id_fasc) if id_fasc else None
         fascicoli = []
         try:
+            from pct.sigit import crea_client_sigit
             client    = crea_client_sigit(demo=demo_mode)
             fascicoli = client.ricerca_fascicoli(
                 commissione=commissione,
@@ -7466,7 +7466,6 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/sigit/documenti")
     def sigit_documenti():
-        from pct.sigit import crea_client_sigit
         demo_mode        = request.args.get("demo_mode") == "1" or _polis_demo_mode()
         codice_commissione = request.args.get("codice_commissione", "")
         numero_rgt       = request.args.get("numero_rgt", "")
@@ -7476,6 +7475,7 @@ read -r -p "Premi Invio per chiudere..." _
         depositi  = []
         nome_commissione = codice_commissione
         try:
+            from pct.sigit import crea_client_sigit
             client    = crea_client_sigit(demo=demo_mode)
             documenti = client.consulta_documenti(
                 codice_commissione=codice_commissione,
@@ -7524,11 +7524,11 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/sigit/importa", methods=["POST"])
     def sigit_importa():
-        from pct.sigit import ClientSIGIT, FascicoloSIGIT, crea_client_sigit
         import json
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
         try:
+            from pct.sigit import ClientSIGIT, FascicoloSIGIT, crea_client_sigit
             fascicolo = FascicoloSIGIT(
                 numero_rgt=f.get("numero_rgt", ""),
                 anno_rgt=int(f.get("anno_rgt", 0) or 0),

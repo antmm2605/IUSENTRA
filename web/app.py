@@ -9638,6 +9638,18 @@ read -r -p "Premi Invio per chiudere..." _
             flash(str(e), "danger")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
+    def _estrai_pdf_da_raw(data: bytes) -> bytes | None:
+        """Cerca il contenuto PDF embedded nei byte raw (es. p7m con PDF incapsulato)."""
+        idx = data.find(b"%PDF")
+        if idx < 0:
+            return None
+        # Cerca la fine del PDF (%%EOF)
+        eof_idx = data.rfind(b"%%EOF")
+        if eof_idx > idx:
+            return data[idx:eof_idx + 5]
+        # Fallback: dal marker %PDF fino alla fine
+        return data[idx:]
+
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/visualizza")
     def visualizza_documento(id_fasc, id_doc):
         """Serve il documento decriptato inline per la visualizzazione nel browser."""
@@ -9661,13 +9673,43 @@ read -r -p "Premi Invio per chiudere..." _
                         preview_payload = data
                         preview_name = nome_preview
                     else:
-                        contenuto_versione = _payload_preview_da_versioni_documento(gf, doc)
-                        if contenuto_versione:
-                            preview_payload = contenuto_versione
+                        # Cerca %PDF embedded nel payload raw (p7m DER wrapper)
+                        pdf_raw = _estrai_pdf_da_raw(firma_payload)
+                        if pdf_raw and pdf_raw.startswith(b"%PDF"):
+                            preview_payload = pdf_raw
                             preview_name = nome_preview
+                        else:
+                            contenuto_versione = _payload_preview_da_versioni_documento(gf, doc)
+                            if contenuto_versione:
+                                preview_payload = contenuto_versione
+                                preview_name = nome_preview
             preview = _mime_preview_documento(preview_name, preview_payload)
             if not preview:
-                return send_file(io.BytesIO(firma_payload), as_attachment=True, download_name=doc.nome)
+                # Ultimo tentativo: cerca PDF nel payload raw
+                pdf_raw = _estrai_pdf_da_raw(data) or _estrai_pdf_da_raw(firma_payload)
+                if pdf_raw:
+                    preview_payload = pdf_raw
+                    preview_name = _nome_preview_documento(doc.nome) or "documento.pdf"
+                    preview = ("application/pdf", preview_name)
+            if not preview:
+                # Nessuna anteprima disponibile — ritorna pagina HTML informativa
+                # (mai as_attachment, altrimenti l'iframe del visualizzatore resta bloccato)
+                scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
+                html = (
+                    '<!DOCTYPE html><html><head><meta charset="utf-8">'
+                    '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
+                    '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
+                    '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
+                    '<div class="text-center p-4">'
+                    '<i class="bi bi-file-earmark-lock2 text-secondary" style="font-size:3rem"></i>'
+                    f'<h6 class="mt-3 mb-2">{doc.nome}</h6>'
+                    '<p class="text-muted small mb-3">Anteprima non disponibile per questo formato.<br>'
+                    'Scarica il file per visualizzarlo con il programma appropriato.</p>'
+                    f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
+                    '<i class="bi bi-download me-1"></i>Scarica documento</a>'
+                    '</div></body></html>'
+                )
+                return html, 200, {"Content-Type": "text/html; charset=utf-8"}
             if doc.nome.lower().endswith(".p7m") and preview_payload.startswith(b"%PDF"):
                 try:
                     from pct.firma import analizza_firma_documento

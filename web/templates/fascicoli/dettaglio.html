@@ -3470,6 +3470,8 @@
 
 var _visDettaglioAperto = false;
 
+var _visLoadTimer = null;
+
 function apriVisualizzatore(btn) {
   const nome = btn.dataset.docNome || '';
   const ext  = nome.split('.').pop().toLowerCase();
@@ -3487,7 +3489,7 @@ function apriVisualizzatore(btn) {
   // Spinner + iframe reset
   const iframe = document.getElementById('visualizzatore-iframe');
   iframe.style.display = 'none';
-  iframe.src = '';
+  iframe.removeAttribute('src');
   document.getElementById('vis-loading').style.display = 'flex';
 
   // Reset pannello firma
@@ -3499,10 +3501,24 @@ function apriVisualizzatore(btn) {
   document.getElementById('vis-firma-chevron').className = 'bi bi-chevron-down ms-1';
   document.getElementById('vis-firma-toggle-lbl').textContent = 'Dettagli';
 
+  // Cancella timer precedente
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
+
   new bootstrap.Modal(document.getElementById('modalVisualizzatore')).show();
 
-  // Carica il documento nell'iframe
-  iframe.src = btn.dataset.docUrl || '';
+  // Carica il documento nell'iframe (defer per evitare race con onload di src vuoto)
+  setTimeout(function() {
+    iframe.src = btn.dataset.docUrl || '';
+
+    // Timeout di sicurezza: se l'iframe non carica entro 8s, forza la visualizzazione
+    _visLoadTimer = setTimeout(function() {
+      var loading = document.getElementById('vis-loading');
+      if (loading && loading.style.display !== 'none') {
+        loading.style.display = 'none';
+        iframe.style.display = 'block';
+      }
+    }, 8000);
+  }, 50);
 
   // Fetch info firma se disponibile
   const infoUrl = btn.dataset.infoFirmaUrl;
@@ -3515,6 +3531,7 @@ function apriVisualizzatore(btn) {
 }
 
 function visIframeLoaded() {
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
   document.getElementById('vis-loading').style.display = 'none';
   document.getElementById('visualizzatore-iframe').style.display = 'block';
 }
@@ -3595,7 +3612,8 @@ function _escHtml(s) {
 }
 
 document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
-  document.getElementById('visualizzatore-iframe').src = '';
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
+  document.getElementById('visualizzatore-iframe').removeAttribute('src');
   document.getElementById('vis-loading').style.display = 'none';
 });
 

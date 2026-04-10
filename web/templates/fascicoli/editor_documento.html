@@ -1266,4 +1266,21 @@ updateWordCount()
 updateSelectionInfo()
 updateLastSaveLabel()
 </script>
+
+<script>
+// Fallback: se l'editor non si carica entro 12 secondi, mostra un messaggio di errore.
+// (il modulo TipTap è importato da CDN esm.sh — se la rete lo blocca, il modulo non parte)
+setTimeout(function() {
+  var loading = document.getElementById('ed-loading');
+  if (loading && loading.style.display !== 'none') {
+    loading.innerHTML =
+      '<i class="bi bi-exclamation-triangle text-warning" style="font-size:2.5rem"></i>' +
+      '<p class="fw-semibold mt-2 mb-1">Impossibile caricare l\'editor</p>' +
+      '<p class="text-muted small mb-3">Il caricamento delle librerie esterne potrebbe essere bloccato dalla rete.<br>' +
+      'Verifica la connessione internet e riprova.</p>' +
+      '<a href="javascript:location.reload()" class="btn btn-sm btn-outline-primary">' +
+      '<i class="bi bi-arrow-clockwise me-1"></i>Ricarica pagina</a>';
+  }
+}, 12000);
+</script>
 {% endblock %}

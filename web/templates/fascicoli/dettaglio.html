@@ -3473,8 +3473,11 @@
 var _visDettaglioAperto = false;
 
 var _visLoadTimer = null;
+var _visReady = false;  // true dopo che il src reale è stato impostato
 
 function apriVisualizzatore(btn) {
+  _visReady = false;
+
   const nome = btn.dataset.docNome || '';
   const ext  = nome.split('.').pop().toLowerCase();
 
@@ -3488,10 +3491,10 @@ function apriVisualizzatore(btn) {
   document.getElementById('visualizzatore-titolo').textContent = nome;
   document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl || '#';
 
-  // Spinner + iframe reset
+  // Spinner + iframe reset: usa about:blank (più prevedibile di removeAttribute)
   const iframe = document.getElementById('visualizzatore-iframe');
   iframe.style.display = 'none';
-  iframe.removeAttribute('src');
+  iframe.src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'flex';
 
   // Reset pannello firma
@@ -3506,21 +3509,21 @@ function apriVisualizzatore(btn) {
   // Cancella timer precedente
   if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
 
-  new bootstrap.Modal(document.getElementById('modalVisualizzatore')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalVisualizzatore')).show();
 
-  // Carica il documento nell'iframe (defer per evitare race con onload di src vuoto)
+  var docUrl = btn.dataset.docUrl || '';
+
+  // Carica il documento nell'iframe dopo un breve delay per l'animazione del modal
   setTimeout(function() {
-    iframe.src = btn.dataset.docUrl || '';
+    _visReady = true;
+    iframe.src = docUrl;
 
-    // Timeout di sicurezza: se l'iframe non carica entro 8s, forza la visualizzazione
+    // Timeout di sicurezza: forza la visualizzazione dopo 5s in ogni caso
     _visLoadTimer = setTimeout(function() {
-      var loading = document.getElementById('vis-loading');
-      if (loading && loading.style.display !== 'none') {
-        loading.style.display = 'none';
-        iframe.style.display = 'block';
-      }
-    }, 8000);
-  }, 50);
+      document.getElementById('vis-loading').style.display = 'none';
+      iframe.style.display = 'block';
+    }, 5000);
+  }, 100);
 
   // Fetch info firma se disponibile
   const infoUrl = btn.dataset.infoFirmaUrl;
@@ -3533,6 +3536,9 @@ function apriVisualizzatore(btn) {
 }
 
 function visIframeLoaded() {
+  // Ignora onload da about:blank o da reset iniziale
+  if (!_visReady) return;
+
   if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
   document.getElementById('vis-loading').style.display = 'none';
   document.getElementById('visualizzatore-iframe').style.display = 'block';
@@ -3614,8 +3620,9 @@ function _escHtml(s) {
 }
 
 document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
+  _visReady = false;
   if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
-  document.getElementById('visualizzatore-iframe').removeAttribute('src');
+  document.getElementById('visualizzatore-iframe').src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'none';
 });
 

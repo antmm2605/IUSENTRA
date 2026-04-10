@@ -357,6 +357,9 @@
             </thead>
             <tbody>
               {% for att in WFS.attivita_processuali %}
+              {# Cerca documenti collegati a questa attività #}
+              {%- set att_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
+              {%- set att_single_doc = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
               <tr>
                 <td data-label="Data" class="text-nowrap">{{ att.data|fmt_data }}</td>
                 <td data-label="Tipo">
@@ -369,6 +372,22 @@
                   {% if att.descrizione %}
                     <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
                   {% endif %}
+                  {% if att_docs %}
+                  <div class="d-flex gap-1 flex-wrap mt-1">
+                    {% for adoc in att_docs[:3] %}
+                    {%- set _an = adoc.nome or '' %}
+                    {%- set _an_pre = _an[:-4] if _an.lower().endswith('.p7m') else _an %}
+                    {%- set _aext = _an_pre.rsplit('.',1)[-1].lower() if '.' in _an_pre else '' %}
+                    {%- set _avis = _aext in ['pdf','jpg','jpeg','png','gif'] %}
+                    <span class="badge bg-light text-dark border" style="font-size:.65rem" title="{{ adoc.nome }}">
+                      <i class="bi bi-file-earmark me-1"></i>{{ adoc.nome|truncate(20) }}
+                    </span>
+                    {% endfor %}
+                    {% if att_docs|length > 3 %}
+                    <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ att_docs|length - 3 }}</span>
+                    {% endif %}
+                  </div>
+                  {% endif %}
                 </td>
                 <td data-label="Luogo" data-mob-hide>{{ att.luogo or '—' }}</td>
                 <td data-label="Esito">
@@ -377,11 +396,68 @@
                   </span>
                 </td>
                 <td data-label="">
-                  <button class="btn btn-sm btn-outline-secondary"
-                          data-bs-toggle="modal"
-                          data-bs-target="#modalEsito{{ att.id }}">
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
+                  <div class="d-flex gap-1 flex-wrap align-items-center">
+                    {# Visualizza — primo documento collegato (se visualizzabile) #}
+                    {% if att_docs %}
+                    {%- set _first_doc = att_docs[0] %}
+                    {%- set _fn = _first_doc.nome or '' %}
+                    {%- set _fn_pre = _fn[:-4] if _fn.lower().endswith('.p7m') else _fn %}
+                    {%- set _fext = _fn_pre.rsplit('.',1)[-1].lower() if '.' in _fn_pre else '' %}
+                    {%- set _fvis = _fext in ['pdf','jpg','jpeg','png','gif'] %}
+                    {% if _fvis %}
+                    <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                            data-doc-nome="{{ _first_doc.nome }}"
+                            data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                            data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                            data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                            onclick="apriVisualizzatore(this)">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    {% endif %}
+                    <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                       class="btn btn-outline-secondary btn-sm" title="Scarica">
+                      <i class="bi bi-download"></i>
+                    </a>
+                    <form method="post" class="d-inline"
+                          action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                          onsubmit="return confirm('Eliminare il documento?')">
+                      <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                    {% elif att_single_doc %}
+                    {%- set _sn = att_single_doc.nome or '' %}
+                    {%- set _sn_pre = _sn[:-4] if _sn.lower().endswith('.p7m') else _sn %}
+                    {%- set _sext = _sn_pre.rsplit('.',1)[-1].lower() if '.' in _sn_pre else '' %}
+                    {%- set _svis = _sext in ['pdf','jpg','jpeg','png','gif'] %}
+                    {% if _svis %}
+                    <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                            data-doc-nome="{{ att_single_doc.nome }}"
+                            data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                            data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                            data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                            onclick="apriVisualizzatore(this)">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    {% endif %}
+                    <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                       class="btn btn-outline-secondary btn-sm" title="Scarica">
+                      <i class="bi bi-download"></i>
+                    </a>
+                    <form method="post" class="d-inline"
+                          action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                          onsubmit="return confirm('Eliminare il documento?')">
+                      <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalEsito{{ att.id }}">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               {% endfor %}
@@ -849,7 +925,7 @@
         <span class="text-nowrap">
           <i class="bi bi-calendar-event me-2 text-primary"></i>
           Udienze e scadenze
-          <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.udienze_attivita|length) + (WFS.scadenze|length) + (WFS.appuntamenti|length) }}</span>
+          <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.udienze_attivita|length) + (WFS.udienze_depositi|default([])|length) + (WFS.scadenze|length) + (WFS.appuntamenti|length) }}</span>
         </span>
         <i class="bi bi-chevron-down small"></i>
         </button>
@@ -864,18 +940,110 @@
       </div>
       <div class="collapse" id="collapse-sezione-udienze-scadenze">
       <div class="card-body p-0">
-        {% if WFS.udienze_attivita or WFS.scadenze or WFS.appuntamenti %}
+        {% if WFS.udienze_attivita or WFS.udienze_depositi|default([]) or WFS.scadenze or WFS.appuntamenti %}
         <div class="list-group list-group-flush small">
           {% for att in WFS.udienze_attivita %}
+          {%- set ud_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
+          {%- set ud_single = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
           <div class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ att.titolo }}</div>
                 <div class="text-muted">{{ att.descrizione or att.tipo.value.replace('_',' ') }}</div>
+                {% if ud_docs or ud_single %}
+                <div class="d-flex gap-1 flex-wrap mt-2">
+                  {%- set _udoc = ud_docs[0] if ud_docs else ud_single %}
+                  {%- set _un = _udoc.nome or '' %}
+                  {%- set _un_pre = _un[:-4] if _un.lower().endswith('.p7m') else _un %}
+                  {%- set _uext = _un_pre.rsplit('.',1)[-1].lower() if '.' in _un_pre else '' %}
+                  {%- set _uvis = _uext in ['pdf','jpg','jpeg','png','gif'] %}
+                  {% if _uvis %}
+                  <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                          data-doc-nome="{{ _udoc.nome }}"
+                          data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                          data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                          data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                          onclick="apriVisualizzatore(this)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% endif %}
+                  <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                     class="btn btn-outline-secondary btn-sm" title="Scarica">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <form method="post" class="d-inline"
+                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                        onsubmit="return confirm('Eliminare il documento?')">
+                    <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                  {% if ud_docs|length > 1 %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ ud_docs|length - 1 }} doc</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
               <div class="text-end">
                 <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
                 <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% for dep in WFS.udienze_depositi|default([]) %}
+          {%- set ud_dep_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', dep.id) | list if dep.id else [] %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ dep.tipo_atto }}</div>
+                <div class="text-muted">{{ dep.nome_atto_principale or dep.note or 'Udienza/scadenza dal portale' }}</div>
+                {% if ud_dep_docs %}
+                <div class="d-flex gap-1 flex-wrap mt-1">
+                  {% for uddoc in ud_dep_docs[:3] %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem" title="{{ uddoc.nome }}">
+                    <i class="bi bi-file-earmark me-1"></i>{{ uddoc.nome|truncate(20) }}
+                  </span>
+                  {% endfor %}
+                  {% if ud_dep_docs|length > 3 %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ ud_dep_docs|length - 3 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                {% if ud_dep_docs %}
+                {%- set _uddoc0 = ud_dep_docs[0] %}
+                {%- set _udn = _uddoc0.nome or '' %}
+                {%- set _udn_pre = _udn[:-4] if _udn.lower().endswith('.p7m') else _udn %}
+                {%- set _udext = _udn_pre.rsplit('.',1)[-1].lower() if '.' in _udn_pre else '' %}
+                {%- set _udvis = _udext in ['pdf','jpg','jpeg','png','gif'] %}
+                {% if _udvis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ _uddoc0.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <div class="text-end ms-1">
+                  <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
+                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1054,6 +1222,8 @@
         <div class="list-group list-group-flush border-bottom">
           {% for att in WFS.comunicazioni_attivita %}
           {% set has_email_detail = att.email_testo or att.email_html or att.email_mittente or att.email_oggetto or att.note %}
+          {%- set com_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
+          {%- set com_single = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
           <div class="list-group-item small">
             <div class="d-flex justify-content-between align-items-start gap-2">
               <div class="flex-grow-1">
@@ -1073,6 +1243,37 @@
                 {% else %}
                 <div class="fw-semibold">{{ att.titolo }}</div>
                 <div class="text-muted">{{ att.descrizione or att.note or 'Comunicazione di cancelleria registrata nel fascicolo.' }}</div>
+                {% endif %}
+                {# Bottoni documento collegato #}
+                {% if com_docs or com_single %}
+                {%- set _cdoc = com_docs[0] if com_docs else com_single %}
+                {%- set _cn = _cdoc.nome or '' %}
+                {%- set _cn_pre = _cn[:-4] if _cn.lower().endswith('.p7m') else _cn %}
+                {%- set _cext = _cn_pre.rsplit('.',1)[-1].lower() if '.' in _cn_pre else '' %}
+                {%- set _cvis = _cext in ['pdf','jpg','jpeg','png','gif'] %}
+                <div class="d-flex gap-1 flex-wrap mt-2">
+                  {% if _cvis %}
+                  <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                          data-doc-nome="{{ _cdoc.nome }}"
+                          data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                          data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                          data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                          onclick="apriVisualizzatore(this)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% endif %}
+                  <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                     class="btn btn-outline-secondary btn-sm" title="Scarica">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <form method="post" class="d-inline"
+                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                        onsubmit="return confirm('Eliminare il documento?')">
+                    <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
                 {% endif %}
               </div>
               <div class="text-end">
@@ -1678,28 +1879,96 @@
         {% if WFS.istanze_documenti or WFS.istanze_depositi %}
         <div class="list-group list-group-flush small">
           {% for doc in WFS.istanze_documenti %}
+          {%- set _in = doc.nome or '' %}
+          {%- set _in_pre = _in[:-4] if _in.lower().endswith('.p7m') else _in %}
+          {%- set _iext = _in_pre.rsplit('.',1)[-1].lower() if '.' in _in_pre else '' %}
+          {%- set _ivis = _iext in ['pdf','jpg','jpeg','png','gif'] %}
           <div class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ doc.nome }}</div>
                 <div class="text-muted">{{ doc.tipo.value.replace('_', ' ') }}</div>
               </div>
-              <div class="text-end">
-                <span class="badge bg-light text-dark border">{{ doc.data_documento|fmt_data if doc.data_documento else 'Documento' }}</span>
+              <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                {% if _ivis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ doc.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                <span class="badge bg-light text-dark border ms-1">{{ doc.data_documento|fmt_data if doc.data_documento else 'Documento' }}</span>
               </div>
             </div>
           </div>
           {% endfor %}
           {% for dep in WFS.istanze_depositi %}
+          {%- set ist_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', dep.id) | list if dep.id else [] %}
           <div class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ dep.tipo_atto }}</div>
                 <div class="text-muted">{{ dep.nome_atto_principale or dep.note or 'Istanza registrata nel canale ufficiale' }}</div>
+                {% if ist_docs %}
+                <div class="d-flex gap-1 flex-wrap mt-1">
+                  {% for idoc in ist_docs[:3] %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem" title="{{ idoc.nome }}">
+                    <i class="bi bi-file-earmark me-1"></i>{{ idoc.nome|truncate(20) }}
+                  </span>
+                  {% endfor %}
+                  {% if ist_docs|length > 3 %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ ist_docs|length - 3 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
-              <div class="text-end">
-                <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
-                <div class="text-muted mt-1">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+              <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                {% if ist_docs %}
+                {%- set _idoc0 = ist_docs[0] %}
+                {%- set _idn = _idoc0.nome or '' %}
+                {%- set _idn_pre = _idn[:-4] if _idn.lower().endswith('.p7m') else _idn %}
+                {%- set _idext = _idn_pre.rsplit('.',1)[-1].lower() if '.' in _idn_pre else '' %}
+                {%- set _idvis = _idext in ['pdf','jpg','jpeg','png','gif'] %}
+                {% if _idvis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ _idoc0.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <div class="text-end ms-1">
+                  <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
+                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+                </div>
               </div>
             </div>
           </div>

@@ -120,6 +120,7 @@ from pct.condivisione import GestioneCondivisioni, RuoloCondivisione
 from pct.pst_servizi_catalogo import (
     SEZIONE_COMUNICAZIONI_CANCELLERIA,
     SEZIONE_ISTANZE,
+    SEZIONE_UDIENZE_SCADENZE,
     sezione_fascicolo_da_servizio_pst,
 )
 from pct import __version__ as APP_VERSION
@@ -778,6 +779,16 @@ def create_app(config: dict | None = None) -> Flask:
         )
         return "istanza" in testo
 
+    def _deposito_is_udienza_scadenza(dep) -> bool:
+        if _deposito_sezione_portale(dep) == SEZIONE_UDIENZE_SCADENZE:
+            return True
+        testo = _fascicolo_text(
+            getattr(dep, "tipo_atto", ""),
+            getattr(dep, "note", ""),
+            getattr(dep, "nome_atto_principale", ""),
+        )
+        return any(t in testo for t in ("udienza", "verbale", "scadenz", "rinvio", "termine"))
+
     def _deposito_is_comunicazione(dep) -> bool:
         sezione_portale = _deposito_sezione_portale(dep)
         if sezione_portale:
@@ -832,11 +843,13 @@ def create_app(config: dict | None = None) -> Flask:
             att for att in attivita if att.tipo == TipoAttivita.COMUNICAZIONE_CANCELLERIA
         ]
         comunicazioni_depositi = [dep for dep in depositi if _deposito_is_comunicazione(dep)]
+        udienze_depositi = [dep for dep in depositi if _deposito_is_udienza_scadenza(dep)]
         istanze_documenti = [doc for doc in documenti if _documento_is_istanza(doc)]
         istanze_depositi = [dep for dep in depositi if _deposito_is_istanza(dep)]
 
         attivita_processuali.sort(key=lambda att: getattr(att, "data", "") or "", reverse=True)
         udienze_attivita.sort(key=lambda att: getattr(att, "data", "") or "")
+        udienze_depositi.sort(key=lambda dep: getattr(dep, "timestamp", "") or "", reverse=True)
         comunicazioni_attivita.sort(key=lambda att: getattr(att, "data", "") or "", reverse=True)
         comunicazioni_depositi.sort(key=lambda dep: getattr(dep, "timestamp", "") or "", reverse=True)
         termini.sort(key=lambda sc: getattr(sc, "data_scadenza", "") or "")
@@ -847,13 +860,14 @@ def create_app(config: dict | None = None) -> Flask:
                 "profilo": 1,
                 "documenti": len(documenti),
                 "attivita": len(attivita_processuali),
-                "udienze_scadenze": len(udienze_attivita) + len(termini) + len(appuntamenti),
+                "udienze_scadenze": len(udienze_attivita) + len(udienze_depositi) + len(termini) + len(appuntamenti),
                 "comunicazioni": len(comunicazioni_attivita) + len(comunicazioni_depositi),
                 "istanze": len(istanze_documenti) + len(istanze_depositi),
             },
             "documenti_buckets": documenti_buckets,
             "attivita_processuali": attivita_processuali,
             "udienze_attivita": udienze_attivita,
+            "udienze_depositi": udienze_depositi,
             "scadenze": termini,
             "appuntamenti": appuntamenti,
             "comunicazioni_attivita": comunicazioni_attivita,

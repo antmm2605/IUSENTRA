@@ -2,997 +2,681 @@
 {% block title %}Strumenti Legali{% endblock %}
 {% block pct_modulo %}strumenti-legali{% endblock %}
 
-{% block content %}
-<div class="ds-ph mb-4">
-  <div class="ds-ph-icon"><i class="bi bi-grid-1x2"></i></div>
-  <div class="ds-ph-body">
-    <h1 class="ds-ph-title">Strumenti Legali Operativi</h1>
-    <p class="ds-ph-sub">
-      Nove moduli operativi: contributi, interessi, rivalutazione ISTAT, locazioni, usura, pignoramento, CTU, Cassa Forense.
-    </p>
+{% macro tool_hidden(tool_id, fascicolo_sel) -%}
+<input type="hidden" name="tool" value="{{ tool_id }}">
+<input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
+{%- endmacro %}
+
+{% macro metric_box(label, value, subtext='') -%}
+<div class="col-md-6 col-xl-3">
+  <div class="tool-metric h-100">
+    <div class="tool-metric-label">{{ label }}</div>
+    <div class="tool-metric-value">{{ value }}</div>
+    {% if subtext %}
+    <div class="tool-metric-sub">{{ subtext }}</div>
+    {% endif %}
   </div>
 </div>
+{%- endmacro %}
 
-<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
-  <div class="card-body">
-    <form method="get" class="row g-3 align-items-end">
-      <div class="col-lg-8">
-        <label class="form-label fw-semibold">Pratica da usare come contesto</label>
-        <select name="id_fascicolo" class="form-select">
-          <option value="">Seleziona un fascicolo per precompilare i moduli</option>
-          {% for fascicolo in fascicoli %}
-          <option value="{{ fascicolo.id }}" {{ 'selected' if fascicolo_sel and fascicolo.id == fascicolo_sel.id }}>
-            {{ fascicolo.numero }} - {{ fascicolo.titolo }}{% if fascicolo.nome_cliente %} - {{ fascicolo.nome_cliente }}{% endif %}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-lg-4 d-flex gap-2">
-        <button class="btn btn-primary flex-grow-1">
-          <i class="bi bi-magic me-2"></i>Carica contesto
-        </button>
-        <a href="{{ url_for('strumenti_legali.index') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-arrow-counterclockwise"></i>
-        </a>
-      </div>
-    </form>
-  </div>
-</div>
-
-{% if fascicolo_sel %}
-<div class="card border-0 shadow-sm mb-4" style="border-radius:18px;">
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-lg-5">
-        <div class="small text-muted mb-1">Contesto attivo</div>
-        <div class="fw-semibold fs-5">{{ fascicolo_sel.numero }} - {{ fascicolo_sel.titolo }}</div>
-        <div class="small text-muted">
-          {{ fascicolo_sel.nome_cliente or 'Cliente non indicato' }}
-          {% if cliente_sel and cliente_sel.identificativo_fiscale %}
-          - {{ cliente_sel.identificativo_fiscale }}
-          {% endif %}
-        </div>
-      </div>
-      <div class="col-lg-3">
-        <div class="small text-muted mb-1">Ufficio / R.G.</div>
-        <div class="fw-semibold">{{ fascicolo_sel.tribunale or 'n/d' }}</div>
-        <div class="small text-muted">
-          {% if fascicolo_sel.numero_rg %}
-          {{ fascicolo_sel.numero_rg }}{% if fascicolo_sel.anno_rg %}/{{ fascicolo_sel.anno_rg }}{% endif %}
-          {% else %}
-          n/d
-          {% endif %}
-        </div>
-      </div>
-      <div class="col-lg-2">
-        <div class="small text-muted mb-1">Controparte</div>
-        <div class="fw-semibold">{{ fascicolo_sel.controparte or 'n/d' }}</div>
-      </div>
-      <div class="col-lg-2">
-        <div class="small text-muted mb-1">Valore causa</div>
-        <div class="fw-semibold">
-          {% if fascicolo_sel.valore_causa %}
-          &euro; {{ "%.2f"|format(fascicolo_sel.valore_causa) }}
-          {% else %}
-          n/d
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<div class="row g-3 mb-4">
-  {% for modulo in moduli %}
-  <div class="col-md-6 col-xl">
-    <div class="card border-0 shadow-sm h-100" style="border-radius:18px;">
-      <div class="card-body">
-        <div class="d-flex align-items-center gap-3 mb-2">
-          <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:rgba(26,58,92,.08);">
-            <i class="bi {{ modulo.icon }} text-primary"></i>
-          </div>
-          <div class="fw-semibold">{{ modulo.title }}</div>
-        </div>
-        <div class="small text-muted">{{ modulo.subtitle }}</div>
-      </div>
-    </div>
-  </div>
+{% macro render_messages(notes, warnings) -%}
+{% if notes %}
+<div class="alert alert-info mt-3 mb-0">
+  {% for note in notes %}
+  <div>{{ note }}</div>
   {% endfor %}
 </div>
+{% endif %}
+{% if warnings %}
+<div class="alert alert-warning mt-3 mb-0">
+  {% for warning in warnings %}
+  <div>{{ warning }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+{%- endmacro %}
 
-<div class="accordion" id="accordionStrumentiLegali">
-  {% set risultato_cu = results.get('contributo_unificato') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-    <h2 class="accordion-header">
-      <button class="accordion-button {% if active_tool != 'contributo_unificato' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolContributo">
-        <i class="bi bi-bank me-2"></i>Contributo unificato
-      </button>
-    </h2>
-    <div id="toolContributo" class="accordion-collapse collapse {% if active_tool == 'contributo_unificato' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-      <div class="accordion-body">
-        <form method="post" class="row g-3">
-          <input type="hidden" name="tool" value="contributo_unificato">
-          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-          <div class="col-md-5">
-            <label class="form-label fw-semibold">Tipologia</label>
-            <select name="cu_categoria" class="form-select">
-              {% for option in opzioni_cu %}
-              <option value="{{ option.value }}" {{ 'selected' if form_state.cu_categoria == option.value }}>{{ option.label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Grado</label>
-            <select name="cu_grado" class="form-select">
-              <option value="primo_grado" {{ 'selected' if form_state.cu_grado == 'primo_grado' }}>Primo grado</option>
-              <option value="appello" {{ 'selected' if form_state.cu_grado == 'appello' }}>Appello</option>
-              <option value="cassazione" {{ 'selected' if form_state.cu_grado == 'cassazione' }}>Cassazione</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Valore</label>
-            <input type="number" step="0.01" min="0" name="cu_valore" class="form-control" value="{{ form_state.cu_valore }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Anticip. forf.</label>
-            <select name="cu_anticipazione_forfettaria" class="form-select">
-              <option value="1" {{ 'selected' if form_state.cu_anticipazione_forfettaria == '1' }}>Si</option>
-              <option value="0" {{ 'selected' if form_state.cu_anticipazione_forfettaria != '1' }}>No</option>
-            </select>
-          </div>
-          <div class="col-12">
-            <button class="btn btn-primary">
-              <i class="bi bi-calculator me-2"></i>Calcola contributo
-            </button>
-          </div>
-        </form>
-        {% if risultato_cu %}
-        <div class="row g-3 mt-1">
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Tipologia</div>
-              <div class="fw-semibold">{{ risultato_cu.categoria_label }}</div>
-              <div class="small text-muted mt-2">Grado: {{ risultato_cu.grado_label }}</div>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Contributo base</div>
-              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_cu.base) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Totale operativo</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_cu.totale) }}</div>
-              <div class="small text-muted">Anticipazione forfettaria: &euro; {{ "%.2f"|format(risultato_cu.anticipazione_forfettaria) }}</div>
-            </div>
-          </div>
-        </div>
-        {% if risultato_cu.notes %}
-        <div class="alert alert-info mt-3 mb-0">
-          {% for note in risultato_cu.notes %}
-          <div>{{ note }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% if risultato_cu.warnings %}
-        <div class="alert alert-warning mt-3 mb-0">
-          {% for warning in risultato_cu.warnings %}
-          <div>{{ warning }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        <div class="mt-3 d-flex flex-wrap gap-2">
-          {% for source in risultato_cu.sources %}
-          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-  {% set risultato_int = results.get('interessi') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-    <h2 class="accordion-header">
-      <button class="accordion-button {% if active_tool != 'interessi' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolInteressi">
-        <i class="bi bi-percent me-2"></i>Interessi legali e moratori
-      </button>
-    </h2>
-    <div id="toolInteressi" class="accordion-collapse collapse {% if active_tool == 'interessi' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-      <div class="accordion-body">
-        <form method="post" class="row g-3">
-          <input type="hidden" name="tool" value="interessi">
-          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Regime</label>
-            <select name="int_tipo" class="form-select">
-              <option value="legali" {{ 'selected' if form_state.int_tipo == 'legali' }}>Interessi legali</option>
-              <option value="mora_commerciale" {{ 'selected' if form_state.int_tipo == 'mora_commerciale' }}>Mora commerciale D.Lgs. 231/2002</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Capitale</label>
-            <input type="number" step="0.01" min="0" name="int_capitale" class="form-control" value="{{ form_state.int_capitale }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Dal</label>
-            <input type="date" name="int_data_inizio" class="form-control" value="{{ form_state.int_data_inizio }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Al</label>
-            <input type="date" name="int_data_fine" class="form-control" value="{{ form_state.int_data_fine }}">
-          </div>
-          <div class="col-12">
-            <button class="btn btn-primary">
-              <i class="bi bi-lightning-charge me-2"></i>Calcola interessi
-            </button>
-          </div>
-        </form>
-        {% if risultato_int %}
-        <div class="row g-3 mt-1">
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Regime applicato</div>
-              <div class="fw-semibold">{{ risultato_int.label }}</div>
-              <div class="small text-muted mt-2">{{ risultato_int.start_date }} - {{ risultato_int.end_date }}</div>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Interessi maturati</div>
-              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_int.total_interest) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Capitale + interessi</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_int.total_amount) }}</div>
-              <div class="small text-muted">{{ risultato_int.days }} giorni complessivi</div>
-            </div>
-          </div>
-        </div>
-        <div class="table-responsive mt-3">
-          <table class="table align-middle">
-            <thead>
-              <tr>
-                <th>Periodo</th>
-                <th>Giorni</th>
-                <th>Tasso</th>
-                <th class="text-end">Interessi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for segment in risultato_int.segments %}
-              <tr>
-                <td>
-                  <div class="fw-semibold">{{ segment.label }}</div>
-                  <div class="small text-muted">{{ segment.from }} - {{ segment.to }}</div>
-                </td>
-                <td>{{ segment.days }}</td>
-                <td>
-                  {{ "%.2f"|format(segment.rate) }}%
-                  {% if segment.reference_rate is not none %}
-                  <div class="small text-muted">rif. BCE {{ "%.2f"|format(segment.reference_rate) }}%</div>
-                  {% endif %}
-                </td>
-                <td class="text-end fw-semibold">&euro; {{ "%.2f"|format(segment.interest) }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% if risultato_int.warnings %}
-        <div class="alert alert-warning mb-0">
-          {% for warning in risultato_int.warnings %}
-          <div>{{ warning }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        <div class="mt-3 d-flex flex-wrap gap-2">
-          {% for source in risultato_int.sources %}
-          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+{% macro render_sources(sources) -%}
+{% if sources %}
+<div class="tool-sources mt-3">
+  {% for source in sources %}
+  <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{%- endmacro %}
 
-  {% set risultato_nota = results.get('nota_credito') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-    <h2 class="accordion-header">
-      <button class="accordion-button {% if active_tool != 'nota_credito' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolNotaCredito">
-        <i class="bi bi-file-earmark-ruled me-2"></i>Nota di precisazione del credito
-      </button>
-    </h2>
-    <div id="toolNotaCredito" class="accordion-collapse collapse {% if active_tool == 'nota_credito' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-      <div class="accordion-body">
-        <form method="post" class="row g-3">
-          <input type="hidden" name="tool" value="nota_credito">
-          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Tribunale / Ufficio</label>
-            <input type="text" name="note_tribunale" class="form-control" value="{{ form_state.note_tribunale }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">R.G.</label>
-            <input type="text" name="note_rg" class="form-control" value="{{ form_state.note_rg }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Creditore</label>
-            <input type="text" name="note_creditore" class="form-control" value="{{ form_state.note_creditore }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Debitore</label>
-            <input type="text" name="note_debitore" class="form-control" value="{{ form_state.note_debitore }}">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Titolo / oggetto del credito</label>
-            <input type="text" name="note_titolo" class="form-control" value="{{ form_state.note_titolo }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Capitale</label>
-            <input type="number" step="0.01" min="0" name="note_capitale" class="form-control" value="{{ form_state.note_capitale }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Interessi</label>
-            <select name="note_interessi_tipo" class="form-select">
-              <option value="legali" {{ 'selected' if form_state.note_interessi_tipo == 'legali' }}>Legali</option>
-              <option value="mora_commerciale" {{ 'selected' if form_state.note_interessi_tipo == 'mora_commerciale' }}>Mora 231/2002</option>
-              <option value="manuale" {{ 'selected' if form_state.note_interessi_tipo == 'manuale' }}>Manuale</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Interessi manuali</label>
-            <input type="number" step="0.01" min="0" name="note_interessi_manual" class="form-control" value="{{ form_state.note_interessi_manual }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Decorrenza</label>
-            <input type="date" name="note_data_inizio" class="form-control" value="{{ form_state.note_data_inizio }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Fino al</label>
-            <input type="date" name="note_data_fine" class="form-control" value="{{ form_state.note_data_fine }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Spese vive</label>
-            <input type="number" step="0.01" min="0" name="note_spese_vive" class="form-control" value="{{ form_state.note_spese_vive }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Compensi</label>
-            <input type="number" step="0.01" min="0" name="note_compensi" class="form-control" value="{{ form_state.note_compensi }}">
-          </div>
-          <div class="col-md-1">
-            <label class="form-label fw-semibold">CPA %</label>
-            <input type="number" step="0.01" min="0" name="note_cpa_perc" class="form-control" value="{{ form_state.note_cpa_perc }}">
-          </div>
-          <div class="col-md-1">
-            <label class="form-label fw-semibold">IVA %</label>
-            <input type="number" step="0.01" min="0" name="note_iva_perc" class="form-control" value="{{ form_state.note_iva_perc }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Acconti</label>
-            <input type="number" step="0.01" min="0" name="note_acconti" class="form-control" value="{{ form_state.note_acconti }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Luogo</label>
-            <input type="text" name="note_luogo" class="form-control" value="{{ form_state.note_luogo }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Data</label>
-            <input type="date" name="note_data" class="form-control" value="{{ form_state.note_data }}">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Difensore</label>
-            <input type="text" name="note_avvocato" class="form-control" value="{{ form_state.note_avvocato }}">
-          </div>
-          <div class="col-12">
-            <button class="btn btn-primary">
-              <i class="bi bi-file-earmark-text me-2"></i>Genera nota
-            </button>
-          </div>
-        </form>
-        {% if risultato_nota %}
-        <div class="row g-3 mt-1">
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Totale maturato</div>
-              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_nota.totale_lordo) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Acconti imputati</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_nota.acconti) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Residuo richiesto</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_nota.residuo) }}</div>
-            </div>
-          </div>
-        </div>
-        <div class="table-responsive mt-3">
-          <table class="table align-middle">
-            <thead>
-              <tr>
-                <th>Voce</th>
-                <th class="text-end">Importo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in risultato_nota.breakdown %}
-              <tr>
-                <td>{{ row.label }}</td>
-                <td class="text-end fw-semibold">&euro; {{ "%.2f"|format(row.amount) }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <div class="card border-0 bg-light mt-3">
-          <div class="card-body">
-            <div class="fw-semibold mb-2">Bozza professionale</div>
-            <div class="border rounded-4 bg-white p-4">{{ risultato_nota.rendered_html|safe }}</div>
-          </div>
-        </div>
-        <div class="mt-3">
-          <label class="form-label fw-semibold">Testo pronto da rifinire</label>
-          <textarea class="form-control" rows="16">{{ risultato_nota.rendered_text }}</textarea>
-        </div>
-        {% if risultato_nota.warnings %}
-        <div class="alert alert-warning mt-3 mb-0">
-          {% for warning in risultato_nota.warnings %}
-          <div>{{ warning }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% if risultato_nota.sources %}
-        <div class="mt-3 d-flex flex-wrap gap-2">
-          {% for source in risultato_nota.sources %}
-          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% endif %}
-      </div>
-    </div>
-  </div>
-  {% set risultato_pig = results.get('pignoramento') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-    <h2 class="accordion-header">
-      <button class="accordion-button {% if active_tool != 'pignoramento' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolPignoramento">
-        <i class="bi bi-cash-stack me-2"></i>Simulatore pignoramento
-      </button>
-    </h2>
-    <div id="toolPignoramento" class="accordion-collapse collapse {% if active_tool == 'pignoramento' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-      <div class="accordion-body">
-        <form method="post" class="row g-3">
-          <input type="hidden" name="tool" value="pignoramento">
-          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Reddito</label>
-            <select name="pig_tipo_reddito" class="form-select">
-              <option value="stipendio" {{ 'selected' if form_state.pig_tipo_reddito == 'stipendio' }}>Stipendio</option>
-              <option value="pensione" {{ 'selected' if form_state.pig_tipo_reddito == 'pensione' }}>Pensione</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Tipo credito</label>
-            <select name="pig_tipo_credito" class="form-select">
-              <option value="ordinario" {{ 'selected' if form_state.pig_tipo_credito == 'ordinario' }}>Ordinario</option>
-              <option value="esattoriale" {{ 'selected' if form_state.pig_tipo_credito == 'esattoriale' }}>Esattoriale</option>
-              <option value="alimentare" {{ 'selected' if form_state.pig_tipo_credito == 'alimentare' }}>Alimentare</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Netto mensile</label>
-            <input type="number" step="0.01" min="0" name="pig_importo_netto" class="form-control" value="{{ form_state.pig_importo_netto }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Aliquota alim. %</label>
-            <input type="number" step="0.01" min="0" name="pig_aliquota_alimentare" class="form-control" value="{{ form_state.pig_aliquota_alimentare }}">
-          </div>
-          <div class="col-12">
-            <button class="btn btn-primary">
-              <i class="bi bi-graph-up me-2"></i>Simula quota
-            </button>
-          </div>
-        </form>
-        {% if risultato_pig %}
-        <div class="row g-3 mt-1">
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Importo netto</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_pig.importo) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Minimo protetto</div>
-              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_pig.minimo_protetto) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Base pignorabile</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_pig.base_pignorabile) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Quota massima</div>
-              <div class="fw-bold fs-4 text-danger">&euro; {{ "%.2f"|format(risultato_pig.quota_massima) }}</div>
-              <div class="small text-muted">Aliquota {{ "%.2f"|format(risultato_pig.aliquota) }}%</div>
-            </div>
-          </div>
-        </div>
-        {% if risultato_pig.warnings %}
-        <div class="alert alert-warning mt-3 mb-0">
-          {% for warning in risultato_pig.warnings %}
-          <div>{{ warning }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        <div class="mt-3 d-flex flex-wrap gap-2">
-          {% for source in risultato_pig.sources %}
-          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  {% set risultato_ctu = results.get('ctu') %}
-  <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-    <h2 class="accordion-header">
-      <button class="accordion-button {% if active_tool != 'ctu' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCtu">
-        <i class="bi bi-journal-medical me-2"></i>CTU, vacazioni e compensi ausiliari
-      </button>
-    </h2>
-    <div id="toolCtu" class="accordion-collapse collapse {% if active_tool == 'ctu' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-      <div class="accordion-body">
-        <form method="post" class="row g-3">
-          <input type="hidden" name="tool" value="ctu">
-          <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-          <div class="col-md-3">
-            <label class="form-label fw-semibold">Modalita</label>
-            <select name="ctu_modalita" class="form-select">
-              <option value="vacazioni" {{ 'selected' if form_state.ctu_modalita == 'vacazioni' }}>Vacazioni</option>
-              <option value="manuale" {{ 'selected' if form_state.ctu_modalita == 'manuale' }}>Onorario manuale</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Ore</label>
-            <input type="number" step="0.25" min="0" name="ctu_ore" class="form-control" value="{{ form_state.ctu_ore }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Vacazioni</label>
-            <input type="number" min="0" name="ctu_vacazioni" class="form-control" value="{{ form_state.ctu_vacazioni }}">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-semibold">Onorario</label>
-            <input type="number" step="0.01" min="0" name="ctu_onorario" class="form-control" value="{{ form_state.ctu_onorario }}">
-          </div>
-          <div class="col-md-1">
-            <label class="form-label fw-semibold">Spese</label>
-            <input type="number" step="0.01" min="0" name="ctu_spese" class="form-control" value="{{ form_state.ctu_spese }}">
-          </div>
-          <div class="col-md-1">
-            <label class="form-label fw-semibold">CPA %</label>
-            <input type="number" step="0.01" min="0" name="ctu_cpa_perc" class="form-control" value="{{ form_state.ctu_cpa_perc }}">
-          </div>
-          <div class="col-md-1">
-            <label class="form-label fw-semibold">IVA %</label>
-            <input type="number" step="0.01" min="0" name="ctu_iva_perc" class="form-control" value="{{ form_state.ctu_iva_perc }}">
-          </div>
-          <div class="col-12">
-            <button class="btn btn-primary">
-              <i class="bi bi-journal-check me-2"></i>Calcola compenso
-            </button>
-          </div>
-        </form>
-        {% if risultato_ctu %}
-        <div class="row g-3 mt-1">
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Modalita</div>
-              <div class="fw-semibold">{{ risultato_ctu.modalita_label }}</div>
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Onorario base</div>
-              <div class="fw-bold fs-4 text-primary">&euro; {{ "%.2f"|format(risultato_ctu.onorario_base) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Accessori</div>
-              <div class="fw-semibold">CPA &euro; {{ "%.2f"|format(risultato_ctu.cpa) }}</div>
-              <div class="small text-muted">IVA &euro; {{ "%.2f"|format(risultato_ctu.iva) }} - Spese &euro; {{ "%.2f"|format(risultato_ctu.spese) }}</div>
-            </div>
-          </div>
-          <div class="col-lg-3">
-            <div class="border rounded-4 p-3 h-100">
-              <div class="small text-muted">Totale</div>
-              <div class="fw-bold fs-4">&euro; {{ "%.2f"|format(risultato_ctu.totale) }}</div>
-              <div class="small text-muted">
-                {% if risultato_ctu.vacazioni %}
-                {{ risultato_ctu.vacazioni }} vacazioni
-                {% elif risultato_ctu.ore %}
-                {{ risultato_ctu.ore }} ore
-                {% else %}
-                calcolo diretto
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-        {% if risultato_ctu.notes %}
-        <div class="alert alert-info mt-3 mb-0">
-          {% for note in risultato_ctu.notes %}
-          <div>{{ note }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% if risultato_ctu.warnings %}
-        <div class="alert alert-warning mt-3 mb-0">
-          {% for warning in risultato_ctu.warnings %}
-          <div>{{ warning }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        <div class="mt-3 d-flex flex-wrap gap-2">
-          {% for source in risultato_ctu.sources %}
-          <a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
+{% macro tool_section(tool_id, title, icon, subtitle) -%}
+<div class="accordion-item tool-accordion-item">
+  <h2 class="accordion-header">
+    <button class="accordion-button {% if active_tool != tool_id %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#tool-{{ tool_id }}">
+      <span class="tool-title-wrap">
+        <i class="bi {{ icon }} me-2"></i>
+        <span>
+          <span class="tool-title">{{ title }}</span>
+          <span class="tool-subtitle">{{ subtitle }}</span>
+        </span>
+      </span>
+    </button>
+  </h2>
+  <div id="tool-{{ tool_id }}" class="accordion-collapse collapse {% if active_tool == tool_id %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
+    <div class="accordion-body">
+      {{ caller() }}
     </div>
   </div>
 </div>
+{%- endmacro %}
 
-{# ══════════════════════════════════════════════════════════════════════════════
-   RIVALUTAZIONE MONETARIA ISTAT
-══════════════════════════════════════════════════════════════════════════════ #}
-{% set risultato_riv = results.get('rivalutazione_istat') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-  <h2 class="accordion-header">
-    <button class="accordion-button {% if active_tool != 'rivalutazione_istat' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolRivalutazione">
-      <i class="bi bi-graph-up-arrow me-2"></i>Rivalutazione monetaria ISTAT
-    </button>
-  </h2>
-  <div id="toolRivalutazione" class="accordion-collapse collapse {% if active_tool == 'rivalutazione_istat' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-    <div class="accordion-body">
-      <p class="small text-muted mb-3">Calcola la rivalutazione monetaria con indici ISTAT. <strong>NIC</strong>: uso generale, danni, assegni divorzili, liquidazioni. <strong>FOI</strong>: specifico per locazioni (L. 431/1998).</p>
-      <form method="post" class="row g-3">
-        <input type="hidden" name="tool" value="rivalutazione_istat">
-        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Importo da rivalutare (EUR)</label>
-          <input type="number" name="riv_importo" class="form-control" step="0.01" min="0.01" placeholder="es. 10000.00" value="{{ form_state.riv_importo }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Indice ISTAT</label>
-          <select name="riv_tipo" class="form-select">
-            <option value="nic" {{ 'selected' if form_state.riv_tipo == 'nic' }}>NIC — uso generale</option>
-            <option value="foi" {{ 'selected' if form_state.riv_tipo == 'foi' }}>FOI — locazioni</option>
+{% block content %}
+<style>
+  .tool-shell { display:flex; flex-direction:column; gap:1.25rem; }
+  .tool-toolbar-card, .tool-context-card, .tool-module-card, .tool-accordion-item, .tool-metric, .tool-soft-panel { border:0; border-radius:20px; box-shadow:0 10px 28px rgba(20,34,52,.08); }
+  .tool-toolbar-card .card-body, .tool-context-card .card-body, .tool-module-card .card-body { padding:1.15rem 1.25rem; }
+  .tool-module-card { background:linear-gradient(180deg,#fff 0%,#f8fbff 100%); height:100%; }
+  .tool-module-icon { width:48px; height:48px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; background:rgba(13,110,253,.09); color:var(--bs-primary); font-size:1.1rem; }
+  .tool-category { display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .6rem; border-radius:999px; background:rgba(25,135,84,.1); color:#157347; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+  .tool-accordion-item { overflow:hidden; margin-bottom:1rem; background:#fff; }
+  .tool-title-wrap { display:inline-flex; align-items:flex-start; gap:.75rem; }
+  .tool-title { display:block; font-weight:700; }
+  .tool-subtitle { display:block; margin-top:.15rem; font-size:.86rem; color:var(--bs-secondary-color); font-weight:500; }
+  .tool-form-grid .form-label { font-weight:600; }
+  .tool-metric { background:linear-gradient(180deg,#fff 0%,#f6faff 100%); padding:1rem 1.05rem; }
+  .tool-metric-label { color:var(--bs-secondary-color); font-size:.82rem; margin-bottom:.25rem; }
+  .tool-metric-value { font-size:1.5rem; font-weight:700; line-height:1.1; color:#10233d; }
+  .tool-metric-sub { margin-top:.35rem; color:var(--bs-secondary-color); font-size:.84rem; }
+  .tool-soft-panel { background:#f8fbff; padding:1rem 1.05rem; }
+  .tool-soft-title { font-size:.9rem; font-weight:700; color:#10233d; margin-bottom:.55rem; }
+  .tool-sources { display:flex; gap:.5rem; flex-wrap:wrap; }
+  .tool-phase-checks { display:flex; flex-wrap:wrap; gap:.65rem; }
+  .tool-phase-check { min-width:200px; padding:.7rem .8rem; border:1px solid rgba(16,35,61,.1); border-radius:14px; background:#fff; }
+  .tool-phase-check .form-check-label { font-weight:600; }
+  .tool-breakdown-table td:last-child, .tool-breakdown-table th:last-child { text-align:right; }
+  .tool-preview-box { border:1px solid rgba(16,35,61,.08); border-radius:18px; background:#fff; padding:1rem 1.1rem; }
+</style>
+
+<div class="tool-shell">
+  <div class="ds-ph mb-0">
+    <div class="ds-ph-icon"><i class="bi bi-grid-1x2"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">Strumenti Legali Operativi</h1>
+      <p class="ds-ph-sub">
+        {{ moduli|length }} moduli in un'unica interfaccia coerente: stessa grammatica visiva, stesso flusso di input, stessi blocchi di risultato e fonti.
+      </p>
+    </div>
+  </div>
+
+  <div class="card tool-toolbar-card">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-lg-8">
+          <label class="form-label fw-semibold">Pratica da usare come contesto</label>
+          <select name="id_fascicolo" class="form-select">
+            <option value="">Seleziona un fascicolo per precompilare i moduli</option>
+            {% for fascicolo in fascicoli %}
+            <option value="{{ fascicolo.id }}" {{ 'selected' if fascicolo_sel and fascicolo.id == fascicolo_sel.id }}>
+              {{ fascicolo.numero }} - {{ fascicolo.titolo }}{% if fascicolo.nome_cliente %} - {{ fascicolo.nome_cliente }}{% endif %}
+            </option>
+            {% endfor %}
           </select>
         </div>
+        <div class="col-lg-4 d-flex gap-2">
+          <button class="btn btn-primary flex-grow-1"><i class="bi bi-magic me-2"></i>Carica contesto</button>
+          <a href="{{ url_for('strumenti_legali.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if fascicolo_sel %}
+  <div class="card tool-context-card">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="small text-muted mb-1">Contesto attivo</div>
+          <div class="fw-semibold fs-5">{{ fascicolo_sel.numero }} - {{ fascicolo_sel.titolo }}</div>
+          <div class="small text-muted">
+            {{ fascicolo_sel.nome_cliente or 'Cliente non indicato' }}
+            {% if cliente_sel and cliente_sel.identificativo_fiscale %} - {{ cliente_sel.identificativo_fiscale }}{% endif %}
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="small text-muted mb-1">Ufficio / R.G.</div>
+          <div class="fw-semibold">{{ fascicolo_sel.tribunale or 'n/d' }}</div>
+          <div class="small text-muted">
+            {% if fascicolo_sel.numero_rg %}{{ fascicolo_sel.numero_rg }}{% if fascicolo_sel.anno_rg %}/{{ fascicolo_sel.anno_rg }}{% endif %}{% else %}n/d{% endif %}
+          </div>
+        </div>
+        <div class="col-lg-2">
+          <div class="small text-muted mb-1">Controparte</div>
+          <div class="fw-semibold">{{ fascicolo_sel.controparte or 'n/d' }}</div>
+        </div>
+        <div class="col-lg-2">
+          <div class="small text-muted mb-1">Valore causa</div>
+          <div class="fw-semibold">{% if fascicolo_sel.valore_causa %}&euro; {{ "%.2f"|format(fascicolo_sel.valore_causa) }}{% else %}n/d{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3">
+    {% for modulo in moduli %}
+    <div class="col-md-6 col-xl-4">
+      <div class="card tool-module-card">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+            <div class="tool-module-icon"><i class="bi {{ modulo.icon }}"></i></div>
+            <span class="tool-category">{{ modulo.categoria }}</span>
+          </div>
+          <div class="fw-semibold mb-1">{{ modulo.title }}</div>
+          <div class="small text-muted">{{ modulo.subtitle }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="accordion" id="accordionStrumentiLegali">
+    {% set risultato_cu = results.get('contributo_unificato') %}
+    {% call tool_section('contributo_unificato', 'Contributo unificato', 'bi-bank', 'Calcolo guidato con categoria, grado e anticipazione forfettaria.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('contributo_unificato', fascicolo_sel) }}
+        <div class="col-md-5">
+          <label class="form-label">Tipologia</label>
+          <select name="cu_categoria" class="form-select">
+            {% for option in opzioni_cu %}
+            <option value="{{ option.value }}" {{ 'selected' if form_state.cu_categoria == option.value }}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Grado</label>
+          <select name="cu_grado" class="form-select">
+            <option value="primo_grado" {{ 'selected' if form_state.cu_grado == 'primo_grado' }}>Primo grado</option>
+            <option value="appello" {{ 'selected' if form_state.cu_grado == 'appello' }}>Appello</option>
+            <option value="cassazione" {{ 'selected' if form_state.cu_grado == 'cassazione' }}>Cassazione</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Valore</label>
+          <input type="number" step="0.01" min="0" name="cu_valore" class="form-control" value="{{ form_state.cu_valore }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Anticipazione</label>
+          <select name="cu_anticipazione_forfettaria" class="form-select">
+            <option value="1" {{ 'selected' if form_state.cu_anticipazione_forfettaria == '1' }}>Si</option>
+            <option value="0" {{ 'selected' if form_state.cu_anticipazione_forfettaria != '1' }}>No</option>
+          </select>
+        </div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola contributo</button></div>
+      </form>
+      {% if risultato_cu %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Tipologia', risultato_cu.categoria_label, risultato_cu.grado_label) }}
+        {{ metric_box('Contributo base', '&euro; ' ~ ('%.2f'|format(risultato_cu.base))|safe) }}
+        {{ metric_box('Anticipazione', '&euro; ' ~ ('%.2f'|format(risultato_cu.anticipazione_forfettaria))|safe) }}
+        {{ metric_box('Totale operativo', '&euro; ' ~ ('%.2f'|format(risultato_cu.totale))|safe) }}
+      </div>
+      {{ render_messages(risultato_cu.notes, risultato_cu.warnings) }}
+      {{ render_sources(risultato_cu.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_int = results.get('interessi') %}
+    {% call tool_section('interessi', 'Interessi legali e moratori', 'bi-percent', 'Segmentazione per periodo con calcolo pro-rata die.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('interessi', fascicolo_sel) }}
+        <div class="col-md-3">
+          <label class="form-label">Regime</label>
+          <select name="int_tipo" class="form-select">
+            <option value="legali" {{ 'selected' if form_state.int_tipo == 'legali' }}>Interessi legali</option>
+            <option value="mora_commerciale" {{ 'selected' if form_state.int_tipo == 'mora_commerciale' }}>Mora commerciale D.Lgs. 231/2002</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Capitale</label>
+          <input type="number" step="0.01" min="0" name="int_capitale" class="form-control" value="{{ form_state.int_capitale }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Dal</label>
+          <input type="date" name="int_data_inizio" class="form-control" value="{{ form_state.int_data_inizio }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Al</label>
+          <input type="date" name="int_data_fine" class="form-control" value="{{ form_state.int_data_fine }}">
+        </div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-lightning-charge me-2"></i>Calcola interessi</button></div>
+      </form>
+      {% if risultato_int %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Regime', risultato_int.label, risultato_int.start_date ~ ' - ' ~ risultato_int.end_date) }}
+        {{ metric_box('Interessi maturati', '&euro; ' ~ ('%.2f'|format(risultato_int.total_interest))|safe, risultato_int.covered_days ~ ' giorni coperti') }}
+        {{ metric_box('Capitale + interessi', '&euro; ' ~ ('%.2f'|format(risultato_int.total_amount))|safe, risultato_int.days ~ ' giorni complessivi') }}
+      </div>
+      <div class="table-responsive mt-3">
+        <table class="table align-middle">
+          <thead><tr><th>Periodo</th><th>Giorni</th><th>Tasso</th><th class="text-end">Interessi</th></tr></thead>
+          <tbody>
+            {% for segment in risultato_int.segments %}
+            <tr>
+              <td><div class="fw-semibold">{{ segment.label }}</div><div class="small text-muted">{{ segment.from }} - {{ segment.to }}</div></td>
+              <td>{{ segment.days }}</td>
+              <td>{{ "%.2f"|format(segment.rate) }}%{% if segment.reference_rate is not none %}<div class="small text-muted">rif. BCE {{ "%.2f"|format(segment.reference_rate) }}%</div>{% endif %}</td>
+              <td class="text-end fw-semibold">&euro; {{ "%.2f"|format(segment.interest) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {{ render_messages(risultato_int.notes, risultato_int.warnings) }}
+      {{ render_sources(risultato_int.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_nota = results.get('nota_credito') %}
+    {% call tool_section('nota_credito', 'Nota di precisazione del credito', 'bi-file-earmark-ruled', 'Bozza professionale pronta da rifinire e riutilizzare.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('nota_credito', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Tribunale / Ufficio</label><input type="text" name="note_tribunale" class="form-control" value="{{ form_state.note_tribunale }}"></div>
+        <div class="col-md-2"><label class="form-label">R.G.</label><input type="text" name="note_rg" class="form-control" value="{{ form_state.note_rg }}"></div>
+        <div class="col-md-3"><label class="form-label">Creditore</label><input type="text" name="note_creditore" class="form-control" value="{{ form_state.note_creditore }}"></div>
+        <div class="col-md-3"><label class="form-label">Debitore</label><input type="text" name="note_debitore" class="form-control" value="{{ form_state.note_debitore }}"></div>
+        <div class="col-md-6"><label class="form-label">Titolo / oggetto</label><input type="text" name="note_titolo" class="form-control" value="{{ form_state.note_titolo }}"></div>
+        <div class="col-md-2"><label class="form-label">Capitale</label><input type="number" step="0.01" min="0" name="note_capitale" class="form-control" value="{{ form_state.note_capitale }}"></div>
+        <div class="col-md-2"><label class="form-label">Interessi</label><select name="note_interessi_tipo" class="form-select"><option value="legali" {{ 'selected' if form_state.note_interessi_tipo == 'legali' }}>Legali</option><option value="mora_commerciale" {{ 'selected' if form_state.note_interessi_tipo == 'mora_commerciale' }}>Mora 231/2002</option><option value="manuale" {{ 'selected' if form_state.note_interessi_tipo == 'manuale' }}>Manuale</option></select></div>
+        <div class="col-md-2"><label class="form-label">Interessi manuali</label><input type="number" step="0.01" min="0" name="note_interessi_manual" class="form-control" value="{{ form_state.note_interessi_manual }}"></div>
+        <div class="col-md-3"><label class="form-label">Decorrenza</label><input type="date" name="note_data_inizio" class="form-control" value="{{ form_state.note_data_inizio }}"></div>
+        <div class="col-md-3"><label class="form-label">Fino al</label><input type="date" name="note_data_fine" class="form-control" value="{{ form_state.note_data_fine }}"></div>
+        <div class="col-md-2"><label class="form-label">Spese vive</label><input type="number" step="0.01" min="0" name="note_spese_vive" class="form-control" value="{{ form_state.note_spese_vive }}"></div>
+        <div class="col-md-2"><label class="form-label">Compensi</label><input type="number" step="0.01" min="0" name="note_compensi" class="form-control" value="{{ form_state.note_compensi }}"></div>
+        <div class="col-md-1"><label class="form-label">CPA %</label><input type="number" step="0.01" min="0" name="note_cpa_perc" class="form-control" value="{{ form_state.note_cpa_perc }}"></div>
+        <div class="col-md-1"><label class="form-label">IVA %</label><input type="number" step="0.01" min="0" name="note_iva_perc" class="form-control" value="{{ form_state.note_iva_perc }}"></div>
+        <div class="col-md-2"><label class="form-label">Acconti</label><input type="number" step="0.01" min="0" name="note_acconti" class="form-control" value="{{ form_state.note_acconti }}"></div>
+        <div class="col-md-3"><label class="form-label">Luogo</label><input type="text" name="note_luogo" class="form-control" value="{{ form_state.note_luogo }}"></div>
+        <div class="col-md-2"><label class="form-label">Data</label><input type="date" name="note_data" class="form-control" value="{{ form_state.note_data }}"></div>
+        <div class="col-md-4"><label class="form-label">Difensore</label><input type="text" name="note_avvocato" class="form-control" value="{{ form_state.note_avvocato }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-file-earmark-text me-2"></i>Genera nota</button></div>
+      </form>
+      {% if risultato_nota %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Totale maturato', '&euro; ' ~ ('%.2f'|format(risultato_nota.totale_lordo))|safe) }}
+        {{ metric_box('Acconti imputati', '&euro; ' ~ ('%.2f'|format(risultato_nota.acconti))|safe) }}
+        {{ metric_box('Residuo richiesto', '&euro; ' ~ ('%.2f'|format(risultato_nota.residuo))|safe) }}
+      </div>
+      <div class="table-responsive mt-3">
+        <table class="table tool-breakdown-table">
+          <thead><tr><th>Voce</th><th>Importo</th></tr></thead>
+          <tbody>{% for row in risultato_nota.breakdown %}<tr><td>{{ row.label }}</td><td>&euro; {{ "%.2f"|format(row.amount) }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      <div class="row g-3 mt-1">
+        <div class="col-lg-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Bozza professionale</div><div class="tool-preview-box">{{ risultato_nota.rendered_html|safe }}</div></div></div>
+        <div class="col-lg-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Testo pronto da rifinire</div><textarea class="form-control" rows="18">{{ risultato_nota.rendered_text }}</textarea></div></div>
+      </div>
+      {{ render_messages([], risultato_nota.warnings) }}
+      {{ render_sources(risultato_nota.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_pig = results.get('pignoramento') %}
+    {% call tool_section('pignoramento', 'Simulatore pignoramento', 'bi-cash-stack', 'Quota massima su stipendio o pensione con credito ordinario, esattoriale o alimentare.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('pignoramento', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Reddito</label><select name="pig_tipo_reddito" class="form-select"><option value="stipendio" {{ 'selected' if form_state.pig_tipo_reddito == 'stipendio' }}>Stipendio</option><option value="pensione" {{ 'selected' if form_state.pig_tipo_reddito == 'pensione' }}>Pensione</option></select></div>
+        <div class="col-md-4"><label class="form-label">Tipo credito</label><select name="pig_tipo_credito" class="form-select"><option value="ordinario" {{ 'selected' if form_state.pig_tipo_credito == 'ordinario' }}>Ordinario</option><option value="esattoriale" {{ 'selected' if form_state.pig_tipo_credito == 'esattoriale' }}>Esattoriale</option><option value="alimentare" {{ 'selected' if form_state.pig_tipo_credito == 'alimentare' }}>Alimentare</option></select></div>
+        <div class="col-md-2"><label class="form-label">Netto mensile</label><input type="number" step="0.01" min="0" name="pig_importo_netto" class="form-control" value="{{ form_state.pig_importo_netto }}"></div>
+        <div class="col-md-2"><label class="form-label">Aliquota alim. %</label><input type="number" step="0.01" min="0" name="pig_aliquota_alimentare" class="form-control" value="{{ form_state.pig_aliquota_alimentare }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-graph-up me-2"></i>Simula quota</button></div>
+      </form>
+      {% if risultato_pig %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Importo netto', '&euro; ' ~ ('%.2f'|format(risultato_pig.importo))|safe, risultato_pig.tipo_reddito_label) }}
+        {{ metric_box('Minimo protetto', '&euro; ' ~ ('%.2f'|format(risultato_pig.minimo_protetto))|safe) }}
+        {{ metric_box('Base pignorabile', '&euro; ' ~ ('%.2f'|format(risultato_pig.base_pignorabile))|safe) }}
+        {{ metric_box('Quota massima', '&euro; ' ~ ('%.2f'|format(risultato_pig.quota_massima))|safe, 'Aliquota ' ~ ('%.2f'|format(risultato_pig.aliquota)) ~ '%') }}
+      </div>
+      {{ render_messages([], risultato_pig.warnings) }}
+      {{ render_sources(risultato_pig.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_ctu = results.get('ctu') %}
+    {% call tool_section('ctu', 'CTU, vacazioni e compensi ausiliari', 'bi-journal-medical', 'Calcolo su vacazioni o onorario manuale con CPA e IVA.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('ctu', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Modalita</label><select name="ctu_modalita" class="form-select"><option value="vacazioni" {{ 'selected' if form_state.ctu_modalita == 'vacazioni' }}>Vacazioni</option><option value="manuale" {{ 'selected' if form_state.ctu_modalita == 'manuale' }}>Onorario manuale</option></select></div>
+        <div class="col-md-2"><label class="form-label">Ore</label><input type="number" step="0.25" min="0" name="ctu_ore" class="form-control" value="{{ form_state.ctu_ore }}"></div>
+        <div class="col-md-2"><label class="form-label">Vacazioni</label><input type="number" min="0" name="ctu_vacazioni" class="form-control" value="{{ form_state.ctu_vacazioni }}"></div>
+        <div class="col-md-2"><label class="form-label">Onorario</label><input type="number" step="0.01" min="0" name="ctu_onorario" class="form-control" value="{{ form_state.ctu_onorario }}"></div>
+        <div class="col-md-1"><label class="form-label">Spese</label><input type="number" step="0.01" min="0" name="ctu_spese" class="form-control" value="{{ form_state.ctu_spese }}"></div>
+        <div class="col-md-1"><label class="form-label">CPA %</label><input type="number" step="0.01" min="0" name="ctu_cpa_perc" class="form-control" value="{{ form_state.ctu_cpa_perc }}"></div>
+        <div class="col-md-1"><label class="form-label">IVA %</label><input type="number" step="0.01" min="0" name="ctu_iva_perc" class="form-control" value="{{ form_state.ctu_iva_perc }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-journal-check me-2"></i>Calcola compenso</button></div>
+      </form>
+      {% if risultato_ctu %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Modalita', risultato_ctu.modalita_label) }}
+        {{ metric_box('Onorario base', '&euro; ' ~ ('%.2f'|format(risultato_ctu.onorario_base))|safe) }}
+        {{ metric_box('Accessori', 'CPA &euro; ' ~ ('%.2f'|format(risultato_ctu.cpa))|safe, 'IVA &euro; ' ~ ('%.2f'|format(risultato_ctu.iva)) ~ ' - Spese &euro; ' ~ ('%.2f'|format(risultato_ctu.spese))) }}
+        {{ metric_box('Totale', '&euro; ' ~ ('%.2f'|format(risultato_ctu.totale))|safe) }}
+      </div>
+      {{ render_messages(risultato_ctu.notes, risultato_ctu.warnings) }}
+      {{ render_sources(risultato_ctu.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_riv = results.get('rivalutazione_istat') %}
+    {% call tool_section('rivalutazione_istat', 'Rivalutazione monetaria ISTAT', 'bi-graph-up-arrow', 'Calcolo con indice NIC o FOI per importi da rivalutare.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('rivalutazione_istat', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Importo</label><input type="number" name="riv_importo" class="form-control" step="0.01" min="0.01" value="{{ form_state.riv_importo }}"></div>
+        <div class="col-md-3"><label class="form-label">Indice ISTAT</label><select name="riv_tipo" class="form-select"><option value="nic" {{ 'selected' if form_state.riv_tipo == 'nic' }}>NIC</option><option value="foi" {{ 'selected' if form_state.riv_tipo == 'foi' }}>FOI</option></select></div>
         <div class="col-md-5"></div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Anno base</label>
-          <input type="number" name="riv_anno_base" class="form-control" min="2015" max="2030" placeholder="es. 2022" value="{{ form_state.riv_anno_base }}">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Mese base</label>
-          <input type="number" name="riv_mese_base" class="form-control" min="1" max="12" placeholder="1-12" value="{{ form_state.riv_mese_base }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Anno finale</label>
-          <input type="number" name="riv_anno_fine" class="form-control" min="2015" max="2030" placeholder="es. 2025" value="{{ form_state.riv_anno_fine }}">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Mese finale</label>
-          <input type="number" name="riv_mese_fine" class="form-control" min="1" max="12" placeholder="1-12" value="{{ form_state.riv_mese_fine }}">
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola rivalutazione</button>
-        </div>
+        <div class="col-md-3"><label class="form-label">Anno base</label><input type="number" name="riv_anno_base" class="form-control" min="2015" max="2035" value="{{ form_state.riv_anno_base }}"></div>
+        <div class="col-md-2"><label class="form-label">Mese base</label><input type="number" name="riv_mese_base" class="form-control" min="1" max="12" value="{{ form_state.riv_mese_base }}"></div>
+        <div class="col-md-3"><label class="form-label">Anno finale</label><input type="number" name="riv_anno_fine" class="form-control" min="2015" max="2035" value="{{ form_state.riv_anno_fine }}"></div>
+        <div class="col-md-2"><label class="form-label">Mese finale</label><input type="number" name="riv_mese_fine" class="form-control" min="1" max="12" value="{{ form_state.riv_mese_fine }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola rivalutazione</button></div>
       </form>
       {% if risultato_riv %}
-      <hr class="my-4">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Importo originale</div>
-            <div class="fs-4 fw-bold">€ {{ "%.2f"|format(risultato_riv.importo_originale) }}</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Importo rivalutato</div>
-            <div class="fs-4 fw-bold text-primary">€ {{ "%.2f"|format(risultato_riv.importo_rivalutato) }}</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Incremento</div>
-            <div class="fs-4 fw-bold {% if risultato_riv.differenza >= 0 %}text-success{% else %}text-danger{% endif %}">
-              {% if risultato_riv.differenza >= 0 %}+{% endif %}€ {{ "%.2f"|format(risultato_riv.differenza) }}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Variazione %</div>
-            <div class="fs-4 fw-bold {% if risultato_riv.variazione_perc >= 0 %}text-success{% else %}text-danger{% endif %}">
-              {% if risultato_riv.variazione_perc >= 0 %}+{% endif %}{{ "%.2f"|format(risultato_riv.variazione_perc) }}%
-            </div>
-          </div>
-        </div>
-        <div class="col-12">
-          <div class="small text-muted"><strong>Indice {{ risultato_riv.tipo|upper }}:</strong> base {{ risultato_riv.indice_base }} ({{ '%02d'|format(risultato_riv.mese_base) }}/{{ risultato_riv.anno_base }}) → finale {{ risultato_riv.indice_fine }} ({{ '%02d'|format(risultato_riv.mese_fine) }}/{{ risultato_riv.anno_fine }})</div>
-        </div>
+      <div class="row g-3 mt-1">
+        {{ metric_box('Importo originale', '&euro; ' ~ ('%.2f'|format(risultato_riv.importo_originale))|safe, risultato_riv.tipo_label) }}
+        {{ metric_box('Importo rivalutato', '&euro; ' ~ ('%.2f'|format(risultato_riv.importo_rivalutato))|safe) }}
+        {{ metric_box('Differenza', '&euro; ' ~ ('%.2f'|format(risultato_riv.differenza))|safe) }}
+        {{ metric_box('Variazione %', ('%+.2f'|format(risultato_riv.variazione_perc)) ~ '%') }}
       </div>
-      {% if risultato_riv.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_riv.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
-      {% if risultato_riv.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_riv.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
-      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_riv.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      <div class="tool-soft-panel mt-3"><div class="tool-soft-title">Indice usato</div><div class="small text-muted">Base {{ risultato_riv.indice_base }} ({{ '%02d'|format(risultato_riv.mese_base) }}/{{ risultato_riv.anno_base }}) -> Finale {{ risultato_riv.indice_fine }} ({{ '%02d'|format(risultato_riv.mese_fine) }}/{{ risultato_riv.anno_fine }})</div></div>
+      {{ render_messages(risultato_riv.notes, risultato_riv.warnings) }}
+      {{ render_sources(risultato_riv.sources) }}
       {% endif %}
-    </div>
-  </div>
-</div>
+    {% endcall %}
 
-{# ══════════════════════════════════════════════════════════════════════════════
-   ADEGUAMENTO CANONE DI LOCAZIONE
-══════════════════════════════════════════════════════════════════════════════ #}
-{% set risultato_loc = results.get('canone_locazione') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-  <h2 class="accordion-header">
-    <button class="accordion-button {% if active_tool != 'canone_locazione' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCanone">
-      <i class="bi bi-house-lock me-2"></i>Adeguamento canone di locazione
-    </button>
-  </h2>
-  <div id="toolCanone" class="accordion-collapse collapse {% if active_tool == 'canone_locazione' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-    <div class="accordion-body">
-      <p class="small text-muted mb-3">Calcola l'aggiornamento del canone con indice ISTAT FOI ai sensi della L. 431/1998 (contratti liberi 4+4: 75% della variazione). Inserire il canone mensile concordato e i mesi di riferimento.</p>
-      <form method="post" class="row g-3">
-        <input type="hidden" name="tool" value="canone_locazione">
-        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Canone mensile (EUR)</label>
-          <input type="number" name="loc_canone" class="form-control" step="0.01" min="0.01" placeholder="es. 800.00" value="{{ form_state.loc_canone }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">% variazione applicata</label>
-          <input type="number" name="loc_perc_adeguamento" class="form-control" step="1" min="1" max="100" value="{{ form_state.loc_perc_adeguamento }}" placeholder="75">
-          <div class="form-text">75% per contratti liberi 4+4 · 100% per altri</div>
-        </div>
+    {% set risultato_loc = results.get('canone_locazione') %}
+    {% call tool_section('canone_locazione', 'Adeguamento canone di locazione', 'bi-house-lock', 'Aggiornamento del canone con variazione FOI e percentuale applicata.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('canone_locazione', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Canone mensile</label><input type="number" name="loc_canone" class="form-control" step="0.01" min="0.01" value="{{ form_state.loc_canone }}"></div>
+        <div class="col-md-3"><label class="form-label">% applicata</label><input type="number" name="loc_perc_adeguamento" class="form-control" step="1" min="1" max="100" value="{{ form_state.loc_perc_adeguamento }}"></div>
         <div class="col-md-5"></div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Anno stipula / ultimo agg.</label>
-          <input type="number" name="loc_anno_base" class="form-control" min="2015" max="2030" placeholder="es. 2022" value="{{ form_state.loc_anno_base }}">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Mese</label>
-          <input type="number" name="loc_mese_base" class="form-control" min="1" max="12" placeholder="1-12" value="{{ form_state.loc_mese_base }}">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Anno aggiornamento</label>
-          <input type="number" name="loc_anno_fine" class="form-control" min="2015" max="2030" placeholder="es. 2025" value="{{ form_state.loc_anno_fine }}">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Mese</label>
-          <input type="number" name="loc_mese_fine" class="form-control" min="1" max="12" placeholder="1-12" value="{{ form_state.loc_mese_fine }}">
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola adeguamento</button>
-        </div>
+        <div class="col-md-3"><label class="form-label">Anno base</label><input type="number" name="loc_anno_base" class="form-control" min="2015" max="2035" value="{{ form_state.loc_anno_base }}"></div>
+        <div class="col-md-2"><label class="form-label">Mese base</label><input type="number" name="loc_mese_base" class="form-control" min="1" max="12" value="{{ form_state.loc_mese_base }}"></div>
+        <div class="col-md-3"><label class="form-label">Anno aggiornamento</label><input type="number" name="loc_anno_fine" class="form-control" min="2015" max="2035" value="{{ form_state.loc_anno_fine }}"></div>
+        <div class="col-md-2"><label class="form-label">Mese aggiornamento</label><input type="number" name="loc_mese_fine" class="form-control" min="1" max="12" value="{{ form_state.loc_mese_fine }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola adeguamento</button></div>
       </form>
       {% if risultato_loc %}
-      <hr class="my-4">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Canone attuale</div>
-            <div class="fs-4 fw-bold">€ {{ "%.2f"|format(risultato_loc.canone_originale) }}/mese</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Canone aggiornato</div>
-            <div class="fs-4 fw-bold text-primary">€ {{ "%.2f"|format(risultato_loc.canone_aggiornato) }}/mese</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Incremento mensile</div>
-            <div class="fs-4 fw-bold {% if risultato_loc.incremento_mensile >= 0 %}text-success{% else %}text-danger{% endif %}">
-              {% if risultato_loc.incremento_mensile >= 0 %}+{% endif %}€ {{ "%.2f"|format(risultato_loc.incremento_mensile) }}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 rounded-3 text-center" style="background:rgba(26,58,92,.06);">
-            <div class="small text-muted mb-1">Variazione FOI × {{ risultato_loc.perc_adeguamento|int }}%</div>
-            <div class="fs-4 fw-bold">{{ "%+.2f"|format(risultato_loc.variazione_applicata) }}%</div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="p-3 rounded-3" style="background:rgba(26,58,92,.04);">
-            <div class="small text-muted mb-1">Canone annuo attuale</div>
-            <div class="fw-bold">€ {{ "%.2f"|format(risultato_loc.canone_annuo) }}</div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="p-3 rounded-3" style="background:rgba(26,58,92,.04);">
-            <div class="small text-muted mb-1">Canone annuo aggiornato</div>
-            <div class="fw-bold text-primary">€ {{ "%.2f"|format(risultato_loc.canone_annuo_aggiornato) }}</div>
-          </div>
-        </div>
+      <div class="row g-3 mt-1">
+        {{ metric_box('Canone attuale', '&euro; ' ~ ('%.2f'|format(risultato_loc.canone_originale))|safe ~ '/mese') }}
+        {{ metric_box('Canone aggiornato', '&euro; ' ~ ('%.2f'|format(risultato_loc.canone_aggiornato))|safe ~ '/mese') }}
+        {{ metric_box('Incremento mensile', ('%+.2f'|format(risultato_loc.incremento_mensile)) ~ ' EUR') }}
+        {{ metric_box('Variazione applicata', ('%+.2f'|format(risultato_loc.variazione_applicata)) ~ '%', 'FOI ' ~ ('%+.2f'|format(risultato_loc.variazione_foi)) ~ '%') }}
       </div>
-      {% if risultato_loc.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_loc.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
-      {% if risultato_loc.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_loc.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
-      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_loc.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      {{ render_messages(risultato_loc.notes, risultato_loc.warnings) }}
+      {{ render_sources(risultato_loc.sources) }}
       {% endif %}
-    </div>
-  </div>
-</div>
+    {% endcall %}
 
-{# ══════════════════════════════════════════════════════════════════════════════
-   VERIFICA SOGLIA USURA
-══════════════════════════════════════════════════════════════════════════════ #}
-{% set risultato_usura = results.get('usura') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-  <h2 class="accordion-header">
-    <button class="accordion-button {% if active_tool != 'usura' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolUsura">
-      <i class="bi bi-shield-exclamation me-2"></i>Verifica soglia usura
-    </button>
-  </h2>
-  <div id="toolUsura" class="accordion-collapse collapse {% if active_tool == 'usura' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-    <div class="accordion-body">
-      <p class="small text-muted mb-3">Verifica se un tasso applicato supera la soglia antiusura (TEGM × 1,25 + 4 pp) ai sensi della L. 108/1996. Dati aggiornati al trimestre corrente da Banca d'Italia / MEF.</p>
-      <form method="post" class="row g-3">
-        <input type="hidden" name="tool" value="usura">
-        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Tasso applicato (%)</label>
-          <input type="number" name="usura_tasso" class="form-control" step="0.01" min="0" placeholder="es. 14.50" value="{{ form_state.usura_tasso }}">
-        </div>
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">Categoria di credito</label>
-          <select name="usura_categoria" class="form-select">
-            <option value="aperture_credito_cc_fino_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_fino_5000' }}>Aperture di credito c/c ≤ EUR 5.000</option>
-            <option value="aperture_credito_cc_oltre_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_oltre_5000' }}>Aperture di credito c/c > EUR 5.000</option>
-            <option value="credito_personale" {{ 'selected' if form_state.usura_categoria == 'credito_personale' }}>Credito personale</option>
-            <option value="credito_finalizzato" {{ 'selected' if form_state.usura_categoria == 'credito_finalizzato' }}>Credito finalizzato</option>
-            <option value="mutui_ipotecari_fisso" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_fisso' }}>Mutui ipotecari tasso fisso</option>
-            <option value="mutui_ipotecari_variabile" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_variabile' }}>Mutui ipotecari tasso variabile</option>
-            <option value="leasing_immobiliare_fisso" {{ 'selected' if form_state.usura_categoria == 'leasing_immobiliare_fisso' }}>Leasing immobiliare fisso</option>
-            <option value="leasing_immobiliare_variabile" {{ 'selected' if form_state.usura_categoria == 'leasing_immobiliare_variabile' }}>Leasing immobiliare variabile</option>
-            <option value="leasing_mobiliare_fisso" {{ 'selected' if form_state.usura_categoria == 'leasing_mobiliare_fisso' }}>Leasing mobiliare fisso</option>
-            <option value="leasing_mobiliare_variabile" {{ 'selected' if form_state.usura_categoria == 'leasing_mobiliare_variabile' }}>Leasing mobiliare variabile</option>
-            <option value="factoring" {{ 'selected' if form_state.usura_categoria == 'factoring' }}>Factoring</option>
-            <option value="carte_credito_revolving" {{ 'selected' if form_state.usura_categoria == 'carte_credito_revolving' }}>Carte di credito revolving</option>
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label fw-semibold">Data operazione</label>
-          <input type="date" name="usura_data" class="form-control" value="{{ form_state.usura_data }}">
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary"><i class="bi bi-shield-check me-2"></i>Verifica soglia</button>
-        </div>
+    {% set risultato_usura = results.get('usura') %}
+    {% call tool_section('usura', 'Verifica soglia usura', 'bi-shield-exclamation', 'Confronto immediato tra tasso applicato, TEGM e soglia antiusura.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('usura', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Tasso applicato (%)</label><input type="number" name="usura_tasso" class="form-control" step="0.01" min="0" value="{{ form_state.usura_tasso }}"></div>
+        <div class="col-md-5"><label class="form-label">Categoria</label><select name="usura_categoria" class="form-select"><option value="aperture_credito_cc_fino_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_fino_5000' }}>Aperture c/c &lt;= EUR 5.000</option><option value="aperture_credito_cc_oltre_5000" {{ 'selected' if form_state.usura_categoria == 'aperture_credito_cc_oltre_5000' }}>Aperture c/c &gt; EUR 5.000</option><option value="credito_personale" {{ 'selected' if form_state.usura_categoria == 'credito_personale' }}>Credito personale</option><option value="credito_finalizzato" {{ 'selected' if form_state.usura_categoria == 'credito_finalizzato' }}>Credito finalizzato</option><option value="mutui_ipotecari_fisso" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_fisso' }}>Mutui ipotecari fisso</option><option value="mutui_ipotecari_variabile" {{ 'selected' if form_state.usura_categoria == 'mutui_ipotecari_variabile' }}>Mutui ipotecari variabile</option><option value="carte_credito_revolving" {{ 'selected' if form_state.usura_categoria == 'carte_credito_revolving' }}>Carte revolving</option></select></div>
+        <div class="col-md-3"><label class="form-label">Data operazione</label><input type="date" name="usura_data" class="form-control" value="{{ form_state.usura_data }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-shield-check me-2"></i>Verifica soglia</button></div>
       </form>
       {% if risultato_usura %}
-      <hr class="my-4">
-      <div class="alert alert-{{ risultato_usura.esito_classe }} d-flex align-items-center gap-3 mb-3">
-        <i class="bi {% if risultato_usura.supera_soglia %}bi-x-octagon-fill fs-3{% else %}bi-check-circle-fill fs-3{% endif %}"></i>
-        <div>
-          <div class="fw-bold fs-5">{{ risultato_usura.esito }}: {{ risultato_usura.categoria_label }}</div>
-          <div>
-            Tasso applicato <strong>{{ "%.2f"|format(risultato_usura.tasso_applicato) }}%</strong> —
-            Soglia antiusura <strong>{{ "%.2f"|format(risultato_usura.soglia) }}%</strong>
-            (TEGM {{ "%.2f"|format(risultato_usura.tegm) }}% · {{ risultato_usura.quarter }})
-          </div>
-        </div>
+      <div class="alert alert-{{ risultato_usura.esito_classe }} mt-3 mb-0"><div class="fw-bold">{{ risultato_usura.esito }} - {{ risultato_usura.categoria_label }}</div><div>Tasso applicato {{ "%.2f"|format(risultato_usura.tasso_applicato) }}% | Soglia {{ "%.2f"|format(risultato_usura.soglia) }}% | TEGM {{ "%.2f"|format(risultato_usura.tegm) }}% ({{ risultato_usura.quarter }})</div></div>
+      <div class="row g-3 mt-1">
+        {{ metric_box('Margine', ('%.2f'|format(risultato_usura.margine)) ~ ' pp') }}
+        {{ metric_box('TEGM', ('%.2f'|format(risultato_usura.tegm)) ~ '%') }}
+        {{ metric_box('Soglia', ('%.2f'|format(risultato_usura.soglia)) ~ '%') }}
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm align-middle small">
+      <div class="table-responsive mt-3">
+        <table class="table table-sm align-middle">
           <thead><tr><th>Categoria</th><th class="text-end">TEGM %</th><th class="text-end">Soglia %</th></tr></thead>
-          <tbody>
-            {% for c in risultato_usura.categorie %}
-            <tr {% if c.is_selected %}class="table-primary fw-semibold"{% endif %}>
-              <td>{{ c.label }}</td>
-              <td class="text-end">{{ "%.2f"|format(c.tegm) }}</td>
-              <td class="text-end">{{ "%.2f"|format(c.soglia) }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
+          <tbody>{% for c in risultato_usura.categorie %}<tr {% if c.is_selected %}class="table-primary fw-semibold"{% endif %}><td>{{ c.label }}</td><td class="text-end">{{ "%.2f"|format(c.tegm) }}</td><td class="text-end">{{ "%.2f"|format(c.soglia) }}</td></tr>{% endfor %}</tbody>
         </table>
       </div>
-      {% if risultato_usura.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_usura.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
-      {% if risultato_usura.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_usura.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
-      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_usura.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      {{ render_messages(risultato_usura.notes, risultato_usura.warnings) }}
+      {{ render_sources(risultato_usura.sources) }}
       {% endif %}
-    </div>
-  </div>
-</div>
+    {% endcall %}
 
-{# ══════════════════════════════════════════════════════════════════════════════
-   CONTRIBUTI CASSA FORENSE
-══════════════════════════════════════════════════════════════════════════════ #}
-{% set risultato_cf = results.get('contributi_cassa_forense') %}
-<div class="accordion-item border-0 shadow-sm mb-3" style="border-radius:18px;overflow:hidden;">
-  <h2 class="accordion-header">
-    <button class="accordion-button {% if active_tool != 'contributi_cassa_forense' %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#toolCassaForense">
-      <i class="bi bi-person-badge me-2"></i>Contributi Cassa Forense
-    </button>
-  </h2>
-  <div id="toolCassaForense" class="accordion-collapse collapse {% if active_tool == 'contributi_cassa_forense' %}show{% endif %}" data-bs-parent="#accordionStrumentiLegali">
-    <div class="accordion-body">
-      <p class="small text-muted mb-3">Calcola i contributi previdenziali Cassa Forense con aliquote e minimali ufficiali aggiornati. Il contributo integrativo è addebitabile al cliente ex art. 11 L. 576/1980.</p>
-      <form method="post" class="row g-3">
-        <input type="hidden" name="tool" value="contributi_cassa_forense">
-        <input type="hidden" name="id_fascicolo" value="{{ fascicolo_sel.id if fascicolo_sel else '' }}">
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">Anno</label>
-          <input type="number" name="cf_anno" class="form-control" min="2020" max="2030" value="{{ form_state.cf_anno }}">
-        </div>
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">Reddito netto professionale (EUR)</label>
-          <input type="number" name="cf_reddito" class="form-control" step="0.01" min="0" placeholder="Base per contributo soggettivo" value="{{ form_state.cf_reddito }}">
-        </div>
-        <div class="col-md-5">
-          <label class="form-label fw-semibold">Compensi lordi fatturati (EUR)</label>
-          <input type="number" name="cf_compensi" class="form-control" step="0.01" min="0" placeholder="Base per contributo integrativo" value="{{ form_state.cf_compensi }}">
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola contributi</button>
-        </div>
+    {% set risultato_cf = results.get('contributi_cassa_forense') %}
+    {% call tool_section('contributi_cassa_forense', 'Contributi Cassa Forense', 'bi-person-badge', 'Soggettivo, integrativo e altre voci con minimali annui.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('contributi_cassa_forense', fascicolo_sel) }}
+        <div class="col-md-2"><label class="form-label">Anno</label><input type="number" name="cf_anno" class="form-control" min="2020" max="2035" value="{{ form_state.cf_anno }}"></div>
+        <div class="col-md-5"><label class="form-label">Reddito netto professionale</label><input type="number" name="cf_reddito" class="form-control" step="0.01" min="0" value="{{ form_state.cf_reddito }}"></div>
+        <div class="col-md-5"><label class="form-label">Compensi lordi fatturati</label><input type="number" name="cf_compensi" class="form-control" step="0.01" min="0" value="{{ form_state.cf_compensi }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola contributi</button></div>
       </form>
       {% if risultato_cf %}
-      <hr class="my-4">
-      <div class="table-responsive">
+      <div class="row g-3 mt-1">
+        {{ metric_box('Reddito', '&euro; ' ~ ('%.2f'|format(risultato_cf.reddito))|safe) }}
+        {{ metric_box('Compensi', '&euro; ' ~ ('%.2f'|format(risultato_cf.compensi))|safe) }}
+        {{ metric_box('Totale contributi', '&euro; ' ~ ('%.2f'|format(risultato_cf.totale))|safe, risultato_cf.anno) }}
+      </div>
+      <div class="table-responsive mt-3">
         <table class="table align-middle">
-          <thead>
-            <tr>
-              <th>Contributo</th>
-              <th class="text-end">Aliquota</th>
-              <th class="text-end">Base</th>
-              <th class="text-end">Calcolato</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in risultato_cf.contributi %}
-            <tr>
-              <td>
-                <div class="fw-semibold">{{ r.label }}</div>
-                <div class="small text-muted">{{ r.note }}</div>
-              </td>
-              <td class="text-end">{{ "%.1f"|format(r.aliquota) if r.aliquota > 0 else '—' }}{% if r.aliquota > 0 %}%{% endif %}</td>
-              <td class="text-end">{% if r.base_usata > 0 %}€ {{ "%.2f"|format(r.base_usata) }}{% else %}<span class="text-muted">fisso</span>{% endif %}</td>
-              <td class="text-end fw-semibold">€ {{ "%.2f"|format(r.calcolato) }}</td>
-            </tr>
-            {% endfor %}
-            <tr class="table-primary">
-              <td colspan="3" class="fw-bold">Totale contributi {{ risultato_cf.anno }}</td>
-              <td class="text-end fw-bold fs-5">€ {{ "%.2f"|format(risultato_cf.totale) }}</td>
-            </tr>
-          </tbody>
+          <thead><tr><th>Contributo</th><th class="text-end">Aliquota</th><th class="text-end">Base</th><th class="text-end">Calcolato</th></tr></thead>
+          <tbody>{% for row in risultato_cf.contributi %}<tr><td><div class="fw-semibold">{{ row.label }}</div><div class="small text-muted">{{ row.note }}</div></td><td class="text-end">{% if row.aliquota > 0 %}{{ "%.1f"|format(row.aliquota) }}%{% else %}-{% endif %}</td><td class="text-end">{% if row.base_usata > 0 %}&euro; {{ "%.2f"|format(row.base_usata) }}{% else %}<span class="text-muted">fisso</span>{% endif %}</td><td class="text-end fw-semibold">&euro; {{ "%.2f"|format(row.calcolato) }}</td></tr>{% endfor %}</tbody>
         </table>
       </div>
-      {% if risultato_cf.notes %}<div class="alert alert-info mt-3 mb-0">{% for n in risultato_cf.notes %}<div>{{ n }}</div>{% endfor %}</div>{% endif %}
-      {% if risultato_cf.warnings %}<div class="alert alert-warning mt-3 mb-0">{% for w in risultato_cf.warnings %}<div>{{ w }}</div>{% endfor %}</div>{% endif %}
-      <div class="mt-3 d-flex flex-wrap gap-2">{% for source in risultato_cf.sources %}<a href="{{ source.url }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">{{ source.title }}</a>{% endfor %}</div>
+      {{ render_messages(risultato_cf.notes, risultato_cf.warnings) }}
+      {{ render_sources(risultato_cf.sources) }}
       {% endif %}
-    </div>
+    {% endcall %}
+
+    {% set risultato_tfr = results.get('tfr') %}
+    {% call tool_section('tfr', 'TFR', 'bi-wallet2', 'Quota annua, rivalutazione e montante complessivo del trattamento di fine rapporto.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('tfr', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Retribuzione annua lorda</label><input type="number" step="0.01" min="0" name="tfr_retribuzione_annua" class="form-control" value="{{ form_state.tfr_retribuzione_annua }}"></div>
+        <div class="col-md-2"><label class="form-label">Anni servizio</label><input type="number" min="0" name="tfr_anni_servizio" class="form-control" value="{{ form_state.tfr_anni_servizio }}"></div>
+        <div class="col-md-2"><label class="form-label">Mesi servizio</label><input type="number" min="0" max="11" name="tfr_mesi_servizio" class="form-control" value="{{ form_state.tfr_mesi_servizio }}"></div>
+        <div class="col-md-2"><label class="form-label">Inflazione %</label><input type="number" step="0.01" min="0" name="tfr_inflazione_perc" class="form-control" value="{{ form_state.tfr_inflazione_perc }}"></div>
+        <div class="col-md-2"><label class="form-label">Anticipazioni</label><input type="number" step="0.01" min="0" name="tfr_anticipazioni" class="form-control" value="{{ form_state.tfr_anticipazioni }}"></div>
+        <div class="col-md-4"><label class="form-label">Montante pregresso da rivalutare</label><input type="number" step="0.01" min="0" name="tfr_montante_pregresso" class="form-control" value="{{ form_state.tfr_montante_pregresso }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola TFR</button></div>
+      </form>
+      {% if risultato_tfr %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Quota annua', '&euro; ' ~ ('%.2f'|format(risultato_tfr.quota_annua))|safe, risultato_tfr.anni_equivalenti ~ ' anni equivalenti') }}
+        {{ metric_box('Quota maturata', '&euro; ' ~ ('%.2f'|format(risultato_tfr.quota_periodo))|safe) }}
+        {{ metric_box('Rivalutazione', '&euro; ' ~ ('%.2f'|format(risultato_tfr.rivalutazione))|safe, risultato_tfr.coeff_rivalutazione ~ '%') }}
+        {{ metric_box('Totale lordo', '&euro; ' ~ ('%.2f'|format(risultato_tfr.totale_lordo))|safe) }}
+      </div>
+      {{ render_messages(risultato_tfr.notes, risultato_tfr.warnings) }}
+      {{ render_sources(risultato_tfr.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_onorari = results.get('onorari_forensi') %}
+    {% call tool_section('onorari_forensi', 'Onorari Forensi', 'bi-briefcase', 'Parametri forensi con fasi, complessita, spese generali e bonus telematico.') %}
+      <form method="post" class="tool-form-grid">
+        {{ tool_hidden('onorari_forensi', fascicolo_sel) }}
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label">Materia</label><select name="onorari_materia" class="form-select">{% for option in onorari_options.materie %}<option value="{{ option.value }}" {{ 'selected' if form_state.onorari_materia == option.value }}>{{ option.label }}</option>{% endfor %}</select></div>
+          <div class="col-md-4"><label class="form-label">Grado</label><select name="onorari_grado" class="form-select">{% for option in onorari_options.gradi %}<option value="{{ option.value }}" {{ 'selected' if form_state.onorari_grado == option.value }}>{{ option.label }}</option>{% endfor %}</select></div>
+          <div class="col-md-4"><label class="form-label">Valore controversia</label><input type="number" step="0.01" min="0" name="onorari_valore" class="form-control" value="{{ form_state.onorari_valore }}"></div>
+          <div class="col-md-4"><label class="form-label">Complessita</label><select name="onorari_complessita" class="form-select">{% for option in onorari_options.complessita %}<option value="{{ option.value }}" {{ 'selected' if form_state.onorari_complessita == option.value }}>{{ option.label }}</option>{% endfor %}</select></div>
+          <div class="col-md-4"><label class="form-label">Bonus telematico</label><select name="onorari_bonus_telematico" class="form-select"><option value="1" {{ 'selected' if form_state.onorari_bonus_telematico == '1' }}>Si</option><option value="0" {{ 'selected' if form_state.onorari_bonus_telematico != '1' }}>No</option></select></div>
+          <div class="col-md-4"><label class="form-label">Spese generali</label><select name="onorari_includi_spese_generali" class="form-select"><option value="1" {{ 'selected' if form_state.onorari_includi_spese_generali == '1' }}>Includi</option><option value="0" {{ 'selected' if form_state.onorari_includi_spese_generali != '1' }}>Escludi</option></select></div>
+          <div class="col-12">
+            <label class="form-label">Fasi da includere</label>
+            <div class="tool-phase-checks">
+              {% for fase in onorari_options.fasi %}
+              <div class="tool-phase-check">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="onorari_fasi" value="{{ fase.value }}" id="fase-{{ fase.value }}" {{ 'checked' if fase.value in selected_onorari_fasi }}>
+                  <label class="form-check-label" for="fase-{{ fase.value }}">{{ fase.label }}</label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola onorari</button></div>
+        </div>
+      </form>
+      {% if risultato_onorari %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Scaglione', risultato_onorari.scaglione, risultato_onorari.materia_label) }}
+        {{ metric_box('Minimo', '&euro; ' ~ ('%.2f'|format(risultato_onorari.riepiloghi.minimo.totale_compenso))|safe) }}
+        {{ metric_box('Base', '&euro; ' ~ ('%.2f'|format(risultato_onorari.riepiloghi.base.totale_compenso))|safe) }}
+        {{ metric_box('Massimo', '&euro; ' ~ ('%.2f'|format(risultato_onorari.riepiloghi.massimo.totale_compenso))|safe) }}
+      </div>
+      <div class="tool-soft-panel mt-3"><div class="tool-soft-title">Livello suggerito</div><div class="fw-semibold text-primary text-capitalize">{{ risultato_onorari.livello_suggerito }}</div><div class="small text-muted">Totale suggerito: &euro; {{ "%.2f"|format(risultato_onorari.riepilogo_suggerito.totale_compenso) }}</div></div>
+      <div class="table-responsive mt-3">
+        <table class="table align-middle">
+          <thead><tr><th>Fase</th><th class="text-end">Minimo</th><th class="text-end">Base</th><th class="text-end">Massimo</th></tr></thead>
+          <tbody>{% for row in risultato_onorari.fase_rows %}<tr><td>{{ row.fase }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.minimo) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.base) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.massimo) }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {{ render_messages(risultato_onorari.notes, risultato_onorari.warnings) }}
+      {{ render_sources(risultato_onorari.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_custodia = results.get('custodia_cautelare') %}
+    {% call tool_section('custodia_cautelare', 'Custodia Cautelare', 'bi-shield-lock', 'Scadenziario difensivo essenziale per esecuzione, riesame e deposito motivazione.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('custodia_cautelare', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Tipo misura</label><select name="custodia_tipo_misura" class="form-select"><option value="carcere" {{ 'selected' if form_state.custodia_tipo_misura == 'carcere' }}>Custodia in carcere</option><option value="domiciliari" {{ 'selected' if form_state.custodia_tipo_misura == 'domiciliari' }}>Arresti domiciliari</option><option value="altro" {{ 'selected' if form_state.custodia_tipo_misura == 'altro' }}>Altra misura</option></select></div>
+        <div class="col-md-4"><label class="form-label">Data esecuzione</label><input type="date" name="custodia_data_esecuzione" class="form-control" value="{{ form_state.custodia_data_esecuzione }}"></div>
+        <div class="col-md-4"><label class="form-label">Data istanza riesame</label><input type="date" name="custodia_data_istanza_riesame" class="form-control" value="{{ form_state.custodia_data_istanza_riesame }}"></div>
+        <div class="col-md-4"><label class="form-label">Data decisione riesame</label><input type="date" name="custodia_data_decisione_riesame" class="form-control" value="{{ form_state.custodia_data_decisione_riesame }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calendar-week me-2"></i>Calcola scadenze</button></div>
+      </form>
+      {% if risultato_custodia %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Misura', risultato_custodia.tipo_misura_label, risultato_custodia.data_esecuzione_it) }}
+        {{ metric_box('Interrogatorio entro', risultato_custodia.interrogatorio_entra_it) }}
+        {{ metric_box('Riesame entro', risultato_custodia.riesame_entra_it) }}
+        {{ metric_box('Giorni decorsi', risultato_custodia.giorni_decorsi) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Passaggio</th><th>Data</th></tr></thead><tbody>{% for row in risultato_custodia.timeline %}<tr><td class="fw-semibold">{{ row.label }}</td><td>{{ row.date_it }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_custodia.notes, risultato_custodia.warnings) }}
+      {{ render_sources(risultato_custodia.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_presc_pen = results.get('prescrizione_penale') %}
+    {% call tool_section('prescrizione_penale', 'Prescrizione Penale', 'bi-hourglass-split', 'Proiezione del termine base e del termine massimo con sospensioni dichiarate.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('prescrizione_penale', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Data del fatto</label><input type="date" name="presc_data_fatto" class="form-control" value="{{ form_state.presc_data_fatto }}"></div>
+        <div class="col-md-2"><label class="form-label">Massimo anni</label><input type="number" min="0" name="presc_massimo_edittale_anni" class="form-control" value="{{ form_state.presc_massimo_edittale_anni }}"></div>
+        <div class="col-md-2"><label class="form-label">Massimo mesi</label><input type="number" min="0" max="11" name="presc_massimo_edittale_mesi" class="form-control" value="{{ form_state.presc_massimo_edittale_mesi }}"></div>
+        <div class="col-md-2"><label class="form-label">Contravvenzione</label><select name="presc_contravvenzione" class="form-select"><option value="0" {{ 'selected' if form_state.presc_contravvenzione != '1' }}>No</option><option value="1" {{ 'selected' if form_state.presc_contravvenzione == '1' }}>Si</option></select></div>
+        <div class="col-md-1"><label class="form-label">Coeff.</label><input type="number" step="0.01" min="1" name="presc_coeff_interruzione" class="form-control" value="{{ form_state.presc_coeff_interruzione }}"></div>
+        <div class="col-md-2"><label class="form-label">Sospensione gg</label><input type="number" min="0" name="presc_giorni_sospensione" class="form-control" value="{{ form_state.presc_giorni_sospensione }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-hourglass me-2"></i>Calcola prescrizione</button></div>
+      </form>
+      {% if risultato_presc_pen %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Regime', risultato_presc_pen.regime_label, risultato_presc_pen.data_fatto_it) }}
+        {{ metric_box('Termine base', risultato_presc_pen.data_prescrizione_base_it, risultato_presc_pen.termine_base_anni ~ ' anni') }}
+        {{ metric_box('Termine massimo', risultato_presc_pen.data_prescrizione_massima_it, 'Coeff. ' ~ risultato_presc_pen.coeff_interruzione) }}
+        {{ metric_box('Sospensioni', risultato_presc_pen.giorni_sospensione ~ ' giorni') }}
+      </div>
+      {{ render_messages(risultato_presc_pen.notes, risultato_presc_pen.warnings) }}
+      {{ render_sources(risultato_presc_pen.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_succ = results.get('successione_legittima') %}
+    {% call tool_section('successione_legittima', 'Successione Legittima', 'bi-diagram-3', 'Riparto quote sull asse ereditario per le casistiche standard di successione legittima.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('successione_legittima', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Asse ereditario</label><input type="number" step="0.01" min="0" name="successione_asse" class="form-control" value="{{ form_state.successione_asse }}"></div>
+        <div class="col-md-2"><label class="form-label">Coniuge</label><select name="successione_coniuge" class="form-select"><option value="0" {{ 'selected' if form_state.successione_coniuge != '1' }}>No</option><option value="1" {{ 'selected' if form_state.successione_coniuge == '1' }}>Si</option></select></div>
+        <div class="col-md-2"><label class="form-label">Figli</label><input type="number" min="0" name="successione_figli" class="form-control" value="{{ form_state.successione_figli }}"></div>
+        <div class="col-md-2"><label class="form-label">Ascendenti</label><input type="number" min="0" name="successione_ascendenti" class="form-control" value="{{ form_state.successione_ascendenti }}"></div>
+        <div class="col-md-2"><label class="form-label">Fratelli</label><input type="number" min="0" name="successione_fratelli" class="form-control" value="{{ form_state.successione_fratelli }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-diagram-3 me-2"></i>Calcola quote</button></div>
+      </form>
+      {% if risultato_succ %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Asse', '&euro; ' ~ ('%.2f'|format(risultato_succ.asse))|safe) }}
+        {{ metric_box('Copertura quote', risultato_succ.quota_totale_percent ~ '%') }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Quota</th><th class="text-end">% asse</th><th class="text-end">Importo</th><th class="text-end">Per testa</th></tr></thead><tbody>{% for row in risultato_succ.rows %}<tr><td><div class="fw-semibold">{{ row.label }}</div>{% if row.detail %}<div class="small text-muted">{{ row.detail }}</div>{% endif %}</td><td class="text-end">{{ "%.2f"|format(row.quota_percent) }}%</td><td class="text-end">&euro; {{ "%.2f"|format(row.importo) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.per_testa) }}</td></tr>{% endfor %}</tbody></table></div>
+      {{ render_messages(risultato_succ.notes, risultato_succ.warnings) }}
+      {{ render_sources(risultato_succ.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_ced = results.get('cedolare_secca') %}
+    {% call tool_section('cedolare_secca', 'Cedolare Secca', 'bi-house-check', 'Stima imposta annua e costo del periodo con beneficio del registro evitato.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('cedolare_secca', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Canone annuo</label><input type="number" step="0.01" min="0" name="cedolare_canone_annuo" class="form-control" value="{{ form_state.cedolare_canone_annuo }}"></div>
+        <div class="col-md-4"><label class="form-label">Aliquota %</label><select name="cedolare_aliquota" class="form-select"><option value="21" {{ 'selected' if form_state.cedolare_aliquota == '21' }}>21%</option><option value="10" {{ 'selected' if form_state.cedolare_aliquota == '10' }}>10%</option></select></div>
+        <div class="col-md-4"><label class="form-label">Annualita</label><input type="number" min="1" name="cedolare_annualita" class="form-control" value="{{ form_state.cedolare_annualita }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola cedolare</button></div>
+      </form>
+      {% if risultato_ced %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Imposta annua', '&euro; ' ~ ('%.2f'|format(risultato_ced.imposta_annua))|safe, risultato_ced.aliquota ~ '%') }}
+        {{ metric_box('Totale periodo', '&euro; ' ~ ('%.2f'|format(risultato_ced.totale_periodo))|safe, risultato_ced.annualita ~ ' annualita') }}
+        {{ metric_box('Registro ordinario annuo', '&euro; ' ~ ('%.2f'|format(risultato_ced.registro_annuo))|safe) }}
+        {{ metric_box('Registro evitato', '&euro; ' ~ ('%.2f'|format(risultato_ced.registro_evitato))|safe) }}
+      </div>
+      {{ render_messages(risultato_ced.notes, risultato_ced.warnings) }}
+      {{ render_sources(risultato_ced.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_lic = results.get('indennita_licenziamento') %}
+    {% call tool_section('indennita_licenziamento', 'Indennita Licenziamento', 'bi-person-x', 'Mensilita riconoscibili e importo lordo in base al regime selezionato.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('indennita_licenziamento', fascicolo_sel) }}
+        <div class="col-md-4"><label class="form-label">Retribuzione mensile</label><input type="number" step="0.01" min="0" name="lic_retribuzione_mensile" class="form-control" value="{{ form_state.lic_retribuzione_mensile }}"></div>
+        <div class="col-md-2"><label class="form-label">Anni servizio</label><input type="number" min="0" name="lic_anni_servizio" class="form-control" value="{{ form_state.lic_anni_servizio }}"></div>
+        <div class="col-md-2"><label class="form-label">Mesi servizio</label><input type="number" min="0" max="11" name="lic_mesi_servizio" class="form-control" value="{{ form_state.lic_mesi_servizio }}"></div>
+        <div class="col-md-3"><label class="form-label">Regime</label><select name="lic_regime" class="form-select"><option value="jobs_act" {{ 'selected' if form_state.lic_regime == 'jobs_act' }}>Tutele crescenti</option><option value="piccola_impresa" {{ 'selected' if form_state.lic_regime == 'piccola_impresa' }}>Piccola impresa</option><option value="preavviso" {{ 'selected' if form_state.lic_regime == 'preavviso' }}>Preavviso</option></select></div>
+        <div class="col-md-1"><label class="form-label">Mens. preavv.</label><input type="number" step="0.01" min="0" name="lic_mensilita_preavviso" class="form-control" value="{{ form_state.lic_mensilita_preavviso }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola indennita</button></div>
+      </form>
+      {% if risultato_lic %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Regime', risultato_lic.regime_label) }}
+        {{ metric_box('Anzianita', risultato_lic.anzianita ~ ' anni') }}
+        {{ metric_box('Mensilita', risultato_lic.mensilita) }}
+        {{ metric_box('Importo lordo', '&euro; ' ~ ('%.2f'|format(risultato_lic.importo))|safe) }}
+      </div>
+      {{ render_messages(risultato_lic.notes, risultato_lic.warnings) }}
+      {{ render_sources(risultato_lic.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_amm = results.get('piano_ammortamento') %}
+    {% call tool_section('piano_ammortamento', 'Piano di Ammortamento', 'bi-table', 'Piano rateale completo con metodo francese o italiano.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('piano_ammortamento', fascicolo_sel) }}
+        <div class="col-md-3"><label class="form-label">Capitale</label><input type="number" step="0.01" min="0" name="amm_capitale" class="form-control" value="{{ form_state.amm_capitale }}"></div>
+        <div class="col-md-2"><label class="form-label">Tasso annuo %</label><input type="number" step="0.01" min="0" name="amm_tasso_annuo" class="form-control" value="{{ form_state.amm_tasso_annuo }}"></div>
+        <div class="col-md-2"><label class="form-label">Durata anni</label><input type="number" min="1" name="amm_durata_anni" class="form-control" value="{{ form_state.amm_durata_anni }}"></div>
+        <div class="col-md-2"><label class="form-label">Rate / anno</label><select name="amm_rate_anno" class="form-select">{% for value in ['12', '6', '4', '2', '1'] %}<option value="{{ value }}" {{ 'selected' if form_state.amm_rate_anno == value }}>{{ value }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Metodo</label><select name="amm_tipo" class="form-select"><option value="francese" {{ 'selected' if form_state.amm_tipo == 'francese' }}>Francese</option><option value="italiano" {{ 'selected' if form_state.amm_tipo == 'italiano' }}>Italiano</option></select></div>
+        <div class="col-md-3"><label class="form-label">Prima rata</label><input type="date" name="amm_data_prima_rata" class="form-control" value="{{ form_state.amm_data_prima_rata }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola piano</button></div>
+      </form>
+      {% if risultato_amm %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Metodo', risultato_amm.tipo_label, risultato_amm.numero_rate ~ ' rate') }}
+        {{ metric_box('Rata iniziale', '&euro; ' ~ ('%.2f'|format(risultato_amm.rata_iniziale))|safe) }}
+        {{ metric_box('Totale interessi', '&euro; ' ~ ('%.2f'|format(risultato_amm.totale_interessi))|safe) }}
+        {{ metric_box('Totale pagato', '&euro; ' ~ ('%.2f'|format(risultato_amm.totale_pagato))|safe) }}
+      </div>
+      <div class="table-responsive mt-3"><table class="table align-middle"><thead><tr><th>Rata</th><th>Scadenza</th><th class="text-end">Importo</th><th class="text-end">Capitale</th><th class="text-end">Interessi</th><th class="text-end">Residuo</th></tr></thead><tbody>{% for row in risultato_amm.preview_schedule %}<tr><td class="fw-semibold">{{ row.numero }}</td><td>{{ row.scadenza_it }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.rata) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.quota_capitale) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.quota_interessi) }}</td><td class="text-end">&euro; {{ "%.2f"|format(row.residuo) }}</td></tr>{% endfor %}</tbody></table></div>
+      {% if risultato_amm.schedule|length > risultato_amm.preview_schedule|length %}<div class="small text-muted">Anteprima delle prime {{ risultato_amm.preview_schedule|length }} rate su {{ risultato_amm.schedule|length }} totali.</div>{% endif %}
+      {{ render_messages(risultato_amm.notes, risultato_amm.warnings) }}
+      {{ render_sources(risultato_amm.sources) }}
+      {% endif %}
+    {% endcall %}
   </div>
 </div>
 {% endblock %}

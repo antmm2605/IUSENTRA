@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import html
 import math
-from datetime import date
+from calendar import monthrange
+from datetime import date, timedelta
 from textwrap import dedent
 from typing import Any, Dict, List, Mapping, Optional
 
@@ -10,6 +11,17 @@ from pct.normative_tables import (
     FONTI_OPERATIVE,
     GestioneTabelleNormative,
     InterestPeriod,
+)
+from pct.tariffario import (
+    ComplessitaStimata,
+    Fase,
+    Grado,
+    Materia,
+    calcola_compenso,
+    tutte_le_complessita,
+    tutte_le_fasi,
+    tutte_le_materie,
+    tutti_i_gradi,
 )
 
 
@@ -58,6 +70,29 @@ def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
 
+def _safe_bool(value: Any, default: bool = False) -> bool:
+    if value in (None, ""):
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "on", "si", "s", "yes"}
+
+
+def _getlist(payload: Mapping[str, Any], key: str) -> List[str]:
+    if hasattr(payload, "getlist"):
+        try:
+            return [_clean_text(v) for v in payload.getlist(key) if _clean_text(v)]
+        except TypeError:
+            pass
+    raw = payload.get(key)
+    if raw is None:
+        return []
+    if isinstance(raw, (list, tuple, set)):
+        return [_clean_text(v) for v in raw if _clean_text(v)]
+    value = _clean_text(raw)
+    return [value] if value else []
+
+
 def _days_inclusive(start: date, end: date) -> int:
     return (end - start).days + 1
 
@@ -65,6 +100,22 @@ def _days_inclusive(start: date, end: date) -> int:
 def _year_denominator(day: date) -> int:
     year = day.year
     return 366 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 365
+
+
+def _fmt_date_it(value: Any) -> str:
+    if isinstance(value, date):
+        day = value
+    else:
+        day = _parse_date(value)
+    return day.strftime("%d/%m/%Y") if day else "n/d"
+
+
+def _add_months(day: date, months: int) -> date:
+    total_month = (day.month - 1) + int(months)
+    year = day.year + total_month // 12
+    month = total_month % 12 + 1
+    month_day = min(day.day, monthrange(year, month)[1])
+    return date(year, month, month_day)
 
 
 class GestioneStrumentiLegali:
@@ -84,15 +135,23 @@ class GestioneStrumentiLegali:
 
     def catalogo_moduli(self) -> List[Dict[str, str]]:
         return [
-            {"id": "contributo_unificato", "title": "Contributo unificato", "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.", "icon": "bi-bank"},
-            {"id": "interessi", "title": "Interessi legali e moratori", "subtitle": "Art. 1284 c.c. e D.Lgs. 231/2002 con segmentazione per periodo.", "icon": "bi-percent"},
-            {"id": "nota_credito", "title": "Nota di precisazione del credito", "subtitle": "Bozza professionale con capitale, interessi, spese, CPA, IVA e residuo.", "icon": "bi-file-earmark-ruled"},
-            {"id": "pignoramento", "title": "Simulatore pignoramento stipendio / pensione", "subtitle": "Ordinario, esattoriale e alimentare con soglia pensione 2026 gia aggiornata.", "icon": "bi-cash-stack"},
-            {"id": "ctu", "title": "CTU, vacazioni e compensi ausiliari", "subtitle": "Vacazioni vigenti, spese documentate e accessori professionali.", "icon": "bi-journal-medical"},
-            {"id": "rivalutazione_istat", "title": "Rivalutazione monetaria ISTAT", "subtitle": "Calcolo FOI / NIC per danni, assegni divorzili, liquidazioni e adeguamenti.", "icon": "bi-graph-up-arrow"},
-            {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock"},
-            {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso applicato con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation"},
-            {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternita: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge"},
+            {"id": "contributo_unificato", "title": "Contributo unificato", "subtitle": "Civile, amministrativo e tributario con basi ufficiali e note operative.", "icon": "bi-bank", "categoria": "Fiscale"},
+            {"id": "interessi", "title": "Interessi legali e moratori", "subtitle": "Art. 1284 c.c. e D.Lgs. 231/2002 con segmentazione per periodo.", "icon": "bi-percent", "categoria": "Credito"},
+            {"id": "nota_credito", "title": "Nota di precisazione del credito", "subtitle": "Bozza professionale con capitale, interessi, spese, CPA, IVA e residuo.", "icon": "bi-file-earmark-ruled", "categoria": "Credito"},
+            {"id": "pignoramento", "title": "Simulatore pignoramento stipendio / pensione", "subtitle": "Ordinario, esattoriale e alimentare con soglia pensione 2026 aggiornata.", "icon": "bi-cash-stack", "categoria": "Esecuzione"},
+            {"id": "ctu", "title": "CTU, vacazioni e compensi ausiliari", "subtitle": "Vacazioni vigenti, spese documentate e accessori professionali.", "icon": "bi-journal-medical", "categoria": "Processo"},
+            {"id": "rivalutazione_istat", "title": "Rivalutazione monetaria ISTAT", "subtitle": "Calcolo FOI / NIC per danni, assegni divorzili, liquidazioni e adeguamenti.", "icon": "bi-graph-up-arrow", "categoria": "Danni"},
+            {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock", "categoria": "Locazioni"},
+            {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation", "categoria": "Credito"},
+            {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternita: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge", "categoria": "Previdenza"},
+            {"id": "tfr", "title": "TFR", "subtitle": "Quota maturata, rivalutazione annuale e residuo operativo del trattamento di fine rapporto.", "icon": "bi-wallet2", "categoria": "Lavoro"},
+            {"id": "onorari_forensi", "title": "Onorari Forensi", "subtitle": "Parametri DM 55/2014 e DM 147/2022 con fasi, complessita e bonus telematico.", "icon": "bi-briefcase", "categoria": "Professione"},
+            {"id": "custodia_cautelare", "title": "Custodia Cautelare", "subtitle": "Monitor di interrogatorio, riesame, decisione e deposito motivazione.", "icon": "bi-shield-lock", "categoria": "Penale"},
+            {"id": "prescrizione_penale", "title": "Prescrizione Penale", "subtitle": "Decorrenza base, sospensioni e proiezione del termine massimo con assunzioni esplicite.", "icon": "bi-hourglass-split", "categoria": "Penale"},
+            {"id": "successione_legittima", "title": "Successione Legittima", "subtitle": "Riparto quote tra coniuge, figli, ascendenti e fratelli sull'asse ereditario.", "icon": "bi-diagram-3", "categoria": "Patrimonio"},
+            {"id": "cedolare_secca", "title": "Cedolare Secca", "subtitle": "Imposta annua, costo pluriennale e confronto operativo con il registro ordinario.", "icon": "bi-house-check", "categoria": "Fiscale"},
+            {"id": "indennita_licenziamento", "title": "Indennita Licenziamento", "subtitle": "Tutele crescenti, piccole imprese e stima mensilita riconoscibili.", "icon": "bi-person-x", "categoria": "Lavoro"},
+            {"id": "piano_ammortamento", "title": "Piano di Ammortamento", "subtitle": "Metodo francese o italiano, rata, interessi e sviluppo rateale completo.", "icon": "bi-table", "categoria": "Finanza"},
         ]
 
     def build_prefill(
@@ -217,12 +276,69 @@ class GestioneStrumentiLegali:
             "cf_anno": str(_today().year),
             "cf_reddito": "",
             "cf_compensi": "",
+            # TFR
+            "tfr_retribuzione_annua": "",
+            "tfr_anni_servizio": "",
+            "tfr_mesi_servizio": "",
+            "tfr_montante_pregresso": "",
+            "tfr_inflazione_perc": "2.00",
+            "tfr_anticipazioni": "",
+            # Onorari forensi
+            "onorari_materia": "CIVILE_COGN",
+            "onorari_grado": "TRIBUNALE",
+            "onorari_valore": prefill.get("valore_causa", ""),
+            "onorari_complessita": "media",
+            "onorari_bonus_telematico": "0",
+            "onorari_includi_spese_generali": "1",
+            # Custodia cautelare
+            "custodia_tipo_misura": "carcere",
+            "custodia_data_esecuzione": today,
+            "custodia_data_istanza_riesame": "",
+            "custodia_data_decisione_riesame": "",
+            # Prescrizione penale
+            "presc_data_fatto": today,
+            "presc_massimo_edittale_anni": "6",
+            "presc_massimo_edittale_mesi": "0",
+            "presc_contravvenzione": "0",
+            "presc_coeff_interruzione": "1.25",
+            "presc_giorni_sospensione": "0",
+            # Successione legittima
+            "successione_asse": "",
+            "successione_coniuge": "0",
+            "successione_figli": "0",
+            "successione_ascendenti": "0",
+            "successione_fratelli": "0",
+            # Cedolare secca
+            "cedolare_canone_annuo": "",
+            "cedolare_aliquota": "21",
+            "cedolare_annualita": "1",
+            # Indennita licenziamento
+            "lic_retribuzione_mensile": "",
+            "lic_anni_servizio": "",
+            "lic_mesi_servizio": "",
+            "lic_regime": "jobs_act",
+            "lic_mensilita_preavviso": "0",
+            # Piano di ammortamento
+            "amm_capitale": "",
+            "amm_tasso_annuo": "",
+            "amm_durata_anni": "10",
+            "amm_rate_anno": "12",
+            "amm_tipo": "francese",
+            "amm_data_prima_rata": today,
         }
         if posted:
             for key in defaults:
                 if key in posted:
                     defaults[key] = str(posted.get(key, defaults[key]) or "")
         return defaults
+
+    def opzioni_onorari_forensi(self) -> Dict[str, List[Dict[str, str]]]:
+        return {
+            "materie": [{"value": item.name, "label": item.value} for item in tutte_le_materie()],
+            "gradi": [{"value": item.name, "label": item.value} for item in tutti_i_gradi()],
+            "complessita": [{"value": item.value, "label": item.value.capitalize()} for item in tutte_le_complessita()],
+            "fasi": [{"value": item.name, "label": item.value} for item in tutte_le_fasi()],
+        }
 
     def opzioni_contributo_unificato(self) -> List[Dict[str, Any]]:
         return [
@@ -996,6 +1112,859 @@ class GestioneStrumentiLegali:
             "notes": notes,
             "warnings": warnings,
             "sources": sources,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  NUOVO — Calcolo termini di prescrizione                           #
+    # ------------------------------------------------------------------ #
+    _TIPI_PRESCRIZIONE: Dict[str, Dict] = {
+        "ordinaria_10": {
+            "label": "Ordinaria — 10 anni",
+            "anni": 10,
+            "norma": "Art. 2946 c.c.",
+            "esempi": "Crediti contrattuali generici, risarcimento danni da reato (se non speciale), azioni reali.",
+        },
+        "quinquennale_5": {
+            "label": "Quinquennale — 5 anni",
+            "anni": 5,
+            "norma": "Art. 2948 c.c.",
+            "esempi": "Canoni di locazione, rate, stipendi, corrispettivi periodici.",
+        },
+        "extracontrattuale_5": {
+            "label": "Extracontrattuale — 5 anni",
+            "anni": 5,
+            "norma": "Art. 2947 c.c.",
+            "esempi": "Risarcimento del danno da fatto illecito (lesioni, danni a cose).",
+        },
+        "cambiari_3": {
+            "label": "Cambiali e assegni — 3 anni",
+            "anni": 3,
+            "norma": "Art. 94 L.C. / Art. 52 L.A.",
+            "esempi": "Azione cartolare del portatore vs traente cambiale; assegni bancari.",
+        },
+        "assicurazioni_2": {
+            "label": "Assicurazioni — 2 anni",
+            "anni": 2,
+            "norma": "Art. 2952 c.c.",
+            "esempi": "Diritti derivanti dal contratto di assicurazione (vita: 10 anni).",
+        },
+        "breve_1": {
+            "label": "Breve — 1 anno",
+            "anni": 1,
+            "norma": "Art. 2951 c.c.",
+            "esempi": "Diritti derivanti da contratto di spedizione, di trasporto, vettori.",
+        },
+    }
+
+    def calcola_prescrizione(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Calcola termini di prescrizione con gestione atti interruttivi."""
+        from datetime import date as _date, timedelta
+        import calendar as _calendar
+
+        tipo = str(payload.get("presc_tipo", "ordinaria_10")).strip()
+        data_decorrenza_raw = payload.get("presc_data_decorrenza", "")
+        data_atto_raw = payload.get("presc_atto_interruttivo", "")
+        descrizione = _clean_text(payload.get("presc_descrizione", ""))
+
+        tipo_info = self._TIPI_PRESCRIZIONE.get(tipo)
+        if not tipo_info:
+            raise ValueError(f"Tipo di prescrizione non riconosciuto: {tipo!r}.")
+
+        data_decorrenza = _parse_date(data_decorrenza_raw)
+        if not data_decorrenza:
+            raise ValueError("Indica la data di decorrenza (dies a quo).")
+
+        anni = tipo_info["anni"]
+        oggi = _today()
+
+        def _add_years(d: _date, n: int) -> _date:
+            try:
+                return d.replace(year=d.year + n)
+            except ValueError:
+                # 29 feb su anno non bisestile
+                return d.replace(year=d.year + n, day=28)
+
+        data_scadenza = _add_years(data_decorrenza, anni)
+        giorni_residui = (data_scadenza - oggi).days
+        scaduta = oggi > data_scadenza
+
+        # Atto interruttivo
+        data_atto = _parse_date(data_atto_raw)
+        data_scadenza_post = None
+        giorni_residui_post = None
+        if data_atto:
+            data_scadenza_post = _add_years(data_atto, anni)
+            giorni_residui_post = (data_scadenza_post - oggi).days
+
+        # Calcola scadenza effettiva (con o senza interruzione)
+        scadenza_eff = data_scadenza_post if data_atto else data_scadenza
+        giorni_eff = giorni_residui_post if data_atto else giorni_residui
+        scaduta_eff = oggi > scadenza_eff if scadenza_eff else scaduta
+
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if scaduta_eff:
+            warnings.append("⚠ Il termine di prescrizione risulta SCADUTO in base ai dati inseriti.")
+        elif giorni_eff is not None and giorni_eff < 90:
+            warnings.append(f"⚠ URGENTE — il termine scade tra {giorni_eff} giorni ({scadenza_eff.strftime('%d/%m/%Y')}). Valuta tempestivamente atti interruttivi.")
+
+        notes.append(tipo_info["esempi"])
+        notes.append(
+            "La prescrizione si interrompe con qualsiasi atto idoneo: notifica citazione, decreto ingiuntivo, "
+            "diffida raccomandata AR, riconoscimento del debitore, PEC con valore legale. "
+            "Dalla data dell'atto interruttivo ricomincia a decorrere un nuovo termine integrale."
+        )
+        if tipo == "extracontrattuale_5":
+            notes.append(
+                "Se il fatto illecito costituisce reato, la prescrizione è quella del reato se più lunga "
+                "(art. 2947 co. 3 c.c.)."
+            )
+
+        sources = [
+            {"title": tipo_info["norma"], "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1942-03-16;262"},
+        ]
+
+        return {
+            "tipo": tipo,
+            "tipo_label": tipo_info["label"],
+            "norma": tipo_info["norma"],
+            "anni_prescrizione": anni,
+            "data_decorrenza": data_decorrenza.isoformat(),
+            "data_scadenza": data_scadenza.isoformat(),
+            "giorni_residui": giorni_residui,
+            "data_atto_interruttivo": data_atto.isoformat() if data_atto else None,
+            "data_scadenza_post_interruzione": data_scadenza_post.isoformat() if data_scadenza_post else None,
+            "giorni_residui_post_interruzione": giorni_residui_post,
+            "scaduta": scaduta_eff,
+            "urgente": (not scaduta_eff and giorni_eff is not None and giorni_eff < 90),
+            "descrizione": descrizione,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  NUOVO — Liquidazione danno biologico (Tabelle Milano 2024)         #
+    # ------------------------------------------------------------------ #
+    # Valore del punto per IP% (per fascia), età base 30 anni, anno 2024.
+    # Fonte: Osservatorio per la giustizia civile di Milano, aggiornamento 2024.
+    _PUNTI_IP_FASCIA: List[tuple] = [
+        (5,   5_797),
+        (10,  6_482),
+        (20,  7_164),
+        (30,  8_513),
+        (40, 10_261),
+        (50, 12_439),
+        (60, 14_618),
+        (70, 17_484),
+        (80, 20_349),
+        (90, 24_562),
+        (100,29_462),
+    ]
+    _VALORE_GIORNO_ITT: float = 103.0    # € per giorno ITT (2024)
+    _COEFF_ITP: Dict[int, float] = {75: 0.75, 50: 0.50, 25: 0.25}
+
+    def _valore_punto_ip(self, percentuale: int) -> float:
+        for limite, valore in self._PUNTI_IP_FASCIA:
+            if percentuale <= limite:
+                return float(valore)
+        return float(self._PUNTI_IP_FASCIA[-1][1])
+
+    def _coeff_eta(self, eta: int) -> float:
+        """Coefficiente correttivo per età (±0,5% per anno rispetto a 30)."""
+        if eta <= 20:
+            return 1.30
+        elif eta <= 25:
+            return 1.20
+        elif eta <= 30:
+            return 1.10
+        elif eta <= 35:
+            return 1.00
+        elif eta <= 40:
+            return 0.95
+        elif eta <= 45:
+            return 0.90
+        elif eta <= 50:
+            return 0.85
+        elif eta <= 55:
+            return 0.80
+        elif eta <= 60:
+            return 0.75
+        elif eta <= 65:
+            return 0.70
+        elif eta <= 70:
+            return 0.65
+        else:
+            return 0.60
+
+    def calcola_danno_biologico(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Liquidazione danno biologico con Tabelle Milano 2024."""
+        eta = _safe_int(payload.get("db_eta"))
+        perc_ip = _safe_int(payload.get("db_perc_ip"))
+        giorni_itt = _safe_int(payload.get("db_giorni_itt"))
+        giorni_itp = _safe_int(payload.get("db_giorni_itp"))
+        perc_itp = _safe_int(payload.get("db_perc_itp", 50))
+        personalizzazione = _safe_float(payload.get("db_personalizzazione", 0))
+        includi_morale = str(payload.get("db_includi_morale", "1")).strip() == "1"
+
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if eta <= 0 or eta > 120:
+            raise ValueError("Indica l'età della vittima al momento del fatto.")
+        if not (0 <= perc_ip <= 100):
+            raise ValueError("La percentuale di invalidità permanente deve essere tra 0 e 100.")
+        if perc_itp not in (25, 50, 75):
+            perc_itp = 50
+
+        coeff = self._coeff_eta(eta)
+
+        # Danno biologico per IP
+        danno_ip = 0.0
+        if perc_ip > 0:
+            for p in range(1, perc_ip + 1):
+                danno_ip += self._valore_punto_ip(p) * coeff
+        danno_ip = round(danno_ip, 2)
+
+        # Danno biologico temporaneo
+        valore_itt = round(giorni_itt * self._VALORE_GIORNO_ITT, 2)
+        coeff_itp = self._COEFF_ITP.get(perc_itp, 0.50)
+        valore_itp = round(giorni_itp * self._VALORE_GIORNO_ITT * coeff_itp, 2)
+
+        subtotale = round(danno_ip + valore_itt + valore_itp, 2)
+
+        # Personalizzazione (max +25% di norma)
+        personalizzazione = max(0.0, min(personalizzazione, 50.0))
+        importo_personalizzazione = round(subtotale * personalizzazione / 100.0, 2)
+
+        totale_biologico = round(subtotale + importo_personalizzazione, 2)
+
+        # Danno morale (liquidazione autonoma — c.d. Sezioni Unite 2008 + Cass. 2019)
+        danno_morale = round(totale_biologico * 0.25, 2) if includi_morale else 0.0
+        totale_comprensivo = round(totale_biologico + danno_morale, 2)
+
+        if perc_ip >= 10:
+            notes.append(
+                "Per lesioni macro-permanenti (IP ≥ 10%) il danno morale si liquida autonomamente "
+                "in misura orientativamente pari al 25-50% del danno biologico (Cass. SS.UU. 26972/2008; Cass. 7513/2018)."
+            )
+        notes.append(
+            "Valori calcolati con le Tabelle di Milano 2024 (approssimazione operativa). "
+            "Il coefficiente età è calcolato su base 30 anni (±0,5%/anno). "
+            "La personalizzazione (0-25%) va giustificata con specifiche circostanze del caso concreto."
+        )
+        if personalizzazione > 25:
+            warnings.append("La personalizzazione supera il 25%: le Tabelle di Milano la prevedono in via eccezionale e motivata.")
+
+        sources = [
+            {"title": "Tabelle Milano 2024", "url": "https://www.tribunale.milano.it/tabelle-di-liquidazione-del-danno"},
+            {"title": "Cass. SS.UU. 26972/2008", "url": "https://www.normattiva.it"},
+        ]
+
+        return {
+            "eta": eta,
+            "perc_ip": perc_ip,
+            "giorni_itt": giorni_itt,
+            "giorni_itp": giorni_itp,
+            "perc_itp": perc_itp,
+            "coeff_eta": round(coeff, 2),
+            "danno_ip": danno_ip,
+            "valore_giorno_itt": self._VALORE_GIORNO_ITT,
+            "valore_itt": valore_itt,
+            "valore_itp": valore_itp,
+            "subtotale": subtotale,
+            "personalizzazione_pct": personalizzazione,
+            "importo_personalizzazione": importo_personalizzazione,
+            "totale_biologico": totale_biologico,
+            "includi_morale": includi_morale,
+            "danno_morale": danno_morale,
+            "totale_comprensivo": totale_comprensivo,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    # ------------------------------------------------------------------ #
+    #  NUOVO — Imposta di registro atti giudiziari (DPR 131/1986)         #
+    # ------------------------------------------------------------------ #
+    _TIPI_ATTO_REGISTRO: Dict[str, Dict] = {
+        "sentenza_condanna": {
+            "label": "Sentenza di condanna (civile/penale)",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 8 co. 1 lett. a) Tariffa DPR 131/1986",
+            "note": "Aliquota del 3% sul valore della condanna. Obbligo di registrazione entro 20 giorni dalla irrevocabilità.",
+        },
+        "sentenza_immobili": {
+            "label": "Sentenza su trasferimento immobili",
+            "aliquota": 0.09,
+            "minimo": 1_000.0,
+            "fisso": False,
+            "norma": "Art. 1 Tariffa DPR 131/1986 (2ª parte), richiamo art. 8",
+            "note": "Per sentenze costitutive di diritti reali su immobili l'aliquota è quella dell'atto (9% su abitazioni, 12% su terreni agricoli).",
+        },
+        "decreto_ingiuntivo": {
+            "label": "Decreto ingiuntivo",
+            "aliquota": 0.0,
+            "minimo": 200.0,
+            "fisso": True,
+            "norma": "Art. 8 co. 1 lett. b) Tariffa DPR 131/1986",
+            "note": "Il decreto ingiuntivo non ancora esecutivo sconta €200 fissi. Se diventa definitivo (non opposto) scatta il 3% sul valore.",
+        },
+        "decreto_ingiuntivo_definitivo": {
+            "label": "Decreto ingiuntivo definitivo (non opposto)",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 8 co. 1 lett. a) Tariffa DPR 131/1986",
+            "note": "Decorsi i termini di opposizione senza impugnazione, il DI è assimilato a sentenza di condanna e sconta il 3%.",
+        },
+        "verbale_conciliazione": {
+            "label": "Verbale di conciliazione (accordo)",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 11 Tariffa DPR 131/1986",
+            "note": "Se il verbale contiene condanna a pagamento: 3%. Se ha solo natura dichiarativa: €200 fissi.",
+        },
+        "lodo_arbitrale": {
+            "label": "Lodo arbitrale",
+            "aliquota": 0.03,
+            "minimo": 200.0,
+            "fisso": False,
+            "norma": "Art. 8 co. 1 lett. c) Tariffa DPR 131/1986",
+            "note": "Il lodo arbitrale (anche non omologato) è soggetto a imposta di registro entro 20 giorni dalla sottoscrizione.",
+        },
+        "sentenza_separazione": {
+            "label": "Sentenza/provvedimento di separazione o divorzio",
+            "aliquota": 0.0,
+            "minimo": 200.0,
+            "fisso": True,
+            "norma": "Art. 19 L. 74/1987 — esenzione",
+            "note": "Gli atti del procedimento di separazione e divorzio sono esenti da imposte di bollo e registro ex art. 19 L. 74/1987.",
+        },
+    }
+
+    def calcola_imposta_registro(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        """Calcola l'imposta di registro per atti giudiziari (DPR 131/1986)."""
+        tipo = str(payload.get("reg_tipo_atto", "sentenza_condanna")).strip()
+        valore = _safe_float(payload.get("reg_valore", 0))
+        parti = _safe_int(payload.get("reg_parti", 2))
+
+        info = self._TIPI_ATTO_REGISTRO.get(tipo)
+        if not info:
+            raise ValueError(f"Tipo di atto non riconosciuto: {tipo!r}.")
+
+        warnings: List[str] = []
+        notes: List[str] = []
+
+        if info.get("fisso"):
+            imposta = info["minimo"]
+            aliquota_eff = 0.0
+        else:
+            if valore <= 0 and not info.get("fisso"):
+                warnings.append("Nessun valore indicato: verrà applicato il minimo di €200,00.")
+                valore = 0.0
+            calcolata = round(valore * info["aliquota"], 2) if valore > 0 else 0.0
+            imposta = max(calcolata, info["minimo"])
+            aliquota_eff = info["aliquota"] * 100
+
+        # Ripartizione tra parti (solidale)
+        quota_parte = round(imposta / max(parti, 1), 2)
+
+        if tipo == "sentenza_separazione":
+            notes.append("Esenzione totale ex art. 19 L. 74/1987. L'importo indicato (€200) è il bollo forfettario residuale in alcuni tribunali — verificare con la cancelleria.")
+        else:
+            notes.append(info["note"])
+            notes.append(
+                "L'imposta è dovuta in solido da tutte le parti. Il vincitore generalmente anticipa e recupera in esecuzione. "
+                "Termine di registrazione: 20 giorni dalla data dell'atto definitivo."
+            )
+
+        if imposta > info["minimo"] and not info.get("fisso"):
+            notes.append(f"Importo calcolato: {aliquota_eff:.1f}% × €{_fmt_money(valore)} = €{_fmt_money(imposta)}.")
+
+        sources = [
+            {"title": "DPR 131/1986 — Tariffa Parte I", "url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:1986-04-26;131"},
+            {"title": "Circolare AE n. 2/2014", "url": "https://www.agenziaentrate.gov.it"},
+        ]
+
+        return {
+            "tipo": tipo,
+            "tipo_label": info["label"],
+            "norma": info["norma"],
+            "valore": round(valore, 2),
+            "aliquota_pct": aliquota_eff,
+            "imposta": round(imposta, 2),
+            "minimo_fisso": info["minimo"],
+            "fisso": info.get("fisso", False),
+            "parti": parti,
+            "quota_parte": quota_parte,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": sources,
+        }
+
+    def calcola_tfr(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        retribuzione_annua = _safe_float(payload.get("tfr_retribuzione_annua"))
+        anni_servizio = max(0, _safe_int(payload.get("tfr_anni_servizio")))
+        mesi_servizio = max(0, _safe_int(payload.get("tfr_mesi_servizio")))
+        montante_pregresso = _safe_float(payload.get("tfr_montante_pregresso"))
+        inflazione_perc = _safe_float(payload.get("tfr_inflazione_perc"), 2.0)
+        anticipazioni = _safe_float(payload.get("tfr_anticipazioni"))
+
+        if retribuzione_annua <= 0:
+            raise ValueError("Inserisci una retribuzione annua lorda positiva.")
+        if mesi_servizio >= 12:
+            anni_servizio += mesi_servizio // 12
+            mesi_servizio = mesi_servizio % 12
+
+        anni_equivalenti = round(anni_servizio + (mesi_servizio / 12.0), 4)
+        quota_annua = round(retribuzione_annua / 13.5, 2)
+        quota_periodo = round(quota_annua * anni_equivalenti, 2)
+        coeff_rivalutazione = round(1.5 + (inflazione_perc * 0.75), 4)
+        rivalutazione = round(montante_pregresso * (coeff_rivalutazione / 100.0), 2)
+        totale_lordo = round(montante_pregresso + quota_periodo + rivalutazione - anticipazioni, 2)
+
+        notes = [
+            f"Quota annua TFR: retribuzione annua / 13,5 = {retribuzione_annua:.2f} / 13,5.",
+            f"Rivalutazione del montante pregresso: 1,5% + 75% dell'inflazione ({inflazione_perc:.2f}%).",
+        ]
+        warnings: List[str] = []
+        if anticipazioni > 0:
+            notes.append(f"Anticipazioni detratte dal maturato complessivo: {anticipazioni:.2f} EUR.")
+        if totale_lordo < 0:
+            warnings.append("Il totale risulta negativo dopo le anticipazioni indicate: verificare i dati di partenza.")
+
+        return {
+            "retribuzione_annua": round(retribuzione_annua, 2),
+            "anni_servizio": anni_servizio,
+            "mesi_servizio": mesi_servizio,
+            "anni_equivalenti": anni_equivalenti,
+            "quota_annua": quota_annua,
+            "quota_periodo": quota_periodo,
+            "montante_pregresso": round(montante_pregresso, 2),
+            "inflazione_perc": round(inflazione_perc, 2),
+            "coeff_rivalutazione": coeff_rivalutazione,
+            "rivalutazione": rivalutazione,
+            "anticipazioni": round(anticipazioni, 2),
+            "totale_lordo": totale_lordo,
+            "notes": notes,
+            "warnings": warnings,
+            "sources": self._sources_for_codes("normattiva_portale", "ministero_lavoro_portale"),
+        }
+
+    def calcola_onorari_forensi(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        materia_key = _clean_text(payload.get("onorari_materia") or "CIVILE_COGN")
+        grado_key = _clean_text(payload.get("onorari_grado") or "TRIBUNALE")
+        complessita = _clean_text(payload.get("onorari_complessita") or "media").lower()
+        valore = _safe_float(payload.get("onorari_valore"))
+        bonus_telematico = _safe_bool(payload.get("onorari_bonus_telematico"))
+        includi_spese_generali = _safe_bool(payload.get("onorari_includi_spese_generali"), True)
+        fasi_keys = _getlist(payload, "onorari_fasi") or ["STUDIO", "INTRODUTTIVA", "ISTRUTTORIA", "DECISIONALE"]
+
+        try:
+            materia = Materia[materia_key]
+        except KeyError as exc:
+            raise ValueError("Materia forense non riconosciuta.") from exc
+        try:
+            grado = Grado[grado_key]
+        except KeyError as exc:
+            raise ValueError("Grado forense non riconosciuto.") from exc
+
+        fasi: List[Fase] = []
+        for fase_key in fasi_keys:
+            if fase_key in Fase.__members__:
+                fasi.append(Fase[fase_key])
+        if not fasi:
+            raise ValueError("Seleziona almeno una fase per il calcolo degli onorari.")
+
+        risultato = calcola_compenso(
+            materia=materia,
+            grado=grado,
+            valore=valore,
+            fasi=fasi,
+            bonus_telematico=bonus_telematico,
+            includi_spese_generali=includi_spese_generali,
+            complessita=complessita,
+        )
+
+        riepiloghi = {
+            "minimo": risultato.riepilogo_livello("minimo"),
+            "base": risultato.riepilogo_livello("base"),
+            "massimo": risultato.riepilogo_livello("massimo"),
+        }
+        livello_suggerito = {
+            "bassa": "minimo",
+            "media": "base",
+            "alta": "massimo",
+        }.get(complessita, "base")
+        fase_rows = [
+            {
+                "fase": fase,
+                "minimo": valori[0],
+                "base": valori[1],
+                "massimo": valori[2],
+            }
+            for fase, valori in risultato.dettaglio.items()
+        ]
+
+        note_parts = [part.strip() for part in risultato.note.split(". ") if part.strip()]
+        return {
+            "materia": materia.name,
+            "materia_label": risultato.materia,
+            "grado": grado.name,
+            "grado_label": risultato.grado,
+            "complessita": complessita,
+            "valore_input": round(valore, 2),
+            "valore_calcolo": round(risultato.valore_calcolo, 2),
+            "scaglione": risultato.scaglione,
+            "bonus_telematico": bonus_telematico,
+            "includi_spese_generali": includi_spese_generali,
+            "fasi": [fase.value for fase in fasi],
+            "fase_rows": fase_rows,
+            "riepiloghi": riepiloghi,
+            "livello_suggerito": livello_suggerito,
+            "riepilogo_suggerito": riepiloghi[livello_suggerito],
+            "notes": note_parts,
+            "warnings": [],
+            "sources": self._sources_for_codes(
+                "legge_forense_247_2012",
+                "dm_55_2014_parametri",
+                "dm_147_2022_parametri",
+                "equo_compenso_49_2023",
+                "cnf_portale",
+            ),
+        }
+
+    def calcola_custodia_cautelare(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        data_esecuzione = _parse_date(payload.get("custodia_data_esecuzione"))
+        data_istanza_riesame = _parse_date(payload.get("custodia_data_istanza_riesame"))
+        data_decisione_riesame = _parse_date(payload.get("custodia_data_decisione_riesame"))
+        tipo_misura = _clean_text(payload.get("custodia_tipo_misura") or "carcere")
+
+        if not data_esecuzione:
+            raise ValueError("Inserisci una data di esecuzione valida della misura.")
+
+        oggi = _today()
+        interrogatorio_entra = data_esecuzione + timedelta(days=5)
+        riesame_entra = data_esecuzione + timedelta(days=10)
+        decisione_entra = data_istanza_riesame + timedelta(days=10) if data_istanza_riesame else None
+        deposito_entra = data_decisione_riesame + timedelta(days=30) if data_decisione_riesame else None
+
+        warnings: List[str] = []
+        if oggi > interrogatorio_entra:
+            warnings.append("Il termine ordinario per l'interrogatorio di garanzia risulta superato.")
+        if oggi > riesame_entra and not data_istanza_riesame:
+            warnings.append("La finestra ordinaria per l'istanza di riesame risulta decorso.")
+        if decisione_entra and oggi > decisione_entra and not data_decisione_riesame:
+            warnings.append("Il termine per la decisione sul riesame appare scaduto rispetto alla data indicata.")
+
+        timeline = [
+            {"label": "Esecuzione misura", "date": data_esecuzione.isoformat(), "date_it": _fmt_date_it(data_esecuzione)},
+            {"label": "Interrogatorio di garanzia entro", "date": interrogatorio_entra.isoformat(), "date_it": _fmt_date_it(interrogatorio_entra)},
+            {"label": "Istanza di riesame entro", "date": riesame_entra.isoformat(), "date_it": _fmt_date_it(riesame_entra)},
+        ]
+        if data_istanza_riesame:
+            timeline.append({"label": "Istanza di riesame depositata", "date": data_istanza_riesame.isoformat(), "date_it": _fmt_date_it(data_istanza_riesame)})
+        if decisione_entra:
+            timeline.append({"label": "Decisione sul riesame entro", "date": decisione_entra.isoformat(), "date_it": _fmt_date_it(decisione_entra)})
+        if data_decisione_riesame:
+            timeline.append({"label": "Decisione sul riesame", "date": data_decisione_riesame.isoformat(), "date_it": _fmt_date_it(data_decisione_riesame)})
+        if deposito_entra:
+            timeline.append({"label": "Deposito motivazione entro", "date": deposito_entra.isoformat(), "date_it": _fmt_date_it(deposito_entra)})
+
+        misura_label = {
+            "carcere": "Custodia in carcere",
+            "domiciliari": "Arresti domiciliari",
+            "altro": "Altra misura custodiale",
+        }.get(tipo_misura, "Misura custodiale")
+
+        return {
+            "tipo_misura": tipo_misura,
+            "tipo_misura_label": misura_label,
+            "data_esecuzione": data_esecuzione.isoformat(),
+            "data_esecuzione_it": _fmt_date_it(data_esecuzione),
+            "giorni_decorsi": max(0, (oggi - data_esecuzione).days),
+            "interrogatorio_entra": interrogatorio_entra.isoformat(),
+            "interrogatorio_entra_it": _fmt_date_it(interrogatorio_entra),
+            "riesame_entra": riesame_entra.isoformat(),
+            "riesame_entra_it": _fmt_date_it(riesame_entra),
+            "decisione_entra": decisione_entra.isoformat() if decisione_entra else "",
+            "decisione_entra_it": _fmt_date_it(decisione_entra) if decisione_entra else "n/d",
+            "deposito_entra": deposito_entra.isoformat() if deposito_entra else "",
+            "deposito_entra_it": _fmt_date_it(deposito_entra) if deposito_entra else "n/d",
+            "timeline": timeline,
+            "notes": [
+                "Scansione operativa costruita sui termini essenziali di interrogatorio di garanzia, riesame e deposito motivazione.",
+                "Il modulo non sostituisce il controllo sul titolo custodiale concreto, sui termini speciali e sulle eventuali sospensioni processuali.",
+            ],
+            "warnings": warnings,
+            "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale"),
+        }
+
+    def calcola_prescrizione_penale(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        data_fatto = _parse_date(payload.get("presc_data_fatto"))
+        massimo_anni = max(0, _safe_int(payload.get("presc_massimo_edittale_anni")))
+        massimo_mesi = max(0, _safe_int(payload.get("presc_massimo_edittale_mesi")))
+        contravvenzione = _safe_bool(payload.get("presc_contravvenzione"))
+        coeff_interruzione = max(1.0, _safe_float(payload.get("presc_coeff_interruzione"), 1.25))
+        giorni_sospensione = max(0, _safe_int(payload.get("presc_giorni_sospensione")))
+
+        if not data_fatto:
+            raise ValueError("Inserisci una data del fatto valida.")
+
+        massimo_edittale = massimo_anni + (massimo_mesi / 12.0)
+        minimo_legale = 4.0 if contravvenzione else 6.0
+        termine_base_anni = max(massimo_edittale, minimo_legale)
+        base_core_days = round(termine_base_anni * 365.25)
+        base_days = base_core_days + giorni_sospensione
+        massimo_days = round(base_core_days * coeff_interruzione) + giorni_sospensione
+        data_prescrizione_base = data_fatto + timedelta(days=base_days)
+        data_prescrizione_massima = data_fatto + timedelta(days=massimo_days)
+
+        return {
+            "data_fatto": data_fatto.isoformat(),
+            "data_fatto_it": _fmt_date_it(data_fatto),
+            "contravvenzione": contravvenzione,
+            "regime_label": "Contravvenzione" if contravvenzione else "Delitto",
+            "massimo_edittale_anni": round(massimo_edittale, 2),
+            "termine_base_anni": round(termine_base_anni, 2),
+            "coeff_interruzione": round(coeff_interruzione, 2),
+            "giorni_sospensione": giorni_sospensione,
+            "data_prescrizione_base": data_prescrizione_base.isoformat(),
+            "data_prescrizione_base_it": _fmt_date_it(data_prescrizione_base),
+            "data_prescrizione_massima": data_prescrizione_massima.isoformat(),
+            "data_prescrizione_massima_it": _fmt_date_it(data_prescrizione_massima),
+            "notes": [
+                "Termine base calcolato assumendo il massimo edittale indicato, con soglia minima di 6 anni per i delitti e 4 anni per le contravvenzioni.",
+                "Il termine massimo applica il coefficiente di interruzione indicato e somma i giorni di sospensione segnalati.",
+                "Verificare sempre discipline speciali, recidiva, atti interruttivi effettivi e sospensioni normativamente tipizzate.",
+            ],
+            "warnings": [],
+            "sources": self._sources_for_codes("normattiva_portale", "cassazione_portale"),
+        }
+
+    def calcola_successione_legittima(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        asse = _safe_float(payload.get("successione_asse"))
+        coniuge = _safe_bool(payload.get("successione_coniuge"))
+        figli = max(0, _safe_int(payload.get("successione_figli")))
+        ascendenti = max(0, _safe_int(payload.get("successione_ascendenti")))
+        fratelli = max(0, _safe_int(payload.get("successione_fratelli")))
+
+        if asse <= 0:
+            raise ValueError("Inserisci un asse ereditario positivo.")
+        if not any([coniuge, figli, ascendenti, fratelli]):
+            raise ValueError("Indica almeno una categoria di eredi per il riparto.")
+
+        rows: List[Dict[str, Any]] = []
+        notes: List[str] = []
+
+        def _append_row(label: str, quota: float, count: int = 1, detail: str = "") -> None:
+            importo = round(asse * quota, 2)
+            rows.append(
+                {
+                    "label": label,
+                    "quota_percent": round(quota * 100, 2),
+                    "importo": importo,
+                    "count": count,
+                    "per_testa": round(importo / count, 2) if count else importo,
+                    "detail": detail,
+                }
+            )
+
+        if coniuge and figli == 0 and ascendenti == 0 and fratelli == 0:
+            _append_row("Coniuge", 1.0)
+        elif figli > 0 and not coniuge:
+            _append_row("Figli", 1.0, figli, "Riparto in parti uguali tra i figli.")
+        elif coniuge and figli == 1:
+            _append_row("Coniuge", 0.5)
+            _append_row("Figlio", 0.5)
+        elif coniuge and figli > 1:
+            _append_row("Coniuge", 1 / 3)
+            _append_row("Figli", 2 / 3, figli, "Quota dei figli ripartita in parti uguali.")
+        elif coniuge and figli == 0 and (ascendenti > 0 or fratelli > 0):
+            _append_row("Coniuge", 2 / 3)
+            if ascendenti > 0 and fratelli == 0:
+                _append_row("Ascendenti", 1 / 3, ascendenti, "Quota della linea ascendente.")
+            elif fratelli > 0 and ascendenti == 0:
+                _append_row("Fratelli", 1 / 3, fratelli, "Quota dei collaterali in parti uguali.")
+            else:
+                _append_row("Ascendenti e fratelli", 1 / 3, ascendenti + fratelli, "Riparto aggregato: il dettaglio interno va verificato caso per caso.")
+                notes.append("Concorso tra ascendenti e fratelli trattato in forma aggregata: verificare il dettaglio interno del terzo residuo.")
+        elif not coniuge and figli == 0 and ascendenti > 0 and fratelli == 0:
+            _append_row("Ascendenti", 1.0, ascendenti, "Riparto in parti uguali nella linea ascendente indicata.")
+        elif not coniuge and figli == 0 and fratelli > 0 and ascendenti == 0:
+            _append_row("Fratelli", 1.0, fratelli, "Riparto in parti uguali tra i fratelli indicati.")
+        else:
+            _append_row("Ascendenti e fratelli", 1.0, max(1, ascendenti + fratelli), "Riparto aggregato per scenario misto da verificare puntualmente.")
+            notes.append("Scenario misto collaterali/ascendenti trattato come quota aggregata per evitare semplificazioni scorrette.")
+
+        quota_tot = round(sum(row["quota_percent"] for row in rows), 2)
+        return {
+            "asse": round(asse, 2),
+            "rows": rows,
+            "quota_totale_percent": quota_tot,
+            "notes": notes + [
+                "Modulo pensato per riparti legittimi standard. Non gestisce rappresentazione, collaterali ulteriori, quote di riserva o istituti successori speciali.",
+            ],
+            "warnings": [],
+            "sources": self._sources_for_codes("normattiva_portale"),
+        }
+
+    def calcola_cedolare_secca(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        canone_annuo = _safe_float(payload.get("cedolare_canone_annuo"))
+        aliquota = _safe_float(payload.get("cedolare_aliquota"), 21.0)
+        annualita = max(1, _safe_int(payload.get("cedolare_annualita"), 1))
+
+        if canone_annuo <= 0:
+            raise ValueError("Inserisci un canone annuo positivo.")
+        if aliquota <= 0:
+            raise ValueError("Indica un'aliquota valida per la cedolare secca.")
+
+        imposta_annua = round(canone_annuo * (aliquota / 100.0), 2)
+        totale_periodo = round(imposta_annua * annualita, 2)
+        registro_annuo = round(canone_annuo * 0.02, 2)
+        registro_evitato = round(registro_annuo * annualita, 2)
+
+        notes = [
+            "Aliquota 21% tipica per contratti liberi; aliquota 10% normalmente riferita ai canoni concordati nei limiti di legge.",
+            "Il confronto con il regime ordinario qui evidenzia il solo impatto dell'imposta di registro non dovuta.",
+        ]
+
+        return {
+            "canone_annuo": round(canone_annuo, 2),
+            "aliquota": round(aliquota, 2),
+            "annualita": annualita,
+            "imposta_annua": imposta_annua,
+            "totale_periodo": totale_periodo,
+            "registro_annuo": registro_annuo,
+            "registro_evitato": registro_evitato,
+            "notes": notes,
+            "warnings": [],
+            "sources": self._sources_for_codes("agenzia_entrate_fec", "normattiva_portale", "legge_431_1998_locazioni"),
+        }
+
+    def calcola_indennita_licenziamento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        retribuzione_mensile = _safe_float(payload.get("lic_retribuzione_mensile"))
+        anni_servizio = max(0, _safe_int(payload.get("lic_anni_servizio")))
+        mesi_servizio = max(0, _safe_int(payload.get("lic_mesi_servizio")))
+        regime = _clean_text(payload.get("lic_regime") or "jobs_act")
+        mensilita_preavviso = max(0.0, _safe_float(payload.get("lic_mensilita_preavviso")))
+
+        if retribuzione_mensile <= 0:
+            raise ValueError("Inserisci una retribuzione mensile positiva.")
+        if mesi_servizio >= 12:
+            anni_servizio += mesi_servizio // 12
+            mesi_servizio = mesi_servizio % 12
+        anzianita = round(anni_servizio + (mesi_servizio / 12.0), 2)
+
+        if regime == "jobs_act":
+            mensilita = min(36.0, max(6.0, round(anzianita * 2.0, 2)))
+            regime_label = "Tutele crescenti"
+            notes = ["Calcolo parametrato a 2 mensilita per anno di servizio, con minimo 6 e massimo 36."]
+        elif regime == "piccola_impresa":
+            mensilita = min(6.0, max(3.0, round(anzianita * 1.0, 2)))
+            regime_label = "Piccola impresa / tutela obbligatoria"
+            notes = ["Stima operativa parametrata a 1 mensilita per anno, con minimo 3 e massimo 6."]
+        else:
+            mensilita = round(mensilita_preavviso, 2)
+            regime_label = "Indennita sostitutiva del preavviso"
+            notes = ["Importo calcolato sulla mensilita di preavviso inserita manualmente."]
+
+        importo = round(retribuzione_mensile * mensilita, 2)
+        return {
+            "retribuzione_mensile": round(retribuzione_mensile, 2),
+            "anni_servizio": anni_servizio,
+            "mesi_servizio": mesi_servizio,
+            "anzianita": anzianita,
+            "regime": regime,
+            "regime_label": regime_label,
+            "mensilita": mensilita,
+            "importo": importo,
+            "notes": notes + ["Verificare sempre disciplina applicabile, causale del recesso e orientamenti giurisprudenziali attuali."],
+            "warnings": [],
+            "sources": self._sources_for_codes("ministero_lavoro_portale", "normattiva_portale"),
+        }
+
+    def calcola_piano_ammortamento(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
+        capitale = _safe_float(payload.get("amm_capitale"))
+        tasso_annuo = _safe_float(payload.get("amm_tasso_annuo"))
+        durata_anni = max(1, _safe_int(payload.get("amm_durata_anni"), 10))
+        rate_anno = max(1, _safe_int(payload.get("amm_rate_anno"), 12))
+        tipo = _clean_text(payload.get("amm_tipo") or "francese")
+        data_prima_rata = _parse_date(payload.get("amm_data_prima_rata")) or _today()
+
+        if capitale <= 0:
+            raise ValueError("Inserisci un capitale finanziato positivo.")
+        n_rate = durata_anni * rate_anno
+        periodo = tasso_annuo / 100.0 / rate_anno
+        schedule: List[Dict[str, Any]] = []
+        residuo = round(capitale, 2)
+        totale_interessi = 0.0
+        mesi_step = 12 // rate_anno if rate_anno and 12 % rate_anno == 0 else 0
+
+        if tipo == "francese":
+            if periodo == 0:
+                rata_costante = round(capitale / n_rate, 2)
+            else:
+                rata_costante = round(capitale * periodo / (1 - math.pow(1 + periodo, -n_rate)), 2)
+        else:
+            rata_costante = 0.0
+            quota_capitale_costante = round(capitale / n_rate, 2)
+
+        for numero in range(1, n_rate + 1):
+            quota_interessi = round(residuo * periodo, 2)
+            if tipo == "francese":
+                quota_capitale = round(rata_costante - quota_interessi, 2)
+                rata = rata_costante
+            else:
+                quota_capitale = quota_capitale_costante
+                rata = round(quota_capitale + quota_interessi, 2)
+
+            if numero == n_rate:
+                quota_capitale = round(residuo, 2)
+                rata = round(quota_capitale + quota_interessi, 2)
+
+            residuo = round(max(0.0, residuo - quota_capitale), 2)
+            totale_interessi = round(totale_interessi + quota_interessi, 2)
+            scadenza = _add_months(data_prima_rata, (numero - 1) * mesi_step) if mesi_step else None
+
+            schedule.append(
+                {
+                    "numero": numero,
+                    "scadenza": scadenza.isoformat() if scadenza else "",
+                    "scadenza_it": _fmt_date_it(scadenza) if scadenza else f"Rata {numero}",
+                    "rata": round(rata, 2),
+                    "quota_capitale": quota_capitale,
+                    "quota_interessi": quota_interessi,
+                    "residuo": residuo,
+                }
+            )
+
+        return {
+            "tipo": tipo,
+            "tipo_label": "Piano alla francese" if tipo == "francese" else "Piano all'italiana",
+            "capitale": round(capitale, 2),
+            "tasso_annuo": round(tasso_annuo, 4),
+            "durata_anni": durata_anni,
+            "rate_anno": rate_anno,
+            "numero_rate": n_rate,
+            "data_prima_rata": data_prima_rata.isoformat(),
+            "data_prima_rata_it": _fmt_date_it(data_prima_rata),
+            "rata_iniziale": schedule[0]["rata"] if schedule else 0.0,
+            "rata_finale": schedule[-1]["rata"] if schedule else 0.0,
+            "totale_interessi": totale_interessi,
+            "totale_pagato": round(capitale + totale_interessi, 2),
+            "schedule": schedule,
+            "preview_schedule": schedule[: min(12, len(schedule))],
+            "notes": [
+                "Il piano e calcolato con arrotondamento a centesimi per rata e chiusura del residuo sull'ultima scadenza.",
+            ],
+            "warnings": [],
+            "sources": [],
         }
 
     def _contributo_civile(self, valore: float) -> float:

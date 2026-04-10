@@ -10,6 +10,29 @@ from web.helpers import get_clienti, get_fascicoli
 
 strumenti_legali = Blueprint("strumenti_legali", __name__, url_prefix="/strumenti-legali")
 
+TOOL_METHODS = {
+    "contributo_unificato": "calcola_contributo_unificato",
+    "interessi": "calcola_interessi",
+    "nota_credito": "genera_nota_precisazione_credito",
+    "pignoramento": "simula_pignoramento",
+    "ctu": "calcola_ctu",
+    "rivalutazione_istat": "calcola_rivalutazione_istat",
+    "canone_locazione": "calcola_adeguamento_canone",
+    "usura": "verifica_soglia_usura",
+    "contributi_cassa_forense": "calcola_contributi_cassa_forense",
+    "tfr": "calcola_tfr",
+    "onorari_forensi": "calcola_onorari_forensi",
+    "custodia_cautelare": "calcola_custodia_cautelare",
+    "prescrizione_penale": "calcola_prescrizione_penale",
+    "successione_legittima": "calcola_successione_legittima",
+    "cedolare_secca": "calcola_cedolare_secca",
+    "indennita_licenziamento": "calcola_indennita_licenziamento",
+    "piano_ammortamento": "calcola_piano_ammortamento",
+    "prescrizione": "calcola_prescrizione",
+    "danno_biologico": "calcola_danno_biologico",
+    "imposta_registro": "calcola_imposta_registro",
+}
+
 
 def _richiedi_login(fn):
     @wraps(fn)
@@ -51,7 +74,7 @@ def _resolve_context():
 
 def _json_result(fn_name: str):
     gestore = _gestore_strumenti()
-    payload = request.get_json(silent=True) or request.form.to_dict()
+    payload = request.get_json(silent=True) if request.is_json else request.form
     try:
         fn = getattr(gestore, fn_name)
         return jsonify({"ok": True, "result": fn(payload)})
@@ -75,27 +98,18 @@ def index():
     form_state = gestore.build_form_state(prefill, request.form if request.method == "POST" else None)
     active_tool = request.values.get("tool", "").strip() or "contributo_unificato"
     results = {}
+    onorari_options = gestore.opzioni_onorari_forensi()
+    selected_onorari_fasi = (
+        request.form.getlist("onorari_fasi")
+        if request.method == "POST" and active_tool == "onorari_forensi"
+        else ["STUDIO", "INTRODUTTIVA", "ISTRUTTORIA", "DECISIONALE"]
+    )
 
     if request.method == "POST":
         try:
-            if active_tool == "contributo_unificato":
-                results[active_tool] = gestore.calcola_contributo_unificato(request.form)
-            elif active_tool == "interessi":
-                results[active_tool] = gestore.calcola_interessi(request.form)
-            elif active_tool == "nota_credito":
-                results[active_tool] = gestore.genera_nota_precisazione_credito(request.form)
-            elif active_tool == "pignoramento":
-                results[active_tool] = gestore.simula_pignoramento(request.form)
-            elif active_tool == "ctu":
-                results[active_tool] = gestore.calcola_ctu(request.form)
-            elif active_tool == "rivalutazione_istat":
-                results[active_tool] = gestore.calcola_rivalutazione_istat(request.form)
-            elif active_tool == "canone_locazione":
-                results[active_tool] = gestore.calcola_adeguamento_canone(request.form)
-            elif active_tool == "usura":
-                results[active_tool] = gestore.verifica_soglia_usura(request.form)
-            elif active_tool == "contributi_cassa_forense":
-                results[active_tool] = gestore.calcola_contributi_cassa_forense(request.form)
+            fn_name = TOOL_METHODS.get(active_tool)
+            if fn_name:
+                results[active_tool] = getattr(gestore, fn_name)(request.form)
             else:
                 flash("Strumento richiesto non riconosciuto.", "warning")
         except ValueError as exc:
@@ -118,6 +132,8 @@ def index():
         results=results,
         moduli=gestore.catalogo_moduli(),
         opzioni_cu=gestore.opzioni_contributo_unificato(),
+        onorari_options=onorari_options,
+        selected_onorari_fasi=selected_onorari_fasi,
     )
 
 
@@ -195,6 +211,54 @@ def api_contributi_cassa_forense():
     return _json_result("calcola_contributi_cassa_forense")
 
 
+@strumenti_legali.route("/api/tfr", methods=["POST"])
+@_richiedi_login
+def api_tfr():
+    return _json_result("calcola_tfr")
+
+
+@strumenti_legali.route("/api/onorari-forensi", methods=["POST"])
+@_richiedi_login
+def api_onorari_forensi():
+    return _json_result("calcola_onorari_forensi")
+
+
+@strumenti_legali.route("/api/custodia-cautelare", methods=["POST"])
+@_richiedi_login
+def api_custodia_cautelare():
+    return _json_result("calcola_custodia_cautelare")
+
+
+@strumenti_legali.route("/api/prescrizione-penale", methods=["POST"])
+@_richiedi_login
+def api_prescrizione_penale():
+    return _json_result("calcola_prescrizione_penale")
+
+
+@strumenti_legali.route("/api/successione-legittima", methods=["POST"])
+@_richiedi_login
+def api_successione_legittima():
+    return _json_result("calcola_successione_legittima")
+
+
+@strumenti_legali.route("/api/cedolare-secca", methods=["POST"])
+@_richiedi_login
+def api_cedolare_secca():
+    return _json_result("calcola_cedolare_secca")
+
+
+@strumenti_legali.route("/api/indennita-licenziamento", methods=["POST"])
+@_richiedi_login
+def api_indennita_licenziamento():
+    return _json_result("calcola_indennita_licenziamento")
+
+
+@strumenti_legali.route("/api/piano-ammortamento", methods=["POST"])
+@_richiedi_login
+def api_piano_ammortamento():
+    return _json_result("calcola_piano_ammortamento")
+
+
 @strumenti_legali.route("/api/istat-categorie", methods=["GET"])
 @_richiedi_login
 def api_istat_categorie():
@@ -211,6 +275,24 @@ def api_istat_categorie():
         })
     except Exception as exc:
         return jsonify({"ok": False, "errore": str(exc)}), 200
+
+
+@strumenti_legali.route("/api/prescrizione", methods=["POST"])
+@_richiedi_login
+def api_prescrizione():
+    return _json_result("calcola_prescrizione")
+
+
+@strumenti_legali.route("/api/danno-biologico", methods=["POST"])
+@_richiedi_login
+def api_danno_biologico():
+    return _json_result("calcola_danno_biologico")
+
+
+@strumenti_legali.route("/api/imposta-registro", methods=["POST"])
+@_richiedi_login
+def api_imposta_registro():
+    return _json_result("calcola_imposta_registro")
 
 
 @strumenti_legali.route("/api/usura-categorie", methods=["GET"])

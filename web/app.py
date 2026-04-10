@@ -1754,8 +1754,30 @@ def create_app(config: dict | None = None) -> Flask:
             firmato=firmato,
             caricato_da=caricato_da,
         )
+        # ── Conversione automatica PDF → PDF/A-2B (D.M. 44/2011 art. 12) ──
+        # Se il file è un PDF non firmato, lo converte in PDF/A tramite
+        # Ghostscript per garantire conformità al deposito telematico.
+        percorso_doc = str(gf.percorso_documento(id_fasc, doc.id))
+        if nome_file.lower().endswith(".pdf") and not firmato:
+            try:
+                from pct.validazione import verifica_pdfa, converti_pdfa
+                esito_pdfa = verifica_pdfa(percorso_doc)
+                if esito_pdfa.get("conforme") is False:
+                    conv = converti_pdfa(percorso_doc)
+                    if conv.get("ok"):
+                        app.logger.info(
+                            "PDF/A auto-conversione: %s → PDF/A-2B (%s)",
+                            nome_file, conv.get("messaggio", ""),
+                        )
+                    else:
+                        app.logger.warning(
+                            "PDF/A auto-conversione fallita per %s: %s",
+                            nome_file, conv.get("messaggio", ""),
+                        )
+            except Exception as exc:
+                app.logger.warning("PDF/A auto-conversione errore per %s: %s", nome_file, exc)
         _accoda_ocr(
-            percorso=str(gf.percorso_documento(id_fasc, doc.id)),
+            percorso=percorso_doc,
             hash_sha256=doc.hash_sha256,
             id_fasc=id_fasc,
             id_doc=doc.id,

@@ -140,6 +140,15 @@
                       style="font-size:.72rem;padding:.2rem .5rem"
                       id="btn_all_{{ doc.id }}"
                       onclick="toggleAllegato('{{ doc.id }}')">+ Allegato</button>
+              {% if not doc.firmato_digitalmente %}
+              <button type="button" class="btn btn-outline-warning btn-sm"
+                      style="font-size:.72rem;padding:.2rem .5rem"
+                      id="btn_firma_{{ doc.id }}"
+                      onclick="firmaDocumento('{{ doc.id }}')"
+                      title="Firma digitale CAdES (.p7m)">
+                <i class="bi bi-pen-fill me-1"></i>Firma
+              </button>
+              {% endif %}
             </div>
           </div>
 
@@ -930,6 +939,28 @@ function _docMainFirmato() {
   return mainDocId && _docFirmato[mainDocId] === true;
 }
 
+// ── Firma singolo documento (pulsante Firma nella card) ────────────────────
+let _firmaDocSavedMainId = null;  // salva mainDocId originale durante firma singola
+
+function firmaDocumento(docId) {
+  // Imposta temporaneamente il documento come mainDocId per la firma
+  _firmaDocSavedMainId = mainDocId;
+  mainDocId = docId;
+  _apriFirmaPkcs11('firma_singola');
+}
+
+function _dopoFirmaSingola() {
+  // Nasconde il pulsante "Firma" dalla card dopo firma riuscita
+  const btnFirma = document.getElementById('btn_firma_' + mainDocId);
+  if (btnFirma) btnFirma.style.display = 'none';
+  // Ripristina mainDocId originale
+  if (_firmaDocSavedMainId !== null) {
+    mainDocId = _firmaDocSavedMainId;
+    _firmaDocSavedMainId = null;
+  }
+  _scheduleValidation(40);
+}
+
 // ── Funzioni PKCS#11 ─────────────────────────────────────────────────────────
 
 function rilevaPkcs11Token() {
@@ -1019,7 +1050,9 @@ function continuaDopoFirma() {
   // Chiudi modal e procedi con l'azione pendente
   const modal = bootstrap.Modal.getInstance(document.getElementById('modalFirmaPkcs11'));
   if (modal) modal.hide();
-  if (_pkcs11PendingAction === 'pec') {
+  if (_pkcs11PendingAction === 'firma_singola') {
+    _dopoFirmaSingola();
+  } else if (_pkcs11PendingAction === 'pec') {
     _eseguiInvioPec();
   } else if (_pkcs11PendingAction === 'demo') {
     _eseguiInvioPec();  // con _invioDemo=true già impostato

@@ -1026,6 +1026,7 @@ def test_installer_local_signer_e_scaricabile_senza_login(tmp_path):
     assert "/polisWeb/local-signer/download" in body
     assert "hacs-local-signer" in body
     assert "127.0.0.1:27272/ping" in body
+    assert "zeep" in body
 
 
 def test_api_portale_acquisizione_preview_pst_espone_id_documento_come_idcat(tmp_path):
@@ -1188,6 +1189,7 @@ def test_installer_local_signer_macos_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "LaunchAgents" in body
     assert "/polisWeb/local-signer/download" in body
+    assert "zeep" in body
 
 
 def test_installer_local_signer_linux_e_pubblico(tmp_path):
@@ -1206,6 +1208,7 @@ def test_installer_local_signer_linux_e_pubblico(tmp_path):
     body = r.data.decode("utf-8")
     assert "systemd/user" in body
     assert "/polisWeb/local-signer/download" in body
+    assert "zeep" in body
 
 
 def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_path):
@@ -1338,6 +1341,54 @@ def test_polisweb_passa_il_cf_configurato_alle_preferenze_certificato(tmp_path):
     body = r.data.decode("utf-8")
     assert 'preferCf: "MNTRRT64L01L063H"' in body
     assert "Filtro automatico attivo sul codice fiscale" in body
+
+
+def test_portali_acquisizione_status_mantiene_pkcs11_anche_fuori_da_pst(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from pct.config_studio import GestioneConfigStudio
+    from web.app import create_app
+
+    studio_cfg = tmp_path / "config" / "studio.json"
+    dll_path = tmp_path / "bit4xpki.dll"
+    dll_path.write_bytes(b"fake-dll")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    cfg = gs.config
+    cfg.firma.pkcs11_library = str(dll_path)
+    cfg.firma.backend_preferito = "pkcs11"
+    cfg.firma.cf_avvocato = "MNTRRT64L01L063H"
+    gs.aggiorna(cfg)
+
+    web_cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=web_cfg["AUTH_DB"],
+        audit_path=web_cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app({**web_cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as c:
+        login = c.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=False,
+        )
+        assert login.status_code in (302, 303)
+        for portale in ("pdp", "pat", "ptt"):
+            response = c.get(f"/api/portali/{portale}/acquisizione/status")
+            data = response.get_json()
+            assert response.status_code == 200
+            assert data["ok"] is True
+            assert data["status"]["auth_mode"] == "pkcs11"
+            assert data["status"]["pkcs11_mode"] is True
+            assert data["status"]["demo_mode"] is False
+            assert data["status"]["cert_preferences"]["prefer_cf"] == "MNTRRT64L01L063H"
 
 
 def test_polisweb_ricerca_non_torna_in_demo_se_pkcs11_e_configurato(tmp_path, monkeypatch):
@@ -2238,3 +2289,193 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
     assert captured["payload"]["ok"] is True
     assert len(captured["payload"]["fascicoli"]) == 1
     assert calls["arricchisci"] == 1
+
+
+def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
+    module = _load_local_signer()
+    import pct.pdp as pdp_module
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_parse_fascicoli": pdp_module.ClientPDP._parse_fascicoli,
+        "_risolvi_codice": pdp_module.ClientPDP._risolvi_codice,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "ufficio": "Procura di Reggio Calabria",
+                "numero_rg": "4521",
+                "anno_rg": "2026",
+                "nome_imputato": "Mario Rossi",
+                "tipo_registro": "RGNR",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
+        pdp_module.ClientPDP._risolvi_codice = lambda self, ufficio: "0580010"
+        pdp_module.ClientPDP._parse_fascicoli = lambda self, risposta: [
+            pdp_module.FascicoloPDP(
+                numero_rg="4521",
+                anno_rg=2026,
+                tipo_registro="RGNR",
+                fase="INDAGINI",
+                stato="PENDENTE",
+                reato="Truffa",
+                codice_ufficio="0580010",
+                nome_ufficio="Procura di Reggio Calabria",
+                imputati=["Mario Rossi"],
+                parti_offese=["Parte Offesa"],
+            )
+        ]
+
+        module._Handler._pdp_ricerca(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        pdp_module.ClientPDP._parse_fascicoli = originals["_parse_fascicoli"]
+        pdp_module.ClientPDP._risolvi_codice = originals["_risolvi_codice"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["fascicoli"][0]["numero_rg"] == "4521"
+    assert captured["bridge"]["operation_name"] == "ricercaFascicoliPenale"
+    assert captured["bridge"]["payload"]["codiceUfficio"] == "0580010"
+    assert captured["bridge"]["cert_thumbprint"] == "AABBCC11"
+
+
+def test_pat_documenti_local_signer_restituisce_documenti_parsati():
+    module = _load_local_signer()
+    import pct.pat as pat_module
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_parse_documenti": pat_module.ClientPAT._parse_documenti,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "codice_ufficio": "TARLZ",
+                "numero_ricorso": "1876",
+                "anno": "2026",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
+        pat_module.ClientPAT._parse_documenti = lambda self, risposta: [
+            pat_module.DocumentoPAT(
+                id_documento="PAT-001",
+                nome="Ricorso.pdf",
+                tipo="RICORSO",
+                data_deposito="2026-03-11",
+                mittente="Studio Rossi",
+                id_deposito="BUSTA-PAT-001",
+                tipo_atto="Ricorso",
+            )
+        ]
+
+        module._Handler._pat_documenti(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        pat_module.ClientPAT._parse_documenti = originals["_parse_documenti"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["documenti"][0]["id_documento"] == "PAT-001"
+    assert captured["bridge"]["operation_name"] == "consultazioneDocumenti"
+    assert captured["bridge"]["payload"]["codiceUfficio"] == "TARLZ"
+
+
+def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
+    module = _load_local_signer()
+    import pct.sigit as sigit_module
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_parse_fascicoli": sigit_module.ClientSIGIT._parse_fascicoli,
+        "_risolvi_codice": sigit_module.ClientSIGIT._risolvi_codice,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "commissione": "CPT Milano",
+                "numero_rgt": "1234",
+                "anno_rgt": "2026",
+                "nome_ricorrente": "Mario Rossi",
+                "tipo": "RICORSO",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
+        sigit_module.ClientSIGIT._risolvi_codice = lambda self, commissione: "CPT030000"
+        sigit_module.ClientSIGIT._parse_fascicoli = lambda self, risposta: [
+            sigit_module.FascicoloSIGIT(
+                numero_rgt="1234",
+                anno_rgt=2026,
+                tipo="RICORSO",
+                stato="PENDENTE",
+                materia="IVA",
+                ricorrenti=["Mario Rossi"],
+                resistenti=["Agenzia Entrate"],
+                codice_commissione="CPT030000",
+                nome_commissione="CPT Milano",
+            )
+        ]
+
+        module._Handler._ptt_ricerca(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        sigit_module.ClientSIGIT._parse_fascicoli = originals["_parse_fascicoli"]
+        sigit_module.ClientSIGIT._risolvi_codice = originals["_risolvi_codice"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["fascicoli"][0]["codice_commissione"] == "CPT030000"
+    assert captured["bridge"]["operation_name"] == "ricercaFascicoliTributari"
+    assert captured["bridge"]["payload"]["codiceCommissione"] == "CPT030000"

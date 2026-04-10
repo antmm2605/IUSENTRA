@@ -4831,6 +4831,19 @@ def create_app(config: dict | None = None) -> Flask:
         """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
         return _polis_auth_mode() == "demo"
 
+    def _portale_usa_local_signer(portale: str) -> bool:
+        return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
+
+    def _codice_fiscale_avvocato_portale() -> str:
+        try:
+            cfg = get_config_studio().config
+            return (
+                str(getattr(cfg.firma, "cf_avvocato", "") or "").strip().upper()
+                or str(getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper()
+            )
+        except Exception:
+            return ""
+
     def _polis_cert_preferences() -> dict:
         prefer_cf = ""
         try:
@@ -5752,7 +5765,7 @@ def create_app(config: dict | None = None) -> Flask:
             if portale == "pst":
                 from pct.polisWeb import ClientPolisWebImportOnly, crea_client
 
-                if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
                     client = ClientPolisWebImportOnly()
                 else:
                     client = crea_client(demo=_polis_demo_mode())
@@ -5766,17 +5779,47 @@ def create_app(config: dict | None = None) -> Flask:
                     documenti_pw=documenti_pw,
                 )
             elif portale == "pdp":
-                from pct.pdp import crea_client_pdp
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    from pct.pdp import ClientPDP
 
-                risultato = crea_client_pdp(demo=_polis_demo_mode()).importa_fascicolo(selection_dc, gf, gc, user_name)
+                    client = ClientPDP(
+                        codice_fiscale_avvocato=str(
+                            getattr(get_config_studio().config.firma, "cf_avvocato", "") or ""
+                        ).strip().upper()
+                    )
+                else:
+                    from pct.pdp import crea_client_pdp
+
+                    client = crea_client_pdp(demo=_polis_demo_mode())
+                risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             elif portale == "pat":
-                from pct.pat import crea_client_pat
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    from pct.pat import ClientPAT
 
-                risultato = crea_client_pat(demo=_polis_demo_mode()).importa_fascicolo(selection_dc, gf, gc, user_name)
+                    client = ClientPAT(
+                        codice_fiscale_avvocato=str(
+                            getattr(get_config_studio().config.firma, "cf_avvocato", "") or ""
+                        ).strip().upper()
+                    )
+                else:
+                    from pct.pat import crea_client_pat
+
+                    client = crea_client_pat(demo=_polis_demo_mode())
+                risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             else:
-                from pct.sigit import crea_client_sigit
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    from pct.sigit import ClientSIGIT
 
-                risultato = crea_client_sigit(demo=_polis_demo_mode()).importa_fascicolo(selection_dc, gf, gc, user_name)
+                    client = ClientSIGIT(
+                        codice_fiscale_avvocato=str(
+                            getattr(get_config_studio().config.firma, "cf_avvocato", "") or ""
+                        ).strip().upper()
+                    )
+                else:
+                    from pct.sigit import crea_client_sigit
+
+                    client = crea_client_sigit(demo=_polis_demo_mode())
+                risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             if not risultato.successo or not risultato.id_fascicolo_locale:
                 raise ValueError(risultato.messaggio or "Importazione non riuscita.")
             id_fasc = risultato.id_fascicolo_locale
@@ -5788,7 +5831,7 @@ def create_app(config: dict | None = None) -> Flask:
             if portale == "pst":
                 from pct.polisWeb import ClientPolisWebImportOnly, crea_client
 
-                if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
                     client = ClientPolisWebImportOnly()
                 else:
                     client = crea_client(demo=_polis_demo_mode())
@@ -5922,23 +5965,33 @@ def create_app(config: dict | None = None) -> Flask:
         cfg = get_config_studio().config
         firma_cfg = cfg.firma
         auth_mode = _polis_auth_mode()
-        demo_mode = auth_mode == "demo" if portale == "pst" else _polis_demo_mode()
+        demo_mode = auth_mode == "demo"
+        pkcs11_mode = _portale_usa_local_signer(portale) and not demo_mode
         ultimo_log = _last_portale_import_log(portale)
+        if demo_mode:
+            status_text = "Modalità demo / fallback"
+            environment_label = "Simulazione / compatibilità"
+        elif pkcs11_mode:
+            status_text = "Accesso via Local Signer / Aruba Key"
+            environment_label = "Produzione guidata via browser locale"
+        else:
+            status_text = "Connessione pronta"
+            environment_label = "Produzione guidata"
         return {
             "portale": portale,
             "spec": spec,
             "avvocato": str(getattr(cfg.studio, "nome_avvocato", "") or getattr(g.utente_corrente, "username", "") or "").strip(),
             "codice_fiscale_avvocato": str(getattr(firma_cfg, "cf_avvocato", "") or getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper(),
             "backend_firma": str(getattr(firma_cfg, "backend_firma_effettivo_safe", "nessuno") or "").strip(),
-            "auth_mode": auth_mode if portale == "pst" else ("demo" if demo_mode else "reale"),
+            "auth_mode": auth_mode,
             "demo_mode": demo_mode,
-            "pkcs11_mode": auth_mode == "pkcs11" if portale == "pst" else False,
-            "cert_preferences": _polis_cert_preferences() if portale == "pst" else {},
-            "status_text": "Connessione pronta" if not demo_mode else "Modalità demo / fallback",
+            "pkcs11_mode": pkcs11_mode,
+            "cert_preferences": _polis_cert_preferences() if pkcs11_mode else {},
+            "status_text": status_text,
             "test_ok": not demo_mode,
             "last_sync_at": str(ultimo_log.get("created_at") or "").strip(),
             "last_import_log_id": str(ultimo_log.get("id") or "").strip(),
-            "environment_label": "Produzione guidata" if not demo_mode else "Simulazione / compatibilita",
+            "environment_label": environment_label,
         }
 
     def _search_fascicoli_portale_server(portale: str, query: dict[str, Any]) -> list[dict[str, Any]]:
@@ -5954,7 +6007,7 @@ def create_app(config: dict | None = None) -> Flask:
         quick = str(query.get("quick_filter") or "").strip().lower()
 
         if portale == "pst":
-            if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
                 raise ValueError("Per PST con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
             from pct.polisWeb import crea_client
 
@@ -5969,6 +6022,8 @@ def create_app(config: dict | None = None) -> Flask:
                 codice_fiscale_parte=cf,
             )
         elif portale == "pdp":
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                raise ValueError("Per PDP Penale con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
             from pct.pdp import crea_client_pdp
 
             ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -5982,6 +6037,8 @@ def create_app(config: dict | None = None) -> Flask:
                 tipo_registro=str(query.get("registro") or "").strip() or None,
             )
         elif portale == "pat":
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                raise ValueError("Per PAT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
             from pct.pat import crea_client_pat
 
             ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -5995,6 +6052,8 @@ def create_app(config: dict | None = None) -> Flask:
                 materia=str(query.get("materia") or "").strip() or None,
             )
         else:
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                raise ValueError("Per PTT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
             from pct.sigit import crea_client_sigit
 
             ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -6025,7 +6084,7 @@ def create_app(config: dict | None = None) -> Flask:
     def _preview_documenti_portale_server(portale: str, selection: dict[str, Any]) -> list[dict]:
         portale = (portale or "").strip().lower()
         if portale == "pst":
-            if _polis_auth_mode() == "pkcs11" and not _polis_demo_mode():
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
                 raise ValueError("Anteprima documenti PST via browser locale richiesta.")
             from pct.polisWeb import crea_client
 
@@ -6035,6 +6094,8 @@ def create_app(config: dict | None = None) -> Flask:
                 int(selection.get("anno") or 0),
             )
         elif portale == "pdp":
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
             from pct.pdp import crea_client_pdp
 
             docs = crea_client_pdp(demo=_polis_demo_mode()).consulta_documenti(
@@ -6043,6 +6104,8 @@ def create_app(config: dict | None = None) -> Flask:
                 int(selection.get("anno") or 0),
             )
         elif portale == "pat":
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                raise ValueError("Anteprima documenti PAT via browser locale richiesta.")
             from pct.pat import crea_client_pat
 
             docs = crea_client_pat(demo=_polis_demo_mode()).consulta_documenti(
@@ -6051,6 +6114,8 @@ def create_app(config: dict | None = None) -> Flask:
                 int(selection.get("anno") or 0),
             )
         else:
+            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                raise ValueError("Anteprima documenti PTT via browser locale richiesta.")
             from pct.sigit import crea_client_sigit
 
             docs = crea_client_sigit(demo=_polis_demo_mode()).consulta_documenti(
@@ -6185,7 +6250,7 @@ Write-Host "  Aggiorno pip..."
 & $pyExe -m pip install --quiet --upgrade pip
 
 Write-Host "  Installo dipendenze Local Signer..."
-& $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography
+    & $pyExe -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
 function Test-LocalSignerOnline {{
     try {{
@@ -6335,7 +6400,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
 cat > "$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -6406,7 +6471,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download" -o "$DIR/local_signer.py"
 curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffici_ministero.json"
 python3 -m venv "$VENV"
 "$PY" -m pip install --quiet --upgrade pip
-"$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography
+  "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep
 
 cat > "$SERVICE" <<EOF
 [Unit]
@@ -7119,7 +7184,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pdp/importa", methods=["POST"])
     def pdp_importa():
-        from pct.pdp import crea_client_pdp, FascicoloPDP
+        from pct.pdp import ClientPDP, FascicoloPDP, crea_client_pdp
         import json
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
@@ -7140,7 +7205,12 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )
-            client    = crea_client_pdp(demo=demo_mode)
+            if _portale_usa_local_signer("pdp") and not demo_mode:
+                client = ClientPDP(
+                    codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
+                )
+            else:
+                client = crea_client_pdp(demo=demo_mode)
             avv       = g.utente_corrente.username if g.utente_corrente else ""
             risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
             for avviso in risultato.avvisi:
@@ -7281,7 +7351,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/pat/importa", methods=["POST"])
     def pat_importa():
-        from pct.pat import crea_client_pat, FascicoloPAT
+        from pct.pat import ClientPAT, FascicoloPAT, crea_client_pat
         import json
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
@@ -7302,7 +7372,12 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )
-            client    = crea_client_pat(demo=demo_mode)
+            if _portale_usa_local_signer("pat") and not demo_mode:
+                client = ClientPAT(
+                    codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
+                )
+            else:
+                client = crea_client_pat(demo=demo_mode)
             avv       = g.utente_corrente.username if g.utente_corrente else ""
             risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
             for avviso in risultato.avvisi:
@@ -7449,7 +7524,7 @@ read -r -p "Premi Invio per chiudere..." _
 
     @app.route("/sigit/importa", methods=["POST"])
     def sigit_importa():
-        from pct.sigit import crea_client_sigit, FascicoloSIGIT
+        from pct.sigit import ClientSIGIT, FascicoloSIGIT, crea_client_sigit
         import json
         f         = request.form
         demo_mode = f.get("demo_mode") == "1" or _polis_demo_mode()
@@ -7471,7 +7546,12 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_commissione=f.get("codice_commissione", ""),
                 nome_commissione=f.get("nome_commissione", ""),
             )
-            client    = crea_client_sigit(demo=demo_mode)
+            if _portale_usa_local_signer("ptt") and not demo_mode:
+                client = ClientSIGIT(
+                    codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
+                )
+            else:
+                client = crea_client_sigit(demo=demo_mode)
             avv       = g.utente_corrente.username if g.utente_corrente else ""
             risultato = client.importa_fascicolo(fascicolo, get_fascicoli(), get_clienti(), avv)
             for avviso in risultato.avvisi:

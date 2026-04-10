@@ -456,6 +456,13 @@ class Fascicolo:
     avvocato_dominus: str = ""
     oggetto: str = ""
     valore_causa: float = 0.0       # valore in euro
+    valore_preventivato: float = 0.0  # compenso pattuito da preventivo/conferimento
+
+    # --- Pratica collegata (dal preventivo/conferimento)
+    tipo_procedimento: str = ""
+    id_pratica: str = ""
+    area_pratica: str = ""
+    compenso_pattuito: float = 0.0  # importo totale dal conferimento incarico
 
     # --- Date
     data_apertura: str = field(default_factory=lambda: date.today().isoformat())

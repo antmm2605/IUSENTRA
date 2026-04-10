@@ -1786,7 +1786,7 @@
           >
             <div>
               <strong>Checklist operativa del deposito</strong>
-              <div class="small text-muted">Mostro i controlli prioritari; il dettaglio completo resta nelle aree sotto.</div>
+              <div class="small text-muted">Azioni richieste: solo i controlli da risolvere. I controlli superati sono nei gruppi sotto.</div>
             </div>
             <span class="d-flex align-items-center gap-2">
               <span class="badge text-bg-light border text-dark">{{ rc.checklist|length }}</span>
@@ -1833,7 +1833,9 @@
                 </div>
               </div>
               {% else %}
-              <div class="list-group-item text-muted">Nessun controllo disponibile.</div>
+              <div class="list-group-item text-muted">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Tutti i controlli superati — nessuna azione richiesta.
+              </div>
               {% endfor %}
             </div>
             <div class="card-footer bg-white border-0 pt-0 pb-3">
@@ -1855,7 +1857,7 @@
           >
             <div>
               <strong>Workflow deposito</strong>
-              <div class="small text-muted">Passaggi operativi ordinati, con accesso rapido alla correzione migliore.</div>
+              <div class="small text-muted">Fasi operative in sequenza: redazione, allegati, XML, verifica tecnica, pre-deposito.</div>
             </div>
             <span class="d-flex align-items-center gap-2">
               <span class="badge text-bg-light border text-dark">{{ rc.workflow|length }}</span>
@@ -1867,9 +1869,18 @@
             {% for step in rc.workflow %}
             {% set tone = rc_status_map.get(step.status, 'secondary') %}
             <div class="list-group-item py-3">
-              <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="workflow-index">{{ loop.index }}</div>
+              <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                <div class="d-flex align-items-start gap-3">
+                  <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="workflow-index">{{ loop.index }}</div>
+                    {% if step.status == 'ok' %}
+                      <i class="bi bi-check-circle-fill text-success"></i>
+                    {% elif step.status == 'warning' %}
+                      <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                    {% else %}
+                      <i class="bi bi-x-octagon-fill text-danger"></i>
+                    {% endif %}
+                  </div>
                   <div>
                     <div class="fw-semibold">{{ step.label }}</div>
                     {% if step.note %}
@@ -1920,16 +1931,29 @@
                 <div class="list-group list-group-flush">
                   {% for issue in group["items"] %}
                   {% set issue_tone = rc_status_map.get(issue.status, 'secondary') %}
-                  <div class="list-group-item px-0 py-3">
+                  <div class="list-group-item py-3">
                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                      <div>
-                        <div class="fw-semibold">{{ issue.title }}</div>
-                        {% if issue.reason %}
-                        <div class="small text-muted">{{ issue.reason }}</div>
-                        {% endif %}
-                        <div class="small mt-1">
-                          {% if issue.where %}<span class="me-3"><strong>Dove:</strong> {{ issue.where }}</span>{% endif %}
-                          {% if issue.source %}<span><strong>Fonte:</strong> {{ issue.source }}</span>{% endif %}
+                      <div class="d-flex align-items-start gap-3">
+                        <div class="mt-1">
+                          {% if issue.status == 'ok' %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                          {% elif issue.status == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                          {% else %}
+                            <i class="bi bi-x-octagon-fill text-danger"></i>
+                          {% endif %}
+                        </div>
+                        <div>
+                          <div class="fw-semibold">{{ issue.title }}</div>
+                          {% if issue.reason %}
+                          <div class="small text-muted">{{ issue.reason }}</div>
+                          {% endif %}
+                          {% if issue.where or issue.source %}
+                          <div class="small text-secondary mt-1">
+                            {% if issue.where %}<span class="me-3">Dove: {{ issue.where }}</span>{% endif %}
+                            {% if issue.source %}<span>Fonte regola: {{ issue.source }}</span>{% endif %}
+                          </div>
+                          {% endif %}
                         </div>
                       </div>
                       <div class="d-flex align-items-center gap-2">
@@ -1943,7 +1967,7 @@
                     </div>
                   </div>
                   {% else %}
-                  <div class="text-muted">Nessun elemento.</div>
+                  <div class="list-group-item text-muted">Nessun elemento.</div>
                   {% endfor %}
                 </div>
                 <div class="pt-3 border-top mt-3">

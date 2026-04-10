@@ -1020,6 +1020,18 @@ def create_app(config: dict | None = None) -> Flask:
             return "notifica"
         if "contributo" in haystack:
             return "contributo"
+        if "sentenza" in haystack and "mancante" in haystack:
+            return "sentenza"
+        if "oggetto" in haystack and ("mancante" in haystack or "non definito" in haystack):
+            return "oggetto"
+        if "firma" in haystack and ("mancante" in haystack or "non firmato" in haystack):
+            return "firma"
+        if "pdf/a" in haystack or "pdfa" in haystack:
+            return "pdfa"
+        if "sede" in haystack and "mancante" in haystack or "ufficio" in haystack and "mancante" in haystack:
+            return "ufficio"
+        if "cliente" in haystack and "mancante" in haystack:
+            return "cliente"
         return ""
 
     def _rc_issue_dedupe_rank(issue: dict) -> int:
@@ -1029,16 +1041,30 @@ def create_app(config: dict | None = None) -> Flask:
 
         code = str(issue.get("code") or "").strip().lower()
         title = str(issue.get("title") or "").strip().lower()
+        service = str(issue.get("service") or "").strip().upper()
 
+        # Priorita per famiglia: il controllo piu specifico vince
         specific_codes = {
             "procura": {"citazione_procura_mancante"},
             "notifica": {"citazione_relata_notifica_mancante"},
             "contributo": {"citazione_contributo_non_rilevato"},
+            "sentenza": {"citazione_sentenza_mancante"},
+            "oggetto": {"redazione_oggetto_mancante"},
+            "firma": {"atto_principale_non_firmato"},
+            "pdfa": {"atto_principale_non_pdfa"},
+            "ufficio": {"sede_mancante"},
+            "cliente": {"citazione_cliente_mancante", "campo_mancante_id_cliente"},
         }
         generic_codes = {
             "procura": {"doc_procura_missing"},
             "notifica": {"doc_notifica_missing"},
             "contributo": {"doc_contributo_missing"},
+            "sentenza": {"doc_sentenza_missing"},
+            "oggetto": set(),
+            "firma": set(),
+            "pdfa": set(),
+            "ufficio": {"ufficio_non_risolto"},
+            "cliente": set(),
         }
         selection_codes = {
             "procura": {"procura_mancante"},
@@ -1052,10 +1078,17 @@ def create_app(config: dict | None = None) -> Flask:
             return 1
         if code in selection_codes.get(family, set()):
             return 2
+        # Controlli processuali hanno priorita su redazionali per lo stesso concetto
+        if service == "GIURIDICO":
+            return 3
+        if service == "DOCUMENTALE":
+            return 4
+        if service == "TECNICO":
+            return 5
         if "non inclus" in title or "non selezion" in title:
-            return 2
+            return 6
         if "non rilevat" in title:
-            return 1
+            return 5
         return 50
 
     def _rc_prune_redundant_corrections(corrections: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], set[str]]:
@@ -1408,10 +1441,13 @@ def create_app(config: dict | None = None) -> Flask:
                         "action": item_cta,
                     }
                 )
-                checklist_key = title.lower()
-                if checklist_key not in checklist_seen:
-                    checklist_seen.add(checklist_key)
-                    checklist.append(item_payload.copy())
+                # Checklist: solo controlli azionabili (block/warning),
+                # i controlli "ok" restano solo nei gruppi di sezione
+                if normalized != "ok":
+                    checklist_key = title.lower()
+                    if checklist_key not in checklist_seen:
+                        checklist_seen.add(checklist_key)
+                        checklist.append(item_payload.copy())
 
             group_items.sort(key=lambda row: row["_sort"])
             for row in group_items:
@@ -8994,6 +9030,11 @@ read -r -p "Premi Invio per chiudere..." _
                     avvocato_dominus=f.get("avvocato_dominus", ""),
                     oggetto=f.get("oggetto", ""),
                     valore_causa=float(f.get("valore_causa") or 0),
+                    valore_preventivato=float(f.get("valore_preventivato") or 0),
+                    tipo_procedimento=f.get("tipo_procedimento", ""),
+                    id_pratica=f.get("id_pratica", ""),
+                    area_pratica=f.get("area_pratica", ""),
+                    compenso_pattuito=float(f.get("compenso_pattuito") or 0),
                     note=f.get("note", ""),
                 )
                 if source_preventivo or source_conferimento:

@@ -299,6 +299,11 @@ def build_fascicolo_onboarding(
         or ""
     )
     valore_causa = float(getattr(preventivo, "valore_controversia", 0) or 0)
+    compenso_pattuito = float(getattr(conferimento, "compenso_pattuito", 0) or 0)
+    if not compenso_pattuito:
+        # fallback al totale del preventivo se il conferimento non specifica un compenso
+        compenso_pattuito = float(getattr(preventivo, "totale", 0) or 0)
+    valore_preventivato = compenso_pattuito
 
     source_label = "Conferimento incarico" if conferimento else "Preventivo"
     source_number = getattr(sorgente, "numero", "")
@@ -364,6 +369,8 @@ def build_fascicolo_onboarding(
         "oggetto": oggetto,
         "avvocato_referente": avvocato_referente,
         "valore_causa": valore_causa,
+        "valore_preventivato": valore_preventivato,
+        "compenso_pattuito": compenso_pattuito,
         "note": note_text,
         "tipo_procedimento": tipo_procedimento,
         "id_pratica": id_pratica,

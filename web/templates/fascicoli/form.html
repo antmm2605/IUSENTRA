@@ -62,7 +62,20 @@
             {% if workflow_prefill.tipo_procedimento %}
             <span class="badge text-bg-light">{{ workflow_prefill.tipo_procedimento }}</span>
             {% endif %}
+            {% if workflow_prefill.area_pratica %}
+            <span class="badge text-bg-secondary">{{ workflow_prefill.area_pratica }}</span>
+            {% endif %}
           </div>
+          {% if workflow_prefill.compenso_pattuito or workflow_prefill.valore_causa %}
+          <div class="d-flex flex-wrap gap-3 mb-2 small">
+            {% if workflow_prefill.valore_causa %}
+            <span><i class="bi bi-bank me-1 text-muted"></i><strong>Valore causa:</strong> {{ "%.2f"|format(workflow_prefill.valore_causa) }} EUR</span>
+            {% endif %}
+            {% if workflow_prefill.compenso_pattuito %}
+            <span><i class="bi bi-cash-stack me-1 text-muted"></i><strong>Compenso pattuito:</strong> {{ "%.2f"|format(workflow_prefill.compenso_pattuito) }} EUR</span>
+            {% endif %}
+          </div>
+          {% endif %}
           {% if workflow_prefill.summary %}
           <p class="mb-2">{{ workflow_prefill.summary }}</p>
           {% endif %}
@@ -206,6 +219,33 @@
                      value="{{ fascicolo.valore_causa if fascicolo else (workflow_prefill.valore_causa if workflow_prefill and workflow_prefill.valore_causa else '') }}"
                      placeholder="0.00">
             </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tipo procedimento</label>
+              <input type="text" name="tipo_procedimento" class="form-control"
+                     value="{{ fascicolo.tipo_procedimento if fascicolo else (workflow_prefill.tipo_procedimento if workflow_prefill else '') }}"
+                     placeholder="es. Civile — fase di cognizione" readonly onfocus="this.removeAttribute('readonly')">
+            </div>
+            {% if workflow_prefill or (fascicolo and fascicolo.compenso_pattuito) %}
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Compenso pattuito (EUR)
+                <i class="bi bi-info-circle text-muted" title="Importo dal conferimento incarico / preventivo"></i>
+              </label>
+              <input type="number" name="compenso_pattuito" class="form-control bg-light" step="0.01" min="0"
+                     value="{{ fascicolo.compenso_pattuito if fascicolo else (workflow_prefill.compenso_pattuito if workflow_prefill else '') }}"
+                     placeholder="0.00" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Valore preventivato (EUR)
+                <i class="bi bi-info-circle text-muted" title="Valore totale come da preventivo approvato"></i>
+              </label>
+              <input type="number" name="valore_preventivato" class="form-control bg-light" step="0.01" min="0"
+                     value="{{ fascicolo.valore_preventivato if fascicolo else (workflow_prefill.valore_preventivato if workflow_prefill else '') }}"
+                     placeholder="0.00" readonly>
+            </div>
+            {% endif %}
+            {# Campi nascosti per i dati pratica #}
+            <input type="hidden" name="id_pratica" value="{{ fascicolo.id_pratica if fascicolo else (workflow_prefill.id_pratica if workflow_prefill else '') }}">
+            <input type="hidden" name="area_pratica" value="{{ fascicolo.area_pratica if fascicolo else (workflow_prefill.area_pratica if workflow_prefill else '') }}">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Data prima udienza / comparizione</label>
               <input type="date" id="field-data_prima_udienza" name="data_prima_udienza" class="form-control {% if correction_highlight == 'data_prima_udienza' %}border-primary shadow-sm{% endif %}"

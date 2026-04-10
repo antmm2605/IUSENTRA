@@ -422,6 +422,67 @@ class GestioneConfigStudio:
         return nuovo
 
 
+def percorso_config_studio_corrente(config_path: str | None = None) -> str:
+    """
+    Restituisce il percorso canonico della configurazione studio.
+
+    Priorità:
+      1. parametro esplicito
+      2. PCT_CONFIG_STUDIO_DB
+      3. PCT_STUDIO_CONFIG
+      4. fallback legacy locale
+    """
+    return str(
+        config_path
+        or os.getenv("PCT_CONFIG_STUDIO_DB")
+        or os.getenv("PCT_STUDIO_CONFIG")
+        or "./config/studio.json"
+    )
+
+
+def risolvi_config_firma_corrente(config_path: str | None = None) -> Dict[str, str]:
+    """
+    Risolve la configurazione firma combinando file studio e variabili legacy.
+
+    Il file `config/studio.json` resta la fonte canonica salvata dalla UI, ma i
+    campi mancanti continuano a ereditare le vecchie variabili `PCT_FIRMA_*`.
+    """
+    path = percorso_config_studio_corrente(config_path)
+    cfg: Optional[ConfigStudio] = None
+    try:
+        cfg = GestioneConfigStudio(config_path=path).config
+    except Exception:
+        cfg = None
+
+    firma = getattr(cfg, "firma", None)
+    studio = getattr(cfg, "studio", None)
+
+    def _pick(value: Any, env_name: str) -> str:
+        resolved = str(value or "").strip()
+        if resolved:
+            return resolved
+        return str(os.getenv(env_name, "") or "").strip()
+
+    cf_cfg = str(
+        getattr(firma, "cf_avvocato", "")
+        or getattr(studio, "codice_fiscale_avvocato", "")
+        or ""
+    ).strip().upper()
+
+    return {
+        "config_path": path,
+        "p12_path": _pick(getattr(firma, "p12_path", ""), "PCT_FIRMA_P12"),
+        "p12_password": _pick(getattr(firma, "password", ""), "PCT_FIRMA_PASSWORD"),
+        "cert_pem_path": _pick(getattr(firma, "cert_pem_path", ""), "PCT_FIRMA_CERT"),
+        "key_pem_path": _pick(getattr(firma, "key_pem_path", ""), "PCT_FIRMA_KEY"),
+        "key_pem_password": _pick(
+            getattr(firma, "key_pem_password", ""),
+            "PCT_FIRMA_KEY_PASSWORD",
+        ),
+        "cf_avvocato": cf_cfg or str(os.getenv("PCT_CF_AVVOCATO", "") or "").strip().upper(),
+    }
+
+
 # ──────────────────────────────────────────────────────────── test connessioni
 
 import smtplib as _smtplib

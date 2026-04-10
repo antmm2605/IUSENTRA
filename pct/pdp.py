@@ -611,15 +611,18 @@ def crea_client_pdp(demo: bool = False) -> ClientPDP:
     """Factory: restituisce ClientPDP o ClientPDPDemo."""
     if demo:
         return ClientPDPDemo()
-    cf  = os.getenv("PCT_CF_AVVOCATO", "")
-    p12 = os.getenv("PCT_FIRMA_P12", "")
-    pwd = os.getenv("PCT_FIRMA_PASSWORD", "").encode()
+    from pct.config_studio import risolvi_config_firma_corrente
+
+    firma_cfg = risolvi_config_firma_corrente()
+    cf  = firma_cfg["cf_avvocato"]
+    p12 = firma_cfg["p12_path"]
+    pwd = firma_cfg["p12_password"].encode()
     if p12 and os.path.exists(p12):
         return ClientPDP(p12_path=p12, p12_password=pwd, codice_fiscale_avvocato=cf)
-    cert = os.getenv("PCT_FIRMA_CERT", "")
-    key  = os.getenv("PCT_FIRMA_KEY", "")
+    cert = firma_cfg["cert_pem_path"]
+    key  = firma_cfg["key_pem_path"]
     if cert and key and os.path.exists(cert) and os.path.exists(key):
-        key_pwd_str = os.getenv("PCT_FIRMA_KEY_PASSWORD", "")
+        key_pwd_str = firma_cfg["key_pem_password"]
         return ClientPDP(
             cert_pem_path=cert, key_pem_path=key,
             key_pem_password=key_pwd_str.encode() if key_pwd_str else None,
@@ -628,5 +631,5 @@ def crea_client_pdp(demo: bool = False) -> ClientPDP:
     raise FileNotFoundError(
         "Nessun certificato configurato per il PDP Penale.\n"
         "Usare le stesse credenziali del PCT civile: PCT_FIRMA_P12 oppure "
-        "PCT_FIRMA_CERT + PCT_FIRMA_KEY."
+        "PCT_FIRMA_CERT + PCT_FIRMA_KEY, oppure configurarle in Impostazioni → Firma Digitale."
     )

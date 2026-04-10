@@ -216,21 +216,72 @@
                           </div>
                         </div>
                         {% if pdoc.local_doc_id %}
+                        {%- set _pnome = pdoc.local_doc_nome or pdoc.nome or '' %}
+                        {%- set _pnome_pre = _pnome[:-4] if _pnome.lower().endswith('.p7m') else _pnome %}
+                        {%- set _pext = _pnome_pre.rsplit('.',1)[-1].lower() if '.' in _pnome_pre else '' %}
+                        {%- set _pvis = _pext in ['pdf','jpg','jpeg','png','gif'] %}
                         <div class="d-flex gap-1 flex-wrap">
-                          {% if pdoc.local_doc_previewabile %}
-                          <button type="button" class="btn btn-outline-primary btn-sm"
-                                  data-doc-nome="{{ pdoc.local_doc_nome }}"
+                          {# Editor #}
+                          {% if _pext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                          <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                            class="btn btn-sm btn-primary" title="Apri nell'editor">
+                            <i class="bi bi-pencil-square"></i>
+                          </a>
+                          {% endif %}
+                          {# Anteprima #}
+                          {% if _pvis %}
+                          <button type="button" class="btn btn-outline-primary btn-sm" title="Anteprima"
+                                  data-doc-nome="{{ _pnome }}"
                                   data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   onclick="apriVisualizzatore(this)">
-                            <i class="bi bi-eye me-1"></i>Visualizza
+                            <i class="bi bi-eye"></i>
                           </button>
                           {% endif %}
+                          {# Scarica #}
                           <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                             class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-download me-1"></i>Scarica
+                             class="btn btn-outline-secondary btn-sm" title="Scarica">
+                            <i class="bi bi-download"></i>
                           </a>
+                          {# Copia con attestazione (solo PDF) #}
+                          {% if _pext == 'pdf' %}
+                          <form method="post" class="d-inline"
+                                action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}">
+                            <button class="btn btn-outline-info btn-sm" title="Copia con attestazione">
+                              <i class="bi bi-patch-check"></i>
+                            </button>
+                          </form>
+                          {% endif %}
+                          {# Firma per deposito (solo non firmati) #}
+                          {% if not pdoc.local_doc_firmato %}
+                          <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+                                  data-doc-id="{{ pdoc.local_doc_id }}"
+                                  data-doc-nome="{{ _pnome }}"
+                                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  onclick="apriFirma(this)">
+                            <i class="bi bi-pen"></i>
+                          </button>
+                          {% endif %}
+                          {# Converti PDF/A (solo PDF non firmati) #}
+                          {% if _pext == 'pdf' and not pdoc.local_doc_firmato %}
+                          <form method="post" class="d-inline"
+                                action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                            <button class="btn btn-outline-warning btn-sm" title="Converti in PDF/A-2B">
+                              <i class="bi bi-file-earmark-check"></i>
+                            </button>
+                          </form>
+                          {% endif %}
+                          {# Elimina #}
+                          <form method="post" class="d-inline"
+                                action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                onsubmit="return confirm('Eliminare il documento dal fascicolo?')">
+                            <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </form>
                         </div>
                         {% endif %}
                       </div>
@@ -1288,21 +1339,91 @@
                   <div class="collapse mt-1" id="dep-docs-{{ dep.id }}">
                     <ul class="list-unstyled mb-0 ps-2 border-start border-2 border-success-subtle">
                       {% for ddoc in _dep_docs %}
-                      <li class="py-1 d-flex align-items-center gap-2" style="font-size:.8rem">
-                        {% if ddoc.nome == dep.nome_atto_principale %}
-                        <i class="bi bi-file-earmark-text text-primary flex-shrink-0" title="Atto principale"></i>
-                        {% else %}
-                        <i class="bi bi-paperclip text-muted flex-shrink-0" title="Allegato"></i>
-                        {% endif %}
-                        <span class="text-break">{{ ddoc.nome }}</span>
-                        {% if ddoc.firmato_digitalmente %}
-                        <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato"></i>
-                        {% endif %}
-                        <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
-                           class="btn btn-outline-secondary btn-sm py-0 px-1 flex-shrink-0 ms-auto"
-                           title="Scarica" style="font-size:.7rem">
-                          <i class="bi bi-download"></i>
-                        </a>
+                      {%- set _dn = ddoc.nome or '' %}
+                      {%- set _dn_pre = _dn[:-4] if _dn.lower().endswith('.p7m') else _dn %}
+                      {%- set _dext = _dn_pre.rsplit('.',1)[-1].lower() if '.' in _dn_pre else '' %}
+                      {%- set _dvis = _dext in ['pdf','jpg','jpeg','png','gif'] %}
+                      <li class="py-2" style="font-size:.8rem">
+                        <div class="d-flex align-items-start gap-2">
+                          {% if ddoc.nome == dep.nome_atto_principale %}
+                          <i class="bi bi-file-earmark-text text-primary flex-shrink-0 mt-1" title="Atto principale"></i>
+                          {% else %}
+                          <i class="bi bi-paperclip text-muted flex-shrink-0 mt-1" title="Allegato"></i>
+                          {% endif %}
+                          <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="text-break fw-semibold">{{ ddoc.nome }}</span>
+                              {% if ddoc.firmato_digitalmente %}
+                              <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato"></i>
+                              {% endif %}
+                            </div>
+                            <div class="d-flex gap-1 flex-wrap mt-1">
+                              {# Editor #}
+                              {% if _dext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                              <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                class="btn btn-sm btn-primary py-0 px-1" title="Editor" style="font-size:.7rem">
+                                <i class="bi bi-pencil-square"></i>
+                              </a>
+                              {% endif %}
+                              {# Anteprima #}
+                              {% if _dvis %}
+                              <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" title="Anteprima"
+                                      style="font-size:.7rem"
+                                      data-doc-nome="{{ ddoc.nome }}"
+                                      data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      onclick="apriVisualizzatore(this)">
+                                <i class="bi bi-eye"></i>
+                              </button>
+                              {% endif %}
+                              {# Scarica #}
+                              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                 class="btn btn-outline-secondary btn-sm py-0 px-1" title="Scarica" style="font-size:.7rem">
+                                <i class="bi bi-download"></i>
+                              </a>
+                              {# Copia con attestazione (solo PDF) #}
+                              {% if _dext == 'pdf' %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=ddoc.id) }}">
+                                <button class="btn btn-outline-info btn-sm py-0 px-1" title="Copia con attestazione" style="font-size:.7rem">
+                                  <i class="bi bi-patch-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Firma per deposito #}
+                              {% if not ddoc.firmato_digitalmente %}
+                              <button type="button" class="btn btn-outline-success btn-sm py-0 px-1" title="Firma per deposito"
+                                      style="font-size:.7rem"
+                                      data-doc-id="{{ ddoc.id }}"
+                                      data-doc-nome="{{ ddoc.nome }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      onclick="apriFirma(this)">
+                                <i class="bi bi-pen"></i>
+                              </button>
+                              {% endif %}
+                              {# Converti PDF/A #}
+                              {% if _dext == 'pdf' and not ddoc.firmato_digitalmente %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Converti PDF/A" style="font-size:.7rem">
+                                  <i class="bi bi-file-earmark-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Elimina #}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                    onsubmit="return confirm('Eliminare il documento?')">
+                                <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Elimina" style="font-size:.7rem">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
                       </li>
                       {% endfor %}
                     </ul>
@@ -1367,21 +1488,72 @@
                               {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
                             </div>
                             {% if pdoc.local_doc_id %}
+                            {%- set _mn = pdoc.local_doc_nome or pdoc.nome or '' %}
+                            {%- set _mn_pre = _mn[:-4] if _mn.lower().endswith('.p7m') else _mn %}
+                            {%- set _mext = _mn_pre.rsplit('.',1)[-1].lower() if '.' in _mn_pre else '' %}
+                            {%- set _mvis = _mext in ['pdf','jpg','jpeg','png','gif'] %}
                             <div class="d-flex gap-1 flex-wrap mt-2">
-                              {% if pdoc.local_doc_previewabile %}
-                              <button type="button" class="btn btn-outline-primary btn-sm"
-                                      data-doc-nome="{{ pdoc.local_doc_nome }}"
+                              {# Editor #}
+                              {% if _mext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                              <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                class="btn btn-sm btn-primary" title="Apri nell'editor">
+                                <i class="bi bi-pencil-square"></i>
+                              </a>
+                              {% endif %}
+                              {# Anteprima #}
+                              {% if _mvis %}
+                              <button type="button" class="btn btn-outline-primary btn-sm" title="Anteprima"
+                                      data-doc-nome="{{ _mn }}"
                                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       onclick="apriVisualizzatore(this)">
-                                <i class="bi bi-eye me-1"></i>Visualizza
+                                <i class="bi bi-eye"></i>
                               </button>
                               {% endif %}
+                              {# Scarica #}
                               <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                 class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download me-1"></i>Scarica
+                                 class="btn btn-outline-secondary btn-sm" title="Scarica">
+                                <i class="bi bi-download"></i>
                               </a>
+                              {# Copia con attestazione (solo PDF) #}
+                              {% if _mext == 'pdf' %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}">
+                                <button class="btn btn-outline-info btn-sm" title="Copia con attestazione">
+                                  <i class="bi bi-patch-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Firma per deposito #}
+                              {% if not pdoc.local_doc_firmato %}
+                              <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+                                      data-doc-id="{{ pdoc.local_doc_id }}"
+                                      data-doc-nome="{{ _mn }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      onclick="apriFirma(this)">
+                                <i class="bi bi-pen"></i>
+                              </button>
+                              {% endif %}
+                              {# Converti PDF/A #}
+                              {% if _mext == 'pdf' and not pdoc.local_doc_firmato %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                <button class="btn btn-outline-warning btn-sm" title="Converti in PDF/A-2B">
+                                  <i class="bi bi-file-earmark-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Elimina #}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                    onsubmit="return confirm('Eliminare il documento dal fascicolo?')">
+                                <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </form>
                             </div>
                             {% endif %}
                           </div>

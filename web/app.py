@@ -2210,6 +2210,7 @@ def create_app(config: dict | None = None) -> Flask:
                     "gia_importato": bool(docs_locali),
                     "local_doc_id": getattr(doc_locale, "id", "") if doc_locale else "",
                     "local_doc_nome": getattr(doc_locale, "nome", "") if doc_locale else "",
+                    "local_doc_firmato": bool(getattr(doc_locale, "firmato_digitalmente", False)) if doc_locale else False,
                     "local_doc_previewabile": bool(preview_info),
                 })
         return catalogo

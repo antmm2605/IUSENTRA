@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.27"
+VERSION = "1.5.28"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -5259,14 +5259,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pdp import ClientPDP, _WSDL_RICERCA_PENALE
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceUfficio": client._risolvi_codice(ufficio),
+                "codiceUfficio": _risolvi_codice_ufficio_pdp_runtime(ufficio),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_rg = str(data.get("numero_rg") or "").strip()
@@ -5287,7 +5284,7 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_pdp_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PDP ricerca: %s", e)
@@ -5310,11 +5307,8 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pdp import ClientPDP, _WSDL_CONSULTA_PENALE
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_PENALE,
                 operation_name="consultaDocumentiPenale",
@@ -5326,7 +5320,7 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_pdp_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PDP documenti: %s", e)
@@ -5344,14 +5338,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pat import ClientPAT, _WSDL_RICERCA_AMM
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceUfficio": client._risolvi_codice(ufficio),
+                "codiceUfficio": _risolvi_codice_ufficio_pat_runtime(ufficio),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
@@ -5372,7 +5363,7 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_pat_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PAT ricerca: %s", e)
@@ -5395,11 +5386,8 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pat import ClientPAT, _WSDL_CONSULTA_AMM
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_AMM,
                 operation_name="consultazioneDocumenti",
@@ -5411,7 +5399,7 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_pat_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PAT documenti: %s", e)
@@ -5429,14 +5417,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.sigit import ClientSIGIT, _WSDL_RICERCA_TRIB
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceCommissione": client._risolvi_codice(commissione),
+                "codiceCommissione": _risolvi_codice_commissione_ptt_runtime(commissione),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
@@ -5457,7 +5442,7 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_ptt_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PTT ricerca: %s", e)
@@ -5480,11 +5465,8 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.sigit import ClientSIGIT, _WSDL_CONSULTA_TRIB
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_TRIB,
                 operation_name="consultaDocumentiTributari",
@@ -5496,7 +5478,7 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_ptt_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PTT documenti: %s", e)

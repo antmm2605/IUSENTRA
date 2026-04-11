@@ -422,6 +422,8 @@ class ClientPAT:
                     mittente=str(getattr(item, "mittente", "") or ""),
                     dimensione_bytes=int(getattr(item, "dimensione", 0) or 0),
                     disponibile=bool(getattr(item, "disponibile", True)),
+                    id_deposito=str(getattr(item, "idDeposito", "") or ""),
+                    tipo_atto=str(getattr(item, "tipoAtto", "") or ""),
                 ))
         except (AttributeError, TypeError, ValueError):
             pass

@@ -55,12 +55,14 @@ def _local_signer_meta() -> dict[str, str]:
     version = match.group(1) if match else "n.d."
 
     # Determina il filename Windows mostrato in UI:
-    # se c'è il .exe IExpress → mostra .exe
-    # se c'è il .ps1 offline → mostra .ps1
-    # altrimenti → mostra .ps1 (online, generato al volo)
+    # CMD > EXE > PS1 offline > PS1 online (generato al volo)
+    win_cmd  = dist_dir / f"SetupLocalSigner-{version}.cmd"
     win_exe  = dist_dir / f"SetupLocalSigner-{version}.exe"
     win_ps1  = dist_dir / f"SetupLocalSigner-{version}.ps1"
-    if win_exe.exists():
+    if win_cmd.exists():
+        windows_filename = win_cmd.name
+        windows_tipo     = "cmd"
+    elif win_exe.exists():
         windows_filename = win_exe.name
         windows_tipo     = "exe"
     elif win_ps1.exists():

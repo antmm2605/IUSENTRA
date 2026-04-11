@@ -301,492 +301,355 @@
 </div>
 {% endif %}
 
+
 {# ════════════════════════════════════════ TAB: FIRMA DIGITALE #}
 {% if tab_attivo == 'firma' %}
+{% set backend_scelto = cfg.firma.backend_preferito_normalizzato %}
+{% set backend_effettivo = cfg.firma.backend_firma_effettivo_safe %}
+{% set backend_errore = cfg.firma.backend_firma_errore %}
+{% set fmt = backend_scelto if backend_scelto != 'auto' else (backend_effettivo if backend_effettivo != 'nessuno' else 'pkcs11') %}
+
 <div class="card border-0 shadow-sm" style="border-radius:18px;">
   <div class="card-body p-4">
-    <h6 class="fw-bold mb-1"><i class="bi bi-pen-fill text-primary me-2"></i>Firma Digitale</h6>
-    <p class="text-muted mb-3" style="font-size:.82rem;">
-      Configura un solo canale operativo: Aruba Key / Local Signer, oppure un certificato esportabile P12/PFX, oppure PEM.
-      La firma CAdES degli atti e l'accesso PST usano il canale che scegli qui.
-      Rilasciato da: Infocert, Namirial, Aruba, Poste Italiane, Intesa.
-      <a href="{{ url_for('guida_firma_digitale') }}" class="ms-1">
-        <i class="bi bi-book me-1"></i>Guida completa — come ottenerlo e configurarlo
-      </a>
-    </p>
-    <div class="alert alert-info py-2 small mb-4 d-flex gap-2">
-      <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
-      <div>
-        <strong>Non servono tutti i formati.</strong>
-        Se usi già <strong>Aruba Key</strong> con <strong>Local Signer</strong>, il container
-        non deve avere un file <code>P12</code>/<code>PEM</code>: la chiave resta sul token o
-        nel middleware locale del PC. I campi P12/PEM qui sotto servono solo a chi possiede
-        un certificato esportabile e vuole usarlo lato server/container.
-      </div>
-    </div>
 
-    {# Stato attuale #}
-    {% set backend_scelto = cfg.firma.backend_preferito_normalizzato %}
-    {% set backend_effettivo = cfg.firma.backend_firma_effettivo_safe %}
-    {% set backend_errore = cfg.firma.backend_firma_errore %}
-    {% set fmt = backend_scelto if backend_scelto != 'auto' else (backend_effettivo if backend_effettivo != 'nessuno' else 'p12') %}
-    <div class="alert alert-{{ 'warning' if backend_errore else ('success' if backend_effettivo != 'nessuno' else 'secondary') }} py-2 small mb-4">
-      <i class="bi bi-{{ 'exclamation-triangle-fill' if backend_errore else ('patch-check-fill' if backend_effettivo != 'nessuno' else 'exclamation-circle') }} me-2"></i>
+    {# ── Header con stato ── #}
+    <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+      <div>
+        <h6 class="fw-bold mb-1"><i class="bi bi-pen-fill text-primary me-2"></i>Firma Digitale</h6>
+        <p class="text-muted mb-0" style="font-size:.82rem;">
+          Configura il certificato per firmare gli atti e i depositi telematici.
+        </p>
+      </div>
       {% if backend_errore %}
-        <strong>Scelta salvata: {{ 'Token PKCS#11' if backend_scelto == 'pkcs11' else ('P12/PFX' if backend_scelto == 'p12' else ('PEM' if backend_scelto == 'pem' else 'Auto')) }}</strong>
-        — {{ backend_errore }}.
-        Finché non correggi la configurazione, HACS non passerà automaticamente ad altri backend.
-      {% elif backend_effettivo == 'pkcs11' %}
-        <strong>Scelta salvata: Token PKCS#11</strong> — backend operativo attivo.
-        Aruba Key / Local Signer restano il canale predefinito; eventuali file P12/PEM presenti non vengono usati finché non cambi impostazione.
-      {% elif backend_effettivo == 'p12' %}
-        <strong>Scelta salvata: P12/PFX</strong> — file operativo trovato su disco.
-      {% elif backend_effettivo == 'pem' %}
-        <strong>Scelta salvata: PEM</strong> — certificato + chiave operativi trovati su disco.
+      <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Da configurare</span>
+      {% elif backend_effettivo != 'nessuno' %}
+      <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Configurata</span>
       {% else %}
-        <strong>Nessun backend di firma attivo</strong> — salva una scelta qui sotto per uscire dalla modalità demo.
+      <span class="badge bg-secondary"><i class="bi bi-dash-circle me-1"></i>Non configurata</span>
       {% endif %}
     </div>
+
+    {% if backend_errore %}
+    <div class="alert alert-warning py-2 small mb-3 d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+      <span>{{ backend_errore }}</span>
+    </div>
+    {% endif %}
 
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="_tab" value="firma">
 
-      {# ── Selezione formato ── #}
-      <div class="mb-4">
-        <label class="form-label fw-semibold">
-          Formato certificato
-          <button type="button" class="btn-help"
-                  data-bs-toggle="popover"
-                  data-bs-title="P12/PFX vs PEM vs Token USB — quale scegliere?"
-                  data-bs-content="<ul><li><strong>P12/PFX</strong> — file unico con certificato e chiave (il più comune — Aruba, Infocert, Namirial, Poste).</li><li><strong>PEM</strong> — due file separati .crt + .key.</li><li><strong>Token PKCS#11 (Aruba Key)</strong> — chiave sul dispositivo USB, NON estraibile. Firma in-device: la chiave non lascia mai il token.</li></ul>">?</button>
-        </label>
-        <div class="d-flex gap-3 flex-wrap">
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_p12"
-                   value="p12" onchange="switchFirmaFmt('p12')"
-                   {{ 'checked' if fmt not in ('pem', 'pkcs11') }}>
-            <label class="form-check-label" for="fmt_p12">
-              <strong>P12 / PFX</strong>
-              <span class="text-muted small d-block">File unico .p12 o .pfx — il più comune</span>
-            </label>
-          </div>
-          <div class="form-check ms-4">
-            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pem"
-                   value="pem" onchange="switchFirmaFmt('pem')"
-                   {{ 'checked' if fmt == 'pem' }}>
-            <label class="form-check-label" for="fmt_pem">
-              <strong>PEM</strong>
-              <span class="text-muted small d-block">Due file separati (.crt + .key) — alcuni provider non rilasciano P12</span>
-            </label>
-          </div>
-          <div class="form-check ms-4">
-            <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pkcs11"
-                   value="pkcs11" onchange="switchFirmaFmt('pkcs11')"
-                   {{ 'checked' if fmt == 'pkcs11' }}>
-            <label class="form-check-label" for="fmt_pkcs11">
-              <strong>Token PKCS#11</strong>
-              <span class="text-muted small d-block">Aruba Key o altro token USB — chiave in-device, PIN richiesto al deposito</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {# ── Sezione P12 ── #}
-      <div id="sezione_p12" class="row g-3 {{ 'd-none' if fmt in ('pem', 'pkcs11') }}">
-        <div class="col-12">
-          <div class="alert alert-light border small mb-0">
-            <strong>Opzione server/container.</strong> Usala solo se possiedi già un file
-            <code>.p12</code>/<code>.pfx</code> esportabile. In alternativa, con Aruba Key è
-            preferibile il percorso <strong>Token PKCS#11 / Local Signer</strong>.
-          </div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Carica file P12/PFX nel container / volume dati</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-upload"></i></span>
-            <input type="file" name="firma_p12_file" class="form-control" accept=".p12,.pfx">
-          </div>
-          <div class="form-text">
-            Se selezioni un file qui, HACS lo salva nel volume dati e aggiorna automaticamente il percorso configurato.
-          </div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">
-            Percorso file P12/PFX
-            <button type="button" class="btn-help"
-                    data-bs-toggle="popover"
-                    data-bs-title="Dove mettere il file P12"
-                    data-bs-content="<p class='mb-1'><strong>Con Docker:</strong> monta il file nel volume <code>/data/config/</code> aggiungendo nel <code>docker-compose.yml</code>:</p><code>volumes:<br>&nbsp;&nbsp;- ./firma.p12:/data/config/firma.p12</code><p class='mb-0 mt-1'>Poi inserisci qui il percorso <code>/data/config/firma.p12</code>.</p>">?</button>
-          </label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-file-earmark-lock2"></i></span>
-            <input type="text" name="firma_p12_path" class="form-control font-monospace"
-                   value="{{ cfg.firma.p12_path }}"
-                   placeholder="/data/config/firma.p12">
-          </div>
-          <div class="form-text">
-            Percorso assoluto al file <code>.p12</code> o <code>.pfx</code> sul server.
-            Per Docker, monta il file nel volume <code>/data/config/</code>.
-          </div>
-        </div>
+      {# ── Scegli modalita ── #}
+      <label class="form-label fw-semibold mb-2">Come vuoi firmare?</label>
+      <div class="row g-3 mb-4">
+        {# Card: Token USB #}
         <div class="col-md-6">
-          <label class="form-label fw-semibold">Password P12</label>
-          <div class="input-group">
-            <input type="password" name="firma_password" id="firma_password" class="form-control font-monospace"
-                   placeholder="{{ '••••••••' if cfg.firma.password else 'Password non impostata' }}"
-                   autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_password',this)">
-              <i class="bi bi-eye"></i>
-            </button>
-          </div>
-          {% if cfg.firma.password %}
-          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
-          {% endif %}
-        </div>
-      </div>
-
-      {# ── Sezione PEM ── #}
-      <div id="sezione_pem" class="row g-3 {{ '' if fmt == 'pem' else 'd-none' }}">
-        <div class="col-12">
-          <div class="alert alert-info py-2 small">
-            <i class="bi bi-info-circle me-1"></i>
-            Usare questo formato se il tuo provider (es. Namirial, Aruba, InfoCert) rilascia
-            il certificato come due file separati <code>.crt</code> e <code>.key</code>
-            invece del classico file <code>.p12</code>.
-            Monta entrambi i file in <code>/data/config/</code>.
-          </div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Carica certificato PEM nel container / volume dati</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-upload"></i></span>
-            <input type="file" name="firma_cert_pem_file" class="form-control" accept=".crt,.cer,.pem">
-          </div>
-          <div class="form-text">
-            Facoltativo: se caricato qui, HACS salva il certificato nel volume dati e aggiorna il percorso.
-          </div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Percorso certificato (.crt / .pem)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
-            <input type="text" name="firma_cert_pem_path" class="form-control font-monospace"
-                   value="{{ cfg.firma.cert_pem_path }}"
-                   placeholder="/data/config/firma.crt">
-          </div>
-          <div class="form-text">File che contiene il certificato pubblico (può includere la chain CA).</div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Carica chiave privata PEM nel container / volume dati</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-upload"></i></span>
-            <input type="file" name="firma_key_pem_file" class="form-control" accept=".key,.pem">
-          </div>
-          <div class="form-text">
-            Facoltativo: se caricata qui, HACS salva la chiave nel volume dati e aggiorna il percorso.
-          </div>
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">Percorso chiave privata (.key / .pem)</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
-            <input type="text" name="firma_key_pem_path" class="form-control font-monospace"
-                   value="{{ cfg.firma.key_pem_path }}"
-                   placeholder="/data/config/firma.key">
-          </div>
-          <div class="form-text">File con la chiave privata RSA/EC. Può essere in chiaro o cifrata.</div>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold">Password chiave privata <span class="text-muted fw-normal">(se cifrata)</span></label>
-          <div class="input-group">
-            <input type="password" name="firma_key_pem_password" id="firma_key_pem_password"
-                   class="form-control font-monospace"
-                   placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Lascia vuoto se chiave non cifrata' }}"
-                   autocomplete="new-password">
-            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
-              <i class="bi bi-eye"></i>
-            </button>
-          </div>
-          {% if cfg.firma.key_pem_password %}
-          <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Password salvata · lascia vuoto per non cambiare</div>
-          {% endif %}
-        </div>
-      </div>
-
-      {# ── Sezione PKCS#11 (Token USB — Aruba Key) ── #}
-      <div id="sezione_pkcs11" class="row g-3 {{ '' if fmt == 'pkcs11' else 'd-none' }}">
-        <div class="col-12">
-          <div class="alert alert-primary py-2 small d-flex gap-2">
-            <i class="bi bi-usb-symbol flex-shrink-0 mt-1 fs-5"></i>
-            <div>
-              <strong>Firma in-device — chiave privata mai estratta dal token.</strong><br>
-              La firma avviene direttamente nell'Aruba Key (o altro token PKCS#11).
-              Il PIN viene chiesto all'utente ad ogni operazione di firma e non viene mai salvato.<br>
-              <strong>Per questa modalità non serve un P12/PEM nel container.</strong> Il token resta sul PC o sul server
-              che ospita il middleware PKCS#11, mentre HACS usa il canale locale previsto.<br>
-              <span class="text-muted">
-                Requisiti: <code>apt install pcscd opensc</code> sul server/Docker host ·
-                <code>pip install python-pkcs11 asn1crypto</code> ·
-                montare <code>/run/pcscd/pcscd.comm</code> nel container.
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="col-12">
-          <div class="card border-0 shadow-sm" style="border-radius:14px; background:rgba(var(--bs-primary-rgb),.05);">
+          <div class="card h-100 firma-card {{ 'border-primary' if fmt == 'pkcs11' else 'border' }}"
+               id="card_pkcs11"
+               style="border-radius:14px; cursor:pointer; border-width:2px !important;{{ ' background:rgba(var(--bs-primary-rgb),.04);' if fmt == 'pkcs11' }}"
+               onclick="scegliModalita('pkcs11')">
             <div class="card-body p-3">
-              <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
-                <div>
-                  <div class="fw-semibold mb-1">
-                    <i class="bi bi-download text-primary me-2"></i>Scarica Local Signer
-                  </div>
-                  <div class="text-muted small">
-                    Installer ufficiali v{{ local_signer.version }} per Windows, macOS e Linux.
-                    <strong>Basta un doppio clic</strong> — l'installazione è completamente automatica.
-                    {% if local_signer.windows_tipo == 'exe' %}
-                      Se Python non è presente sul PC viene scaricato e configurato automaticamente.
-                    {% endif %}
-                  </div>
-                </div>
-                <div class="d-flex gap-2 flex-wrap">
-                  <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
-                    v{{ local_signer.version }}
-                  </span>
-                  <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
-                    Consigliato per PST / PolisWeb
-                  </span>
-                </div>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input class="form-check-input mt-0" type="radio" name="firma_formato" id="fmt_pkcs11"
+                       value="pkcs11" {{ 'checked' if fmt == 'pkcs11' }}>
+                <span class="fw-bold">Token USB (Aruba Key)</span>
+                <span class="badge bg-primary-subtle text-primary-emphasis ms-auto" style="font-size:.7rem;">Consigliato</span>
               </div>
-              <div class="row g-2 mt-1">
-                <div class="col-md-4">
-                  <a href="{{ url_for('polis_local_signer_setup_windows') }}"
-                     class="btn btn-primary w-100"
-                     target="_blank" rel="noopener"
-                     id="btn-local-signer-windows">
-                    <i class="bi bi-windows me-2"></i>
-                    {% if local_signer.windows_tipo == 'exe' %}Installer Windows · v{{ local_signer.version }}
-                    {% elif local_signer.windows_tipo == 'ps1_offline' %}Installer Windows offline · v{{ local_signer.version }}
-                    {% else %}Script PowerShell Windows · v{{ local_signer.version }}{% endif %}
-                  </a>
-                  <div class="small text-muted mt-1 text-center">
-                    <code>{{ local_signer.windows_filename }}</code>
-                    <br><span class="text-success">Doppio clic per installare</span>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <a href="{{ url_for('polis_local_signer_setup_macos') }}"
-                     class="btn btn-outline-secondary w-100"
-                     target="_blank" rel="noopener"
-                     id="btn-local-signer-macos">
-                    <i class="bi bi-apple me-2"></i>Scarica per macOS · v{{ local_signer.version }}
-                  </a>
-                  <div class="small text-muted mt-1 text-center">
-                    <code>{{ local_signer.macos_filename }}</code>
-                    <br><span class="text-success">Doppio clic in Finder</span>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <a href="{{ url_for('polis_local_signer_setup_linux') }}"
-                     class="btn btn-outline-secondary w-100"
-                     target="_blank" rel="noopener"
-                     id="btn-local-signer-linux">
-                    <i class="bi bi-terminal me-2"></i>Scarica per Linux · v{{ local_signer.version }}
-                  </a>
-                  <div class="small text-muted mt-1 text-center">
-                    <code>{{ local_signer.linux_filename }}</code>
-                    <br><span class="text-success">Esegui con: <code>bash {{ local_signer.linux_filename }}</code></span>
-                  </div>
-                </div>
-              </div>
-              <div class="alert alert-light border rounded-3 mt-3 mb-0 small">
-                <div class="fw-semibold mb-1">
-                  Versione corrente pubblicata: v{{ local_signer.version }}
-                </div>
-                <div class="mb-1">
-                  Pacchetti eseguibili ufficiali sempre allineati:
-                  <code>{{ local_signer.windows_filename }}</code>,
-                  <code>{{ local_signer.macos_filename }}</code>,
-                  <code>{{ local_signer.linux_filename }}</code>.
-                </div>
-                <div class="text-muted">
-                  Il punto ufficiale e permanente di distribuzione resta:
-                  <a href="{{ local_signer.download_page }}" target="_blank" rel="noopener">{{ local_signer.download_page }}</a>
-                </div>
-              </div>
-              <div class="small text-muted mt-2">
-                Pacchetti pubblicati:
-                <code>{{ local_signer.windows_filename }}</code>,
-                <code>{{ local_signer.macos_filename }}</code>,
-                <code>{{ local_signer.linux_filename }}</code>.
-                Su macOS e Linux vengono distribuiti come installer eseguibili rispettivamente
-                <code>.command</code> e <code>.run</code>.
-              </div>
-              <div class="d-flex gap-2 flex-wrap mt-3">
-                <a href="{{ url_for('polis_local_signer_download') }}"
-                   class="btn btn-sm btn-outline-secondary"
-                   target="_blank" rel="noopener">
-                  <i class="bi bi-filetype-py me-1"></i>Script Python manuale
-                </a>
-                <a href="{{ url_for('polis_local_signer_download_uffici') }}"
-                   class="btn btn-sm btn-outline-secondary"
-                   target="_blank" rel="noopener">
-                  <i class="bi bi-building me-1"></i>Registro uffici PST
-                </a>
-                <a href="{{ url_for('polisWeb_home') }}"
-                   class="btn btn-sm btn-outline-secondary">
-                  <i class="bi bi-shield-check me-1"></i>Apri PolisWeb
-                </a>
-              </div>
+              <p class="text-muted small mb-0">
+                Firma direttamente dal dispositivo USB.<br>
+                La chiave privata non lascia mai il token.
+              </p>
             </div>
           </div>
         </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold">
-            Libreria PKCS#11 (.so / .dll)
-            <button type="button" class="btn-help"
-                    data-bs-toggle="popover"
-                    data-bs-title="Percorso alla libreria PKCS#11"
-                    data-bs-content="<p>Su Windows con <strong>Local Signer</strong> lascia normalmente il campo vuoto: HACS prova l'auto-rilevamento della DLL del token (es. <code>bit4xpki.dll</code>).</p><p>Compila questo campo solo se vuoi forzare una libreria specifica oppure se stai usando PKCS#11 lato server/container.</p><p>Esempio Linux/OpenSC: <code>/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so</code></p>">?</button>
-          </label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-hdd-rack"></i></span>
-            <input type="text" name="pkcs11_library" class="form-control font-monospace"
-                   value="{{ cfg.firma.pkcs11_library }}"
-                   placeholder="bit4xpki.dll o opensc-pkcs11.so (auto se vuoto)">
+        {# Card: Certificato P12 #}
+        <div class="col-md-6">
+          <div class="card h-100 firma-card {{ 'border-primary' if fmt == 'p12' else 'border' }}"
+               id="card_p12"
+               style="border-radius:14px; cursor:pointer; border-width:2px !important;{{ ' background:rgba(var(--bs-primary-rgb),.04);' if fmt == 'p12' }}"
+               onclick="scegliModalita('p12')">
+            <div class="card-body p-3">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <input class="form-check-input mt-0" type="radio" name="firma_formato" id="fmt_p12"
+                       value="p12" {{ 'checked' if fmt not in ('pem', 'pkcs11') }}>
+                <span class="fw-bold">Certificato P12 / PFX</span>
+              </div>
+              <p class="text-muted small mb-0">
+                File certificato rilasciato dal tuo provider<br>
+                (Aruba, Infocert, Namirial, Poste).
+              </p>
+            </div>
           </div>
-          <div class="form-text">Su Windows con Local Signer lascia vuoto: l'auto-rilevamento prova la DLL del token. Su Linux/macOS puoi indicare una libreria OpenSC se ti serve forzarla.</div>
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Slot ID <span class="text-muted fw-normal">(opzionale)</span></label>
-          <input type="number" name="pkcs11_slot" class="form-control font-monospace"
-                 value="{{ cfg.firma.pkcs11_slot }}" min="0"
-                 placeholder="0 (primo slot disponibile)">
-          <div class="form-text">Default: primo slot con token inserito.</div>
+      </div>
+
+      {# ── Sezione Token USB ── #}
+      <div id="sezione_pkcs11" class="{{ '' if fmt == 'pkcs11' else 'd-none' }}">
+        <div class="card border-0 mb-3" style="border-radius:14px; background:rgba(var(--bs-primary-rgb),.04);">
+          <div class="card-body p-3">
+            <div class="fw-semibold mb-1">
+              <i class="bi bi-download text-primary me-2"></i>Installa Local Signer
+            </div>
+            <p class="text-muted small mb-3">
+              Scarica e installa con un doppio clic. Connette il tuo dispositivo USB ad HACS.
+            </p>
+            <div class="row g-2">
+              <div class="col-md-4">
+                <a href="{{ url_for('polis_local_signer_setup_windows') }}"
+                   class="btn btn-primary btn-sm w-100" target="_blank" rel="noopener"
+                   id="btn-local-signer-windows">
+                  <i class="bi bi-windows me-2"></i>Windows
+                </a>
+              </div>
+              <div class="col-md-4">
+                <a href="{{ url_for('polis_local_signer_setup_macos') }}"
+                   class="btn btn-outline-secondary btn-sm w-100" target="_blank" rel="noopener"
+                   id="btn-local-signer-macos">
+                  <i class="bi bi-apple me-2"></i>macOS
+                </a>
+              </div>
+              <div class="col-md-4">
+                <a href="{{ url_for('polis_local_signer_setup_linux') }}"
+                   class="btn btn-outline-secondary btn-sm w-100" target="_blank" rel="noopener"
+                   id="btn-local-signer-linux">
+                  <i class="bi bi-terminal me-2"></i>Linux
+                </a>
+              </div>
+            </div>
+            <div class="text-muted mt-2" style="font-size:.75rem;">
+              v{{ local_signer.version }} · Doppio clic per installare
+            </div>
+          </div>
         </div>
-        <div class="col-md-8">
-          <label class="form-label fw-semibold">Etichetta certificato <span class="text-muted fw-normal">(opzionale)</span></label>
-          <input type="text" name="pkcs11_label" class="form-control font-monospace"
-                 value="{{ cfg.firma.pkcs11_label }}"
-                 placeholder="es. 'Firma qualificata' — lascia vuoto per usare il primo certificato">
-          <div class="form-text">Utile se il token contiene più certificati (firma + autenticazione).</div>
-        </div>
-        <div class="col-12">
+        <div class="d-flex gap-2 align-items-center mb-3">
           <button type="button" class="btn btn-outline-secondary btn-sm" id="btnTestPkcs11"
                   onclick="testaPkcs11()">
             <i class="bi bi-usb-symbol me-1"></i>Verifica token collegato
           </button>
-          <div id="pkcs11TestResult" class="mt-2 small"></div>
+          <span id="pkcs11TestResult" class="small"></span>
         </div>
       </div>
 
-      {# ── Codice Fiscale (comune a tutti i formati) ── #}
-      <div class="row g-3 mt-1">
+      {# ── Sezione P12 ── #}
+      <div id="sezione_p12" class="{{ '' if fmt == 'p12' else 'd-none' }}">
+        <div class="row g-3 mb-3">
+          <div class="col-md-7">
+            <label class="form-label fw-semibold">Carica certificato .p12 / .pfx</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-upload"></i></span>
+              <input type="file" name="firma_p12_file" class="form-control" accept=".p12,.pfx">
+            </div>
+            {% if cfg.firma.p12_path %}
+            <div class="form-text text-success">
+              <i class="bi bi-check-circle me-1"></i>Certificato presente
+            </div>
+            {% else %}
+            <div class="form-text">Seleziona il file .p12 o .pfx rilasciato dal tuo provider.</div>
+            {% endif %}
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Password certificato</label>
+            <div class="input-group">
+              <input type="password" name="firma_password" id="firma_password" class="form-control font-monospace"
+                     placeholder="{{ '••••••••' if cfg.firma.password else 'Password del certificato' }}"
+                     autocomplete="new-password">
+              <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_password',this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% if cfg.firma.password %}
+            <div class="form-text text-success"><i class="bi bi-lock-fill me-1"></i>Salvata · lascia vuoto per non cambiare</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# Campi nascosti per preservare i valori esistenti al salvataggio #}
+      <input type="hidden" name="firma_p12_path" value="{{ cfg.firma.p12_path }}">
+      <input type="hidden" name="firma_cert_pem_path" value="{{ cfg.firma.cert_pem_path }}">
+      <input type="hidden" name="firma_key_pem_path" value="{{ cfg.firma.key_pem_path }}">
+
+      {# ── Codice Fiscale ── #}
+      <div class="row g-3 mb-3">
         <div class="col-md-6">
-          <label class="form-label fw-semibold">
-            Codice Fiscale Avvocato
-            <button type="button" class="btn-help"
-                    data-bs-toggle="popover"
-                    data-bs-title="CF nel certificato di firma"
-                    data-bs-content="<strong>Deve corrispondere esattamente</strong> al codice fiscale codificato nel certificato di firma digitale. Se non corrispondono, il PST rifiuta il deposito con errore di autenticazione.<br><br>Per verificare il CF nel tuo certificato, aprilo con un gestore certificati (es. Keychain su Mac, Gestore certificati su Windows) e controlla il campo <em>Subject</em>.">?</button>
-          </label>
+          <label class="form-label fw-semibold">Codice Fiscale Avvocato</label>
           <input type="text" name="firma_cf_avvocato" class="form-control font-monospace text-uppercase"
                  value="{{ cfg.firma.cf_avvocato }}" placeholder="RSSMRA80A01H501Z" maxlength="16">
-          <div class="form-text">Deve corrispondere al CF nel certificato di firma.</div>
+          <div class="form-text">Deve corrispondere al CF nel certificato di firma digitale.</div>
         </div>
       </div>
 
-      <div class="alert alert-warning mt-4 d-flex gap-2" style="border-radius:12px; font-size:.82rem;">
-        <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
-        <div>
-          <strong>Rinnovo certificato:</strong> I certificati di firma digitale scadono ogni 3 anni.
-          Verifica la scadenza sul portale del tuo provider e rinnova prima del termine.
-        </div>
-      </div>
-
-      <div class="d-flex gap-2 mt-2">
+      {# ── Pulsanti ── #}
+      <div class="d-flex gap-2 mt-3 mb-2">
         <button type="submit" class="btn btn-primary">
           <i class="bi bi-floppy me-2"></i>Salva configurazione firma
         </button>
+        <a href="{{ url_for('guida_firma_digitale') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-book me-1"></i>Guida
+        </a>
       </div>
+
+      {# ── Impostazioni avanzate (PEM, parametri PKCS#11) ── #}
+      <div class="mt-4 pt-3 border-top">
+        <a class="text-muted small text-decoration-none" data-bs-toggle="collapse"
+           href="#avanzate-firma" role="button"
+           aria-expanded="{{ 'true' if fmt == 'pem' else 'false' }}"
+           aria-controls="avanzate-firma">
+          <i class="bi bi-gear me-1"></i>Impostazioni avanzate
+          <i class="bi bi-chevron-down ms-1" style="font-size:.7rem;"></i>
+        </a>
+        <div class="collapse {{ 'show' if fmt == 'pem' }}" id="avanzate-firma">
+          <div class="mt-3">
+
+            {# Formato PEM #}
+            <div class="card border mb-3" style="border-radius:12px;">
+              <div class="card-body p-3">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="radio" name="firma_formato" id="fmt_pem"
+                         value="pem" onchange="scegliModalita('pem')"
+                         {{ 'checked' if fmt == 'pem' }}>
+                  <label class="form-check-label fw-semibold" for="fmt_pem">
+                    Certificato PEM (file .crt + .key separati)
+                  </label>
+                </div>
+                <div id="sezione_pem" class="{{ '' if fmt == 'pem' else 'd-none' }}">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Certificato (.crt / .pem)</label>
+                      <input type="file" name="firma_cert_pem_file" class="form-control form-control-sm" accept=".crt,.cer,.pem">
+                      {% if cfg.firma.cert_pem_path %}
+                      <div class="form-text text-success"><i class="bi bi-check-circle me-1"></i>Presente</div>
+                      {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Chiave privata (.key / .pem)</label>
+                      <input type="file" name="firma_key_pem_file" class="form-control form-control-sm" accept=".key,.pem">
+                      {% if cfg.firma.key_pem_path %}
+                      <div class="form-text text-success"><i class="bi bi-check-circle me-1"></i>Presente</div>
+                      {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold">Password chiave <span class="text-muted fw-normal">(se cifrata)</span></label>
+                      <div class="input-group input-group-sm">
+                        <input type="password" name="firma_key_pem_password" id="firma_key_pem_password"
+                               class="form-control font-monospace"
+                               placeholder="{{ '••••••••' if cfg.firma.key_pem_password else 'Vuoto se non cifrata' }}"
+                               autocomplete="new-password">
+                        <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('firma_key_pem_password',this)">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {# Parametri PKCS#11 #}
+            <div class="card border mb-3" style="border-radius:12px;">
+              <div class="card-body p-3">
+                <div class="fw-semibold mb-2" style="font-size:.85rem;">
+                  <i class="bi bi-sliders me-1 text-muted"></i>Parametri token USB
+                </div>
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label small fw-semibold">Libreria PKCS#11</label>
+                    <input type="text" name="pkcs11_library" class="form-control form-control-sm font-monospace"
+                           value="{{ cfg.firma.pkcs11_library }}"
+                           placeholder="Lascia vuoto per rilevamento automatico">
+                    <div class="form-text">Compila solo se il rilevamento automatico non funziona.</div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Slot ID</label>
+                    <input type="number" name="pkcs11_slot" class="form-control form-control-sm font-monospace"
+                           value="{{ cfg.firma.pkcs11_slot }}" min="0" placeholder="Auto">
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label small fw-semibold">Etichetta certificato</label>
+                    <input type="text" name="pkcs11_label" class="form-control form-control-sm font-monospace"
+                           value="{{ cfg.firma.pkcs11_label }}"
+                           placeholder="Auto (primo certificato disponibile)">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-muted small">
+              <i class="bi bi-info-circle me-1"></i>
+              I certificati di firma scadono ogni 3 anni. Verifica la scadenza sul portale del tuo provider.
+            </div>
+          </div>
+        </div>
+      </div>
+
     </form>
   </div>
 </div>
 
 <script>
-function switchFirmaFmt(fmt) {
-  document.getElementById('sezione_p12').classList.toggle('d-none', fmt !== 'p12');
-  document.getElementById('sezione_pem').classList.toggle('d-none', fmt !== 'pem');
-  document.getElementById('sezione_pkcs11').classList.toggle('d-none', fmt !== 'pkcs11');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const ua = (navigator.userAgent || '').toLowerCase();
-  let piattaforma = '';
-  if (ua.includes('windows')) piattaforma = 'windows';
-  else if (ua.includes('mac os') || ua.includes('macintosh')) piattaforma = 'macos';
-  else if (ua.includes('linux')) piattaforma = 'linux';
-
-  if (!piattaforma) return;
-
-  const mapping = {
-    windows: {
-      id: 'btn-local-signer-windows',
-      primary: 'btn-primary',
-      secondary: 'btn-outline-secondary',
-      label: 'Scarica per Windows · v{{ local_signer.version }} (consigliato su questo PC)',
-    },
-    macos: {
-      id: 'btn-local-signer-macos',
-      primary: 'btn-primary',
-      secondary: 'btn-outline-secondary',
-      label: 'Scarica per macOS · v{{ local_signer.version }} (consigliato su questo Mac)',
-    },
-    linux: {
-      id: 'btn-local-signer-linux',
-      primary: 'btn-primary',
-      secondary: 'btn-outline-secondary',
-      label: 'Scarica per Linux · v{{ local_signer.version }} (consigliato su questo sistema)',
-    },
-  };
-
-  Object.entries(mapping).forEach(([key, cfg]) => {
-    const el = document.getElementById(cfg.id);
-    if (!el) return;
-    el.classList.remove(cfg.primary, cfg.secondary);
-    if (key === piattaforma) {
-      el.classList.add(cfg.primary);
-      el.innerHTML = el.innerHTML.replace(/Scarica per .*?(?=<|$)/, cfg.label);
-    } else {
-      el.classList.add(cfg.secondary);
+function scegliModalita(fmt) {
+  document.querySelectorAll('input[name="firma_formato"]').forEach(function(r) {
+    r.checked = (r.value === fmt);
+  });
+  ['pkcs11', 'p12', 'pem'].forEach(function(k) {
+    var el = document.getElementById('sezione_' + k);
+    if (el) el.classList.toggle('d-none', k !== fmt);
+  });
+  document.querySelectorAll('.firma-card').forEach(function(c) {
+    c.classList.remove('border-primary');
+    c.classList.add('border');
+    c.style.background = '';
+  });
+  var card = document.getElementById('card_' + fmt);
+  if (card) {
+    card.classList.remove('border');
+    card.classList.add('border-primary');
+    card.style.background = 'rgba(var(--bs-primary-rgb),.04)';
+  }
+  if (fmt === 'pem') {
+    var av = document.getElementById('avanzate-firma');
+    if (av && !av.classList.contains('show')) {
+      new bootstrap.Collapse(av, {toggle: true});
     }
+  }
+}
+function switchFirmaFmt(fmt) { scegliModalita(fmt); }
+
+document.addEventListener('DOMContentLoaded', function() {
+  var ua = (navigator.userAgent || '').toLowerCase();
+  var p = '';
+  if (ua.indexOf('windows') !== -1) p = 'windows';
+  else if (ua.indexOf('mac os') !== -1 || ua.indexOf('macintosh') !== -1) p = 'macos';
+  else if (ua.indexOf('linux') !== -1) p = 'linux';
+  if (!p) return;
+  var m = {windows: 'btn-local-signer-windows', macos: 'btn-local-signer-macos', linux: 'btn-local-signer-linux'};
+  Object.keys(m).forEach(function(k) {
+    var el = document.getElementById(m[k]);
+    if (!el) return;
+    el.classList.remove('btn-primary', 'btn-outline-secondary');
+    el.classList.add(k === p ? 'btn-primary' : 'btn-outline-secondary');
   });
 });
 
 function testaPkcs11() {
-  const btn = document.getElementById('btnTestPkcs11');
-  const res = document.getElementById('pkcs11TestResult');
+  var btn = document.getElementById('btnTestPkcs11');
+  var res = document.getElementById('pkcs11TestResult');
   btn.disabled = true;
-  res.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Ricerca token in corso…</span>';
+  res.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Verifica in corso...</span>';
   fetch('/api/firma/pkcs11/status')
-    .then(r => r.json())
-    .then(d => {
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
       if (d.disponibile && d.token && d.token.length > 0) {
-        const tok = d.token[0];
-        res.innerHTML = `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>
-          Token rilevato: <strong>${tok.label || tok.manufacturer}</strong>
-          (slot ${tok.slot_id}) · cert: ${tok.ha_cert ? 'sì' : 'no'}
-        </span>`;
+        var tok = d.token[0];
+        res.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Token rilevato: <strong>' + (tok.label || tok.manufacturer) + '</strong></span>';
       } else if (d.disponibile) {
-        res.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>
-          Libreria PKCS#11 ok (${d.libreria}) ma nessun token inserito.
-          Inserire Aruba Key e riprovare.
-        </span>`;
+        res.innerHTML = '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Nessun token inserito. Collega il dispositivo e riprova.</span>';
       } else {
-        res.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${d.messaggio}</span>`;
+        res.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>' + d.messaggio + '</span>';
       }
     })
-    .catch(e => { res.innerHTML = `<span class="text-danger">Errore: ${e}</span>`; })
-    .finally(() => { btn.disabled = false; });
+    .catch(function(e) { res.innerHTML = '<span class="text-danger">Errore: ' + e + '</span>'; })
+    .finally(function() { btn.disabled = false; });
 }
 </script>
 {% endif %}

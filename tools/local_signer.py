@@ -58,7 +58,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from email import policy
 from email.parser import BytesParser
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -609,6 +609,215 @@ def _estrai_codice_fiscale_testo(valore: str) -> str:
 def _parse_optional_int(value: Any) -> Optional[int]:
     text = str(value or "").strip()
     return int(text) if text.isdigit() else None
+
+
+def _parse_portale_data(valore: Any) -> str:
+    if not valore:
+        return ""
+    if isinstance(valore, (date, datetime)):
+        return valore.strftime("%Y-%m-%d")
+    return str(valore)[:10]
+
+
+def _parse_portale_lista(
+    valore: Any,
+    *,
+    container_attrs: tuple[str, ...],
+    value_attrs: tuple[str, ...] = ("nominativo",),
+) -> list[str]:
+    if not valore:
+        return []
+    if isinstance(valore, list):
+        return [str(v) for v in valore if str(v).strip()]
+
+    for attr in container_attrs:
+        if not hasattr(valore, attr):
+            continue
+        items = getattr(valore, attr)
+        if not isinstance(items, list):
+            items = [items]
+        risultati: list[str] = []
+        for item in items:
+            if item is None:
+                continue
+            testo = ""
+            for value_attr in value_attrs:
+                candidato = getattr(item, value_attr, None)
+                if candidato:
+                    testo = str(candidato)
+                    break
+            risultati.append(testo or str(item))
+        return risultati
+
+    return [str(valore)]
+
+
+def _portale_items(risposta: Any, plural_attr: str, singular_attr: str) -> list[Any]:
+    items = getattr(risposta, plural_attr, None) or getattr(risposta, singular_attr, None) or []
+    if not isinstance(items, list):
+        items = [items]
+    return [item for item in items if item is not None]
+
+
+def _parse_pdp_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "fascicoli", "fascicolo"):
+            fascicoli.append({
+                "numero_rg": str(getattr(item, "numeroRG", "") or ""),
+                "anno_rg": int(getattr(item, "annoRG", 0) or 0),
+                "tipo_registro": str(getattr(item, "tipoRegistro", "RGNR") or ""),
+                "fase": str(getattr(item, "fase", "INDAGINI") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "reato": str(getattr(item, "reato", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice": str(getattr(item, "giudice", "") or ""),
+                "data_iscrizione": _parse_portale_data(getattr(item, "dataIscrizione", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "imputati": _parse_portale_lista(
+                    getattr(item, "imputati", None),
+                    container_attrs=("imputato", "parte", "soggetto"),
+                ),
+                "parti_offese": _parse_portale_lista(
+                    getattr(item, "partiOffese", None),
+                    container_attrs=("parte", "soggetto", "imputato"),
+                ),
+                "codice_ufficio": str(getattr(item, "codiceUfficio", "") or ""),
+                "nome_ufficio": str(getattr(item, "nomeUfficio", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_pdp_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
+
+
+def _parse_pat_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "ricorsi", "ricorso"):
+            fascicoli.append({
+                "numero_ricorso": str(getattr(item, "numeroRicorso", "") or ""),
+                "anno": int(getattr(item, "anno", 0) or 0),
+                "tipo": str(getattr(item, "tipo", "RICORSO") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "materia": str(getattr(item, "materia", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice_relatore": str(getattr(item, "giudiceRelatore", "") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "ricorrenti": _parse_portale_lista(
+                    getattr(item, "ricorrenti", None),
+                    container_attrs=("soggetto", "parte", "ricorrente"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "resistenti": _parse_portale_lista(
+                    getattr(item, "resistenti", None),
+                    container_attrs=("soggetto", "parte", "resistente"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "controinteressati": _parse_portale_lista(
+                    getattr(item, "controinteressati", None),
+                    container_attrs=("soggetto", "parte"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "oggetto": str(getattr(item, "oggetto", "") or ""),
+                "codice_ufficio": str(getattr(item, "codiceUfficio", "") or ""),
+                "nome_ufficio": str(getattr(item, "nomeUfficio", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_pat_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
+
+
+def _parse_ptt_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "fascicoli", "fascicolo"):
+            fascicoli.append({
+                "numero_rgt": str(getattr(item, "numeroRGT", "") or ""),
+                "anno_rgt": int(getattr(item, "annoRGT", 0) or 0),
+                "tipo": str(getattr(item, "tipoRicorso", "RICORSO") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "materia": str(getattr(item, "materia", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice_relatore": str(getattr(item, "giudiceRelatore", "") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "ricorrenti": _parse_portale_lista(
+                    getattr(item, "ricorrenti", None),
+                    container_attrs=("ricorrente", "soggetto", "parte"),
+                ),
+                "resistenti": _parse_portale_lista(
+                    getattr(item, "resistenti", None),
+                    container_attrs=("resistente", "soggetto", "parte"),
+                ),
+                "oggetto_controversia": str(getattr(item, "oggettoControversia", "") or ""),
+                "valore_controversia": float(getattr(item, "valoreControversia", 0.0) or 0.0),
+                "codice_commissione": str(getattr(item, "codiceCommissione", "") or ""),
+                "nome_commissione": str(getattr(item, "nomeCommissione", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_ptt_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
 
 
 def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:

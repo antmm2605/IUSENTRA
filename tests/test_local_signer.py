@@ -2293,7 +2293,6 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
 
 def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
     module = _load_local_signer()
-    import pct.pdp as pdp_module
 
     captured = {}
     originals = {
@@ -2301,8 +2300,8 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
-        "_parse_fascicoli": pdp_module.ClientPDP._parse_fascicoli,
-        "_risolvi_codice": pdp_module.ClientPDP._risolvi_codice,
+        "_parse_pdp_fascicoli_response": module._parse_pdp_fascicoli_response,
+        "_risolvi_codice_ufficio_pdp_runtime": module._risolvi_codice_ufficio_pdp_runtime,
     }
 
     class _FakeHandler:
@@ -2325,20 +2324,20 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
-        pdp_module.ClientPDP._risolvi_codice = lambda self, ufficio: "0580010"
-        pdp_module.ClientPDP._parse_fascicoli = lambda self, risposta: [
-            pdp_module.FascicoloPDP(
-                numero_rg="4521",
-                anno_rg=2026,
-                tipo_registro="RGNR",
-                fase="INDAGINI",
-                stato="PENDENTE",
-                reato="Truffa",
-                codice_ufficio="0580010",
-                nome_ufficio="Procura di Reggio Calabria",
-                imputati=["Mario Rossi"],
-                parti_offese=["Parte Offesa"],
-            )
+        module._risolvi_codice_ufficio_pdp_runtime = lambda ufficio: "0580010"
+        module._parse_pdp_fascicoli_response = lambda risposta: [
+            {
+                "numero_rg": "4521",
+                "anno_rg": 2026,
+                "tipo_registro": "RGNR",
+                "fase": "INDAGINI",
+                "stato": "PENDENTE",
+                "reato": "Truffa",
+                "codice_ufficio": "0580010",
+                "nome_ufficio": "Procura di Reggio Calabria",
+                "imputati": ["Mario Rossi"],
+                "parti_offese": ["Parte Offesa"],
+            }
         ]
 
         module._Handler._pdp_ricerca(_FakeHandler())
@@ -2347,8 +2346,8 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
-        pdp_module.ClientPDP._parse_fascicoli = originals["_parse_fascicoli"]
-        pdp_module.ClientPDP._risolvi_codice = originals["_risolvi_codice"]
+        module._parse_pdp_fascicoli_response = originals["_parse_pdp_fascicoli_response"]
+        module._risolvi_codice_ufficio_pdp_runtime = originals["_risolvi_codice_ufficio_pdp_runtime"]
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
@@ -2360,7 +2359,6 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
 
 def test_pat_documenti_local_signer_restituisce_documenti_parsati():
     module = _load_local_signer()
-    import pct.pat as pat_module
 
     captured = {}
     originals = {
@@ -2368,7 +2366,7 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
-        "_parse_documenti": pat_module.ClientPAT._parse_documenti,
+        "_parse_pat_documenti_response": module._parse_pat_documenti_response,
     }
 
     class _FakeHandler:
@@ -2389,16 +2387,16 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
-        pat_module.ClientPAT._parse_documenti = lambda self, risposta: [
-            pat_module.DocumentoPAT(
-                id_documento="PAT-001",
-                nome="Ricorso.pdf",
-                tipo="RICORSO",
-                data_deposito="2026-03-11",
-                mittente="Studio Rossi",
-                id_deposito="BUSTA-PAT-001",
-                tipo_atto="Ricorso",
-            )
+        module._parse_pat_documenti_response = lambda risposta: [
+            {
+                "id_documento": "PAT-001",
+                "nome": "Ricorso.pdf",
+                "tipo": "RICORSO",
+                "data_deposito": "2026-03-11",
+                "mittente": "Studio Rossi",
+                "id_deposito": "BUSTA-PAT-001",
+                "tipo_atto": "Ricorso",
+            }
         ]
 
         module._Handler._pat_documenti(_FakeHandler())
@@ -2407,7 +2405,7 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
-        pat_module.ClientPAT._parse_documenti = originals["_parse_documenti"]
+        module._parse_pat_documenti_response = originals["_parse_pat_documenti_response"]
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
@@ -2418,7 +2416,6 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
 
 def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
     module = _load_local_signer()
-    import pct.sigit as sigit_module
 
     captured = {}
     originals = {
@@ -2426,8 +2423,8 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
-        "_parse_fascicoli": sigit_module.ClientSIGIT._parse_fascicoli,
-        "_risolvi_codice": sigit_module.ClientSIGIT._risolvi_codice,
+        "_parse_ptt_fascicoli_response": module._parse_ptt_fascicoli_response,
+        "_risolvi_codice_commissione_ptt_runtime": module._risolvi_codice_commissione_ptt_runtime,
     }
 
     class _FakeHandler:
@@ -2450,19 +2447,19 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
-        sigit_module.ClientSIGIT._risolvi_codice = lambda self, commissione: "CPT030000"
-        sigit_module.ClientSIGIT._parse_fascicoli = lambda self, risposta: [
-            sigit_module.FascicoloSIGIT(
-                numero_rgt="1234",
-                anno_rgt=2026,
-                tipo="RICORSO",
-                stato="PENDENTE",
-                materia="IVA",
-                ricorrenti=["Mario Rossi"],
-                resistenti=["Agenzia Entrate"],
-                codice_commissione="CPT030000",
-                nome_commissione="CPT Milano",
-            )
+        module._risolvi_codice_commissione_ptt_runtime = lambda commissione: "CPT030000"
+        module._parse_ptt_fascicoli_response = lambda risposta: [
+            {
+                "numero_rgt": "1234",
+                "anno_rgt": 2026,
+                "tipo": "RICORSO",
+                "stato": "PENDENTE",
+                "materia": "IVA",
+                "ricorrenti": ["Mario Rossi"],
+                "resistenti": ["Agenzia Entrate"],
+                "codice_commissione": "CPT030000",
+                "nome_commissione": "CPT Milano",
+            }
         ]
 
         module._Handler._ptt_ricerca(_FakeHandler())
@@ -2471,11 +2468,63 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
-        sigit_module.ClientSIGIT._parse_fascicoli = originals["_parse_fascicoli"]
-        sigit_module.ClientSIGIT._risolvi_codice = originals["_risolvi_codice"]
+        module._parse_ptt_fascicoli_response = originals["_parse_ptt_fascicoli_response"]
+        module._risolvi_codice_commissione_ptt_runtime = originals["_risolvi_codice_commissione_ptt_runtime"]
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["codice_commissione"] == "CPT030000"
     assert captured["bridge"]["operation_name"] == "ricercaFascicoliTributari"
     assert captured["bridge"]["payload"]["codiceCommissione"] == "CPT030000"
+
+
+def test_parse_pdp_documenti_response_popola_campi_busta():
+    module = _load_local_signer()
+
+    risposta = SimpleNamespace(
+        documenti=[
+            SimpleNamespace(
+                idDocumento="PDP-001",
+                nomeFile="Memoria.pdf",
+                tipoDocumento="MEMORIA",
+                dataDeposito="2026-04-11T09:30:00",
+                mittente="Studio Rossi",
+                dimensione=2048,
+                disponibile=True,
+                idDeposito="BUSTA-PDP-001",
+                tipoAtto="Memoria",
+            )
+        ]
+    )
+
+    parsed = module._parse_pdp_documenti_response(risposta)
+
+    assert parsed[0]["id_documento"] == "PDP-001"
+    assert parsed[0]["id_deposito"] == "BUSTA-PDP-001"
+    assert parsed[0]["tipo_atto"] == "Memoria"
+
+
+def test_parse_pat_documenti_response_popola_campi_busta():
+    module = _load_local_signer()
+
+    risposta = SimpleNamespace(
+        documenti=[
+            SimpleNamespace(
+                idDocumento="PAT-001",
+                nomeFile="Ricorso.pdf",
+                tipoDocumento="RICORSO",
+                dataDeposito="2026-04-11T09:30:00",
+                mittente="Studio Rossi",
+                dimensione=4096,
+                disponibile=True,
+                idDeposito="BUSTA-PAT-001",
+                tipoAtto="Ricorso",
+            )
+        ]
+    )
+
+    parsed = module._parse_pat_documenti_response(risposta)
+
+    assert parsed[0]["id_documento"] == "PAT-001"
+    assert parsed[0]["id_deposito"] == "BUSTA-PAT-001"
+    assert parsed[0]["tipo_atto"] == "Ricorso"

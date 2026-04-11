@@ -47,19 +47,44 @@ function Write-Step([string]$Message) {
     Write-InstallerLog $Message
 }
 
+function Test-PythonWorks([string]$Cmd) {
+    # Verifica che il candidato Python esegua davvero codice (non sia un alias Store)
+    try {
+        $out = & cmd /c "$Cmd -c `"print('ok')`" 2>&1"
+        if ($LASTEXITCODE -eq 0 -and $out -match "ok") {
+            return $true
+        }
+    } catch {
+    }
+    return $false
+}
+
+function Test-IsWindowsStoreAlias([string]$Path) {
+    # Gli alias Microsoft Store in WindowsApps sono stub che aprono lo Store
+    # invece di eseguire Python — vanno sempre esclusi
+    $resolved = [System.Environment]::ExpandEnvironmentVariables($Path)
+    return ($resolved -like "*\Microsoft\WindowsApps\*" -or
+            $resolved -like "*\WindowsApps\*")
+}
+
 function Find-PythonCommand {
     # 1. Prova il Python Launcher (py) e i comandi standard
     foreach ($candidate in @("py -3", "py", "python3", "python")) {
         try {
             $out = & cmd /c "$candidate --version 2>&1"
             if ($LASTEXITCODE -eq 0) {
-                return $candidate
+                # Verifica che non sia un alias Microsoft Store
+                # e che possa davvero eseguire codice Python
+                if (Test-PythonWorks $candidate) {
+                    return $candidate
+                }
             }
         } catch {
         }
     }
 
     # 2. Cerca nei percorsi comuni di installazione Windows
+    #    (esclusi gli alias Microsoft Store che sono stub non funzionanti)
     $commonPaths = @(
         # Installazione per tutti gli utenti (default installer)
         "C:\Python314\python.exe",
@@ -74,23 +99,27 @@ function Find-PythonCommand {
         "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python311\python.exe",
         "$env:LOCALAPPDATA\Programs\Python\Python310\python.exe",
-        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe",
-        # Microsoft Store
-        "$env:LOCALAPPDATA\Microsoft\WindowsApps\python3.exe",
-        "$env:LOCALAPPDATA\Microsoft\WindowsApps\python.exe"
+        "$env:LOCALAPPDATA\Programs\Python\Python39\python.exe"
     )
     foreach ($path in $commonPaths) {
         $expanded = [System.Environment]::ExpandEnvironmentVariables($path)
         if (Test-Path $expanded) {
-            return "`"$expanded`""
+            if (Test-PythonWorks "`"$expanded`"") {
+                return "`"$expanded`""
+            }
         }
     }
 
     # 3. Cerca python.exe nella directory del PATH tramite where.exe
+    #    Esclude alias Microsoft Store
     try {
-        $found = & where.exe python 2>$null | Select-Object -First 1
-        if ($found -and (Test-Path $found)) {
-            return "`"$found`""
+        $allFound = & where.exe python 2>$null
+        foreach ($found in $allFound) {
+            if ($found -and (Test-Path $found) -and -not (Test-IsWindowsStoreAlias $found)) {
+                if (Test-PythonWorks "`"$found`"") {
+                    return "`"$found`""
+                }
+            }
         }
     } catch {
     }
@@ -202,13 +231,19 @@ Write-InstallerLog "Avvio installazione Local Signer"
 
 $pythonCmd = Find-PythonCommand
 if (-not $pythonCmd) {
-    Write-InstallerLog "Python 3 non trovato"
+    Write-InstallerLog "Python 3 non trovato (alias Microsoft Store esclusi)"
     Write-Host "Python 3 non trovato nel PATH e nei percorsi comuni." -ForegroundColor Red
     Write-Host ""
+    Write-Host "NOTA: gli alias 'python' e 'python3' del Microsoft Store" -ForegroundColor Yellow
+    Write-Host "non sono un'installazione Python completa e non funzionano." -ForegroundColor Yellow
+    Write-Host ""
     Write-Host "Soluzioni:" -ForegroundColor Yellow
-    Write-Host "  1. Installare Python da https://python.org" -ForegroundColor Yellow
+    Write-Host "  1. Installare Python da https://python.org/downloads" -ForegroundColor Yellow
     Write-Host "     Durante l'installazione spuntare 'Add Python to PATH'" -ForegroundColor Yellow
-    Write-Host "  2. Oppure riavviare PowerShell dopo aver installato Python" -ForegroundColor Yellow
+    Write-Host "  2. Disattivare gli alias Store: Impostazioni > App >" -ForegroundColor Yellow
+    Write-Host "     Impostazioni app avanzate > Alias di esecuzione dell'app >" -ForegroundColor Yellow
+    Write-Host "     disattivare 'python.exe' e 'python3.exe'" -ForegroundColor Yellow
+    Write-Host "  3. Dopo l'installazione, chiudere e riaprire questa finestra" -ForegroundColor Yellow
     Write-Host ""
     if (-not $Quiet) {
         Read-Host "Premere Invio per chiudere"

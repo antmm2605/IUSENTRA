@@ -2419,6 +2419,35 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
     assert captured["bridge"]["cert_thumbprint"] == "AABBCC11"
 
 
+def test_portale_wsdl_diretto_abilitato_default_attivo():
+    module = _load_local_signer()
+    env_names = [
+        "HACS_SIGNER_FORCE_BROWSER_ASSIST",
+        "PCT_FORCE_BROWSER_ASSIST",
+        "HACS_SIGNER_DISABLE_PORTALI_WSDL",
+        "PCT_DISABLE_PORTALI_WSDL",
+        "HACS_SIGNER_DISABLE_PDP_WSDL",
+        "PCT_DISABLE_PDP_WSDL",
+        "HACS_SIGNER_DISABLE_PAT_WSDL",
+        "PCT_DISABLE_PAT_WSDL",
+        "HACS_SIGNER_DISABLE_PTT_WSDL",
+        "PCT_DISABLE_PTT_WSDL",
+    ]
+    saved = {name: os.environ.get(name) for name in env_names}
+    try:
+        for name in env_names:
+            os.environ.pop(name, None)
+        assert module._portale_wsdl_diretto_abilitato("pdp") is True
+        assert module._portale_wsdl_diretto_abilitato("pat") is True
+        assert module._portale_wsdl_diretto_abilitato("ptt") is True
+    finally:
+        for name, value in saved.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
 def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
     module = _load_local_signer()
 
@@ -2477,7 +2506,7 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
     assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
 
 
-def test_pdp_ricerca_local_signer_default_browser_assistito():
+def test_pdp_ricerca_local_signer_browser_assistito_se_wsdl_disabilitato():
     module = _load_local_signer()
 
     captured = {}
@@ -2574,7 +2603,7 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
     assert captured["bridge"]["payload"]["codiceUfficio"] == "TARLZ"
 
 
-def test_pat_documenti_local_signer_default_browser_assistito():
+def test_pat_documenti_local_signer_browser_assistito_se_wsdl_disabilitato():
     module = _load_local_signer()
 
     captured = {}

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.33
+HACS Local Signer — v1.5.34
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.33"
+VERSION = "1.5.34"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2209,11 +2209,13 @@ def _portale_wsdl_diretto_abilitato(portale: str) -> bool:
     portale_norm = str(portale or "").strip().lower()
     if portale_norm not in {"pdp", "pat", "ptt"}:
         return True
-    return (
-        _env_flag_enabled("HACS_SIGNER_ENABLE_PORTALI_WSDL")
-        or _env_flag_enabled("PCT_ENABLE_PORTALI_WSDL")
-        or _env_flag_enabled(f"HACS_SIGNER_ENABLE_{portale_norm.upper()}_WSDL")
-        or _env_flag_enabled(f"PCT_ENABLE_{portale_norm.upper()}_WSDL")
+    if _env_flag_enabled("HACS_SIGNER_FORCE_BROWSER_ASSIST") or _env_flag_enabled("PCT_FORCE_BROWSER_ASSIST"):
+        return False
+    return not (
+        _env_flag_enabled("HACS_SIGNER_DISABLE_PORTALI_WSDL")
+        or _env_flag_enabled("PCT_DISABLE_PORTALI_WSDL")
+        or _env_flag_enabled(f"HACS_SIGNER_DISABLE_{portale_norm.upper()}_WSDL")
+        or _env_flag_enabled(f"PCT_DISABLE_{portale_norm.upper()}_WSDL")
     )
 
 

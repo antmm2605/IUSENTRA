@@ -388,7 +388,7 @@ def build_release_note(version: str) -> str:
         f"Versione: {version}\n"
         f"Generato: {now}\n"
         f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
-        f"Portali browser-assistiti di default: PDP, PAT, PTT/SIGIT\n"
+        f"Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT\n"
         f"Punto ufficiale download: {DOWNLOAD_PAGE}\n"
     )
 

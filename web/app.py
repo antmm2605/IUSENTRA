@@ -4835,9 +4835,15 @@ def create_app(config: dict | None = None) -> Flask:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
 
     def _portale_browser_channel_required(portale: str) -> bool:
-        """True quando il portale deve passare dal canale browser-side locale, senza fallback backend."""
+        """Di default PDP/PAT/PTT seguono la stessa logica del PST; il browser-only resta solo opt-in via env."""
         portale_norm = (portale or "").strip().lower()
-        return not _polis_demo_mode() and portale_norm in {"pdp", "pat", "ptt"}
+        if _polis_demo_mode() or portale_norm not in {"pdp", "pat", "ptt"}:
+            return False
+        truthy = {"1", "true", "yes", "on"}
+        return (
+            str(os.getenv("PCT_PORTALI_BROWSER_ONLY", "") or "").strip().lower() in truthy
+            or str(os.getenv(f"PCT_{portale_norm.upper()}_BROWSER_ONLY", "") or "").strip().lower() in truthy
+        )
 
     def _portale_local_channel_enabled(portale: str) -> bool:
         return _portale_usa_local_signer(portale) or _portale_browser_channel_required(portale)

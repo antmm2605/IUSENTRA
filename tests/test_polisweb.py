@@ -2743,7 +2743,7 @@ def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):
     assert "Servizio remoto non disponibile" not in body
 
 
-def test_api_acquisizione_status_portale_browser_channel_usa_testo_assistito(tmp_path):
+def test_api_acquisizione_status_portale_p12_non_forza_browser_only(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
 
@@ -2783,9 +2783,9 @@ def test_api_acquisizione_status_portale_browser_channel_usa_testo_assistito(tmp
     data = response.get_json()
     assert response.status_code == 200
     assert data["ok"] is True
-    assert data["status"]["browser_channel_required"] is True
-    assert data["status"]["status_text"] == "Consultazione via browser ufficiale"
-    assert data["status"]["environment_label"] == "Produzione guidata assistita"
+    assert data["status"]["browser_channel_required"] is False
+    assert data["status"]["status_text"] == "Connessione pronta"
+    assert data["status"]["environment_label"] == "Produzione guidata"
 
 
 def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
@@ -2825,7 +2825,7 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
             assert expected in body
 
 
-def test_api_acquisizione_search_portali_browser_channel_obbligatorio_blocca_backend(tmp_path, monkeypatch):
+def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkeypatch):
     from pct.auth import GestioneUtenti, RuoloUtente
     import pct.pdp as pdp_module
     import pct.pat as pat_module
@@ -2856,12 +2856,77 @@ def test_api_acquisizione_search_portali_browser_channel_obbligatorio_blocca_bac
         email="avvocato@example.com",
     )
 
-    def _backend_non_atteso(*args, **kwargs):
-        raise AssertionError("Il backend server-side del portale non deve essere usato.")
+    class _FakePdpClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                SimpleNamespace(
+                    numero_rg="4521",
+                    anno_rg=2026,
+                    tipo_registro="RGNR",
+                    fase="INDAGINI",
+                    stato="PENDENTE",
+                    reato="Truffa",
+                    sezione="GIP",
+                    giudice="Dott. Verdi",
+                    data_iscrizione="2026-01-10",
+                    data_udienza="2026-05-12",
+                    imputati=["Mario Rossi"],
+                    parti_offese=["Parte Offesa"],
+                    note="",
+                    codice_ufficio="0580010",
+                    nome_ufficio="Procura di Reggio Calabria",
+                )
+            ]
 
-    monkeypatch.setattr(pdp_module, "crea_client_pdp", _backend_non_atteso)
-    monkeypatch.setattr(pat_module, "crea_client_pat", _backend_non_atteso)
-    monkeypatch.setattr(sigit_module, "crea_client_sigit", _backend_non_atteso)
+    class _FakePatClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                SimpleNamespace(
+                    numero_ricorso="1876",
+                    anno=2026,
+                    tipo="RICORSO",
+                    stato="PENDENTE",
+                    materia="APPALTI",
+                    sezione="I",
+                    giudice_relatore="Cons. Bianchi",
+                    data_deposito="2026-02-10",
+                    data_udienza="2026-06-01",
+                    ricorrenti=["Alfa Srl"],
+                    resistenti=["Comune"],
+                    controinteressati=[],
+                    oggetto="Annullamento aggiudicazione",
+                    note="",
+                    codice_ufficio="TARLZ",
+                    nome_ufficio="TAR Lazio",
+                )
+            ]
+
+    class _FakePttClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                SimpleNamespace(
+                    numero_rgt="1234",
+                    anno_rgt=2026,
+                    tipo="RICORSO",
+                    stato="PENDENTE",
+                    materia="IVA",
+                    sezione="II",
+                    giudice_relatore="Dott. Neri",
+                    data_deposito="2026-03-15",
+                    data_udienza="2026-07-20",
+                    ricorrenti=["Mario Rossi"],
+                    resistenti=["Agenzia Entrate"],
+                    oggetto_controversia="Accertamento IVA",
+                    valore_controversia=1000.0,
+                    note="",
+                    codice_commissione="CPT030000",
+                    nome_commissione="CPT Milano",
+                )
+            ]
+
+    monkeypatch.setattr(pdp_module, "crea_client_pdp", lambda demo=False: _FakePdpClient())
+    monkeypatch.setattr(pat_module, "crea_client_pat", lambda demo=False: _FakePatClient())
+    monkeypatch.setattr(sigit_module, "crea_client_sigit", lambda demo=False: _FakePttClient())
 
     app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
     with app.test_client() as client:
@@ -2883,9 +2948,8 @@ def test_api_acquisizione_search_portali_browser_channel_obbligatorio_blocca_bac
             )
             data = response.get_json()
             assert response.status_code == 200
-            assert data["ok"] is False
-            assert "Local Signer" in data["errore"]
-            assert "browser" in data["errore"]
+            assert data["ok"] is True
+            assert len(data["results"]) == 1
 
 
 def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(tmp_path):

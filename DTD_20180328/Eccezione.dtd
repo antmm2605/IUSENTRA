@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ENTITY % dataPubblicazione "2009-02-17">
+<!ELEMENT Eccezione (IdMsgSMTP, IdMsgPdA, DatiEccezione)>
+<!ELEMENT IdMsgSMTP (#PCDATA)>
+<!ELEMENT IdMsgPdA (CodicePdA, Anno, IdMsg)>
+<!ELEMENT CodicePdA (#PCDATA)>
+<!--Anno di 4 cifre. -->
+<!ELEMENT Anno (#PCDATA)>
+<!ELEMENT IdMsg (#PCDATA)>
+<!ELEMENT DatiEccezione (CodiceEccezione, DescrizioneEccezione)>
+<!ELEMENT CodiceEccezione (#PCDATA)>
+<!ELEMENT DescrizioneEccezione (#PCDATA)>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <class name="Giudice">
+        <property name="denominazione" type="string" description="cognome e nome giudice"/>
+    </class>
+    <class name="InfoParte">
+        <property name="nome" type="string" description="nome della parte"/>
+        <property name="cognome" type="string" description="cognome della parte"/>
+        <property name="codicefiscale" type="string" description="codice fiscale della parte"/>
+        <property name="tipo" type="string" description="tipologia della parte"/>
+        <property name="avvocato" type="string" description="avvocato della parte"/>
+    </class>
+    <class name="Storico">
+        <property name="descevento" type="string" description="descrizione evento"/>
+        <property name="dataevento" type="date" description="data evento"/>
+        <property name="dataregevento" type="date" description="data registro evento"/>
+    </class>
+    <class name="ProfiloFascicolo">
+        <property name="idFascicolo" type="string" description="id fascicolo"/>
+        <property name="numeroregistro" type="string" description="numero ruolo fascicolo"/>
+        <property name="annoregistro" type="string" description="anno ruolo fascicolo"/>
+        <property name="rito" type="string" description="rito"/>
+        <property name="descoggetto" type="string" description="descrizione oggetto"/>
+        <property name="giudice" type="string" description="giudice assegnato"/>
+        <property name="sezione" type="string" description="descrizione sezione"/>
+        <property name="dataIscrizione" type="date" description="data iscrizione fascicolo"/>
+        <property name="dataCitazione" type="date" description="data di citazione"/>
+        <property name="dataProssimaUdienza" type="date" description="data ultima udienza"/>
+        <property name="descStato" type="string" description="descrizione stato del fascicolo"/>
+        <property name="numeroSentenza" type="string" description="numero sentenza"/>
+        <property name="annoSentenza" type="string" description="anno sentenza"/>
+        <property name="numeroDecreto" type="string" description="numero decreto"/>
+        <property name="annoDecreto" type="string" description="anno decreto"/>
+        <property name="esitoSentenza" type="string" description="esito sentenza"/>
+        <classref ref="InfoParte"/>
+        <classref ref="Storico"/>
+    </class>
+</catalog>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+	<class name="Giudice">
+		<property name="denominazione" type="string" description="cognome e nome giudice"/>
+	</class>
+	<class name="InfoCC">
+		<property name="nome" type="string" description="nome curatore/commissario/delegato"/>
+		<property name="cognome" type="string" description="cognome curatore/commissario/delegato"/>
+		<property name="tipologia" type="string" description="tipologia curatore/commissario/delegato"/>
+	</class>
+	<class name="Parti">
+		<property name="nome" type="string" description="nome parte"/>
+		<property name="cognome" type="string" description="cognome parte"/>
+		<property name="desctipo" type="string" description="descrizione parte"/>
+		<property name="codicefiscale" type="string" description="codice fiscale parte"/>
+		<property name="avvocato" type="string" description="avvocato della parte"/>
+	</class>
+	<class name="Storico">
+		<property name="descevento" type="string" description="descrizione evento"/>
+		<property name="dataevento" type="date" description="data evento"/>
+		<property name="dataregevento" type="date" description="data registro evento"/>
+	</class>
+	<class name="InfoFascicoloPC">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="rito" type="string" description="descrizione rito"/>
+		<property name="dataIscrizione" type="date" description="data iscrizione"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="numeroSentenza" type="string" description="numero sentenza di fallimento"/>
+		<property name="dataSentenza" type="date" description="data sentenza di fallimento"/>
+		<property name="stato" type="string" description="stato del fascicolo"/>
+		<property name="dataProssimaUdienzaPassivo" type="string" description="data prossima udienza di verifica passivo"/>
+		<property name="dataProssimaUdienzaVendita" type="date" description="data prossima udienza di vendita"/>
+		<property name="debitore" type="string" description="nome del debitore"/>
+		<classref ref="InfoCC"/>
+		<classref ref="Parti"/>
+		<classref ref="Storico"/>
+	</class>
+	<class name="InfoFascicoloESM">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="oggetto" type="string" description="descrizione oggetto"/>
+		<property name="dataIscrizione" type="date" description="data iscrizione"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="stato" type="string" description="stato del fascicolo"/>
+		<property name="dataProssimaUdienza" type="string" description="data prossima udienza "/>
+		<property name="tipoUdienza" type="string" description="tipo udienza"/>
+		<classref ref="InfoCC"/>
+		<classref ref="Parti"/>
+		<classref ref="Storico"/>
+	</class>
+	<class name="InfoFascicoloESIM">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="oggetto" type="string" description="descrizione oggetto"/>
+		<property name="dataIscrizione" type="date" description="data iscrizione"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="stato" type="string" description="stato del fascicolo"/>
+		<property name="dataProssimaUdienza" type="string" description="data prossima udienza "/>
+		<classref ref="InfoCC"/>
+		<classref ref="Parti"/>
+		<classref ref="Storico"/>
+	</class>
+</catalog>
+

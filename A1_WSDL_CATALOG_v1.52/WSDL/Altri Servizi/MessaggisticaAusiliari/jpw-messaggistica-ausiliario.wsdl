@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" 
+	     xmlns:tns="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice" 
+	     xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" 
+	     xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+	     xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" 
+	     xmlns:apachesoap="http://xml.apache.org/xml-soap" 
+	     xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+	     xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" 
+	     xmlns:ns="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice" 
+	     name="InteropAusiliari" 
+	     targetNamespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice">
+    <documentation>
+	WSDL per messaggistica di interoperabilita' tra ausiliari e magistrato
+    </documentation>
+    <wsdl:types>
+	<xsd:schema targetNamespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice">
+	    <xsd:import namespace="http://schemas.xmlsoap.org/soap/encoding/" schemaLocation="./soap-encoding.xsd"/>		
+	    <xsd:complexType name="StringArrayType">
+		<xsd:complexContent>
+		    <xsd:restriction base="soap-enc:Array">
+			<xsd:attribute ref="soap-enc:arrayType" wsdl:arrayType="xsd:string[]"/>
+		    </xsd:restriction>
+		</xsd:complexContent>
+	    </xsd:complexType>		    
+	    <xsd:complexType name="DataHandlerArrayType">
+		<xsd:complexContent>
+		    <xsd:restriction base="soap-enc:Array">
+			<xsd:attribute ref="soap-enc:arrayType" arrayType="apachesoap:DataHandler[]"/>
+		    </xsd:restriction>
+		</xsd:complexContent>
+	    </xsd:complexType> 	
+	    <xsd:complexType name="MessaggioArrayType">
+		<xsd:complexContent>
+		    <xsd:restriction base="soap-enc:Array">
+			<xsd:attribute ref="soap-enc:arrayType" wsdl:arrayType="ns:Messaggio[]"/>
+		    </xsd:restriction>
+		</xsd:complexContent>
+	    </xsd:complexType>		    
+	    <xsd:complexType name="IdFasc">
+		<xsd:sequence>
+		    <xsd:element name="rito" default="string">
+			<xsd:simpleType>
+			    <xsd:restriction base="xsd:string">
+				<xsd:enumeration value="ContenziosoCivile"/>
+				<xsd:enumeration value="DirittoLavoro"/>
+				<xsd:enumeration value="VolontariaGiurisdizione"/>
+				<xsd:enumeration value="ProcedureConcorsuali"/>
+				<xsd:enumeration value="Prefallimentare"/>
+				<xsd:enumeration value="Fallimentare"/>
+				<xsd:enumeration value="NuovoFallimentare"/>
+				<xsd:enumeration value="ConcordatoPreventivo"/>
+				<xsd:enumeration value="AmministrazioneControllata"/>
+				<xsd:enumeration value="LiquidazioneCoatta"/>
+				<xsd:enumeration value="AmministrazioneGrandiImprese"/>
+				<xsd:enumeration value="AmministrazioneStraordinaria"/>
+				<xsd:enumeration value="AccordiRistrutturazione"/>
+				<xsd:enumeration value="NuovoConcordatoPreventivo"/>
+				<xsd:enumeration value="Immobiliare"/>
+				<xsd:enumeration value="Mobiliare"/>
+			    </xsd:restriction>
+			</xsd:simpleType>
+		    </xsd:element>
+		    <xsd:element name="idFasc" type="xsd:string" minOccurs="0"/>
+		    <xsd:element name="idDfa" type="xsd:string" minOccurs="0"/>
+		    <xsd:element name="numero" type="xsd:int" minOccurs="0"/>
+		    <xsd:element name="anno" type="xsd:int" minOccurs="0"/>
+		    <xsd:element name="estensione" type="xsd:int" minOccurs="0"/>
+		</xsd:sequence>
+	    </xsd:complexType>
+	    <xsd:complexType name="OrderBy">
+		<xsd:sequence>
+		    <xsd:element name="nomeColonna">
+			<xsd:simpleType>
+			    <xsd:restriction base="xsd:string">
+				<xsd:enumeration value="data"/>
+				<xsd:enumeration value="numerorg"/>
+				<xsd:enumeration value="annorg"/>
+				<xsd:enumeration value="subrg"/>
+				<xsd:enumeration value="oggetto"/>
+				<xsd:enumeration value="mittente"/>
+				<xsd:enumeration value="destinatario"/>
+			    </xsd:restriction>
+			</xsd:simpleType>
+		    </xsd:element>
+		    <xsd:element name="asc" type="xsd:boolean"/>
+		</xsd:sequence>
+	    </xsd:complexType>
+	    <xsd:complexType name="Messaggio">
+		<xsd:all>
+		    <xsd:element name="idMessaggio" type="xsd:string"/>
+		    <xsd:element name="idMessaggioRef" type="xsd:string"/>
+		    <xsd:element name="idFasc" type="ns:IdFasc" minOccurs="0"/>
+		    <xsd:element name="mittente" type="xsd:string"/>
+		    <xsd:element name="data" type="xsd:date"/>
+		    <xsd:element name="oggetto" type="xsd:string"/>
+		    <xsd:element name="testo" type="xsd:string"/>
+		    <xsd:element name="destinatario" type="xsd:string"/>
+		    <xsd:element name="idAllegati" type="ns:StringArrayType"/>
+		</xsd:all>
+	    </xsd:complexType>		
+	</xsd:schema>
+    </wsdl:types>
+    <message name="leggiMessaggiRequest">
+	<part name="idfasc" type="ns:IdFasc"/>
+	<part name="from" type="xsd:date"/>
+	<part name="to" type="xsd:date"/>
+	<part name="soloNuovi" type="xsd:boolean"/>
+	<part name="orderBy" type="ns:OrderBy"/>
+    </message>
+    <message name="leggiMessaggiResponse">
+	<part name="result" type="ns:MessaggioArrayType"/>
+    </message>
+    <message name="leggiThreadMessaggioRequest">
+	<part name="idfasc" type="ns:IdFasc"/>
+	<part name="idMsg" type="xsd:string"/>
+    </message>
+    <message name="leggiThreadMessaggioResponse">
+	<part name="result" type="ns:MessaggioArrayType"/>
+    </message>
+    <message name="dettaglioMessaggioRequest">
+	<part name="idfasc" type="ns:IdFasc"/>
+	<part name="idMsg" type="xsd:string"/>
+    </message>
+    <message name="dettaglioMessaggioResponse">
+	<part name="result" type="ns:Messaggio"/>
+    </message>
+    <message name="scriviMessaggioRequest">
+	<part name="idfasc" type="ns:IdFasc"/>
+	<part name="idMsg" type="xsd:string"/>
+	<part name="oggetto" type="xsd:string"/>
+	<part name="testo" type="xsd:string"/>
+	<part name="allegati" type="ns:DataHandlerArrayType"/>
+    </message>
+    <message name="scriviMessaggioResponse">
+	<part name="result" type="xsd:string"/>
+    </message>
+    <message name="downloadDocumentoRequest">
+	<part name="idfasc" type="ns:IdFasc"/>
+	<part name="idDocumento" type="xsd:string"/>
+    </message>
+    <message name="downloadDocumentoResponse">
+	<part name="result" type="apachesoap:DataHandler"/>
+    </message>
+    <portType name="InteropAusiliari">
+	<operation name="leggiMessaggi">
+	    <input message="tns:leggiMessaggiRequest"/>
+	    <output message="tns:leggiMessaggiResponse"/>
+	</operation>
+	<operation name="leggiThreadMessaggio">
+	    <input message="tns:leggiThreadMessaggioRequest"/>
+	    <output message="tns:leggiThreadMessaggioResponse"/>
+	</operation>
+	<operation name="dettaglioMessaggio">
+	    <input message="tns:dettaglioMessaggioRequest"/>
+	    <output message="tns:dettaglioMessaggioResponse"/>
+	</operation>
+	<operation name="scriviMessaggio">
+	    <input message="tns:scriviMessaggioRequest"/>
+	    <output message="tns:scriviMessaggioResponse"/>
+	</operation>
+	<operation name="downloadDocumento">
+	    <input message="tns:downloadDocumentoRequest"/>
+	    <output message="tns:downloadDocumentoResponse"/>
+	</operation>
+    </portType>
+    <binding name="InteropAusiliariBinding" type="tns:InteropAusiliari">
+	<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+	<wsdl:operation name="leggiMessaggi">
+	    <soap:operation soapAction="urn:#leggiMessaggi"/>
+	    <input>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </input>
+	    <output>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </output>
+	</wsdl:operation>
+	<wsdl:operation name="leggiThreadMessaggio">
+	    <soap:operation soapAction="urn:#leggiThreadMessaggio"/>
+	    <input>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </input>
+	    <output>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </output>
+	</wsdl:operation>
+	<wsdl:operation name="dettaglioMessaggio">
+	    <soap:operation soapAction="urn:#leggiThreadMessaggio"/>
+	    <input>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </input>
+	    <output>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </output>
+	</wsdl:operation>
+	<wsdl:operation name="scriviMessaggio">
+	    <soap:operation soapAction="urn:#scriviMessaggio"/>
+	    <input>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </input>
+	    <output>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </output>
+	</wsdl:operation>
+	<wsdl:operation name="downloadDocumento">
+	    <soap:operation soapAction="urn:#downloadDocumento"/>
+	    <input>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </input>
+	    <output>
+		<soap:body use="encoded" namespace="http://www.giustizia.it/serviziInteropAusiliari/MessaggiGiudice"/>
+	    </output>
+	</wsdl:operation>
+    </binding>
+    <service name="WsInteropAusiliari">
+	<port name="InteropAusiliariPort" binding="tns:InteropAusiliariBinding">
+	    <soap:address location="http://dev3-sicid-web1:8081/sicid/backend/rpcrouter"/>
+	</port>
+    </service>
+</definitions>

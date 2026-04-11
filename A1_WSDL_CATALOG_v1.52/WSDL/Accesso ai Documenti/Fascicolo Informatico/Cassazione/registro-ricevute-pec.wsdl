@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:y="http://www.giustizia.it/gl/sgr/cassazione/ricevutePEC" xmlns:ns="http://www.giustizia.it/gl/sgr/cassazione/ricevutePEC/types" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" targetNamespace="http://www.giustizia.it/gl/sgr/cassazione/ricevutePEC">
+	<wsdl:types/>
+	<message name="downloadReq">
+		<part name="msgId" type="xs:string"/>
+	</message>
+	<message name="downloadRes">
+		<part name="result" type="xs:base64Binary"/>
+	</message>
+	<portType name="RegistroRicevutePEC">
+		<operation name="download">
+			<input message="y:downloadReq"/>
+			<output message="y:downloadRes"/>
+		</operation>
+	</portType>
+	<binding name="RegistroRicevutePECSOAPBinding" type="y:RegistroRicevutePEC">
+		<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<operation name="download">
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/sgr/cassazione/ricevutePEC"/>
+			</input>
+			<output>				
+				<mime:multipartRelated>
+					<mime:part>
+						<soap:body use="encoded" namespace="http://www.giustizia.it/gl/sgr/cassazione/ricevutePEC"/>
+					</mime:part>
+					<mime:part>
+						<mime:content part="result" type="application/octect-stream"/>
+					</mime:part>
+				</mime:multipartRelated>        
+			</output>
+		</operation>
+	</binding>
+	<service name="WsRegistroRicevutePEC">
+		<port name="RegistroRicevutePECSOAPPort" binding="y:RegistroRicevutePECSOAPBinding">
+			<soap:address location="http://localhost:8080/Cassazione/rpcrouter"/>
+		</port>
+	</service>
+</definitions>
+

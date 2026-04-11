@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tb="TipiBaseReginde" targetNamespace="TipiBaseReginde" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.5">
+	<xs:simpleType name="OperazioneType">
+		<xs:annotation>
+			<xs:documentation>Tipo enumerato delle operazione eseguibile</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="inserimento"/>
+			<xs:enumeration value="cancellazione"/>
+			<xs:enumeration value="modifica"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="StatusSoggettoType">
+		<xs:annotation>
+			<xs:documentation>Tipo enumerato per lo status di un soggetto</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="attivo"/>
+			<xs:enumeration value="radiato"/>
+			<xs:enumeration value="sospeso"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="NumeroTelefonicoType">
+		<xs:annotation>
+			<xs:documentation>Tipo per la specifica di un numero di telefono</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:whiteSpace value="collapse"/>
+			<xs:maxLength value="32"/>
+			<xs:pattern value="\+?[0-9]*"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="EmailType">
+		<xs:annotation>
+			<xs:documentation>Tipo per la specifica di un indirizzo e-mail</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:whiteSpace value="collapse"/>
+			<xs:minLength value="0"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="CodiceFiscaleType">
+		<xs:restriction base="xs:string">
+			<xs:minLength value="11"/>
+			<xs:maxLength value="16"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="RuoloType">
+		<xs:annotation>
+			<xs:documentation>Tipo enumerato per i ruoli professionali che è possibile censire sul ReGIndE</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="Avvocato"/>
+			<xs:enumeration value="AvvocatoEntePubblico"/>
+			<xs:enumeration value="FunzionarioEntePubblico"/>
+			<xs:enumeration value="AltroProfessionista"/>
+			<xs:enumeration value="PraticanteAbilitato"/>
+			<xs:enumeration value="Cassazionista"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="RuoloTypePA">
+		<xs:annotation>
+			<xs:documentation>Tipo enumerato per i ruoli professionali che è possibile censire sul ReGIndE per le PP.AA.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="AvvocatoEntePubblico"/>
+			<xs:enumeration value="FunzionarioEntePubblico"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="TipologiaTypePA">
+		<xs:annotation>
+			<xs:documentation>Tipo enumerato per la descrizione delle tipologie che è possibile censire sul ReGIndE per le PP.AA.</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="AGENZIA DELLE ENTRATE"/>
+			<xs:enumeration value="ARPA - Agenzie Regionali per la Prevenzione e l'Ambiente"/>
+			<xs:enumeration value="UFFICI GIUDIZIARI"/>
+			<xs:enumeration value="MLPS - Ministero del Lavoro e delle Politiche Sociali"/>
+			<xs:enumeration value="Citt&#224; METROPOLITANE"/>
+			<xs:enumeration value="AGENZIA DEL DEMANIO"/>
+			<xs:enumeration value="Enti Privati (art. 10 Spec tecn)"/>
+			<xs:enumeration value="CARABINIERI"/>
+			<xs:enumeration value="ASL"/>
+			<xs:enumeration value="AZIENDE OSPEDALIERE"/>
+			<xs:enumeration value="APSP (AZIENDE PUBBLICHE DI SERVIZI ALLE PERSONE)"/>
+			<xs:enumeration value="Avvocatura dello Stato"/>
+			<xs:enumeration value="Aziende Edilizia Pubblica"/>
+			<xs:enumeration value="Camere di Commercio"/>
+			<xs:enumeration value="Capitanerie di Porto (MIMS)"/>
+			<xs:enumeration value="Commissioni Territoriali per il Riconoscimento della Protezione Internazionale"/>
+			<xs:enumeration value="Comuni"/>
+			<xs:enumeration value="Unione Comuni"/>
+			<xs:enumeration value="Consorzi"/>
+			<xs:enumeration value="Comunit&#224;"/>
+			<xs:enumeration value="Corpi Forestali"/>
+			<xs:enumeration value="Direzioni Lavoro (VECCHIE DENOMINAZIONI MA QUALCUNO ANCORA &#232; CENSITO)"/>
+			<xs:enumeration value="MLPS - Ispettorati del Lavoro"/>
+			<xs:enumeration value="MATTM - Ministero dell'Ambiente e Tutela del Territorio e del Mare"/>
+			<xs:enumeration value="MAECI - Ministero degli Affari Esteri"/>
+			<xs:enumeration value="MIC - Ministero della Cultura"/>
+			<xs:enumeration value="DIFESA - Ministero della Difesa"/>
+			<xs:enumeration value="MEF - Ministero Economia e Finanza"/>
+			<xs:enumeration value="MdG - Ministero della Giustizia"/>
+			<xs:enumeration value="MIT - Ministero delle Infrastrutture e dei Trasporti"/>
+			<xs:enumeration value="MINT - Ministero dell' Interno"/>
+			<xs:enumeration value="MIM - Ministero dell' Istruzione e del Merito"/>
+			<xs:enumeration value="MIM - Scuole"/>
+			<xs:enumeration value="MASAF - Ministero dell'agricoltura, della sovranit&#224; alimentare e delle foreste"/>
+			<xs:enumeration value="MSAL - Ministero della Salute"/>
+			<xs:enumeration value="MIMIT - Ministero delle Imprese e del Made in Italy"/>
+			<xs:enumeration value="MATTM - Parchi"/>
+			<xs:enumeration value="MINT - Prefetture "/>
+			<xs:enumeration value="Provincie"/>
+			<xs:enumeration value="QUESTURE"/>
+			<xs:enumeration value="MEF - Ragionerie dello Stato"/>
+			<xs:enumeration value="Regioni"/>
+			<xs:enumeration value="MUR - Ministero Universit&#224; / Accademie"/>
+			<xs:enumeration value="Uffici di Prossimit&#224; (SPORTELLI)"/>
+			<xs:enumeration value="Altre PPAA"/>
+			<xs:enumeration value="INPS"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="EnteType">
+		<xs:annotation>
+			<xs:documentation>Tipo per la specifica di un codice ente</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="([A-Z]+)?[0-9]+"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="DatiNascitaType">
+		<xs:sequence>
+			<xs:element name="DataNascita" type="xs:date"/>
+			<xs:element name="Comune">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="256"/>
+						<xs:minLength value="1"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Provincia">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="4"/>
+						<xs:whiteSpace value="collapse"/>
+						<xs:pattern value="[A-Z]*"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Nazione" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="256"/>
+						<xs:whiteSpace value="collapse"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="IndirizzoType">
+		<xs:annotation>
+			<xs:documentation>Struttura dati per la memorizzazione di un indirizzo</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="Indirizzo">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="1000"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="CAP">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="16"/>
+						<xs:whiteSpace value="collapse"/>
+						<xs:pattern value="[A-Z0-9]*"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Comune">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:minLength value="1"/>
+						<xs:maxLength value="256"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Provincia">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:maxLength value="4"/>
+						<xs:whiteSpace value="collapse"/>
+						<xs:pattern value="[A-Z]*"/>
+					</xs:restriction>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="Riferimenti" type="tb:RecapitoType"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="RecapitoType">
+		<xs:annotation>
+			<xs:documentation>Struttura dati per la memorizzazione di recapiti</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="telefono" minOccurs="0">
+				<xs:simpleType>
+					<xs:restriction base="tb:NumeroTelefonicoType"/>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element name="fax" type="tb:NumeroTelefonicoType" minOccurs="0"/>
+			<xs:element name="e-mail" type="tb:EmailType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- versione 1.2 -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tb="TipiBaseReginde" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="TipiBaseReginde" schemaLocation="TipiBaseReGIndE.xsd"/>
+	<xs:attribute name="codiceFiscale" type="tb:CodiceFiscaleType"/>
+	<xs:simpleType name="EsitoComunicazioneType">
+		<!-- errori generici per tutti gli invii (PPAA, soggetti ente, soggetti PA)-->
+		<xs:annotation>
+			<xs:documentation>Codifica i codici di esito anteponendo il prefisso "F" ad un codice numerico</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="F001">
+				<xs:annotation>
+					<xs:documentation>Indirizzo mittente di PEC non autorizzato</xs:documentation>
+					<!-- Verifica indirizzo PEC mittente: l'indirizzo mittente non risulta abilitato per tale invio:
+						•	soggetti ente: la pec non è censita nella IND_ABILITATI per l'ente
+						•	PPAA: la pec non è censita nella IND_ABILITATI_PA
+						•	soggetti PA: la pec non è quella della PA
+					-->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F002">
+				<xs:annotation>
+					<xs:documentation>Dominio PEC non autorizzato</xs:documentation>
+					<!-- Verifica indirizzo PEC mittente: l'indirizzo mittente possiede un dominio PEC non autorizzato -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F003">
+				<xs:annotation>
+					<xs:documentation>Firmatario non autorizzato</xs:documentation>
+					<!-- Verifica firmatario: il codice fiscale del firmatario non risulta essere abilitato per tale invio:
+						•	soggetti ente: il CF firmatario non è censito nella IND_ABILITATI per l'ente
+						•	PPAA: il CF non è censito nella IND_ABILITATI_PA
+						•	soggetti PA: il CF non è quello del referente della PA
+					-->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F004">
+				<xs:annotation>
+					<xs:documentation>Ente non autorizzato all'invio dell'intero albo</xs:documentation>
+					<!--
+					Nel caso di invio soggetti ente:
+						•	l'ente tenta di inviare un albo intero avendolo già inviato in precedenza
+						•	l'ente non risulta presente nel ReGInDE
+						•	l'ente fittizio invia un albo intero
+					Nel caso di invio soggetti pa:
+						•	la PA tenta di inviare un albo intero avendolo già inviato in precedenza
+						•	la PA non risulta presente nel ReGInDE
+					-->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F005">
+				<xs:annotation>
+					<xs:documentation>
+						Formato messaggio non conforme: Allegato xml non trovato
+						<!-- l'allegato xml non è presente -->
+						Formato messaggio non conforme: L'allegato non risulta correttamente firmato
+						<!-- l'allegato non risulta essere correttamente firmato -->
+						Formato messaggio non conforme: La firma dell'allegato non e' stata verificata, controllare il formato
+						<!-- non è stato possibile verificare la firma dell'allegato -->
+						Formato messaggio non conforme: L'allegato deve essere firmato da un soggetto abilitato
+						<!-- l'allegato non risulta firmato da un soggetto abilitato -->
+					</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F006">
+				<xs:annotation>
+					<xs:documentation>Errore file non conforme allo schema</xs:documentation>
+					<!-- L'allegato xml non e' stato riconosciuto come valido -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F007">
+				<xs:annotation>
+					<xs:documentation>File non correttamente cifrato</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="F999">
+				<xs:annotation>
+					<xs:documentation>Errore generico del sistema</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="EsitoSoggettoType">
+		<!-- esiti per l'invio soggetti enti e soggetti pa-->
+		<xs:annotation>
+			<xs:documentation>Codifica i codici di esito positivo con il prefisso "S", quelli di warning con il prefisso "W", quelli di esito negativo con il prefisso "E"</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="S000">
+				<xs:annotation>
+					<xs:documentation>Operazione eseguita correttamente</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="W001">
+				<xs:annotation>
+					<xs:documentation>Inserimento soggetto gia' presente in altro ente, il soggetto e' stato legato anche al nuovo ente ma il suo profilo anagrafico non e' stato modificato, per quest'ultima operazione e' necessaria una richiesta esplicita di modifica</xs:documentation>
+					<!-- Nel caso in cui si tenti di inserire un soggetto la cui anagrafica è già presente ed è associato ad almeno un altro ente/pa con stato attivo o sospeso. Mentre nel caso in cui sia in stato cancellato non verrà generato il warning e verranno sovrascritti i dati l'anagrafici. -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E001">
+				<xs:annotation>
+					<xs:documentation>PEC soggetto non valida</xs:documentation>
+					<!-- Verifica che la pec sia in un formato corretto -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E002">
+				<xs:annotation>
+					<xs:documentation>Dati anagrafici del soggetto non validi</xs:documentation>
+					<!-- Verifica che il codice fiscale del soggetto sia correttamente formato -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E003">
+				<xs:annotation>
+					<xs:documentation>Impossibile inserire il soggetto in quanto gia' presente nel ente/pa mittente</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di inserire un soggetto già presente in tale ente/pa con stato diverso da "cancellato" -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E004">
+				<xs:annotation>
+					<xs:documentation>Impossibile cancellare il soggetto in quanto non presente nel ente/pa mittente</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di cancellare un soggetto da un ente/pa in cui non risulta essere presente (con uno stato diverso da "cancellato") o nel caso in cui si tenti di eliminare un soggetto con stato "radiato" -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E005">
+				<xs:annotation>
+					<xs:documentation>Impossibile modificare i dati del soggetto in quanto non presente nel ente/pa mittente</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di modificare i dati di un soggetto che non è presente nel ente/pa mittente (con uno stato diverso da "cancellato") -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E006">
+				<xs:annotation>
+					<xs:documentation>Dominio PEC soggetto non autorizzato</xs:documentation>
+					<!-- Verifica che il dominio della pec sia tra quelli autorizzati -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E007">
+				<xs:annotation>
+					<xs:documentation>Impossibile inserire il soggetto nell'ente fittizio in quanto diverso da altro professionista</xs:documentation>
+					<!-- Nel caso in cui si tenti di inserire un soggetto nell'ente fittizio (codice 99999) con un ruolo diverso da "AltroProfessionista".
+					Questo sarà presente solo nel caso di comunicazione soggetti enti (essendo l'ente fittizio un Ente e non una PA) -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E008">
+				<xs:annotation>
+					<xs:documentation>Avvocato iscritto a piu' enti/ordini</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di inserire un soggetto con ruolo "Avvocato", "PraticanteAbilitato" o "Cassazionista"  che risulta essere già presente con il medesimo ruolo con stato "attivo" o "sospeso" in un altro ente.
+					Questo sarà presente solo nel caso di comunicazione soggetti enti (poichè tali ruoli sono relativi ai soli enti e non alle PPAA)-->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E009">
+				<xs:annotation>
+					<xs:documentation>Terzo livello di dominio PEC non valido (attese almeno due lettere)</xs:documentation>
+					<!-- Verifica che il terzo dominio della PEC sia correttamente formato, ovvero contenga almeno due lettere (es. com, it, ecc...)  -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E010">
+				<xs:annotation>
+					<xs:documentation>Impossibile inserire il soggetto, ruolo non abilitato per ente/pa mittente</xs:documentation>
+					<!-- Verifica che l'ente/pa mittente sia abilitato ad inserire soggetti con il ruolo specificato. In particolare verrà verificato che:
+						•	se l'invio è relativo ad un ente potranno essere inseriti solo i ruoli: Avvocato, Praticante Abilitato, Altro Professionista, Cassazionista
+						•	se l'invio è relativo ad una PA potranno essere inseriti solo i ruoli: Avvocato Ente Pubblico, Funzionario Ente Pubblico, Funzionario sportello prossimità
+						•	se il codice dell'ente inizia con i caratteri "COA", che equivale quindi ad un Ordine degli Avvocati, può inserire solo soggetti con ruolo "Avvocato" o "PraticanteAbilitato"
+						•	se l'ente è il CNF (codice 80409200583) può inserire solo soggetti con ruolo "Cassazionista"
+						•	se il codice dell'ente NON inizia con "COA" ma risulta di tipo ENTE (la tipologia è relativa a ENTE) può inserire solo soggetti con ruolo "AltroProfessionista"
+					-->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E011">
+				<xs:annotation>
+					<xs:documentation>Impossibile inserire il soggetto, già censito con altro ruolo</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di inserire un soggetto con un ruolo non compatibile con quelli che possiede già (es. si tenta di inserire un soggetto con ruolo "PraticanteAbilitato" ma questo risulta essere "Avvocato", oppure si tenta di inserire un soggetto con ruolo "FunzionarioEntePubblico" ma questo risulta essere "AvvocatoEntePubblico") -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E012">
+				<xs:annotation>
+					<xs:documentation>Impossibile inserire il soggetto poiché risulta radiato</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di inserire un soggetto che risulta essere radiato e non rispetta le regole di coesstenza dei ruoli radiati; oppure nel caso in cui si tenti di inserire un soggetto in un ente/ppaa di una tipologia nella quale il soggetto risulta già essere radiato -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E999">
+				<xs:annotation>
+					<xs:documentation>Errore generico durante l'operazione</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="EsitoPAType">
+		<!-- esiti per l'invio delle ppaa-->
+		<xs:annotation>
+			<xs:documentation>Codifica i codici di esito positivo con il prefisso "S", quelli di warning con il prefisso "W", quelli di esito negativo con il prefisso "E"</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="S000">
+				<xs:annotation>
+					<xs:documentation>Operazione eseguita correttamente</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E001">
+				<xs:annotation>
+					<xs:documentation>PEC PA non valida</xs:documentation>
+					<!-- Verifica che la pec sia in un formato corretto -->
+					<!-- stesso controllo di E001 di EsitoSoggettoType -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E002">
+				<xs:annotation>
+					<xs:documentation>Dati anagrafici della PA non validi</xs:documentation>
+					<!-- Verifica che il codice fiscale della PA sia correttamente formato -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E003">
+				<xs:annotation>
+					<xs:documentation>PA gia' presente</xs:documentation>
+					<!-- Nel caso in cui si tenti di inserire una PA il cui codice univoco è già presente -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E004">
+				<xs:annotation>
+					<xs:documentation>Impossibile cancellare la PA in quanto non presente</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di cancellare una PA che non risulta essere presente (o nel caso in cui abbia data di cancellazione già valorizzata) -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E005">
+				<xs:annotation>
+					<xs:documentation>Impossibile modificare i dati della PA in quanto non presente</xs:documentation>
+					<!-- Nel caso in cui si stia tentando di modificare i dati di una PA che non è presente (o nel caso in cui abbia data di cancellazione valorizzata) -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E006">
+				<xs:annotation>
+					<xs:documentation>Dominio PEC PA non autorizzato</xs:documentation>
+					<!-- Verifica che il dominio della pec sia tra quelli autorizzati -->
+					<!-- stesso controllo di E006 di EsitoSoggettoType -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E007">
+				<xs:annotation>
+					<xs:documentation>Tipologia non valida</xs:documentation>
+					<!-- l'idtipologia inserito non è presente nel sistema o non è relativo alle PPAA-->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E008">
+				<xs:annotation>
+					<xs:documentation>Classe non valida</xs:documentation>
+					<!-- classe inserita diversa da AMM, ART, UOO -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E009">
+				<xs:annotation>
+					<xs:documentation>Terzo livello di dominio PEC non valido (attese almeno due lettere)</xs:documentation>
+					<!-- Verifica che il terzo dominio della PEC sia correttamente formato, ovvero contenga almeno due lettere (es. com, it, ecc...)  -->
+					<!-- stesso controllo di E009 di EsitoSoggettoType -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E010">
+				<xs:annotation>
+					<xs:documentation>Codice univoco e cf amministrazione centrale non coerenti</xs:documentation>
+					<!-- se la classe è AMM il CF ed il codice univoco devono essere uguali -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E011">
+				<xs:annotation>
+					<xs:documentation>Non è presente l'amministrazione centrale</xs:documentation>
+					<!-- se la classe è UOO o ART deve esistere una AMM con lo stesso CF -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E012">
+				<xs:annotation>
+					<xs:documentation>Ente riferimento non coerente</xs:documentation>
+					<!-- se viene indicato l'ente di riferimento la classe deve essere UOO -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E013">
+				<xs:annotation>
+					<xs:documentation>Ente riferimento non esite o non e' un'articolazione</xs:documentation>
+					<!-- se la classe è UOO e viene indicato l'ente di riferimento questo deve esistere e deve essere una ART -->
+				</xs:annotation>
+			</xs:enumeration>
+			<xs:enumeration value="E999">
+				<xs:annotation>
+					<xs:documentation>Errore generico durante l'operazione</xs:documentation>
+				</xs:annotation>
+			</xs:enumeration>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:element name="IdMessaggioMittente">
+		<xs:annotation>
+			<xs:documentation>Contiente l'identificativo del messaggio di PEC che contiene la comunicazione a cui si riferisce l'esito corrente</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+	<xs:element name="Esiti">
+		<xs:annotation>
+			<xs:documentation>Elemento root</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="IdMessaggioMittente"/>
+				<xs:element ref="EnteDestinatario">
+					<xs:annotation>
+						<xs:documentation>Ente destinatario dell'esito</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:choice>
+					<xs:element name="EsitoComunicazione" type="EsitoComunicazioneType">
+						<xs:annotation>
+							<xs:documentation>Consente di comunicare l'esito (solo negativo) dell'elaborazione di una CIN. Permette di notificare al mittente il caso in cui una intera CIN non è stata elaborata (es: firmatario non autorizzato, problemi tecnici del server)</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element ref="EsitiSoggetti">
+						<xs:annotation>
+							<xs:documentation>Consente di specificare per ogni soggetto della CIN l'esito della comuncazione nel caso di invio di un albo da parte di un Ente</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+					<xs:element ref="EsitiPPAA">
+						<xs:annotation>
+							<xs:documentation>Consente di specificare per ogni pubblica amministrazione l'esito della comuncazione</xs:documentation>
+						</xs:annotation>
+					</xs:element>
+				</xs:choice>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EsitiSoggetti">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="EsitoSoggetto" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Soggetto">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Nome" type="xs:string" minOccurs="0"/>
+										<xs:element name="Cognome" type="xs:string" minOccurs="0"/>
+									</xs:sequence>
+									<xs:attribute ref="codiceFiscale" use="required"/>
+								</xs:complexType>
+							</xs:element>
+							<xs:choice>
+								<xs:element name="Esito" type="EsitoSoggettoType"/>
+							</xs:choice>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EsitiPPAA">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="EsitoPA" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="PubblicaAmministrazione">
+								<xs:complexType>
+									<xs:attribute ref="codiceFiscale" use="required"/>
+								</xs:complexType>
+							</xs:element>
+							<xs:choice>
+								<xs:element name="Esito" type="EsitoPAType"/>
+							</xs:choice>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EnteDestinatario" type="tb:EnteType"/>
+</xs:schema>

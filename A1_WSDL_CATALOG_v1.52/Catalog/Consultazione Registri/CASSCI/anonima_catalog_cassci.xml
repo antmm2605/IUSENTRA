@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+
+	<class name = "Ricorso">
+		<property name = "NRG"/>
+		<property name = "NRGText"/>
+		<property name = "data"/>
+		<property name = "Materia"/>
+		<property name = "Sezione"/>  
+	</class>
+
+	<class name="InfoUdienze">
+		<property name="dataudienza" type="string" description="data udienza"/>
+		<property name="aula" type="string" description="aula udienza"/>
+		<property name="tipoudienza" type="string" description="tipo udienza"/>
+		<property name="datapubb" type="string" description="data pubblicazione"/>
+		<property name="sezioneudie" type="string" description="sezione"/>
+		<property name="tiposent" type="string" description="tipologia sentenza"/>
+		<property name="raccolta" type="string" description="numero raccolta generale"/>
+	</class>
+
+	<class name="ElencoParti">
+		<property name="parte" type="string" description="nome della parte"/>
+		<property name="tipo" type="string" description="tipologia della parte"/>
+		<property name="difensore" type="string" description="difensore della parte"/>
+	</class>
+
+	<class name="DettRicorso">
+		<property name="nrg" type="string" description="nrg"/>
+		<property name="numero" type="string" description="numero ruolo generale"/>
+		<property name="data" type="string" description="data iscrizione o deposito"/>
+		<property name="sezione" type="string" description="descrizione sezione"/>
+		<property name="materia" type="string" description="descrizione materia"/>
+		<property name="numprovv" type="string" description="numero provvedimento"/>
+		<property name="locprovv" type="string" description="localita provvedimento"/>
+		<property name="autoprovv" type="string" description="autorita provvedimento"/>
+		<property name="dataprovv" type="string" description="data provvedimento"/>
+		<classref ref="InfoUdienze"/>
+		<classref ref="ElencoParti"/>
+	</class>
+
+
+	<class name = "Sezioni">
+		<property name = "idparam"/>
+		<property name = "sigla"/>
+		<property name = "descrizione"/>
+	</class> 
+	
+	<class name = "Autorita">
+		<property name = "idparam"/>
+		<property name = "sigla"/>
+		<property name = "descrizione"/>
+	</class> 
+	
+	<class name = "Localita">
+		<property name = "descrizione"/>
+	</class> 
+
+	<class name = "Ufficio">
+		<property name = "codiceufficio"/>
+		<property name = "tipoufficio"/>
+		<property name = "localita"/>
+	</class> 	
+
+</catalog>

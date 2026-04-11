@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo" xmlns:intf="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns1="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo/exception" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo">
+    <wsdl:types>
+	<schema targetNamespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo/exception" xmlns="http://www.w3.org/2001/XMLSchema">
+	    <complexType name="BEAException">
+		<sequence>
+		    <element name="codice" nillable="true" type="xsd:string"/>
+		    <element name="message" nillable="true" type="xsd:string"/>
+		</sequence>
+	    </complexType>
+	</schema>
+    </wsdl:types>
+    <wsdl:message name="downloadDocumentoResponse">
+	<wsdl:part name="return" type="apachesoap:DataHandler"/>
+    </wsdl:message>
+    <wsdl:message name="BEAException">
+	<wsdl:part name="fault" type="tns1:BEAException"/>
+    </wsdl:message>
+    <wsdl:message name="downloadDocumentoRequest">
+	<wsdl:part name="idDoc" type="xsd:string"/>
+	<wsdl:part name="original" type="xsd:boolean"/>
+    </wsdl:message>
+    <wsdl:message name="calcolaHashRequest">
+	<wsdl:part name="idDoc" type="xsd:string"/>
+    </wsdl:message>
+    <wsdl:message name="calcolaHashResponse">
+	<wsdl:part name="return" type="xsd:string"/>
+    </wsdl:message>
+    <wsdl:portType name="BEAFascicoloCASSLocal">
+	<wsdl:operation name="downloadDocumento">
+	    <wsdl:input name="downloadDocumentoRequest" message="impl:downloadDocumentoRequest"/>
+	    <wsdl:output name="downloadDocumentoResponse" message="impl:downloadDocumentoResponse"/>
+	    <wsdl:fault name="BEAException" message="impl:BEAException"/>
+	</wsdl:operation>
+	<wsdl:operation name="calcolaHash">
+	    <wsdl:input name="calcolaHashRequest" message="impl:calcolaHashRequest"/>
+	    <wsdl:output name="calcolaHashResponse" message="impl:calcolaHashResponse"/>
+	    <wsdl:fault name="BEAException" message="impl:BEAException"/>
+	</wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="BEAFascicoloCASSSoapBinding" type="impl:BEAFascicoloCASSLocal">
+	<wsdlsoap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+	<wsdl:operation name="downloadDocumento">
+	    <wsdlsoap:operation soapAction=""/>
+	    <wsdl:input name="downloadDocumentoRequest">
+		<wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"/>
+	    </wsdl:input>
+	    <wsdl:output name="downloadDocumentoResponse">
+		<wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"/>
+	    </wsdl:output>
+	    <wsdl:fault name="BEAException">
+		<wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"/>
+	    </wsdl:fault>
+	</wsdl:operation>
+	<wsdl:operation name="calcolaHash">
+	    <wsdlsoap:operation soapAction=""/>
+	    <wsdl:input name="calcolaHashRequest">
+		<wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"/>
+	    </wsdl:input>
+	    <wsdl:output name="calcolaHashResponse">
+		<wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"/>
+	    </wsdl:output>
+	    <wsdl:fault name="BEAException">
+		<wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/cassazione/ws/fascicolo"/>
+	    </wsdl:fault>
+	</wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="BEAFascicoloCASSLocalService">
+	<wsdl:port name="rpcrouter" binding="impl:BEAFascicoloCASSSoapBinding">
+	    <wsdlsoap:address location="http://localhost:8081/wasp/rpcrouter"/>
+	</wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

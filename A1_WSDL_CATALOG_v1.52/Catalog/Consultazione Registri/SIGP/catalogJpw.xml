@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Document   : catalogJpw.xml
+    Created on : 10 giugno 2008, 14.33
+    Author     : Ina
+    Description:
+        Purpose of the document follows.
+-->
+<catalog>
+  <class name="RichiestaCopia">
+    <property name="idRichiesta" type="string" description="identificativo richiesta"/>
+    <property name="registro" type="string" description="codice registro"/>
+    <property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+    <property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+    <property name="dataRichiesta" type="date" description="data richiesta copia"/>
+    <property name="dataEvasione" type="date" description="data evasione copia"/>
+    <property name="formatoCopie" type="string" description="formato copie"/>
+    <property name="tipoCopie" type="string" description="tipo copie"/>
+    <property name="stato" type="string" description="stato"/>
+  </class>
+  <class name="ProfiloRichiestaCopia">
+    <property name="idRichiesta" type="string" description="identificativo richiesta"/>
+    <property name="richiedente" type="string" description="richiedente copia"/>
+    <property name="dataRichiesta" type="date" description="data richiesta copia"/>
+    <property name="tipoDocumento" type="string" description="tipo documento"/>
+    <property name="dataDocumento" type="date" description="data documento"/>
+    <property name="registro" type="string" description="codice registro"/>
+    <property name="anno" type="string" description="anno ruolo fascicolo"/>
+    <property name="numero" type="string" description="numero ruolo fascicolo"/>
+    <property name="numeroCopie" type="integer" description="numero copie"/>
+    <property name="tipoCopie" type="string" description="tipo copie"/>
+    <property name="formatoCopie" type="string" description="formato copie"/>
+    <property name="dataEvasione" type="date" description="data evasione"/>
+    <property name="importo" type="integer" description="importo"/>
+    <property name="stato" type="string" description="stato"/>
+  </class>
+  <class name="EventoFascicoloAgenda">
+    <property name="idUfficio" type="string" description="codice ufficio"/>
+    <property name="numeroRuolo" type="string" description="numero ruolo fasicolo"/>
+    <property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+    <property name="subProcedimento" type="string" description="numero subprocedimento fascicolo"/>
+    <property name="tipo" type="string" description="tipo evento"/>
+    <property name="desc" type="string" description="descrizione evento"/>
+    <property name="data" type="date" descripiton="data evento"/>
+    <property name="dataRegistrazione" type="date" description="data registrazione evento"/>
+    <property name="attorePrincipale" type="string" description="attore principale"/>
+    <property name="convenutoPrincipale" type="string" description="convenuto principale"/>
+    <property name="idDocumento" type="string" description="identificativo del documento associato"/>
+  </class>
+  <class name="InfoScadenze">
+    <property name="idUfficio" type="string" description="codice ufficio"/>
+    <property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+    <property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+    <property name="subProcedimento" type="string" description="numero subprocedimento fascicolo"/>
+    <property name="tipoScadenza" type="string" description="tipo scadenza"/>
+    <property name="descScadenza" type="string" description="descrizione scadenza"/>
+    <property name="dataScadenza" type="date" description="data scadenza"/>
+    <property name="giudice" type="string" description="giudice assegnato"/>
+    <property name="attorePrincipale" type="string" description="attore principale"/>
+    <property name="convenutoPrincipale" type="string" description="convenuto principale"/>
+  </class>
+  <class name="InfoFascicolo">
+    <property name="idUfficio" type="string" description="codice ufficio"/>
+    <property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+    <property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+    <property name="subProcedimento" type="string" description="numero subprocedimento fascicolo"/>
+    <property name="dataUdienza" type="date" description="data udienza"/>
+    <property name="giudice" type="string" description="giudice assegnato"/>
+    <property name="sezione" type="string" description="sezione assegnata"/>
+    <property name="attorePrincipale" type="string" description="attore principale"/>
+    <property name="convenutoPrincipale" type="string" description="convenuto principale"/>
+    <property name="numeroAttori" type="integer" description="numero attori"/>
+    <property name="numeroConvenuti" type="integer" description="numero convenuti"/>
+  </class>
+  <class name="InfoParte">
+    <property name="idParte" type="string" description="identificativo parte"/>
+    <property name="cognome" type="string" description="cognome parte"/>
+    <property name="nome" type="string" description="nome parte"/>
+    <property name="tipo" type="string" description="tipo parte"/>
+    <property name="dataNascita" type="date" description="data nascita parte"/>
+    <property name="codicefiscale" type="string" description="codice fiscale parte"/>
+    <property name="avvocato" type="string" description="avvocato parte"/>
+  </class>
+  <class name="ProfiloParte">
+    <property name="idParte" type="string" description="identificativo parte"/>
+    <property name="cognome" type="string" description="cognome parte"/>
+    <property name="nome" type="string" description="nome parte"/>
+    <property name="tipo" type="string" description="tipo parte"/>
+    <property name="dataNascita" type="date" description="data nascita della parte"/>
+	<property name="cittaNascita" type="string" description="citta nascita della parte"/>
+	<property name="codicefiscale" type="string" description="codice fiscale della parte"/>
+	<property name="indirizzo" type="string" description="indirizzo della parte"/>
+	<property name="citta" type="string" description="citta della parte"/>
+	<property name="cap" type="string" description="cap della parte"/>
+	<property name="provincia" type="string" description="provincia della parte"/>
+    <property name="avvocato" type="string" description="avvocato della parte"/>
+  </class>
+  <class name="FascicoloPrecedente">
+    <property name="descUfficio" type="string" description="codice ufficio del fascicolo precedente"/>
+    <property name="anno" type="string" description="anno ruolo del procedimento precedente"/>
+    <property name="numero" type="string" description="numero ruolo del procedimento precedente"/>
+    <property name="grado" type="string" description="grado di giudizio (1 o 2)"/>
+    <property name="giudice" type="string" description="giudice assegnato al fascicolo precedente"/>
+    <property name="annoProvPrecedente" type="string" descritpion="anno ruolo del provvedimento precedente"/>
+    <property name="numeroProvPrecedente" type="string" description="numero ruolo del provvedimento precedente"/>
+    <property name="dataProvPrecedente" type="date" description="data del provvedimento precedente"/>
+    <property name="dataArrivo" type="date" description="data arrivo del fascicolo precedente"/>
+  </class>
+  <class name="ScadenzaTermine">
+    <property name="data" type="date" description="data scadenza"/>
+    <property name="descrizione" type="string" description="descrizione scadenza"/>
+  </class>
+   <class name="Verbali">
+    <property name="DTVERBALE" type="date" description="data del verbale"/>
+    <property name="MOTIVO" type="string" description="motivo del verbale"/>
+    <property name="NUMVERBALE" type="string" description="numero verbale"/>
+    <property name="PERDITA_PUNTI" type="string" description="perdita punti"/>
+    <property name="TPEVENT" type="string" description="stato del verbale"/>
+  </class>
+  <class name="NumeroCivile">
+    <property name="numpro" type="string" description="id fascicolo"/>
+    <property name="anno" type="string" description="anno campione civile"/>
+    <property name="numero" type="string" description="numero campione civile"/>
+  </class>
+  <class name="ProfiloFascicolo">
+    <property name="idFascicolo" type="string" description="id fascicolo"/>
+    <property name="idUfficio" type="string" description="codice ufficio"/>
+    <property name="anno" type="string"  description="anno ruolo fascicolo"/>
+    <property name="numero" type="string"  description="numero ruolo fascicolo"/>
+    <property name="subprocedimento" type="string" description="numero subprocedimento"/>
+    <property name="attoIntroduttivo" type="string"  description="atto introduttivo"/>
+    <property name="rito" type="string" description="rito"/>
+    <property name="descRuolo" type="string" description="descrizione ruolo"/>
+    <property name="descMateria" type="string" description="descrizione materia"/>
+    <property name="descOggetto" type="string" description="descrizione oggetto"/>
+    <property name="giudice" type="string" description="giudice assegnato"/>
+    <property name="descSezione" type="string"  description="descrizione sezione"/>
+    <property name="dataIscrizione" type="date" description="data iscrizione fascicolo"/>
+    <property name="dataPrimaComparizione" type="date" description="data di prima comparizione"/>
+    <property name="dataUltimaUdienza" type="date"  description="data ultima udienza"/>
+    <property name="descStato" type="string"  description="descrizione stato del fascicolo"/>
+    <property name="costituzione" type="string" description="costituzione"/>
+    <property name="impcausa" type="float" description="valore della causa"/>
+    <property name="contributounificato" type="float" description="contributo unificato"/>
+    <property name="dtcitaz" type="string" description="data citazione"/>
+    <classref ref="Verbali"/>
+    <classref ref="InfoParte"/>
+    <classref ref="ScadenzaTermine"/>
+  </class>
+  <class name="DocumentoFascicolo">
+    <property name="idUfficio" type="string" description="codice ufficio"/>
+    <property name="IdDocumento" type="string" description="identificativo documento"/>
+    <property name="IdDocMittente" type="string" description="identificativo deprecato"/>
+    <property name="tipo" type="string" description="tipo documento"/>
+    <property name="stato" type="string" description="stato documento"/>
+    <property name="autore" type="string" description="autore del documento"/>
+    <property name="annoDocumento" type="string"  description="attestazione anno documento"/>
+    <property name="numeroDocumento" type="string" description="id documento"/>
+    <property name="annoFascicolo" type="string" description="anno ruolo del fascicolo"/>
+    <property name="numeroFascicolo" type="string" description="numero ruolo del fascicolo"/>
+    <property name="subprocedimento" type="string" description="numero subprocedimento"/>
+    <property name="dataDeposito" type="date" description="data deposito del documento"/>
+  </class>
+  <class name="Evento">
+    <property name="idUfficio" type="string" description="codice ufficio"/>
+    <property name="anno" type="string" description="anno ruolo del fascicolo"/>
+    <property name="numero" type="string" description="numero ruolo del fascicolo"/>
+    <property name="subProcedimento" type="string" description="numero subprocedimento del fascicolo"/>
+    <property name="codiceEvento" type="string" description="codice evento"/>
+    <property name="codiceTipoEvento" type="string" description="codice tipologia evento"/>
+    <property name="tipo" type="string" description="nome evento"/>
+    <property name="desc" type="string" description="descrizione evento storico"/>
+    <property name="data" type="date" description="data evento"/>
+    <property name="dataRegistrazione" type="date"  description="data registrazione evento"/>
+    <property name="descdfa" type="string" description="descrizione flusso"/>
+    <property name="idDocumento" type="string" description="identificativo del documento associato"/>
+  </class>
+  <class name="RuoloMaterieOggetti">
+    <property name="ruolo" type="string" description="identificativo ruolo"/>
+    <property name="descRuolo" type="string" description="descrizione ruolo"/>
+    <property name="materia" type="string" description="identificativo materia"/>
+    <property name="descMateria" type="string" description="descrizione materia"/>
+    <property name="oggetto" type="string" description="identificativo oggetto"/>
+    <property name="descOggetto" type="string" description="descrizione oggetto"/>
+  </class>
+  <class name="InfoIncaricoCTU">
+    <property name="idIncarico" type="string" description="identificativo incarico"/>
+    <property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+	<property name="idCTU" type="string" description="identificativo CTU"/>
+	<property name="nomeCTU" type="string" description="cognome e nome CTU"/>
+	<property name="quesito" type="string" description="quesito incarico"/>
+	<property name="dataNomina" type="date" description="data nomina incarico"/>
+	<property name="dataGiuramento" type="date" description="data giuramento incarico"/>
+	<property name="dataDeposito" type="date" description="data deposito incarico"/>
+	<property name="dataLiquidazione" type="date" description="data liquidazione incarico"/>
+	<property name="dataChiarimento" type="date" description="data chiarimento incarico"/>
+	<property name="dataRevoca" type="date" description="data revoca incarico"/>
+	<property name="tipoIncarico" type="string" description="tipo incarico"/>
+  </class>
+  <class name="DocumentoPubblicato">
+    <property name="idCat" type="string" description="identificativo provvedimento"/>
+    <property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+	<property name="idSentenza" type="string" description="identificativo sentenza"/>
+	<property name="numSentenza" type="string" description="numero sentenza"/>
+	<property name="tipoSentenza" type="string" description="tipologia sentenza"/>
+	<property name="annoFascicolo" type="string" description="anno ruolo fascicolo"/>
+	<property name="numFascicolo" type="string" description="numero ruolo fascicolo"/>
+	<property name="subPro" type="string" description="numero ruolo subprocedimento"/>
+	<property name="dataEmissione" type="date" description="data emissione sentenza"/>
+	<property name="esito" type="string" description="esito sentenza"/>
+	<property name="tipoSentenzaMerito" type="string" description="decisione per la sentenza di merito (accolto, rigettato..)"/>
+	<property name="importo" type="string" description="importo sentenza"/>
+        <property name="attorePrincipale" type="string" description="attore principale"/>
+        <property name="convenutoPrincipale" type="string" description="convenuto principale"/>
+        <property name="giudice" type="string" description="giudice assegnato"/>
+	<property name="dataIscr" type="date" description="data iscrizione fascicolo"/>
+	<property name="descRuolo" type="string" description="descrizione del ruolo del fascicolo"/>
+    <property name="descMateria" type="string" description="descrizione della materia del fascicolo"/>
+    <property name="descOggetto" type="string" description="descrizione dell'oggetto del fascicolo"/>
+    <property name="descSezione" type="string" description="descrizione della sezione del fascicolo"/>
+  </class>
+  <class name="TipoDocumento">
+    <property name="gruppo" type="string" description="campo fisso 'ATTIGIUD'"/>
+    <property name="descGruppo" type="string" description="campo fisso 'ATTI DEL MAGISTRATO'"/>
+    <property name="tipo" type="string" description="campo fisso 'true'"/>
+    <property name="descTipo" type="string" description="campo fisso 'true'"/>
+    <property name="sezione" type="string" description="tipologia sentenza"/>
+    <property name="descSezione" type="string" description="descrizione della tipologia per la sentenza"/>
+  </class>
+  <class name="infoTest">
+                <property name="counter" type="string" description="test webservice"/>
+    </class>
+     <class name="Motivazione">
+    <property name="motivazione" type="string" description="motivazione mancata consegna telematica"/>
+    </class>
+     <class name="NotificaDaRitiro">
+        <property name="idFascicolo" type="string" description="id fascicolo"/>
+        <property name="idUfficio" type="string" description="codice ufficio"/>
+        <property name="anno" type="string" description="anno ruolo fascicolo"/>
+        <property name="numero" type="string" description="numero ruolo fascicolo"/>
+        <property name="numeroanno" type="string" description="numero e anno di ruolo del fascicolo"/>
+        <property name="subprocedimento" type="string" description="numero subprocedimento"/>
+        <property name="descOggettoRito" type="string" description="descrizione oggetto del fascicolo"/>
+        <property name="idInvioMsg" type="string" description="id messaggio telematico"/>
+        <property name="idRicevuta" type="string" description="id ricevuta"/>
+        <property name="descevento" type="string" description="descrizione evento"/>
+        <property name="dataevento" type="date" description="data evento"/>
+        <property name="dataregevento" type="date" description="data registro evento"/>
+        <classref ref="Motivazione"/>
+    </class>
+</catalog>

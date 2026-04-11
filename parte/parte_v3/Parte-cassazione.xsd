@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+	xmlns="http://schemi.processotelematico.giustizia.it/cassazione/Parte/v3" 
+	xmlns:tns="http://schemi.processotelematico.giustizia.it/cassazione/Parte/v3" 
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+	xmlns:bt="http://schemi.processotelematico.giustizia.it/cassazione/tipi/v3" 
+	xmlns:pt="http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v3" 
+	xmlns:evt="http://schemi.processotelematico.giustizia.it/cassazione/eventi/v3" 
+	targetNamespace="http://schemi.processotelematico.giustizia.it/cassazione/Parte/v3" 
+	elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/cassazione/tipi/v3" schemaLocation="../base_v3/tipi-base.xsd"/>
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/cassazione/tipi/atti/v3" schemaLocation="../base_v3/tipi-atti.xsd"/>
+	<xs:import namespace="http://schemi.processotelematico.giustizia.it/cassazione/eventi/v3" schemaLocation="../base_v3/eventi-cassazione.xsd"/>
+	<xs:annotation>
+		<xs:documentation>ATTI DI PARTE IN CORSO DI CAUSA</xs:documentation>
+		<xs:documentation>Gli atti qui definiti si riferiscono a procedimenti in essere</xs:documentation>
+	</xs:annotation>
+	<xs:element name="Ricorso">
+		<xs:annotation>
+			<xs:documentation>Iscrizione ricorso</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoIntroduttivo">
+					<xs:sequence>
+						<xs:element name="TipoRicorso" type="bt:TipoRicorso"/>
+						<xs:sequence>
+							<xs:element name="dataRichiestaNotifica" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Inserire la data della prima notifica del Ricorso</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+							<xs:element name="dataEffettivaNotifica" type="xs:date">
+								<xs:annotation>
+									<xs:documentation>Inserire la data dell perfezionamento dell'ultima notifica</xs:documentation>
+								</xs:annotation>
+							</xs:element>
+						</xs:sequence>
+						<xs:element name="Provvedimento" type="pt:Provvedimento" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Riferimento all'allegato copia autentica o duplicato informatico del provvedimento impugnato</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="InizioGiudizioPrimoGrado" type="bt:InizioGiudizioPrimoGrado"/>
+						<xs:element name="Materia" type="bt:MateriaRicorso"/>
+						<xs:element name="valoreCausa" type="bt:Valuta" minOccurs="0"/>
+						<xs:element name="speseGiustizia" type="pt:SpeseGiustizia"/>
+						<xs:element ref="pt:AnagraficaProcedimento"/>
+						<xs:element ref="bt:Motivi"/>
+						<xs:element ref="pt:DocumentiECLI"/>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ControRicorso">
+		<xs:annotation>
+			<xs:documentation>Deposito contro-ricorso</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoIntroduttivo">
+					<xs:sequence>
+						<xs:element name="TipoRicorso" type="bt:TipoRicorso"/>
+						<xs:element name="Provvedimento" type="pt:Provvedimento" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Riferimento all'allegato copia autentica o duplicato informatico del provvedimento impugnato</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="InizioGiudizioPrimoGrado" type="bt:InizioGiudizioPrimoGrado" minOccurs="0"/>
+						<xs:element name="Materia" type="bt:MateriaRicorso"/>
+						<xs:element name="valoreCausa" type="bt:Valuta" minOccurs="0"/>
+						<xs:element name="speseGiustizia" type="pt:SpeseGiustizia" minOccurs="0">
+							<xs:annotation>
+								<xs:documentation>Dati contributo unificato</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element ref="pt:AnagraficaProcedimento"/>
+						<xs:element ref="bt:ControMotivi"/>
+						<xs:element ref="pt:DocumentiECLI"/>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="ControRicorsoIncidentale">
+		<xs:annotation>
+			<xs:documentation>Depsito del ricorso incidentale</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoIntroduttivo">
+					<xs:sequence>
+						<xs:element name="TipoRicorso" type="bt:TipoRicorso"/>
+						<xs:element name="Provvedimento" type="pt:Provvedimento" maxOccurs="unbounded">
+							<xs:annotation>
+								<xs:documentation>Riferimento all'allegato copia autentica o duplicato informatico del provvedimento impugnato</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="InizioGiudizioPrimoGrado" type="bt:InizioGiudizioPrimoGrado" minOccurs="0"/>
+						<xs:element name="Materia" type="bt:MateriaRicorso"/>
+						<xs:element name="valoreCausa" type="bt:Valuta"/>
+						<xs:element name="speseGiustizia" type="pt:SpeseGiustizia">
+							<xs:annotation>
+								<xs:documentation>Dati contributo unificato</xs:documentation>
+							</xs:annotation>
+						</xs:element>
+						<xs:element ref="pt:AnagraficaProcedimento"/>
+						<xs:element ref="bt:Motivi"/>
+						<xs:element ref="bt:ControMotivi"/>
+						<xs:element ref="pt:DocumentiECLI"/>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="AttoGenerico">
+		<xs:annotation>
+			<xs:documentation>Istanza generica depositabile dall'avvocato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoProcedimento">
+					<xs:sequence>
+						<xs:element name="deposito" type="pt:AttiGenerici"/>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="IntegrazioneAnagrafica">
+		<xs:annotation>
+			<xs:documentation>Atto utilizzato per il deposito di procura speciale costituzione, sostituzione/revoca e integraziondel contradittorio e variazione domicilio</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoProcedimento">
+					<xs:sequence>
+						<xs:element ref="pt:ModificheAnagrafica">
+							<xs:annotation>
+								<xs:documentation>Parti che si costituiscono o per cui viene modificata l'anagrafica</xs:documentation>
+								<xs:appinfo source="http://www.giustizia.it/gl/sgr"/>
+							</xs:annotation>
+						</xs:element>
+						<xs:element name="deposito">
+							<xs:annotation>
+								<xs:documentation>Specifica la tipologia di atto oggetto di deposito</xs:documentation>
+								<xs:appinfo source="http://www.giustizia.it/gl/sgr"/>
+							</xs:annotation>
+							<xs:complexType>
+								<xs:choice>
+									<xs:element ref="evt:ProcuraSpecialeSostituzioneRevoca"/>
+									<xs:element ref="evt:ProcuraSpecialeCostituzione"/>
+									<xs:element ref="evt:IntegrazioneContradittorio"/>
+									<xs:element ref="evt:VariazioneDomicilio"/>
+								</xs:choice>
+							</xs:complexType>
+						</xs:element>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="IntegrazioneSpeseGiustizia">
+		<xs:annotation>
+			<xs:documentation>Integrazione del contributo unificato versato</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:complexContent>
+				<xs:extension base="pt:AttoProcedimento">
+					<xs:sequence>
+						<xs:element name="speseGiustizia" type="pt:integrazioneSpeseGiustizia">
+							<xs:annotation>
+								<xs:appinfo source="http://www.giustizia.it/gl/sgr"/>
+							</xs:annotation>
+						</xs:element>
+					</xs:sequence>
+				</xs:extension>
+			</xs:complexContent>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>
+
+
+

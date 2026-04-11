@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ELEMENT IndiceBusta (Atto, Allegato*)>
+<!ELEMENT Atto EMPTY>
+<!ELEMENT Allegato EMPTY>
+<!ATTLIST Atto
+	Nome CDATA #REQUIRED
+	ID   ID #REQUIRED
+>
+<!ATTLIST Allegato
+	Nome CDATA #REQUIRED
+	ID   ID #REQUIRED
+	Tipo (SM | IR  | DA | RT | PC | D | A | IA) #REQUIRED
+>
+<!-- Definizione dei valori dell'attributo Tipo per l'elemento Allegato
+	SM = semplice
+	IR= Nota Iscrizione a Ruolo
+	DA= Dati Atto
+	RT= Ricevuta Telematica
+  PC= Procura in calce (Cassazione)
+  D = Procura speciale (Cassazione)
+  A = Copia autentica provvedimento impugnato (Cassazione)
+  IA = Istanza ex art. 369 c.p.c
+-->

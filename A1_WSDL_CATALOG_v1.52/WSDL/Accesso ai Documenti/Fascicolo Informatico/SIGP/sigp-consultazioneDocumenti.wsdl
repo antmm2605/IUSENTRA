@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:y="urn:sigp-consultazioneDocumenti" targetNamespace="urn:sigp-consultazioneDocumenti" xmlns:apachesoap="http://xml.apache.org/xml-soap">
+  <types>
+    <xs:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" targetNamespace="urn:sigp-consultazioneDocumenti" >
+    <xs:complexType name="StringArrayType">
+         <xs:sequence>
+             <xs:element name="item" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+         </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="InputRicercaAtti">
+        <xs:all>
+          <xs:element name="numRuolo" nillable="false" type="xs:string"/>
+          <xs:element name="annoRuolo" nillable="false" type="xs:string"/>
+        </xs:all>
+      </xs:complexType>
+    </xs:schema>
+  </types>
+  <message name="executeResponse">
+    <part name="resultId" type="y:StringArrayType"/>
+  </message>
+  <message name="executeRequest">
+    <part name="inputRA" type="y:InputRicercaAtti"/>
+  </message>
+  <message name="downloadAttoReq">
+    <part name="idrepeatto" type="xs:string"/>
+  </message>
+  <message name="downloadAttoRes">
+    <part name="result" type="apachesoap:DataHandler"/>
+  </message>
+  <portType name="ConsultazioneDocumentiBuilder">
+    <operation name="ricercaAtti">
+      <input message="y:executeRequest"/>
+      <output message="y:executeResponse"/>
+    </operation>
+    <operation name="downloadAtto">
+      <input message="y:downloadAttoReq"/>
+      <output message="y:downloadAttoRes"/>
+    </operation>
+  </portType>
+  <binding name="ConsultazioneDocumentiSOAPBinding" type="y:ConsultazioneDocumentiBuilder">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="ricercaAtti">
+      <soap:operation soapAction="ricercaAtti"/>
+      <input>
+        <soap:body use="literal" namespace="urn:sigp-consultazioneDocumenti"/>
+      </input>
+      <output>
+        <soap:body use="literal" namespace="urn:sigp-consultazioneDocumenti"/>
+      </output>
+    </operation>
+    <operation name="downloadAtto">
+      <soap:operation soapAction="downloadAtto"/>
+      <input>
+        <soap:body use="literal" namespace="urn:sigp-consultazioneDocumenti"/>
+      </input>
+      <output>
+          <soap:body use="literal" namespace="urn:sigp-consultazioneDocumenti"/>
+      </output>
+    </operation>
+  </binding>
+  <service name="WsConsultazioneDocumenti">
+    <port name="ConsultazioneDocumentiSOAPPort" binding="y:ConsultazioneDocumentiSOAPBinding">
+      <soap:address location="https://targetHost/targetPath"/>
+    </port>
+  </service>
+</definitions>
+

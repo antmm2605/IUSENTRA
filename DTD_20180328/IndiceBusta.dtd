@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ELEMENT IndiceBusta (Atto, Allegato*)>
+<!ELEMENT Atto EMPTY>
+<!ELEMENT Allegato EMPTY>
+<!ATTLIST Atto
+	Nome CDATA #REQUIRED
+	ID   ID #REQUIRED
+>
+<!ATTLIST Allegato
+	Nome CDATA #REQUIRED
+	ID   ID #REQUIRED
+	Tipo (SM | IR | PL | DA | RT | RU | PA | RA) #REQUIRED
+>
+<!-- Definizione dei valori dell'attributo Tipo per l'elemento Allegato
+	SM = Allegato semplice
+	IR = Nota Iscrizione a Ruolo
+	PL = Procura alle liti
+	DA = Dati Atto
+	RT = Ricevuta Telematica (a seguito di pagamento telematico)
+	RX = Relazione di notificazione redatta dall'UNEP (in formato XML)
+	RS = Scansione dell'atto notificato dall'ufficiale giudiziario (e collegato all'XML)
+	PA = Messaggio di PEC inviato nella notifica tra avvocati (Regolamento art. 18, comma 1)
+	RA = Ricevuta di avvenuta consegna a seguito di notifica telematica tra avvocati (riferita a PA)
+-->
+
+

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Catalogo descrittori per i servizi di back end - Consultazioni Ricorsi per le Corti d'Appello (Lavoro)
+  author: Eduardo
+  version: $Id:  Exp $
+-->
+<catalog>
+    <class name="ProfiloFascicolo">
+	<property description="Identificativo del fascicolo" name="idFascicolo" type="string"/>
+	<property description="Codice ufficio del fascicolo del secondo grado" name="idUfficio" type="string"/>
+	<property description="Anno di ruolo generale CDA" name="anno" type="integer"/>
+	<property description="Numero del ruolo generale CDA" name="numero" type="integer"/>
+	<property description="Eventuale numero di sub-procedimento CDA" name="subprocedimento" type="integer"/>
+	<property description="Numero del ruolo generale primo grado" name="numeroPrecedente" type="integer"/>
+	<property description="Anno di ruolo generale primo grado" name="annoPrecedente" type="integer"/>
+	<property description="Eventuale numero di sub-procedimento primo grado" name="subprocedimentoPrecedente" type="integer"/>
+	<property description="Codice ufficio del fascicolo del primo grado" name="ufficioPrecedente" type="string"/>
+	<property description="Registro del proc. di primo grado" name="registroPrecedente" type="string"/>
+	<property description="Giudice del grado precedente" name="nomeGiudPrecedente" type="string"/>
+	<property description="Codice fiscale giudice del grado precedente" name="cfGiudPrecedente" type="string"/>
+	<property description="Identificativo atto introduttivo" name="attoIntroduttivo" type="string"/>
+	<property description="Rito del procedimento" name="rito" type="string"/>
+	<property description="Ruolo del procedimento" name="descRuolo" type="string"/>
+	<property description="Materia del procedimento" name="descMateria" type="string"/>
+	<property description="Oggetto del procedimento" name="descOggetto" type="string"/>
+	<property description="Grado del procedimento" name="grado" type="string"/>
+	<property description="Giudice assegnatario" name="giudice" type="string"/>
+	<property description="Sezione" name="descSezione" type="string"/>
+	<property description="Data iscrizione del procedimento" name="dataIscrizione" type="date"/>
+	<property description="Data prima udienza di comparizione" name="dataPrimaComparizione" type="date"/>
+	<property description="Data dell’ultima udienza" name="dataUltimaUdienza" type="date"/>
+	<property description="Stato del fascicolo" name="descStato" type="string"/>
+	<property description="Esistenza della sentenza" name="definito" type="boolean"/>
+    </class>
+    <class name="EventiSentenze">
+	<property description="Codice ufficio del procedimento di secondo grado" name="idUfficio" type="string"/>
+	<property description="Anno di ruolo generale" name="anno" type="integer"/>
+	<property description="Numero di ruolo generale" name="numero" type="integer"/>
+	<property description="Eventuale numero di subprocedimento del fascicolo" name="subProcedimento" type="integer"/>
+	<property description="Descrizione dello storico del sistema di cancelleria" name="descrizione" type="string"/>
+	<property description="Data emissione sentenza" name="data" type="date"/>
+	<property description="Data registrazione evento" name="dataRegistrazione" type="date"/>
+	<property description="Riferimento alla sentenza" name="idDocumento" type="string"/>
+    </class>
+    <class name="DettagliGiudice">
+	<property name="nomeGiudice" type="string"/>
+	<property name="cfGiudice" type="string"/>
+	<property name="numeroRuolo" type="string"/>
+	<property name="annoRuolo" type="string"/>
+	<property name="registro" type="string"/>
+    </class>
+</catalog>

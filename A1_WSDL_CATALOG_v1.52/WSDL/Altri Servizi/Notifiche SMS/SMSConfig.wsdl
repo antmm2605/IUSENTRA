@@ -1,0 +1,126 @@
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://www.giustizia.it/gl/notifiche/SMSConfig" targetNamespace="http://www.giustizia.it/gl/notifiche/SMSConfig">
+	<types>
+		<xsd:schema xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" targetNamespace="http://www.giustizia.it/gl/notifiche/SMSConfig">
+			<xsd:import schemaLocation="./soap-encoding.xsd" namespace="http://schemas.xmlsoap.org/soap/encoding/"/>
+			<xsd:complexType name="Fascicolo">
+				<xsd:all>
+					<xsd:element name="ufficio" type="xsd:string" nillable="false"/>
+					<xsd:element name="registro" type="xsd:string" nillable="false"/>
+					<xsd:element name="numerorg" type="xsd:string" nillable="false"/>
+					<xsd:element name="annorg" type="xsd:string" nillable="false"/>
+					<xsd:element name="sub" type="xsd:string" nillable="true"/>
+				</xsd:all>
+			</xsd:complexType>
+			<xsd:complexType name="FascicoloArray">
+				<xsd:complexContent>
+					<xsd:restriction base="soapenc:Array">
+						<xsd:attribute ref="soapenc:arrayType" wsdl:arrayType="tns:Fascicolo[]"/>
+					</xsd:restriction>
+				</xsd:complexContent>
+			</xsd:complexType>
+		</xsd:schema>
+	</types>
+	<message name="voidRes"/>
+	<message name="setNotificaFascicoliRequest">
+		<part name="codiceFiscale" type="xsd:string"/>
+		<part name="numero" type="xsd:string"/>
+		<part name="fascicoli" type="tns:FascicoloArray"/>
+	</message>
+	<message name="getNotificaFascicoliRequest">
+		<part name="codiceFiscale" type="xsd:string"/>
+	</message>
+	<message name="getNotificaFascicoliResponse">
+		<part name="return" type="tns:FascicoloArray"/>
+	</message>
+	<message name="revocaNotificaFascicoliRequest">
+		<part name="codiceFiscale" type="xsd:string"/>
+		<part name="fascicoli" type="tns:FascicoloArray"/>
+	</message>
+	<message name="setNumeroRequest">
+		<part name="codiceFiscale" type="xsd:string"/>
+		<part name="numero" type="xsd:string"/>
+	</message>
+	<message name="getNumeroRequest">
+		<part name="codiceFiscale" type="xsd:string"/>
+	</message>
+	<message name="getNumeroResponse">
+		<part name="return" type="xsd:string"/>
+	</message>
+	<portType name="SMSConfig">
+		<operation name="setNotificaFascicoli">
+			<input message="tns:setNotificaFascicoliRequest"/>
+			<output message="tns:voidRes"/>
+		</operation>
+		<operation name="getNotificaFascicoli">
+			<input message="tns:getNotificaFascicoliRequest"/>
+			<output message="tns:getNotificaFascicoliResponse"/>
+		</operation>
+		<operation name="revocaNotificaFascicoli">
+			<input message="tns:revocaNotificaFascicoliRequest"/>
+			<output message="tns:voidRes"/>
+		</operation>
+		<operation name="setNumero">
+			<input message="tns:setNumeroRequest"/>
+			<output message="tns:voidRes"/>
+		</operation>
+		<operation name="getNumero">
+			<input message="tns:getNumeroRequest"/>
+			<output message="tns:getNumeroResponse"/>
+		</operation>
+	</portType>
+	<binding name="SMSConfigSOAPBinding" type="tns:SMSConfig">
+		<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<operation name="setNotificaFascicoli">
+			<soap:operation soapAction="setNotificaFascicoli"/>
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</output>
+		</operation>
+		<operation name="getNotificaFascicoli">
+			<soap:operation soapAction="getNotificaFascicoli"/>
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</output>
+		</operation>
+		<operation name="revocaNotificaFascicoli">
+			<soap:operation soapAction="revocaNotificaFascicoli"/>
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</output>
+		</operation>
+		<operation name="setNumero">
+			<soap:operation soapAction="setNumero"/>
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</output>
+		</operation>
+		<operation name="getNumero">
+			<soap:operation soapAction="getNumero"/>
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</input>
+			<output>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/notifiche/SMSConfig"/>
+			</output>
+		</operation>
+	</binding>
+	<service name="wsSMSConfig">
+		<port name="SMSConfigPort" binding="tns:SMSConfigSOAPBinding">
+			<soap:address location="https://targetHost/targetPath"/>
+		</port>
+	</service>
+</definitions>
+
+

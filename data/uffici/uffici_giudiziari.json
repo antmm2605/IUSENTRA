@@ -1,8 +1,8 @@
 {
   "sorgente": "bundle",
-  "aggiornato_il": "2026-03-29T10:40:58",
+  "aggiornato_il": "2026-04-11T21:49:37",
   "n_uffici": 777,
-  "bundle_hash": "8d15e4added1d45b1ff5e239933d994cd0071136cd112a85d6bc9bc50e247ed4",
+  "bundle_hash": "ea919b851461d64c17f22640c89efc1e0bbb8cb5f6dc97eb36a228f30ef54b4a",
   "uffici": [
     {
       "codice": "0530010",
@@ -4717,10 +4717,11 @@
       "servizi_ministero": [
         "COM_TEL_SPER",
         "DEPOT",
-        "JPW_CASS",
+        "JPW_CASSCI",
+        "JPW_CASSPE",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_CASS"
+      "servizio_pst_predefinito": "JPW_CASSCI"
     },
     {
       "codice": "9990001",

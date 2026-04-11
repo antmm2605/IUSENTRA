@@ -1,0 +1,391 @@
+<definitions name='WsServiziInterrogazioneEnte' targetNamespace='http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt' xmlns='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' xmlns:tns='http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
+ <types>
+  <xs:schema targetNamespace='http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt' version='1.0' xmlns:tns='http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt' xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+   <xs:element name='SearchLimitException' type='tns:SearchLimitException'/>
+   <xs:element name='dettagliEnte' type='tns:dettagliEnte'/>
+   <xs:element name='dettagliEnteResponse' type='tns:dettagliEnteResponse'/>
+   <xs:element name='ricercaEnte' type='tns:ricercaEnte'/>
+   <xs:element name='ricercaEnteComplete' type='tns:ricercaEnteComplete'/>
+   <xs:element name='ricercaEnteCompleteResponse' type='tns:ricercaEnteCompleteResponse'/>
+   <xs:element name='ricercaEnteEx' type='tns:ricercaEnteEx'/>
+   <xs:element name='ricercaEnteExResponse' type='tns:ricercaEnteExResponse'/>
+   <xs:element name='ricercaEnteInt' type='tns:ricercaEnteInt'/>
+   <xs:element name='ricercaEnteIntResponse' type='tns:ricercaEnteIntResponse'/>
+   <xs:element name='ricercaEnteResponse' type='tns:ricercaEnteResponse'/>
+   <xs:element name='ricercaEntiReferente' type='tns:ricercaEntiReferente'/>
+   <xs:element name='ricercaEntiReferenteResponse' type='tns:ricercaEntiReferenteResponse'/>
+   <xs:element name='ricercaIndAbilitati' type='tns:ricercaIndAbilitati'/>
+   <xs:element name='ricercaIndAbilitatiResponse' type='tns:ricercaIndAbilitatiResponse'/>
+   <xs:element name='ricercaReferente' type='tns:ricercaReferente'/>
+   <xs:element name='ricercaReferenteResponse' type='tns:ricercaReferenteResponse'/>
+   <xs:complexType name='ricercaEnteComplete'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='tipoEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='idTipologia' type='xs:string'/>
+     <xs:element minOccurs='0' name='piva' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='indirizzoPec' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='classe' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnteCompleteResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ruoloente'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ruoloente'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='classe' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='id' type='xs:string'/>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='indirizziAbilitati' type='tns:indAbilitato'/>
+     <xs:element name='pubblicaAmministrazione' type='xs:boolean'/>
+     <xs:element minOccurs='0' name='pec' type='xs:string'/>
+     <xs:element minOccurs='0' name='partitaIVA' type='xs:string'/>
+     <xs:element minOccurs='0' name='referente' type='tns:referente'/>
+     <xs:element minOccurs='0' name='ruolo' type='xs:string'/>
+     <xs:element minOccurs='0' name='stato' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipologia' type='tns:tipologieEnti'/>
+     <xs:element name='visibile' type='xs:boolean'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='indAbilitato'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='id' type='xs:string'/>
+     <xs:element minOccurs='0' name='email' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='referente'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='idReferente' type='xs:string'/>
+     <xs:element minOccurs='0' name='nome' type='xs:string'/>
+     <xs:element minOccurs='0' name='cognome' type='xs:string'/>
+     <xs:element minOccurs='0' name='dataInserimento' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='dataUltimaModifica' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='tipologieEnti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='id' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipo' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='SearchLimitException'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='message' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliEnte'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliEnteResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:ruoloente'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnte'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnteResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ruoloente'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnteEx'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='tipo' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='indirizzoPec' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnteExResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ruoloente'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnteInt'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='tipo' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='indirizzoPec' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEnteIntResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:enteinterno'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='enteinterno'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='classe' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element name='pubblicaAmministrazione' type='xs:boolean'/>
+     <xs:element minOccurs='0' name='pec' type='xs:string'/>
+     <xs:element minOccurs='0' name='partitaIVA' type='xs:string'/>
+     <xs:element minOccurs='0' name='ruolo' type='xs:string'/>
+     <xs:element minOccurs='0' name='stato' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipologia' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEntiReferente'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='tipo' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaEntiReferenteResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ruoloente'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaIndAbilitati'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='pec' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscaleFirma' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaIndAbilitatiResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:indabilitati'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='indabilitati'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscaleFirma' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizioneEnte' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaReferente'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='pec' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaReferenteResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:referenteresponse'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='referenteresponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='datiSoggetto' type='tns:referente'/>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+  </xs:schema>
+ </types>
+ <message name='SearchLimitException'>
+  <part element='tns:SearchLimitException' name='SearchLimitException'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEntiReferenteResponse'>
+  <part element='tns:ricercaEntiReferenteResponse' name='ricercaEntiReferenteResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaIndAbilitati'>
+  <part element='tns:ricercaIndAbilitati' name='ricercaIndAbilitati'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_dettagliEnte'>
+  <part element='tns:dettagliEnte' name='dettagliEnte'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_dettagliEnteResponse'>
+  <part element='tns:dettagliEnteResponse' name='dettagliEnteResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaReferenteResponse'>
+  <part element='tns:ricercaReferenteResponse' name='ricercaReferenteResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnte'>
+  <part element='tns:ricercaEnte' name='ricercaEnte'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteExResponse'>
+  <part element='tns:ricercaEnteExResponse' name='ricercaEnteExResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaReferente'>
+  <part element='tns:ricercaReferente' name='ricercaReferente'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteComplete'>
+  <part element='tns:ricercaEnteComplete' name='ricercaEnteComplete'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteEx'>
+  <part element='tns:ricercaEnteEx' name='ricercaEnteEx'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEntiReferente'>
+  <part element='tns:ricercaEntiReferente' name='ricercaEntiReferente'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaIndAbilitatiResponse'>
+  <part element='tns:ricercaIndAbilitatiResponse' name='ricercaIndAbilitatiResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteResponse'>
+  <part element='tns:ricercaEnteResponse' name='ricercaEnteResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteInt'>
+  <part element='tns:ricercaEnteInt' name='ricercaEnteInt'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteIntResponse'>
+  <part element='tns:ricercaEnteIntResponse' name='ricercaEnteIntResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneEnte_ricercaEnteCompleteResponse'>
+  <part element='tns:ricercaEnteCompleteResponse' name='ricercaEnteCompleteResponse'></part>
+ </message>
+ <portType name='WsServiziInterrogazioneEnte'>
+  <operation name='dettagliEnte' parameterOrder='dettagliEnte'>
+   <input message='tns:WsServiziInterrogazioneEnte_dettagliEnte'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_dettagliEnteResponse'></output>
+  </operation>
+  <operation name='ricercaEnte' parameterOrder='ricercaEnte'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaEnte'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaEnteResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='ricercaEnteComplete' parameterOrder='ricercaEnteComplete'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaEnteComplete'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaEnteCompleteResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='ricercaEnteEx' parameterOrder='ricercaEnteEx'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaEnteEx'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaEnteExResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='ricercaEnteInt' parameterOrder='ricercaEnteInt'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaEnteInt'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaEnteIntResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='ricercaEntiReferente' parameterOrder='ricercaEntiReferente'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaEntiReferente'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaEntiReferenteResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='ricercaIndAbilitati' parameterOrder='ricercaIndAbilitati'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaIndAbilitati'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaIndAbilitatiResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='ricercaReferente' parameterOrder='ricercaReferente'>
+   <input message='tns:WsServiziInterrogazioneEnte_ricercaReferente'></input>
+   <output message='tns:WsServiziInterrogazioneEnte_ricercaReferenteResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+ </portType>
+ <binding name='WsServiziInterrogazioneEnteBinding' type='tns:WsServiziInterrogazioneEnte'>
+  <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http'/>
+  <operation name='dettagliEnte'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='ricercaEnte'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaEnteComplete'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaEnteEx'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaEnteInt'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaEntiReferente'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaIndAbilitati'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaReferente'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+ </binding>
+ <service name='WsServiziInterrogazioneEnte'>
+  <port binding='tns:WsServiziInterrogazioneEnteBinding' name='ServiziInterrogazioneEnteBeanPort'>
+   <soap:address location='http://dev-pst/ServiziInterrogazioneRegindeExt/ServiziInterrogazioneEnte'/>
+  </port>
+ </service>
+</definitions>

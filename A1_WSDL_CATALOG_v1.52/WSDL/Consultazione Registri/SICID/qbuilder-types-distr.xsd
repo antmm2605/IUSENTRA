@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema targetNamespace="http://www.netserv.it/QBuilder/types" xmlns="http://www.w3.org/2001/XMLSchema" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://www.netserv.it/QBuilder/types">
+  <xsd:import namespace="http://schemas.xmlsoap.org/soap/encoding/" schemaLocation="./soap-encoding.xsd"/>
+  <!-- xsd:simpleType name="typeEnum">
+		<xsd:restriction base="xsd:NMTOKEN">
+			<xsd:enumeration id="string"  value="string"/>
+			<xsd:enumeration id="integer" value="integer"/>
+			<xsd:enumeration id="date"    value="date"/>
+			<xsd:enumeration id="binary"  value="binary"/>
+			<xsd:enumeration id="float"   value="float"/>
+			<xsd:enumeration id="double"  value="double"/>
+			<xsd:enumeration id="boolean" value="boolean"/>
+			<xsd:enumeration id="long"    value="long"/>
+		</xsd:restriction>
+	</xsd:simpleType -->
+  <xsd:complexType name="stringArrayType">
+    <xsd:complexContent>
+      <xsd:restriction base="soap-enc:Array">
+        <xsd:attribute ref="soap-enc:arrayType" wsdl:arrayType="xsd:string[]"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:complexType name="namedValueType">
+    <xsd:simpleContent>
+      <xsd:extension base="xsd:string">
+        <xsd:attribute name="name" type="xsd:string" use="required"/>
+        <xsd:attribute name="type" type="xsd:string" default="string"/>
+      </xsd:extension>
+    </xsd:simpleContent>
+  </xsd:complexType>
+  <xsd:complexType name="srowType">
+    <xsd:sequence>
+      <xsd:element name="property" type="tns:namedValueType" maxOccurs="unbounded"/>
+      <xsd:element name="subRows" type="tns:subRowsType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <xsd:complexType name="subRowsType">
+    <xsd:sequence>
+      <xsd:element name="row" type="tns:srowType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="class" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <xsd:complexType name="rowType">
+    <xsd:sequence>
+      <xsd:element name="property" type="tns:namedValueType" maxOccurs="unbounded"/>
+      <xsd:element name="subRows" type="tns:subRowsType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="class" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <xsd:complexType name="rowListType">
+    <xsd:sequence>
+      <xsd:element name="row" type="tns:rowType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="available" type="xsd:string" use="required"/>
+    <xsd:attribute name="time" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <xsd:complexType name="valueSetType">
+    <xsd:sequence>
+      <xsd:element name="value" type="tns:namedValueType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <xsd:complexType name="propertyDescType">
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:attribute name="type" type="xsd:string" default="string"/>
+  </xsd:complexType>
+  <xsd:complexType name="classRefType">
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <xsd:complexType name="rowClassDescriptorType">
+    <xsd:sequence>
+      <xsd:element name="property" type="tns:propertyDescType" maxOccurs="unbounded"/>
+      <xsd:element name="classRef" type="tns:classRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <xsd:complexType name="serviceDescriptorType">
+    <xsd:sequence>
+      <xsd:element name="params" type="tns:propertyDescType" maxOccurs="unbounded"/>
+      <xsd:element name="rowClass" type="tns:classRefType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <xsd:complexType name="orderByEntryType">
+    <xsd:attribute name="property" type="xsd:string" use="required"/>
+    <xsd:attribute name="mode" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <xsd:complexType name="orderByType">
+    <xsd:sequence>
+      <xsd:element name="entry" type="tns:orderByEntryType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+</xsd:schema>

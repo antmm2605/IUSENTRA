@@ -114,6 +114,15 @@ _PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP")
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
 }
+_PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
+_WSDL_RICERCA_PENALE = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
+_WSDL_CONSULTA_PENALE = f"{_PDP_BASE}/ConsultazioneDocumentiPenaleService?wsdl"
+_PAT_BASE = os.getenv("PCT_PAT_BASE_URL", "https://pac.giustizia-amministrativa.it/pac").rstrip("/")
+_WSDL_RICERCA_AMM = f"{_PAT_BASE}/RicercaRicorsiService?wsdl"
+_WSDL_CONSULTA_AMM = f"{_PAT_BASE}/ConsultazioneDocumentiService?wsdl"
+_SIGIT_BASE = os.getenv("PCT_SIGIT_BASE_URL", "https://www.ptt.mef.gov.it/ptt").rstrip("/")
+_WSDL_RICERCA_TRIB = f"{_SIGIT_BASE}/RicercaFascicoliTributarioService?wsdl"
+_WSDL_CONSULTA_TRIB = f"{_SIGIT_BASE}/ConsultazioneDocumentiTributarioService?wsdl"
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 _PST_CERT_ISSUER_PRIORITIES = (
     "ArubaPEC EU Authentica Certificates CA G1",
@@ -162,6 +171,7 @@ _DEFAULT_LIBS = [
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
 _uffici_snapshot_cache: Optional[dict[str, dict]] = None
+_uffici_hacs_cache: Optional[list[dict[str, Any]]] = None
 _pin_session_cache: dict[str, dict] = {}
 _pin_session_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
@@ -302,6 +312,148 @@ def _supporto_auto_pst_disponibile() -> bool:
     if _risolvi_base_pst_hacs is not None and _risolvi_codice_ministero_hacs is not None:
         return True
     return bool(_carica_snapshot_uffici())
+
+
+def _carica_bundle_uffici_hacs() -> list[dict[str, Any]]:
+    global _uffici_hacs_cache
+    if _uffici_hacs_cache is not None:
+        return _uffici_hacs_cache
+
+    try:
+        from pct.uffici_giudiziari import _build_bundle_completo
+
+        bundle = _build_bundle_completo()
+        _uffici_hacs_cache = bundle if isinstance(bundle, list) else []
+    except Exception:
+        _uffici_hacs_cache = []
+    return _uffici_hacs_cache
+
+
+def _risolvi_ufficio_hacs_bundle(
+    valore: str,
+    *,
+    tipi: Optional[tuple[str, ...]] = None,
+) -> Optional[dict[str, Any]]:
+    chiave = (valore or "").strip()
+    if not chiave:
+        return None
+
+    tipi_norm = {str(tipo).upper() for tipo in (tipi or ()) if str(tipo).strip()}
+    bundle = _carica_bundle_uffici_hacs()
+    if not bundle:
+        return None
+
+    chiave_upper = chiave.upper()
+    chiave_norm = _normalizza_testo_ufficio(chiave)
+    best_partial: Optional[dict[str, Any]] = None
+
+    for ufficio in bundle:
+        tipo = str(ufficio.get("tipo") or "").upper()
+        if tipi_norm and tipo not in tipi_norm:
+            continue
+
+        codice = str(ufficio.get("codice") or "").strip()
+        nome = str(ufficio.get("nome") or "").strip()
+        distretto = str(ufficio.get("distretto") or "").strip()
+
+        if codice and codice.upper() == chiave_upper:
+            return ufficio
+
+        campi = [nome, distretto, f"{nome} {distretto}".strip()]
+        campi_norm = [_normalizza_testo_ufficio(campo) for campo in campi if campo]
+        if chiave_norm in campi_norm:
+            return ufficio
+
+        if chiave_norm and not best_partial and any(
+            chiave_norm in campo_norm for campo_norm in campi_norm if campo_norm
+        ):
+            best_partial = ufficio
+
+    return best_partial
+
+
+def _looks_like_pat_code(valore: str) -> bool:
+    text = (valore or "").strip().upper()
+    return bool(text) and (
+        text.isdigit()
+        or text.startswith("T")
+        or text.startswith("CDS")
+        or text.startswith("CGARS")
+    )
+
+
+def _looks_like_ptt_code(valore: str) -> bool:
+    text = (valore or "").strip().upper()
+    return bool(text) and (text.isdigit() or text.startswith(("CPT", "CGT")))
+
+
+def _risolvi_codice_ufficio_pdp_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if text.isdigit():
+        return text
+
+    ufficio = _risolvi_ufficio_da_snapshot(text) or _risolvi_ufficio_hacs_bundle(
+        text,
+        tipi=(
+            "TRIBUNALE",
+            "PROCURA",
+            "PROCURA_GENERALE",
+            "CORTE_APPELLO",
+            "TM",
+            "SORVEGLIANZA",
+            "CORTE_ASSISE",
+            "CORTE_CASSAZIONE",
+        ),
+    )
+    if ufficio:
+        codice = str(ufficio.get("codice") or ufficio.get("codice_ministero") or "").strip()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice ufficio PDP dal valore indicato. "
+        "Selezionare l'ufficio dalla lista del wizard oppure verificare il registro uffici locale."
+    )
+
+
+def _risolvi_codice_ufficio_pat_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if _looks_like_pat_code(text):
+        return text
+
+    ufficio = _risolvi_ufficio_hacs_bundle(text, tipi=("TAR", "CDS", "CGARS"))
+    if ufficio:
+        codice = str(ufficio.get("codice") or "").strip()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice ufficio PAT dal valore indicato. "
+        "Selezionare l'ufficio dalla lista del wizard oppure aggiornare il registro portali."
+    )
+
+
+def _risolvi_codice_commissione_ptt_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if _looks_like_ptt_code(text):
+        return text.upper()
+
+    ufficio = _risolvi_ufficio_hacs_bundle(text, tipi=("CPT", "CGT"))
+    if ufficio:
+        codice = str(ufficio.get("codice") or "").strip().upper()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice commissione PTT dal valore indicato. "
+        "Selezionare la commissione dalla lista del wizard oppure aggiornare il registro portali."
+    )
 
 
 def _normalizza_origin(origin: str) -> str:

@@ -58,7 +58,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from email import policy
 from email.parser import BytesParser
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.27"
+VERSION = "1.5.28"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -114,6 +114,15 @@ _PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP")
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
 }
+_PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
+_WSDL_RICERCA_PENALE = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
+_WSDL_CONSULTA_PENALE = f"{_PDP_BASE}/ConsultazioneDocumentiPenaleService?wsdl"
+_PAT_BASE = os.getenv("PCT_PAT_BASE_URL", "https://pac.giustizia-amministrativa.it/pac").rstrip("/")
+_WSDL_RICERCA_AMM = f"{_PAT_BASE}/RicercaRicorsiService?wsdl"
+_WSDL_CONSULTA_AMM = f"{_PAT_BASE}/ConsultazioneDocumentiService?wsdl"
+_SIGIT_BASE = os.getenv("PCT_SIGIT_BASE_URL", "https://www.ptt.mef.gov.it/ptt").rstrip("/")
+_WSDL_RICERCA_TRIB = f"{_SIGIT_BASE}/RicercaFascicoliTributarioService?wsdl"
+_WSDL_CONSULTA_TRIB = f"{_SIGIT_BASE}/ConsultazioneDocumentiTributarioService?wsdl"
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 _PST_CERT_ISSUER_PRIORITIES = (
     "ArubaPEC EU Authentica Certificates CA G1",
@@ -162,6 +171,7 @@ _DEFAULT_LIBS = [
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
 _uffici_snapshot_cache: Optional[dict[str, dict]] = None
+_uffici_hacs_cache: Optional[list[dict[str, Any]]] = None
 _pin_session_cache: dict[str, dict] = {}
 _pin_session_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
@@ -302,6 +312,148 @@ def _supporto_auto_pst_disponibile() -> bool:
     if _risolvi_base_pst_hacs is not None and _risolvi_codice_ministero_hacs is not None:
         return True
     return bool(_carica_snapshot_uffici())
+
+
+def _carica_bundle_uffici_hacs() -> list[dict[str, Any]]:
+    global _uffici_hacs_cache
+    if _uffici_hacs_cache is not None:
+        return _uffici_hacs_cache
+
+    try:
+        from pct.uffici_giudiziari import _build_bundle_completo
+
+        bundle = _build_bundle_completo()
+        _uffici_hacs_cache = bundle if isinstance(bundle, list) else []
+    except Exception:
+        _uffici_hacs_cache = []
+    return _uffici_hacs_cache
+
+
+def _risolvi_ufficio_hacs_bundle(
+    valore: str,
+    *,
+    tipi: Optional[tuple[str, ...]] = None,
+) -> Optional[dict[str, Any]]:
+    chiave = (valore or "").strip()
+    if not chiave:
+        return None
+
+    tipi_norm = {str(tipo).upper() for tipo in (tipi or ()) if str(tipo).strip()}
+    bundle = _carica_bundle_uffici_hacs()
+    if not bundle:
+        return None
+
+    chiave_upper = chiave.upper()
+    chiave_norm = _normalizza_testo_ufficio(chiave)
+    best_partial: Optional[dict[str, Any]] = None
+
+    for ufficio in bundle:
+        tipo = str(ufficio.get("tipo") or "").upper()
+        if tipi_norm and tipo not in tipi_norm:
+            continue
+
+        codice = str(ufficio.get("codice") or "").strip()
+        nome = str(ufficio.get("nome") or "").strip()
+        distretto = str(ufficio.get("distretto") or "").strip()
+
+        if codice and codice.upper() == chiave_upper:
+            return ufficio
+
+        campi = [nome, distretto, f"{nome} {distretto}".strip()]
+        campi_norm = [_normalizza_testo_ufficio(campo) for campo in campi if campo]
+        if chiave_norm in campi_norm:
+            return ufficio
+
+        if chiave_norm and not best_partial and any(
+            chiave_norm in campo_norm for campo_norm in campi_norm if campo_norm
+        ):
+            best_partial = ufficio
+
+    return best_partial
+
+
+def _looks_like_pat_code(valore: str) -> bool:
+    text = (valore or "").strip().upper()
+    return bool(text) and (
+        text.isdigit()
+        or text.startswith("T")
+        or text.startswith("CDS")
+        or text.startswith("CGARS")
+    )
+
+
+def _looks_like_ptt_code(valore: str) -> bool:
+    text = (valore or "").strip().upper()
+    return bool(text) and (text.isdigit() or text.startswith(("CPT", "CGT")))
+
+
+def _risolvi_codice_ufficio_pdp_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if text.isdigit():
+        return text
+
+    ufficio = _risolvi_ufficio_da_snapshot(text) or _risolvi_ufficio_hacs_bundle(
+        text,
+        tipi=(
+            "TRIBUNALE",
+            "PROCURA",
+            "PROCURA_GENERALE",
+            "CORTE_APPELLO",
+            "TM",
+            "SORVEGLIANZA",
+            "CORTE_ASSISE",
+            "CORTE_CASSAZIONE",
+        ),
+    )
+    if ufficio:
+        codice = str(ufficio.get("codice") or ufficio.get("codice_ministero") or "").strip()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice ufficio PDP dal valore indicato. "
+        "Selezionare l'ufficio dalla lista del wizard oppure verificare il registro uffici locale."
+    )
+
+
+def _risolvi_codice_ufficio_pat_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if _looks_like_pat_code(text):
+        return text
+
+    ufficio = _risolvi_ufficio_hacs_bundle(text, tipi=("TAR", "CDS", "CGARS"))
+    if ufficio:
+        codice = str(ufficio.get("codice") or "").strip()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice ufficio PAT dal valore indicato. "
+        "Selezionare l'ufficio dalla lista del wizard oppure aggiornare il registro portali."
+    )
+
+
+def _risolvi_codice_commissione_ptt_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if _looks_like_ptt_code(text):
+        return text.upper()
+
+    ufficio = _risolvi_ufficio_hacs_bundle(text, tipi=("CPT", "CGT"))
+    if ufficio:
+        codice = str(ufficio.get("codice") or "").strip().upper()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice commissione PTT dal valore indicato. "
+        "Selezionare la commissione dalla lista del wizard oppure aggiornare il registro portali."
+    )
 
 
 def _normalizza_origin(origin: str) -> str:
@@ -609,6 +761,215 @@ def _estrai_codice_fiscale_testo(valore: str) -> str:
 def _parse_optional_int(value: Any) -> Optional[int]:
     text = str(value or "").strip()
     return int(text) if text.isdigit() else None
+
+
+def _parse_portale_data(valore: Any) -> str:
+    if not valore:
+        return ""
+    if isinstance(valore, (date, datetime)):
+        return valore.strftime("%Y-%m-%d")
+    return str(valore)[:10]
+
+
+def _parse_portale_lista(
+    valore: Any,
+    *,
+    container_attrs: tuple[str, ...],
+    value_attrs: tuple[str, ...] = ("nominativo",),
+) -> list[str]:
+    if not valore:
+        return []
+    if isinstance(valore, list):
+        return [str(v) for v in valore if str(v).strip()]
+
+    for attr in container_attrs:
+        if not hasattr(valore, attr):
+            continue
+        items = getattr(valore, attr)
+        if not isinstance(items, list):
+            items = [items]
+        risultati: list[str] = []
+        for item in items:
+            if item is None:
+                continue
+            testo = ""
+            for value_attr in value_attrs:
+                candidato = getattr(item, value_attr, None)
+                if candidato:
+                    testo = str(candidato)
+                    break
+            risultati.append(testo or str(item))
+        return risultati
+
+    return [str(valore)]
+
+
+def _portale_items(risposta: Any, plural_attr: str, singular_attr: str) -> list[Any]:
+    items = getattr(risposta, plural_attr, None) or getattr(risposta, singular_attr, None) or []
+    if not isinstance(items, list):
+        items = [items]
+    return [item for item in items if item is not None]
+
+
+def _parse_pdp_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "fascicoli", "fascicolo"):
+            fascicoli.append({
+                "numero_rg": str(getattr(item, "numeroRG", "") or ""),
+                "anno_rg": int(getattr(item, "annoRG", 0) or 0),
+                "tipo_registro": str(getattr(item, "tipoRegistro", "RGNR") or ""),
+                "fase": str(getattr(item, "fase", "INDAGINI") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "reato": str(getattr(item, "reato", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice": str(getattr(item, "giudice", "") or ""),
+                "data_iscrizione": _parse_portale_data(getattr(item, "dataIscrizione", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "imputati": _parse_portale_lista(
+                    getattr(item, "imputati", None),
+                    container_attrs=("imputato", "parte", "soggetto"),
+                ),
+                "parti_offese": _parse_portale_lista(
+                    getattr(item, "partiOffese", None),
+                    container_attrs=("parte", "soggetto", "imputato"),
+                ),
+                "codice_ufficio": str(getattr(item, "codiceUfficio", "") or ""),
+                "nome_ufficio": str(getattr(item, "nomeUfficio", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_pdp_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
+
+
+def _parse_pat_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "ricorsi", "ricorso"):
+            fascicoli.append({
+                "numero_ricorso": str(getattr(item, "numeroRicorso", "") or ""),
+                "anno": int(getattr(item, "anno", 0) or 0),
+                "tipo": str(getattr(item, "tipo", "RICORSO") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "materia": str(getattr(item, "materia", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice_relatore": str(getattr(item, "giudiceRelatore", "") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "ricorrenti": _parse_portale_lista(
+                    getattr(item, "ricorrenti", None),
+                    container_attrs=("soggetto", "parte", "ricorrente"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "resistenti": _parse_portale_lista(
+                    getattr(item, "resistenti", None),
+                    container_attrs=("soggetto", "parte", "resistente"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "controinteressati": _parse_portale_lista(
+                    getattr(item, "controinteressati", None),
+                    container_attrs=("soggetto", "parte"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "oggetto": str(getattr(item, "oggetto", "") or ""),
+                "codice_ufficio": str(getattr(item, "codiceUfficio", "") or ""),
+                "nome_ufficio": str(getattr(item, "nomeUfficio", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_pat_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
+
+
+def _parse_ptt_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "fascicoli", "fascicolo"):
+            fascicoli.append({
+                "numero_rgt": str(getattr(item, "numeroRGT", "") or ""),
+                "anno_rgt": int(getattr(item, "annoRGT", 0) or 0),
+                "tipo": str(getattr(item, "tipoRicorso", "RICORSO") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "materia": str(getattr(item, "materia", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice_relatore": str(getattr(item, "giudiceRelatore", "") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "ricorrenti": _parse_portale_lista(
+                    getattr(item, "ricorrenti", None),
+                    container_attrs=("ricorrente", "soggetto", "parte"),
+                ),
+                "resistenti": _parse_portale_lista(
+                    getattr(item, "resistenti", None),
+                    container_attrs=("resistente", "soggetto", "parte"),
+                ),
+                "oggetto_controversia": str(getattr(item, "oggettoControversia", "") or ""),
+                "valore_controversia": float(getattr(item, "valoreControversia", 0.0) or 0.0),
+                "codice_commissione": str(getattr(item, "codiceCommissione", "") or ""),
+                "nome_commissione": str(getattr(item, "nomeCommissione", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_ptt_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
 
 
 def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:
@@ -5259,14 +5620,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pdp import ClientPDP, _WSDL_RICERCA_PENALE
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceUfficio": client._risolvi_codice(ufficio),
+                "codiceUfficio": _risolvi_codice_ufficio_pdp_runtime(ufficio),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_rg = str(data.get("numero_rg") or "").strip()
@@ -5287,7 +5645,7 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_pdp_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PDP ricerca: %s", e)
@@ -5310,11 +5668,8 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pdp import ClientPDP, _WSDL_CONSULTA_PENALE
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_PENALE,
                 operation_name="consultaDocumentiPenale",
@@ -5326,7 +5681,7 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_pdp_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PDP documenti: %s", e)
@@ -5344,14 +5699,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pat import ClientPAT, _WSDL_RICERCA_AMM
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceUfficio": client._risolvi_codice(ufficio),
+                "codiceUfficio": _risolvi_codice_ufficio_pat_runtime(ufficio),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
@@ -5372,7 +5724,7 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_pat_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PAT ricerca: %s", e)
@@ -5395,11 +5747,8 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.pat import ClientPAT, _WSDL_CONSULTA_AMM
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_AMM,
                 operation_name="consultazioneDocumenti",
@@ -5411,7 +5760,7 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_pat_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PAT documenti: %s", e)
@@ -5429,14 +5778,11 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.sigit import ClientSIGIT, _WSDL_RICERCA_TRIB
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceCommissione": client._risolvi_codice(commissione),
+                "codiceCommissione": _risolvi_codice_commissione_ptt_runtime(commissione),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
@@ -5457,7 +5803,7 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_ptt_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PTT ricerca: %s", e)
@@ -5480,11 +5826,8 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from pct.sigit import ClientSIGIT, _WSDL_CONSULTA_TRIB
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_TRIB,
                 operation_name="consultaDocumentiTributari",
@@ -5496,7 +5839,7 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_ptt_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PTT documenti: %s", e)

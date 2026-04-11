@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.35"
+VERSION = "1.5.36"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2221,9 +2221,9 @@ def _portale_browser_url(portale: str) -> str:
     if portale_norm == "pdp":
         return "https://pst.giustizia.it/PST/it/services.page"
     if portale_norm == "pat":
-        return "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico"
+        return "https://www.giustizia-amministrativa.it/portale-avvocato"
     if portale_norm == "ptt":
-        return "https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit"
+        return "https://sigit.finanze.it/NIRWeb/login.jsp"
     return ""
 
 

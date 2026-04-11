@@ -3160,6 +3160,175 @@ def test_api_portale_acquisizione_import_pdp_via_local_signer_non_richiede_certi
     assert data["result"]["id_fascicolo"]
 
 
+def test_api_portale_acquisizione_import_pdp_importa_file_raccolti_dal_browser(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pdp/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:4521:2026:RGNR",
+                    "numero": "4521",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Procura di Reggio Calabria",
+                    "procedimento": "RGNR",
+                    "stato": "PENDENTE",
+                    "oggetto": "Truffa",
+                    "parti": ["Mario Rossi"],
+                    "controparti": ["Parte Offesa"],
+                    "payload": {
+                        "numero_rg": "4521",
+                        "anno_rg": 2026,
+                        "tipo_registro": "RGNR",
+                        "fase": "INDAGINI",
+                        "stato": "PENDENTE",
+                        "reato": "Truffa",
+                        "sezione": "GIP",
+                        "giudice": "Giudice Penale",
+                        "data_iscrizione": "2026-03-01",
+                        "data_udienza": "2026-06-20",
+                        "imputati": ["Mario Rossi"],
+                        "parti_offese": ["Parte Offesa"],
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Procura di Reggio Calabria",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "4521",
+                        "anno": 2026,
+                        "ufficio_nome": "Procura di Reggio Calabria",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "RGNR",
+                        "stato": "PENDENTE",
+                        "oggetto": "Truffa",
+                    },
+                    "parti": ["Mario Rossi"],
+                    "controparti": ["Parte Offesa"],
+                    "difensori": [],
+                    "eventi": [],
+                    "documenti": [
+                        {
+                            "id_documento": "PDP-DOC-001",
+                            "nome": "MemoriaDifensiva.pdf",
+                            "tipo": "MEMORIA",
+                            "tipo_atto": "MEMORIA",
+                            "data_deposito": "2026-04-11",
+                            "mittente": "Studio Rossi",
+                            "dimensione_bytes": 128,
+                            "disponibile": True,
+                            "id_deposito": "BUSTA-PDP-001",
+                            "id_deposito_esterno": "BUSTA-PDP-001",
+                        }
+                    ],
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-PDP-001",
+                            "id_deposito_esterno": "BUSTA-PDP-001",
+                            "tipo_atto": "MEMORIA",
+                            "data_deposito": "2026-04-11",
+                            "mittente": "Studio Rossi",
+                            "documenti": [
+                                {
+                                    "id_documento": "PDP-DOC-001",
+                                    "nome": "MemoriaDifensiva.pdf",
+                                    "tipo": "MEMORIA",
+                                    "tipo_atto": "MEMORIA",
+                                    "data_deposito": "2026-04-11",
+                                    "mittente": "Studio Rossi",
+                                    "dimensione_bytes": 128,
+                                    "disponibile": True,
+                                    "id_deposito": "BUSTA-PDP-001",
+                                    "id_deposito_esterno": "BUSTA-PDP-001",
+                                }
+                            ],
+                        }
+                    ],
+                    "counts": {
+                        "parti": 2,
+                        "documenti": 1,
+                        "depositi": 1,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "provvedimenti": 0,
+                    },
+                },
+                "mapping": {"mode": "create_new"},
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": True,
+                    "importa_provvedimenti": False,
+                    "importa_scadenze": False,
+                    "importa_eventi": False,
+                    "importa_udienze": False,
+                    "mantieni_albero_originale": False,
+                    "scarica_originale_portale": True,
+                },
+                "downloaded_files": [
+                    {
+                        "nome": "MemoriaDifensiva.pdf",
+                        "contenuto_b64": base64.b64encode(b"%PDF-1.4 PDP browser download").decode("ascii"),
+                        "origine": r"C:\\Users\\HelpdeskCSC4\\Downloads\\MemoriaDifensiva.pdf",
+                        "data_documento": "2026-04-11",
+                        "dimensione_bytes": 28,
+                        "id_deposito_esterno": "BUSTA-PDP-001",
+                        "id_documento_portale": "PDP-DOC-001",
+                        "tipo_atto": "MEMORIA",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["summary"]["documenti"] == 1
+    assert data["result"]["summary"]["depositi"] == 1
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.get(data["result"]["id_fascicolo"])
+    assert fascicolo is not None
+    assert fascicolo.source == "PDP"
+    assert len(fascicolo.documenti) == 1
+    assert fascicolo.documenti[0].nome == "MemoriaDifensiva.pdf"
+
+    deposito = next((dep for dep in fascicolo.depositi_pct if dep.id_deposito_esterno == "BUSTA-PDP-001"), None)
+    assert deposito is not None
+    assert deposito.stato == "IMPORTATO_DA_PORTALE"
+    assert deposito.fonte_portale == "PDP"
+    assert deposito.documenti_portale
+    assert deposito.documenti_portale[0]["id_documento"] == "PDP-DOC-001"
+    assert deposito.documenti_ids
+    assert fascicolo.documenti[0].id_deposito_pct == deposito.id
+
+
 def test_route_importa_pdp_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
     from pct.auth import GestioneUtenti, RuoloUtente
     import pct.pdp as pdp_module

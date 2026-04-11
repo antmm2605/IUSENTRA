@@ -396,8 +396,8 @@ function awCurrentQuery() {
 function awOfficialPortalUrl() {
   const urls = {
     pdp: 'https://pst.giustizia.it/PST/it/services.page',
-    pat: 'https://www.giustizia-amministrativa.it/processo-amministrativo-telematico',
-    ptt: 'https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit',
+    pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
+    ptt: 'https://sigit.finanze.it/NIRWeb/login.jsp',
   };
   return urls[AW_BOOT.portale] || '';
 }
@@ -984,6 +984,16 @@ function awCurrentDownloadKey() {
   }));
   return JSON.stringify({ selectionKey, original: !!options.scarica_originale_portale, docs });
 }
+function awExpectedDownloadDocuments() {
+  return awSelectedPreviewDocuments().map(item => ({
+    nome: item.nome || item.nome_documento || '',
+    id_deposito_esterno: item.id_deposito_esterno || item.id_deposito || item.id_deposito_pct || '',
+    id_deposito_pct: item.id_deposito_pct || '',
+    tipo_atto: item.tipo_atto || '',
+    id_documento_portale: item.id_documento || item.id_documento_portale || '',
+    data_deposito: item.data_deposito || item.data_documento || '',
+  })).filter(item => item.nome);
+}
 function awFormatDownloadFailures(failures) {
   const rows = Array.isArray(failures) ? failures.filter(Boolean) : [];
   if (!rows.length) return '';
@@ -1065,7 +1075,7 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
     throw err;
   }
 }
-function awShowDownloadProgress(current, total, filename) {
+function awShowDownloadProgress(current, total, filename, labels = {}) {
   const wrapper = document.getElementById('awDownloadProgress');
   const bar = document.getElementById('awDownloadProgressBar');
   const label = document.getElementById('awDownloadProgressLabel');
@@ -1076,14 +1086,16 @@ function awShowDownloadProgress(current, total, filename) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   bar.style.width = pct + '%';
   bar.setAttribute('aria-valuenow', pct);
+  const doneLabel = labels.done || 'Download completato.';
+  const progressLabel = labels.progress || 'Scaricamento allegati dal portale...';
   if (current >= total && total > 0) {
     bar.classList.remove('progress-bar-animated', 'progress-bar-striped');
     bar.classList.add('bg-success');
-    label.textContent = 'Download completato.';
+    label.textContent = doneLabel;
   } else {
     bar.classList.add('progress-bar-animated', 'progress-bar-striped');
     bar.classList.remove('bg-success');
-    label.textContent = 'Scaricamento allegati dal portale...';
+    label.textContent = progressLabel;
   }
   countEl.textContent = `${current}/${total}`;
   fileEl.textContent = filename ? `\u2193 ${filename}` : '';
@@ -1172,6 +1184,71 @@ async function awEnsurePstDownloadedFiles({ force = false } = {}) {
     AW_STATE.downloadWarning = null;
   }
   return AW_STATE.downloadSummary;
+}
+async function awEnsureBrowserDownloadedFiles({ force = false } = {}) {
+  const options = awCurrentOptions();
+  if (!awShouldImportPortalFiles(options)) {
+    AW_STATE.downloadedFiles = [];
+    AW_STATE.downloadSummary = null;
+    AW_STATE.downloadCacheKey = '';
+    return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0, collection_mode: 'browser-downloads' };
+  }
+  const expectedDocuments = awExpectedDownloadDocuments();
+  const cacheKey = `${awCurrentDownloadKey()}:browser:${AW_BOOT.portale}`;
+  if (!force && AW_STATE.downloadSummary && AW_STATE.downloadCacheKey === cacheKey) {
+    return AW_STATE.downloadSummary;
+  }
+  if (!expectedDocuments.length) {
+    AW_STATE.downloadedFiles = [];
+    AW_STATE.downloadSummary = null;
+    AW_STATE.downloadCacheKey = cacheKey;
+    AW_STATE.downloadWarning = null;
+    return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0, collection_mode: 'browser-downloads' };
+  }
+  await awEnsureLocalSignerReachable({ light: true });
+  awShowDownloadProgress(0, expectedDocuments.length, 'Verifica cartella Download locale', {
+    progress: 'Raccolta file gia scaricati dal browser ufficiale...',
+    done: 'Raccolta completata.',
+  });
+  const data = await awJson(`${AW_PST_LS_BASE}/downloads/raccogli`, {
+    method: 'POST',
+    body: JSON.stringify({
+      expected_documents: expectedDocuments,
+      limit: Math.max(expectedDocuments.length, 25),
+      max_age_hours: 72,
+    }),
+  });
+  const files = Array.isArray(data.files) ? data.files : [];
+  const matched = Number(data.matched || files.length || 0);
+  const expected = Number(data.expected || expectedDocuments.length || 0);
+  awShowDownloadProgress(matched, expected, '', {
+    progress: 'Raccolta file gia scaricati dal browser ufficiale...',
+    done: 'Raccolta completata.',
+  });
+  if (!data.ok) {
+    awHideDownloadProgress();
+    throw new Error(data.errore || 'Nessun file locale compatibile trovato.');
+  }
+  const summary = {
+    ok: true,
+    files,
+    failures: [],
+    directories: Array.isArray(data.directories) ? data.directories : [],
+    matched,
+    expected,
+    documenti_richiesti: expected,
+    documenti_scaricati: matched,
+    collection_mode: 'browser-downloads',
+  };
+  AW_STATE.downloadedFiles = files;
+  AW_STATE.downloadSummary = summary;
+  AW_STATE.downloadCacheKey = cacheKey;
+  if (matched < expected) {
+    AW_STATE.downloadWarning = `Raccolta parziale: ${matched}/${expected} file trovati nei download locali del browser ufficiale.`;
+  } else {
+    AW_STATE.downloadWarning = null;
+  }
+  return summary;
 }
 function awRenderAccess() {
   const status = AW_STATE.status || {};
@@ -1693,6 +1770,17 @@ async function awStartImport() {
       } else {
         state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} allegati scaricati. Importazione in corso...`;
       }
+    } else if (AW_BOOT.portale !== 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
+      state.innerHTML = 'Verifica dei file gia scaricati dal browser ufficiale in corso...';
+      const browserDownloadSummary = await awEnsureBrowserDownloadedFiles();
+      downloadSummary = browserDownloadSummary;
+      downloadedFiles = Array.isArray(browserDownloadSummary.files) ? browserDownloadSummary.files : [];
+      if (AW_STATE.downloadWarning) {
+        state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione in corso con i file disponibili...</small>`;
+        await new Promise(r => setTimeout(r, 2000));
+      } else {
+        state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Raccolta completata: ${downloadedFiles.length}/${browserDownloadSummary.documenti_richiesti || downloadedFiles.length} file locali abbinati al catalogo del portale. Importazione in corso...`;
+      }
     }
   } catch (err) {
     awHideDownloadProgress();
@@ -1720,6 +1808,8 @@ async function awStartImport() {
   AW_STATE.importResult = data.result || data || null;
   const summary = AW_STATE.importResult?.summary || {};
   const failureCount = Number(downloadSummary?.failures?.length || 0);
+  const collectionMode = String(downloadSummary?.collection_mode || '').toLowerCase();
+  const usedBrowserDownloads = collectionMode === 'browser-downloads';
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
       <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
@@ -1730,9 +1820,9 @@ async function awStartImport() {
         Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} ·
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
-      ${downloadSummary ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? '<div class="small mt-1 text-muted">Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\'opzione dell\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.</div>' : ''}
+      ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo'}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.' : 'Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\'opzione dell\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.'}</div>` : ''}
       ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;

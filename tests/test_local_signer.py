@@ -2656,7 +2656,7 @@ def test_pat_documenti_local_signer_browser_assistito_se_wsdl_disabilitato():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
     assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
-    assert captured["payload"]["portale_url"] == "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico"
+    assert captured["payload"]["portale_url"] == "https://www.giustizia-amministrativa.it/portale-avvocato"
 
 
 def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
@@ -2780,7 +2780,7 @@ def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_phase"] == "ricerca"
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
-    assert captured["payload"]["portale_url"] == "https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit"
+    assert captured["payload"]["portale_url"] == "https://sigit.finanze.it/NIRWeb/login.jsp"
 
 
 def test_parse_pdp_documenti_response_popola_campi_busta():

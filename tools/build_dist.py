@@ -389,6 +389,7 @@ def build_release_note(version: str) -> str:
         f"Generato: {now}\n"
         f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
         f"Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT\n"
+        f"Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali\n"
         f"Proxy PST allineato a Documentazione servizi web v1.69 / A1 WSDL Catalog v1.52\n"
         f"Punto ufficiale download: {DOWNLOAD_PAGE}\n"
     )

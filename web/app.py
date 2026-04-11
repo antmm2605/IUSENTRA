@@ -4890,7 +4890,7 @@ def create_app(config: dict | None = None) -> Flask:
             "icon": "bi-shield-exclamation",
             "home_endpoint": "pdp_home",
             "source_label": "Portale Deposito Atti Penale",
-            "requires_local_signer": False,
+            "requires_local_signer": True,
             "quick_filters": ["dibattimento", "gip", "gup", "esecuzioni", "attivi", "recenti"],
         },
         "pat": {
@@ -4902,7 +4902,7 @@ def create_app(config: dict | None = None) -> Flask:
             "icon": "bi-building-check",
             "home_endpoint": "pat_home",
             "source_label": "Processo Amministrativo Telematico",
-            "requires_local_signer": False,
+            "requires_local_signer": True,
             "quick_filters": ["appalti", "urbanistica", "personale", "tributi", "attivi", "recenti"],
         },
         "ptt": {
@@ -4914,7 +4914,7 @@ def create_app(config: dict | None = None) -> Flask:
             "icon": "bi-receipt-cutoff",
             "home_endpoint": "sigit_home",
             "source_label": "Processo Tributario Telematico",
-            "requires_local_signer": False,
+            "requires_local_signer": True,
             "quick_filters": ["iva", "irpef", "imu", "registro", "attivi", "recenti"],
         },
     }
@@ -4982,6 +4982,33 @@ def create_app(config: dict | None = None) -> Flask:
             "pat": "PAT",
             "ptt": "PTT",
         }.get((portale or "").strip().lower(), (portale or "").upper())
+
+    def _is_portale_dns_error(exc: Exception) -> bool:
+        text = str(exc or "").lower()
+        return any(
+            marker in text
+            for marker in (
+                "nameresolutionerror",
+                "failed to resolve",
+                "getaddrinfo failed",
+                "impossibile risolvere il nome remoto",
+                "name or service not known",
+                "nodename nor servname provided",
+            )
+        )
+
+    def _portale_browser_guided_message(portale: str) -> str:
+        labels = {
+            "pst": "PST / PolisWeb",
+            "pdp": "PDP Penale",
+            "pat": "PAT",
+            "ptt": "PTT",
+        }
+        label = labels.get((portale or "").strip().lower(), (portale or "").upper())
+        return (
+            f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
+            "Usa l'acquisizione guidata dal browser con Local Signer su questo PC."
+        )
 
     def _normalize_portale_documents(documenti: list[dict]) -> list[dict]:
         def _effective_id_cat(item: dict[str, Any]) -> str:
@@ -6006,66 +6033,71 @@ def create_app(config: dict | None = None) -> Flask:
         stato_filter = str(query.get("stato") or "").strip().lower()
         quick = str(query.get("quick_filter") or "").strip().lower()
 
-        if portale == "pst":
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Per PST con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
-            from pct.polisWeb import crea_client
+        try:
+            if portale == "pst":
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Per PST con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                from pct.polisWeb import crea_client
 
-            ufficio = str(query.get("ufficio_codice") or "").strip()
-            if not ufficio:
-                raise ValueError("Seleziona un ufficio giudiziario.")
-            fascicoli = crea_client(demo=_polis_demo_mode()).ricerca_fascicoli(
-                tribunale=ufficio,
-                numero_rg=numero,
-                anno_rg=anno,
-                nome_parte=assistito or controparte,
-                codice_fiscale_parte=cf,
-            )
-        elif portale == "pdp":
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Per PDP Penale con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
-            from pct.pdp import crea_client_pdp
+                ufficio = str(query.get("ufficio_codice") or "").strip()
+                if not ufficio:
+                    raise ValueError("Seleziona un ufficio giudiziario.")
+                fascicoli = crea_client(demo=_polis_demo_mode()).ricerca_fascicoli(
+                    tribunale=ufficio,
+                    numero_rg=numero,
+                    anno_rg=anno,
+                    nome_parte=assistito or controparte,
+                    codice_fiscale_parte=cf,
+                )
+            elif portale == "pdp":
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Per PDP Penale con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                from pct.pdp import crea_client_pdp
 
-            ufficio = str(query.get("ufficio_codice") or "").strip()
-            if not ufficio:
-                raise ValueError("Seleziona un ufficio giudiziario.")
-            fascicoli = crea_client_pdp(demo=_polis_demo_mode()).ricerca_fascicoli(
-                ufficio=ufficio,
-                numero_rg=numero,
-                anno_rg=anno,
-                nome_imputato=assistito,
-                tipo_registro=str(query.get("registro") or "").strip() or None,
-            )
-        elif portale == "pat":
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Per PAT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
-            from pct.pat import crea_client_pat
+                ufficio = str(query.get("ufficio_codice") or "").strip()
+                if not ufficio:
+                    raise ValueError("Seleziona un ufficio giudiziario.")
+                fascicoli = crea_client_pdp(demo=_polis_demo_mode()).ricerca_fascicoli(
+                    ufficio=ufficio,
+                    numero_rg=numero,
+                    anno_rg=anno,
+                    nome_imputato=assistito,
+                    tipo_registro=str(query.get("registro") or "").strip() or None,
+                )
+            elif portale == "pat":
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Per PAT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                from pct.pat import crea_client_pat
 
-            ufficio = str(query.get("ufficio_codice") or "").strip()
-            if not ufficio:
-                raise ValueError("Seleziona un ufficio giudiziario.")
-            fascicoli = crea_client_pat(demo=_polis_demo_mode()).ricerca_fascicoli(
-                ufficio=ufficio,
-                numero_ricorso=numero,
-                anno=anno,
-                nome_ricorrente=assistito,
-                materia=str(query.get("materia") or "").strip() or None,
-            )
-        else:
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Per PTT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
-            from pct.sigit import crea_client_sigit
+                ufficio = str(query.get("ufficio_codice") or "").strip()
+                if not ufficio:
+                    raise ValueError("Seleziona un ufficio giudiziario.")
+                fascicoli = crea_client_pat(demo=_polis_demo_mode()).ricerca_fascicoli(
+                    ufficio=ufficio,
+                    numero_ricorso=numero,
+                    anno=anno,
+                    nome_ricorrente=assistito,
+                    materia=str(query.get("materia") or "").strip() or None,
+                )
+            else:
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Per PTT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                from pct.sigit import crea_client_sigit
 
-            ufficio = str(query.get("ufficio_codice") or "").strip()
-            if not ufficio:
-                raise ValueError("Seleziona un ufficio giudiziario tributario.")
-            fascicoli = crea_client_sigit(demo=_polis_demo_mode()).ricerca_fascicoli(
-                commissione=ufficio,
-                numero_rgt=numero,
-                anno_rgt=anno,
-                nome_ricorrente=assistito,
-                tipo=str(query.get("materia") or "").strip() or None,
-            )
+                ufficio = str(query.get("ufficio_codice") or "").strip()
+                if not ufficio:
+                    raise ValueError("Seleziona un ufficio giudiziario tributario.")
+                fascicoli = crea_client_sigit(demo=_polis_demo_mode()).ricerca_fascicoli(
+                    commissione=ufficio,
+                    numero_rgt=numero,
+                    anno_rgt=anno,
+                    nome_ricorrente=assistito,
+                    tipo=str(query.get("materia") or "").strip() or None,
+                )
+        except Exception as e:
+            if _is_portale_dns_error(e):
+                raise ValueError(_portale_browser_guided_message(portale)) from e
+            raise
 
         rows = [_serialize_portale_search_item(portale, fascicolo) for fascicolo in fascicoli]
         if oggetto:
@@ -6083,46 +6115,51 @@ def create_app(config: dict | None = None) -> Flask:
 
     def _preview_documenti_portale_server(portale: str, selection: dict[str, Any]) -> list[dict]:
         portale = (portale or "").strip().lower()
-        if portale == "pst":
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Anteprima documenti PST via browser locale richiesta.")
-            from pct.polisWeb import crea_client
+        try:
+            if portale == "pst":
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Anteprima documenti PST via browser locale richiesta.")
+                from pct.polisWeb import crea_client
 
-            docs = crea_client(demo=_polis_demo_mode()).consulta_documenti(
-                str(selection.get("ufficio_codice") or "").strip(),
-                str(selection.get("numero") or "").strip(),
-                int(selection.get("anno") or 0),
-            )
-        elif portale == "pdp":
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
-            from pct.pdp import crea_client_pdp
+                docs = crea_client(demo=_polis_demo_mode()).consulta_documenti(
+                    str(selection.get("ufficio_codice") or "").strip(),
+                    str(selection.get("numero") or "").strip(),
+                    int(selection.get("anno") or 0),
+                )
+            elif portale == "pdp":
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
+                from pct.pdp import crea_client_pdp
 
-            docs = crea_client_pdp(demo=_polis_demo_mode()).consulta_documenti(
-                str(selection.get("ufficio_codice") or "").strip(),
-                str(selection.get("numero") or "").strip(),
-                int(selection.get("anno") or 0),
-            )
-        elif portale == "pat":
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Anteprima documenti PAT via browser locale richiesta.")
-            from pct.pat import crea_client_pat
+                docs = crea_client_pdp(demo=_polis_demo_mode()).consulta_documenti(
+                    str(selection.get("ufficio_codice") or "").strip(),
+                    str(selection.get("numero") or "").strip(),
+                    int(selection.get("anno") or 0),
+                )
+            elif portale == "pat":
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Anteprima documenti PAT via browser locale richiesta.")
+                from pct.pat import crea_client_pat
 
-            docs = crea_client_pat(demo=_polis_demo_mode()).consulta_documenti(
-                str(selection.get("ufficio_codice") or "").strip(),
-                str(selection.get("numero") or "").strip(),
-                int(selection.get("anno") or 0),
-            )
-        else:
-            if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                raise ValueError("Anteprima documenti PTT via browser locale richiesta.")
-            from pct.sigit import crea_client_sigit
+                docs = crea_client_pat(demo=_polis_demo_mode()).consulta_documenti(
+                    str(selection.get("ufficio_codice") or "").strip(),
+                    str(selection.get("numero") or "").strip(),
+                    int(selection.get("anno") or 0),
+                )
+            else:
+                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                    raise ValueError("Anteprima documenti PTT via browser locale richiesta.")
+                from pct.sigit import crea_client_sigit
 
-            docs = crea_client_sigit(demo=_polis_demo_mode()).consulta_documenti(
-                str(selection.get("ufficio_codice") or "").strip(),
-                str(selection.get("numero") or "").strip(),
-                int(selection.get("anno") or 0),
-            )
+                docs = crea_client_sigit(demo=_polis_demo_mode()).consulta_documenti(
+                    str(selection.get("ufficio_codice") or "").strip(),
+                    str(selection.get("numero") or "").strip(),
+                    int(selection.get("anno") or 0),
+                )
+        except Exception as e:
+            if _is_portale_dns_error(e):
+                raise ValueError(_portale_browser_guided_message(portale)) from e
+            raise
         return [dict(vars(doc)) for doc in docs]
 
     def _local_signer_tools_dir() -> Path:
@@ -7084,6 +7121,12 @@ read -r -p "Premi Invio per chiudere..." _
         if not ufficio:
             flash("Seleziona un ufficio giudiziario.", "warning")
             return redirect(url_for("pdp_home"))
+        if _portale_usa_local_signer("pdp") and not demo_mode:
+            flash(
+                "Per PDP Penale con Aruba Key la ricerca guidata usa il wizard browser-side con Local Signer.",
+                "info",
+            )
+            return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
 
         id_fasc       = f.get("id_fasc", "").strip()
         fascicolo_ctx = get_fascicoli().get(id_fasc) if id_fasc else None
@@ -7131,6 +7174,9 @@ read -r -p "Premi Invio per chiudere..." _
             )
         except Exception as e:
             app.logger.exception("Errore pdp_ricerca: %s", e)
+            if _is_portale_dns_error(e):
+                flash(_portale_browser_guided_message("pdp"), "warning")
+                return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
             flash(str(e), "danger")
             return redirect(url_for("pdp_home", id_fasc=id_fasc) if id_fasc else url_for("pdp_home"))
 
@@ -7141,12 +7187,21 @@ read -r -p "Premi Invio per chiudere..." _
         anno_rg_str    = request.args.get("anno_rg", "0")
         anno_rg        = int(anno_rg_str) if anno_rg_str.isdigit() else 0
         demo_mode      = _polis_demo_mode()
+        if _portale_usa_local_signer("pdp") and not demo_mode:
+            flash(
+                "Per PDP Penale con Aruba Key l'anteprima documenti usa il wizard browser-side con Local Signer.",
+                "info",
+            )
+            return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
         try:
             from pct.pdp import crea_client_pdp
             client    = crea_client_pdp(demo=demo_mode)
             documenti = client.consulta_documenti(codice_ufficio, numero_rg, anno_rg)
         except Exception as e:
             app.logger.exception("Errore pdp_documenti: %s", e)
+            if _is_portale_dns_error(e):
+                flash(_portale_browser_guided_message("pdp"), "warning")
+                return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
             documenti = []
             flash(str(e), "danger")
 
@@ -7252,6 +7307,12 @@ read -r -p "Premi Invio per chiudere..." _
         if not ufficio:
             flash("Seleziona un ufficio giudiziario.", "warning")
             return redirect(url_for("pat_home"))
+        if _portale_usa_local_signer("pat") and not demo_mode:
+            flash(
+                "Per PAT con Aruba Key la ricerca guidata usa il wizard browser-side con Local Signer.",
+                "info",
+            )
+            return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
 
         id_fasc         = f.get("id_fasc", "").strip()
         fascicolo_ctx   = get_fascicoli().get(id_fasc) if id_fasc else None
@@ -7298,6 +7359,9 @@ read -r -p "Premi Invio per chiudere..." _
             )
         except Exception as e:
             app.logger.exception("Errore pat_ricerca: %s", e)
+            if _is_portale_dns_error(e):
+                flash(_portale_browser_guided_message("pat"), "warning")
+                return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
             flash(str(e), "danger")
             return redirect(url_for("pat_home", id_fasc=id_fasc) if id_fasc else url_for("pat_home"))
 
@@ -7308,12 +7372,21 @@ read -r -p "Premi Invio per chiudere..." _
         anno_str       = request.args.get("anno", "0")
         anno           = int(anno_str) if anno_str.isdigit() else 0
         demo_mode      = _polis_demo_mode()
+        if _portale_usa_local_signer("pat") and not demo_mode:
+            flash(
+                "Per PAT con Aruba Key l'anteprima documenti usa il wizard browser-side con Local Signer.",
+                "info",
+            )
+            return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
         try:
             from pct.pat import crea_client_pat
             client    = crea_client_pat(demo=demo_mode)
             documenti = client.consulta_documenti(codice_ufficio, numero_ricorso, anno)
         except Exception as e:
             app.logger.exception("Errore pat_documenti: %s", e)
+            if _is_portale_dns_error(e):
+                flash(_portale_browser_guided_message("pat"), "warning")
+                return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
             documenti = []
             flash(str(e), "danger")
 
@@ -7427,6 +7500,12 @@ read -r -p "Premi Invio per chiudere..." _
         if not commissione:
             flash("Seleziona un ufficio giudiziario tributario.", "warning")
             return redirect(url_for("sigit_home"))
+        if _portale_usa_local_signer("ptt") and not demo_mode:
+            flash(
+                "Per PTT con Aruba Key la ricerca guidata usa il wizard browser-side con Local Signer.",
+                "info",
+            )
+            return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
         numero_rgt    = f.get("numero_rgt", "").strip() or None
         anno_rgt_str  = f.get("anno_rgt", "").strip()
         anno_rgt      = int(anno_rgt_str) if anno_rgt_str.isdigit() else None
@@ -7458,6 +7537,9 @@ read -r -p "Premi Invio per chiudere..." _
             except Exception:
                 commissione_sel_nome = commissione
         except Exception as e:
+            if _is_portale_dns_error(e):
+                flash(_portale_browser_guided_message("ptt"), "warning")
+                return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
             flash(str(e), "danger")
             commissione_sel_nome = commissione
         return render_template("sigit.html",
@@ -7483,6 +7565,12 @@ read -r -p "Premi Invio per chiudere..." _
         documenti = []
         depositi  = []
         nome_commissione = codice_commissione
+        if _portale_usa_local_signer("ptt") and not demo_mode:
+            flash(
+                "Per PTT con Aruba Key l'anteprima documenti usa il wizard browser-side con Local Signer.",
+                "info",
+            )
+            return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
         try:
             from pct.sigit import crea_client_sigit
             client    = crea_client_sigit(demo=demo_mode)
@@ -7520,6 +7608,9 @@ read -r -p "Premi Invio per chiudere..." _
                 buste[chiave]["documenti"].append(doc)
             depositi = sorted(buste.values(), key=lambda b: b["data_deposito"] or "", reverse=True)
         except Exception as e:
+            if _is_portale_dns_error(e):
+                flash(_portale_browser_guided_message("ptt"), "warning")
+                return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
             flash(str(e), "danger")
         return render_template("sigit_documenti.html",
                                demo_mode=demo_mode,

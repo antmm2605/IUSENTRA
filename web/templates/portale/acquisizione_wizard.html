@@ -395,10 +395,12 @@ async function awRefreshStatus({ force = false, probeSigner = false, light = tru
   AW_STATUS_REFRESH_PROMISE = (async () => {
     const data = await awJson(AW_BOOT.statusUrl);
     if (data.ok) AW_STATE.status = data.status;
-    if (probeSigner && AW_STATE.status.pkcs11_mode) {
+    if (probeSigner) {
       try {
         const ping = await awLsPing({ light });
         AW_STATE.status.local_signer = ping;
+        AW_STATE.status.local_signer_available = !!ping?.ok;
+        AW_STATE.status.local_signer_error = '';
         if (ping?.certificato_windows_selezionato) {
           awSavePstCert({
             thumbprint: ping.certificato_windows_selezionato.thumbprint,
@@ -409,6 +411,7 @@ async function awRefreshStatus({ force = false, probeSigner = false, light = tru
           });
         }
       } catch (err) {
+        AW_STATE.status.local_signer_available = false;
         AW_STATE.status.local_signer_error = String(err);
       }
     }
@@ -431,6 +434,20 @@ async function awLsPing({ light = false } = {}) {
   if (prefs.prefer_cf) params.set('prefer_cf', prefs.prefer_cf);
   const resp = await fetch(`${AW_PST_LS_BASE}/ping?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
   return resp.json();
+}
+function awLocalSignerReachable() {
+  return !!(AW_STATE.status?.local_signer?.ok || AW_STATE.status?.local_signer_available);
+}
+function awShouldUseLocalSigner() {
+  const status = AW_STATE.status || {};
+  if (status.demo_mode) return false;
+  return !!(status.pkcs11_mode || awLocalSignerReachable());
+}
+async function awEnsureLocalSignerReachable({ light = true } = {}) {
+  if (awLocalSignerReachable()) return AW_STATE.status.local_signer;
+  await awRefreshStatus({ force: true, probeSigner: true, light });
+  if (awLocalSignerReachable()) return AW_STATE.status.local_signer;
+  throw new Error(`Local Signer non raggiungibile su questo PC. Avvialo e riprova l'accesso ${awLocalSignerPortaleLabel()}.`);
 }
 async function awLsSelectCert() {
   const prefs = AW_STATE.status.cert_preferences || {};
@@ -925,6 +942,7 @@ async function awEnsurePstDownloadedFiles({ force = false } = {}) {
 function awRenderAccess() {
   const status = AW_STATE.status || {};
   const signer = status.local_signer || {};
+  const signerPreferred = awShouldUseLocalSigner();
   const cards = [
     {
       title: 'Portale e sorgente',
@@ -940,9 +958,9 @@ function awRenderAccess() {
     },
     {
       title: 'Certificato attivo',
-      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (status.pkcs11_mode ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare')),
-      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale'),
-      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || (!status.pkcs11_mode && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
+      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (signerPreferred ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare')),
+      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (signerPreferred ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale'),
+      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || awLocalSignerReachable() || (!signerPreferred && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
     },
     {
       title: 'Stato connessione',
@@ -963,9 +981,10 @@ function awRenderAccess() {
       </div>
     </div>`).join('');
   const note = [];
-  if (status.pkcs11_mode) note.push(AW_BOOT.portale === 'pst'
+  if (signerPreferred) note.push(AW_BOOT.portale === 'pst'
     ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
     : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
+  if (awLocalSignerReachable() && !status.pkcs11_mode) note.push('Local Signer rilevato: il wizard userà il canale browser-side locale come percorso preferito per ricerca e anteprima.');
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
   if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');
@@ -998,9 +1017,11 @@ async function awRunSearch() {
   meta.textContent = 'Ricerca in corso...';
   root.innerHTML = '<div class="aw-box text-muted">Sto interrogando il portale e preparando i risultati utili alla verifica.</div>';
   try {
+    if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
     const query = awCurrentQuery();
     let results = [];
-    if (AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+    if (awShouldUseLocalSigner()) {
+      await awEnsureLocalSignerReachable({ light: true });
       results = await awSearchViaLocalSigner(query);
     } else {
       const data = await awJson(AW_BOOT.searchUrl, { method: 'POST', body: JSON.stringify(query) });
@@ -1077,8 +1098,10 @@ async function awSelectResult(index, jumpPreview) {
   document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando l’anteprima del fascicolo e dei documenti disponibili...</div>';
   awRenderSidebar();
   try {
+    if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
     const payload = { selection };
-    if (AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+    if (awShouldUseLocalSigner()) {
+      await awEnsureLocalSignerReachable({ light: true });
       payload.documenti = await awPreviewViaLocalSigner(selection);
     }
     const data = await awJson(AW_BOOT.previewUrl, { method: 'POST', body: JSON.stringify(payload) });
@@ -1532,10 +1555,7 @@ document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      if (AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
-        // Ping leggero: il certificato viene selezionato/validato alla prima ricerca reale
-        await awRefreshStatus({ force: true, probeSigner: true, light: true });
-      }
+      await awRefreshStatus({ force: true, probeSigner: true, light: true });
       awGoStep(2);
     } finally {
       awSetAccessBusy(false);
@@ -1589,7 +1609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   awInitOfficeAutocomplete();
   awSetAccessBusy(true);
   try {
-    await awRefreshStatus({ force: true, probeSigner: false, light: true });
+    await awRefreshStatus({ force: true, probeSigner: true, light: true });
   } finally {
     awBindActions();
     awSetAccessBusy(false);

@@ -18,6 +18,7 @@ tools/dist/*
 !tools/dist/local_signer.py
 !tools/dist/requirements_local_signer.txt
 !tools/dist/uffici_ministero.json
+tools/.iexpress-build/
 
 # Dependencies
 .venv/

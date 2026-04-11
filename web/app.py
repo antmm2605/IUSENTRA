@@ -6534,6 +6534,15 @@ read -r -p "Premi Invio per chiudere..." _
             app.logger.exception("Errore download registro uffici Local Signer: %s", e)
             return str(e), 500
 
+    @app.route("/polisWeb/local-signer/download/python-embedded")
+    def polis_local_signer_download_python_embedded():
+        """Redirect al pacchetto Python embeddable per Windows (usato dall'installer
+        quando Python non e' presente sul PC dell'utente)."""
+        return redirect(
+            "https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip",
+            code=302,
+        )
+
     @app.route("/polisWeb/local-signer/setup/windows-exe")
     def polis_local_signer_setup_windows_exe():
         """Serve l'installer Windows .cmd (o legacy .exe) quando presente."""

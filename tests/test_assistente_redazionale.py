@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from pct.assistente_redazionale import AssistenteRedazionale
+from pct.assistente_redazionale import AssistenteRedazionale, SCHEMA_CHANNELS
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.compilatore_atti import prefill_payload
@@ -93,6 +93,16 @@ def test_assistente_redazionale_civile_restituisce_schema_e_blocchi_guidati(tmp_
     assert analysis.semaforo["tecnico_ministeriale"] == "ok"
     assert any(section["key"] == "parti" for section in analysis.sections)
     assert analysis.snapshot["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
+
+
+def test_schema_channel_pdp_usa_fonti_ufficiali_pst():
+    urls = {item["url"] for item in SCHEMA_CHANNELS["PDP_PENALE"].sources}
+
+    assert "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786" in urls
+    assert (
+        "https://pst.giustizia.it/PST/resources/cms/documents/"
+        "Specifiche_Tecniche_PPT_11.07.2023_post_DM_2023_signed.pdf"
+    ) in urls
 
 
 def test_api_assistente_redazionale_restituisce_riepilogo_intelligente(tmp_path):

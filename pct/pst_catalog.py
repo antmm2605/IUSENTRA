@@ -22,12 +22,23 @@ PST_WEB_SERVICES_DOC_DETAIL_URL = (
     "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571"
 )
 PST_WEB_SERVICES_WSDL_CATALOG_VERSION = "1.52"
+PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_NAME = "A1_WSDL_CATALOG_v1.52.zip"
+PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/A1_WSDL_CATALOG_v1.52.zip"
+)
 PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION = "1.52b"
 PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME = "A1_WSDL_CATALOG_v1.52b.zip"
 PST_WEB_SERVICES_WSDL_CATALOG_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/A1_WSDL_CATALOG_v1.52b.zip"
 )
 PST_WEB_SERVICES_UPDATE_PAGE_URL = PST_WEB_SERVICES_DOC_DETAIL_URL
+PST_PDP_SPECIFICHE_DETAIL_URL = (
+    "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC2786"
+)
+PST_PDP_SPECIFICHE_URL = (
+    "https://pst.giustizia.it/PST/resources/cms/documents/"
+    "Specifiche_Tecniche_PPT_11.07.2023_post_DM_2023_signed.pdf"
+)
 PST_USER_VADEMECUM_URL = (
     "https://pst.giustizia.it/PST/resources/cms/documents/"
     "Manuale_utente_PSTVademecum.pdf"
@@ -41,8 +52,8 @@ PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE = (
     "http://www.giustizia.it/serviziTelematici/reginde/interrogazioniExt"
 )
 PST_XSD_DOWNLOAD_PAGE_URL = "https://pst.giustizia.it/PST/it/download.page"
-PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.04.03.1"
-PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.04.03.1"
+PST_CATALOG_VERSION = "PST-CATALOGO-SERVIZI-v1.69-2026.04.12.1"
+PST_SCHEMA_VERSION = "PST-SCHEMI-v1.69-2026.04.12.1"
 PST_MAX_BUSTA_MB = 60
 PST_MAX_BUSTA_BYTES = PST_MAX_BUSTA_MB * 1024 * 1024
 PST_FORMAL_ERROR_CODES = {
@@ -262,7 +273,7 @@ def get_wsdl_catalog_modules() -> list[PSTWSDLModule]:
             key="verifica_pdf",
             label="API Verifica PDF",
             category="servizi_accessori",
-            notes="Specifica YAML presente nel catalogo WSDL ufficiale v1.52b.",
+            notes="Specifica YAML presente nel catalogo WSDL ufficiale A1 pubblicato dal PST.",
         ),
     ]
 
@@ -385,8 +396,8 @@ def get_catalog_sources() -> list[dict[str, str]]:
             "url": PST_WEB_SERVICES_DOC_DETAIL_URL,
         },
         {
-            "label": "PST - catalogo WSDL ufficiale A1 v1.52b",
-            "url": PST_WEB_SERVICES_WSDL_CATALOG_URL,
+            "label": "PST - catalogo WSDL ufficiale A1 pubblicato in pagina",
+            "url": PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL,
         },
         {
             "label": "PST - pagina download ufficiale XSD",
@@ -439,9 +450,14 @@ def get_catalog_snapshot() -> dict[str, Any]:
         "pst_webservices_doc_detail_url": PST_WEB_SERVICES_DOC_DETAIL_URL,
         "pst_webservices_update_page_url": PST_WEB_SERVICES_UPDATE_PAGE_URL,
         "pst_webservices_wsdl_catalog_version": PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
+        "pst_webservices_wsdl_catalog_published_name": PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_NAME,
+        "pst_webservices_wsdl_catalog_published_url": PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL,
         "pst_webservices_wsdl_catalog_package_version": PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION,
         "pst_webservices_wsdl_catalog_package_name": PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME,
         "pst_webservices_wsdl_catalog_url": PST_WEB_SERVICES_WSDL_CATALOG_URL,
+        "pst_xsd_download_page_url": PST_XSD_DOWNLOAD_PAGE_URL,
+        "pst_pdp_specifiche_detail_url": PST_PDP_SPECIFICHE_DETAIL_URL,
+        "pst_pdp_specifiche_url": PST_PDP_SPECIFICHE_URL,
         "pst_user_vademecum_url": PST_USER_VADEMECUM_URL,
         "pst_dm44_specifiche_revision": PST_DM44_SPECIFICHE_REVISION,
         "pst_dm44_specifiche_url": PST_DM44_SPECIFICHE_URL,

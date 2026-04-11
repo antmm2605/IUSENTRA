@@ -1,5 +1,7 @@
 from pct.pst_catalog import (
     PST_DM44_SPECIFICHE_URL,
+    PST_PDP_SPECIFICHE_DETAIL_URL,
+    PST_PDP_SPECIFICHE_URL,
     PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE,
     PST_USER_VADEMECUM_URL,
     PST_WEB_SERVICES_DOC_DETAIL_URL,
@@ -7,10 +9,13 @@ from pct.pst_catalog import (
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
     PST_WEB_SERVICES_UPDATE_PAGE_URL,
+    PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_NAME,
+    PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL,
     PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME,
     PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION,
     PST_WEB_SERVICES_WSDL_CATALOG_URL,
     PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
+    PST_XSD_DOWNLOAD_PAGE_URL,
     get_catalog_snapshot,
     get_catalog_sources,
     get_official_methods,
@@ -28,9 +33,14 @@ def test_catalog_snapshot_usa_documentazione_pst_v169():
     assert snapshot["pst_webservices_doc_detail_url"] == PST_WEB_SERVICES_DOC_DETAIL_URL
     assert snapshot["pst_webservices_update_page_url"] == PST_WEB_SERVICES_UPDATE_PAGE_URL
     assert snapshot["pst_webservices_wsdl_catalog_version"] == PST_WEB_SERVICES_WSDL_CATALOG_VERSION
+    assert snapshot["pst_webservices_wsdl_catalog_published_name"] == PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_NAME
+    assert snapshot["pst_webservices_wsdl_catalog_published_url"] == PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL
     assert snapshot["pst_webservices_wsdl_catalog_package_version"] == PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION
     assert snapshot["pst_webservices_wsdl_catalog_package_name"] == PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME
     assert snapshot["pst_webservices_wsdl_catalog_url"] == PST_WEB_SERVICES_WSDL_CATALOG_URL
+    assert snapshot["pst_xsd_download_page_url"] == PST_XSD_DOWNLOAD_PAGE_URL
+    assert snapshot["pst_pdp_specifiche_detail_url"] == PST_PDP_SPECIFICHE_DETAIL_URL
+    assert snapshot["pst_pdp_specifiche_url"] == PST_PDP_SPECIFICHE_URL
     assert snapshot["reginde_namespace"] == PST_REGINDE_INTERROGAZIONI_EXT_NAMESPACE
     assert snapshot["pst_user_vademecum_url"] == PST_USER_VADEMECUM_URL
     assert snapshot["pst_dm44_specifiche_url"] == PST_DM44_SPECIFICHE_URL
@@ -40,8 +50,10 @@ def test_catalog_snapshot_usa_documentazione_pst_v169():
 def test_catalog_sources_include_specifiche_e_vademecum():
     urls = {item["url"] for item in get_catalog_sources()}
     assert PST_WEB_SERVICES_DOC_URL in urls
+    assert PST_WEB_SERVICES_DOC_PAGE_URL in urls
     assert PST_WEB_SERVICES_DOC_DETAIL_URL in urls
-    assert PST_WEB_SERVICES_WSDL_CATALOG_URL in urls
+    assert PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL in urls
+    assert PST_XSD_DOWNLOAD_PAGE_URL in urls
     assert PST_DM44_SPECIFICHE_URL in urls
     assert PST_USER_VADEMECUM_URL in urls
 

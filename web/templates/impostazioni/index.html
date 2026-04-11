@@ -542,14 +542,9 @@
                   </div>
                   <div class="text-muted small">
                     Installer ufficiali v{{ local_signer.version }} per Windows, macOS e Linux.
-                    Punto di distribuzione permanente:
-                    <a href="{{ local_signer.download_page }}" target="_blank" rel="noopener">{{ local_signer.download_page }}</a>.
+                    <strong>Basta un doppio clic</strong> — l'installazione è completamente automatica.
                     {% if local_signer.windows_tipo == 'exe' %}
-                      Per Windows: doppio clic su <code>{{ local_signer.windows_filename }}</code> e segui le istruzioni.
-                    {% elif local_signer.windows_tipo == 'ps1_offline' %}
-                      Per Windows: tasto destro su <code>{{ local_signer.windows_filename }}</code> → <em>Esegui con PowerShell</em>. Installer offline — non richiede connessione internet.
-                    {% else %}
-                      Per Windows: il file <code>{{ local_signer.windows_filename }}</code> è uno script PowerShell che scarica e configura automaticamente il servizio.
+                      Se Python non è presente sul PC viene scaricato e configurato automaticamente.
                     {% endif %}
                   </div>
                 </div>
@@ -575,11 +570,7 @@
                   </a>
                   <div class="small text-muted mt-1 text-center">
                     <code>{{ local_signer.windows_filename }}</code>
-                    {% if local_signer.windows_tipo == 'ps1_offline' %}
-                      <br><span class="text-success">✓ Offline — tutti i file inclusi</span>
-                    {% elif local_signer.windows_tipo == 'ps1_online' %}
-                      <br><span class="text-muted">Richiede connessione a internet</span>
-                    {% endif %}
+                    <br><span class="text-success">Doppio clic per installare</span>
                   </div>
                 </div>
                 <div class="col-md-4">
@@ -590,7 +581,8 @@
                     <i class="bi bi-apple me-2"></i>Scarica per macOS · v{{ local_signer.version }}
                   </a>
                   <div class="small text-muted mt-1 text-center">
-                    File ufficiale: <code>{{ local_signer.macos_filename }}</code>
+                    <code>{{ local_signer.macos_filename }}</code>
+                    <br><span class="text-success">Doppio clic in Finder</span>
                   </div>
                 </div>
                 <div class="col-md-4">
@@ -601,7 +593,8 @@
                     <i class="bi bi-terminal me-2"></i>Scarica per Linux · v{{ local_signer.version }}
                   </a>
                   <div class="small text-muted mt-1 text-center">
-                    File ufficiale: <code>{{ local_signer.linux_filename }}</code>
+                    <code>{{ local_signer.linux_filename }}</code>
+                    <br><span class="text-success">Esegui con: <code>bash {{ local_signer.linux_filename }}</code></span>
                   </div>
                 </div>
               </div>

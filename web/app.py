@@ -5480,6 +5480,8 @@ def create_app(config: dict | None = None) -> Flask:
         counts = dict(preview.get("counts") or {})
         mode = mapping.get("mode") or "create_new"
         target_id = mapping.get("target_fascicolo_id") or ""
+        payload = dict(selection.get("payload") or {})
+        manual_mode = bool(selection.get("manual_mode") or payload.get("manual_mode"))
 
         if not selection.get("ufficio_codice"):
             blockers.append({"label": "Ufficio giudiziario mancante", "detail": "Seleziona un ufficio valido prima di proseguire.", "tone": "danger"})
@@ -5492,12 +5494,27 @@ def create_app(config: dict | None = None) -> Flask:
             oks.append({"label": "Identità fascicolo pronta", "detail": f"{selection.get('numero')}/{selection.get('anno')}", "tone": "success"})
 
         if options.get("importa_parti") and counts.get("parti", 0) <= 0:
-            blockers.append({"label": "Parti non disponibili", "detail": "Il fascicolo remoto non espone parti sufficienti per l'importazione guidata.", "tone": "danger"})
+            if manual_mode and portale in {"pdp", "pat", "ptt"}:
+                warnings.append({
+                    "label": "Parti da completare manualmente",
+                    "detail": "Il portale non ha restituito parti strutturate: completa assistiti e controparti dal browser ufficiale o direttamente nel gestionale dopo l'importazione.",
+                    "tone": "warning",
+                })
+            else:
+                blockers.append({"label": "Parti non disponibili", "detail": "Il fascicolo remoto non espone parti sufficienti per l'importazione guidata.", "tone": "danger"})
         elif counts.get("parti", 0) > 0:
             oks.append({"label": "Parti rilevate", "detail": f"{counts.get('parti', 0)} soggetti disponibili", "tone": "success"})
 
         if options.get("importa_documenti") and counts.get("documenti", 0) == 0:
-            warnings.append({"label": "Nessun documento disponibile", "detail": "Puoi importare la pratica anche senza documenti, ma la vista fascicolo resterà parziale.", "tone": "warning"})
+            warnings.append({
+                "label": "Nessun documento disponibile",
+                "detail": (
+                    "Puoi importare la pratica anche senza documenti, ma la vista fascicolo restera' parziale."
+                    if not manual_mode
+                    else "Il catalogo documentale non e' stato esposto dal servizio remoto: importa la pratica e completa documenti e depositi dal portale ufficiale."
+                ),
+                "tone": "warning",
+            })
         elif counts.get("documenti", 0) > 0:
             oks.append({"label": "Catalogo documentale disponibile", "detail": f"{counts.get('documenti', 0)} documenti / {counts.get('depositi', 0)} buste", "tone": "success"})
 

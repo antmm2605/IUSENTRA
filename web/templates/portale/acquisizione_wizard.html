@@ -379,6 +379,7 @@ function awRenderSteps() {
   root.querySelectorAll('[data-aw-step]').forEach(btn => btn.addEventListener('click', () => awGoStep(Number(btn.dataset.awStep))));
 }
 function awCurrentQuery() {
+  const oggetto = document.getElementById('awOggetto').value.trim();
   return {
     ufficio_codice: document.getElementById('awOfficeValue').value,
     numero: document.getElementById('awNumero').value.trim(),
@@ -386,9 +387,205 @@ function awCurrentQuery() {
     assistito: document.getElementById('awAssistito').value.trim(),
     controparte: document.getElementById('awControparte').value.trim(),
     cf: document.getElementById('awCf').value.trim(),
-    oggetto: document.getElementById('awOggetto').value.trim(),
+    oggetto,
+    materia: AW_STATE.quick || oggetto,
+    registro: AW_STATE.quick || '',
     quick_filter: AW_STATE.quick || '',
   };
+}
+function awOfficialPortalUrl() {
+  const urls = {
+    pdp: 'https://pst.giustizia.it/PST/it/services.page',
+    pat: 'https://www.giustizia-amministrativa.it/processo-amministrativo-telematico',
+    ptt: 'https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit',
+  };
+  return urls[AW_BOOT.portale] || '';
+}
+function awBuildPortaleError(data, fallbackMessage) {
+  const error = new Error(data?.errore || fallbackMessage || 'Operazione non riuscita');
+  error.manualRequired = !!data?.manual_required;
+  error.manualTitle = String(data?.manual_title || '').trim();
+  error.manualReason = String(data?.manual_reason || '').trim();
+  error.manualPhase = String(data?.manual_phase || '').trim();
+  error.portaleUrl = String(data?.portale_url || '').trim();
+  return error;
+}
+function awPortaleBrowserOnlyError(err) {
+  if (AW_BOOT.portale === 'pst') return false;
+  if (err?.manualRequired) return true;
+  const text = String(err?.message || err || '').toLowerCase();
+  if (!text) return false;
+  const markers = [
+    'appweb.giustizia.it',
+    'pac.giustizia-amministrativa.it',
+    'sigit.finanze.it',
+    'sigit.giustiziatributaria.gov.it',
+    'pct_pdp_base_url',
+    'pct_pat_base_url',
+    'pct_sigit_base_url',
+    'failed to resolve',
+    'getaddrinfo failed',
+    '403 client error',
+    'forbidden for url',
+  ];
+  return markers.some(marker => text.includes(marker));
+}
+function awSplitPeople(value) {
+  return String(value || '')
+    .split(/[;\n|]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+function awDefaultManualProcedimento() {
+  const quick = String(AW_STATE.quick || '').trim();
+  if (quick) return quick.toUpperCase();
+  if (AW_BOOT.portale === 'pdp') return 'RGNR';
+  return 'RICORSO';
+}
+function awCanBuildManualSelection(query) {
+  return !!(String(query?.ufficio_codice || '').trim() && String(query?.numero || '').trim() && String(query?.anno || '').trim());
+}
+function awMarkSelectionManual(selection, reason = '', portaleUrl = '') {
+  const payload = { ...(selection?.payload || {}) };
+  payload.manual_mode = true;
+  payload.manual_reason = String(reason || '').trim();
+  return {
+    ...(selection || {}),
+    manual_mode: true,
+    manual_reason: String(reason || '').trim(),
+    manual_portale_url: String(portaleUrl || awOfficialPortalUrl()).trim(),
+    payload,
+  };
+}
+function awBuildManualSelection(query, reason = '', portaleUrl = '') {
+  const procedimento = awDefaultManualProcedimento();
+  const ufficioNome = document.getElementById('awOfficeInput')?.value.trim() || query.ufficio_codice || '';
+  const parti = awSplitPeople(query.assistito);
+  const controparti = awSplitPeople(query.controparte);
+  const base = {
+    external_id: `manual:${AW_BOOT.portale}:${query.ufficio_codice || ''}:${query.numero || ''}:${query.anno || ''}:${procedimento}`,
+    id_fascicolo: '',
+    numero: query.numero || '',
+    anno: Number(query.anno || 0),
+    ufficio_codice: query.ufficio_codice || '',
+    ufficio_nome: ufficioNome,
+    procedimento,
+    sub_procedimento: '',
+    sezione: '',
+    stato: 'DA VERIFICARE SU PORTALE',
+    oggetto: query.oggetto || '',
+    parti,
+    controparti,
+    ultima_attivita: '',
+    payload: {},
+  };
+  if (AW_BOOT.portale === 'pdp') {
+    base.payload = {
+      numero_rg: base.numero,
+      anno_rg: base.anno,
+      tipo_registro: procedimento,
+      fase: '',
+      stato: '',
+      reato: query.oggetto || '',
+      sezione: '',
+      giudice: '',
+      data_iscrizione: '',
+      data_udienza: '',
+      imputati: parti,
+      parti_offese: controparti,
+      note: 'Acquisizione assistita manualmente dal portale ufficiale.',
+      codice_ufficio: base.ufficio_codice,
+      nome_ufficio: base.ufficio_nome,
+    };
+  } else if (AW_BOOT.portale === 'pat') {
+    base.payload = {
+      numero_ricorso: base.numero,
+      anno: base.anno,
+      tipo: procedimento,
+      stato: '',
+      materia: query.materia || query.oggetto || '',
+      sezione: '',
+      giudice_relatore: '',
+      data_deposito: '',
+      data_udienza: '',
+      ricorrenti: parti,
+      resistenti: controparti,
+      controinteressati: [],
+      oggetto: query.oggetto || '',
+      note: 'Acquisizione assistita manualmente dal portale ufficiale.',
+      codice_ufficio: base.ufficio_codice,
+      nome_ufficio: base.ufficio_nome,
+    };
+  } else {
+    base.payload = {
+      numero_rgt: base.numero,
+      anno_rgt: base.anno,
+      tipo: procedimento,
+      stato: '',
+      materia: query.materia || query.oggetto || '',
+      sezione: '',
+      giudice_relatore: '',
+      data_deposito: '',
+      data_udienza: '',
+      ricorrenti: parti,
+      resistenti: controparti,
+      oggetto_controversia: query.oggetto || '',
+      valore_controversia: 0,
+      note: 'Acquisizione assistita manualmente dal portale ufficiale.',
+      codice_commissione: base.ufficio_codice,
+      nome_commissione: base.ufficio_nome,
+    };
+  }
+  return awMarkSelectionManual(base, reason, portaleUrl);
+}
+function awManualNoticeHtml() {
+  const selection = AW_STATE.selection || {};
+  if (!selection.manual_mode) return '';
+  const portaleUrl = selection.manual_portale_url || awOfficialPortalUrl();
+  const reason = String(selection.manual_reason || '').trim();
+  return `
+    <div class="alert alert-warning rounded-4 mb-3">
+      <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
+      <div class="small mt-1">HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.</div>
+      ${portaleUrl ? `<div class="small mt-2"><a href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a></div>` : ''}
+      ${reason ? `<div class="small text-muted mt-2">${awEscape(reason)}</div>` : ''}
+    </div>`;
+}
+function awRenderManualSearchFallback(query, err) {
+  const meta = document.getElementById('awResultsMeta');
+  const root = document.getElementById('awResults');
+  const canManual = awCanBuildManualSelection(query);
+  const title = err?.manualTitle || 'Servizio telematico disponibile solo via browser';
+  const reason = err?.manualReason || String(err?.message || err || '');
+  const portaleUrl = err?.portaleUrl || awOfficialPortalUrl();
+  meta.textContent = canManual
+    ? 'Servizio remoto non disponibile: puoi proseguire con inserimento manuale assistito.'
+    : 'Compila ufficio, numero e anno per continuare con inserimento manuale assistito.';
+  root.innerHTML = `
+    <div class="alert alert-warning rounded-4 mb-3">
+      <div class="fw-semibold">${awEscape(title)}</div>
+      <div class="small mt-1">${awEscape(reason)}</div>
+    </div>
+    <div class="aw-box">
+      <div class="fw-semibold mb-2">Continua senza interrompere l'acquisizione</div>
+      <div class="small text-muted mb-3">HACS puo' creare una pratica assistita usando i dati gia' indicati e lasciare al browser ufficiale il completamento di documenti ed eventi.</div>
+      <div class="d-flex flex-wrap gap-2">
+        ${canManual ? `<button type="button" class="btn btn-${AW_BOOT.spec.color}" id="awManualContinue">Prosegui con inserimento manuale</button>` : `<span class="badge text-bg-light border">Servono ufficio, numero e anno</span>`}
+        ${portaleUrl ? `<a class="btn btn-outline-${AW_BOOT.spec.color}" href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a>` : ''}
+      </div>
+    </div>`;
+  if (canManual) {
+    document.getElementById('awManualContinue')?.addEventListener('click', async () => {
+      const selection = awBuildManualSelection(query, reason, portaleUrl);
+      AW_STATE.results = [selection];
+      AW_STATE.selection = null;
+      AW_STATE.preview = null;
+      AW_STATE.analysis = null;
+      AW_STATE.importResult = null;
+      awRenderResults();
+      await awSelectResult(0, true, { skipLocalPreview: true, documenti: [] });
+    });
+  }
 }
 async function awRefreshStatus({ force = false, probeSigner = false, light = true } = {}) {
   if (!force && AW_STATUS_REFRESH_PROMISE) return AW_STATUS_REFRESH_PROMISE;
@@ -657,7 +854,7 @@ async function awSearchViaLocalSigner(query) {
     method: 'POST',
     body: JSON.stringify(route.body),
   });
-  if (!data.ok) throw new Error(data.errore || `Ricerca ${awLocalSignerPortaleLabel()} non riuscita`);
+  if (!data.ok) throw awBuildPortaleError(data, `Ricerca ${awLocalSignerPortaleLabel()} non riuscita`);
   return awMapLocalSignerSearchRows(data.fascicoli || [], query);
 }
 async function awPreviewViaLocalSigner(selection) {
@@ -703,7 +900,7 @@ async function awPreviewViaLocalSigner(selection) {
     method: 'POST',
     body: JSON.stringify(route.body),
   });
-  if (!data.ok) throw new Error(data.errore || `Anteprima documenti ${awLocalSignerPortaleLabel()} non riuscita`);
+  if (!data.ok) throw awBuildPortaleError(data, `Anteprima documenti ${awLocalSignerPortaleLabel()} non riuscita`);
   return data.documenti || [];
 }
 function awPreviewDocuments() {
@@ -1015,11 +1212,11 @@ function awPickAutoSelectionIndex(results, query) {
 async function awRunSearch() {
   const meta = document.getElementById('awResultsMeta');
   const root = document.getElementById('awResults');
+  const query = awCurrentQuery();
   meta.textContent = 'Ricerca in corso...';
   root.innerHTML = '<div class="aw-box text-muted">Sto interrogando il portale e preparando i risultati utili alla verifica.</div>';
   try {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
-    const query = awCurrentQuery();
     let results = [];
     if (awShouldUseLocalSigner()) {
       await awEnsureLocalSignerReachable({ light: true });
@@ -1049,6 +1246,18 @@ async function awRunSearch() {
     }
   } catch (err) {
     AW_STATE.results = [];
+    AW_STATE.selection = null;
+    AW_STATE.preview = null;
+    AW_STATE.analysis = null;
+    AW_STATE.importResult = null;
+    if (awPortaleBrowserOnlyError(err)) {
+      awRenderPreview();
+      awRenderSelectionOptions();
+      awRenderAnalysis();
+      awRenderSidebar();
+      awRenderManualSearchFallback(query, err);
+      return;
+    }
     meta.textContent = 'Ricerca non riuscita';
     root.innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
   }
@@ -1070,11 +1279,12 @@ function awRenderResults() {
             <span class="badge text-bg-light border">${awEscape(row.ufficio_nome || row.ufficio_codice || 'Ufficio')}</span>
             <strong>RG ${awEscape(row.numero)}/${awEscape(row.anno)}</strong>
             <span class="badge text-bg-secondary">${awEscape(row.procedimento || 'Procedimento')}</span>
-      ${row.stato ? `<span class="badge text-bg-light border">${awEscape(awFormatStatus(row.stato))}</span>` : ''}
+            ${row.manual_mode ? '<span class="badge text-bg-warning">Manuale assistita</span>' : ''}
+            ${row.stato ? `<span class="badge text-bg-light border">${awEscape(awFormatStatus(row.stato))}</span>` : ''}
           </div>
           <div class="fw-semibold mb-1">${awEscape(row.oggetto || 'Oggetto non disponibile')}</div>
           <div class="small text-muted mb-1">${awEscape((row.parti || []).slice(0, 3).join(' - ') || 'Parti non disponibili')}</div>
-      <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
+          <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">Anteprima</button>
@@ -1085,7 +1295,7 @@ function awRenderResults() {
   root.querySelectorAll('[data-aw-preview]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awPreview), true)));
   root.querySelectorAll('[data-aw-select]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awSelect), true)));
 }
-async function awSelectResult(index, jumpPreview) {
+async function awSelectResult(index, jumpPreview, options = {}) {
   const selection = AW_STATE.results[index];
   if (!selection) return;
   AW_STATE.selection = selection;
@@ -1101,7 +1311,9 @@ async function awSelectResult(index, jumpPreview) {
   try {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
     const payload = { selection };
-    if (awShouldUseLocalSigner()) {
+    if (Array.isArray(options.documenti)) {
+      payload.documenti = options.documenti;
+    } else if (!options.skipLocalPreview && awShouldUseLocalSigner()) {
       await awEnsureLocalSignerReachable({ light: true });
       payload.documenti = await awPreviewViaLocalSigner(selection);
     }
@@ -1116,6 +1328,34 @@ async function awSelectResult(index, jumpPreview) {
     await awWarmAnalysis();
     if (jumpPreview) awGoStep(3);
   } catch (err) {
+    if (awPortaleBrowserOnlyError(err)) {
+      try {
+        const manualSelection = awMarkSelectionManual(
+          selection,
+          err?.manualReason || String(err),
+          err?.portaleUrl || awOfficialPortalUrl(),
+        );
+        AW_STATE.results[index] = manualSelection;
+        AW_STATE.selection = manualSelection;
+        const fallback = await awJson(AW_BOOT.previewUrl, {
+          method: 'POST',
+          body: JSON.stringify({ selection: manualSelection, documenti: [] }),
+        });
+        if (!fallback.ok) throw new Error(fallback.errore || 'Anteprima non disponibile');
+        AW_STATE.preview = fallback.preview || null;
+        awRenderResults();
+        awRenderPreview();
+        awRenderSelectionOptions();
+        awRenderAnalysis();
+        awRenderSidebar();
+        await awWarmAnalysis();
+        if (jumpPreview) awGoStep(3);
+        return;
+      } catch (fallbackErr) {
+        document.getElementById('awPreview').innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(fallbackErr))}</div>`;
+        return;
+      }
+    }
     document.getElementById('awPreview').innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
   }
 }
@@ -1128,6 +1368,7 @@ function awRenderPreview() {
     return;
   }
   const preview = AW_STATE.preview;
+  const manualNotice = awManualNoticeHtml();
   const defs = [
     { id: 'dati', label: 'Dati fascicolo' },
     { id: 'parti', label: 'Parti e difensori' },
@@ -1138,7 +1379,7 @@ function awRenderPreview() {
   tabs.querySelectorAll('[data-aw-tab]').forEach(btn => btn.addEventListener('click', () => { AW_STATE.previewTab = btn.dataset.awTab; awRenderPreview(); awPostProcessPreviewDom(); }));
   const identity = preview.identity || {};
   if (AW_STATE.previewTab === 'dati') {
-    root.innerHTML = `
+    root.innerHTML = `${manualNotice}
       <div class="row g-3">
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div>${identity.id_fascicolo ? `<div class="small text-muted mt-1">ID fascicolo PST: ${awEscape(identity.id_fascicolo)}</div>` : ''}</div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
@@ -1148,7 +1389,7 @@ function awRenderPreview() {
     return;
   }
   if (AW_STATE.previewTab === 'parti') {
-    root.innerHTML = `
+    root.innerHTML = `${manualNotice}
       <div class="row g-3">
         <div class="col-lg-6"><div class="aw-box h-100"><div class="fw-semibold mb-2">Parti principali</div>${(preview.parti || []).length ? `<ul class="mb-0 small">${preview.parti.map(x => `<li>${awEscape(x)}</li>`).join('')}</ul>` : '<div class="text-muted small">Nessuna parte rilevata.</div>'}</div></div>
         <div class="col-lg-6"><div class="aw-box h-100"><div class="fw-semibold mb-2">Controparti / resistenti</div>${(preview.controparti || []).length ? `<ul class="mb-0 small">${preview.controparti.map(x => `<li>${awEscape(x)}</li>`).join('')}</ul>` : '<div class="text-muted small">Nessuna controparte rilevata.</div>'}</div></div>
@@ -1157,7 +1398,7 @@ function awRenderPreview() {
     return;
   }
   if (AW_STATE.previewTab === 'eventi') {
-    root.innerHTML = `
+    root.innerHTML = `${manualNotice}
       <div class="aw-box">
         ${(preview.eventi || []).length ? (preview.eventi || []).map(ev => `
           <div class="d-flex justify-content-between align-items-start gap-3 border-bottom py-2">
@@ -1167,7 +1408,7 @@ function awRenderPreview() {
       </div>`;
     return;
   }
-  root.innerHTML = `
+  root.innerHTML = `${manualNotice}
     <div class="d-flex flex-column gap-3">
       ${(preview.depositi || []).length ? preview.depositi.map(dep => `
         <div class="aw-box">

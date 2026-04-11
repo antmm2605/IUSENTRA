@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.27
+HACS Local Signer — v1.5.32
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.31"
+VERSION = "1.5.32"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2143,6 +2143,19 @@ def _looks_like_dns_resolution_error(text: str) -> bool:
     return any(marker in value for marker in markers)
 
 
+def _looks_like_http_forbidden_error(text: str) -> bool:
+    value = str(text or "").strip().lower()
+    if not value:
+        return False
+    markers = (
+        "403 client error",
+        "403 forbidden",
+        "forbidden for url",
+        "http 403",
+    )
+    return any(marker in value for marker in markers)
+
+
 def _messaggio_dns_endpoint_portale(url: str) -> str:
     host = _pst_host(url)
     if "appweb.giustizia.it" in host:
@@ -2174,6 +2187,60 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
         f"Il PC non riesce a risolvere {host_label}.\n"
         "Verificare DNS, proxy, firewall o VPN e riprovare."
     )
+
+
+def _portale_browser_url(portale: str) -> str:
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm == "pdp":
+        return "https://pst.giustizia.it/PST/it/services.page"
+    if portale_norm == "pat":
+        return "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico"
+    if portale_norm == "ptt":
+        return "https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit"
+    return ""
+
+
+def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) -> str:
+    text = str(error or "").strip()
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm == "pdp":
+        return (
+            "Il servizio remoto PDP non e' raggiungibile da questo PC.\n"
+            "Apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di HACS.\n"
+            f"Dettaglio tecnico: {text}"
+        )
+    if portale_norm == "pat":
+        return (
+            "Il servizio remoto PAT non e' raggiungibile da questo PC.\n"
+            "Apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di HACS.\n"
+            f"Dettaglio tecnico: {text}"
+        )
+    return (
+        "Il servizio web PTT/SIGIT non consente la consultazione WSDL diretta da questo PC.\n"
+        "Apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di HACS.\n"
+        f"Dettaglio tecnico: {text}"
+    )
+
+
+def _portale_manual_required_payload(portale: str, error: Exception | str, phase: str) -> dict[str, Any] | None:
+    text = str(error or "").strip()
+    if not text:
+        return None
+    if not (_looks_like_dns_resolution_error(text) or _looks_like_http_forbidden_error(text)):
+        return None
+    phase_label = "ricerca fascicolo" if str(phase or "").strip().lower() == "ricerca" else "catalogo documenti"
+    return {
+        "ok": False,
+        "errore": _messaggio_endpoint_browser_guidato(portale, text),
+        "manual_required": True,
+        "manual_phase": str(phase or "").strip().lower() or "ricerca",
+        "manual_title": f"{phase_label.capitalize()} disponibile solo via browser",
+        "manual_reason": (
+            "Il servizio ministeriale non e' interrogabile da Local Signer su questo PC. "
+            "HACS puo' comunque proseguire con l'acquisizione assistita manuale."
+        ),
+        "portale_url": _portale_browser_url(portale),
+    }
 
 
 def _curl_errore_leggibile(
@@ -5706,6 +5773,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PDP ricerca: %s", e)
+            manual_payload = _portale_manual_required_payload("pdp", e, "ricerca")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pdp_documenti(self):
@@ -5742,6 +5813,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PDP documenti: %s", e)
+            manual_payload = _portale_manual_required_payload("pdp", e, "documenti")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pat_ricerca(self):
@@ -5785,6 +5860,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PAT ricerca: %s", e)
+            manual_payload = _portale_manual_required_payload("pat", e, "ricerca")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pat_documenti(self):
@@ -5821,6 +5900,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PAT documenti: %s", e)
+            manual_payload = _portale_manual_required_payload("pat", e, "documenti")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ptt_ricerca(self):
@@ -5864,6 +5947,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PTT ricerca: %s", e)
+            manual_payload = _portale_manual_required_payload("ptt", e, "ricerca")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ptt_documenti(self):
@@ -5900,6 +5987,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PTT documenti: %s", e)
+            manual_payload = _portale_manual_required_payload("ptt", e, "documenti")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pst_download_documento(self):

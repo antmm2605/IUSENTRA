@@ -2416,6 +2416,60 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
     assert captured["bridge"]["cert_thumbprint"] == "AABBCC11"
 
 
+def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_risolvi_codice_ufficio_pdp_runtime": module._risolvi_codice_ufficio_pdp_runtime,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "ufficio": "Procura di Reggio Calabria",
+                "numero_rg": "4521",
+                "anno_rg": "2026",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._risolvi_codice_ufficio_pdp_runtime = lambda ufficio: "0580010"
+
+        def _boom(**kwargs):
+            raise RuntimeError(
+                "HTTPSConnectionPool(host='appweb.giustizia.it', port=443): "
+                "Max retries exceeded with url: /snt/RicercaFascicoliPenaleService?wsdl "
+                "(Caused by NameResolutionError(\"getaddrinfo failed\"))"
+            )
+
+        module._soap_call_zeep_operation_via_curl = _boom
+        module._Handler._pdp_ricerca(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        module._risolvi_codice_ufficio_pdp_runtime = originals["_risolvi_codice_ufficio_pdp_runtime"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_phase"] == "ricerca"
+    assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
+
+
 def test_pat_documenti_local_signer_restituisce_documenti_parsati():
     module = _load_local_signer()
 
@@ -2535,6 +2589,59 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
     assert captured["payload"]["fascicoli"][0]["codice_commissione"] == "CPT030000"
     assert captured["bridge"]["operation_name"] == "ricercaFascicoliTributari"
     assert captured["bridge"]["payload"]["codiceCommissione"] == "CPT030000"
+
+
+def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_risolvi_codice_commissione_ptt_runtime": module._risolvi_codice_commissione_ptt_runtime,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "commissione": "CPT Milano",
+                "numero_rgt": "1234",
+                "anno_rgt": "2026",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._risolvi_codice_commissione_ptt_runtime = lambda commissione: "CPT030000"
+
+        def _boom(**kwargs):
+            raise RuntimeError(
+                "403 Client Error: Forbidden for url: "
+                "https://sigit.finanze.it/ptt/RicercaFascicoliTributarioService?wsdl"
+            )
+
+        module._soap_call_zeep_operation_via_curl = _boom
+        module._Handler._ptt_ricerca(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        module._risolvi_codice_commissione_ptt_runtime = originals["_risolvi_codice_commissione_ptt_runtime"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_phase"] == "ricerca"
+    assert captured["payload"]["portale_url"] == "https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit"
 
 
 def test_parse_pdp_documenti_response_popola_campi_busta():

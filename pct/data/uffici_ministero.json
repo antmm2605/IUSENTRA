@@ -3867,10 +3867,11 @@
       "servizi_ministero": [
         "COM_TEL_SPER",
         "DEPOT",
-        "JPW_CASS",
+        "JPW_CASSCI",
+        "JPW_CASSPE",
         "PAGAM_TEL"
       ],
-      "servizio_pst_predefinito": "JPW_CASS"
+      "servizio_pst_predefinito": "JPW_CASSCI"
     },
     "0530100": {
       "codice_ministero": "0012720119",

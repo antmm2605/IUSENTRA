@@ -126,6 +126,15 @@ def test_local_signer_risolve_proxy_pst_dal_codice_hacs():
     assert module._risolvi_codice_ufficio_pst("0580010") == "0151460094"
 
 
+def test_local_signer_risolve_proxy_pst_cassazione_sul_catalogo_ufficiale():
+    module = _load_local_signer()
+
+    base = module._risolvi_base_pst_runtime("9990000")
+
+    assert base.endswith("/pda/pycons/GLCC/JPW_CASSCI")
+    assert module._pst_namespace_qbuilder(base) == "urn:CONS-CASSCI"
+
+
 def test_local_signer_risolve_proxy_pst_da_snapshot_quando_pct_non_e_disponibile():
     module = _load_local_signer()
 
@@ -582,6 +591,16 @@ def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
     assert module._pst_servizio_proxy(base) == "JPW_SICID"
     assert module._pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
     assert module._pst_url_documenti(base) == base
+
+
+def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
+    module = _load_local_signer()
+
+    assert module._pst_servizio_proxy("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "JPW_CASSCI"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC") == "urn:CONS-SIECIC-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP") == "urn:CONS-SIGP-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
 
 
 def test_estrai_codice_fiscale_dal_certificato_windows():

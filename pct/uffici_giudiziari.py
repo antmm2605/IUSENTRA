@@ -51,7 +51,10 @@ _RIFERIMENTI_MINISTERO_PATH = Path(__file__).resolve().parent / "data" / "uffici
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASS")
+_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASSCI", "JPW_CASSPE")
+_PST_SERVIZI_ALIAS = {
+    "JPW_CASS": "JPW_CASSCI",
+}
 
 # ---------------------------------------------------------------- tipi
 
@@ -99,6 +102,13 @@ def _uffici_hash(uffici: list[dict]) -> str:
     canonici.sort(key=lambda u: (u["codice"], u["nome"], u["tipo"]))
     payload = json.dumps(canonici, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _normalizza_servizio_pst_name(servizio: str) -> str:
+    valore = str(servizio or "").strip().upper()
+    if not valore:
+        return ""
+    return _PST_SERVIZI_ALIAS.get(valore, valore)
 
 
 @lru_cache(maxsize=1)
@@ -1544,7 +1554,7 @@ def risolvi_servizio_pst(
         return ""
 
     servizi = [
-        str(s).strip().upper()
+        _normalizza_servizio_pst_name(s)
         for s in (ufficio.get("servizi_ministero") or [])
         if str(s).strip()
     ]
@@ -1552,11 +1562,11 @@ def risolvi_servizio_pst(
 
     preferenze: list[str] = []
     if preferito:
-        preferenze.append(preferito.strip().upper())
-    env_pref = os.getenv("PCT_PST_SERVIZIO_DEFAULT", "").strip().upper()
+        preferenze.append(_normalizza_servizio_pst_name(preferito))
+    env_pref = _normalizza_servizio_pst_name(os.getenv("PCT_PST_SERVIZIO_DEFAULT", ""))
     if env_pref:
         preferenze.append(env_pref)
-    servizio_ufficio = str(ufficio.get("servizio_pst_predefinito") or "").strip().upper()
+    servizio_ufficio = _normalizza_servizio_pst_name(ufficio.get("servizio_pst_predefinito") or "")
     if servizio_ufficio:
         preferenze.append(servizio_ufficio)
     preferenze.extend(_PST_SERVIZI_DEFAULT)
@@ -1568,7 +1578,7 @@ def risolvi_servizio_pst(
         return jpw[0]
 
     if ufficio.get("tipo") == "CORTE_CASSAZIONE":
-        return "JPW_CASS"
+        return "JPW_CASSCI"
     return next((servizio for servizio in preferenze if servizio), "")
 
 
@@ -1579,6 +1589,14 @@ def _normalizza_base_pst(base_url: str) -> tuple[str, bool]:
     if base.startswith(_PST_LEGACY_BASE):
         return base, False
     if "/pda/pycons/" in base:
+        parsed = urlparse(base)
+        path_parts = [part for part in parsed.path.rstrip("/").split("/") if part]
+        if path_parts:
+            path_parts[-1] = _normalizza_servizio_pst_name(path_parts[-1])
+            normalized_path = "/" + "/".join(path_parts)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}{normalized_path}", True
+            return normalized_path, True
         return base, True
     parsed = urlparse(base)
     path = parsed.path.rstrip("/")

@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.34"
+VERSION = "1.5.35"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -111,9 +111,16 @@ _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP")
+_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASSCI", "JPW_CASSPE")
+_PST_SERVIZI_ALIAS = {
+    "JPW_CASS": "JPW_CASSCI",
+}
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIECIC": "urn:CONS-SIECIC-BE",
+    "JPW_SIGP": "urn:CONS-SIGP-BE",
+    "JPW_CASSCI": "urn:CONS-CASSCI",
+    "JPW_CASSPE": "urn:CONS-CASSPE",
 }
 _PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
 _WSDL_RICERCA_PENALE = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
@@ -319,6 +326,13 @@ def _env_flag_enabled(name: str) -> bool:
     return str(os.getenv(name, "") or "").strip().lower() in _TRUE_VALUES
 
 
+def _normalizza_servizio_pst_name(servizio: Any) -> str:
+    valore = str(servizio or "").strip().upper()
+    if not valore:
+        return ""
+    return _PST_SERVIZI_ALIAS.get(valore, valore)
+
+
 def _carica_bundle_uffici_hacs() -> list[dict[str, Any]]:
     global _uffici_hacs_cache
     if _uffici_hacs_cache is not None:
@@ -511,16 +525,16 @@ def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
 
     codice_gl = str(ufficio.get("codice_gl") or "").strip()
     servizi = [
-        str(servizio).strip().upper()
+        _normalizza_servizio_pst_name(servizio)
         for servizio in (ufficio.get("servizi_ministero") or [])
         if str(servizio).strip()
     ]
     servizi_jpw = [servizio for servizio in servizi if servizio.startswith("JPW_")]
     preferenze = []
-    env_pref = os.getenv("PCT_PST_SERVIZIO_DEFAULT", "").strip().upper()
+    env_pref = _normalizza_servizio_pst_name(os.getenv("PCT_PST_SERVIZIO_DEFAULT", ""))
     if env_pref:
         preferenze.append(env_pref)
-    servizio_default = str(ufficio.get("servizio_pst_predefinito") or "").strip().upper()
+    servizio_default = _normalizza_servizio_pst_name(ufficio.get("servizio_pst_predefinito") or "")
     if servizio_default:
         preferenze.append(servizio_default)
     preferenze.extend(_PST_SERVIZI_DEFAULT)
@@ -537,6 +551,14 @@ def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
 
     base_env = (os.getenv("PCT_PST_BASE_URL", "") or "").strip().rstrip("/")
     if base_env and "/pda/pycons/" in base_env:
+        parsed = urlparse(base_env)
+        path_parts = [part for part in parsed.path.rstrip("/").split("/") if part]
+        if path_parts:
+            path_parts[-1] = _normalizza_servizio_pst_name(path_parts[-1])
+            normalized_path = "/" + "/".join(path_parts)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}{normalized_path}"
+            return normalized_path
         return base_env
     root = base_env or os.getenv("PCT_PST_PROXY_ROOT", "").strip().rstrip("/") or _PST_PROXY_SH_URL
     if root.startswith(_PST_LEGACY_BASE):
@@ -2011,7 +2033,7 @@ def _messaggio_endpoint_pst_legacy() -> str:
 
 
 def _pst_servizio_proxy(base_url: str) -> str:
-    return (base_url or "").rstrip("/").split("/")[-1].strip().upper()
+    return _normalizza_servizio_pst_name((base_url or "").rstrip("/").split("/")[-1])
 
 
 def _pst_namespace_qbuilder(base_url: str) -> str:

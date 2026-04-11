@@ -43,8 +43,15 @@ from pct.uffici_giudiziari import risolvi_base_pst, risolvi_codice_ministero, ri
 # richiede quindi che l'eventuale proxy attivo venga configurato esplicitamente.
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
 _WSP_BASE = (os.getenv("PCT_PST_BASE_URL", _PST_LEGACY_BASE) or _PST_LEGACY_BASE).strip()
+_PST_SERVICE_ALIASES = {
+    "JPW_CASS": "JPW_CASSCI",
+}
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIECIC": "urn:CONS-SIECIC-BE",
+    "JPW_SIGP": "urn:CONS-SIGP-BE",
+    "JPW_CASSCI": "urn:CONS-CASSCI",
+    "JPW_CASSPE": "urn:CONS-CASSPE",
 }
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 
@@ -72,7 +79,8 @@ def _wsdl_consultazione(base_url: str) -> str:
 
 def _pst_servizio_proxy(base_url: str) -> str:
     parti = [p for p in (base_url or "").rstrip("/").split("/") if p]
-    return (parti[-1] if parti else "").upper()
+    servizio = (parti[-1] if parti else "").upper()
+    return _PST_SERVICE_ALIASES.get(servizio, servizio)
 
 
 def _pst_namespace_qbuilder(base_url: str) -> str:

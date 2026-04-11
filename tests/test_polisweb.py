@@ -65,6 +65,12 @@ def test_polisweb_qbuilder_namespace_sicid():
     assert _pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
 
 
+def test_polisweb_qbuilder_namespace_cassazione_alias_e_catalogo():
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "urn:CONS-CASSCI"
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
+
+
 def test_polisweb_costruisce_body_qbuilder_ricerca_per_tipo():
     client = _client()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"

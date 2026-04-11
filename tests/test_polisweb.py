@@ -2739,6 +2739,53 @@ def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):
     assert response.status_code == 200
     assert "Prosegui con inserimento manuale" in body
     assert "Acquisizione assistita via browser ufficiale" in body
+    assert "Consultazione via browser ufficiale" in body
+    assert "Servizio remoto non disponibile" not in body
+
+
+def test_api_acquisizione_status_portale_browser_channel_usa_testo_assistito(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    p12_path = tmp_path / "firma-test.p12"
+    p12_path.write_bytes(b"fake-p12")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.p12_path = str(p12_path)
+    studio.firma.backend_preferito = "p12"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/api/portali/pdp/acquisizione/status", follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["status"]["browser_channel_required"] is True
+    assert data["status"]["status_text"] == "Consultazione via browser ufficiale"
+    assert data["status"]["environment_label"] == "Produzione guidata assistita"
 
 
 def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):

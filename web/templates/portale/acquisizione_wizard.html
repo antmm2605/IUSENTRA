@@ -401,6 +401,38 @@ function awOfficialPortalUrl() {
   };
   return urls[AW_BOOT.portale] || '';
 }
+function awGuidedBrowserAssistInfo(query = null) {
+  const ufficio = document.getElementById('awOfficeInput')?.value.trim() || String(query?.ufficio_codice || '').trim();
+  const commonSuffix = ufficio
+    ? ` HACS continua con i dati gia' indicati per ${ufficio}.`
+    : " HACS continua con i dati gia' indicati nel wizard.";
+  const info = {
+    title: 'Consultazione via browser ufficiale',
+    reason: 'Questo portale completa la consultazione pratica tramite area riservata ufficiale nel browser.' + commonSuffix,
+    metaReady: 'Consultazione ufficiale via browser: puoi proseguire con inserimento manuale assistito.',
+    metaMissing: 'Compila ufficio, numero e anno per continuare con inserimento manuale assistito.',
+    portaleUrl: awOfficialPortalUrl(),
+  };
+  if (AW_BOOT.portale === 'pdp') {
+    info.reason = "Il Portale Deposito atti Penali usa l'area riservata PST nel browser ufficiale." + commonSuffix;
+  } else if (AW_BOOT.portale === 'pat') {
+    info.reason = "Il Processo Amministrativo Telematico usa il Portale Avvocato nel browser ufficiale." + commonSuffix;
+  } else if (AW_BOOT.portale === 'ptt') {
+    info.reason = 'Il Processo Tributario Telematico usa SIGIT nel browser ufficiale.' + commonSuffix;
+  }
+  return info;
+}
+function awGuidedBrowserAssistError(query = null) {
+  const info = awGuidedBrowserAssistInfo(query);
+  return {
+    manualRequired: true,
+    manualTitle: info.title,
+    manualReason: info.reason,
+    portaleUrl: info.portaleUrl,
+    assistedMetaReady: info.metaReady,
+    assistedMetaMissing: info.metaMissing,
+  };
+}
 function awBuildPortaleError(data, fallbackMessage) {
   const error = new Error(data?.errore || fallbackMessage || 'Operazione non riuscita');
   error.manualRequired = !!data?.manual_required;
@@ -555,12 +587,13 @@ function awRenderManualSearchFallback(query, err) {
   const meta = document.getElementById('awResultsMeta');
   const root = document.getElementById('awResults');
   const canManual = awCanBuildManualSelection(query);
-  const title = err?.manualTitle || 'Servizio telematico disponibile solo via browser';
-  const reason = err?.manualReason || String(err?.message || err || '');
-  const portaleUrl = err?.portaleUrl || awOfficialPortalUrl();
+  const guided = awGuidedBrowserAssistInfo(query);
+  const title = err?.manualTitle || guided.title;
+  const reason = err?.manualReason || guided.reason || String(err?.message || err || '');
+  const portaleUrl = err?.portaleUrl || guided.portaleUrl || awOfficialPortalUrl();
   meta.textContent = canManual
-    ? 'Servizio remoto non disponibile: puoi proseguire con inserimento manuale assistito.'
-    : 'Compila ufficio, numero e anno per continuare con inserimento manuale assistito.';
+    ? (err?.assistedMetaReady || guided.metaReady)
+    : (err?.assistedMetaMissing || guided.metaMissing);
   root.innerHTML = `
     <div class="alert alert-warning rounded-4 mb-3">
       <div class="fw-semibold">${awEscape(title)}</div>
@@ -639,6 +672,10 @@ function awShouldUseLocalSigner() {
   const status = AW_STATE.status || {};
   if (status.demo_mode) return false;
   return !!(status.browser_channel_required || status.pkcs11_mode || awLocalSignerReachable());
+}
+function awUsesGuidedBrowserAssistFlow() {
+  const status = AW_STATE.status || {};
+  return !status.demo_mode && AW_BOOT.portale !== 'pst' && !!status.browser_channel_required;
 }
 async function awEnsureLocalSignerReachable({ light = true } = {}) {
   if (awLocalSignerReachable()) return AW_STATE.status.local_signer;
@@ -1140,6 +1177,7 @@ function awRenderAccess() {
   const status = AW_STATE.status || {};
   const signer = status.local_signer || {};
   const signerPreferred = awShouldUseLocalSigner();
+  const browserAssistMode = awUsesGuidedBrowserAssistFlow();
   const cards = [
     {
       title: 'Portale e sorgente',
@@ -1155,8 +1193,8 @@ function awRenderAccess() {
     },
     {
       title: 'Certificato attivo',
-      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (signerPreferred ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare')),
-      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (signerPreferred ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale'),
+      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (browserAssistMode ? 'Verifica nel portale ufficiale' : (signerPreferred ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare'))),
+      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (browserAssistMode ? 'In modalita assistita il certificato viene verificato direttamente nel portale ufficiale.' : (signerPreferred ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale')),
       tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || awLocalSignerReachable() || (!signerPreferred && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
     },
     {
@@ -1178,16 +1216,26 @@ function awRenderAccess() {
       </div>
     </div>`).join('');
   const note = [];
-  if (signerPreferred) note.push(AW_BOOT.portale === 'pst'
-    ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
-    : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
-  if (awLocalSignerReachable() && !status.pkcs11_mode) note.push('Local Signer rilevato: il wizard userà il canale browser-side locale come percorso preferito per ricerca e anteprima.');
-  if (status.browser_channel_required && !awLocalSignerReachable()) note.push(`Per ${awEscape(awLocalSignerPortaleLabel())} il Local Signer Ã¨ obbligatorio: avvialo prima della ricerca del fascicolo.`);
+  if (browserAssistMode) {
+    note.push('Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.');
+  } else if (signerPreferred) {
+    note.push(AW_BOOT.portale === 'pst'
+      ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
+      : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
+  }
+  if (browserAssistMode && awLocalSignerReachable()) {
+    note.push('Local Signer rilevato: HACS puo\' riusare il browser locale per aprire il portale ufficiale, ma l\'acquisizione resta assistita.');
+  } else if (awLocalSignerReachable() && !status.pkcs11_mode) {
+    note.push('Local Signer rilevato: il wizard usera il canale browser-side locale come percorso preferito per ricerca e anteprima.');
+  }
+  if (status.browser_channel_required && !awLocalSignerReachable()) {
+    note.push(`Per ${awEscape(awLocalSignerPortaleLabel())} HACS puo' comunque proseguire in modalita assistita. Avvia il Local Signer solo se vuoi riusare il browser locale autenticato.`);
+  }
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
-  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');
+  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST gia attiva nel browser corrente: il wizard riusera il canale autenticato.');
   if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
-  document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l’accesso e continua con la ricerca del fascicolo.';
+  document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l\'accesso e continua con la ricerca del fascicolo.';
 }
 function awPickAutoSelectionIndex(results, query) {
   const rows = Array.isArray(results) ? results : [];
@@ -1217,6 +1265,19 @@ async function awRunSearch() {
   root.innerHTML = '<div class="aw-box text-muted">Sto interrogando il portale e preparando i risultati utili alla verifica.</div>';
   try {
     if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
+    if (awUsesGuidedBrowserAssistFlow()) {
+      AW_STATE.results = [];
+      AW_STATE.selection = null;
+      AW_STATE.preview = null;
+      AW_STATE.analysis = null;
+      AW_STATE.importResult = null;
+      awRenderPreview();
+      awRenderSelectionOptions();
+      awRenderAnalysis();
+      awRenderSidebar();
+      awRenderManualSearchFallback(query, awGuidedBrowserAssistError(query));
+      return;
+    }
     let results = [];
     if (awShouldUseLocalSigner()) {
       await awEnsureLocalSignerReachable({ light: true });
@@ -1313,7 +1374,7 @@ async function awSelectResult(index, jumpPreview, options = {}) {
     const payload = { selection };
     if (Array.isArray(options.documenti)) {
       payload.documenti = options.documenti;
-    } else if (!options.skipLocalPreview && awShouldUseLocalSigner()) {
+    } else if (!options.skipLocalPreview && !selection.manual_mode && awShouldUseLocalSigner()) {
       await awEnsureLocalSignerReachable({ light: true });
       payload.documenti = await awPreviewViaLocalSigner(selection);
     }

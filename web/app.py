@@ -6025,8 +6025,8 @@ def create_app(config: dict | None = None) -> Flask:
             status_text = "Modalità demo / fallback"
             environment_label = "Simulazione / compatibilità"
         elif browser_channel_required:
-            status_text = "Accesso via Local Signer browser-side"
-            environment_label = "Produzione guidata via browser locale"
+            status_text = "Consultazione via browser ufficiale"
+            environment_label = "Produzione guidata assistita"
         elif pkcs11_mode:
             status_text = "Accesso via Local Signer / Aruba Key"
             environment_label = "Produzione guidata via browser locale"

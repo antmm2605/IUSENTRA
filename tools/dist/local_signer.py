@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.30"
+VERSION = "1.5.31"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2127,6 +2127,55 @@ _CURL_EXIT_CODES = {
 }
 
 
+def _looks_like_dns_resolution_error(text: str) -> bool:
+    value = str(text or "").strip().lower()
+    if not value:
+        return False
+    markers = (
+        "failed to resolve",
+        "name resolution",
+        "name or service not known",
+        "getaddrinfo failed",
+        "could not resolve host",
+        "temporary failure in name resolution",
+        "max retries exceeded",
+    )
+    return any(marker in value for marker in markers)
+
+
+def _messaggio_dns_endpoint_portale(url: str) -> str:
+    host = _pst_host(url)
+    if "appweb.giustizia.it" in host:
+        return (
+            "Il PC non riesce a risolvere appweb.giustizia.it (PDP Penale).\n"
+            "Verificare DNS, proxy, firewall o VPN e aprire prima il portale ufficiale nel browser.\n"
+            "Se il Ministero o l'ufficio hanno comunicato un endpoint aggiornato, impostare PCT_PDP_BASE_URL."
+        )
+    if "pac.giustizia-amministrativa.it" in host:
+        return (
+            "Il PC non riesce a risolvere pac.giustizia-amministrativa.it (PAT).\n"
+            "Verificare accesso e DNS del Portale Avvocato ufficiale https://www.giustizia-amministrativa.it/portale-avvocato.\n"
+            "Se l'endpoint servizi e' stato aggiornato, impostare PCT_PAT_BASE_URL."
+        )
+    if "www.ptt.mef.gov.it" in host:
+        return (
+            "Il PC sta ancora puntando al vecchio host PTT www.ptt.mef.gov.it, non piu' usato da HACS.\n"
+            "Aggiornare o reinstallare il Local Signer piu' recente: il default corretto e' https://sigit.finanze.it/ptt.\n"
+            "In alternativa impostare esplicitamente PCT_SIGIT_BASE_URL."
+        )
+    if "sigit.finanze.it" in host:
+        return (
+            "Il PC non riesce a risolvere sigit.finanze.it (PTT / SIGIT).\n"
+            "Verificare DNS, proxy, firewall o VPN e l'accesso al portale SIGIT dal browser.\n"
+            "Se necessario, impostare un endpoint diverso tramite PCT_SIGIT_BASE_URL."
+        )
+    host_label = host or "l'host richiesto"
+    return (
+        f"Il PC non riesce a risolvere {host_label}.\n"
+        "Verificare DNS, proxy, firewall o VPN e riprovare."
+    )
+
+
 def _curl_errore_leggibile(
     returncode: int,
     stderr: str,
@@ -2141,6 +2190,9 @@ def _curl_errore_leggibile(
 
     if returncode == 6 and _pst_endpoint_configurato_e_legacy(url):
         return _messaggio_endpoint_pst_legacy()
+
+    if returncode == 6:
+        return _messaggio_dns_endpoint_portale(url)
 
     template = _CURL_EXIT_CODES.get(returncode)
     if template:
@@ -3027,7 +3079,12 @@ def _get_zeep_wsdl_client(wsdl_url: str):
         raise RuntimeError(
             "Dipendenza mancante nel Local Signer: installare zeep per l'accesso Aruba Key a PDP/PAT/PTT."
         ) from exc
-    client = zeep.Client(wsdl=wsdl_url)
+    try:
+        client = zeep.Client(wsdl=wsdl_url)
+    except Exception as exc:
+        if _looks_like_dns_resolution_error(exc):
+            raise RuntimeError(_messaggio_dns_endpoint_portale(wsdl_url)) from exc
+        raise
     _ZEEP_WSDL_CACHE[wsdl_url] = client
     return client
 

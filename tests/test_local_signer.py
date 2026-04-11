@@ -46,6 +46,65 @@ def test_errore_dns_endpoint_legacy_e_istruttivo():
     assert "PCT_PST_BASE_URL" in msg
 
 
+def test_errore_dns_portali_telematici_e_istruttivo():
+    module = _load_local_signer()
+
+    msg_pdp = module._curl_errore_leggibile(
+        6,
+        "",
+        "https://appweb.giustizia.it/snt/RicercaFascicoliPenaleService?wsdl",
+    )
+    msg_pat = module._curl_errore_leggibile(
+        6,
+        "",
+        "https://pac.giustizia-amministrativa.it/pac/RicercaRicorsiService?wsdl",
+    )
+    msg_ptt = module._curl_errore_leggibile(
+        6,
+        "",
+        "https://sigit.finanze.it/ptt/RicercaFascicoliTributarioService?wsdl",
+    )
+
+    assert "appweb.giustizia.it" in msg_pdp
+    assert "PCT_PDP_BASE_URL" in msg_pdp
+    assert "pac.giustizia-amministrativa.it" in msg_pat
+    assert "PCT_PAT_BASE_URL" in msg_pat
+    assert "sigit.finanze.it" in msg_ptt
+    assert "PCT_SIGIT_BASE_URL" in msg_ptt
+
+
+def test_wsdl_zeep_dns_error_diventa_messaggio_operativo():
+    module = _load_local_signer()
+    original = sys.modules.get("zeep")
+
+    class _FakeZeep:
+        class Client:
+            def __init__(self, wsdl):
+                raise RuntimeError(
+                    "HTTPSConnectionPool(host='appweb.giustizia.it', port=443): "
+                    "Max retries exceeded with url: /snt/RicercaFascicoliPenaleService?wsdl "
+                    "(Caused by NameResolutionError(\"getaddrinfo failed\"))"
+                )
+
+    module._ZEEP_WSDL_CACHE.clear()
+    sys.modules["zeep"] = _FakeZeep
+    try:
+        try:
+            module._get_zeep_wsdl_client(
+                "https://appweb.giustizia.it/snt/RicercaFascicoliPenaleService?wsdl"
+            )
+            raise AssertionError("Il caricamento WSDL doveva fallire con messaggio istruttivo.")
+        except RuntimeError as exc:
+            msg = str(exc)
+            assert "appweb.giustizia.it" in msg
+            assert "PCT_PDP_BASE_URL" in msg
+    finally:
+        if original is None:
+            sys.modules.pop("zeep", None)
+        else:
+            sys.modules["zeep"] = original
+
+
 def test_format_cert_not_valid_after_supporta_api_utc():
     module = _load_local_signer()
 

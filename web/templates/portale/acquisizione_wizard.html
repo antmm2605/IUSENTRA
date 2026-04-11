@@ -441,7 +441,7 @@ function awLocalSignerReachable() {
 function awShouldUseLocalSigner() {
   const status = AW_STATE.status || {};
   if (status.demo_mode) return false;
-  return !!(status.pkcs11_mode || awLocalSignerReachable());
+  return !!(status.browser_channel_required || status.pkcs11_mode || awLocalSignerReachable());
 }
 async function awEnsureLocalSignerReachable({ light = true } = {}) {
   if (awLocalSignerReachable()) return AW_STATE.status.local_signer;
@@ -985,6 +985,7 @@ function awRenderAccess() {
     ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
     : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
   if (awLocalSignerReachable() && !status.pkcs11_mode) note.push('Local Signer rilevato: il wizard userà il canale browser-side locale come percorso preferito per ricerca e anteprima.');
+  if (status.browser_channel_required && !awLocalSignerReachable()) note.push(`Per ${awEscape(awLocalSignerPortaleLabel())} il Local Signer Ã¨ obbligatorio: avvialo prima della ricerca del fascicolo.`);
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
   if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');

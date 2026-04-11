@@ -4834,6 +4834,14 @@ def create_app(config: dict | None = None) -> Flask:
     def _portale_usa_local_signer(portale: str) -> bool:
         return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
 
+    def _portale_browser_channel_required(portale: str) -> bool:
+        """True quando il portale deve passare dal canale browser-side locale, senza fallback backend."""
+        portale_norm = (portale or "").strip().lower()
+        return not _polis_demo_mode() and portale_norm in {"pdp", "pat", "ptt"}
+
+    def _portale_local_channel_enabled(portale: str) -> bool:
+        return _portale_usa_local_signer(portale) or _portale_browser_channel_required(portale)
+
     def _codice_fiscale_avvocato_portale() -> str:
         try:
             cfg = get_config_studio().config
@@ -5792,7 +5800,7 @@ def create_app(config: dict | None = None) -> Flask:
             if portale == "pst":
                 from pct.polisWeb import ClientPolisWebImportOnly, crea_client
 
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     client = ClientPolisWebImportOnly()
                 else:
                     client = crea_client(demo=_polis_demo_mode())
@@ -5806,7 +5814,7 @@ def create_app(config: dict | None = None) -> Flask:
                     documenti_pw=documenti_pw,
                 )
             elif portale == "pdp":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     from pct.pdp import ClientPDP
 
                     client = ClientPDP(
@@ -5820,7 +5828,7 @@ def create_app(config: dict | None = None) -> Flask:
                     client = crea_client_pdp(demo=_polis_demo_mode())
                 risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             elif portale == "pat":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     from pct.pat import ClientPAT
 
                     client = ClientPAT(
@@ -5834,7 +5842,7 @@ def create_app(config: dict | None = None) -> Flask:
                     client = crea_client_pat(demo=_polis_demo_mode())
                 risultato = client.importa_fascicolo(selection_dc, gf, gc, user_name)
             else:
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     from pct.sigit import ClientSIGIT
 
                     client = ClientSIGIT(
@@ -5858,7 +5866,7 @@ def create_app(config: dict | None = None) -> Flask:
             if portale == "pst":
                 from pct.polisWeb import ClientPolisWebImportOnly, crea_client
 
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     client = ClientPolisWebImportOnly()
                 else:
                     client = crea_client(demo=_polis_demo_mode())
@@ -5994,10 +6002,14 @@ def create_app(config: dict | None = None) -> Flask:
         auth_mode = _polis_auth_mode()
         demo_mode = auth_mode == "demo"
         pkcs11_mode = _portale_usa_local_signer(portale) and not demo_mode
+        browser_channel_required = _portale_browser_channel_required(portale)
         ultimo_log = _last_portale_import_log(portale)
         if demo_mode:
             status_text = "Modalità demo / fallback"
             environment_label = "Simulazione / compatibilità"
+        elif browser_channel_required:
+            status_text = "Accesso via Local Signer browser-side"
+            environment_label = "Produzione guidata via browser locale"
         elif pkcs11_mode:
             status_text = "Accesso via Local Signer / Aruba Key"
             environment_label = "Produzione guidata via browser locale"
@@ -6013,7 +6025,8 @@ def create_app(config: dict | None = None) -> Flask:
             "auth_mode": auth_mode,
             "demo_mode": demo_mode,
             "pkcs11_mode": pkcs11_mode,
-            "cert_preferences": _polis_cert_preferences() if pkcs11_mode else {},
+            "browser_channel_required": browser_channel_required,
+            "cert_preferences": _polis_cert_preferences() if (pkcs11_mode or browser_channel_required) else {},
             "status_text": status_text,
             "test_ok": not demo_mode,
             "last_sync_at": str(ultimo_log.get("created_at") or "").strip(),
@@ -6035,8 +6048,8 @@ def create_app(config: dict | None = None) -> Flask:
 
         try:
             if portale == "pst":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                    raise ValueError("Per PST con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                if _portale_local_channel_enabled(portale):
+                    raise ValueError("Per PST la ricerca guidata usa il Local Signer dal browser.")
                 from pct.polisWeb import crea_client
 
                 ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -6050,8 +6063,8 @@ def create_app(config: dict | None = None) -> Flask:
                     codice_fiscale_parte=cf,
                 )
             elif portale == "pdp":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                    raise ValueError("Per PDP Penale con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                if _portale_local_channel_enabled(portale):
+                    raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
                 from pct.pdp import crea_client_pdp
 
                 ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -6065,8 +6078,8 @@ def create_app(config: dict | None = None) -> Flask:
                     tipo_registro=str(query.get("registro") or "").strip() or None,
                 )
             elif portale == "pat":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                    raise ValueError("Per PAT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                if _portale_local_channel_enabled(portale):
+                    raise ValueError("Per PAT la ricerca guidata usa il Local Signer dal browser.")
                 from pct.pat import crea_client_pat
 
                 ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -6080,8 +6093,8 @@ def create_app(config: dict | None = None) -> Flask:
                     materia=str(query.get("materia") or "").strip() or None,
                 )
             else:
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
-                    raise ValueError("Per PTT con Aruba Key la ricerca guidata usa il Local Signer dal browser.")
+                if _portale_local_channel_enabled(portale):
+                    raise ValueError("Per PTT la ricerca guidata usa il Local Signer dal browser.")
                 from pct.sigit import crea_client_sigit
 
                 ufficio = str(query.get("ufficio_codice") or "").strip()
@@ -6117,7 +6130,7 @@ def create_app(config: dict | None = None) -> Flask:
         portale = (portale or "").strip().lower()
         try:
             if portale == "pst":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     raise ValueError("Anteprima documenti PST via browser locale richiesta.")
                 from pct.polisWeb import crea_client
 
@@ -6127,7 +6140,7 @@ def create_app(config: dict | None = None) -> Flask:
                     int(selection.get("anno") or 0),
                 )
             elif portale == "pdp":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     raise ValueError("Anteprima documenti PDP via browser locale richiesta.")
                 from pct.pdp import crea_client_pdp
 
@@ -6137,7 +6150,7 @@ def create_app(config: dict | None = None) -> Flask:
                     int(selection.get("anno") or 0),
                 )
             elif portale == "pat":
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     raise ValueError("Anteprima documenti PAT via browser locale richiesta.")
                 from pct.pat import crea_client_pat
 
@@ -6147,7 +6160,7 @@ def create_app(config: dict | None = None) -> Flask:
                     int(selection.get("anno") or 0),
                 )
             else:
-                if _portale_usa_local_signer(portale) and not _polis_demo_mode():
+                if _portale_local_channel_enabled(portale):
                     raise ValueError("Anteprima documenti PTT via browser locale richiesta.")
                 from pct.sigit import crea_client_sigit
 
@@ -7121,9 +7134,9 @@ read -r -p "Premi Invio per chiudere..." _
         if not ufficio:
             flash("Seleziona un ufficio giudiziario.", "warning")
             return redirect(url_for("pdp_home"))
-        if _portale_usa_local_signer("pdp") and not demo_mode:
+        if _portale_local_channel_enabled("pdp"):
             flash(
-                "Per PDP Penale con Aruba Key la ricerca guidata usa il wizard browser-side con Local Signer.",
+                "Per PDP Penale la ricerca guidata usa il wizard browser-side con Local Signer.",
                 "info",
             )
             return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
@@ -7187,9 +7200,9 @@ read -r -p "Premi Invio per chiudere..." _
         anno_rg_str    = request.args.get("anno_rg", "0")
         anno_rg        = int(anno_rg_str) if anno_rg_str.isdigit() else 0
         demo_mode      = _polis_demo_mode()
-        if _portale_usa_local_signer("pdp") and not demo_mode:
+        if _portale_local_channel_enabled("pdp"):
             flash(
-                "Per PDP Penale con Aruba Key l'anteprima documenti usa il wizard browser-side con Local Signer.",
+                "Per PDP Penale l'anteprima documenti usa il wizard browser-side con Local Signer.",
                 "info",
             )
             return redirect(url_for("portale_acquisizione_wizard", portale="pdp"))
@@ -7269,7 +7282,7 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )
-            if _portale_usa_local_signer("pdp") and not demo_mode:
+            if _portale_local_channel_enabled("pdp"):
                 client = ClientPDP(
                     codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
                 )
@@ -7307,9 +7320,9 @@ read -r -p "Premi Invio per chiudere..." _
         if not ufficio:
             flash("Seleziona un ufficio giudiziario.", "warning")
             return redirect(url_for("pat_home"))
-        if _portale_usa_local_signer("pat") and not demo_mode:
+        if _portale_local_channel_enabled("pat"):
             flash(
-                "Per PAT con Aruba Key la ricerca guidata usa il wizard browser-side con Local Signer.",
+                "Per PAT la ricerca guidata usa il wizard browser-side con Local Signer.",
                 "info",
             )
             return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
@@ -7372,9 +7385,9 @@ read -r -p "Premi Invio per chiudere..." _
         anno_str       = request.args.get("anno", "0")
         anno           = int(anno_str) if anno_str.isdigit() else 0
         demo_mode      = _polis_demo_mode()
-        if _portale_usa_local_signer("pat") and not demo_mode:
+        if _portale_local_channel_enabled("pat"):
             flash(
-                "Per PAT con Aruba Key l'anteprima documenti usa il wizard browser-side con Local Signer.",
+                "Per PAT l'anteprima documenti usa il wizard browser-side con Local Signer.",
                 "info",
             )
             return redirect(url_for("portale_acquisizione_wizard", portale="pat"))
@@ -7454,7 +7467,7 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_ufficio=f.get("codice_ufficio", ""),
                 nome_ufficio=f.get("nome_ufficio", ""),
             )
-            if _portale_usa_local_signer("pat") and not demo_mode:
+            if _portale_local_channel_enabled("pat"):
                 client = ClientPAT(
                     codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
                 )
@@ -7500,9 +7513,9 @@ read -r -p "Premi Invio per chiudere..." _
         if not commissione:
             flash("Seleziona un ufficio giudiziario tributario.", "warning")
             return redirect(url_for("sigit_home"))
-        if _portale_usa_local_signer("ptt") and not demo_mode:
+        if _portale_local_channel_enabled("ptt"):
             flash(
-                "Per PTT con Aruba Key la ricerca guidata usa il wizard browser-side con Local Signer.",
+                "Per PTT la ricerca guidata usa il wizard browser-side con Local Signer.",
                 "info",
             )
             return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
@@ -7565,9 +7578,9 @@ read -r -p "Premi Invio per chiudere..." _
         documenti = []
         depositi  = []
         nome_commissione = codice_commissione
-        if _portale_usa_local_signer("ptt") and not demo_mode:
+        if _portale_local_channel_enabled("ptt"):
             flash(
-                "Per PTT con Aruba Key l'anteprima documenti usa il wizard browser-side con Local Signer.",
+                "Per PTT l'anteprima documenti usa il wizard browser-side con Local Signer.",
                 "info",
             )
             return redirect(url_for("portale_acquisizione_wizard", portale="ptt"))
@@ -7646,7 +7659,7 @@ read -r -p "Premi Invio per chiudere..." _
                 codice_commissione=f.get("codice_commissione", ""),
                 nome_commissione=f.get("nome_commissione", ""),
             )
-            if _portale_usa_local_signer("ptt") and not demo_mode:
+            if _portale_local_channel_enabled("ptt"):
                 client = ClientSIGIT(
                     codice_fiscale_avvocato=_codice_fiscale_avvocato_portale()
                 )

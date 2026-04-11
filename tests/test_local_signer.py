@@ -2356,6 +2356,7 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
@@ -2380,6 +2381,7 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
@@ -2402,6 +2404,7 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
         module._Handler._pdp_ricerca(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
@@ -2422,6 +2425,7 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
@@ -2443,6 +2447,7 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._risolvi_codice_ufficio_pdp_runtime = lambda ufficio: "0580010"
@@ -2458,6 +2463,7 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
         module._Handler._pdp_ricerca(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
@@ -2467,6 +2473,44 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
     assert captured["payload"]["ok"] is False
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_phase"] == "ricerca"
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
+
+
+def test_pdp_ricerca_local_signer_default_browser_assistito():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
+        "_require_certificato_pst": module._require_certificato_pst,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "ufficio": "Procura di Reggio Calabria",
+                "numero_rg": "4521",
+                "anno_rg": "2026",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._portale_wsdl_diretto_abilitato = lambda portale: False
+        module._require_certificato_pst = lambda thumb: (_ for _ in ()).throw(AssertionError("Certificato non atteso in modalita browser-assistita"))
+        module._Handler._pdp_ricerca(_FakeHandler())
+    finally:
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
     assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
 
 
@@ -2476,6 +2520,7 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
@@ -2497,6 +2542,7 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
@@ -2515,6 +2561,7 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
         module._Handler._pat_documenti(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
@@ -2527,12 +2574,50 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
     assert captured["bridge"]["payload"]["codiceUfficio"] == "TARLZ"
 
 
+def test_pat_documenti_local_signer_default_browser_assistito():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
+        "_require_certificato_pst": module._require_certificato_pst,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "codice_ufficio": "TARLZ",
+                "numero_ricorso": "1876",
+                "anno": "2026",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._portale_wsdl_diretto_abilitato = lambda portale: False
+        module._require_certificato_pst = lambda thumb: (_ for _ in ()).throw(AssertionError("Certificato non atteso in modalita browser-assistita"))
+        module._Handler._pat_documenti(_FakeHandler())
+    finally:
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
+    assert captured["payload"]["portale_url"] == "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico"
+
+
 def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
     module = _load_local_signer()
 
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
@@ -2557,6 +2642,7 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
@@ -2578,6 +2664,7 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
         module._Handler._ptt_ricerca(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
@@ -2597,6 +2684,7 @@ def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
@@ -2618,6 +2706,7 @@ def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._risolvi_codice_commissione_ptt_runtime = lambda commissione: "CPT030000"
@@ -2632,6 +2721,7 @@ def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
         module._Handler._ptt_ricerca(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
@@ -2641,6 +2731,7 @@ def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
     assert captured["payload"]["ok"] is False
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_phase"] == "ricerca"
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
     assert captured["payload"]["portale_url"] == "https://www.dgt.mef.gov.it/gt/processo-tributario-telematico-ptt-sigit"
 
 

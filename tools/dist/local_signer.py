@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.32
+HACS Local Signer — v1.5.33
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.32"
+VERSION = "1.5.33"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -98,6 +98,7 @@ LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
     os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
 ) or ",".join(_DEFAULT_HACS_ALLOWED_ORIGINS)
 _ZEEP_WSDL_CACHE: dict[str, Any] = {}
+_TRUE_VALUES = {"1", "true", "yes", "on"}
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -312,6 +313,10 @@ def _supporto_auto_pst_disponibile() -> bool:
     if _risolvi_base_pst_hacs is not None and _risolvi_codice_ministero_hacs is not None:
         return True
     return bool(_carica_snapshot_uffici())
+
+
+def _env_flag_enabled(name: str) -> bool:
+    return str(os.getenv(name, "") or "").strip().lower() in _TRUE_VALUES
 
 
 def _carica_bundle_uffici_hacs() -> list[dict[str, Any]]:
@@ -2200,24 +2205,69 @@ def _portale_browser_url(portale: str) -> str:
     return ""
 
 
+def _portale_wsdl_diretto_abilitato(portale: str) -> bool:
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm not in {"pdp", "pat", "ptt"}:
+        return True
+    return (
+        _env_flag_enabled("HACS_SIGNER_ENABLE_PORTALI_WSDL")
+        or _env_flag_enabled("PCT_ENABLE_PORTALI_WSDL")
+        or _env_flag_enabled(f"HACS_SIGNER_ENABLE_{portale_norm.upper()}_WSDL")
+        or _env_flag_enabled(f"PCT_ENABLE_{portale_norm.upper()}_WSDL")
+    )
+
+
+def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
+    portale_norm = str(portale or "").strip().lower()
+    phase_norm = str(phase or "").strip().lower() or "ricerca"
+    phase_label = "ricerca fascicolo" if phase_norm == "ricerca" else "catalogo documenti"
+    if portale_norm == "pdp":
+        errore = (
+            "Consultazione via browser ufficiale: per PDP la "
+            f"{phase_label} viene completata dal PST nel browser. "
+            "HACS puo' proseguire con l'acquisizione assistita."
+        )
+    elif portale_norm == "pat":
+        errore = (
+            "Consultazione via browser ufficiale: per PAT la "
+            f"{phase_label} viene completata dal Portale Avvocato nel browser. "
+            "HACS puo' proseguire con l'acquisizione assistita."
+        )
+    else:
+        errore = (
+            "Consultazione via browser ufficiale: per PTT/SIGIT il "
+            f"{phase_label} viene completato nel browser ufficiale. "
+            "HACS puo' proseguire con l'acquisizione assistita."
+        )
+    return {
+        "ok": False,
+        "errore": errore,
+        "manual_required": True,
+        "manual_phase": phase_norm,
+        "manual_title": "Consultazione via browser ufficiale",
+        "manual_reason": (
+            f"Local Signer {VERSION} usa di default la modalita browser-assistita per {portale_norm.upper()}. "
+            "Il portale ufficiale resta la fonte per consultazione e documenti."
+        ),
+        "portale_url": _portale_browser_url(portale),
+    }
+
+
 def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) -> str:
     text = str(error or "").strip()
     portale_norm = str(portale or "").strip().lower()
     if portale_norm == "pdp":
         return (
-            "Il servizio remoto PDP non e' raggiungibile da questo PC.\n"
-            "Apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di HACS.\n"
+            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di HACS.\n"
             f"Dettaglio tecnico: {text}"
         )
     if portale_norm == "pat":
         return (
-            "Il servizio remoto PAT non e' raggiungibile da questo PC.\n"
-            "Apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di HACS.\n"
+            "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di HACS.\n"
             f"Dettaglio tecnico: {text}"
         )
     return (
-        "Il servizio web PTT/SIGIT non consente la consultazione WSDL diretta da questo PC.\n"
-        "Apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di HACS.\n"
+        "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di HACS.\n"
         f"Dettaglio tecnico: {text}"
     )
 
@@ -2228,15 +2278,15 @@ def _portale_manual_required_payload(portale: str, error: Exception | str, phase
         return None
     if not (_looks_like_dns_resolution_error(text) or _looks_like_http_forbidden_error(text)):
         return None
-    phase_label = "ricerca fascicolo" if str(phase or "").strip().lower() == "ricerca" else "catalogo documenti"
+    phase_norm = str(phase or "").strip().lower() or "ricerca"
     return {
         "ok": False,
         "errore": _messaggio_endpoint_browser_guidato(portale, text),
         "manual_required": True,
-        "manual_phase": str(phase or "").strip().lower() or "ricerca",
-        "manual_title": f"{phase_label.capitalize()} disponibile solo via browser",
+        "manual_phase": phase_norm,
+        "manual_title": "Consultazione via browser ufficiale",
         "manual_reason": (
-            "Il servizio ministeriale non e' interrogabile da Local Signer su questo PC. "
+            "Il canale WSDL diretto non e' disponibile su questo PC. "
             "HACS puo' comunque proseguire con l'acquisizione assistita manuale."
         ),
         "portale_url": _portale_browser_url(portale),
@@ -5733,14 +5783,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pdp_ricerca(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         ufficio = str(data.get("ufficio") or data.get("codice_ufficio") or "").strip()
         if not ufficio:
             self._send_json({"ok": False, "errore": "Campo 'ufficio' obbligatorio"}, 400)
+            return
+        if not _portale_wsdl_diretto_abilitato("pdp"):
+            self._send_json(_portale_browser_assist_payload("pdp", "ricerca"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
             return
 
         try:
@@ -5780,10 +5832,6 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pdp_documenti(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         codice_ufficio = str(data.get("codice_ufficio") or data.get("ufficio") or "").strip()
         numero_rg = str(data.get("numero_rg") or "").strip()
@@ -5793,6 +5841,12 @@ class _Handler(BaseHTTPRequestHandler):
                 {"ok": False, "errore": "Campi obbligatori: codice_ufficio, numero_rg, anno_rg"},
                 400,
             )
+            return
+        if not _portale_wsdl_diretto_abilitato("pdp"):
+            self._send_json(_portale_browser_assist_payload("pdp", "documenti"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
             return
 
         try:
@@ -5820,14 +5874,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pat_ricerca(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         ufficio = str(data.get("ufficio") or data.get("codice_ufficio") or "").strip()
         if not ufficio:
             self._send_json({"ok": False, "errore": "Campo 'ufficio' obbligatorio"}, 400)
+            return
+        if not _portale_wsdl_diretto_abilitato("pat"):
+            self._send_json(_portale_browser_assist_payload("pat", "ricerca"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
             return
 
         try:
@@ -5867,10 +5923,6 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pat_documenti(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         codice_ufficio = str(data.get("codice_ufficio") or data.get("ufficio") or "").strip()
         numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
@@ -5880,6 +5932,12 @@ class _Handler(BaseHTTPRequestHandler):
                 {"ok": False, "errore": "Campi obbligatori: codice_ufficio, numero_ricorso, anno"},
                 400,
             )
+            return
+        if not _portale_wsdl_diretto_abilitato("pat"):
+            self._send_json(_portale_browser_assist_payload("pat", "documenti"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
             return
 
         try:
@@ -5907,14 +5965,16 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ptt_ricerca(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         commissione = str(data.get("commissione") or data.get("codice_commissione") or "").strip()
         if not commissione:
             self._send_json({"ok": False, "errore": "Campo 'commissione' obbligatorio"}, 400)
+            return
+        if not _portale_wsdl_diretto_abilitato("ptt"):
+            self._send_json(_portale_browser_assist_payload("ptt", "ricerca"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
             return
 
         try:
@@ -5954,10 +6014,6 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ptt_documenti(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         codice_commissione = str(data.get("codice_commissione") or data.get("commissione") or "").strip()
         numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
@@ -5967,6 +6023,12 @@ class _Handler(BaseHTTPRequestHandler):
                 {"ok": False, "errore": "Campi obbligatori: codice_commissione, numero_rgt, anno_rgt"},
                 400,
             )
+            return
+        if not _portale_wsdl_diretto_abilitato("ptt"):
+            self._send_json(_portale_browser_assist_payload("ptt", "documenti"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
             return
 
         try:

@@ -2218,138 +2218,140 @@
           </div>
         </div>
 
-        <div class="card border rounded-4 mb-3" id="complianceChecklistSection" style="scroll-margin-top:1rem">
-          <button
-            type="button"
-            class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
-            data-bs-toggle="collapse"
-            data-bs-target="#complianceChecklistBody"
+        <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceChecklistSection" style="scroll-margin-top:1rem">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#complianceChecklistBody"
               aria-expanded="false"
-            aria-controls="complianceChecklistBody"
-          >
-            <div>
-              <strong>Checklist operativa del deposito</strong>
-              <div class="small text-muted">Azioni richieste: solo i controlli da risolvere. I controlli superati sono nei gruppi sotto.</div>
-            </div>
-            <span class="d-flex align-items-center gap-2">
-              <span class="badge text-bg-light border text-dark">{{ rc.checklist|length }}</span>
-              <i class="bi bi-chevron-down compliance-chevron"></i>
-            </span>
-          </button>
-          <div class="collapse" id="complianceChecklistBody">
-            <div class="list-group list-group-flush">
-              {% for item in rc.checklist %}
-              {% set tone = rc_status_map.get(item.status, 'secondary') %}
-              <div class="list-group-item py-3">
-                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                  <div class="d-flex align-items-start gap-3">
-                    <div class="mt-1">
-                      {% if item.status == 'ok' %}
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                      {% elif item.status == 'warning' %}
-                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-                      {% else %}
-                        <i class="bi bi-x-octagon-fill text-danger"></i>
+              aria-controls="complianceChecklistBody"
+            >
+              <div class="d-flex w-100 justify-content-between align-items-center pe-3">
+                <span class="fw-semibold">Checklist operativa del deposito</span>
+                <span class="d-flex align-items-center gap-2">
+                  <span class="small text-muted">{{ rc.checklist|length }}</span>
+                  {% set cl_ok = rc.checklist|selectattr('status','equalto','ok')|list|length %}
+                  {% if cl_ok == rc.checklist|length %}
+                  <span class="badge text-bg-success">OK</span>
+                  {% elif rc.checklist|selectattr('status','equalto','error')|list|length > 0 %}
+                  <span class="badge text-bg-danger">ERRORE</span>
+                  {% else %}
+                  <span class="badge text-bg-warning">ATTENZIONE</span>
+                  {% endif %}
+                </span>
+              </div>
+            </button>
+          </h2>
+          <div class="accordion-collapse collapse" id="complianceChecklistBody">
+            <div class="accordion-body">
+              <div class="list-group list-group-flush">
+                {% for item in rc.checklist %}
+                {% set tone = rc_status_map.get(item.status, 'secondary') %}
+                <div class="list-group-item py-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="d-flex align-items-start gap-3">
+                      <div class="mt-1">
+                        {% if item.status == 'ok' %}
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif item.status == 'warning' %}
+                          <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                        {% else %}
+                          <i class="bi bi-x-octagon-fill text-danger"></i>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <div class="fw-semibold">{{ item.label }}</div>
+                        {% if item.note %}
+                        <div class="small text-muted">{{ item.note }}</div>
+                        {% endif %}
+                        {% if item.source %}
+                        <div class="small text-secondary">Fonte regola: {{ item.source }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge text-bg-{{ tone }}">{{ item.status|upper }}</span>
+                      {% if item.url %}
+                      <a href="{{ item.url }}" class="btn btn-outline-{{ tone }} btn-sm">
+                        {{ item.cta or 'Correggi' }}
+                      </a>
                       {% endif %}
                     </div>
-                    <div>
-                      <div class="fw-semibold">{{ item.label }}</div>
-                      {% if item.note %}
-                      <div class="small text-muted">{{ item.note }}</div>
-                      {% endif %}
-                      {% if item.source %}
-                      <div class="small text-secondary">Fonte regola: {{ item.source }}</div>
-                      {% endif %}
-                    </div>
-                  </div>
-
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="badge text-bg-{{ tone }}">
-                      {{ item.status|upper }}
-                    </span>
-                    {% if item.url %}
-                    <a href="{{ item.url }}" class="btn btn-outline-{{ tone }} btn-sm">
-                      {{ item.cta or 'Correggi' }}
-                    </a>
-                    {% endif %}
                   </div>
                 </div>
+                {% else %}
+                <div class="list-group-item text-muted">
+                  <i class="bi bi-check-circle-fill text-success me-2"></i>Tutti i controlli superati — nessuna azione richiesta.
+                </div>
+                {% endfor %}
               </div>
-              {% else %}
-              <div class="list-group-item text-muted">
-                <i class="bi bi-check-circle-fill text-success me-2"></i>Tutti i controlli superati — nessuna azione richiesta.
-              </div>
-              {% endfor %}
-            </div>
-            <div class="card-footer bg-white border-0 pt-0 pb-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
-                Torna ai controlli rapidi
-              </button>
             </div>
           </div>
         </div>
 
-        <div class="card border rounded-4 mb-3" id="complianceWorkflowSection" style="scroll-margin-top:1rem">
-          <button
-            type="button"
-            class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
-            data-bs-toggle="collapse"
-            data-bs-target="#complianceWorkflowBody"
+        <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceWorkflowSection" style="scroll-margin-top:1rem">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#complianceWorkflowBody"
               aria-expanded="false"
-            aria-controls="complianceWorkflowBody"
-          >
-            <div>
-              <strong>Workflow deposito</strong>
-              <div class="small text-muted">Fasi operative in sequenza: redazione, allegati, XML, verifica tecnica, pre-deposito.</div>
-            </div>
-            <span class="d-flex align-items-center gap-2">
-              <span class="badge text-bg-light border text-dark">{{ rc.workflow|length }}</span>
-              <i class="bi bi-chevron-down compliance-chevron"></i>
-            </span>
-          </button>
-          <div class="collapse" id="complianceWorkflowBody">
-            <div class="list-group list-group-flush">
-            {% for step in rc.workflow %}
-            {% set tone = rc_status_map.get(step.status, 'secondary') %}
-            <div class="list-group-item py-3">
-              <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                <div class="d-flex align-items-start gap-3">
-                  <div class="d-flex align-items-center gap-2 mt-1">
-                    <div class="workflow-index">{{ loop.index }}</div>
-                    {% if step.status == 'ok' %}
-                      <i class="bi bi-check-circle-fill text-success"></i>
-                    {% elif step.status == 'warning' %}
-                      <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-                    {% else %}
-                      <i class="bi bi-x-octagon-fill text-danger"></i>
-                    {% endif %}
-                  </div>
-                  <div>
-                    <div class="fw-semibold">{{ step.label }}</div>
-                    {% if step.note %}
-                    <div class="small text-muted">{{ step.note }}</div>
-                    {% endif %}
-                  </div>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                  <span class="badge text-bg-{{ tone }}">{{ step.status|upper }}</span>
-                  {% if step.url %}
-                  <a href="{{ step.url }}" class="btn btn-outline-{{ tone }} btn-sm">
-                    {{ step.cta or 'Apri' }}
-                  </a>
+              aria-controls="complianceWorkflowBody"
+            >
+              <div class="d-flex w-100 justify-content-between align-items-center pe-3">
+                <span class="fw-semibold">Workflow deposito</span>
+                <span class="d-flex align-items-center gap-2">
+                  <span class="small text-muted">{{ rc.workflow|length }}</span>
+                  {% set wf_ok = rc.workflow|selectattr('status','equalto','ok')|list|length %}
+                  {% if wf_ok == rc.workflow|length %}
+                  <span class="badge text-bg-success">OK</span>
+                  {% elif rc.workflow|selectattr('status','equalto','error')|list|length > 0 %}
+                  <span class="badge text-bg-danger">ERRORE</span>
+                  {% else %}
+                  <span class="badge text-bg-warning">ATTENZIONE</span>
                   {% endif %}
-                </div>
+                </span>
               </div>
-            </div>
-            {% else %}
-            <div class="list-group-item text-muted">Nessuno step configurato.</div>
-            {% endfor %}
-            </div>
-            <div class="card-footer bg-white border-0 pt-0 pb-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
-                Torna ai controlli rapidi
-              </button>
+            </button>
+          </h2>
+          <div class="accordion-collapse collapse" id="complianceWorkflowBody">
+            <div class="accordion-body">
+              <div class="list-group list-group-flush">
+                {% for step in rc.workflow %}
+                {% set tone = rc_status_map.get(step.status, 'secondary') %}
+                <div class="list-group-item py-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="d-flex align-items-start gap-3">
+                      <div class="d-flex align-items-center gap-2 mt-1">
+                        <div class="workflow-index">{{ loop.index }}</div>
+                        {% if step.status == 'ok' %}
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif step.status == 'warning' %}
+                          <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                        {% else %}
+                          <i class="bi bi-x-octagon-fill text-danger"></i>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <div class="fw-semibold">{{ step.label }}</div>
+                        {% if step.note %}
+                        <div class="small text-muted">{{ step.note }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge text-bg-{{ tone }}">{{ step.status|upper }}</span>
+                      {% if step.url %}
+                      <a href="{{ step.url }}" class="btn btn-outline-{{ tone }} btn-sm">
+                        {{ step.cta or 'Apri' }}
+                      </a>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% else %}
+                <div class="list-group-item text-muted">Nessuno step configurato.</div>
+                {% endfor %}
+              </div>
             </div>
           </div>
         </div>

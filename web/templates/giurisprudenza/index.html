@@ -130,6 +130,102 @@
   </div>
 </div>
 
+<div class="jud-card p-4 mb-4" id="import-materiale">
+  <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center mb-3">
+    <div>
+      <h2 class="h5 mb-1">Import assistito da materiale cliente</h2>
+      <div class="text-muted small">
+        Usa questa area per Simpliciter o altre fonti non sincronizzabili direttamente: HACS importa solo URL,
+        testo, PDF o HTML che hai già ottenuto legittimamente, poi crea o aggiorna automaticamente le schede sentenza.
+      </div>
+    </div>
+    <span class="jud-chip"><i class="bi bi-shield-check"></i>Nessuno scraping del portale</span>
+  </div>
+  <form method="post" action="{{ url_for('giurisprudenza.importa_materiale') }}" enctype="multipart/form-data" class="row g-3">
+    <div class="col-xl-3 col-lg-4">
+      <label class="form-label">Fonte materiale</label>
+      <select name="source_system" class="form-select">
+        <option value="simpliciter_cliente">Simpliciter (materiale cliente)</option>
+        <option value="manuale_interno">Altro materiale interno</option>
+        {% for fonte in fonti if fonte.id not in ['simpliciter_cliente', 'manuale_interno'] %}
+        <option value="{{ fonte.id }}">{{ fonte.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xl-5 col-lg-8">
+      <label class="form-label">URL della ricerca o della scheda</label>
+      <input type="url" name="source_url" class="form-control" placeholder="https://simpliciter.ai/ricerca/... oppure URL della decisione">
+    </div>
+    <div class="col-xl-4">
+      <label class="form-label">File del cliente</label>
+      <input type="file" name="materiale_file" class="form-control" accept=".pdf,.txt,.html,.htm,.md">
+    </div>
+    <div class="col-12">
+      <label class="form-label">Testo o output da importare</label>
+      <textarea name="materiale_text" class="form-control" rows="6" placeholder="Incolla qui la sentenza, la massima, l'output di Simpliciter oppure l'estratto della ricerca. Se il testo contiene più decisioni, HACS prova a separarle e creare più schede."></textarea>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <label class="form-label">Area suggerita</label>
+      <select class="form-select" name="area_hint">
+        <option value="">Nessuna</option>
+        {% for voce in filtri_catalogo.aree %}
+        <option value="{{ voce }}">{{ voce }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <label class="form-label">Branca suggerita</label>
+      <select class="form-select" name="branca_hint">
+        <option value="">Nessuna</option>
+        {% for voce in filtri_catalogo.branche %}
+        <option value="{{ voce }}">{{ voce }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <label class="form-label">Sottobranca suggerita</label>
+      <select class="form-select" name="sottobranca_hint">
+        <option value="">Nessuna</option>
+        {% for voce in filtri_catalogo.sottobranche %}
+        <option value="{{ voce }}">{{ voce }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <label class="form-label">Uso nel software</label>
+      <select class="form-select" name="uso_nel_software_hint">
+        <option value="">Da definire</option>
+        {% for voce in usi_nel_software %}
+        <option value="{{ voce }}">{{ voce|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <label class="form-label">Rilevanza pratica</label>
+      <select class="form-select" name="rilevanza_pratica_hint">
+        <option value="">Da definire</option>
+        <option value="alta">Alta</option>
+        <option value="media">Media</option>
+        <option value="bassa">Bassa</option>
+      </select>
+    </div>
+    <div class="col-xl-9 col-md-6 d-flex align-items-end">
+      <div class="small text-muted">
+        Se il materiale contiene più sentenze, il sistema tenta una separazione automatica per ECLI, numero provvedimento e blocchi redazionali.
+        I duplicati vengono aggiornati invece di creare doppioni.
+      </div>
+    </div>
+    <div class="col-12 d-flex flex-wrap gap-2">
+      <button class="btn btn-primary">
+        <i class="bi bi-inbox-fill me-2"></i>Importa materiale cliente
+      </button>
+      <a href="https://simpliciter.ai/ricerca/" target="_blank" rel="noopener" class="btn btn-outline-secondary">
+        <i class="bi bi-box-arrow-up-right me-2"></i>Apri Simpliciter
+      </a>
+    </div>
+  </form>
+</div>
+
 <div class="row g-4">
   <div class="col-xl-4">
     <div class="jud-side p-4 mb-4">
@@ -270,6 +366,8 @@
                 <input type="hidden" name="source_id" value="{{ fonte.id }}">
                 <button class="btn btn-sm btn-primary">Recupera ultime decisioni</button>
               </form>
+              {% elif fonte.id == 'simpliciter_cliente' %}
+              <a href="#import-materiale" class="btn btn-sm btn-outline-dark">Importa materiale cliente</a>
               {% else %}
               <a href="{{ url_for('giurisprudenza.nuova', source=fonte.id) }}" class="btn btn-sm btn-outline-dark">Nuova scheda assistita</a>
               {% endif %}

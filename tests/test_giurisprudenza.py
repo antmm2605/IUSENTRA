@@ -135,6 +135,60 @@ def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):
     assert record["data_deposito"] == "2026-04-09"
 
 
+def test_importa_da_materiale_simpliciter_crea_e_aggiorna_schede(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    sample = """
+    Sentenza n. 123/2026 Corte di Cassazione
+    ECLI:IT:CASS:2026:123
+    Massima: Il consenso informato va provato in modo specifico.
+
+    Ordinanza n. 77/2026 TAR Lazio
+    Accesso agli atti negli appalti pubblici.
+    """
+
+    first = gestore.importa_da_materiale(
+        source_id="simpliciter_cliente",
+        source_url="https://simpliciter.ai/ricerca/",
+        pasted_text=sample,
+        hints={"area": "Amministrativo", "uso_nel_software": "precedente forte"},
+    )
+    second = gestore.importa_da_materiale(
+        source_id="simpliciter_cliente",
+        source_url="https://simpliciter.ai/ricerca/",
+        pasted_text=sample,
+    )
+
+    rows = gestore.cerca(source_system="simpliciter_cliente")
+
+    assert first["imported"] == 2
+    assert second["updated"] == 2
+    assert len(rows) == 2
+    assert any(row["ecli"] == "ECLI:IT:CASS:2026:123" for row in rows)
+    assert any(row["source_label"] == "Simpliciter (materiale cliente)" for row in rows)
+
+
+def test_importa_da_materiale_html_file(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    html = b"""
+    <html><body><main>
+      <h1>Sentenza n. 456/2026 Consiglio di Stato</h1>
+      <p>Massima: il soccorso istruttorio non sana l'offerta tecnica.</p>
+    </main></body></html>
+    """
+
+    report = gestore.importa_da_materiale(
+        source_id="simpliciter_cliente",
+        source_url="https://simpliciter.ai/ricerca/",
+        file_name="simpliciter-export.html",
+        file_bytes=html,
+    )
+
+    assert report["imported"] == 1
+    record = report["records"][0]
+    assert record["titolo"]
+    assert "soccorso istruttorio" in record["massima"].lower()
+
+
 def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _login_admin(cfg)
@@ -178,6 +232,35 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
     assert "precedente forte" in detail_html
 
 
+def test_blueprint_importa_materiale_cliente(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _login_admin(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/giurisprudenza/importa-materiale",
+            data={
+                "source_system": "simpliciter_cliente",
+                "source_url": "https://simpliciter.ai/ricerca/",
+                "materiale_text": "Sentenza n. 321/2026 Corte di Cassazione\nMassima: la prescrizione va eccepita.",
+                "area_hint": "Civile",
+                "uso_nel_software_hint": "citabile in atto",
+            },
+            follow_redirects=True,
+        )
+        html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Aggiorna scheda sentenza" in html
+    assert "Simpliciter (materiale cliente)" in html
+
+
 def test_sidebar_studio_espone_archivio_sentente(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _login_admin(cfg)
@@ -202,6 +285,8 @@ def test_template_giurisprudenza_usa_layout_responsive():
     detail_html = Path("web/templates/giurisprudenza/dettaglio.html").read_text(encoding="utf-8")
 
     assert ".jud-actions .btn { width:100%; }" in index_html
+    assert "Import assistito da materiale cliente" in index_html
+    assert "Importa materiale cliente" in index_html
     assert ".jf-layout { display: grid;" in form_html
     assert "@media (max-width: 1199.98px)" in form_html
     assert "@media (max-width: 767.98px)" in detail_html

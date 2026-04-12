@@ -234,3 +234,43 @@ def importa_url():
         current_app.logger.exception("Errore import URL giurisprudenza: %s", exc)
         flash(f"Importazione URL non riuscita: {exc}", "warning")
         return redirect(url_for("giurisprudenza.index"))
+
+
+@giurisprudenza.route("/importa-materiale", methods=["POST"])
+@_richiedi_login
+def importa_materiale():
+    gestore = get_giurisprudenza()
+    uploaded = request.files.get("materiale_file")
+    file_name = getattr(uploaded, "filename", "") or ""
+    file_bytes = uploaded.read() if uploaded and file_name else b""
+    hints = {
+        "area": request.form.get("area_hint", "").strip(),
+        "branca": request.form.get("branca_hint", "").strip(),
+        "sottobranca": request.form.get("sottobranca_hint", "").strip(),
+        "uso_nel_software": request.form.get("uso_nel_software_hint", "").strip(),
+        "rilevanza_pratica": request.form.get("rilevanza_pratica_hint", "").strip(),
+    }
+    try:
+        report = gestore.importa_da_materiale(
+            source_id=request.form.get("source_system", "").strip(),
+            source_url=request.form.get("source_url", "").strip(),
+            pasted_text=request.form.get("materiale_text", ""),
+            file_name=file_name,
+            file_bytes=file_bytes,
+            hints=hints,
+        )
+        imported = int(report.get("imported", 0) or 0)
+        updated = int(report.get("updated", 0) or 0)
+        records = list(report.get("records") or [])
+        flash(
+            f"Import assistito completato: {imported} nuove schede, {updated} aggiornate.",
+            "success",
+        )
+        if len(records) == 1:
+            return redirect(url_for("giurisprudenza.modifica", judgment_id=records[0]["id"]))
+        source_id = request.form.get("source_system", "").strip() or (records[0].get("source_system") if records else "")
+        return redirect(url_for("giurisprudenza.index", source_system=source_id) if source_id else url_for("giurisprudenza.index"))
+    except Exception as exc:
+        current_app.logger.exception("Errore import materiale giurisprudenza: %s", exc)
+        flash(f"Import assistito non riuscito: {exc}", "warning")
+        return redirect(url_for("giurisprudenza.index"))

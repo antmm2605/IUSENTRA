@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import io
 import re
 import unicodedata
 import uuid
@@ -12,6 +13,7 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from lxml import html as lxml_html
+import pdfplumber
 
 from pct import cache as _cache
 from pct.legal_intelligence import FONTI_UFFICIALI
@@ -302,6 +304,25 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         supports_auto_sync=False,
         default_area="Contabile",
         link_keywords=["sentenza", "decisione", "responsabilità", "erariale"],
+    ),
+    FonteGiurisprudenziale(
+        id="simpliciter_cliente",
+        nome="Simpliciter (materiale cliente)",
+        giurisdizione="Trasversale",
+        coverage="Import assistito da URL, testo, PDF o HTML forniti dall'utente.",
+        official_url="https://simpliciter.ai/ricerca/",
+        search_url="https://simpliciter.ai/ricerca/",
+        access_mode="materiale_cliente",
+        sync_mode="import_assistito",
+        note=(
+            "HACS non esegue scraping della banca dati Simpliciter. "
+            "Importa solo materiali, output o file che il cliente ha già ottenuto legittimamente nel proprio account."
+        ),
+        badge="Import assistito",
+        icon="bi-inbox",
+        search_label="Apri Simpliciter",
+        supports_auto_sync=False,
+        link_keywords=["sentenza", "ordinanza", "decreto", "decisione", "massima", "principio di diritto"],
     ),
     FonteGiurisprudenziale(
         id="manuale_interno",
@@ -710,6 +731,76 @@ class GestioneGiurisprudenza:
         payload["collegamenti_norme"] = _split_multi(payload.get("collegamenti_norme", ""))
         return self.salva(payload)
 
+    def importa_da_materiale(
+        self,
+        *,
+        source_id: str = "",
+        source_url: str = "",
+        pasted_text: str = "",
+        file_name: str = "",
+        file_bytes: bytes | None = None,
+        hints: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        url = str(source_url or "").strip()
+        raw_text = str(pasted_text or "")
+        uploaded_name = str(file_name or "").strip()
+        uploaded_bytes = bytes(file_bytes or b"")
+        extracted_text = self._extract_material_text(uploaded_name, uploaded_bytes) if uploaded_bytes else ""
+        material_text = (raw_text.strip() + "\n\n" + extracted_text.strip()).strip()
+        if not material_text and not url:
+            raise ValueError("Inserisci almeno testo, file o URL del materiale da importare.")
+
+        detected_source = source_id or self._detect_source_from_url(url) or ""
+        if not detected_source or detected_source == "manuale_interno":
+            lowered = f"{url}\n{material_text}".lower()
+            detected_source = "simpliciter_cliente" if "simpliciter" in lowered else "manuale_interno"
+        source = self._source(detected_source) or self._source("manuale_interno")
+        candidate_blocks = self._extract_material_candidates(material_text, source, source_url=url)
+        if not candidate_blocks:
+            candidate_blocks = [
+                {
+                    "titolo": self._material_title(material_text, url, source.nome if source else "Scheda importata"),
+                    "url_origine": url,
+                    "abstract": _truncate(material_text, 320),
+                    "massima": _truncate(material_text, 220),
+                    "identificatore_stabile": f"{detected_source}:{_sha1((url or uploaded_name or 'materiale') + '|' + material_text[:400])}",
+                }
+            ]
+
+        imported = 0
+        updated = 0
+        saved_records: List[Dict[str, Any]] = []
+        for candidate in candidate_blocks:
+            payload = self.empty_record(detected_source)
+            payload.update(candidate)
+            payload["source_system"] = detected_source
+            payload["url_origine"] = payload.get("url_origine") or url
+            payload["note_redazionali"] = payload.get("note_redazionali") or self._import_note(source, uploaded_name)
+            for key, value in (hints or {}).items():
+                if value and key in payload and not payload.get(key):
+                    payload[key] = value
+            result = self._upsert_import_payload(payload)
+            saved_records.append(result["record"])
+            if result["created"]:
+                imported += 1
+            else:
+                updated += 1
+
+        run = {
+            "id": uuid.uuid4().hex,
+            "source_id": detected_source,
+            "source_label": source.nome if source else detected_source,
+            "checked_at": _now_iso(),
+            "status": "import_assistito",
+            "imported": imported,
+            "updated": updated,
+            "candidates": len(candidate_blocks),
+            "message": "Importazione assistita completata da materiale fornito dal cliente.",
+        }
+        self._append_sync_run(run)
+        self._save()
+        return {"ok": True, "imported": imported, "updated": updated, "records": saved_records, "run": run}
+
     def importa_da_url(
         self,
         url: str,
@@ -950,6 +1041,8 @@ class GestioneGiurisprudenza:
 
     def _detect_source_from_url(self, url: str) -> str:
         host = (urlparse(url or "").hostname or "").lower()
+        if "simpliciter.ai" in host:
+            return "simpliciter_cliente"
         if "cortedicassazione" in host:
             return "cassazione"
         if "cortecostituzionale" in host:
@@ -967,6 +1060,187 @@ class GestioneGiurisprudenza:
         if "pst.giustizia" in host or "giustizia.it" in host:
             return "merito_civile_bdp"
         return "manuale_interno"
+
+    def _extract_material_text(self, file_name: str, file_bytes: bytes) -> str:
+        if not file_bytes:
+            return ""
+        lowered = (file_name or "").lower()
+        if lowered.endswith(".pdf"):
+            pages: List[str] = []
+            with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+                for page in pdf.pages[:80]:
+                    text = page.extract_text() or ""
+                    if text.strip():
+                        pages.append(text)
+            return "\n\n".join(pages)
+        if lowered.endswith(".html") or lowered.endswith(".htm"):
+            try:
+                document = lxml_html.fromstring(file_bytes)
+                return _clean_spaces(" ".join(document.xpath("//main//text()") or document.xpath("//body//text()")))
+            except Exception:
+                return file_bytes.decode("utf-8", errors="ignore")
+        return file_bytes.decode("utf-8", errors="ignore")
+
+    def _extract_material_candidates(
+        self,
+        text: str,
+        source: Optional[FonteGiurisprudenziale],
+        *,
+        source_url: str = "",
+    ) -> List[Dict[str, Any]]:
+        raw = str(text or "").strip()
+        if not raw:
+            return []
+        normalized = raw.replace("\r\n", "\n").replace("\r", "\n")
+        blocks: List[str] = []
+        paragraphs = [chunk.strip() for chunk in re.split(r"\n\s*\n+", normalized) if chunk.strip()]
+        if len(paragraphs) > 1:
+            for chunk in paragraphs:
+                if _extract_ecli(chunk) or _extract_number(chunk) or self._guess_tipo(chunk) or len(chunk) > 180:
+                    blocks.append(chunk)
+        else:
+            marker = re.compile(
+                r"(?im)^(?=(?:.*\bECLI:[A-Z]{2}:)|(?:.*\b(?:sentenza|ordinanza|decreto|decisione|parere)\b(?:.*\bn\.?\s*\d+)?))"
+            )
+            starts = [match.start() for match in marker.finditer(normalized)]
+            if len(starts) >= 2:
+                for idx, start in enumerate(starts):
+                    end = starts[idx + 1] if idx + 1 < len(starts) else len(normalized)
+                    chunk = normalized[start:end].strip()
+                    if len(chunk) >= 80:
+                        blocks.append(chunk)
+            else:
+                blocks = [normalized]
+
+        source_name = source.nome if source else "Scheda importata"
+        candidates: List[Dict[str, Any]] = []
+        for ordinal, block in enumerate(blocks[:MAX_SYNC_ITEMS], start=1):
+            summary = _truncate(block, 320)
+            title = self._material_title(block, source_url, source_name, ordinal=ordinal)
+            deposito = _extract_date(block)
+            payload = {
+                "titolo": title,
+                "abstract": summary,
+                "massima": self._extract_massima(block, fallback=summary),
+                "principio_diritto": self._extract_principio(block),
+                "numero_provvedimento": _extract_number(block or title),
+                "data_deposito": deposito,
+                "data_decisione": _extract_date(title) or deposito,
+                "tipo_provvedimento": self._guess_tipo(block),
+                "organo_giudicante": self._extract_organo(block, source),
+                "ufficio": self._extract_organo(block, source),
+                "ecli": _extract_ecli(block),
+                "url_origine": source_url,
+                "identificatore_stabile": _extract_ecli(block)
+                or f"{(source.id if source else 'manuale_interno')}:{_sha1((source_url or '') + '|' + title + '|' + block[:600])}",
+                "parole_chiave": self._material_keywords(block, source),
+                "note_redazionali": self._import_note(source, ""),
+            }
+            candidates.append(payload)
+        return candidates
+
+    def _material_title(self, text: str, source_url: str, source_name: str, ordinal: int = 1) -> str:
+        lines = [line.strip(" -\t") for line in str(text or "").splitlines() if line.strip()]
+        for line in lines[:6]:
+            cleaned = _clean_spaces(line)
+            if len(cleaned) >= 12 and (self._guess_tipo(cleaned) or _extract_ecli(cleaned) or _extract_number(cleaned)):
+                return cleaned[:180]
+        if source_url:
+            tail = urlparse(source_url).path.rsplit("/", 1)[-1].strip() or "sentenza"
+            return f"{source_name} - {tail}"[:180]
+        return f"{source_name} - scheda importata {ordinal}"
+
+    def _extract_massima(self, text: str, fallback: str = "") -> str:
+        match = re.search(r"massima[:\s-]+(.+?)(?:principio di diritto[:\s-]+|$)", text or "", re.IGNORECASE | re.DOTALL)
+        if match:
+            return _truncate(match.group(1), 220)
+        return _truncate(fallback or text, 220)
+
+    def _extract_principio(self, text: str) -> str:
+        match = re.search(r"principio di diritto[:\s-]+(.+?)(?:massima[:\s-]+|$)", text or "", re.IGNORECASE | re.DOTALL)
+        if match:
+            return _truncate(match.group(1), 260)
+        return ""
+
+    def _extract_organo(self, text: str, source: Optional[FonteGiurisprudenziale]) -> str:
+        lowered = (text or "").lower()
+        patterns = [
+            ("Corte di Cassazione", ["cassazione"]),
+            ("Corte costituzionale", ["corte costituzionale", "cortecostituzionale"]),
+            ("Consiglio di Stato", ["consiglio di stato"]),
+            ("TAR", ["tar "]),
+            ("Corte di Giustizia Tributaria", ["corte di giustizia tributaria", "giustizia tributaria"]),
+            ("Corte EDU", ["cedu", "hudoc", "echr"]),
+            ("Corte di Giustizia UE", ["curia", "corte di giustizia"]),
+            ("Corte dei Conti", ["corte dei conti"]),
+        ]
+        for label, tokens in patterns:
+            if any(token in lowered for token in tokens):
+                return label
+        return source.nome if source and source.nome != "Inserimento redazionale interno" else ""
+
+    def _material_keywords(self, text: str, source: Optional[FonteGiurisprudenziale]) -> List[str]:
+        bag = _split_multi([
+            source.nome if source else "",
+            source.giurisdizione if source else "",
+            source.default_area if source else "",
+            _extract_ecli(text),
+        ])
+        lowered = (text or "").lower()
+        topic_map = {
+            "consenso informato": ["consenso informato"],
+            "appalti": ["appalti", "subappalto", "soccorso istruttorio"],
+            "accesso agli atti": ["accesso agli atti", "accesso difensivo"],
+            "cartella": ["cartella", "riscossione", "estratto di ruolo"],
+            "responsabilità medica": ["responsabilità medica", "sanitaria"],
+            "licenziamento": ["licenziamento"],
+            "stupefacenti": ["stupefacenti"],
+        }
+        for label, tokens in topic_map.items():
+            if any(token in lowered for token in tokens):
+                bag.append(label)
+        return _split_multi(bag)
+
+    def _import_note(self, source: Optional[FonteGiurisprudenziale], file_name: str) -> str:
+        details = []
+        if file_name:
+            details.append(f"file {file_name}")
+        if source and source.id == "simpliciter_cliente":
+            details.append("materiale cliente Simpliciter")
+        suffix = f" ({', '.join(details)})" if details else ""
+        return (
+            "Scheda creata da import assistito su materiale fornito dal cliente"
+            f"{suffix}. Verificare classificazione, completezza dei metadati e utilizzabilità redazionale."
+        )
+
+    def _upsert_import_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        stable = str(payload.get("identificatore_stabile") or payload.get("ecli") or "").strip()
+        judgments = list(self._data.get("judgments", []))
+        existing_idx = next((idx for idx, row in enumerate(judgments) if stable and row.get("identificatore_stabile") == stable), None)
+        if existing_idx is None and payload.get("url_origine") and payload.get("titolo"):
+            existing_idx = next(
+                (
+                    idx
+                    for idx, row in enumerate(judgments)
+                    if row.get("url_origine") == payload.get("url_origine") and row.get("titolo") == payload.get("titolo")
+                ),
+                None,
+            )
+        if existing_idx is not None:
+            current = dict(judgments[existing_idx])
+            merged = dict(current)
+            for key, value in payload.items():
+                if value not in ("", [], {}, None):
+                    merged[key] = value
+            merged["id"] = current.get("id")
+            record = self._normalize_record(merged)
+            judgments[existing_idx] = record
+            self._data["judgments"] = judgments
+            return {"created": False, "record": record}
+        record = self._normalize_record(payload)
+        judgments.append(record)
+        self._data["judgments"] = judgments
+        return {"created": True, "record": record}
 
     def _normalize_record(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         now = _now_iso()

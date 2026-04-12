@@ -114,16 +114,53 @@
   <button type="submit" class="ds-btn ds-btn-outline">
     <i class="bi bi-funnel"></i>Filtra
   </button>
-  {% if q or tipo_filtro or stato_filtro %}
+  {% if q or tipo_filtro or stato_filtro or filtro_dal or filtro_al %}
   <a href="{{ url_for('lista_fascicoli') }}" class="ds-btn ds-btn-ghost">
     <i class="bi bi-x-circle"></i>Reset
   </a>
   {% endif %}
 </form>
 
+{# ── Filtri avanzati ── #}
+{% set ha_filtri_avanzati = filtro_dal or filtro_al %}
+<div class="mb-3">
+  <a class="ds-filter-toggle" data-bs-toggle="collapse" href="#filtriAvanzatiFasc"
+     aria-expanded="{{ 'true' if ha_filtri_avanzati else 'false' }}">
+    <i class="bi bi-sliders2"></i> Filtri avanzati
+    {% if ha_filtri_avanzati %}
+    <span class="ds-filter-badge">attivi</span>
+    {% endif %}
+  </a>
+  <div class="collapse {{ 'show' if ha_filtri_avanzati }}" id="filtriAvanzatiFasc">
+    <form method="get" class="ds-filter-panel mt-2">
+      <input type="hidden" name="q" value="{{ q }}">
+      <input type="hidden" name="tipo" value="{{ tipo_filtro }}">
+      <input type="hidden" name="stato" value="{{ stato_filtro }}">
+      <div class="ds-filter-row">
+        <div class="form-group">
+          <label for="filtro-dal-fasc">Aperti dal</label>
+          <input type="date" id="filtro-dal-fasc" name="dal" class="form-control form-control-sm"
+                 value="{{ filtro_dal|default('') }}">
+        </div>
+        <div class="form-group">
+          <label for="filtro-al-fasc">Aperti al</label>
+          <input type="date" id="filtro-al-fasc" name="al" class="form-control form-control-sm"
+                 value="{{ filtro_al|default('') }}">
+        </div>
+        <div class="form-group" style="flex:0 0 auto">
+          <label>&nbsp;</label>
+          <button type="submit" class="ds-btn ds-btn-outline btn-sm">
+            <i class="bi bi-funnel-fill"></i> Applica
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 {# ── Tabella fascicoli ── #}
 {% if fascicoli %}
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-semibold text-muted small">
       {{ fascicoli|length }} fascicol{% if fascicoli|length != 1 %}i{% else %}o{% endif %}
@@ -138,11 +175,11 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-fascicoli" data-paginate="page-size-fascicoli">
-        <thead class="table-light">
+        <thead class="table-light ds-thead-compact">
           <tr>
-            <th>Rif.</th><th>Titolo / Oggetto</th><th>Tipo</th>
-            <th>Cliente</th><th>N. Causa</th><th>Prossima scad.</th>
-            <th>Stato</th><th>Docs</th><th></th>
+            <th>Rif.</th><th>Titolo / Oggetto</th><th class="d-none d-md-table-cell">Tipo</th>
+            <th>Cliente</th><th class="d-none d-lg-table-cell">N. Causa</th><th class="d-none d-md-table-cell">Prossima scad.</th>
+            <th>Stato</th><th class="d-none d-md-table-cell text-center">Docs</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -164,14 +201,14 @@
                 <div class="small text-muted">{{ f.oggetto|truncate(60) }}</div>
               {% endif %}
             </td>
-            <td data-label="Tipo" data-mob-hide>
+            <td data-label="Tipo" class="d-none d-md-table-cell">
               <span class="badge bg-light text-dark border small">
                 {{ f.tipo.value.replace('_',' ') }}
               </span>
             </td>
             <td data-label="Cliente" class="small">{{ f.nome_cliente or '—' }}</td>
-            <td data-label="RG" class="font-monospace small">{{ f.rg_completo or '—' }}</td>
-            <td data-label="Scadenza" class="small">
+            <td data-label="RG" class="font-monospace small d-none d-lg-table-cell">{{ f.rg_completo or '—' }}</td>
+            <td data-label="Scadenza" class="small d-none d-md-table-cell">
               {% set sc = f.prossima_scadenza %}
               {% if sc %}
                 <span class="badge {% if sc.data <= oggi.isoformat() %}bg-danger{% else %}bg-light text-dark border{% endif %}">
@@ -185,15 +222,15 @@
                 {{ f.stato.value.replace('_',' ') }}
               </span>
             </td>
-            <td data-label="Docs" class="text-center" data-mob-hide>
+            <td data-label="Docs" class="text-center d-none d-md-table-cell">
               <span class="badge bg-light text-dark border">{{ f.documenti_count }}</span>
             </td>
             <td data-label="">
-              <div class="btn-group btn-group-sm">
+              <div class="ds-actions">
                 <a href="{{ url_for('dettaglio_fascicolo', id_fasc=f.id) }}"
-                   class="btn btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                   class="btn btn-sm btn-outline-secondary" title="Dettaglio"><i class="bi bi-eye"></i></a>
                 <a href="{{ url_for('modifica_fascicolo', id_fasc=f.id) }}"
-                   class="btn btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                   class="btn btn-sm btn-outline-primary" title="Modifica"><i class="bi bi-pencil"></i></a>
               </div>
             </td>
           </tr>

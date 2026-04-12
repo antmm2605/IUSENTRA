@@ -105,7 +105,10 @@
 
 {# ── Filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
-  <select name="tipo" class="form-select form-select-sm">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca per titolo, descrizione…"
+         value="{{ q|default('') }}" autocomplete="off">
+  <select name="tipo" class="form-select form-select-sm" style="max-width:160px" onchange="this.form.submit()">
     <option value="">Tutti i tipi</option>
     {% for t in tipi %}
     <option value="{{ t.value }}" {{ 'selected' if t.value == filtro_tipo }}>
@@ -113,7 +116,7 @@
     </option>
     {% endfor %}
   </select>
-  <select name="priorita" class="form-select form-select-sm">
+  <select name="priorita" class="form-select form-select-sm" style="max-width:150px" onchange="this.form.submit()">
     <option value="">Tutte le priorità</option>
     {% for p in priorita_list %}
     <option value="{{ p.value }}" {{ 'selected' if p.value == filtro_priorita }}>
@@ -124,17 +127,64 @@
   <button type="submit" class="ds-btn ds-btn-outline">
     <i class="bi bi-funnel"></i>Filtra
   </button>
-  {% if filtro_tipo or filtro_priorita %}
+  {% if q|default('') or filtro_tipo or filtro_priorita or filtro_dal or filtro_al or filtro_perentorio %}
   <a href="{{ url_for('scadenziario') }}" class="ds-btn ds-btn-ghost">
     <i class="bi bi-x-circle"></i>Reset
   </a>
   {% endif %}
 </form>
 
+{# ── Filtri avanzati ── #}
+{% set ha_filtri_avanzati = filtro_dal or filtro_al or filtro_perentorio %}
+<div class="mb-3">
+  <a class="ds-filter-toggle" data-bs-toggle="collapse" href="#filtriAvanzati"
+     aria-expanded="{{ 'true' if ha_filtri_avanzati else 'false' }}">
+    <i class="bi bi-sliders2"></i> Filtri avanzati
+    {% if ha_filtri_avanzati %}
+    <span class="ds-filter-badge">attivi</span>
+    {% endif %}
+  </a>
+  <div class="collapse {{ 'show' if ha_filtri_avanzati }}" id="filtriAvanzati">
+    <form method="get" class="ds-filter-panel mt-2">
+      <input type="hidden" name="q" value="{{ q|default('') }}">
+      <input type="hidden" name="tipo" value="{{ filtro_tipo }}">
+      <input type="hidden" name="priorita" value="{{ filtro_priorita }}">
+      <div class="ds-filter-row">
+        <div class="form-group">
+          <label for="filtro-dal">Dal</label>
+          <input type="date" id="filtro-dal" name="dal" class="form-control form-control-sm"
+                 value="{{ filtro_dal|default('') }}">
+        </div>
+        <div class="form-group">
+          <label for="filtro-al">Al</label>
+          <input type="date" id="filtro-al" name="al" class="form-control form-control-sm"
+                 value="{{ filtro_al|default('') }}">
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <div class="form-check mt-1">
+            <input type="checkbox" class="form-check-input" id="filtro-perentorio"
+                   name="perentorio" value="1" {{ 'checked' if filtro_perentorio }}>
+            <label class="form-check-label small fw-semibold" for="filtro-perentorio">
+              Solo perentorie
+            </label>
+          </div>
+        </div>
+        <div class="form-group" style="flex:0 0 auto">
+          <label>&nbsp;</label>
+          <button type="submit" class="ds-btn ds-btn-outline btn-sm">
+            <i class="bi bi-funnel-fill"></i> Applica
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 {# ── Tabella scadenze ── #}
 {% if scadenze %}
 <form method="post" action="{{ url_for('bulk_completa_scadenze') }}" id="form-bulk-scadenze">
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
     <div class="d-flex align-items-center gap-2">
       <span class="fw-semibold text-muted small">{{ scadenze|length }} scadenze</span>
@@ -154,14 +204,14 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-scadenze" data-paginate="page-size-scadenze">
-        <thead class="table-light">
+        <thead class="table-light ds-thead-compact">
           <tr>
             <th style="width:36px">
               <input type="checkbox" id="bulk-select-all" class="form-check-input"
                      title="Seleziona/deseleziona tutte">
             </th>
-            <th>Scadenza</th><th>Titolo</th><th>Tipo</th>
-            <th>Priorità</th><th>Fascicolo</th><th>Giorni</th><th></th>
+            <th>Scadenza</th><th>Titolo</th><th class="d-none d-md-table-cell">Tipo</th>
+            <th>Priorità</th><th class="d-none d-lg-table-cell">Fascicolo</th><th>Giorni</th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -188,7 +238,7 @@
               </div>
               {% endif %}
             </td>
-            <td data-label="Tipo" data-mob-hide>
+            <td data-label="Tipo" class="d-none d-md-table-cell">
               <span class="badge bg-light text-dark border small">
                 {{ s.tipo.value.replace('_',' ') }}
               </span>
@@ -200,7 +250,7 @@
                 {{ s.priorita.value }}
               </span>
             </td>
-            <td data-label="Fascicolo" class="small font-monospace" data-mob-hide>{{ s.id_fascicolo[:8] if s.id_fascicolo else '—' }}</td>
+            <td data-label="Fascicolo" class="small font-monospace d-none d-lg-table-cell">{{ s.id_fascicolo[:8] if s.id_fascicolo else '—' }}</td>
             <td data-label="Giorni" class="fw-semibold">
               {% if g is not none %}
                 {% if g < 0 %}
@@ -215,11 +265,11 @@
               {% else %}—{% endif %}
             </td>
             <td data-label="">
-              <div class="d-flex gap-1">
+              <div class="ds-actions">
                 <a href="{{ url_for('dettaglio_scadenza', id_sc=s.id) }}"
-                   class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></a>
+                   class="btn btn-outline-secondary btn-sm" title="Dettaglio"><i class="bi bi-eye"></i></a>
                 <a href="{{ url_for('modifica_scadenza', id_sc=s.id) }}"
-                   class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></a>
+                   class="btn btn-outline-primary btn-sm" title="Modifica"><i class="bi bi-pencil"></i></a>
                 <button
                   hx-post="{{ url_for('completa_scadenza', id_sc=s.id) }}"
                   hx-target="#sc-{{ s.id }}"

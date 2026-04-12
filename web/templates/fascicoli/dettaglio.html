@@ -90,6 +90,29 @@
         <i class="bi bi-journal-text me-1"></i>Istanze
         <span class="badge text-bg-primary ms-1">{{ WFC.istanze or 0 }}</span>
       </a>
+      <span class="d-flex align-items-center px-1">
+        <span class="vr opacity-50 d-none d-sm-inline-flex"></span>
+        <span class="small text-uppercase fw-semibold text-muted ms-2">Gestione</span>
+      </span>
+      <a href="#sezione-cambia-stato" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-repeat me-1"></i>Cambia stato
+      </a>
+      <a href="#sezione-azioni-fascicolo" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-lightning-charge me-1"></i>Azioni
+      </a>
+      <a href="#sezione-avanzamento-pratica" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-clock-history me-1"></i>Avanzamento
+        <span class="badge text-bg-secondary ms-1">{{ fascicolo.avanzamento|length }}</span>
+      </a>
+      {% if cliente %}
+      <a href="#sezione-cliente" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-person-vcard me-1"></i>Cliente
+      </a>
+      {% endif %}
+      <a href="#sezione-soggetti-procedimento" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-people me-1"></i>Soggetti
+        <span class="badge text-bg-secondary ms-1">{{ parti|length }}</span>
+      </a>
     </div>
   </div>
 </div>
@@ -2070,9 +2093,10 @@
     {% if responsabile_conformita and responsabile_conformita.available %}
     {% set rc = responsabile_conformita %}
     {% set rc_status_map = {'ok':'success','warning':'warning','block':'danger'} %}
-    {% set rc_status = rc.deposit_ready and 'PRONTO' or 'NON PRONTO' %}
-    {% set rc_status_class = rc.deposit_ready and 'success' or 'danger' %}
-    {% set rc_alert_class = 'success' if rc.deposit_ready else ('danger' if rc.is_blocking else 'warning') %}
+    {% set rc_controls_enabled = rc.controls_enabled if rc.controls_enabled is defined else True %}
+    {% set rc_status = rc_controls_enabled and (rc.deposit_ready and 'PRONTO' or 'NON PRONTO') or 'DISATTIVATI' %}
+    {% set rc_status_class = rc_controls_enabled and (rc.deposit_ready and 'success' or 'danger') or 'secondary' %}
+    {% set rc_alert_class = rc_controls_enabled and ('success' if rc.deposit_ready else ('danger' if rc.is_blocking else 'warning')) or 'secondary' %}
     <style>
       .compliance-panel .card-header,
       .compliance-panel .card,
@@ -2145,25 +2169,52 @@
             <span class="badge text-bg-{{ rc_status_class }} px-3 py-2">
               {{ rc_status }}
             </span>
-            {% if rc.is_blocking %}
+            {% if rc_controls_enabled and rc.is_blocking %}
             <div class="mt-1">
               <span class="badge rounded-pill text-bg-danger">Bloccante</span>
             </div>
             {% endif %}
           </div>
         </div>
-        <div>
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
           <div class="small text-muted" style="word-break:break-word">
+            {% if rc_controls_enabled %}
             Ultimo controllo:
             <strong>{{ rc.last_check_at or 'non eseguito' }}</strong>
             · Canale:
             <strong>{{ rc.canale_label or 'PCT civile / lavoro / famiglia' }}</strong>
             · Modello:
             <strong>{{ rc.modello_label or 'Atto' }}</strong>
+            {% else %}
+            Controlli automatici sospesi su questo fascicolo.
+            Riattiva il flag per rigenerare checklist, workflow e controlli rapidi del deposito.
+            {% endif %}
           </div>
-          <div class="mt-3" id="complianceQuickLinks">
+          <form
+            method="post"
+            action="{{ url_for('toggle_controlli_conformita_fascicolo', id_fasc=fascicolo.id) }}"
+            class="d-flex align-items-center gap-2"
+          >
+            <input type="hidden" name="enabled" value="{{ '1' if rc_controls_enabled else '0' }}">
+            <input type="hidden" name="next" value="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}#sezione-responsabile-conformita">
+            <div class="form-check form-switch mb-0 text-nowrap">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="complianceControlsEnabled"
+                {{ 'checked' if rc_controls_enabled }}
+                onchange="this.form.enabled.value = this.checked ? '1' : '0'; this.form.submit();"
+              >
+              <label class="form-check-label small fw-semibold" for="complianceControlsEnabled">
+                Controlli attivi
+              </label>
+            </div>
+          </form>
+          <div class="mt-3 w-100" id="complianceQuickLinks">
             <div class="small text-uppercase fw-semibold text-muted mb-2">Controlli rapidi</div>
             <div class="compliance-quick-links">
+              {% if rc_controls_enabled %}
               <button
                 type="button"
                 class="btn btn-sm btn-outline-secondary compliance-quick-link"
@@ -2192,15 +2243,20 @@
                 <span class="badge text-bg-{{ quick_tone }} ms-1">{{ group["items"]|length }}</span>
               </button>
               {% endfor %}
+              {% else %}
+              <span class="btn btn-sm btn-outline-secondary disabled compliance-quick-link" aria-disabled="true">
+                Controlli sospesi
+              </span>
+              {% endif %}
             </div>
           </div>
         </div>
         <div class="d-flex gap-2 flex-wrap mt-2">
-          <button type="button" class="btn btn-sm btn-outline-primary" id="complianceExpandAll">
-            <i class="bi bi-arrows-expand me-1"></i>Espandi
+          <button type="button" class="btn btn-sm btn-outline-primary" id="complianceExpandAll" {{ 'disabled' if not rc_controls_enabled }}>
+            <i class="bi bi-arrows-expand me-1"></i>Espandi aree
           </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" id="complianceCollapseAll">
-            <i class="bi bi-arrows-collapse me-1"></i>Riduci
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="complianceCollapseAll" {{ 'disabled' if not rc_controls_enabled }}>
+            <i class="bi bi-arrows-collapse me-1"></i>Riduci aree
           </button>
           <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-arrow-up-circle me-1"></i>Su
@@ -2209,6 +2265,7 @@
       </div>
 
       <div class="card-body">
+        {% if rc_controls_enabled %}
         <div class="rounded-4 border p-3 mb-3 compliance-summary">
           {# Score + label #}
           <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
@@ -2355,6 +2412,11 @@
                 </div>
                 {% endfor %}
               </div>
+              <div class="pt-3 border-top mt-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
+                  <i class="bi bi-arrow-up-circle me-1"></i>Torna ai controlli rapidi
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2421,6 +2483,11 @@
                 {% else %}
                 <div class="list-group-item text-muted">Nessuno step configurato.</div>
                 {% endfor %}
+              </div>
+              <div class="pt-3 border-top mt-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
+                  <i class="bi bi-arrow-up-circle me-1"></i>Torna ai controlli rapidi
+                </button>
               </div>
             </div>
           </div>
@@ -2495,6 +2562,26 @@
           {% endfor %}
         </div>
 
+        {% else %}
+        <div class="rounded-4 border p-3 mb-3 compliance-summary">
+          <div class="d-flex align-items-start gap-3 flex-wrap">
+            <div class="fs-2 fw-bold text-secondary mb-0">OFF</div>
+            <div>
+              <div class="fw-semibold">Controlli automatici disattivati</div>
+              <div class="text-muted small">
+                Il fascicolo resta consultabile, ma checklist e workflow del deposito non vengono calcolati finche il flag non viene riattivato.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-secondary border-0 rounded-4 mb-0">
+          <div class="fw-semibold mb-1">Verifica manuale sospesa</div>
+          <div class="small">
+            Usa lo switch in alto per riattivare i controlli e rigenerare subito punteggio, semafori, checklist operativa e workflow deposito.
+          </div>
+        </div>
+        {% endif %}
+
         <div class="mt-3 small text-muted">
           {% if rc.ready_reason %}
           <div><strong>Esito finale:</strong> {{ rc.ready_reason }}</div>
@@ -2518,6 +2605,7 @@
 
     {# Cambia stato #}
     {% if fascicolo.stato != StatoFascicolo.ARCHIVIATO %}
+    <div id="sezione-cambia-stato" style="scroll-margin-top:1rem"></div>
     <div class="card shadow-sm mb-3" id="sezione-documenti">
       <div class="card-header fw-semibold">
         <i class="bi bi-arrow-repeat me-2"></i>Cambia stato
@@ -2544,6 +2632,7 @@
     {% endif %}
 
     {# Azioni fascicolo #}
+    <div id="sezione-azioni-fascicolo" style="scroll-margin-top:1rem"></div>
     <div class="card shadow-sm mb-3" id="sezione-deposito">
       <div class="card-header fw-semibold">
         <i class="bi bi-lightning me-2 text-primary"></i>Azioni
@@ -2580,6 +2669,7 @@
     </div>
 
     {# Avanzamento pratica #}
+    <div id="sezione-avanzamento-pratica" style="scroll-margin-top:1rem"></div>
     <div class="card shadow-sm mb-3" id="sezione-parti">
       <div class="card-header fw-semibold">
         <i class="bi bi-clock-history me-2 text-primary"></i>Avanzamento pratica
@@ -2636,6 +2726,7 @@
 
     {# Cliente collegato #}
     {% if cliente %}
+    <div id="sezione-cliente" style="scroll-margin-top:1rem"></div>
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold">
         <i class="bi bi-person-vcard me-2 text-primary"></i>Cliente
@@ -2659,6 +2750,7 @@
     {% set assistiti   = parti | selectattr("0.ruolo.value", "equalto", "ASSISTITO") | list %}
     {% set controparti = parti | selectattr("0.ruolo.value", "in", ["CONTROPARTE","DIFENSORE_CONTROPARTE","CREDITORE","DEBITORE"]) | list %}
     {% set altri       = parti | rejectattr("0.ruolo.value", "in", ["ASSISTITO","CONTROPARTE","DIFENSORE_CONTROPARTE","CREDITORE","DEBITORE"]) | list %}
+    <div id="sezione-soggetti-procedimento" style="scroll-margin-top:1rem"></div>
     <div class="card shadow-sm mb-3">
       <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
         <span><i class="bi bi-people me-2 text-primary"></i>Parti del procedimento</span>

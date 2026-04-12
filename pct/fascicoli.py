@@ -488,6 +488,7 @@ class Fascicolo:
     has_conflicts: bool = False
     document_sync_enabled: bool = False
     events_sync_enabled: bool = False
+    compliance_controls_enabled: bool = True
 
     # --- Archivio
     archivio: Optional[DatiArchivio] = None

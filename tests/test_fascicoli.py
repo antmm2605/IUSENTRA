@@ -75,6 +75,12 @@ def test_aggiorna_fascicolo(gf, fascicolo_base):
     assert f.sezione == "I"
 
 
+def test_aggiorna_flag_controlli_conformita(gf, fascicolo_base):
+    gf.aggiorna(fascicolo_base.id, compliance_controls_enabled=False)
+    ricaricato = gf.get(fascicolo_base.id)
+    assert ricaricato.compliance_controls_enabled is False
+
+
 def test_elimina_fascicolo(gf, fascicolo_base):
     gf.elimina(fascicolo_base.id)
     assert gf.get(fascicolo_base.id) is None

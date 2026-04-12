@@ -158,8 +158,14 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert 'id="complianceWorkflowBody"' in html
     assert 'data-compliance-accordion="#complianceChecklistBody"' in html
     assert 'data-compliance-accordion="#complianceWorkflowBody"' in html
+    assert 'href="#sezione-cambia-stato"' in html
+    assert 'href="#sezione-azioni-fascicolo"' in html
+    assert 'href="#sezione-avanzamento-pratica"' in html
+    assert 'href="#sezione-cliente"' in html
+    assert 'href="#sezione-soggetti-procedimento"' in html
     assert "Espandi aree" in html
     assert "Riduci aree" in html
+    assert html.count("Torna ai controlli rapidi") >= 6
     assert "Controlli processuali" in html
     assert "Controlli documentali" in html
     assert "Controlli tecnici PST" in html
@@ -171,6 +177,81 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
     assert "Imposta prima udienza" in html
     assert "Carica procura" in html
     assert "Apri redattore guidato" in html
+
+
+def test_dettaglio_fascicolo_consente_disattivare_controlli_conformita(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    clienti = GestioneClienti(db_path=cfg["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Giulia",
+        cognome="Marino",
+        codice_fiscale="MRNGLI80A01H501T",
+    )
+    fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fasc = fascicoli.nuovo(
+        titolo="Ricorso monitorio demo",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        controparte="Delta S.r.l.",
+        id_cliente=cliente.id,
+    )
+    preventivi = GestionePreventivi(cfg["PREVENTIVI_DB"])
+    preventivo = preventivi.crea_preventivo(
+        id_cliente=cliente.id,
+        oggetto="Ricorso monitorio",
+        voci=[VocePreventivo(descrizione="Compenso", importo=900.0, tipo=TipoVoce.ONORARIO)],
+        creato_da="avv.mario",
+        id_pratica="ricorso_monitorio",
+        area_pratica="Civile",
+        tipo_compenso="Per fasi processuali (D.M. 55/2014)",
+    )
+    preventivi.collega_fascicolo(fasc.id, id_preventivo=preventivo.id)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            f"/fascicoli/{fasc.id}/conformita/controlli",
+            data={
+                "enabled": "0",
+                "next": f"/fascicoli/{fasc.id}#sezione-responsabile-conformita",
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    fasc_aggiornato = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fasc.id)
+    assert fasc_aggiornato.compliance_controls_enabled is False
+    assert "Controlli automatici disattivati" in html
+    assert "Verifica manuale sospesa" in html
+    assert "Controlli sospesi" in html
+    assert "Controlli attivi" in html
 
 
 def test_dettaglio_fascicolo_separa_istanze_e_scadenze(tmp_path):

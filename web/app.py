@@ -1335,6 +1335,121 @@ def create_app(config: dict | None = None) -> Flask:
             "action_label": "Verifica il fascicolo",
         }
 
+    def _build_responsabile_conformita_disattivata(
+        *,
+        fascicolo: Fascicolo,
+    ) -> dict[str, Any]:
+        canale_label = _portale_ufficiale_label(fascicolo) or "PCT civile / lavoro / famiglia"
+        modello_label = str(
+            getattr(fascicolo, "oggetto", "")
+            or getattr(fascicolo, "titolo", "")
+            or "Atto"
+        ).strip()
+        summary_text = (
+            "I controlli automatici sono disattivati per questo fascicolo. "
+            "Riattiva il flag per rigenerare checklist, workflow e controlli rapidi."
+        )
+        return {
+            "available": True,
+            "controls_enabled": False,
+            "workflow_label": "Controlli automatici disattivati",
+            "readiness_label": "Il report di conformita e' momentaneamente sospeso per scelta utente.",
+            "summary": summary_text,
+            "overall_state": "disabled",
+            "badge_class": "secondary",
+            "general": {
+                "state": "disabled",
+                "label": "Disattivati",
+                "score": 0,
+                "blocking_count": 0,
+                "warning_count": 0,
+                "info_count": 0,
+                "passed_count": 0,
+            },
+            "practice_id": "",
+            "practice_label": modello_label or "Fascicolo",
+            "model_code": "",
+            "model_name": modello_label,
+            "channel": "",
+            "channel_label": canale_label,
+            "competence_rule": "",
+            "registry_suggestion": "",
+            "grade_label": "",
+            "resolver": {},
+            "semaforo": {
+                "workflow": "disabled",
+                "generale": "disabled",
+                "processuale": "disabled",
+                "giuridico": "disabled",
+                "tecnico_pst": "disabled",
+                "tecnico_ministeriale": "disabled",
+                "documentale": "disabled",
+                "redazionale": "disabled",
+            },
+            "sections": {},
+            "passed_controls": [],
+            "corrections": [],
+            "action_gates": {},
+            "required_documents": [],
+            "missing_documents": [],
+            "blocking_issues": [],
+            "warning_issues": [],
+            "info_issues": [],
+            "issues": [],
+            "next_steps": ["Riattiva i controlli automatici per rieseguire il report."],
+            "sources": [],
+            "deposit_ready": False,
+            "is_blocking": False,
+            "score": 0,
+            "last_check_at": "",
+            "canale_label": canale_label,
+            "modello_label": modello_label,
+            "summary_text": summary_text,
+            "blockers_count": 0,
+            "warnings_count": 0,
+            "passed_count": 0,
+            "missing_docs_count": 0,
+            "ready_reason": "Controlli automatici disattivati per questo fascicolo.",
+            "next_step": {
+                "title": "Riattiva i controlli automatici",
+                "reason": summary_text,
+                "cta": "Riattiva controlli",
+                "url": f"{url_for('dettaglio_fascicolo', id_fasc=fascicolo.id)}#sezione-responsabile-conformita",
+            },
+            "checklist": [],
+            "workflow": [],
+            "groups": [],
+        }
+
+    def _build_responsabile_conformita_fascicolo(
+        *,
+        fascicolo: Fascicolo,
+        cliente=None,
+        preventivo=None,
+        conferimento=None,
+        parti=None,
+    ) -> dict[str, Any]:
+        if not bool(getattr(fascicolo, "compliance_controls_enabled", True)):
+            return _build_responsabile_conformita_disattivata(fascicolo=fascicolo)
+
+        from pct.responsabile_conformita import build_fascicolo_compliance_summary
+
+        summary = build_fascicolo_compliance_summary(
+            fascicolo=fascicolo,
+            cliente=cliente,
+            preventivo=preventivo,
+            conferimento=conferimento,
+            config=app.config,
+            utente=g.utente_corrente,
+            office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
+            parti=parti,
+        )
+        return _arricchisci_responsabile_conformita(
+            summary,
+            fascicolo=fascicolo,
+            cliente=cliente,
+        )
+
     def _arricchisci_responsabile_conformita(
         summary: Optional[dict],
         *,
@@ -10657,7 +10772,6 @@ read -r -p "Premi Invio per chiudere..." _
     @app.route("/fascicoli/<id_fasc>")
     def dettaglio_fascicolo(id_fasc):
         from pct.preventivi import GestionePreventivi
-        from pct.responsabile_conformita import build_fascicolo_compliance_summary
         gf = get_fascicoli()
         gc = get_clienti()
         fasc = gf.get(id_fasc)
@@ -10718,20 +10832,12 @@ read -r -p "Premi Invio per chiudere..." _
             or (ha_udienza_importata and not fasc.data_prima_udienza)
             or not ha_metadati_portale
         )
-        responsabile_conformita = build_fascicolo_compliance_summary(
+        responsabile_conformita = _build_responsabile_conformita_fascicolo(
             fascicolo=fasc,
             cliente=cliente,
             preventivo=preventivo,
             conferimento=conferimento,
-            config=app.config,
-            utente=g.utente_corrente,
-            office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
             parti=parti,
-        )
-        responsabile_conformita = _arricchisci_responsabile_conformita(
-            responsabile_conformita,
-            fascicolo=fasc,
-            cliente=cliente,
         )
         cfg_firma = get_config_studio().config.firma
         open_pst_nav = request.args.get("open_pst_nav") == "1"
@@ -11493,7 +11599,6 @@ read -r -p "Premi Invio per chiudere..." _
     def quadro_fascicolo(id_fasc):
         """Quadro unico della pratica — 5 assi: commerciale, operativo, conformità, economico, documentale."""
         from pct.preventivi import GestionePreventivi
-        from pct.responsabile_conformita import build_fascicolo_compliance_summary
         from pct.fatturazione import GestioneFatturazione
 
         gf = get_fascicoli()
@@ -11530,18 +11635,12 @@ read -r -p "Premi Invio per chiudere..." _
 
         # Conformità
         parti = get_soggetti().parti_fascicolo(id_fasc)
-        responsabile_conformita = build_fascicolo_compliance_summary(
+        responsabile_conformita = _build_responsabile_conformita_fascicolo(
             fascicolo=fasc,
             cliente=cliente,
             preventivo=preventivo,
             conferimento=conferimento,
-            config=app.config,
-            utente=g.utente_corrente,
-            office_cache_path=os.getenv("PCT_UFFICI_DB", "/data/uffici/uffici_giudiziari.json"),
             parti=parti,
-        )
-        responsabile_conformita = _arricchisci_responsabile_conformita(
-            responsabile_conformita, fascicolo=fasc, cliente=cliente,
         )
 
         # Asse commerciale: calcola valore contrattualizzato
@@ -11662,6 +11761,31 @@ read -r -p "Premi Invio per chiudere..." _
         except (ValueError, KeyError) as e:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
+
+    @app.route("/fascicoli/<id_fasc>/conformita/controlli", methods=["POST"])
+    def toggle_controlli_conformita_fascicolo(id_fasc):
+        gf = get_fascicoli()
+        enabled_raw = str(request.form.get("enabled", "1") or "").strip().lower()
+        enabled = enabled_raw in {"1", "true", "on", "yes"}
+        next_url = str(request.form.get("next") or "").strip()
+        try:
+            gf.aggiorna(id_fasc, compliance_controls_enabled=enabled)
+            audit(
+                "fascicoli.conformita.controlli",
+                "fascicolo",
+                id_fasc,
+                dettagli=f"Controlli automatici {'attivati' if enabled else 'disattivati'}",
+            )
+            sync_pubblica("modifica", "fascicoli", id_fasc)
+            flash(
+                "Controlli automatici attivati." if enabled else "Controlli automatici disattivati.",
+                "success",
+            )
+        except (ValueError, KeyError) as e:
+            flash(str(e), "danger")
+        if next_url:
+            return redirect(next_url)
+        return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#sezione-responsabile-conformita")
 
     @app.route("/fascicoli/<id_fasc>/definisci", methods=["POST"])
     def definisci_fascicolo(id_fasc):

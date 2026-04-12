@@ -9,6 +9,8 @@
 {% set show_search_controparte = search_ui.show_controparte if search_ui.show_controparte is defined else True %}
 {% set show_search_cf = search_ui.show_cf if search_ui.show_cf is defined else True %}
 {% set show_search_oggetto = search_ui.show_oggetto if search_ui.show_oggetto is defined else True %}
+{% set linked_mode = wizard_initial_mapping.mode if wizard_initial_mapping else 'create_new' %}
+{% set linked_target_id = wizard_initial_mapping.target_fascicolo_id if wizard_initial_mapping else '' %}
 <style>
   .aw-shell{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:1.25rem}
   .aw-steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem}
@@ -33,12 +35,38 @@
     <div class="d-flex gap-2 align-items-center mb-2">
       <span class="badge text-bg-{{ spec.color }}"><i class="bi {{ spec.icon }} me-1"></i>{{ spec.label }}</span>
       <span class="badge bg-light text-dark border">Acquisizione guidata</span>
+      {% if linked_workflow_url %}
+      <span class="badge bg-light text-dark border border-{{ spec.color }}-subtle">{{ 'Workflow PDP' if wizard_portale == 'pdp' else 'Pratica collegata' }}</span>
+      {% endif %}
     </div>
     <h1 class="h3 mb-1">{{ spec.title }}</h1>
     <p class="text-muted mb-0">{{ spec.subtitle }}</p>
   </div>
-  <a href="{{ url_for(spec.home_endpoint) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Torna al portale</a>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if linked_workflow_url %}
+    <a href="{{ linked_workflow_url }}" class="btn btn-outline-{{ spec.color }}"><i class="bi bi-shield-lock me-1"></i>Workflow PDP</a>
+    {% endif %}
+    <a href="{{ wizard_return_url or url_for(spec.home_endpoint) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>{{ wizard_return_label or 'Torna al portale' }}</a>
+  </div>
 </div>
+
+{% if wizard_portale == 'pdp' and linked_fascicolo %}
+<div class="alert alert-danger-subtle border border-danger-subtle rounded-4 mb-4">
+  <div class="fw-semibold mb-1"><i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata dentro il workflow PDP</div>
+  <div class="small">
+    Stai lavorando sul fascicolo <strong>{{ linked_fascicolo.titolo }}</strong>
+    {% if linked_fascicolo.rg_completo %}({{ linked_fascicolo.rg_completo }}){% endif %}.
+    Questa pagina e la fase iniziale del workflow PDP della stessa pratica: alla fine rientri nel workflow senza creare un nuovo fascicolo.
+  </div>
+</div>
+{% elif wizard_portale == 'pdp' %}
+<div class="alert alert-light border rounded-4 mb-4">
+  <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-danger"></i>Prima acquisizione, poi workflow PDP</div>
+  <div class="small text-muted">
+    Qui cerchi e importi il fascicolo dal canale ufficiale. Appena confermi l'importazione, il gestionale apre il workflow PDP della pratica creata o aggiornata.
+  </div>
+</div>
+{% endif %}
 
 <div class="aw-steps mb-4" id="awSteps"></div>
 
@@ -86,10 +114,10 @@
     <section class="aw-pane" data-step="5"><div class="card shadow-sm border-0"><div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
       <div class="row g-3">
-        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" checked><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
-        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing"><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l’origine telematica.</div></label></div>
-        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing"><span class="form-check-label fw-semibold">Aggiorna pratica esistente</span></div><div class="small text-muted">Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.</div></label></div>
-        <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale target</label><select class="form-select" id="awTarget"></select><div class="form-text">Il sistema propone i fascicoli compatibili per RG, ufficio e parti.</div></div>
+        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" {{ 'checked' if linked_mode == 'create_new' else '' }}><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
+        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing" {{ 'checked' if linked_mode == 'attach_existing' else '' }}><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l'origine telematica.</div></label></div>
+        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing" {{ 'checked' if linked_mode == 'update_existing' else '' }}><span class="form-check-label fw-semibold">Aggiorna pratica esistente</span></div><div class="small text-muted">Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.</div></label></div>
+        <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale target</label><select class="form-select" id="awTarget" data-initial-target="{{ linked_target_id }}"></select><div class="form-text">{% if linked_fascicolo %}Il fascicolo del workflow corrente e gia precollegato: il sistema lo propone come target principale.{% else %}Il sistema propone i fascicoli compatibili per RG, ufficio e parti.{% endif %}</div></div>
         <div class="col-md-4"><label class="form-label fw-semibold">Procedimento</label><input class="form-control" id="awProc"></div>
         <div class="col-md-4"><label class="form-label fw-semibold">Materia</label><input class="form-control" id="awMateria"></div>
         <div class="col-md-4"><label class="form-label fw-semibold">Grado</label><input class="form-control" id="awGrado"></div>
@@ -143,7 +171,26 @@
 </div>
 
 <script>
-const AW_BOOT = {{ {"portale": wizard_portale, "spec": spec, "status": wizard_status, "statusUrl": url_for('api_portale_acquisizione_status', portale=wizard_portale), "searchUrl": url_for('api_portale_acquisizione_search', portale=wizard_portale), "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale), "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale), "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale)}|tojson }};
+const AW_BOOT = {{ {
+  "portale": wizard_portale,
+  "spec": spec,
+  "status": wizard_status,
+  "statusUrl": url_for('api_portale_acquisizione_status', portale=wizard_portale),
+  "searchUrl": url_for('api_portale_acquisizione_search', portale=wizard_portale),
+  "previewUrl": url_for('api_portale_acquisizione_preview', portale=wizard_portale),
+  "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale),
+  "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale),
+  "linkedFascicolo": ({
+    "id": linked_fascicolo.id,
+    "numero": linked_fascicolo.numero or linked_fascicolo.numero_rg or linked_fascicolo.rg_completo or linked_fascicolo.id,
+    "titolo": linked_fascicolo.titolo,
+    "rg_completo": linked_fascicolo.rg_completo,
+    "source": linked_fascicolo.source or "",
+    "dettaglio_url": linked_fascicolo_url,
+    "workflow_url": linked_workflow_url,
+  } if linked_fascicolo else None),
+  "initialMapping": wizard_initial_mapping,
+}|tojson }};
 const AW_STATE = {
   step:1,
   quick:'',
@@ -1644,12 +1691,24 @@ function awCurrentOptions() {
   };
 }
 function awCurrentMapping() {
+  const initialMapping = AW_BOOT.initialMapping || {};
   return {
-    mode: document.querySelector('input[name="awMapMode"]:checked')?.value || 'create_new',
-    target_fascicolo_id: document.getElementById('awTarget')?.value || '',
+    mode: document.querySelector('input[name="awMapMode"]:checked')?.value || initialMapping.mode || 'create_new',
+    target_fascicolo_id: document.getElementById('awTarget')?.value || initialMapping.target_fascicolo_id || '',
     procedimento: document.getElementById('awProc')?.value.trim() || '',
     materia: document.getElementById('awMateria')?.value.trim() || '',
     grado: document.getElementById('awGrado')?.value.trim() || '',
+  };
+}
+function awLinkedFascicoloMatch() {
+  const linked = AW_BOOT.linkedFascicolo || null;
+  if (!linked || !linked.id) return null;
+  return {
+    id: String(linked.id),
+    numero: linked.numero || linked.rg_completo || `Fascicolo ${linked.id}`,
+    titolo: linked.titolo || linked.rg_completo || `Fascicolo ${linked.id}`,
+    rg_completo: linked.rg_completo || '',
+    source: linked.source || '',
   };
 }
 function awRenderMappingMatches() {
@@ -1657,14 +1716,25 @@ function awRenderMappingMatches() {
   const target = document.getElementById('awTarget');
   if (!target) return;
   const current = target.value;
-  const matches = analysis.existing_matches || [];
+  const linked = awLinkedFascicoloMatch();
+  const matches = Array.isArray(analysis.existing_matches) ? [...analysis.existing_matches] : [];
+  if (linked && !matches.some(match => String(match.id) === String(linked.id))) {
+    matches.unshift(linked);
+  }
   target.innerHTML = `<option value="">${matches.length ? 'Seleziona fascicolo compatibile' : 'Nessun fascicolo compatibile rilevato'}</option>` +
     matches.map(match => `<option value="${awEscape(match.id)}">${awEscape(match.numero)} - ${awEscape(match.titolo)} ${match.rg_completo ? `(${awEscape(match.rg_completo)})` : ''}</option>`).join('');
-  if (matches.some(match => match.id === current)) target.value = current;
+  if (matches.some(match => String(match.id) === String(current))) {
+    target.value = current;
+  } else {
+    const initialTarget = target.dataset.initialTarget || AW_BOOT.initialMapping?.target_fascicolo_id || '';
+    if (initialTarget && awCurrentMapping().mode !== 'create_new' && matches.some(match => String(match.id) === String(initialTarget))) {
+      target.value = String(initialTarget);
+    }
+  }
   target.disabled = awCurrentMapping().mode === 'create_new';
   const box = document.getElementById('awMatches');
   box.innerHTML = matches.length
-    ? `<div class="fw-semibold mb-2">Pratiche locali compatibili</div>${matches.map(match => `<div class="small border-top pt-2 mt-2"><strong>${awEscape(match.numero)}</strong> - ${awEscape(match.titolo)}<br><span class="text-muted">${awEscape(match.rg_completo || '')} ${match.source ? `- Origine ${awEscape(match.source)}` : ''}</span></div>`).join('')}`
+    ? `${linked ? '<div class="small text-muted mb-2">Il fascicolo del workflow corrente e gia precollegato come target preferito.</div>' : ''}<div class="fw-semibold mb-2">Pratiche locali compatibili</div>${matches.map(match => `<div class="small border-top pt-2 mt-2"><strong>${awEscape(match.numero)}</strong> - ${awEscape(match.titolo)}<br><span class="text-muted">${awEscape(match.rg_completo || '')} ${match.source ? `- Origine ${awEscape(match.source)}` : ''}</span></div>`).join('')}`
     : '<div class="small text-muted">Nessun fascicolo locale compatibile rilevato: creare una nuova pratica e il flusso più pulito.</div>';
 }
 async function awWarmAnalysis() {

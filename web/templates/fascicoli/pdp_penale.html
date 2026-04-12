@@ -47,8 +47,8 @@
     <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="ds-btn ds-btn-ghost">
       <i class="bi bi-arrow-left"></i><span class="d-none d-sm-inline">Fascicolo</span>
     </a>
-    <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}" class="ds-btn ds-btn-outline">
-      <i class="bi bi-search"></i><span class="d-none d-sm-inline">Acquisizione PDP</span>
+    <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id) }}" class="ds-btn ds-btn-outline">
+      <i class="bi bi-search"></i><span class="d-none d-sm-inline">Acquisizione guidata</span>
     </a>
   </div>
 </div>
@@ -87,8 +87,8 @@
       {% if download_available_until %} I documenti risultano scaricabili fino a <strong>{{ download_available_until }}</strong>.{% endif %}
     </div>
   </div>
-  <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}" class="btn btn-sm btn-warning">
-    <i class="bi bi-box-arrow-up-right me-1"></i>Apri PDP ufficiale
+  <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-warning">
+    <i class="bi bi-box-arrow-up-right me-1"></i>Apri acquisizione guidata
   </a>
 </div>
 {% elif active_case and download_state == 'expired' %}
@@ -382,8 +382,8 @@
               <i class="bi bi-arrow-repeat me-1"></i>Sincronizza PEC
             </button>
           </form>
-          <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Apri PDP ufficiale
+          <a href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id) }}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Apri acquisizione guidata
           </a>
         </div>
         <div class="accordion" id="accPdpQuickActions">

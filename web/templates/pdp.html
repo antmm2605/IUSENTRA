@@ -44,7 +44,7 @@
     Nel penale non chiediamo una ricerca piena dal gestionale: la via corretta e' <strong>Acquisizione guidata</strong>,
     che cerca il fascicolo dal canale ufficiale, evita duplicati locali e apre subito il <strong>workflow PDP</strong>.
   </div>
-  <a class="btn btn-danger" href="{{ url_for('portale_acquisizione_wizard', portale='pdp') }}">
+  <a class="btn btn-danger" href="{{ url_for('portale_acquisizione_wizard', portale='pdp', id_fasc=fascicolo.id if fascicolo else None) }}">
     <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
   </a>
 </div>

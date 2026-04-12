@@ -136,6 +136,51 @@ def test_dettaglio_penale_importato_nasconde_navigazioni_portale_non_coerenti(tm
     assert "Acquisisci fascicolo" not in html
 
 
+def test_workflow_pdp_apre_acquisizione_guidata_nel_contesto_del_fascicolo(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        page = client.get(f"/fascicoli/{fasc_id}/penale/pdp", follow_redirects=True)
+        html = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert f"/portali/pdp/acquisizione?id_fasc={fasc_id}" in html
+    assert "Apri PDP ufficiale" not in html
+    assert "Acquisizione guidata" in html
+
+
+def test_acquisizione_guidata_pdp_con_fascicolo_collegato_mostra_workflow(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    fasc_id, _ = _seed_penal_workspace(cfg)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": "admin-penale", "password": "Admin1234!"},
+            follow_redirects=True,
+        )
+        assert login.status_code == 200
+
+        page = client.get(f"/portali/pdp/acquisizione?id_fasc={fasc_id}", follow_redirects=True)
+        html = page.get_data(as_text=True)
+
+    assert page.status_code == 200
+    assert "Acquisizione guidata dentro il workflow PDP" in html
+    assert f"/fascicoli/{fasc_id}/penale/pdp" in html
+    assert 'data-initial-target="' + fasc_id + '"' in html
+    assert 'value="update_existing" checked' in html
+
+
 def test_workspace_pdp_penale_registra_case_documenti_accesso_pec_e_task(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     fasc_id, local_doc_id = _seed_penal_workspace(cfg)

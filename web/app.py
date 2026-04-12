@@ -4734,11 +4734,40 @@ def create_app(config: dict | None = None) -> Flask:
         except KeyError:
             flash("Portale non supportato.", "warning")
             return redirect(url_for("dashboard"))
+        id_fasc = str(request.args.get("id_fasc") or "").strip()
+        linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
+        linked_fascicolo_url = (
+            url_for("dettaglio_fascicolo", id_fasc=linked_fascicolo.id)
+            if linked_fascicolo
+            else ""
+        )
+        linked_workflow_url = ""
+        if portale == "pdp" and linked_fascicolo:
+            linked_workflow_url = _pdp_penale_workspace_url_for_fascicolo(linked_fascicolo.id)
+        wizard_return_url = linked_fascicolo_url or url_for(spec["home_endpoint"])
+        wizard_return_label = "Torna al fascicolo" if linked_fascicolo else "Torna al portale"
+        wizard_initial_mapping = (
+            {
+                "mode": "update_existing",
+                "target_fascicolo_id": linked_fascicolo.id,
+            }
+            if linked_fascicolo
+            else {
+                "mode": "create_new",
+                "target_fascicolo_id": "",
+            }
+        )
         return render_template(
             "portale/acquisizione_wizard.html",
             spec=spec,
             wizard_status=_build_access_status_payload(portale),
             wizard_portale=portale,
+            linked_fascicolo=linked_fascicolo,
+            linked_fascicolo_url=linked_fascicolo_url,
+            linked_workflow_url=linked_workflow_url,
+            wizard_return_url=wizard_return_url,
+            wizard_return_label=wizard_return_label,
+            wizard_initial_mapping=wizard_initial_mapping,
             oggi=date.today(),
         )
 
@@ -9734,6 +9763,30 @@ read -r -p "Premi Invio per chiudere..." _
             created_by_user_id=getattr(g.utente_corrente, "id", "") or user_name,
         )
         return case
+
+    def _pdp_penale_workspace_url_for_fascicolo(id_fasc: str) -> str:
+        id_fasc = str(id_fasc or "").strip()
+        if not id_fasc:
+            return ""
+        try:
+            cases = get_pdp_penale().list_cases_for_practice(id_fasc)
+        except Exception:
+            cases = []
+        active_case = next(
+            (
+                row
+                for row in cases
+                if str(row.get("id") or "").strip()
+            ),
+            None,
+        )
+        if active_case:
+            return url_for(
+                "pdp_penale_workspace",
+                id_fasc=id_fasc,
+                case_id=str(active_case["id"]),
+            )
+        return url_for("pdp_penale_workspace", id_fasc=id_fasc)
 
     def _pdp_penale_access_status_from_request_status(request_status: str) -> str:
         mapping = {

@@ -469,6 +469,106 @@
       {% endif %}
     {% endcall %}
 
+    {% set risultato_presc = results.get('prescrizione') %}
+    {% call tool_section('prescrizione', 'Prescrizione civile', 'bi-hourglass-bottom', 'Termine prescrizionale con eventuale atto interruttivo e nuova decorrenza.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('prescrizione', fascicolo_sel) }}
+        <div class="col-md-4">
+          <label class="form-label">Tipologia</label>
+          <select name="presc_tipo" class="form-select">
+            <option value="ordinaria_10" {{ 'selected' if form_state.presc_tipo == 'ordinaria_10' }}>Ordinaria - 10 anni</option>
+            <option value="quinquennale_5" {{ 'selected' if form_state.presc_tipo == 'quinquennale_5' }}>Quinquennale - 5 anni</option>
+            <option value="extracontrattuale_5" {{ 'selected' if form_state.presc_tipo == 'extracontrattuale_5' }}>Extracontrattuale - 5 anni</option>
+            <option value="cambiari_3" {{ 'selected' if form_state.presc_tipo == 'cambiari_3' }}>Cambiali e assegni - 3 anni</option>
+            <option value="assicurazioni_2" {{ 'selected' if form_state.presc_tipo == 'assicurazioni_2' }}>Assicurazioni - 2 anni</option>
+            <option value="breve_1" {{ 'selected' if form_state.presc_tipo == 'breve_1' }}>Breve - 1 anno</option>
+          </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Data decorrenza</label><input type="date" name="presc_data_decorrenza" class="form-control" value="{{ form_state.presc_data_decorrenza }}"></div>
+        <div class="col-md-4"><label class="form-label">Atto interruttivo</label><input type="date" name="presc_atto_interruttivo" class="form-control" value="{{ form_state.presc_atto_interruttivo }}"></div>
+        <div class="col-12"><label class="form-label">Descrizione pratica o credito</label><input type="text" name="presc_descrizione" class="form-control" value="{{ form_state.presc_descrizione }}" placeholder="Es. canoni di locazione non pagati"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-hourglass me-2"></i>Calcola prescrizione</button></div>
+      </form>
+      {% if risultato_presc %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Tipologia', risultato_presc.tipo_label, risultato_presc.norma) }}
+        {{ metric_box('Scadenza originaria', risultato_presc.data_scadenza) }}
+        {{ metric_box('Scadenza effettiva', risultato_presc.data_scadenza_post_interruzione or risultato_presc.data_scadenza) }}
+        {{ metric_box('Residuo', (risultato_presc.giorni_residui_post_interruzione if risultato_presc.data_scadenza_post_interruzione else risultato_presc.giorni_residui) ~ ' giorni') }}
+      </div>
+      {% if risultato_presc.data_atto_interruttivo %}
+      <div class="tool-soft-panel mt-3">
+        <div class="tool-soft-title">Atto interruttivo considerato</div>
+        <div class="fw-semibold">{{ risultato_presc.data_atto_interruttivo }}</div>
+        <div class="small text-muted">Dalla data dell atto ricomincia a decorrere un nuovo termine integrale.</div>
+      </div>
+      {% endif %}
+      {{ render_messages(risultato_presc.notes, risultato_presc.warnings) }}
+      {{ render_sources(risultato_presc.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_db = results.get('danno_biologico') %}
+    {% call tool_section('danno_biologico', 'Danno biologico', 'bi-heart-pulse', 'Liquidazione operativa con IP, ITT, ITP, personalizzazione e danno morale.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('danno_biologico', fascicolo_sel) }}
+        <div class="col-md-2"><label class="form-label">Eta</label><input type="number" min="1" max="120" name="db_eta" class="form-control" value="{{ form_state.db_eta }}"></div>
+        <div class="col-md-2"><label class="form-label">IP %</label><input type="number" min="0" max="100" name="db_perc_ip" class="form-control" value="{{ form_state.db_perc_ip }}"></div>
+        <div class="col-md-2"><label class="form-label">Giorni ITT</label><input type="number" min="0" name="db_giorni_itt" class="form-control" value="{{ form_state.db_giorni_itt }}"></div>
+        <div class="col-md-2"><label class="form-label">Giorni ITP</label><input type="number" min="0" name="db_giorni_itp" class="form-control" value="{{ form_state.db_giorni_itp }}"></div>
+        <div class="col-md-2"><label class="form-label">Percentuale ITP</label><select name="db_perc_itp" class="form-select"><option value="25" {{ 'selected' if form_state.db_perc_itp == '25' }}>25%</option><option value="50" {{ 'selected' if form_state.db_perc_itp == '50' }}>50%</option><option value="75" {{ 'selected' if form_state.db_perc_itp == '75' }}>75%</option></select></div>
+        <div class="col-md-2"><label class="form-label">Personalizzazione %</label><input type="number" step="0.01" min="0" max="50" name="db_personalizzazione" class="form-control" value="{{ form_state.db_personalizzazione }}"></div>
+        <div class="col-md-3"><label class="form-label">Includi danno morale</label><select name="db_includi_morale" class="form-select"><option value="1" {{ 'selected' if form_state.db_includi_morale == '1' }}>Si</option><option value="0" {{ 'selected' if form_state.db_includi_morale != '1' }}>No</option></select></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-activity me-2"></i>Calcola danno</button></div>
+      </form>
+      {% if risultato_db %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Danno IP', '&euro; ' ~ ('%.2f'|format(risultato_db.danno_ip))|safe, 'Coeff. eta ' ~ risultato_db.coeff_eta) }}
+        {{ metric_box('Danno temporaneo', '&euro; ' ~ ('%.2f'|format(risultato_db.valore_itt + risultato_db.valore_itp))|safe) }}
+        {{ metric_box('Danno morale', '&euro; ' ~ ('%.2f'|format(risultato_db.danno_morale))|safe) }}
+        {{ metric_box('Totale complessivo', '&euro; ' ~ ('%.2f'|format(risultato_db.totale_comprensivo))|safe) }}
+      </div>
+      <div class="row g-3 mt-3">
+        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Danno temporaneo</div><div>ITT: &euro; {{ "%.2f"|format(risultato_db.valore_itt) }}</div><div>ITP: &euro; {{ "%.2f"|format(risultato_db.valore_itp) }}</div></div></div>
+        <div class="col-md-6"><div class="tool-soft-panel h-100"><div class="tool-soft-title">Personalizzazione</div><div>{{ risultato_db.personalizzazione_pct }}% = &euro; {{ "%.2f"|format(risultato_db.importo_personalizzazione) }}</div><div class="small text-muted">Totale biologico: &euro; {{ "%.2f"|format(risultato_db.totale_biologico) }}</div></div></div>
+      </div>
+      {{ render_messages(risultato_db.notes, risultato_db.warnings) }}
+      {{ render_sources(risultato_db.sources) }}
+      {% endif %}
+    {% endcall %}
+
+    {% set risultato_reg = results.get('imposta_registro') %}
+    {% call tool_section('imposta_registro', 'Imposta di registro', 'bi-receipt', 'Simulatore per sentenze, DI, verbali conciliativi e lodi arbitrali.') %}
+      <form method="post" class="row g-3 tool-form-grid">
+        {{ tool_hidden('imposta_registro', fascicolo_sel) }}
+        <div class="col-md-7">
+          <label class="form-label">Tipo atto</label>
+          <select name="reg_tipo_atto" class="form-select">
+            <option value="sentenza_condanna" {{ 'selected' if form_state.reg_tipo_atto == 'sentenza_condanna' }}>Sentenza di condanna</option>
+            <option value="sentenza_immobili" {{ 'selected' if form_state.reg_tipo_atto == 'sentenza_immobili' }}>Sentenza su trasferimento immobili</option>
+            <option value="decreto_ingiuntivo" {{ 'selected' if form_state.reg_tipo_atto == 'decreto_ingiuntivo' }}>Decreto ingiuntivo</option>
+            <option value="decreto_ingiuntivo_definitivo" {{ 'selected' if form_state.reg_tipo_atto == 'decreto_ingiuntivo_definitivo' }}>Decreto ingiuntivo definitivo</option>
+            <option value="verbale_conciliazione" {{ 'selected' if form_state.reg_tipo_atto == 'verbale_conciliazione' }}>Verbale di conciliazione</option>
+            <option value="lodo_arbitrale" {{ 'selected' if form_state.reg_tipo_atto == 'lodo_arbitrale' }}>Lodo arbitrale</option>
+            <option value="sentenza_separazione" {{ 'selected' if form_state.reg_tipo_atto == 'sentenza_separazione' }}>Separazione / divorzio</option>
+          </select>
+        </div>
+        <div class="col-md-3"><label class="form-label">Valore atto</label><input type="number" step="0.01" min="0" name="reg_valore" class="form-control" value="{{ form_state.reg_valore }}"></div>
+        <div class="col-md-2"><label class="form-label">Numero parti</label><input type="number" min="1" max="20" name="reg_parti" class="form-control" value="{{ form_state.reg_parti }}"></div>
+        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-calculator me-2"></i>Calcola imposta</button></div>
+      </form>
+      {% if risultato_reg %}
+      <div class="row g-3 mt-1">
+        {{ metric_box('Tipo atto', risultato_reg.tipo_label, risultato_reg.norma) }}
+        {{ metric_box('Aliquota', ('%.1f'|format(risultato_reg.aliquota_pct) ~ '%') if not risultato_reg.fisso else 'Fisso') }}
+        {{ metric_box('Imposta totale', '&euro; ' ~ ('%.2f'|format(risultato_reg.imposta))|safe) }}
+        {{ metric_box('Quota per parte', '&euro; ' ~ ('%.2f'|format(risultato_reg.quota_parte))|safe, risultato_reg.parti ~ ' parti') }}
+      </div>
+      {{ render_messages(risultato_reg.notes, risultato_reg.warnings) }}
+      {{ render_sources(risultato_reg.sources) }}
+      {% endif %}
+    {% endcall %}
+
     {% set risultato_tfr = results.get('tfr') %}
     {% call tool_section('tfr', 'TFR', 'bi-wallet2', 'Quota annua, rivalutazione e montante complessivo del trattamento di fine rapporto.') %}
       <form method="post" class="row g-3 tool-form-grid">

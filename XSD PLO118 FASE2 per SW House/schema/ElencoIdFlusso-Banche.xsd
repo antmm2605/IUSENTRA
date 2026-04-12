@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns="http://schemi.processotelematico.giustizia.it/unep/atti/banca/v1"
+		   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		   targetNamespace="http://schemi.processotelematico.giustizia.it/unep/atti/banca/v1"
+		   elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.0">
+	<xs:element name="ElencoIdFlusso">
+		<xs:annotation>
+			<xs:documentation>Elenco dati IUV inviati da Banca a GSU WEB</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="dataRegistrazione" type="xs:date" minOccurs="0"/>
+				<xs:element name="dataInvio" type="xs:date" minOccurs="0"/>
+				<xs:element name="cfBanca" type="xs:string" minOccurs="0"/>
+				<xs:element name="denominazioneBanca" type="xs:string" minOccurs="0"/>
+				<xs:element name="abi" type="xs:string" minOccurs="0"/>
+				<xs:element name="cab" type="xs:string" minOccurs="0"/>
+				<xs:element name="idpsp" type="xs:string"/>
+				<xs:element name="dettaglioFlussi" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="identificativoFlusso" type="xs:string"/>
+							<xs:element name="importoFlusso" type="xs:decimal" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="ibanBanca">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="[a-zA-Z]{2,2}[0-9]{2,2}[a-zA-Z0-9]{1,30}"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="eMailBanca">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:maxLength value="256"/>
+							<xs:pattern value="[A-Za-z0-9_]+([\-\+\.'][A-Za-z0-9_]+)*@[A-Za-z0-9_]+([\-\.][A-Za-z0-9_]+)*\.[A-Za-z0-9_]+([\-\.][A-Za-z0-9_]+)*"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

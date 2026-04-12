@@ -46,6 +46,65 @@ def test_errore_dns_endpoint_legacy_e_istruttivo():
     assert "PCT_PST_BASE_URL" in msg
 
 
+def test_errore_dns_portali_telematici_e_istruttivo():
+    module = _load_local_signer()
+
+    msg_pdp = module._curl_errore_leggibile(
+        6,
+        "",
+        "https://appweb.giustizia.it/snt/RicercaFascicoliPenaleService?wsdl",
+    )
+    msg_pat = module._curl_errore_leggibile(
+        6,
+        "",
+        "https://pac.giustizia-amministrativa.it/pac/RicercaRicorsiService?wsdl",
+    )
+    msg_ptt = module._curl_errore_leggibile(
+        6,
+        "",
+        "https://sigit.finanze.it/ptt/RicercaFascicoliTributarioService?wsdl",
+    )
+
+    assert "appweb.giustizia.it" in msg_pdp
+    assert "PCT_PDP_BASE_URL" in msg_pdp
+    assert "pac.giustizia-amministrativa.it" in msg_pat
+    assert "PCT_PAT_BASE_URL" in msg_pat
+    assert "sigit.finanze.it" in msg_ptt
+    assert "PCT_SIGIT_BASE_URL" in msg_ptt
+
+
+def test_wsdl_zeep_dns_error_diventa_messaggio_operativo():
+    module = _load_local_signer()
+    original = sys.modules.get("zeep")
+
+    class _FakeZeep:
+        class Client:
+            def __init__(self, wsdl):
+                raise RuntimeError(
+                    "HTTPSConnectionPool(host='appweb.giustizia.it', port=443): "
+                    "Max retries exceeded with url: /snt/RicercaFascicoliPenaleService?wsdl "
+                    "(Caused by NameResolutionError(\"getaddrinfo failed\"))"
+                )
+
+    module._ZEEP_WSDL_CACHE.clear()
+    sys.modules["zeep"] = _FakeZeep
+    try:
+        try:
+            module._get_zeep_wsdl_client(
+                "https://appweb.giustizia.it/snt/RicercaFascicoliPenaleService?wsdl"
+            )
+            raise AssertionError("Il caricamento WSDL doveva fallire con messaggio istruttivo.")
+        except RuntimeError as exc:
+            msg = str(exc)
+            assert "appweb.giustizia.it" in msg
+            assert "PCT_PDP_BASE_URL" in msg
+    finally:
+        if original is None:
+            sys.modules.pop("zeep", None)
+        else:
+            sys.modules["zeep"] = original
+
+
 def test_format_cert_not_valid_after_supporta_api_utc():
     module = _load_local_signer()
 
@@ -65,6 +124,15 @@ def test_local_signer_risolve_proxy_pst_dal_codice_hacs():
     assert base.endswith("/pda/pycons/GLMI/JPW_SICID")
     assert url == base
     assert module._risolvi_codice_ufficio_pst("0580010") == "0151460094"
+
+
+def test_local_signer_risolve_proxy_pst_cassazione_sul_catalogo_ufficiale():
+    module = _load_local_signer()
+
+    base = module._risolvi_base_pst_runtime("9990000")
+
+    assert base.endswith("/pda/pycons/GLCC/JPW_CASSCI")
+    assert module._pst_namespace_qbuilder(base) == "urn:CONS-CASSCI"
 
 
 def test_local_signer_risolve_proxy_pst_da_snapshot_quando_pct_non_e_disponibile():
@@ -523,6 +591,16 @@ def test_local_signer_usa_qbuilder_sicid_sulla_root_del_proxy():
     assert module._pst_servizio_proxy(base) == "JPW_SICID"
     assert module._pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
     assert module._pst_url_documenti(base) == base
+
+
+def test_local_signer_normalizza_alias_e_namespace_qbuilder_catalogo_corrente():
+    module = _load_local_signer()
+
+    assert module._pst_servizio_proxy("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "JPW_CASSCI"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIECIC") == "urn:CONS-SIECIC-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP") == "urn:CONS-SIGP-BE"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
+    assert module._pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
 
 
 def test_estrai_codice_fiscale_dal_certificato_windows():
@@ -2293,16 +2371,16 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
 
 def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
     module = _load_local_signer()
-    import pct.pdp as pdp_module
 
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
-        "_parse_fascicoli": pdp_module.ClientPDP._parse_fascicoli,
-        "_risolvi_codice": pdp_module.ClientPDP._risolvi_codice,
+        "_parse_pdp_fascicoli_response": module._parse_pdp_fascicoli_response,
+        "_risolvi_codice_ufficio_pdp_runtime": module._risolvi_codice_ufficio_pdp_runtime,
     }
 
     class _FakeHandler:
@@ -2322,33 +2400,35 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
-        pdp_module.ClientPDP._risolvi_codice = lambda self, ufficio: "0580010"
-        pdp_module.ClientPDP._parse_fascicoli = lambda self, risposta: [
-            pdp_module.FascicoloPDP(
-                numero_rg="4521",
-                anno_rg=2026,
-                tipo_registro="RGNR",
-                fase="INDAGINI",
-                stato="PENDENTE",
-                reato="Truffa",
-                codice_ufficio="0580010",
-                nome_ufficio="Procura di Reggio Calabria",
-                imputati=["Mario Rossi"],
-                parti_offese=["Parte Offesa"],
-            )
+        module._risolvi_codice_ufficio_pdp_runtime = lambda ufficio: "0580010"
+        module._parse_pdp_fascicoli_response = lambda risposta: [
+            {
+                "numero_rg": "4521",
+                "anno_rg": 2026,
+                "tipo_registro": "RGNR",
+                "fase": "INDAGINI",
+                "stato": "PENDENTE",
+                "reato": "Truffa",
+                "codice_ufficio": "0580010",
+                "nome_ufficio": "Procura di Reggio Calabria",
+                "imputati": ["Mario Rossi"],
+                "parti_offese": ["Parte Offesa"],
+            }
         ]
 
         module._Handler._pdp_ricerca(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
-        pdp_module.ClientPDP._parse_fascicoli = originals["_parse_fascicoli"]
-        pdp_module.ClientPDP._risolvi_codice = originals["_risolvi_codice"]
+        module._parse_pdp_fascicoli_response = originals["_parse_pdp_fascicoli_response"]
+        module._risolvi_codice_ufficio_pdp_runtime = originals["_risolvi_codice_ufficio_pdp_runtime"]
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
@@ -2358,17 +2438,141 @@ def test_pdp_ricerca_local_signer_restituisce_fascicoli_parsati():
     assert captured["bridge"]["cert_thumbprint"] == "AABBCC11"
 
 
-def test_pat_documenti_local_signer_restituisce_documenti_parsati():
+def test_portale_wsdl_diretto_abilitato_default_attivo():
     module = _load_local_signer()
-    import pct.pat as pat_module
+    env_names = [
+        "HACS_SIGNER_FORCE_BROWSER_ASSIST",
+        "PCT_FORCE_BROWSER_ASSIST",
+        "HACS_SIGNER_DISABLE_PORTALI_WSDL",
+        "PCT_DISABLE_PORTALI_WSDL",
+        "HACS_SIGNER_DISABLE_PDP_WSDL",
+        "PCT_DISABLE_PDP_WSDL",
+        "HACS_SIGNER_DISABLE_PAT_WSDL",
+        "PCT_DISABLE_PAT_WSDL",
+        "HACS_SIGNER_DISABLE_PTT_WSDL",
+        "PCT_DISABLE_PTT_WSDL",
+    ]
+    saved = {name: os.environ.get(name) for name in env_names}
+    try:
+        for name in env_names:
+            os.environ.pop(name, None)
+        assert module._portale_wsdl_diretto_abilitato("pdp") is True
+        assert module._portale_wsdl_diretto_abilitato("pat") is True
+        assert module._portale_wsdl_diretto_abilitato("ptt") is True
+    finally:
+        for name, value in saved.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
+def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
+    module = _load_local_signer()
 
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
-        "_parse_documenti": pat_module.ClientPAT._parse_documenti,
+        "_risolvi_codice_ufficio_pdp_runtime": module._risolvi_codice_ufficio_pdp_runtime,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "ufficio": "Procura di Reggio Calabria",
+                "numero_rg": "4521",
+                "anno_rg": "2026",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._risolvi_codice_ufficio_pdp_runtime = lambda ufficio: "0580010"
+
+        def _boom(**kwargs):
+            raise RuntimeError(
+                "HTTPSConnectionPool(host='appweb.giustizia.it', port=443): "
+                "Max retries exceeded with url: /snt/RicercaFascicoliPenaleService?wsdl "
+                "(Caused by NameResolutionError(\"getaddrinfo failed\"))"
+            )
+
+        module._soap_call_zeep_operation_via_curl = _boom
+        module._Handler._pdp_ricerca(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        module._risolvi_codice_ufficio_pdp_runtime = originals["_risolvi_codice_ufficio_pdp_runtime"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_phase"] == "ricerca"
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
+
+
+def test_pdp_ricerca_local_signer_browser_assistito_se_wsdl_disabilitato():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
+        "_require_certificato_pst": module._require_certificato_pst,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "ufficio": "Procura di Reggio Calabria",
+                "numero_rg": "4521",
+                "anno_rg": "2026",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._portale_wsdl_diretto_abilitato = lambda portale: False
+        module._require_certificato_pst = lambda thumb: (_ for _ in ()).throw(AssertionError("Certificato non atteso in modalita browser-assistita"))
+        module._Handler._pdp_ricerca(_FakeHandler())
+    finally:
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
+    assert captured["payload"]["portale_url"] == "https://pst.giustizia.it/PST/it/services.page"
+
+
+def test_pat_documenti_local_signer_restituisce_documenti_parsati():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_parse_pat_documenti_response": module._parse_pat_documenti_response,
     }
 
     class _FakeHandler:
@@ -2386,28 +2590,30 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
-        pat_module.ClientPAT._parse_documenti = lambda self, risposta: [
-            pat_module.DocumentoPAT(
-                id_documento="PAT-001",
-                nome="Ricorso.pdf",
-                tipo="RICORSO",
-                data_deposito="2026-03-11",
-                mittente="Studio Rossi",
-                id_deposito="BUSTA-PAT-001",
-                tipo_atto="Ricorso",
-            )
+        module._parse_pat_documenti_response = lambda risposta: [
+            {
+                "id_documento": "PAT-001",
+                "nome": "Ricorso.pdf",
+                "tipo": "RICORSO",
+                "data_deposito": "2026-03-11",
+                "mittente": "Studio Rossi",
+                "id_deposito": "BUSTA-PAT-001",
+                "tipo_atto": "Ricorso",
+            }
         ]
 
         module._Handler._pat_documenti(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
-        pat_module.ClientPAT._parse_documenti = originals["_parse_documenti"]
+        module._parse_pat_documenti_response = originals["_parse_pat_documenti_response"]
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
@@ -2416,18 +2622,55 @@ def test_pat_documenti_local_signer_restituisce_documenti_parsati():
     assert captured["bridge"]["payload"]["codiceUfficio"] == "TARLZ"
 
 
+def test_pat_documenti_local_signer_browser_assistito_se_wsdl_disabilitato():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
+        "_require_certificato_pst": module._require_certificato_pst,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "codice_ufficio": "TARLZ",
+                "numero_ricorso": "1876",
+                "anno": "2026",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._portale_wsdl_diretto_abilitato = lambda portale: False
+        module._require_certificato_pst = lambda thumb: (_ for _ in ()).throw(AssertionError("Certificato non atteso in modalita browser-assistita"))
+        module._Handler._pat_documenti(_FakeHandler())
+    finally:
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
+    assert captured["payload"]["portale_url"] == "https://www.giustizia-amministrativa.it/portale-avvocato"
+
+
 def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
     module = _load_local_signer()
-    import pct.sigit as sigit_module
 
     captured = {}
     originals = {
         "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
         "_require_certificato_pst": module._require_certificato_pst,
         "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
         "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
-        "_parse_fascicoli": sigit_module.ClientSIGIT._parse_fascicoli,
-        "_risolvi_codice": sigit_module.ClientSIGIT._risolvi_codice,
+        "_parse_ptt_fascicoli_response": module._parse_ptt_fascicoli_response,
+        "_risolvi_codice_commissione_ptt_runtime": module._risolvi_codice_commissione_ptt_runtime,
     }
 
     class _FakeHandler:
@@ -2447,35 +2690,146 @@ def test_ptt_ricerca_local_signer_restituisce_fascicoli_parsati():
 
     try:
         module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
         module._require_certificato_pst = lambda thumb: "AABBCC11"
         module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
         module._soap_call_zeep_operation_via_curl = lambda **kwargs: captured.setdefault("bridge", kwargs) or SimpleNamespace()
-        sigit_module.ClientSIGIT._risolvi_codice = lambda self, commissione: "CPT030000"
-        sigit_module.ClientSIGIT._parse_fascicoli = lambda self, risposta: [
-            sigit_module.FascicoloSIGIT(
-                numero_rgt="1234",
-                anno_rgt=2026,
-                tipo="RICORSO",
-                stato="PENDENTE",
-                materia="IVA",
-                ricorrenti=["Mario Rossi"],
-                resistenti=["Agenzia Entrate"],
-                codice_commissione="CPT030000",
-                nome_commissione="CPT Milano",
-            )
+        module._risolvi_codice_commissione_ptt_runtime = lambda commissione: "CPT030000"
+        module._parse_ptt_fascicoli_response = lambda risposta: [
+            {
+                "numero_rgt": "1234",
+                "anno_rgt": 2026,
+                "tipo": "RICORSO",
+                "stato": "PENDENTE",
+                "materia": "IVA",
+                "ricorrenti": ["Mario Rossi"],
+                "resistenti": ["Agenzia Entrate"],
+                "codice_commissione": "CPT030000",
+                "nome_commissione": "CPT Milano",
+            }
         ]
 
         module._Handler._ptt_ricerca(_FakeHandler())
     finally:
         module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
         module._require_certificato_pst = originals["_require_certificato_pst"]
         module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
         module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
-        sigit_module.ClientSIGIT._parse_fascicoli = originals["_parse_fascicoli"]
-        sigit_module.ClientSIGIT._risolvi_codice = originals["_risolvi_codice"]
+        module._parse_ptt_fascicoli_response = originals["_parse_ptt_fascicoli_response"]
+        module._risolvi_codice_commissione_ptt_runtime = originals["_risolvi_codice_commissione_ptt_runtime"]
 
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert captured["payload"]["fascicoli"][0]["codice_commissione"] == "CPT030000"
     assert captured["bridge"]["operation_name"] == "ricercaFascicoliTributari"
     assert captured["bridge"]["payload"]["codiceCommissione"] == "CPT030000"
+
+
+def test_ptt_ricerca_local_signer_403_restituisce_manual_required():
+    module = _load_local_signer()
+
+    captured = {}
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_portale_wsdl_diretto_abilitato": module._portale_wsdl_diretto_abilitato,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_require_cf_avvocato_locale": module._require_cf_avvocato_locale,
+        "_soap_call_zeep_operation_via_curl": module._soap_call_zeep_operation_via_curl,
+        "_risolvi_codice_commissione_ptt_runtime": module._risolvi_codice_commissione_ptt_runtime,
+    }
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "commissione": "CPT Milano",
+                "numero_rgt": "1234",
+                "anno_rgt": "2026",
+                "cert_thumbprint": "AABBCC11",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._portale_wsdl_diretto_abilitato = lambda portale: True
+        module._require_certificato_pst = lambda thumb: "AABBCC11"
+        module._require_cf_avvocato_locale = lambda cf, thumb: "RSSMRA80A01H501Z"
+        module._risolvi_codice_commissione_ptt_runtime = lambda commissione: "CPT030000"
+
+        def _boom(**kwargs):
+            raise RuntimeError(
+                "403 Client Error: Forbidden for url: "
+                "https://sigit.finanze.it/ptt/RicercaFascicoliTributarioService?wsdl"
+            )
+
+        module._soap_call_zeep_operation_via_curl = _boom
+        module._Handler._ptt_ricerca(_FakeHandler())
+    finally:
+        module._curl_disponibile = originals["_curl_disponibile"]
+        module._portale_wsdl_diretto_abilitato = originals["_portale_wsdl_diretto_abilitato"]
+        module._require_certificato_pst = originals["_require_certificato_pst"]
+        module._require_cf_avvocato_locale = originals["_require_cf_avvocato_locale"]
+        module._soap_call_zeep_operation_via_curl = originals["_soap_call_zeep_operation_via_curl"]
+        module._risolvi_codice_commissione_ptt_runtime = originals["_risolvi_codice_commissione_ptt_runtime"]
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is False
+    assert captured["payload"]["manual_required"] is True
+    assert captured["payload"]["manual_phase"] == "ricerca"
+    assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
+    assert captured["payload"]["portale_url"] == "https://sigit.finanze.it/NIRWeb/login.jsp"
+
+
+def test_parse_pdp_documenti_response_popola_campi_busta():
+    module = _load_local_signer()
+
+    risposta = SimpleNamespace(
+        documenti=[
+            SimpleNamespace(
+                idDocumento="PDP-001",
+                nomeFile="Memoria.pdf",
+                tipoDocumento="MEMORIA",
+                dataDeposito="2026-04-11T09:30:00",
+                mittente="Studio Rossi",
+                dimensione=2048,
+                disponibile=True,
+                idDeposito="BUSTA-PDP-001",
+                tipoAtto="Memoria",
+            )
+        ]
+    )
+
+    parsed = module._parse_pdp_documenti_response(risposta)
+
+    assert parsed[0]["id_documento"] == "PDP-001"
+    assert parsed[0]["id_deposito"] == "BUSTA-PDP-001"
+    assert parsed[0]["tipo_atto"] == "Memoria"
+
+
+def test_parse_pat_documenti_response_popola_campi_busta():
+    module = _load_local_signer()
+
+    risposta = SimpleNamespace(
+        documenti=[
+            SimpleNamespace(
+                idDocumento="PAT-001",
+                nomeFile="Ricorso.pdf",
+                tipoDocumento="RICORSO",
+                dataDeposito="2026-04-11T09:30:00",
+                mittente="Studio Rossi",
+                dimensione=4096,
+                disponibile=True,
+                idDeposito="BUSTA-PAT-001",
+                tipoAtto="Ricorso",
+            )
+        ]
+    )
+
+    parsed = module._parse_pat_documenti_response(risposta)
+
+    assert parsed[0]["id_documento"] == "PAT-001"
+    assert parsed[0]["id_deposito"] == "BUSTA-PAT-001"
+    assert parsed[0]["tipo_atto"] == "Ricorso"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HACS Local Signer — v1.5.27
+HACS Local Signer — v1.5.34
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -58,7 +58,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from email import policy
 from email.parser import BytesParser
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -77,7 +77,7 @@ except Exception:
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.5.27"
+VERSION = "1.5.36"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -98,6 +98,7 @@ LOCAL_SIGNER_ALLOWED_ORIGINS = os.getenv(
     os.getenv("HACS_SIGNER_ALLOWED_ORIGINS", ""),
 ) or ",".join(_DEFAULT_HACS_ALLOWED_ORIGINS)
 _ZEEP_WSDL_CACHE: dict[str, Any] = {}
+_TRUE_VALUES = {"1", "true", "yes", "on"}
 
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
@@ -110,10 +111,26 @@ _PST_PORTALE_URL = "https://pst.giustizia.it"
 _PST_PROXY_PDA_URL = "https://pda.processotelematico.giustizia.it"
 _PST_PROXY_SH_URL = "https://ext.processotelematico.giustizia.it"
 _PST_LEGACY_BASE = "https://wspa.giustizia.it/wspa"
-_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP")
+_PST_SERVIZI_DEFAULT = ("JPW_SICID", "JPW_SIECIC", "JPW_SIGP", "JPW_CASSCI", "JPW_CASSPE")
+_PST_SERVIZI_ALIAS = {
+    "JPW_CASS": "JPW_CASSCI",
+}
 _PST_QBUILDER_NAMESPACES = {
     "JPW_SICID": "urn:CONS-SICC-BE",
+    "JPW_SIECIC": "urn:CONS-SIECIC-BE",
+    "JPW_SIGP": "urn:CONS-SIGP-BE",
+    "JPW_CASSCI": "urn:CONS-CASSCI",
+    "JPW_CASSPE": "urn:CONS-CASSPE",
 }
+_PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
+_WSDL_RICERCA_PENALE = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
+_WSDL_CONSULTA_PENALE = f"{_PDP_BASE}/ConsultazioneDocumentiPenaleService?wsdl"
+_PAT_BASE = os.getenv("PCT_PAT_BASE_URL", "https://pac.giustizia-amministrativa.it/pac").rstrip("/")
+_WSDL_RICERCA_AMM = f"{_PAT_BASE}/RicercaRicorsiService?wsdl"
+_WSDL_CONSULTA_AMM = f"{_PAT_BASE}/ConsultazioneDocumentiService?wsdl"
+_SIGIT_BASE = os.getenv("PCT_SIGIT_BASE_URL", "https://sigit.finanze.it/ptt").rstrip("/")
+_WSDL_RICERCA_TRIB = f"{_SIGIT_BASE}/RicercaFascicoliTributarioService?wsdl"
+_WSDL_CONSULTA_TRIB = f"{_SIGIT_BASE}/ConsultazioneDocumentiTributarioService?wsdl"
 _CF_PATTERN = re.compile(r"\b([A-Z]{6}[0-9A-Z]{2}[A-Z][0-9A-Z]{2}[A-Z][0-9A-Z]{3}[A-Z])\b")
 _PST_CERT_ISSUER_PRIORITIES = (
     "ArubaPEC EU Authentica Certificates CA G1",
@@ -162,6 +179,7 @@ _DEFAULT_LIBS = [
 _lib_cache: Optional[str] = None
 _ultimo_certificato_windows: Optional[dict] = None
 _uffici_snapshot_cache: Optional[dict[str, dict]] = None
+_uffici_hacs_cache: Optional[list[dict[str, Any]]] = None
 _pin_session_cache: dict[str, dict] = {}
 _pin_session_lock = threading.Lock()
 _pst_session_cache: dict[str, dict] = {}
@@ -304,6 +322,159 @@ def _supporto_auto_pst_disponibile() -> bool:
     return bool(_carica_snapshot_uffici())
 
 
+def _env_flag_enabled(name: str) -> bool:
+    return str(os.getenv(name, "") or "").strip().lower() in _TRUE_VALUES
+
+
+def _normalizza_servizio_pst_name(servizio: Any) -> str:
+    valore = str(servizio or "").strip().upper()
+    if not valore:
+        return ""
+    return _PST_SERVIZI_ALIAS.get(valore, valore)
+
+
+def _carica_bundle_uffici_hacs() -> list[dict[str, Any]]:
+    global _uffici_hacs_cache
+    if _uffici_hacs_cache is not None:
+        return _uffici_hacs_cache
+
+    try:
+        from pct.uffici_giudiziari import _build_bundle_completo
+
+        bundle = _build_bundle_completo()
+        _uffici_hacs_cache = bundle if isinstance(bundle, list) else []
+    except Exception:
+        _uffici_hacs_cache = []
+    return _uffici_hacs_cache
+
+
+def _risolvi_ufficio_hacs_bundle(
+    valore: str,
+    *,
+    tipi: Optional[tuple[str, ...]] = None,
+) -> Optional[dict[str, Any]]:
+    chiave = (valore or "").strip()
+    if not chiave:
+        return None
+
+    tipi_norm = {str(tipo).upper() for tipo in (tipi or ()) if str(tipo).strip()}
+    bundle = _carica_bundle_uffici_hacs()
+    if not bundle:
+        return None
+
+    chiave_upper = chiave.upper()
+    chiave_norm = _normalizza_testo_ufficio(chiave)
+    best_partial: Optional[dict[str, Any]] = None
+
+    for ufficio in bundle:
+        tipo = str(ufficio.get("tipo") or "").upper()
+        if tipi_norm and tipo not in tipi_norm:
+            continue
+
+        codice = str(ufficio.get("codice") or "").strip()
+        nome = str(ufficio.get("nome") or "").strip()
+        distretto = str(ufficio.get("distretto") or "").strip()
+
+        if codice and codice.upper() == chiave_upper:
+            return ufficio
+
+        campi = [nome, distretto, f"{nome} {distretto}".strip()]
+        campi_norm = [_normalizza_testo_ufficio(campo) for campo in campi if campo]
+        if chiave_norm in campi_norm:
+            return ufficio
+
+        if chiave_norm and not best_partial and any(
+            chiave_norm in campo_norm for campo_norm in campi_norm if campo_norm
+        ):
+            best_partial = ufficio
+
+    return best_partial
+
+
+def _looks_like_pat_code(valore: str) -> bool:
+    text = (valore or "").strip().upper()
+    return bool(text) and (
+        text.isdigit()
+        or text.startswith("T")
+        or text.startswith("CDS")
+        or text.startswith("CGARS")
+    )
+
+
+def _looks_like_ptt_code(valore: str) -> bool:
+    text = (valore or "").strip().upper()
+    return bool(text) and (text.isdigit() or text.startswith(("CPT", "CGT")))
+
+
+def _risolvi_codice_ufficio_pdp_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if text.isdigit():
+        return text
+
+    ufficio = _risolvi_ufficio_da_snapshot(text) or _risolvi_ufficio_hacs_bundle(
+        text,
+        tipi=(
+            "TRIBUNALE",
+            "PROCURA",
+            "PROCURA_GENERALE",
+            "CORTE_APPELLO",
+            "TM",
+            "SORVEGLIANZA",
+            "CORTE_ASSISE",
+            "CORTE_CASSAZIONE",
+        ),
+    )
+    if ufficio:
+        codice = str(ufficio.get("codice") or ufficio.get("codice_ministero") or "").strip()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice ufficio PDP dal valore indicato. "
+        "Selezionare l'ufficio dalla lista del wizard oppure verificare il registro uffici locale."
+    )
+
+
+def _risolvi_codice_ufficio_pat_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if _looks_like_pat_code(text):
+        return text
+
+    ufficio = _risolvi_ufficio_hacs_bundle(text, tipi=("TAR", "CDS", "CGARS"))
+    if ufficio:
+        codice = str(ufficio.get("codice") or "").strip()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice ufficio PAT dal valore indicato. "
+        "Selezionare l'ufficio dalla lista del wizard oppure aggiornare il registro portali."
+    )
+
+
+def _risolvi_codice_commissione_ptt_runtime(valore: str) -> str:
+    text = (valore or "").strip()
+    if not text:
+        return ""
+    if _looks_like_ptt_code(text):
+        return text.upper()
+
+    ufficio = _risolvi_ufficio_hacs_bundle(text, tipi=("CPT", "CGT"))
+    if ufficio:
+        codice = str(ufficio.get("codice") or "").strip().upper()
+        if codice:
+            return codice
+
+    raise ValueError(
+        "Impossibile risolvere il codice commissione PTT dal valore indicato. "
+        "Selezionare la commissione dalla lista del wizard oppure aggiornare il registro portali."
+    )
+
+
 def _normalizza_origin(origin: str) -> str:
     """Restituisce un'origin canonicale per i controlli CORS."""
     origin = (origin or "").strip().rstrip("/")
@@ -354,16 +525,16 @@ def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
 
     codice_gl = str(ufficio.get("codice_gl") or "").strip()
     servizi = [
-        str(servizio).strip().upper()
+        _normalizza_servizio_pst_name(servizio)
         for servizio in (ufficio.get("servizi_ministero") or [])
         if str(servizio).strip()
     ]
     servizi_jpw = [servizio for servizio in servizi if servizio.startswith("JPW_")]
     preferenze = []
-    env_pref = os.getenv("PCT_PST_SERVIZIO_DEFAULT", "").strip().upper()
+    env_pref = _normalizza_servizio_pst_name(os.getenv("PCT_PST_SERVIZIO_DEFAULT", ""))
     if env_pref:
         preferenze.append(env_pref)
-    servizio_default = str(ufficio.get("servizio_pst_predefinito") or "").strip().upper()
+    servizio_default = _normalizza_servizio_pst_name(ufficio.get("servizio_pst_predefinito") or "")
     if servizio_default:
         preferenze.append(servizio_default)
     preferenze.extend(_PST_SERVIZI_DEFAULT)
@@ -380,6 +551,14 @@ def _risolvi_base_pst_da_snapshot(codice_o_nome: str) -> str:
 
     base_env = (os.getenv("PCT_PST_BASE_URL", "") or "").strip().rstrip("/")
     if base_env and "/pda/pycons/" in base_env:
+        parsed = urlparse(base_env)
+        path_parts = [part for part in parsed.path.rstrip("/").split("/") if part]
+        if path_parts:
+            path_parts[-1] = _normalizza_servizio_pst_name(path_parts[-1])
+            normalized_path = "/" + "/".join(path_parts)
+            if parsed.scheme and parsed.netloc:
+                return f"{parsed.scheme}://{parsed.netloc}{normalized_path}"
+            return normalized_path
         return base_env
     root = base_env or os.getenv("PCT_PST_PROXY_ROOT", "").strip().rstrip("/") or _PST_PROXY_SH_URL
     if root.startswith(_PST_LEGACY_BASE):
@@ -609,6 +788,215 @@ def _estrai_codice_fiscale_testo(valore: str) -> str:
 def _parse_optional_int(value: Any) -> Optional[int]:
     text = str(value or "").strip()
     return int(text) if text.isdigit() else None
+
+
+def _parse_portale_data(valore: Any) -> str:
+    if not valore:
+        return ""
+    if isinstance(valore, (date, datetime)):
+        return valore.strftime("%Y-%m-%d")
+    return str(valore)[:10]
+
+
+def _parse_portale_lista(
+    valore: Any,
+    *,
+    container_attrs: tuple[str, ...],
+    value_attrs: tuple[str, ...] = ("nominativo",),
+) -> list[str]:
+    if not valore:
+        return []
+    if isinstance(valore, list):
+        return [str(v) for v in valore if str(v).strip()]
+
+    for attr in container_attrs:
+        if not hasattr(valore, attr):
+            continue
+        items = getattr(valore, attr)
+        if not isinstance(items, list):
+            items = [items]
+        risultati: list[str] = []
+        for item in items:
+            if item is None:
+                continue
+            testo = ""
+            for value_attr in value_attrs:
+                candidato = getattr(item, value_attr, None)
+                if candidato:
+                    testo = str(candidato)
+                    break
+            risultati.append(testo or str(item))
+        return risultati
+
+    return [str(valore)]
+
+
+def _portale_items(risposta: Any, plural_attr: str, singular_attr: str) -> list[Any]:
+    items = getattr(risposta, plural_attr, None) or getattr(risposta, singular_attr, None) or []
+    if not isinstance(items, list):
+        items = [items]
+    return [item for item in items if item is not None]
+
+
+def _parse_pdp_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "fascicoli", "fascicolo"):
+            fascicoli.append({
+                "numero_rg": str(getattr(item, "numeroRG", "") or ""),
+                "anno_rg": int(getattr(item, "annoRG", 0) or 0),
+                "tipo_registro": str(getattr(item, "tipoRegistro", "RGNR") or ""),
+                "fase": str(getattr(item, "fase", "INDAGINI") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "reato": str(getattr(item, "reato", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice": str(getattr(item, "giudice", "") or ""),
+                "data_iscrizione": _parse_portale_data(getattr(item, "dataIscrizione", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "imputati": _parse_portale_lista(
+                    getattr(item, "imputati", None),
+                    container_attrs=("imputato", "parte", "soggetto"),
+                ),
+                "parti_offese": _parse_portale_lista(
+                    getattr(item, "partiOffese", None),
+                    container_attrs=("parte", "soggetto", "imputato"),
+                ),
+                "codice_ufficio": str(getattr(item, "codiceUfficio", "") or ""),
+                "nome_ufficio": str(getattr(item, "nomeUfficio", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_pdp_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
+
+
+def _parse_pat_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "ricorsi", "ricorso"):
+            fascicoli.append({
+                "numero_ricorso": str(getattr(item, "numeroRicorso", "") or ""),
+                "anno": int(getattr(item, "anno", 0) or 0),
+                "tipo": str(getattr(item, "tipo", "RICORSO") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "materia": str(getattr(item, "materia", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice_relatore": str(getattr(item, "giudiceRelatore", "") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "ricorrenti": _parse_portale_lista(
+                    getattr(item, "ricorrenti", None),
+                    container_attrs=("soggetto", "parte", "ricorrente"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "resistenti": _parse_portale_lista(
+                    getattr(item, "resistenti", None),
+                    container_attrs=("soggetto", "parte", "resistente"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "controinteressati": _parse_portale_lista(
+                    getattr(item, "controinteressati", None),
+                    container_attrs=("soggetto", "parte"),
+                    value_attrs=("denominazione", "nominativo"),
+                ),
+                "oggetto": str(getattr(item, "oggetto", "") or ""),
+                "codice_ufficio": str(getattr(item, "codiceUfficio", "") or ""),
+                "nome_ufficio": str(getattr(item, "nomeUfficio", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_pat_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
+
+
+def _parse_ptt_fascicoli_response(risposta: Any) -> list[dict[str, Any]]:
+    fascicoli: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "fascicoli", "fascicolo"):
+            fascicoli.append({
+                "numero_rgt": str(getattr(item, "numeroRGT", "") or ""),
+                "anno_rgt": int(getattr(item, "annoRGT", 0) or 0),
+                "tipo": str(getattr(item, "tipoRicorso", "RICORSO") or ""),
+                "stato": str(getattr(item, "stato", "PENDENTE") or ""),
+                "materia": str(getattr(item, "materia", "") or ""),
+                "sezione": str(getattr(item, "sezione", "") or ""),
+                "giudice_relatore": str(getattr(item, "giudiceRelatore", "") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "data_udienza": _parse_portale_data(getattr(item, "dataUdienza", None)),
+                "ricorrenti": _parse_portale_lista(
+                    getattr(item, "ricorrenti", None),
+                    container_attrs=("ricorrente", "soggetto", "parte"),
+                ),
+                "resistenti": _parse_portale_lista(
+                    getattr(item, "resistenti", None),
+                    container_attrs=("resistente", "soggetto", "parte"),
+                ),
+                "oggetto_controversia": str(getattr(item, "oggettoControversia", "") or ""),
+                "valore_controversia": float(getattr(item, "valoreControversia", 0.0) or 0.0),
+                "codice_commissione": str(getattr(item, "codiceCommissione", "") or ""),
+                "nome_commissione": str(getattr(item, "nomeCommissione", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return fascicoli
+
+
+def _parse_ptt_documenti_response(risposta: Any) -> list[dict[str, Any]]:
+    documenti: list[dict[str, Any]] = []
+    try:
+        for item in _portale_items(risposta, "documenti", "documento"):
+            documenti.append({
+                "id_documento": str(getattr(item, "idDocumento", "") or ""),
+                "nome": str(getattr(item, "nomeFile", "") or ""),
+                "tipo": str(getattr(item, "tipoDocumento", "ATTO") or ""),
+                "data_deposito": _parse_portale_data(getattr(item, "dataDeposito", None)),
+                "mittente": str(getattr(item, "mittente", "") or ""),
+                "dimensione_bytes": int(getattr(item, "dimensione", 0) or 0),
+                "disponibile": bool(getattr(item, "disponibile", True)),
+                "id_deposito": str(getattr(item, "idDeposito", "") or ""),
+                "tipo_atto": str(getattr(item, "tipoAtto", "") or ""),
+            })
+    except (AttributeError, TypeError, ValueError):
+        return []
+    return documenti
 
 
 def _trova_certificato_windows(cert_thumbprint: Optional[str]) -> dict:
@@ -1645,7 +2033,7 @@ def _messaggio_endpoint_pst_legacy() -> str:
 
 
 def _pst_servizio_proxy(base_url: str) -> str:
-    return (base_url or "").rstrip("/").split("/")[-1].strip().upper()
+    return _normalizza_servizio_pst_name((base_url or "").rstrip("/").split("/")[-1])
 
 
 def _pst_namespace_qbuilder(base_url: str) -> str:
@@ -1766,6 +2154,169 @@ _CURL_EXIT_CODES = {
 }
 
 
+def _looks_like_dns_resolution_error(text: str) -> bool:
+    value = str(text or "").strip().lower()
+    if not value:
+        return False
+    markers = (
+        "failed to resolve",
+        "name resolution",
+        "name or service not known",
+        "getaddrinfo failed",
+        "could not resolve host",
+        "temporary failure in name resolution",
+        "max retries exceeded",
+    )
+    return any(marker in value for marker in markers)
+
+
+def _looks_like_http_forbidden_error(text: str) -> bool:
+    value = str(text or "").strip().lower()
+    if not value:
+        return False
+    markers = (
+        "403 client error",
+        "403 forbidden",
+        "forbidden for url",
+        "http 403",
+    )
+    return any(marker in value for marker in markers)
+
+
+def _messaggio_dns_endpoint_portale(url: str) -> str:
+    host = _pst_host(url)
+    if "appweb.giustizia.it" in host:
+        return (
+            "Il PC non riesce a risolvere appweb.giustizia.it (PDP Penale).\n"
+            "Verificare DNS, proxy, firewall o VPN e aprire prima il portale ufficiale nel browser.\n"
+            "Se il Ministero o l'ufficio hanno comunicato un endpoint aggiornato, impostare PCT_PDP_BASE_URL."
+        )
+    if "pac.giustizia-amministrativa.it" in host:
+        return (
+            "Il PC non riesce a risolvere pac.giustizia-amministrativa.it (PAT).\n"
+            "Verificare accesso e DNS del Portale Avvocato ufficiale https://www.giustizia-amministrativa.it/portale-avvocato.\n"
+            "Se l'endpoint servizi e' stato aggiornato, impostare PCT_PAT_BASE_URL."
+        )
+    if "www.ptt.mef.gov.it" in host:
+        return (
+            "Il PC sta ancora puntando al vecchio host PTT www.ptt.mef.gov.it, non piu' usato da HACS.\n"
+            "Aggiornare o reinstallare il Local Signer piu' recente: il default corretto e' https://sigit.finanze.it/ptt.\n"
+            "In alternativa impostare esplicitamente PCT_SIGIT_BASE_URL."
+        )
+    if "sigit.finanze.it" in host:
+        return (
+            "Il PC non riesce a risolvere sigit.finanze.it (PTT / SIGIT).\n"
+            "Verificare DNS, proxy, firewall o VPN e l'accesso al portale SIGIT dal browser.\n"
+            "Se necessario, impostare un endpoint diverso tramite PCT_SIGIT_BASE_URL."
+        )
+    host_label = host or "l'host richiesto"
+    return (
+        f"Il PC non riesce a risolvere {host_label}.\n"
+        "Verificare DNS, proxy, firewall o VPN e riprovare."
+    )
+
+
+def _portale_browser_url(portale: str) -> str:
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm == "pdp":
+        return "https://pst.giustizia.it/PST/it/services.page"
+    if portale_norm == "pat":
+        return "https://www.giustizia-amministrativa.it/portale-avvocato"
+    if portale_norm == "ptt":
+        return "https://sigit.finanze.it/NIRWeb/login.jsp"
+    return ""
+
+
+def _portale_wsdl_diretto_abilitato(portale: str) -> bool:
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm not in {"pdp", "pat", "ptt"}:
+        return True
+    if _env_flag_enabled("HACS_SIGNER_FORCE_BROWSER_ASSIST") or _env_flag_enabled("PCT_FORCE_BROWSER_ASSIST"):
+        return False
+    return not (
+        _env_flag_enabled("HACS_SIGNER_DISABLE_PORTALI_WSDL")
+        or _env_flag_enabled("PCT_DISABLE_PORTALI_WSDL")
+        or _env_flag_enabled(f"HACS_SIGNER_DISABLE_{portale_norm.upper()}_WSDL")
+        or _env_flag_enabled(f"PCT_DISABLE_{portale_norm.upper()}_WSDL")
+    )
+
+
+def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
+    portale_norm = str(portale or "").strip().lower()
+    phase_norm = str(phase or "").strip().lower() or "ricerca"
+    phase_label = "ricerca fascicolo" if phase_norm == "ricerca" else "catalogo documenti"
+    if portale_norm == "pdp":
+        errore = (
+            "Consultazione via browser ufficiale: per PDP la "
+            f"{phase_label} viene completata dal PST nel browser. "
+            "HACS puo' proseguire con l'acquisizione assistita."
+        )
+    elif portale_norm == "pat":
+        errore = (
+            "Consultazione via browser ufficiale: per PAT la "
+            f"{phase_label} viene completata dal Portale Avvocato nel browser. "
+            "HACS puo' proseguire con l'acquisizione assistita."
+        )
+    else:
+        errore = (
+            "Consultazione via browser ufficiale: per PTT/SIGIT il "
+            f"{phase_label} viene completato nel browser ufficiale. "
+            "HACS puo' proseguire con l'acquisizione assistita."
+        )
+    return {
+        "ok": False,
+        "errore": errore,
+        "manual_required": True,
+        "manual_phase": phase_norm,
+        "manual_title": "Consultazione via browser ufficiale",
+        "manual_reason": (
+            f"Local Signer {VERSION} usa di default la modalita browser-assistita per {portale_norm.upper()}. "
+            "Il portale ufficiale resta la fonte per consultazione e documenti."
+        ),
+        "portale_url": _portale_browser_url(portale),
+    }
+
+
+def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) -> str:
+    text = str(error or "").strip()
+    portale_norm = str(portale or "").strip().lower()
+    if portale_norm == "pdp":
+        return (
+            "Consultazione via browser ufficiale: apri il Portale Deposito atti Penali dall'area servizi del PST e usa l'inserimento manuale assistito di HACS.\n"
+            f"Dettaglio tecnico: {text}"
+        )
+    if portale_norm == "pat":
+        return (
+            "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Amministrativo Telematico e accedi al Portale Avvocato, poi usa l'inserimento manuale assistito di HACS.\n"
+            f"Dettaglio tecnico: {text}"
+        )
+    return (
+        "Consultazione via browser ufficiale: apri la pagina ufficiale del Processo Tributario Telematico (PTT/SIGIT) e prosegui con l'inserimento manuale assistito di HACS.\n"
+        f"Dettaglio tecnico: {text}"
+    )
+
+
+def _portale_manual_required_payload(portale: str, error: Exception | str, phase: str) -> dict[str, Any] | None:
+    text = str(error or "").strip()
+    if not text:
+        return None
+    if not (_looks_like_dns_resolution_error(text) or _looks_like_http_forbidden_error(text)):
+        return None
+    phase_norm = str(phase or "").strip().lower() or "ricerca"
+    return {
+        "ok": False,
+        "errore": _messaggio_endpoint_browser_guidato(portale, text),
+        "manual_required": True,
+        "manual_phase": phase_norm,
+        "manual_title": "Consultazione via browser ufficiale",
+        "manual_reason": (
+            "Il canale WSDL diretto non e' disponibile su questo PC. "
+            "HACS puo' comunque proseguire con l'acquisizione assistita manuale."
+        ),
+        "portale_url": _portale_browser_url(portale),
+    }
+
+
 def _curl_errore_leggibile(
     returncode: int,
     stderr: str,
@@ -1780,6 +2331,9 @@ def _curl_errore_leggibile(
 
     if returncode == 6 and _pst_endpoint_configurato_e_legacy(url):
         return _messaggio_endpoint_pst_legacy()
+
+    if returncode == 6:
+        return _messaggio_dns_endpoint_portale(url)
 
     template = _CURL_EXIT_CODES.get(returncode)
     if template:
@@ -2666,7 +3220,12 @@ def _get_zeep_wsdl_client(wsdl_url: str):
         raise RuntimeError(
             "Dipendenza mancante nel Local Signer: installare zeep per l'accesso Aruba Key a PDP/PAT/PTT."
         ) from exc
-    client = zeep.Client(wsdl=wsdl_url)
+    try:
+        client = zeep.Client(wsdl=wsdl_url)
+    except Exception as exc:
+        if _looks_like_dns_resolution_error(exc):
+            raise RuntimeError(_messaggio_dns_endpoint_portale(wsdl_url)) from exc
+        raise
     _ZEEP_WSDL_CACHE[wsdl_url] = client
     return client
 
@@ -5248,25 +5807,24 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pdp_ricerca(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         ufficio = str(data.get("ufficio") or data.get("codice_ufficio") or "").strip()
         if not ufficio:
             self._send_json({"ok": False, "errore": "Campo 'ufficio' obbligatorio"}, 400)
             return
+        if not _portale_wsdl_diretto_abilitato("pdp"):
+            self._send_json(_portale_browser_assist_payload("pdp", "ricerca"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
 
         try:
-            from pct.pdp import ClientPDP, _WSDL_RICERCA_PENALE
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceUfficio": client._risolvi_codice(ufficio),
+                "codiceUfficio": _risolvi_codice_ufficio_pdp_runtime(ufficio),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_rg = str(data.get("numero_rg") or "").strip()
@@ -5287,17 +5845,17 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_pdp_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PDP ricerca: %s", e)
+            manual_payload = _portale_manual_required_payload("pdp", e, "ricerca")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pdp_documenti(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         codice_ufficio = str(data.get("codice_ufficio") or data.get("ufficio") or "").strip()
         numero_rg = str(data.get("numero_rg") or "").strip()
@@ -5308,13 +5866,16 @@ class _Handler(BaseHTTPRequestHandler):
                 400,
             )
             return
+        if not _portale_wsdl_diretto_abilitato("pdp"):
+            self._send_json(_portale_browser_assist_payload("pdp", "documenti"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
 
         try:
-            from pct.pdp import ClientPDP, _WSDL_CONSULTA_PENALE
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPDP(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_PENALE,
                 operation_name="consultaDocumentiPenale",
@@ -5326,32 +5887,35 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_pdp_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PDP documenti: %s", e)
+            manual_payload = _portale_manual_required_payload("pdp", e, "documenti")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pat_ricerca(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         ufficio = str(data.get("ufficio") or data.get("codice_ufficio") or "").strip()
         if not ufficio:
             self._send_json({"ok": False, "errore": "Campo 'ufficio' obbligatorio"}, 400)
             return
+        if not _portale_wsdl_diretto_abilitato("pat"):
+            self._send_json(_portale_browser_assist_payload("pat", "ricerca"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
 
         try:
-            from pct.pat import ClientPAT, _WSDL_RICERCA_AMM
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceUfficio": client._risolvi_codice(ufficio),
+                "codiceUfficio": _risolvi_codice_ufficio_pat_runtime(ufficio),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
@@ -5372,17 +5936,17 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_pat_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PAT ricerca: %s", e)
+            manual_payload = _portale_manual_required_payload("pat", e, "ricerca")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pat_documenti(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         codice_ufficio = str(data.get("codice_ufficio") or data.get("ufficio") or "").strip()
         numero_ricorso = str(data.get("numero_ricorso") or data.get("numero") or "").strip()
@@ -5393,13 +5957,16 @@ class _Handler(BaseHTTPRequestHandler):
                 400,
             )
             return
+        if not _portale_wsdl_diretto_abilitato("pat"):
+            self._send_json(_portale_browser_assist_payload("pat", "documenti"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
 
         try:
-            from pct.pat import ClientPAT, _WSDL_CONSULTA_AMM
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientPAT(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_AMM,
                 operation_name="consultazioneDocumenti",
@@ -5411,32 +5978,35 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_pat_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PAT documenti: %s", e)
+            manual_payload = _portale_manual_required_payload("pat", e, "documenti")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ptt_ricerca(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         commissione = str(data.get("commissione") or data.get("codice_commissione") or "").strip()
         if not commissione:
             self._send_json({"ok": False, "errore": "Campo 'commissione' obbligatorio"}, 400)
             return
+        if not _portale_wsdl_diretto_abilitato("ptt"):
+            self._send_json(_portale_browser_assist_payload("ptt", "ricerca"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
 
         try:
-            from pct.sigit import ClientSIGIT, _WSDL_RICERCA_TRIB
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
             payload: Dict[str, Any] = {
                 "codiceFiscaleAvvocato": cf_avvocato,
-                "codiceCommissione": client._risolvi_codice(commissione),
+                "codiceCommissione": _risolvi_codice_commissione_ptt_runtime(commissione),
                 "maxRisultati": _parse_optional_int(data.get("max_risultati")) or 50,
             }
             numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
@@ -5457,17 +6027,17 @@ class _Handler(BaseHTTPRequestHandler):
                 payload=payload,
                 cert_thumbprint=cert_thumbprint,
             )
-            fascicoli = [dict(vars(item)) for item in client._parse_fascicoli(risposta)]
+            fascicoli = _parse_ptt_fascicoli_response(risposta)
             self._send_json({"ok": True, "fascicoli": fascicoli})
         except Exception as e:
             log.error("Errore PTT ricerca: %s", e)
+            manual_payload = _portale_manual_required_payload("ptt", e, "ricerca")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _ptt_documenti(self):
-        if not _curl_disponibile():
-            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
-            return
-
         data = self._read_json()
         codice_commissione = str(data.get("codice_commissione") or data.get("commissione") or "").strip()
         numero_rgt = str(data.get("numero_rgt") or data.get("numero") or "").strip()
@@ -5478,13 +6048,16 @@ class _Handler(BaseHTTPRequestHandler):
                 400,
             )
             return
+        if not _portale_wsdl_diretto_abilitato("ptt"):
+            self._send_json(_portale_browser_assist_payload("ptt", "documenti"))
+            return
+        if not _curl_disponibile():
+            self._send_json({"ok": False, "errore": "curl non disponibile nel PATH"}, 400)
+            return
 
         try:
-            from pct.sigit import ClientSIGIT, _WSDL_CONSULTA_TRIB
-
             cert_thumbprint = _require_certificato_pst(data.get("cert_thumbprint"))
             cf_avvocato = _require_cf_avvocato_locale(data.get("cf_avvocato", ""), cert_thumbprint)
-            client = ClientSIGIT(codice_fiscale_avvocato=cf_avvocato)
             risposta = _soap_call_zeep_operation_via_curl(
                 wsdl_url=_WSDL_CONSULTA_TRIB,
                 operation_name="consultaDocumentiTributari",
@@ -5496,10 +6069,14 @@ class _Handler(BaseHTTPRequestHandler):
                 },
                 cert_thumbprint=cert_thumbprint,
             )
-            documenti = [dict(vars(item)) for item in client._parse_documenti(risposta)]
+            documenti = _parse_ptt_documenti_response(risposta)
             self._send_json({"ok": True, "documenti": documenti})
         except Exception as e:
             log.error("Errore PTT documenti: %s", e)
+            manual_payload = _portale_manual_required_payload("ptt", e, "documenti")
+            if manual_payload:
+                self._send_json(manual_payload)
+                return
             self._send_json({"ok": False, "errore": str(e)}, 500)
 
     def _pst_download_documento(self):

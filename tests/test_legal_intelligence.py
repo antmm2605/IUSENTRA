@@ -200,6 +200,8 @@ def test_dashboard_snapshot_include_fonti_tariffario_e_fatturazione(tmp_path):
     assert "agenzia_entrate" in source_ids
     assert "fatturapa" in source_ids
     assert "pst_servizi_web" in source_ids
+    assert "pst_download" in source_ids
+    assert "pst_pdp_specifiche" in source_ids
 
 
 def test_monitor_source_pst_servizi_web_rileva_versione_e_catalogo_wsdl(tmp_path):
@@ -461,6 +463,19 @@ def test_sync_registro_mediazione_elenco_preserva_cache_se_portale_non_raggiungi
 
 def test_fonti_per_query_mediazione_risolvono_la_fonte_ufficiale():
     assert "registro_mediazione" in fonti_per_query("verifica organismo di mediazione iscritto")
+
+
+def test_fonti_per_query_pdp_risolvono_specifiche_ufficiali():
+    source_ids = fonti_per_query("PDP portale deposito atti penali e specifiche tecniche")
+
+    assert "pst_pdp_specifiche" in source_ids
+    assert "pst_giustizia" in source_ids
+
+
+def test_fonti_per_query_certificati_proxy_risolvono_download_pst():
+    source_ids = fonti_per_query("certificati proxy PdA e PST")
+
+    assert "pst_download" in source_ids
 
 
 def test_tracker_fascicolo_mostra_avanzamento_e_chiusura(tmp_path):

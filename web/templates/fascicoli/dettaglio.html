@@ -5,7 +5,7 @@
 {% block page_title %}Fascicolo {{ fascicolo_ref_principale }}{% endblock %}
 
 {% set SC = {'APERTO':'primary','IN_CORSO':'success','SOSPESO':'warning','DEFINITO':'info','ARCHIVIATO':'secondary'} %}
-{% set EC = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'light'} %}
+{% set EC = {'IN_ATTESA':'secondary','FAVOREVOLE':'success','PARZIALE':'warning','SFAVOREVOLE':'danger','RINVIATO':'info','ANNULLATO':'dark','NON_APPLICABILE':'secondary'} %}
 {% set WFS = workspace_fascicolo or {} %}
 {% set WFC = WFS.counts or {} %}
 {% set ns_portale = namespace(documenti=0, depositi=0) %}
@@ -216,21 +216,72 @@
                           </div>
                         </div>
                         {% if pdoc.local_doc_id %}
+                        {%- set _pnome = pdoc.local_doc_nome or pdoc.nome or '' %}
+                        {%- set _pnome_pre = _pnome[:-4] if _pnome.lower().endswith('.p7m') else _pnome %}
+                        {%- set _pext = _pnome_pre.rsplit('.',1)[-1].lower() if '.' in _pnome_pre else '' %}
+                        {%- set _pvis = _pext in ['pdf','jpg','jpeg','png','gif'] %}
                         <div class="d-flex gap-1 flex-wrap">
-                          {% if pdoc.local_doc_previewabile %}
-                          <button type="button" class="btn btn-outline-primary btn-sm"
-                                  data-doc-nome="{{ pdoc.local_doc_nome }}"
+                          {# Editor #}
+                          {% if _pext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                          <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                            class="btn btn-sm btn-primary" title="Apri nell'editor">
+                            <i class="bi bi-pencil-square"></i>
+                          </a>
+                          {% endif %}
+                          {# Anteprima #}
+                          {% if _pvis %}
+                          <button type="button" class="btn btn-outline-primary btn-sm" title="Anteprima"
+                                  data-doc-nome="{{ _pnome }}"
                                   data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                   onclick="apriVisualizzatore(this)">
-                            <i class="bi bi-eye me-1"></i>Visualizza
+                            <i class="bi bi-eye"></i>
                           </button>
                           {% endif %}
+                          {# Scarica #}
                           <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                             class="btn btn-outline-secondary btn-sm">
-                            <i class="bi bi-download me-1"></i>Scarica
+                             class="btn btn-outline-secondary btn-sm" title="Scarica">
+                            <i class="bi bi-download"></i>
                           </a>
+                          {# Copia con attestazione (solo PDF) #}
+                          {% if _pext == 'pdf' %}
+                          <form method="post" class="d-inline"
+                                action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}">
+                            <button class="btn btn-outline-info btn-sm" title="Copia con attestazione">
+                              <i class="bi bi-patch-check"></i>
+                            </button>
+                          </form>
+                          {% endif %}
+                          {# Firma per deposito (solo non firmati) #}
+                          {% if not pdoc.local_doc_firmato %}
+                          <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+                                  data-doc-id="{{ pdoc.local_doc_id }}"
+                                  data-doc-nome="{{ _pnome }}"
+                                  data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                  onclick="apriFirma(this)">
+                            <i class="bi bi-pen"></i>
+                          </button>
+                          {% endif %}
+                          {# Converti PDF/A (solo PDF non firmati) #}
+                          {% if _pext == 'pdf' and not pdoc.local_doc_firmato %}
+                          <form method="post" class="d-inline"
+                                action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                            <button class="btn btn-outline-warning btn-sm" title="Converti in PDF/A-2B">
+                              <i class="bi bi-file-earmark-check"></i>
+                            </button>
+                          </form>
+                          {% endif %}
+                          {# Elimina #}
+                          <form method="post" class="d-inline"
+                                action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                onsubmit="return confirm('Eliminare il documento dal fascicolo?')">
+                            <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </form>
                         </div>
                         {% endif %}
                       </div>
@@ -299,43 +350,129 @@
       </div>
       <div class="card-body p-0">
         {% if WFS.attivita_processuali %}
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 small mob-cards">
-            <thead class="table-light">
-              <tr><th>Data</th><th>Tipo</th><th>Titolo</th><th>Luogo</th><th>Esito</th><th></th></tr>
-            </thead>
-            <tbody>
-              {% for att in WFS.attivita_processuali %}
-              <tr>
-                <td data-label="Data" class="text-nowrap">{{ att.data|fmt_data }}</td>
-                <td data-label="Tipo">
-                  <span class="badge bg-light text-dark border" style="font-size:.7rem">
-                    {{ att.tipo.value.replace('_',' ') }}
-                  </span>
-                </td>
-                <td data-label="Titolo">
-                  <div class="fw-semibold">{{ att.titolo }}</div>
-                  {% if att.descrizione %}
-                    <div class="text-muted" style="font-size:.75rem">{{ att.descrizione|truncate(50) }}</div>
+        <div class="list-group list-group-flush">
+          {% for att in WFS.attivita_processuali %}
+          {# Cerca documenti collegati a questa attività #}
+          {%- set att_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
+          {%- set att_single_doc = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
+          {%- set att_esito_tone = EC.get(att.esito.value,'secondary') %}
+          <div class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+              <div class="d-flex align-items-start gap-3">
+                <div class="mt-1">
+                  {% if att.esito.value == 'FAVOREVOLE' %}
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                  {% elif att.esito.value == 'SFAVOREVOLE' %}
+                    <i class="bi bi-x-octagon-fill text-danger"></i>
+                  {% elif att.esito.value == 'PARZIALE' %}
+                    <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                  {% elif att.esito.value == 'RINVIATO' %}
+                    <i class="bi bi-arrow-repeat text-info"></i>
+                  {% elif att.esito.value == 'ANNULLATO' %}
+                    <i class="bi bi-slash-circle text-dark"></i>
+                  {% elif att.esito.value == 'IN_ATTESA' %}
+                    <i class="bi bi-hourglass-split text-secondary"></i>
+                  {% else %}
+                    <i class="bi bi-dash-circle text-secondary"></i>
                   {% endif %}
-                </td>
-                <td data-label="Luogo" data-mob-hide>{{ att.luogo or '—' }}</td>
-                <td data-label="Esito">
-                  <span class="badge bg-{{ EC.get(att.esito.value,'secondary') }}">
-                    {{ att.esito.value.replace('_',' ') }}
-                  </span>
-                </td>
-                <td data-label="">
-                  <button class="btn btn-sm btn-outline-secondary"
-                          data-bs-toggle="modal"
-                          data-bs-target="#modalEsito{{ att.id }}">
-                    <i class="bi bi-pencil-square"></i>
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ att.titolo }}</div>
+                  <div class="d-flex flex-wrap gap-2 align-items-center mt-1">
+                    <span class="badge bg-secondary" style="font-size:.68rem">
+                      {{ att.tipo.value.replace('_',' ') }}
+                    </span>
+                    <span class="small text-muted">{{ att.data|fmt_data }}</span>
+                    {% if att.luogo %}
+                    <span class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ att.luogo }}</span>
+                    {% endif %}
+                  </div>
+                  {% if att.descrizione %}
+                  <div class="small text-muted mt-1">{{ att.descrizione|truncate(80) }}</div>
+                  {% endif %}
+                  {% if att_docs %}
+                  <div class="d-flex gap-1 flex-wrap mt-2">
+                    {% for adoc in att_docs[:3] %}
+                    <span class="badge bg-light text-dark border" style="font-size:.65rem" title="{{ adoc.nome }}">
+                      <i class="bi bi-file-earmark me-1"></i>{{ adoc.nome|truncate(20) }}
+                    </span>
+                    {% endfor %}
+                    {% if att_docs|length > 3 %}
+                    <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ att_docs|length - 3 }}</span>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-2 flex-shrink-0 flex-wrap">
+                <span class="badge text-bg-{{ att_esito_tone }}">
+                  {{ att.esito.value.replace('_',' ') }}
+                </span>
+                {# Azioni documento #}
+                {% if att_docs %}
+                {%- set _first_doc = att_docs[0] %}
+                {%- set _fn = _first_doc.nome or '' %}
+                {%- set _fn_pre = _fn[:-4] if _fn.lower().endswith('.p7m') else _fn %}
+                {%- set _fext = _fn_pre.rsplit('.',1)[-1].lower() if '.' in _fn_pre else '' %}
+                {%- set _fvis = _fext in ['pdf','jpg','jpeg','png','gif'] %}
+                {% if _fvis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ _first_doc.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_first_doc.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
                   </button>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                </form>
+                {% elif att_single_doc %}
+                {%- set _sn = att_single_doc.nome or '' %}
+                {%- set _sn_pre = _sn[:-4] if _sn.lower().endswith('.p7m') else _sn %}
+                {%- set _sext = _sn_pre.rsplit('.',1)[-1].lower() if '.' in _sn_pre else '' %}
+                {%- set _svis = _sext in ['pdf','jpg','jpeg','png','gif'] %}
+                {% if _svis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ att_single_doc.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=att_single_doc.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <button class="btn btn-sm btn-outline-secondary" title="Modifica esito"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalEsito{{ att.id }}">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
         </div>
         {% else %}
         <div class="text-muted text-center py-4 small">Nessuna attività processuale</div>
@@ -798,7 +935,7 @@
         <span class="text-nowrap">
           <i class="bi bi-calendar-event me-2 text-primary"></i>
           Udienze e scadenze
-          <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.udienze_attivita|length) + (WFS.scadenze|length) + (WFS.appuntamenti|length) }}</span>
+          <span class="badge bg-primary rounded-pill ms-1">{{ (WFS.udienze_attivita|length) + (WFS.udienze_depositi|default([])|length) + (WFS.scadenze|length) + (WFS.appuntamenti|length) }}</span>
         </span>
         <i class="bi bi-chevron-down small"></i>
         </button>
@@ -813,18 +950,110 @@
       </div>
       <div class="collapse" id="collapse-sezione-udienze-scadenze">
       <div class="card-body p-0">
-        {% if WFS.udienze_attivita or WFS.scadenze or WFS.appuntamenti %}
+        {% if WFS.udienze_attivita or WFS.udienze_depositi|default([]) or WFS.scadenze or WFS.appuntamenti %}
         <div class="list-group list-group-flush small">
           {% for att in WFS.udienze_attivita %}
+          {%- set ud_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
+          {%- set ud_single = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
           <div class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ att.titolo }}</div>
                 <div class="text-muted">{{ att.descrizione or att.tipo.value.replace('_',' ') }}</div>
+                {% if ud_docs or ud_single %}
+                <div class="d-flex gap-1 flex-wrap mt-2">
+                  {%- set _udoc = ud_docs[0] if ud_docs else ud_single %}
+                  {%- set _un = _udoc.nome or '' %}
+                  {%- set _un_pre = _un[:-4] if _un.lower().endswith('.p7m') else _un %}
+                  {%- set _uext = _un_pre.rsplit('.',1)[-1].lower() if '.' in _un_pre else '' %}
+                  {%- set _uvis = _uext in ['pdf','jpg','jpeg','png','gif'] %}
+                  {% if _uvis %}
+                  <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                          data-doc-nome="{{ _udoc.nome }}"
+                          data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                          data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                          data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                          onclick="apriVisualizzatore(this)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% endif %}
+                  <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                     class="btn btn-outline-secondary btn-sm" title="Scarica">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <form method="post" class="d-inline"
+                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_udoc.id) }}"
+                        onsubmit="return confirm('Eliminare il documento?')">
+                    <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                  {% if ud_docs|length > 1 %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ ud_docs|length - 1 }} doc</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
               <div class="text-end">
                 <span class="badge bg-light text-dark border">{{ att.tipo.value.replace('_',' ') }}</span>
                 <div class="text-muted mt-1">{{ att.data|fmt_data }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% for dep in WFS.udienze_depositi|default([]) %}
+          {%- set ud_dep_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', dep.id) | list if dep.id else [] %}
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ dep.tipo_atto }}</div>
+                <div class="text-muted">{{ dep.nome_atto_principale or dep.note or 'Udienza/scadenza dal portale' }}</div>
+                {% if ud_dep_docs %}
+                <div class="d-flex gap-1 flex-wrap mt-1">
+                  {% for uddoc in ud_dep_docs[:3] %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem" title="{{ uddoc.nome }}">
+                    <i class="bi bi-file-earmark me-1"></i>{{ uddoc.nome|truncate(20) }}
+                  </span>
+                  {% endfor %}
+                  {% if ud_dep_docs|length > 3 %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ ud_dep_docs|length - 3 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                {% if ud_dep_docs %}
+                {%- set _uddoc0 = ud_dep_docs[0] %}
+                {%- set _udn = _uddoc0.nome or '' %}
+                {%- set _udn_pre = _udn[:-4] if _udn.lower().endswith('.p7m') else _udn %}
+                {%- set _udext = _udn_pre.rsplit('.',1)[-1].lower() if '.' in _udn_pre else '' %}
+                {%- set _udvis = _udext in ['pdf','jpg','jpeg','png','gif'] %}
+                {% if _udvis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ _uddoc0.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_uddoc0.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <div class="text-end ms-1">
+                  <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
+                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1003,6 +1232,8 @@
         <div class="list-group list-group-flush border-bottom">
           {% for att in WFS.comunicazioni_attivita %}
           {% set has_email_detail = att.email_testo or att.email_html or att.email_mittente or att.email_oggetto or att.note %}
+          {%- set com_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', att.id_deposito_pct) | list if att.id_deposito_pct else [] %}
+          {%- set com_single = (fascicolo.documenti | selectattr('id','equalto', att.id_documento) | first) if att.id_documento else None %}
           <div class="list-group-item small">
             <div class="d-flex justify-content-between align-items-start gap-2">
               <div class="flex-grow-1">
@@ -1022,6 +1253,37 @@
                 {% else %}
                 <div class="fw-semibold">{{ att.titolo }}</div>
                 <div class="text-muted">{{ att.descrizione or att.note or 'Comunicazione di cancelleria registrata nel fascicolo.' }}</div>
+                {% endif %}
+                {# Bottoni documento collegato #}
+                {% if com_docs or com_single %}
+                {%- set _cdoc = com_docs[0] if com_docs else com_single %}
+                {%- set _cn = _cdoc.nome or '' %}
+                {%- set _cn_pre = _cn[:-4] if _cn.lower().endswith('.p7m') else _cn %}
+                {%- set _cext = _cn_pre.rsplit('.',1)[-1].lower() if '.' in _cn_pre else '' %}
+                {%- set _cvis = _cext in ['pdf','jpg','jpeg','png','gif'] %}
+                <div class="d-flex gap-1 flex-wrap mt-2">
+                  {% if _cvis %}
+                  <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                          data-doc-nome="{{ _cdoc.nome }}"
+                          data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                          data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                          data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                          onclick="apriVisualizzatore(this)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  {% endif %}
+                  <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                     class="btn btn-outline-secondary btn-sm" title="Scarica">
+                    <i class="bi bi-download"></i>
+                  </a>
+                  <form method="post" class="d-inline"
+                        action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_cdoc.id) }}"
+                        onsubmit="return confirm('Eliminare il documento?')">
+                    <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
                 {% endif %}
               </div>
               <div class="text-end">
@@ -1288,21 +1550,91 @@
                   <div class="collapse mt-1" id="dep-docs-{{ dep.id }}">
                     <ul class="list-unstyled mb-0 ps-2 border-start border-2 border-success-subtle">
                       {% for ddoc in _dep_docs %}
-                      <li class="py-1 d-flex align-items-center gap-2" style="font-size:.8rem">
-                        {% if ddoc.nome == dep.nome_atto_principale %}
-                        <i class="bi bi-file-earmark-text text-primary flex-shrink-0" title="Atto principale"></i>
-                        {% else %}
-                        <i class="bi bi-paperclip text-muted flex-shrink-0" title="Allegato"></i>
-                        {% endif %}
-                        <span class="text-break">{{ ddoc.nome }}</span>
-                        {% if ddoc.firmato_digitalmente %}
-                        <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato"></i>
-                        {% endif %}
-                        <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
-                           class="btn btn-outline-secondary btn-sm py-0 px-1 flex-shrink-0 ms-auto"
-                           title="Scarica" style="font-size:.7rem">
-                          <i class="bi bi-download"></i>
-                        </a>
+                      {%- set _dn = ddoc.nome or '' %}
+                      {%- set _dn_pre = _dn[:-4] if _dn.lower().endswith('.p7m') else _dn %}
+                      {%- set _dext = _dn_pre.rsplit('.',1)[-1].lower() if '.' in _dn_pre else '' %}
+                      {%- set _dvis = _dext in ['pdf','jpg','jpeg','png','gif'] %}
+                      <li class="py-2" style="font-size:.8rem">
+                        <div class="d-flex align-items-start gap-2">
+                          {% if ddoc.nome == dep.nome_atto_principale %}
+                          <i class="bi bi-file-earmark-text text-primary flex-shrink-0 mt-1" title="Atto principale"></i>
+                          {% else %}
+                          <i class="bi bi-paperclip text-muted flex-shrink-0 mt-1" title="Allegato"></i>
+                          {% endif %}
+                          <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="text-break fw-semibold">{{ ddoc.nome }}</span>
+                              {% if ddoc.firmato_digitalmente %}
+                              <i class="bi bi-patch-check-fill text-success flex-shrink-0" title="Firmato"></i>
+                              {% endif %}
+                            </div>
+                            <div class="d-flex gap-1 flex-wrap mt-1">
+                              {# Editor #}
+                              {% if _dext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                              <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                class="btn btn-sm btn-primary py-0 px-1" title="Editor" style="font-size:.7rem">
+                                <i class="bi bi-pencil-square"></i>
+                              </a>
+                              {% endif %}
+                              {# Anteprima #}
+                              {% if _dvis %}
+                              <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1" title="Anteprima"
+                                      style="font-size:.7rem"
+                                      data-doc-nome="{{ ddoc.nome }}"
+                                      data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      onclick="apriVisualizzatore(this)">
+                                <i class="bi bi-eye"></i>
+                              </button>
+                              {% endif %}
+                              {# Scarica #}
+                              <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                 class="btn btn-outline-secondary btn-sm py-0 px-1" title="Scarica" style="font-size:.7rem">
+                                <i class="bi bi-download"></i>
+                              </a>
+                              {# Copia con attestazione (solo PDF) #}
+                              {% if _dext == 'pdf' %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=ddoc.id) }}">
+                                <button class="btn btn-outline-info btn-sm py-0 px-1" title="Copia con attestazione" style="font-size:.7rem">
+                                  <i class="bi bi-patch-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Firma per deposito #}
+                              {% if not ddoc.firmato_digitalmente %}
+                              <button type="button" class="btn btn-outline-success btn-sm py-0 px-1" title="Firma per deposito"
+                                      style="font-size:.7rem"
+                                      data-doc-id="{{ ddoc.id }}"
+                                      data-doc-nome="{{ ddoc.nome }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                      onclick="apriFirma(this)">
+                                <i class="bi bi-pen"></i>
+                              </button>
+                              {% endif %}
+                              {# Converti PDF/A #}
+                              {% if _dext == 'pdf' and not ddoc.firmato_digitalmente %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                <button class="btn btn-outline-warning btn-sm py-0 px-1" title="Converti PDF/A" style="font-size:.7rem">
+                                  <i class="bi bi-file-earmark-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Elimina #}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=ddoc.id) }}"
+                                    onsubmit="return confirm('Eliminare il documento?')">
+                                <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Elimina" style="font-size:.7rem">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
                       </li>
                       {% endfor %}
                     </ul>
@@ -1367,21 +1699,72 @@
                               {% if pdoc.mittente %} · {{ pdoc.mittente }}{% endif %}
                             </div>
                             {% if pdoc.local_doc_id %}
+                            {%- set _mn = pdoc.local_doc_nome or pdoc.nome or '' %}
+                            {%- set _mn_pre = _mn[:-4] if _mn.lower().endswith('.p7m') else _mn %}
+                            {%- set _mext = _mn_pre.rsplit('.',1)[-1].lower() if '.' in _mn_pre else '' %}
+                            {%- set _mvis = _mext in ['pdf','jpg','jpeg','png','gif'] %}
                             <div class="d-flex gap-1 flex-wrap mt-2">
-                              {% if pdoc.local_doc_previewabile %}
-                              <button type="button" class="btn btn-outline-primary btn-sm"
-                                      data-doc-nome="{{ pdoc.local_doc_nome }}"
+                              {# Editor #}
+                              {% if _mext in ('docx', 'txt', 'html', 'htm', 'pdf') %}
+                              <a href="{{ url_for('editor_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                class="btn btn-sm btn-primary" title="Apri nell'editor">
+                                <i class="bi bi-pencil-square"></i>
+                              </a>
+                              {% endif %}
+                              {# Anteprima #}
+                              {% if _mvis %}
+                              <button type="button" class="btn btn-outline-primary btn-sm" title="Anteprima"
+                                      data-doc-nome="{{ _mn }}"
                                       data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
                                       onclick="apriVisualizzatore(this)">
-                                <i class="bi bi-eye me-1"></i>Visualizza
+                                <i class="bi bi-eye"></i>
                               </button>
                               {% endif %}
+                              {# Scarica #}
                               <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
-                                 class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download me-1"></i>Scarica
+                                 class="btn btn-outline-secondary btn-sm" title="Scarica">
+                                <i class="bi bi-download"></i>
                               </a>
+                              {# Copia con attestazione (solo PDF) #}
+                              {% if _mext == 'pdf' %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('attestazione_conformita', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}">
+                                <button class="btn btn-outline-info btn-sm" title="Copia con attestazione">
+                                  <i class="bi bi-patch-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Firma per deposito #}
+                              {% if not pdoc.local_doc_firmato %}
+                              <button type="button" class="btn btn-outline-success btn-sm" title="Firma per deposito"
+                                      data-doc-id="{{ pdoc.local_doc_id }}"
+                                      data-doc-nome="{{ _mn }}"
+                                      data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      data-firma-url="{{ url_for('firma_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                      onclick="apriFirma(this)">
+                                <i class="bi bi-pen"></i>
+                              </button>
+                              {% endif %}
+                              {# Converti PDF/A #}
+                              {% if _mext == 'pdf' and not pdoc.local_doc_firmato %}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('converti_documento_pdfa', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                    onsubmit="return confirm('Convertire il documento in PDF/A-2B?')">
+                                <button class="btn btn-outline-warning btn-sm" title="Converti in PDF/A-2B">
+                                  <i class="bi bi-file-earmark-check"></i>
+                                </button>
+                              </form>
+                              {% endif %}
+                              {# Elimina #}
+                              <form method="post" class="d-inline"
+                                    action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=pdoc.local_doc_id) }}"
+                                    onsubmit="return confirm('Eliminare il documento dal fascicolo?')">
+                                <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </form>
                             </div>
                             {% endif %}
                           </div>
@@ -1506,28 +1889,96 @@
         {% if WFS.istanze_documenti or WFS.istanze_depositi %}
         <div class="list-group list-group-flush small">
           {% for doc in WFS.istanze_documenti %}
+          {%- set _in = doc.nome or '' %}
+          {%- set _in_pre = _in[:-4] if _in.lower().endswith('.p7m') else _in %}
+          {%- set _iext = _in_pre.rsplit('.',1)[-1].lower() if '.' in _in_pre else '' %}
+          {%- set _ivis = _iext in ['pdf','jpg','jpeg','png','gif'] %}
           <div class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ doc.nome }}</div>
                 <div class="text-muted">{{ doc.tipo.value.replace('_', ' ') }}</div>
               </div>
-              <div class="text-end">
-                <span class="badge bg-light text-dark border">{{ doc.data_documento|fmt_data if doc.data_documento else 'Documento' }}</span>
+              <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                {% if _ivis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ doc.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=doc.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                <span class="badge bg-light text-dark border ms-1">{{ doc.data_documento|fmt_data if doc.data_documento else 'Documento' }}</span>
               </div>
             </div>
           </div>
           {% endfor %}
           {% for dep in WFS.istanze_depositi %}
+          {%- set ist_docs = fascicolo.documenti | selectattr('id_deposito_pct','equalto', dep.id) | list if dep.id else [] %}
           <div class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
+              <div class="flex-grow-1">
                 <div class="fw-semibold">{{ dep.tipo_atto }}</div>
                 <div class="text-muted">{{ dep.nome_atto_principale or dep.note or 'Istanza registrata nel canale ufficiale' }}</div>
+                {% if ist_docs %}
+                <div class="d-flex gap-1 flex-wrap mt-1">
+                  {% for idoc in ist_docs[:3] %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem" title="{{ idoc.nome }}">
+                    <i class="bi bi-file-earmark me-1"></i>{{ idoc.nome|truncate(20) }}
+                  </span>
+                  {% endfor %}
+                  {% if ist_docs|length > 3 %}
+                  <span class="badge bg-light text-dark border" style="font-size:.65rem">+{{ ist_docs|length - 3 }}</span>
+                  {% endif %}
+                </div>
+                {% endif %}
               </div>
-              <div class="text-end">
-                <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
-                <div class="text-muted mt-1">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+              <div class="d-flex gap-1 align-items-center flex-shrink-0">
+                {% if ist_docs %}
+                {%- set _idoc0 = ist_docs[0] %}
+                {%- set _idn = _idoc0.nome or '' %}
+                {%- set _idn_pre = _idn[:-4] if _idn.lower().endswith('.p7m') else _idn %}
+                {%- set _idext = _idn_pre.rsplit('.',1)[-1].lower() if '.' in _idn_pre else '' %}
+                {%- set _idvis = _idext in ['pdf','jpg','jpeg','png','gif'] %}
+                {% if _idvis %}
+                <button type="button" class="btn btn-outline-primary btn-sm" title="Visualizza"
+                        data-doc-nome="{{ _idoc0.nome }}"
+                        data-doc-url="{{ url_for('visualizza_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                        data-scarica-url="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                        data-info-firma-url="{{ url_for('api_info_firma_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                        onclick="apriVisualizzatore(this)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('scarica_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                   class="btn btn-outline-secondary btn-sm" title="Scarica">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" class="d-inline"
+                      action="{{ url_for('elimina_documento', id_fasc=fascicolo.id, id_doc=_idoc0.id) }}"
+                      onsubmit="return confirm('Eliminare il documento?')">
+                  <button class="btn btn-outline-danger btn-sm" title="Elimina">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <div class="text-end ms-1">
+                  <span class="badge bg-light text-dark border">{{ dep.stato }}</span>
+                  <div class="text-muted mt-1" style="font-size:.75rem">{{ dep.timestamp[:10]|fmt_data if dep.timestamp else '—' }}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1608,12 +2059,6 @@
         flex: 0 0 34px;
       }
 
-      @media (max-width: 991.98px) {
-        .compliance-panel .display-6 {
-          font-size: 2rem;
-        }
-      }
-
       @media (max-width: 575.98px) {
         .compliance-panel .card-body {
           padding: 1rem;
@@ -1621,13 +2066,25 @@
       }
     </style>
     <div class="card shadow-sm border-0 compliance-panel mb-3" id="sezione-responsabile-conformita" style="scroll-margin-top:1rem">
-      <div class="card-header bg-white d-flex justify-content-between align-items-start gap-3 flex-wrap">
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-1">
+      <div class="card-header bg-white">
+        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
+          <div class="d-flex align-items-center gap-2">
             <i class="bi bi-shield-check text-primary"></i>
-            <h5 class="mb-0">Responsabile di conformita</h5>
+            <h6 class="mb-0 fw-bold">Responsabile di conformita</h6>
           </div>
-          <div class="small text-muted">
+          <div class="text-end">
+            <span class="badge text-bg-{{ rc_status_class }} px-3 py-2">
+              {{ rc_status }}
+            </span>
+            {% if rc.is_blocking %}
+            <div class="mt-1">
+              <span class="badge rounded-pill text-bg-danger">Bloccante</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <div class="small text-muted" style="word-break:break-word">
             Ultimo controllo:
             <strong>{{ rc.last_check_at or 'non eseguito' }}</strong>
             · Canale:
@@ -1669,79 +2126,65 @@
             </div>
           </div>
         </div>
-
-        <div class="text-end">
-          <span class="badge text-bg-{{ rc_status_class }} px-3 py-2">
-            {{ rc_status }}
-          </span>
-          {% if rc.is_blocking %}
-          <div class="mt-2">
-            <span class="badge rounded-pill text-bg-danger">Bloccante</span>
-          </div>
-          {% endif %}
-          <div class="mt-2 d-flex gap-2 justify-content-end flex-wrap">
-            <button type="button" class="btn btn-sm btn-outline-primary" id="complianceExpandAll">
-              <i class="bi bi-arrows-expand me-1"></i>Espandi aree
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="complianceCollapseAll">
-              <i class="bi bi-arrows-collapse me-1"></i>Riduci aree
-            </button>
-            <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
-              <i class="bi bi-arrow-up-circle me-1"></i>Collegamenti rapidi
-            </a>
-          </div>
+        <div class="d-flex gap-2 flex-wrap mt-2">
+          <button type="button" class="btn btn-sm btn-outline-primary" id="complianceExpandAll">
+            <i class="bi bi-arrows-expand me-1"></i>Espandi
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="complianceCollapseAll">
+            <i class="bi bi-arrows-collapse me-1"></i>Riduci
+          </button>
+          <a href="#collegamenti-rapidi-fascicolo" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-up-circle me-1"></i>Su
+          </a>
         </div>
       </div>
 
       <div class="card-body">
         <div class="rounded-4 border p-3 mb-3 compliance-summary">
-          <div class="row g-3 align-items-center">
-            <div class="col-lg-8">
-              <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
-                <div class="display-6 fw-bold text-{{ rc_status_class }} mb-0">
-                  {{ rc.score }}/100
-                </div>
-                <div>
-                  <div class="fw-semibold">
-                    {{ rc.deposit_ready and 'Deposito pronto' or 'Deposito non pronto' }}
-                  </div>
-                  <div class="text-muted small">
-                    {{ rc.summary_text or 'Completa i passaggi sotto per procedere.' }}
-                  </div>
-                </div>
+          {# Score + label #}
+          <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+            <div class="fs-2 fw-bold text-{{ rc_status_class }} mb-0">
+              {{ rc.score }}/100
+            </div>
+            <div>
+              <div class="fw-semibold">
+                {{ rc.deposit_ready and 'Deposito pronto' or 'Deposito non pronto' }}
               </div>
-
-              <div class="progress" role="progressbar" aria-label="Punteggio conformita" aria-valuenow="{{ rc.score }}" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
-                <div class="progress-bar bg-{{ rc_status_class }}" style="width: {{ rc.score }}%;"></div>
+              <div class="text-muted small">
+                {{ rc.summary_text or 'Completa i passaggi sotto per procedere.' }}
               </div>
             </div>
+          </div>
 
-            <div class="col-lg-4">
-              <div class="row g-2">
-                <div class="col-6">
-                  <div class="border rounded-4 p-2 text-center h-100">
-                    <div class="small text-muted">Bloccanti</div>
-                    <div class="h4 mb-0 text-danger">{{ rc.blockers_count }}</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="border rounded-4 p-2 text-center h-100">
-                    <div class="small text-muted">Avvisi</div>
-                    <div class="h4 mb-0 text-warning">{{ rc.warnings_count }}</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="border rounded-4 p-2 text-center h-100">
-                    <div class="small text-muted">Superati</div>
-                    <div class="h4 mb-0 text-success">{{ rc.passed_count }}</div>
-                  </div>
-                </div>
-                <div class="col-6">
-                  <div class="border rounded-4 p-2 text-center h-100">
-                    <div class="small text-muted">Mancanti</div>
-                    <div class="h4 mb-0 text-danger">{{ rc.missing_docs_count }}</div>
-                  </div>
-                </div>
+          {# Progress bar #}
+          <div class="progress mb-3" role="progressbar" aria-label="Punteggio conformita" aria-valuenow="{{ rc.score }}" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
+            <div class="progress-bar bg-{{ rc_status_class }}" style="width: {{ rc.score }}%;"></div>
+          </div>
+
+          {# Contatori 2x2 #}
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="border rounded-4 p-2 text-center h-100">
+                <div class="small text-muted">Bloccanti</div>
+                <div class="h5 mb-0 text-danger">{{ rc.blockers_count }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-4 p-2 text-center h-100">
+                <div class="small text-muted">Avvisi</div>
+                <div class="h5 mb-0 text-warning">{{ rc.warnings_count }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-4 p-2 text-center h-100">
+                <div class="small text-muted">Superati</div>
+                <div class="h5 mb-0 text-success">{{ rc.passed_count }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="border rounded-4 p-2 text-center h-100">
+                <div class="small text-muted">Mancanti</div>
+                <div class="h5 mb-0 text-danger">{{ rc.missing_docs_count }}</div>
               </div>
             </div>
           </div>
@@ -1775,127 +2218,140 @@
           </div>
         </div>
 
-        <div class="card border rounded-4 mb-3" id="complianceChecklistSection" style="scroll-margin-top:1rem">
-          <button
-            type="button"
-            class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
-            data-bs-toggle="collapse"
-            data-bs-target="#complianceChecklistBody"
+        <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceChecklistSection" style="scroll-margin-top:1rem">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#complianceChecklistBody"
               aria-expanded="false"
-            aria-controls="complianceChecklistBody"
-          >
-            <div>
-              <strong>Checklist operativa del deposito</strong>
-              <div class="small text-muted">Mostro i controlli prioritari; il dettaglio completo resta nelle aree sotto.</div>
-            </div>
-            <span class="d-flex align-items-center gap-2">
-              <span class="badge text-bg-light border text-dark">{{ rc.checklist|length }}</span>
-              <i class="bi bi-chevron-down compliance-chevron"></i>
-            </span>
-          </button>
-          <div class="collapse" id="complianceChecklistBody">
-            <div class="list-group list-group-flush">
-              {% for item in rc.checklist %}
-              {% set tone = rc_status_map.get(item.status, 'secondary') %}
-              <div class="list-group-item py-3">
-                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                  <div class="d-flex align-items-start gap-3">
-                    <div class="mt-1">
-                      {% if item.status == 'ok' %}
-                        <i class="bi bi-check-circle-fill text-success"></i>
-                      {% elif item.status == 'warning' %}
-                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-                      {% else %}
-                        <i class="bi bi-x-octagon-fill text-danger"></i>
+              aria-controls="complianceChecklistBody"
+            >
+              <div class="d-flex w-100 justify-content-between align-items-center pe-3">
+                <span class="fw-semibold">Checklist operativa del deposito</span>
+                <span class="d-flex align-items-center gap-2">
+                  <span class="small text-muted">{{ rc.checklist|length }}</span>
+                  {% set cl_ok = rc.checklist|selectattr('status','equalto','ok')|list|length %}
+                  {% if cl_ok == rc.checklist|length %}
+                  <span class="badge text-bg-success">OK</span>
+                  {% elif rc.checklist|selectattr('status','equalto','error')|list|length > 0 %}
+                  <span class="badge text-bg-danger">ERRORE</span>
+                  {% else %}
+                  <span class="badge text-bg-warning">ATTENZIONE</span>
+                  {% endif %}
+                </span>
+              </div>
+            </button>
+          </h2>
+          <div class="accordion-collapse collapse" id="complianceChecklistBody">
+            <div class="accordion-body">
+              <div class="list-group list-group-flush">
+                {% for item in rc.checklist %}
+                {% set tone = rc_status_map.get(item.status, 'secondary') %}
+                <div class="list-group-item py-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="d-flex align-items-start gap-3">
+                      <div class="mt-1">
+                        {% if item.status == 'ok' %}
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif item.status == 'warning' %}
+                          <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                        {% else %}
+                          <i class="bi bi-x-octagon-fill text-danger"></i>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <div class="fw-semibold">{{ item.label }}</div>
+                        {% if item.note %}
+                        <div class="small text-muted">{{ item.note }}</div>
+                        {% endif %}
+                        {% if item.source %}
+                        <div class="small text-secondary">Fonte regola: {{ item.source }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge text-bg-{{ tone }}">{{ item.status|upper }}</span>
+                      {% if item.url %}
+                      <a href="{{ item.url }}" class="btn btn-outline-{{ tone }} btn-sm">
+                        {{ item.cta or 'Correggi' }}
+                      </a>
                       {% endif %}
                     </div>
-                    <div>
-                      <div class="fw-semibold">{{ item.label }}</div>
-                      {% if item.note %}
-                      <div class="small text-muted">{{ item.note }}</div>
-                      {% endif %}
-                      {% if item.source %}
-                      <div class="small text-secondary">Fonte regola: {{ item.source }}</div>
-                      {% endif %}
-                    </div>
-                  </div>
-
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="badge text-bg-{{ tone }}">
-                      {{ item.status|upper }}
-                    </span>
-                    {% if item.url %}
-                    <a href="{{ item.url }}" class="btn btn-outline-{{ tone }} btn-sm">
-                      {{ item.cta or 'Correggi' }}
-                    </a>
-                    {% endif %}
                   </div>
                 </div>
+                {% else %}
+                <div class="list-group-item text-muted">
+                  <i class="bi bi-check-circle-fill text-success me-2"></i>Tutti i controlli superati — nessuna azione richiesta.
+                </div>
+                {% endfor %}
               </div>
-              {% else %}
-              <div class="list-group-item text-muted">Nessun controllo disponibile.</div>
-              {% endfor %}
-            </div>
-            <div class="card-footer bg-white border-0 pt-0 pb-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
-                Torna ai controlli rapidi
-              </button>
             </div>
           </div>
         </div>
 
-        <div class="card border rounded-4 mb-3" id="complianceWorkflowSection" style="scroll-margin-top:1rem">
-          <button
-            type="button"
-            class="card-header bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2 compliance-section-toggle"
-            data-bs-toggle="collapse"
-            data-bs-target="#complianceWorkflowBody"
+        <div class="accordion-item border rounded-4 mb-2 overflow-hidden" id="complianceWorkflowSection" style="scroll-margin-top:1rem">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#complianceWorkflowBody"
               aria-expanded="false"
-            aria-controls="complianceWorkflowBody"
-          >
-            <div>
-              <strong>Workflow deposito</strong>
-              <div class="small text-muted">Passaggi operativi ordinati, con accesso rapido alla correzione migliore.</div>
-            </div>
-            <span class="d-flex align-items-center gap-2">
-              <span class="badge text-bg-light border text-dark">{{ rc.workflow|length }}</span>
-              <i class="bi bi-chevron-down compliance-chevron"></i>
-            </span>
-          </button>
-          <div class="collapse" id="complianceWorkflowBody">
-            <div class="list-group list-group-flush">
-            {% for step in rc.workflow %}
-            {% set tone = rc_status_map.get(step.status, 'secondary') %}
-            <div class="list-group-item py-3">
-              <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="workflow-index">{{ loop.index }}</div>
-                  <div>
-                    <div class="fw-semibold">{{ step.label }}</div>
-                    {% if step.note %}
-                    <div class="small text-muted">{{ step.note }}</div>
-                    {% endif %}
+              aria-controls="complianceWorkflowBody"
+            >
+              <div class="d-flex w-100 justify-content-between align-items-center pe-3">
+                <span class="fw-semibold">Workflow deposito</span>
+                <span class="d-flex align-items-center gap-2">
+                  <span class="small text-muted">{{ rc.workflow|length }}</span>
+                  {% set wf_ok = rc.workflow|selectattr('status','equalto','ok')|list|length %}
+                  {% if wf_ok == rc.workflow|length %}
+                  <span class="badge text-bg-success">OK</span>
+                  {% elif rc.workflow|selectattr('status','equalto','error')|list|length > 0 %}
+                  <span class="badge text-bg-danger">ERRORE</span>
+                  {% else %}
+                  <span class="badge text-bg-warning">ATTENZIONE</span>
+                  {% endif %}
+                </span>
+              </div>
+            </button>
+          </h2>
+          <div class="accordion-collapse collapse" id="complianceWorkflowBody">
+            <div class="accordion-body">
+              <div class="list-group list-group-flush">
+                {% for step in rc.workflow %}
+                {% set tone = rc_status_map.get(step.status, 'secondary') %}
+                <div class="list-group-item py-3">
+                  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div class="d-flex align-items-start gap-3">
+                      <div class="d-flex align-items-center gap-2 mt-1">
+                        <div class="workflow-index">{{ loop.index }}</div>
+                        {% if step.status == 'ok' %}
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif step.status == 'warning' %}
+                          <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                        {% else %}
+                          <i class="bi bi-x-octagon-fill text-danger"></i>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <div class="fw-semibold">{{ step.label }}</div>
+                        {% if step.note %}
+                        <div class="small text-muted">{{ step.note }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge text-bg-{{ tone }}">{{ step.status|upper }}</span>
+                      {% if step.url %}
+                      <a href="{{ step.url }}" class="btn btn-outline-{{ tone }} btn-sm">
+                        {{ step.cta or 'Apri' }}
+                      </a>
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
-
-                <div class="d-flex align-items-center gap-2">
-                  <span class="badge text-bg-{{ tone }}">{{ step.status|upper }}</span>
-                  {% if step.url %}
-                  <a href="{{ step.url }}" class="btn btn-outline-{{ tone }} btn-sm">
-                    {{ step.cta or 'Apri' }}
-                  </a>
-                  {% endif %}
-                </div>
+                {% else %}
+                <div class="list-group-item text-muted">Nessuno step configurato.</div>
+                {% endfor %}
               </div>
-            </div>
-            {% else %}
-            <div class="list-group-item text-muted">Nessuno step configurato.</div>
-            {% endfor %}
-            </div>
-            <div class="card-footer bg-white border-0 pt-0 pb-3">
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-compliance-scroll="#complianceQuickLinks">
-                Torna ai controlli rapidi
-              </button>
             </div>
           </div>
         </div>
@@ -1920,16 +2376,29 @@
                 <div class="list-group list-group-flush">
                   {% for issue in group["items"] %}
                   {% set issue_tone = rc_status_map.get(issue.status, 'secondary') %}
-                  <div class="list-group-item px-0 py-3">
+                  <div class="list-group-item py-3">
                     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                      <div>
-                        <div class="fw-semibold">{{ issue.title }}</div>
-                        {% if issue.reason %}
-                        <div class="small text-muted">{{ issue.reason }}</div>
-                        {% endif %}
-                        <div class="small mt-1">
-                          {% if issue.where %}<span class="me-3"><strong>Dove:</strong> {{ issue.where }}</span>{% endif %}
-                          {% if issue.source %}<span><strong>Fonte:</strong> {{ issue.source }}</span>{% endif %}
+                      <div class="d-flex align-items-start gap-3">
+                        <div class="mt-1">
+                          {% if issue.status == 'ok' %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                          {% elif issue.status == 'warning' %}
+                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                          {% else %}
+                            <i class="bi bi-x-octagon-fill text-danger"></i>
+                          {% endif %}
+                        </div>
+                        <div>
+                          <div class="fw-semibold">{{ issue.title }}</div>
+                          {% if issue.reason %}
+                          <div class="small text-muted">{{ issue.reason }}</div>
+                          {% endif %}
+                          {% if issue.where or issue.source %}
+                          <div class="small text-secondary mt-1">
+                            {% if issue.where %}<span class="me-3">Dove: {{ issue.where }}</span>{% endif %}
+                            {% if issue.source %}<span>Fonte regola: {{ issue.source }}</span>{% endif %}
+                          </div>
+                          {% endif %}
                         </div>
                       </div>
                       <div class="d-flex align-items-center gap-2">
@@ -1943,7 +2412,7 @@
                     </div>
                   </div>
                   {% else %}
-                  <div class="text-muted">Nessun elemento.</div>
+                  <div class="list-group-item text-muted">Nessun elemento.</div>
                   {% endfor %}
                 </div>
                 <div class="pt-3 border-top mt-3">
@@ -3005,7 +3474,12 @@
 
 var _visDettaglioAperto = false;
 
+var _visLoadTimer = null;
+var _visReady = false;  // true dopo che il src reale è stato impostato
+
 function apriVisualizzatore(btn) {
+  _visReady = false;
+
   const nome = btn.dataset.docNome || '';
   const ext  = nome.split('.').pop().toLowerCase();
 
@@ -3019,10 +3493,10 @@ function apriVisualizzatore(btn) {
   document.getElementById('visualizzatore-titolo').textContent = nome;
   document.getElementById('visualizzatore-scarica').href = btn.dataset.scaricaUrl || '#';
 
-  // Spinner + iframe reset
+  // Spinner + iframe reset: usa about:blank (più prevedibile di removeAttribute)
   const iframe = document.getElementById('visualizzatore-iframe');
   iframe.style.display = 'none';
-  iframe.src = '';
+  iframe.src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'flex';
 
   // Reset pannello firma
@@ -3034,10 +3508,24 @@ function apriVisualizzatore(btn) {
   document.getElementById('vis-firma-chevron').className = 'bi bi-chevron-down ms-1';
   document.getElementById('vis-firma-toggle-lbl').textContent = 'Dettagli';
 
-  new bootstrap.Modal(document.getElementById('modalVisualizzatore')).show();
+  // Cancella timer precedente
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
 
-  // Carica il documento nell'iframe
-  iframe.src = btn.dataset.docUrl || '';
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalVisualizzatore')).show();
+
+  var docUrl = btn.dataset.docUrl || '';
+
+  // Carica il documento nell'iframe dopo un breve delay per l'animazione del modal
+  setTimeout(function() {
+    _visReady = true;
+    iframe.src = docUrl;
+
+    // Timeout di sicurezza: forza la visualizzazione dopo 5s in ogni caso
+    _visLoadTimer = setTimeout(function() {
+      document.getElementById('vis-loading').style.display = 'none';
+      iframe.style.display = 'block';
+    }, 5000);
+  }, 100);
 
   // Fetch info firma se disponibile
   const infoUrl = btn.dataset.infoFirmaUrl;
@@ -3050,6 +3538,10 @@ function apriVisualizzatore(btn) {
 }
 
 function visIframeLoaded() {
+  // Ignora onload da about:blank o da reset iniziale
+  if (!_visReady) return;
+
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
   document.getElementById('vis-loading').style.display = 'none';
   document.getElementById('visualizzatore-iframe').style.display = 'block';
 }
@@ -3130,7 +3622,9 @@ function _escHtml(s) {
 }
 
 document.getElementById('modalVisualizzatore').addEventListener('hidden.bs.modal', function () {
-  document.getElementById('visualizzatore-iframe').src = '';
+  _visReady = false;
+  if (_visLoadTimer) { clearTimeout(_visLoadTimer); _visLoadTimer = null; }
+  document.getElementById('visualizzatore-iframe').src = 'about:blank';
   document.getElementById('vis-loading').style.display = 'none';
 });
 

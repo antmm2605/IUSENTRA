@@ -7,6 +7,13 @@ hardcodare la logica direttamente nelle viste.
 
 from __future__ import annotations
 
+from .pst_catalog import (
+    PST_WEB_SERVICES_DOC_DETAIL_URL,
+    PST_WEB_SERVICES_DOC_PAGE_URL,
+    PST_WEB_SERVICES_DOC_URL,
+    PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL,
+)
+
 SEZIONE_PROFILO = "profilo"
 SEZIONE_ATTIVITA_PROCESSUALI = "attivita_processuali"
 SEZIONE_DOCUMENTI_FASCICOLO = "documenti_fascicolo"
@@ -22,10 +29,10 @@ SERVIZIO_PST_DETTAGLIO_COMUNICAZIONE = "DettaglioComunicazione"
 SERVIZIO_PST_NOTIFICHE_DA_RITIRARE = "NotificheDaRitirare"
 SERVIZIO_PST_DETTAGLIO_ISTANZE = "DettaglioIstanze"
 
-PST_DOCUMENTAZIONE_PAGINA_URL = "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571"
-PST_DOCUMENTAZIONE_SERVIZI_WEB_URL = (
-    "https://pst.giustizia.it/PST/resources/cms/documents/Documentazione_servizi_web_v1.69.pdf"
-)
+PST_DOCUMENTAZIONE_PAGINA_URL = PST_WEB_SERVICES_DOC_PAGE_URL
+PST_DOCUMENTAZIONE_DETTAGLIO_URL = PST_WEB_SERVICES_DOC_DETAIL_URL
+PST_DOCUMENTAZIONE_SERVIZI_WEB_URL = PST_WEB_SERVICES_DOC_URL
+PST_DOCUMENTAZIONE_WSDL_URL = PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_URL
 
 PST_SERVIZI_FASCICOLO = {
     SERVIZIO_PST_PROFILO_FASCICOLO: {
@@ -86,14 +93,14 @@ def fonti_catalogo_servizi_pst() -> list[dict]:
         },
         {
             "titolo": "PST - dettaglio documentazione servizi web v1.69",
-            "url": PST_DOCUMENTAZIONE_SERVIZI_WEB_URL,
+            "url": PST_DOCUMENTAZIONE_DETTAGLIO_URL,
         },
         {
             "titolo": "PST - documentazione servizi web software house v1.69",
             "url": PST_DOCUMENTAZIONE_SERVIZI_WEB_URL,
         },
         {
-            "titolo": "PST - catalogo WSDL ufficiale A1 v1.52b",
-            "url": PST_DOCUMENTAZIONE_PAGINA_URL,
+            "titolo": "PST - catalogo WSDL ufficiale A1 pubblicato in pagina",
+            "url": PST_DOCUMENTAZIONE_WSDL_URL,
         },
     ]

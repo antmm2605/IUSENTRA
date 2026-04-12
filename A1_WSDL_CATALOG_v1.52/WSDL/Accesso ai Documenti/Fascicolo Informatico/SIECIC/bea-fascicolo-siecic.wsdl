@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo" xmlns:intf="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns1="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo/exception" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo">
+  <wsdl:types>
+    <schema targetNamespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo/exception" xmlns="http://www.w3.org/2001/XMLSchema">
+      <complexType name="BEAException">
+        <sequence>
+          <element name="codice" nillable="true" type="xsd:string"/>
+          <element name="message" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+    </schema>
+    <schema targetNamespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo" xmlns="http://www.w3.org/2001/XMLSchema">
+      <complexType name="BEAInfoDominioVO">
+        <sequence>
+          <element name="codice" nillable="true" type="xsd:string"/>
+          <element name="descrizione" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEACronologicoVO">
+        <sequence>
+          <element name="annoCronologico" nillable="true" type="xsd:string"/>
+          <element name="codiceSezioneCronologico" nillable="true" type="xsd:string"/>
+          <element name="dataDocumento" nillable="true" type="xsd:dateTime"/>
+          <element name="descSezioneCronologico" nillable="true" type="xsd:string"/>
+          <element name="numeroCronologico" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEAProvvedimentoPrecedenteVO">
+        <sequence>
+          <element name="annoRuoloGeneraleGiudizioProvenienza" nillable="true" type="xsd:string"/>
+          <element name="annoSentenzaGiudizioProvenienza" nillable="true" type="xsd:string"/>
+          <element name="dataArrivo" nillable="true" type="xsd:dateTime"/>
+          <element name="dataSentenzaGiudizioProvenienza" nillable="true" type="xsd:dateTime"/>
+          <element name="giudiceEstensoreAttoProvenienza" nillable="true" type="xsd:string"/>
+          <element name="numeroRuoloGeneraleGiudizioProvenienza" nillable="true" type="xsd:string"/>
+          <element name="numeroSentenzaGiudizioProvenienza" nillable="true" type="xsd:string"/>
+          <element name="ufficioGiudiziarioDiProvenienza" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEADecretoIngiuntivoVO">
+        <sequence>
+          <element name="annoDecretoIngiuntivo" nillable="true" type="xsd:string"/>
+          <element name="flagEsecutivo" type="xsd:boolean"/>
+          <element name="importoIngiunto" nillable="true" type="xsd:double"/>
+          <element name="importoRichiesto" nillable="true" type="xsd:double"/>
+          <element name="numeroDecretoIngiuntivo" nillable="true" type="xsd:string"/>
+          <element name="tipoDecreto" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEAAvvocatoVO">
+        <all>
+          <element name="cap" nillable="true" type="xsd:string"/>
+          <element name="citta" nillable="true" type="xsd:string"/>
+          <element name="codiceFiscale" nillable="true" type="xsd:string"/>
+          <element name="cognome" nillable="true" type="xsd:string"/>
+          <element name="dataNascita" nillable="true" type="xsd:dateTime"/>
+          <element name="idSoggetto" nillable="true" type="xsd:string"/>
+          <element name="indirizzo" nillable="true" type="xsd:string"/>
+          <element name="nome" nillable="true" type="xsd:string"/>
+          <element name="provincia" nillable="true" type="xsd:string"/>
+          <element name="domicilioEletto" type="xsd:boolean"/>
+          <element name="idAvvocato" nillable="true" type="xsd:string"/>
+        </all>
+      </complexType>
+      <complexType name="ArrayOfBEAAvvocatoVO">
+        <complexContent>
+          <restriction base="soapenc:Array">
+            <attribute ref="soapenc:arrayType" wsdl:arrayType="impl:BEAAvvocatoVO[]"/>
+          </restriction>
+        </complexContent>
+      </complexType>
+      <complexType name="BEAParteVO">
+        <all>
+          <element name="cap" nillable="true" type="xsd:string"/>
+          <element name="citta" nillable="true" type="xsd:string"/>
+          <element name="codiceFiscale" nillable="true" type="xsd:string"/>
+          <element name="cognome" nillable="true" type="xsd:string"/>
+          <element name="dataNascita" nillable="true" type="xsd:dateTime"/>
+          <element name="idSoggetto" nillable="true" type="xsd:string"/>
+          <element name="indirizzo" nillable="true" type="xsd:string"/>
+          <element name="nome" nillable="true" type="xsd:string"/>
+          <element name="provincia" nillable="true" type="xsd:string"/>
+          <element name="avvocati" nillable="true" type="impl:ArrayOfBEAAvvocatoVO"/>
+          <element name="idParte" nillable="true" type="xsd:string"/>
+          <element name="naturaGiuridicaParte" nillable="true" type="xsd:string"/>
+          <element name="provvisoriaEsecutivita" type="xsd:boolean"/>
+          <element name="tipoParte" nillable="true" type="xsd:string"/>
+        </all>
+      </complexType>
+      <complexType name="ArrayOfBEAParteVO">
+        <complexContent>
+          <restriction base="soapenc:Array">
+            <attribute ref="soapenc:arrayType" wsdl:arrayType="impl:BEAParteVO[]"/>
+          </restriction>
+        </complexContent>
+      </complexType>
+      <complexType name="ArrayOfBEAAttributoFileTecnicoVO">
+        <complexContent>
+          <restriction base="soapenc:Array">
+            <attribute ref="soapenc:arrayType" wsdl:arrayType="impl:BEAAttributoFileTecnicoVO[]"/>
+          </restriction>
+        </complexContent>
+      </complexType>
+      <complexType name="BEADatiDocumentoSGRVO">
+        <sequence>
+          <element name="annoCampioneCivile" nillable="true" type="xsd:string"/>
+          <element name="annoRuoloGenerale" nillable="true" type="xsd:string"/>
+          <element name="annoRuoloSezionale" nillable="true" type="xsd:string"/>
+          <element name="annoSentenza" nillable="true" type="xsd:string"/>
+          <element name="cronologico" nillable="true" type="impl:BEACronologicoVO"/>
+          <element name="dataAssegnazioneCausaSentenza" nillable="true" type="xsd:dateTime"/>
+          <element name="dataDeposito" nillable="true" type="xsd:dateTime"/>
+          <element name="dataDepositoMinuta" nillable="true" type="xsd:dateTime"/>
+          <element name="dataEmissioneDecretoIngiuntivo" nillable="true" type="xsd:dateTime"/>
+          <element name="dataIscrizioneRuolo" nillable="true" type="xsd:dateTime"/>
+          <element name="dataProssimaUdienza" nillable="true" type="xsd:dateTime"/>
+          <element name="dataProvvedimento" nillable="true" type="xsd:dateTime"/>
+          <element name="dataPubblicazione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataUltimaUdienza" nillable="true" type="xsd:dateTime"/>
+          <element name="datiGiudizioProvenienza" nillable="true" type="impl:BEAProvvedimentoPrecedenteVO"/>
+          <element name="decretoIngiuntivo" nillable="true" type="impl:BEADecretoIngiuntivoVO"/>
+          <element name="depositante" nillable="true" type="impl:BEASoggettoVO"/>
+          <element name="giudice" nillable="true" type="impl:BEASoggettoVO"/>
+          <element name="giudiceEstensore" nillable="true" type="impl:BEASoggettoVO"/>
+          <element name="gradoGiudizio" nillable="true" type="xsd:string"/>
+          <element name="idDocMittente" nillable="true" type="xsd:string"/>
+          <element name="idDocumento" nillable="true" type="xsd:string"/>
+          <element name="idFascicolo" nillable="true" type="xsd:string"/>
+          <element name="idRegistro" nillable="true" type="xsd:string"/>
+          <element name="materia" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="numeroAttoriFascicolo" type="xsd:int"/>
+          <element name="numeroCampioneCivile" nillable="true" type="xsd:string"/>
+          <element name="numeroConvenutiFascicolo" type="xsd:int"/>
+          <element name="numeroRuoloGenerale" nillable="true" type="xsd:string"/>
+          <element name="numeroRuoloSezionale" nillable="true" type="xsd:string"/>
+          <element name="numeroSentenza" nillable="true" type="xsd:string"/>
+          <element name="oggetto" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="partiDocumento" nillable="true" type="impl:ArrayOfBEAParteVO"/>
+          <element name="partiPrincipaliFascicolo" nillable="true" type="impl:ArrayOfBEAParteVO"/>
+          <element name="ruolo" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="sezione" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="statoFascicolo" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="subProcedimento" nillable="true" type="xsd:string"/>
+          <element name="tipoAtto" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="tipoMIME" nillable="true" type="xsd:string"/>
+          <element name="ufficio" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="utentePubblicatore" nillable="true" type="impl:BEASoggettoVO"/>
+          <element name="valoreCausa" nillable="true" type="xsd:double"/>
+          <element name="dataRichNotifica" nillable="true" type="xsd:dateTime"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEADocumentoUfficialeVO">
+        <all>
+          <element name="codiceUfficio" nillable="true" type="xsd:string"/>
+          <element name="dataCreazione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFine" nillable="true" type="xsd:dateTime"/>
+          <element name="idCat" nillable="true" type="xsd:string"/>
+          <element name="idCatRepository" nillable="true" type="xsd:string"/>
+          <element name="idUtenteProprietario" nillable="true" type="xsd:string"/>
+          <element name="infoAmbiente" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="listaAttributi" nillable="true" type="impl:ArrayOfBEAAttributoFileTecnicoVO"/>
+          <element name="tipoOggetto" nillable="true" type="impl:BEATipoOggettoVO"/>
+          <element name="autoreVersione" nillable="true" type="xsd:string"/>
+          <element name="commentoVersione" nillable="true" type="xsd:string"/>
+          <element name="dataCreazioneVersione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFineVersione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataUltimaModifica" nillable="true" type="xsd:dateTime"/>
+          <element name="dimensioneFile" type="xsd:long"/>
+          <element name="fileBloccato" type="xsd:boolean"/>
+          <element name="fileInfetto" type="xsd:boolean"/>
+          <element name="idDocSuperiore" nillable="true" type="xsd:string"/>
+          <element name="idRaccoglitore" nillable="true" type="xsd:string"/>
+          <element name="idVersione" nillable="true" type="xsd:string"/>
+          <element name="majorRelease" nillable="true" type="xsd:string"/>
+          <element name="minorRelease" nillable="true" type="xsd:string"/>
+          <element name="nomeFileOriginale" nillable="true" type="xsd:string"/>
+          <element name="numeroVersione" nillable="true" type="xsd:string"/>
+          <element name="tipoMIME" nillable="true" type="xsd:string"/>
+          <element name="tipoVirus" nillable="true" type="xsd:string"/>
+          <element name="codFiscMittente" nillable="true" type="xsd:string"/>
+          <element name="dataAggiornamentoFascicolo" nillable="true" type="xsd:dateTime"/>
+          <element name="dataDeposito" nillable="true" type="xsd:dateTime"/>
+          <element name="datiSGR" nillable="true" type="impl:BEADatiDocumentoSGRVO"/>
+          <element name="flagAnalogico" type="xsd:boolean"/>
+          <element name="flagPrimario" type="xsd:boolean"/>
+          <element name="idBusta" nillable="true" type="xsd:string"/>
+          <element name="idFascicolo" nillable="true" type="xsd:string"/>
+          <element name="rifDocMittente" nillable="true" type="xsd:string"/>
+          <element name="registro" nillable="true" type="xsd:string"/>
+          <element name="sistema" nillable="true" type="xsd:string"/>
+		  <element name="contentId" nillable="true" type="xsd:string"/>
+          <element name="idDocumento" nillable="true" type="xsd:string"/>
+        </all>
+      </complexType>
+      <complexType name="ArrayOf_impl_BEADocumentoVO">
+        <complexContent>
+          <restriction base="soapenc:Array">
+            <attribute ref="soapenc:arrayType" wsdl:arrayType="impl:BEADocumentoVO[]"/>
+          </restriction>
+        </complexContent>
+      </complexType>
+      <complexType name="BEAMasterUfficialeVO">
+        <sequence>
+          <element name="docPrimario" nillable="true" type="impl:BEADocumentoUfficialeVO"/>
+          <element name="docsSecondari" nillable="true" type="impl:ArrayOf_impl_BEADocumentoVO"/>
+          <element name="numeroDocumentiSecondari" type="xsd:int"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEADocumentoFascicoloVO">
+        <all>
+          <element name="codiceUfficio" nillable="true" type="xsd:string"/>
+          <element name="dataCreazione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFine" nillable="true" type="xsd:dateTime"/>
+          <element name="idCat" nillable="true" type="xsd:string"/>
+          <element name="idCatRepository" nillable="true" type="xsd:string"/>
+          <element name="idUtenteProprietario" nillable="true" type="xsd:string"/>
+          <element name="infoAmbiente" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="listaAttributi" nillable="true" type="impl:ArrayOfBEAAttributoFileTecnicoVO"/>
+          <element name="registro" nillable="true" type="xsd:string"/>
+          <element name="sistema" nillable="true" type="xsd:string"/>
+          <element name="tipoOggetto" nillable="true" type="impl:BEATipoOggettoVO"/>
+          <element name="autoreVersione" nillable="true" type="xsd:string"/>
+          <element name="commentoVersione" nillable="true" type="xsd:string"/>
+          <element name="dataCreazioneVersione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFineVersione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataUltimaModifica" nillable="true" type="xsd:dateTime"/>
+          <element name="dimensioneFile" type="xsd:long"/>
+          <element name="fileBloccato" type="xsd:boolean"/>
+          <element name="fileInfetto" type="xsd:boolean"/>
+          <element name="idDocSuperiore" nillable="true" type="xsd:string"/>
+          <element name="idRaccoglitore" nillable="true" type="xsd:string"/>
+          <element name="idVersione" nillable="true" type="xsd:string"/>
+          <element name="majorRelease" nillable="true" type="xsd:string"/>
+          <element name="minorRelease" nillable="true" type="xsd:string"/>
+          <element name="nomeFileOriginale" nillable="true" type="xsd:string"/>
+          <element name="numeroVersione" nillable="true" type="xsd:string"/>
+          <element name="tipoMIME" nillable="true" type="xsd:string"/>
+          <element name="tipoVirus" nillable="true" type="xsd:string"/>
+          <element name="annoFascicolo" nillable="true" type="xsd:string"/>
+          <element name="autore" nillable="true" type="xsd:string"/>
+          <element name="dataDeposito" nillable="true" type="xsd:dateTime"/>
+          <element name="idDocMittente" nillable="true" type="xsd:string"/>
+          <element name="idFascicolo" nillable="true" type="xsd:string"/>
+          <element name="idRegistro" nillable="true" type="xsd:string"/>
+          <element name="idUfficio" nillable="true" type="xsd:string"/>
+          <element name="numeroFascicolo" nillable="true" type="xsd:string"/>
+          <element name="subProcedimento" nillable="true" type="xsd:string"/>
+          <element name="tipoDocumento" nillable="true" type="xsd:string"/>
+          <element name="contentId" nillable="true" type="xsd:string"/>
+          <element name="idDocumento" nillable="true" type="xsd:string"/>
+        </all>
+      </complexType>
+      <complexType name="ArrayOfBEADocumentoFascicoloVO">
+        <complexContent>
+          <restriction base="soapenc:Array">
+            <attribute ref="soapenc:arrayType" wsdl:arrayType="impl:BEADocumentoFascicoloVO[]"/>
+          </restriction>
+        </complexContent>
+      </complexType>
+      <complexType name="BEATipoOggettoVO">
+        <all>
+          <element name="codice" nillable="true" type="xsd:string"/>
+          <element name="descrizione" nillable="true" type="xsd:string"/>
+          <element name="documento" type="xsd:boolean"/>
+        </all>
+      </complexType>
+      <complexType name="BEAAttributoFileTecnicoVO">
+        <sequence>
+          <element name="descrizioneAttributo" nillable="true" type="xsd:string"/>
+          <element name="idAttributo" nillable="true" type="xsd:string"/>
+          <element name="idCat" nillable="true" type="xsd:string"/>
+          <element name="tipoAttributo" nillable="true" type="xsd:string"/>
+          <element name="valoreAttributo" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEAOggettoDocumentaleVO">
+        <sequence>
+          <element name="codiceUfficio" nillable="true" type="xsd:string"/>
+          <element name="dataCreazione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFine" nillable="true" type="xsd:dateTime"/>
+          <element name="idCat" nillable="true" type="xsd:string"/>
+          <element name="idCatRepository" nillable="true" type="xsd:string"/>
+          <element name="idUtenteProprietario" nillable="true" type="xsd:string"/>
+          <element name="infoAmbiente" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="listaAttributi" nillable="true" type="impl:ArrayOfBEAAttributoFileTecnicoVO"/>
+          <element name="registro" nillable="true" type="xsd:string"/>
+          <element name="sistema" nillable="true" type="xsd:string"/>
+          <element name="tipoOggetto" nillable="true" type="impl:BEATipoOggettoVO"/>
+          <element name="contentId" nillable="true" type="xsd:string"/>
+          <element name="idDocumento" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+      <complexType name="BEADocumentoVO">
+        <all>
+          <element name="codiceUfficio" nillable="true" type="xsd:string"/>
+          <element name="dataCreazione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFine" nillable="true" type="xsd:dateTime"/>
+          <element name="idCat" nillable="true" type="xsd:string"/>
+          <element name="idCatRepository" nillable="true" type="xsd:string"/>
+          <element name="idUtenteProprietario" nillable="true" type="xsd:string"/>
+          <element name="infoAmbiente" nillable="true" type="impl:BEAInfoDominioVO"/>
+          <element name="listaAttributi" nillable="true" type="impl:ArrayOfBEAAttributoFileTecnicoVO"/>
+          <element name="registro" nillable="true" type="xsd:string"/>
+          <element name="sistema" nillable="true" type="xsd:string"/>
+          <element name="tipoOggetto" nillable="true" type="impl:BEATipoOggettoVO"/>
+          <element name="autoreVersione" nillable="true" type="xsd:string"/>
+          <element name="commentoVersione" nillable="true" type="xsd:string"/>
+          <element name="dataCreazioneVersione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataFineVersione" nillable="true" type="xsd:dateTime"/>
+          <element name="dataUltimaModifica" nillable="true" type="xsd:dateTime"/>
+          <element name="dimensioneFile" type="xsd:long"/>
+          <element name="fileBloccato" type="xsd:boolean"/>
+          <element name="fileInfetto" type="xsd:boolean"/>
+          <element name="idDocSuperiore" nillable="true" type="xsd:string"/>
+          <element name="idRaccoglitore" nillable="true" type="xsd:string"/>
+          <element name="idVersione" nillable="true" type="xsd:string"/>
+          <element name="majorRelease" nillable="true" type="xsd:string"/>
+          <element name="minorRelease" nillable="true" type="xsd:string"/>
+          <element name="nomeFileOriginale" nillable="true" type="xsd:string"/>
+          <element name="numeroVersione" nillable="true" type="xsd:string"/>
+          <element name="tipoMIME" nillable="true" type="xsd:string"/>
+          <element name="tipoVirus" nillable="true" type="xsd:string"/>
+          <element name="contentId" nillable="true" type="xsd:string"/>
+          <element name="idDocumento" nillable="true" type="xsd:string"/>
+        </all>
+      </complexType>
+      <complexType name="BEASoggettoVO">
+        <sequence>
+          <element name="cap" nillable="true" type="xsd:string"/>
+          <element name="citta" nillable="true" type="xsd:string"/>
+          <element name="codiceFiscale" nillable="true" type="xsd:string"/>
+          <element name="cognome" nillable="true" type="xsd:string"/>
+          <element name="dataNascita" nillable="true" type="xsd:dateTime"/>
+          <element name="idSoggetto" nillable="true" type="xsd:string"/>
+          <element name="indirizzo" nillable="true" type="xsd:string"/>
+          <element name="nome" nillable="true" type="xsd:string"/>
+          <element name="provincia" nillable="true" type="xsd:string"/>
+        </sequence>
+      </complexType>
+    </schema>
+  </wsdl:types>
+  <wsdl:message name="estraiListaAttiFascicoloRequest">
+    <wsdl:part name="idFascicolo" type="xsd:string"/>
+  </wsdl:message>
+  <wsdl:message name="estraiProfiloDocumentoResponse">
+    <wsdl:part name="return" type="impl:BEADocumentoUfficialeVO"/>
+  </wsdl:message>
+  <wsdl:message name="estraiMasterDetailAttoResponse">
+    <wsdl:part name="return" type="impl:BEAMasterUfficialeVO"/>
+  </wsdl:message>
+  <wsdl:message name="downloadDocumentoResponse">
+    <wsdl:part name="return" type="apachesoap:DataHandler"/>
+  </wsdl:message>
+  <wsdl:message name="estraiListaAttiFascicoloResponse">
+    <wsdl:part name="return" type="impl:ArrayOfBEADocumentoFascicoloVO"/>
+  </wsdl:message>
+  <wsdl:message name="estraiMasterDetailAttoRequest">
+    <wsdl:part name="idDoc" type="xsd:string"/>
+  </wsdl:message>
+  <wsdl:message name="estraiProfiloDocumentoRequest">
+    <wsdl:part name="idDoc" type="xsd:string"/>
+  </wsdl:message>
+  <wsdl:message name="BEAException">
+    <wsdl:part name="fault" type="tns1:BEAException"/>
+  </wsdl:message>
+  <wsdl:message name="downloadDocumentoRequest">
+    <wsdl:part name="idDoc" type="xsd:string"/>
+    <wsdl:part name="original" type="xsd:boolean"/>
+  </wsdl:message>
+  <wsdl:message name="calcolaHashRequest">
+    <wsdl:part name="idDoc" type="xsd:string"/>
+  </wsdl:message>
+  <wsdl:message name="calcolaHashResponse">
+    <wsdl:part name="return" type="xsd:string"/>
+  </wsdl:message>
+  <wsdl:portType name="BEAFascicoloSIECICLocal">
+    <wsdl:operation name="downloadDocumento">
+      <wsdl:input name="downloadDocumentoRequest" message="impl:downloadDocumentoRequest"/>
+      <wsdl:output name="downloadDocumentoResponse" message="impl:downloadDocumentoResponse"/>
+      <wsdl:fault name="BEAException" message="impl:BEAException"/>
+    </wsdl:operation>
+    <wsdl:operation name="calcolaHash">
+      <wsdl:input name="calcolaHashRequest" message="impl:calcolaHashRequest"/>
+      <wsdl:output name="calcolaHashResponse" message="impl:calcolaHashResponse"/>
+      <wsdl:fault name="BEAException" message="impl:BEAException"/>
+    </wsdl:operation>
+    <wsdl:operation name="estraiMasterDetailAtto">
+      <wsdl:input name="estraiMasterDetailAttoRequest" message="impl:estraiMasterDetailAttoRequest"/>
+      <wsdl:output name="estraiMasterDetailAttoResponse" message="impl:estraiMasterDetailAttoResponse"/>
+      <wsdl:fault name="BEAException" message="impl:BEAException"/>
+    </wsdl:operation>
+    <wsdl:operation name="estraiProfiloDocumento">
+      <wsdl:input name="estraiProfiloDocumentoRequest" message="impl:estraiProfiloDocumentoRequest"/>
+      <wsdl:output name="estraiProfiloDocumentoResponse" message="impl:estraiProfiloDocumentoResponse"/>
+      <wsdl:fault name="BEAException" message="impl:BEAException"/>
+    </wsdl:operation>
+    <wsdl:operation name="estraiListaAttiFascicolo">
+      <wsdl:input name="estraiListaAttiFascicoloRequest" message="impl:estraiListaAttiFascicoloRequest"/>
+      <wsdl:output name="estraiListaAttiFascicoloResponse" message="impl:estraiListaAttiFascicoloResponse"/>
+      <wsdl:fault name="BEAException" message="impl:BEAException"/>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="BEAFascicoloSIECICSoapBinding" type="impl:BEAFascicoloSIECICLocal">
+    <wsdlsoap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="downloadDocumento">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="downloadDocumentoRequest">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:input>
+      <wsdl:output name="downloadDocumentoResponse">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:output>
+      <wsdl:fault name="BEAException">
+        <wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="calcolaHash">
+      <wsdlsoap:operation soapAction=""/>
+      <wsdl:input name="calcolaHashRequest">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:input>
+      <wsdl:output name="calcolaHashResponse">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:output>
+      <wsdl:fault name="BEAException">
+        <wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="estraiMasterDetailAtto">
+      <wsdlsoap:operation/>
+      <wsdl:input name="estraiMasterDetailAttoRequest">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:input>
+      <wsdl:output name="estraiMasterDetailAttoResponse">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:output>
+      <wsdl:fault name="BEAException">
+        <wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="estraiProfiloDocumento">
+      <wsdlsoap:operation/>
+      <wsdl:input name="estraiProfiloDocumentoRequest">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:input>
+      <wsdl:output name="estraiProfiloDocumentoResponse">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:output>
+      <wsdl:fault name="BEAException">
+        <wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="estraiListaAttiFascicolo">
+      <wsdlsoap:operation/>
+      <wsdl:input name="estraiListaAttiFascicoloRequest">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:input>
+      <wsdl:output name="estraiListaAttiFascicoloResponse">
+        <wsdlsoap:body use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:output>
+      <wsdl:fault name="BEAException">
+        <wsdlsoap:fault name="BEAException" use="encoded" encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://elsagdatamat.com/bea/pct/siecic/ws/fascicolo"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="BEAFascicoloSIECICLocalService">
+    <wsdl:port name="rpcrouter" binding="impl:BEAFascicoloSIECICSoapBinding">
+      <wsdlsoap:address location="https://targetHost/targetPath"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

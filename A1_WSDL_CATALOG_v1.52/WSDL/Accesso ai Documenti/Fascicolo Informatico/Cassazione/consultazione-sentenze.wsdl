@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" 
+xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" 
+xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
+xmlns:y="http://www.giustizia.it/gl/sgr/cassazione/consultazioneSentenze"
+targetNamespace="http://www.giustizia.it/gl/sgr/cassazione/consultazioneSentenze"> 
+	<message name="downloadSentenzaReq">
+		<part name="annoSentenza" type="xs:string"/>
+		<part name="numeroSentenza" type="xs:string"/>
+	</message>
+	<message name="downloadSentenzaRes">
+		<part name="result" type="xs:base64Binary"/>
+	</message>
+	<portType name="ConsultazioneSentenze">
+		<operation name="downloadSentenza">
+			<input message="y:downloadSentenzaReq"/>
+			<output message="y:downloadSentenzaRes"/>
+		</operation>    
+	</portType>
+	<binding name="ConsultazioneSentenzeCiviliSOAPBinding" type="y:ConsultazioneSentenze">
+		<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<operation name="downloadSentenza">
+			<input>
+				<soap:body use="encoded" namespace="http://www.giustizia.it/gl/sgr/cassazione/consultazioneSentenzeCivili"/>
+			</input>			
+			<output>				
+				<mime:multipartRelated>
+					<mime:part>
+						<soap:body use="encoded" namespace="http://www.giustizia.it/gl/sgr/cassazione/consultazioneSentenzeCivili"/>
+					</mime:part>
+					<mime:part>
+						<mime:content part="result" type="application/octect-stream"/>
+					</mime:part>
+				</mime:multipartRelated>        
+			</output>
+			
+		</operation>
+	</binding>      
+	<service name="WsConsultazioneSentenze">
+		<port name="ConsultazioneSentenzeCiviliSOAPPort" binding="y:ConsultazioneSentenzeCiviliSOAPBinding">
+			<soap:address location="http://localhost/Cassazione/rpcrouter"/>
+		</port>
+	</service>
+</definitions>

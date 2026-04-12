@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from pct.checklist_atti import CANALE_LABEL, get_template
 from pct.fascicoli import TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
+from pct.preventivi import label_modello_clausola_controversie
 from pct.practice_profiles import get_practice_profile
 
 
@@ -298,6 +299,11 @@ def build_fascicolo_onboarding(
         or ""
     )
     valore_causa = float(getattr(preventivo, "valore_controversia", 0) or 0)
+    compenso_pattuito = float(getattr(conferimento, "compenso_pattuito", 0) or 0)
+    if not compenso_pattuito:
+        # fallback al totale del preventivo se il conferimento non specifica un compenso
+        compenso_pattuito = float(getattr(preventivo, "totale", 0) or 0)
+    valore_preventivato = compenso_pattuito
 
     source_label = "Conferimento incarico" if conferimento else "Preventivo"
     source_number = getattr(sorgente, "numero", "")
@@ -323,6 +329,20 @@ def build_fascicolo_onboarding(
         f"Apertura guidata da {source_label.lower()} {source_number}.".strip(),
         f"Tipologia collegata: {scheda.label}." if scheda else "",
         f"Motore preventivo: {scheda.motore_label}." if scheda and scheda.motore_label else "",
+        (
+            "Clausola controversie attiva: "
+            + label_modello_clausola_controversie(
+                getattr(sorgente, "clausola_controversie_modello", "")
+            )
+            + "."
+        )
+        if getattr(sorgente, "clausola_controversie_attiva", False)
+        else "",
+        (
+            "Workflow interno avviato con fascicolo da verificare anche dal Responsabile di conformita."
+        )
+        if getattr(sorgente, "clausola_controversie_attiva", False)
+        else "",
         "Checklist iniziale:",
     ]
     notes.extend([f"- {item}" for item in checklist])
@@ -349,6 +369,8 @@ def build_fascicolo_onboarding(
         "oggetto": oggetto,
         "avvocato_referente": avvocato_referente,
         "valore_causa": valore_causa,
+        "valore_preventivato": valore_preventivato,
+        "compenso_pattuito": compenso_pattuito,
         "note": note_text,
         "tipo_procedimento": tipo_procedimento,
         "id_pratica": id_pratica,

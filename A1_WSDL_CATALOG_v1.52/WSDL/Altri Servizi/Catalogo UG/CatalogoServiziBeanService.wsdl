@@ -1,0 +1,1048 @@
+<definitions name='CatalogoServiziBeanService' targetNamespace='http://www.giustizia.it/serviziTelematici/serviziGenerici' xmlns='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' xmlns:tns='http://www.giustizia.it/serviziTelematici/serviziGenerici' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
+ <types>
+  <xs:schema targetNamespace='http://www.giustizia.it/serviziTelematici/serviziGenerici' version='1.0' xmlns:tns='http://www.giustizia.it/serviziTelematici/serviziGenerici' xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+   <xs:element name='CatalogoServiziException' type='tns:CatalogoServiziException'/>
+   <xs:element name='getAllRegistri' type='tns:getAllRegistri'/>
+   <xs:element name='getAllRegistriResponse' type='tns:getAllRegistriResponse'/>
+   <xs:element name='getCertificato' type='tns:getCertificato'/>
+   <xs:element name='getCertificatoResponse' type='tns:getCertificatoResponse'/>
+   <xs:element name='getComuni' type='tns:getComuni'/>
+   <xs:element name='getComuniResponse' type='tns:getComuniResponse'/>
+   <xs:element name='getDecreto' type='tns:getDecreto'/>
+   <xs:element name='getDecretoResponse' type='tns:getDecretoResponse'/>
+   <xs:element name='getDistretti' type='tns:getDistretti'/>
+   <xs:element name='getDistrettiResponse' type='tns:getDistrettiResponse'/>
+   <xs:element name='getEnti' type='tns:getEnti'/>
+   <xs:element name='getEntiResponse' type='tns:getEntiResponse'/>
+   <xs:element name='getListUGElectroPay' type='tns:getListUGElectroPay'/>
+   <xs:element name='getListUGElectroPayResponse' type='tns:getListUGElectroPayResponse'/>
+   <xs:element name='getListaPda' type='tns:getListaPda'/>
+   <xs:element name='getListaPdaResponse' type='tns:getListaPdaResponse'/>
+   <xs:element name='getListaUfficiGiudiziari' type='tns:getListaUfficiGiudiziari'/>
+   <xs:element name='getListaUfficiGiudiziariDistretto' type='tns:getListaUfficiGiudiziariDistretto'/>
+   <xs:element name='getListaUfficiGiudiziariDistrettoResponse' type='tns:getListaUfficiGiudiziariDistrettoResponse'/>
+   <xs:element name='getListaUfficiGiudiziariResponse' type='tns:getListaUfficiGiudiziariResponse'/>
+   <xs:element name='getListaUfficiPenali' type='tns:getListaUfficiPenali'/>
+   <xs:element name='getListaUfficiPenaliResponse' type='tns:getListaUfficiPenaliResponse'/>
+   <xs:element name='getNormativa' type='tns:getNormativa'/>
+   <xs:element name='getNormativaResponse' type='tns:getNormativaResponse'/>
+   <xs:element name='getRegioni' type='tns:getRegioni'/>
+   <xs:element name='getRegioniResponse' type='tns:getRegioniResponse'/>
+   <xs:element name='getRegistriFromUfficio' type='tns:getRegistriFromUfficio'/>
+   <xs:element name='getRegistriFromUfficioCP' type='tns:getRegistriFromUfficioCP'/>
+   <xs:element name='getRegistriFromUfficioCPResponse' type='tns:getRegistriFromUfficioCPResponse'/>
+   <xs:element name='getRegistriFromUfficioResponse' type='tns:getRegistriFromUfficioResponse'/>
+   <xs:element name='getRito' type='tns:getRito'/>
+   <xs:element name='getRitoResponse' type='tns:getRitoResponse'/>
+   <xs:element name='getRuoliConsultazioni' type='tns:getRuoliConsultazioni'/>
+   <xs:element name='getRuoliConsultazioniResponse' type='tns:getRuoliConsultazioniResponse'/>
+   <xs:element name='getTipiUfficio' type='tns:getTipiUfficio'/>
+   <xs:element name='getTipiUfficioResponse' type='tns:getTipiUfficioResponse'/>
+   <xs:element name='getTipoRicercaInformazioni' type='tns:getTipoRicercaInformazioni'/>
+   <xs:element name='getTipoRicercaInformazioniResponse' type='tns:getTipoRicercaInformazioniResponse'/>
+   <xs:element name='getUfficiFromRegioni' type='tns:getUfficiFromRegioni'/>
+   <xs:element name='getUfficiFromRegioniResponse' type='tns:getUfficiFromRegioniResponse'/>
+   <xs:element name='getUfficioGiudiziario' type='tns:getUfficioGiudiziario'/>
+   <xs:element name='getUfficioGiudiziarioByPec' type='tns:getUfficioGiudiziarioByPec'/>
+   <xs:element name='getUfficioGiudiziarioByPecResponse' type='tns:getUfficioGiudiziarioByPecResponse'/>
+   <xs:element name='getUfficioGiudiziarioResponse' type='tns:getUfficioGiudiziarioResponse'/>
+   <xs:element name='getUfficioPenale' type='tns:getUfficioPenale'/>
+   <xs:element name='getUfficioPenaleResponse' type='tns:getUfficioPenaleResponse'/>
+   <xs:element name='ricercaPda' type='tns:ricercaPda'/>
+   <xs:element name='ricercaPdaResponse' type='tns:ricercaPdaResponse'/>
+   <xs:complexType name='getComuni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceDistretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='gruppo' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getComuniResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:comuni'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='comuni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceDistretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='descDistretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='nome' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='CatalogoServiziException'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='message' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getCertificato'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getCertificatoResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='xs:base64Binary'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getDistretti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='tipoDistretto' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getDistrettiResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:distretti'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='distretti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceDistretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceGestoreLocale' type='xs:string'/>
+     <xs:element minOccurs='0' name='descDistretto' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRegioni'>
+    <xs:sequence/>
+   </xs:complexType>
+   <xs:complexType name='getRegioniResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:regioni'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='regioni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceRegione' type='xs:string'/>
+     <xs:element minOccurs='0' name='regione' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getEnti'>
+    <xs:sequence/>
+   </xs:complexType>
+   <xs:complexType name='getEntiResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:enti'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='enti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRegistriFromUfficio'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRegistriFromUfficioResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:registro'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='registro'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceApplicazione' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRegistriFromUfficioCP'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRegistriFromUfficioCPResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:registro'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRuoliConsultazioni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='registro' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRuoliConsultazioniResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ruoliConsultazioni'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ruoliConsultazioni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='description' type='xs:string'/>
+     <xs:element minOccurs='0' name='jpwBody' type='xs:string'/>
+     <xs:element minOccurs='0' name='jpwHeader' type='xs:string'/>
+     <xs:element minOccurs='0' name='registro' type='xs:string'/>
+     <xs:element minOccurs='0' name='ruoloReginde' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getDecreto'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='idserviziAtti' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getDecretoResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='xs:base64Binary'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getNormativa'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='idAttiDepositabili' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getNormativaResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='xs:base64Binary'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getTipoRicercaInformazioni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceRegistro' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getTipoRicercaInformazioniResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:tipologiaNumero'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='tipologiaNumero'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='descTipologiaNumero' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipologiaNumero' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRito'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceRegistro' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getRitoResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:rito'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='rito'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='idRito' type='xs:string'/>
+     <xs:element minOccurs='0' name='registro' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficioGiudiziario'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficioGiudiziarioResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:ufficiGiudiziari'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ufficiGiudiziari'>
+    <xs:complexContent>
+     <xs:extension base='tns:uffici'>
+      <xs:sequence>
+       <xs:element minOccurs='0' name='codiceDistretto' type='xs:string'/>
+       <xs:element minOccurs='0' name='descGL' type='xs:string'/>
+       <xs:element minOccurs='0' name='descMaster' type='xs:string'/>
+       <xs:element minOccurs='0' name='descTipoUfficio' type='xs:string'/>
+       <xs:element minOccurs='0' name='distretto' type='xs:string'/>
+       <xs:element minOccurs='0' name='regione' type='xs:string'/>
+       <xs:element maxOccurs='unbounded' minOccurs='0' name='servizi' nillable='true' type='tns:servizi'/>
+      </xs:sequence>
+     </xs:extension>
+    </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name='uffici'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='certificatoCifra' type='xs:base64Binary'/>
+     <xs:element minOccurs='0' name='certificatoMimetype' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceGL' type='xs:string'/>
+     <xs:element name='codiceRegione' type='xs:int'/>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceUfficioMaster' type='xs:string'/>
+     <xs:element minOccurs='0' name='comune' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='indirizzoPec' type='xs:string'/>
+     <xs:element minOccurs='0' name='nomeCertificatoCifra' type='xs:string'/>
+     <xs:element minOccurs='0' name='provincia' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='servizi'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='dataAttivazione' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='idServizio' type='xs:string'/>
+     <xs:element minOccurs='0' name='note' type='xs:string'/>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='registri' type='tns:registro'/>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='serviziAtti' nillable='true' type='tns:serviziAtti'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='serviziAtti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='dataDecreto' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='decreto' type='xs:base64Binary'/>
+     <xs:element minOccurs='0' name='fase' type='xs:string'/>
+     <xs:element minOccurs='0' name='grado' type='xs:string'/>
+     <xs:element minOccurs='0' name='idServiziAtti' type='xs:string'/>
+     <xs:element minOccurs='0' name='mimetype' type='xs:string'/>
+     <xs:element minOccurs='0' name='nomeDecreto' type='xs:string'/>
+     <xs:element minOccurs='0' name='note' type='xs:string'/>
+     <xs:element minOccurs='0' name='rito' type='xs:string'/>
+     <xs:element minOccurs='0' name='qName' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficioPenale'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficioPenaleResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:ufficiPenale'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ufficiPenale'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='attiDepositabiliUfficio' nillable='true' type='tns:attiDepositabiliUfficio'/>
+     <xs:element minOccurs='0' name='certificatoCifra' type='xs:base64Binary'/>
+     <xs:element minOccurs='0' name='citta' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceGL' type='xs:string'/>
+     <xs:element name='codiceRegione' type='xs:int'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizioneDistretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='distretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='id' type='xs:string'/>
+     <xs:element minOccurs='0' name='indirizzoPec' type='xs:string'/>
+     <xs:element minOccurs='0' name='nomeCertificatoCifra' type='xs:string'/>
+     <xs:element minOccurs='0' name='provincia' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='attiDepositabiliUfficio'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceUfficio' type='xs:string'/>
+     <xs:element minOccurs='0' name='dtAttivazione' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='id' type='xs:string'/>
+     <xs:element minOccurs='0' name='nomeFile' type='xs:string'/>
+     <xs:element minOccurs='0' name='normativa' type='xs:base64Binary'/>
+     <xs:element minOccurs='0' name='note' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoAttoDep' type='xs:string'/>
+     <xs:element minOccurs='0' name='ufficioInterno' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficioGiudiziarioByPec'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='pecAddress' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficioGiudiziarioByPecResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:ufficiGiudiziari'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaUfficiGiudiziari'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='distretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='comune' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaUfficiGiudiziariResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ufficiGiudiziari'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaUfficiPenali'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='distretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='comune' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaUfficiPenaliResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ufficiPenale'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaPda'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='ordine' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaPdaResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:pda'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='pda'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='certificatoHash' type='xs:string'/>
+     <xs:element minOccurs='0' name='certificatoSSL' type='xs:base64Binary'/>
+     <xs:element minOccurs='0' name='codFornitore' type='xs:string'/>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceAlbo' type='xs:string'/>
+     <xs:element minOccurs='0' name='dataAutorizzazione' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='dataCessazione' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='descEstesa' type='xs:string'/>
+     <xs:element minOccurs='0' name='descrizione' type='xs:string'/>
+     <xs:element minOccurs='0' name='flagPdaPagTel' type='xs:string'/>
+     <xs:element minOccurs='0' name='legaleRappresentante' type='xs:string'/>
+     <xs:element minOccurs='0' name='linkManOp' type='xs:string'/>
+     <xs:element minOccurs='0' name='nomeCertificatoSSL' type='xs:string'/>
+     <xs:element minOccurs='0' name='note' type='xs:base64Binary'/>
+     <xs:element minOccurs='0' name='sedeLegale' type='xs:string'/>
+     <xs:element name='tipo' type='xs:int'/>
+     <xs:element minOccurs='0' name='url' type='xs:string'/>
+     <xs:element minOccurs='0' name='urlWebService' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaPda'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='ordinamento' type='xs:string'/>
+     <xs:element minOccurs='0' name='verso' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaPdaResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:listaPda'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='listaPda'>
+    <xs:complexContent>
+     <xs:extension base='tns:pda'>
+      <xs:sequence>
+       <xs:element minOccurs='0' name='codiceOrdine' type='xs:string'/>
+       <xs:element minOccurs='0' name='descTipoPda' type='xs:string'/>
+       <xs:element minOccurs='0' name='descrOrdine' type='xs:string'/>
+       <xs:element minOccurs='0' name='noteOrdine' type='xs:base64Binary'/>
+       <xs:element minOccurs='0' name='notePda' type='xs:base64Binary'/>
+      </xs:sequence>
+     </xs:extension>
+    </xs:complexContent>
+   </xs:complexType>
+   <xs:complexType name='getTipiUfficio'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='comune' type='xs:string'/>
+     <xs:element minOccurs='0' name='gruppo' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getTipiUfficioResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:tipiUfficio'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='tipiUfficio'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='descTipoUfficio' type='xs:string'/>
+     <xs:element minOccurs='0' name='gruppo' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficiFromRegioni'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceRegione' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getUfficiFromRegioniResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:uffici'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListUGElectroPay'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='distretto' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListUGElectroPayResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ufficiGiudiziari'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getAllRegistri'>
+    <xs:sequence/>
+   </xs:complexType>
+   <xs:complexType name='getAllRegistriResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:registro'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaUfficiGiudiziariDistretto'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='distretto' type='xs:string'/>
+     <xs:element minOccurs='0' name='filtraSoppressi' type='xs:string'/>
+     <xs:element minOccurs='0' name='tipoUfficio' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='getListaUfficiGiudiziariDistrettoResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:ufficiGiudiziari'/>
+    </xs:sequence>
+   </xs:complexType>
+  </xs:schema>
+ </types>
+ <message name='CatalogoServizi_getEntiResponse'>
+  <part element='tns:getEntiResponse' name='getEntiResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getRegistriFromUfficioResponse'>
+  <part element='tns:getRegistriFromUfficioResponse' name='getRegistriFromUfficioResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getNormativaResponse'>
+  <part element='tns:getNormativaResponse' name='getNormativaResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficioGiudiziarioByPec'>
+  <part element='tns:getUfficioGiudiziarioByPec' name='getUfficioGiudiziarioByPec'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficioPenaleResponse'>
+  <part element='tns:getUfficioPenaleResponse' name='getUfficioPenaleResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getTipoRicercaInformazioniResponse'>
+  <part element='tns:getTipoRicercaInformazioniResponse' name='getTipoRicercaInformazioniResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficioGiudiziarioResponse'>
+  <part element='tns:getUfficioGiudiziarioResponse' name='getUfficioGiudiziarioResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getTipoRicercaInformazioni'>
+  <part element='tns:getTipoRicercaInformazioni' name='getTipoRicercaInformazioni'></part>
+ </message>
+ <message name='CatalogoServizi_getCertificato'>
+  <part element='tns:getCertificato' name='getCertificato'></part>
+ </message>
+ <message name='CatalogoServizi_ricercaPda'>
+  <part element='tns:ricercaPda' name='ricercaPda'></part>
+ </message>
+ <message name='CatalogoServizi_getListUGElectroPayResponse'>
+  <part element='tns:getListUGElectroPayResponse' name='getListUGElectroPayResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getListaUfficiPenaliResponse'>
+  <part element='tns:getListaUfficiPenaliResponse' name='getListaUfficiPenaliResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficioGiudiziario'>
+  <part element='tns:getUfficioGiudiziario' name='getUfficioGiudiziario'></part>
+ </message>
+ <message name='CatalogoServizi_getTipiUfficio'>
+  <part element='tns:getTipiUfficio' name='getTipiUfficio'></part>
+ </message>
+ <message name='CatalogoServizi_getListaPdaResponse'>
+  <part element='tns:getListaPdaResponse' name='getListaPdaResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficioGiudiziarioByPecResponse'>
+  <part element='tns:getUfficioGiudiziarioByPecResponse' name='getUfficioGiudiziarioByPecResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getListaUfficiPenali'>
+  <part element='tns:getListaUfficiPenali' name='getListaUfficiPenali'></part>
+ </message>
+ <message name='CatalogoServizi_getRuoliConsultazioniResponse'>
+  <part element='tns:getRuoliConsultazioniResponse' name='getRuoliConsultazioniResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getListaPda'>
+  <part element='tns:getListaPda' name='getListaPda'></part>
+ </message>
+ <message name='CatalogoServiziException'>
+  <part element='tns:CatalogoServiziException' name='CatalogoServiziException'></part>
+ </message>
+ <message name='CatalogoServizi_getRegioniResponse'>
+  <part element='tns:getRegioniResponse' name='getRegioniResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getListaUfficiGiudiziari'>
+  <part element='tns:getListaUfficiGiudiziari' name='getListaUfficiGiudiziari'></part>
+ </message>
+ <message name='CatalogoServizi_getCertificatoResponse'>
+  <part element='tns:getCertificatoResponse' name='getCertificatoResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getRegistriFromUfficioCPResponse'>
+  <part element='tns:getRegistriFromUfficioCPResponse' name='getRegistriFromUfficioCPResponse'></part>
+ </message>
+ <message name='CatalogoServizi_ricercaPdaResponse'>
+  <part element='tns:ricercaPdaResponse' name='ricercaPdaResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getRito'>
+  <part element='tns:getRito' name='getRito'></part>
+ </message>
+ <message name='CatalogoServizi_getComuniResponse'>
+  <part element='tns:getComuniResponse' name='getComuniResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getAllRegistri'>
+  <part element='tns:getAllRegistri' name='getAllRegistri'></part>
+ </message>
+ <message name='CatalogoServizi_getDecreto'>
+  <part element='tns:getDecreto' name='getDecreto'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficiFromRegioniResponse'>
+  <part element='tns:getUfficiFromRegioniResponse' name='getUfficiFromRegioniResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficiFromRegioni'>
+  <part element='tns:getUfficiFromRegioni' name='getUfficiFromRegioni'></part>
+ </message>
+ <message name='CatalogoServizi_getDistretti'>
+  <part element='tns:getDistretti' name='getDistretti'></part>
+ </message>
+ <message name='CatalogoServizi_getRitoResponse'>
+  <part element='tns:getRitoResponse' name='getRitoResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getUfficioPenale'>
+  <part element='tns:getUfficioPenale' name='getUfficioPenale'></part>
+ </message>
+ <message name='CatalogoServizi_getAllRegistriResponse'>
+  <part element='tns:getAllRegistriResponse' name='getAllRegistriResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getRegioni'>
+  <part element='tns:getRegioni' name='getRegioni'></part>
+ </message>
+ <message name='CatalogoServizi_getTipiUfficioResponse'>
+  <part element='tns:getTipiUfficioResponse' name='getTipiUfficioResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getListaUfficiGiudiziariDistretto'>
+  <part element='tns:getListaUfficiGiudiziariDistretto' name='getListaUfficiGiudiziariDistretto'></part>
+ </message>
+ <message name='CatalogoServizi_getEnti'>
+  <part element='tns:getEnti' name='getEnti'></part>
+ </message>
+ <message name='CatalogoServizi_getNormativa'>
+  <part element='tns:getNormativa' name='getNormativa'></part>
+ </message>
+ <message name='CatalogoServizi_getListaUfficiGiudiziariDistrettoResponse'>
+  <part element='tns:getListaUfficiGiudiziariDistrettoResponse' name='getListaUfficiGiudiziariDistrettoResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getDistrettiResponse'>
+  <part element='tns:getDistrettiResponse' name='getDistrettiResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getRegistriFromUfficioCP'>
+  <part element='tns:getRegistriFromUfficioCP' name='getRegistriFromUfficioCP'></part>
+ </message>
+ <message name='CatalogoServizi_getListaUfficiGiudiziariResponse'>
+  <part element='tns:getListaUfficiGiudiziariResponse' name='getListaUfficiGiudiziariResponse'></part>
+ </message>
+ <message name='CatalogoServizi_getComuni'>
+  <part element='tns:getComuni' name='getComuni'></part>
+ </message>
+ <message name='CatalogoServizi_getListUGElectroPay'>
+  <part element='tns:getListUGElectroPay' name='getListUGElectroPay'></part>
+ </message>
+ <message name='CatalogoServizi_getRegistriFromUfficio'>
+  <part element='tns:getRegistriFromUfficio' name='getRegistriFromUfficio'></part>
+ </message>
+ <message name='CatalogoServizi_getRuoliConsultazioni'>
+  <part element='tns:getRuoliConsultazioni' name='getRuoliConsultazioni'></part>
+ </message>
+ <message name='CatalogoServizi_getDecretoResponse'>
+  <part element='tns:getDecretoResponse' name='getDecretoResponse'></part>
+ </message>
+ <portType name='CatalogoServizi'>
+  <operation name='getAllRegistri' parameterOrder='getAllRegistri'>
+   <input message='tns:CatalogoServizi_getAllRegistri'></input>
+   <output message='tns:CatalogoServizi_getAllRegistriResponse'></output>
+  </operation>
+  <operation name='getCertificato' parameterOrder='getCertificato'>
+   <input message='tns:CatalogoServizi_getCertificato'></input>
+   <output message='tns:CatalogoServizi_getCertificatoResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getComuni' parameterOrder='getComuni'>
+   <input message='tns:CatalogoServizi_getComuni'></input>
+   <output message='tns:CatalogoServizi_getComuniResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getDecreto' parameterOrder='getDecreto'>
+   <input message='tns:CatalogoServizi_getDecreto'></input>
+   <output message='tns:CatalogoServizi_getDecretoResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getDistretti' parameterOrder='getDistretti'>
+   <input message='tns:CatalogoServizi_getDistretti'></input>
+   <output message='tns:CatalogoServizi_getDistrettiResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getEnti' parameterOrder='getEnti'>
+   <input message='tns:CatalogoServizi_getEnti'></input>
+   <output message='tns:CatalogoServizi_getEntiResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getListUGElectroPay' parameterOrder='getListUGElectroPay'>
+   <input message='tns:CatalogoServizi_getListUGElectroPay'></input>
+   <output message='tns:CatalogoServizi_getListUGElectroPayResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getListaPda' parameterOrder='getListaPda'>
+   <input message='tns:CatalogoServizi_getListaPda'></input>
+   <output message='tns:CatalogoServizi_getListaPdaResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getListaUfficiGiudiziari' parameterOrder='getListaUfficiGiudiziari'>
+   <input message='tns:CatalogoServizi_getListaUfficiGiudiziari'></input>
+   <output message='tns:CatalogoServizi_getListaUfficiGiudiziariResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getListaUfficiGiudiziariDistretto' parameterOrder='getListaUfficiGiudiziariDistretto'>
+   <input message='tns:CatalogoServizi_getListaUfficiGiudiziariDistretto'></input>
+   <output message='tns:CatalogoServizi_getListaUfficiGiudiziariDistrettoResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getListaUfficiPenali' parameterOrder='getListaUfficiPenali'>
+   <input message='tns:CatalogoServizi_getListaUfficiPenali'></input>
+   <output message='tns:CatalogoServizi_getListaUfficiPenaliResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getNormativa' parameterOrder='getNormativa'>
+   <input message='tns:CatalogoServizi_getNormativa'></input>
+   <output message='tns:CatalogoServizi_getNormativaResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getRegioni' parameterOrder='getRegioni'>
+   <input message='tns:CatalogoServizi_getRegioni'></input>
+   <output message='tns:CatalogoServizi_getRegioniResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getRegistriFromUfficio' parameterOrder='getRegistriFromUfficio'>
+   <input message='tns:CatalogoServizi_getRegistriFromUfficio'></input>
+   <output message='tns:CatalogoServizi_getRegistriFromUfficioResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getRegistriFromUfficioCP' parameterOrder='getRegistriFromUfficioCP'>
+   <input message='tns:CatalogoServizi_getRegistriFromUfficioCP'></input>
+   <output message='tns:CatalogoServizi_getRegistriFromUfficioCPResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getRito' parameterOrder='getRito'>
+   <input message='tns:CatalogoServizi_getRito'></input>
+   <output message='tns:CatalogoServizi_getRitoResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getRuoliConsultazioni' parameterOrder='getRuoliConsultazioni'>
+   <input message='tns:CatalogoServizi_getRuoliConsultazioni'></input>
+   <output message='tns:CatalogoServizi_getRuoliConsultazioniResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getTipiUfficio' parameterOrder='getTipiUfficio'>
+   <input message='tns:CatalogoServizi_getTipiUfficio'></input>
+   <output message='tns:CatalogoServizi_getTipiUfficioResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getTipoRicercaInformazioni' parameterOrder='getTipoRicercaInformazioni'>
+   <input message='tns:CatalogoServizi_getTipoRicercaInformazioni'></input>
+   <output message='tns:CatalogoServizi_getTipoRicercaInformazioniResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getUfficiFromRegioni' parameterOrder='getUfficiFromRegioni'>
+   <input message='tns:CatalogoServizi_getUfficiFromRegioni'></input>
+   <output message='tns:CatalogoServizi_getUfficiFromRegioniResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getUfficioGiudiziario' parameterOrder='getUfficioGiudiziario'>
+   <input message='tns:CatalogoServizi_getUfficioGiudiziario'></input>
+   <output message='tns:CatalogoServizi_getUfficioGiudiziarioResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getUfficioGiudiziarioByPec' parameterOrder='getUfficioGiudiziarioByPec'>
+   <input message='tns:CatalogoServizi_getUfficioGiudiziarioByPec'></input>
+   <output message='tns:CatalogoServizi_getUfficioGiudiziarioByPecResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='getUfficioPenale' parameterOrder='getUfficioPenale'>
+   <input message='tns:CatalogoServizi_getUfficioPenale'></input>
+   <output message='tns:CatalogoServizi_getUfficioPenaleResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+  <operation name='ricercaPda' parameterOrder='ricercaPda'>
+   <input message='tns:CatalogoServizi_ricercaPda'></input>
+   <output message='tns:CatalogoServizi_ricercaPdaResponse'></output>
+   <fault message='tns:CatalogoServiziException' name='CatalogoServiziException'></fault>
+  </operation>
+ </portType>
+ <binding name='CatalogoServiziBinding' type='tns:CatalogoServizi'>
+  <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http'/>
+  <operation name='getAllRegistri'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='getCertificato'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getComuni'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getDecreto'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getDistretti'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getEnti'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getListUGElectroPay'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getListaPda'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getListaUfficiGiudiziari'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getListaUfficiGiudiziariDistretto'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getListaUfficiPenali'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getNormativa'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getRegioni'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getRegistriFromUfficio'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getRegistriFromUfficioCP'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getRito'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getRuoliConsultazioni'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getTipiUfficio'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getTipoRicercaInformazioni'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getUfficiFromRegioni'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getUfficioGiudiziario'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getUfficioGiudiziarioByPec'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='getUfficioPenale'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='ricercaPda'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='CatalogoServiziException'>
+    <soap:fault name='CatalogoServiziException' use='literal'/>
+   </fault>
+  </operation>
+ </binding>
+ <service name='CatalogoServiziBeanService'>
+  <port binding='tns:CatalogoServiziBinding' name='CatalogoServiziSOAPPort'>
+   <soap:address location='http://sdm-pst/servizi/CatalogoServizi'/>
+  </port>
+ </service>
+</definitions>

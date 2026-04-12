@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import json
+from html import escape
 from datetime import date, timedelta
 
 from flask import (Blueprint, abort, flash, g, redirect,
@@ -21,6 +22,15 @@ from pct.economico_context import (
     riepilogo_contesto_economico,
     sincronizza_contesto_economico,
 )
+from pct.preventivi import (
+    CLAUSOLA_CONTROVERSIE_MULTISTEP,
+    CLAUSOLA_CONTROVERSIE_NESSUNA,
+    catalogo_clausola_controversie,
+    fonte_modello_clausola_controversie,
+    label_modello_clausola_controversie,
+    normalizza_modello_clausola_controversie,
+    testo_predefinito_clausola_controversie,
+)
 from pct.tariffario import parse_numero_locale
 from pct.workflow_commerciale import apri_fascicolo_automatico, build_workflow_summary
 
@@ -32,6 +42,7 @@ preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
 def _parse_numero(value, default: float = 0.0) -> float:
     return parse_numero_locale(value, default)
+
 
 def _get_gp():
     from pct.preventivi import GestionePreventivi
@@ -135,6 +146,31 @@ def _area_pratica_da_fascicolo(fascicolo) -> str:
         "ALTRO": "Speciali",
     }
     return mapping.get(str(tipo).upper(), "Speciali")
+
+
+def _clausola_controversie_catalogo_context() -> list[dict]:
+    return catalogo_clausola_controversie()
+
+
+def _clausola_controversie_form_state(source=None) -> dict:
+    attiva = bool(getattr(source, "clausola_controversie_attiva", False))
+    modello_raw = getattr(source, "clausola_controversie_modello", "") if source else ""
+    modello = normalizza_modello_clausola_controversie(
+        modello_raw or (CLAUSOLA_CONTROVERSIE_MULTISTEP if attiva else CLAUSOLA_CONTROVERSIE_NESSUNA)
+    )
+    testo = (getattr(source, "clausola_controversie_testo", "") or "").strip()
+    if attiva and not testo:
+        testo = testo_predefinito_clausola_controversie(modello)
+    return {
+        "attiva": attiva,
+        "modello": modello,
+        "testo": testo,
+        "trattativa_individuale": bool(
+            getattr(source, "clausola_controversie_trattativa_individuale", False)
+        ),
+        "fonte": (getattr(source, "clausola_controversie_fonte", "") or "").strip()
+        or (fonte_modello_clausola_controversie(modello) if attiva else ""),
+    }
 
 
 def _contesto_fascicolo_wizard(fascicolo) -> dict:
@@ -361,6 +397,13 @@ def nuovo_preventivo(id_cliente: str = ""):
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
+            clausola_controversie_attiva=bool(f.get("clausola_controversie_attiva")),
+            clausola_controversie_modello=f.get("clausola_controversie_modello", "").strip(),
+            clausola_controversie_testo=f.get("clausola_controversie_testo", "").strip(),
+            clausola_controversie_trattativa_individuale=bool(
+                f.get("clausola_controversie_trattativa_individuale")
+            ),
+            clausola_controversie_fonte=f.get("clausola_controversie_fonte", "").strip(),
         )
         flash(f"Preventivo {p.numero} creato.", "success")
         from_page = f.get("from_page", "")
@@ -385,6 +428,8 @@ def nuovo_preventivo(id_cliente: str = ""):
         clienti=clienti,
         cliente_sel=cliente_sel,
         fascicoli=fascicoli,
+        clausola_state=_clausola_controversie_form_state(),
+        clausola_catalogo=_clausola_controversie_catalogo_context(),
         oggi=date.today(),
         scadenza_default=(date.today() + timedelta(days=30)).isoformat(),
         from_page=from_page,
@@ -461,6 +506,7 @@ def dettaglio_preventivo(id_preventivo: str):
         campi_cliente_mancanti=campi_cliente_mancanti,
         workflow_summary=workflow_summary,
         calc_summary=riepilogo_contesto_economico(p.log_calcolo),
+        clausola_modello_label=label_modello_clausola_controversie(p.clausola_controversie_modello),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -640,6 +686,13 @@ def nuovo_conferimento(id_cliente: str = ""):
             quota_palmario_pct=quota_palmario,
             informativa_art13_resa=bool(f.get("informativa_art13_resa")),
             clausola_adr_resa=bool(f.get("clausola_adr_resa")),
+            clausola_controversie_attiva=bool(f.get("clausola_controversie_attiva")),
+            clausola_controversie_modello=f.get("clausola_controversie_modello", "").strip(),
+            clausola_controversie_testo=f.get("clausola_controversie_testo", "").strip(),
+            clausola_controversie_trattativa_individuale=bool(
+                f.get("clausola_controversie_trattativa_individuale")
+            ),
+            clausola_controversie_fonte=f.get("clausola_controversie_fonte", "").strip(),
             studio_piva=cfg.get("STUDIO_PIVA", ""),
             studio_cf=cfg.get("STUDIO_CF", ""),
             studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
@@ -704,6 +757,8 @@ def nuovo_conferimento(id_cliente: str = ""):
         fascicoli=fascicoli,
         preventivo_pre=preventivo_pre,
         preventivi_cliente=preventivi_cliente,
+        clausola_state=_clausola_controversie_form_state(preventivo_pre),
+        clausola_catalogo=_clausola_controversie_catalogo_context(),
         cliente_da_completare=cliente_da_completare,
         campi_cliente_mancanti=campi_cliente_mancanti,
         url_completa_cliente=url_completa_cliente,
@@ -758,6 +813,7 @@ def dettaglio_conferimento(id_conferimento: str):
         cliente_da_completare=cliente_da_completare,
         campi_cliente_mancanti=campi_cliente_mancanti,
         workflow_summary=workflow_summary,
+        clausola_modello_label=label_modello_clausola_controversie(c.clausola_controversie_modello),
         studio_nome=current_app.config.get("STUDIO_NOME", "Studio Legale PCT"),
         oggi=date.today(),
     )
@@ -1686,6 +1742,28 @@ def _genera_pdf_preventivo(p, cliente, fascicolo, config) -> io.BytesIO:
             story.append(Paragraph(row, style_small))
         story.append(Spacer(1, 3*mm))
 
+    if p.clausola_controversie_attiva and p.clausola_controversie_testo:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph("Clausola proposta per il conferimento", style_h2))
+        if p.clausola_controversie_fonte:
+            story.append(Paragraph(
+                f"<b>Fonte modello:</b> {escape(p.clausola_controversie_fonte)}",
+                style_small,
+            ))
+            story.append(Spacer(1, 1*mm))
+        story.append(Paragraph(
+            escape(p.clausola_controversie_testo).replace("\n", "<br/>"),
+            style_small,
+        ))
+        if p.clausola_controversie_trattativa_individuale:
+            story.append(Spacer(1, 2*mm))
+            story.append(Paragraph(
+                "Trattativa individuale sulla clausola dichiarata come gia svolta.",
+                style_small,
+            ))
+        story.append(Spacer(1, 3*mm))
+
     # Note + disclaimer
     if p.note:
         story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
@@ -1873,10 +1951,33 @@ def _genera_pdf_conferimento(c, cliente, fascicolo, preventivo, config) -> io.By
             style_small))
         story.append(Spacer(1, 3*mm))
 
+    if c.clausola_controversie_attiva and c.clausola_controversie_testo:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph("<b>Clausola di risoluzione delle controversie</b>", style_bold))
+        story.append(Spacer(1, 2*mm))
+        if c.clausola_controversie_fonte:
+            story.append(Paragraph(
+                f"<b>Fonte modello:</b> {escape(c.clausola_controversie_fonte)}",
+                style_small,
+            ))
+            story.append(Spacer(1, 1*mm))
+        story.append(Paragraph(
+            escape(c.clausola_controversie_testo).replace("\n", "<br/>"),
+            style_just,
+        ))
+        if c.clausola_controversie_trattativa_individuale:
+            story.append(Spacer(1, 2*mm))
+            story.append(Paragraph(
+                "Le parti dichiarano che la clausola e stata oggetto di trattativa individuale documentabile.",
+                style_small,
+            ))
+        story.append(Spacer(1, 3*mm))
+
     # Note
     if c.note:
         story.append(Spacer(1, 2*mm))
-        story.append(Paragraph(c.note, style_just))
+        story.append(Paragraph(escape(c.note).replace("\n", "<br/>"), style_just))
         story.append(Spacer(1, 3*mm))
 
     # Obblighi informativi art. 13 L. 247/2012

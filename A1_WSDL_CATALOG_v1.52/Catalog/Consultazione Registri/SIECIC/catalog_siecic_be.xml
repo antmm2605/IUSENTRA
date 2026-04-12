@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  (c) 2008 ElsagDatamat S.p.A.
+  Catalogo descrittori per i servizi di back end Polis Web - Consultazioni per il SIECIC
+  Data: 21/01/2008
+  author:  Silvia Ciciarelli
+  version: $Id: catalog_siecic_be.xml,v 1.3.2.1 2012/11/13 08:49:03 lorenzo.digiacomo Exp $
+-->
+<catalog>
+
+	<!--
+		I fascicoli restituiti dai servizi EventoFascicoloAgenda, InfoScadenze e InfoFascicolo
+		sono tutti fascicoli principali:
+			- l'idFAscicolo è l'identificativo del fascicolo root (idfascroot)
+			- l'informazione del subprocedimento è stata eliminata
+	-->
+	<class name="EventoFascicoloAgenda">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo del fascicolo"/>
+		<property name="idUfficio" type="string" description="codice ufficio"/>
+		<property name="registro" type="string" description="codice registro"/>
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>   <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="codRito" type="string" description="codice rito"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="data" type="date" description="data evento storico"/>
+		<property name="dataRegistrazione" type="date" description="data registrazione evento storico"/>
+		<property name="desc" type="string" description="descrizione storico"/>
+		<property name="creditori" type="string" description="creditore"/>
+		<property name="debitori" type="string" description="debitore"/>
+		<property name="idDocumento" type="string" description="identificativo atto"/>
+	</class>
+	<class name="InfoScadenze">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idDfaRoot" type="string" description="id flusso principale fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+		<property name="idUfficio" type="string" description="codice ufficio"/>
+		<property name="registro" type="string" description="codice registro"/>
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string"  description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<!--<property name="codRito" type="string"/-->   	<!--All'interno dello stesso registro la numerazione dei fascicoli è per rito. il CodiceRito va concatenato al numero/anno RG-->
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="tipoScadenza" type="string" description="tipo di informazione (udienza o scadenza)"/>
+		<property name="descScadenza" type="string" description="descrizione scadenza"/>
+		<property name="dataScadenza" type="date" description="data scadenza"/>
+		<property name="giudice" type="string"  description="giudice assegnato"/>
+		<property name="flagtenuta" type="string" description="udienza tenuta"/>
+	</class>
+	<class name="InfoFascicolo">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+		<property name="idUfficio" type="string" description="codice ufficio"/>
+		<property name="registro" type="string" description="codice registro"/>
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="codRito" type="string" description="codice rito"/>   	<!--All'interno dello stesso registro la numerazione dei fascicoli è per rito. il CodiceRito va concatenato al numero/anno RG-->
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="dataUdienza" type="date" description="data udienza"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="debitori" type="string" description="debitori"/>
+	</class>
+	<class name="ScadenzaTermineALL">
+		<property name="data" type="date" description="data scadenza termine"/>
+		<property name="descrizione" type="string" description="descrizione scadenza termine"/>
+		<property name="descrizioneSubProc" type="string" description="descrizione subprocedimento"/>
+	</class>
+	<class name="SubProcedimentiALL">
+		<property name="descrizioneSubProc" type="string" description="descrizione subprocedimento"/>
+		<property name="descrRitoSubProc" type="string" description="descrizione rito subprocedimento"/>
+		<property name="descStatoSubProc" type="string" description="descrizione stato subprocedimento"/>
+	</class>
+	<class name="ScadenzaTerminePC_AVV">
+		<property name="data" type="date" description="data scadenza termine (procedure concorsuali avvocato)"/>
+		<property name="descrizione" type="string" description="descrizione scadenza termine (procedure concorsuali avvocato)"/>
+		<property name="descrizioneSubProc" type="string" description="descrizione subprocedimento scadenza tremine (procedure concorsuali avvocato)"/>
+	</class>
+	<class name="SubProcedimentiPC_AVV">
+		<property name="descrizioneSubProc" type="string" description="descrizione subprocedimento (procedure concorsuali avvocato)"/>
+		<property name="descrRitoSubProc" type="string" description="descrizione rito subprocedimento (procedure concorsuali avvocato)"/>
+		<property name="descStatoSubProc" type="string" description="descrizione stato subprocedimento (procedure concorsuali avvocato)"/>
+	</class>
+	<class name="ScadenzaTerminePC_CTU">
+		<property name="data" type="date" description="data scadenza termine (procedure concorsuali CTU)"/>
+		<property name="descrizione" type="string" description="descrizione scadenza termine (procedure concorsuali CTU)"/>
+		<property name="descrizioneSubProc" type="string" description="descrizione subprocedimento scadenza termine (procedure concorsuali CTU)"/>
+	</class>
+	<class name="SubProcedimentiPC_CTU">
+		<property name="descrizioneSubProc" type="string" description="descrizione subprocedimento (procedure concorsuali CTU)"/>
+		<property name="descrRitoSubProc" type="string" description="descrizione rito subprocedimento (procedure concorsuali CTU)"/>
+		<property name="descStatoSubProc" type="string" description="descrizione stato subprocedimento (procedure concorsuali CTU)"/>
+	</class>
+	<class name="ProfiloFascicolo">
+		<property name="idDfa" type="string" description="id flusso fascicolo"/>
+		<property name="idFascicolo" type="string" description="identificativo fascicolo"/>
+		<property name="idRepFascicolo" type="string" description="identificativo fascicolo elettronico"/>
+		<property name="idUfficio" type="string" description="codice ufficio"/>
+		<property name="registro" type="string" description="codice registro"/>
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="descrRitoRoot" type="string" description="descrizione rito principale"/>
+		<property name="descOggetto" type="string" description="descrizione oggetto"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="descSezione" type="string" description="descrizione sezione"/>
+		<property name="DataIscrizione" type="date" description="data iscrizione fascicolo"/>
+		<property name="dataUltimaUdienza" type="date" description="data ultima udienza"/>
+		<property name="descStato" type="string" description="descrizione stato del fascicolo"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="debitori" type="string" description="debitori"/>
+		<classref ref="ScadenzaTermineALL"/>
+		<classref ref="SubProcedimentiALL"/>
+		<classref ref="ScadenzaTerminePC_AVV"/>
+		<classref ref="SubProcedimentiPC_AVV"/>
+		<classref ref="ScadenzaTerminePC_CTU"/>
+		<classref ref="SubProcedimentiPC_CTU"/>
+	</class>
+        <class name="SubEventiComplementari">
+                <property name="data" type="date" description="data evento"/>
+                <property name="dataregistarzione" type="date"  description="data registrazione evento"/>
+                <property name="desc" type="string"  description="descrizione evento storico"/>
+                <property name="idDocumento" type="string" description="id documento associato"/>
+        </class>
+	<class name="Evento">
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="debitori" type="string" description="debitori"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+                <property name="idstorico" type="string" description="identificativo dello storico"/>
+		<property name="data" type="date" description="data evento"/>
+		<property name="datareg" type="date"  description="data registrazione evento"/>
+		<property name="desc" type="string"  description="descrizione evento storico"/>
+		<property name="idDocumento" type="string" description="id documento associato"/>
+                <property name="completo" type="string" description="depositi complementari pervenuti"/>
+                <classref ref="SubEventiComplementari"/>
+        </class>
+	<class name="BeniMobili">
+		<property name="debitore" type="string" description="cognome del debitore"/>
+		<property name="descrizione" type="string" description="descrizione del bene"/>
+		<property name="statoDiritto" type="string" description="descrizione stato di diritto"/>
+		<property name="classe" type="string" description="descrizione classe"/>
+		<property name="quantita" type="string" description="quantita bene"/>
+		<property name="unitaDiMisura" type="string" description="unita di misura bene"/>
+		<property name="stima" type="string" description="stima del bene"/>
+	</class>
+	<class name="BeniImmobili">
+		<property name="debitori" type="string" description="debitori"/>
+		<property name="descrizione" type="string" description="descrizione del bene"/>
+		<property name="statoDiritto" type="string" description="descrizione stato di diritto"/>
+		<property name="ubicazione" type="string" description="ubicazione"/>
+		<property name="frazione" type="string" description="frazione"/>
+		<property name="tipoDiritto" type="string" description="descrizione tipo diritto"/>
+		<property name="stima" type="string" description="stima del bene"/>
+	</class>
+	<class name="ElencoLotti">
+		<property name="idLotto" type="string" description="identificativo del lotto"/>
+		<property name="descrizione" type="string" description="descrizione del lotto"/>
+		<property name="numero" type="string" description="numero lotto"/>
+		<property name="tipo" type="string" description="tipo lotto"/>
+	</class>
+	<class name="ElencoBeniXLotto">
+		<property name="descrizioneBene" type="string" description="descrizione bene"/>
+		<property name="classeBene" type="string" description="classe bene"/>
+		<property name="frazioneBene" type="string" description="frazione bene"/>
+		<property name="tipoDiritto" type="string" description="tipo di diritto"/>
+		<property name="stima" type="string" description="stima del bene"/>
+		<property name="immobiliare" type="integer" description="immobiliare (vero=1, falso=0)"/>	<!-- 1 = Si, 0 = No -->
+	</class>
+	<class name="ProfiloLotto">
+		<property name="descrizione" type="string" description="descrizione profilo lotto"/>
+		<property name="numero" type="string" description="numero lotto"/>
+		<property name="tipo" type="string" description="descrizion rito"/>
+		<property name="autorizzato" type="integer" description="autorizzato (1=si, 0=no)"/> 	<!-- 1 = Si, 0 = No. Informazione presente solo per le Procedure Concorsuali -->
+		<property name="inVendita" type="string" description="in vendita (1=si, 0=no)"/>	<!-- 1 = Si, 0 = No. -->
+		<!--<property name="tipoVendita" type="integer"/> -->
+		<property name="stato" type="string" description="descrizione stato"/>
+		<property name="baseAsta" type="string" description="base asta"/>
+		<property name="stima" type="string" description="stima"/>
+		<property name="dataUdienza" type="date" description="data udienza"/>
+		<property name="aggiudicatario" type="string" description="aggiudicatario"/>
+		<property name="importo" type="string" description="importo"/>
+		<classref ref="ElencoBeniXLotto"/>
+	</class>
+	<class name="ElencoPartiEC">
+		<property name="idParte" type="string" description="identificativo parte (esecuzioni mobiliari-immobiliari)"/>
+		<property name="ruolo" type="string" description="tipo parte"/>
+		<property name="descrizione" type="string" description="descrizione parte"/>
+		<property name="codice" type="string" description="codice parte"/>
+	</class>
+	<class name="ProfiloParteEC">
+		<property name="idParte" type="string" description="identificativo parte (esecuzioni mobiliari-immobiliari)"/>
+		<property name="ruolo" type="string" description="tipo parte"/>
+		<property name="descrizione" type="string" description="descrizione parte"/>
+		<property name="codice" type="string" description="codice parte"/>
+		<property name="indirizzoParte" type="string" description="indirizzo parte"/>
+		<property name="localitaParte" type="string" description="localita parte"/>
+		<property name="provinciaParte" type="string" description="provincia parte"/>
+		<property name="capParte" type="string" description="cap parte"/>
+		<property name="descrizioneLegale" type="string" description="descrizione avvocato"/>
+		<property name="indirizzoAvv" type="string" description="indirizzo avvocato"/>
+		<property name="localitaAvv" type="string" description="localita avvocato"/>
+		<property name="provinciaAvv" type="string" description="provincia avvocato"/>
+		<property name="capAvv" type="string" description="cap avvocato"/>
+                <property name="codiceFiscaleAvv" type="string" description="codice fiscale dell'avvocato"/>
+	</class>
+	<class name="ElencoPartiPC">
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="debitori" type="string" description="debitori"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="idParte" type="string" description="identificativo parte"/>
+		<property name="ruolo" type="string" description="descrizione tipo parte"/>
+		<property name="descrizione" type="string" description="descrizione parte"/>
+		<property name="codice" type="string" description="codice parte"/>
+	</class>
+	<class name="ProfiloPartePC">
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="debitori" type="string" description="debitori"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="idParte" type="string" description="identificativo parte"/>
+		<property name="ruolo" type="string" description="descrizione tipo parte"/>
+		<property name="descrizione" type="string" description="descrizione parte"/>
+		<property name="codice" type="string" description="codice parte"/>
+		<property name="insinuato" type="string" description="creditore insinuato (1=si, 0=no)"/>  	<!-- 1 = Si, 0 = No. -->
+		<property name="ruoloSocietario" type="string" description="ruolo societario"/>
+		<property name="indirizzoParte" type="string" description="indirizzo parte"/>
+		<property name="localitaParte" type="string" description="localita parte"/>
+		<property name="provinciaParte" type="string" description="provincia parte"/>
+		<property name="capParte" type="string" description="cap parte"/>
+		<property name="descrizioneLegale" type="string" description="legale della parte"/>
+		<property name="codiceFiscaleLegale" type="string" description="codice fiscale del legale della parte"/>
+		<property name="indirizzoAvv" type="string" description="indirizzo del legale della parte"/>
+		<property name="localitaAvv" type="string" description="localita del legale della parte"/>
+		<property name="provinciaAvv" type="string" description="provincia del legale della parte"/>
+		<property name="capAvv" type="string" description="cap del legale della parte"/>
+	</class>
+	<class name="ElencoIncarichi">
+		<property name="idIncarico" type="string" description="identificativo incarico"/>
+		<property name="tipo" type="string" description="tipo incarico"/>
+		<property name="nominativo" type="string" description="nome e cognome"/>
+		<property name="dataNomina" type="date" description="data nomina incarico"/>
+		<property name="dataFineIncarico" type="date" description="data fine incarico"/>
+	</class>
+	<class name="ProfiloIncarico">
+		<property name="tipo" type="string" description="tipo incarico"/>
+		<property name="nominativo" type="string" description="nome e cognome"/>
+		<property name="quesito" type="string" description="quesito incarico"/>
+		<property name="dataNomina" type="date" description="data nomina incarico"/>
+		<property name="dataScadenza" type="date" description="data scadenza incarico"/>
+		<property name="dataDeposito" type="date" description="data deposito incarico"/>
+		<property name="dataLiquidazione" type="date" description="data liquidazione incarico"/>
+		<property name="dataRevoca" type="date" description="data revoca incarico"/>
+		<property name="dataFineIncarico" type="date" description="data fine incarico"/>
+	</class>
+	<class name="ElencoLibretti">
+		<property name="idLibretto" type="string" description="identificativo libretto"/>
+		<property name="numero" type="string" description="numero libretto"/>
+		<property name="intestazione" type="string" description="intestazione libretto"/>
+		<property name="descrizioneStato" type="string" description="descrizione stato"/>
+	</class>
+	<class name="SaldoLibretto">
+	 	<property name="saldo" type="string" description="saldo libretto"/>
+	</class>
+	<class name="MovimentiXLibretto">
+	 	<property name="importo" type="string" description="importo movimento"/>
+		<property name="dataMovimento" type="date" description="data movimento"/>
+		<property name="causale" type="string" description="causale movimento"/>
+	</class>
+	<class name="ProfiloLibretto">
+		<property name="idLibretto" type="string" description="identificativo libretto"/>
+		<property name="numero" type="string" description="numero libretto"/>
+		<property name="intestazione" type="string" description="intestazione libretto"/>
+		<property name="descrizioneStato" type="string" description="descrizione stato"/>
+		<property name="istituto" type="string" description="istituto"/>
+		<property name="filiale" type="string" description="filiale"/>
+		<property name="dataApertura" type="date" description="data apertura libretto"/>
+		<property name="apertoDa" type="string" description="libretto aperto da"/>
+		<classref ref="SaldoLibretto"/>
+		<classref ref="MovimentiXLibretto"/>
+	</class>
+	<class name="ElencoSpese">
+		<property name="data" type="date" description="data spese"/>
+		<property name="descrizioneStato" type="string" description="descrizione stato"/>
+		<property name="parte" type="string" description="spesa pagata da"/>
+		<property name="beneficiario" type="string" description="beneficiario spesa"/>
+		<property name="totaleMovimento" type="string" description="totale movimentato"/>
+        <property name="idspesa" type="string" description="idspesa"/>
+	</class>
+	<class name="ElencoInsinuazioni">
+		<property name="data" type="date" description="data insinuazione"/>
+		<property name="numeroEtipo" type="string" description="numero e tipo insinuazione"/>
+		<property name="creditore" type="string" description="creditore insinuazione"/>
+	</class>
+	<class name="ElencoStatoPassivo">
+		<property name="creditore" type="string" description="creditore"/>
+		<property name="numeroEtipoInsinuazione" type="string" description="numero e tipo insinuazione"/>
+		<property name="statoCredito" type="string" description="stato credito"/>
+		<property name="descrizioneCredito" type="string" description="descrizione credito"/>
+		<property name="dataDecorrenzaCredito" type="date" description="data decorrenza credito"/>
+		<property name="importoCredito" type="string" description="importo credito"/>
+		<property name="capitaleCredito" type="string" description="capitale credito"/>
+	</class>
+	<class name="ElencoPendenze">
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="debitori" type="string" description="debitori"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="idDoc" type="string" description="identificativo documento"/>
+		<property name="dataRichiesta" type="date" description="data richiesta documento"/>
+		<property name="provenienza" type="string" description="provenienza documento"/>
+		<property name="tipoDocumento" type="string" description="tipo documento"/>	<!-- se la pendenza è associata ad un flusso parallelo viene concatenato il rito  -->
+	</class>
+	<class name="ProfiloPendenza">
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="debitori" type="string" description="debitori"/>
+		<property name="creditori" type="string" description="creditori"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="dataRichiesta" type="date" description="data richiesta documento"/>
+		<property name="provenienza" type="string" description="provenienza documento"/>
+		<property name="tipoDocumento" type="string" description="tipo documento"/>  <!-- se la pendenza è associata ad un flusso parallelo viene concatenato il rito  -->
+		<property name="dataTermine" type="date" description="data termine documento"/>
+		<property name="dataSollecito" type="date" description="data sollecito documento"/>
+		<property name="dataConsegna" type="date" description="data consegna documento"/>
+	</class>
+	<class name="ElencoDocumenti">
+		<property name="provenienza" type="string" description="provenienza documento"/>
+		<property name="tipoDocumento" type="string" description="tipo documento"/>  <!-- se la pendenza è associata ad un flusso parallelo viene concatenato il rito  -->
+		<property name="dataDeposito" type="date" description="data deposito documento"/>
+		<property name="decodeAttivo" type="string" description="documento attivo (1=si, 0=no)"/> <!-- valori restituiti Si o No -->
+	</class>
+	<class name="RicercaArchivioPC">
+		<property name="debitore" type="string" description="debitore"/>
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="numeroEstensione" type="string" description="numero estensione del fascicolo (solo per alcuni fascicoli delle procedure concorsuali)"/>  <!--Presente solo x i fasc delle PC se il rito è fall e si tratta di fallimento esteso ai soci-->
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="dataFallimento" type="date" description="data fallimento"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="dataProssUdienza" type="date" description="data prossima udienza"/>
+		<property name="stato" type="string" description="stato fascicolo"/>
+                <property name="iddfa" type="string" description="id flusso fascicolo"/>
+	</class>
+	<class name="RicercaArchivioEI">
+		<property name="debitore" type="string" description="debitore"/>
+		<property name="registroDecode" type="string" description="nome registro"/>
+		<property name="numeroRuolo" type="string" description="numero ruolo fascicolo"/>
+		<property name="annoRuolo" type="integer" description="anno ruolo fascicolo"/>
+		<property name="descrRito" type="string" description="descrizione rito"/>
+		<property name="giudice" type="string" description="giudice assegnato"/>
+		<property name="dataProssUdienza" type="date" description="data prossima udienza"/>
+                <property name="iddfa" type="string" description="id flusso fascicolo"/>
+	</class>
+        <class name="DocumentoUtente">
+            <property name="idAtto" type="string"/>
+            <property name="tipoAtto" type="string"/>
+            <property name="dataDeposito" type="date"/>
+            <property name="mittente" type="string"/>
+            <property name="descrRito" type="string"/>
+            <property name="descrStorico" type="string"/>
+            <property name="numeroProcedura" type="string"/>
+            <property name="numeroRuolo" type="integer"/>
+            <property name="subProcedimento" type="string"/>
+            <property name="annoRuolo" type="integer"/>
+            <property name="parte" type="string"/>
+            <property name="controparte" type="string"/>
+        </class>
+        <class name="Motivazione">
+            <property name="motivazione" type="string" description="motivazione mancata consegna telematica"/>
+        </class>
+         <class name="NotificaDaRitiro">
+            <property name="idFascicolo" type="string" description="id fascicolo"/>
+            <property name="idUfficio" type="string" description="codice ufficio"/>
+            <property name="anno" type="string" description="anno ruolo fascicolo"/>
+            <property name="numero" type="string" description="numero ruolo fascicolo"/>
+            <property name="numeroanno" type="string" description="numero e anno di ruolo del fascicolo"/>
+            <property name="subprocedimento" type="string" description="numero subprocedimento"/>
+            <property name="descOggettoRito" type="string" description="descrizione rito del fascicolo"/>
+            <property name="idInvioMsg" type="string" description="id messaggio telematico"/>
+            <property name="idRicevuta" type="string" description="id ricevuta"/>
+            <property name="descevento" type="string" description="descrizione evento"/>
+            <property name="dataevento" type="date" description="data evento"/>
+            <property name="dataregevento" type="date" description="data registro evento"/>
+            <classref ref="Motivazione"/>
+        </class>
+              <class name="infoTest">
+                    <property name="counter" type="string" description="test webservice"/>
+            </class>
+
+
+       <class name="Comunicazioni">
+            <property name="idatto" type="string"/>
+            <property name="tipoatto" type="string"/>
+            <property name="attestazione" type="date"/>
+            <property name="descrizioneEvento" type="string"/>
+        </class>
+
+        <class name="Ricevute">
+            <property name="idrepricevuta" type="string"/>
+            <property name="tiporicevuta" type="string"/>
+        </class>
+        <class name="dettaglioComunicazioni">
+            <property name="destinatario" type="string"/>
+            <property name="ruolo" type="string"/>
+            <property name="tipologia" type="string"/>
+            <property name="stato" type="string"/>
+            <property name="dataperf" type="date"/>
+            <property name="idinvio" type="string"/>
+            <property name="idmsgug" type="string"/>
+            <property name="sospeso" type="integer"/>
+            <classref ref="Ricevute"/>
+         </class>
+         
+         <class name="IstanzaFascicolo">
+            <property name="dataevento" type="date"/>
+            <property name="descrizioneevento" type="string"/>
+            <property name="numero" type="integer"/>
+            <property name="atto" type="string"/>
+            <property name="eventoevasione" type="string"/>
+            <property name="dataevasione" type="date"/>
+            <property name="provvedimento" type="string"/>  
+        </class>
+         
+</catalog>
+

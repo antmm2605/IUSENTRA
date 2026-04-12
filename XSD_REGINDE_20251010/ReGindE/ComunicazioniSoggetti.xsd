@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- versione 1.1 -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tb="TipiBaseReginde" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xs:import namespace="TipiBaseReginde" schemaLocation="TipiBaseReGIndE.xsd"/>
+	<xs:complexType name="ComunicazioneType">
+		<xs:annotation>
+			<xs:documentation>Struttura dari per la memorizzazione di una comunicazione</xs:documentation>
+		</xs:annotation>
+		<xs:sequence>
+			<xs:element name="OperazioneRichiesta" default="inserimento">
+				<xs:annotation>
+					<xs:documentation>Operazione di tipo enumerato, assume i valori "inserimento", "cancellazione" e "modifica". L'elemento, che per default assume il valore "inserimento", viene ignorato se "ComunicazioneInteroAlbo" risulta pari a true.</xs:documentation>
+				</xs:annotation>
+				<xs:simpleType>
+					<xs:restriction base="tb:OperazioneType"/>
+				</xs:simpleType>
+			</xs:element>
+			<xs:element ref="Soggetto"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:attribute name="status" type="tb:StatusSoggettoType">
+		<xs:annotation>
+			<xs:documentation>Attributo di stato del soggetto</xs:documentation>
+		</xs:annotation>
+	</xs:attribute>
+	<xs:element name="ComunicazioniSoggetti">
+		<xs:annotation>
+			<xs:documentation>Elemento root</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="EnteMittente">
+					<xs:annotation>
+						<xs:documentation>Codice identificativo dell'ente emittente. Per gli avvocati iscritti ad un Consiglio dell'Ordine il codice dell'ente sarà rappresentato da una stringa formata dal prefisso COA, al quale viene aggiunto il codice ISTAT del comune di riferimento per il CdO. Per gli avvocati iscritti alle avvocature di stato il codice dell'ente sarà rappresentato da una stringa composta dal prefisso ADS, al quale viene aggiunto il codice identificativo del distretto dell'Avvocatura. Per tutti gli altri enti, ad esempio l'INPS, il codice identificativo sarà rappresentato dalla partita IVA dell'ente. Il valore 99999 è riservato alle comunicazioni soggetti inviate dai PdA.</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="tb:EnteType"/>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="ComunicazioneInteroAlbo" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Se valorizzata a true la comunicazione si intende relativa all'intero albo, altrimenti la comunicazione è da intendersi come integrazione di comunicazioni precedenti.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="ComunicazioneSoggetto" type="ComunicazioneType" maxOccurs="unbounded">
+					<xs:annotation>
+						<xs:documentation>Lista dei soggetti interessati dalla comunicazione </xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="Soggetto">
+		<xs:annotation>
+			<xs:documentation>Soggetto per il quale viene inviata la comunicazione</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Nome">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:minLength value="1"/>
+							<xs:maxLength value="256"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Cognome">
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:minLength value="1"/>
+							<xs:maxLength value="256"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="DatiNascita" type="tb:DatiNascitaType" minOccurs="0"/>
+				<xs:element name="Ruolo">
+					<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="tb:RuoloType">
+								<xs:attribute ref="status"  use="required"/>
+							</xs:extension>
+						</xs:simpleContent>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="PostaElettronicaCertificata" type="tb:EmailType" minOccurs="0"/>
+				<xs:element name="Residenza" type="tb:IndirizzoType" minOccurs="0"/>
+				<xs:element name="DomicilioLegale" type="tb:IndirizzoType" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:sequence>
+			<xs:attribute ref="codiceFiscale" use="required"/>
+		</xs:complexType>
+	</xs:element>
+	<xs:attribute name="codiceFiscale" type="tb:CodiceFiscaleType"/>
+</xs:schema>

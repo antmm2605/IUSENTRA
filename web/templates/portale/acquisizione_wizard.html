@@ -379,6 +379,7 @@ function awRenderSteps() {
   root.querySelectorAll('[data-aw-step]').forEach(btn => btn.addEventListener('click', () => awGoStep(Number(btn.dataset.awStep))));
 }
 function awCurrentQuery() {
+  const oggetto = document.getElementById('awOggetto').value.trim();
   return {
     ufficio_codice: document.getElementById('awOfficeValue').value,
     numero: document.getElementById('awNumero').value.trim(),
@@ -386,19 +387,250 @@ function awCurrentQuery() {
     assistito: document.getElementById('awAssistito').value.trim(),
     controparte: document.getElementById('awControparte').value.trim(),
     cf: document.getElementById('awCf').value.trim(),
-    oggetto: document.getElementById('awOggetto').value.trim(),
+    oggetto,
+    materia: AW_STATE.quick || oggetto,
+    registro: AW_STATE.quick || '',
     quick_filter: AW_STATE.quick || '',
   };
+}
+function awOfficialPortalUrl() {
+  const urls = {
+    pdp: 'https://pst.giustizia.it/PST/it/services.page',
+    pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
+    ptt: 'https://sigit.finanze.it/NIRWeb/login.jsp',
+  };
+  return urls[AW_BOOT.portale] || '';
+}
+function awGuidedBrowserAssistInfo(query = null) {
+  const ufficio = document.getElementById('awOfficeInput')?.value.trim() || String(query?.ufficio_codice || '').trim();
+  const commonSuffix = ufficio
+    ? ` HACS continua con i dati gia' indicati per ${ufficio}.`
+    : " HACS continua con i dati gia' indicati nel wizard.";
+  const info = {
+    title: 'Consultazione via browser ufficiale',
+    reason: 'Questo portale completa la consultazione pratica tramite area riservata ufficiale nel browser.' + commonSuffix,
+    metaReady: 'Consultazione ufficiale via browser: puoi proseguire con inserimento manuale assistito.',
+    metaMissing: 'Compila ufficio, numero e anno per continuare con inserimento manuale assistito.',
+    portaleUrl: awOfficialPortalUrl(),
+  };
+  if (AW_BOOT.portale === 'pdp') {
+    info.reason = "Il Portale Deposito atti Penali usa l'area riservata PST nel browser ufficiale." + commonSuffix;
+  } else if (AW_BOOT.portale === 'pat') {
+    info.reason = "Il Processo Amministrativo Telematico usa il Portale Avvocato nel browser ufficiale." + commonSuffix;
+  } else if (AW_BOOT.portale === 'ptt') {
+    info.reason = 'Il Processo Tributario Telematico usa SIGIT nel browser ufficiale.' + commonSuffix;
+  }
+  return info;
+}
+function awGuidedBrowserAssistError(query = null) {
+  const info = awGuidedBrowserAssistInfo(query);
+  return {
+    manualRequired: true,
+    manualTitle: info.title,
+    manualReason: info.reason,
+    portaleUrl: info.portaleUrl,
+    assistedMetaReady: info.metaReady,
+    assistedMetaMissing: info.metaMissing,
+  };
+}
+function awBuildPortaleError(data, fallbackMessage) {
+  const error = new Error(data?.errore || fallbackMessage || 'Operazione non riuscita');
+  error.manualRequired = !!data?.manual_required;
+  error.manualTitle = String(data?.manual_title || '').trim();
+  error.manualReason = String(data?.manual_reason || '').trim();
+  error.manualPhase = String(data?.manual_phase || '').trim();
+  error.portaleUrl = String(data?.portale_url || '').trim();
+  return error;
+}
+function awPortaleBrowserOnlyError(err) {
+  if (AW_BOOT.portale === 'pst') return false;
+  if (err?.manualRequired) return true;
+  const text = String(err?.message || err || '').toLowerCase();
+  if (!text) return false;
+  const markers = [
+    'appweb.giustizia.it',
+    'pac.giustizia-amministrativa.it',
+    'sigit.finanze.it',
+    'sigit.giustiziatributaria.gov.it',
+    'pct_pdp_base_url',
+    'pct_pat_base_url',
+    'pct_sigit_base_url',
+    'failed to resolve',
+    'getaddrinfo failed',
+    '403 client error',
+    'forbidden for url',
+  ];
+  return markers.some(marker => text.includes(marker));
+}
+function awSplitPeople(value) {
+  return String(value || '')
+    .split(/[;\n|]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+function awDefaultManualProcedimento() {
+  const quick = String(AW_STATE.quick || '').trim();
+  if (quick) return quick.toUpperCase();
+  if (AW_BOOT.portale === 'pdp') return 'RGNR';
+  return 'RICORSO';
+}
+function awCanBuildManualSelection(query) {
+  return !!(String(query?.ufficio_codice || '').trim() && String(query?.numero || '').trim() && String(query?.anno || '').trim());
+}
+function awMarkSelectionManual(selection, reason = '', portaleUrl = '') {
+  const payload = { ...(selection?.payload || {}) };
+  payload.manual_mode = true;
+  payload.manual_reason = String(reason || '').trim();
+  return {
+    ...(selection || {}),
+    manual_mode: true,
+    manual_reason: String(reason || '').trim(),
+    manual_portale_url: String(portaleUrl || awOfficialPortalUrl()).trim(),
+    payload,
+  };
+}
+function awBuildManualSelection(query, reason = '', portaleUrl = '') {
+  const procedimento = awDefaultManualProcedimento();
+  const ufficioNome = document.getElementById('awOfficeInput')?.value.trim() || query.ufficio_codice || '';
+  const parti = awSplitPeople(query.assistito);
+  const controparti = awSplitPeople(query.controparte);
+  const base = {
+    external_id: `manual:${AW_BOOT.portale}:${query.ufficio_codice || ''}:${query.numero || ''}:${query.anno || ''}:${procedimento}`,
+    id_fascicolo: '',
+    numero: query.numero || '',
+    anno: Number(query.anno || 0),
+    ufficio_codice: query.ufficio_codice || '',
+    ufficio_nome: ufficioNome,
+    procedimento,
+    sub_procedimento: '',
+    sezione: '',
+    stato: 'DA VERIFICARE SU PORTALE',
+    oggetto: query.oggetto || '',
+    parti,
+    controparti,
+    ultima_attivita: '',
+    payload: {},
+  };
+  if (AW_BOOT.portale === 'pdp') {
+    base.payload = {
+      numero_rg: base.numero,
+      anno_rg: base.anno,
+      tipo_registro: procedimento,
+      fase: '',
+      stato: '',
+      reato: query.oggetto || '',
+      sezione: '',
+      giudice: '',
+      data_iscrizione: '',
+      data_udienza: '',
+      imputati: parti,
+      parti_offese: controparti,
+      note: 'Acquisizione assistita manualmente dal portale ufficiale.',
+      codice_ufficio: base.ufficio_codice,
+      nome_ufficio: base.ufficio_nome,
+    };
+  } else if (AW_BOOT.portale === 'pat') {
+    base.payload = {
+      numero_ricorso: base.numero,
+      anno: base.anno,
+      tipo: procedimento,
+      stato: '',
+      materia: query.materia || query.oggetto || '',
+      sezione: '',
+      giudice_relatore: '',
+      data_deposito: '',
+      data_udienza: '',
+      ricorrenti: parti,
+      resistenti: controparti,
+      controinteressati: [],
+      oggetto: query.oggetto || '',
+      note: 'Acquisizione assistita manualmente dal portale ufficiale.',
+      codice_ufficio: base.ufficio_codice,
+      nome_ufficio: base.ufficio_nome,
+    };
+  } else {
+    base.payload = {
+      numero_rgt: base.numero,
+      anno_rgt: base.anno,
+      tipo: procedimento,
+      stato: '',
+      materia: query.materia || query.oggetto || '',
+      sezione: '',
+      giudice_relatore: '',
+      data_deposito: '',
+      data_udienza: '',
+      ricorrenti: parti,
+      resistenti: controparti,
+      oggetto_controversia: query.oggetto || '',
+      valore_controversia: 0,
+      note: 'Acquisizione assistita manualmente dal portale ufficiale.',
+      codice_commissione: base.ufficio_codice,
+      nome_commissione: base.ufficio_nome,
+    };
+  }
+  return awMarkSelectionManual(base, reason, portaleUrl);
+}
+function awManualNoticeHtml() {
+  const selection = AW_STATE.selection || {};
+  if (!selection.manual_mode) return '';
+  const portaleUrl = selection.manual_portale_url || awOfficialPortalUrl();
+  const reason = String(selection.manual_reason || '').trim();
+  return `
+    <div class="alert alert-warning rounded-4 mb-3">
+      <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
+      <div class="small mt-1">HACS continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione.</div>
+      ${portaleUrl ? `<div class="small mt-2"><a href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a></div>` : ''}
+      ${reason ? `<div class="small text-muted mt-2">${awEscape(reason)}</div>` : ''}
+    </div>`;
+}
+function awRenderManualSearchFallback(query, err) {
+  const meta = document.getElementById('awResultsMeta');
+  const root = document.getElementById('awResults');
+  const canManual = awCanBuildManualSelection(query);
+  const guided = awGuidedBrowserAssistInfo(query);
+  const title = err?.manualTitle || guided.title;
+  const reason = err?.manualReason || guided.reason || String(err?.message || err || '');
+  const portaleUrl = err?.portaleUrl || guided.portaleUrl || awOfficialPortalUrl();
+  meta.textContent = canManual
+    ? (err?.assistedMetaReady || guided.metaReady)
+    : (err?.assistedMetaMissing || guided.metaMissing);
+  root.innerHTML = `
+    <div class="alert alert-warning rounded-4 mb-3">
+      <div class="fw-semibold">${awEscape(title)}</div>
+      <div class="small mt-1">${awEscape(reason)}</div>
+    </div>
+    <div class="aw-box">
+      <div class="fw-semibold mb-2">Continua senza interrompere l'acquisizione</div>
+      <div class="small text-muted mb-3">HACS puo' creare una pratica assistita usando i dati gia' indicati e lasciare al browser ufficiale il completamento di documenti ed eventi.</div>
+      <div class="d-flex flex-wrap gap-2">
+        ${canManual ? `<button type="button" class="btn btn-${AW_BOOT.spec.color}" id="awManualContinue">Prosegui con inserimento manuale</button>` : `<span class="badge text-bg-light border">Servono ufficio, numero e anno</span>`}
+        ${portaleUrl ? `<a class="btn btn-outline-${AW_BOOT.spec.color}" href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a>` : ''}
+      </div>
+    </div>`;
+  if (canManual) {
+    document.getElementById('awManualContinue')?.addEventListener('click', async () => {
+      const selection = awBuildManualSelection(query, reason, portaleUrl);
+      AW_STATE.results = [selection];
+      AW_STATE.selection = null;
+      AW_STATE.preview = null;
+      AW_STATE.analysis = null;
+      AW_STATE.importResult = null;
+      awRenderResults();
+      await awSelectResult(0, true, { skipLocalPreview: true, documenti: [] });
+    });
+  }
 }
 async function awRefreshStatus({ force = false, probeSigner = false, light = true } = {}) {
   if (!force && AW_STATUS_REFRESH_PROMISE) return AW_STATUS_REFRESH_PROMISE;
   AW_STATUS_REFRESH_PROMISE = (async () => {
     const data = await awJson(AW_BOOT.statusUrl);
     if (data.ok) AW_STATE.status = data.status;
-    if (probeSigner && AW_STATE.status.pkcs11_mode) {
+    if (probeSigner) {
       try {
         const ping = await awLsPing({ light });
         AW_STATE.status.local_signer = ping;
+        AW_STATE.status.local_signer_available = !!ping?.ok;
+        AW_STATE.status.local_signer_error = '';
         if (ping?.certificato_windows_selezionato) {
           awSavePstCert({
             thumbprint: ping.certificato_windows_selezionato.thumbprint,
@@ -409,6 +641,7 @@ async function awRefreshStatus({ force = false, probeSigner = false, light = tru
           });
         }
       } catch (err) {
+        AW_STATE.status.local_signer_available = false;
         AW_STATE.status.local_signer_error = String(err);
       }
     }
@@ -431,6 +664,24 @@ async function awLsPing({ light = false } = {}) {
   if (prefs.prefer_cf) params.set('prefer_cf', prefs.prefer_cf);
   const resp = await fetch(`${AW_PST_LS_BASE}/ping?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
   return resp.json();
+}
+function awLocalSignerReachable() {
+  return !!(AW_STATE.status?.local_signer?.ok || AW_STATE.status?.local_signer_available);
+}
+function awShouldUseLocalSigner() {
+  const status = AW_STATE.status || {};
+  if (status.demo_mode) return false;
+  return !!(status.browser_channel_required || status.pkcs11_mode || awLocalSignerReachable());
+}
+function awUsesGuidedBrowserAssistFlow() {
+  const status = AW_STATE.status || {};
+  return !status.demo_mode && AW_BOOT.portale !== 'pst' && !!status.browser_channel_required;
+}
+async function awEnsureLocalSignerReachable({ light = true } = {}) {
+  if (awLocalSignerReachable()) return AW_STATE.status.local_signer;
+  await awRefreshStatus({ force: true, probeSigner: true, light });
+  if (awLocalSignerReachable()) return AW_STATE.status.local_signer;
+  throw new Error(`Local Signer non raggiungibile su questo PC. Avvialo e riprova l'accesso ${awLocalSignerPortaleLabel()}.`);
 }
 async function awLsSelectCert() {
   const prefs = AW_STATE.status.cert_preferences || {};
@@ -640,7 +891,7 @@ async function awSearchViaLocalSigner(query) {
     method: 'POST',
     body: JSON.stringify(route.body),
   });
-  if (!data.ok) throw new Error(data.errore || `Ricerca ${awLocalSignerPortaleLabel()} non riuscita`);
+  if (!data.ok) throw awBuildPortaleError(data, `Ricerca ${awLocalSignerPortaleLabel()} non riuscita`);
   return awMapLocalSignerSearchRows(data.fascicoli || [], query);
 }
 async function awPreviewViaLocalSigner(selection) {
@@ -686,7 +937,7 @@ async function awPreviewViaLocalSigner(selection) {
     method: 'POST',
     body: JSON.stringify(route.body),
   });
-  if (!data.ok) throw new Error(data.errore || `Anteprima documenti ${awLocalSignerPortaleLabel()} non riuscita`);
+  if (!data.ok) throw awBuildPortaleError(data, `Anteprima documenti ${awLocalSignerPortaleLabel()} non riuscita`);
   return data.documenti || [];
 }
 function awPreviewDocuments() {
@@ -732,6 +983,16 @@ function awCurrentDownloadKey() {
     candidates: Array.isArray(item.id_documento_candidates) ? item.id_documento_candidates : [],
   }));
   return JSON.stringify({ selectionKey, original: !!options.scarica_originale_portale, docs });
+}
+function awExpectedDownloadDocuments() {
+  return awSelectedPreviewDocuments().map(item => ({
+    nome: item.nome || item.nome_documento || '',
+    id_deposito_esterno: item.id_deposito_esterno || item.id_deposito || item.id_deposito_pct || '',
+    id_deposito_pct: item.id_deposito_pct || '',
+    tipo_atto: item.tipo_atto || '',
+    id_documento_portale: item.id_documento || item.id_documento_portale || '',
+    data_deposito: item.data_deposito || item.data_documento || '',
+  })).filter(item => item.nome);
 }
 function awFormatDownloadFailures(failures) {
   const rows = Array.isArray(failures) ? failures.filter(Boolean) : [];
@@ -814,7 +1075,7 @@ async function awPstDownloadSelectionViaLocalSigner(retry = true) {
     throw err;
   }
 }
-function awShowDownloadProgress(current, total, filename) {
+function awShowDownloadProgress(current, total, filename, labels = {}) {
   const wrapper = document.getElementById('awDownloadProgress');
   const bar = document.getElementById('awDownloadProgressBar');
   const label = document.getElementById('awDownloadProgressLabel');
@@ -825,14 +1086,16 @@ function awShowDownloadProgress(current, total, filename) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   bar.style.width = pct + '%';
   bar.setAttribute('aria-valuenow', pct);
+  const doneLabel = labels.done || 'Download completato.';
+  const progressLabel = labels.progress || 'Scaricamento allegati dal portale...';
   if (current >= total && total > 0) {
     bar.classList.remove('progress-bar-animated', 'progress-bar-striped');
     bar.classList.add('bg-success');
-    label.textContent = 'Download completato.';
+    label.textContent = doneLabel;
   } else {
     bar.classList.add('progress-bar-animated', 'progress-bar-striped');
     bar.classList.remove('bg-success');
-    label.textContent = 'Scaricamento allegati dal portale...';
+    label.textContent = progressLabel;
   }
   countEl.textContent = `${current}/${total}`;
   fileEl.textContent = filename ? `\u2193 ${filename}` : '';
@@ -922,9 +1185,76 @@ async function awEnsurePstDownloadedFiles({ force = false } = {}) {
   }
   return AW_STATE.downloadSummary;
 }
+async function awEnsureBrowserDownloadedFiles({ force = false } = {}) {
+  const options = awCurrentOptions();
+  if (!awShouldImportPortalFiles(options)) {
+    AW_STATE.downloadedFiles = [];
+    AW_STATE.downloadSummary = null;
+    AW_STATE.downloadCacheKey = '';
+    return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0, collection_mode: 'browser-downloads' };
+  }
+  const expectedDocuments = awExpectedDownloadDocuments();
+  const cacheKey = `${awCurrentDownloadKey()}:browser:${AW_BOOT.portale}`;
+  if (!force && AW_STATE.downloadSummary && AW_STATE.downloadCacheKey === cacheKey) {
+    return AW_STATE.downloadSummary;
+  }
+  if (!expectedDocuments.length) {
+    AW_STATE.downloadedFiles = [];
+    AW_STATE.downloadSummary = null;
+    AW_STATE.downloadCacheKey = cacheKey;
+    AW_STATE.downloadWarning = null;
+    return { files: [], failures: [], documenti_scaricati: 0, documenti_richiesti: 0, collection_mode: 'browser-downloads' };
+  }
+  await awEnsureLocalSignerReachable({ light: true });
+  awShowDownloadProgress(0, expectedDocuments.length, 'Verifica cartella Download locale', {
+    progress: 'Raccolta file gia scaricati dal browser ufficiale...',
+    done: 'Raccolta completata.',
+  });
+  const data = await awJson(`${AW_PST_LS_BASE}/downloads/raccogli`, {
+    method: 'POST',
+    body: JSON.stringify({
+      expected_documents: expectedDocuments,
+      limit: Math.max(expectedDocuments.length, 25),
+      max_age_hours: 72,
+    }),
+  });
+  const files = Array.isArray(data.files) ? data.files : [];
+  const matched = Number(data.matched || files.length || 0);
+  const expected = Number(data.expected || expectedDocuments.length || 0);
+  awShowDownloadProgress(matched, expected, '', {
+    progress: 'Raccolta file gia scaricati dal browser ufficiale...',
+    done: 'Raccolta completata.',
+  });
+  if (!data.ok) {
+    awHideDownloadProgress();
+    throw new Error(data.errore || 'Nessun file locale compatibile trovato.');
+  }
+  const summary = {
+    ok: true,
+    files,
+    failures: [],
+    directories: Array.isArray(data.directories) ? data.directories : [],
+    matched,
+    expected,
+    documenti_richiesti: expected,
+    documenti_scaricati: matched,
+    collection_mode: 'browser-downloads',
+  };
+  AW_STATE.downloadedFiles = files;
+  AW_STATE.downloadSummary = summary;
+  AW_STATE.downloadCacheKey = cacheKey;
+  if (matched < expected) {
+    AW_STATE.downloadWarning = `Raccolta parziale: ${matched}/${expected} file trovati nei download locali del browser ufficiale.`;
+  } else {
+    AW_STATE.downloadWarning = null;
+  }
+  return summary;
+}
 function awRenderAccess() {
   const status = AW_STATE.status || {};
   const signer = status.local_signer || {};
+  const signerPreferred = awShouldUseLocalSigner();
+  const browserAssistMode = awUsesGuidedBrowserAssistFlow();
   const cards = [
     {
       title: 'Portale e sorgente',
@@ -940,9 +1270,9 @@ function awRenderAccess() {
     },
     {
       title: 'Certificato attivo',
-      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (status.pkcs11_mode ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare')),
-      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (status.pkcs11_mode ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale'),
-      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || (!status.pkcs11_mode && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
+      value: awEscape(AW_PST_CERT?.soggetto || signer?.certificato_windows_selezionato?.soggetto || (browserAssistMode ? 'Verifica nel portale ufficiale' : (signerPreferred ? `Verifica al primo accesso ${awLocalSignerPortaleLabel()}` : status.backend_firma || 'Da verificare'))),
+      detail: AW_PST_CERT?.thumbprint ? `Thumbprint ${awEscape(AW_PST_CERT.thumbprint.slice(0, 12))}...` : (browserAssistMode ? 'In modalita assistita il certificato viene verificato direttamente nel portale ufficiale.' : (signerPreferred ? 'Il certificato viene validato alla prima ricerca reale sul portale.' : 'Certificato lato server / portale')),
+      tone: (AW_PST_CERT || signer?.certificato_windows_selezionato || awLocalSignerReachable() || (!signerPreferred && status.backend_firma !== 'nessuno')) ? 'success' : 'warning',
     },
     {
       title: 'Stato connessione',
@@ -963,14 +1293,26 @@ function awRenderAccess() {
       </div>
     </div>`).join('');
   const note = [];
-  if (status.pkcs11_mode) note.push(AW_BOOT.portale === 'pst'
-    ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
-    : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
+  if (browserAssistMode) {
+    note.push('Step 1 guidato: HACS non interroga un endpoint tecnico del portale. Prepara la pratica in modalita assistita e rimanda la consultazione al browser ufficiale.');
+  } else if (signerPreferred) {
+    note.push(AW_BOOT.portale === 'pst'
+      ? 'Step 1 leggero: il wizard non apre ancora la sessione PST. Il primo accesso reale viene eseguito alla ricerca del fascicolo.'
+      : `Step 1 leggero: il wizard non apre ancora il canale ${awEscape(awLocalSignerPortaleLabel())}. Il primo accesso reale viene eseguito alla ricerca del fascicolo.`);
+  }
+  if (browserAssistMode && awLocalSignerReachable()) {
+    note.push('Local Signer rilevato: HACS puo\' riusare il browser locale per aprire il portale ufficiale, ma l\'acquisizione resta assistita.');
+  } else if (awLocalSignerReachable() && !status.pkcs11_mode) {
+    note.push('Local Signer rilevato: il wizard usera il canale browser-side locale come percorso preferito per ricerca e anteprima.');
+  }
+  if (status.browser_channel_required && !awLocalSignerReachable()) {
+    note.push(`Per ${awEscape(awLocalSignerPortaleLabel())} HACS puo' comunque proseguire in modalita assistita. Avvia il Local Signer solo se vuoi riusare il browser locale autenticato.`);
+  }
   if (status.local_signer_error) note.push(`Local Signer: ${awEscape(status.local_signer_error)}`);
   if (AW_PST_CERT?.soggetto) note.push(`Certificato selezionato: ${awEscape(AW_PST_CERT.soggetto)} (${awEscape(AW_PST_CERT.emittente || '')})`);
-  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST già attiva nel browser corrente: il wizard riuserà il canale autenticato.');
+  if (AW_PST_SESSION?.session_id && awHasActivePstSession(AW_PST_SESSION.tribunale || '')) note.push('Sessione PST gia attiva nel browser corrente: il wizard riusera il canale autenticato.');
   if (status.last_import_log_id) note.push(`Ultimo import log: ${awEscape(status.last_import_log_id)}`);
-  document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l’accesso e continua con la ricerca del fascicolo.';
+  document.getElementById('awAccessNote').innerHTML = note.length ? note.join('<br>') : 'Verifica l\'accesso e continua con la ricerca del fascicolo.';
 }
 function awPickAutoSelectionIndex(results, query) {
   const rows = Array.isArray(results) ? results : [];
@@ -995,12 +1337,27 @@ function awPickAutoSelectionIndex(results, query) {
 async function awRunSearch() {
   const meta = document.getElementById('awResultsMeta');
   const root = document.getElementById('awResults');
+  const query = awCurrentQuery();
   meta.textContent = 'Ricerca in corso...';
   root.innerHTML = '<div class="aw-box text-muted">Sto interrogando il portale e preparando i risultati utili alla verifica.</div>';
   try {
-    const query = awCurrentQuery();
+    if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
+    if (awUsesGuidedBrowserAssistFlow()) {
+      AW_STATE.results = [];
+      AW_STATE.selection = null;
+      AW_STATE.preview = null;
+      AW_STATE.analysis = null;
+      AW_STATE.importResult = null;
+      awRenderPreview();
+      awRenderSelectionOptions();
+      awRenderAnalysis();
+      awRenderSidebar();
+      awRenderManualSearchFallback(query, awGuidedBrowserAssistError(query));
+      return;
+    }
     let results = [];
-    if (AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+    if (awShouldUseLocalSigner()) {
+      await awEnsureLocalSignerReachable({ light: true });
       results = await awSearchViaLocalSigner(query);
     } else {
       const data = await awJson(AW_BOOT.searchUrl, { method: 'POST', body: JSON.stringify(query) });
@@ -1027,6 +1384,18 @@ async function awRunSearch() {
     }
   } catch (err) {
     AW_STATE.results = [];
+    AW_STATE.selection = null;
+    AW_STATE.preview = null;
+    AW_STATE.analysis = null;
+    AW_STATE.importResult = null;
+    if (awPortaleBrowserOnlyError(err)) {
+      awRenderPreview();
+      awRenderSelectionOptions();
+      awRenderAnalysis();
+      awRenderSidebar();
+      awRenderManualSearchFallback(query, err);
+      return;
+    }
     meta.textContent = 'Ricerca non riuscita';
     root.innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
   }
@@ -1048,11 +1417,12 @@ function awRenderResults() {
             <span class="badge text-bg-light border">${awEscape(row.ufficio_nome || row.ufficio_codice || 'Ufficio')}</span>
             <strong>RG ${awEscape(row.numero)}/${awEscape(row.anno)}</strong>
             <span class="badge text-bg-secondary">${awEscape(row.procedimento || 'Procedimento')}</span>
-      ${row.stato ? `<span class="badge text-bg-light border">${awEscape(awFormatStatus(row.stato))}</span>` : ''}
+            ${row.manual_mode ? '<span class="badge text-bg-warning">Manuale assistita</span>' : ''}
+            ${row.stato ? `<span class="badge text-bg-light border">${awEscape(awFormatStatus(row.stato))}</span>` : ''}
           </div>
           <div class="fw-semibold mb-1">${awEscape(row.oggetto || 'Oggetto non disponibile')}</div>
           <div class="small text-muted mb-1">${awEscape((row.parti || []).slice(0, 3).join(' - ') || 'Parti non disponibili')}</div>
-      <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
+          <div class="small text-muted">Ultimo aggiornamento: ${awEscape(awFormatDate(row.ultima_attivita))} ${row.sezione ? `- Sezione ${awEscape(row.sezione)}` : ''}</div>
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-outline-${AW_BOOT.spec.color}" data-aw-preview="${index}">Anteprima</button>
@@ -1063,7 +1433,7 @@ function awRenderResults() {
   root.querySelectorAll('[data-aw-preview]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awPreview), true)));
   root.querySelectorAll('[data-aw-select]').forEach(btn => btn.addEventListener('click', () => awSelectResult(Number(btn.dataset.awSelect), true)));
 }
-async function awSelectResult(index, jumpPreview) {
+async function awSelectResult(index, jumpPreview, options = {}) {
   const selection = AW_STATE.results[index];
   if (!selection) return;
   AW_STATE.selection = selection;
@@ -1077,8 +1447,12 @@ async function awSelectResult(index, jumpPreview) {
   document.getElementById('awPreview').innerHTML = '<div class="aw-box text-muted">Sto preparando l’anteprima del fascicolo e dei documenti disponibili...</div>';
   awRenderSidebar();
   try {
+    if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
     const payload = { selection };
-    if (AW_STATE.status.pkcs11_mode && !AW_STATE.status.demo_mode) {
+    if (Array.isArray(options.documenti)) {
+      payload.documenti = options.documenti;
+    } else if (!options.skipLocalPreview && !selection.manual_mode && awShouldUseLocalSigner()) {
+      await awEnsureLocalSignerReachable({ light: true });
       payload.documenti = await awPreviewViaLocalSigner(selection);
     }
     const data = await awJson(AW_BOOT.previewUrl, { method: 'POST', body: JSON.stringify(payload) });
@@ -1092,6 +1466,34 @@ async function awSelectResult(index, jumpPreview) {
     await awWarmAnalysis();
     if (jumpPreview) awGoStep(3);
   } catch (err) {
+    if (awPortaleBrowserOnlyError(err)) {
+      try {
+        const manualSelection = awMarkSelectionManual(
+          selection,
+          err?.manualReason || String(err),
+          err?.portaleUrl || awOfficialPortalUrl(),
+        );
+        AW_STATE.results[index] = manualSelection;
+        AW_STATE.selection = manualSelection;
+        const fallback = await awJson(AW_BOOT.previewUrl, {
+          method: 'POST',
+          body: JSON.stringify({ selection: manualSelection, documenti: [] }),
+        });
+        if (!fallback.ok) throw new Error(fallback.errore || 'Anteprima non disponibile');
+        AW_STATE.preview = fallback.preview || null;
+        awRenderResults();
+        awRenderPreview();
+        awRenderSelectionOptions();
+        awRenderAnalysis();
+        awRenderSidebar();
+        await awWarmAnalysis();
+        if (jumpPreview) awGoStep(3);
+        return;
+      } catch (fallbackErr) {
+        document.getElementById('awPreview').innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(fallbackErr))}</div>`;
+        return;
+      }
+    }
     document.getElementById('awPreview').innerHTML = `<div class="alert alert-danger rounded-4 mb-0">${awEscape(String(err))}</div>`;
   }
 }
@@ -1104,6 +1506,7 @@ function awRenderPreview() {
     return;
   }
   const preview = AW_STATE.preview;
+  const manualNotice = awManualNoticeHtml();
   const defs = [
     { id: 'dati', label: 'Dati fascicolo' },
     { id: 'parti', label: 'Parti e difensori' },
@@ -1114,7 +1517,7 @@ function awRenderPreview() {
   tabs.querySelectorAll('[data-aw-tab]').forEach(btn => btn.addEventListener('click', () => { AW_STATE.previewTab = btn.dataset.awTab; awRenderPreview(); awPostProcessPreviewDom(); }));
   const identity = preview.identity || {};
   if (AW_STATE.previewTab === 'dati') {
-    root.innerHTML = `
+    root.innerHTML = `${manualNotice}
       <div class="row g-3">
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Identita pratica</div><div class="fw-semibold">RG ${awEscape(identity.numero)}/${awEscape(identity.anno)}</div><div class="small text-muted mt-1">${awEscape(identity.ufficio_nome || identity.ufficio_codice || 'Ufficio non disponibile')}</div>${identity.id_fascicolo ? `<div class="small text-muted mt-1">ID fascicolo PST: ${awEscape(identity.id_fascicolo)}</div>` : ''}</div></div>
         <div class="col-md-6"><div class="aw-box h-100"><div class="small text-muted">Procedimento</div><div class="fw-semibold">${awEscape(identity.procedimento || 'Non indicato')}</div><div class="small text-muted mt-1">${awEscape(identity.stato || 'Stato non disponibile')}${identity.sub_procedimento ? ` · Sub-procedimento ${awEscape(identity.sub_procedimento)}` : ''}</div></div></div>
@@ -1124,7 +1527,7 @@ function awRenderPreview() {
     return;
   }
   if (AW_STATE.previewTab === 'parti') {
-    root.innerHTML = `
+    root.innerHTML = `${manualNotice}
       <div class="row g-3">
         <div class="col-lg-6"><div class="aw-box h-100"><div class="fw-semibold mb-2">Parti principali</div>${(preview.parti || []).length ? `<ul class="mb-0 small">${preview.parti.map(x => `<li>${awEscape(x)}</li>`).join('')}</ul>` : '<div class="text-muted small">Nessuna parte rilevata.</div>'}</div></div>
         <div class="col-lg-6"><div class="aw-box h-100"><div class="fw-semibold mb-2">Controparti / resistenti</div>${(preview.controparti || []).length ? `<ul class="mb-0 small">${preview.controparti.map(x => `<li>${awEscape(x)}</li>`).join('')}</ul>` : '<div class="text-muted small">Nessuna controparte rilevata.</div>'}</div></div>
@@ -1133,7 +1536,7 @@ function awRenderPreview() {
     return;
   }
   if (AW_STATE.previewTab === 'eventi') {
-    root.innerHTML = `
+    root.innerHTML = `${manualNotice}
       <div class="aw-box">
         ${(preview.eventi || []).length ? (preview.eventi || []).map(ev => `
           <div class="d-flex justify-content-between align-items-start gap-3 border-bottom py-2">
@@ -1143,7 +1546,7 @@ function awRenderPreview() {
       </div>`;
     return;
   }
-  root.innerHTML = `
+  root.innerHTML = `${manualNotice}
     <div class="d-flex flex-column gap-3">
       ${(preview.depositi || []).length ? preview.depositi.map(dep => `
         <div class="aw-box">
@@ -1367,6 +1770,17 @@ async function awStartImport() {
       } else {
         state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} allegati scaricati. Importazione in corso...`;
       }
+    } else if (AW_BOOT.portale !== 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
+      state.innerHTML = 'Verifica dei file gia scaricati dal browser ufficiale in corso...';
+      const browserDownloadSummary = await awEnsureBrowserDownloadedFiles();
+      downloadSummary = browserDownloadSummary;
+      downloadedFiles = Array.isArray(browserDownloadSummary.files) ? browserDownloadSummary.files : [];
+      if (AW_STATE.downloadWarning) {
+        state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione in corso con i file disponibili...</small>`;
+        await new Promise(r => setTimeout(r, 2000));
+      } else {
+        state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Raccolta completata: ${downloadedFiles.length}/${browserDownloadSummary.documenti_richiesti || downloadedFiles.length} file locali abbinati al catalogo del portale. Importazione in corso...`;
+      }
     }
   } catch (err) {
     awHideDownloadProgress();
@@ -1394,6 +1808,8 @@ async function awStartImport() {
   AW_STATE.importResult = data.result || data || null;
   const summary = AW_STATE.importResult?.summary || {};
   const failureCount = Number(downloadSummary?.failures?.length || 0);
+  const collectionMode = String(downloadSummary?.collection_mode || '').toLowerCase();
+  const usedBrowserDownloads = collectionMode === 'browser-downloads';
   state.innerHTML = `
     <div class="alert alert-success rounded-4 mb-0">
       <div class="fw-semibold mb-1"><i class="bi bi-check-circle-fill me-1"></i>${AW_STATE.importResult?.created ? 'Nuova pratica creata' : 'Pratica aggiornata / collegata'}</div>
@@ -1404,9 +1820,9 @@ async function awStartImport() {
         Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} ·
         Conflitti risolti: ${awEscape(summary.conflitti_risolti || 0)}
       </div>
-      ${downloadSummary ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? '<div class="small mt-1 text-muted">Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\'opzione dell\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.</div>' : ''}
+      ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo'}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.' : 'Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\'opzione dell\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.'}</div>` : ''}
       ${summary.albero_originale_salvato ? '<div class="small mt-1">Albero tecnico originale del portale archiviato.</div>' : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
@@ -1532,10 +1948,7 @@ document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
     try {
-      if (AW_STATE.status.pkcs11_mode && !AW_PST_CERT) {
-        // Ping leggero: il certificato viene selezionato/validato alla prima ricerca reale
-        await awRefreshStatus({ force: true, probeSigner: true, light: true });
-      }
+      await awRefreshStatus({ force: true, probeSigner: true, light: true });
       awGoStep(2);
     } finally {
       awSetAccessBusy(false);
@@ -1589,7 +2002,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   awInitOfficeAutocomplete();
   awSetAccessBusy(true);
   try {
-    await awRefreshStatus({ force: true, probeSigner: false, light: true });
+    await awRefreshStatus({ force: true, probeSigner: true, light: true });
   } finally {
     awBindActions();
     awSetAccessBusy(false);

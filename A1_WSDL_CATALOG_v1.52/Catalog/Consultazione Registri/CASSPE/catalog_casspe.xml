@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <class name="infoTest">
+        <property name="data" type="date" description="test webservice"/>
+    </class>
+    
+    <class name = "Ricorso">
+        <property name = "NRG"/>
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "dataIscrizione"/>
+        <property name = "Ricorrente"/>
+        <property name = "Tipo"/>
+        <property name = "Sezione"/>
+        <property name = "dataUdienza"/>
+        <property name = "tipoUdienza"/>        
+        <property name = "Autorita"/>
+        <property name = "Localita"/>
+        <property name = "dataRestituzione"/>        
+    </class>
+    
+    <class name="ProvvedimentoImpugnato">
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "Autorita"/>
+        <property name = "Localita"/>
+        <property name = "Numero"/>
+        <property name = "Data"/>
+        <property name = "Tipo"/>
+    </class>
+    
+    <class name="PartiDifensori">
+        <property name = "NRGText" description="numero ricorso"/>
+        <property name = "numeroricorso"/>
+        <property name = "Parte" description="nominativo parte"/> 
+        <property name="codiceFiscale" description="codice fiscale parte"/> 
+        <property name = "Difensore" description="nominativo difensore"/>
+        <property name="codiceFiscaleDifensore" description="codice fiscale difensore"/>
+    </class>
+    
+    <class name="UdienzeRicorso">
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "Data"/>
+        <property name = "Tipo"/>
+        <property name = "Sezione"/>
+        <property name = "tipoProvvedimento"/>
+        <property name = "statoRicorso"/>
+        <property name = "SentenzaSezionale"/>
+        <property name = "RaccoltaGenerale"/>
+        <property name = "dataPubblicazione"/>   
+        <property name = "testo"/>    
+        <property name = "idsentenza"/>      
+    </class>
+    
+    <class name="EsitoRicorso">
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "Sezione"/>
+        <property name = "Sentenza"/>
+        <property name = "tipoSentenza"/>
+        <property name = "testo" type="string"/>        
+    </class>
+    
+    <class name="Restituzione">
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "dataRestituzione"/>
+        <property name = "tipoRestituzione"/>
+        <property name = "Volumi"/>
+        <property name = "Cartelle"/>
+        <property name = "Destinatario"/>
+        <property name = "Localita"/>
+        <property name = "dataConsegna"/>
+        <property name = "Assicurata"/>
+    </class>
+    
+    <class name="Motivazione">
+        <property name="motivazione" type="string" description="motivazione mancata consegna telematica"/>
+    </class>
+    
+    <class name="NotificaDaRitiro">
+        <property name="idFascicolo" type="string" description="id fascicolo"/>
+        <property name="idUfficio" type="string" description="codice ufficio"/>
+        <property name="anno" type="string" description="anno ruolo fascicolo"/>
+        <property name="numero" type="string" description="numero ruolo fascicolo"/>
+        <property name="numeroanno" type="string" description="numero e anno di ruolo del fascicolo"/>
+        <property name="subprocedimento" type="string" description="numero subprocedimento"/>
+        <property name="descOggettoRito" type="string" description="descrizione oggetto del fascicolo"/>
+        <property name="idInvioMsg" type="string" description="id messaggio telematico"/>
+        <property name="idRicevuta" type="string" description="id ricevuta"/>
+        <property name="descevento" type="string" description="descrizione evento"/>
+        <property name="dataevento" type="date" description="data evento"/>
+        <property name="dataregevento" type="date" description="data registro evento"/>
+        
+        <classref ref="Motivazione"/>
+    </class>       
+    
+    <class name = "Sezioni">
+        <property name = "idparam"/>
+        <property name = "sigla"/>
+        <property name = "descrizione"/>
+    </class> 
+    
+    <class name = "Autorita">
+        <property name = "idparam"/>
+        <property name = "sigla"/>
+        <property name = "descrizione"/>
+    </class>
+    
+     <class name = "Localita">
+        <property name = "descrizione"/>
+    </class>  
+    
+</catalog>

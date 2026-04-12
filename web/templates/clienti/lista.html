@@ -90,7 +90,7 @@
 
 {# ── Tabella clienti ── #}
 {% if clienti %}
-<div class="card shadow-sm">
+<div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-semibold text-muted small">
       {{ clienti|length }} client{% if clienti|length != 1 %}i{% else %}e{% endif %}
@@ -105,14 +105,14 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-clienti" data-paginate="page-size-clienti">
-        <thead class="table-light">
+        <thead class="table-light ds-thead-compact">
           <tr>
             <th>Cliente</th>
-            <th>Tipo</th>
-            <th>CF / P.IVA</th>
-            <th>Contatti</th>
-            <th>Avv. referente</th>
-            <th>Procedimenti</th>
+            <th class="d-none d-md-table-cell">Tipo</th>
+            <th class="d-none d-lg-table-cell">CF / P.IVA</th>
+            <th class="d-none d-md-table-cell">Contatti</th>
+            <th class="d-none d-lg-table-cell">Avv. referente</th>
+            <th class="text-center">Pratiche</th>
             <th>Stato</th>
             <th></th>
           </tr>
@@ -134,22 +134,22 @@
                    title="Documento scaduto"></i>
               {% endif %}
             </td>
-            <td data-label="Tipo">
+            <td data-label="Tipo" class="d-none d-md-table-cell">
               {% if c.tipo == TipoCliente.PERSONA_FISICA %}
                 <span class="badge bg-info-subtle text-info-emphasis rounded-pill">
-                  <i class="bi bi-person me-1"></i>Persona fisica
+                  <i class="bi bi-person me-1"></i>PF
                 </span>
               {% else %}
                 <span class="badge rounded-pill"
                       style="background:#ede7f6;color:#4a148c">
-                  <i class="bi bi-building me-1"></i>{{ c.forma_giuridica or 'Società' }}
+                  <i class="bi bi-building me-1"></i>{{ c.forma_giuridica or 'PG' }}
                 </span>
               {% endif %}
             </td>
-            <td data-label="CF / P.IVA" class="font-monospace small">
+            <td data-label="CF / P.IVA" class="font-monospace small d-none d-lg-table-cell">
               {{ c.codice_fiscale or c.partita_iva or '—' }}
             </td>
-            <td data-label="Contatti" class="small">
+            <td data-label="Contatti" class="small d-none d-md-table-cell">
               {% if c.recapiti.cellulare %}
                 <div><i class="bi bi-phone me-1 text-muted"></i>{{ c.recapiti.cellulare }}</div>
               {% elif c.recapiti.telefono %}
@@ -161,7 +161,7 @@
                 </div>
               {% endif %}
             </td>
-            <td data-label="Avv." class="small" data-mob-hide>{{ c.avvocato_referente or '—' }}</td>
+            <td data-label="Avv." class="small d-none d-lg-table-cell">{{ c.avvocato_referente or '—' }}</td>
             <td data-label="Pratiche" class="text-center">
               {% set n_proc = c.procedimenti_attivi|length %}
               {% if n_proc %}
@@ -174,23 +174,19 @@
               {% set sl = {'ATTIVO':'Attivo','INATTIVO':'Inattivo','POTENZIALE':'Potenziale','ARCHIVIATO':'Archiviato'} %}
               <span class="badge bg-{{ sc[c.stato.value] }}">{{ sl.get(c.stato.value, c.stato.value) }}</span>
             </td>
-            <td data-label="" class="text-end">
-              <div class="btn-group btn-group-sm">
+            <td data-label="">
+              <div class="ds-actions">
                 <a href="{{ url_for('faldone_cliente', id_cliente=c.id) }}"
-                   class="btn btn-warning" title="Apri faldone documenti">
+                   class="btn btn-sm btn-outline-warning" title="Faldone">
                   <i class="bi bi-folder2-open"></i>
                 </a>
                 <a href="{{ url_for('cartella_cliente', id_cliente=c.id) }}"
-                   class="btn btn-primary" title="Apri cartella">
+                   class="btn btn-sm btn-outline-primary" title="Cartella">
                   <i class="bi bi-folders"></i>
                 </a>
                 <a href="{{ url_for('dettaglio_cliente', id_cliente=c.id) }}"
-                   class="btn btn-outline-secondary" title="Dettaglio">
+                   class="btn btn-sm btn-outline-secondary" title="Dettaglio">
                   <i class="bi bi-eye"></i>
-                </a>
-                <a href="{{ url_for('modifica_cliente', id_cliente=c.id) }}"
-                   class="btn btn-outline-primary" title="Modifica">
-                  <i class="bi bi-pencil"></i>
                 </a>
               </div>
             </td>

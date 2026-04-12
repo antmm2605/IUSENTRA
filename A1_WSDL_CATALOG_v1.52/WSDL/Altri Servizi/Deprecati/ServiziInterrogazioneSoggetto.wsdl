@@ -1,0 +1,310 @@
+<definitions name='WsServiziInterrogazioneSoggetto' targetNamespace='http://www.giustizia.it/serviziTelematici/reginde/interrogazioni' xmlns='http://schemas.xmlsoap.org/wsdl/' xmlns:soap='http://schemas.xmlsoap.org/wsdl/soap/' xmlns:tns='http://www.giustizia.it/serviziTelematici/reginde/interrogazioni' xmlns:xsd='http://www.w3.org/2001/XMLSchema'>
+ <types>
+  <xs:schema targetNamespace='http://www.giustizia.it/serviziTelematici/reginde/interrogazioni' version='1.0' xmlns:tns='http://www.giustizia.it/serviziTelematici/reginde/interrogazioni' xmlns:xs='http://www.w3.org/2001/XMLSchema'>
+   <xs:element name='SearchLimitException' type='tns:SearchLimitException'/>
+   <xs:element name='autenticaSoggettoPerCodice' type='tns:autenticaSoggettoPerCodice'/>
+   <xs:element name='autenticaSoggettoPerCodiceResponse' type='tns:autenticaSoggettoPerCodiceResponse'/>
+   <xs:element name='dettagliSoggettoPerCodice' type='tns:dettagliSoggettoPerCodice'/>
+   <xs:element name='dettagliSoggettoPerCodiceLazy' type='tns:dettagliSoggettoPerCodiceLazy'/>
+   <xs:element name='dettagliSoggettoPerCodiceLazyResponse' type='tns:dettagliSoggettoPerCodiceLazyResponse'/>
+   <xs:element name='dettagliSoggettoPerCodiceResponse' type='tns:dettagliSoggettoPerCodiceResponse'/>
+   <xs:element name='dettagliSoggettoPerIndirizzo' type='tns:dettagliSoggettoPerIndirizzo'/>
+   <xs:element name='dettagliSoggettoPerIndirizzoResponse' type='tns:dettagliSoggettoPerIndirizzoResponse'/>
+   <xs:element name='elencoPaginatoSoggetti' type='tns:elencoPaginatoSoggetti'/>
+   <xs:element name='elencoPaginatoSoggettiResponse' type='tns:elencoPaginatoSoggettiResponse'/>
+   <xs:element name='isMembroDi' type='tns:isMembroDi'/>
+   <xs:element name='isMembroDiResponse' type='tns:isMembroDiResponse'/>
+   <xs:element name='ricercaSoggetto' type='tns:ricercaSoggetto'/>
+   <xs:element name='ricercaSoggettoResponse' type='tns:ricercaSoggettoResponse'/>
+   <xs:complexType name='dettagliSoggettoPerCodice'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliSoggettoPerCodiceResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:soggetto'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='soggetto'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='ente' type='tns:enti'/>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='indirizzi' type='tns:indirizzi'/>
+     <xs:element minOccurs='0' name='ruolo' type='tns:ruoli'/>
+     <xs:element minOccurs='0' name='soggetto' type='tns:soggetti'/>
+     <xs:element minOccurs='0' name='status' type='tns:status'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='enti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codfisc' type='xs:string'/>
+     <xs:element minOccurs='0' name='codice' type='xs:string'/>
+     <xs:element minOccurs='0' name='descr' type='xs:string'/>
+     <xs:element minOccurs='0' name='piva' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='indirizzi'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='cap' type='xs:string'/>
+     <xs:element minOccurs='0' name='comune' type='xs:string'/>
+     <xs:element minOccurs='0' name='email' type='xs:string'/>
+     <xs:element minOccurs='0' name='fax' type='xs:string'/>
+     <xs:element minOccurs='0' name='indirizzo' type='xs:string'/>
+     <xs:element minOccurs='0' name='prov' type='xs:string'/>
+     <xs:element minOccurs='0' name='telefono' type='xs:string'/>
+     <xs:element minOccurs='0' name='tp_indirizzo' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ruoli'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='descr' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='soggetti'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codFisc' type='xs:string'/>
+     <xs:element minOccurs='0' name='cognome' type='xs:string'/>
+     <xs:element minOccurs='0' name='dataNascita' type='xs:dateTime'/>
+     <xs:element minOccurs='0' name='luogoNascita' type='xs:string'/>
+     <xs:element minOccurs='0' name='nome' type='xs:string'/>
+     <xs:element minOccurs='0' name='pec' type='xs:string'/>
+     <xs:element minOccurs='0' name='provNascita' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='status'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='descr' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliSoggettoPerCodiceLazy'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliSoggettoPerCodiceLazyResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:soggetto'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='SearchLimitException'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='message' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliSoggettoPerIndirizzo'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='indirizzo' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliSoggettoPerIndirizzoResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='tns:soggetto'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaSoggetto'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='cognome' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='ricercaSoggettoResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:soggetto'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='elencoPaginatoSoggetti'>
+    <xs:sequence>
+     <xs:element name='da' type='xs:int'/>
+     <xs:element name='count' type='xs:int'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='elencoPaginatoSoggettiResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:soggetto'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='isMembroDi'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='isMembroDiResponse'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='return' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='autenticaSoggettoPerCodice'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceFiscale' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='autenticaSoggettoPerCodiceResponse'>
+    <xs:sequence>
+     <xs:element maxOccurs='unbounded' minOccurs='0' name='return' type='tns:dettagliAutenticazione'/>
+    </xs:sequence>
+   </xs:complexType>
+   <xs:complexType name='dettagliAutenticazione'>
+    <xs:sequence>
+     <xs:element minOccurs='0' name='codiceEnte' type='xs:string'/>
+     <xs:element minOccurs='0' name='ruolo' type='xs:string'/>
+     <xs:element minOccurs='0' name='status' type='xs:string'/>
+    </xs:sequence>
+   </xs:complexType>
+  </xs:schema>
+ </types>
+ <message name='WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodice'>
+  <part element='tns:dettagliSoggettoPerCodice' name='dettagliSoggettoPerCodice'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_isMembroDi'>
+  <part element='tns:isMembroDi' name='isMembroDi'></part>
+ </message>
+ <message name='SearchLimitException'>
+  <part element='tns:SearchLimitException' name='SearchLimitException'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodiceLazy'>
+  <part element='tns:dettagliSoggettoPerCodiceLazy' name='dettagliSoggettoPerCodiceLazy'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodiceResponse'>
+  <part element='tns:dettagliSoggettoPerCodiceResponse' name='dettagliSoggettoPerCodiceResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_ricercaSoggetto'>
+  <part element='tns:ricercaSoggetto' name='ricercaSoggetto'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_dettagliSoggettoPerIndirizzo'>
+  <part element='tns:dettagliSoggettoPerIndirizzo' name='dettagliSoggettoPerIndirizzo'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_dettagliSoggettoPerIndirizzoResponse'>
+  <part element='tns:dettagliSoggettoPerIndirizzoResponse' name='dettagliSoggettoPerIndirizzoResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_elencoPaginatoSoggettiResponse'>
+  <part element='tns:elencoPaginatoSoggettiResponse' name='elencoPaginatoSoggettiResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_autenticaSoggettoPerCodiceResponse'>
+  <part element='tns:autenticaSoggettoPerCodiceResponse' name='autenticaSoggettoPerCodiceResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_autenticaSoggettoPerCodice'>
+  <part element='tns:autenticaSoggettoPerCodice' name='autenticaSoggettoPerCodice'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodiceLazyResponse'>
+  <part element='tns:dettagliSoggettoPerCodiceLazyResponse' name='dettagliSoggettoPerCodiceLazyResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_isMembroDiResponse'>
+  <part element='tns:isMembroDiResponse' name='isMembroDiResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_ricercaSoggettoResponse'>
+  <part element='tns:ricercaSoggettoResponse' name='ricercaSoggettoResponse'></part>
+ </message>
+ <message name='WsServiziInterrogazioneSoggetto_elencoPaginatoSoggetti'>
+  <part element='tns:elencoPaginatoSoggetti' name='elencoPaginatoSoggetti'></part>
+ </message>
+ <portType name='WsServiziInterrogazioneSoggetto'>
+  <operation name='autenticaSoggettoPerCodice' parameterOrder='autenticaSoggettoPerCodice'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_autenticaSoggettoPerCodice'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_autenticaSoggettoPerCodiceResponse'></output>
+  </operation>
+  <operation name='dettagliSoggettoPerCodice' parameterOrder='dettagliSoggettoPerCodice'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodice'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodiceResponse'></output>
+  </operation>
+  <operation name='dettagliSoggettoPerCodiceLazy' parameterOrder='dettagliSoggettoPerCodiceLazy'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodiceLazy'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_dettagliSoggettoPerCodiceLazyResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+  <operation name='dettagliSoggettoPerIndirizzo' parameterOrder='dettagliSoggettoPerIndirizzo'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_dettagliSoggettoPerIndirizzo'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_dettagliSoggettoPerIndirizzoResponse'></output>
+  </operation>
+  <operation name='elencoPaginatoSoggetti' parameterOrder='elencoPaginatoSoggetti'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_elencoPaginatoSoggetti'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_elencoPaginatoSoggettiResponse'></output>
+  </operation>
+  <operation name='isMembroDi' parameterOrder='isMembroDi'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_isMembroDi'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_isMembroDiResponse'></output>
+  </operation>
+  <operation name='ricercaSoggetto' parameterOrder='ricercaSoggetto'>
+   <input message='tns:WsServiziInterrogazioneSoggetto_ricercaSoggetto'></input>
+   <output message='tns:WsServiziInterrogazioneSoggetto_ricercaSoggettoResponse'></output>
+   <fault message='tns:SearchLimitException' name='SearchLimitException'></fault>
+  </operation>
+ </portType>
+ <binding name='WsServiziInterrogazioneSoggettoBinding' type='tns:WsServiziInterrogazioneSoggetto'>
+  <soap:binding style='document' transport='http://schemas.xmlsoap.org/soap/http'/>
+  <operation name='autenticaSoggettoPerCodice'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='dettagliSoggettoPerCodice'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='dettagliSoggettoPerCodiceLazy'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+  <operation name='dettagliSoggettoPerIndirizzo'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='elencoPaginatoSoggetti'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='isMembroDi'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+  </operation>
+  <operation name='ricercaSoggetto'>
+   <soap:operation soapAction=''/>
+   <input>
+    <soap:body use='literal'/>
+   </input>
+   <output>
+    <soap:body use='literal'/>
+   </output>
+   <fault name='SearchLimitException'>
+    <soap:fault name='SearchLimitException' use='literal'/>
+   </fault>
+  </operation>
+ </binding>
+ <service name='WsServiziInterrogazioneSoggetto'>
+  <port binding='tns:WsServiziInterrogazioneSoggettoBinding' name='WsServiziInterrogazioneSoggettoPort'>
+   <soap:address location='http://pst/ServiziInterrogazioneReginde/ServiziInterrogazioneSoggetto'/>
+  </port>
+ </service>
+</definitions>

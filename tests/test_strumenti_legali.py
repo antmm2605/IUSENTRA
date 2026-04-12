@@ -274,6 +274,25 @@ def test_piano_ammortamento_tasso_zero_chiude_residuo(tmp_path):
     assert result["schedule"][-1]["residuo"] == 0.0
 
 
+def test_catalogo_moduli_include_nuovi_e_moduli_storici(tmp_path):
+    gestore = _gestore(tmp_path)
+    ids = {item["id"] for item in gestore.catalogo_moduli()}
+
+    assert {
+        "tfr",
+        "onorari_forensi",
+        "custodia_cautelare",
+        "prescrizione_penale",
+        "successione_legittima",
+        "cedolare_secca",
+        "indennita_licenziamento",
+        "piano_ammortamento",
+        "prescrizione",
+        "danno_biologico",
+        "imposta_registro",
+    }.issubset(ids)
+
+
 def test_strumenti_legali_index_renderizza_nuovi_moduli(tmp_path):
     from web.app import create_app
 
@@ -290,3 +309,6 @@ def test_strumenti_legali_index_renderizza_nuovi_moduli(tmp_path):
     assert "Onorari Forensi" in body
     assert "Custodia Cautelare" in body
     assert "Piano di Ammortamento" in body
+    assert "Prescrizione civile" in body
+    assert "Danno biologico" in body
+    assert "Imposta di registro" in body

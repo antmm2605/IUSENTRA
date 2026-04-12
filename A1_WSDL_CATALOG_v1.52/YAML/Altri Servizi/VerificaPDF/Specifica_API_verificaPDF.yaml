@@ -1,0 +1,65 @@
+openapi: 3.0.1
+info:
+  title: verificaPdf
+  description: |-
+    Servizio per la verifica di un PDF
+  version: 1.0.0
+servers:
+  - url: https://verifica-pdf/Verifica
+tags:
+  - name: verificaPdf
+    description: Verifica PDF
+paths:
+  /verificaPdf:
+    post:
+      tags:
+        - verificaPdf
+      summary: Verifica PDF
+      description: |-
+        Il PDF in input viene verificato effettuando i medesimi controlli effettuati dalla cancelleria sull'atto principale in fase di deposito.
+      operationId: verificaPdf
+      requestBody:
+        description: Allegato PDF
+        content:
+           multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/verificaPdfResponse'          
+        '400':
+          description: Invalid input - bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/verificaPdfResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/verificaPdfResponse'
+
+components:
+  schemas:
+    verificaPdfResponse:
+      type: object
+      properties:
+        codice:
+         type: string
+         description: Codice esito
+        descrizione:
+          type: string
+          description: Descrizione del esito della verifica.
+        messaggio:
+          type: string
+          description: Messaggio di esito

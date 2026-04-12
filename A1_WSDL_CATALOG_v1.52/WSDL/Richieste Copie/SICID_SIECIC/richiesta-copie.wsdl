@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="urn:RichiestaCopie" xmlns:ts="urn:RichiestaCopie-types" targetNamespace="urn:RichiestaCopie">
+  
+  <import namespace="urn:RichiestaCopie-types" location="richiesta-copie-types.xsd"/>	
+  
+  <message name="richiestaDocumentazioneFascicoloReq">
+    <part name="fascicolo" type="ts:riferimentoFascicoloType"/>
+    <part name="formato" type="ts:formatoCopiaType"/>
+    <part name="numero" type="xs:integer"/>
+    <part name="procura" type="xs:base64Binary"/>
+  </message>
+  <message name="invioRichiestaReq">
+    <part name="tipo" type="ts:tipoCopiaType"/>
+    <part name="formato" type="ts:formatoCopiaType"/>
+    <part name="urgente" type="xs:boolean"/>
+    <part name="items" type="ts:richiestaItemArrayType"/>
+    <part name="ufficio" type="xs:string"/>
+  </message>
+  <message name="invioRichiestaRes">
+    <part name="result" type="xs:string"/>
+  </message>
+  <message name="estremiPagamentoReq">
+    <part name="idRichiesta" type="xs:string"/>
+    <part name="tipo" type="xs:string"/>
+    <part name="estremi" type="xs:string"/>
+    <part name="importo" type="xs:float"/>
+  </message>
+  <portType name="RichiestaCopie">
+    <operation name="invioRichiesta">
+      <input message="tns:invioRichiestaReq"/>
+      <output message="tns:invioRichiestaRes"/>
+    </operation>
+    <operation name="estremiPagamento">
+      <input message="tns:estremiPagamentoReq"/>
+    </operation>
+    <operation name="richiestaDocumentazioneFascicolo">
+      <input message="tns:richiestaDocumentazioneFascicoloReq"/>
+      <output message="tns:invioRichiestaRes"/>
+    </operation>
+  </portType>
+  <binding name="RichiestaCopieSOAPBind" type="tns:RichiestaCopie">
+    <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="invioRichiesta">
+      <soap:operation soapAction="urn:#invioRichiesta"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+    <operation name="estremiPagamento">
+      <soap:operation soapAction="urn:#estremiPagamento"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+    </operation>
+    <operation name="richiestaDocumentazioneFascicolo">
+      <soap:operation soapAction="urn:#richiestaDocumentazioneFascicolo"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+    </operation>
+  </binding>
+  <service name="RichiestaCopieService">
+    <port name="RichiestaCopiePort" binding="tns:RichiestaCopieSOAPBind">
+      <soap:address location="https://targetHost/targetPath"/>
+    </port>
+  </service>
+</definitions>

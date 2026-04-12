@@ -94,6 +94,13 @@ def test_risoluzione_pst_palmi_usa_gl_e_servizio():
     )
 
 
+def test_risoluzione_pst_cassazione_usa_proxy_cassci():
+    assert risolvi_codice_ministero("9990000") == "80417740588"
+    assert risolvi_base_pst("9990000", base_url="https://ext.processotelematico.giustizia.it") == (
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI"
+    )
+
+
 def test_cache_bundle_legacy_viene_rigenerata_se_il_bundle_cambia(tmp_path):
     bundle = _build_bundle_completo()
     cache_path = tmp_path / "uffici_giudiziari.json"

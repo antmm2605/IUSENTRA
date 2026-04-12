@@ -65,6 +65,12 @@ def test_polisweb_qbuilder_namespace_sicid():
     assert _pst_namespace_qbuilder(base) == "urn:CONS-SICC-BE"
 
 
+def test_polisweb_qbuilder_namespace_cassazione_alias_e_catalogo():
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASS") == "urn:CONS-CASSCI"
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSCI") == "urn:CONS-CASSCI"
+    assert _pst_namespace_qbuilder("https://ext.processotelematico.giustizia.it/pda/pycons/GLCC/JPW_CASSPE") == "urn:CONS-CASSPE"
+
+
 def test_polisweb_costruisce_body_qbuilder_ricerca_per_tipo():
     client = _client()
     base = "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
@@ -2709,6 +2715,85 @@ def test_route_wizard_acquisizione_portali_renderizza_step_guida(tmp_path):
             assert "Riepilogo sempre visibile" in body
 
 
+def test_route_wizard_acquisizione_portali_espone_fallback_manuale(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/portali/pdp/acquisizione", follow_redirects=True)
+
+    body = response.data.decode("utf-8")
+    assert response.status_code == 200
+    assert "Prosegui con inserimento manuale" in body
+    assert "Acquisizione assistita via browser ufficiale" in body
+    assert "Consultazione via browser ufficiale" in body
+    assert "Servizio remoto non disponibile" not in body
+
+
+def test_api_acquisizione_status_portale_p12_non_forza_browser_only(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    p12_path = tmp_path / "firma-test.p12"
+    p12_path.write_bytes(b"fake-p12")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.p12_path = str(p12_path)
+    studio.firma.backend_preferito = "p12"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.get("/api/portali/pdp/acquisizione/status", follow_redirects=True)
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["status"]["browser_channel_required"] is False
+    assert data["status"]["status_text"] == "Connessione pronta"
+    assert data["status"]["environment_label"] == "Produzione guidata"
+
+
 def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     from pct.auth import GestioneUtenti, RuoloUtente
     from web.app import create_app
@@ -2744,6 +2829,221 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
             body = response.data.decode("utf-8")
             assert response.status_code == 200
             assert expected in body
+
+
+def test_api_acquisizione_search_portali_p12_usa_backend_server(tmp_path, monkeypatch):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    import pct.pdp as pdp_module
+    import pct.pat as pat_module
+    import pct.sigit as sigit_module
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    studio_cfg = tmp_path / "config" / "studio.json"
+    p12_path = tmp_path / "firma-test.p12"
+    p12_path.write_bytes(b"fake-p12")
+
+    gs = GestioneConfigStudio(str(studio_cfg))
+    studio = gs.config
+    studio.firma.p12_path = str(p12_path)
+    studio.firma.backend_preferito = "p12"
+    studio.firma.cf_avvocato = "RSSMRA80A01H501Z"
+    gs.aggiorna(studio)
+
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    class _FakePdpClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                SimpleNamespace(
+                    numero_rg="4521",
+                    anno_rg=2026,
+                    tipo_registro="RGNR",
+                    fase="INDAGINI",
+                    stato="PENDENTE",
+                    reato="Truffa",
+                    sezione="GIP",
+                    giudice="Dott. Verdi",
+                    data_iscrizione="2026-01-10",
+                    data_udienza="2026-05-12",
+                    imputati=["Mario Rossi"],
+                    parti_offese=["Parte Offesa"],
+                    note="",
+                    codice_ufficio="0580010",
+                    nome_ufficio="Procura di Reggio Calabria",
+                )
+            ]
+
+    class _FakePatClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                SimpleNamespace(
+                    numero_ricorso="1876",
+                    anno=2026,
+                    tipo="RICORSO",
+                    stato="PENDENTE",
+                    materia="APPALTI",
+                    sezione="I",
+                    giudice_relatore="Cons. Bianchi",
+                    data_deposito="2026-02-10",
+                    data_udienza="2026-06-01",
+                    ricorrenti=["Alfa Srl"],
+                    resistenti=["Comune"],
+                    controinteressati=[],
+                    oggetto="Annullamento aggiudicazione",
+                    note="",
+                    codice_ufficio="TARLZ",
+                    nome_ufficio="TAR Lazio",
+                )
+            ]
+
+    class _FakePttClient:
+        def ricerca_fascicoli(self, **kwargs):
+            return [
+                SimpleNamespace(
+                    numero_rgt="1234",
+                    anno_rgt=2026,
+                    tipo="RICORSO",
+                    stato="PENDENTE",
+                    materia="IVA",
+                    sezione="II",
+                    giudice_relatore="Dott. Neri",
+                    data_deposito="2026-03-15",
+                    data_udienza="2026-07-20",
+                    ricorrenti=["Mario Rossi"],
+                    resistenti=["Agenzia Entrate"],
+                    oggetto_controversia="Accertamento IVA",
+                    valore_controversia=1000.0,
+                    note="",
+                    codice_commissione="CPT030000",
+                    nome_commissione="CPT Milano",
+                )
+            ]
+
+    monkeypatch.setattr(pdp_module, "crea_client_pdp", lambda demo=False: _FakePdpClient())
+    monkeypatch.setattr(pat_module, "crea_client_pat", lambda demo=False: _FakePatClient())
+    monkeypatch.setattr(sigit_module, "crea_client_sigit", lambda demo=False: _FakePttClient())
+
+    app = create_app({**cfg, "STUDIO_CONFIG": str(studio_cfg)})
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        checks = [
+            ("pdp", {"ufficio_codice": "0580010", "numero": "4521", "anno": "2026"}),
+            ("pat", {"ufficio_codice": "TARLZ", "numero": "1876", "anno": "2026"}),
+            ("ptt", {"ufficio_codice": "CPT030000", "numero": "1234", "anno": "2026"}),
+        ]
+        for portale, payload in checks:
+            response = client.post(
+                f"/api/portali/{portale}/acquisizione/search",
+                json=payload,
+                follow_redirects=True,
+            )
+            data = response.get_json()
+            assert response.status_code == 200
+            assert data["ok"] is True
+            assert len(data["results"]) == 1
+
+
+def test_api_portale_acquisizione_analyze_manual_mode_non_blocca_parti_mancanti(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pdp/acquisizione/analyze",
+            json={
+                "selection": {
+                    "external_id": "manual:pdp:0580010:4521:2026:RGNR",
+                    "numero": "4521",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Procura di Reggio Calabria",
+                    "procedimento": "RGNR",
+                    "oggetto": "Truffa",
+                    "parti": [],
+                    "controparti": [],
+                    "manual_mode": True,
+                    "payload": {
+                        "numero_rg": "4521",
+                        "anno_rg": 2026,
+                        "tipo_registro": "RGNR",
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Procura di Reggio Calabria",
+                        "manual_mode": True,
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "4521",
+                        "anno": 2026,
+                        "ufficio_nome": "Procura di Reggio Calabria",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "RGNR",
+                        "stato": "",
+                    },
+                    "parti": [],
+                    "controparti": [],
+                    "eventi": [],
+                    "documenti": [],
+                    "depositi": [],
+                    "counts": {
+                        "parti": 0,
+                        "documenti": 0,
+                        "depositi": 0,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "provvedimenti": 0,
+                    },
+                },
+                "mapping": {"mode": "create_new"},
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": False,
+                    "importa_scadenze": False,
+                    "importa_eventi": False,
+                },
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert not any(item["label"] == "Parti non disponibili" for item in data["analysis"]["blockers"])
+    assert any(item["label"] == "Parti da completare manualmente" for item in data["analysis"]["warnings"])
 
 
 def test_api_portale_acquisizione_import_pdp_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):
@@ -2858,6 +3158,175 @@ def test_api_portale_acquisizione_import_pdp_via_local_signer_non_richiede_certi
     assert data["ok"] is True
     assert data["result"]["created"] is True
     assert data["result"]["id_fascicolo"]
+
+
+def test_api_portale_acquisizione_import_pdp_importa_file_raccolti_dal_browser(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pdp/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:4521:2026:RGNR",
+                    "numero": "4521",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Procura di Reggio Calabria",
+                    "procedimento": "RGNR",
+                    "stato": "PENDENTE",
+                    "oggetto": "Truffa",
+                    "parti": ["Mario Rossi"],
+                    "controparti": ["Parte Offesa"],
+                    "payload": {
+                        "numero_rg": "4521",
+                        "anno_rg": 2026,
+                        "tipo_registro": "RGNR",
+                        "fase": "INDAGINI",
+                        "stato": "PENDENTE",
+                        "reato": "Truffa",
+                        "sezione": "GIP",
+                        "giudice": "Giudice Penale",
+                        "data_iscrizione": "2026-03-01",
+                        "data_udienza": "2026-06-20",
+                        "imputati": ["Mario Rossi"],
+                        "parti_offese": ["Parte Offesa"],
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Procura di Reggio Calabria",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "4521",
+                        "anno": 2026,
+                        "ufficio_nome": "Procura di Reggio Calabria",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "RGNR",
+                        "stato": "PENDENTE",
+                        "oggetto": "Truffa",
+                    },
+                    "parti": ["Mario Rossi"],
+                    "controparti": ["Parte Offesa"],
+                    "difensori": [],
+                    "eventi": [],
+                    "documenti": [
+                        {
+                            "id_documento": "PDP-DOC-001",
+                            "nome": "MemoriaDifensiva.pdf",
+                            "tipo": "MEMORIA",
+                            "tipo_atto": "MEMORIA",
+                            "data_deposito": "2026-04-11",
+                            "mittente": "Studio Rossi",
+                            "dimensione_bytes": 128,
+                            "disponibile": True,
+                            "id_deposito": "BUSTA-PDP-001",
+                            "id_deposito_esterno": "BUSTA-PDP-001",
+                        }
+                    ],
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-PDP-001",
+                            "id_deposito_esterno": "BUSTA-PDP-001",
+                            "tipo_atto": "MEMORIA",
+                            "data_deposito": "2026-04-11",
+                            "mittente": "Studio Rossi",
+                            "documenti": [
+                                {
+                                    "id_documento": "PDP-DOC-001",
+                                    "nome": "MemoriaDifensiva.pdf",
+                                    "tipo": "MEMORIA",
+                                    "tipo_atto": "MEMORIA",
+                                    "data_deposito": "2026-04-11",
+                                    "mittente": "Studio Rossi",
+                                    "dimensione_bytes": 128,
+                                    "disponibile": True,
+                                    "id_deposito": "BUSTA-PDP-001",
+                                    "id_deposito_esterno": "BUSTA-PDP-001",
+                                }
+                            ],
+                        }
+                    ],
+                    "counts": {
+                        "parti": 2,
+                        "documenti": 1,
+                        "depositi": 1,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "provvedimenti": 0,
+                    },
+                },
+                "mapping": {"mode": "create_new"},
+                "options": {
+                    "importa_parti": True,
+                    "importa_documenti": True,
+                    "importa_provvedimenti": False,
+                    "importa_scadenze": False,
+                    "importa_eventi": False,
+                    "importa_udienze": False,
+                    "mantieni_albero_originale": False,
+                    "scarica_originale_portale": True,
+                },
+                "downloaded_files": [
+                    {
+                        "nome": "MemoriaDifensiva.pdf",
+                        "contenuto_b64": base64.b64encode(b"%PDF-1.4 PDP browser download").decode("ascii"),
+                        "origine": r"C:\\Users\\HelpdeskCSC4\\Downloads\\MemoriaDifensiva.pdf",
+                        "data_documento": "2026-04-11",
+                        "dimensione_bytes": 28,
+                        "id_deposito_esterno": "BUSTA-PDP-001",
+                        "id_documento_portale": "PDP-DOC-001",
+                        "tipo_atto": "MEMORIA",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["summary"]["documenti"] == 1
+    assert data["result"]["summary"]["depositi"] == 1
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.get(data["result"]["id_fascicolo"])
+    assert fascicolo is not None
+    assert fascicolo.source == "PDP"
+    assert len(fascicolo.documenti) == 1
+    assert fascicolo.documenti[0].nome == "MemoriaDifensiva.pdf"
+
+    deposito = next((dep for dep in fascicolo.depositi_pct if dep.id_deposito_esterno == "BUSTA-PDP-001"), None)
+    assert deposito is not None
+    assert deposito.stato == "IMPORTATO_DA_PORTALE"
+    assert deposito.fonte_portale == "PDP"
+    assert deposito.documenti_portale
+    assert deposito.documenti_portale[0]["id_documento"] == "PDP-DOC-001"
+    assert deposito.documenti_ids
+    assert fascicolo.documenti[0].id_deposito_pct == deposito.id
 
 
 def test_route_importa_pdp_via_local_signer_non_richiede_certificato_server(tmp_path, monkeypatch):

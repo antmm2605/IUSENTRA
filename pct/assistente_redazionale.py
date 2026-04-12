@@ -38,6 +38,9 @@ from .deposito_guidato import (
     ValidatorNormativoRedazionale,
 )
 from .pst_catalog import (
+    PST_PDP_SPECIFICHE_DETAIL_URL,
+    PST_PDP_SPECIFICHE_URL,
+    PST_WEB_SERVICES_DOC_DETAIL_URL,
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
     get_xsd_channel,
@@ -295,7 +298,7 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
         sources=[
             {
                 "label": "PST - dettaglio documentazione servizi web v1.69",
-                "url": "https://pst.giustizia.it/PST/it/paginadettaglio.page?contentId=ACC4571",
+                "url": PST_WEB_SERVICES_DOC_DETAIL_URL,
             },
             {
                 "label": f"PST - documentazione servizi web software house v{PST_WEB_SERVICES_DOC_VERSION}",
@@ -313,9 +316,13 @@ SCHEMA_CHANNELS: dict[str, SchemaChannelProfile] = {
         supports_busta=False,
         sources=[
             {
-                "label": "PST - specifiche tecniche Portale Deposito Atti Penali",
-                "url": "https://pst.giustizia.it/PST/page/it/decreto_del_ministro_della_giustizia_del_4_luglio_2023__portale_deposito_atti_penali_pdp_pubblicato_sulla_gu_n_155_del_5_luglio_2023_adozione_delle_specifiche_tecniche?contentId=NWS2789&modelId=4",
-            }
+                "label": "PST - dettaglio specifiche tecniche Portale Deposito Atti Penali",
+                "url": PST_PDP_SPECIFICHE_DETAIL_URL,
+            },
+            {
+                "label": "PST - PDF specifiche tecniche Portale Deposito Atti Penali",
+                "url": PST_PDP_SPECIFICHE_URL,
+            },
         ],
     ),
     "PAT_AMMINISTRATIVO": SchemaChannelProfile(

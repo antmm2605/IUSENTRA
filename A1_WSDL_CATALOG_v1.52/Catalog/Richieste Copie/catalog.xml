@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<catalog>
+  <class name="SommarioContenuto">
+    <property name="idDocumento"     type="string"/>
+    <property name="registro"        type="string"/>
+    <property name="anno"            type="string"/>
+    <property name="numero"          type="string"/>
+    <property name="subProcedimento" type="string"/>
+  </class>
+  
+	<class name="RichiestaCopia">
+		<property name="idRichiesta"   type="string"/>
+		<property name="CodiceFiscale" type="string"/>
+		<property name="dataRichiesta" type="date"/>
+		
+		<property name="formatoCopie" type="string"/>
+		<property name="tipoCopie"    type="string"/>
+		<property name="urgente"      type="boolean"/>
+		
+		<property name="stato"             type="string"/>
+		<property name="dataDisponibilita" type="date"/>
+		<property name="dataEvasione"      type="date"/>
+    <property name="ufficio"           type="string"/>
+    
+    <classref ref="SommarioContenuto"/>
+	</class>
+  
+	<class name="RichiestaCopiaExt">
+		<property name="idRichiesta"   type="string"/>
+		<property name="CodiceFiscale" type="string"/>
+		<property name="dataRichiesta" type="date"/>
+		
+		<property name="formatoCopie" type="string"/>
+		<property name="tipoCopie"    type="string"/>
+		<property name="urgente"      type="boolean"/>
+		
+		<property name="stato"             type="string"/>
+		<property name="dataDisponibilita" type="date"/>
+		<property name="dataEvasione"      type="date"/>
+    
+    <property name="TipoPagamento"     type="string"/>
+    <property name="DettagliPagamento" type="string"/>
+    
+    <property name="ufficio"           type="string"/>    
+	</class>
+  
+	<class name="ContenutoRichiestaCopia">
+    <property name="idDocumento" type="string"/>
+    <property name="registro" type="string"/>
+    <property name="anno" type="string"/>
+    <property name="numero" type="string"/>
+    <property name="subProcedimento" type="string"/>
+    <property name="idDocumentoPrincipale" type="string"/>
+    <property name="tipoDocumento" type="string"/>
+    <property name="tipoMime" type="string"/>
+    <property name="dataDocumento" type="date"/>
+    <property name="numeroCopie" type="string"/>
+    <property name="usoCopie" type="string"/>
+    <property name="nomeFile" type="string"/>
+	</class>
+	
+	<class name="ProfiloRichiestaCopia">
+    <property name="idRichiesta" type="string"/>
+    <property name="idRichiedente" type="string"/>
+    <property name="NOMERICHIEDENTE" type="string"/>
+    <property name="COGNOMERICHIEDENTE" type="string"/>
+    <property name="dataRichiesta" type="date"/>
+    <property name="tipoCopie" type="string"/>
+    <property name="formatoCopie" type="string"/>
+    <property name="urgente" type="boolean"/>
+    <property name="statoRichiesta" type="string"/>
+    <property name="importo" type="float"/>
+    <property name="dataEvasione" type="date"/>
+    <property name="dataDisponibilita" type="date"/>
+    <property name="procura" type="boolean"/>
+    <property name="ufficio" type="string"/>
+		
+		<classref ref="ContenutoRichiestaCopia"/>
+	</class>
+  
+  <class name="riepilogoRichieste">
+    <property name="richiesteInAttesa" type="integer"/>
+    <property name="dataRiepilogo"     type="date"/>
+  </class>
+</catalog>

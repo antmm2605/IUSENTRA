@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Fatturazione{% endblock %}
+{% block pct_modulo %}fatturazione{% endblock %}
+{% block title %}Fatturazione — Studio Legale PCT{% endblock %}
+{% block page_title %}Fatturazione{% endblock %}
+
+{% set flabel = {'BOZZA':'Bozza','EMESSA':'Emessa','PAGATA':'Pagata','SCADUTA':'Scaduta','ANNULLATA':'Annullata'} %}
+{% set fcolor = {'BOZZA':'secondary','EMESSA':'primary','PAGATA':'success','SCADUTA':'danger','ANNULLATA':'dark'} %}
 
 {% block content %}
 
@@ -11,6 +16,18 @@
     <p class="ds-ph-sub">Parcelle e note spese — {{ stats.anno }}</p>
   </div>
   <div class="ds-ph-actions">
+    <div class="dropdown">
+      <button class="ds-btn ds-btn-outline dropdown-toggle" data-bs-toggle="dropdown" title="Esporta">
+        <i class="bi bi-download"></i><span class="d-none d-sm-inline">Esporta</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{{ url_for('fatturazione.nuova') }}">
+            <i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF riepilogo
+          </a>
+        </li>
+      </ul>
+    </div>
     <a href="{{ url_for('fatturazione.nuova') }}" class="ds-btn ds-btn-primary">
       <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Nuova parcella</span>
     </a>
@@ -29,7 +46,7 @@
 <div class="ds-stats">
   <span class="ds-stat-pill">
     <i class="bi bi-graph-up text-primary"></i>
-    <span class="num">€ {{ "%.0f"|format(stats.fatturato_lordo) }}</span> fatturato {{ stats.anno }}
+    <span class="num">€ {{ "%.0f"|format(stats.fatturato_lordo) }}</span> fatturato
   </span>
   <span class="ds-stat-pill">
     <i class="bi bi-check-circle text-success"></i>
@@ -47,8 +64,11 @@
   {% endif %}
 </div>
 
-{# ── Filtri ── #}
+{# ── Barra ricerca + filtri ── #}
 <form method="get" class="ds-search-bar mb-3">
+  <input type="search" name="q" class="ds-search-input"
+         placeholder="Cerca per numero, cliente…"
+         value="{{ q|default('') }}" autocomplete="off">
   <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
     {% for a in anni_disponibili %}
     <option value="{{ a }}" {{ 'selected' if a == anno }}>{{ a }}</option>
@@ -63,62 +83,76 @@
   <button type="submit" class="ds-btn ds-btn-outline">
     <i class="bi bi-funnel"></i>Filtra
   </button>
+  {% if q|default('') or stato_filtro %}
+  <a href="{{ url_for('fatturazione.lista') }}?anno={{ anno }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
 </form>
 
-<!-- Lista parcelle -->
+{# ── Tabella parcelle ── #}
 {% if parcelle %}
-<div class="card border-0 shadow-sm" style="border-radius:16px; overflow:hidden;">
-  <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr style="font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;">
-          <th>Numero</th>
-          <th>Cliente</th>
-          <th>Data</th>
-          <th class="text-end">Totale</th>
-          <th class="text-center">Stato</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in parcelle %}
-        {% set c = clienti_map.get(p.id_cliente) %}
-        <tr>
-          <td>
-            <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
-               class="fw-semibold text-decoration-none" style="font-size:.9rem;">
-              {{ p.numero }}
-            </a>
-          </td>
-          <td style="font-size:.88rem;">{{ c.nome_completo if c else '—' }}</td>
-          <td style="font-size:.82rem;color:#6b7280;">{{ p.data_emissione }}</td>
-          <td class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
-          <td class="text-center">
-            <span class="badge rounded-pill
-              {% if p.stato.value == 'PAGATA' %}bg-success
-              {% elif p.stato.value == 'EMESSA' %}bg-primary
-              {% elif p.stato.value == 'SCADUTA' %}bg-danger
-              {% elif p.stato.value == 'BOZZA' %}bg-secondary
-              {% else %}bg-dark{% endif %}"
-              {% set flabel = {'BOZZA':'Bozza','EMESSA':'Emessa','PAGATA':'Pagata','SCADUTA':'Scaduta','ANNULLATA':'Annullata'} %}
-              style="font-size:.68rem;">{{ flabel.get(p.stato.value, p.stato.value) }}</span>
-          </td>
-          <td class="text-end">
-            <div class="d-flex gap-1 justify-content-end">
-              <a href="{{ url_for('fatturazione.pdf', id_parcella=p.id) }}"
-                 class="btn btn-sm btn-outline-secondary" title="Scarica PDF" target="_blank">
-                <i class="bi bi-file-earmark-pdf"></i>
-              </a>
+<div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-muted small">
+      {{ parcelle|length }} parcell{% if parcelle|length != 1 %}e{% else %}a{% endif %}
+    </span>
+    <select id="page-size-fatt" class="form-select form-select-sm" style="width:auto">
+      <option value="25">25 per pagina</option>
+      <option value="50">50 per pagina</option>
+      <option value="100">100 per pagina</option>
+      <option value="0">Tutte</option>
+    </select>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-fatt" data-paginate="page-size-fatt">
+        <thead class="table-light ds-thead-compact">
+          <tr>
+            <th>Numero</th>
+            <th>Cliente</th>
+            <th class="d-none d-md-table-cell">Data</th>
+            <th class="text-end">Totale</th>
+            <th class="text-center">Stato</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in parcelle %}
+          {% set c = clienti_map.get(p.id_cliente) %}
+          <tr>
+            <td data-label="Numero">
               <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
-                 class="btn btn-sm btn-outline-primary" title="Dettaglio">
-                <i class="bi bi-eye"></i>
+                 class="fw-semibold text-decoration-none">
+                {{ p.numero }}
               </a>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+            <td data-label="Cliente">{{ c.nome_completo if c else '—' }}</td>
+            <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione }}</td>
+            <td data-label="Totale" class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+            <td data-label="Stato" class="text-center">
+              <span class="badge rounded-pill bg-{{ fcolor.get(p.stato.value, 'secondary') }}"
+                    style="font-size:.68rem;">
+                {{ flabel.get(p.stato.value, p.stato.value) }}
+              </span>
+            </td>
+            <td data-label="">
+              <div class="ds-actions">
+                <a href="{{ url_for('fatturazione.pdf', id_parcella=p.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Scarica PDF" target="_blank">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+                <a href="{{ url_for('fatturazione.dettaglio', id_parcella=p.id) }}"
+                   class="btn btn-sm btn-outline-primary" title="Dettaglio">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% else %}

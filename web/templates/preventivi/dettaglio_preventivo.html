@@ -240,6 +240,37 @@
     </div>
   </div>
 
+  <div class="col-12">
+    <div class="card border-info-subtle">
+      <div class="card-header fw-semibold"><i class="bi bi-journal-text me-2"></i>Clausola per il successivo conferimento</div>
+      <div class="card-body">
+        {% if p.clausola_controversie_attiva and p.clausola_controversie_testo %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge text-bg-info">{{ clausola_modello_label }}</span>
+          {% if p.clausola_controversie_trattativa_individuale %}
+          <span class="badge text-bg-success">Trattativa individuale registrata</span>
+          {% else %}
+          <span class="badge text-bg-warning">Trattativa individuale non registrata</span>
+          {% endif %}
+        </div>
+        {% if p.clausola_controversie_fonte %}
+        <div class="small text-muted mb-2">
+          <span class="fw-semibold text-dark">Fonte modello:</span> {{ p.clausola_controversie_fonte }}
+        </div>
+        {% endif %}
+        <p class="mb-0" style="white-space:pre-wrap">{{ p.clausola_controversie_testo }}</p>
+        <div class="alert alert-light border mt-3 mb-0 py-2 small">
+          Questa clausola viene riproposta nel conferimento di incarico e resta leggibile anche quando il fascicolo passa al workflow interno.
+        </div>
+        {% else %}
+        <div class="text-muted">
+          Questo preventivo non contiene una clausola contrattuale specifica sulla risoluzione delle controversie.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   {% if calc_summary %}
   <div class="col-12">
     <div class="card border-primary-subtle">

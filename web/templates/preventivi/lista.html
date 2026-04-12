@@ -51,162 +51,198 @@
 </ul>
 
 {# ── Filtri ── #}
-<form method="get" class="row g-2 mb-3">
+<form method="get" class="ds-search-bar mb-3">
   <input type="hidden" name="tab" value="{{ tab }}">
-  <div class="col-auto">
-    <select name="anno" class="form-select form-select-sm" onchange="this.form.submit()">
-      {% for a in anni_disponibili %}
-      <option value="{{ a }}" {% if a == anno %}selected{% endif %}>{{ a }}</option>
+  <select name="anno" class="form-select form-select-sm" style="max-width:100px" onchange="this.form.submit()">
+    {% for a in anni_disponibili %}
+    <option value="{{ a }}" {% if a == anno %}selected{% endif %}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select name="stato" class="form-select form-select-sm" style="max-width:150px" onchange="this.form.submit()">
+    <option value="">Tutti gli stati</option>
+    {% if tab == 'preventivi' %}
+      {% for s in ['BOZZA','INVIATO','ACCETTATO','RIFIUTATO','SCADUTO'] %}
+      <option value="{{ s }}" {% if stato_filtro == s %}selected{% endif %}>{{ s|title }}</option>
       {% endfor %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <select name="stato" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">Tutti gli stati</option>
-      {% if tab == 'preventivi' %}
-        {% for s in ['BOZZA','INVIATO','ACCETTATO','RIFIUTATO','SCADUTO'] %}
-        <option value="{{ s }}" {% if stato_filtro == s %}selected{% endif %}>{{ s|title }}</option>
-        {% endfor %}
-      {% else %}
-        {% for s in ['ATTIVO','DEFINITO','REVOCATO'] %}
-        <option value="{{ s }}" {% if stato_filtro == s %}selected{% endif %}>{{ s|title }}</option>
-        {% endfor %}
-      {% endif %}
-    </select>
-  </div>
-  <div class="col-auto">
-    <select name="id_cliente" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="">Tutti i clienti</option>
-      {% for id, cl in clienti_map.items() %}
-      <option value="{{ id }}" {% if cliente_filtro == id %}selected{% endif %}>{{ cl.nome_completo }}</option>
+    {% else %}
+      {% for s in ['ATTIVO','DEFINITO','REVOCATO'] %}
+      <option value="{{ s }}" {% if stato_filtro == s %}selected{% endif %}>{{ s|title }}</option>
       {% endfor %}
-    </select>
-  </div>
+    {% endif %}
+  </select>
+  <select name="id_cliente" class="form-select form-select-sm" style="max-width:200px" onchange="this.form.submit()">
+    <option value="">Tutti i clienti</option>
+    {% for id, cl in clienti_map.items() %}
+    <option value="{{ id }}" {% if cliente_filtro == id %}selected{% endif %}>{{ cl.nome_completo }}</option>
+    {% endfor %}
+  </select>
+  {% if stato_filtro or cliente_filtro %}
+  <a href="{{ url_for('preventivi.lista', tab=tab, anno=anno) }}" class="ds-btn ds-btn-ghost">
+    <i class="bi bi-x-circle"></i>Reset
+  </a>
+  {% endif %}
 </form>
 
 {# ── Tab: Preventivi ── #}
 {% if tab == 'preventivi' %}
   {% if prev_lista %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>N°</th>
-          <th>Data</th>
-          <th>Cliente</th>
-          <th>Oggetto</th>
-          <th class="text-end">Totale</th>
-          <th>Stato</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in prev_lista %}
-        {% set cl = clienti_map.get(p.id_cliente) %}
-        <tr>
-          <td><span class="font-monospace small">{{ p.numero }}</span></td>
-          <td><small>{{ p.data_emissione }}</small></td>
-          <td>
-            {% if cl %}
-            <a href="{{ url_for('cartella_cliente', id_cliente=p.id_cliente) }}" class="text-decoration-none">
-              {{ cl.nome_completo }}
-            </a>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-          <td class="text-truncate" style="max-width:220px" title="{{ p.oggetto }}">{{ p.oggetto }}</td>
-          <td class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
-          <td>
-            {% set badge = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'} %}
-            <span class="badge bg-{{ badge.get(p.stato.value, 'secondary') }}">{{ p.stato.value }}</span>
-          </td>
-          <td class="text-end">
-            <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=p.id) }}"
-               class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-eye"></i>
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-semibold text-muted small">
+        {{ prev_lista|length }} preventiv{% if prev_lista|length != 1 %}i{% else %}o{% endif %}
+      </span>
+      <select id="page-size-prev" class="form-select form-select-sm" style="width:auto">
+        <option value="25">25 per pagina</option>
+        <option value="50">50 per pagina</option>
+        <option value="0">Tutti</option>
+      </select>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-prev" data-paginate="page-size-prev">
+          <thead class="table-light ds-thead-compact">
+            <tr>
+              <th>N°</th>
+              <th class="d-none d-md-table-cell">Data</th>
+              <th>Cliente</th>
+              <th>Oggetto</th>
+              <th class="text-end">Totale</th>
+              <th>Stato</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in prev_lista %}
+            {% set cl = clienti_map.get(p.id_cliente) %}
+            <tr>
+              <td data-label="N°"><span class="font-monospace fw-semibold">{{ p.numero }}</span></td>
+              <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ p.data_emissione }}</td>
+              <td data-label="Cliente">
+                {% if cl %}
+                <a href="{{ url_for('cartella_cliente', id_cliente=p.id_cliente) }}" class="text-decoration-none fw-semibold">
+                  {{ cl.nome_completo }}
+                </a>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td data-label="Oggetto" class="text-truncate" style="max-width:220px" title="{{ p.oggetto }}">{{ p.oggetto }}</td>
+              <td data-label="Totale" class="text-end fw-semibold">€ {{ "%.2f"|format(p.totale) }}</td>
+              <td data-label="Stato">
+                {% set badge = {'BOZZA':'secondary','INVIATO':'primary','ACCETTATO':'success','RIFIUTATO':'danger','SCADUTO':'warning'} %}
+                <span class="badge rounded-pill bg-{{ badge.get(p.stato.value, 'secondary') }}">{{ p.stato.value|title }}</span>
+              </td>
+              <td data-label="">
+                <div class="ds-actions">
+                  <a href="{{ url_for('preventivi.dettaglio_preventivo', id_preventivo=p.id) }}"
+                     class="btn btn-sm btn-outline-primary" title="Dettaglio">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
   {% else %}
-  <div class="text-center text-muted py-5">
-    <i class="bi bi-file-earmark-text fs-1 opacity-25 d-block mb-2"></i>
-    Nessun preventivo trovato per i criteri selezionati.
-    <div class="mt-3">
-      <a href="{{ url_for('preventivi.wizard') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-magic me-1"></i>Avvia il preventivo guidato
-      </a>
-    </div>
+  <div class="ds-empty">
+    <i class="bi bi-file-earmark-text ds-empty-icon"></i>
+    <div class="ds-empty-title">Nessun preventivo trovato</div>
+    <div class="ds-empty-sub">Nessun preventivo per i criteri selezionati.</div>
+    <a href="{{ url_for('preventivi.wizard') }}" class="ds-btn ds-btn-primary mt-3">
+      <i class="bi bi-magic"></i>Avvia il preventivo guidato
+    </a>
   </div>
   {% endif %}
 
 {# ── Tab: Conferimenti ── #}
 {% else %}
   {% if conf_lista %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>N°</th>
-          <th>Data</th>
-          <th>Cliente</th>
-          <th>Oggetto</th>
-          <th>Avvocato</th>
-          <th class="text-end">Compenso</th>
-          <th>Stato</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in conf_lista %}
-        {% set cl = clienti_map.get(c.id_cliente) %}
-        <tr>
-          <td><span class="font-monospace small">{{ c.numero }}</span></td>
-          <td><small>{{ c.data_incarico }}</small></td>
-          <td>
-            {% if cl %}
-            <a href="{{ url_for('cartella_cliente', id_cliente=c.id_cliente) }}" class="text-decoration-none">
-              {{ cl.nome_completo }}
-            </a>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-          <td class="text-truncate" style="max-width:180px" title="{{ c.oggetto }}">{{ c.oggetto }}</td>
-          <td><small>{{ c.avvocato_referente }}</small></td>
-          <td class="text-end fw-semibold">
-            {% if c.compenso_pattuito > 0 %}€ {{ "%.2f"|format(c.compenso_pattuito) }}{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% set badge = {'ATTIVO':'success','DEFINITO':'secondary','REVOCATO':'danger'} %}
-            <span class="badge bg-{{ badge.get(c.stato.value, 'secondary') }}">{{ c.stato.value }}</span>
-          </td>
-          <td class="text-end">
-            <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=c.id) }}"
-               class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-eye"></i>
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-semibold text-muted small">
+        {{ conf_lista|length }} conferiment{% if conf_lista|length != 1 %}i{% else %}o{% endif %}
+      </span>
+      <select id="page-size-conf" class="form-select form-select-sm" style="width:auto">
+        <option value="25">25 per pagina</option>
+        <option value="50">50 per pagina</option>
+        <option value="0">Tutti</option>
+      </select>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-conf" data-paginate="page-size-conf">
+          <thead class="table-light ds-thead-compact">
+            <tr>
+              <th>N°</th>
+              <th class="d-none d-md-table-cell">Data</th>
+              <th>Cliente</th>
+              <th>Oggetto</th>
+              <th class="d-none d-lg-table-cell">Avvocato</th>
+              <th class="text-end">Compenso</th>
+              <th>Stato</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in conf_lista %}
+            {% set cl = clienti_map.get(c.id_cliente) %}
+            <tr>
+              <td data-label="N°"><span class="font-monospace fw-semibold">{{ c.numero }}</span></td>
+              <td data-label="Data" class="d-none d-md-table-cell small text-muted">{{ c.data_incarico }}</td>
+              <td data-label="Cliente">
+                {% if cl %}
+                <a href="{{ url_for('cartella_cliente', id_cliente=c.id_cliente) }}" class="text-decoration-none fw-semibold">
+                  {{ cl.nome_completo }}
+                </a>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td data-label="Oggetto" class="text-truncate" style="max-width:180px" title="{{ c.oggetto }}">{{ c.oggetto }}</td>
+              <td data-label="Avvocato" class="small d-none d-lg-table-cell">{{ c.avvocato_referente }}</td>
+              <td data-label="Compenso" class="text-end fw-semibold">
+                {% if c.compenso_pattuito > 0 %}€ {{ "%.2f"|format(c.compenso_pattuito) }}{% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td data-label="Stato">
+                {% set badge = {'ATTIVO':'success','DEFINITO':'secondary','REVOCATO':'danger'} %}
+                <span class="badge rounded-pill bg-{{ badge.get(c.stato.value, 'secondary') }}">{{ c.stato.value|title }}</span>
+              </td>
+              <td data-label="">
+                <div class="ds-actions">
+                  <a href="{{ url_for('preventivi.dettaglio_conferimento', id_conferimento=c.id) }}"
+                     class="btn btn-sm btn-outline-primary" title="Dettaglio">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
   {% else %}
-  <div class="text-center text-muted py-5">
-    <i class="bi bi-pen fs-1 opacity-25 d-block mb-2"></i>
-    Nessun conferimento di incarico trovato.
-    <div class="mt-3">
-      <a href="{{ url_for('preventivi.nuovo_conferimento') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Crea il primo conferimento
-      </a>
-    </div>
+  <div class="ds-empty">
+    <i class="bi bi-pen ds-empty-icon"></i>
+    <div class="ds-empty-title">Nessun conferimento trovato</div>
+    <div class="ds-empty-sub">Nessun conferimento di incarico per i criteri selezionati.</div>
+    <a href="{{ url_for('preventivi.nuovo_conferimento') }}" class="ds-btn ds-btn-primary mt-3">
+      <i class="bi bi-plus-lg"></i>Crea il primo conferimento
+    </a>
   </div>
   {% endif %}
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+initPagination('tbl-prev', 'page-size-prev');
+initPagination('tbl-conf', 'page-size-conf');
+</script>
 {% endblock %}

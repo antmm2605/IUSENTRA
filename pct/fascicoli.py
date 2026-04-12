@@ -456,6 +456,13 @@ class Fascicolo:
     avvocato_dominus: str = ""
     oggetto: str = ""
     valore_causa: float = 0.0       # valore in euro
+    valore_preventivato: float = 0.0  # compenso pattuito da preventivo/conferimento
+
+    # --- Pratica collegata (dal preventivo/conferimento)
+    tipo_procedimento: str = ""
+    id_pratica: str = ""
+    area_pratica: str = ""
+    compenso_pattuito: float = 0.0  # importo totale dal conferimento incarico
 
     # --- Date
     data_apertura: str = field(default_factory=lambda: date.today().isoformat())
@@ -1173,10 +1180,21 @@ class GestioneFascicoli:
         def _tipo_attivita_portale(tipo_atto_portale: str, docs: List[dict]) -> TipoAttivita:
             testo = (tipo_atto_portale or "").upper()
             tipi_doc = " ".join(str(doc.get("tipo") or "").upper() for doc in docs)
+            # Comunicazioni di cancelleria — servizio portale o keywords
+            _serv = (servizio_portale or "").upper()
+            if "COMUNICAZIONE" in _serv or "NOTIFICHE" in _serv:
+                return TipoAttivita.COMUNICAZIONE_CANCELLERIA
+            if any(t in testo or t in tipi_doc for t in ("COMUNICAZIONE", "CANCELLERIA", "NOTIFICA")):
+                return TipoAttivita.COMUNICAZIONE_CANCELLERIA
+            # Provvedimenti
             if any(token in testo or token in tipi_doc for token in ("PROVVED", "SENTENZA", "ORDINANZA", "DECRETO")):
                 return TipoAttivita.PROVVEDIMENTO
+            # Udienze
             if "UDIENZA" in testo or "VERBALE" in tipi_doc:
                 return TipoAttivita.UDIENZA
+            # Scadenze dal servizio portale
+            if "SCADENZ" in _serv:
+                return TipoAttivita.TERMINE_SCADENZA
             return TipoAttivita.DEPOSITO_ATTI
 
         documenti_norm = _merge_documenti_portale(documenti_portale or [])

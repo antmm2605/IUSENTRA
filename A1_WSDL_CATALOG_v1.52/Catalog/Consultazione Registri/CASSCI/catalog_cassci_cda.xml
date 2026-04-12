@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <class name="infoTest">
+        <property name="data" type="date" description="test webservice"/>
+    </class>
+
+    <class name="Ricorso">
+        <property name="IdFascicolo"	type="string"  description="Chiave primaria del ricorso" />
+        <property name="NRGText"	type="string"   description="Numero di ruolo generale del ricorso" />
+        <!--<property name="numeroricorso"    type="string" description="" />-->
+        <property name="DataDeposito"	type="date"	description="Data deposito del ricorso" />
+        <property name="Parti"		type="string"   description="Dettaglio delle parti del ricorso" />
+        <property name="Sezione"	type="string"   description="Sezione di afferenza del deposito" />
+        <property name="Materia"	type="string"   description="Materia del ricorso" />
+        <property name="Autorita"	type="string"   description="Autorità coinvolta nel ricorso" />
+        <property name="Localita"	type="string"   description="Località del ricorso" />
+	<property name="PROVV_numero"	type="string"   description="Numero del provv impugnato" />
+        <property name="TipoUdienza"	type="string"   description="Tipologia dell'udienza legata al ricorso" />
+	<property name="DataUdienza"	type="date"	description="Data dell’udienza legata al ricorso" />
+	<property name="Definito"	type="boolean"	description="Indica se il ricorso è definito" />
+    </class>
+
+    <class name="EsitoRicorso">
+        <property name="IdFascicolo"	type="string"	description="Chiave primaria del ricorso" />
+        <property name="Sezione"	type="string"	description="Sezione di afferenza all'esito" />
+        <property name="Sentenza"	type="string"	description="Numero di sentenza sezionale" />
+        <property name="TipoSentenza"	type="string"	description="Tipologia della sentenza (ordinanza, decreto, ...)" />
+        <property name="Testo"		type="string"	description="Testo dell'esito" />
+    </class>
+
+</catalog>

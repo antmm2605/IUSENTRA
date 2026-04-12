@@ -25,7 +25,7 @@ from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------- SIGIT / PTT endpoints
-_SIGIT_BASE             = os.getenv("PCT_SIGIT_BASE_URL", "https://www.ptt.mef.gov.it/ptt")
+_SIGIT_BASE             = os.getenv("PCT_SIGIT_BASE_URL", "https://sigit.finanze.it/ptt")
 _WSDL_RICERCA_TRIB      = f"{_SIGIT_BASE}/RicercaFascicoliTributarioService?wsdl"
 _WSDL_CONSULTA_TRIB     = f"{_SIGIT_BASE}/ConsultazioneDocumentiTributarioService?wsdl"
 
@@ -281,7 +281,7 @@ class ClientSIGIT:
         oggetto: str = "",
     ) -> dict:
         """
-        Deposita un atto tributario al PTT (ptt.mef.gov.it).
+        Deposita un atto tributario al PTT (sigit.finanze.it).
 
         Flusso PTT:
           POST {SIGIT_BASE}/depositi  (multipart/form-data, mTLS)
@@ -320,7 +320,7 @@ class ClientSIGIT:
                 try:
                     from requests_pkcs12 import Pkcs12Adapter
                     session.mount(
-                        "https://www.ptt.mef.gov.it",
+                        "https://sigit.finanze.it",
                         Pkcs12Adapter(
                             pkcs12_filename=self.p12_path,
                             pkcs12_password=self.p12_password,
@@ -371,7 +371,7 @@ class ClientSIGIT:
             raise ImportError("Installa zeep: pip install zeep")
 
         session = Session()
-        base = "https://www.ptt.mef.gov.it"
+        base = "https://sigit.finanze.it"
 
         usa_pem = (
             self.cert_pem_path and self.key_pem_path

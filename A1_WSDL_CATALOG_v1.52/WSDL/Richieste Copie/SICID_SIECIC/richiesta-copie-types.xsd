@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:RichiestaCopie-types" xmlns:y="urn:RichiestaCopie-types" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/">
+  <xs:import schemaLocation="./soap-encoding.xsd"/>
+
+	<xs:simpleType name="formatoCopiaType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="CARTACEA"/>
+			<xs:enumeration value="DIGITALE"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="tipoCopiaType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="SEMPLICE"/>
+			<xs:enumeration value="AUTENTICA"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="usoCopiaType">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="ESECUTIVA"/>
+			<xs:enumeration value="IMPUGNAZIONE"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="richiestaItemType">
+		<xs:all>
+			<xs:element name="registro"    type="xs:string"      minOccurs="1" nillable="false"/>
+			<xs:element name="idDocumento" type="xs:string"      minOccurs="1" nillable="false"/>
+			<xs:element name="numero"      type="xs:integer"     minOccurs="1" nillable="false"/>
+			<xs:element name="uso"         type="y:usoCopiaType" minOccurs="0" nillable="true"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="richiestaItemArrayType">
+		<xs:complexContent>
+			<xs:restriction base="soapenc:Array">
+				<xs:attribute ref="soapenc:arrayType" wsdl:arrayType="y:richiestaItemType[]"/>
+			</xs:restriction>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="riferimentoFascicoloType">
+		<xs:all>
+			<xs:element name="anno"            type="xs:string" minOccurs="1"/>
+			<xs:element name="numero"          type="xs:string" minOccurs="1"/>
+			<xs:element name="subProcedimento" type="xs:string" minOccurs="0"/>
+			<xs:element name="registro"        type="xs:string" minOccurs="1"/>
+			<xs:element name="ufficio"         type="xs:string" minOccurs="1"/>
+		</xs:all>
+	</xs:complexType>
+	
+	<xs:complexType name="specType">
+		<xs:all>
+			<xs:element name="tipo"      type="xs:string"       minOccurs="1"/>
+			<xs:element name="contenuto" type="xs:base64Binary" minOccurs="1"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="specArrayType">
+		<xs:complexContent>
+			<xs:restriction base="soapenc:Array">
+				<xs:attribute ref="soapenc:arrayType" wsdl:arrayType="y:specType[]"/>
+			</xs:restriction>
+		</xs:complexContent>
+	</xs:complexType>
+	<xs:complexType name="authInfoType">
+		<xs:all>
+			<xs:element name="idDoc"      type="xs:string"       minOccurs="1" nillable="false"/>
+			<xs:element name="idRegistro" type="xs:string"       minOccurs="1" nillable="false"/>
+			<xs:element name="signature"  type="xs:base64Binary" minOccurs="1" nillable="false"/>
+			<xs:element name="specifiche" type="y:specArrayType" minOccurs="0" nillable="true"/>
+		</xs:all>
+	</xs:complexType>
+	<xs:complexType name="authInfoArrayType">
+		<xs:complexContent>
+			<xs:restriction base="soapenc:Array">
+				<xs:attribute ref="soapenc:arrayType" wsdl:arrayType="y:authInfoType[]"/>
+			</xs:restriction>
+		</xs:complexContent>
+	</xs:complexType>
+</xs:schema>

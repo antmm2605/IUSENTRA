@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ENTITY % dataPubblicazione "2009-02-17">
+<!--Esito dell'Atto fornito dall'Ufficio Giudiziario.-->
+<!ELEMENT EsitoAtto (IdMsgMitt, IdMsgPdA, DatiEsito)>
+<!ELEMENT IdMsgMitt (#PCDATA)>
+<!ELEMENT IdMsgPdA (CodicePdA, Anno, IdMsg)>
+<!ELEMENT CodicePdA (#PCDATA)>
+<!--Anno di 4 cifre. -->
+<!ELEMENT Anno (#PCDATA)>
+<!ELEMENT IdMsg (#PCDATA)>
+<!ELEMENT DatiEsito (Impronta, MsgEsito, Tempo)>
+<!--Impronta dell'Atto informatico.-->
+<!ELEMENT Impronta (#PCDATA)>
+<!ATTLIST Impronta
+	algoritmo CDATA #FIXED "SHA-1"
+	codifica CDATA #FIXED "base64"
+	tipoImpronta (File | MIME | SMIME) "File"
+>
+<!ELEMENT MsgEsito (NumeroRuolo?, CodiceEsito, DescrizioneEsito)>
+<!ELEMENT NumeroRuolo (#PCDATA)>
+<!ELEMENT CodiceEsito (#PCDATA)>
+<!ELEMENT DescrizioneEsito (#PCDATA)>
+<!ELEMENT Tempo (Data, Ora)>
+<!--L'attributo è opzionale per compatibilità con il pregresso. Gli XML devono avere valorizzato l'attributo "zoneDesignator" dell'elemento "Ora".-->
+<!ATTLIST Tempo
+	zona CDATA #IMPLIED
+>
+<!--Anno di 4 cifre; mese di 2 cifre; giorno di 2 cifre; carattere di separazione "-" (ISO 8601 esteso). Es.: 2003-09-16-->
+<!ELEMENT Data (#PCDATA)>
+<!--Ora locale di 2 cifre (formato H24); minuti di 2 cifre; secondi di 2 cifre; carattere di separazione ":". Es.: 13:08:09-->
+<!ELEMENT Ora (#PCDATA)>
+<!--Le zone sono espresse indicando la differenza rispetto a UTC nella forma ±hhmm (ISO 8601). Ad esempio l'ora solare (invernale) italiana è indicata come "+0100", mentre quella legale con "+0200".-->
+<!ATTLIST Ora
+	zoneDesignator CDATA #IMPLIED
+>
+<!ELEMENT RefId (#PCDATA)>

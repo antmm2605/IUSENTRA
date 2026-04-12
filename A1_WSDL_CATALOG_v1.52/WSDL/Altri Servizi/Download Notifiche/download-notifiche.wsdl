@@ -1,0 +1,70 @@
+<definitions name="MessageContentDownloadBeanService" targetNamespace="http://www.giustizia.it/gl/message/download" xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://www.giustizia.it/gl/message/download" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+   <types>
+      <xs:schema targetNamespace="http://www.giustizia.it/gl/message/download" version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+         <xs:element name="AccessDeniedException" nillable="true" type="tns:AccessDeniedException"/>
+         <xs:element name="ContentNotFoundException" nillable="true" type="tns:ContentNotFoundException"/>
+         <xs:complexType name="downloadItem">
+            <xs:sequence>
+               <xs:element name="name" type="xs:string"/>
+               <xs:element name="availableDate" type="xs:dateTime"/>
+               <xs:element name="content" ns1:expectedContentTypes="application/octet-stream" type="xs:base64Binary" xmlns:ns1="http://www.w3.org/2005/05/xmlmime"/>
+            </xs:sequence>
+         </xs:complexType>
+         <xs:complexType name="AccessDeniedException">
+            <xs:sequence>
+               <xs:element minOccurs="0" name="message" type="xs:string"/>
+            </xs:sequence>
+         </xs:complexType>
+         <xs:complexType name="ContentNotFoundException">
+            <xs:sequence>
+               <xs:element minOccurs="0" name="message" type="xs:string"/>
+            </xs:sequence>
+         </xs:complexType>
+      </xs:schema>
+   </types>
+   <message name="AccessDeniedException">
+      <part element="tns:AccessDeniedException" name="AccessDeniedException"/>
+   </message>
+   <message name="ContentNotFoundException">
+      <part element="tns:ContentNotFoundException" name="ContentNotFoundException"/>
+   </message>
+   <message name="MessageContentDownload_download">
+      <part name="site" type="xsd:string"/>
+      <part name="contentId" type="xsd:string"/>
+      <part name="user" type="xsd:string"/>
+   </message>
+   <message name="MessageContentDownload_downloadResponse">
+      <part name="return" type="tns:downloadItem"/>
+   </message>
+   <portType name="MessageContentDownload">
+      <operation name="download" parameterOrder="site contentId user">
+         <input message="tns:MessageContentDownload_download"/>
+         <output message="tns:MessageContentDownload_downloadResponse"/>
+         <fault message="tns:AccessDeniedException" name="AccessDeniedException"/>
+         <fault message="tns:ContentNotFoundException" name="ContentNotFoundException"/>
+      </operation>
+   </portType>
+   <binding name="MessageContentDownloadBinding" type="tns:MessageContentDownload">
+      <soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+      <operation name="download">
+         <soap:operation soapAction=""/>
+         <input>
+            <soap:body namespace="http://www.giustizia.it/gl/message/download" use="literal"/>
+         </input>
+         <output>
+            <soap:body namespace="http://www.giustizia.it/gl/message/download" use="literal"/>
+         </output>
+         <fault name="AccessDeniedException">
+            <soap:fault name="AccessDeniedException" use="literal"/>
+         </fault>
+         <fault name="ContentNotFoundException">
+            <soap:fault name="ContentNotFoundException" use="literal"/>
+         </fault>
+      </operation>
+   </binding>
+   <service name="MessageContentDownloadBeanService">
+      <port binding="tns:MessageContentDownloadBinding" name="MessageContentDownloadSOAPPort">
+         <soap:address location="https://pda.processotelematico.giustizia.it/servizi/MessageContentDownload"/>
+      </port>
+   </service>
+</definitions>

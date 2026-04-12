@@ -144,6 +144,9 @@ class GestioneStrumentiLegali:
             {"id": "canone_locazione", "title": "Adeguamento canone di locazione", "subtitle": "Aggiornamento annuale con indice ISTAT FOI ex L. 431/1998.", "icon": "bi-house-lock", "categoria": "Locazioni"},
             {"id": "usura", "title": "Verifica soglia usura", "subtitle": "Confronta il tasso con TEGM e soglia antiusura per categoria (L. 108/1996).", "icon": "bi-shield-exclamation", "categoria": "Credito"},
             {"id": "contributi_cassa_forense", "title": "Contributi Cassa Forense", "subtitle": "Soggettivo, integrativo e maternita: aliquote e minimali annuali aggiornati.", "icon": "bi-person-badge", "categoria": "Previdenza"},
+            {"id": "prescrizione", "title": "Prescrizione civile", "subtitle": "Termini ordinari, brevi e gestione dell eventuale atto interruttivo.", "icon": "bi-hourglass-bottom", "categoria": "Processo"},
+            {"id": "danno_biologico", "title": "Danno biologico", "subtitle": "Stima operativa con IP, ITT, ITP, personalizzazione e quota morale.", "icon": "bi-heart-pulse", "categoria": "Danni"},
+            {"id": "imposta_registro", "title": "Imposta di registro", "subtitle": "Atti giudiziari con minimo fisso, aliquota e quota per parte.", "icon": "bi-receipt", "categoria": "Fiscale"},
             {"id": "tfr", "title": "TFR", "subtitle": "Quota maturata, rivalutazione annuale e residuo operativo del trattamento di fine rapporto.", "icon": "bi-wallet2", "categoria": "Lavoro"},
             {"id": "onorari_forensi", "title": "Onorari Forensi", "subtitle": "Parametri DM 55/2014 e DM 147/2022 con fasi, complessita e bonus telematico.", "icon": "bi-briefcase", "categoria": "Professione"},
             {"id": "custodia_cautelare", "title": "Custodia Cautelare", "subtitle": "Monitor di interrogatorio, riesame, decisione e deposito motivazione.", "icon": "bi-shield-lock", "categoria": "Penale"},
@@ -276,6 +279,23 @@ class GestioneStrumentiLegali:
             "cf_anno": str(_today().year),
             "cf_reddito": "",
             "cf_compensi": "",
+            # Prescrizione civile
+            "presc_tipo": "ordinaria_10",
+            "presc_data_decorrenza": today,
+            "presc_atto_interruttivo": "",
+            "presc_descrizione": prefill.get("oggetto", ""),
+            # Danno biologico
+            "db_eta": "",
+            "db_perc_ip": "",
+            "db_giorni_itt": "",
+            "db_giorni_itp": "",
+            "db_perc_itp": "50",
+            "db_personalizzazione": "0",
+            "db_includi_morale": "1",
+            # Imposta di registro
+            "reg_tipo_atto": "sentenza_condanna",
+            "reg_valore": prefill.get("valore_causa", ""),
+            "reg_parti": "2",
             # TFR
             "tfr_retribuzione_annua": "",
             "tfr_anni_servizio": "",

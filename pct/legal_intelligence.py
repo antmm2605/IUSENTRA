@@ -18,14 +18,18 @@ from urllib3.exceptions import InsecureRequestWarning
 
 from pct.normative_tables import FONTI_OPERATIVE, GestioneTabelleNormative
 from pct.pst_catalog import (
+    PST_PDP_SPECIFICHE_DETAIL_URL,
+    PST_PDP_SPECIFICHE_URL,
     PST_WEB_SERVICES_DOC_DETAIL_URL,
     PST_WEB_SERVICES_DOC_PAGE_URL,
     PST_WEB_SERVICES_DOC_URL,
     PST_WEB_SERVICES_DOC_VERSION,
     PST_WEB_SERVICES_UPDATE_PAGE_URL,
+    PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_NAME,
     PST_WEB_SERVICES_WSDL_CATALOG_VERSION,
     PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME,
     PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_VERSION,
+    PST_XSD_DOWNLOAD_PAGE_URL,
     get_xsd_channel,
 )
 
@@ -380,13 +384,16 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         nome="PST Giustizia",
         motore="procedurale_telematico",
         area="Telematico",
-        official_url="https://pst.giustizia.it/",
-        monitor_url="https://pst.giustizia.it/PST/resources/cms/documents/Note_per_le_software_house_versioni_aggiornate_1.pdf",
+        official_url=PST_WEB_SERVICES_DOC_PAGE_URL,
+        monitor_url=PST_WEB_SERVICES_DOC_PAGE_URL,
         connector_kind="portal-docs",
         cadence="piu-volte-al-giorno",
         formats=["HTML", "PDF", "WSDL", "XSD"],
-        capability="Documentazione software house, servizi web e note tecniche.",
-        notes="Fonte primaria per XSD, WSDL, ReGIndE, pagamenti e consultazione registri.",
+        capability="Indice ufficiale della documentazione PST per software house, XSD, WSDL e specifiche tecniche.",
+        notes=(
+            "Pagina ufficiale 'Documentazione' del PST: da qui il Ministero pubblica documentazione servizi web, "
+            "schemi XSD, note software house e specifiche tecniche dei canali telematici."
+        ),
     ),
     "pst_servizi_web": FonteUfficiale(
         id="pst_servizi_web",
@@ -401,7 +408,40 @@ FONTI_UFFICIALI: Dict[str, FonteUfficiale] = {
         capability="Monitora la versione pubblicata della documentazione servizi web per software house e del catalogo WSDL allegato.",
         notes=(
             f"La pagina documentazione PST espone attualmente la documentazione servizi web versione {PST_WEB_SERVICES_DOC_VERSION} "
-            f"con PDF dedicato {PST_WEB_SERVICES_DOC_URL} e catalogo {PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME}."
+            f"con PDF dedicato {PST_WEB_SERVICES_DOC_URL}, catalogo WSDL pubblicato {PST_WEB_SERVICES_WSDL_CATALOG_PUBLISHED_NAME} "
+            f"e pacchetto diretto mantenuto nel catalogo interno {PST_WEB_SERVICES_WSDL_CATALOG_PACKAGE_NAME}."
+        ),
+    ),
+    "pst_download": FonteUfficiale(
+        id="pst_download",
+        nome="PST - pagina download",
+        motore="procedurale_telematico",
+        area="Telematico / download ufficiali",
+        official_url=PST_XSD_DOWNLOAD_PAGE_URL,
+        monitor_url=PST_XSD_DOWNLOAD_PAGE_URL,
+        connector_kind="portal-docs",
+        cadence="giornaliera",
+        formats=["HTML", "ZIP", "CER", "DTD", "XSD", "PDF"],
+        capability="Monitora la pagina PST che pubblica certificati proxy, DTD, XSD, ReGIndE e altri file ufficiali scaricabili.",
+        notes=(
+            "Pagina download del PST usata come indice ufficiale dei file ministeriali scaricabili: "
+            "certificati proxy PdA/PST, DTD, XSD SICI/SIGP/UNEP/Cassazione e schemi ReGIndE."
+        ),
+    ),
+    "pst_pdp_specifiche": FonteUfficiale(
+        id="pst_pdp_specifiche",
+        nome="PST - specifiche tecniche PDP",
+        motore="procedurale_telematico",
+        area="Telematico / deposito penale",
+        official_url=PST_PDP_SPECIFICHE_DETAIL_URL,
+        monitor_url=PST_PDP_SPECIFICHE_DETAIL_URL,
+        connector_kind="portal-docs",
+        cadence="giornaliera",
+        formats=["HTML", "PDF"],
+        capability="Monitora la scheda ufficiale PST e il PDF delle specifiche tecniche del Portale Deposito Atti Penali.",
+        notes=(
+            f"Fonte ufficiale dedicata al PDP sul PST, con dettaglio {PST_PDP_SPECIFICHE_DETAIL_URL} "
+            f"e allegato PDF {PST_PDP_SPECIFICHE_URL}."
         ),
     ),
     "pst_xsd_sici": FonteUfficiale(
@@ -690,7 +730,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         output="Catalogo fonti, hash, data pubblicazione, data acquisizione.",
         value="Evita fonti non ufficiali e rende verificabile ogni contenuto monitorato.",
         source_ids=[
-            "normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web",
+            "normattiva", "gazzetta_ufficiale", "pst_giustizia", "pst_servizi_web", "pst_download", "pst_pdp_specifiche",
             "cnf", "registro_mediazione", "cassazione", "corte_costituzionale",
             "giustizia_amministrativa", "eur_lex", "agenzia_entrate", "fatturapa",
             "ministero_lavoro", "anac",
@@ -715,6 +755,8 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         source_ids=[
             "pst_giustizia",
             "pst_servizi_web",
+            "pst_download",
+            "pst_pdp_specifiche",
             "pst_xsd_sici",
             "pst_xsd_sigp",
             "pst_xsd_unep",
@@ -748,7 +790,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         value="Trasforma il gestionale in un assistente proattivo invece che in un archivio passivo.",
         source_ids=[
             "normattiva", "gazzetta_ufficiale",
-            "pst_giustizia", "pst_servizi_web",
+            "pst_giustizia", "pst_servizi_web", "pst_download", "pst_pdp_specifiche",
             "pst_xsd_sici", "pst_xsd_sigp", "pst_xsd_unep", "pst_xsd_cassazione",
             "cnf", "registro_mediazione",
             "cassazione", "corte_costituzionale", "giustizia_amministrativa",
@@ -764,7 +806,7 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
         value="Aumenta fiducia interna, debugging e responsabilita operativa.",
         source_ids=[
             "normattiva", "gazzetta_ufficiale",
-            "pst_giustizia", "pst_servizi_web",
+            "pst_giustizia", "pst_servizi_web", "pst_download", "pst_pdp_specifiche",
             "pst_xsd_sici", "pst_xsd_sigp", "pst_xsd_unep", "pst_xsd_cassazione",
             "cnf", "registro_mediazione",
             "cassazione", "corte_costituzionale", "giustizia_amministrativa",
@@ -808,7 +850,10 @@ MOTORI_LEGALI: Dict[str, MotoreLegale] = {
 KEYWORD_TO_ENGINE: Dict[str, List[str]] = {
     "pct": ["procedurale_telematico", "monitoraggio_alert"],
     "pst": ["procedurale_telematico", "monitoraggio_alert"],
+    "download pst": ["procedurale_telematico", "monitoraggio_alert"],
     "pdp": ["procedurale_telematico", "monitoraggio_alert"],
+    "ppt": ["procedurale_telematico", "monitoraggio_alert"],
+    "atti penali": ["procedurale_telematico", "monitoraggio_alert"],
     "pat": ["procedurale_telematico", "monitoraggio_alert"],
     "reginde": ["procedurale_telematico"],
     "xsd": ["procedurale_telematico", "monitoraggio_alert"],
@@ -884,11 +929,19 @@ KEYWORD_TO_ENGINE: Dict[str, List[str]] = {
 KEYWORD_TO_SOURCE: Dict[str, List[str]] = {
     "normattiva": ["normattiva"],
     "gazzetta": ["gazzetta_ufficiale"],
-    "pst": ["pst_giustizia"],
-    "pct": ["pst_giustizia"],
-    "pdp": ["pst_giustizia"],
+    "pst": ["pst_giustizia", "pst_servizi_web", "pst_download"],
+    "pct": ["pst_giustizia", "pst_servizi_web"],
+    "download pst": ["pst_download"],
+    "certificati proxy": ["pst_download"],
+    "proxy pda": ["pst_download"],
+    "dtd": ["pst_download"],
+    "pdp": ["pst_pdp_specifiche", "pst_giustizia"],
+    "ppt": ["pst_pdp_specifiche", "pst_giustizia"],
+    "atti penali": ["pst_pdp_specifiche"],
+    "processo penale telematico": ["pst_pdp_specifiche"],
+    "portale deposito atti penali": ["pst_pdp_specifiche"],
     "pat": ["pst_giustizia"],
-    "reginde": ["pst_giustizia"],
+    "reginde": ["pst_giustizia", "pst_download"],
     "servizi web": ["pst_servizi_web"],
     "software house": ["pst_servizi_web"],
     "wsdl": ["pst_servizi_web"],
@@ -1752,7 +1805,7 @@ class GestioneLegalIntelligence:
         return "aggiornata" if age <= timedelta(days=3) else "stale"
 
     def _alert_kind_for_source(self, source_id: str) -> str:
-        if source_id in {"pst_giustizia", "pst_servizi_web", *PST_XSD_SOURCE_CHANNELS.keys()}:
+        if source_id in {"pst_giustizia", "pst_servizi_web", "pst_download", "pst_pdp_specifiche", *PST_XSD_SOURCE_CHANNELS.keys()}:
             return "nuova_documentazione_tecnica"
         if source_id in {"normattiva", "gazzetta_ufficiale", "eur_lex"}:
             return "norma_o_testo_modificato"
@@ -1765,6 +1818,10 @@ class GestioneLegalIntelligence:
             return "Rilevata una variazione nella documentazione tecnica o software house del PST."
         if source.id == "pst_servizi_web":
             return "Rilevata una variazione nella pagina ufficiale della documentazione servizi web del PST."
+        if source.id == "pst_download":
+            return "Rilevata una variazione nella pagina download ufficiale del PST."
+        if source.id == "pst_pdp_specifiche":
+            return "Rilevata una variazione nelle specifiche tecniche ufficiali del Portale Deposito Atti Penali."
         if source.id in PST_XSD_SOURCE_CHANNELS:
             return "Rilevata una variazione nel pacchetto XSD o nella news di esercizio del canale telematico."
         if source.id in {"normattiva", "gazzetta_ufficiale", "eur_lex"}:

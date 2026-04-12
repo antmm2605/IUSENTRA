@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ENTITY % dataPubblicazione "2009-02-17">
+<!ELEMENT Comunicazione (NumeroRuolo, Oggetto, Contenuto, CodiceUG, CodiceFiscaleDestinatario)>
+<!ELEMENT NumeroRuolo (#PCDATA)>
+<!ELEMENT Oggetto (#PCDATA)>
+<!ELEMENT Contenuto (#PCDATA)>
+<!ELEMENT CodiceUG (#PCDATA)>
+<!ELEMENT CodiceFiscaleDestinatario (#PCDATA)>
+

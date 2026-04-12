@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:qbt="http://www.netserv.it/QBuilder/types" xmlns:tns="http://www.netserv.it/QBuilder/siminbe" targetNamespace="http://www.netserv.it/QBuilder/siminbe">
+  <import namespace="http://www.netserv.it/QBuilder/types" location="./qbuilder-types-distr.xsd"/>
+  <message name="executeRequest">
+    <part name="name" type="xsd:string"/>
+    <part name="valueSet" type="qbt:valueSetType"/>
+    <part name="orderBy" type="qbt:orderByType"/>
+  </message>
+  <message name="executeResponse">
+    <part name="rowList" type="qbt:rowListType"/>
+  </message>
+  <message name="getRowClassDescriptorRequest">
+    <part name="name" type="xsd:string"/>
+  </message>
+  <message name="getRowClassDescriptorResponse">
+    <part name="return" type="qbt:rowClassDescriptorType"/>
+  </message>
+  <message name="getServiceDescriptorRequest">
+    <part name="name" type="xsd:string"/>
+  </message>
+  <message name="getServiceDescriptorResponse">
+    <part name="return" type="qbt:serviceDescriptorType"/>
+  </message>
+  <message name="getServiceNamesRequest"/>
+  <message name="getServiceNamesResponse">
+    <part name="return" type="qbt:stringArrayType"/>
+  </message>
+  <portType name="ServiziQueryBuilder">
+    <operation name="execute">
+      <input message="tns:executeRequest"/>
+      <output message="tns:executeResponse"/>
+    </operation>
+    <operation name="getRowClassDescriptor">
+      <input message="tns:getRowClassDescriptorRequest"/>
+      <output message="tns:getRowClassDescriptorResponse"/>
+    </operation>
+    <operation name="getServiceDescriptor">
+      <input message="tns:getServiceDescriptorRequest"/>
+      <output message="tns:getServiceDescriptorResponse"/>
+    </operation>
+    <operation name="getServiceNames">
+      <input message="tns:getServiceNamesRequest"/>
+      <output message="tns:getServiceNamesResponse"/>
+    </operation>
+  </portType>
+	<binding name="ServiziQueryBuilderSOAPBinding" type="tns:ServiziQueryBuilder">
+		<soap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+		<operation name="execute">
+			<soap:operation soapAction="execute"/>
+			<input>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</input>
+			<output>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</output>
+		</operation>
+		<operation name="getRowClassDescriptor">
+			<soap:operation soapAction="getRowClassDescriptor"/>
+			<input>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</input>
+			<output>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</output>
+		</operation>
+		<operation name="getServiceDescriptor">
+			<soap:operation soapAction="getServiceDescriptor"/>
+			<input>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</input>
+			<output>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</output>
+		</operation>
+		<operation name="getServiceNames">
+			<soap:operation soapAction="getServiceNames"/>
+			<input>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</input>
+			<output>
+				<soap:body use="literal" namespace="urn:CONS-ANONIMA-SIMIN-BE"/>
+			</output>
+		</operation>
+	</binding>
+	<service name="WSServiziQueryBuilder">
+		<port name="ServiziQueryBuilderSOAPPort" binding="tns:ServiziQueryBuilderSOAPBinding">
+			<soap:address location="https://targetHost/targetPath"/>
+		</port>
+	</service>
+</definitions>

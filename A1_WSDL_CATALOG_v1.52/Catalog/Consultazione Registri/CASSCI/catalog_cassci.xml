@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+    <class name="infoTest">
+        <property name="data" type="date" description="test webservice"/>
+    </class>
+
+    <class name = "Ricorso">
+        <property name = "NRG"/>
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "dataDeposito"/>
+        <property name = "Parti"/>
+        <property name = "Sezione"/>
+        <property name = "Materia"/>
+        <property name = "Autorita"/>
+        <property name = "Localita"/>
+        <property name = "dataUdienza"/>
+        <property name = "tipoUdienza"/>
+    </class>
+
+    <class name="ProvvedimentoImpugnato">
+        <!--<property name = "NRG"/>-->
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "Autorita"/>
+        <property name = "Localita"/>
+        <property name = "Numero"/>
+        <property name = "Data"/>
+        <property name = "Tipo"/>
+    </class>
+
+    <class name="PartiRicorso">
+        <property name = "NRGText" description="numero ricorso"/>
+        <property name = "numeroricorso"/>
+        <property name = "Nominativo" description="nominativo parte"/>
+        <property name="CodiceFiscale" description="codice fiscale parte"/>
+        <property name = "Tipo" description="tipo parte"/>
+        <property name = "Difensore" description="denominativo avvocato"/>
+        <property name="codiceFiscaleDifensore" description="codice fiscale difensore"/>
+    </class>
+
+    <class name="DifensoriRicorso">
+        <property name = "NRGText" description="numero ricorso"/>
+        <property name = "numeroricorso"/>
+        <property name = "Nominativo" description="denominativo avvocato"/>
+        <property name="codiceFiscale" description="codice fiscale difensore" />
+        <property name = "Tipo" description="tipo parte"/>
+        <property name = "Parte" description="nominativo parte"/>
+       	<property name="codiceFiscaleParte" description="codice fiscale parte"/>
+    </class>
+
+    <class name="MemorieRicorso">
+        <!--<property name = "NRG"/>-->
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "dataDeposito"/>
+        <property name = "Note"/>
+    </class>
+
+    <class name="UdienzeRicorso">
+        <!--<property name = "NRG"/>-->
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "Data"/>
+        <property name = "Relatore"/>
+        <property name = "Tipo"/>
+        <property name = "Sezione"/>
+        <property name = "tipoProvvedimento"/>
+        <property name = "statoRicorso"/>
+        <property name = "SentenzaSezionale"/>
+        <property name = "RaccoltaGenerale"/>
+        <property name = "dataPubblicazione"/>
+        <property name = "testo"/>
+        <property name = "idsentenza"/>
+    </class>
+
+    <class name="EsitoRicorso">
+        <!--<property name = "NRG"/>-->
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "Sezione"/>
+        <property name = "Sentenza"/>
+        <property name = "tipoSentenza"/>
+        <property name = "testo"/>
+    </class>
+
+    <class name="Controricorso">
+        <!--<property name = "NRG"/>-->
+        <property name = "NRGText"/>
+        <property name = "numeroricorso"/>
+        <property name = "dataDeposito"/>
+        <property name = "dataNotifica"/>
+        <property name = "tipoDeposito"/>
+        <property name = "tipoAtto"/>
+        <property name = "Parte"/>
+        <property name = "Difensore"/>
+    </class>
+
+    <class name="Motivazione">
+        <property name="motivazione" type="string" description="motivazione mancata consegna telematica"/>
+    </class>
+
+    <class name="NotificaDaRitiro">
+        <property name="idFascicolo" type="string" description="id fascicolo"/>
+        <property name="idUfficio" type="string" description="codice ufficio"/>
+        <property name="anno" type="string" description="anno ruolo fascicolo"/>
+        <property name="numero" type="string" description="numero ruolo fascicolo"/>
+        <property name="numeroanno" type="string" description="numero e anno di ruolo del fascicolo"/>
+        <property name="subprocedimento" type="string" description="numero subprocedimento"/>
+        <property name="descOggettoRito" type="string" description="descrizione oggetto del fascicolo"/>
+        <property name="idInvioMsg" type="string" description="id messaggio telematico"/>
+        <property name="idRicevuta" type="string" description="id ricevuta"/>
+        <property name="descevento" type="string" description="descrizione evento"/>
+        <property name="dataevento" type="date" description="data evento"/>
+        <property name="dataregevento" type="date" description="data registro evento"/>
+
+        <classref ref="Motivazione"/>
+    </class>
+
+    <class name = "Ricorso105">
+        <property name = "nrgtext"/>
+        <property name = "numeroricorso"/>
+        <property name = "dataDeposito"/>
+        <property name = "parti"/>
+        <property name = "numero"/>
+        <property name = "dataEmissione"/>
+        <property name = "tipo"/>
+        <property name = "autorita"/>
+        <property name = "localita"/>
+    </class>
+
+    <class name="DettaglioMittente">
+	<property name="mittente" type="string" descrizione="avvocato mittente del deposito telematico"/>
+	<property name="parteRappresentata" type="string" descrizione="prima parte rappresentata dal mittente del deposito"/>
+	<property name="numeroPartiRappresentate" type="integer" descrizione="numero di parti rappresentate dal mittente del deposito"/>
+    </class>
+    <class name="DettaglioAllegato">
+	<property name="idCat" type="string" description="identificativo del documento" />
+	<property name="nomeFile" type="string" description="nome del file del documento" />
+	<property name="tipoAllegato" type="string" description="tipologia contenuto" />
+    </class>
+    <class name="DepositoInformatico">
+	<property name="idBusta" type="string" description="identificativo del deposito" />
+	<property name="tipoDeposito" type="string" description="tipo di atto principale depositato" />
+	<property name="dataDeposito" type="date" description="data del deposito" />
+	<property name="idAttoPrincipale" type="string" description="identificativo dell'atto principale del deposito" />
+	<classref ref="DettaglioAllegato" />
+	<classref ref="DettaglioMittente" />
+    </class>
+
+    <class name = "Sezioni">
+        <property name = "idparam"/>
+        <property name = "sigla"/>
+        <property name = "descrizione"/>
+    </class>
+    <class name = "Autorita">
+        <property name = "idparam"/>
+        <property name = "sigla"/>
+        <property name = "descrizione"/>
+    </class>
+    <class name = "Localita">
+        <property name = "descrizione"/>
+    </class>
+
+
+</catalog>

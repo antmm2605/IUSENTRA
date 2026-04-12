@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Messaggi{% endblock %}
+{% block pct_modulo %}messaggi{% endblock %}
+{% block title %}Messaggi — Studio Legale PCT{% endblock %}
 {% block page_title %}Messaggi{% endblock %}
 
 {% block content %}
@@ -70,23 +71,30 @@
 
 {# ── Tabella messaggi ── #}
 {% if messaggi %}
-<div class="card shadow-sm">
-  <div class="card-header">
-    <span class="fw-semibold text-muted small">{{ messaggi|length }} messaggi</span>
+<div class="card border-0 shadow-sm" style="border-radius:var(--ds-r-lg, 14px); overflow:hidden;">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-muted small">
+      {{ messaggi|length }} messagg{% if messaggi|length != 1 %}i{% else %}io{% endif %}
+    </span>
+    <select id="page-size-msg" class="form-select form-select-sm" style="width:auto">
+      <option value="25">25 per pagina</option>
+      <option value="50">50 per pagina</option>
+      <option value="0">Tutti</option>
+    </select>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 mob-cards">
-        <thead class="table-light">
+      <table class="table table-hover align-middle mb-0 mob-cards" id="tbl-msg" data-paginate="page-size-msg">
+        <thead class="table-light ds-thead-compact">
           <tr>
-            <th>Data</th><th>Canale</th><th>Destinatario</th>
+            <th class="d-none d-md-table-cell">Data</th><th>Canale</th><th>Destinatario</th>
             <th>Oggetto / Testo</th><th>Stato</th><th></th>
           </tr>
         </thead>
         <tbody>
           {% for m in messaggi %}
           <tr>
-            <td data-label="Data" class="small text-nowrap">{{ m.creato_il[:16].replace('T',' ') }}</td>
+            <td data-label="Data" class="small text-nowrap d-none d-md-table-cell">{{ m.creato_il[:16].replace('T',' ') }}</td>
             <td data-label="Canale">
               {% if m.canale.value == 'EMAIL' %}
                 <span class="badge bg-primary">EMAIL</span>
@@ -121,13 +129,13 @@
               </span>
             </td>
             <td data-label="">
-              <div class="d-flex gap-1">
+              <div class="ds-actions">
                 <a href="{{ url_for('dettaglio_messaggio', id_msg=m.id) }}"
-                   class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                   class="btn btn-sm btn-outline-secondary" title="Dettaglio"><i class="bi bi-eye"></i></a>
                 <form method="post"
                       action="{{ url_for('elimina_messaggio', id_msg=m.id) }}"
                       onsubmit="return confirm('Eliminare il messaggio?')">
-                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" title="Elimina"><i class="bi bi-trash"></i></button>
                 </form>
               </div>
             </td>
@@ -158,4 +166,8 @@
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>initPagination('tbl-msg', 'page-size-msg');</script>
 {% endblock %}

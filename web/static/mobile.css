@@ -103,7 +103,7 @@
     white-space: nowrap;
 }
 
-.ed-status.saving { color: #ffcc00; }
+.ed-status.saving { color: #4a7ab5; }
 .ed-status.saved { color: #90ee90; }
 .ed-status.error { color: #ff9999; }
 
@@ -377,7 +377,7 @@
    ─────────────────────────────────────────────────────────────── */
 .ed-pdf-banner {
     background: linear-gradient(90deg, #fff3cd 0%, #ffe69c 100%);
-    border-bottom: 1px solid #ffc107;
+    border-bottom: 1px solid #4a7ab5;
     padding: 0.75rem 1.25rem;
     display: flex;
     align-items: center;

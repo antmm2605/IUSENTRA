@@ -425,9 +425,9 @@
 
   /* FAB scroll-hide: transizione gestita da mobile-gestures.js via style inline */
   .mob-fab, #pct-ai-fab {
-    transition: transform .28s cubic-bezier(.4,0,.2,1),
-                opacity   .28s ease,
-                box-shadow .2s ease !important;
+    transition: transform .22s cubic-bezier(.4,0,.2,1),
+                opacity   .22s ease,
+                box-shadow .18s ease !important;
   }
 
   /* FAB extended (icon + testo) */
@@ -871,6 +871,160 @@
     touch-action: manipulation;  /* consente tap e scroll, blocca solo zoom pinch */
     cursor: grab;
   }
+}
+
+/* ================================================================
+   TABLET (769px – 991.98px) — Estensione fix moblie al tablet
+   Applichiamo gli stessi miglioramenti UX su tablet portrait/landscape
+   ================================================================ */
+
+/* ---- Input/Select: previeni zoom iOS su tablet ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  .form-control,
+  .form-select {
+    font-size: 16px !important;
+    min-height: 44px;
+    border-radius: var(--mob-r-sm);
+  }
+  .ds-search-input { font-size: 16px !important; min-height: 44px; }
+}
+
+/* ---- Touch target minimi su tablet ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  .btn, button, [role="button"], a.btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .btn.btn-sm {
+    min-height: 38px;  /* leggermente più piccolo ma comunque accessibile */
+  }
+  .dropdown-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* ---- Modali su tablet: margini corretti ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  .modal-dialog:not(.modal-fullscreen) {
+    margin-top: calc(var(--mob-topbar-h) + 1rem) !important;
+    margin-bottom: calc(var(--mob-botnav-h) + 1rem) !important;
+  }
+  .modal-dialog.modal-lg,
+  .modal-dialog.modal-xl {
+    max-width: calc(100vw - 2rem);
+  }
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - var(--mob-topbar-h) - var(--mob-botnav-h) - 2rem);
+    overflow: hidden;
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ---- Card e layout su tablet ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  .card {
+    border-radius: var(--mob-r) !important;
+    box-shadow: var(--mob-shadow) !important;
+  }
+  .card-body {
+    padding: 1.25rem !important;
+  }
+  /* Accordion pill adattato per tablet */
+  .accordion-button {
+    min-height: 52px;
+  }
+  /* Search bar tablet: full-width, sempre wrap */
+  .ds-search-bar {
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+  .ds-search-bar .ds-search-input { flex: 1 1 100%; }
+  .ds-search-bar .form-select {
+    flex: 1 1 calc(50% - .25rem);
+    max-width: 100% !important;
+    min-width: 0;
+  }
+  .ds-search-bar .ds-btn { flex: 1 1 calc(50% - .25rem); justify-content: center; }
+}
+
+/* ---- Col-md senza col-12 su XS: fallback automatico ---- */
+/* Su schermi <576px le colonne col-md-* diventano full-width senza dichiarazione esplicita.
+   Bootstrap 5 lo gestisce correttamente — questo blocco aggiunge protezione
+   per casi in cui il col-md manca di una clausola col-12 esplicita. */
+@media (max-width: 575.98px) {
+  .col-md-1, .col-md-2, .col-md-3, .col-md-4,
+  .col-md-5, .col-md-6, .col-md-7, .col-md-8,
+  .col-md-9, .col-md-10, .col-md-11 {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}
+
+/* ---- Touch target button.btn-sm su mobile/tablet ---- */
+@media (max-width: 991.98px) {
+  .btn.btn-sm {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Pulsanti dentro table actions: non stringere sotto al tap minimum */
+  .table .btn.btn-sm,
+  .btn-group .btn.btn-sm {
+    min-height: 36px;
+    min-width: 36px;
+  }
+}
+
+/* ---- Dark mode topbar tablet ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  [data-bs-theme="dark"] .topbar {
+    background: linear-gradient(to right, rgba(15,23,42,.97) 60%, rgba(18,27,52,.97) 100%) !important;
+    border-bottom-color: rgba(51,65,85,.6) !important;
+  }
+}
+
+/* ---- Paginazione tablet: mostra anche pagine intermedie ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  /* Su tablet è OK mostrare tutti i link di pagina */
+  .pagination .page-item { display: flex !important; }
+  .page-link {
+    min-width: 42px;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ---- Empty state tablet: dimensioni medie ---- */
+@media (min-width: 769px) and (max-width: 991.98px) {
+  .ds-empty { padding: 3rem 2rem; }
+  .ds-empty-icon { font-size: 3rem; }
 }
 
 /* ================================================================

@@ -1,0 +1,118 @@
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://www.giustizia.it/serviziTelematici/serviziCuratore" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="ServiziCuratoreBeanService" targetNamespace="http://www.giustizia.it/serviziTelematici/serviziCuratore">
+    <types>
+        <xs:schema xmlns:tns="http://www.giustizia.it/serviziTelematici/serviziCuratore" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.giustizia.it/serviziTelematici/serviziCuratore" version="1.0">
+            <xs:element name="DuplicateException" type="tns:DuplicateException"/>
+            <xs:element name="ParametroInvalidoException" type="tns:ParametroInvalidoException"/>
+            <xs:element name="generaCodice" type="tns:generaCodice"/>
+            <xs:element name="generaCodiceResponse" type="tns:generaCodiceResponse"/>
+            <xs:element name="inviaMail" type="tns:inviaMail"/>
+            <xs:element name="inviaMailResponse" type="tns:inviaMailResponse"/>
+            <xs:complexType name="generaCodice">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="creditore" type="tns:datiCreditore"/>
+                    <xs:element name="forzagenerazione" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="datiCreditore">
+                <xs:sequence>
+                    <xs:element name="nome" type="xs:string"/>
+                    <xs:element name="cognome" type="xs:string"/>
+                    <xs:element name="numeroFasc" type="xs:string"/>
+                    <xs:element name="annoFasc" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataNascita" nillable="true" type="xs:dateTime"/>
+                    <xs:element name="luogoNasciata" type="xs:string"/>
+                    <xs:element minOccurs="0" name="sesso" nillable="true" type="xs:string"/>
+                    <xs:element name="gruppo" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="generaCodiceResponse">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="return" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="DuplicateException">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="codici" type="xs:anyType"/>
+                    <xs:element minOccurs="0" name="message" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="ParametroInvalidoException">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="message" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="inviaMail">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="creditore" type="tns:datiCreditore"/>
+                    <xs:element minOccurs="0" name="codice" type="xs:string"/>
+                    <xs:element minOccurs="0" name="pec" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="inviaMailResponse">
+                <xs:sequence/>
+            </xs:complexType>
+        </xs:schema>
+    </types>
+    <message name="ServiziCuratore_generaCodiceResponse">
+        <part element="tns:generaCodiceResponse" name="generaCodiceResponse"/>
+    </message>
+    <message name="ServiziCuratore_generaCodice">
+        <part element="tns:generaCodice" name="generaCodice"/>
+    </message>
+    <message name="ServiziCuratore_inviaMailResponse">
+        <part element="tns:inviaMailResponse" name="inviaMailResponse"/>
+    </message>
+    <message name="ParametroInvalidoException">
+        <part element="tns:ParametroInvalidoException" name="ParametroInvalidoException"/>
+    </message>
+    <message name="DuplicateException">
+        <part element="tns:DuplicateException" name="DuplicateException"/>
+    </message>
+    <message name="ServiziCuratore_inviaMail">
+        <part element="tns:inviaMail" name="inviaMail"/>
+    </message>
+    <portType name="ServiziCuratore">
+        <operation name="generaCodice" parameterOrder="generaCodice">
+            <input message="tns:ServiziCuratore_generaCodice"/>
+            <output message="tns:ServiziCuratore_generaCodiceResponse"/>
+            <fault message="tns:ParametroInvalidoException" name="ParametroInvalidoException"/>
+            <fault message="tns:DuplicateException" name="DuplicateException"/>
+        </operation>
+        <operation name="inviaMail" parameterOrder="inviaMail">
+            <input message="tns:ServiziCuratore_inviaMail"/>
+            <output message="tns:ServiziCuratore_inviaMailResponse"/>
+        </operation>
+    </portType>
+    <binding name="ServiziCuratoreBinding" type="tns:ServiziCuratore">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="generaCodice">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+            <fault name="ParametroInvalidoException">
+                <soap:fault name="ParametroInvalidoException" use="literal"/>
+            </fault>
+            <fault name="DuplicateException">
+                <soap:fault name="DuplicateException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="inviaMail">
+            <soap:operation soapAction=""/>
+            <input>
+                <soap:body use="literal"/>
+            </input>
+            <output>
+                <soap:body use="literal"/>
+            </output>
+        </operation>
+    </binding>
+    <service name="ServiziCuratoreBeanService">
+        <port binding="tns:ServiziCuratoreBinding" name="ServiziCuratoreSOAPPort">
+            <soap:address location="http://pstdev/servizi/ServiziCuratore"/>
+        </port>
+    </service>
+</definitions>

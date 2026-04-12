@@ -9,7 +9,7 @@
      Blu petrolio (#0e7490)  — accent principale, azioni, link
      Blu/Grigio  (#2563eb)  — informazione
      Verde       (#16a34a)  — conforme, completato, ok
-     Ambra       (#d97706)  — attenzione, in attesa
+     Blu notte   (#1b2a4a)  — attenzione, in attesa
      Rosso       (#dc2626)  — errore, blocco, urgente
      Viola       (#7c3aed)  — area specialistica, strumenti smart
    ================================================================ */
@@ -46,11 +46,18 @@
   --hc-ok-brd:        #bbf7d0;
   --hc-ok-text:       #15803d;
 
-  /* Attenzione — ambra */
-  --hc-warn:          #d97706;
-  --hc-warn-lt:       #fffbeb;
-  --hc-warn-brd:      #fde68a;
-  --hc-warn-text:     #92400e;
+  /* Attenzione — blu notte */
+  --hc-warn:          #1b2a4a;
+  --hc-warn-lt:       #e8edf4;
+  --hc-warn-brd:      #8fa3c4;
+  --hc-warn-text:     #1b2a4a;
+
+  /* Override Bootstrap warning → blu notte */
+  --bs-warning:                 #1b2a4a;
+  --bs-warning-rgb:             27, 42, 74;
+  --bs-warning-text-emphasis:   #0d1523;
+  --bs-warning-bg-subtle:       #e8edf4;
+  --bs-warning-border-subtle:   #8fa3c4;
 
   /* Errore / blocco — rosso */
   --hc-err:           #dc2626;
@@ -285,6 +292,11 @@ body {
   color: #475569 !important;
   border: 1px solid var(--hc-border-dk);
 }
+.badge.bg-light {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid var(--hc-border-dk);
+}
 .badge.bg-dark {
   background-color: #1e293b !important;
   color: #f1f5f9 !important;
@@ -357,6 +369,41 @@ body {
   --bs-btn-active-border-color:var(--hc-teal);
   --bs-btn-focus-shadow-rgb:   14, 116, 144;
 }
+/* btn-warning → blu notte con testo bianco */
+.btn-warning {
+  --bs-btn-bg:                 var(--hc-warn);
+  --bs-btn-border-color:       var(--hc-warn);
+  --bs-btn-color:              #ffffff;
+  --bs-btn-hover-bg:           #142038;
+  --bs-btn-hover-border-color: #142038;
+  --bs-btn-hover-color:        #ffffff;
+  --bs-btn-active-bg:          #0d1523;
+  --bs-btn-active-border-color:#0d1523;
+  --bs-btn-active-color:       #ffffff;
+  --bs-btn-focus-shadow-rgb:   27, 42, 74;
+}
+.btn-outline-warning {
+  --bs-btn-color:              var(--hc-warn);
+  --bs-btn-border-color:       var(--hc-warn);
+  --bs-btn-hover-bg:           var(--hc-warn);
+  --bs-btn-hover-border-color: var(--hc-warn);
+  --bs-btn-hover-color:        #ffffff;
+  --bs-btn-active-bg:          #142038;
+  --bs-btn-active-border-color:#142038;
+  --bs-btn-active-color:       #ffffff;
+  --bs-btn-focus-shadow-rgb:   27, 42, 74;
+}
+/* text-bg-warning: testo bianco su sfondo blu notte */
+.text-bg-warning {
+  background-color: var(--hc-warn) !important;
+  color: #ffffff !important;
+}
+/* text-warning → blu notte */
+.text-warning { color: var(--hc-warn) !important; }
+
+/* bg-warning override */
+.bg-warning { background-color: var(--hc-warn) !important; }
+
 /* Rimuovi hover lift globale */
 .btn { transition: background .14s ease, border-color .14s ease, color .14s ease; }
 
@@ -501,9 +548,9 @@ body {
   --hc-ok-brd:        #166534;
   --hc-ok-text:       #4ade80;
 
-  --hc-warn-lt:       #451a03;
-  --hc-warn-brd:      #92400e;
-  --hc-warn-text:     #fbbf24;
+  --hc-warn-lt:       #0d1523;
+  --hc-warn-brd:      #2a4068;
+  --hc-warn-text:     #93b4e0;
 
   --hc-err-lt:        #450a0a;
   --hc-err-brd:       #7f1d1d;

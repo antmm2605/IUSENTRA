@@ -640,6 +640,14 @@ class ClientSIGITDemo(ClientSIGIT):
             },
             # Esito segreteria (simulato)
             "esitoSegreteria": {
+                "stato":     "ACCETTATO_CANCELLERIA",
+                "codice":    "ACCETTATO",
+                "messaggio": "Atto depositato e iscritto nel registro RGT.",
+                "numeroRGT": numero_rgt or "NUOVO",
+                "annoRGT":   anno_rgt or date.today().year,
+            },
+            "esitoCancelleria": {
+                "stato":     "ACCETTATO_CANCELLERIA",
                 "codice":    "ACCETTATO",
                 "messaggio": "Atto depositato e iscritto nel registro RGT.",
                 "numeroRGT": numero_rgt or "NUOVO",

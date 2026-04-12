@@ -8259,9 +8259,9 @@ read -r -p "Premi Invio per chiudere..." _
                                demo_mode=demo_mode,
                                id_fasc=id_fasc,
                                fascicolo=fascicolo,
-                               official_portal_url="https://sigit.giustiziatributaria.gov.it/Sigit/",
+                               official_portal_url="https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
                                telecontenzioso_url="https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
-                               temporary_access_url="https://sigit.giustiziatributaria.gov.it/Sigit/",
+                               temporary_access_url="https://sigit.giustiziatributaria.gov.it/FascicoloProcessuale/login.jsp",
                                commissione_sel="",
                                commissione_sel_nome="",
                                numero_rgt=None,
@@ -13382,7 +13382,7 @@ read -r -p "Premi Invio per chiudere..." _
             ricevuta_accettazione = _json.dumps(risposta.get("ricevutaAccettazione") or {}, ensure_ascii=False)
             esito_controlli = risposta.get("esitoControlli") or {}
             ricevuta_controlli = _json.dumps(esito_controlli, ensure_ascii=False)
-            esito_segreteria = risposta.get("esitoSegreteria") or {}
+            esito_segreteria = risposta.get("esitoCancelleria") or risposta.get("esitoSegreteria") or {}
             ricevuta_cancelleria = _json.dumps(esito_segreteria, ensure_ascii=False)
             tutti_ids = [atto_id] + [aid for aid in allegati_ids if aid != atto_id]
             atto_doc = next((d for d in fasc.documenti if d.id == atto_id), None)

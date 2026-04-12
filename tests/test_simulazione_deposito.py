@@ -29,6 +29,7 @@ from pct.busta import BustaTelematica, DatiBusta, Allegato
 from pct.fascicoli import EsitoDepositoPCT
 from pct.pdp import ClientPDPDemo, crea_client_pdp
 from pct.pat import ClientPATDemo, crea_client_pat
+from pct.sigit import ClientSIGITDemo, crea_client_sigit
 
 
 # ================================================================== Fixtures
@@ -602,6 +603,100 @@ class TestPATDeposito:
         )
 
 
+# ================================================================== PTT â€” Simulazione deposito tributario
+
+class TestPTTDeposito:
+    """Simulazione completa deposito atti tributari via PTT / SIGIT."""
+
+    def test_client_demo_disponibile(self):
+        client = crea_client_sigit(demo=True)
+        assert isinstance(client, ClientSIGITDemo)
+
+    def test_deposita_atto_risposta_struttura(self, tmp_atto_firmato):
+        client = ClientSIGITDemo()
+        risposta = client.deposita_atto(
+            codice_commissione="CPT-MI",
+            tipo_atto="RICORSO",
+            atto_path=tmp_atto_firmato,
+            numero_rgt="2451",
+            anno_rgt=2024,
+            oggetto="Impugnazione avviso di accertamento IVA",
+        )
+
+        assert risposta.get("codiceEsito") == "0"
+        assert risposta.get("idDeposito")
+        assert risposta.get("dataDeposito")
+        assert risposta.get("stato") == "INVIATO"
+
+    def test_deposita_atto_id_prefisso_ptt(self, tmp_atto_firmato):
+        client = ClientSIGITDemo()
+        risposta = client.deposita_atto(
+            codice_commissione="CPT-MI",
+            tipo_atto="RICORSO",
+            atto_path=tmp_atto_firmato,
+        )
+        assert risposta["idDeposito"].startswith("PTT-")
+
+    def test_deposita_atto_ricevuta_accettazione(self, tmp_atto_firmato):
+        client = ClientSIGITDemo()
+        risposta = client.deposita_atto(
+            codice_commissione="CPT-MI",
+            tipo_atto="RICORSO",
+            atto_path=tmp_atto_firmato,
+            numero_rgt="2451",
+            anno_rgt=2024,
+        )
+
+        acc = risposta.get("ricevutaAccettazione", {})
+        assert acc.get("mittente")
+        assert acc.get("oggetto")
+        assert acc.get("corpo")
+        assert acc.get("messageId")
+        assert "giustiziatributaria.gov.it" in acc["mittente"].lower()
+
+    def test_deposita_atto_controlli_automatici(self, tmp_atto_firmato):
+        client = ClientSIGITDemo()
+        risposta = client.deposita_atto(
+            codice_commissione="CPT-MI",
+            tipo_atto="RICORSO",
+            atto_path=tmp_atto_firmato,
+        )
+
+        ctrl = risposta.get("esitoControlli", {})
+        assert ctrl.get("codice") in ("OK", "WARN", "ERROR")
+        assert isinstance(ctrl.get("messaggi"), list)
+        assert len(ctrl["messaggi"]) > 0
+        assert ctrl["codice"] == "OK"
+        check_texts = " ".join(ctrl["messaggi"]).lower()
+        assert "firma" in check_texts
+        assert "commissione" in check_texts or "ptt" in check_texts
+
+    def test_deposita_atto_esito_cancelleria(self, tmp_atto_firmato):
+        client = ClientSIGITDemo()
+        risposta = client.deposita_atto(
+            codice_commissione="CPT-MI",
+            tipo_atto="RICORSO",
+            atto_path=tmp_atto_firmato,
+            numero_rgt="2451",
+            anno_rgt=2024,
+        )
+
+        canc = risposta.get("esitoCancelleria", {})
+        assert canc.get("stato") == "ACCETTATO_CANCELLERIA"
+        assert canc.get("codice") == "ACCETTATO"
+        assert canc.get("numeroRGT")
+
+    def test_deposita_atto_file_inesistente(self):
+        client = ClientSIGITDemo()
+        risposta = client.deposita_atto(
+            codice_commissione="CPT-MI",
+            tipo_atto="RICORSO",
+            atto_path="/tmp/file_che_non_esiste.pdf.p7m",
+        )
+        assert risposta.get("codiceEsito") == "E_FILE"
+        assert risposta.get("stato") == "ERRORE"
+
+
 # ================================================================== Coerenza tra portali
 
 class TestCoerenzaPortali:
@@ -610,21 +705,24 @@ class TestCoerenzaPortali:
     CAMPI_OBBLIGATORI = ["codiceEsito", "idDeposito", "dataDeposito", "stato",
                          "ricevutaAccettazione", "esitoControlli", "esitoCancelleria"]
 
-    def test_pdp_pat_stessi_campi_risposta(self, tmp_atto_firmato):
-        """PDP e PAT devono restituire gli stessi campi nella risposta di deposito."""
+    def test_pdp_pat_ptt_stessi_campi_risposta(self, tmp_atto_firmato):
+        """PDP, PAT e PTT devono restituire gli stessi campi nella risposta di deposito."""
         pdp = ClientPDPDemo().deposita_atto("0580030", "MEMORIA", tmp_atto_firmato)
         pat = ClientPATDemo().deposita_atto("T0001",   "MEMORIA", tmp_atto_firmato)
+        ptt = ClientSIGITDemo().deposita_atto("CPT-MI", "RICORSO", tmp_atto_firmato)
 
         for campo in self.CAMPI_OBBLIGATORI:
             assert campo in pdp, f"PDP: campo '{campo}' mancante nella risposta"
             assert campo in pat, f"PAT: campo '{campo}' mancante nella risposta"
+            assert campo in ptt, f"PTT: campo '{campo}' mancante nella risposta"
 
-    def test_pdp_pat_stesso_schema_ricevuta(self, tmp_atto_firmato):
-        """La struttura della ricevuta di accettazione deve essere uguale per PDP e PAT."""
+    def test_pdp_pat_ptt_stesso_schema_ricevuta(self, tmp_atto_firmato):
+        """La struttura della ricevuta di accettazione deve essere uguale per PDP, PAT e PTT."""
         pdp = ClientPDPDemo().deposita_atto("0580030", "MEMORIA", tmp_atto_firmato)
         pat = ClientPATDemo().deposita_atto("T0001",   "MEMORIA", tmp_atto_firmato)
+        ptt = ClientSIGITDemo().deposita_atto("CPT-MI", "RICORSO", tmp_atto_firmato)
 
-        for portale, risposta in [("PDP", pdp), ("PAT", pat)]:
+        for portale, risposta in [("PDP", pdp), ("PAT", pat), ("PTT", ptt)]:
             acc = risposta.get("ricevutaAccettazione", {})
             for campo in ["mittente", "oggetto", "corpo", "messageId"]:
                 assert campo in acc, f"{portale}: campo '{campo}' mancante in ricevutaAccettazione"
@@ -671,3 +769,11 @@ class TestCoerenzaPortali:
         campi = {f.name for f in dataclasses.fields(DocumentoPAT)}
         assert "id_deposito" in campi, "DocumentoPAT deve avere il campo id_deposito"
         assert "tipo_atto"   in campi, "DocumentoPAT deve avere il campo tipo_atto"
+
+    def test_documento_sigit_ha_campi_busta(self):
+        """DocumentoSIGIT deve avere id_deposito e tipo_atto (allineato a DocumentoPolisWeb)."""
+        from pct.sigit import DocumentoSIGIT
+        import dataclasses
+        campi = {f.name for f in dataclasses.fields(DocumentoSIGIT)}
+        assert "id_deposito" in campi, "DocumentoSIGIT deve avere il campo id_deposito"
+        assert "tipo_atto"   in campi, "DocumentoSIGIT deve avere il campo tipo_atto"

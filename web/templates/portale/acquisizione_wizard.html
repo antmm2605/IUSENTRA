@@ -104,7 +104,7 @@
       </div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      <a href="https://sigit.giustiziatributaria.gov.it/Sigit/" target="_blank" rel="noopener" class="btn btn-outline-warning btn-sm">
+      <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener" class="btn btn-outline-warning btn-sm">
         <i class="bi bi-box-arrow-up-right me-1"></i>Apri PTT / SIGIT
       </a>
       <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
@@ -288,6 +288,7 @@ let AW_STATUS_REFRESH_PROMISE = null;
 let AW_CERT_SELECT_PROMISE = null;
 let AW_PST_SESSION_PROMISE = null;
 let AW_ACCESS_BUSY = false;
+let AW_ACTIONS_BOUND = false;
 const AW_STEPS = [
   {id:1,t:'Accesso',s:'Sorgente e connessione'},
   {id:2,t:'Ricerca',s:'Trova il fascicolo'},
@@ -526,7 +527,7 @@ function awOfficialPortalUrl() {
   const urls = {
     pdp: 'https://pst.giustizia.it/PST/it/services.page',
     pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
-    ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/',
+    ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/index.do',
   };
   return urls[AW_BOOT.portale] || '';
 }
@@ -1991,8 +1992,8 @@ async function awStartImport() {
       </div>
       ${downloadSummary && !usedBrowserDownloads ? `<div class="small mt-1">Modalita documenti PST: ${awEscape(summary.modalita_documento_portale === 'copia' ? 'copia portale con annotazioni ministeriali' : 'originale firmato del repository')}</div>` : ''}
       ${downloadSummary ? `<div class="small mt-1">${awEscape(downloadSummary.documenti_scaricati || 0)} ${usedBrowserDownloads ? 'file locali raccolti dai download del browser ufficiale' : 'allegati scaricati dal portale e ripartiti nelle sezioni del fascicolo'}${failureCount ? ` · <span class="text-warning">${awEscape(failureCount)} download da verificare</span>` : ''}.</div>` : ''}
-      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? 'Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell\\'Avvocato, senza lettura live diretta da SIGA.' : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : 'Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L\\'opzione dell\\'albero tecnico salva solo una copia tecnica separata, non cambia questa vista.'}</div>` : ''}
-      ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? 'Archivio tecnico dell\\'import PAT archiviato.' : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
+      ${downloadSummary ? `<div class="small mt-1 text-muted">${usedBrowserDownloads ? (AW_BOOT.portale === 'pat' ? "Nel fascicolo PAT interno trovi catalogo ufficiale, ricevute e file gia scaricati dal Portale dell'Avvocato, senza lettura live diretta da SIGA." : 'Nel fascicolo trovi il catalogo ufficiale del portale e i file gia scaricati nel browser, senza nuovi download automatici dal gestionale.') : "Nel fascicolo vedrai sempre il catalogo ufficiale dei documenti del portale. L'opzione dell'albero tecnico salva solo una copia tecnica separata, non cambia questa vista."}</div>` : ''}
+      ${summary.albero_originale_salvato ? `<div class="small mt-1">${AW_BOOT.portale === 'pat' ? "Archivio tecnico dell'import PAT archiviato." : 'Albero tecnico originale del portale archiviato.'}</div>` : ''}
       <div class="small mt-1 text-muted">Import log ${awEscape(AW_STATE.importResult?.import_log_id || '')}</div>
     </div>`;
   actions.innerHTML = [
@@ -2049,6 +2050,35 @@ function awRenderSidebar() {
   } else {
     note.textContent = 'Completa selezione, mappatura e verifica: il sistema guidera importazione e sincronizzazione futura.';
   }
+}
+function awRenderInitFallback(err) {
+  const message = awEscape(String(err?.message || err || 'Errore di inizializzazione del wizard.'));
+  const grid = document.getElementById('awAccessGrid');
+  const note = document.getElementById('awAccessNote');
+  if (grid && !grid.innerHTML.trim()) {
+    grid.innerHTML = `
+      <div class="col-md-6 col-xl-3">
+        <div class="aw-box h-100">
+          <div class="small text-muted text-uppercase fw-semibold mb-2">Portale e sorgente</div>
+          <div class="fw-semibold mb-1">${awEscape(AW_BOOT.spec.label)}</div>
+          <div class="small text-muted">Wizard guidato disponibile.</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-xl-3">
+        <div class="aw-box h-100">
+          <div class="small text-muted text-uppercase fw-semibold mb-2">Stato connessione</div>
+          <div class="fw-semibold mb-1">Da riallineare</div>
+          <div class="small text-muted">Il wizard resta comunque utilizzabile.</div>
+        </div>
+      </div>`;
+  }
+  if (note) {
+    note.innerHTML = `
+      <div class="text-warning-emphasis fw-semibold mb-1"><i class="bi bi-exclamation-triangle me-1"></i>Inizializzazione parziale del wizard</div>
+      <div class="small">Il browser ha intercettato un errore lato interfaccia: ${message}</div>
+      <div class="small mt-1">Puoi comunque usare <strong>Continua</strong>, <strong>Cerca</strong> e i passaggi successivi; HACS ha attivato il fallback operativo.</div>`;
+  }
+  console.error('Errore inizializzazione acquisizione guidata', err);
 }
 function awBindQuickFilters() {
   document.querySelectorAll('.awQuick').forEach(btn => {
@@ -2112,6 +2142,8 @@ function awInitOfficeAutocomplete() {
   });
 }
 function awBindActions() {
+  if (AW_ACTIONS_BOUND) return;
+  AW_ACTIONS_BOUND = true;
 document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);
@@ -2167,23 +2199,29 @@ document.getElementById('awTest').addEventListener('click', async () => {
   document.getElementById('awImport').addEventListener('click', awStartImport);
 }
 document.addEventListener('DOMContentLoaded', async () => {
-  awLoadPstCert();
-  awLoadPstSession();
-  awRenderSteps();
-  awRenderAccess();
-  awRenderResults();
-  awRenderPreview();
-  awPostProcessPreviewDom();
-  awRenderSelectionOptions();
-  awRenderAnalysis();
-  awRenderSidebar();
-  awBindQuickFilters();
-  awInitOfficeAutocomplete();
+  awBindActions();
+  try {
+    awLoadPstCert();
+    awLoadPstSession();
+    awRenderSteps();
+    awRenderAccess();
+    awRenderResults();
+    awRenderPreview();
+    awPostProcessPreviewDom();
+    awRenderSelectionOptions();
+    awRenderAnalysis();
+    awRenderSidebar();
+    awBindQuickFilters();
+    awInitOfficeAutocomplete();
+  } catch (err) {
+    awRenderInitFallback(err);
+  }
   awSetAccessBusy(true);
   try {
     await awRefreshStatus({ force: true, probeSigner: true, light: true });
+  } catch (err) {
+    awRenderInitFallback(err);
   } finally {
-    awBindActions();
     awSetAccessBusy(false);
   }
 });

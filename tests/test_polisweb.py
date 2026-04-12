@@ -4,9 +4,15 @@ import base64
 import io
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -2951,11 +2957,72 @@ def test_route_home_portali_mostra_link_acquisizione_guidata(tmp_path):
     assert "Consulta fascicolo sul portale" in pat_body
     assert "Fascicolo PAT interno" in pat_body
     assert "Cerca nel SIGA" not in pat_body
+    assert "portal-hub-pane" in pat_body
+    assert "portal-hub-note" in pat_body
     assert "Apri PTT / SIGIT" in ptt_body
     assert "Apri Telecontenzioso" in ptt_body
     assert "Accesso temporaneo al fascicolo" in ptt_body
     assert "Fascicolo Tributario Interno" in ptt_body
     assert "Cerca nel SIGIT" not in ptt_body
+    assert "portal-hub-pane" in ptt_body
+    assert "portal-hub-note" in ptt_body
+    assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do"' in ptt_body
+    assert 'href="https://sigit.giustiziatributaria.gov.it/FascicoloProcessuale/login.jsp"' in ptt_body
+    assert 'href="https://sigit.giustiziatributaria.gov.it/Sigit/"' not in ptt_body
+
+
+def test_portale_acquisizione_wizard_renderizza_javascript_valido(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    if shutil.which("node") is None:
+        pytest.skip("node non disponibile nel runner di test")
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        for route in (
+            "/portali/pdp/acquisizione",
+            "/portali/pat/acquisizione",
+            "/portali/ptt/acquisizione",
+        ):
+            response = client.get(route, follow_redirects=True)
+            body = response.data.decode("utf-8")
+            match = re.search(r"<script>\s*(const AW_BOOT = .*?)</script>", body, re.S)
+            assert match, f"Script wizard non trovato per {route}"
+            with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as handle:
+                handle.write(match.group(1))
+                script_path = handle.name
+            try:
+                result = subprocess.run(
+                    ["node", "--check", script_path],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                assert result.returncode == 0, f"JavaScript wizard non valido per {route}: {result.stderr}"
+            finally:
+                try:
+                    os.unlink(script_path)
+                except OSError:
+                    pass
 
 
 def test_route_pat_ricerca_reindirizza_al_wizard_guidato(tmp_path):

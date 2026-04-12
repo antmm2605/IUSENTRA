@@ -4,6 +4,13 @@
 
 {% from 'includes/_fascicolo_banner.html' import banner_fascicolo %}
 {% block content %}
+<style>
+  .portal-hub-pane{display:flex;flex-direction:column;height:100%}
+  .portal-hub-copy{flex:1 1 auto}
+  .portal-hub-actions{display:grid;gap:.75rem;margin-top:auto}
+  .portal-hub-note{display:flex;align-items:flex-start;min-height:4.25rem;padding:.85rem 1rem;border:1px solid var(--bs-warning-border-subtle);border-radius:1rem;background:rgba(var(--bs-warning-rgb),.08)}
+  @media (max-width:767.98px){.portal-hub-actions .btn{width:100%}}
+</style>
 
 {{ banner_fascicolo(portale_col='warning', portale_label='PTT Tributario') }}
 
@@ -93,12 +100,12 @@
       <div class="card-body">
         <div class="row g-3">
           <div class="col-12 col-md-6">
-            <div class="border rounded-4 p-3 h-100">
+            <div class="border rounded-4 p-3 portal-hub-pane">
               <div class="fw-semibold mb-2">Portale ufficiale</div>
-              <div class="small text-muted mb-3">
+              <div class="small text-muted mb-3 portal-hub-copy">
                 Consultazione fascicolo, Telecontenzioso, servizi riservati e download del fascicolo processuale si completano nel portale istituzionale autenticato.
               </div>
-              <div class="d-grid gap-2">
+              <div class="portal-hub-actions">
                 <a class="btn btn-warning" href="{{ official_portal_url }}" target="_blank" rel="noopener">
                   <i class="bi bi-box-arrow-up-right me-1"></i>Apri PTT / SIGIT
                 </a>
@@ -108,19 +115,19 @@
                 <a class="btn btn-outline-secondary" href="{{ temporary_access_url }}" target="_blank" rel="noopener">
                   <i class="bi bi-hourglass-split me-1"></i>Accesso temporaneo al fascicolo
                 </a>
-                <a class="btn btn-outline-secondary" href="{{ official_portal_url }}" target="_blank" rel="noopener">
+                <a class="btn btn-outline-secondary" href="{{ temporary_access_url }}" target="_blank" rel="noopener">
                   <i class="bi bi-folder-symlink me-1"></i>Consulta fascicolo sul portale
                 </a>
               </div>
             </div>
           </div>
           <div class="col-12 col-md-6">
-            <div class="border rounded-4 p-3 h-100">
+            <div class="border rounded-4 p-3 portal-hub-pane">
               <div class="fw-semibold mb-2">Gestione in HACS</div>
-              <div class="small text-muted mb-3">
+              <div class="small text-muted mb-3 portal-hub-copy">
                 HACS prepara il fascicolo tributario interno, evita duplicati e integra atti, ricevute, provvedimenti ed esiti gia scaricati dal portale ufficiale.
               </div>
-              <div class="d-grid gap-2">
+              <div class="portal-hub-actions">
                 <a class="btn btn-outline-warning" href="{{ url_for('portale_acquisizione_wizard', portale='ptt', id_fasc=fascicolo.id if fascicolo else None) }}">
                   <i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata
                 </a>
@@ -132,9 +139,9 @@
                   <i class="bi bi-clock-history me-1"></i>Apri avanzamento pratica
                 </a>
                 {% else %}
-                <span class="badge text-bg-light border text-start p-2">
+                <div class="portal-hub-note small text-muted">
                   Collega o crea prima una pratica interna per archiviare fascicolo, ricevute, provvedimenti ed esiti tributari.
-                </span>
+                </div>
                 {% endif %}
               </div>
             </div>

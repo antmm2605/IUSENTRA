@@ -303,13 +303,10 @@ body {
   display: flex;
   align-items: center;
   gap: .4rem;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  overflow: visible;
+  padding-top: 4px;
   padding-bottom: 2px;
 }
-.topbar-actions::-webkit-scrollbar { height: 3px; }
-.topbar-actions::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
 /* Bottoni nella topbar — stile raffinato */
 .topbar-actions .btn {

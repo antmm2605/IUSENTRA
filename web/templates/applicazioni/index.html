@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Applicazioni{% endblock %}
+{% block pct_modulo %}applicazioni{% endblock %}
+
+{% block content %}
+<style>
+  .apps-shell { display:flex; flex-direction:column; gap:1.25rem; }
+  .apps-card,
+  .apps-stat,
+  .apps-item-card,
+  .apps-news-card,
+  .apps-link-card,
+  .apps-section-card,
+  .apps-filter-card { border:0; border-radius:22px; box-shadow:0 12px 30px rgba(20,34,52,.08); background:#fff; }
+  .apps-hero { background:linear-gradient(135deg,#f7fbff 0%,#ffffff 55%,#eef5ff 100%); border-radius:28px; padding:1.5rem; box-shadow:0 18px 42px rgba(16,35,61,.08); display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; align-items:start; }
+  .apps-hero-badges { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:.9rem; }
+  .apps-hero-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.75rem; }
+  .apps-stat { padding:1rem 1.1rem; height:100%; }
+  .apps-stat-label { color:var(--bs-secondary-color); font-size:.84rem; margin-bottom:.3rem; }
+  .apps-stat-value { font-size:1.8rem; line-height:1; font-weight:700; color:#10233d; }
+  .apps-stat-sub { margin-top:.45rem; font-size:.82rem; color:var(--bs-secondary-color); }
+  .apps-link-card .card-body,
+  .apps-news-card .card-body,
+  .apps-section-card .card-body,
+  .apps-filter-card .card-body { padding:1.15rem 1.2rem; }
+  .apps-link-icon { width:48px; height:48px; border-radius:16px; display:inline-flex; align-items:center; justify-content:center; font-size:1.15rem; color:#10233d; background:rgba(13,110,253,.1); }
+  .apps-link-card[data-accent="danger"] .apps-link-icon { background:rgba(220,53,69,.1); color:#b42318; }
+  .apps-link-card[data-accent="success"] .apps-link-icon { background:rgba(25,135,84,.1); color:#157347; }
+  .apps-link-card[data-accent="warning"] .apps-link-icon { background:rgba(255,193,7,.16); color:#9a6700; }
+  .apps-link-card[data-accent="dark"] .apps-link-icon { background:rgba(33,37,41,.1); color:#212529; }
+  .apps-news-item { padding:.85rem 0; border-top:1px solid rgba(16,35,61,.08); }
+  .apps-news-item:first-child { border-top:0; padding-top:0; }
+  .apps-news-meta { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin-bottom:.25rem; }
+  .apps-section-head { display:flex; gap:1rem; align-items:flex-start; justify-content:space-between; margin-bottom:1rem; }
+  .apps-section-title { display:flex; gap:.8rem; align-items:flex-start; }
+  .apps-section-icon { width:48px; height:48px; border-radius:16px; display:inline-flex; align-items:center; justify-content:center; background:rgba(13,110,253,.09); color:#0d6efd; font-size:1.1rem; }
+  .apps-item-card { height:100%; }
+  .apps-item-card .card-body { display:flex; flex-direction:column; gap:.85rem; padding:1rem 1rem 1.05rem; }
+  .apps-item-head { display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem; }
+  .apps-item-title { font-weight:700; color:#10233d; line-height:1.25; }
+  .apps-item-summary { color:var(--bs-secondary-color); font-size:.92rem; min-height:3.6rem; }
+  .apps-item-foot { display:flex; gap:.6rem; align-items:center; justify-content:space-between; margin-top:auto; }
+  .apps-item-foot .btn { white-space:nowrap; }
+  .apps-empty { padding:2rem 1rem; text-align:center; color:var(--bs-secondary-color); }
+  .apps-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .7rem; border-radius:999px; background:rgba(13,110,253,.08); color:#0d6efd; font-size:.78rem; font-weight:700; letter-spacing:.02em; }
+
+  @media (max-width: 991.98px) {
+    .apps-hero { grid-template-columns:1fr; }
+    .apps-hero-actions { justify-content:flex-start; }
+    .apps-section-head { flex-direction:column; }
+  }
+
+  @media (max-width: 575.98px) {
+    .apps-hero { padding:1.2rem; border-radius:22px; }
+    .apps-item-summary { min-height:auto; }
+    .apps-item-foot { flex-direction:column; align-items:stretch; }
+    .apps-item-foot .btn { width:100%; }
+  }
+</style>
+
+<div class="apps-shell">
+  <div class="apps-hero">
+    <div>
+      <div class="ds-ph-icon mb-3"><i class="bi bi-grid-1x2"></i></div>
+      <h1 class="h2 mb-2">Applicazioni di Studio</h1>
+      <p class="text-muted mb-0">
+        Un unico catalogo ordinato per aree operative: strumenti, rassegna, atti, telematico, fatturazione,
+        danni, penale, successioni e utilita di lavoro quotidiano.
+      </p>
+      <div class="apps-hero-badges">
+        <span class="apps-chip"><i class="bi bi-check2-circle"></i>{{ stats.totale }} voci catalogate</span>
+        <span class="apps-chip"><i class="bi bi-layout-text-window"></i>{{ stats.sezioni_attive }} aree attive</span>
+        <span class="apps-chip"><i class="bi bi-phone"></i>Desktop, tablet e mobile</span>
+      </div>
+    </div>
+    <div class="apps-hero-actions">
+      <a href="{{ url_for('strumenti_legali.index') }}" class="btn btn-outline-primary"><i class="bi bi-grid me-2"></i>Strumenti Legali</a>
+      <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary"><i class="bi bi-newspaper me-2"></i>Rassegna e fonti</a>
+      <a href="{{ url_for('telematico_dashboard') }}" class="btn btn-primary"><i class="bi bi-send-check me-2"></i>Cabina Telematica</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-6 col-xl-3">
+      <div class="apps-stat">
+        <div class="apps-stat-label">Totale voci</div>
+        <div class="apps-stat-value">{{ stats.totale }}</div>
+        <div class="apps-stat-sub">Catalogo completo organizzato per aree.</div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="apps-stat">
+        <div class="apps-stat-label">Operative</div>
+        <div class="apps-stat-value text-success">{{ stats.per_stato.operativa }}</div>
+        <div class="apps-stat-sub">Moduli con accesso diretto gia presenti in HACS.</div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="apps-stat">
+        <div class="apps-stat-label">Workflow guidati</div>
+        <div class="apps-stat-value text-primary">{{ stats.per_stato.guidata }}</div>
+        <div class="apps-stat-sub">Aree collegate a moduli o percorsi assistiti.</div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="apps-stat">
+        <div class="apps-stat-label">Risultato corrente</div>
+        <div class="apps-stat-value text-secondary">{{ filtered_stats.totale }}</div>
+        <div class="apps-stat-sub">Voci mostrate con i filtri attuali.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="apps-filter-card">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-lg-6">
+          <label class="form-label fw-semibold">Ricerca applicazioni</label>
+          <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Cerca per titolo, area o funzione">
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <label class="form-label fw-semibold">Area</label>
+          <select name="sezione" class="form-select">
+            <option value="">Tutte le aree</option>
+            {% for sezione in sezioni %}
+            <option value="{{ sezione.id }}" {{ 'selected' if sezione_sel == sezione.id }}>{{ sezione.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <label class="form-label fw-semibold">Stato</label>
+          <select name="stato" class="form-select">
+            <option value="">Tutti gli stati</option>
+            <option value="operativa" {{ 'selected' if stato_sel == 'operativa' }}>Operativa</option>
+            <option value="guidata" {{ 'selected' if stato_sel == 'guidata' }}>Workflow guidato</option>
+            <option value="catalogata" {{ 'selected' if stato_sel == 'catalogata' }}>Catalogata</option>
+          </select>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2">
+          <button class="btn btn-primary"><i class="bi bi-search me-2"></i>Filtra catalogo</button>
+          <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-2"></i>Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    {% for link in quick_links %}
+    <div class="col-md-6 col-xl-4">
+      <div class="apps-link-card h-100" data-accent="{{ link.accent }}">
+        <div class="card-body d-flex flex-column gap-3">
+          <div class="d-flex align-items-start gap-3">
+            <div class="apps-link-icon"><i class="bi {{ link.icon }}"></i></div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ link.title }}</div>
+              <div class="small text-muted">{{ link.text }}</div>
+            </div>
+          </div>
+          <div class="mt-auto">
+            <a href="{{ link.url }}" class="btn btn-outline-primary btn-sm">Apri area</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-6">
+      <div class="apps-news-card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <div class="fw-semibold"><i class="bi bi-journal-text me-2 text-danger"></i>Notizie Giuridiche</div>
+            <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-sm btn-outline-secondary">Apri rassegna</a>
+          </div>
+          {% for item in rassegna.giuridiche %}
+          <div class="apps-news-item">
+            <div class="apps-news-meta">
+              <span class="badge text-bg-light">{{ item.subtitle }}</span>
+              {% if item.date_label %}<span class="small text-muted">{{ item.date_label }}</span>{% endif %}
+            </div>
+            <div class="fw-semibold">{{ item.title }}</div>
+            <div class="small text-muted">{{ item.summary }}</div>
+            {% if item.url %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener" class="small text-decoration-none">Apri fonte ufficiale</a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-6">
+      <div class="apps-news-card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <div class="fw-semibold"><i class="bi bi-people me-2 text-primary"></i>Notizie Consumatori</div>
+            <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-sm btn-outline-secondary">Apri monitor</a>
+          </div>
+          {% for item in rassegna.consumatori %}
+          <div class="apps-news-item">
+            <div class="apps-news-meta">
+              <span class="badge text-bg-light">{{ item.subtitle }}</span>
+              {% if item.date_label %}<span class="small text-muted">{{ item.date_label }}</span>{% endif %}
+            </div>
+            <div class="fw-semibold">{{ item.title }}</div>
+            <div class="small text-muted">{{ item.summary }}</div>
+            {% if item.url %}
+            <a href="{{ item.url }}" target="_blank" rel="noopener" class="small text-decoration-none">Apri fonte ufficiale</a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if grouped_entries %}
+    {% for section in grouped_entries %}
+    <div class="apps-section-card">
+      <div class="card-body">
+        <div class="apps-section-head">
+          <div class="apps-section-title">
+            <div class="apps-section-icon"><i class="bi {{ section['icon'] }}"></i></div>
+            <div>
+              <h2 class="h4 mb-1">{{ section['title'] }}</h2>
+              <div class="text-muted">{{ section['description'] }}</div>
+            </div>
+          </div>
+          <span class="badge text-bg-light">{{ section['items']|length }} voci</span>
+        </div>
+        <div class="row g-3">
+          {% for item in section['items'] %}
+          <div class="col-md-6 col-xxl-4">
+            <div class="card apps-item-card">
+              <div class="card-body">
+                <div class="apps-item-head">
+                  <div class="apps-item-title">{{ item.title }}</div>
+                  <span class="badge {{ item.status_badge_class }}">{{ item.status_label }}</span>
+                </div>
+                <div class="apps-item-summary">{{ item.summary }}</div>
+                <div class="small text-muted">{{ item.status_description }}</div>
+                <div class="apps-item-foot">
+                  <a href="{{ item.href }}" class="btn btn-sm btn-primary">{{ item.cta_label }}</a>
+                  {% if item.is_direct %}
+                  <a href="{{ item.detail_url }}" class="btn btn-sm btn-outline-secondary">Scheda</a>
+                  {% else %}
+                  <span class="small text-muted">Scheda interna</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="apps-card">
+    <div class="card-body apps-empty">
+      Nessuna applicazione corrisponde ai filtri selezionati. Prova ad allargare la ricerca o a cambiare area.
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

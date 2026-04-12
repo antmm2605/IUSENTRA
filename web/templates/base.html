@@ -258,7 +258,7 @@
     </div>
 
     {# ---- Sezione: Studio ---- #}
-    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','legal_intelligence','notifiche','pagamenti','preventivi','strumenti_legali') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
+    {% set _st = request.blueprint in ('fatturazione','template_atti','statistiche','legal_intelligence','notifiche','pagamenti','preventivi','strumenti_legali','applicazioni') or request.endpoint in ('tariffario','lista_backup','ripristina_backup') %}
     <button class="sb-toggle {% if _st %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-studio" aria-expanded="{{ 'true' if _st else 'false' }}">
       <span><i class="bi bi-buildings"></i>Studio</span>
@@ -292,6 +292,10 @@
       <a href="{{ url_for('strumenti_legali.index') }}"
          class="nav-link sb-link {% if request.blueprint == 'strumenti_legali' %}active{% endif %}">
         <i class="bi bi-grid-1x2"></i><span class="sb-txt">Strumenti Legali</span>
+      </a>
+      <a href="{{ url_for('applicazioni.index') }}"
+         class="nav-link sb-link {% if request.blueprint == 'applicazioni' %}active{% endif %}">
+        <i class="bi bi-grid-3x3-gap"></i><span class="sb-txt">Applicazioni</span>
       </a>
       <a href="{{ url_for('notifiche.pannello') }}"
          class="nav-link sb-link {% if request.blueprint == 'notifiche' %}active{% endif %}">

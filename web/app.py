@@ -15333,6 +15333,9 @@ read -r -p "Premi Invio per chiudere..." _
     from web.blueprints.strumenti_legali import strumenti_legali as strumenti_legali_bp  # Hub strumenti legali /strumenti-legali/*
     app.register_blueprint(strumenti_legali_bp)
 
+    from web.blueprints.applicazioni import applicazioni as applicazioni_bp  # Catalogo applicazioni /applicazioni/*
+    app.register_blueprint(applicazioni_bp)
+
     from web.blueprints.wizard_pro import wizard_pro_bp  # Wizard Pro /wizard-pro/*
     app.register_blueprint(wizard_pro_bp)
 

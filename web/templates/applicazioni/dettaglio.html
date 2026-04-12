@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.title }}{% endblock %}
+{% block pct_modulo %}applicazioni{% endblock %}
+
+{% block content %}
+<style>
+  .app-detail-shell { display:flex; flex-direction:column; gap:1.25rem; }
+  .app-detail-hero,
+  .app-detail-card,
+  .app-detail-related { border:0; border-radius:24px; box-shadow:0 12px 30px rgba(20,34,52,.08); background:#fff; }
+  .app-detail-hero { padding:1.4rem; background:linear-gradient(135deg,#f8fbff 0%,#ffffff 60%,#eef4ff 100%); }
+  .app-detail-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .72rem; border-radius:999px; background:rgba(13,110,253,.08); color:#0d6efd; font-size:.78rem; font-weight:700; }
+  .app-detail-related .card-body { padding:1rem; }
+  .app-detail-related-item { height:100%; border:1px solid rgba(16,35,61,.08); border-radius:18px; padding:1rem; display:flex; flex-direction:column; gap:.8rem; background:#fff; }
+  @media (max-width: 575.98px) {
+    .app-detail-hero { padding:1.15rem; }
+  }
+</style>
+
+<div class="app-detail-shell">
+  <div class="app-detail-hero">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <a href="{{ url_for('applicazioni.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-2"></i>Torna al catalogo</a>
+      {% if section %}
+      <span class="app-detail-chip"><i class="bi {{ section.icon }}"></i>{{ section.title }}</span>
+      {% endif %}
+      <span class="badge {{ entry.status_badge_class }}">{{ entry.status_label }}</span>
+    </div>
+    <h1 class="h2 mb-2">{{ entry.title }}</h1>
+    <p class="text-muted mb-3">{{ entry.summary }}</p>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{{ entry.href }}" class="btn btn-primary">{{ entry.cta_label }}</a>
+      {% if entry.is_direct %}
+      <a href="{{ entry.detail_url }}" class="btn btn-outline-secondary disabled" aria-disabled="true">Sei nella scheda corrente</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="app-detail-card">
+        <div class="card-body p-4">
+          <div class="fw-semibold mb-2">Come usarla nel gestionale</div>
+          <p class="text-muted mb-3">
+            Questa voce e collocata nell'area <strong>{{ entry.section_title }}</strong> ed e gestita come
+            <strong>{{ entry.status_label|lower }}</strong>. In HACS il pulsante principale ti porta nel modulo
+            piu coerente oggi disponibile, mantenendo il catalogo ordinato e senza scorciatoie fuorvianti.
+          </p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="border rounded-4 p-3 h-100">
+                <div class="small text-muted mb-1">Area di appartenenza</div>
+                <div class="fw-semibold">{{ entry.section_title }}</div>
+                <div class="small text-muted mt-2">{{ entry.section_description }}</div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="border rounded-4 p-3 h-100">
+                <div class="small text-muted mb-1">Percorso operativo</div>
+                <div class="fw-semibold">{{ entry.status_label }}</div>
+                <div class="small text-muted mt-2">{{ entry.status_description }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="app-detail-card">
+        <div class="card-body p-4">
+          <div class="fw-semibold mb-2">Azione consigliata</div>
+          <p class="text-muted mb-3">
+            Apri il modulo collegato per lavorare subito, oppure rientra nel catalogo per filtrare tutta l'area
+            {{ entry.section_title|lower }} insieme alle voci correlate.
+          </p>
+          <div class="d-grid gap-2">
+            <a href="{{ entry.href }}" class="btn btn-primary">{{ entry.cta_label }}</a>
+            <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-outline-secondary">Vedi tutta l'area</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if correlati %}
+  <div class="app-detail-related">
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="fw-semibold">Applicazioni correlate</div>
+        <a href="{{ url_for('applicazioni.index', sezione=entry.section_id) }}" class="btn btn-sm btn-outline-secondary">Apri area completa</a>
+      </div>
+      <div class="row g-3">
+        {% for item in correlati %}
+        <div class="col-md-6 col-xl-4">
+          <div class="app-detail-related-item">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div class="fw-semibold">{{ item.title }}</div>
+              <span class="badge {{ item.status_badge_class }}">{{ item.status_label }}</span>
+            </div>
+            <div class="small text-muted">{{ item.summary }}</div>
+            <div class="mt-auto d-flex gap-2">
+              <a href="{{ item.href }}" class="btn btn-sm btn-primary">{{ item.cta_label }}</a>
+              <a href="{{ item.detail_url }}" class="btn btn-sm btn-outline-secondary">Scheda</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

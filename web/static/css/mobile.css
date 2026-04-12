@@ -239,15 +239,24 @@
    ================================================================ */
 @media (max-width: 575px) {
   .ds-ph {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: start;
     padding: .85rem 1rem;
     gap: .75rem;
     border-radius: var(--mob-r);
     margin-bottom: 1rem;
   }
   .ds-ph-icon {
+    grid-column: 1;
+    grid-row: 1;
     width: 38px; height: 38px;
     font-size: 1.1rem;
     border-radius: var(--mob-r-sm);
+  }
+  .ds-ph-body {
+    grid-column: 2;
+    grid-row: 1;
   }
   .ds-ph-title {
     font-size: 1.05rem;
@@ -257,15 +266,35 @@
     font-size: .75rem;
   }
   .ds-ph-actions {
-    gap: .4rem;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: .5rem;
     width: 100%;
-    margin-top: .1rem;
+    margin-top: .15rem;
+  }
+  .ds-ph-actions > .dropdown {
+    display: block;
+    width: 100%;
   }
   .ds-ph-actions .ds-btn,
-  .ds-ph-actions .btn {
-    flex: 1;
+  .ds-ph-actions .btn,
+  .ds-ph-actions > .dropdown > .btn,
+  .ds-ph-actions > .dropdown > .ds-btn {
+    width: 100%;
     justify-content: center;
     min-height: var(--mob-tap-size);
+    padding: .6rem .85rem;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .ds-ph-actions .d-none.d-sm-inline {
+    display: inline !important;
+  }
+  .ds-ph-actions .badge.d-none.d-sm-inline,
+  .ds-ph-actions .badge.d-sm-inline {
+    display: none !important;
   }
 }
 
@@ -527,7 +556,7 @@
 @media (max-width: 768px) {
   /* Titolo pagina più leggibile */
   .topbar h1 {
-    font-size: .88rem !important;
+    font-size: .84rem !important;
     font-weight: 700 !important;
     letter-spacing: -.01em !important;
     overflow: hidden;
@@ -535,23 +564,132 @@
     white-space: nowrap;
   }
 
+  .topbar {
+    gap: .4rem !important;
+    padding-left: .75rem !important;
+    padding-right: .75rem !important;
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: .3rem !important;
+    min-width: 0;
+  }
+
+  .topbar-actions > * {
+    flex-shrink: 0;
+  }
+
   /* Pulsanti topbar: tap area minima garantita */
   .topbar .btn,
   .topbar button {
-    min-width: var(--mob-tap-size);
-    min-height: var(--mob-tap-size);
+    min-width: 40px;
+    min-height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
 
+  .topbar-actions .btn,
+  .topbar-user-btn {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    flex: 0 0 40px;
+  }
+
   /* Hamburger menu: design migliorato */
   #sb-open {
-    width: 38px !important;
-    height: 38px !important;
+    width: 40px !important;
+    height: 40px !important;
     border-radius: var(--mob-r-sm) !important;
     padding: 0 !important;
     flex-shrink: 0;
+  }
+
+  #htmx-loader {
+    margin: 0 .1rem;
+  }
+}
+
+@media (max-width: 575px) {
+  .topbar {
+    gap: .35rem !important;
+    padding-left: .6rem !important;
+    padding-right: .6rem !important;
+  }
+
+  .topbar h1 {
+    font-size: .8rem !important;
+  }
+
+  .topbar-actions {
+    gap: .25rem !important;
+  }
+
+  .topbar-actions .btn,
+  .topbar-user-btn,
+  #sb-open {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    flex-basis: 38px;
+  }
+}
+
+@media (max-width: 768px) {
+  .agenda-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: .75rem !important;
+    align-items: stretch !important;
+  }
+
+  .agenda-toolbar-group {
+    display: grid !important;
+    width: 100%;
+    gap: .35rem;
+    background: transparent;
+  }
+
+  .agenda-toolbar-group--vista {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .agenda-toolbar-group--nav {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+
+  .agenda-toolbar-group .btn {
+    border-radius: 10px !important;
+    min-height: 40px;
+    padding: .45rem .5rem;
+    white-space: nowrap;
+  }
+
+  .agenda-toolbar-label {
+    display: block;
+    width: 100%;
+    font-size: .84rem !important;
+    line-height: 1.25;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 575px) {
+  .agenda-toolbar-group .d-none.d-sm-inline {
+    display: inline !important;
+  }
+
+  .agenda-toolbar-group .btn {
+    padding: .5rem .35rem;
+    font-size: .8rem;
   }
 }
 

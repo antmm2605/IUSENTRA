@@ -98,8 +98,8 @@
 <div class="card shadow-sm mb-3">
   <div class="card-body py-2">
     {# Riga 1: switcher vista + navigazione #}
-    <div class="d-flex flex-wrap align-items-center gap-2">
-      <div class="btn-group btn-group-sm">
+    <div class="d-flex flex-wrap align-items-center gap-2 agenda-toolbar">
+      <div class="btn-group btn-group-sm agenda-toolbar-group agenda-toolbar-group--vista">
         <a href="{{ url_for('agenda_view') }}?vista=giorno&offset={{ offset if vista=='giorno' else 0 }}"
            class="btn btn-outline-primary {% if vista=='giorno' %}active{% endif %}"
            title="Vista giorno">
@@ -117,7 +117,7 @@
         </a>
       </div>
 
-      <div class="btn-group btn-group-sm">
+      <div class="btn-group btn-group-sm agenda-toolbar-group agenda-toolbar-group--nav">
         <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset={{ offset - 1 }}"
            class="btn btn-outline-secondary" title="Precedente"><i class="bi bi-chevron-left"></i></a>
         <a href="{{ url_for('agenda_view') }}?vista={{ vista }}&offset=0"
@@ -126,7 +126,7 @@
            class="btn btn-outline-secondary" title="Successivo"><i class="bi bi-chevron-right"></i></a>
       </div>
 
-      <span class="fw-semibold text-primary small">
+      <span class="fw-semibold text-primary small agenda-toolbar-label">
         {% if vista == 'giorno' %}
           {{ giorno.strftime('%a %d %b %Y') }}
         {% elif vista == 'settimana' %}
